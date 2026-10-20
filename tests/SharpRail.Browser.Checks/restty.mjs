@@ -346,7 +346,7 @@ try {
         const initial = JSON.parse(await invoke('ProseState'));
         assert.equal(measurement.DynamicCode, true, 'Hybrid AOT must retain interpreted managed code support');
         assert.equal(measurement.JsonReflection, true, 'Browser JSON reflection must remain enabled');
-        assert.equal(initial.MeasuredBlocks, paragraphs + 1, 'Every block must have an exact measured height');
+        assert.ok(initial.MeasuredBlocks < 40, 'Opening must estimate offscreen heights instead of measuring every block');
         assert.ok(initial.MountedBlocks < 40, 'Only viewport blocks should remain mounted');
         assert.ok(initial.Extent > initial.Viewport);
         if (paragraphs === 1024) {
@@ -356,16 +356,16 @@ try {
         for (const fraction of [.25, .8, 1, .5, 0]) {
           await invoke('ScrollProse', fraction); await frame();
           const state = JSON.parse(await invoke('ProseState'));
-          assert.ok(Math.abs(state.Extent - initial.Extent) < 1, 'Realization changed the exact scroll extent');
-          assert.ok(Math.abs(state.Offset - (initial.Extent - initial.Viewport) * fraction) < 1, 'Realization moved the requested offset');
-          assert.equal(state.MeasuredBlocks, paragraphs + 1);
+          // Realized blocks refine their estimates, so the extent may change while the offset stays in range.
+          assert.ok(state.Extent > state.Viewport && state.Offset >= 0 && state.Offset <= state.Extent - state.Viewport + 1, 'Scrolling left the estimated extent');
+          assert.ok(state.MeasuredBlocks <= paragraphs + 1);
           assert.ok(state.MountedBlocks < 40);
         }
         console.log('PROSE', JSON.stringify({ ...measurement, ...initial }));
       }
     } finally { await invoke('RestoreProse'); }
     assert.deepEqual(errors, []);
-    console.log('PASS exact browser prose layout, scrolling and 646 KB first-frame budget');
+    console.log('PASS estimated browser prose layout, scrolling and 646 KB first-frame budget');
   } else if (process.argv.includes('--settings')) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
       const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');

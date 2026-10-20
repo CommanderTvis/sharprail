@@ -32,14 +32,26 @@ public sealed partial class MarkdownPreview
 
     private Control Sourced(Control control, Markdig.Syntax.Block block, bool selection = true, Markdig.Syntax.Block? end = null)
     {
-        var last = (end ?? block).Line;
+        var (start, last) = (block.Line + 1, SourceRange(end ?? block).End);
+        return SourcedLines(control, start, last, selection);
+    }
+
+    /// <summary>The one-based first and last source lines of a block.</summary>
+    private (int Start, int End) SourceRange(Markdig.Syntax.Block block)
+    {
+        var last = block.Line;
         if (Document.LineStartIndexes is { } starts)
         {
-            var found = starts.BinarySearch((end ?? block).Span.End);
+            var found = starts.BinarySearch(block.Span.End);
             last = Math.Max(last, found >= 0 ? found : ~found - 1);
         }
-        if (selection) control.SetValue(SourceLinesProperty, (block.Line + 1, last + 1));
-        sourceBlocks.Add((control, block.Line + 1, last + 1));
+        return (block.Line + 1, last + 1);
+    }
+
+    private Control SourcedLines(Control control, int start, int end, bool selection = true)
+    {
+        if (selection) control.SetValue(SourceLinesProperty, (start, end));
+        sourceBlocks.Add((control, start, end));
         return control;
     }
 
@@ -224,8 +236,23 @@ public sealed partial class MarkdownPreview
 
     private static int Length(SelectableTextBlock block) => block.Text?.Length ?? block.Inlines?.Text?.Length ?? 0;
 
-    public string SelectedText => string.Join("\n\n", selectedBlocks.Where(Visible)
-        .OrderBy(block => selectableIndexes.GetValueOrDefault(block, int.MaxValue)).Select(Words));
+    public string SelectedText
+    {
+        get
+        {
+            // Chunks of one code block continue each other's lines; every other pair of blocks is a paragraph apart.
+            var text = new System.Text.StringBuilder();
+            var previous = int.MinValue;
+            foreach (var block in selectedBlocks.Where(Visible).OrderBy(block => selectableIndexes.GetValueOrDefault(block, int.MaxValue)))
+            {
+                var index = selectableIndexes.GetValueOrDefault(block, int.MaxValue);
+                if (previous != int.MinValue) text.Append(Continues(block) && index == previous + 1 ? "\n" : "\n\n");
+                text.Append(Words(block));
+                previous = index;
+            }
+            return text.ToString();
+        }
+    }
 
     // A document block counts its links and images as their words; any other block's selection is its own text.
     private static string Words(SelectableTextBlock block) => block is DocumentText document ? document.Selection : block.SelectedText;

@@ -137,20 +137,30 @@ The list preserves keyboard navigation and exposes tree/tree-item automation ide
 selection and expand/collapse providers. File operations and spec navigation remain callbacks
 owned by their respective modules.
 
-Markdown documents with more than 64 top-level blocks keep block content outside the
-mounted control tree and arrange only the viewport through a virtualizing panel. Block heights
-are measured at the current document width; scrolling does not revise estimated heights or
-change the document extent. Each block is briefly mounted for measurement so inherited styles
-and templates contribute their actual height, then offscreen text layouts are released. Cached
-sizes avoid whole-document text layout on scroll. Opening and width changes require one full
-measurement pass; completed images and diagrams invalidate the geometry. Detached
-document text releases its shaped-text layout cache. Content remains available to whole-document
-selection, source-line reporting and Find; anchors and search results realize their block before
-scrolling to text. Preview and rendered diffs share this path, including expanded unchanged blocks.
+Markdown documents with more than 32 top-level blocks, or with any split block, keep block content
+outside the mounted control tree and arrange only the viewport through a virtualizing panel.
+Top-level tables with more than 50 body rows, lists with more than 100 items and code blocks with
+more than 100 lines render as consecutive chunks of that size, so virtualization reaches inside a
+single large block. Table chunks share fixed column widths estimated from cell text (100–360 px) and
+the header row stays in the first chunk; list numbering continues across chunks; a code block keeps
+one Copy, on its first chunk, that copies the whole block, and every chunk is as wide as the longest
+line. Chunks of one table or code block share their horizontal offset; only the last shows the
+horizontal scroll bar. Nested blocks never split.
+
+Opening and width changes measure nothing offscreen. Unrealized blocks use estimates: a chunk's
+row or line count times its line height, otherwise the block's text length at the current width,
+or the height measured at the previous width. Realized blocks are measured and replace their
+estimates, so scrolling may revise heights and the document extent. Realized blocks are scroll-anchor
+candidates: a correction above the reader moves the extent, not the visible text. Completed images and
+diagrams mark heights for remeasurement when next realized. Detached document text releases its
+shaped-text layout cache. Code text collects its runs before attaching them, so building a chunk
+stays linear in its length. Content remains available to whole-document selection, source-line
+reporting and Find; each chunk reports its own source lines, and selected code chunks join with one
+line break rather than a paragraph break. Anchors, search results and source-line reveals realize
+their block or chunk before scrolling to text. Preview and rendered diffs share this path; an
+expanded run of unchanged blocks joins the document as its own top-level blocks and chunks.
 This reuses the existing rich-text drawing and interaction behavior rather than introducing a
-second Markdown renderer. Virtualization is between top-level blocks: a single large table,
-list or code block still uses its existing internal layout, and content/media storage is not
-bounded by the viewport.
+second Markdown renderer. Content and media storage is not bounded by the viewport.
 
 Selection gestures index document blocks once at the start. Pointer hit-testing visits mounted
 text only; extending or shrinking a drag updates changed ranges, while selected text and source
@@ -359,6 +369,24 @@ allocation over the updates changed from 19,926.43 to 149.55 decimal MB. One bas
 fresh-process run establish a directional improvement for that fixture, not current browser speed,
 whole-app memory or native latency. Parsing, retained content and long-paragraph reflow remain
 proportional to document size; later exact-height scrolling changes were not part of these measurements.
+
+The 2026-10-20 chunking comparison ran `--rendering-bench markdown-large` (2,000 prose paragraphs
+around a 5,000-row three-column table and a 20,000-line code block) and the 2,000-paragraph
+`markdown` surface in an 800×600 headless Skia window. The baseline was the previous commit with only
+this fixture added. Runs alternated baseline and chunked builds as fresh Release processes on the same
+machine while other workspaces were building, so absolute times are noisy. Open is construction plus
+the first captured frame; scroll steps jump through the whole extent in 120 frames.
+| Surface (runs base/chunked) | Open ms | Open allocated | Scroll median / p95 ms | Scroll allocated |
+| --- | --- | --- | --- | --- |
+| `markdown-large` (2/3) | 472,070–792,637 → 1,482–3,203 | 502.6 GB → 0.60 GB | 40.5–55.1 / 87.8–198.4 → 21.2–57.3 / 79.6–189.5 | 1.16 GB → 0.41 GB |
+| `markdown` (3/3) | 1,191–1,581 → 235–262 | 235 MB → 55 MB | 4.2–5.2 / 7.7–12.9 → 9.0–13.2 / 16.1–25.0 | 26 MB → 35 MB |
+
+Most of the large-document gain comes from attaching code runs once: the baseline built its single
+20,000-line code text by appending to an attached inline collection. Prose scrolling in small steps
+is slower than the baseline because blocks are now measured as they are first realized instead of on
+open; jumps across the large document realize new chunks every frame. Construction of all block
+controls and parsing remain proportional to document size. Baseline large runs took 8–13 minutes each
+under a machine load average above 100, so only two completed; the remainder was stopped.
 
 ## Semantic editor colors
 

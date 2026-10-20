@@ -35,6 +35,11 @@ timeouts include the current screen and a bounded tail of raw output.
 selection and source spans, Find and anchors, plus virtualized tree navigation,
 recycled row actions, bounded icon construction, provider invalidation and automation expansion.
 File-icon UI checks cover shared SVG tint isolation and lifetime through sibling detach/remount.
+`--markdown-chunks` isolates split tables, lists and code blocks: chunk counts, shared table
+column widths, header placement, continued numbering, one Copy, Select All across chunks with
+code chunks joined line by line, Find and source-line reveal inside offscreen chunks, scroll
+anchoring while estimates above the viewport are corrected, and diff expansion inserting chunks.
+It also runs with `--drawn-rendering` and the default gate.
 `--drawn-trees` selects just the tree
 portion; both belong to the `drawn-rendering` case in the full gate. Existing Files,
 Specs and graph cases continue exercising actual pointer input and host actions.
@@ -45,12 +50,14 @@ accepted read cannot observe the change that the fixture intends to reject.
 Double-clicking a change row waits for its standalone diff tab before querying its content;
 the first click can already mount the review's embedded diffs while that tab is loading.
 
-`--rendering-bench markdown|markdown-diff|markdown-selection|graph|files|files-mixed|specs` is an opt-in measurement
+`--rendering-bench markdown|markdown-large|markdown-diff|markdown-selection|graph|files|files-mixed|specs` is an opt-in measurement
 fixture, excluded from the gate and run only when measurement is requested. Each
 scrolling process mounts 2,000 blocks or rows, captures actual headless Skia frames and
 scrolls 120 steps. It reports mount time/allocations, retained managed-memory delta
 after collection, process resident memory, mounted visual/logical counts and scroll
 frame median/p95/allocations. Screenshots go to disposable `.bench/rendering`.
+`markdown-large` adds a 5,000-row table and a 20,000-line code block to the 2,000 paragraphs,
+reports construction separately and scrolls through the whole extent.
 `files` uses C# files; `files-mixed` alternates five file types with every seventh entry ignored.
 These synthetic results are not native presentation latency or whole-app RAM savings;
 timing requires attention to concurrent workloads. Blank or non-scrolling surfaces fail.

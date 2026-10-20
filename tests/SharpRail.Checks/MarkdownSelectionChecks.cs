@@ -154,10 +154,13 @@ internal static class MarkdownSelectionChecks
                 var offset = (extent - preview.Viewport.Height) * fraction;
                 preview.Offset = new Vector(0, offset);
                 Frame(window);
-                Require(Math.Abs(preview.Extent.Height - extent) < 1,
-                    "Scrolling mixed-height Markdown must preserve the document extent and thumb size.");
-                Require(Math.Abs(preview.Offset.Y - offset) < 1,
-                    "Realizing Markdown blocks must not move the requested scroll offset.");
+                // Realized blocks replace their estimated heights; once settled, further frames move nothing.
+                var (settledOffset, settledExtent) = (preview.Offset.Y, preview.Extent.Height);
+                Frame(window);
+                Require(Math.Abs(preview.Extent.Height - settledExtent) < 1 && Math.Abs(preview.Offset.Y - settledOffset) < 1,
+                    "Settled Markdown estimates must not keep moving the extent or offset.");
+                Require(preview.Offset.Y >= 0 && preview.Offset.Y <= preview.Extent.Height - preview.Viewport.Height + 1,
+                    "Corrected estimates keep the scroll offset inside the document.");
                 Require(preview.GetVisualDescendants().OfType<SelectableTextBlock>().Count() < 40,
                     "Stable scrolling must retain viewport-only block mounting.");
             }
@@ -167,9 +170,8 @@ internal static class MarkdownSelectionChecks
             extent = preview.Extent.Height;
             preview.Offset = new Vector(0, extent - preview.Viewport.Height);
             Frame(window);
-            Require(Math.Abs(preview.Extent.Height - extent) < 1 &&
-                preview.GetVisualDescendants().OfType<SelectableTextBlock>().Any(text => text.Inlines?.Text?.Contains("Wrapped paragraph", StringComparison.Ordinal) == true),
-                "After reflow, scrolling to the bottom preserves the new extent and realizes the final blocks.");
+            Require(preview.GetVisualDescendants().OfType<SelectableTextBlock>().Any(text => text.Inlines?.Text?.Contains("Wrapped paragraph", StringComparison.Ordinal) == true),
+                "After reflow, scrolling to the bottom realizes the final blocks.");
         }
         finally { window.Close(); window.Content = null; }
     }

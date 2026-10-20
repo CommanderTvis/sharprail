@@ -136,8 +136,9 @@ do not describe the current main tree or close platform acceptance.
 Viewport/drawn-row behavior is implemented; its historical surface measurements are scoped evidence. The user-authorized synthetic
 measurements and their tradeoffs are recorded in the [UI kit spec](src/SharpRail.Plugins.UI.Kit/SPEC.md#recorded-large-document-measurement-limits). They do not establish
 native presentation latency or whole-app RAM savings. The measured Files allocation tradeoff and graph resident-memory limit do not imply whole-app savings.
-Markdown virtualization is between top-level blocks, with full content retained for
-selection and Find; a single large list/table/code block and media storage remain
+Markdown virtualization is between top-level blocks and chunks of large top-level
+tables, lists and code blocks, from estimated heights refined on realization, with full
+content retained for selection and Find; nested large blocks and media storage remain
 unbounded internally. Native screen-reader and physical Android acceptance, packaging
 and a running-app review have not been performed for this change.
 

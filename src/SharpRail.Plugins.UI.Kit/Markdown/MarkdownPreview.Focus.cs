@@ -100,8 +100,11 @@ public sealed partial class MarkdownPreview
         }
         foreach (var (start, count, hidden) in DiffFocus.Segments(focus.Blocks))
         {
-            IEnumerable<Control> Shown() => Enumerable.Range(start, count).Where(index => Document[index] is not YamlFrontMatterBlock).Select(index =>
-                Sourced(Document[index] is ListBlock list && focus.Items.TryGetValue(index, out var items) ? FocusedList(list, items, index, focus, live) : Render(Document[index]), Document[index]));
+            IEnumerable<Control> Shown() => Enumerable.Range(start, count).Where(index => Document[index] is not YamlFrontMatterBlock).SelectMany(index =>
+                Document[index] is ListBlock list && focus.Items.TryGetValue(index, out var items) ? [Sourced(FocusedList(list, items, index, focus, live), list)]
+                : Chunks(Document[index]) ?? [Sourced(Render(Document[index]), Document[index])]);
+            // An expanded run joins the document as its own top-level blocks, so its large blocks virtualize too.
+            if (hidden && focus.Expanded.Contains("b" + start)) { live.Add("b" + start); body.Children.AddRange(Shown()); continue; }
             if (!hidden) { body.Children.AddRange(Shown()); continue; }
             var heading = Enumerable.Range(start, count).Select(index => Document[index]).OfType<HeadingBlock>().LastOrDefault();
             var label = $"{count} unchanged {(count == 1 ? "block" : "blocks")}" + (heading?.Inline is { } title ? " · " + Plain(title) : "");
@@ -118,7 +121,7 @@ public sealed partial class MarkdownPreview
     private Control Collapsed(string key, string label, DiffFocus focus, HashSet<string> live, Func<IEnumerable<Control>> content)
     {
         live.Add(key);
-        Control Expanded()
+        StackPanel Expanded()
         {
             var panel = new StackPanel { Margin = new Thickness(0, 12) };
             panel.Children.AddRange(content());
@@ -144,7 +147,15 @@ public sealed partial class MarkdownPreview
         {
             if (Content is MarkdownBlockList blocks && blocks.Blocks.Contains(button))
             {
-                blocks.Replace(button, Expanded());
+                var panel = Expanded();
+                var parts = panel.Children.ToList();
+                panel.Children.Clear();
+                if (parts.Count > 0)
+                {
+                    parts[0].Margin = new Thickness(parts[0].Margin.Left, Math.Max(12, parts[0].Margin.Top), parts[0].Margin.Right, parts[0].Margin.Bottom);
+                    parts[^1].Margin = new Thickness(parts[^1].Margin.Left, parts[^1].Margin.Top, parts[^1].Margin.Right, Math.Max(12, parts[^1].Margin.Bottom));
+                }
+                blocks.Replace(button, parts);
                 selectionCatalog = null;
                 focus.Expanded.Add(key);
                 focus.ExpandedChanged?.Invoke();

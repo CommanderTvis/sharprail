@@ -18,6 +18,7 @@ internal static class DrawnRenderingChecks
     internal static void Run()
     {
         Markdown();
+        MarkdownChunks();
         MarkdownSelectionChecks.Run();
         Trees();
     }
@@ -87,6 +88,88 @@ internal static class DrawnRenderingChecks
         }
         finally { window.Close(); }
         Console.WriteLine("PASS virtual Markdown preview/diff: bounded mounted blocks, offscreen selection, source spans, links, find and anchors");
+    }
+
+    // A large table, list and code block split into chunks the block list virtualizes, read as whole blocks.
+    internal static void MarkdownChunks()
+    {
+        static string Large(string last) =>
+            "# Chunks\n\nOpening paragraph.\n\n| Name | Value |\n| --- | --- |\n" +
+            string.Concat(Enumerable.Range(0, 1000).Select(row => $"| Row {row} | {row * 3} |\n")) + "\n" +
+            string.Concat(Enumerable.Range(1, 1000).Select(item => $"{item}. item {item}\n")) + "\n```text\n" +
+            string.Join("\n", Enumerable.Range(0, 1000).Select(line => $"line {line}")) + "\n```\n\n" + last + "\n";
+        var source = Large("Closing paragraph.");
+        var context = new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true);
+        using var preview = new MarkdownPreview(source, "README.md", context);
+        var find = new FindBar(() => preview);
+        var grid = new Grid(); grid.Children.Add(preview); grid.Children.Add(find);
+        var window = new Window { Width = 800, Height = 600, Content = grid, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window);
+            var list = preview.Content as MarkdownBlockList ?? throw new InvalidOperationException("Chunked blocks did not make the document virtual: " + string.Join(",", preview.Document.Select(block => block.GetType().Name + ":" + (block as Markdig.Syntax.ContainerBlock)?.Count)));
+            var blocks = list.Blocks.ToArray();
+            Require(blocks.Length == 3 + 20 + 10 + 10, $"Large blocks split into chunks: {blocks.Length} top-level blocks.");
+            Require(list.Children.Count < 8, $"Only chunks near the viewport mount: {list.Children.Count}.");
+            var tables = blocks.Select(block => (block as ScrollViewer)?.Content as Grid).OfType<Grid>().ToArray();
+            Require(tables.Length == 20 && tables.All(table => table.ColumnDefinitions.Select(column => column.Width).SequenceEqual(tables[0].ColumnDefinitions.Select(column => column.Width))),
+                "Table chunks share their column widths.");
+            Require(tables[0].Children.OfType<Border>().Count(cell => cell.Background == Ui.Elevated) == 2 && tables[1].Children.OfType<Border>().All(cell => cell.Background != Ui.Elevated),
+                "The header row stays in the first table chunk only.");
+            Require(blocks.SelectMany(block => block.GetLogicalDescendants()).OfType<TextBlock>().Any(text => text.Text == "1000."),
+                "List numbering continues across chunks.");
+            Require(blocks.SelectMany(block => block.GetLogicalDescendants()).OfType<Button>()
+                .Count(button => button.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Copy")) == 1,
+                "A split code block keeps one Copy button.");
+            var first = preview.GetVisualDescendants().OfType<SelectableTextBlock>().First();
+            first.Focus();
+            window.KeyPress(Key.A, OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control, PhysicalKey.A, null);
+            var lines = source.Split('\n').Length - 1;
+            Require(preview.SelectedText.Contains("Row 999", StringComparison.Ordinal) && preview.SelectedText.Contains("item 1000", StringComparison.Ordinal) &&
+                preview.SelectedText.Contains("line 199\nline 200\nline 201", StringComparison.Ordinal) && preview.SelectedText.Contains("Closing paragraph", StringComparison.Ordinal) &&
+                preview.SelectedLines is { Start: 1 } selected && selected.End >= lines - 1,
+                $"Select All reads every chunk, joining code chunks line by line: lines={preview.SelectedLines}.");
+            find.Open();
+            var input = find.GetLogicalDescendants().OfType<TextBox>().Single();
+            input.Text = "line 777"; Frame(window);
+            Require(!find.Missed && preview.Offset.Y > 1000 && preview.TextBlocks().Any(text => text.SelectedText == "line 777") && list.Children.Count < 8,
+                "Find realizes a match inside an offscreen code chunk.");
+            input.Text = "Row 512"; Frame(window);
+            Require(!find.Missed && preview.TextBlocks().Any(text => text.SelectedText == "Row 512"), "Find realizes a match inside an offscreen table chunk.");
+            find.Close();
+            preview.Offset = new Vector(0, (preview.Extent.Height - preview.Viewport.Height) * 0.6); Frame(window); Frame(window);
+            var anchor = list.Children.First(child => child.TranslatePoint(default, preview)!.Value.Y is var top && top <= 0 && top + child.Bounds.Height > 0);
+            var before = anchor.TranslatePoint(default, preview)!.Value.Y;
+            preview.Offset = new Vector(0, preview.Offset.Y - 150); Frame(window);
+            var after = anchor.TranslatePoint(default, preview)?.Y;
+            Require(after is { } moved && Math.Abs(moved - before - 150) < 1,
+                $"Correcting estimates above the reader keeps the text in place: before={before}, after={after}.");
+            preview.RevealSourceLine(source.Split('\n').ToList().FindIndex(line => line == "line 900") + 1); Frame(window);
+            Require(preview.GetVisualDescendants().OfType<SelectableTextBlock>().Any(text => text.Inlines?.Text?.Contains("line 900", StringComparison.Ordinal) == true),
+                "Source-line reveal realizes the chunk holding the line.");
+        }
+        finally { window.Close(); }
+        var previous = Large("Closing paragraph.");
+        var merged = MarkdownDiff.Merge(previous, Large("Closing paragraph, changed."));
+        var document = MarkdownPreview.Parse(merged);
+        using var diff = new MarkdownPreview(document, "README.md", context, renderDiagrams: false,
+            focus: DiffFocus.Create(previous, merged, document, new HashSet<string>()));
+        window = new Window { Width = 800, Height = 600, Content = diff, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window);
+            var collapsed = diff.GetVisualDescendants().OfType<Button>().First(button => button.Name == "RenderedDiffCollapsed");
+            var shown = (diff.Content as MarkdownBlockList)?.Blocks.Count() ?? 1;
+            collapsed.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Frame(window);
+            var list = diff.Content as MarkdownBlockList ?? throw new InvalidOperationException("An expanded run with large blocks did not virtualize.");
+            Require(list.Blocks.Count() == shown - 1 + 2 + 20 && list.Children.Count < 12, $"Expanding unchanged blocks inserts their chunks as top-level blocks: {list.Blocks.Count()} blocks, {list.Children.Count} mounted.");
+            Require(diff.TextBlocks().Any(text => text.Inlines?.Text == "Row 999"), "Expanded chunks join the document's text.");
+        }
+        finally { window.Close(); }
+        Console.WriteLine("PASS chunked Markdown: split tables, lists and code virtualize with whole-block selection, find, source lines, anchoring and diff expansion");
     }
 
     internal static void Trees()

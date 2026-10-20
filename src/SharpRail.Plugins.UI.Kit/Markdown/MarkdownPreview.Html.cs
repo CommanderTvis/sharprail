@@ -183,13 +183,17 @@ public sealed partial class MarkdownPreview
     /// Renders sibling blocks. A &lt;details&gt; that Markdown splits across blocks (its body is ordinary Markdown
     /// between two raw HTML blocks) becomes one disclosure holding everything up to its close.
     /// </summary>
-    private IEnumerable<Control> RenderBlocks(IReadOnlyList<Block> blocks)
+    private IEnumerable<Control> RenderBlocks(IReadOnlyList<Block> blocks, bool chunk = false)
     {
         for (var index = 0; index < blocks.Count; index++)
         {
             if (blocks[index] is YamlFrontMatterBlock) continue;
             if (blocks[index] is not HtmlBlock html || HtmlTokens(html.Lines.ToString()) is not [{ Tag: "details", Closing: false } open, ..] tokens)
-            { yield return Sourced(Render(blocks[index]), blocks[index]); continue; }
+            {
+                if (chunk && Chunks(blocks[index]) is { } parts) foreach (var part in parts) yield return part;
+                else yield return Sourced(Render(blocks[index]), blocks[index]);
+                continue;
+            }
             var depth = Depth(tokens);
             var inner = new List<Block>();
             var tail = new List<HtmlToken>();

@@ -81,11 +81,11 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             if (Document.OfType<YamlFrontMatterBlock>().FirstOrDefault() is { } yaml) Sourced(properties, yaml, selection: false);
             body.Children.Add(properties);
         }
-        if (focus is null) body.Children.AddRange(RenderBlocks(Document));
+        if (focus is null) body.Children.AddRange(RenderBlocks(Document, chunk: true));
         else RenderFocused(body, focus);
         RefreshSpecLinks();
         CollapseMargins(body);
-        Content = body.Children.Count > 64 ? new MarkdownBlockList(body) : body;
+        Content = body.Children.Count > VirtualizeAbove || chunked ? new MarkdownBlockList(body) : body;
         WireSelection();
         Selectable();
     }
@@ -185,27 +185,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                 for (var row = 0; row < rows.Length; row++)
                 {
                     grid.RowDefinitions.Add(new(GridLength.Auto));
-                    for (var column = 0; column < rows[row].Count; column++)
-                    {
-                        var cell = (TableCell)rows[row][column];
-                        var contents = Container(cell);
-                        foreach (var child in contents.Children)
-                        {
-                            child.Margin = new Thickness(0);
-                            if (rows[row].IsHeader && child is SelectableTextBlock cellText) cellText.FontWeight = FontWeight.SemiBold;
-                        }
-                        var border = new Border
-                        {
-                            Child = contents,
-                            BorderBrush = Ui.BorderBrush,
-                            BorderThickness = new Thickness(1),
-                            Padding = new Thickness(8, 4),
-                            Background = rows[row].IsHeader ? Ui.Elevated : (row % 2 == 0 ? Ui.Surface : Ui.Sidebar),
-                            MinWidth = 100,
-                            MaxWidth = 360
-                        };
-                        Ui.Place(grid, border, row, column);
-                    }
+                    for (var column = 0; column < rows[row].Count; column++) Ui.Place(grid, TableCellView(rows[row], row, column), row, column);
                 }
                 return new ScrollViewer
                 {
@@ -657,22 +637,25 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             LineHeight = Typography.CodeDocument.LineHeight
         };
         var lines = text.Split('\n');
+        // Runs collect detached and attach once: every run added to an attached collection re-invalidates the block.
+        var runs = new InlineCollection();
         for (var index = 0; index < lines.Length; index++)
         {
             var line = lines[index];
             var cursor = 0;
             foreach (Match match in Regex.Matches(line, @"(""[^""]*""|'[^']*'|//.*$|\b(?:class|public|private|return|var|using|const|function|async|await|if|else|true|false|null)\b|\b\d+\b)"))
             {
-                block.Inlines!.Add(new Run(line[cursor..match.Index]));
-                block.Inlines.Add(new Run(match.Value)
+                runs.Add(new Run(line[cursor..match.Index]));
+                runs.Add(new Run(match.Value)
                 {
                     Foreground = match.Value.StartsWith("//", StringComparison.Ordinal) ? Ui.Hint :
                     match.Value.StartsWith('"') || match.Value.StartsWith('\'') ? Ui.Success : Ui.Accent
                 });
                 cursor = match.Index + match.Length;
             }
-            block.Inlines!.Add(new Run(index < lines.Length - 1 ? line[cursor..] + "\n" : line[cursor..]));
+            runs.Add(new Run(index < lines.Length - 1 ? line[cursor..] + "\n" : line[cursor..]));
         }
+        block.Inlines = runs;
         return block;
     }
 }

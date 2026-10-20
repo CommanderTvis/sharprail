@@ -32,7 +32,7 @@ internal static class RenderingBenchmarks
         var source = string.Join("\n\n", Enumerable.Range(0, count).Select(index =>
             $"Paragraph {index}: rendering **formatted text** with a [relative link](notes.txt) and enough words to wrap across the reading column."));
         var markdownContext = new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true);
-        var document = MarkdownPreview.Parse(source);
+        var document = MarkdownPreview.Parse(surface == "markdown-large" ? LargeMarkdown() : source);
         var merged = MarkdownDiff.Merge(source, source.Replace("formatted text", "updated formatted text", StringComparison.Ordinal));
         var diff = MarkdownPreview.Parse(merged);
         var focus = DiffFocus.Create(source, merged, diff, new HashSet<string>());
@@ -54,12 +54,12 @@ internal static class RenderingBenchmarks
         }
         Control Create() => surface switch
         {
-            "markdown" => new MarkdownPreview(document, "README.md", markdownContext),
+            "markdown" or "markdown-large" => new MarkdownPreview(document, "README.md", markdownContext),
             "markdown-diff" => new MarkdownPreview(diff, "README.md", markdownContext, renderDiagrams: false, focus: focus),
             "graph" => new GraphPanel(context, "bench"),
             "specs" => (Control)Activator.CreateInstance(typeof(SpecSync).Assembly.GetType("SharpRail.Plugins.SpecDialect.SpecsPanel")!, context, sync, "bench")!,
             "files" or "files-mixed" => CreateFiles(),
-            _ => throw new ArgumentException("Expected markdown, markdown-diff, graph, files, files-mixed or specs.", nameof(surface))
+            _ => throw new ArgumentException("Expected markdown, markdown-large, markdown-diff, graph, files, files-mixed or specs.", nameof(surface))
         };
         using (var warm = new MarkdownPreview("# Warmup\n\nWarm **text**", "warm.md", markdownContext))
         {
@@ -71,6 +71,8 @@ internal static class RenderingBenchmarks
         var allocated = GC.GetTotalAllocatedBytes();
         var timer = Stopwatch.StartNew();
         var view = Create();
+        var constructMs = timer.Elapsed.TotalMilliseconds;
+        var constructAllocated = GC.GetTotalAllocatedBytes() - allocated;
         var host = new Window { Width = surface.StartsWith("markdown", StringComparison.Ordinal) ? 800 : 360, Height = 600, Content = view, Background = Ui.Surface };
         host.Show(); Frame(host);
         var mountMs = timer.Elapsed.TotalMilliseconds;
@@ -88,7 +90,9 @@ internal static class RenderingBenchmarks
         for (var index = 0; index < 120; index++)
         {
             timer.Restart();
-            scroll.Offset = new Vector(0, Math.Min((index + 1) * 96, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)));
+            // The large document jumps through its whole extent so that every kind of chunk is realized.
+            var target = surface == "markdown-large" ? (scroll.Extent.Height - scroll.Viewport.Height) * (index + 1) / 120 : (index + 1) * 96;
+            scroll.Offset = new Vector(0, Math.Min(target, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height)));
             Frame(host);
             frames.Add(timer.Elapsed.TotalMilliseconds);
         }
@@ -101,6 +105,8 @@ internal static class RenderingBenchmarks
         {
             surface,
             count,
+            constructMs,
+            constructAllocated,
             mountMs,
             mountAllocated,
             retainedManagedBytes = retained,
@@ -115,6 +121,20 @@ internal static class RenderingBenchmarks
         }));
         host.Close(); host.Content = null;
         (view as IDisposable)?.Dispose();
+    }
+
+    // 2,000 prose blocks around a 5,000-row table and a 20,000-line code block.
+    private static string LargeMarkdown()
+    {
+        var text = new System.Text.StringBuilder();
+        for (var index = 0; index < 1000; index++) text.Append($"Paragraph {index}: rendering **formatted text** with a [relative link](notes.txt) and enough words to wrap.\n\n");
+        text.Append("| Name | Value | Notes |\n| --- | --- | --- |\n");
+        for (var row = 0; row < 5000; row++) text.Append($"| Row {row} | {row * 7} | cell text for row {row} |\n");
+        text.Append("\n```cs\n");
+        for (var line = 0; line < 20000; line++) text.Append($"var value{line} = Compute({line}); // line {line}\n");
+        text.Append("```\n\n");
+        for (var index = 1000; index < 2000; index++) text.Append($"Paragraph {index}: rendering **formatted text** with a [relative link](notes.txt) and enough words to wrap.\n\n");
+        return text.ToString();
     }
 
     private static void Frame(Window window)

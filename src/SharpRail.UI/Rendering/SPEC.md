@@ -163,7 +163,8 @@ unavailability message. Rendered Markdown diffs render unchanged Mermaid fences 
   layout drives real inline or before/after source editors, including after resizing, and survives
   file navigation and Preview/Source switches. Changing source layout leaves rendered previews intact.
 Large rendered Markdown previews and diffs share the UI kit's block virtualization,
-including whole-document selection/search and offscreen anchor realization; see the
+including chunked large tables/lists/code blocks, estimated offscreen heights, expanded unchanged
+runs as top-level blocks, whole-document selection/search and offscreen anchor realization; see the
 [kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md#reaches-replaced-by-parameters).
 
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
