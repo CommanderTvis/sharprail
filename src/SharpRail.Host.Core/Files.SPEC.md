@@ -97,8 +97,10 @@ the session's other mutations:
 - `rename` moves within the workspace and refuses an existing target unless it differs only in case (a
   case-only rename on a case-insensitive disk).
 - `trash` moves the entry to the OS trash (`NSFileManager` on macOS, `gio trash` on Linux), so a mis-click
-  is recoverable; `reveal` selects the entry in the file manager (`open -R`, `explorer /select,`, or the
-  containing folder where no select verb exists). Both run on the host's computer.
+  is recoverable; `reveal` selects the entry in the file manager (`open -R`, `explorer /select,`; on Linux the
+  FileManager1 `ShowItems` D-Bus call through `gdbus` or `busctl`, else `xdg-open` or `gio open` on the containing folder, run
+  with AppImage `APPDIR` entries removed from the environment, off the caller's thread, and failing with a message when no
+  launcher exists). Both run on the host's computer.
 - None of them touches the workspace folder itself.
 
 ## Client file transfers

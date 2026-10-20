@@ -168,8 +168,7 @@ public sealed partial class WorkbenchWindow
     }
 
     // Each platform's file manager has its own name, and the wrong one reads as a bug.
-    private static readonly string RevealLabel = OperatingSystem.IsMacOS() ? "Reveal in Finder"
-        : OperatingSystem.IsWindows() ? "Show in Explorer" : "Open containing folder";
+    private static readonly string RevealLabel = SharpRail.Host.Core.FileManagerReveal.Label(OperatingSystem.IsMacOS(), OperatingSystem.IsWindows());
 
     private ContextMenu FileActions(ProjectFile file, Action expand)
     {

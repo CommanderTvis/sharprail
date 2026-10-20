@@ -45,7 +45,8 @@ public sealed partial class ProjectServices
                     Trash(path);
                     break;
                 case "reveal":
-                    RevealFile(path);
+                    // Process work stays off the caller's thread: the embedded host runs on the UI thread until its first real await.
+                    await Task.Run(() => RevealFile(path), cancellationToken);
                     break;
                 default:
                     throw new ArgumentException($"Unknown file action \"{action.Kind}\".");
@@ -54,15 +55,8 @@ public sealed partial class ProjectServices
         finally { mutations.Release(); }
     }
 
-    // Selects the entry in its folder rather than opening it; Linux has no portable select verb, so it opens the folder.
-    private static void RevealFile(string path)
-    {
-        var start = OperatingSystem.IsMacOS() ? new ProcessStartInfo("open") { ArgumentList = { "-R", path } }
-            : OperatingSystem.IsWindows() ? new ProcessStartInfo("explorer", "/select," + path)
-            : new ProcessStartInfo("xdg-open") { ArgumentList = { Path.GetDirectoryName(path)! } };
-        start.UseShellExecute = false;
-        using var process = Process.Start(start) ?? throw new IOException("No file manager is available on this computer.");
-    }
+    // Selects the entry in its folder rather than opening it; Linux asks the FileManager1 service, then opens the folder.
+    private static void RevealFile(string path) => FileManagerReveal.Reveal(path);
 
     private static void Trash(string path)
     {

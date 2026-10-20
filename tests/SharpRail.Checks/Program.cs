@@ -1008,6 +1008,7 @@ internal static class Program
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));
         Gate.Case("file-drop-gestures", FileDropChecks.Gestures);
+        Gate.Case("file-manager", FileManagerChecks.Run);
         Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));

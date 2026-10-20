@@ -241,9 +241,7 @@ public sealed partial class ProjectServices
             ?? throw new UnauthorizedAccessException("Only a workspace can be revealed.");
         var opener = Which(OperatingSystem.IsMacOS() ? "open" : OperatingSystem.IsWindows() ? "explorer.exe" : "xdg-open")
             ?? throw new InvalidOperationException("No file manager is available on this host.");
-        var start = new System.Diagnostics.ProcessStartInfo(opener) { UseShellExecute = false };
-        start.ArgumentList.Add(workspace.Path);
-        using var process = System.Diagnostics.Process.Start(start) ?? throw new IOException("Failed to launch the file manager.");
+        FileManagerReveal.OpenFolder(workspace.Path, opener);
         return workspace;
     }
 
