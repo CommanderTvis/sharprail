@@ -207,7 +207,11 @@ internal sealed class E2eWorkspace : IDisposable
         // Settle first, as a fresh click does: a restore still landing may select the tool meanwhile.
         Window.MouseMove(new Point(Window.Bounds.Width - 2, Window.Bounds.Height - 2));
         Settle(550);
-        var entry = Find<Button>("Tab_" + id.Replace(':', '_'));
+        // On a loaded machine the rail can still be mounting after the settle.
+        var name = "Tab_" + id.Replace(':', '_');
+        var deadline = Awake.Now.AddSeconds(10);
+        while (Awake.Now < deadline && !Window.GetLogicalDescendants().OfType<Button>().Any(item => item.Name == name)) Pump();
+        var entry = Find<Button>(name);
         if (!Equals(entry.Tag, "pressed")) Click(entry, freshGesture: false);
     }
 
