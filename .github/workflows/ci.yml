@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
@@ -48,7 +48,7 @@ jobs:
           - { mode: full, shard: 3/3 }
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
@@ -73,7 +73,7 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~\.sharprail\tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
@@ -82,7 +82,7 @@ jobs:
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: ./scripts/ci-run.ps1 "Packaged check Windows" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SharpRail-win-x64
           path: artifacts/SharpRail-win-x64.zip
@@ -97,7 +97,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
@@ -105,7 +105,7 @@ jobs:
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SharpRail-linux-x64
           path: artifacts/SharpRail-linux-x64.AppImage
@@ -122,7 +122,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
@@ -130,7 +130,7 @@ jobs:
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: sh scripts/ci-run.sh "Packaged check Linux ARM64" sh scripts/mise run check:packaged -- --linux
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SharpRail-linux-arm64
           path: artifacts/SharpRail-linux-arm64.AppImage

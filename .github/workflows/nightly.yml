@@ -26,7 +26,7 @@ jobs:
         run: echo "name=SharpRail-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
       # build-native.sh archives libghostty with Homebrew's llvm-ar.
       - run: brew install llvm
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
@@ -39,7 +39,7 @@ jobs:
           done
           exit 1
       - run: sh scripts/ci-run.sh "Disk image" sh scripts/mise run dmg "artifacts/${{ steps.stamp.outputs.name }}.dmg"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.stamp.outputs.name }}-macos-arm64
           path: artifacts/${{ steps.stamp.outputs.name }}.dmg
@@ -57,11 +57,11 @@ jobs:
       - uses: actions/checkout@v7
       - id: stamp
         run: echo "name=SharpRail-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -81,7 +81,7 @@ jobs:
           expected=$(openssl x509 -in signing/android-cert.pem -noout -fingerprint -sha256 | cut -d= -f2 | tr -d : | tr A-F a-f)
           grep -qi "certificate SHA-256 digest: $expected" "$RUNNER_TEMP/certs.txt" || { echo "::error::APK is not signed with signing/android-cert.pem"; exit 1; }
       - run: mv artifacts/android/SharpRail.apk "artifacts/android/${{ steps.stamp.outputs.name }}.apk"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.stamp.outputs.name }}-android
           path: artifacts/android/${{ steps.stamp.outputs.name }}.apk
@@ -97,7 +97,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
@@ -120,7 +120,7 @@ jobs:
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SharpRail-nightly-linux-x64
           path: artifacts/SharpRail-linux-x64.AppImage
@@ -138,7 +138,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
@@ -161,7 +161,7 @@ jobs:
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: sh scripts/ci-run.sh "Packaged check Linux ARM64" sh scripts/mise run check:packaged -- --linux
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SharpRail-nightly-linux-arm64
           path: artifacts/SharpRail-linux-arm64.AppImage
@@ -181,12 +181,12 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~\.sharprail\tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # Native build scripts still validate their source fingerprints before reusing either DLL.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         id: windows-native
         with:
           path: |
@@ -197,7 +197,7 @@ jobs:
           key: windows-native-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gitattributes', 'global.json', 'Directory.Build.props', 'Directory.Packages.props', 'mise.lock', 'scripts/windows-native.ps1', 'src/Ghostty.Avalonia/build-windows.ps1', 'src/Ghostty.Avalonia/Native/GhosttyVt.c', 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c', 'src/SharpRail.Scintilla/build-windows.ps1', 'src/SharpRail.Scintilla/Native/*.h', 'src/SharpRail.Scintilla/Native/*.cxx', 'src/SharpRail.Scintilla/Native/*.patch') }}
       - run: ./scripts/ci-run.ps1 "Package Windows x64" -- ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-x64
       # Save validated native outputs even when the subsequent packaged runtime gate fails.
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v6
         if: steps.windows-native.outputs.cache-hit != 'true'
         with:
           path: |
@@ -209,7 +209,7 @@ jobs:
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: ./scripts/ci-run.ps1 "Packaged check Windows x64" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SharpRail-nightly-windows-x64
           path: artifacts/SharpRail-win-x64.zip
@@ -232,13 +232,13 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~\.sharprail\tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       - run: ./scripts/ci-run.ps1 "Bootstrap" -- ./scripts/mise.cmd run bootstrap
       - run: ./scripts/ci-run.ps1 "Cross-build Ghostty for Windows ARM64" -- ./scripts/mise.cmd x -- powershell -NoProfile -ExecutionPolicy Bypass -File src/Ghostty.Avalonia/build-windows.ps1 -RuntimeIdentifier win-arm64 -Cache .tools/ghostty-avalonia
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ghostty-vt-windows-arm64
           path: |
@@ -260,12 +260,12 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~\.sharprail\tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # Native build scripts still validate their source fingerprints before reusing either DLL.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6
         id: windows-native
         with:
           path: |
@@ -275,13 +275,13 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-arm64/fingerprint
           key: windows-native-arm64-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gitattributes', 'global.json', 'Directory.Build.props', 'Directory.Packages.props', 'mise.lock', 'scripts/windows-native.ps1', 'src/Ghostty.Avalonia/build-windows.ps1', 'src/Ghostty.Avalonia/Native/GhosttyVt.c', 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c', 'src/SharpRail.Scintilla/build-windows.ps1', 'src/SharpRail.Scintilla/Native/*.h', 'src/SharpRail.Scintilla/Native/*.cxx', 'src/SharpRail.Scintilla/Native/*.patch') }}
       # The cross-built libghostty-vt replaces any cached one; build-windows.ps1 still checks its fingerprint.
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ghostty-vt-windows-arm64
           path: .tools/ghostty-avalonia/win-arm64
       - run: ./scripts/ci-run.ps1 "Package Windows ARM64" -- ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-arm64
       # Save validated native outputs even when the subsequent packaged runtime gate fails.
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v6
         if: steps.windows-native.outputs.cache-hit != 'true'
         with:
           path: |
@@ -293,7 +293,7 @@ jobs:
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: ./scripts/ci-run.ps1 "Packaged check Windows ARM64" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-arm64 --windows
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: SharpRail-nightly-windows-arm64
           path: artifacts/SharpRail-win-arm64.zip
@@ -313,7 +313,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: packages
           merge-multiple: true
