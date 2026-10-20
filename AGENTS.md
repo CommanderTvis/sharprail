@@ -8,7 +8,7 @@
 - CI babysitting. Every agent that pushes, or causes pushes or workflow dispatches (`ci.yml`, nightly, any workflow), MUST watch every run they trigger until all jobs finish. A push is not done until CI is green.
   - Poll with `gh run list` / `gh run view --json`, sleeping at least 60s between polls (Monitor or ScheduleWakeup, never a busy loop).
   - Read failures with `gh run view --job <id> --log-failed`, filtered by grep; never dump whole logs.
-  - Diagnose, fix, and re-push or re-dispatch, but only where the user's push permission covers it. Fixes land in the commit chain per "Commit organization".
+  - Diagnose, fix, and re-push or re-dispatch, but only where the user's push permission covers it.
   - If still red, report exactly what and why (flaky/infra versus regression).
   - Report final run URLs and job conclusions.
   - Dependabot runs are excluded unless the push changed dependency locks.
@@ -60,17 +60,3 @@ Minimize launch-to-interactive-workspace time. Resolve only the identity needed 
 - Git or indexing failures must not block opening accessible files.
 - Measure window creation, first presented frame and usable content separately; readiness logs do not prove presentation. Check the rendering backend and publish settings before tuning Skia/JIT/GC. Benchmark only when asked.
 - Verify fresh and restored profiles, project-switch races, and usability during deferred loading.
-
-## Commit organization
-
-`main` is a chain on the shared history in the fork's order, so each part can be reviewed, ported or extracted alone:
-
-1. General improvements that do not need the plugin API.
-2. The Plugin API: contract assemblies, host plugin runtime, UI registry and kit, no plugins. If general and API changes cannot build apart, share one commit and say so in its message.
-3. One commit per builtin plugin in order: spec dialect, Blueprint, Claude Code, Discord, Branch Graph, Visualize, Codex, then Air Context. A plugin commit carries its project folder, checks, license, package entries and its lines in shared registration files (`SharpRail.slnx`, project references, both `BuiltinPlugins.cs`, the check runner). File-type icons are core UI kit assets with a shared Appearance setting; PDF preview is a core resource renderer.
-
-Status records (`STATUS.md`, `context-log.md`, notices) sit in one commit at the tip.
-
-- Amend, do not append: fix an existing thing in the commit that owns it with `git commit --fixup=<sha>`, then `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash <base>`. A change touching two parts is two fixups. Rewrite only commits not yet on `origin/main` unless the user asks for a force-push.
-- New commits only for a new general improvement (inserted into part 1, never appended at the tip), a new plugin (part 3), or a core API capability the API commit would be incomplete without. A capability a plugin introduced stays in that plugin's commit until generalised. A feature and its follow-up fixes end as one commit.
-- Tests land with the code they test. Compare the final tree with the pre-rebase tree before replacing the branch.
