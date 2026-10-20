@@ -1,5 +1,7 @@
 # SharpRail
 
+<img src="docs/screenshots/desktop-workbench.png" alt="The SharpRail workbench: projects and worktrees on the left, a Claude Code terminal in the centre, files and code intelligence on the right" width="900">
+
 SharpRail brings your projects, files, terminals and Git changes into one native
 workbench. Keep a task in its own Git worktree, arrange the panes around the work,
 and review what changed without leaving the app. It is a C# and Avalonia port of
