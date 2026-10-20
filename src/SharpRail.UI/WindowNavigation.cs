@@ -103,11 +103,6 @@ public sealed partial class WorkbenchWindow
         }, RoutingStrategies.Tunnel);
     }
 
-    /// <summary>Mod+[ and Mod+] on macOS, Alt+Left and Alt+Right elsewhere; the direction, or 0 for another key.</summary>
-    private static int HistoryStep(KeyEventArgs e) => OperatingSystem.IsMacOS()
-        ? e.KeyModifiers != KeyModifiers.Meta ? 0 : e.Key == Key.OemOpenBrackets ? -1 : e.Key == Key.OemCloseBrackets ? 1 : 0
-        : e.KeyModifiers != KeyModifiers.Alt ? 0 : e.Key == Key.Left ? -1 : e.Key == Key.Right ? 1 : 0;
-
     private void RecordLocation()
     {
         if (!WorkspaceMounted && !cleanWelcome) return;

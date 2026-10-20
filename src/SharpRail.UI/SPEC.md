@@ -242,6 +242,8 @@ including projects that are not currently open, so removed checkouts leave the P
 
 ## Global shortcuts
 
+`WindowShortcuts.cs` declares each window chord once (gesture and key test); the window dispatches key-downs through it and menus and tooltips read their gestures from it.
+
 The window handles app-wide chords before panels: Mod+O opens a project, Mod+N (and Mod+Alt+N) opens
 Start work, Mod+Shift+N opens a window, Mod+B toggles left (at Project Home, its Projects pane), Mod+J toggles right, Mod+Shift+F searches the workspace, and F5 refreshes.
 The search is a dialog (`Panels/SearchDialog.cs`) rather than a panel, because it is a question asked and

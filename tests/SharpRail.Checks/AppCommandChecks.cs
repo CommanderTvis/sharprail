@@ -5,6 +5,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
 using SharpRail.Host.Core;
+using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI;
 using SharpRail.UI.Docking;
 using SharpRail.UI.State;
@@ -42,6 +43,17 @@ internal static class AppCommandChecks
         Pump(() => window.WorkspaceMounted, "App command workspace did not mount.");
         var hint = window.GetLogicalDescendants().OfType<Border>().Single(item => item.Name == "QuitHintOverlay");
         var layout = window.Layout;
+
+        // Every chord in the shared table reaches its own command, and the platform command modifier is the host's.
+        Require(CommandKeys.Modifier == (mac ? KeyModifiers.Meta : KeyModifiers.Control), "The command modifier must be Meta on macOS and Control elsewhere.");
+        foreach (var shortcut in WindowShortcuts.All)
+        {
+            var chord = shortcut.Gesture;
+            var reached = window.ShortcutFor(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = chord.Key, KeyModifiers = chord.KeyModifiers });
+            // Search is disabled at the Welcome screen, where its chord reaches nothing.
+            Require(reached == shortcut || shortcut == WindowShortcuts.SearchWorkspace && reached is null, $"The {shortcut.Id} chord must reach its own command, reached {reached?.Id ?? "none"}.");
+        }
+        Require(window.ShortcutFor(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.O, KeyModifiers = KeyModifiers.None }) is null, "A bare letter is not a window chord.");
         void Press(Key key, RawInputModifiers modifiers, PhysicalKey physical) { window.KeyPress(key, modifiers, physical, null); Dispatcher.UIThread.RunJobs(); }
         void Release(Key key, RawInputModifiers modifiers, PhysicalKey physical) { window.KeyRelease(key, modifiers, physical, null); Dispatcher.UIThread.RunJobs(); }
 

@@ -138,26 +138,36 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
         Deactivated += (_, _) => workbench.Commands.Deactivated();
         Activated += (_, _) => { if (toolContent.ContainsKey("review")) RefreshOpenReview(); };
-        AddHandler(KeyDownEvent, (_, e) =>
-        {
-            var command = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
-            if (command && e.Key == Key.O) { _ = PickProjectAsync(); e.Handled = true; }
-            else if (command && e.Key == Key.N && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) { NewWindow(); e.Handled = true; }
-            else if (command && e.Key == Key.F && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && WorkspaceMounted && !atHome)
-            { _ = SearchWorkspaceAsync(); e.Handled = true; }
-            else if (command && e.Key == Key.N) { _ = CreateWorkspaceDialogAsync(); e.Handled = true; }
-            // Preferences' own chord on macOS; other platforms have no such convention to honour.
-            else if (CommandKeys.Modifier == KeyModifiers.Meta && e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
-            else if (command && e.Key == Key.B)
-            { surface.ToggleLeft(); e.Handled = true; }
-            else if (command && e.Key == Key.J && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
-            { Layout.Visible("right", !Layout.State.RightVisible); e.Handled = true; }
-            else if (command && e.Key is Key.OemPlus or Key.Add) { Zoom(1); e.Handled = true; }
-            else if (command && e.Key is Key.OemMinus or Key.Subtract) { Zoom(-1); e.Handled = true; }
-            else if (command && e.Key is Key.D0 or Key.NumPad0) { Zoom(0); e.Handled = true; }
-            else if (e.Key == Key.F5) { _ = RefreshAsync(); e.Handled = true; }
-            else if (HistoryStep(e) is var step and not 0) { _ = step < 0 ? GoBackAsync() : GoForwardAsync(); e.Handled = true; }
-        }, RoutingStrategies.Bubble);
+        AddHandler(KeyDownEvent, (_, e) => { if (RunShortcut(e)) e.Handled = true; }, RoutingStrategies.Bubble);
+    }
+
+    /// <summary>The command behind each window chord; <see cref="WindowShortcuts"/> owns the chords.</summary>
+    private (WindowShortcut Shortcut, Func<bool> Enabled, Action Run)[] ShortcutCommands() =>
+    [
+        (WindowShortcuts.OpenProject, () => true, () => _ = PickProjectAsync()),
+        (WindowShortcuts.NewWindow, () => true, () => NewWindow()),
+        (WindowShortcuts.SearchWorkspace, () => WorkspaceMounted && !atHome, () => _ = SearchWorkspaceAsync()),
+        (WindowShortcuts.NewWorkspace, () => true, () => _ = CreateWorkspaceDialogAsync()),
+        (WindowShortcuts.Settings, () => true, ShowSettings),
+        (WindowShortcuts.ToggleLeft, () => true, surface.ToggleLeft),
+        (WindowShortcuts.ToggleRight, () => true, () => Layout.Visible("right", !Layout.State.RightVisible)),
+        (WindowShortcuts.ZoomIn, () => true, () => Zoom(1)),
+        (WindowShortcuts.ZoomOut, () => true, () => Zoom(-1)),
+        (WindowShortcuts.ZoomReset, () => true, () => Zoom(0)),
+        (WindowShortcuts.Refresh, () => true, () => _ = RefreshAsync()),
+        (WindowShortcuts.Back, () => true, () => _ = GoBackAsync()),
+        (WindowShortcuts.Forward, () => true, () => _ = GoForwardAsync()),
+    ];
+
+    /// <summary>The first chord in <see cref="WindowShortcuts.All"/> order that matches and is enabled.</summary>
+    internal WindowShortcut? ShortcutFor(KeyEventArgs e) =>
+        ShortcutCommands().FirstOrDefault(entry => entry.Shortcut.Matches(e) && entry.Enabled()).Shortcut;
+
+    private bool RunShortcut(KeyEventArgs e)
+    {
+        foreach (var entry in ShortcutCommands())
+            if (entry.Shortcut.Matches(e) && entry.Enabled()) { entry.Run(); return true; }
+        return false;
     }
 
     internal void ShowQuitHint(QuitHint hint)
@@ -297,7 +307,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         menu.Items.Add(new Separator());
         var window = Ui.Menu("New window", () => NewWindow(), workbench.CanOpenWindows);
         window.Name = "NewWindow";
-        window.InputGesture = new KeyGesture(Key.N, CommandKeys.Modifier | KeyModifiers.Shift);
+        window.InputGesture = WindowShortcuts.NewWindow.Gesture;
         menu.Items.Add(window);
     }
 

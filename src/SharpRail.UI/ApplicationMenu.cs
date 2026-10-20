@@ -44,7 +44,7 @@ public static class ApplicationMenu
         [
             Item("Minimize", Key.M, Command, () => window.WindowState = WindowState.Minimized),
             Item("Zoom", Key.None, KeyModifiers.None, () => window.WindowState = window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized),
-            Item("Close", Key.W, Command, () => { if (window is WorkbenchWindow workbench) commands.Close(workbench); else window.Close(); }),
+            Item("Close", WindowShortcuts.Close.Key, WindowShortcuts.Close.KeyModifiers, () => { if (window is WorkbenchWindow workbench) commands.Close(workbench); else window.Close(); }),
             new NativeMenuItemSeparator(),
             Item("Bring All to Front", Key.None, KeyModifiers.None, () => BringAllToFront(window)),
         ];

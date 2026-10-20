@@ -247,6 +247,7 @@ internal static class ShellChecks
             Entry(windows, "Close").Gesture is { Key: Key.W, KeyModifiers: KeyModifiers.Meta } &&
             Entry(windows, "Minimize").Gesture is { Key: Key.M, KeyModifiers: KeyModifiers.Meta } && Entry(edit, "Delete").Gesture is null,
             "Menu items show their platform chords.");
+        Require(Entry(windows, "Close").Gesture is { } closeChord && closeChord.Equals(WindowShortcuts.Close), "The Close item shows the shared close chord.");
 
         box.Focus();
         Pick(edit, "Select All");
