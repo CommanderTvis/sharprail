@@ -51,8 +51,8 @@ internal static class PluginWatchChecks
 
     private static void Cases(string app, string workspace, Func<IProjectServices> open)
     {
-        var sessions = new List<Gated>();
-        using var fixture = new Fixture(app, () => { var session = new Gated(open()); lock (sessions) sessions.Add(session); return session; });
+        var sessions = new Sessions();
+        using var fixture = new Fixture(app, () => { var session = new Gated(open()); sessions.Add(session); return session; });
         var (first, second) = (fixture.First.Context!, fixture.Second.Context!);
 
         var held = 0;
@@ -111,6 +111,18 @@ internal static class PluginWatchChecks
         using var fixture = new Fixture(app, null);
         var ready = fixture.First.Context!.WatchWorkspaceAsync(workspace).AsTask();
         Require(ready.IsCompletedSuccessfully, "Without project sessions, watching completes at once and leaves revisions to mounted windows.");
+    }
+
+    // List<T>.Add raises Count before it stores the item, so an unlocked reader can see Count == 3 and a null third element.
+    private sealed class Sessions
+    {
+        private readonly List<Gated> items = [];
+
+        internal int Count { get { lock (items) return items.Count; } }
+
+        internal Gated this[int index] { get { lock (items) return items[index]; } }
+
+        internal void Add(Gated session) { lock (items) items.Add(session); }
     }
 
     private sealed class Probe : PluginUIModule
