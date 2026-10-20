@@ -63,13 +63,12 @@ public sealed class ResizeHandle : Border
         Background = Brushes.Transparent;
         Margin = horizontal ? new Thickness(-3.5, 0) : new Thickness(0, -3.5);
         ZIndex = 20;
-        var line = new Border { Background = Ui.BorderBrush };
+        var line = new Border();
+        Classes.Add("pane-separator");
         if (horizontal) { line.Width = 1; line.HorizontalAlignment = HorizontalAlignment.Center; }
         else { line.Height = 1; line.VerticalAlignment = VerticalAlignment.Center; }
         Child = line;
         Cursor = new Cursor(horizontal ? StandardCursorType.SizeWestEast : StandardCursorType.SizeNorthSouth);
-        PointerEntered += (_, _) => line.Background = Ui.Accent;
-        PointerExited += (_, _) => { if (origin is null) line.Background = Ui.BorderBrush; };
         PointerPressed += (_, e) =>
         {
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;

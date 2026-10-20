@@ -70,8 +70,8 @@ public static partial class ScopedSetting
             Cursor = new Cursor(StandardCursorType.Hand)
         };
         button.Classes.Add("quiet");
-        button.PointerEntered += (_, _) => { text.Foreground = Ui.Accent; text.TextDecorations = TextDecorations.Underline; };
-        button.PointerExited += (_, _) => { text.Foreground = Ui.Muted; text.TextDecorations = null; };
+        button.Classes.Add("source-path");
+        text.ClearValue(TextBlock.ForegroundProperty);
         ToolTip.SetTip(button, path);
         AutomationProperties.SetName(button, path);
         button.Click += (_, _) => onOpen(path);
@@ -94,8 +94,9 @@ public static partial class ScopedSetting
             CornerRadius = new CornerRadius(4),
             VerticalAlignment = VerticalAlignment.Center
         };
-        button.PointerEntered += (_, _) => text.Foreground = danger ? Ui.Danger : Ui.TextBrush;
-        button.PointerExited += (_, _) => text.Foreground = danger ? Ui.Hint : Ui.Muted;
+        button.Classes.Add("row-action");
+        button.Classes.Set("danger", danger);
+        text.ClearValue(TextBlock.ForegroundProperty);
         AutomationProperties.SetName(button, label);
         button.Click += (_, _) => onClick();
         return button;
@@ -130,8 +131,8 @@ public static partial class ScopedSetting
                 Cursor = new Cursor(StandardCursorType.Hand)
             };
             link.Classes.Add("quiet");
-            link.PointerEntered += (_, _) => { keyText.Foreground = Ui.Accent; keyText.TextDecorations = TextDecorations.Underline; };
-            link.PointerExited += (_, _) => { keyText.Foreground = Ui.TextBrush; keyText.TextDecorations = null; };
+            link.Classes.Add("doc-link");
+            keyText.ClearValue(TextBlock.ForegroundProperty);
             if (docsTitle is not null) ToolTip.SetTip(link, docsTitle);
             link.Click += (_, _) => TopLevel.GetTopLevel(link)?.Launcher.LaunchUriAsync(new Uri(docsUrl));
             key.Children.Add(link);

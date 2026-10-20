@@ -54,6 +54,49 @@ internal static class SharedControlChecks
         }
         finally { window.Close(); Ui.Apply(original); }
         Console.WriteLine("PASS shared checkbox glyphs, primary labels and selected toggles across every bundled theme");
+        HoverStyles();
+    }
+
+    /// <summary>Hover colours of text buttons and the pane separator come from compiled styles and clear when the pointer leaves.</summary>
+    private static void HoverStyles()
+    {
+        var source = ScopedSetting.SourcePath("/tmp/x", _ => { });
+        var action = ScopedSetting.RowAction("A", "Del", () => { });
+        var danger = ScopedSetting.RowAction("B", "Remove", () => { }, danger: true);
+        var separator = new SharpRail.UI.Docking.ResizeHandle(true, _ => { }, _ => { }, () => { });
+        separator.Width = 9; separator.Height = 40;
+        var window = new Window
+        {
+            Width = 400,
+            Height = 300,
+            Content = new StackPanel { Children = { source, action, danger, separator } }
+        };
+        window.Show();
+        try
+        {
+            window.MouseMove(new Point(390, 290));
+            Settle(10);
+            var sourceText = (TextBlock)source.Content!;
+            var line = (Border)separator.Child!;
+            Require(ReferenceEquals(sourceText.Foreground, Ui.Muted) && sourceText.TextDecorations is null, "A source path rests muted without an underline.");
+            Require(ReferenceEquals(line.Background, Ui.BorderBrush), "A pane separator rests in the border colour.");
+            void Hover(Control control) { window.MouseMove(control.TranslatePoint(new Point(2, 2), window)!.Value); Settle(10); }
+            Hover(source);
+            Require(ReferenceEquals(sourceText.Foreground, Ui.Accent) && sourceText.TextDecorations is { Count: > 0 }, "Hovering a source path accents and underlines it by style.");
+            Hover(action);
+            Require(ReferenceEquals(((TextBlock)action.Content!).Foreground, Ui.TextBrush) && ReferenceEquals(sourceText.Foreground, Ui.Muted) && sourceText.TextDecorations is null,
+                "Hover clears from the source path and applies to the row action.");
+            Hover(danger);
+            Require(ReferenceEquals(((TextBlock)danger.Content!).Foreground, Ui.Danger), "A dangerous row action turns red on hover.");
+            Hover(separator);
+            Require(ReferenceEquals(line.Background, Ui.Accent), "Hovering a pane separator accents its line.");
+            window.MouseMove(new Point(390, 290));
+            Settle(10);
+            Require(ReferenceEquals(line.Background, Ui.BorderBrush) && ReferenceEquals(((TextBlock)danger.Content!).Foreground, Ui.Hint),
+                "Leaving clears the hover colours.");
+        }
+        finally { window.Close(); }
+        Console.WriteLine("PASS hover colours come from styles and clear on exit");
     }
 
     private static double Contrast(Color first, Color second)
