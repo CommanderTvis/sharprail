@@ -72,6 +72,10 @@ func start(input string) error {
 	var options struct {
 		StateDirectory string `json:"stateDirectory"`
 		Hostname       string `json:"hostname"`
+		// ControlURL and AuthKey are optional: they select a self-hosted control server and
+		// enroll without a browser. The app leaves both empty.
+		ControlURL string `json:"controlUrl"`
+		AuthKey    string `json:"authKey"`
 	}
 	if err := json.Unmarshal([]byte(input), &options); err != nil {
 		return err
@@ -99,7 +103,7 @@ func start(input string) error {
 	if err != nil {
 		return err
 	}
-	server := &tsnet.Server{Dir: options.StateDirectory, Hostname: options.Hostname, Logf: quiet, UserLogf: quiet}
+	server := &tsnet.Server{Dir: options.StateDirectory, Hostname: options.Hostname, ControlURL: options.ControlURL, AuthKey: options.AuthKey, Logf: quiet, UserLogf: quiet}
 	client, err := server.LocalClient()
 	if err != nil {
 		server.Close()

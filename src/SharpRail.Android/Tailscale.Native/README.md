@@ -12,6 +12,10 @@ C ABI: `char *sr_ts_call(char *operation, char *inputJson)` and
 `sr_ts_free`. Calls serialize internally; invoke off the UI thread. Local API
 requests have a five-second deadline.
 
+`start` also accepts optional `controlUrl` and `authKey` for a self-hosted control server and unattended
+enrolment; the app leaves both empty. `cmd/tsforward` is a test-only tailnet node used by the
+`--headscale` check (`sh scripts/build-headscale-test.sh`).
+
 Operations: `start`, `status`, `login`, `logout`, `stop`. Start accepts
 `{"stateDirectory":"/app/private/tailscale","hostname":"sharprail-android"}`.
 The directory contains the durable node identity and is restricted to mode 0700.

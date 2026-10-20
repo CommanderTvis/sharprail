@@ -261,3 +261,11 @@ userspace node using checksum-pinned Go and the checkout's Android NDK. It stage
 `libSharpRailTailscale.so` and dependency licenses under `.tools/tailscale-android/<abi>`.
 The Android build invokes it for both packaged ABIs. The NDK is the one `scripts/mise run bootstrap:android` links as `.tools/android-ndk`. See the [bridge README](../src/SharpRail.Android/Tailscale.Native/README.md)
 for its ABI and native tests; no system Go installation or separate Android VPN app is required.
+
+### Headscale connectivity check
+
+`sh scripts/build-headscale-test.sh` provisions what `--headscale` needs under `.tools/headscale-test`:
+the checksum-pinned Headscale v0.29.5 release for this platform (macOS or Linux, arm64 or x64), the
+`tsforward` userspace node and a desktop build of the embedded Tailscale library. The Go toolchain comes
+from `scripts/tailscale-go.sh`, which the Android build shares. Then
+`.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --headscale` runs the slow check.
