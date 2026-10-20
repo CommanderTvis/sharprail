@@ -4,6 +4,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.UI.Panels;
+using SharpRail.UI.State;
 
 namespace SharpRail.UI;
 
@@ -90,8 +92,23 @@ public sealed partial class WorkbenchWindow
     private void ApplyTerminalTitles(HostState host) =>
         Layout.TitleTerminals(host.TerminalTitles.ToDictionary(title => (title.Terminal.WorkspaceId, title.Terminal.TabKey), title => title.Title));
 
+    /// <summary>Tells the user once about each language server that died without being asked to; the host pushes the one-line reason with the shared state.</summary>
+    private void NotifyLanguageDeaths(HostState previous, HostState next)
+    {
+        foreach (var (key, value) in next.LanguageDeaths)
+        {
+            if (previous.LanguageDeaths.GetValueOrDefault(key) == value) continue;
+            var parts = key.Split('\0');
+            if (parts.Length != 2 || !next.Workspaces.Any(workspace => workspace.Path == parts[0])) continue;
+            var reason = value[(value.IndexOf('|') + 1)..];
+            Toasts.Push(ToastVariant.Error, reason.Length > 220 ? reason[..220] + "…" : reason,
+                $"{LanguageServerNameConverter.Display(parts[1])} language server stopped unexpectedly");
+        }
+    }
+
     private void SharedStateChanged(HostState previous, HostState next)
     {
+        NotifyLanguageDeaths(previous, next);
         ObserveSettlingChange(previous, next);
         foreach (var project in previous.Projects.Except(next.Projects)) ReleaseProjectDocuments(project);
         foreach (var removed in previous.Workspaces.Where(workspace => !next.Workspaces.Any(current => current.Path == workspace.Path)))

@@ -156,6 +156,38 @@ server, or `disabled: true`. This file is host-owned, never read from a reposito
 Idle sessions without drafts expire after ten minutes. Workspace removal and host shutdown end
 their processes. Stopping a listener does not stop an embedded host's language sessions.
 
+### Process exit records
+
+Every server process that ends leaves a `LanguageExit` in its `servers` row, so no death is silent.
+The connection watches the process itself (not stdout EOF) and, once it has exited and stderr is
+drained (two seconds at most), records the time, uptime, exit code, the signal that code names
+(Unix exit codes above 128 are 128 plus the signal; Windows fault statuses are named), the last 200
+stderr lines, the last 60 JSON-RPC method names with times (never payloads), the requests still
+unanswered, the last sampled resident memory (once a minute by the existing idle timer, never a new
+thread) and the memory the host process may use. Reasons separate facts from suspicion: exit 137
+reads "killed by SIGKILL ... often the OOM killer or jetsam, but also a manual kill -9; the cause is not
+confirmed". A server may also exit with such a number by itself.
+
+Every stop SharpRail causes names its reason before the kill (a stop or restart request, a Java/Kotlin
+provider switch, suspension, workspace removal, host shutdown, the ten-minute idle limit with its
+duration, a failed start, a failed draft restore, or a stdin write that failed or was cancelled and
+left the JSON-RPC stream unusable). Those records are `Unexpected = false` except failures. Anything
+else, including exit 0 nobody asked for, is `Unexpected = true`. SharpRail sends no `shutdown`/`exit`
+handshake; it kills the process tree.
+
+The newest record per workspace and server is stored in `<state>/language/exits.json` (atomic
+replace, at most 64 records, details capped near 48 KiB each, dropped with the workspace) and read
+by `servers` after a pane reopens or the host restarts. `servers` shows it as the row detail
+("Stopped unexpectedly: ..." for an exited session, an unrequested record on an idle row, or "Last
+run: ..." for requested stops) and in `LanguageServerState.Exit`; `lsp_status` operation `servers`
+returns it as `lastExit` (time, reason, unexpected, requestedBy, exitCode, signal, uptimeSeconds,
+lastMemoryBytes, details). The record travels in `LanguageServerDto.Exit`. An unexpected death is
+also published once as `HostState.LanguageDeaths` (never persisted, `workspace NUL server` to
+`time|reason`); each client window raises one error toast per new value. Requested stops raise none.
+The LSP pane shows red detail text with Details (inline copyable report), Copy details and View logs.
+The log keeps an `exit:` line with the same reason. The server's own log files are not read: SharpRail
+passes no log directory, and Roslyn's `window/logMessage` output already reaches the logs.
+
 ## Agents
 
 Terminal-authenticated MCP exposes `lsp_navigate`, `lsp_diagnostics` and `lsp_status`. An omitted

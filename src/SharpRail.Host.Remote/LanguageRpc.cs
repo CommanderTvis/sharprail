@@ -28,7 +28,7 @@ public sealed partial class ProjectRpc
             Server = result.Server,
             Version = result.Version,
             Files = result.Files.Select(item => new LanguageFileDto { Path = item.Path, State = item.State, Freshness = item.Freshness, Detail = item.Detail }).ToList(),
-            Servers = result.Servers.Select(item => new LanguageServerDto { Id = item.Id, Path = item.Path, State = item.State, Detail = item.Detail, Version = item.Version, Configuration = item.Configuration, ActiveConfiguration = item.ActiveConfiguration, Configured = item.Configured }).ToList(),
+            Servers = result.Servers.Select(item => new LanguageServerDto { Id = item.Id, Path = item.Path, State = item.State, Detail = item.Detail, Version = item.Version, Configuration = item.Configuration, ActiveConfiguration = item.ActiveConfiguration, Configured = item.Configured, Exit = item.Exit is { } exit ? new LanguageExitDto { Time = exit.Time, Reason = exit.Reason, Unexpected = exit.Unexpected, Initiator = exit.Initiator, HasExitCode = exit.ExitCode is not null, ExitCode = exit.ExitCode ?? 0, Signal = exit.Signal, UptimeSeconds = exit.UptimeSeconds, MemoryBytes = exit.MemoryBytes, Details = exit.Details } : null }).ToList(),
             Locations = result.Locations.Select(MapLanguage).ToList(),
             Diagnostics = result.Diagnostics.Select(MapLanguage).ToList(),
             Tokens = result.Tokens.Select(MapLanguage).ToList(),

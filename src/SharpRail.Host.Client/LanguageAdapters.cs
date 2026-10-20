@@ -61,7 +61,7 @@ public sealed partial class RemoteProjectAdapter
             Total = reply.Total,
             Truncated = reply.Truncated,
             Files = reply.Files.Select(item => new LanguageFileResult(item.Path, item.State, item.Freshness, item.Detail)).ToArray(),
-            Servers = reply.Servers.Select(item => new LanguageServerState(item.Id, item.Path, item.State, item.Detail, item.Version, item.Configuration, item.ActiveConfiguration, item.Configured)).ToArray(),
+            Servers = reply.Servers.Select(item => new LanguageServerState(item.Id, item.Path, item.State, item.Detail, item.Version, item.Configuration, item.ActiveConfiguration, item.Configured) { Exit = item.Exit is { } exit ? new LanguageExit(exit.Time, exit.Reason, exit.Unexpected, exit.Initiator, exit.HasExitCode ? exit.ExitCode : null, exit.Signal, exit.UptimeSeconds, exit.MemoryBytes, exit.Details) : null }).ToArray(),
             Locations = reply.Locations.Select(MapLanguage).ToArray(),
             Diagnostics = reply.Diagnostics.Select(MapLanguage).ToArray(),
             Tokens = reply.Tokens.Select(MapLanguage).ToArray(),

@@ -73,6 +73,8 @@ public sealed record HostState
     public IReadOnlyDictionary<string, string> WorkspaceLanguages { get; init; } = new Dictionary<string, string>();
     /// <summary>Project root to JSON server-id array started before managed agent launches.</summary>
     public IReadOnlyDictionary<string, string> ProjectLanguageAutostart { get; init; } = new Dictionary<string, string>();
+    /// <summary>Unexpected language-server deaths this host saw, keyed by workspace, NUL and server id, valued "time|reason". Never persisted; clients toast each new value.</summary>
+    public IReadOnlyDictionary<string, string> LanguageDeaths { get; init; } = new Dictionary<string, string>();
     /// <summary>
     /// Project root to the JSON status of its <c>.sharprail/language.toml</c> as the host last read it: path, whether it
     /// exists, a stamp that changes with every edit, the server ids it configures and diagnostics for what was ignored.

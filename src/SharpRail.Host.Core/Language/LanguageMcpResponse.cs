@@ -90,7 +90,19 @@ internal static class LanguageMcpResponse
                 ["detail"] = Clip(server.Detail, 1_000),
                 ["version"] = server.Version,
                 ["hasWorkspaceConfiguration"] = server.Configured,
-                ["restartRequired"] = server.ActiveConfiguration.Length > 0 && server.ActiveConfiguration != server.Configuration
+                ["restartRequired"] = server.ActiveConfiguration.Length > 0 && server.ActiveConfiguration != server.Configuration,
+                ["lastExit"] = server.Exit is not { } exit ? null : new JsonObject
+                {
+                    ["time"] = exit.Time,
+                    ["reason"] = exit.Reason,
+                    ["unexpected"] = exit.Unexpected,
+                    ["requestedBy"] = exit.Initiator.Length == 0 ? null : exit.Initiator,
+                    ["exitCode"] = exit.ExitCode,
+                    ["signal"] = exit.Signal.Length == 0 ? null : exit.Signal,
+                    ["uptimeSeconds"] = exit.UptimeSeconds,
+                    ["lastMemoryBytes"] = exit.MemoryBytes == 0 ? null : exit.MemoryBytes,
+                    ["details"] = Clip(exit.Details, 12_000)
+                }
             }), result.Servers.Count);
         else if (operation is not ("status" or "retry" or "restart" or "stop" or "configurationSchema" or "configuration" or "configure"))
         {

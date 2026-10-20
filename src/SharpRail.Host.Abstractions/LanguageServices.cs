@@ -13,7 +13,18 @@ public sealed record LanguageItem(string Path, int Line, int Column, int EndLine
 }
 
 /// <summary>A supported language server in one workspace; listing never starts a process.</summary>
-public sealed record LanguageServerState(string Id, string Path, string State, string Detail, string Version, string Configuration = "", string ActiveConfiguration = "", bool Configured = false);
+public sealed record LanguageServerState(string Id, string Path, string State, string Detail, string Version, string Configuration = "", string ActiveConfiguration = "", bool Configured = false)
+{
+    /// <summary>How the most recent run of this server ended, when the host knows; it outlives the process and host restarts.</summary>
+    public LanguageExit? Exit { get; init; }
+}
+
+/// <summary>
+/// The host's record of one language-server process ending. <paramref name="Reason"/> is one line of facts and labelled suspicions;
+/// <paramref name="Unexpected"/> is false for stops the user or SharpRail's lifecycle asked for. <paramref name="Details"/> is a copyable report with the
+/// stderr tail, recent JSON-RPC messages and requests in flight.
+/// </summary>
+public sealed record LanguageExit(string Time, string Reason, bool Unexpected, string Initiator, int? ExitCode, string Signal, int UptimeSeconds, long MemoryBytes, string Details);
 
 /// <summary>A detected build root or provider-reported directory role; State identifies provenance without asserting complete import or package ownership.</summary>
 public sealed record LanguageProject(string Root, string Manifest, string Server, string Kind, string State, string Detail);

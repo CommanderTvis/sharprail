@@ -286,6 +286,18 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
 
+    /// <summary>Publishes one unexpected language-server death so every client can notify; the value rides later snapshots and is never persisted.</summary>
+    internal void PublishLanguageDeath(string workspace, string server, string time, string reason)
+    {
+        lock (gate)
+        {
+            var deaths = state.LanguageDeaths.ToDictionary();
+            deaths[workspace + "\0" + server] = time + "|" + reason;
+            while (deaths.Count > 64) deaths.Remove(deaths.OrderBy(pair => pair.Value, StringComparer.Ordinal).First().Key);
+            Publish(state with { LanguageDeaths = deaths }, persist: false);
+        }
+    }
+
     /// <summary>Sets or clears one terminal's agent record.</summary>
     public void SetTerminalAgent(TerminalRef terminal, TerminalAgentRecord? record)
     {

@@ -1634,3 +1634,35 @@ SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.get -> System.Collect
 SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.init -> void
 SharpRail.Host.Abstractions.HostSettings.WindowDecorations.get -> string!
 SharpRail.Host.Abstractions.HostSettings.WindowDecorations.init -> void
+SharpRail.Host.Abstractions.HostState.LanguageDeaths.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Host.Abstractions.HostState.LanguageDeaths.init -> void
+SharpRail.Host.Abstractions.LanguageExit
+SharpRail.Host.Abstractions.LanguageExit.<Clone>$() -> SharpRail.Host.Abstractions.LanguageExit!
+SharpRail.Host.Abstractions.LanguageExit.Deconstruct(out string! Time, out string! Reason, out bool Unexpected, out string! Initiator, out int? ExitCode, out string! Signal, out int UptimeSeconds, out long MemoryBytes, out string! Details) -> void
+SharpRail.Host.Abstractions.LanguageExit.Details.get -> string!
+SharpRail.Host.Abstractions.LanguageExit.Details.init -> void
+SharpRail.Host.Abstractions.LanguageExit.Equals(SharpRail.Host.Abstractions.LanguageExit? other) -> bool
+SharpRail.Host.Abstractions.LanguageExit.ExitCode.get -> int?
+SharpRail.Host.Abstractions.LanguageExit.ExitCode.init -> void
+SharpRail.Host.Abstractions.LanguageExit.LanguageExit(string! Time, string! Reason, bool Unexpected, string! Initiator, int? ExitCode, string! Signal, int UptimeSeconds, long MemoryBytes, string! Details) -> void
+SharpRail.Host.Abstractions.LanguageExit.MemoryBytes.get -> long
+SharpRail.Host.Abstractions.LanguageExit.MemoryBytes.init -> void
+SharpRail.Host.Abstractions.LanguageExit.Signal.get -> string!
+SharpRail.Host.Abstractions.LanguageExit.Signal.init -> void
+SharpRail.Host.Abstractions.LanguageExit.UptimeSeconds.get -> int
+SharpRail.Host.Abstractions.LanguageExit.UptimeSeconds.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.Exit.get -> SharpRail.Host.Abstractions.LanguageExit?
+SharpRail.Host.Abstractions.LanguageServerState.Exit.init -> void
+override SharpRail.Host.Abstractions.LanguageExit.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageExit.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageExit.ToString() -> string!
+static SharpRail.Host.Abstractions.LanguageExit.operator !=(SharpRail.Host.Abstractions.LanguageExit? left, SharpRail.Host.Abstractions.LanguageExit? right) -> bool
+static SharpRail.Host.Abstractions.LanguageExit.operator ==(SharpRail.Host.Abstractions.LanguageExit? left, SharpRail.Host.Abstractions.LanguageExit? right) -> bool
+SharpRail.Host.Abstractions.LanguageExit.Initiator.get -> string!
+SharpRail.Host.Abstractions.LanguageExit.Initiator.init -> void
+SharpRail.Host.Abstractions.LanguageExit.Reason.get -> string!
+SharpRail.Host.Abstractions.LanguageExit.Reason.init -> void
+SharpRail.Host.Abstractions.LanguageExit.Time.get -> string!
+SharpRail.Host.Abstractions.LanguageExit.Time.init -> void
+SharpRail.Host.Abstractions.LanguageExit.Unexpected.get -> bool
+SharpRail.Host.Abstractions.LanguageExit.Unexpected.init -> void

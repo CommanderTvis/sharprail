@@ -99,6 +99,7 @@ public sealed class StateReply
     [ProtoMember(22)] public List<string> SharprailExcludeDeclined { get; set; } = [];
     [ProtoMember(20)] public List<WorkspaceRefMessage> ProjectLanguageAutostart { get; set; } = [];
     [ProtoMember(18)] public List<WorkspaceRefMessage> WorkspaceLanguages { get; set; } = [];
+    [ProtoMember(23)] public List<WorkspaceRefMessage> LanguageDeaths { get; set; } = [];
     [ProtoMember(21)] public List<WorkspaceRefMessage> ProjectLanguageFiles { get; set; } = [];
     [ProtoMember(17)] public List<TerminalTitleMessage> TerminalTitles { get; set; } = [];
     // Empty when the host does not report its platform.

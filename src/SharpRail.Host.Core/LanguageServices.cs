@@ -19,7 +19,7 @@ public sealed partial class HostStateStore
                 if (languages is not null) return languages;
                 languages = new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language"),
                     () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage)
-                { GlobalIntelliJProvider = () => Current.Settings.JavaKotlinProvider == "intellij" };
+                { DeathObserved = PublishLanguageDeath, GlobalIntelliJProvider = () => Current.Settings.JavaKotlinProvider == "intellij" };
                 WorkspaceRemoved += workspace => _ = languages.CloseWorkspaceAsync(workspace);
                 return languages;
             }

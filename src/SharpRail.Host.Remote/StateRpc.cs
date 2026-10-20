@@ -81,6 +81,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         SharprailExcludeDeclined = state.SharprailExcludeDeclined.ToList(),
         WorkspaceLanguages = state.WorkspaceLanguages.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         ProjectLanguageAutostart = state.ProjectLanguageAutostart.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
+        LanguageDeaths = state.LanguageDeaths.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         ProjectLanguageFiles = state.ProjectLanguageFiles.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         Bases = state.WorkspaceBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         DiffBases = state.WorkspaceDiffBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),

@@ -154,6 +154,9 @@ language-server dependency files. Hosts without language support return unavaila
 pretending an empty diagnostic result is current.
 
 The `servers` operation returns `LanguageServerState` rows without starting or provisioning any server.
+`LanguageServerState.Exit` (`LanguageExit`) is the host's record of how the last run ended: one-line reason, whether
+it was unexpected, requester, exit code, decoded signal, uptime, last sampled memory and a copyable report. `HostState.LanguageDeaths`
+carries unexpected deaths for client notifications and is not persisted.
 Rows include the representative source path, state, details and managed version for workspace controls.
 
 `LanguageRequest.Server` optionally selects a catalog server for path-free status, retry or stop.

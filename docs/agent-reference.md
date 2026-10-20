@@ -106,6 +106,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | Mode | Covers |
 | --- | --- |
 | `--plugins`, `--codex`, `--codex-terminals`, `--claude-code`, `--specs`, `--branch-graph` | Plugin runtime and each builtin plugin. |
+| `--lsp-ui` | Language editor overlay and the LSP pane, including a dead server row with Details and Copy details. |
 | `--vertical-tabs` | Projects-only tab projection and interactions. |
 | `--rail` | Retained Projects controls and geometry. |
 | `--state` | Host state and profile/preset migration. |
@@ -138,7 +139,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--runner` | The runner itself. |
 | `--android` | Android host address parsing and remembered endpoint (the client needs a device: `scripts/mise run android run`). |
 
-Gate options (argument-free gate only; not focused modes): `--lanes N|auto` splits across processes, `--last-failed` reruns unfinished work (serial), `--list-cases`, `--case A,B`. `tests/SharpRail.Checks/Runner.cs` owns these, the idle-sleep assertion and interrupt cleanup. A suite joins the gate through `Gate.Case` in `Program.cs` or `UiChecks.cs`. Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
+Gate options (argument-free gate only; not focused modes): `--lanes N|auto` splits across processes, `--last-failed` reruns unfinished work (serial), `--list-cases`, `--case A,B` (for example `--case language-exit` for server exit records, `--case language-services` for the language host). `tests/SharpRail.Checks/Runner.cs` owns these, the idle-sleep assertion and interrupt cleanup. A suite joins the gate through `Gate.Case` in `Program.cs` or `UiChecks.cs`. Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 
 Under GitHub Actions (`GITHUB_ACTIONS=true`) the runner (`tests/SharpRail.Checks/CiReport.cs`) wraps each gate case in `::group::`/`::endgroup::` (not in lanes), and a failure emits an `::error file=,line=,title=<case>::<message>` annotation (first stack frame under `tests/`, assertion helpers skipped) and appends a failed-case table, pass/skip counts and the last 30 output lines to `$GITHUB_STEP_SUMMARY`. Lane output keeps `::` lines unprefixed so annotations survive. With `SHARPRAIL_CHECKS_KEEP_GOING=1` (set in `ci.yml` and `nightly.yml`; local default off; ignored by focused modes) the gate runs every selected case instead of stopping at the first failure: a throwing case is recorded (name, message, file:line, duration, last 30 lines of its own output), the working directory and environment are restored, and the run ends with a failure table and a slowest-cases table on the console and in the step summary, one `::error` per failed case, and exit 1. Cases are independent (shared setup sits outside them), so none is skipped for an earlier failure. `--last-failed` then reruns exactly the failed cases (`!ordinal shard name` records); lanes and shards each keep going and merge. Local output is unchanged without it. To see it locally: `GITHUB_ACTIONS=true GITHUB_STEP_SUMMARY=<file> SHARPRAIL_CHECKS_FIXTURE_CASES=3 SHARPRAIL_CHECKS_FIXTURE_FAIL=c1 .tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`.
 

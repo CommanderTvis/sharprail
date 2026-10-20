@@ -51,6 +51,22 @@ public sealed class LanguageServerDto
     [ProtoMember(6)] public string Configuration { get; set; } = "";
     [ProtoMember(7)] public string ActiveConfiguration { get; set; } = "";
     [ProtoMember(8)] public bool Configured { get; set; }
+    [ProtoMember(9)] public LanguageExitDto? Exit { get; set; }
+}
+
+[ProtoContract]
+public sealed class LanguageExitDto
+{
+    [ProtoMember(1)] public string Time { get; set; } = "";
+    [ProtoMember(2)] public string Reason { get; set; } = "";
+    [ProtoMember(3)] public bool Unexpected { get; set; }
+    [ProtoMember(4)] public string Initiator { get; set; } = "";
+    [ProtoMember(5)] public bool HasExitCode { get; set; }
+    [ProtoMember(6)] public int ExitCode { get; set; }
+    [ProtoMember(7)] public string Signal { get; set; } = "";
+    [ProtoMember(8)] public int UptimeSeconds { get; set; }
+    [ProtoMember(9)] public long MemoryBytes { get; set; }
+    [ProtoMember(10)] public string Details { get; set; } = "";
 }
 
 [ProtoContract]

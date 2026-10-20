@@ -38,16 +38,20 @@ internal sealed partial class LanguageSession : IAsyncDisposable
     private string? ownedCache;
     internal bool HasDrafts { get; private set; }
     internal bool Exited => connection.Exited;
+    internal LanguageExit? ExitRecord => connection.ExitRecord;
+    /// <summary>Names why SharpRail is about to end this server, so its exit record explains the death.</summary>
+    internal void Terminate(string reason, bool failure = false) => connection.Terminate(reason, failure);
+    internal void SampleMemory() => connection.SampleMemory();
     internal async Task<bool> ObserveExpiryAsync() => server.Id == "intellij" && await connection.ObserveExitAsync() == 7;
     internal bool Expired => server.Id == "intellij" && connection.ExitCode == 7;
     private sealed record Document(string Text, int Version, string Owner, long ClientVersion, bool Dirty);
     private sealed record Published(int? Version, LanguageItem[] Items);
 
-    private LanguageSession(ProcessStartInfo start, string workspace, LanguageServer server, WorkspaceLanguageOptions options, LanguageLog log)
+    private LanguageSession(ProcessStartInfo start, string workspace, LanguageServer server, WorkspaceLanguageOptions options, LanguageLog log, Action<LanguageExit>? onExit)
     {
         this.workspace = workspace; this.server = server; this.log = log;
         var settings = WorkspaceLanguageConfiguration.Settings(options, workspace, server.Id);
-        connection = new(start, workspace, log)
+        connection = new(start, workspace, log, server.Id, onExit)
         {
             Notification = OnNotification,
             ClientRequest = OnClientRequest,
@@ -56,7 +60,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable
         };
     }
 
-    internal static async Task<LanguageSession> StartAsync(ProcessStartInfo start, string workspace, LanguageServer server, CancellationToken token, WorkspaceLanguageOptions? options = null, LanguageLog? log = null, string? storage = null)
+    internal static async Task<LanguageSession> StartAsync(ProcessStartInfo start, string workspace, LanguageServer server, CancellationToken token, WorkspaceLanguageOptions? options = null, LanguageLog? log = null, string? storage = null, Action<LanguageExit>? onExit = null)
     {
         options ??= new();
         var model = LanguageProjectModel.Discover(workspace, server.Id, token, options.CompilationDatabasePath);
@@ -67,7 +71,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable
             if (!initialization.ContainsKey("storagePath")) initialization["storagePath"] = Path.Combine(storage, "workspaces", LanguageServers.Key(workspace), server.Id);
             if (!initialization.ContainsKey("globalStoragePath")) initialization["globalStoragePath"] = Path.Combine(storage, "cache", server.Id, server.Version);
         }
-        var session = new LanguageSession(start, workspace, server, options, log ?? new());
+        var session = new LanguageSession(start, workspace, server, options, log ?? new(), onExit);
         if (server.Id == "intellij" && storage is not null && start.ArgumentList.IndexOf("--system-path") is var cacheIndex && cacheIndex >= 0 && cacheIndex + 1 < start.ArgumentList.Count)
         {
             var cache = start.ArgumentList[cacheIndex + 1];
@@ -149,9 +153,10 @@ internal sealed partial class LanguageSession : IAsyncDisposable
             { session.detail = "File watcher unavailable: " + error.Message; }
             return session;
         }
-        catch
+        catch (Exception failure)
         {
             var expired = server.Id == "intellij" && await session.connection.ObserveExitAsync() == 7;
+            session.Terminate("it did not finish starting: " + failure.Message, failure: true);
             await session.DisposeAsync();
             if (expired) throw new IntelliJExpiredException();
             throw;

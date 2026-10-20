@@ -175,7 +175,7 @@ internal static class LanguageChecks
             Require((await host.LanguageAsync(new(emptyWorkspace, Operation: "diagnostics"))).Freshness == "unavailable", "Problems restarted a stopped server.");
             await host.LanguageAsync(new(emptyWorkspace, Operation: "restart", Server: "typescript", Configuration: """{"settings":{"fixtureExit":true}}"""));
             using (var exitDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
-                while (!(await host.LanguageAsync(new(emptyWorkspace, Operation: "logs", Server: "typescript"), exitDeadline.Token)).Detail.Contains("exit: Code 7", StringComparison.Ordinal))
+                while (!(await host.LanguageAsync(new(emptyWorkspace, Operation: "logs", Server: "typescript"), exitDeadline.Token)).Detail.Contains("exit: Exited with code 7", StringComparison.Ordinal))
                     await Task.Delay(30, exitDeadline.Token);
             await host.LanguageAsync(new(emptyWorkspace, Operation: "stop", Server: "typescript"));
             var beforeStart = await host.LanguageAsync(new(root, Operation: "diagnostics", Scope: "files", Paths: ["code.ts"]));
@@ -1266,6 +1266,24 @@ internal static class LanguageChecks
             CaptureLsp(logsWindow, "server-logs");
             logsWindow.Close();
             CaptureLsp(window, "pane");
+            // A server that dies unexpectedly says why in its row, with copyable details, and a requested stop does not.
+            var dying = new LanguageRequest(root, Operation: "restart", Server: "typescript", Configuration: """{"settings":{"fixtureDie":{"code":137,"stderr":3}}}""");
+            void Lang(LanguageRequest request) => Task.Run(async () => await new LocalProjectAdapter(new ProjectServices(root, state)).LanguageAsync(request, new CancellationTokenSource(20000).Token)).GetAwaiter().GetResult();
+            Lang(dying);
+            E2E.E2eWorkspace.Until(() => { Lang(new(root, "code.ts", "hover", 0, 3)); if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return RowStatus(0) == "error"; });
+            var deadRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
+            E2E.E2eWorkspace.Until(() => deadRow.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ServerDetail" && text.Text!.StartsWith("Stopped unexpectedly: Exited with code 137", StringComparison.Ordinal)));
+            var exitDetails = deadRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerExitDetailsAction");
+            Require(exitDetails.IsVisible && deadRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerExitCopyAction").IsVisible &&
+                deadRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerLogsAction").IsVisible &&
+                !deadRow.GetLogicalDescendants().OfType<SelectableTextBlock>().Single(text => text.Name == "ServerExitText").IsVisible, "A dead server row lacks Details, Copy details or logs, or opens its details unasked.");
+            exitDetails.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            SelectableTextBlock ExitText() => ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<SelectableTextBlock>().Single(text => text.Name == "ServerExitText");
+            E2E.E2eWorkspace.Until(() => { try { return ExitText().IsVisible; } catch (InvalidOperationException) { return false; } });
+            Require(ExitText() is { IsVisible: true } shown &&
+                shown.Text!.Contains("Exit code: 137", StringComparison.Ordinal) && shown.Text.Contains("fixture stderr", StringComparison.Ordinal), "Details did not show the exit code and stderr.");
+            Lang(new(root, Operation: "restart", Server: "typescript", Configuration: "{}"));
+            E2E.E2eWorkspace.Until(() => { if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return RowStatus(0) == "ready"; });
             Find<ComboBox>("AddServer").SelectedItem = "intellij";
             E2E.E2eWorkspace.Until(() => servers.Items.Cast<object>().Any(item => item.ToString()!.StartsWith("Java / Kotlin (IntelliJ)", StringComparison.Ordinal)));
             var intellijIndex = Enumerable.Range(0, servers.ItemCount).Single(index => servers.Items[index]!.ToString()!.StartsWith("Java / Kotlin (IntelliJ)", StringComparison.Ordinal));
@@ -1378,6 +1396,7 @@ internal static class LanguageChecks
         await Console.Error.WriteLineAsync("fixture stderr");
         var input = Console.OpenStandardInput(); var output = Console.OpenStandardOutput();
         var documents = new Dictionary<string, (string Text, int Version)>();
+        JsonObject? die = null;
         while (true)
         {
             var header = new StringBuilder(); var one = new byte[1];
@@ -1423,6 +1442,7 @@ internal static class LanguageChecks
             if (method == "workspace/didChangeConfiguration")
             {
                 await File.WriteAllTextAsync(Path.Combine(".tools", "configuration.json"), parameters!.ToJsonString());
+                die = parameters["settings"]?["fixtureDie"] as JsonObject;
                 if (parameters["settings"]?["fixtureExit"]?.GetValue<bool>() == true)
                 {
                     await Console.Error.WriteLineAsync("fixture exiting with code 7");
@@ -1439,6 +1459,13 @@ internal static class LanguageChecks
                 await Send(new { jsonrpc = "2.0", id = "fixture-restore", method = "workspace/_roslyn_projectNeedsRestore", @params = new { projectFilePaths = new[] { Path.GetFullPath("Fixture.csproj") } } });
             }
             if (request["id"] is not { } id) continue;
+            if (die is not null && method != "initialize")
+            {
+                // Dies (or hangs) on the first request after the configuration says so; the burst proves the stderr tail is bounded.
+                for (var line = 0; line < (die["stderr"]?.GetValue<int>() ?? 0); line++) await Console.Error.WriteLineAsync($"fixture stderr line {line}");
+                if (die["hang"]?.GetValue<bool>() == true) await Task.Delay(Timeout.Infinite);
+                Environment.Exit(die["code"]?.GetValue<int>() ?? 1);
+            }
             object? result;
             var range = new { start = new { line = 0, character = 3 }, end = new { line = 0, character = 9 } };
             if (method == "initialize")

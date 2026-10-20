@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -12,19 +13,24 @@ namespace SharpRail.UI.Panels;
 
 internal sealed partial class LanguagePanel : UserControl
 {
-    private sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false)
+    private sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false, bool ExitOpen = false)
     {
+        public bool HasExit => Server.Exit is not null && Server.State is not ("ready" or "initializing" or "installing");
+        public bool ShowExit => HasExit && Server.Exit!.Unexpected;
+        public string ExitToggle => ExitOpen ? "Hide details" : "Details";
+        public bool ShowExitDetails => ShowExit && ExitOpen;
+        public string ExitDetails => Server.Exit?.Details ?? "";
         public bool IsBusy => Server.State is "installing" or "initializing";
         public bool ShowStatusIcon => !IsBusy;
-        public bool ShowDetail => Expanded || Server.State is "error" or "unavailable" or "installing" or "initializing" or "actionRequired" or "requiresAcceptance" or "expired";
-        public bool ShowLogs => Expanded || Server.State is "error" or "unavailable" or "expired";
+        public bool ShowDetail => Expanded || ShowExit || Server.State is "error" or "unavailable" or "installing" or "initializing" or "actionRequired" or "requiresAcceptance" or "expired";
+        public bool ShowLogs => Expanded || ShowExit || Server.State is "error" or "unavailable" or "expired";
         public bool HasSource => Server.Path.Length > 0;
         public bool RestartRequired => Server.ActiveConfiguration.Length > 0 && Server.Configuration != Server.ActiveConfiguration;
         public string SettingsTooltip => RestartRequired ? "Workspace settings · restart needed" : "Workspace settings";
         public Control SettingsIcon => Ui.Icon("settings", RestartRequired ? Ui.Accent : Ui.Muted);
         public bool CanStart => Server.State is "idle" or "stopped" or "error" or "unavailable" or "requiresAcceptance";
         public string Disclosure => CanStart ? Server.State is "error" or "unavailable" ? "Retry ▷" : "Start ▷" : Expanded ? "▾" : "▸";
-        public Avalonia.Media.IBrush DetailBrush => Server.State is "error" or "unavailable" ? Ui.Danger : Ui.Muted;
+        public Avalonia.Media.IBrush DetailBrush => ShowExit || Server.State is "error" or "unavailable" ? Ui.Danger : Ui.Muted;
         public string Detection => Server.Path.Length > 0 ? "Suggested by file: " + Server.Path : "No matching files detected.";
         public string Version => "Managed version: " + Server.Version;
         public Control Icon => Ui.Icon(Server.State switch
@@ -54,6 +60,7 @@ internal sealed partial class LanguagePanel : UserControl
     private readonly Dictionary<string, LanguageConfigurationView> configurations = [];
     private readonly HashSet<string> added = [];
     private readonly HashSet<string> expanded = [];
+    private readonly HashSet<string> exitOpen = [];
 
     internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, SharpRail.UI.State.SharedState? state = null, SharpRail.UI.Plugins.PluginRegistry? plugins = null)
     {
@@ -123,6 +130,27 @@ internal sealed partial class LanguagePanel : UserControl
         e.Handled = true;
     }
 
+    private void ExitDetailsClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is not Button { DataContext: ServerRow row }) return;
+        if (!exitOpen.Add(row.Server.Id)) exitOpen.Remove(row.Server.Id);
+        RefreshRows(row.Server.Id);
+    }
+
+    private async void CopyExitClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is not Button { DataContext: ServerRow { Server.Exit: { } exit } }) return;
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard ?? throw new InvalidOperationException("No clipboard.");
+            await clipboard.SetTextAsync(exit.Reason + "\n\n" + exit.Details);
+            SetStatus("Exit details copied.");
+        }
+        catch (Exception error) { SetStatus("Couldn't copy the details: " + error.Message); }
+    }
+
     private void ShowLogs(ServerRow row)
     {
         if (TopLevel.GetTopLevel(this) is Window owner)
@@ -161,7 +189,7 @@ internal sealed partial class LanguagePanel : UserControl
                 if (!configurations.TryGetValue(server.Id, out var view))
                     configurations[server.Id] = view = new(host, workspace, server);
                 else view.Update(server);
-                return new ServerRow(server, view, expanded.Contains(server.Id));
+                return new ServerRow(server, view, expanded.Contains(server.Id), exitOpen.Contains(server.Id));
             }).ToArray();
         if (!(list.ItemsSource?.Cast<ServerRow>() ?? []).SequenceEqual(rows))
         {

@@ -24,6 +24,11 @@ public sealed partial class LanguageService : IAsyncDisposable
     private readonly Func<string, string, string> configuration;
     private readonly Action<string, string, string>? saveConfiguration;
     private int disposed;
+    private readonly LanguageExitStore exits;
+    /// <summary>How long a server may go unused before SharpRail stops it to free memory; the stop is recorded as the reason.</summary>
+    internal TimeSpan IdleLimit { get; set; } = TimeSpan.FromMinutes(10);
+    /// <summary>Called with workspace, server id, time and reason when a server dies without anyone asking it to; the host publishes it to clients.</summary>
+    internal Action<string, string, string, string>? DeathObserved { get; init; }
     private sealed class Entry
     {
         internal Lazy<Task<LanguageSession>> Session = null!;
@@ -41,6 +46,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     public LanguageService(string directory, Func<bool>? enabled = null, Func<string>? configuration = null, Func<string, string, string>? workspaceConfiguration = null, Action<string, string, string>? saveConfiguration = null)
     {
         servers = new(directory, configuration);
+        exits = new(directory);
         this.configuration = workspaceConfiguration ?? ((_, _) => "{}");
         this.saveConfiguration = saveConfiguration;
         this.enabled = enabled ?? (() => Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1");
@@ -212,7 +218,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             if (entries.TryRemove(key, out var stopping))
             {
                 try { await PreserveDraftsAsync(key, stopping, token); }
-                finally { await StopAsync(stopping); }
+                finally { await StopAsync(stopping, "a stop was requested"); }
             }
             return new("stopped", "Language server stopped. Use Retry to restart.", server.Id, request.Version);
         }
@@ -224,7 +230,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (request.Operation == "retry" && entries.TryRemove(key, out var previous))
         {
             try { await PreserveDraftsAsync(key, previous, token); }
-            finally { await StopAsync(previous); }
+            finally { await StopAsync(previous, "a start or restart was requested"); }
         }
         if (!entries.ContainsKey(key) && servers.Options(server.Id)?.Disabled == true)
             return new("disabled", "Disabled in Settings > LSP. Enable this server before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
@@ -248,11 +254,12 @@ public sealed partial class LanguageService : IAsyncDisposable
                     servers.ConfigureCaches(start, server, workspace);
                 }
                 candidate.State = "initializing"; candidate.Detail = "Starting and indexing the workspace…";
-                var session = await LanguageSession.StartAsync(start, workspace, server, deadline.Token, options, log, servers.DirectoryPath);
+                var session = await LanguageSession.StartAsync(start, workspace, server, deadline.Token, options, log, servers.DirectoryPath, exit => RecordExit(workspace, server.Id, exit));
                 try { if (drafts.TryGetValue(key, out var saved)) await session.RestoreDraftsAsync(saved, deadline.Token); }
                 catch
                 {
                     var expired = await session.ObserveExpiryAsync();
+                    session.Terminate("restoring unsaved editor buffers failed", failure: true);
                     await session.DisposeAsync();
                     if (expired) throw new IntelliJExpiredException();
                     throw;
@@ -302,6 +309,12 @@ public sealed partial class LanguageService : IAsyncDisposable
         catch (Exception error) { return new(error is IntelliJExpiredException ? "expired" : error is IntelliJAcceptanceException ? "requiresAcceptance" : "error", error.Message + " Use Retry after resolving the problem.", server.Id, request.Version) { Freshness = "unavailable" }; }
     }
 
+    private void RecordExit(string workspace, string server, LanguageExit exit)
+    {
+        exits.Set(workspace, server, exit);
+        if (exit.Unexpected && Volatile.Read(ref disposed) == 0) DeathObserved?.Invoke(workspace, server, exit.Time, exit.Reason);
+    }
+
     private void RecordExpiry(Entry entry, string key)
     {
         entry.State = "expired"; entry.Detail = IntelliJDistribution.Expired;
@@ -349,7 +362,7 @@ public sealed partial class LanguageService : IAsyncDisposable
                     {
                         if (task.Result.Expired) RecordExpiry(entry, key);
                         state = task.Result.Expired ? "expired" : task.Result.Exited ? "error" : task.Result.NeedsConfiguration ? "actionRequired" : task.Result.IsIndexing ? "initializing" : "ready";
-                        detail = task.Result.Expired ? IntelliJDistribution.Expired : task.Result.Exited ? "The server exited. Use Start / Retry to restart." : task.Result.Status;
+                        detail = task.Result.Expired ? IntelliJDistribution.Expired : task.Result.Exited ? (task.Result.ExitRecord is { } died ? (died.Unexpected ? "Stopped unexpectedly: " : "Stopped: ") + died.Reason : "The server exited; its exit status is still being read.") + " Use Start / Retry to restart." : task.Result.Status;
                     }
                     else if (task.IsFaulted) { state = task.Exception!.GetBaseException() is IntelliJExpiredException ? "expired" : task.Exception!.GetBaseException() is IntelliJAcceptanceException ? "requiresAcceptance" : "error"; detail = task.Exception!.GetBaseException().Message; }
                     else if (task.IsCanceled) { state = "stopped"; detail = "Startup was cancelled."; }
@@ -357,9 +370,14 @@ public sealed partial class LanguageService : IAsyncDisposable
             }
             if (id is "java" or "kotlin" && UsesIntelliJ(workspace)) { state = "disabled"; detail = "IntelliJ is selected for Java and Kotlin. Existing provider settings are preserved."; }
             if (!enabled()) { state = "disabled"; detail = "Language services are disabled on this host. Workspace settings are preserved."; }
+            var exit = exits.Get(workspace, id);
+            if (entries.TryGetValue(key, out var running) && running.Session.IsValueCreated && running.Session.Value is { IsCompletedSuccessfully: true } finished) exit = finished.Result.ExitRecord ?? exit;
+            if (exit is not null && state is "idle" or "stopped")
+                detail = (exit.Unexpected ? "Stopped unexpectedly: " : "Last run: ") + exit.Reason + " " + detail;
             rows.Add(new(id, path, state, detail, LanguageServers.Catalog.Single(server => server.Id == id).Version,
                 WorkspaceLanguageConfiguration.Serialize(WorkspaceLanguageConfiguration.Parse(configuration(workspace, id), id)),
-                entries.GetValueOrDefault(key)?.Configuration ?? "", configuration(workspace, id) != "{}"));
+                entries.GetValueOrDefault(key)?.Configuration ?? "", configuration(workspace, id) != "{}")
+            { Exit = exit });
         }
         return new(enabled() ? "ready" : "disabled", enabled() ? "Available language servers; detected languages are listed first." : "Language services are disabled. Workspace settings remain available.") { Servers = rows };
     }
@@ -386,7 +404,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             if (entries.TryRemove(key, out var entry))
             {
                 try { await PreserveDraftsAsync(key, entry, token); }
-                finally { await StopAsync(entry); }
+                finally { await StopAsync(entry, "the Java/Kotlin provider choice changed"); }
             }
             if (!drafts.TryRemove(key, out var saved)) continue;
             foreach (var draft in saved)
@@ -424,16 +442,18 @@ public sealed partial class LanguageService : IAsyncDisposable
         await Task.WhenAll(sessions.Select(async pair =>
         {
             try { await PreserveDraftsAsync(pair.Key, pair.Value, CancellationToken.None); }
-            finally { await StopAsync(pair.Value); }
+            finally { await StopAsync(pair.Value, "the workspace's language services were suspended"); }
         }));
     }
 
-    private void EvictIdle()
+    internal void EvictIdle()
     {
+        foreach (var entry in entries.Values)
+            if (entry.Session.IsValueCreated && entry.Session.Value is { IsCompletedSuccessfully: true } running) running.Result.SampleMemory();
         foreach (var (key, entry) in entries)
-            if (entry.State != "expired" && DateTime.UtcNow - entry.Used > TimeSpan.FromMinutes(10) &&
+            if (entry.State != "expired" && DateTime.UtcNow - entry.Used > IdleLimit &&
                 !(entry.Session.IsValueCreated && (!entry.Session.Value.IsCompleted || entry.Session.Value is { IsCompletedSuccessfully: true } task && (task.Result.HasDrafts || task.Result.IsIndexing))) && entries.TryRemove(new KeyValuePair<string, Entry>(key, entry)))
-                _ = StopAsync(entry);
+                _ = StopAsync(entry, $"it was idle for {IdleLimit.TotalMinutes:0.##} minutes (SharpRail's idle limit); it starts again on first use");
     }
 
     public async ValueTask CloseWorkspaceAsync(string workspace)
@@ -444,7 +464,8 @@ public sealed partial class LanguageService : IAsyncDisposable
         foreach (var key in drafts.Keys) if (key.StartsWith(workspace + "\0", StringComparison.Ordinal)) drafts.TryRemove(key, out _);
         foreach (var (key, entry) in entries)
             if (key.StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)) + "\0", StringComparison.Ordinal) && entries.TryRemove(new KeyValuePair<string, Entry>(key, entry)))
-                await StopAsync(entry);
+                await StopAsync(entry, "the workspace was closed or removed");
+        exits.Remove(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)));
     }
 
     private async Task PreserveDraftsAsync(string key, Entry entry, CancellationToken token)
@@ -453,11 +474,19 @@ public sealed partial class LanguageService : IAsyncDisposable
             drafts[key] = await (await task).DraftsAsync(token);
     }
 
-    private static async Task StopAsync(Entry entry)
+    private static async Task StopAsync(Entry entry, string reason)
     {
         if (Interlocked.Exchange(ref entry.Stopped, 1) != 0) return;
         entry.Stop.Cancel();
-        try { if (entry.Session.IsValueCreated) await (await entry.Session.Value).DisposeAsync(); }
+        try
+        {
+            if (entry.Session.IsValueCreated)
+            {
+                var session = await entry.Session.Value;
+                session.Terminate(reason);
+                await session.DisposeAsync();
+            }
+        }
         catch (Exception) { }
         entry.Stop.Dispose();
     }
@@ -466,7 +495,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     {
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
         lifetime.Cancel(); await idle.DisposeAsync();
-        foreach (var entry in entries.Values) await StopAsync(entry);
+        foreach (var entry in entries.Values) await StopAsync(entry, "the host is shutting down");
         entries.Clear(); logs.Clear(); lifetime.Dispose();
     }
 }
