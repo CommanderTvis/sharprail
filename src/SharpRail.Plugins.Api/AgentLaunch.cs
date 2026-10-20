@@ -28,7 +28,36 @@ public sealed record AgentLaunchContribution
 
     /// <summary>Literal words placed directly after the executable or its replacement, before the agent's own arguments.</summary>
     public IReadOnlyList<string> Arguments { get; init; } = [];
+
+    /// <summary>
+    /// Who the agent runs as under this contribution, when it is not the agent's own account (a governed launch
+    /// through a proxy or an organization's credits). The agent's plugin shows it in place of the vendor account and
+    /// does not read the vendor account while one is present. Only host-side contributions carry a source, because
+    /// reading it is I/O.
+    /// </summary>
+    public AgentAccountSource? Account { get; init; }
 }
+
+/// <summary>
+/// The account an agent launch runs under when a contribution governs it. <see cref="Read"/> runs on the host and
+/// returns the current reading; it never throws for an unavailable source, it reports the reason in
+/// <see cref="AgentGovernedAccount.Problem"/>.
+/// </summary>
+/// <param name="Name">The source's name shown to the user, for example <c>Central</c>.</param>
+/// <param name="Read">Reads the account now.</param>
+public sealed record AgentAccountSource(string Name, Func<CancellationToken, ValueTask<AgentGovernedAccount>> Read);
+
+/// <summary>One reading of a governed account. Credits are in the source's own unit.</summary>
+/// <param name="Source">The source's name.</param>
+/// <param name="Identity">Who is signed in, such as an email address.</param>
+/// <param name="Plan">The plan or license name.</param>
+/// <param name="Remaining">Credits left of the recurring quota, when known.</param>
+/// <param name="Total">The recurring quota.</param>
+/// <param name="TopUp">Credits left of the top-up quota; zero when there is none.</param>
+/// <param name="RefillNext">When the quota refills, Unix milliseconds.</param>
+/// <param name="Problem">A sentence the user can act on when the source cannot be read (not installed, signed out, limit read failed); then the numbers are absent.</param>
+public sealed record AgentGovernedAccount(string Source, string? Identity = null, string? Plan = null, double? Remaining = null, double? Total = null,
+    double TopUp = 0, long? RefillNext = null, string? Problem = null);
 
 /// <summary>Applies <see cref="AgentLaunchContribution"/> values to a command line that starts an agent.</summary>
 public static partial class AgentLaunchComposition

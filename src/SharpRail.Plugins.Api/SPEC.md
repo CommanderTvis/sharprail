@@ -860,3 +860,10 @@ only the first replacing contribution applies and sits innermost (later replacer
 order; for a variable the first contribution wins and `SHARPRAIL_` and `THINKRAIL_` names, invalid names and any
 variable for a Windows shell are dropped. Every word is one literal word, quoted for the target shell (single quotes
 on POSIX, double quotes on Windows); a contribution containing a word that cannot be quoted safely is skipped whole.
+
+A host-side contribution may also set `Account`, an `AgentAccountSource` (a name and an async `Read` returning an
+`AgentGovernedAccount`) for launches it governs, such as through an organization's proxy. The agent's plugin, reading
+`AgentLaunchContributions`, shows the first such source in place of the vendor account and usage, and must not start
+the vendor account read while one is present. `Read` runs on the host, reports an unavailable source in `Problem`
+(not installed, signed out, limit unreadable) rather than throwing, and is requested again on each refresh. UI-side
+contributions leave `Account` unset because reading it is I/O. `Account` does not affect `Apply`.

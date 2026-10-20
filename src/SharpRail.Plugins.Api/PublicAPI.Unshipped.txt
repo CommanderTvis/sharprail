@@ -382,3 +382,45 @@ override SharpRail.Plugins.Api.AgentLaunchContribution.ToString() -> string!
 static SharpRail.Plugins.Api.AgentLaunchComposition.Apply(string! commandLine, string! executable, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution!>! contributions, bool windows = false) -> string!
 static SharpRail.Plugins.Api.AgentLaunchContribution.operator !=(SharpRail.Plugins.Api.AgentLaunchContribution? left, SharpRail.Plugins.Api.AgentLaunchContribution? right) -> bool
 static SharpRail.Plugins.Api.AgentLaunchContribution.operator ==(SharpRail.Plugins.Api.AgentLaunchContribution? left, SharpRail.Plugins.Api.AgentLaunchContribution? right) -> bool
+SharpRail.Plugins.Api.AgentLaunchContribution.Account.get -> SharpRail.Plugins.Api.AgentAccountSource?
+SharpRail.Plugins.Api.AgentLaunchContribution.Account.init -> void
+SharpRail.Plugins.Api.AgentAccountSource
+SharpRail.Plugins.Api.AgentAccountSource.AgentAccountSource(string! Name, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.AgentGovernedAccount!>>! Read) -> void
+SharpRail.Plugins.Api.AgentAccountSource.Name.get -> string!
+SharpRail.Plugins.Api.AgentAccountSource.Name.init -> void
+SharpRail.Plugins.Api.AgentAccountSource.Read.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.AgentGovernedAccount!>>!
+SharpRail.Plugins.Api.AgentAccountSource.Read.init -> void
+SharpRail.Plugins.Api.AgentGovernedAccount
+SharpRail.Plugins.Api.AgentGovernedAccount.AgentGovernedAccount(string! Source, string? Identity = null, string? Plan = null, double? Remaining = null, double? Total = null, double TopUp = 0, long? RefillNext = null, string? Problem = null) -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.Identity.get -> string?
+SharpRail.Plugins.Api.AgentGovernedAccount.Identity.init -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.Plan.get -> string?
+SharpRail.Plugins.Api.AgentGovernedAccount.Plan.init -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.Problem.get -> string?
+SharpRail.Plugins.Api.AgentGovernedAccount.Problem.init -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.Remaining.get -> double?
+SharpRail.Plugins.Api.AgentGovernedAccount.Remaining.init -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.RefillNext.get -> long?
+SharpRail.Plugins.Api.AgentGovernedAccount.RefillNext.init -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.Source.get -> string!
+SharpRail.Plugins.Api.AgentGovernedAccount.Source.init -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.TopUp.get -> double
+SharpRail.Plugins.Api.AgentGovernedAccount.TopUp.init -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.Total.get -> double?
+SharpRail.Plugins.Api.AgentGovernedAccount.Total.init -> void
+SharpRail.Plugins.Api.AgentAccountSource.<Clone>$() -> SharpRail.Plugins.Api.AgentAccountSource!
+SharpRail.Plugins.Api.AgentAccountSource.Deconstruct(out string! Name, out System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.AgentGovernedAccount!>>! Read) -> void
+SharpRail.Plugins.Api.AgentAccountSource.Equals(SharpRail.Plugins.Api.AgentAccountSource? other) -> bool
+override SharpRail.Plugins.Api.AgentAccountSource.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.AgentAccountSource.GetHashCode() -> int
+override SharpRail.Plugins.Api.AgentAccountSource.ToString() -> string!
+static SharpRail.Plugins.Api.AgentAccountSource.operator !=(SharpRail.Plugins.Api.AgentAccountSource? left, SharpRail.Plugins.Api.AgentAccountSource? right) -> bool
+static SharpRail.Plugins.Api.AgentAccountSource.operator ==(SharpRail.Plugins.Api.AgentAccountSource? left, SharpRail.Plugins.Api.AgentAccountSource? right) -> bool
+SharpRail.Plugins.Api.AgentGovernedAccount.<Clone>$() -> SharpRail.Plugins.Api.AgentGovernedAccount!
+SharpRail.Plugins.Api.AgentGovernedAccount.Deconstruct(out string! Source, out string? Identity, out string? Plan, out double? Remaining, out double? Total, out double TopUp, out long? RefillNext, out string? Problem) -> void
+SharpRail.Plugins.Api.AgentGovernedAccount.Equals(SharpRail.Plugins.Api.AgentGovernedAccount? other) -> bool
+override SharpRail.Plugins.Api.AgentGovernedAccount.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.AgentGovernedAccount.GetHashCode() -> int
+override SharpRail.Plugins.Api.AgentGovernedAccount.ToString() -> string!
+static SharpRail.Plugins.Api.AgentGovernedAccount.operator !=(SharpRail.Plugins.Api.AgentGovernedAccount? left, SharpRail.Plugins.Api.AgentGovernedAccount? right) -> bool
+static SharpRail.Plugins.Api.AgentGovernedAccount.operator ==(SharpRail.Plugins.Api.AgentGovernedAccount? left, SharpRail.Plugins.Api.AgentGovernedAccount? right) -> bool
