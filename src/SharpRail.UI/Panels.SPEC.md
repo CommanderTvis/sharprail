@@ -92,7 +92,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   belongs to Changes.
 - A hover- and focus-revealed kebab and right-click open the same workspace menu: “Open in” (editors from
   `ListEditorsAsync`, fetched lazily on first open, with explicit “Looking for editors…” and “No editors
-  found” rows), Copy absolute path, Copy name and Reveal in file manager (the host opens the folder on its own machine). A
+  found” rows), Copy absolute path, Copy name and Reveal in file manager (omitted for a remote host: the folder is on the other machine). A
   managed worktree adds Rename and Remove worktree…; an external one only Remove from SharpRail, whose
   confirmation promises the checkout and its branch stay untouched. The Default workspace gets neither
   mutation. A locked worktree's Remove is disabled.
@@ -200,7 +200,7 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
   folders and scroll position. Listings reconcile rows by relative path and entry kind; unchanged rows
   stay mounted and only added, removed or renamed entries change. File contents do not affect row identity.
 - Each row has its own context menu: New file…, New folder…, separator, Reveal in Finder (Show in Explorer
-  on Windows, Open containing folder elsewhere), Copy path (relative to the workspace root), Copy absolute path, Rename…, Move…, Copy…, and Delete file / Delete
+  on Windows, Show in file manager elsewhere; omitted for a remote host), Copy path (relative to the workspace root), Copy absolute path, Rename…, Move…, Copy…, and Delete file / Delete
   folder. New creates inside a folder row and beside a file row (a compact chain's row stands for its
   deepest folder); a typed `a/b.md` is a path. Rename selects the stem, so typing keeps the extension.
   One name dialog (`Dialogs.PathName`) takes the name: a name already listed in the destination shows an

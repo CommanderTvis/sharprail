@@ -186,7 +186,8 @@ public sealed partial class WorkbenchWindow
         Add("New file…", "FileNodeNewFile", () => _ = CreatePathAsync(into, false, expand), "fileText");
         Add("New folder…", "FileNodeNewFolder", () => _ = CreatePathAsync(into, true, expand), "folder");
         menu.Items.Add(new Separator());
-        Add(RevealLabel, "FileNodeReveal", () => _ = FileActionAsync(new("reveal", file.Path)), "folderOpen");
+        // The file lives on the host's machine, so a remote host has no file manager to show it in.
+        if (!remote) Add(RevealLabel, "FileNodeReveal", () => _ = FileActionAsync(new("reveal", file.Path)), "folderOpen");
         Add("Copy path", "FileNodeCopyRelativePath", () => _ = CopyTextAsync(file.Path));
         Add("Copy absolute path", "FileNodeCopyPath", () => _ = CopyTextAsync(Path.Combine(workspaceRoot, file.Path)));
         Add("Rename…", "FileNodeRename", () => _ = RenamePathAsync(file));

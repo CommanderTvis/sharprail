@@ -37,7 +37,7 @@ Without ICU installed, `AppRun` starts .NET in invariant-globalization mode inst
 - Mermaid diagrams show their source with a notice: Merman publishes its C ABI for Apple platforms only.
 - Away notifications use `notify-send` when it is installed; clicking one cannot return to the app.
 - Created workspaces clone configured ignored paths with `cp -a --reflink=auto` (shared extents on btrfs and XFS, a copy elsewhere).
-- Show in file manager asks the freedesktop.org FileManager1 D-Bus service (`gdbus`, then `busctl`) to select the entry in whatever file manager runs, then falls back to `xdg-open` and `gio open` on the containing folder, with `APPDIR` entries removed from the child environment; a missing launcher is reported in the app. Delete uses `gio trash`.
+- Show in file manager asks the freedesktop.org FileManager1 D-Bus service (`gdbus`, then `busctl`) to select the entry in whatever file manager runs, then falls back to `xdg-open` and `gio open` on the containing folder, with `APPDIR` entries removed from the child environment; a missing launcher is reported in the app. The action is hidden when the connected host is remote. Delete uses `gio trash`.
 - Child shells inherit `APPIMAGE`, `APPDIR` and `ARGV0` from the runtime.
 
 ## Build it

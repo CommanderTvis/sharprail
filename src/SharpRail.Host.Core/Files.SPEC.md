@@ -100,7 +100,7 @@ the session's other mutations:
   is recoverable; `reveal` selects the entry in the file manager (`open -R`, `explorer /select,`; on Linux the
   FileManager1 `ShowItems` D-Bus call through `gdbus` or `busctl`, else `xdg-open` or `gio open` on the containing folder, run
   with AppImage `APPDIR` entries removed from the environment, off the caller's thread, and failing with a message when no
-  launcher exists). Both run on the host's computer.
+  launcher exists). Both run on the host's computer, so clients hide the reveal action when the host is remote.
 - None of them touches the workspace folder itself.
 
 ## Client file transfers

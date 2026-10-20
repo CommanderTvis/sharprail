@@ -526,9 +526,12 @@ public sealed partial class WorkbenchWindow
         var copyName = Ui.Menu("Copy name", () => _ = CopyTextAsync(WorkspaceName(worktree.Path)));
         copyName.Name = "WorkspaceCopyName";
         menu.Items.Add(copyName);
-        var reveal = Ui.Menu("Reveal in file manager", () => _ = RevealWorkspaceAsync(worktree.Path));
-        reveal.Name = "WorkspaceReveal";
-        menu.Items.Add(reveal);
+        if (!remote)
+        {
+            var reveal = Ui.Menu("Reveal in file manager", () => _ = RevealWorkspaceAsync(worktree.Path));
+            reveal.Name = "WorkspaceReveal";
+            menu.Items.Add(reveal);
+        }
         if (worktree.Kind == WorkspaceKinds.Default) return openIn;
         if (SettleMenuItem(worktree) is { } settle) menu.Items.Add(settle);
         // An attached worktree is the user's: SharpRail neither renames nor removes it, it only stops listing it.
