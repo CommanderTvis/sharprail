@@ -81,6 +81,8 @@ tool=.tools/appimagetool/appimagetool.AppImage
 runtime=.tools/appimage-runtime/runtime
 [ -f "$tool" ] && [ -f "$runtime" ] || { echo 'bootstrap:linux did not install appimagetool.' >&2; exit 1; }
 # The store is read-only and appimagetool needs neither FUSE nor a writable home: it unpacks itself and writes only the image.
+# The task argument (the runtime identifier) is not an appimagetool argument.
+set --
 [ -z "${SHARPRAIL_GPG_KEY_ID:-}" ] || set -- --sign --sign-key "$SHARPRAIL_GPG_KEY_ID"
 ARCH="$appimage_arch" APPIMAGE_EXTRACT_AND_RUN=1 "$tool" "$@" --no-appstream --runtime-file "$runtime" --comp zstd \
   --mksquashfs-opt -Xcompression-level --mksquashfs-opt 19 "$app" "$image"
