@@ -66,7 +66,7 @@ off the UI thread in the host half under the 5 s and 15 s bounds, drop results a
 do not run while the pane is not attached and visible or the plugin is disabled (nothing then runs Central at all).
 The pane shows checking, signed in, signed out (Sign in enabled, Sign out disabled), not found, outdated and
 error states. There is no manual check button. Everything else is an explicit button: Sign in (`login`, browser, waits 1.5 s for a fast failure), Sign out (`logout`), Start proxy
-(`proxy start`), Update Central (`update --install`), List access sources (below) and Switch (`access <id>`,
+(`proxy start`), Update Central (`update --install`) and Switch (`access <id>`, on a source the automatic listing below shows,
 then `proxy restart`; a failed restart is a warning). A missing CLI shows the platform install command from
 central-cli.labs.jb.gg as text; the plugin never runs it.
 
@@ -85,7 +85,7 @@ contribution carries no account.
 ## Listing access sources
 
 
-`central access` output is not parsed. Listing follows JetBrains/thinkrail#708 and runs only on the List button:
+`central access` output is not parsed. Listing follows JetBrains/thinkrail#708 and runs automatically, with no button, only while Central is the chosen source, supported and signed in: when the pane opens, when the source becomes Central, after sign-in, after a Switch (which also refreshes the credits) and on the throttled activation check (at most once per 15 s). Until then the pane says what it waits for (checking, Central not installed or unavailable, sign in to Central) and the direct source shows nothing. The listing runs in the host half; a result arriving after a newer request, the source changing or the pane closing is dropped. It runs:
 `central login export` (16 KiB, 15 s) yields a version-1 `central-<base64url>` envelope with `environment`,
 `refresh_token` and the current `ai_access` selection. The refresh token is exchanged (`client_id=central-cli`) at
 the fixed OAuth endpoint of that environment and the access token is sent to JetBrains Cloud's

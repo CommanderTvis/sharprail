@@ -12,8 +12,10 @@ namespace SharpRail.Plugins.AirGovernance.UI;
 /// Settings › Air Governance. The source and the agent switches are plugin settings. Only the local, read-only
 /// sign-in status check runs automatically (on open, on window activation at most every <see cref="Throttle"/>,
 /// after sign-in and sign-out, and every <see cref="PollInterval"/> for at most <see cref="PollLimit"/> while a
-/// sign-in is awaited, only while the pane is attached and visible); every other action is a button. The pane
-/// shows the exact command shape new launches will get.
+/// sign-in is awaited, only while the pane is attached and visible); every other action is a button. The AI access
+/// sources are listed automatically (on the host, never on the UI thread) while Central is the chosen source and is
+/// signed in: on open, when the source becomes Central, after sign-in, after a switch and on the throttled
+/// activation check. The pane shows the exact command shape new launches will get.
 /// </summary>
 internal sealed partial class AirSettingsView : UserControl
 {
@@ -23,13 +25,16 @@ internal sealed partial class AirSettingsView : UserControl
     private readonly TextBox installCommand;
     private readonly RadioButton direct, central;
     private readonly CheckBox claudeCode, codex;
-    private readonly Button signIn, signOut, startProxy, update, listAccess;
+    private readonly Button signIn, signOut, startProxy, update;
     private readonly List<IDisposable> observers = [];
     private AirStatus? status;
     private bool applying;
     private bool busy;
     private bool checking;
     private long generation;
+    private long listGeneration;
+    private DateTime lastList = DateTime.MinValue;
+    private string? wasAuth;
     private DateTime lastCheck = DateTime.MinValue;
     private DispatcherTimer? poll;
     private DateTime pollEnd;
@@ -54,7 +59,7 @@ internal sealed partial class AirSettingsView : UserControl
         direct = Get<RadioButton>("AirSourceDirect"); central = Get<RadioButton>("AirSourceCentral");
         claudeCode = Get<CheckBox>("AirAgentClaudeCode"); codex = Get<CheckBox>("AirAgentCodex");
         signIn = Get<Button>("AirSignIn"); signOut = Get<Button>("AirSignOut");
-        startProxy = Get<Button>("AirStartProxy"); update = Get<Button>("AirUpdate"); listAccess = Get<Button>("AirListAccess");
+        startProxy = Get<Button>("AirStartProxy"); update = Get<Button>("AirUpdate");
         direct.IsCheckedChanged += (_, _) => { if (!applying && direct.IsChecked == true) Save(Settings with { Source = AirSources.Direct }); };
         central.IsCheckedChanged += (_, _) => { if (!applying && central.IsChecked == true) Save(Settings with { Source = AirSources.Central }); };
         claudeCode.IsCheckedChanged += (_, _) => { if (!applying) Save(Settings with { ClaudeCode = claudeCode.IsChecked == true }); };
@@ -63,7 +68,6 @@ internal sealed partial class AirSettingsView : UserControl
         signOut.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignOut);
         startProxy.Click += (_, _) => _ = RunAsync(AirGovernanceContract.StartProxy);
         update.Click += (_, _) => _ = RunAsync(AirGovernanceContract.Update);
-        listAccess.Click += (_, _) => _ = ListAccessAsync();
         ApplySettings(Settings);
         Render();
         AttachedToVisualTree += (_, _) =>
@@ -73,7 +77,7 @@ internal sealed partial class AirSettingsView : UserControl
             hostWindow = TopLevel.GetTopLevel(this) as Window;
             if (hostWindow is not null) hostWindow.Activated += Activated;
             _ = CheckAsync(true);
-            observers.Add(context.OnSettings<AirSettings>(next => { ApplySettings(next); _ = RefreshAsync(true); }));
+            observers.Add(context.OnSettings<AirSettings>(next => { var was = lastSource; ApplySettings(next); _ = RefreshAsync(true, next.Source != was); }));
             observers.Add(context.Subscribe(AirGovernanceContract.Changed, next => { status = next; Render(); }, new AirStatusParams()));
         };
         DetachedFromVisualTree += (_, _) =>
@@ -88,6 +92,8 @@ internal sealed partial class AirSettingsView : UserControl
         };
     }
 
+    private string lastSource = AirSources.Direct;
+
     private AirSettings Settings => context.Settings<AirSettings>();
 
     private void ApplySettings(AirSettings settings)
@@ -99,6 +105,7 @@ internal sealed partial class AirSettingsView : UserControl
             central.IsChecked = settings.Source == AirSources.Central;
             claudeCode.IsChecked = settings.ClaudeCode;
             codex.IsChecked = settings.Codex;
+            lastSource = settings.Source;
         }
         finally { applying = false; }
     }
@@ -134,6 +141,9 @@ internal sealed partial class AirSettingsView : UserControl
             if (mine != generation) return;
             status = next;
             if (next.Central.Auth == "connected") StopPolling();
+            var signedInNow = next.Central.Auth == "connected" && wasAuth != "connected";
+            wasAuth = next.Central.Auth;
+            _ = ListAccessAsync(force || signedInNow);
         }
         catch (PluginCallException error) { if (mine == generation) result.Text = error.Message; }
         finally { if (mine == generation) { checking = false; lastCheck = DateTime.UtcNow; Render(); } }
@@ -154,10 +164,16 @@ internal sealed partial class AirSettingsView : UserControl
 
     private void StopPolling() { poll?.Stop(); poll = null; }
 
-    private async Task RefreshAsync(bool probe)
+    private async Task RefreshAsync(bool probe, bool sourceChanged = false)
     {
-        try { status = await context.RequestAsync(AirGovernanceContract.Status, new AirStatusParams(probe)); Render(); }
-        catch (PluginCallException error) { result.Text = error.Message; }
+        try
+        {
+            status = await context.RequestAsync(AirGovernanceContract.Status, new AirStatusParams(probe));
+            wasAuth = status.Central.Auth;
+            Render();
+        }
+        catch (PluginCallException error) { result.Text = error.Message; return; }
+        _ = ListAccessAsync(sourceChanged);
     }
 
     private async Task RunAsync(PluginMethod<AirActionParams, AirOutcome> method)
@@ -180,42 +196,70 @@ internal sealed partial class AirSettingsView : UserControl
         if (method == AirGovernanceContract.SignIn && status?.Central.Auth != "connected" && status?.Central.State is "supported" or "outdated") StartPolling();
     }
 
-    private async Task ListAccessAsync()
+    /// <summary>
+    /// Lists the AI access sources when Central is the chosen source, supported and signed in; otherwise shows why not.
+    /// Without <paramref name="force"/> it runs at most once per <see cref="Throttle"/>. A newer request, the pane
+    /// detaching or a changed source drops an older result.
+    /// </summary>
+    private async Task ListAccessAsync(bool force)
     {
-        busy = true; Render();
-        try
+        var mine = generation;
+        if (observers.Count == 0) return;
+        if (Settings.Source != AirSources.Central) { ShowAccess(null, ""); return; }
+        var central = status?.Central;
+        if (central is null) { ShowAccess(null, "Checking Central…"); return; }
+        if (central.State != "supported") { ShowAccess(null, central.State == "absent" ? "Central is not installed, so its access sources can't be listed." : "Central is not available, so its access sources can't be listed."); return; }
+        if (central.Auth == "signed-out") { ShowAccess(null, "Sign in to Central to see its AI access sources."); return; }
+        if (central.Auth != "connected") { ShowAccess(null, "Checking Central's sign-in…"); return; }
+        if (!force && DateTime.UtcNow - lastList < Throttle) return;
+        lastList = DateTime.UtcNow;
+        var token = ++listGeneration;
+        accessNote.Text = "Loading access sources…";
+        AirAccessList list;
+        try { list = await context.RequestAsync(AirGovernanceContract.AccessSources, new AirActionParams()); }
+        catch (PluginCallException error)
         {
-            var list = await context.RequestAsync(AirGovernanceContract.AccessSources, new AirActionParams());
-            access.Children.Clear();
-            accessNote.Text = list.Detail ?? "";
-            foreach (var source in list.Sources)
-            {
-                var row = new Grid { ColumnDefinitions = new("*,Auto") };
-                row.Children.Add(Ui.Text(source.Name + (source.Current ? " (current)" : ""), Ui.TextBrush));
-                if (!source.Current)
-                {
-                    var button = new Button { Name = "AirSwitchAccess", Tag = source.Id, Content = "Switch" };
-                    button.Click += (_, _) => _ = SwitchAsync(source.Id);
-                    Grid.SetColumn(button, 1);
-                    row.Children.Add(button);
-                }
-                access.Children.Add(row);
-            }
+            if (mine == generation && token == listGeneration) ShowAccess(null, error.Message);
+            return;
         }
-        catch (PluginCallException error) { accessNote.Text = error.Message; }
-        finally { busy = false; Render(); }
+        if (mine != generation || token != listGeneration || Settings.Source != AirSources.Central) return;
+        ShowAccess(list.Sources, list.Detail ?? "");
+    }
+
+    private void ShowAccess(IReadOnlyList<AirAccessSource>? sources, string note)
+    {
+        listGeneration++;
+        access.Children.Clear();
+        accessNote.Text = note;
+        foreach (var source in sources ?? [])
+        {
+            var row = new Grid { ColumnDefinitions = new("*,Auto") };
+            row.Children.Add(Ui.Text(source.Name + (source.Current ? " (current)" : ""), Ui.TextBrush));
+            if (!source.Current)
+            {
+                var button = new Button { Name = "AirSwitchAccess", Tag = source.Id, Content = "Switch" };
+                button.Click += (_, _) => _ = SwitchAsync(source.Id);
+                Grid.SetColumn(button, 1);
+                row.Children.Add(button);
+            }
+            access.Children.Add(row);
+        }
     }
 
     private async Task SwitchAsync(string id)
     {
         busy = true; Render();
+        var mine = generation;
         try
         {
-            result.Text = (await context.RequestAsync(AirGovernanceContract.SwitchAccess, new AirSwitchParams(id))).Message;
+            var outcome = await context.RequestAsync(AirGovernanceContract.SwitchAccess, new AirSwitchParams(id));
+            if (mine != generation) return;
+            status = outcome.Status;
+            result.Text = outcome.Message;
         }
-        catch (PluginCallException error) { result.Text = error.Message; }
-        finally { busy = false; }
-        await ListAccessAsync();
+        catch (PluginCallException error) { if (mine == generation) result.Text = error.Message; }
+        finally { if (mine == generation) { busy = false; Render(); } }
+        if (mine == generation) await ListAccessAsync(true);
     }
 
     internal static string CentralLine(AirCentral central, bool checking = false) => central.State switch
@@ -248,7 +292,7 @@ internal sealed partial class AirSettingsView : UserControl
     {
         var current = status;
         var working = busy || current?.Busy == true;
-        if (current is null) { Toggle(false, working); return; }
+        if (current is null) { Toggle(working); return; }
         centralLine.Text = CentralLine(current.Central, checking);
         credits.Text = CreditsLine(current);
         credits.IsVisible = credits.Text.Length > 0;
@@ -262,16 +306,15 @@ internal sealed partial class AirSettingsView : UserControl
             current.Central.State is "absent" or "malformed-version" or "probe-failed" ? "Central was not found or could not be verified: governed launches will fail in the terminal rather than start without governance." :
             current.Central.State == "outdated" ? "This Central is older than the minimum supported; update it before launching." :
             "An agent whose command is customised in its own settings keeps that command and is not governed.";
-        Toggle(current.Central.State == "supported" && !working, working);
+        Toggle(working);
     }
 
-    private void Toggle(bool ready, bool working)
+    private void Toggle(bool working)
     {
         var idle = !working;
         var central = status?.Central;
         signIn.IsEnabled = idle && central is { State: "supported" or "outdated" } && central.Auth != "connected";
         signOut.IsEnabled = idle && central is { State: "supported" or "outdated" } && central.Auth != "signed-out";
         startProxy.IsEnabled = update.IsEnabled = idle;
-        listAccess.IsEnabled = ready;
     }
 }

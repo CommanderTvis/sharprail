@@ -46,9 +46,8 @@
     </StackPanel>
     <StackPanel Spacing="6">
       <TextBlock Text="JetBrains AI access source" Foreground="{x:Static kit:Ui.TextBrush}" />
-      <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Which organization, workspace or licence Central bills. Listing reuses your signed-in Central session; switching restarts its proxy." />
+      <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Which organization, workspace or licence Central bills. The sources are listed automatically with your signed-in Central session; switching restarts its proxy." />
       <TextBlock x:Name="AirAccessScope" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Switching changes the source for every app that uses this computer user's Central, not only SharpRail." />
-      <Button x:Name="AirListAccess" Content="List access sources" HorizontalAlignment="Left" />
       <StackPanel x:Name="AirAccessSources" Spacing="4" />
       <TextBlock x:Name="AirAccessNote" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
     </StackPanel>

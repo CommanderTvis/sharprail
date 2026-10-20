@@ -650,12 +650,20 @@ internal static class AirGovernanceChecks
             Require(workbench.PluginRegistry.LaunchContributions("codex").Count == 0 && workbench.PluginRegistry.LaunchContributions("claude").Count == 1, "Each agent's toggle is honoured by new launches.");
 
             fake.Replies["access-sources"] = new AirAccessList([new("workspace:o:w", "Team workspace", true), new("license:l", "Personal licence", false)], null);
-            Find<Button>("AirListAccess").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            // Central chosen but sign-in unknown: nothing is listed, and the pane says what it waits for. No list button exists.
+            Require(!settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AirListAccess") && fake.Calls.All(call => call.Method != "access-sources") &&
+                Find<TextBlock>("AirAccessNote").Text!.Contains("sign-in", StringComparison.Ordinal), "No list button; a Central that is not yet known to be signed in lists nothing.");
+            // Once signed in the sources are listed on their own (here: the next settings-triggered refresh).
+            fake.Replies["status"] = Status("supported", "connected", AirSources.Central);
+            Find<CheckBox>("AirAgentCodex").IsChecked = true;
             E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Button>().Count(button => button.Name == "AirSwitchAccess") == 1);
+            Require(fake.Calls.Count(call => call.Method == "access-sources") == 1 && settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Team workspace (current)"),
+                "A signed-in Central lists its sources automatically, once, with the current one marked.");
             fake.Replies["switch-access"] = new AirOutcome(true, "Switched. The proxy was restarted.", Status("supported", "connected", AirSources.Central));
             settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "AirSwitchAccess").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2eWorkspace.Until(() => fake.Calls.Any(call => call.Method == "switch-access"));
             Require(fake.Calls.Last(call => call.Method == "switch-access").Params is AirSwitchParams { SourceId: "license:l" }, "Switching sends the opaque id.");
+            E2eWorkspace.Until(() => fake.Calls.Count(call => call.Method == "access-sources") == 2);
 
             // Automatic checks: once on open, throttled on activation, polled while a sign-in is awaited, never listing.
             int Probes() => fake.Calls.Count(call => call.Method == "status" && call.Params is AirStatusParams { Probe: true });
@@ -691,6 +699,8 @@ internal static class AirGovernanceChecks
             E2eWorkspace.Until(() => fake.Calls.Last(call => call.Method == "status").Params is AirStatusParams { Probe: true });
             Require(Find<Button>("AirSignIn").IsEnabled && !Find<Button>("AirSignOut").IsEnabled && !Find<TextBlock>("AirCredits").IsVisible,
                 "Choosing a source rechecks the sign-in state on its own; signed out offers Sign in and shows no credits.");
+            E2eWorkspace.Until(() => !settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AirSwitchAccess"));
+            Require(Find<TextBlock>("AirAccessNote").Text == "", "Choosing the direct source clears the access list.");
             fake.Push("air-governance", "status", Status("supported", "connected", AirSources.Central) with { Credits = new(16.27, 20, 5.5, 1800000000000) });
             E2eWorkspace.Until(() => Find<TextBlock>("AirCredits").IsVisible && Find<TextBlock>("AirCredits").Text!.StartsWith("16.27 of 20.00 credits remaining", StringComparison.Ordinal));
             settings.Close();
