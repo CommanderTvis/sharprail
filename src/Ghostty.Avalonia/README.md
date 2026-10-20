@@ -11,7 +11,7 @@ and Ghostty license. It references no SharpRail project.
 | `GhosttySkiaView` | libghostty-vt cells and cursor recorded into Skia pictures, composed by Avalonia | The caller supplies output, consumes input and resizes its PTY |
 
 Both native libraries build on macOS, on the target architecture; the VT library
-behind the Skia control also builds for Windows x64 and ARM64 and Linux x64, and cross-builds for Android.
+behind the Skia control also builds for Windows x64 and ARM64 and Linux x64 and ARM64, and cross-builds for Android.
 The Skia control uses Avalonia input, selection and clipboard APIs and participates
 in normal Avalonia clipping and overlays. The native view draws above Avalonia
 content. Skia rendering uses Avalonia's chosen Skia backend.
@@ -25,9 +25,9 @@ Windows' tar, and downloads its compiler into a checkout cache. When reusing the
 directory outside SharpRail on Windows, also copy `scripts/windows-native.ps1`
 to the matching relative location for its download and locking helpers.
 
-Linux invokes `build-linux.sh linux-x64`, which builds the same pinned VT source with Zig 0.16.0 for `x86_64-linux-gnu.2.31` from
+Linux invokes `build-linux.sh linux-x64` or `linux-arm64`, which builds the same pinned VT source with Zig 0.16.0 for `x86_64-linux-gnu.2.31` or `aarch64-linux-gnu.2.31` from
 any macOS or Linux host and links `libGhosttyAvaloniaVt.so` (stripped, exporting only `gav_*`; it needs libc only). Only
-`GhosttySkiaView` is supported there, with the Avalonia clipboard callback as on Windows. arm64 is not built.
+`GhosttySkiaView` is supported there, with the Avalonia clipboard callback as on Windows.
 
 Copy this directory into an Avalonia application and add a project reference to
 `Ghostty.Avalonia.csproj`. It supplies .NET 10 settings and default dependency

@@ -6759,3 +6759,14 @@ Linux jobs. Verified on macOS: Release build, `--conformance`, `--design`, `--pl
 checks of both libraries, and in an amd64 Ubuntu 22.04 container (Rosetta) the packaged `--linux` gate and a 40-second Xvfb launch of
 `AppRun` that showed the workbench. Not run: the AppImage runtime itself (it cannot execute under Rosetta), a real window manager,
 Wayland, arm64. See STATUS.md V13.
+
+## 2026-10-20 — Linux arm64 AppImage
+
+`package:linux linux-arm64` writes `artifacts/SharpRail-linux-arm64.AppImage`: both `build-linux.sh` scripts take `linux-arm64`
+(`aarch64-linux-gnu.2.31`), `SharpRailLinuxRid` follows the publish RID (and an arm64 Linux host), `linux-arm64` joined the locked
+RIDs (every `packages.lock.json`, `scripts/packages.lock.json`), the aarch64 appimagetool and type 2 runtime are pinned in
+`mise.toml`/`mise.lock`, and `check:packaged -- --linux` picks the image by host architecture. Nightly gained `appimage-arm64` on
+`ubuntu-24.04-arm` (signed, packaged check); the release needs it but publishes without its asset when it fails. CI gained a
+non-required `linux-arm64` job. Verified on macOS: the aarch64 checksums by download, workflow YAML parse, shell syntax, a managed
+`linux-arm64` publish (AppDir) with both natives, SkiaSharp and PDFium confirmed as aarch64 ELF. Not run: anything on arm64,
+appimagetool and the packaged gate (CI will).
