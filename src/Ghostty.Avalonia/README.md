@@ -196,7 +196,7 @@ The texture control uses Ghostty's built-in link detection; Skia detects web URL
 from VT cells and soft-wrap metadata.
 Right-click offers Open link when the pointer is over a URL, without a keyboard modifier, alongside
 Copy, Paste and Select All. The menu retains the URI captured at the click even as output changes.
-Mouse-tracking programs retain right-button input; Shift bypasses reporting to open the menu. Native
+Mouse-tracking programs retain right-button input; Shift bypasses reporting to open the menu, and right-click on an underlined `ResolveHighlightedLinks` reference always opens it. Native
 Metal also resolves OSC 8 label targets; Skia retains its existing HTTP(S)-text detection.
 
 In SharpRail, `--ghostty-skia` runs focused real-pixel/input and host PTY checks;

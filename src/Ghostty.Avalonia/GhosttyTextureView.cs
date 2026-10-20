@@ -148,6 +148,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         highlightTimer.Stop();
         highlights?.Clear();
         highlightUnderlines.Clear();
+        highlightCells.Clear();
         lock (frameLock) active = false;
         Native.Notify(source, null);
         ready.TrySetException(error);
@@ -189,6 +190,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         highlightTimer.Stop();
         highlights?.Clear();
         highlightUnderlines.Clear();
+        highlightCells.Clear();
         lock (frameLock) active = false;
         if (!disposed) Native.Notify(source, null);
         if (topLevel is not null) topLevel.ScalingChanged -= ScalingChanged;

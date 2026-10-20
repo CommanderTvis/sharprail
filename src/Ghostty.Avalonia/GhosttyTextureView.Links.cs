@@ -17,6 +17,7 @@ public sealed partial class GhosttyTextureView
     private bool highlightDirty = true;
     private readonly DispatcherTimer highlightTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
     private readonly List<Rect> highlightUnderlines = [];
+    private readonly List<Rect> highlightCells = [];
     /// <summary>Resolves references to underline throughout the visible terminal, without requiring hover.</summary>
     public Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? ResolveHighlightedLinks
     {
@@ -27,6 +28,7 @@ public sealed partial class GhosttyTextureView
             highlights.Clear();
             highlights.Resolve = value;
             highlightUnderlines.Clear();
+            highlightCells.Clear();
             highlightDirty = true;
             if (active && value is not null) highlightTimer.Start();
             else highlightTimer.Stop();
@@ -37,6 +39,7 @@ public sealed partial class GhosttyTextureView
     private void RefreshHighlights()
     {
         highlightUnderlines.Clear();
+        highlightCells.Clear();
         if (!active || disposed || highlights?.Resolve is null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         var scalars = new uint[16384];
         var cells = new uint[scalars.Length];
@@ -61,7 +64,11 @@ public sealed partial class GhosttyTextureView
             row = (int)cells[count - 1] / (int)info[0] + 1;
         }
         foreach (var link in highlights.Update(text.ToString()))
-            highlightUnderlines.AddRange(positions.Skip(link.Start).Take(link.Length).Where(bounds => bounds.Width > 0).Distinct());
+        {
+            var marks = positions.Skip(link.Start).Take(link.Length).Where(bounds => bounds.Width > 0).Distinct().ToArray();
+            highlightUnderlines.AddRange(marks);
+            highlightCells.AddRange(marks.Select(mark => new Rect(mark.X, mark.Y + 2 - info[3], mark.Width, info[3])));
+        }
     }
 
     private TerminalLink? pressedFile;

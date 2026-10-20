@@ -263,7 +263,8 @@ public sealed partial class GhosttySkiaView
             linkPressPointer = e.GetPosition(this);
             return;
         }
-        if (Track(Press, button, e)) return;
+        // An underlined resolved reference wins over mouse reporting, as a modifier-click on a link does.
+        if (!(button == 2 && OverUnderlinedLink(e.GetPosition(this))) && Track(Press, button, e)) return;
         if (button == 2)
         {
             contextClick = true;

@@ -58,6 +58,7 @@ internal static class GhosttySkiaChecks
         CheckUrls();
         CheckUrlHover();
         CheckLinkContextMenu();
+        CheckHighlightedLinkContextMenu();
         CheckFileLinks();
         CheckZoomedDensity();
         Osc52Checks.RunSkia();
@@ -194,6 +195,53 @@ internal static class GhosttySkiaChecks
             RightClick(RawInputModifiers.Shift);
             Require(view.ClipboardMenu.IsOpen, "Shift must bypass mouse reporting for the terminal menu.");
             view.ClipboardMenu.Close();
+        }
+        finally { window.Close(); Pump(); }
+    }
+
+    private static void CheckHighlightedLinkContextMenu()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 240, Height = 160, Content = view };
+        var opened = new List<TerminalLink>();
+        TerminalLink Link(string text) => new(text.IndexOf("abcdef12", StringComparison.Ordinal), 8, "sharprail-commit:abcdef12", 1, 1, false);
+        Task<IReadOnlyList<TerminalLink>> Resolve(string text, CancellationToken token) =>
+            Task.FromResult<IReadOnlyList<TerminalLink>>(text.Contains("abcdef12", StringComparison.Ordinal) ? [Link(text)] : []);
+        view.ResolveFileLinks = Resolve;
+        view.OpenFileLink = link => { opened.Add(link); return Task.CompletedTask; };
+        window.Show(); Pump();
+        try
+        {
+            view.Write("\e[?25l\e[?1000h\e[?1006habcdef12 plain"u8); Pump();
+            using var plain = window.CaptureRenderedFrame()!;
+            view.ResolveHighlightedLinks = Resolve;
+            view.Write("\r"u8);
+            var output = new List<byte>();
+            view.Input += (_, bytes) => output.AddRange(bytes.ToArray());
+            var cw = (view.Bounds.Width - view.Padding.Left - view.Padding.Right) / view.Size.Columns;
+            var ch = (view.Bounds.Height - view.Padding.Top - view.Padding.Bottom) / view.Size.Rows;
+            Until(() =>
+            {
+                Pump();
+                using var frame = window.CaptureRenderedFrame()!;
+                return !Pixels(plain).SequenceEqual(Pixels(frame));
+            }, "validated hash underline");
+            void RightClick(double column)
+            {
+                var point = new Point(view.Padding.Left + cw * column, view.Padding.Top + ch * .5);
+                window.MouseDown(point, MouseButton.Right); window.MouseUp(point, MouseButton.Right); Pump();
+            }
+            RightClick(2.5);
+            Until(() => view.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Open link")) == true,
+                "context menu on an underlined hash while the program tracks the mouse");
+            Require(!Encoding.UTF8.GetString(output.ToArray()).Contains("\e[<2;", StringComparison.Ordinal), "Right-click on an underlined hash was also reported to the program.");
+            view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link")).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+            view.ClipboardMenu.Close();
+            Until(() => opened.Count == 1, "hash navigation from the menu");
+            output.Clear();
+            RightClick(12.5);
+            Require(!view.ClipboardMenu.IsOpen && Encoding.UTF8.GetString(output.ToArray()).Contains("\e[<2;", StringComparison.Ordinal),
+                "Right-click beside the underlined hash must still reach the tracking program.");
         }
         finally { window.Close(); Pump(); }
     }

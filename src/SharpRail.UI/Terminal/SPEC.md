@@ -302,7 +302,7 @@ on macOS (Ctrl elsewhere), and modifier-click opens the URL using the system
 browser. Soft-wrapped URLs remain one link across rows; explicit newlines remain
 boundaries. Right-click over a web URL offers Open link alongside the terminal clipboard menu,
 without Command/Ctrl. The action opens the URI captured at right-click even if output changes. Mouse
-tracking forwards RMB to the program; Shift bypasses tracking for the menu. Native Metal resolves
+tracking forwards RMB to the program; Shift bypasses tracking for the menu, and right-click on an underlined resolved reference (a validated commit hash) always opens the menu, as a modifier-click on a link wins over reporting. Native Metal resolves
 OSC 8 label targets as well; browser Skia inherits HTTP(S) text detection. The separate restty canvas
 has no exposed point-to-link query and does not yet offer this action. Ordinary clicks and drags retain terminal selection behavior.
 

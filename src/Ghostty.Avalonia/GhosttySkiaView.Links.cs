@@ -68,6 +68,14 @@ public sealed partial class GhosttySkiaView
         return result;
     }
 
+    private bool OverUnderlinedLink(Point point)
+    {
+        if (fonts is not { } cells || last.Columns <= 0) return false;
+        var x = (int)Math.Floor((point.X - Padding.Left) / cells.CellWidth);
+        var y = (int)Math.Floor((point.Y - Padding.Top) / cells.CellHeight);
+        return x >= 0 && x < last.Columns && y >= 0 && y < last.Rows && linkCells.Contains(y * last.Columns + x);
+    }
+
     private unsafe string? UrlAt(Point point)
     {
         if (fonts is not { } cells || !vt.Snapshot(out last)) return null;
