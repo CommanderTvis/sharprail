@@ -73,6 +73,24 @@ internal static class ClaudeCodeChecks
         public string? WorkspaceForProcess(int pid) => pid == Environment.ProcessId ? terminal.WorkspaceId : null;
     }
 
+    /// <summary>The running spinner turns through a style animation on the composition thread, with no timer to start or stop.</summary>
+    private static void Spinner()
+    {
+        var spinner = new ClaudeSpinner();
+        var window = new Window { Width = 100, Height = 100, Content = spinner };
+        var arc = (Avalonia.Controls.Shapes.Arc)spinner.Child!;
+        Require(spinner.Styles.Count == 1 && spinner.Styles[0] is Avalonia.Styling.Style { Animations.Count: 1 }, "The spinner's rotation is a style animation.");
+        window.Show();
+        try
+        {
+            static void Advance() { Thread.Sleep(25); Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+            E2eWorkspace.Until(() => { Advance(); return arc.RenderTransform is not null; });
+            var first = arc.RenderTransform!.Value;
+            E2eWorkspace.Until(() => { Advance(); return arc.RenderTransform!.Value != first; });
+        }
+        finally { window.Close(); }
+    }
+
     public static void RunUi(string root)
     {
         var directory = Path.Combine(root, "claude-ui");
@@ -84,6 +102,7 @@ internal static class ClaudeCodeChecks
             "A disabled Claude plugin exposes neither launcher nor configuration controls.");
         app.State!.ChangeAsync([HostStateChange.PluginSettings("claude-code", "{\"enabled\":true,\"command\":\"/usr/bin/false\"}")]).AsTask().GetAwaiter().GetResult();
         E2eWorkspace.Until(() => registry.Active.Contains("claude-code"));
+        Spinner();
         var launcherIcon = registry.LauncherList.Single(launcher => launcher.Id == "claude").CreateIcon!;
         var firstIcon = (ContentControl)launcherIcon(14, SharpRail.Plugins.UI.Kit.Ui.Accent);
         var secondIcon = (ContentControl)launcherIcon(20, SharpRail.Plugins.UI.Kit.Ui.TextBrush);

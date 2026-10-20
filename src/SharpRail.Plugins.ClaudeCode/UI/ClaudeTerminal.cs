@@ -308,7 +308,7 @@ internal sealed class ClaudeStatusAdornment : ContentControl
         IsVisible = status is ClaudeCodeStatus.Running or ClaudeCodeStatus.Blocked or ClaudeCodeStatus.Done or ClaudeCodeStatus.Failed;
         Content = status switch
         {
-            ClaudeCodeStatus.Running => Spinner(),
+            ClaudeCodeStatus.Running => new ClaudeSpinner(),
             ClaudeCodeStatus.Blocked => Dot(Ui.Warning, "Claude needs your input"),
             ClaudeCodeStatus.Done => Dot(Ui.Success, "Claude finished"),
             ClaudeCodeStatus.Failed => Dot(Ui.Danger, "Claude hit an error"),
@@ -322,17 +322,5 @@ internal sealed class ClaudeStatusAdornment : ContentControl
         ToolTip.SetTip(dot, label);
         Avalonia.Automation.AutomationProperties.SetName(dot, label);
         return dot;
-    }
-
-    // A turning arc, driven while attached; nothing keeps ticking for a tab that is gone.
-    private static Control Spinner()
-    {
-        var rotation = new RotateTransform();
-        var arc = new Arc { Width = 8, Height = 8, StartAngle = 0, SweepAngle = 270, Stroke = Ui.Muted, StrokeThickness = 2, RenderTransform = rotation };
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
-        timer.Tick += (_, _) => rotation.Angle = (rotation.Angle + 30) % 360;
-        arc.AttachedToVisualTree += (_, _) => timer.Start();
-        arc.DetachedFromVisualTree += (_, _) => timer.Stop();
-        return arc;
     }
 }

@@ -1,0 +1,18 @@
+<Border xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.Plugins.ClaudeCode.UI.ClaudeSpinner" x:ClassModifier="internal"
+        Name="ClaudeSpinner" Width="8" Height="8">
+  <!-- The turn is a style animation: the composition thread runs it while the arc is attached and nothing ticks otherwise. -->
+  <Border.Styles>
+    <Style Selector="Arc.turning">
+      <Style.Animations>
+        <Animation Duration="0:0:1" IterationCount="Infinite">
+          <KeyFrame Cue="0%"><Setter Property="RotateTransform.Angle" Value="0" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="RotateTransform.Angle" Value="360" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+  </Border.Styles>
+  <Arc x:Name="Turn" Classes="turning" StartAngle="0" SweepAngle="270" StrokeThickness="2" Stroke="{x:Static kit:Ui.Muted}" />
+</Border>
