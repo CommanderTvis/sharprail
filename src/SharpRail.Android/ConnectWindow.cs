@@ -82,12 +82,12 @@ public sealed partial class ConnectWindow : Window
         else await ConnectAsync();
     }
 
-    private void ShowTailscale(string? initialHost = null, bool autoConnect = false)
+    private void ShowTailscale(bool autoConnect = false)
     {
         if (tailscaleStatePath is null || closed) return;
         Abandon();
         if (tailscaleNetwork is null) return;
-        var view = new EmbeddedTailscaleView(tailscaleNetwork, tailscaleStatePath, initialHost, autoConnect);
+        var view = new EmbeddedTailscaleView(tailscaleNetwork, tailscaleStatePath, autoConnect);
         view.SignedOut += () => token.Text = "";
         view.Connected += next =>
         {
@@ -162,11 +162,6 @@ public sealed partial class ConnectWindow : Window
         try { scanned = await QrScanner.ScanAsync(activity); }
         catch (IOException) { Fail("This device has no QR scanner. Type the address and token instead."); return; }
         if (scanned is null || !IsVisible) return;
-        if (TailscaleLink.TryParse(scanned, out var tailscaleHost) && tailscaleStatePath is not null)
-        {
-            ShowTailscale(tailscaleHost);
-            return;
-        }
         if (!HostLink.TryParse(scanned, out var host, out var session)) { Fail("That code is not a SharpRail host."); return; }
         address.Text = host; token.Text = session;
         await ConnectAsync();

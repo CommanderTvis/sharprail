@@ -269,11 +269,6 @@ pairing and endpoint tokens. Cancellation stops UI polling and pairing, without 
 host's current port. Manual entry and QR scanning remain available. Desktop picker window source and XAML
 are excluded from the linked UI sources.
 
-The Tailscale settings page displays a credential-free `sharprail://tailscale?host=…`
-QR code for its hostname. Android's existing Scan QR code action opens Tailscale
-pairing with that hostname and starts the usual comparison-code/host-approval flow.
-The code contains no token or WebSocket RPC port. Existing manual-host QR codes still work.
-
 The native bridge pins Tailscale and Go versions/checksums in its source/build script, compiles both
 packaged ABIs for API 24 with the checkout NDK and stages dependency licenses. Its README documents
 the C ABI and standalone native checks. No real-account authentication is performed by automated tests.

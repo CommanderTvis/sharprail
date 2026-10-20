@@ -150,7 +150,7 @@ internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsync
             peer.Name.Split('.')[0].Equals(input, StringComparison.OrdinalIgnoreCase)).ToArray();
         if (matches.Length > 1) throw new IOException("More than one Tailscale device has that short name. Choose a discovered host or use its full name.");
         var peer = matches.SingleOrDefault();
-        if (peer is null) throw new IOException("This host is not an online device in SharpRail's Tailscale network. Refresh hosts or check its Tailscale connection.");
+        if (peer is null) throw new IOException("This host is not an online device in SharpRail's tailnet. Refresh hosts or check its Tailscale connection.");
         // Use an address from the embedded netmap, never system DNS or an arbitrary user-supplied socket.
         return new UriBuilder("http", peer.Address, TailscaleContract.DiscoveryPort).Uri;
     }

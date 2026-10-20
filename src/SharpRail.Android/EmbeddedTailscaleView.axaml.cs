@@ -11,7 +11,6 @@ internal sealed partial class EmbeddedTailscaleView : UserControl
 {
     private readonly EmbeddedTailscaleNetwork network;
     private readonly string pairingPath;
-    private readonly string? initialHost;
     private readonly bool autoConnect;
     private readonly TextBlock status;
     private readonly Button login;
@@ -26,11 +25,10 @@ internal sealed partial class EmbeddedTailscaleView : UserControl
     internal event Action<TailscaleConnection>? Connected;
     internal event Action? SignedOut;
 
-    internal EmbeddedTailscaleView(EmbeddedTailscaleNetwork network, string pairingPath, string? initialHost, bool autoConnect)
+    internal EmbeddedTailscaleView(EmbeddedTailscaleNetwork network, string pairingPath, bool autoConnect)
     {
         this.network = network;
         this.pairingPath = pairingPath;
-        this.initialHost = initialHost;
         this.autoConnect = autoConnect;
         AvaloniaXamlLoader.Load(this);
         status = this.FindControl<TextBlock>("EmbeddedStatus")!;
@@ -66,17 +64,18 @@ internal sealed partial class EmbeddedTailscaleView : UserControl
                 {
                     login.IsVisible = !current.Online;
                     logout.IsVisible = current.State != "NeedsLogin";
-                    status.Text = current.Online ? "Connected to Tailscale. Choose a SharpRail host." : current.State switch
+                    status.Text = current.Online ? "" : current.State switch
                     {
                         "Running" => "No network connection. Turn on Wi-Fi or mobile data to reconnect.",
                         "NeedsMachineAuth" => "Your tailnet administrator must approve this device before it can connect.",
-                        "NeedsLogin" => signingIn ? "Finish signing in in your browser, then return here." : "Sign in to find your computers.",
+                        "NeedsLogin" => signingIn ? "Finish signing in in your browser, then return here." : "",
                         _ => "Connecting to Tailscale…"
                     };
+                    status.IsVisible = status.Text.Length > 0;
                     if (current.Online && !mountedPicker)
                     {
                         mountedPicker = true;
-                        var view = new TailscaleConnectView(pairingPath, initialHost, network, restorePairing: autoConnect);
+                        var view = new TailscaleConnectView(pairingPath, network, restorePairing: autoConnect);
                         view.Connected += connection => Connected?.Invoke(connection);
                         picker.Content = view;
                     }
@@ -148,7 +147,7 @@ internal sealed partial class EmbeddedTailscaleView : UserControl
             signingIn = false;
             openedUrl = null;
             login.Content = "Sign in to Tailscale";
-            status.Text = "Signed out. Sign in to choose another Tailscale account.";
+            status.Text = "";
         }
         catch (Exception error) when (Expected(error)) { if (!current.IsCancellationRequested) status.Text = error.Message; }
         finally { busy = false; logout.IsEnabled = true; }

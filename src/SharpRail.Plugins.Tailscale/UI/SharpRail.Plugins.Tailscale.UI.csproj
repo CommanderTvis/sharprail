@@ -5,7 +5,6 @@
     <ProjectReference Include="../../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
     <ProjectReference Include="../../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
     <PackageReference Include="Avalonia" />
-    <PackageReference Include="QRCoder" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
 </Project>

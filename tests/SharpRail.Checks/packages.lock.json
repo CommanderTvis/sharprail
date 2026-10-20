@@ -509,7 +509,6 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.3, )",
-          "QRCoder": "[1.8.0, )",
           "SharpRail.Plugins.Api.UI": "[1.0.0, )",
           "SharpRail.Plugins.Tailscale": "[1.0.0, )",
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"

@@ -15,7 +15,7 @@ No upstream counterpart. Original SharpRail builtin plugin.
 
 ## Responsibility
 
-Connect clients to a host on the same Tailscale network without exchanging numeric addresses, ports or
+Connect clients to a host on the same tailnet without exchanging numeric addresses, ports or
 session tokens. The plugin ships disabled. Enabling it starts a bootstrap listener on the host's Tailscale
 IPv4 address at port 54124; it never binds a LAN, wildcard or public address. It uses the installed Tailscale
 CLI and requires an active connection. Missing CLI, disconnected Tailscale and port conflicts appear in
@@ -76,12 +76,15 @@ if that instance is still running. The standalone host reuses its configured lis
 bind address to be reachable through Tailscale. No local adapter is moved onto RPC.
 
 Desktop Settings › Host opens a dedicated client instance; `--tailscale` opens the picker directly. The
-Android connect screen offers Tailscale alongside manual entry and QR scanning. It opens browser sign-in
+Android connect screen offers Tailscale alongside manual entry and QR scanning of host codes. It opens browser sign-in
 only after an explicit action, then discovers hosts automatically. Administrator device approval, pending
 authentication, missing browser and connection errors remain visible with retry and sign-out controls.
 Sign-out logs the node out and forgets the matching SharpRail pairing and remembered endpoint token.
 Automatic startup restoration reconnects the remembered host, while opening the picker explicitly keeps
-host selection and sign-out available instead of immediately reopening that host.
+host selection and sign-out available instead of immediately reopening that host. After discovery the
+picker selects the peer matching the host field (name, address or MagicDNS prefix, case-insensitive) without
+rewriting it, else the first peer, and reports "Found N hosts."; the embedded picker hides the host-name field behind
+"Enter a host name" while a peer is selected, and the embedded status line shows only non-obvious states.
 The app closes the node on session disposal without deleting identity; backgrounding retains it, and
 returning to the foreground resumes status polling and existing RPC reconnection. Both pairing HTTP and
 every RPC adapter use this node: RPC handlers are registered for the approved endpoint before channels
@@ -103,11 +106,6 @@ user's Tailscale daemon. `--android` also checks embedded state reuse, netmap va
 authenticated SOCKS5 HTTP probing against a local fake proxy; `--transport` checks endpoint-scoped
 WebSocket handler routing, reconnect and disposal. The native bridge has isolated Go tests for its
 operation and proxy lifetimes. Desktop and Android device-to-device operation requires manual verification.
-
-The Tailscale settings page displays a credential-free `sharprail://tailscale?host=…`
-QR code for its hostname. Android's existing Scan QR code action opens Tailscale
-pairing with that hostname and starts the usual comparison-code/host-approval flow.
-The code contains no token or WebSocket RPC port. Existing manual-host QR codes still work.
 
 The plugin list and settings navigation use the official Tailscale nine-dot SVG icon,
 staged as a host-served plugin asset. Its fill follows the theme; geometry and opacity

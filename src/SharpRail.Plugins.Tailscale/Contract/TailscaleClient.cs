@@ -37,7 +37,7 @@ public sealed class TailscaleClient : IDisposable
         try { addresses = await Dns.GetHostAddressesAsync(uri.Host, cancellationToken); }
         catch (System.Net.Sockets.SocketException error)
         {
-            throw new IOException("Could not resolve the Tailscale host name. Turn on Tailscale on this device, check that both devices use the same Tailscale network, and check the host name and MagicDNS.", error);
+            throw new IOException("Could not resolve the Tailscale host name. Turn on Tailscale on this device, check that both devices use the same tailnet, and check the host name and MagicDNS.", error);
         }
         var ip = addresses.FirstOrDefault(address => address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && TailscaleCli.IsTailnetAddress(address))
             ?? throw new IOException("This name does not resolve to a Tailscale address. Check Tailscale and MagicDNS.");

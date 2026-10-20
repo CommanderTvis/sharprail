@@ -32,9 +32,6 @@ internal static class TailscaleChecks
 
     internal static async Task Run(string root)
     {
-        var link = TailscaleLink.Format("host.tailnet.ts.net");
-        Require(TailscaleLink.TryParse(link, out var scanned) && scanned == "host.tailnet.ts.net", "QR pairing links preserve the hostname.");
-        Require(!TailscaleLink.TryParse(link + "&token=secret", out _) && !TailscaleLink.TryParse("sharprail://tailscale?host=http%3A%2F%2Fevil.test", out _), "Pairing links reject credentials and URLs.");
         Registry();
         Addresses();
         await BootstrapValidation();
@@ -75,8 +72,6 @@ internal static class TailscaleChecks
             E2eWorkspace.Until(() => Find<TextBlock>("PairingName").Text?.Contains("host.tailnet.ts.net", StringComparison.Ordinal) == true);
             E2eWorkspace.Until(() => fake.Subscriptions > 0 && settings.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Content, "Approve")));
             Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == device.Code), "The approval UI shows the comparison code.");
-            var qr = Find<TailscaleQrCodeView>("PairingQr");
-            Require(qr.IsVisible && TailscaleLink.TryParse(qr.Text, out var qrHost) && qrHost == pending.HostName, "The host shows a credential-free pairing QR code.");
             var rows = Find<ItemsControl>("PairingPending").ItemsSource;
             window.Notify(false, "Unrelated notification");
             fake.Push("tailscale", "status", pending);
@@ -137,6 +132,26 @@ internal static class TailscaleChecks
                     "Explicitly connecting the remembered host reuses its own approved pairing secret through the injected network.");
             }
             finally { chooseWindow.Close(); }
+            foreach (var (peers, expected, text) in new (TailscalePeer[], string, string)[]
+            {
+                ([new("other", "100.70.1.5"), new("saved", "100.70.1.9")], "saved", rememberedPairing.Host),
+                ([new("alpha", "100.70.1.5"), new("beta", "100.70.1.6")], "alpha", rememberedPairing.Host),
+                ([new("solo", "100.70.1.7")], "solo", rememberedPairing.Host)
+            })
+            {
+                var defaulted = new TailscaleConnectView(rememberedPath, network: new PickerNetwork { Peers = peers }, restorePairing: false);
+                var defaultedWindow = new Window { Content = defaulted, Width = 460, Height = 540 };
+                try
+                {
+                    defaultedWindow.Show();
+                    E2eWorkspace.Until(() => defaulted.FindControl<TextBlock>("TailscaleProgress")!.Text?.StartsWith("Found", StringComparison.Ordinal) == true);
+                    var selected = defaulted.FindControl<ComboBox>("TailscaleHosts")!.SelectedItem as TailscalePeer;
+                    Require(selected?.Name == expected && !defaulted.FindControl<TextBox>("TailscaleHost")!.IsVisible && defaulted.FindControl<Button>("TailscaleManual")!.IsVisible &&
+                        (expected == "saved" ? defaulted.FindControl<TextBox>("TailscaleHost")!.Text == text : defaulted.FindControl<TextBox>("TailscaleHost")!.Text == selected!.Address),
+                        "Discovery selects the remembered peer (kept as is), else the first peer, and the embedded picker hides the host-name field behind manual entry.");
+                }
+                finally { defaultedWindow.Close(); }
+            }
         }
         finally { window.Close(); }
         Console.WriteLine("PASS Tailscale UI: bootstrap picker, approval identity/code, RPC commands, retained rows and subscription teardown");
@@ -218,16 +233,29 @@ internal static class TailscaleChecks
         }
     }
 
+    private sealed class PickerHandler(PickerNetwork network) : HttpMessageHandler
+    {
+        private readonly HttpMessageInvoker pairing = new(new PairingHandler(_ => new("approved", "http://100.70.1.2:54123/")));
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath == "/sharprail" &&
+                network.Peers.FirstOrDefault(peer => peer.Address == request.RequestUri.Host) is { } found)
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new TailscaleHostInfo(found.Name), options: PluginJson.Options) });
+            return pairing.SendAsync(request, cancellationToken);
+        }
+    }
+
     private sealed class PickerNetwork : ITailscaleClientNetwork
     {
         public int BootstrapCalls;
-        public HttpMessageHandler CreateHandler() => new PairingHandler(_ => new("approved", "http://100.70.1.2:54123/"));
+        public IReadOnlyList<TailscalePeer> Peers = [];
+        public HttpMessageHandler CreateHandler() => new PickerHandler(this);
         public Task<Uri> BootstrapAsync(string host, CancellationToken cancellationToken)
         {
             BootstrapCalls++;
-            return Task.FromResult(new Uri("http://100.70.1.2:54124/"));
+            return Task.FromResult(new Uri(Peers.Any(peer => peer.Address == host) ? "http://" + host + ":54124/" : "http://100.70.1.2:54124/"));
         }
-        public Task<IReadOnlyList<TailscalePeer>> PeersAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<TailscalePeer>>([]);
+        public Task<IReadOnlyList<TailscalePeer>> PeersAsync(CancellationToken cancellationToken) => Task.FromResult(Peers);
     }
 
     private static async Task ClientPolling()

@@ -11,7 +11,7 @@
         <ContentControl x:Name="ConnectBrand" HorizontalAlignment="Left" />
         <TextBlock Text="Connect to a host" FontSize="24" />
         <TextBlock TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Muted}"
-                   Text="This app is a client of a running SharpRail. On the computer, open Settings › Host, start listening on a network address, and scan its QR code or type what it shows." />
+                   Text="Connect to a running SharpRail: scan its QR code, type its address, or use your tailnet." />
       </StackPanel>
       <StackPanel x:Name="ConnectManual" Spacing="8">
         <StackPanel Spacing="8">

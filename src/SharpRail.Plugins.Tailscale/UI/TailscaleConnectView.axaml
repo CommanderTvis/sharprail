@@ -9,8 +9,8 @@
     </Style>
   </UserControl.Styles>
   <StackPanel Spacing="12">
-    <TextBlock Text="Connect over Tailscale" FontSize="20" />
-    <TextBlock Text="Enable the Tailscale plugin on the host. Both devices must be connected to the same Tailscale network." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+    <TextBlock x:Name="TailscaleTitle" Text="Connect over Tailscale" FontSize="20" />
+    <TextBlock x:Name="TailscaleHint" Text="Enable the Tailscale plugin on the host; both devices must be on the same tailnet." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
     <Button x:Name="TailscaleDiscover" Content="Find hosts" HorizontalAlignment="Stretch" />
     <ComboBox x:Name="TailscaleHosts" HorizontalAlignment="Stretch" IsVisible="False">
       <ComboBox.ItemTemplate>
@@ -19,7 +19,8 @@
         </DataTemplate>
       </ComboBox.ItemTemplate>
     </ComboBox>
-    <TextBlock Text="Tailscale host name" />
+    <TextBlock x:Name="TailscaleHostLabel" Text="Tailscale host name" />
+    <Button x:Name="TailscaleManual" Content="Enter a host name" HorizontalAlignment="Stretch" IsVisible="False" />
     <TextBox x:Name="TailscaleHost" PlaceholderText="my-computer or my-computer.tailnet.ts.net" />
     <TextBlock x:Name="TailscaleProgress" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
     <Button x:Name="TailscalePair" Content="Pair and connect" Classes="primary" HorizontalAlignment="Stretch" />

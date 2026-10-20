@@ -17,10 +17,12 @@ public sealed partial class TailscaleConnectView : UserControl
     private readonly Button discover;
     private readonly Button cancel;
     private readonly ComboBox hosts;
+    private readonly TextBlock hostLabel;
+    private readonly Button manual;
+    private bool selecting;
     private CancellationTokenSource? attempt;
     private TailscaleRemembered? remembered;
     private bool restored;
-    private readonly bool scannedHost;
     public event Action<TailscaleConnection>? Connected;
 
     // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
@@ -28,7 +30,7 @@ public sealed partial class TailscaleConnectView : UserControl
     [System.Obsolete("Construct TailscaleConnectView with its arguments.", true)]
     public TailscaleConnectView() => throw new System.NotSupportedException("TailscaleConnectView needs its constructor arguments.");
 
-    public TailscaleConnectView(string statePath, string? initialHost = null, ITailscaleClientNetwork? network = null, bool restorePairing = true)
+    public TailscaleConnectView(string statePath, ITailscaleClientNetwork? network = null, bool restorePairing = true)
     {
         this.statePath = statePath;
         this.restorePairing = restorePairing;
@@ -36,8 +38,6 @@ public sealed partial class TailscaleConnectView : UserControl
         createClient = network is null ? () => new TailscaleClient() : () => new TailscaleClient(network);
         AvaloniaXamlLoader.Load(this);
         host = this.FindControl<TextBox>("TailscaleHost")!;
-        scannedHost = !string.IsNullOrWhiteSpace(initialHost);
-        if (scannedHost) host.Text = initialHost;
         progress = this.FindControl<TextBlock>("TailscaleProgress")!;
         pair = this.FindControl<Button>("TailscalePair")!;
         discover = this.FindControl<Button>("TailscaleDiscover")!;
@@ -47,7 +47,15 @@ public sealed partial class TailscaleConnectView : UserControl
         pair.Click += (_, _) => _ = PairAsync();
         discover.Click += (_, _) => _ = DiscoverAsync();
         cancel.Click += (_, _) => attempt?.Cancel();
-        hosts.SelectionChanged += (_, _) => { if (hosts.SelectedItem is TailscalePeer peer) host.Text = peer.Address; };
+        hostLabel = this.FindControl<TextBlock>("TailscaleHostLabel")!;
+        manual = this.FindControl<Button>("TailscaleManual")!;
+        manual.Click += (_, _) => { manual.IsVisible = false; ShowHostField(true); };
+        if (embedded)
+        {
+            this.FindControl<TextBlock>("TailscaleTitle")!.IsVisible = false;
+            this.FindControl<TextBlock>("TailscaleHint")!.IsVisible = false;
+        }
+        hosts.SelectionChanged += (_, _) => { if (!selecting && hosts.SelectedItem is TailscalePeer peer) host.Text = peer.Address; };
         DetachedFromVisualTree += (_, _) => attempt?.Cancel();
         AttachedToVisualTree += (_, _) => _ = RestoreAsync();
     }
@@ -58,8 +66,7 @@ public sealed partial class TailscaleConnectView : UserControl
         restored = true;
         remembered = await Task.Run(() => TailscaleClient.Load(statePath));
         if (TopLevel.GetTopLevel(this) is null) return;
-        if (scannedHost) await PairAsync();
-        else if (remembered is { } saved && string.IsNullOrWhiteSpace(host.Text))
+        if (remembered is { } saved && string.IsNullOrWhiteSpace(host.Text))
         {
             host.Text = saved.Host;
             if (restorePairing) await PairAsync();
@@ -70,7 +77,7 @@ public sealed partial class TailscaleConnectView : UserControl
 
     private void Busy(bool busy)
     {
-        host.IsEnabled = pair.IsEnabled = discover.IsEnabled = hosts.IsEnabled = !busy;
+        host.IsEnabled = manual.IsEnabled = pair.IsEnabled = discover.IsEnabled = hosts.IsEnabled = !busy;
         cancel.IsVisible = busy;
     }
 
@@ -86,12 +93,39 @@ public sealed partial class TailscaleConnectView : UserControl
             using var client = createClient();
             var found = await Task.Run(() => client.DiscoverAsync(current.Token));
             if (current.IsCancellationRequested) return;
+            selecting = true;
             hosts.ItemsSource = found;
+            var match = Match(found, host.Text);
+            hosts.SelectedItem = match ?? found.FirstOrDefault();
+            selecting = false;
+            if (match is null && hosts.SelectedItem is TailscalePeer first) host.Text = first.Address;
             hosts.IsVisible = found.Count > 0;
-            progress.Text = found.Count > 0 ? "Choose a host below." : "No hosts found. Check that the host's Tailscale plugin is enabled.";
+            if (embedded && found.Count > 0)
+            {
+                ShowHostField(false);
+                manual.IsVisible = true;
+            }
+            progress.Text = found.Count switch
+            {
+                0 => "No hosts found. Check that the host's Tailscale plugin is enabled.",
+                1 => "Found " + found[0].Name + ".",
+                _ => "Found " + found.Count + " hosts."
+            };
         }
         catch (Exception error) when (Expected(error)) { progress.Text = current.IsCancellationRequested ? "Search cancelled." : error.Message; }
         finally { attempt = null; Busy(false); }
+    }
+
+    private void ShowHostField(bool visible) => hostLabel.IsVisible = host.IsVisible = visible;
+
+    private static TailscalePeer? Match(IReadOnlyList<TailscalePeer> peers, string? text)
+    {
+        var name = text?.Trim().TrimEnd('.');
+        if (string.IsNullOrEmpty(name)) return null;
+        bool Same(string value) => string.Equals(value, name, StringComparison.OrdinalIgnoreCase) ||
+            value.StartsWith(name + ".", StringComparison.OrdinalIgnoreCase) ||
+            name.StartsWith(value + ".", StringComparison.OrdinalIgnoreCase);
+        return peers.FirstOrDefault(peer => Same(peer.Name) || Same(peer.Address));
     }
 
     private async Task PairAsync()
