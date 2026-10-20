@@ -25,6 +25,8 @@ public sealed partial class DockSurface : Grid
     public event Action? GestureCanceled;
     /// <summary>Requests a shared title change for a terminal tab.</summary>
     public Action<string, DockTab>? RenameTerminal { get; set; }
+    /// <summary>The active workspace's root on the host, which the tab menu's path copies resolve against.</summary>
+    public Func<string>? WorkspaceRoot { get; set; }
     public Func<DockTab, bool>? IsModified { get; set; }
     /// <summary>Whether a document tab's file was deleted on disk; refreshed with <see cref="RefreshModified"/>.</summary>
     public Func<DockTab, bool>? IsDeleted { get; set; }

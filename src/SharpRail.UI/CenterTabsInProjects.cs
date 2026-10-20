@@ -25,6 +25,7 @@ public sealed partial class WorkbenchWindow
     private void WireCenterTabs()
     {
         surface.CenterTabs = CenterTabsModeNow;
+        surface.WorkspaceRoot = () => workspaceRoot;
         surface.NestedStripsChanged += strips => { centerStripsInProjects = new Dictionary<string, Control>(strips); PlaceWorkspaceTabs(); };
         tabLayoutSignature = TabLayoutSignature();
         surface.Rebuild();

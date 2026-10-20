@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
@@ -630,6 +631,11 @@ public sealed partial class DockSurface
         return menu;
     }
 
+    private static async Task CopyTextAsync(Control owner, string text)
+    {
+        if (TopLevel.GetTopLevel(owner)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(text);
+    }
+
     private ContextMenu TabMenu(DockGroup group, DockTab tab, Control geometry)
     {
         var menu = new ContextMenu();
@@ -640,6 +646,18 @@ public sealed partial class DockSurface
             var rename = Ui.Menu("Rename", () => RenameTerminal(workspace, tab));
             rename.Name = "TerminalRename";
             menu.Items.Add(rename);
+        }
+        if (!tab.IsTool && tab.Kind != "terminal" && tab.Path.Length > 0 && WorkspaceRoot?.Invoke() is { Length: > 0 } root
+            && !(Uri.TryCreate(tab.Path, UriKind.Absolute, out var uri) && !uri.IsFile))
+        {
+            // Same labels as the Files tree: Copy path is workspace-relative, Copy absolute path is the host's path.
+            var rooted = Path.IsPathRooted(tab.Path);
+            var copyRelative = Ui.Menu("Copy path", () => _ = CopyTextAsync(geometry, rooted ? Path.GetRelativePath(root, tab.Path) : tab.Path));
+            copyRelative.Name = "TabCopyRelativePath";
+            var copyAbsolute = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(geometry, rooted ? tab.Path : Path.Combine(root, tab.Path)));
+            copyAbsolute.Name = "TabCopyPath";
+            menu.Items.Add(copyRelative);
+            menu.Items.Add(copyAbsolute);
         }
         menu.Items.Add(Ui.Menu("Close", () => Session.Close(group.Id, tab.Id)));
         menu.Items.Add(RemoveGroupMenuItem(group));

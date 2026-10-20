@@ -710,6 +710,13 @@ internal static class Program
             PaneRetentionChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--dock-input"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            DockInputChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--startup"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

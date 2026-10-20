@@ -126,6 +126,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--workspace-tools` | Host MCP workspace tools and UI integration. |
 | `--serving`, `--project-close` | Embedded-host serving; teardown. |
 | `--pane-retention`, `--startup`, `--live-diffs` | Retained controls; progressive startup; refreshing open diffs. |
+| `--dock-input` | Dock pointer and keyboard input, tab menus including file-path copies. |
 | `--change-actions`, `--review` | Toast and diff revert/undo; Review panel. |
 | `--shell` | Window shell: location bar, application menu, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
 | `--ui` | Headless UI checks and upstream translations without host suites. |

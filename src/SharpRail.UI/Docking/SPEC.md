@@ -266,6 +266,9 @@ terminal body is created only when its tab is selected in a visible, unfolded gr
 their session without a body
 until shown. New terminal from a group lands in that group and reveals its region; from a tool pane it lands in a new tool-free pane directly below.
 
+File-backed tab menus (editor, Markdown, PDF, image, diff) offer Copy path (workspace-relative) and Copy absolute path, matching
+the Files tree; terminal and tool tabs offer neither. They copy the host-side path through the window clipboard.
+
 Terminal tab context menus include Rename in Projects and side tool strips. The name prompt
 starts with the current title; cancellation, blank and unchanged names leave it alone. Accepted names
 persist in host state and broadcast to other windows, surviving terminal-catalog reconciliation.

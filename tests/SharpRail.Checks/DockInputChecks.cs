@@ -5,6 +5,7 @@ using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
@@ -556,7 +557,20 @@ internal static class DockInputChecks
         System.Globalization.CultureInfo.CurrentCulture = previousCulture;
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var centerGroup = window.Layout.State.Center.Leaves().Single();
+        surface.WorkspaceRoot = () => "/work/space";
         window.Layout.Open(new DockTab("probe", "probe.txt", "source", "hello.txt"), true, centerGroup);
+        window.Layout.Open(new DockTab("terminal:probe", "Terminal probe", "terminal"), true, centerGroup);
+        Dispatcher.UIThread.RunJobs();
+        var terminalMenu = Find<Button>("Tab_terminal_probe").ContextMenu!;
+        Require(!terminalMenu.Items.OfType<MenuItem>().Any(item => item.Name is "TabCopyPath" or "TabCopyRelativePath"),
+            "A terminal tab has no file path to copy.");
+        var fileMenu = Find<Button>("Tab_probe").ContextMenu!;
+        foreach (var (name, expected) in new[] { ("TabCopyRelativePath", "hello.txt"), ("TabCopyPath", Path.Combine("/work/space", "hello.txt")) })
+        {
+            fileMenu.Items.OfType<MenuItem>().Single(item => item.Name == name).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            E2E.E2eWorkspace.Until(() => window.Clipboard!.TryGetTextAsync().GetAwaiter().GetResult() == expected);
+        }
+        window.Layout.Close(centerGroup, "terminal:probe");
         var probe = Bounds(Find<Button>("Tab_probe"));
         epoch = window.Layout.Epoch;
         Drag("probe", probe.Center);
