@@ -5,9 +5,11 @@
 set -eu
 cd "$(dirname "$0")/../.."
 if [ "$(uname -s)" = Linux ]; then
-  image=artifacts/SharpRail-linux-x64.AppImage
+  # The check runs the image, so it is the one built for this host's architecture.
+  case "$(uname -m)" in aarch64|arm64) rid=linux-arm64 ;; *) rid=linux-x64 ;; esac
+  image="artifacts/SharpRail-$rid.AppImage"
   if [ ! -f "$image" ] || [ ! -x artifacts/linux/checks/SharpRail.Checks ]; then
-    echo "No packaged app to check: run scripts/mise run package:linux first." >&2
+    echo "No packaged app to check: run scripts/mise run package:linux $rid first." >&2
     exit 1
   fi
   stage=".bench/packaged-$$"

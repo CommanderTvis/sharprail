@@ -217,6 +217,16 @@
         "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
       }
     },
+    "net10.0/linux-arm64": {
+      "System.Private.ServiceModel": {
+        "type": "Transitive",
+        "resolved": "4.5.3",
+        "contentHash": "ancrQgJagx+yC4SZbuE+eShiEAUIF0E1d21TRSoy1C/rTwafAVcBr/fKibkq5TQzyy9uNil2tx2/iaUxsy0S9g==",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "2.1.0"
+        }
+      }
+    },
     "net10.0/linux-x64": {
       "System.Private.ServiceModel": {
         "type": "Transitive",

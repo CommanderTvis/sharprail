@@ -2,13 +2,14 @@
 # Builds libSharpRail.Scintilla.so for Linux from the same pinned sources as build-native.sh, cross-compiling with the
 # Zig that mise.toml pins from any macOS or Linux host against glibc 2.31 (the baseline AppImages are built for).
 # libc++ is linked statically and kept private, so the library needs only libc, libm and libdl.
-# Usage: build-linux.sh <linux-x64> [cache directory]
+# Usage: build-linux.sh <linux-x64|linux-arm64> [cache directory]
 set -eu
 cd "$(dirname "$0")"
 rid="${1:-}"
 case "$rid" in
     linux-x64) target=x86_64-linux-gnu.2.31;;
-    *) echo "Unsupported Linux runtime: $rid (linux-x64)" >&2; exit 1;;
+    linux-arm64) target=aarch64-linux-gnu.2.31;;
+    *) echo "Unsupported Linux runtime: $rid (linux-x64, linux-arm64)" >&2; exit 1;;
 esac
 cache="${2:-obj/native}"
 mkdir -p "$cache"

@@ -105,7 +105,7 @@ changed. The recipes (`build-merman.sh`, `build-notifications.sh`, `wasm-native.
 `build-native`, `build-android`, `build-linux` and `build-windows` scripts beside Ghostty and Scintilla) are run by those targets under
 `scripts/mise x --`, which supplies the pins in `[env]`; they are not entry points. macOS native builds
 need clang, the Xcode command-line tools and, for libghostty, the Metal toolchain. The Linux libraries need only the pinned Zig, which
-cross-compiles them for `x86_64-linux-gnu` against glibc 2.31 from macOS or Linux alike.
+cross-compiles them for `x86_64-linux-gnu` or `aarch64-linux-gnu` against glibc 2.31 from macOS or Linux alike.
 
 ### NuGet packages
 
@@ -114,7 +114,7 @@ hashes), `nuget.org` is the only feed (`nuget.config`, with `<clear />` and a so
 restore in locked mode (`RestoreLockedMode` in `mise.toml` `[env]`), so drift fails with NU1004 and a changed package
 with NU1403. `scripts/mise run restore:update` is the one task that rewrites the locks: run it after changing a
 `PackageReference` or a version in `Directory.Packages.props` and commit the locks with the change. Plain `dotnet`
-outside mise is not locked and updates the files itself. The locks list `osx-arm64;osx-x64;win-x64;win-arm64;linux-x64`
+outside mise is not locked and updates the files itself. The locks list `osx-arm64;osx-x64;win-x64;win-arm64;linux-x64;linux-arm64`
 (`RuntimeIdentifiers` in `Directory.Build.props`); because a `-r` restore changes the project's RID list, the package
 tasks restore once without `-r` (with `SelfContained` and `PublishReadyToRun`, which also fetches runtime and
 Crossgen packs) and publish with `--no-restore`. Do the same for any new `-r` publish.
@@ -178,13 +178,14 @@ and packages `artifacts/SharpRail-<rid>.zip`. Build the ARM64 package on a Windo
 SDK, Zig compiler and native cache (`obj/native/<rid>`) follow the host and runtime identifier.
 `scripts\mise.cmd run check:packaged -- -RuntimeIdentifier <rid> --windows` runs the packaged Windows gate.
 
-`scripts/mise run package:linux` (on Linux x64) builds, publishes the self-contained ReadyToRun client and the checks to
-`artifacts/linux` and packs the client into `artifacts/SharpRail-linux-x64.AppImage`: an `AppDir` (`AppRun`, a desktop file, the
+`scripts/mise run package:linux [linux-arm64]` (on Linux of the same architecture; x64 by default) builds, publishes the
+self-contained ReadyToRun client and the checks to `artifacts/linux` and packs the client into
+`artifacts/SharpRail-linux-x64.AppImage` (`SharpRail-linux-arm64.AppImage` for `linux-arm64`, with the aarch64 appimagetool and runtime): an `AppDir` (`AppRun`, a desktop file, the
 icon, the client under `usr/lib/sharprail`) written as a squashfs image behind the pinned type 2 runtime by the pinned appimagetool
 (`bootstrap:linux` installs both from checksummed releases). Neither FUSE nor a display is needed to build it. On another host
-`SHARPRAIL_APPDIR_ONLY=1 scripts/mise run package:linux` publishes the Linux client (the natives cross-compile with Zig) and stops at
+`SHARPRAIL_APPDIR_ONLY=1 scripts/mise run package:linux [linux-arm64]` publishes the Linux client (the natives cross-compile with Zig) and stops at
 `artifacts/linux/AppDir`. `scripts/mise run check:packaged -- --linux` unpacks the image with the runtime's own
-`--appimage-extract`, stages the checks beside a copy of that payload and runs the Linux gate. See [LINUX.md](../LINUX.md).
+`--appimage-extract` (the image for the host's architecture), stages the checks beside a copy of that payload and runs the Linux gate. See [LINUX.md](../LINUX.md).
 
 `dmg [output-path]` requires macOS and the existing app bundle. It creates a
 compressed disk image with an Applications shortcut, defaulting to

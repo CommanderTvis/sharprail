@@ -17,11 +17,12 @@
     <GhosttyNativeCache>$(MSBuildThisFileDirectory).tools/ghostty-avalonia</GhosttyNativeCache>
     <!--
       The Linux desktop runtime the native libraries are built for, from the publish's RuntimeIdentifier on any host (Zig
-      cross-compiles them), or from a Linux x64 host building without one. Empty everywhere else, which keeps the macOS and
-      Windows native targets as they were; only linux-x64 is built.
+      cross-compiles them), or from a Linux x64 or arm64 host building without one. Empty everywhere else, which keeps the macOS and
+      Windows native targets as they were; linux-x64 and linux-arm64 are built.
     -->
-    <SharpRailLinuxRid Condition="'$(RuntimeIdentifier)' == 'linux-x64'">linux-x64</SharpRailLinuxRid>
+    <SharpRailLinuxRid Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'linux-arm64'">$(RuntimeIdentifier)</SharpRailLinuxRid>
     <SharpRailLinuxRid Condition="'$(SharpRailLinuxRid)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'">linux-x64</SharpRailLinuxRid>
+    <SharpRailLinuxRid Condition="'$(SharpRailLinuxRid)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">linux-arm64</SharpRailLinuxRid>
     <!-- Recipes that need the manifest's pins ([env] in mise.toml, tools) run under the checkout's pinned mise. -->
     <MiseRun Condition="'$(OS)' != 'Windows_NT'">sh &quot;$(MSBuildThisFileDirectory)scripts/mise&quot; x --</MiseRun>
     <MiseRun Condition="'$(OS)' == 'Windows_NT'">&quot;$(MSBuildThisFileDirectory)scripts\mise.cmd&quot; x --</MiseRun>
@@ -35,7 +36,7 @@
       SharpRail.Android and SharpRail.Browser, whose restores resolve workload packs and per-RID runtime packs.
     -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <RuntimeIdentifiers Condition="'$(RuntimeIdentifiers)' == ''">osx-arm64;osx-x64;win-x64;win-arm64;linux-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(RuntimeIdentifiers)' == ''">osx-arm64;osx-x64;win-x64;win-arm64;linux-x64;linux-arm64</RuntimeIdentifiers>
     <!--
       Audit: advisories are always reported (all packages, moderate and above) but stay warnings, so a new advisory
       cannot break a nightly build that did not change; CI treats them as errors only through the dedicated

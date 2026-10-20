@@ -1,15 +1,25 @@
 #!/bin/sh
 set -eu
 # `scripts/mise run package:linux`: publishes the Linux client and checks (self-contained, ReadyToRun) and packs the client into
-# artifacts/SharpRail-linux-x64.AppImage with the pinned appimagetool and type 2 runtime. The native libraries cross-compile with Zig
+# artifacts/SharpRail-linux-x64.AppImage (or, given `linux-arm64`, artifacts/SharpRail-linux-arm64.AppImage) with the pinned appimagetool and type 2 runtime. The native libraries cross-compile with Zig
 # during the build, so the managed publish also works on macOS; appimagetool runs on Linux only. Set SHARPRAIL_APPDIR_ONLY=1
 # elsewhere to stop after assembling artifacts/linux/AppDir. With SHARPRAIL_GPG_KEY_ID set (a key in the GPG keyring), the image
 # carries an embedded signature that AppImageLauncher and appimaged verify.
 cd "$(dirname "$0")/../.."
 dotnet_cmd="${DOTNET:-.tools/dotnet/dotnet}"
-rid=linux-x64
+rid="${1:-linux-x64}"
+case "$rid" in
+  linux-x64) appimage_arch=x86_64 ;;
+  linux-arm64) appimage_arch=aarch64 ;;
+  *) echo "Usage: package-linux.sh [linux-x64|linux-arm64] (got '$rid')" >&2; exit 1 ;;
+esac
 output=artifacts/linux
-image=artifacts/SharpRail-linux-x64.AppImage
+image="artifacts/SharpRail-$rid.AppImage"
+# appimagetool and its runtime are per-architecture binaries, so the image is built on a host of its own architecture.
+if [ "$(uname -s)" = Linux ] && [ "${SHARPRAIL_APPDIR_ONLY:-}" != 1 ]; then
+  case "$(uname -m)" in x86_64|amd64) host=linux-x64 ;; aarch64|arm64) host=linux-arm64 ;; *) host="$(uname -m)" ;; esac
+  [ "$host" = "$rid" ] || { echo "Building $rid.AppImage needs a $rid host; this one is $host. SHARPRAIL_APPDIR_ONLY=1 assembles the AppDir only." >&2; exit 1; }
+fi
 if [ "$(uname -s)" != Linux ] && [ "${SHARPRAIL_APPDIR_ONLY:-}" != 1 ]; then
   echo 'appimagetool runs on Linux; set SHARPRAIL_APPDIR_ONLY=1 to assemble artifacts/linux/AppDir here.' >&2
   exit 1
@@ -72,7 +82,7 @@ runtime=.tools/appimage-runtime/runtime
 [ -f "$tool" ] && [ -f "$runtime" ] || { echo 'bootstrap:linux did not install appimagetool.' >&2; exit 1; }
 # The store is read-only and appimagetool needs neither FUSE nor a writable home: it unpacks itself and writes only the image.
 [ -z "${SHARPRAIL_GPG_KEY_ID:-}" ] || set -- --sign --sign-key "$SHARPRAIL_GPG_KEY_ID"
-ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$tool" "$@" --no-appstream --runtime-file "$runtime" --comp zstd \
+ARCH="$appimage_arch" APPIMAGE_EXTRACT_AND_RUN=1 "$tool" "$@" --no-appstream --runtime-file "$runtime" --comp zstd \
   --mksquashfs-opt -Xcompression-level --mksquashfs-opt 19 "$app" "$image"
 chmod +x "$image"
 echo "Built $image"

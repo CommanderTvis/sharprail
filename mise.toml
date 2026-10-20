@@ -64,12 +64,18 @@ os = ["linux"]
 [tools."http:appimagetool".platforms.linux-x64]
 url = "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage"
 checksum = "sha256:ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
+[tools."http:appimagetool".platforms.linux-arm64]
+url = "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-aarch64.AppImage"
+checksum = "sha256:f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158"
 [tools."http:appimage-runtime"]
 version = "20251108"
 os = ["linux"]
 [tools."http:appimage-runtime".platforms.linux-x64]
 url = "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64"
 checksum = "sha256:2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d"
+[tools."http:appimage-runtime".platforms.linux-arm64]
+url = "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-aarch64"
+checksum = "sha256:00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87444"
 
 # Sources of the editor bridge (desktop, Android and WASM builds). The tarball comes from SourceForge's download
 # mirror, byte-identical to www.scintilla.org's (same checksum), which answers GitHub-hosted runners with 403.
@@ -103,6 +109,7 @@ ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_TOOLS }}/zig-cache"
 #                                  libSharpRailMermaid, libSharpRailNotifications                              (Skia fallback)
 # macos-x64      macOS x64         as macos-arm64 for x86_64                                                   as macos-arm64              package:macos osx-x64        artifacts/SharpRail.app
 # linux-x64      Linux x64         libGhosttyAvaloniaVt.so, libSharpRail.Scintilla.so (Zig, glibc 2.31)       libghostty-vt on Skia       package:linux                artifacts/SharpRail-linux-x64.AppImage
+# linux-arm64    Linux arm64       as linux-x64 for aarch64 (Zig, glibc 2.31); builds natively on an arm64 host  as linux-x64              package:linux linux-arm64    artifacts/SharpRail-linux-arm64.AppImage
 # windows-x64    Windows x64       GhosttyAvaloniaVt.dll, SharpRailScintillaNative.dll                          libghostty-vt on Skia       package:windows win-x64      artifacts/SharpRail-win-x64.zip
 # windows-arm64  Windows ARM64     as windows-x64 for win-arm64 (builds natively on an ARM64 host)              libghostty-vt on Skia       package:windows win-arm64    artifacts/SharpRail-win-arm64.zip
 # android        macOS or Linux    libGhosttyAvaloniaVt.so, libSharpRail.Scintilla.so (arm64-v8a, x86_64)      libghostty-vt on Skia       package:android              artifacts/android/SharpRail.apk
@@ -223,7 +230,7 @@ run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks
 run = "echo 'Windows packages are built on Windows.' >&2; exit 1"
 
 [tasks."package:linux"]
-description = "Publish the Linux client and checks and build artifacts/SharpRail-linux-x64.AppImage (linux-x64; builds on Linux)"
+description = "Publish the Linux client and checks and build artifacts/SharpRail-linux-<x64|arm64>.AppImage (linux-x64 by default, or `linux-arm64`; builds on Linux)"
 depends = ["bootstrap"]
 run = "sh scripts/tasks/package-linux.sh"
 

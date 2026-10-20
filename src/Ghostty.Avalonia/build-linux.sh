@@ -5,13 +5,14 @@ set -eu
 # It shares that script's pinned libghostty-vt source and Zig toolchain (mise.toml) and cross-compiles with Zig from any
 # macOS or Linux host, against glibc 2.31 (the baseline AppImages are built for) so the library runs on every distribution
 # at least that old. Zig links only libc, libm and libdl; nothing else is needed at run time.
-# Usage: build-linux.sh <linux-x64> [cache-directory]
+# Usage: build-linux.sh <linux-x64|linux-arm64> [cache-directory]
 cd "$(dirname "$0")"
 project="$PWD"
 rid="${1:-}"
 case "$rid" in
   linux-x64) target=x86_64-linux-gnu.2.31 ;;
-  *) echo 'Usage: build-linux.sh <linux-x64> [cache-directory]' >&2; exit 1 ;;
+  linux-arm64) target=aarch64-linux-gnu.2.31 ;;
+  *) echo 'Usage: build-linux.sh <linux-x64|linux-arm64> [cache-directory]' >&2; exit 1 ;;
 esac
 cache="${2:-$project/../../.tools/ghostty-avalonia}"
 mkdir -p "$cache"
