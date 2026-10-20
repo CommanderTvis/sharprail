@@ -67,15 +67,19 @@ jobs:
           java-version: 21
       # The Android workload compiles against this platform, which the runner image may not carry yet.
       - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
-      # One key for every night, so a newer package installs over an older one.
+      - run: sh scripts/ci-run.sh "Package Android" sh scripts/mise run package:android
+      # One key for every night, so a newer package installs over an older one. The build signs with the debug key; apksigner replaces that signature.
       - env:
-          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/nightly.keystore"
-      - env:
-          SHARPRAIL_ANDROID_KEYSTORE: ${{ runner.temp }}/nightly.keystore
-          SHARPRAIL_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          SHARPRAIL_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: sh scripts/ci-run.sh "Package Android" sh scripts/mise run package:android
+          SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
+        run: |
+          [ -n "$SIGNING_KEY" ] || { echo "::error::ANDROID_SIGNING_KEY is not set"; exit 1; }
+          printf '%s' "$SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/android-key.pk8"
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$apksigner" sign --key "$RUNNER_TEMP/android-key.pk8" --cert signing/android-cert.pem artifacts/android/SharpRail.apk
+          rm -f "$RUNNER_TEMP/android-key.pk8"
+          "$apksigner" verify --print-certs artifacts/android/SharpRail.apk | tee "$RUNNER_TEMP/certs.txt"
+          expected=$(openssl x509 -in signing/android-cert.pem -noout -fingerprint -sha256 | cut -d= -f2 | tr -d : | tr A-F a-f)
+          grep -qi "certificate SHA-256 digest: $expected" "$RUNNER_TEMP/certs.txt" || { echo "::error::APK is not signed with signing/android-cert.pem"; exit 1; }
       - run: mv artifacts/android/SharpRail.apk "artifacts/android/${{ steps.stamp.outputs.name }}.apk"
       - uses: actions/upload-artifact@v4
         with:
@@ -97,9 +101,17 @@ jobs:
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
+      # The AppImage carries an embedded signature, so the key is in the keyring before the package step.
+      - env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        run: |
+          [ -n "$GPG_SIGNING_KEY" ] || { echo "::error::GPG_SIGNING_KEY is not set"; exit 1; }
+          printf '%s' "$GPG_SIGNING_KEY" | gpg --batch --import
       # The terminal library's build fetches its dependencies over git, which drops connections now and then;
       # what it has fetched stays cached, so another attempt carries on from there.
-      - run: |
+      - env:
+          SHARPRAIL_GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: |
           for attempt in 1 2 3; do
             SHARPRAIL_CI_QUIET=$([ $attempt = 3 ] || echo 1) sh scripts/ci-run.sh "Package Linux" sh scripts/mise run package:linux && exit 0
             sleep 30

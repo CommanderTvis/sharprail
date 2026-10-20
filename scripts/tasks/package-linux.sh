@@ -3,7 +3,8 @@ set -eu
 # `scripts/mise run package:linux`: publishes the Linux client and checks (self-contained, ReadyToRun) and packs the client into
 # artifacts/SharpRail-linux-x64.AppImage with the pinned appimagetool and type 2 runtime. The native libraries cross-compile with Zig
 # during the build, so the managed publish also works on macOS; appimagetool runs on Linux only. Set SHARPRAIL_APPDIR_ONLY=1
-# elsewhere to stop after assembling artifacts/linux/AppDir.
+# elsewhere to stop after assembling artifacts/linux/AppDir. With SHARPRAIL_GPG_KEY_ID set (a key in the GPG keyring), the image
+# carries an embedded signature that AppImageLauncher and appimaged verify.
 cd "$(dirname "$0")/../.."
 dotnet_cmd="${DOTNET:-.tools/dotnet/dotnet}"
 rid=linux-x64
@@ -70,7 +71,8 @@ tool=.tools/appimagetool/appimagetool.AppImage
 runtime=.tools/appimage-runtime/runtime
 [ -f "$tool" ] && [ -f "$runtime" ] || { echo 'bootstrap:linux did not install appimagetool.' >&2; exit 1; }
 # The store is read-only and appimagetool needs neither FUSE nor a writable home: it unpacks itself and writes only the image.
-ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$tool" --no-appstream --runtime-file "$runtime" --comp zstd \
+[ -z "${SHARPRAIL_GPG_KEY_ID:-}" ] || set -- --sign --sign-key "$SHARPRAIL_GPG_KEY_ID"
+ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$tool" "$@" --no-appstream --runtime-file "$runtime" --comp zstd \
   --mksquashfs-opt -Xcompression-level --mksquashfs-opt 19 "$app" "$image"
 chmod +x "$image"
 echo "Built $image"
