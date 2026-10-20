@@ -1,0 +1,21 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.UI.Panels.AboutFields">
+  <StackPanel Spacing="12">
+    <StackPanel Orientation="Horizontal" Spacing="12">
+      <ContentControl x:Name="AboutBrand" VerticalAlignment="Center" />
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock x:Name="AboutName" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock x:Name="AboutVersion" FontSize="12" />
+      </StackPanel>
+    </StackPanel>
+    <TextBlock x:Name="AboutDescription" TextWrapping="Wrap" />
+    <TextBlock x:Name="AboutRuntime" FontSize="12" TextWrapping="Wrap" />
+    <TextBlock x:Name="AboutLicense" FontSize="12" TextWrapping="Wrap" />
+    <WrapPanel Orientation="Horizontal">
+      <Button x:Name="AboutRepository" Padding="0,0,16,0" Background="Transparent" BorderThickness="0" />
+      <Button x:Name="AboutUpstream" Padding="0" Background="Transparent" BorderThickness="0" />
+    </WrapPanel>
+    <WrapPanel x:Name="AboutActions" Orientation="Horizontal" />
+  </StackPanel>
+</UserControl>

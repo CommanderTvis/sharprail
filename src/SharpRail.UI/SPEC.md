@@ -433,11 +433,22 @@ workspace frame's left side.
   modal keeps the keyboard, and the Settings control's tooltip advertises the chord only where it is bound.
   macOS keeps its Cmd+, chord and the browser binds none.
 - Native role items in the Edit menu. Avalonia's menu model has no AppKit role selectors, so the items
-  are app commands: editing in native panels (the folder picker's path field) is not served by them, and
-  there is no About item.
+  are app commands: editing in native panels (the folder picker's path field) is not served by them.
 - Renderer capabilities beyond dispatch: review anchor geometry, phone support and the per-renderer copy,
   layout and whitespace flags. The diff pane decides its own split, whitespace and copy controls from
   whether the source diff is showing, and there is no review surface to anchor to.
+
+## About
+
+The About screen (`AboutInfo`, `Panels/AboutFields`) shows the brand icon, name, version, one-line description, runtime lines
+(runtime, OS and architecture, Avalonia, renderer), the repository and ThinkRail links, a license summary, Third-party notices
+and Copy details (version and runtime lines as plain text). It reads assembly attributes and the runtime only, with no network,
+telemetry or UI-thread I/O; Third-party notices looks for the shipped `THIRD-PARTY-NOTICES.md` on a worker and falls back to the
+repository copy. The version is the assembly informational version: the packaging tasks pass `SharpRailBuildStamp`
+(`YYYYMMDD-<short commit>`, as the nightly names its builds), giving `0.2.0+<stamp>`; a local build reads `dev`.
+On macOS the application menu's first item is "About SharpRail", set from `App.Initialize` (`ApplicationMenu.SetApplicationMenu`):
+Avalonia fills an application menu that is still unset when the platform builds the menu bar with its own "About Avalonia".
+Elsewhere About is Settings › About. The dialog closes with Escape or the close chord. Checks: `--about`.
 
 ## Tailscale client entry
 

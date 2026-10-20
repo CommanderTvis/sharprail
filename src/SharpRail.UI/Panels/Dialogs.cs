@@ -344,4 +344,14 @@ public static class Dialogs
     }
 
     public static Window Create(string title, double width) => DialogWindow.Create(title, width);
+
+    /// <summary>The About SharpRail dialog; modal over <paramref name="owner"/> when there is one (the macOS menu may have none).</summary>
+    public static Window About(Window? owner)
+    {
+        var window = Create("About " + AboutInfo.Name, 420);
+        window.FindControl<StackPanel>("DialogFields")!.Children.Add(new AboutFields());
+        window.FindControl<StackPanel>("DialogActions")!.Children.Add(Primary(Ui.Button("Close", () => window.Close())));
+        if (owner is { IsVisible: true }) _ = window.ShowDialog(owner); else window.Show();
+        return window;
+    }
 }

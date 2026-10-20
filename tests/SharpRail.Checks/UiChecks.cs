@@ -175,6 +175,7 @@ internal static class UiChecks
         Gate.Case("host-settings-icon", () => IconChecks.HostSettings(root));
         Gate.Case("DockInputChecks", () => DockInputChecks.Run(root));
         Gate.Case("AppCommandChecks", () => AppCommandChecks.Run(root));
+        Gate.Case("AboutChecks", AboutChecks.Run);
         Gate.Case("AuxiliaryInputChecks", () => AuxiliaryInputChecks.Run(root));
         Gate.Case("GitUiChecks", () => GitUiChecks.Run(root + "-git"));
         Gate.Case("TerminalResumeHintChecks", TerminalResumeHintChecks.Run);

@@ -365,6 +365,7 @@
               <Button x:Name="Settings_Notifications" Classes="settings-navigation" />
               <Button x:Name="Settings_Host" Classes="settings-navigation" />
               <Button x:Name="Settings_GitHub" Classes="settings-navigation" />
+              <Button x:Name="Settings_About" Classes="settings-navigation" />
               <Button x:Name="Settings_Plugins" Classes="settings-navigation" />
             </StackPanel>
           </ScrollViewer>

@@ -74,6 +74,7 @@ Domain records belong in Abstractions; serialized DTOs in Protocol. Keep both ad
 | `WindowNavigation.cs` | Window locations, serialized links, Back/Forward. |
 | `ApplicationMenu.cs` / `WindowChrome.cs` | macOS menu bar; title-bar double-click preference, pinch zoom. |
 | `AppCommands.cs` / `QuitConfirmation.cs` | App-wide commands; busy-terminal quit confirmation. |
+| `AboutInfo.cs` / `Panels/AboutFields.axaml` | About screen content (version stamp, runtime lines) and view; macOS application menu item, Settings › About elsewhere. |
 | `PluginSurfaces.cs` / `ToolLifetime.cs` | Plugin contributions in the workbench and control lifetime. |
 | `GestureNotification.cs` | Feedback when layout transitions cancel a gesture. |
 | `HostSync.cs` | Applying shared-state broadcasts and reconnects. |
@@ -109,6 +110,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--rail` | Retained Projects controls and geometry. |
 | `--state` | Host state and profile/preset migration. |
 | `--file-drop` | Workspace file drag representations, transfers, attachment gestures. |
+| `--about` | About screen: version fallback, runtime and copy text, links, application menu, Escape. |
 | `--connection-errors` | Connection failure details and retry. |
 | `--windows` | Windows host, desktop and native renderer checks (Windows only). |
 | `--terminals` | Host terminals, terminal translations, Skia renderer. |

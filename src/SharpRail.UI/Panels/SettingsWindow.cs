@@ -96,7 +96,7 @@ public sealed partial class SettingsWindow : Window
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Code Intelligence", "code"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Code Intelligence", "code"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("GitHub", "gitBranch"), ("About", "alertInfo"), ("Plugins", "puzzle") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         // Listed only for a host that settles workspaces; an older one has no idle window to set.
@@ -211,6 +211,7 @@ public sealed partial class SettingsWindow : Window
         ["Notifications"] = "When an agent needs you",
         ["Host"] = "The host this app works with",
         ["GitHub"] = "Command-line sign-in",
+        ["About"] = "Version, runtime, licenses",
         ["Plugins"] = "Installed plugins and their settings"
     };
 
@@ -267,6 +268,7 @@ public sealed partial class SettingsWindow : Window
             "Notifications" => NotificationSettings(),
             "Host" => ServingSettings(),
             "GitHub" => GitHubSettings(),
+            "About" => new AboutFields { Margin = new(24) },
             "Plugins" => new PluginsSettings(state, window.Workbench.Plugins, this),
             _ when name.StartsWith("plugin:", StringComparison.Ordinal) => PluginSection(name),
             _ => Appearance()

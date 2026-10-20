@@ -22,6 +22,7 @@ public sealed partial class App : Application
         StartupPhases.Mark("app-initialize-start");
         AvaloniaXamlLoader.Load(this);
 #if !ANDROID && !BROWSER
+        if (OperatingSystem.IsMacOS()) ApplicationMenu.SetApplicationMenu(this);
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.Args?.Contains("--tailscale", StringComparer.Ordinal) != true)
             PrepareStartup();
 #endif

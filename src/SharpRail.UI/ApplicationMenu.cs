@@ -18,13 +18,24 @@ public static class ApplicationMenu
     /// <summary>Gives every window that opens the menu bar: a dialog needs Edit as much as the workbench does.</summary>
     public static IDisposable Install(Application app, AppCommands commands)
     {
-        // An empty application menu keeps the platform items and drops the framework's About entry.
-        NativeMenu.SetMenu(app, []);
         return Window.WindowOpenedEvent.AddClassHandler<Window>((window, _) =>
         {
             if (NativeMenu.GetMenu(window) is null) NativeMenu.SetMenu(window, Build(window, commands));
         });
     }
+
+    /// <summary>
+    /// Sets the application menu. Avalonia fills it with its own "About Avalonia" when none is set by the time the platform
+    /// builds the menu bar, so this runs from <c>Initialize</c>, before that; the menu holds About SharpRail and the platform items follow.
+    /// </summary>
+    public static void SetApplicationMenu(Application app) => NativeMenu.SetMenu(app, AppMenu(() => Panels.Dialogs.About(ActiveWindow())));
+
+    /// <summary>The application menu's own items; the platform adds Services, Hide, Hide Others, Show All and Quit around them.</summary>
+    public static NativeMenu AppMenu(Action about) => [Item("About " + AboutInfo.Name, Key.None, KeyModifiers.None, about)];
+
+    private static Window? ActiveWindow() =>
+        Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.Windows.FirstOrDefault(window => window.IsActive) ?? desktop.MainWindow : null;
 
     public static NativeMenu Build(Window window, AppCommands commands)
     {
