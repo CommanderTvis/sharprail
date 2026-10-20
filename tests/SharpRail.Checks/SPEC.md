@@ -631,6 +631,27 @@ back and forward buttons are not asserted.
 `--tailscale` covers builtin Tailscale bootstrap, approved-token authentication and revocation using fake
 peer identities over real HTTP/WebSocket RPC. It never reaches the developer's Tailscale installation or tailnet.
 
+`--headscale` is an opt-in slow mode (budget 170 seconds) and is never a gate case. It needs
+`sh scripts/build-headscale-test.sh`, which provisions under `.tools/headscale-test` the checksum-pinned
+Headscale release binary (a native macOS/Linux release, so no container or VM is involved), the
+`tsforward` userspace node (`src/SharpRail.Android/Tailscale.Native/cmd/tsforward`) and the desktop build of the
+embedded Tailscale library. Without them it prints a SKIP line and succeeds; `SHARPRAIL_REQUIRE_HEADSCALE=1`
+turns that into a failure. The check starts Headscale on random loopback ports from a generated config
+(sqlite, own noise key, private prefixes, magic DNS off, no relay: nodes on one machine connect directly,
+so it needs no external network), creates one user and pre-auth key per node, and joins two distinct nodes: the
+host side (`tsforward`, forwarding the tailnet RPC and discovery ports to a real `RemoteServer` bound to
+loopback) and the client side (the embedded library loaded in the checks process through
+`EmbeddedTailscaleNetwork`, with its control URL and key added to the start options). Over that tailnet it
+runs real discovery, the pending-then-approved pairing exchange, the authenticated WebSocket RPC handshake and
+state read, rejection of a wrong token, a host-side change delivered as a broadcast, and a dropped-connection
+cycle (the forwarder drops live connections and refuses new ones; the change made meanwhile is read after
+reconnect). It also asserts the host node saw the traffic from a different tailnet address. The built-in
+Tailscale host plugin's own pairing listener needs a kernel tailnet interface and the Tailscale CLI, so the
+pairing endpoint is the fixture used by the embedded checks, not the plugin. Fixtures live under the run's
+temporary directory (plus a short socket path in the system temp directory, because macOS limits socket
+paths); the Headscale and node processes are stopped and everything is removed on success, failure and
+interrupt. Failures print the tail of each process log with secrets removed.
+
 `MarkdownSelectionChecks` runs with `--drawn-rendering` and the default gate. It checks reverse
 and shrinking drags in a virtual document, source-line observers, offscreen Shift-click and
 Copy, plus rendered selection, inline/font invalidation and detach/remount under every theme.

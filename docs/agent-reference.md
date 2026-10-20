@@ -137,6 +137,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--zig-deps` | `scripts/zig-deps.lock` matches the Ghostty pins in `mise.toml` and every native build path restores the mirror. |
 | `--conformance` | Dependency-boundary checks; public API analyzers validate against `PublicAPI.*.txt` baselines. |
 | `--runner` | The runner itself. |
+| `--headscale` | Opt-in and slow, never in the argument-free suite: a real host and client on two tailnet nodes of a throwaway Headscale. Skips with a message unless `sh scripts/build-headscale-test.sh` has run (`SHARPRAIL_REQUIRE_HEADSCALE=1` fails instead). |
 | `--android` | Android host address parsing and remembered endpoint (the client needs a device: `scripts/mise run android run`). |
 
 Gate options (argument-free gate only; not focused modes): `--lanes N|auto` splits across processes, `--last-failed` reruns unfinished work (serial), `--list-cases`, `--case A,B` (for example `--case language-exit` for server exit records, `--case language-services` for the language host). `tests/SharpRail.Checks/Runner.cs` owns these, the idle-sleep assertion and interrupt cleanup. A suite joins the gate through `Gate.Case` in `Program.cs` or `UiChecks.cs`. Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.

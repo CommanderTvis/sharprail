@@ -958,6 +958,13 @@ internal static class Program
             TailscaleChecks.RunUi(root);
             return;
         }
+        if (args.SequenceEqual(["--headscale"]))
+        {
+            // Opt-in and slow: never a gate case. Needs `sh scripts/build-headscale-test.sh`.
+            try { HeadscaleChecks.Run(root).GetAwaiter().GetResult(); }
+            finally { Directory.Delete(root, true); }
+            return;
+        }
         Gate.Case("packaged-app", PackagedApp.Run);
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
         Gate.Case("zig-deps", () => ZigDepsChecks.Run());

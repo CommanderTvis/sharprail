@@ -116,6 +116,12 @@ authenticated SOCKS5 HTTP probing against a local fake proxy; `--transport` chec
 WebSocket handler routing, reconnect and disposal. The native bridge has isolated Go tests for its
 operation and proxy lifetimes. Desktop and Android device-to-device operation requires manual verification.
 
+`--headscale` (opt-in, slow; see the checks module spec) joins a real host and a real embedded-library
+client to a throwaway Headscale tailnet as distinct nodes and verifies discovery, pairing, authenticated
+WebSocket RPC, broadcasts and reconnection across it. It does not exercise the host plugin's kernel-interface
+pairing listener, which still needs a manual device check.
+
+
 The plugin list and settings navigation use the official Tailscale nine-dot SVG icon,
 staged as a host-served plugin asset. Its fill follows the theme; geometry and opacity
 are preserved. Source and trademark attribution are recorded in NOTICE.md.
