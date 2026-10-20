@@ -22,6 +22,33 @@
   <Style Selector="Button">
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
+  <!-- Window controls of the Linux integrated header: flat, header-high, muted until hovered; Close turns red. -->
+  <Style Selector="Button.caption-button">
+    <Setter Property="Width" Value="40" />
+    <Setter Property="Height" Value="{x:Static kit:LayoutRoles.TopbarRow}" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.caption-button Path">
+    <Setter Property="Stroke" Value="{x:Static kit:Ui.Muted}" />
+    <Setter Property="StrokeThickness" Value="1" />
+  </Style>
+  <Style Selector="Button.caption-button:pointerover Path, Button.caption-button:pressed Path">
+    <Setter Property="Stroke" Value="{x:Static kit:Ui.TextBrush}" />
+  </Style>
+  <Style Selector="Button.caption-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
+  </Style>
+  <Style Selector="Button.caption-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{x:Static kit:Ui.Selected}" />
+  </Style>
+  <Style Selector="Button.caption-close:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.caption-close:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{x:Static kit:Ui.Danger}" />
+  </Style>
   <Style Selector="Button.primary">
     <Setter Property="Background" Value="{x:Static kit:Ui.PrimaryFill}" />
     <Setter Property="Foreground" Value="{x:Static kit:Ui.OnPrimary}" />

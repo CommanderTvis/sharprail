@@ -232,13 +232,17 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         settings.Click += (_, _) => ShowSettings();
         if (!OperatingSystem.IsMacOS()) { ToolTip.SetTip(settings, "Settings"); AutomationProperties.SetName(settings, "Settings"); }
         if (OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
-        // Linux window managers differ on client-side decorations, so the system title bar stays and the header sits below it.
-        if (OperatingSystem.IsLinux() && !OperatingSystem.IsAndroid()) ExtendClientAreaToDecorationsHint = false;
+        // Linux window managers differ on client-side decorations: the header is the title bar only where LinuxWindowChrome trusts the
+        // desktop; elsewhere the system title bar stays and the header sits below it.
+        if (OperatingSystem.IsLinux() && !OperatingSystem.IsAndroid())
+        {
+            if (LinuxWindowChrome.Client && settings.Parent is Panel linuxHost) UseLinuxClientDecorations(linuxHost);
+            else ExtendClientAreaToDecorationsHint = false;
+        }
         var frame = this.FindControl<Border>("WindowTitleBar")!;
         frame.PointerPressed += (_, e) =>
         {
-            if (!e.GetCurrentPoint(frame).Properties.IsLeftButtonPressed || e.Source is not Control source ||
-                source is Button or TextBox || source.GetLogicalAncestors().Any(ancestor => ancestor is Button or TextBox)) return;
+            if (!e.GetCurrentPoint(frame).Properties.IsLeftButtonPressed || e.Source is not Control source || !LinuxWindowChrome.StartsMove(source)) return;
             e.Handled = true;
             if (e.ClickCount == 2) TitleBarDoubleClicked();
             else BeginMoveDrag(e);
