@@ -17,8 +17,7 @@ Skia. Metal, the macOS notification bridge and native Mermaid build targets are
 not loaded or built on Windows; the existing unavailable-Mermaid view still applies.
 
 The Linux x64 desktop client (X11 or XWayland, glibc 2.31 or newer, shipped as an AppImage: [LINUX.md](../../LINUX.md)) has the same
-shape: Ctrl-based editor shortcuts, terminals always on Skia (the saved Metal preference is ignored), the system title bar
-instead of the extended client area, no Mermaid library (the unavailable view applies) and `LinuxNotifier`. Its native libraries
+shape: Ctrl-based editor shortcuts, terminals always on Skia (the saved Metal preference is ignored), the extended client area only where `LinuxWindowChrome` trusts the desktop (see Window chrome) and the system title bar elsewhere, no Mermaid library (the unavailable view applies) and `LinuxNotifier`. Its native libraries
 are cross-compiled with Zig by `build-linux.sh` beside Ghostty and Scintilla; Linux execution is covered by the `--linux` gate
 and is otherwise unverified (see STATUS.md V13).
 
@@ -111,6 +110,18 @@ host state, the terminal host and the profile. Closing a window while others rem
 entry; quitting keeps every entry so the next launch restores the same set.
 
 ## Window chrome
+
+On Linux, `LinuxWindowChrome.cs` decides once at startup, before the windowing backend starts, whether the header is the title bar.
+`UseClientDecorations(LinuxSession)` is pure: with no `DISPLAY` the answer is system; `SHARPRAIL_WINDOW_DECORATIONS` `system` or `client`
+decides next; otherwise `XDG_CURRENT_DESKTOP` must name GNOME, KDE, X-Cinnamon, Budgie, Pantheon, UNITY, Deepin, COSMIC or XFCE and
+none of the tiling managers (i3, sway, Hyprland, bspwm, awesome, dwm, river, niri, qtile, xmonad, herbstluftwm, leftwm, spectrwm);
+anything else keeps the system title bar and `ExtendClientAreaToDecorationsHint` off. The client path enables
+`X11PlatformOptions.EnableDrawnDecorations`, sets `WindowDecorations.BorderOnly` (Avalonia draws border, shadow and resize
+grips), makes the window background transparent over the shadow, keeps `WindowDecorationMargin` free around the zoom root, and adds
+Minimize, Maximize/Restore and Close buttons (`Button.caption-button` in the kit `ControlStyles.axaml`, accessible names, Close red on
+hover) after Settings. Dragging and double-click maximize use the existing header handler; `StartsMove` keeps buttons and text boxes clickable.
+No window menu is offered on right-click, which still opens the View menu. The choice is an environment override, not a Settings
+option: the platform option is fixed before the profile loads.
 
 The 40px header (`LayoutRoles.TopbarRow`) is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
 decorations so the native controls stay while the header provides the colour; on macOS the header leaves

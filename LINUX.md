@@ -28,7 +28,12 @@ Without ICU installed, `AppRun` starts .NET in invariant-globalization mode inst
 ## What differs from macOS
 
 - Terminals always use Skia (libghostty-vt cells); the Settings renderer choice is hidden and a saved Metal preference is ignored.
-- The window keeps the system title bar; Ctrl replaces Command in the editor and shortcuts.
+- On GNOME, KDE, Cinnamon, Budgie, Pantheon, Unity, Deepin, COSMIC and XFCE the header strip is the title bar (client-side decorations):
+  window controls sit at its right, the app draws the border, shadow and resize grips, and no separate title-bar row is spent.
+  Elsewhere (unknown or unset `XDG_CURRENT_DESKTOP`, tiling managers such as i3, sway or Hyprland, no `DISPLAY`) the system title bar
+  stays. `SHARPRAIL_WINDOW_DECORATIONS=system` always keeps it and `=client` forces ours (when an X11 connection exists), for
+  example if the window frame looks wrong on your window manager. Avalonia marks this X11 option experimental; it has not yet run on a real desktop.
+- Ctrl replaces Command in the editor and shortcuts.
 - Mermaid diagrams show their source with a notice: Merman publishes its C ABI for Apple platforms only.
 - Away notifications use `notify-send` when it is installed; clicking one cannot return to the app.
 - Created workspaces clone configured ignored paths with `cp -a --reflink=auto` (shared extents on btrfs and XFS, a copy elsewhere).
