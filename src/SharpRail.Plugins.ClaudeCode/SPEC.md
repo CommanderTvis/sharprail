@@ -165,6 +165,17 @@ New-launch presets retain the four model aliases opus/fable/sonnet/haiku. The ru
 menu instead reads that session's live `/model` picker on demand, including Default and versioned
 or custom choices beyond the visible rows. Discovery cancels the CLI picker without choosing or
 saving a default; selection matches the exact discovered label and uses the session-only switch.
+The discovered list is cached on the host that runs the CLI (`modelListGet`/`modelListPut`, file
+`<state dir>/claude-code/model-list.json`, versioned, written through a temporary file; a missing, corrupt
+or newer-format file is ignored). The key hashes the binary (path, size, mtime), the configuration
+directory, endpoint/model/provider environment overrides and the signed-in account and organisation, so a
+CLI upgrade or another account misses; it is computed without spawning anything. A fresh entry fills the
+menu with no terminal activity; an entry older than `ModelListCache.FreshFor` (24 h) fills it at once and
+is read again once in the background; no entry reads with the "Reading Claude Code's models…" item as
+before. A menu "Refresh models" item reads on demand. Concurrent opens share one host lookup, one terminal
+at a time walks the picker, an empty or failed read never replaces the last good list, and the menu keeps
+showing the cached list when a refresh fails. A Central-governed launch's model override is not in the key
+unless it reaches the host's environment.
 The empty-prompt guard goes through the kit's `PromptComposer`; only `Message @agent…` is Claude-specific.
 Every drive (discovery, model, effort) holds the user's keys out of the terminal from its first
 keystroke to its last, released on success, failure, cancellation and exit, so typing cannot interleave with it;
@@ -232,6 +243,9 @@ through a recording CLI, connectors parsed from `claude mcp list`, a local overr
 user value) and both `claude-launcher.spec.ts` cases through the real launcher, menu and settings. The native terminal probe checks
 agent fallback, default, kitty and modifyOtherKeys input bytes. Hook scripts have
 their own shell checks. The integrated `--plugins` runner includes these checks.
+
+The model-list cache cases cover the file round trip across processes, key change, TTL staleness, corrupt and
+newer files, failed reads keeping the last list, and shared lookups and refresh slot.
 
 The model-picker regressions simulate wrapping and clamped lists longer than the visible viewport,
 starting in the middle, with Default, distinct releases from the same family and custom choices.

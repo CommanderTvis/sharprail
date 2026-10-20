@@ -465,6 +465,7 @@ internal static class ClaudeCodeChecks
             terminals.EnvironmentContributor!(terminal).Count == 0, "Disabling removes IDE discovery and terminal contributions.");
         Transcripts(directory);
         await Pickers();
+        await ModelLists(directory);
         Console.WriteLine("PASS Claude Code host: disabled lifecycle, configuration provenance, reviewed writes, token status, spending and revive");
     }
 
@@ -706,6 +707,81 @@ internal static class ClaudeCodeChecks
     {
         private bool done;
         public void Dispose() { if (!done) { done = true; release(); } }
+    }
+
+    // The model list a terminal read off the live picker is kept on the host: a cache hit means no terminal walks the picker.
+    private static async Task ModelLists(string directory)
+    {
+        var folder = Path.Combine(directory, "model-lists");
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, "model-list.json");
+        var clock = new DateTimeOffset(2026, 3, 1, 9, 0, 0, TimeSpan.Zero);
+        var key = "cli-1";
+        var models = new[] { "Default (recommended)", "Opus 5.5", "Haiku 4.5" };
+        ModelListCache Open() => new(path, () => clock, _ => key);
+
+        Require(Open().Get("claude").Models.Count == 0, "Without a cache file the host has no list.");
+        Require(Open().Put("claude", models).Ok && File.Exists(path) && Directory.GetFiles(folder, "*.tmp").Length == 0, "A stored list is written atomically, leaving no temporary file.");
+        var reopened = Open().Get("claude");
+        Require(reopened.Models.SequenceEqual(models) && !reopened.Stale, "A fresh process serves the stored list from the file without reading the picker.");
+
+        key = "cli-2";
+        Require(Open().Get("claude").Models.Count == 0, "A different CLI build or account invalidates the stored list.");
+        key = "cli-1";
+
+        clock += ModelListCache.FreshFor + TimeSpan.FromMinutes(1);
+        var stale = Open().Get("claude");
+        Require(stale.Models.SequenceEqual(models) && stale.Stale, "An expired list is still served at once, flagged stale so exactly one refresh follows.");
+        Require(ModelListSource.Plan(stale) == ModelListPlan.ServeAndRefresh && ModelListSource.Plan(reopened) == ModelListPlan.Serve && ModelListSource.Plan(new([])) == ModelListPlan.Read,
+            "Fresh serves, stale serves and refreshes, empty reads.");
+
+        var cache = Open();
+        Require(!cache.Put("claude", []).Ok && cache.Get("claude").Models.SequenceEqual(models), "A failed read (empty list) keeps the last good list.");
+
+        File.WriteAllText(path, "{ not json");
+        Require(Open().Get("claude").Models.Count == 0, "A corrupt file is ignored.");
+        File.WriteAllText(path, "{\"format\":99,\"key\":\"cli-1\",\"fetchedAt\":\"2026-03-01T09:00:00Z\",\"models\":[\"x\"]}");
+        Require(Open().Get("claude").Models.Count == 0, "A newer-format file is ignored.");
+        Require(Open().Put("claude", models).Ok && Open().Get("claude").Models.SequenceEqual(models), "A corrupt or newer file is replaced by the next good read.");
+
+        var configA = Path.Combine(folder, "a");
+        var previous = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+        try
+        {
+            Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", configA);
+            var first = ModelListCache.Fingerprint("claude");
+            Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", Path.Combine(folder, "b"));
+            Require(first != ModelListCache.Fingerprint("claude") && first == Fingerprint(configA), "The configuration directory is part of the key.");
+        }
+        finally { Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", previous); }
+
+        // Menus that open together share one host lookup; one terminal at a time walks the picker.
+        var lookups = 0;
+        var gate = new TaskCompletionSource();
+        var stored = new List<IReadOnlyList<string>>();
+        var source = new ModelListSource(async _ => { Interlocked.Increment(ref lookups); await gate.Task; return new(models); }, list => { stored.Add(list); return Task.CompletedTask; });
+        var opens = Enumerable.Range(0, 8).Select(_ => source.CachedAsync()).ToArray();
+        gate.SetResult();
+        Require((await Task.WhenAll(opens)).All(result => result.Models.SequenceEqual(models)) && lookups == 1, "Concurrent opens share one host lookup.");
+        var slot = source.TryBeginRead();
+        Require(slot is not null && source.TryBeginRead() is null, "A second terminal cannot walk the picker while one does.");
+        slot!.Dispose();
+        Require(source.TryBeginRead() is not null, "The refresh slot frees when the read ends.");
+        await source.StoreAsync([]);
+        await source.StoreAsync(models);
+        Require(stored.Count == 1, "Only a non-empty read is handed to the host.");
+        var failing = new ModelListSource(_ => throw new IOException("host gone"), _ => throw new IOException("host gone"));
+        Require((await failing.CachedAsync()).Models.Count == 0, "A failed lookup reads as no cache, so the picker is read as before.");
+        await failing.StoreAsync(models);
+        Console.WriteLine("PASS Claude Code model list cache: host file, key, TTL, corrupt files, failures and shared reads");
+
+        static string Fingerprint(string config)
+        {
+            var previousConfig = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+            Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", config);
+            try { return ModelListCache.Fingerprint("claude"); }
+            finally { Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", previousConfig); }
+        }
     }
 
     private static async Task Pickers()

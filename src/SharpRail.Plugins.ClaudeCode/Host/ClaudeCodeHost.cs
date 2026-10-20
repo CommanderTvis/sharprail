@@ -40,6 +40,8 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
 
     internal IdeBridge.IdeBridge? Bridge => bridge;
 
+    private readonly ModelListCache modelLists = new(ModelListCache.DefaultPath());
+
     private string Command() => context.Settings<ClaudeCodeSettings>().Command.Trim() is { Length: > 0 } command ? command : "claude";
 
     private sealed record ConfigScope(string Root, IReadOnlyList<string> PromptFiles);
@@ -102,6 +104,8 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
                 return new ClaudeAccount(false, []) { Governed = await governing.Read(cancellationToken) };
             return await ClaudeAccountReader.ReadAsync(Command(), p.Refresh == true);
         });
+        context.Method(ClaudeCodeContract.ModelListGet, (_, _, _) => Done(modelLists.Get(Command())));
+        context.Method(ClaudeCodeContract.ModelListPut, (p, _, _) => Done(modelLists.Put(Command(), p.Models)));
         context.Method(ClaudeCodeContract.SystemPromptGet, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.FilePath(), SystemPrompt.Edited())));
         context.Method(ClaudeCodeContract.SystemPromptReset, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.Write(context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList), context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section), reset: true), false)));
         context.Method(ClaudeCodeContract.PluginUninstallPlan, (p, _, _) => Done(new CommandPlan(ClaudeCommands.PluginUninstall(Command(), p.Name, p.Scope))));

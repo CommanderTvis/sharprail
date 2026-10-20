@@ -352,6 +352,17 @@ public sealed record McpListResult(IReadOnlyList<ClaudeCapability> Capabilities)
 
 public sealed record Ack(bool Ok = true);
 
+/// <summary>The model choices the host last read from Claude Code's picker for the CLI it runs; empty when it has none for this CLI.</summary>
+public sealed record ModelListResult(IReadOnlyList<string> Models)
+{
+    /// <summary>When the host stored the list (UTC, ISO 8601); null when there is none.</summary>
+    public string? FetchedAt { get; init; }
+    /// <summary>True when the list is older than the host's freshness window: serve it, but read again.</summary>
+    public bool Stale { get; init; }
+}
+
+public sealed record ModelListPutParams(IReadOnlyList<string> Models);
+
 /// <summary>The plugin's wire contract: its methods under <c>plugin.claude-code.*</c> and its two channels.</summary>
 public static class ClaudeCodeContract
 {
@@ -388,6 +399,10 @@ public static class ClaudeCodeContract
     public static readonly PluginMethod<WriteFileParams, FileWriteResult> WriteFile = new("writeFile");
     public static readonly PluginMethod<ClaudeEditRequest, ClaudeEditPlan> PlanEdit = new("planEdit");
     public static readonly PluginMethod<ClaudeApplyRequest, ClaudeEditPlan> ApplyEdit = new("applyEdit");
+    /// <summary>The cached model picker list for the CLI and account this host runs.</summary>
+    public static readonly PluginMethod<NoParams, ModelListResult> ModelListGet = new("modelListGet");
+    /// <summary>Stores a picker list a terminal just read, under the key the host computes for its CLI.</summary>
+    public static readonly PluginMethod<ModelListPutParams, Ack> ModelListPut = new("modelListPut");
     public static readonly PluginMethod<IdeSelectionChanged, Ack> SelectionChanged = new("selectionChanged");
     public static readonly PluginMethod<IdeDocumentClosed, Ack> DocumentClosed = new("documentClosed");
     public static readonly PluginMethod<IdeAtMention, IdeAtMentionResult> AtMention = new("atMention");
@@ -399,7 +414,7 @@ public static class ClaudeCodeContract
 
     public static readonly PluginContract Contract = PluginContract.Create<ClaudeCodeSettings>(Id, 2,
         [ConfigGet, Account, SystemPromptGet, SystemPromptReset, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
-            MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, SelectionChanged, DocumentClosed,
+            MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, ModelListGet, ModelListPut, SelectionChanged, DocumentClosed,
             AtMention, ActionReply, StatusSnapshot],
         [Status, IdeAction]);
 }

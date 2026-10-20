@@ -33,9 +33,11 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
     private bool attached;
     private CancellationTokenSource? modelDiscovery;
     private long discoveryGeneration;
+    private readonly ModelListSource? modelLists;
 
-    public ClaudeTerminalAccessory(IPluginUIContext context, ClaudeCodeStore store, ClaudeGlyph glyph, ITerminalAccessoryApi terminal)
+    public ClaudeTerminalAccessory(IPluginUIContext context, ClaudeCodeStore store, ClaudeGlyph glyph, ITerminalAccessoryApi terminal, ModelListSource? modelLists = null)
     {
+        this.modelLists = modelLists;
         this.context = context; this.store = store; this.glyph = glyph; this.terminal = terminal;
         SetValue(FileDrop.AcceptsProperty, () => RunsClaude);
         SetValue(FileDrop.AttachProperty, paths => terminal.Write(string.Join(" ", paths.Select(path => "@" + TerminalFacts.QuoteAttachPath(TerminalFacts.AttachPath(path, terminal.WorkspaceId, State?.Cwd)))) + " "));
@@ -174,6 +176,54 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         var loading = new MenuItem { Header = "Reading Claude Code's models…", IsEnabled = false };
         if (drivingWhat is not null) { loading.Header = "Wait for the current picker"; return [loading]; }
         if (!attached || !RunsClaude) { loading.Header = "Claude Code is no longer active"; return [loading]; }
+        if (modelLists is null) StartDiscovery(loading, null, background: false);
+        else _ = ServeModelsAsync(loading, modelLists);
+        return [loading];
+    }
+
+    // The host's cached list fills the menu at once; only a missing or stale one sends a terminal to walk the live picker.
+    private async Task ServeModelsAsync(MenuItem loading, ModelListSource source)
+    {
+        var cached = await source.CachedAsync();
+        if (!attached || !RunsClaude || loading.Parent is not ContextMenu { IsOpen: true } menu) return;
+        var plan = ModelListSource.Plan(cached);
+        if (plan == ModelListPlan.Read)
+        {
+            if (drivingWhat is null) StartDiscovery(loading, menu, background: false);
+            else loading.Header = "Wait for the current picker";
+            return;
+        }
+        PopulateModels(menu, cached.Models);
+        if (plan == ModelListPlan.ServeAndRefresh && drivingWhat is null && DraftNote() is null) StartDiscovery(null, menu, background: true);
+    }
+
+    private void PopulateModels(ContextMenu menu, IReadOnlyList<string> models)
+    {
+        menu.Items.Clear();
+        foreach (var model in models)
+        {
+            var item = new MenuItem { Header = model, Icon = glyph.Create(14) };
+            item.Click += (_, _) => { if (attached && RunsClaude) Drive("model", model, ModelPicker.DriveAsync); };
+            menu.Items.Add(item);
+        }
+        if (modelLists is null) return;
+        menu.Items.Add(new Separator());
+        var refresh = new MenuItem { Name = "TerminalModelsRefresh", Header = "Refresh models" };
+        refresh.Click += (_, _) =>
+        {
+            if (attached && RunsClaude && drivingWhat is null && DraftNote() is null) StartDiscovery(null, null, background: true);
+        };
+        menu.Items.Add(refresh);
+    }
+
+    private void StartDiscovery(MenuItem? loading, ContextMenu? openMenu, bool background)
+    {
+        var slot = modelLists?.TryBeginRead();
+        if (modelLists is not null && slot is null)
+        {
+            if (loading is not null) loading.Header = "Another session is reading the models";
+            return;
+        }
         drivingWhat = "model";
         var discovery = modelDiscovery = new CancellationTokenSource();
         var generation = ++discoveryGeneration;
@@ -192,6 +242,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
                 if (!Current()) throw new OperationCanceledException(token);
                 return terminal.BufferTail(PickerTailLines, omitFaint);
             }), delay => Task.Delay(delay, token), terminal.HoldInput);
+        if (background) Refresh();
         _ = Task.Run(async () =>
         {
             IReadOnlyList<string> models = [];
@@ -199,6 +250,9 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
             try { (_, models) = await ModelPicker.DiscoverAsync(io); }
             catch (OperationCanceledException) { }
             catch (Exception error) { failure = error.Message; }
+            // Stored whether or not this terminal is still showing it: the read is the expensive part.
+            if (modelLists is not null && models.Count > 0) await modelLists.StoreAsync(models);
+            slot?.Dispose();
             Dispatcher.UIThread.Post(() =>
             {
                 var current = Current();
@@ -210,23 +264,18 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
                 discovery.Dispose();
                 if (!current) return;
                 Refresh();
-                if (loading.Parent is not ContextMenu menu || !menu.IsOpen) return;
+                if ((openMenu ?? loading?.Parent as ContextMenu) is not { IsOpen: true } menu) return;
                 if (models.Count == 0)
                 {
+                    // A failed refresh keeps the cached list on screen; only a first read has nothing to show.
+                    if (loading is null) return;
                     loading.Header = "Couldn't read models — open /model at Claude's prompt";
                     if (failure is not null) ToolTip.SetTip(loading, failure);
                     return;
                 }
-                menu.Items.Clear();
-                foreach (var model in models)
-                {
-                    var item = new MenuItem { Header = model, Icon = glyph.Create(14) };
-                    item.Click += (_, _) => { if (attached && RunsClaude) Drive("model", model, ModelPicker.DriveAsync); };
-                    menu.Items.Add(item);
-                }
+                PopulateModels(menu, models);
             });
         });
-        return [loading];
     }
 
     private IReadOnlyList<Control> EffortItems() => DraftNote() ?? [.. EffortPicker.Levels.Select(level =>
