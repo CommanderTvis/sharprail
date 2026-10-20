@@ -131,6 +131,47 @@ jobs:
         with:
           name: appimage
 
+  # arm64 does not gate the release yet: the release job waits for this job but publishes without its asset when it fails
+  # (the job itself still shows red).
+  appimage-arm64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v4
+        with:
+          path: ~/.sharprail/tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
+      # The AppImage carries an embedded signature, so the key is in the keyring before the package step.
+      - env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+        run: |
+          [ -n "$GPG_SIGNING_KEY" ] || { echo "::error::GPG_SIGNING_KEY is not set"; exit 1; }
+          printf '%s' "$GPG_SIGNING_KEY" | gpg --batch --import
+      # The terminal library's build fetches its dependencies over git, which drops connections now and then;
+      # what it has fetched stays cached, so another attempt carries on from there.
+      - env:
+          SHARPRAIL_GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: |
+          for attempt in 1 2 3; do
+            SHARPRAIL_CI_QUIET=$([ $attempt = 3 ] || echo 1) sh scripts/ci-run.sh "Package Linux ARM64" sh scripts/mise run package:linux linux-arm64 && exit 0
+            sleep 30
+          done
+          exit 1
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: sh scripts/ci-run.sh "Packaged check Linux ARM64" sh scripts/mise run check:packaged -- --linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SharpRail-nightly-linux-arm64
+          path: artifacts/SharpRail-linux-arm64.AppImage
+          if-no-files-found: error
+          compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: appimage-arm64
+
   windows:
     runs-on: windows-2025
     timeout-minutes: 90
@@ -264,7 +305,9 @@ jobs:
           name: windows-arm64
 
   release:
-    needs: [dmg, apk, appimage, windows, windows-arm64]
+    needs: [dmg, apk, appimage, appimage-arm64, windows, windows-arm64]
+    # The needed jobs gate the release as before, except appimage-arm64, which may fail or be skipped without blocking it.
+    if: ${{ !cancelled() && needs.dmg.result == 'success' && needs.apk.result == 'success' && needs.appimage.result == 'success' && needs.windows.result == 'success' && needs.windows-arm64.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -282,10 +325,17 @@ jobs:
           mv packages/*.dmg SharpRail-nightly.dmg
           mv packages/*.apk SharpRail-nightly.apk
           mv packages/SharpRail-linux-x64.AppImage SharpRail-nightly-x86_64.AppImage
+          assets=""
+          if [ -f packages/SharpRail-linux-arm64.AppImage ]; then
+            mv packages/SharpRail-linux-arm64.AppImage SharpRail-nightly-aarch64.AppImage
+            assets="SharpRail-nightly-aarch64.AppImage"
+          else
+            echo "::warning::appimage-arm64 produced no package (job result: ${{ needs.appimage-arm64.result }}); releasing without it"
+          fi
           mv packages/SharpRail-win-x64.zip SharpRail-nightly-win-x64.zip
           mv packages/SharpRail-win-arm64.zip SharpRail-nightly-win-arm64.zip
           gh release delete nightly --cleanup-tag --yes || true
-          gh release create nightly SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-x86_64.AppImage SharpRail-nightly-win-x64.zip SharpRail-nightly-win-arm64.zip --prerelease --target "$GITHUB_SHA" \
+          gh release create nightly SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-x86_64.AppImage SharpRail-nightly-win-x64.zip SharpRail-nightly-win-arm64.zip $assets --prerelease --target "$GITHUB_SHA" \
             --title "Nightly $(date -u +%Y-%m-%d)" \
-            --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the Linux AppImage is for x86-64 distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
+            --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the Linux AppImages (x86-64 and, when present, aarch64) are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
 

@@ -115,3 +115,28 @@ jobs:
         uses: ./.github/actions/diagnostics
         with:
           name: linux
+
+  # Not a required check: the arm64 Linux port is new, so it reports without gating merges.
+  linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v4
+        with:
+          path: ~/.sharprail/tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
+      - run: sh scripts/ci-run.sh "Package Linux ARM64" sh scripts/mise run package:linux linux-arm64
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: sh scripts/ci-run.sh "Packaged check Linux ARM64" sh scripts/mise run check:packaged -- --linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SharpRail-linux-arm64
+          path: artifacts/SharpRail-linux-arm64.AppImage
+          if-no-files-found: error
+          compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: linux-arm64
