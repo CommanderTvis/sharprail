@@ -22,7 +22,7 @@
       </StackPanel>
       <TextBlock x:Name="ConnectProgress" IsVisible="False" Text="Confirm this connection in the SharpRail app. The request expires in two minutes." TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Muted}" />
       <TextBlock x:Name="ConnectError" IsVisible="False" TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Danger}" />
-      <Button x:Name="ConnectSubmit" Classes="primary" Content="Connect" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+      <Button x:Name="ConnectSubmit" Classes="primary" Content="Connect" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
       <Button x:Name="ConnectScan" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
     </StackPanel>
   </ScrollViewer>

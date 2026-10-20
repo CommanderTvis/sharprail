@@ -26,7 +26,9 @@ the project is created empty with this spec, and the controls move into it as li
 
 `ControlStyles.axaml` and `Ui.ApplyResources` own button, toggle and checkbox states for the entire app
 and its plugins, including compiled layouts and controls created from code. Primary, link, quiet and
-Welcome card variants share these rules; panes do not copy Fluent state resources. Selected toggles
+Welcome card variants share these rules; panes do not copy Fluent state resources. Button content
+is vertically centered by default (Fluent leaves it stretched, which tops the text of fixed-height buttons);
+a control that wants otherwise sets it locally. Selected toggles
 retain an accent outline when hovered or pressed. Checkbox glyphs use the same contrast-safe foreground
 as primary buttons: retain the manifest foreground when readable, otherwise use the more readable
 black or white against both normal and hovered fills. Button factory labels and icons follow the

@@ -901,6 +901,13 @@ internal static class Program
             AirGovernanceChecks.RunUi(root);
             return;
         }
+        if (args.SequenceEqual(["--button-centering"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ButtonCenteringChecks.RunUi();
+            return;
+        }
         if (args.SequenceEqual(["--tailscale"]))
         {
             TailscaleChecks.Run(root).GetAwaiter().GetResult();
@@ -975,6 +982,7 @@ internal static class Program
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);
         Gate.Case("tailscale-ui", () => TailscaleChecks.RunUi(root));
+        Gate.Case("button-centering", ButtonCenteringChecks.RunUi);
         Gate.Case("air-governance-ui", () => AirGovernanceChecks.RunUi(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));
