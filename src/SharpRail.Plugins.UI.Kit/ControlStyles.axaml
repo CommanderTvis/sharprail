@@ -114,6 +114,12 @@
   <Style Selector=":is(Border).pane-separator:pointerover > Border">
     <Setter Property="Background" Value="{x:Static kit:Ui.Accent}" />
   </Style>
+  <Style Selector="FlyoutPresenter.chip-card">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="MinWidth" Value="0" />
+  </Style>
   <Style Selector="Button:disabled, ToggleButton:disabled, CheckBox:disabled">
     <Setter Property="Foreground" Value="{x:Static kit:Ui.ControlDisabledText}" />
   </Style>

@@ -205,11 +205,10 @@ public static class TerminalFacts
             row.Children.Add(text);
             list.Children.Add(row);
         }
-        var popup = new Popup
+        var flyout = new Flyout
         {
             Placement = PlacementMode.TopEdgeAlignedLeft,
-            IsLightDismissEnabled = true,
-            Child = new Border
+            Content = new Border
             {
                 Background = Ui.Elevated,
                 BorderBrush = Ui.BorderBrush,
@@ -219,17 +218,11 @@ public static class TerminalFacts
                 Child = new ScrollViewer { Content = list }
             }
         };
-        Button? toggle = null;
-        toggle = ChipButton("TerminalPlanToggle", Content("listCheck", $"{done}/{todos.Count}"), $"Show {agent}'s plan", () =>
-        {
-            popup.IsOpen = !popup.IsOpen;
-            ToolTip.SetTip(toggle!, popup.IsOpen ? $"Hide {agent}'s plan" : $"Show {agent}'s plan");
-        });
-        popup.PlacementTarget = toggle;
-        popup.Closed += (_, _) => ToolTip.SetTip(toggle, $"Show {agent}'s plan");
-        var host = new Panel();
-        host.Children.Add(toggle);
-        host.Children.Add(popup);
-        return host;
+        flyout.FlyoutPresenterClasses.Add("chip-card");
+        var toggle = ChipButton("TerminalPlanToggle", Content("listCheck", $"{done}/{todos.Count}"), $"Show {agent}'s plan", () => { });
+        toggle.Flyout = flyout;
+        flyout.Opened += (_, _) => ToolTip.SetTip(toggle, $"Hide {agent}'s plan");
+        flyout.Closed += (_, _) => ToolTip.SetTip(toggle, $"Show {agent}'s plan");
+        return toggle;
     }
 }

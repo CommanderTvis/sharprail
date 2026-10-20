@@ -965,9 +965,15 @@ internal static class CodexE2E
         var toggle = app.Window.GetLogicalDescendants().OfType<Button>().Single(item => item.Name == "TerminalPlanToggle" && item.IsEffectivelyVisible);
         Require(Texts(toggle) == "1/2", "the plan's progress");
         app.Click(toggle);
-        var plan = toggle.GetLogicalAncestors().OfType<Panel>().First().GetLogicalDescendants().OfType<Popup>().Single();
+        var plan = (Flyout)toggle.Flyout!;
         E2eWorkspace.Until(() => plan.IsOpen);
-        var steps = plan.Child!.GetLogicalDescendants().OfType<Control>().Where(item => item.Name == "TerminalPlanItem").Select(Texts).ToArray();
+        Require((ToolTip.GetTip(toggle) as string)?.StartsWith("Hide", StringComparison.Ordinal) == true, "an open plan offers to hide itself");
+        var steps = ((Control)plan.Content!).GetLogicalDescendants().OfType<Control>().Where(item => item.Name == "TerminalPlanItem").Select(Texts).ToArray();
         Require(steps.SequenceEqual(["Read the code", "Fix it"]), "the plan's steps: " + string.Join(",", steps));
+        toggle.Focus();
+        plan.Hide();
+        E2eWorkspace.Until(() => !plan.IsOpen);
+        Require((ToolTip.GetTip(toggle) as string)?.StartsWith("Show", StringComparison.Ordinal) == true, "a closed plan offers to show itself");
+        Require(toggle.IsFocused, "closing the plan returns focus to its toggle");
     }
 }
