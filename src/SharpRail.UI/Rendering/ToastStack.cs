@@ -1,7 +1,4 @@
-using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 
@@ -9,10 +6,10 @@ using SharpRail.UI.State;
 
 namespace SharpRail.UI.Rendering;
 
-/// <summary>Draws a <see cref="ToastQueue"/> as stacked cards, newest last, and ends each toast when its lifetime runs out.</summary>
+/// <summary>Draws a <see cref="ToastQueue"/> as stacked <see cref="ToastCard"/>s, newest last, and ends each toast when its lifetime runs out.</summary>
 public sealed class ToastStack : StackPanel
 {
-    private readonly Dictionary<long, (Border Card, DispatcherTimer? Timer)> cards = [];
+    private readonly Dictionary<long, (ToastCard Card, DispatcherTimer? Timer)> cards = [];
     private ToastQueue? queue;
 
     public ToastStack() => Spacing = 8;
@@ -53,7 +50,7 @@ public sealed class ToastStack : StackPanel
                 timer.Tick += (_, _) => queue?.Dismiss(toast.Id);
                 timer.Start();
             }
-            var card = Card(toast);
+            var card = new ToastCard(toast, queue);
             cards[toast.Id] = (card, timer);
             Children.Add(card);
         }
@@ -64,80 +61,5 @@ public sealed class ToastStack : StackPanel
     {
         var shadow = new BoxShadows(new BoxShadow { OffsetY = 4, Blur = 16, Color = Ui.PopoverShadow.Color });
         foreach (var (card, _) in cards.Values) card.BoxShadow = shadow;
-    }
-
-    private Border Card(Toast toast)
-    {
-        var text = new StackPanel { Spacing = 4 };
-        if (toast.Title is not null)
-        {
-            var title = Ui.Text(toast.Title, Ui.TextBrush);
-            title.Name = "ToastTitle"; title.TextWrapping = TextWrapping.Wrap;
-            text.Children.Add(title);
-        }
-        var message = Ui.Text(toast.Message);
-        message.Name = "ToastMessage"; message.TextWrapping = TextWrapping.Wrap;
-        text.Children.Add(message);
-        var content = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,24"), Margin = new Thickness(12) };
-        Ui.Place(content, text);
-        Button ActionButton(string name, ToastAction action, Thickness margin)
-        {
-            var invoke = new Button
-            {
-                Name = name,
-                Content = Ui.Text(action.Label, Ui.Accent),
-                Padding = new Thickness(8, 2),
-                Margin = margin,
-                Background = Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                CornerRadius = new CornerRadius(4),
-                VerticalAlignment = VerticalAlignment.Top
-            };
-            invoke.Click += (_, _) => { queue?.Dismiss(toast.Id); action.Invoke(); };
-            return invoke;
-        }
-        if (toast.Action is { } action && toast.Secondary is { } secondary)
-        {
-            // Two long labels do not fit beside the message, so they share a row beneath it.
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(-8, 0, 0, 0) };
-            row.Children.Add(ActionButton("ToastAction", action, new Thickness(0)));
-            row.Children.Add(ActionButton("ToastSecondaryAction", secondary, new Thickness(0)));
-            text.Children.Add(row);
-        }
-        else if (toast.Action is { } single) Ui.Place(content, ActionButton("ToastAction", single, new Thickness(8, -2, 0, 0)), 0, 1);
-        var dismiss = new Button
-        {
-            Name = "ToastDismiss",
-            Content = Ui.Icon("close", Ui.Muted, 14),
-            Width = 24,
-            Height = 24,
-            Padding = new Thickness(4),
-            Margin = new Thickness(0, -4, -4, 0),
-            Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            VerticalAlignment = VerticalAlignment.Top
-        };
-        AutomationProperties.SetName(dismiss, "Dismiss");
-        dismiss.Click += (_, _) => queue?.Dismiss(toast.Id);
-        Ui.Place(content, dismiss, 0, 2);
-        var stripe = new Border
-        {
-            Background = toast.Variant switch { ToastVariant.Error => Ui.Danger, ToastVariant.Success => Ui.Success, _ => Ui.Accent }
-        };
-        var layout = new Grid { ColumnDefinitions = new ColumnDefinitions("4,*") };
-        Ui.Place(layout, stripe); Ui.Place(layout, content, 0, 1);
-        var card = new Border
-        {
-            Name = "Toast",
-            Tag = toast,
-            Child = layout,
-            Background = Ui.Elevated,
-            BorderBrush = Ui.BorderBrush,
-            BorderThickness = new Thickness(0, 1, 1, 1),
-            CornerRadius = new CornerRadius(4),
-            ClipToBounds = true
-        };
-        AutomationProperties.SetLiveSetting(card, toast.Variant == ToastVariant.Error ? AutomationLiveSetting.Assertive : AutomationLiveSetting.Polite);
-        return card;
     }
 }

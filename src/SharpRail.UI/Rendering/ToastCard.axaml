@@ -1,0 +1,62 @@
+<Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit" xmlns:state="using:SharpRail.UI.State"
+        x:Class="SharpRail.UI.Rendering.ToastCard" x:DataType="state:Toast" x:ClassModifier="internal" Name="Toast"
+        Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}"
+        BorderThickness="0,1,1,1" CornerRadius="4" ClipToBounds="True">
+  <Border.RenderTransform>
+    <TranslateTransform />
+  </Border.RenderTransform>
+  <Border.Styles>
+    <!-- Enter: fade in while rising into place. -->
+    <Style Selector="Border#Toast">
+      <Style.Animations>
+        <Animation Duration="0:0:0.18" FillMode="Forward" Easing="CubicEaseOut">
+          <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="TranslateTransform.Y" Value="8" />
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="TranslateTransform.Y" Value="0" />
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+    <Style Selector="Button.toast-action">
+      <Setter Property="Padding" Value="8,2" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+  </Border.Styles>
+  <Grid ColumnDefinitions="4,*">
+    <Border x:Name="Stripe" Background="{x:Static kit:Ui.Accent}">
+      <Border.Styles>
+        <Style Selector="Border#Stripe.error"><Setter Property="Background" Value="{x:Static kit:Ui.Danger}" /></Style>
+        <Style Selector="Border#Stripe.success"><Setter Property="Background" Value="{x:Static kit:Ui.Success}" /></Style>
+      </Border.Styles>
+    </Border>
+    <Grid Grid.Column="1" ColumnDefinitions="*,Auto,24" Margin="12">
+      <StackPanel Spacing="4">
+        <TextBlock x:Name="ToastTitle" Text="{Binding Title}" IsVisible="{Binding Title, Converter={x:Static ObjectConverters.IsNotNull}}" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
+        <TextBlock x:Name="ToastMessage" Text="{Binding Message}" TextWrapping="Wrap" />
+        <!-- Two long labels do not fit beside the message, so they share a row beneath it. -->
+        <StackPanel x:Name="ActionRow" Orientation="Horizontal" Spacing="4" Margin="-8,0,0,0" IsVisible="False">
+          <Button x:Name="RowAction" Classes="toast-action">
+            <TextBlock Text="{Binding Action.Label}" Foreground="{x:Static kit:Ui.Accent}" />
+          </Button>
+          <Button x:Name="RowSecondary" Classes="toast-action">
+            <TextBlock Text="{Binding Secondary.Label}" Foreground="{x:Static kit:Ui.Accent}" />
+          </Button>
+        </StackPanel>
+      </StackPanel>
+      <Button x:Name="SingleAction" Grid.Column="1" Classes="toast-action" Margin="8,-2,0,0" IsVisible="False">
+        <TextBlock Text="{Binding Action.Label}" Foreground="{x:Static kit:Ui.Accent}" />
+      </Button>
+      <Button x:Name="ToastDismiss" Grid.Column="2" Width="24" Height="24" Padding="4" Margin="0,-4,-4,0"
+              Background="Transparent" BorderThickness="0" VerticalAlignment="Top"
+              AutomationProperties.Name="Dismiss" />
+    </Grid>
+  </Grid>
+</Border>

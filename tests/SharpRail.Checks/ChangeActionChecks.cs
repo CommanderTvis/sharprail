@@ -86,7 +86,20 @@ internal static class ChangeActionChecks
         Until(() => invoked == 1 && Cards(app).Length == 1);
         app.Click(Part<Button>(cards[0], "ToastDismiss"));
         Until(() => Cards(app).Length == 0 && toasts.Items.Count == 0);
-        Console.WriteLine("PASS toasts render stacked cards with their own duration, one action and dismissal");
+        var first = 0; var second = 0;
+        toasts.Push(ToastVariant.Info, "Moved", action: new("Undo", () => first++), secondary: new("Keep", () => second++), duration: TimeSpan.FromSeconds(30));
+        Until(() => Cards(app).Length == 1);
+        var pair = Cards(app)[0];
+        Require(pair.GetLogicalDescendants().OfType<Button>().Count(button => button.Name == "ToastAction" && button.IsVisible) == 1 &&
+            Part<Button>(pair, "ToastSecondaryAction").IsVisible, "A two-action toast shows both actions on one row.");
+        app.Click(Part<Button>(pair, "ToastSecondaryAction"));
+        Until(() => second == 1 && first == 0 && Cards(app).Length == 0);
+        for (var index = 0; index < ToastQueue.Capacity + 2; index++) toasts.Push(ToastVariant.Info, $"n{index}", duration: TimeSpan.FromSeconds(30));
+        Until(() => Cards(app).Length == ToastQueue.Capacity);
+        Require(Messages(app).SequenceEqual(["n2", "n3", "n4", "n5", "n6"]), "Past the cap the oldest actionless toasts leave and the newest stay, oldest first.");
+        foreach (var item in toasts.Items.ToArray()) toasts.Dismiss(item.Id);
+        Until(() => Cards(app).Length == 0);
+        Console.WriteLine("PASS toasts render stacked cards with their own duration, one or two actions, the cap and dismissal");
     }
 
     private static void DialogFailures(string directory)
