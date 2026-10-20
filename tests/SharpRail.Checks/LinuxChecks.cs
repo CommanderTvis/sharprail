@@ -11,6 +11,7 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Scintilla;
+using SharpRail.UI;
 using SharpRail.UI.State;
 using SharpRail.UI.Terminal;
 
@@ -32,10 +33,40 @@ internal static class LinuxChecks
         Require(OperatingSystem.IsMacOS() == (new ProfileStore(Path.Combine(root, "linux-profile")).Data.Preferences.TerminalRenderer == TerminalRenderers.Texture),
             "Only macOS defaults to the Metal texture renderer.");
         Console.WriteLine("PASS Linux portable checks: terminal renderer default");
+        Chrome();
         if (!OperatingSystem.IsLinux()) { Console.WriteLine("SKIP Linux runtime checks: Linux is required."); return; }
         await Terminal(root);
         Clone(root);
         Console.WriteLine("PASS Linux runtime: PTY input, Unicode, resize, exit code and copy-on-write workspace clone");
+    }
+
+    /// <summary>The client-side decoration decision, the window-control layout and the title bar's drag area need no Linux.</summary>
+    private static void Chrome()
+    {
+        static bool Client(string? over, string? desktop, string? display = ":0") =>
+            LinuxWindowChrome.UseClientDecorations(new LinuxSession(over, desktop, display));
+        foreach (var desktop in new[] { "GNOME", "ubuntu:GNOME", "KDE", "X-Cinnamon", "XFCE", "Pantheon", "gnome", "Budgie:GNOME" })
+            Require(Client(null, desktop), $"{desktop} should draw client-side decorations.");
+        foreach (var desktop in new[] { null, "", "sway", "i3", "Hyprland", "bspwm", "LXQt", "MATE", "Unknown", "GNOME:i3", "ubuntu:sway" })
+            Require(!Client(null, desktop), $"{desktop ?? "(unset)"} should keep the system title bar.");
+        Require(!Client(null, "GNOME", null) && !Client("client", "GNOME", "") && !Client("client", "GNOME", null), "Without an X11 connection the system title bar stays, whatever the override.");
+        Require(!Client("system", "GNOME") && Client("client", "sway") && Client("Client", null) && Client("auto", "KDE") && !Client("auto", "sway") && Client("bogus", "KDE"),
+            "The override forces system or client; anything else is automatic.");
+        var normal = LinuxWindowChrome.CaptionButtons(false);
+        var maximized = LinuxWindowChrome.CaptionButtons(true);
+        Require(normal.Select(button => button.Name).SequenceEqual(["Minimize", "Maximize", "Close"]) && maximized.Select(button => button.Name).SequenceEqual(["Minimize", "Restore", "Close"]),
+            "The window controls run minimize, maximize or restore, close.");
+        Require(normal.Count(button => button.Close) == 1 && normal[^1].Close && normal.All(button => System.Text.RegularExpressions.Regex.IsMatch(button.Glyph, @"^M[\d.,]+( [MLZ]?[\d.,]*)*$")),
+            "Only the last control closes and every glyph is a plain path.");
+        var pill = new Avalonia.Controls.Button { Content = new Avalonia.Controls.TextBlock { Text = "main" } };
+        var caption = new Avalonia.Controls.TextBlock { Text = "Branch" };
+        var input = new Avalonia.Controls.TextBox();
+        var space = new Avalonia.Controls.Border();
+        var strip = new Avalonia.Controls.Grid { Children = { pill, caption, input, space } };
+        Require(!LinuxWindowChrome.StartsMove(pill) && !LinuxWindowChrome.StartsMove((Avalonia.Controls.Control)pill.Content!) && !LinuxWindowChrome.StartsMove(input) &&
+            LinuxWindowChrome.StartsMove(caption) && LinuxWindowChrome.StartsMove(space) && LinuxWindowChrome.StartsMove(strip),
+            "Buttons, text boxes and their content never start a window move; captions and space do.");
+        Console.WriteLine("PASS Linux window chrome: decoration decision matrix, override, window controls and drag area");
     }
 
     private static async Task Terminal(string root)
