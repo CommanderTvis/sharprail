@@ -58,4 +58,58 @@ public static class Account
         heading.FontWeight = FontWeight.SemiBold;
         return heading;
     }
+
+    /// <summary>
+    /// The credits line of a governed account: "16.27 of 20.00 credits remaining, refills 2026-11-01 (plus 5.00 top-up credits)".
+    /// The refill is Unix milliseconds and is left out when absent or out of range.
+    /// </summary>
+    public static string CreditsLine(double remaining, double total, double topUp = 0, long? refillNextMillis = null)
+    {
+        var text = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{remaining:0.00} of {total:0.00} credits remaining");
+        if (refillNextMillis is { } millis && millis > 0 && millis < 253_402_300_799_000)
+            text += ", refills " + DateTimeOffset.FromUnixTimeMilliseconds(millis).ToLocalTime().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        if (topUp > 0) text += string.Create(System.Globalization.CultureInfo.InvariantCulture, $" (plus {topUp:0.00} top-up credits)");
+        return text;
+    }
+
+    /// <summary>
+    /// The account section of an agent whose launches another plugin governs, shown in place of the vendor account and
+    /// usage. With a <paramref name="problem"/> only the actionable message is shown; otherwise the source, identity,
+    /// plan and, when known, the credits bar and line. Names are <c>&lt;prefix&gt;GovernedAccount</c>,
+    /// <c>&lt;prefix&gt;GovernedProblem</c> and <c>&lt;prefix&gt;GovernedCredits</c>.
+    /// </summary>
+    public static Control Governed(string source, string? identity, string? plan, double? remaining, double? total, double topUp, long? refillNextMillis, string? problem, string namePrefix)
+    {
+        var panel = new StackPanel { Name = namePrefix + "GovernedAccount", Spacing = 16 };
+        var section = new StackPanel { Spacing = 4 };
+        section.Children.Add(Heading($"{source} account"));
+        section.Children.Add(Row("Source", source));
+        if (problem is not null)
+        {
+            var text = Ui.Text(problem, Ui.Muted, 13);
+            text.Name = namePrefix + "GovernedProblem";
+            text.TextWrapping = TextWrapping.Wrap;
+            text.TextTrimming = TextTrimming.None;
+            section.Children.Add(text);
+            panel.Children.Add(section);
+            return panel;
+        }
+        if (identity is not null) section.Children.Add(Row("Account", identity));
+        if (plan is not null) section.Children.Add(Row("Plan", plan));
+        panel.Children.Add(section);
+        if (remaining is { } left && total is { } size && size > 0)
+        {
+            var credits = new StackPanel { Spacing = 8 };
+            credits.Children.Add(Heading("Credits"));
+            var refill = refillNextMillis is { } millis && millis > 0 && millis < 253_402_300_799_000 ? DateTimeOffset.FromUnixTimeMilliseconds(millis) : (DateTimeOffset?)null;
+            credits.Children.Add(UsageWindow("credits", "Credits used", Math.Clamp((size - left) / size * 100, 0, 100), refill, namePrefix + "Credit"));
+            var line = Ui.Text(CreditsLine(left, size, topUp, refillNextMillis), Ui.Muted, 13);
+            line.Name = namePrefix + "GovernedCredits";
+            line.TextWrapping = TextWrapping.Wrap;
+            line.TextTrimming = TextTrimming.None;
+            credits.Children.Add(line);
+            panel.Children.Add(credits);
+        }
+        return panel;
+    }
 }

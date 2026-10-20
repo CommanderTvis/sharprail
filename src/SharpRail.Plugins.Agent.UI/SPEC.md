@@ -21,7 +21,9 @@ plugin API or provider-specific dependency. Providers supply facts and callbacks
 the module owns no session, account or terminal state.
 
 - `Account` and `AccountSeverity` present account headings, rows, usage windows,
-  reset times and reading timestamps. Account rows and usage windows use compiled XAML.
+  reset times and reading timestamps. Account rows and usage windows use compiled XAML. `Account.Governed`
+  presents the account of an agent whose launches another plugin governs (source, identity, plan, credits bar and
+  line, or one actionable problem message) from plain values; the provider maps the plugin API's governed account onto it.
 - `TerminalFacts` presents directory and model facts, token usage, plan progress,
   pickers, file attachment and the session IDE-context toggle. File-reference quoting escapes control
   characters so a dropped filename cannot submit or split the prompt.

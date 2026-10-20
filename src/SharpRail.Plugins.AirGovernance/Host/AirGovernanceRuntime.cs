@@ -1,13 +1,15 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
+using SharpRail.Plugins.Api;
+
 namespace SharpRail.Plugins.AirGovernance.Host;
 
 /// <summary>
 /// The plugin's behaviour apart from the host context: detecting Central and the actions the user triggers on it
 /// (sign in and out, start the proxy, update, list and switch the AI access source). The plugin never edits an
 /// agent's configuration: governed launches are `central run` in the command line, built by the agent's own plugin.
-/// Central runs only from a status check (the read-only `central status` and, with Central chosen and signed in, `central limit --json`, which the pane repeats automatically) or a method the user triggered, and no Central output is stored or forwarded.
+/// Central runs only from a status check (the read-only `central status` and, with Central chosen and signed in, `central limit --json`, which the pane repeats automatically) or a method the user triggered, and no Central output is stored; the identity and credits reach only the governed agents' Account tabs, on request.
 /// </summary>
 internal sealed class AirGovernanceRuntime : IDisposable
 {
@@ -21,6 +23,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
     private (string Auth, string Proxy) observed = ("unknown", "unknown");
     private string? detail;
     private AirCredits? credits;
+    private (string? Email, string? License) identity;
     private int busy;
 
     public AirGovernanceRuntime(AirEnvironment environment, Func<AirSettings> settings, Action<AirStatus> publish)
@@ -52,9 +55,43 @@ internal sealed class AirGovernanceRuntime : IDisposable
     /// <summary>Reads the chosen source's remaining credits (read-only <c>central limit --json</c>) only with Central chosen and signed in; otherwise forgets them.</summary>
     private async Task RefreshCreditsAsync(AirCentral central, CancellationToken cancellationToken)
     {
-        credits = settings().Source == AirSources.Central && observed.Auth == "connected" && central is { State: "supported", Path: not null }
-            ? await cli.LimitAsync(central.Path, cancellationToken) : null;
+        if (settings().Source == AirSources.Central && observed.Auth == "connected" && central is { State: "supported", Path: not null })
+        {
+            var read = await cli.LimitReadAsync(central.Path, cancellationToken);
+            credits = read.Credits;
+            identity = read.Credits is null ? default : (read.Email, read.License);
+        }
+        else { credits = null; identity = default; }
     }
+
+    /// <summary>
+    /// What the agents' panels show for a launcher Central governs: a fresh probe and <c>central limit --json</c> read
+    /// (the same read the pane repeats), reported as the account the agent runs under. An unavailable Central is reported
+    /// in <see cref="AgentGovernedAccount.Problem"/>. The identity is passed on, never stored or logged.
+    /// </summary>
+    public async ValueTask<AgentGovernedAccount> AccountAsync(CancellationToken cancellationToken)
+    {
+        const string Source = "Central";
+        try
+        {
+            var status = await StatusAsync(true, cancellationToken);
+            publish(status);
+            var central = status.Central;
+            if (central.State == "absent") return new(Source, Problem: "Central is not installed. See Settings › Air Governance.");
+            if (central.State is not ("supported" or "outdated")) return new(Source, Problem: "Central cannot be used on this host. See Settings › Air Governance.");
+            if (central.Auth == "signed-out") return new(Source, Problem: "Not signed in to Central. Sign in under Settings › Air Governance.");
+            if (central.Auth != "connected") return new(Source, Problem: "Could not check whether Central is signed in.");
+            if (central.State == "outdated") return new(Source, Problem: "Central is outdated. Update it under Settings › Air Governance.");
+            if (status.Credits is not { } left) return new(Source, Problem: "Could not read the remaining credits from Central.");
+            return new(Source, identity.Email, identity.License, left.Remaining, left.Total, left.TopUp, left.RefillNext);
+        }
+        catch (Exception error) when (error is not OperationCanceledException) { return new(Source, Problem: "Could not read the remaining credits from Central."); }
+    }
+
+    /// <summary>The host-side contribution: <see cref="AirLaunch.Contribution"/> plus the account the governed launcher runs under.</summary>
+    public AgentLaunchContribution? Contribution(string launcherId) =>
+        AirLaunch.Contribution(settings(), launcherId, cli.Locate()) is { } contribution
+            ? contribution with { Account = new("Central", AccountAsync) } : null;
 
     private AirStatus Build(AirCentral central)
     {

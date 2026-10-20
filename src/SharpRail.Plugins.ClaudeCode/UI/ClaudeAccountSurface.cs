@@ -12,7 +12,7 @@ using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.ClaudeCode.UI;
 
-/// <summary>Who Claude Code is signed in as, the usage windows it caches with the severity it chose, and its version.</summary>
+/// <summary>With another plugin governing Claude Code launches, that source's account and credits instead; otherwise who Claude Code is signed in as, the usage windows it caches with the severity it chose, and its version.</summary>
 internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPanel
 {
     private ClaudeAccount? account;
@@ -114,6 +114,11 @@ internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPane
         if (account is null)
         {
             Children.Add(Ui.Text("Reading account…", Ui.Muted, 13));
+            return;
+        }
+        if (account.Governed is { } governed)
+        {
+            Children.Add(Account.Governed(governed.Source, governed.Identity, governed.Plan, governed.Remaining, governed.Total, governed.TopUp, governed.RefillNext, governed.Problem, "Claude"));
             return;
         }
         var identity = new StackPanel { Spacing = 4 };

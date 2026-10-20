@@ -197,7 +197,7 @@ internal sealed partial class AirCentralCli(AirEnvironment environment)
     /// <summary>
     /// The numbers of <c>central limit --json</c>: <c>tariffQuota.available</c> and <c>maximum</c> (numeric strings or numbers),
     /// else <c>maxDollars</c> less <c>usedDollars</c>; <c>topUpQuota.available</c> and <c>refillNext</c> when well-formed.
-    /// Anything else in the output, such as the account's email, is dropped. Malformed or non-finite values give <see langword="null"/>.
+    /// Anything else in the output is dropped here (the identity is read separately by <see cref="ParseIdentity"/>). Malformed or non-finite values give <see langword="null"/>.
     /// </summary>
     public static AirCredits? ParseLimit(string output)
     {
@@ -219,6 +219,20 @@ internal sealed partial class AirCentralCli(AirEnvironment environment)
         catch (JsonException) { return null; }
     }
 
+    /// <summary>The signed-in identity of <c>central limit --json</c> (<c>email</c>, <c>licenseName</c>), each only when a plain non-empty string; nothing is stored.</summary>
+    public static (string? Email, string? License) ParseIdentity(string output)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(output);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return (null, null);
+            string? Text(string name) => document.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+                && value.GetString() is { Length: > 0 and <= 200 } text && !text.Any(char.IsControl) ? text : null;
+            return (Text("email"), Text("licenseName"));
+        }
+        catch (JsonException) { return (null, null); }
+    }
+
     private static double? Amount(JsonElement parent, string name)
     {
         if (!parent.TryGetProperty(name, out var value)) return null;
@@ -232,10 +246,15 @@ internal sealed partial class AirCentralCli(AirEnvironment environment)
         return ok && double.IsFinite(number) && number >= 0 ? number : null;
     }
 
-    public async Task<AirCredits?> LimitAsync(string path, CancellationToken cancellationToken)
+    public async Task<AirCredits?> LimitAsync(string path, CancellationToken cancellationToken) => (await LimitReadAsync(path, cancellationToken)).Credits;
+
+    /// <summary>One <c>central limit --json</c> run read for both the credits and the identity.</summary>
+    public async Task<(AirCredits? Credits, string? Email, string? License)> LimitReadAsync(string path, CancellationToken cancellationToken)
     {
         var result = await RunAsync(path, ["limit", "--json"], StatusTimeout, true, cancellationToken);
-        return result is { Outcome: "exited", ExitCode: 0 } ? ParseLimit(result.Stdout) : null;
+        if (result is not { Outcome: "exited", ExitCode: 0 }) return (null, null, null);
+        var (email, license) = ParseIdentity(result.Stdout);
+        return (ParseLimit(result.Stdout), email, license);
     }
 
     [GeneratedRegex(@"\b((?:workspace|license):[A-Za-z0-9-]+(?::[A-Za-z0-9-]+)?)\b")]

@@ -99,6 +99,8 @@ public sealed record CodexAccount(bool LoggedIn, bool RequiresOpenaiAuth, IReadO
     public string? Plan { get; init; }
     public string? UsageFetchedAt { get; init; }
     public string? UsageError { get; init; }
+    /// <summary>Set when another plugin governs Codex launches: the account Codex runs under, in place of the OpenAI account (which is then not read).</summary>
+    public AgentGovernedAccount? Governed { get; init; }
 }
 
 public sealed record CodexModel(string Id, string Label);

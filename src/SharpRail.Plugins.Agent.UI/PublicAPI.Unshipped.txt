@@ -72,3 +72,5 @@ static SharpRail.Plugins.Agent.UI.TerminalFacts.QuoteAttachPath(string! path) ->
 SharpRail.Plugins.Agent.UI.PromptComposer
 static SharpRail.Plugins.Agent.UI.PromptComposer.Draft(System.Collections.Generic.IReadOnlyList<string!>! lines, string! glyph, System.Text.RegularExpressions.Regex! pickerRow, System.Func<string!, bool>! isPlaceholder) -> string?
 static SharpRail.Plugins.Agent.UI.PromptComposer.IsHint(string! text) -> bool
+static SharpRail.Plugins.Agent.UI.Account.CreditsLine(double remaining, double total, double topUp = 0, long? refillNextMillis = null) -> string!
+static SharpRail.Plugins.Agent.UI.Account.Governed(string! source, string? identity, string? plan, double? remaining, double? total, double topUp, long? refillNextMillis, string? problem, string! namePrefix) -> Avalonia.Controls.Control!

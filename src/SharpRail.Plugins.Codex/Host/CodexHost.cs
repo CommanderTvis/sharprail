@@ -67,7 +67,13 @@ public sealed class CodexHost : PluginHostModule
                 models = new CodexModelReader(() => CommandOf(context));
             }
         });
-        context.Method(CodexContract.Account, async (_, _, _) => await account.ReadAsync());
+        context.Method(CodexContract.Account, async (_, _, cancellationToken) =>
+        {
+            // A launch another plugin governs runs under that source's account, so the OpenAI account is not even read.
+            if (context.AgentLaunchContributions(CodexManifest.Id).Select(contribution => contribution.Account).OfType<AgentAccountSource>().FirstOrDefault() is { } governing)
+                return new CodexAccount(false, false, []) { Governed = await governing.Read(cancellationToken) };
+            return await account.ReadAsync();
+        });
         context.Method(CodexContract.Models, async (_, _, _) => await models.ReadAsync());
 
         // A Codex tab's configuration follows its process CWD, then its last reported one; otherwise the worktree's.

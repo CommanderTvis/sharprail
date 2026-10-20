@@ -3,7 +3,7 @@ using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Plugins.AirGovernance.Host;
 
-/// <summary>The host half: detects the user's Central CLI and contributes `central run` to the agents' revived launches.</summary>
+/// <summary>The host half: detects the user's Central CLI and contributes `central run`, and the account those launches run under, to the agents' launches.</summary>
 public sealed class AirGovernanceHost : PluginHostModule
 {
     public override PluginContract Contract => AirGovernanceContract.Contract;
@@ -22,7 +22,7 @@ public sealed class AirGovernanceHost : PluginHostModule
         context.Method(AirGovernanceContract.AccessSources, async (_, _, cancellationToken) => await runtime.AccessSourcesAsync(cancellationToken));
         context.Method(AirGovernanceContract.SwitchAccess, async (parameters, _, _) => await runtime.SwitchAccessAsync(parameters.SourceId));
         // Revived terminals are rebuilt on the host, so the host half contributes too.
-        context.AgentLaunch(launcherId => AirLaunch.Contribution(context.Settings<AirSettings>(), launcherId, runtime.CentralPath()));
+        context.AgentLaunch(runtime.Contribution);
         return ValueTask.FromResult<PluginDisposer?>(() => { runtime.Dispose(); return ValueTask.CompletedTask; });
     }
 }

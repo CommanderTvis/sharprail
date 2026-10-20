@@ -11,7 +11,7 @@ using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.Codex.UI;
 
-/// <summary>Identity, ChatGPT usage windows and the CLI version, read through the plugin's <c>account</c> method on each show.</summary>
+/// <summary>With another plugin governing Codex launches, that source's account and credits instead; otherwise identity, ChatGPT usage windows and the CLI version, read through the plugin's <c>account</c> method on each show.</summary>
 public static class CodexAccountSurface
 {
     private static string Duration(double minutes) =>
@@ -48,6 +48,8 @@ public static class CodexAccountSurface
 
     private static Control Render(CodexAccount account)
     {
+        if (account.Governed is { } governed)
+            return Account.Governed(governed.Source, governed.Identity, governed.Plan, governed.Remaining, governed.Total, governed.TopUp, governed.RefillNext, governed.Problem, "Codex");
         var panel = new StackPanel { Name = "CodexAccount", Spacing = 16 };
         var identity = new StackPanel { Name = "CodexAccountSection", Spacing = 4 };
         identity.Children.Add(Account.Heading("Account"));

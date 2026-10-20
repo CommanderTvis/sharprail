@@ -68,6 +68,8 @@ public sealed record ClaudeAccount(bool LoggedIn, IReadOnlyList<ClaudeUsageWindo
     public string? AuthMethod { get; init; }
     /// <summary>When Claude Code last refreshed the usage it caches; null when it never has.</summary>
     public string? UsageFetchedAt { get; init; }
+    /// <summary>Set when another plugin governs Claude Code launches: the account Claude Code runs under, in place of the Claude account and its cached usage (which are then not read).</summary>
+    public AgentGovernedAccount? Governed { get; init; }
 }
 
 public enum ClaudeProblemSeverity { Warning, Info }

@@ -15,6 +15,10 @@ using SharpRail.Plugins.AirGovernance.Host;
 using SharpRail.Plugins.AirGovernance.UI;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
+using SharpRail.Plugins.ClaudeCode;
+using SharpRail.Plugins.ClaudeCode.Host;
+using SharpRail.Plugins.Codex;
+using SharpRail.Plugins.Codex.Host;
 using SharpRail.UI;
 using SharpRail.UI.Panels;
 using SharpRail.UI.State;
@@ -141,8 +145,9 @@ internal static class AirGovernanceChecks
         await Failures(Path.Combine(directory, "failures"));
         await Access(Path.Combine(directory, "access"));
         await Transport(Path.Combine(directory, "transport"));
+        await GovernedAccounts(Path.Combine(directory, "governed"));
         Directory.Delete(directory, true);
-        Console.WriteLine("PASS Air Governance: detection, source contributions, launch command shapes, untouched agent configuration, failures, access sources and the host seam over plugin RPC");
+        Console.WriteLine("PASS Air Governance: detection, source contributions, launch command shapes, untouched agent configuration, failures, access sources, the host seam over plugin RPC and the governed Codex and Claude Code accounts");
     }
 
     private static void Parsing()
@@ -461,6 +466,90 @@ internal static class AirGovernanceChecks
             File.ReadAllText(fixture.StubFile("access")).Trim() == "license:lic-9", "Switches run one at a time and A, B, A is preserved: " + string.Join("|", fixture.Log));
     }
 
+    // The Codex and Claude Code Account methods under a governing Air Governance, over the real plugin runtime: the
+    // Central account replaces the vendor one, the vendor CLI is never started, and unavailable Centrals say why.
+    private static async Task GovernedAccounts(string directory)
+    {
+        using var fixture = new Fixture(directory);
+        var variables = new Dictionary<string, string>
+        {
+            ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+            ["CODEX_HOME"] = Path.Combine(directory, "codex-home"),
+            ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home")
+        };
+        var saved = variables.Keys.ToDictionary(name => name, name => Environment.GetEnvironmentVariable(name));
+        foreach (var (name, value) in variables) { Directory.CreateDirectory(value); Environment.SetEnvironmentVariable(name, value); }
+        try
+        {
+            var vendorLog = Path.Combine(directory, "vendor.log");
+            var vendor = Path.Combine(directory, "vendor-cli");
+            File.WriteAllText(vendor, "#!/bin/sh\necho \"$*\" >> \"" + vendorLog + "\"\nexit 1\n");
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(vendor, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            var state = new HostStateStore(Path.Combine(directory, "state"));
+            await using var runtime = new PluginRuntime(new()
+            {
+                StateDirectory = Path.Combine(directory, "state"),
+                State = state,
+                PublicBaseUrl = () => "http://127.0.0.1:1",
+                Builtins = [(AirGovernanceContract.Manifest, new AirGovernanceHost { Environment = fixture.Environment }), (CodexManifest.Manifest, new CodexHost()), (ClaudeCodeManifest.Manifest, new ClaudeCodeHost())],
+                Worktrees = (_, _) => Task.FromResult<IReadOnlyList<WorktreeInfo>>([])
+            });
+            await runtime.Start();
+            async Task Settings(object air) =>
+                await state.ChangeAsync([HostStateChange.PluginSettings("air-governance", JsonSerializer.Serialize(air)),
+                    HostStateChange.PluginSettings("codex", JsonSerializer.Serialize(new { enabled = true, command = vendor })),
+                    HostStateChange.PluginSettings("claude-code", JsonSerializer.Serialize(new { enabled = true, command = vendor }))]);
+            async Task<(CodexAccount? Codex, ClaudeAccount? Claude)> Read()
+            {
+                CodexAccount? codex = null; ClaudeAccount? claude = null;
+                try { codex = PluginJson.Convert<CodexAccount>(await runtime.CallAsync(new("codex", "account", new CodexNoParams(), "fixture"))); } catch (Exception) { }
+                claude = PluginJson.Convert<ClaudeAccount>(await runtime.CallAsync(new("claude-code", "account", new AccountParams(), "fixture")));
+                return (codex, claude);
+            }
+
+            // Direct: the vendors' own readers run (the fake CLI records that it was started).
+            await Settings(new { enabled = true, source = AirSources.Direct });
+            await runtime.Schedule();
+            var direct = await Read();
+            Require(File.Exists(vendorLog) && direct.Claude is { Governed: null } && direct.Codex?.Governed is null, "Without Central the panels read the vendor accounts.");
+            await Task.Delay(500); // the fake vendor's late child processes append after the call returns
+            File.Delete(vendorLog);
+
+            // Central: both panels show the Central account and no vendor process starts.
+            await Settings(new { enabled = true, source = AirSources.Central });
+            await runtime.Schedule();
+            var governed = await Read();
+            foreach (var account in new[] { governed.Codex?.Governed, governed.Claude?.Governed })
+                Require(account is { Source: "Central", Identity: "E2E_CENTRAL_CHILD_SENTINEL_email", Plan: "E2E_CENTRAL_CHILD_SENTINEL_plan", Remaining: 16.27, Total: 20, RefillNext: 1800000000000, Problem: null }, "A governed panel carries Central's identity and credits: " + account);
+            Require(governed.Codex is { LoggedIn: false, Usage.Count: 0 } && !File.Exists(vendorLog), "The vendor accounts are not read while Central governs: " + (File.Exists(vendorLog) ? File.ReadAllText(vendorLog) : ""));
+            var codexSeen = governed.Codex!.Governed!;
+            Require(SharpRail.Plugins.Agent.UI.Account.CreditsLine(codexSeen.Remaining!.Value, codexSeen.Total!.Value, codexSeen.TopUp, codexSeen.RefillNext) ==
+                AirSettingsView.CreditsLine(new(new("supported", "connected", "running", ""), AirSources.Central, [], Credits: new(16.27, 20, 0, 1800000000000))), "The credits line matches the Air settings wording.");
+
+            // One agent switched off: only the other is governed (Codex's switch is read at its contribution, not by starting Codex).
+            using (var codexOff = Runtime(fixture, new() { Source = AirSources.Central, Codex = false }))
+                Require(codexOff.Contribution("codex") is null && codexOff.Contribution("claude")?.Account is { Name: "Central" }, "Each agent is governed only when its own switch is on.");
+
+            // Unavailable Central: an actionable message in place of the numbers, still no vendor read.
+            await Settings(new { enabled = true, source = AirSources.Central });
+            await runtime.Schedule();
+            foreach (var (tokens, expected) in new[] { ("needs-login", "Not signed in to Central"), ("limit-error", "Could not read the remaining credits"), ("outdated", "Central is outdated"), ("malformed", "cannot be used") })
+            {
+                fixture.Tokens(tokens);
+                var problem = (await Read()).Claude!.Governed!;
+                Require(problem is { Source: "Central", Remaining: null, Identity: null } && problem.Problem!.Contains(expected, StringComparison.Ordinal), $"{tokens}: {problem.Problem}");
+            }
+            fixture.Tokens("");
+            Require(!File.Exists(vendorLog), "Failures under Central never fall back to the vendor account: " + (File.Exists(vendorLog) ? File.ReadAllText(vendorLog) : ""));
+            var absent = new AirGovernanceRuntime(new AirEnvironment(fixture.Home, Path.Combine(directory, "nowhere")), () => new() { Source = AirSources.Central }, _ => { });
+            Require((await absent.AccountAsync(default)).Problem!.Contains("not installed", StringComparison.Ordinal), "A missing Central is reported.");
+            absent.Dispose();
+            using var directRuntime = Runtime(fixture, new());
+            Require(directRuntime.Contribution("codex") is null, "The direct source contributes no account.");
+        }
+        finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
+    }
+
     private sealed class Recorder(Action<IPluginHostContext> activated) : PluginHostModule
     {
         public override PluginContract Contract { get; } = PluginContract.Create<AirSettings>("agents", 1, [], []);
@@ -505,6 +594,13 @@ internal static class AirGovernanceChecks
         var directory = Path.Combine(root, "air-governance-ui");
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         Directory.CreateDirectory(directory);
+        // The governed account section the agent panels share: credits and identity, or one actionable message.
+        var shown = SharpRail.Plugins.Agent.UI.Account.Governed("Central", "me@example.test", "JB Alumni", 16.27, 20, 5.5, 1800000000000, null, "Codex");
+        Require(shown.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "CodexGovernedCredits" && text.Text!.StartsWith("16.27 of 20.00 credits remaining", StringComparison.Ordinal) && text.Text.Contains("plus 5.50 top-up", StringComparison.Ordinal)) &&
+            !shown.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "CodexGovernedProblem"), "A governed account shows its credits line.");
+        var failed = SharpRail.Plugins.Agent.UI.Account.Governed("Central", null, null, null, null, 0, null, "Not signed in to Central.", "Claude");
+        Require(failed.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ClaudeGovernedProblem" && text.Text == "Not signed in to Central.") &&
+            !failed.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ClaudeGovernedCredits"), "A governed account that cannot be read shows only the message.");
         var profile = new ProfileStore(Path.Combine(directory, "profile"));
         var store = profile.OpenState();
         var roster = new PluginRosterEntry("air-governance", "Air Governance", "asset:air-governance.svg", "0.1.0", 1, PluginOrigin.Builtin, PluginStatus.Disabled)

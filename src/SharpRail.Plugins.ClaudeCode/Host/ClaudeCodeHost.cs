@@ -95,7 +95,13 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             var scope = await KnownScopeAsync(p.WorkspaceId, p.TabKey, ct);
             return ClaudeResolver.Resolve(p.WorkspaceId, scope.Root, scope.PromptFiles);
         });
-        context.Method(ClaudeCodeContract.Account, async (p, _, _) => await ClaudeAccountReader.ReadAsync(Command(), p.Refresh == true));
+        context.Method(ClaudeCodeContract.Account, async (p, _, cancellationToken) =>
+        {
+            // A launch another plugin governs runs under that source's account, so Claude's own account and cached usage are not read.
+            if (context.AgentLaunchContributions("claude").Select(contribution => contribution.Account).OfType<AgentAccountSource>().FirstOrDefault() is { } governing)
+                return new ClaudeAccount(false, []) { Governed = await governing.Read(cancellationToken) };
+            return await ClaudeAccountReader.ReadAsync(Command(), p.Refresh == true);
+        });
         context.Method(ClaudeCodeContract.SystemPromptGet, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.FilePath(), SystemPrompt.Edited())));
         context.Method(ClaudeCodeContract.SystemPromptReset, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.Write(context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList), context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section), reset: true), false)));
         context.Method(ClaudeCodeContract.PluginUninstallPlan, (p, _, _) => Done(new CommandPlan(ClaudeCommands.PluginUninstall(Command(), p.Name, p.Scope))));

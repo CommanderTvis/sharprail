@@ -70,9 +70,20 @@ error states. There is no manual check button. Everything else is an explicit bu
 then `proxy restart`; a failed restart is a warning). A missing CLI shows the platform install command from
 central-cli.labs.jb.gg as text; the plugin never runs it.
 
-With Central chosen and signed in, the pane also shows the chosen source's remaining credits, for example `16.27 of 20.00 credits remaining, refills 2027-01-15` (plus the top-up when nonzero). They are read from `central limit --json` with every automatic check and after a successful Switch: `tariffQuota.available` and `maximum` (numbers or numeric strings; else `maxDollars` less `usedDollars`), `topUpQuota.available` and `refillNext` (epoch ms). Only those numbers leave the adapter, never the email or licence name. Missing, malformed, negative, non-finite or inconsistent values, a failed or timed-out command, signed out and the direct source all show nothing.
+With Central chosen and signed in, the pane also shows the chosen source's remaining credits, for example `16.27 of 20.00 credits remaining, refills 2027-01-15` (plus the top-up when nonzero). They are read from `central limit --json` with every automatic check and after a successful Switch: `tariffQuota.available` and `maximum` (numbers or numeric strings; else `maxDollars` less `usedDollars`), `topUpQuota.available` and `refillNext` (epoch ms). Status and the pane carry only those numbers, never the email or licence name. Missing, malformed, negative, non-finite or inconsistent values, a failed or timed-out command, signed out and the direct source all show nothing.
+
+## Account for governed agents
+
+A host-side launch contribution also carries `Account` (Plugin API H18): source `Central`, read on request. Codex and
+Claude Code call it from their Account tab while their launches are governed, and it runs a fresh probe and
+`central limit --json` (the read above), then returns the `email` and `licenseName` of that output, the credits and
+the refill time. They are passed on for display only, never stored or logged, and never put on the plugin's status
+channel. An unavailable Central is reported as one actionable message instead of numbers: not installed, cannot be
+used, not signed in (sign in under Settings › Air Governance), outdated, or credits unreadable. The UI-side
+contribution carries no account.
 
 ## Listing access sources
+
 
 `central access` output is not parsed. Listing follows JetBrains/thinkrail#708 and runs only on the List button:
 `central login export` (16 KiB, 15 s) yields a version-1 `central-<base64url>` envelope with `environment`,
