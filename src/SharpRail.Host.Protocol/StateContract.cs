@@ -37,6 +37,8 @@ public sealed class SettingsMessage
     [ProtoMember(16), System.ComponentModel.DefaultValue(true)] public bool LspEnabled { get; set; } = true;
     // Member 18 carried Air Context's visibility until it became a plugin (protocol 8); the number is retired.
     [ProtoMember(19)] public string JavaKotlinProvider { get; set; } = "";
+    /// <summary>Empty is automatic; otherwise client or system. Optional, so a host that predates it reads as automatic.</summary>
+    [ProtoMember(20)] public string WindowDecorations { get; set; } = "";
     [ProtoMember(17)] public string LanguageServers { get; set; } = "";
     [ProtoMember(11)] public string CustomHighlighting { get; set; } = "";
     [ProtoMember(12)] public bool? VerticalCenterTabs { get; set; }

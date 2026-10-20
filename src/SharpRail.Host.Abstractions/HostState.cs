@@ -33,6 +33,11 @@ public sealed record HostSettings
     public bool? VerticalCenterTabs { get; init; }
     /// <summary>Whether the vertical strip lives in Projects; null keeps an older client's preference.</summary>
     public bool? VerticalTabsInProjects { get; init; }
+    /// <summary>
+    /// How Linux clients frame their window: empty is automatic, <c>client</c> merges the header into the title bar, <c>system</c> keeps the
+    /// window manager's. Other platforms ignore it.
+    /// </summary>
+    public string WindowDecorations { get; init; } = "";
     /// <summary>Days without activity after which a workspace settles onto its project's shelf; null never settles.</summary>
     public int? SettleIdleDays { get; init; } = DefaultSettleIdleDays;
 

@@ -43,6 +43,16 @@ internal static class SettingsRefreshChecks
             Until(() => update.IsCompleted && !window.Workbench.State.Current.Settings.FileTypeIconsEnabled);
             update.GetAwaiter().GetResult();
             Require(!ReferenceEquals(body.Content, appearance), "Relevant appearance settings must still refresh the page.");
+            // The Linux window frame choice is a host setting shown on Linux only; elsewhere it stays hidden and inert.
+            StackPanel Section() => settings.GetLogicalDescendants().OfType<StackPanel>().Single(control => control.Name == "WindowDecorationsSection");
+            Require(Section().IsVisible == LinuxWindowChrome.Available, "The window decorations row must show on Linux only.");
+            var decorations = window.Workbench.State.ChangeAsync(HostStateChange.Setting("window-decorations", "client"));
+            Until(() => decorations.IsCompleted && window.Workbench.State.Current.Settings.WindowDecorations == "client");
+            decorations.GetAwaiter().GetResult();
+            Require(Section().IsVisible == LinuxWindowChrome.Available &&
+                settings.GetLogicalDescendants().OfType<StackPanel>().Single(control => control.Name == "WindowDecorationChoices").Children.Count == (LinuxWindowChrome.Available ? 3 : 0),
+                "The window decorations choices follow the host's broadcast on Linux and are absent elsewhere.");
+            window.Workbench.State.ChangeAsync(HostStateChange.Setting("window-decorations", "auto")).GetAwaiter().GetResult();
             Console.WriteLine("PASS Settings retain pages through terminal broadcasts and refresh relevant changes");
         }
         finally { settings.Close(); window.Close(); }

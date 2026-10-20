@@ -52,6 +52,16 @@ internal static class LinuxChecks
         Require(!Client(null, "GNOME", null) && !Client("client", "GNOME", "") && !Client("client", "GNOME", null), "Without an X11 connection the system title bar stays, whatever the override.");
         Require(!Client("system", "GNOME") && Client("client", "sway") && Client("Client", null) && Client("auto", "KDE") && !Client("auto", "sway") && Client("bogus", "KDE"),
             "The override forces system or client; anything else is automatic.");
+        // The host setting decides unless the environment override is set; automatic falls back to the desktop.
+        static bool Set(string? setting, string? over, string? desktop) => LinuxWindowChrome.UseClientDecorations(new LinuxSession(over, desktop, ":0", setting));
+        Require(Set("client", null, "sway") && !Set("system", null, "GNOME") && Set("", null, "GNOME") && Set("auto", null, "KDE") && !Set(null, null, "i3") && !Set("bogus", null, "Unknown"),
+            "The Integrated and System settings decide; Automatic and anything unknown follow the desktop.");
+        Require(!Set("client", "system", "GNOME") && Set("system", "client", "sway") && Set("system", "bogus", "GNOME") == false && Set("client", "bogus", "sway"),
+            "The environment override beats the setting, and an invalid override is ignored.");
+        Require(LinuxWindowChrome.OverrideNote(new LinuxSession("system", "GNOME", ":0")).Contains("SHARPRAIL_WINDOW_DECORATIONS=system", StringComparison.Ordinal) &&
+            LinuxWindowChrome.OverrideNote(new LinuxSession(" Client ", null, ":0")).Contains("=client", StringComparison.Ordinal) &&
+            LinuxWindowChrome.OverrideNote(new LinuxSession(null, "GNOME", ":0")) == "" && LinuxWindowChrome.OverrideNote(new LinuxSession("auto", "GNOME", ":0")) == "",
+            "Settings names an active override and says nothing otherwise.");
         var normal = LinuxWindowChrome.CaptionButtons(false);
         var maximized = LinuxWindowChrome.CaptionButtons(true);
         Require(normal.Select(button => button.Name).SequenceEqual(["Minimize", "Maximize", "Close"]) && maximized.Select(button => button.Name).SequenceEqual(["Minimize", "Restore", "Close"]),

@@ -233,11 +233,11 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         if (!OperatingSystem.IsMacOS()) { ToolTip.SetTip(settings, "Settings"); AutomationProperties.SetName(settings, "Settings"); }
         if (OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
         // Linux window managers differ on client-side decorations: the header is the title bar only where LinuxWindowChrome trusts the
-        // desktop; elsewhere the system title bar stays and the header sits below it.
-        if (OperatingSystem.IsLinux() && !OperatingSystem.IsAndroid())
+        // desktop or the host setting asks for it; elsewhere the system title bar stays and the header sits below it.
+        if (LinuxWindowChrome.Available)
         {
-            if (LinuxWindowChrome.Client && settings.Parent is Panel linuxHost) UseLinuxClientDecorations(linuxHost);
-            else ExtendClientAreaToDecorationsHint = false;
+            ExtendClientAreaToDecorationsHint = false;
+            if (settings.Parent is Panel linuxHost) WireLinuxChrome(linuxHost);
         }
         var frame = this.FindControl<Border>("WindowTitleBar")!;
         frame.PointerPressed += (_, e) =>

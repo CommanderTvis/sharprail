@@ -106,6 +106,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             VerticalCenterTabs = reply.Settings.VerticalCenterTabs,
             VerticalTabsInProjects = reply.Settings.VerticalTabsInProjects,
             SettleIdleDays = reply.Settings.SettleIdleDays > 0 ? reply.Settings.SettleIdleDays : null,
+            WindowDecorations = reply.Settings.WindowDecorations,
             LanguageServers = reply.Settings.LanguageServers,
             JavaKotlinProvider = reply.Settings.JavaKotlinProvider,
             LspEnabled = reply.Settings.LspEnabled

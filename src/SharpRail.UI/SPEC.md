@@ -111,17 +111,20 @@ entry; quitting keeps every entry so the next launch restores the same set.
 
 ## Window chrome
 
-On Linux, `LinuxWindowChrome.cs` decides once at startup, before the windowing backend starts, whether the header is the title bar.
-`UseClientDecorations(LinuxSession)` is pure: with no `DISPLAY` the answer is system; `SHARPRAIL_WINDOW_DECORATIONS` `system` or `client`
-decides next; otherwise `XDG_CURRENT_DESKTOP` must name GNOME, KDE, X-Cinnamon, Budgie, Pantheon, UNITY, Deepin, COSMIC or XFCE and
+On Linux, `LinuxWindowChrome.cs` decides per window, at open and on every host broadcast that changes `window-decorations`,
+whether the header is the title bar. `UseClientDecorations(LinuxSession)` is pure: with no `DISPLAY` the answer is system; the
+`SHARPRAIL_WINDOW_DECORATIONS` environment variable (`system` or `client`) wins next; then the host setting (`client`, `system`, or empty
+for automatic); automatic requires `XDG_CURRENT_DESKTOP` to name GNOME, KDE, X-Cinnamon, Budgie, Pantheon, UNITY, Deepin, COSMIC or XFCE and
 none of the tiling managers (i3, sway, Hyprland, bspwm, awesome, dwm, river, niri, qtile, xmonad, herbstluftwm, leftwm, spectrwm);
-anything else keeps the system title bar and `ExtendClientAreaToDecorationsHint` off. The client path enables
-`X11PlatformOptions.EnableDrawnDecorations`, sets `WindowDecorations.BorderOnly` (Avalonia draws border, shadow and resize
-grips), makes the window background transparent over the shadow, keeps `WindowDecorationMargin` free around the zoom root, and adds
-Minimize, Maximize/Restore and Close buttons (`Button.caption-button` in the kit `ControlStyles.axaml`, accessible names, Close red on
-hover) after Settings. Dragging and double-click maximize use the existing header handler; `StartsMove` keeps buttons and text boxes clickable.
-No window menu is offered on right-click, which still opens the View menu. The choice is an environment override, not a Settings
-option: the platform option is fixed before the profile loads.
+anything else keeps the system title bar. `Program` allows `X11PlatformOptions.EnableDrawnDecorations` for the whole Linux process, which
+changes nothing for a window that asks for system decorations, so `ApplyLinuxChrome` toggles `ExtendClientAreaToDecorationsHint` and
+`WindowDecorations` (`BorderOnly`: Avalonia draws border, shadow and resize grips; `Full` otherwise) on an open window without a restart.
+The X11 backend rewrites its Motif hints at once; a window manager that ignores that change after the window is mapped needs a new window,
+which Settings says. The client path makes the window background transparent over the shadow, keeps `WindowDecorationMargin` free around
+the zoom root, and shows Minimize, Maximize/Restore and Close buttons (`Button.caption-button` in the kit `ControlStyles.axaml`,
+accessible names, Close red on hover) after Settings. Dragging and double-click maximize use the existing header handler; `StartsMove`
+keeps buttons and text boxes clickable. No window menu is offered on right-click, which still opens the View menu. The setting is the
+host's, so every client of a host shares it; non-Linux clients ignore it.
 
 The 40px header (`LayoutRoles.TopbarRow`) is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
 decorations so the native controls stay while the header provides the colour; on macOS the header leaves

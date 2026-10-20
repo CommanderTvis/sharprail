@@ -428,6 +428,7 @@ public sealed partial class HostStateStore : IHostStateService
                 MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth),
                 TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb),
                 CustomHighlighting = ValidHighlighting(value.Settings.CustomHighlighting) ? value.Settings.CustomHighlighting : "",
+                WindowDecorations = value.Settings.WindowDecorations is "client" or "system" ? value.Settings.WindowDecorations : "",
                 SettleIdleDays = value.Settings.SettleIdleDays is { } days ? Math.Clamp(days, 1, HostSettings.MaxSettleIdleDays) : null
             },
             Presets = value.Presets.Where(preset => preset is not null && ValidText(preset.Name) && preset.Layout is { Length: > 0 })
@@ -551,6 +552,8 @@ public sealed partial class HostStateStore : IHostStateService
                     "settle-idle-days" when value is "" or "never" => settings with { SettleIdleDays = null },
                     "settle-idle-days" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var days) && days is >= 1 and <= HostSettings.MaxSettleIdleDays
                         => settings with { SettleIdleDays = days },
+                    "window-decorations" when value is "auto" or "" => settings with { WindowDecorations = "" },
+                    "window-decorations" when value is "client" or "system" => settings with { WindowDecorations = value },
                     "tabs-in-projects" when bool.TryParse(value, out var inProjects) => settings with { VerticalTabsInProjects = inProjects },
                     _ => throw new ArgumentException($"Invalid setting {key}.")
                 };

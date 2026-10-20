@@ -425,6 +425,7 @@ public sealed partial class SettingsWindow : Window
             fileIcons.IsChecked = state.Current.Settings.FileTypeIconsEnabled;
             fileIcons.IsEnabled = state.Supports(HostProtocol.FileTypeIcons);
         });
+        WindowDecorationSettings(panel);
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
         CompactSteppers(size, 24);
         size.Value = (decimal)state.Preferences.FontSize;
@@ -432,6 +433,29 @@ public sealed partial class SettingsWindow : Window
         foreach (var name in new[] { "ThemeModeChoices", "ThemeChoices", "SystemThemes" })
             PageControl<StackPanel>(panel, name).IsEnabled = !themeChanging;
         return panel;
+    }
+
+    /// <summary>The Linux window frame choice, a host setting: the environment override, when set, wins and the page says so.</summary>
+    private void WindowDecorationSettings(Control panel)
+    {
+        var section = PageControl<StackPanel>(panel, "WindowDecorationsSection");
+        section.IsVisible = LinuxWindowChrome.Available;
+        if (!section.IsVisible) return;
+        var current = state.Current.Settings.WindowDecorations;
+        var choices = PageControl<StackPanel>(panel, "WindowDecorationChoices");
+        foreach (var (value, name, label, description) in new[]
+        {
+            ("", "Automatic", "Automatic (recommended)", "Integrated header on desktops known to support it, the system title bar elsewhere"),
+            ("client", "Integrated", "Integrated header", "The header is the title bar, with the window controls on its right"),
+            ("system", "System", "System title bar", "The window manager’s own title bar above the header")
+        })
+            choices.Children.Add(Choice("WindowDecorations_" + name, label, description, current == value, () =>
+            {
+                if (state.Current.Settings.WindowDecorations != value) Share(HostStateChange.Setting("window-decorations", value.Length == 0 ? "auto" : value));
+            }));
+        var note = PageControl<TextBlock>(panel, "WindowDecorationsOverride");
+        note.Text = LinuxWindowChrome.OverrideNote(LinuxSession.FromEnvironment());
+        note.IsVisible = note.Text.Length > 0;
     }
 
     private static Button Choice(string name, string label, string? description, bool active, Action select)

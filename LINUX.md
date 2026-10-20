@@ -32,7 +32,10 @@ Without ICU installed, `AppRun` starts .NET in invariant-globalization mode inst
   window controls sit at its right, the app draws the border, shadow and resize grips, and no separate title-bar row is spent.
   Elsewhere (unknown or unset `XDG_CURRENT_DESKTOP`, tiling managers such as i3, sway or Hyprland, no `DISPLAY`) the system title bar
   stays. `SHARPRAIL_WINDOW_DECORATIONS=system` always keeps it and `=client` forces ours (when an X11 connection exists), for
-  example if the window frame looks wrong on your window manager. Avalonia marks this X11 option experimental; it has not yet run on a real desktop.
+  example if the window frame looks wrong on your window manager; it beats the Settings choice, and Settings says when it is set.
+  Settings › Appearance › Window decorations chooses Automatic (recommended), Integrated header or System title bar; the choice is shared
+  by every client of the host, applies to open windows at once and, if a window manager keeps the old frame, to the next window you open.
+  Avalonia marks this X11 option experimental; it has not yet run on a real desktop.
 - Ctrl replaces Command in the editor and shortcuts.
 - Mermaid diagrams show their source with a notice: Merman publishes its C ABI for Apple platforms only.
 - Away notifications use `notify-send` when it is installed; clicking one cannot return to the app.

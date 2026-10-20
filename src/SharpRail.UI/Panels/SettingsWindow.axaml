@@ -162,6 +162,12 @@
         </StackPanel>
         <rendering:Switch x:Name="FileTypeIconsEnabled" Label="File type icons" HorizontalAlignment="Left" />
         <TextBlock Text="Show file-type icons in Files, tabs and Changes. Shared by every client of this host." Classes="settings-description" />
+        <StackPanel x:Name="WindowDecorationsSection" Spacing="8" IsVisible="False">
+          <TextBlock Text="Window decorations" Classes="settings-label" />
+          <TextBlock Text="Linux only. Integrated header puts the window controls in the workbench header and saves the system title bar’s row. Shared by every client of this host; other platforms ignore it. Applies to open windows now; if your window manager keeps the old frame, open a new window." Classes="settings-description" />
+          <StackPanel x:Name="WindowDecorationChoices" Spacing="4" AutomationProperties.Name="Window decorations" />
+          <TextBlock x:Name="WindowDecorationsOverride" Classes="settings-description" Foreground="{x:Static rendering:Ui.Warning}" IsVisible="False" />
+        </StackPanel>
         <TextBlock Text="Interface font size" Classes="settings-label" />
         <NumericUpDown x:Name="InterfaceSize" Minimum="10" Maximum="24" Increment="1" Width="150" HorizontalAlignment="Left" />
         <TextBlock Text="Geist for the interface · JetBrains Mono for code" FontSize="12" Foreground="{x:Static rendering:Ui.Hint}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />

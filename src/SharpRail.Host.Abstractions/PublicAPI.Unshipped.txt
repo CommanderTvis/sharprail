@@ -1632,3 +1632,5 @@ SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.get -> System.Col
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.init -> void
 SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.init -> void
+SharpRail.Host.Abstractions.HostSettings.WindowDecorations.get -> string!
+SharpRail.Host.Abstractions.HostSettings.WindowDecorations.init -> void
