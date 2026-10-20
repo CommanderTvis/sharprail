@@ -36,7 +36,9 @@ export GOOS=android GOARCH="$goarch" CGO_ENABLED=1 GOTOOLCHAIN=local
 export GOCACHE="$cache/build-cache" GOMODCACHE="$cache/modules"
 export CC="$ndk/toolchains/llvm/prebuilt/$ndk_host/bin/$compiler"
 cd src/SharpRail.Android/Tailscale.Native
-"$cache/go/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -ldflags='-s -w -buildid= -extldflags=-Wl,-z,max-page-size=16384' -o "$out/libSharpRailTailscale.so" .
+# Library builds would report 1.x.y-devDATE-g<hash>-dirty to the admin console; stamp the pinned module version instead.
+tsversion="$(sed -n 's/^require tailscale\.com v\([0-9][0-9.]*\)$/\1/p' go.mod)-sharprail"
+"$cache/go/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -ldflags="-s -w -buildid= -X tailscale.com/version.shortStamp=$tsversion -X tailscale.com/version.longStamp=$tsversion -extldflags=-Wl,-z,max-page-size=16384" -o "$out/libSharpRailTailscale.so" .
 # Module cache licenses are read-only. Keep staged copies writable so repeated
 # builds replace them cleanly, and propagate all real copy/list failures.
 copy_license() {

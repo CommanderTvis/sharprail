@@ -28,6 +28,9 @@ route through this node. Never log response JSON or credentials. User/backend lo
 callbacks discard messages to keep authentication URLs out of Android logs.
 Discovery does not bypass SharpRail device pairing approval.
 
+The build stamps the node version as `<go.mod tailscale.com version>-sharprail` through
+`tailscale.com/version` linker flags, so the admin console shows no `-dev`/`-dirty` suffix.
+
 Tailscale's BSD-3-Clause license is in `TAILSCALE-LICENSE`; exact dependency
 versions are recorded in `go.mod`/`go.sum`. Dependency license files are copied into
 the output ABI directory's `licenses` tree for packaging.
