@@ -1,7 +1,8 @@
 #!/bin/sh
 # `scripts/mise run android [build|run|apk]` builds the Android client (src/SharpRail.Android). `run` also installs it on the connected device or
 # emulator and starts it; `apk` builds the signed Release package into artifacts/android.
-# Needs the Android SDK (ANDROID_HOME, default ~/Library/Android/sdk) and a JDK 17 or 21 (JAVA_HOME).
+# Needs the Android SDK (ANDROID_HOME, default ~/Library/Android/sdk). The JDK is the pinned one that
+# `scripts/mise run bootstrap:android` links as .tools/jdk; JAVA_HOME, when set, names another JDK 17 or 21 instead.
 # With SHARPRAIL_ANDROID_KEYSTORE (a keystore file), SHARPRAIL_ANDROID_KEY_ALIAS and SHARPRAIL_ANDROID_KEY_PASSWORD
 # set, the package is signed with that key instead of the machine's debug key.
 set -eu
@@ -10,7 +11,11 @@ export DOTNET_ROOT="$PWD/.tools/dotnet"
 sh scripts/tasks/workload.sh android android
 sdk="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 [ -d "$sdk/platforms" ] || { echo "No Android SDK at $sdk; set ANDROID_HOME." >&2; exit 1; }
-[ -x "${JAVA_HOME:-}/bin/javac" ] || { echo 'Set JAVA_HOME to a JDK 17 or 21.' >&2; exit 1; }
+if [ -z "${JAVA_HOME:-}" ]; then
+  # The macOS archive keeps the JDK home under Contents/Home.
+  JAVA_HOME="$PWD/.tools/jdk"; [ ! -d "$JAVA_HOME/Contents/Home" ] || JAVA_HOME="$JAVA_HOME/Contents/Home"
+fi
+[ -x "$JAVA_HOME/bin/javac" ] || { echo "No JDK at $JAVA_HOME; run scripts/mise run bootstrap:android, or set JAVA_HOME to a JDK 17 or 21." >&2; exit 1; }
 build() {
   if [ -n "${SHARPRAIL_ANDROID_KEYSTORE:-}" ]; then
     # The passwords reach the build by name, so they appear in no command line or log.

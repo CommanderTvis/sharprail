@@ -141,11 +141,11 @@ run = [
 ]
 
 [tasks."bootstrap:android"]
-description = "Install the Android NDK into the shared store and link it into .tools"
+description = "Install the Android NDK and JDK into the shared store and link them into .tools"
 env = { MISE_ENV = "android" }
 run = [
-  '"{{mise_bin}}" install http:android-ndk',
-  'sh scripts/link-tools.sh "{{mise_bin}}" android-ndk=http:android-ndk',
+  '"{{mise_bin}}" install http:android-ndk http:jdk',
+  'sh scripts/link-tools.sh "{{mise_bin}}" android-ndk=http:android-ndk jdk=http:jdk',
 ]
 
 [tasks."bootstrap:browser"]
@@ -240,12 +240,12 @@ run = "sh scripts/tasks/package-linux.sh"
 
 [tasks."package:android"]
 description = "Build the signed Release Android package into artifacts/android/SharpRail.apk"
-depends = ["bootstrap"]
+depends = ["bootstrap", "bootstrap:android"]
 run = "sh scripts/tasks/android.sh apk"
 
 [tasks.android]
 description = "Build, install and start the Android client (build|run|apk)"
-depends = ["bootstrap"]
+depends = ["bootstrap", "bootstrap:android"]
 run = "sh scripts/tasks/android.sh"
 
 [tasks."package:browser"]

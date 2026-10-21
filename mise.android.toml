@@ -1,5 +1,5 @@
 # Loaded with MISE_ENV=android (the bootstrap:android task): the NDK the Android client's native libraries are
-# built with, kept out of the default install because it is large.
+# built with and the JDK the Android build runs with, kept out of the default install because they are large.
 [settings]
 lockfile = true
 
@@ -15,3 +15,23 @@ checksum = "sha256:e69092f9d2bfa5d1199039980a14eb91c03cc971ab5c6968fc08a8e6b84e7
 [tools."http:android-ndk".platforms.linux-x64]
 url = "https://dl.google.com/android/repository/android-ndk-r27d-linux.zip"
 checksum = "sha256:601246087a682d1944e1e16dd85bc6e49560fe8b6d61255be2829178c8ed15d9"
+
+# Eclipse Temurin JDK 21, linked as .tools/jdk (the Android build's JavaSdkDirectory). The checksums are those of the
+# Adoptium API (api.adoptium.net/v3/assets/latest/21/hotspot) and the release's .sha256.txt assets, and match the
+# downloaded archives. The macOS archives keep the JDK home under Contents/Home, which scripts/tasks/android.sh
+# resolves.
+[tools."http:jdk"]
+version = "21.0.12.1+1"
+os = ["macos", "linux"]
+[tools."http:jdk".platforms.macos-arm64]
+url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.12.1_1.tar.gz"
+checksum = "sha256:3623232f33a9c3baadf304480b2535f9a3cba8a58d42ecbb438ba267315d9998"
+[tools."http:jdk".platforms.macos-x64]
+url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_mac_hotspot_21.0.12.1_1.tar.gz"
+checksum = "sha256:44db0f08196daf19a47f90d13388b0c943b67663cb537f998fe29e836fa842ce"
+[tools."http:jdk".platforms.linux-x64]
+url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_linux_hotspot_21.0.12.1_1.tar.gz"
+checksum = "sha256:ce79869e1307ed8ee1e2baa86a412b1eb5b75d10a01006d788a6f968bcfaee94"
+[tools."http:jdk".platforms.linux-arm64]
+url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.12.1_1.tar.gz"
+checksum = "sha256:23e37e026f12f3e706f18938ff611db3032d075b09d0879a25d06718c773e223"
