@@ -13,6 +13,7 @@ public sealed partial class GhosttySkiaView
     private TerminalLinkHover FileHover => fileHover ??= new(() => Redraw(false));
     private TerminalLinkHighlights? highlights;
     private TerminalLinkHighlights Highlights => highlights ??= new(() => Redraw(false));
+    internal IReadOnlyList<(string Visible, TerminalLink Link)> HighlightedLinks => highlights?.Underlined ?? [];
     /// <summary>Resolves references to underline throughout the visible terminal, without requiring hover.</summary>
     public Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? ResolveHighlightedLinks
     { get => Highlights.Resolve; set { Highlights.Clear(); Highlights.Resolve = value; Redraw(false); } }

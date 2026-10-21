@@ -119,7 +119,9 @@ Windows has no POSIX foreground process group: any live child of the shell means
 busy, including background jobs. Process ancestry for plugin workspace resolution
 comes from a Toolhelp snapshot. Current-directory discovery is unavailable, so
 terminal file links resolve absolute paths only; the initial workspace is not
-misreported as the shell's directory after a `cd`.
+misreported as the shell's directory after a `cd`. On POSIX hosts a failed
+directory probe falls back to the session's launch directory, where agent
+terminals start.
 
 ConPTY lifetime follows Microsoft's
 [pseudoconsole guidance](https://learn.microsoft.com/en-us/windows/console/creating-a-pseudoconsole-session),

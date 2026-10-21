@@ -12,6 +12,10 @@ internal sealed class TerminalLinkHighlights(Action changed) : IDisposable
     private string resolvedText = "";
     private IReadOnlyList<TerminalLink> resolvedLinks = [];
 
+    // The visible text last offered and the links resolved for exactly that text, for checks.
+    internal IReadOnlyList<(string Visible, TerminalLink Link)> Underlined =>
+        text is null || text != resolvedText ? [] : [.. resolvedLinks.Select(link => (text.Substring(link.Start, link.Length), link))];
+
     internal IReadOnlyList<TerminalLink> Update(string value)
     {
         if (disposed || Resolve is null || value.Length > 16384) return [];

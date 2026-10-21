@@ -180,7 +180,10 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         string? workspace;
         lock (gate) { process = sessions.GetValueOrDefault(sessionId)?.Process; workspace = roots.GetValueOrDefault(sessionId); }
         if (process is null || text.Length > TerminalFileLinks.MaxLineLength) return [];
-        var links = await Task.Run(() => TerminalFileLinks.Find(text, process.CurrentDirectory,
+        // A POSIX directory probe fails only transiently; the launch directory is then the best guess. ConPTY never knows the
+        // directory, and guessing there would misreport it after a cd.
+        var directory = process.CurrentDirectory ?? (OperatingSystem.IsWindows() ? null : workspace);
+        var links = await Task.Run(() => TerminalFileLinks.Find(text, directory,
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), cancellationToken), cancellationToken);
         lock (gate)
             if (workspace is not null && sessions.GetValueOrDefault(sessionId)?.Process == process)

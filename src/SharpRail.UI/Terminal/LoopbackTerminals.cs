@@ -14,5 +14,8 @@ public sealed class LoopbackTerminals(ITerminalService terminals, LoopbackServer
     }
 
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default) => terminals.IsBusyAsync(sessionId, cancellationToken);
+    // Without forwarding, the interface's empty default would silently disable every terminal file link.
+    public ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
+        => terminals.FindFileLinksAsync(sessionId, text, cancellationToken);
     public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => terminals.CloseAsync(sessionId, cancellationToken);
 }

@@ -36,6 +36,7 @@ internal static class NativeTextureChecks
     private static bool directCheck;
     private static bool fileLinkCheck;
     private static bool scrollCheck;
+    private static bool terminalLinkCheck;
     private const string Title = "SharpRail Ghostty texture check";
 
     public static void Run(string[] args)
@@ -47,6 +48,7 @@ internal static class NativeTextureChecks
         directCheck = args.Contains("--native-direct");
         fileLinkCheck = args.Contains("--native-file-links");
         scrollCheck = args.Contains("--native-scroll");
+        terminalLinkCheck = args.Contains("--native-terminal-links");
         AppBuilder.Configure<TextureApplication>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [fallbackCheck ? AvaloniaNativeRenderingMode.Software : AvaloniaNativeRenderingMode.Metal] })
             .StartWithClassicDesktopLifetime(args);
@@ -65,7 +67,8 @@ internal static class NativeTextureChecks
                 try
                 {
                     if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
-                    if (scrollCheck) await CheckScrollBoundary(window);
+                    if (terminalLinkCheck) await TerminalFileLinkChecks.RunRenderers(window);
+                    else if (scrollCheck) await CheckScrollBoundary(window);
                     else if (fileLinkCheck) await CheckFileLinks(window);
                     else if (directCheck) await CheckSessions(window);
                     else if (clipboardCheck) { Osc52Checks.RunSkia(); await CheckOsc52(window); await CheckSessions(window); }

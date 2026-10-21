@@ -18,6 +18,7 @@ public sealed partial class GhosttyTextureView
     private readonly DispatcherTimer highlightTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
     private readonly List<Rect> highlightUnderlines = [];
     private readonly List<Rect> highlightCells = [];
+    internal IReadOnlyList<(string Visible, TerminalLink Link)> HighlightedLinks => highlights?.Underlined ?? [];
     /// <summary>Resolves references to underline throughout the visible terminal, without requiring hover.</summary>
     public Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? ResolveHighlightedLinks
     {

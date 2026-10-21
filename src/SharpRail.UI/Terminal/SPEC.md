@@ -354,7 +354,11 @@ resolution, debounce and cache as commit ids; files take precedence over commits
 name an existing file (`1.13.0`, `github.com`, `e.g.`, a sentence-ending `done.`, branch names) stay plain.
 
 The terminal host runs a bounded character scanner and checks filesystem existence off the dispatcher.
-Unknown working directories disable relative links. Remote sessions resolve on their host, including
+Relative names resolve against the terminal process's directory (the shell's, unaffected by a
+foreground agent such as Claude Code), falling back to the launch directory on POSIX when the probe
+fails; Windows, where the directory is never known, links absolute paths only. Absolute paths outside
+the workspace and `~/` paths link whenever the host can read the file. Directories and nonexistent
+names stay plain. Remote sessions resolve on their host, including
 home expansion; the client never probes its own filesystem for them. The scanner follows the general
 approach of [IntelliJ's terminal filters at bf3ace2df](https://github.com/JetBrains/intellij-community/tree/bf3ace2df/plugins/terminal/backend/src/com/intellij/terminal/backend/hyperlinks/filter),
 without a regex path matcher. Spaces in absolute paths retain the longest existing candidate; prose
@@ -368,7 +372,15 @@ exposes resolver/navigation callbacks and has no host or application dependency.
 
 `--terminal-links` exercises parser boundaries, positions, existing/missing targets, working-directory
 changes through direct and WebSocket RPC adapters, Skia wrapped-path hover and click, and the
-renderer's no-modifier underlines for bare and `./` file names, prose false positives and cwd changes. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
+renderer's no-modifier underlines for bare and `./` file names, prose false positives and cwd changes. On macOS it
+also starts `--native-terminal-links` in a child process: a script launched as the session's program
+(no shell, no cwd reports) draws a Claude Code-style transcript on the alternate screen with cursor
+positioning and SGR styling, and Metal (local), Skia (local) and Metal (remote relay) backends built
+by `TerminalBackends` exactly as the app composes them (the local host behind `LoopbackTerminals`)
+must underline every listed form (bare, `./`, relative, `:line`, `:line:col`, absolute inside and outside the
+workspace, `~/`) with exact ranges, leave directories and missing names plain, and open line and column
+on activation. Every `ITerminalService` wrapper must forward `FindFileLinksAsync`: the interface's
+empty default once silently disabled all links in the app while direct-host checks passed. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
 stale-link clearing and retained web-link hover.
 
 Browser composition defaults to restty; see [Browser](../../SharpRail.Browser/SPEC.md).
