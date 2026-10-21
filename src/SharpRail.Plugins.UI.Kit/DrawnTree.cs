@@ -21,6 +21,12 @@ internal sealed class DrawnTreeEntry(string id, string text)
     internal string? Tip { get; set; }
     internal bool Main { get; set; }
     internal bool Muted { get; set; }
+    /// <summary>The title's colour when it carries a mark (a changed file or a folder containing changes); null keeps the default.</summary>
+    internal Avalonia.Media.IBrush? Tint { get; set; }
+    /// <summary>A short trailing letter drawn at the row's right edge in <see cref="Tint"/>, such as a Git status.</summary>
+    internal string? Badge { get; set; }
+    /// <summary>A small trailing dot in <see cref="Tint"/>, such as a folder that contains changes.</summary>
+    internal bool Dot { get; set; }
     internal bool Italic { get; set; }
     internal bool Skeleton { get; set; }
     internal bool DropTarget { get; set; }

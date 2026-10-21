@@ -11,7 +11,8 @@ internal sealed class DrawnTreeLabel : Decorator
 {
     private readonly DrawnTree tree;
     internal DrawnTreeEntry Entry { get; private set; }
-    private TextLayout? title, role;
+    private TextLayout? title, role, badge;
+    private (IBrush? Tint, string? Badge, bool Dot, bool Muted) mark;
     private double textWidth = -1;
     private bool selected;
     private bool dropTarget;
@@ -91,6 +92,7 @@ internal sealed class DrawnTreeLabel : Decorator
     {
         title?.Dispose(); title = null;
         role?.Dispose(); role = null;
+        badge?.Dispose(); badge = null;
         textWidth = -1;
         InvalidateMeasure();
     }
@@ -109,6 +111,7 @@ internal sealed class DrawnTreeLabel : Decorator
         }
         else InvalidateMeasure();
         if (selected != active) Reset();
+        if (mark != (Entry.Tint, Entry.Badge, Entry.Dot, Entry.Muted)) { mark = (Entry.Tint, Entry.Badge, Entry.Dot, Entry.Muted); Reset(); }
         selected = active;
         if (this.FindAncestorOfType<ListBoxItem>() is { } item)
         {
@@ -138,22 +141,25 @@ internal sealed class DrawnTreeLabel : Decorator
 
     private double IconWidth => Math.Max(14, icon?.DesiredSize.Width ?? 14);
     private double TextOffset => 28 + IconWidth;
+    // The trailing mark: a status letter or a dot, with a gap before it.
+    private double MarkWidth => badge is not null ? badge.Width + 10 : Entry.Dot ? 16 : 0;
 
     protected override Size MeasureOverride(Size availableSize)
     {
         icon?.Measure(new Size(double.PositiveInfinity, Height));
         var width = tree.SpecColors ? Math.Max(1, availableSize.Width - Entry.Depth * 12 - TextOffset) : double.PositiveInfinity;
         if (title is not null && textWidth == width && (role is not null) == RoleVisible)
-            return new Size(Entry.Depth * 12 + TextOffset + title.Width + (role is null ? 0 : role.Width + 8), Height);
-        title?.Dispose(); role?.Dispose();
+            return new Size(Entry.Depth * 12 + TextOffset + title.Width + (role is null ? 0 : role.Width + 8) + MarkWidth, Height);
+        title?.Dispose(); role?.Dispose(); badge?.Dispose();
         var face = new Typeface(Ui.InterfaceFont, Entry.Italic ? FontStyle.Italic : FontStyle.Normal, Ui.InterfaceWeight);
         role = RoleVisible
             ? new TextLayout(Entry.Role, face, 12, Entry.Main || selected ? Ui.Accent : Ui.Hint) : null;
         textWidth = width;
+        badge = Entry.Badge is { Length: > 0 } letter ? new TextLayout(letter, new Typeface(Ui.InterfaceFont, FontStyle.Normal, FontWeight.SemiBold), 12, Entry.Tint ?? Ui.Muted) : null;
         title = new TextLayout(Entry.Text, face, Ui.FontSize,
-            Entry.Muted ? Ui.Hint : tree.SpecColors && !selected ? Ui.Muted : Ui.TextBrush,
+            Entry.Muted ? Ui.Hint : Entry.Tint ?? (tree.SpecColors && !selected ? Ui.Muted : Ui.TextBrush),
             textTrimming: TextTrimming.CharacterEllipsis, maxWidth: Math.Max(1, width - (role is null ? 0 : role.Width + 8)), maxLines: 1);
-        return new Size(Entry.Depth * 12 + TextOffset + title.Width + (role is null ? 0 : role.Width + 8), Height);
+        return new Size(Entry.Depth * 12 + TextOffset + title.Width + (role is null ? 0 : role.Width + 8) + MarkWidth, Height);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
@@ -190,6 +196,10 @@ internal sealed class DrawnTreeLabel : Decorator
             }
         }
         title.Draw(context, new Point(x + TextOffset, (Bounds.Height - title.Height) / 2));
-        role?.Draw(context, new Point(Math.Max(x + TextOffset + title.Width + 8, Bounds.Width - role.Width), (Bounds.Height - role.Height) / 2));
+        var end = Bounds.Width - MarkWidth;
+        role?.Draw(context, new Point(Math.Max(x + TextOffset + title.Width + 8, end - role.Width), (Bounds.Height - role.Height) / 2));
+        var markX = Math.Max(x + TextOffset + title.Width + (role is null ? 0 : role.Width + 8), end);
+        if (badge is not null) badge.Draw(context, new Point(markX + 4, (Bounds.Height - badge.Height) / 2));
+        else if (Entry.Dot && Entry.Tint is { } dot) context.DrawEllipse(dot, null, new Point(markX + 8, Bounds.Height / 2), 3, 3);
     }
 }
