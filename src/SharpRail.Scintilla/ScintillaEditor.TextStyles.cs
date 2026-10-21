@@ -8,7 +8,7 @@ public sealed partial class ScintillaEditor
     private IReadOnlyList<ScintillaLineStyle> textStyles = [];
 
     /// <summary>Applies a style index per UTF-8 document byte using an opaque colour palette. Does not edit text or undo history.</summary>
-    public unsafe void StyleText(byte[] styles, IReadOnlyList<ScintillaLineStyle> palette)
+    public void StyleText(byte[] styles, IReadOnlyList<ScintillaLineStyle> palette)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(palette.Count, 256 - FirstTextStyle);
         if (styles.Length != document.Send(ScintillaMessage.GetLength))
@@ -20,8 +20,7 @@ public sealed partial class ScintillaEditor
         var nativeStyles = new byte[styles.Length];
         for (var i = 0; i < styles.Length; i++) nativeStyles[i] = (byte)(FirstTextStyle + styles[i]);
         document.Send(ScintillaMessage.StartStyling);
-        fixed (byte* pointer = nativeStyles)
-            document.Send(ScintillaMessage.SetStylingEx, nativeStyles.Length, (nint)pointer);
+        document.SetStyling(nativeStyles);
         InvalidateVisual();
     }
 

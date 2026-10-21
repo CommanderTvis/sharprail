@@ -19,6 +19,10 @@ internal static class ScintillaCoreChecks
         ("CellBuffer", CellBufferChecks.Run),
         ("Document", DocumentChecks.Run),
         ("Selection", SelectionChecks.Run),
+        ("Bidi", BidiChecks.Run),
+        ("LineShape", LineShapeChecks.Run),
+        ("EditView", EditViewChecks.Run),
+        ("Editor", EditorModelChecks.Run),
     ];
 
     internal static void Run()

@@ -2,29 +2,22 @@ using System.Text;
 
 using Avalonia.Threading;
 
+using SharpRail.Scintilla.Editing;
+
 using SkiaSharp;
 
 namespace SharpRail.Scintilla;
 
 internal sealed class ScintillaDocument : IDisposable
 {
-    private readonly SkiaSurface surface;
-    private nint Handle { get; set; }
+    private Editor? editor;
 
     internal ScintillaDocument(string text, SKTypeface typeface)
     {
-        surface = new(typeface);
-        if (!ScintillaEditor.IsSupported)
-            throw new PlatformNotSupportedException("The Scintilla editor supports macOS, Windows, Linux, Android and browsers.");
-
         Dispatcher.UIThread.VerifyAccess();
-
+        editor = new Editor(typeface);
         try
         {
-            unsafe { Handle = OperatingSystem.IsBrowser() ? ScintillaNative.sr_create_browser((nint)(delegate* unmanaged<nint, ScintillaNative.DrawCommand*, double>)&SkiaSurface.BrowserDraw, surface.BrowserContext) : ScintillaNative.sr_create(surface.Callback, 0); }
-            surface.CheckError();
-            if (Handle == 0) throw new InvalidOperationException("Unable to create the Scintilla editor.");
-
             Send(ScintillaMessage.SetEOLMode,
                 text.Contains("\r\n", StringComparison.Ordinal) ? 0 : text.Contains('\r') ? 1 : 2);
             Send(ScintillaMessage.SetTabWidth, 4);
@@ -35,7 +28,6 @@ internal sealed class ScintillaDocument : IDisposable
             Send(ScintillaMessage.SetMarginLeft, 0, 8);
             Send(ScintillaMessage.SetScrollWidth, 1);
             Send(ScintillaMessage.SetScrollWidthTracking, 1);
-            // The default caches only the caret line, re-measuring every visible line per paint.
             Send(ScintillaMessage.SetLayoutCache, 2);
             SetText(text);
         }
@@ -46,140 +38,95 @@ internal sealed class ScintillaDocument : IDisposable
         }
     }
 
-    internal nint Send(ScintillaMessage message, nint w = 0, nint l = 0)
+    private Editor Editor
     {
-        Dispatcher.UIThread.VerifyAccess();
-        ObjectDisposedException.ThrowIf(Handle == 0, this);
-        var result = ScintillaNative.sr_send(Handle, (uint)message, (nuint)w, l);
-        surface.CheckError();
-        return result;
+        get
+        {
+            Dispatcher.UIThread.VerifyAccess();
+            ObjectDisposedException.ThrowIf(editor is null, this);
+            return editor;
+        }
     }
 
-    private unsafe void SendText(ScintillaMessage message, string text, bool withLength = false)
-    {
-        var bytes = Encoding.UTF8.GetBytes(text + '\0');
-        fixed (byte* pointer = bytes) Send(message, withLength ? bytes.Length - 1 : 0, (nint)pointer);
-    }
+    internal nint Send(ScintillaMessage message, nint w = 0, nint l = 0) => Editor.Send(message, w, l);
 
-    /// <summary>Sends a message whose lParam is a NUL-terminated UTF-8 string and whose wParam is <paramref name="w"/>.</summary>
-    internal unsafe nint Send(ScintillaMessage message, nint w, string text)
+    /// <summary>Sends a message whose lParam is a string and whose wParam is <paramref name="w"/>.</summary>
+    internal nint Send(ScintillaMessage message, nint w, string text)
     {
-        var bytes = Encoding.UTF8.GetBytes(text + '\0');
-        fixed (byte* pointer = bytes) return Send(message, w, (nint)pointer);
+        switch (message)
+        {
+            case ScintillaMessage.MarginSetText:
+                Editor.MarginSetText(checked((int)w), text);
+                return 0;
+            case ScintillaMessage.TextWidth:
+                return Editor.TextWidth(checked((int)w), text);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(message), message, "The message takes no string.");
+        }
     }
 
     internal void SetText(string text)
     {
         Send(ScintillaMessage.ClearAll);
-        SendText(ScintillaMessage.AddText, text, true);
+        // The history is emptied below, so loading records no undo copy of the text.
+        Editor.LoadText(Encoding.UTF8.GetBytes(text));
         Send(ScintillaMessage.SetEmptySelection);
+        // Scintilla's SCI_ADDTEXT leaves the view where SCI_CLEARALL put it, at the top.
+        Send(ScintillaMessage.SetFirstVisibleLine);
         Send(ScintillaMessage.EmptyUndoBuffer);
         Send(ScintillaMessage.SetSavePoint);
     }
 
     /// <summary>Replaces the selection as one edit, as a paste does.</summary>
-    internal void Replace(string text) => SendText(ScintillaMessage.ReplaceSel, text);
+    internal void Replace(string text) => Editor.ReplaceSelection(Encoding.UTF8.GetBytes(text));
 
-    internal unsafe string Text(bool selection = false)
-    {
-        var length = checked((int)Send(selection ? ScintillaMessage.GetSelText : ScintillaMessage.GetLength));
-        var bytes = new byte[length + 1];
-        fixed (byte* pointer = bytes)
-        {
-            Send(selection ? ScintillaMessage.GetSelText : ScintillaMessage.GetText, bytes.Length, (nint)pointer);
-            return Encoding.UTF8.GetString(bytes, 0, length);
-        }
-    }
+    internal string Text(bool selection = false) =>
+        Encoding.UTF8.GetString(selection ? Editor.GetSelectedText() : Editor.GetText());
 
-    internal unsafe string Text(nint start, nint end)
-    {
-        var bytes = new byte[end - start + 1];
-        fixed (byte* pointer = bytes)
-        {
-            var range = new TextRange(start, end, pointer);
-            Send(ScintillaMessage.GetTextRangeFull, 0, (nint)(&range));
-        }
-        return Encoding.UTF8.GetString(bytes, 0, bytes.Length - 1);
-    }
+    internal string Text(nint start, nint end) =>
+        Encoding.UTF8.GetString(Editor.GetTextRange(checked((int)start), checked((int)end)));
 
-    private readonly unsafe struct TextRange(nint min, nint max, byte* text)
-    {
-        private readonly nint min = min, max = max;
-        private readonly byte* text = text;
-    }
+    /// <summary>Applies one style per byte from the styling position, like SCI_SETSTYLINGEX.</summary>
+    internal void SetStyling(ReadOnlySpan<byte> styles) => Editor.SetStylingEx(styles);
 
-    internal nint Revision => ScintillaNative.sr_revision(Handle);
+    internal nint Revision => (nint)Editor.Revision;
 
-    /// <summary>Whether Scintilla invalidated anything since the flag was last cleared.</summary>
+    /// <summary>Whether the editor invalidated anything since the flag was last cleared.</summary>
     internal bool Dirty
     {
-        get => ScintillaNative.sr_dirty(Handle) != 0;
-        set => ScintillaNative.sr_set_dirty(Handle, value ? 1 : 0);
+        get => Editor.Dirty;
+        set => Editor.Dirty = value;
     }
 
-    internal void Input(string text)
+    internal void Input(string text) => Editor.InsertText(text);
+
+    internal bool Key(int key, int modifiers) => Editor.Key((EditorKey)key, (EditorModifiers)modifiers);
+
+    internal void Mouse(int kind, double x, double y, uint timestamp, int modifiers) =>
+        Editor.Mouse((MouseAction)kind, (float)x, (float)y, timestamp, (EditorModifiers)modifiers);
+
+    internal void Focus(bool focused) => Editor.Focus(focused);
+
+    internal void Tick() => Editor.Tick();
+
+    /// <summary>Runs one slice of idle work; returns whether more remains.</summary>
+    internal bool Idle() => Editor.Idle();
+
+    internal void SetDirection(ScintillaTextDirection direction) => Editor.SetDirection(direction);
+
+    internal void Resize(double width, double height) => Editor.Resize((float)width, (float)height);
+
+    internal SKPicture Record(float width, float height)
     {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        ScintillaNative.sr_text(Handle, bytes, bytes.Length);
-        surface.CheckError();
+        var target = Editor;
+        using var recorder = new SKPictureRecorder();
+        target.Paint(recorder.BeginRecording(new SKRect(0, 0, width, height)));
+        return recorder.EndRecording();
     }
-
-    internal bool Key(int key, int modifiers)
-    {
-        var consumed = ScintillaNative.sr_key(Handle, key, modifiers) != 0;
-        surface.CheckError();
-        return consumed;
-    }
-
-    internal void Mouse(int kind, double x, double y, uint timestamp, int modifiers)
-    {
-        ScintillaNative.sr_mouse(Handle, kind, x, y, timestamp, modifiers);
-        surface.CheckError();
-    }
-
-    internal void Focus(bool focused)
-    {
-        ScintillaNative.sr_focus(Handle, focused ? 1 : 0);
-        surface.CheckError();
-    }
-
-    internal void Tick()
-    {
-        ScintillaNative.sr_tick(Handle);
-        surface.CheckError();
-    }
-
-    /// <summary>Runs one slice of Scintilla's idle work; returns whether more remains.</summary>
-    internal bool Idle()
-    {
-        var pending = ScintillaNative.sr_idle(Handle) != 0;
-        surface.CheckError();
-        return pending;
-    }
-
-    internal void SetDirection(ScintillaTextDirection direction)
-    {
-        ScintillaNative.sr_direction(Handle, (int)direction);
-        surface.CheckError();
-    }
-
-    internal void Resize(double width, double height)
-    {
-        ScintillaNative.sr_resize(Handle, width, height);
-        surface.CheckError();
-    }
-
-    internal SKPicture Record(float width, float height) => surface.Record(Handle, width, height);
 
     public void Dispose()
     {
-        if (Handle != 0)
-        {
-            ScintillaNative.sr_destroy(Handle);
-            Handle = 0;
-        }
-
-        surface.Dispose();
-        GC.KeepAlive(surface.Callback);
+        editor?.Dispose();
+        editor = null;
     }
 }
