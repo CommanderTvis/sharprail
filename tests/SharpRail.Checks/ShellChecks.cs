@@ -242,10 +242,11 @@ internal static class ShellChecks
         Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All"]) &&
             Headers(windows).SequenceEqual(["Minimize", "Zoom", "Close", "-", "Bring All to Front"]),
             "The menus carry the standard editing and window commands.");
-        Require(Entry(edit, "Copy").Gesture is { Key: Key.C, KeyModifiers: KeyModifiers.Meta } &&
-            Entry(edit, "Redo").Gesture is { Key: Key.Z, KeyModifiers: KeyModifiers.Meta | KeyModifiers.Shift } &&
-            Entry(windows, "Close").Gesture is { Key: Key.W, KeyModifiers: KeyModifiers.Meta } &&
-            Entry(windows, "Minimize").Gesture is { Key: Key.M, KeyModifiers: KeyModifiers.Meta } && Entry(edit, "Delete").Gesture is null,
+        var command = CommandKeys.Modifier;
+        Require(Entry(edit, "Copy").Gesture is { Key: Key.C } copy && copy.KeyModifiers == command &&
+            Entry(edit, "Redo").Gesture is { Key: Key.Z } redo && redo.KeyModifiers == (command | KeyModifiers.Shift) &&
+            Entry(windows, "Close").Gesture is { Key: Key.W } close && close.KeyModifiers == command &&
+            Entry(windows, "Minimize").Gesture is { Key: Key.M } minimize && minimize.KeyModifiers == command && Entry(edit, "Delete").Gesture is null,
             "Menu items show their platform chords.");
         Require(Entry(windows, "Close").Gesture is { } closeChord && closeChord.Equals(WindowShortcuts.Close), "The Close item shows the shared close chord.");
 
