@@ -625,6 +625,14 @@ internal static class Program
             GitlessPaneChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--drawers"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            DrawerChecks.Run(root);
+            DrawerChecks.Pages(root);
+            return;
+        }
         if (args.SequenceEqual(["--settings-touch"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

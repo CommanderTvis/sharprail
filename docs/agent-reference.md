@@ -132,6 +132,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--pane-retention`, `--startup`, `--live-diffs` | Retained controls; progressive startup; refreshing open diffs. |
 | `--dock-input` | Dock pointer and keyboard input, tab menus including file-path copies. |
 | `--change-actions`, `--review` | Toast and diff revert/undo; Review panel. |
+| `--drawers` | Phone pages: the compact page bar, Settings as a page, and the persistent page hosts and their slide. |
 | `--shell` | Window shell: location bar, application menu, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
 | `--ui` | Headless UI checks and upstream translations without host suites. |
 | `--design` | Design-system guards and theme translations; `--design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Generated` from `src/SharpRail.UI/Rendering/Design`. Edit the authored sources, not generated C#. |

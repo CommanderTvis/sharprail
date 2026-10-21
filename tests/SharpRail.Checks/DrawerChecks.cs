@@ -1,10 +1,13 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Core;
 using SharpRail.UI;
@@ -24,8 +27,9 @@ internal static class DrawerChecks
     private static void Pump(Func<bool> done, string message)
     {
         var deadline = Awake.Now.AddSeconds(10);
-        // The headless render timer never ticks by itself, and the pages' slide waits for its frames.
-        while (!done() && Awake.Now < deadline) { AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+        // The headless render timer never ticks by itself, and the pages' slide waits for its frames, which ticks
+        // forced faster than a display's pace can hold back while composition catches up.
+        while (!done() && Awake.Now < deadline) { AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); Thread.Sleep(16); }
         Require(done(), message);
     }
 
@@ -199,4 +203,117 @@ internal static class DrawerChecks
         window.Close();
         Console.WriteLine("PASS phone pages: the bottom bar moves between Projects, the current tab, Tools and Settings, and a choice or Back returns");
     }
+
+    /// <summary>
+    /// The three pages are hosts that outlive a switch: the centre keeps its controls and focus while Projects shows,
+    /// a held page follows the finger, an interrupted slide ends on the last page asked for, and a page off screen
+    /// takes no touch.
+    /// </summary>
+    internal static void Pages(string root)
+    {
+        var directory = Path.Combine(root, "drawer-pages");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
+        E2E.IsolatedGit.Run(directory, "init", "-q", "-b", "main");
+        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true);
+        window.Width = 400; window.Height = 800;
+        window.Show();
+        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "changes"), "The compact Git workspace did not mount.");
+        var layout = window.Layout;
+        var surface = Named<SharpRail.UI.Docking.DockSurface>(window, "WorkspaceWorkbench");
+        var center = Named<Border>(window, "CenterRegion");
+        Border Region(string region) => Named<Border>(window, "AuxiliaryRegion_" + region);
+        Border Host(int page) => page < 0 ? Region("left") : page > 0 ? Region("right") : center;
+        void Frames(int count) { for (var frame = 0; frame < count; frame++) { AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); Thread.Sleep(16); } }
+        void Settle(string message)
+        {
+            for (var frame = 0; frame < 600 && surface.PageSliding; frame++) Frames(1);
+            Require(!surface.PageSliding, message);
+        }
+        double Offset(Border host) => host.RenderTransform is TranslateTransform move ? move.X : 0;
+        // At rest exactly one page is visible and nothing is left moved aside.
+        void AtRest(int page, string message)
+        {
+            Settle(message + " (the slide never settled)");
+            for (var other = -1; other <= 1; other++)
+                Require(Host(other).IsVisible == (other == page) && Host(other).RenderTransform is null, message);
+            Require(surface.ShownPage == page, message);
+        }
+
+        AtRest(0, "A compact window must start on the centre alone.");
+        Require(Region("left").Child is null && Region("right").Child is null, "Side pages must not be built before they are first shown.");
+
+        _ = window.OpenDocumentAsync("notes.txt");
+        Pump(() => center.GetVisualDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible), "The document did not open in the centre.");
+        var focusable = center.GetVisualDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().First();
+        Require(focusable.Focus(), "The centre's editor must take focus.");
+        var group = center.Child;
+        Require(Region("left").Child is null && Region("right").Child is null, "Opening a document must not build the hidden side pages.");
+        GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+        var startMemory = GC.GetTotalMemory(true);
+        var startVisuals = window.GetVisualDescendants().Count();
+        Click(Named<Button>(window, "PageProjects"));
+        AtRest(-1, "Projects must slide in and leave the centre hidden.");
+        var middle = window.Bounds.Center;
+        Require(window.InputHitTest(middle) is Visual hit && Region("left").IsVisualAncestorOf(hit) && !center.IsHitTestVisibleAt(window, middle),
+            "Touch on Projects must reach Projects, never the hidden centre under it.");
+        Click(Named<Button>(window, "PageCurrent"));
+        AtRest(0, "The current page's button must slide the centre back.");
+        Require(ReferenceEquals(center.Child, group), "Returning to the centre must keep the same controls, not rebuild them.");
+        Require(TopLevel.GetTopLevel(window)!.FocusManager!.GetFocusedElement() == focusable, "Returning to the centre must give focus back where it was.");
+
+        // A finger drags Projects in: the pages follow it, and stay apart by exactly one page.
+        var width = window.Bounds.Width;
+        var y = window.Bounds.Height / 2;
+        var touch = window.TouchBegin(new(width * 0.2, y), RawInputModifiers.None);
+        for (var step = 1; step <= 5; step++) window.TouchMove(touch, new(width * (0.2 + 0.4 * step / 5), y), RawInputModifiers.None);
+        Frames(2);
+        Require(surface.PageSliding && Region("left").IsVisible && center.IsVisible &&
+            Math.Abs(Offset(center) - width * 0.4) < 2 && Math.Abs(Offset(Region("left")) - (width * 0.4 - width)) < 2,
+            "A held page must follow the finger, the page it leaves beside it.");
+        using (var wait = new CancellationTokenSource(400)) Dispatcher.UIThread.MainLoop(wait.Token);
+        window.TouchEnd(touch, new(width * 0.6, y), RawInputModifiers.None);
+        AtRest(-1, "A page carried past the third must complete.");
+        Require(layout.State.LeftVisible, "A completed drag must leave Projects shown.");
+        touch = window.TouchBegin(new(width * 0.6, y), RawInputModifiers.None);
+        for (var step = 1; step <= 5; step++) window.TouchMove(touch, new(width * 0.6 - width * 0.25 * step / 5, y), RawInputModifiers.None);
+        using (var wait = new CancellationTokenSource(400)) Dispatcher.UIThread.MainLoop(wait.Token);
+        window.TouchEnd(touch, new(width * 0.35, y), RawInputModifiers.None);
+        AtRest(-1, "A page let go short of a third must go back.");
+        Require(layout.State.LeftVisible, "A reverted drag must leave Projects shown.");
+
+        // Projects to Tools directly: the centre is not visited on the way.
+        Click(Named<Button>(window, "PageTools"));
+        Require(surface.PageSliding && Region("left").IsVisible && Region("right").IsVisible && !center.IsVisible, "Projects must slide straight to Tools.");
+        AtRest(1, "Tools must end alone on screen.");
+        Require(Region("right").GetLogicalDescendants().OfType<Border>().Count(border => border.Name == "DrawerSectionBody") == 1, "Tools must be built when first shown.");
+        var sections = Region("right").Child;
+        var projectsPage = Region("left").Child;
+
+        // A switch that interrupts a running slide ends on the page asked for last, with nothing stranded aside.
+        Click(Named<Button>(window, "PageCurrent"));
+        Frames(3);
+        Click(Named<Button>(window, "PageProjects"));
+        Frames(2);
+        Click(Named<Button>(window, "PageTools"));
+        AtRest(1, "An interrupted slide must end on the last page asked for.");
+        Click(Named<Button>(window, "PageCurrent"));
+        Frames(3);
+        Click(Named<Button>(window, "PageProjects"));
+        AtRest(-1, "A slide interrupted for another page must end there.");
+        Require(ReferenceEquals(Region("right").Child, sections) && ReferenceEquals(Region("left").Child, projectsPage) && ReferenceEquals(center.Child, group),
+            "Pages must keep their controls across switches.");
+        Click(Named<Button>(window, "PageCurrent"));
+        AtRest(0, "The centre must come back last.");
+
+        GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+        var keptMemory = GC.GetTotalMemory(true);
+        var keptVisuals = window.GetVisualDescendants().Count();
+        Console.WriteLine($"INFO phone pages kept alive: managed {(keptMemory - startMemory) / 1024.0:+0;-0} KiB, visuals {startVisuals} -> {keptVisuals}");
+        window.Close();
+        Console.WriteLine("PASS phone page hosts: pages keep their controls and focus, follow the finger, survive interruptions and hide off screen");
+    }
+
+    private static bool IsHitTestVisibleAt(this Border host, InputElement window, Point point) =>
+        host.IsEffectivelyVisible && window.InputHitTest(point) is Visual hit && host.IsVisualAncestorOf(hit);
 }

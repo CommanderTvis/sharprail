@@ -394,7 +394,18 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
   tab or the workspace changes and on `BackRequested`, and hides the bar while the soft keyboard is open.
   The three workbench pages lie side by side and move together: a finger travelling sideways drags the
   neighbour in beside the page it leaves, which stays when carried a third of the way or flicked and goes back
-  otherwise; a page chosen from the bar slides in the same way. A touch that sets out vertically is left alone.
+  otherwise; a page chosen from the bar slides in the same way, Projects to Tools straight across. A touch that
+  sets out vertically is left alone.
+- The three pages are persistent hosts (the centre region and the two side regions, siblings in the shell):
+  a page switch changes their visibility and position, never their contents, so the centre's controls, scroll
+  positions and focus survive a visit to Projects or Tools, and focus inside a page returns to it when it shows
+  again. A side page is built the first time it shows (never at startup) and again only after a structural
+  rebuild or, for Tools, when its sections change. Only the page on screen, and the one sliding with it, is
+  visible: hidden pages take no touch, focus, frames or automation. The slide is Avalonia's `PageSlide` driven
+  through `IProgressPageTransition.Update` (finger progress while held, a 260 ms cubic ease-out to the end or
+  back on release, then `Reset`); the page on its way out of an unheld slide is not hit-testable, and a held
+  drag stops gesture recognisers under the finger from taking the touch. A switch that interrupts a slide
+  turns it round when it goes back, and otherwise starts from the page most on screen.
   Settings is the page after Tools but a window of its own, so nothing is dragged: a sweep past Tools opens it
   when the finger lifts, and a sweep back over it closes it.
 - A touch workbench (`Workbench.Touch`) always draws a tab's close button, which a pointer's hover reveals
@@ -404,7 +415,8 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
   stops above the page bar (its `MaxHeight`), is not dimmed, lights the bar's Settings item, and closes
   when another item is chosen.
 
-`DrawerChecks` (in `-- --shell`) covers this headlessly. Dragging tabs between regions is not offered here.
+`DrawerChecks` (in `-- --shell`, and alone in `-- --drawers`) covers this headlessly, including control and
+focus persistence, finger-following, revert, interruption, Projects to Tools and hit-testing of hidden pages. Dragging tabs between regions is not offered here.
 
 Core includes the Code Intelligence tool (`lsp`, right by default), restored and moved through the same tool catalog
 and persisted frame as Files and Changes. Existing presets retain their current selected tools.
