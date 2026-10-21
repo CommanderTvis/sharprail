@@ -42,7 +42,7 @@ internal sealed partial class AirContextPane : UserControl
         this.FindControl<StackPanel>("WorkspacePart")!.IsVisible = !account;
         this.FindControl<TextBlock>("ContextBlurb")!.Text = account
             ? "Semantic code discovery through the JetBrains Context CLI. The CLI and its JetBrains login are shared by every workspace."
-            : "Semantic code discovery for this workspace. Cloud indexing requires explicit enablement.";
+            : "Semantic code discovery for this project. Cloud indexing requires explicit enablement, which covers every workspace of the project; unchecking it here disables the whole project.";
         BrandIcon();
         timer.Tick += async (_, _) => { if (IsEffectivelyVisible) await RefreshAsync(false); };
         AttachedToVisualTree += (_, _) =>
@@ -247,15 +247,15 @@ internal sealed partial class AirContextPane : UserControl
 
     private static async Task<bool> ConfirmAsync(Window owner, CancellationToken dismiss)
     {
-        var window = DialogWindow.Create("Enable Air Context for this workspace?", 520);
+        var window = DialogWindow.Create("Enable Air Context for this project?", 520);
         window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
         var text = window.FindControl<TextBlock>("DialogExplanation")!;
-        text.Text = "Indexing sends this workspace's source chunks, paths and revision metadata to JetBrains. SharpRail will index automatically when you launch a SharpRail agent. It uses the CLI's existing JetBrains login and index cache, but never installs global agent hooks or configuration and never stops an outside watcher. New workspaces require their own enablement.";
+        text.Text = "Indexing sends the source chunks, paths and revision metadata of this project's workspaces to JetBrains, including workspaces created later. SharpRail will index automatically when you launch a SharpRail agent. It uses the CLI's existing JetBrains login and index cache, but never installs global agent hooks or configuration and never stops an outside watcher. Disabling it in any workspace's pane disables the project.";
         text.IsVisible = true;
         var actions = window.FindControl<StackPanel>("DialogActions")!;
         var cancel = Ui.Button("Cancel", () => window.Close(false));
         actions.Children.Add(cancel);
-        var confirm = Ui.Button("Enable for this workspace", () => window.Close(true));
+        var confirm = Ui.Button("Enable for this project", () => window.Close(true));
         confirm.Classes.Add("primary");
         confirm.Name = "EnableContextConfirm";
         actions.Children.Add(confirm);

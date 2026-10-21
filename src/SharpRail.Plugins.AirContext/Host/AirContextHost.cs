@@ -36,7 +36,7 @@ public sealed class AirContextHost : PluginHostModule
     }
 
     /// <summary>The guidance moved verbatim from the Claude Code and Codex instructions; it exists only while the plugin is enabled.</summary>
-    internal const string Guidance = "Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. You MUST call `context_search` first, before grep or reading files, for unfamiliar code, feature locations and cross-cutting behavior whenever this workspace has it enabled; do not wait for the user to ask. When you brief a subagent, its brief MUST say the same, that it passes `workspace` to every `context_*` call, and that its final report MUST state how many `context_search` calls it made; reject a report with none for code-discovery work. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, say so in your report and continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then MUST use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these SharpRail tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.";
+    internal const string Guidance = "Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. You MUST call `context_search` first, before grep or reading files, for unfamiliar code, feature locations and cross-cutting behavior whenever this workspace's project has it enabled; do not wait for the user to ask. When you brief a subagent, its brief MUST say the same, that it passes `workspace` to every `context_*` call, and that its final report MUST state how many `context_search` calls it made; reject a report with none for code-discovery work. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, say so in your report and continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then MUST use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these SharpRail tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.";
 
     /// <summary>The workspace a Context tool call targets: its own, or a sibling worktree of the same project that a subagent works in.</summary>
     internal static async ValueTask<string> ResolveWorkspaceAsync(string calling, string? requested, Func<string, ValueTask<HostWorkspace?>> find, Func<string?, ValueTask<IReadOnlyList<HostWorkspace>>> list)
@@ -64,8 +64,12 @@ public sealed class AirContextHost : PluginHostModule
 
         internal void Register()
         {
-            enabled = [.. context.ReadState(AirContextContract.WorkspacesState, new ContextWorkspaces([])).Paths.Where(ValidPath)];
-            var active = service = new ContextService(workspace => { lock (gate) return enabled.Contains(workspace); }, async (workspace, log, token) =>
+            // Consent is per project. Records from when it was per workspace seed the set and are promoted to their
+            // project as soon as the host resolves them, here in the background or at the next lookup.
+            var stored = context.ReadState<ContextProjects?>(AirContextContract.ProjectsState, null);
+            enabled = [.. (stored?.Projects ?? context.ReadState(AirContextContract.WorkspacesState, new ContextWorkspaces([])).Paths).Where(ValidPath)];
+            if (stored is null && enabled.Count > 0) Save();
+            var active = service = new ContextService(EnabledAsync, async (workspace, log, token) =>
             {
                 var store = Consent();
                 await store.RequireAsync(token);
@@ -104,7 +108,7 @@ public sealed class AirContextHost : PluginHostModule
                             if (launched) first = launches.Add(key);
                             else launches.Remove(key);
                         }
-                        if (first && Enabled(agent.Terminal.WorkspaceId)) _ = active.AgentStartedAsync(agent.Terminal.WorkspaceId);
+                        if (first) _ = active.AgentStartedAsync(agent.Terminal.WorkspaceId);
                         break;
                     case TerminalClosed closed:
                         lock (gate) launches.Remove(closed.Terminal.WorkspaceId + "\0" + closed.Terminal.TabKey);
@@ -113,9 +117,18 @@ public sealed class AirContextHost : PluginHostModule
             });
             context.OnWorkspace(change =>
             {
-                if (change is not WorkspaceRemoved removed) return;
-                SetEnabled(removed.Id, false);
-                _ = active.ForgetWorkspaceAsync(removed.Id);
+                // The project's consent outlives any one of its workspaces.
+                if (change is WorkspaceRemoved removed) _ = active.ForgetWorkspaceAsync(removed.Id);
+            });
+            string[] seeded;
+            lock (gate) seeded = [.. enabled];
+            _ = Task.Run(async () =>
+            {
+                foreach (var path in seeded)
+                {
+                    try { await EnabledAsync(path, default); }
+                    catch (Exception error) when (error is IOException or InvalidOperationException) { }
+                }
             });
         }
 
@@ -126,18 +139,37 @@ public sealed class AirContextHost : PluginHostModule
 
         private static bool ValidPath(string value) => value.Length > 0 && !value.Contains('\0') && Path.IsPathFullyQualified(value);
 
-        private bool Enabled(string workspace)
-        {
-            lock (gate) return enabled.Contains(workspace);
-        }
+        /// <summary>The project a workspace belongs to, or the workspace itself when no open project knows it.</summary>
+        private async ValueTask<string> ProjectAsync(string workspace, CancellationToken token) =>
+            await context.WorkspaceAsync(workspace, token) is { } known ? Path.TrimEndingDirectorySeparator(Path.GetFullPath(known.ProjectId)) : workspace;
 
-        private void SetEnabled(string workspace, bool value)
+        /// <summary>Whether the workspace's project is enabled; a per-workspace record from before is promoted to its project here.</summary>
+        private async ValueTask<bool> EnabledAsync(string workspace, CancellationToken token)
         {
+            lock (gate) if (enabled.Count == 0) return false;
+            var project = await ProjectAsync(workspace, token);
+            lock (gate) if (enabled.Contains(project)) return true;
+            var covered = await CoveredAsync(workspace, project, token);
             lock (gate)
             {
-                if (value ? !enabled.Add(workspace) : !enabled.Remove(workspace)) return;
-                context.WriteState(AirContextContract.WorkspacesState, new ContextWorkspaces([.. enabled.Order(StringComparer.Ordinal)]));
+                if (enabled.Contains(project)) return true;
+                if (!covered.Aggregate(false, (any, path) => enabled.Remove(path) | any)) return false;
+                enabled.Add(project);
+                Save();
+                return true;
             }
+        }
+
+        private void Save()
+        {
+            lock (gate) context.WriteState(AirContextContract.ProjectsState, new ContextProjects([.. enabled.Order(StringComparer.Ordinal)]));
+        }
+
+        /// <summary>The workspaces the project's consent covers: every known one, or just this one outside an open project.</summary>
+        private async ValueTask<string[]> CoveredAsync(string workspace, string project, CancellationToken token)
+        {
+            var known = await context.WorkspacesAsync(project, token);
+            return [.. known.Select(item => Path.TrimEndingDirectorySeparator(Path.GetFullPath(item.Path))).Append(workspace).Distinct()];
         }
 
         private ContextConsent Consent()
@@ -176,12 +208,22 @@ public sealed class AirContextHost : PluginHostModule
                 throw new ArgumentException("Unknown Context operation.");
             var result = await ExecuteAsync(new(call.WorkspaceId, call.Operation), token);
             var outcome = result.For(Path.TrimEndingDirectorySeparator(Path.GetFullPath(call.WorkspaceId)));
-            if (call.Operation is "enable" or "disable" or "stop") context.Publish(AirContextContract.Changed, outcome);
+            if (call.Operation is "enable" or "disable")
+            {
+                // The consent is the project's: every pane of it, in this window or another client, follows.
+                var workspace = outcome.WorkspaceId;
+                foreach (var covered in await CoveredAsync(workspace, await ProjectAsync(workspace, token), token))
+                    context.Publish(AirContextContract.Changed, covered == workspace ? outcome : (await ExecuteAsync(new(covered, "status"), token)).For(covered));
+            }
+            else if (call.Operation == "stop") context.Publish(AirContextContract.Changed, outcome);
             // The login is shared: every enabled workspace's pane learns of a change, in this window or another client.
             else if (call.Operation is "logout" or "check")
             {
-                string[] others;
-                lock (gate) others = [.. enabled];
+                string[] projects;
+                lock (gate) projects = [.. enabled];
+                var others = new List<string>();
+                foreach (var project in projects)
+                    others.AddRange(Directory.Exists(project) ? await CoveredAsync(project, project, token) : []);
                 foreach (var other in others.Append(outcome.WorkspaceId).Distinct())
                     context.Publish(AirContextContract.Changed, (await ExecuteAsync(new(other, "status"), token)).For(other));
             }
@@ -200,15 +242,22 @@ public sealed class AirContextHost : PluginHostModule
                 {
                     var enable = request.Operation == "enable";
                     if (enable) await Consent().RequireAsync(token);
-                    SetEnabled(request.Workspace, enable);
-                    if (!enable) await active.CloseWorkspaceAsync(request.Workspace);
+                    var project = await ProjectAsync(request.Workspace, token);
+                    var covered = enable ? [] : await CoveredAsync(request.Workspace, project, token);
+                    lock (gate)
+                    {
+                        // Disabling also drops not-yet-promoted records of the project's workspaces.
+                        var changed = enable ? enabled.Add(project) : covered.Aggregate(enabled.Remove(project), (any, path) => enabled.Remove(path) | any);
+                        if (changed) Save();
+                    }
+                    foreach (var path in covered) await active.CloseWorkspaceAsync(path);
                     return await active.ExecuteAsync(request with { Operation = "status" }, token);
                 }
                 return await active.ExecuteAsync(request, token);
             }
             catch (ContextConsentRequiredException) { return new("requiresAcceptance", "Review and accept the current Context agreements in the Air Context pane first."); }
             catch (Exception error) when (error is IOException or HttpRequestException or PlatformNotSupportedException or UnauthorizedAccessException)
-            { return new("error", ContextOutput.Sanitize(error.Message), Enabled(request.Workspace)); }
+            { return new("error", ContextOutput.Sanitize(error.Message), await EnabledAsync(request.Workspace, CancellationToken.None)); }
         }
 
         private async ValueTask<PluginToolResult> RunToolAsync(string? requested, PluginToolContext call, string operation, string query, string path, int limit, CancellationToken token)

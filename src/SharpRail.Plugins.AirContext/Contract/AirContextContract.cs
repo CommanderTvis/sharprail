@@ -15,8 +15,11 @@ public sealed record ContextCall(string WorkspaceId, string Operation = "status"
 /// <summary>A workspace's Context lifecycle state or bounded log output. <c>SignedIn</c> is whether the CLI accepted its stored login at the last probe, or <see langword="null"/> when unknown. No credentials are exposed.</summary>
 public sealed record ContextOutcome(string WorkspaceId, string State, string Detail = "", bool Enabled = false, string Data = "", string Command = "", bool? SignedIn = null);
 
-/// <summary>The persisted list of workspaces whose source the user allowed to be indexed.</summary>
+/// <summary>The persisted list of workspaces whose source the user allowed to be indexed, before enablement became per project; read only to migrate it.</summary>
 public sealed record ContextWorkspaces(IReadOnlyList<string> Paths);
+
+/// <summary>The projects (their roots) whose source the user allowed to be indexed: the consent covers every workspace of each.</summary>
+public sealed record ContextProjects(IReadOnlyList<string> Projects);
 
 public static class AirContextContract
 {
@@ -27,6 +30,9 @@ public static class AirContextContract
 
     public const string WorkspacesState = "workspaces";
 
+    /// <summary>The state file naming the enabled projects.</summary>
+    public const string ProjectsState = "projects";
+
     public static readonly PluginMethod<ContextConsentRequest, ContextConsentResult> Consent = new("consent");
     public static readonly PluginMethod<ContextCall, ContextOutcome> Workspace = new("workspace");
     public static readonly PluginChannel<ContextOutcome> Changed = PluginChannel<ContextOutcome>.State("changed", Workspace, "workspaceId");
@@ -35,7 +41,7 @@ public static class AirContextContract
 
     public static readonly PluginManifest Manifest = new(Id, "Air Context", "asset:air.svg", "0.1.0", PluginApi.Generation, 1)
     {
-        Description = "Semantic code search through JetBrains Air Context; indexing is cloud processing that you enable per workspace.",
+        Description = "Semantic code search through JetBrains Air Context; indexing is cloud processing that you enable per project.",
         EnabledByDefault = false,
         Assets = "assets",
         Host = "SharpRail.Plugins.AirContext.Host.dll",

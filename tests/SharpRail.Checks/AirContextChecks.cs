@@ -126,7 +126,7 @@ internal static partial class AirContextChecks
             StateDirectory = stateDirectory; Runtime = runtime; State = state; Plugins = plugins; this.server = server; Endpoint = endpoint; this.adapters = adapters;
         }
 
-        internal static async Task<Rig> Open(string workspace, string stateDirectory, bool remote, bool activate = true)
+        internal static async Task<Rig> Open(string workspace, string stateDirectory, bool remote, bool activate = true, Func<string, CancellationToken, Task<IReadOnlyList<WorktreeInfo>>>? worktrees = null)
         {
             Directory.CreateDirectory(stateDirectory);
             Rig rig;
@@ -141,7 +141,9 @@ internal static partial class AirContextChecks
             else
             {
                 var state = new HostStateStore(stateDirectory);
-                var runtime = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(AirContextContract.Manifest, new AirContextHost())] });
+                var runtime = new PluginRuntime(worktrees is null
+                    ? new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(AirContextContract.Manifest, new AirContextHost())] }
+                    : new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(AirContextContract.Manifest, new AirContextHost())], Worktrees = worktrees });
                 await runtime.Start();
                 rig = new(stateDirectory, runtime, state, new LocalPluginAdapter(runtime), null, null, null);
             }

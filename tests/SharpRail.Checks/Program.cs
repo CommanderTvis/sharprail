@@ -158,6 +158,7 @@ internal static class Program
             AirContextChecks.Run(root).GetAwaiter().GetResult();
             AirContextChecks.Lifecycle(root).GetAwaiter().GetResult();
             AirContextChecks.Migration(root).GetAwaiter().GetResult();
+            AirContextChecks.ProjectScope(root).GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--lsp-real-csharp"]))
@@ -1051,6 +1052,7 @@ internal static class Program
         Gate.Case("context-consent", () => AirContextChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("air-context-lifecycle", () => AirContextChecks.Lifecycle(root).GetAwaiter().GetResult());
         Gate.Case("air-context-migration", () => AirContextChecks.Migration(root).GetAwaiter().GetResult());
+        Gate.Case("air-context-project", () => AirContextChecks.ProjectScope(root).GetAwaiter().GetResult());
         Gate.Case("global-jvm-provider", () => GlobalJvmProviderChecks.Run(root).GetAwaiter().GetResult());
 
         Gate.Case("managed-language-servers", () => ManagedLanguageChecks.Run(root).GetAwaiter().GetResult());

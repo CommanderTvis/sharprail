@@ -13,7 +13,7 @@ internal interface IContextRuntime : IAsyncDisposable
     Task LogoutAsync(CancellationToken token);
 }
 
-internal sealed class ContextService(Func<string, bool> enabled, Func<string, Action<string>, CancellationToken, Task<IContextRuntime>> create) : IAsyncDisposable
+internal sealed class ContextService(Func<string, CancellationToken, ValueTask<bool>> enabled, Func<string, Action<string>, CancellationToken, Task<IContextRuntime>> create) : IAsyncDisposable
 {
     private sealed class Entry
     {
@@ -40,11 +40,12 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
             throw new ArgumentException("Context requires an existing absolute workspace.");
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
         if (Volatile.Read(ref disposed) != 0) return new("stopped", "The host is shutting down.");
-        if (request.Operation == "logs") return new("ready", "Context output for this workspace.", enabled(workspace), logs.GetOrAdd(workspace, _ => new()).Read());
-        if (request.Operation == "stop") { await CloseWorkspaceAsync(workspace); return new("stopped", "SharpRail-owned Context processes stopped.", enabled(workspace)); }
+        var on = await enabled(workspace, token);
+        if (request.Operation == "logs") return new("ready", "Context output for this workspace.", on, logs.GetOrAdd(workspace, _ => new()).Read());
+        if (request.Operation == "stop") { await CloseWorkspaceAsync(workspace); return new("stopped", "SharpRail-owned Context processes stopped.", on); }
         // The login belongs to the CLI, not to a workspace: probing, signing in and out send no source and need no enablement.
         var account = request.Operation is "check" or "login" or "logout";
-        if (!account && !enabled(workspace)) return new("disabled", "Enable JetBrains Context for this workspace in the Air Context pane. Indexing sends source chunks to JetBrains.", SignedIn: Known());
+        if (!account && !on) return new("disabled", "Enable JetBrains Context for this project in the Air Context pane; it covers every workspace of the project. Indexing sends source chunks to JetBrains.", SignedIn: Known());
         if (request.Operation == "status")
             return entries.TryGetValue(workspace, out var known) ? new(known.State == "requiresLogin" && Known() == true ? "idle" : known.State, known.State == "requiresLogin" && Known() == true ? "Launch a SharpRail agent or choose Index now." : known.Detail, true, SignedIn: Known()) : new("idle", "Launch a SharpRail agent or choose Index now.", true, SignedIn: Known());
         if (request.Operation is not ("search" or "index" or "refresh" or "login" or "check" or "logout")) throw new ArgumentException("Unknown Context operation.");
@@ -57,7 +58,8 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
         await entry.Gate.WaitAsync(operationToken);
         try
         {
-            if (!account && !enabled(workspace)) return new("disabled", "Context was disabled.");
+            on = await enabled(workspace, operationToken);
+            if (!account && !on) return new("disabled", "Context was disabled.");
             if (entry.Stop.IsCancellationRequested) return new("stopped", "Context was stopped.", true);
             if (request.Operation == "index")
             {
@@ -72,23 +74,23 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
             var runtime = await RuntimeAsync(workspace, entry).WaitAsync(operationToken);
             if (request.Operation == "check")
             {
-                if (entry.Index is { IsCompleted: false }) return new(entry.State, entry.Detail, enabled(workspace), SignedIn: true);
+                if (entry.Index is { IsCompleted: false }) return new(entry.State, entry.Detail, on, SignedIn: true);
                 try { await runtime.StatusAsync(operationToken); }
                 catch (IOException error) when (error is not ContextLoginRequiredException)
                 {
                     // The probe failing for another reason says nothing about the login: keep what is known.
-                    return new(entry.State, ContextOutput.Sanitize(error.Message), enabled(workspace), SignedIn: Known());
+                    return new(entry.State, ContextOutput.Sanitize(error.Message), on, SignedIn: Known());
                 }
                 Interlocked.Exchange(ref signed, 1);
                 if (entry.State == "requiresLogin") { entry.State = "idle"; entry.Detail = "Launch a SharpRail agent or choose Index now."; }
-                return new(entry.State, entry.Detail, enabled(workspace), SignedIn: true);
+                return new(entry.State, entry.Detail, on, SignedIn: true);
             }
             if (request.Operation == "logout")
             {
                 await runtime.LogoutAsync(operationToken);
                 Interlocked.Exchange(ref signed, 0);
                 entry.State = "requiresLogin"; entry.Detail = "Signed out of JetBrains.";
-                return new(entry.State, entry.Detail, enabled(workspace), SignedIn: false);
+                return new(entry.State, entry.Detail, on, SignedIn: false);
             }
             if (request.Operation == "login") return new("login", "Sign in using the dedicated SharpRail terminal. JetBrains credentials stay with the CLI's supported secret store.", true, Command: await runtime.PrepareLoginAsync(operationToken));
             if (request.Operation == "refresh") return new(entry.State, "Vendor-reported index status; this does not start indexing.", true, await runtime.StatusAsync(operationToken));
@@ -100,7 +102,7 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
         }
         catch (ContextConsentRequiredException) { return Failure(entry, "requiresAcceptance", "Review the current Context terms in the Air Context pane before running the CLI."); }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-        catch (OperationCanceledException) when (entry.Token.IsCancellationRequested) { return new("stopped", "SharpRail-owned Context processes stopped.", enabled(workspace)); }
+        catch (OperationCanceledException) when (entry.Token.IsCancellationRequested) { return new("stopped", "SharpRail-owned Context processes stopped.", on); }
         catch (OperationCanceledException) { return Failure(entry, "error", "Context operation timed out. Retry or view this workspace's logs."); }
         catch (Exception error) when (error is IOException or HttpRequestException or UnauthorizedAccessException or PlatformNotSupportedException)
         {
@@ -144,7 +146,7 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
 
     internal async Task AgentStartedAsync(string workspace)
     {
-        try { if (enabled(workspace)) await ExecuteAsync(new(workspace, "index"), default); }
+        try { if (await enabled(workspace, default)) await ExecuteAsync(new(workspace, "index"), default); }
         catch (Exception error) { logs.GetOrAdd(workspace, _ => new()).Add("launch", ContextOutput.Sanitize(error.Message)); }
     }
 

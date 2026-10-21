@@ -111,7 +111,7 @@ internal static partial class AirContextChecks
             Require(!text.Contains("AirContextHidden", StringComparison.Ordinal) && !text.Contains("ContextWorkspaces", StringComparison.Ordinal), "The old keys stayed in the state file.");
             Require(!Directory.Exists(Path.Combine(directory, "context")) && Directory.Exists(Path.Combine(directory, "plugin-state", AirContextContract.Id, "files")),
                 "The CLI storage did not move into the plugin's directory.");
-            Require(Enabled(directory).SequenceEqual([workspace]), "The enabled workspaces did not move (or an invalid path did): " + string.Join(", ", Enabled(directory)));
+            Require(LegacyEnabled(directory).SequenceEqual([workspace]), "The enabled workspaces did not move (or an invalid path did): " + string.Join(", ", LegacyEnabled(directory)));
             var moved = new ContextConsent(Path.Combine(directory, "plugin-state", AirContextContract.Id, "files"), http, bundle);
             var status = await moved.ExecuteAsync(new("status"), default);
             Require(status.State == "downloaded" && Path.GetFileName(status.Installation) == Path.GetFileName(accepted.Installation), "The download did not survive the move.");
@@ -128,5 +128,62 @@ internal static partial class AirContextChecks
             Require((await rig.Consent(new("status"))).State == "downloaded" && (await rig.Workspace(workspace)).Enabled, "The plugin did not see the migrated consent and enablement.");
         }
         Console.WriteLine("PASS Air Context migration: fresh stays off, used becomes enabled, hidden becomes disabled once; consent receipt, download and enabled workspaces move into the plugin's state");
+    }
+
+    /// <summary>Consent belongs to the project: every workspace of an enabled project, including later ones, is enabled; others are not.</summary>
+    internal static async Task ProjectScope(string root)
+    {
+        var storage = Path.Combine(root, "air-context-project");
+        string Dir(string name) { var path = Path.Combine(storage, name); Directory.CreateDirectory(path); return path; }
+        var (project, feature, later, other) = (Dir("project"), Dir("worktrees/feature"), Dir("worktrees/later"), Dir("other"));
+        var trees = new List<WorktreeInfo> { new(project, "main", true, false), new(feature, "feature", false, false) };
+        Task<IReadOnlyList<WorktreeInfo>> Worktrees(string path, CancellationToken _)
+        {
+            lock (trees) return Task.FromResult<IReadOnlyList<WorktreeInfo>>(path == project ? [.. trees] : []);
+        }
+        using var handler = new Handler(_ => Task.FromResult("fixture"u8.ToArray()));
+        using var http = new HttpClient(handler);
+        var bundle = new ContextBundle("project", "fixture", new("https://download.jetbrains.com/fixture"), Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData("fixture"u8)));
+        using var fixtures = new Fixtures();
+        fixtures.Value.Consent = directory => new(directory, http, bundle);
+        fixtures.Value.Runtime = (path, log, _) => Task.FromResult<IContextRuntime>(new WorkflowRuntime(path, log));
+        async Task<Rig> Open(string state)
+        {
+            var rig = await Rig.Open(project, state, remote: false, worktrees: Worktrees);
+            await rig.State.ChangeAsync([HostStateChange.OpenProject(project), HostStateChange.OpenProject(other)]);
+            return rig;
+        }
+
+        await using (var rig = await Open(Path.Combine(storage, "state")))
+        {
+            var review = await rig.Consent(new());
+            await rig.Consent(new("acceptAndDownload", review.ArtifactId, review.TermsSha256));
+            Require(!(await rig.Workspace(feature)).Enabled, "A worktree of a project the user never enabled was enabled.");
+            Require((await rig.Workspace(project, "enable")).Enabled, "Enabling the Default workspace failed.");
+            Require(Enabled(rig.StateDirectory).SequenceEqual([project]), "Enablement was not recorded for the project: " + string.Join(", ", Enabled(rig.StateDirectory)));
+            Require((await rig.Workspace(feature)).Enabled, "An existing worktree of the enabled project is not enabled.");
+            lock (trees) trees.Add(new(later, "later", false, false));
+            Require((await rig.Workspace(later)).Enabled, "A worktree created after enabling the project is not enabled.");
+            var status = await rig.Tools(later).Single(tool => tool.Name == "context_status").Call(new(), default);
+            Require(Reply(status)["enabled"]!.GetValue<bool>() && Reply(status)["state"]!.ToString() != "disabled", "context_status in a new worktree reported disabled: " + status.Text);
+            Require(!(await rig.Workspace(other)).Enabled, "Enabling one project enabled another.");
+            Require(!(await rig.Workspace(later, "disable")).Enabled, "Disabling from a worktree failed.");
+            Require(!(await rig.Workspace(project)).Enabled && !(await rig.Workspace(feature)).Enabled && Enabled(rig.StateDirectory).Length == 0, "Disabling from a worktree did not disable the project.");
+        }
+
+        // A per-workspace record from before becomes its project's: the Default workspace and siblings follow.
+        var legacy = Path.Combine(storage, "legacy");
+        var file = Path.Combine(legacy, PluginIdentity.StateFile(AirContextContract.Id, AirContextContract.WorkspacesState));
+        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+        File.WriteAllBytes(file, JsonSerializer.SerializeToUtf8Bytes(new ContextWorkspaces([feature]), PluginJson.Options));
+        await using (var rig = await Open(legacy))
+        {
+            var review = await rig.Consent(new());
+            await rig.Consent(new("acceptAndDownload", review.ArtifactId, review.TermsSha256));
+            Require((await rig.Workspace(project)).Enabled && (await rig.Workspace(later)).Enabled, "An old per-workspace record did not enable its project.");
+            Require(!(await rig.Workspace(other)).Enabled, "Migration enabled a project the user never enabled.");
+            await rig.UntilAsync(() => Task.FromResult(Enabled(rig.StateDirectory).SequenceEqual([project])), "the old record to be promoted to its project");
+        }
+        Console.WriteLine("PASS Air Context project scope: enabling one workspace covers the project's existing and later worktrees, never another project; disabling from any worktree disables the project; old per-workspace records migrate");
     }
 }

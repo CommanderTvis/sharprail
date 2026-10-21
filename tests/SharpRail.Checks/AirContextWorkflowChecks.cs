@@ -140,6 +140,12 @@ internal static partial class AirContextChecks
     /// <summary>The workspaces the plugin's state file lists.</summary>
     private static string[] Enabled(string stateDirectory)
     {
+        var path = Path.Combine(stateDirectory, PluginIdentity.StateFile(AirContextContract.Id, AirContextContract.ProjectsState));
+        return File.Exists(path) ? JsonSerializer.Deserialize<ContextProjects>(File.ReadAllText(path), PluginJson.Options)!.Projects.ToArray() : [];
+    }
+
+    private static string[] LegacyEnabled(string stateDirectory)
+    {
         var path = Path.Combine(stateDirectory, PluginIdentity.StateFile(AirContextContract.Id, AirContextContract.WorkspacesState));
         return File.Exists(path) ? JsonSerializer.Deserialize<ContextWorkspaces>(File.ReadAllText(path), PluginJson.Options)!.Paths.ToArray() : [];
     }
