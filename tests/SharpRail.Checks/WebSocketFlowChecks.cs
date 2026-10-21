@@ -97,7 +97,10 @@ internal static class WebSocketFlowChecks
                 await malformed.SendAsync(RpcWire.Encode(new RpcFrame { Kind = RpcFrameKind.Data, Id = 1, Last = true }), WebSocketMessageType.Binary, true, timeout.Token);
             try
             {
-                var result = await malformed.ReceiveAsync(new byte[1024], timeout.Token);
+                // The host may still answer the frames it accepted before it closes the connection.
+                WebSocketReceiveResult result;
+                do result = await malformed.ReceiveAsync(new byte[1024], timeout.Token);
+                while (result.MessageType != WebSocketMessageType.Close);
                 Require(result.MessageType == WebSocketMessageType.Close, "An over-credit sender must be disconnected.");
             }
             catch (WebSocketException) { }

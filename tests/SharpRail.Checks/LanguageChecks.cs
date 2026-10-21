@@ -1211,11 +1211,19 @@ internal static class LanguageChecks
                 "Server lifecycle buttons must live in the row context menu.");
             void ServerAction(int index, string action)
             {
-                var row = (Avalonia.Controls.ListBoxItem)servers.ContainerFromIndex(index)!;
-                row.RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs());
-                var menu = row.ContextMenu!;
-                var item = menu.Items.OfType<Avalonia.Controls.MenuItem>().Single(item => item.Header?.ToString() == action);
-                Require(item.IsEnabled, "Server context action was disabled: " + action);
+                // The menu is built from the row's state at the time it opens, which a refresh may still be settling.
+                Avalonia.Controls.ContextMenu menu = null!;
+                Avalonia.Controls.MenuItem item = null!;
+                E2E.E2eWorkspace.Until(() =>
+                {
+                    var row = (Avalonia.Controls.ListBoxItem)servers.ContainerFromIndex(index)!;
+                    row.RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs());
+                    menu = row.ContextMenu!;
+                    item = menu.Items.OfType<Avalonia.Controls.MenuItem>().Single(entry => entry.Header?.ToString() == action);
+                    if (item.IsEnabled) return true;
+                    menu.Close();
+                    return false;
+                }, "Server context action was disabled: " + action);
                 menu.Close();
                 item.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.MenuItem.ClickEvent));
             }
