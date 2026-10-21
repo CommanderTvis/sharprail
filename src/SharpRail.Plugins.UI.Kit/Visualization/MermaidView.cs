@@ -54,11 +54,19 @@ public sealed partial class MermaidView : ContentControl
         var lifetime = rendering = new CancellationTokenSource();
         var options = MermaidRenderer.Options();
         SvgSource? svg = null;
+        DiagramText? text = null;
         MermaidRenderer.Result result;
         try
         {
             result = await MermaidRenderer.RenderAsync(source, options, lifetime.Token);
-            if (result.Svg is { } sourceSvg) svg = await Task.Run(() => SvgSource.LoadFromSvg(sourceSvg), lifetime.Token);
+            if (result.Svg is { } sourceSvg)
+            {
+                (svg, text) = await Task.Run(() =>
+                {
+                    var loaded = SvgSource.LoadFromSvg(sourceSvg);
+                    return (loaded, DiagramText.From(loaded.Svg?.Model, MermaidRenderer.IsTreeView(sourceSvg)));
+                }, lifetime.Token);
+            }
         }
         catch (OperationCanceledException) { return; }
         finally { if (lifetime.IsCancellationRequested) svg?.Dispose(); }
@@ -77,8 +85,8 @@ public sealed partial class MermaidView : ContentControl
         }
         var previous = shown;
         shown = svg;
-        if (view is null) view = new PanZoomView(svg!, capped: !interactive);
-        else view.Update(svg!);
+        if (view is null) view = new PanZoomView(svg!, capped: !interactive, text, source);
+        else view.Update(svg!, text);
         var drawing = this.FindControl<ContentControl>("Drawing")!;
         drawing.Content = view;
         drawing.IsVisible = true;

@@ -274,6 +274,12 @@ retain the mounted navigation control and its zoom/scroll. The pan/zoom surface 
 to its bounds, including when resized or panned beside other content. Toolbar and wheel use `ZoomGesture`, shared
 with PDF Preview, with 25–600% bounds. Native trackpad magnify and further lifecycle/appearance cases
 remain verification gates in the Visualize plugin spec.
+The pan/zoom surface reads the drawn text runs (with per-character boxes) from the parsed SVG's drawing commands
+once per render, off the UI thread, so diagram labels select like document text: a press on a label selects
+(drag, Shift-click, double-click for the label), a press elsewhere pans and a plain click clears; Cmd/Ctrl+A and
+Cmd/Ctrl+C select and copy in reading order (a tree view as an indented outline), and the context menu adds
+Copy All Text and Copy Mermaid Source. The highlight is drawn over the picture in the theme selection colour and
+follows zoom. Comparison card text is selectable text.
 
 The account presentation exposes labelled rows, provider-supplied severity and percentage usage,
 relative reset times and reading timestamps. Row and usage-window layouts are compiled XAML.

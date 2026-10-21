@@ -12,14 +12,17 @@ public static class MermaidDialog
 {
     public const double InlineCap = 480;
 
-    public static void Show(Window owner, SvgSource diagram)
+    public static void Show(Window owner, SvgSource diagram) => Show(owner, diagram, null, null);
+
+    /// <summary>The full-screen viewer, with the diagram's text selectable when it is given and its source copyable.</summary>
+    internal static void Show(Window owner, SvgSource diagram, DiagramText? text, string? source)
     {
         var window = DialogWindow.Create("Diagram", Math.Max(480, owner.Bounds.Width * 0.95));
         // The viewer fills a fixed fraction of the owner rather than sizing the dialog to its content.
         window.SizeToContent = SizeToContent.Manual;
         window.Height = Math.Max(360, owner.Bounds.Height * 0.9);
         window.CanResize = true;
-        var stage = new PanZoomView(diagram, capped: false) { Height = window.Height - 110 };
+        var stage = new PanZoomView(diagram, capped: false, text, source) { Height = window.Height - 110 };
         window.FindControl<StackPanel>("DialogFields")!.Children.Add(stage);
         window.SizeChanged += (_, _) => stage.Height = Math.Max(120, window.Bounds.Height - 110);
         _ = window.ShowDialog(owner);
