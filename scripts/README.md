@@ -222,7 +222,7 @@ The available focused modes and verification rules are documented in
 | File | Invocation and purpose |
 | --- | --- |
 | `generate-rpc.py` | `scripts/mise run rpc` regenerates `src/SharpRail.Host.Protocol/RpcServices.Generated.cs` and `src/SharpRail.Host.Remote/RpcDispatch.Generated.cs` from `*Contract.cs`. It edits tracked source; review and format the generated diff. |
-| `host-link.cs` | `.tools/dotnet/dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `SHARPRAIL_TOKEN`, `SHARPRAIL_PORT` and optional `SHARPRAIL_CONNECT_HOST`. Used by the `host` task; restores QRCoder as a file-based app dependency. |
+| `host-link.cs` | `.tools/dotnet/dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `SHARPRAIL_TOKEN`, `SHARPRAIL_PORT` and optional `SHARPRAIL_CONNECT_HOST`. Used by the `host` task; restores QRCoder as a file-based app dependency, locked in its own `host-link.packages.lock.json` (refreshed by `restore:update`) because `scripts/packages.lock.json` is shared by the other file-based scripts. |
 | `benchmark.mjs` | `node scripts/benchmark.mjs [embedded\|remote] [rounds] [workspace]` measures published app startup and process-tree RSS. Defaults: embedded, 10 rounds, current directory. Requires macOS, AC power, Node, clang and published artifacts; run only when measurement is requested. Writes `.bench/results-<mode>-<timestamp>.json` and compiles the helper below. |
 | `window-probe.m` | Native CoreGraphics helper compiled by the benchmark as `.bench/window-probe`; reports when CoreGraphics first lists a normal window at least 300 × 200 for a process ID. Not a standalone build/launch entry point. |
 

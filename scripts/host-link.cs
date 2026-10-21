@@ -1,5 +1,6 @@
 #:package QRCoder@1.8.0
 #:property ManagePackageVersionsCentrally=false
+#:property NuGetLockFilePath=host-link.packages.lock.json
 
 using System.Net;
 using System.Net.NetworkInformation;

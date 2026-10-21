@@ -172,8 +172,8 @@ run_windows = ".tools\\dotnet\\dotnet.exe restore SharpRail.slnx"
 description = "Re-resolve packages and rewrite the packages.lock.json files; use after changing a package version or reference, then commit the locks"
 depends = ["bootstrap"]
 env = { RestoreLockedMode = "false" }
-run = ".tools/dotnet/dotnet restore SharpRail.slnx --force-evaluate"
-run_windows = ".tools\\dotnet\\dotnet.exe restore SharpRail.slnx --force-evaluate"
+run = [".tools/dotnet/dotnet restore SharpRail.slnx --force-evaluate", ".tools/dotnet/dotnet restore scripts/host-link.cs --force-evaluate"]
+run_windows = [".tools\\dotnet\\dotnet.exe restore SharpRail.slnx --force-evaluate", ".tools\\dotnet\\dotnet.exe restore scripts\\host-link.cs --force-evaluate"]
 
 [tasks.audit]
 description = "Fail on any known vulnerability (moderate or above, transitive included) in the locked packages"
