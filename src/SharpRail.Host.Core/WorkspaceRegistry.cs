@@ -184,17 +184,18 @@ public sealed partial class ProjectServices
         if (workspace.Kind != WorkspaceKinds.Managed || workspace.Path == workspace.ProjectRoot)
             throw new InvalidOperationException(workspace.Kind == WorkspaceKinds.External
                 ? "An existing worktree stays on disk; remove it from SharpRail instead." : "The Default workspace cannot be removed.");
-        using var gate = await registry.LockWorkspacesAsync(cancellationToken);
+        // Deleting a large checkout takes seconds, so Git does it outside the registry gate: every session's worktree sync,
+        // and behind it that session's next open, would otherwise wait for the whole deletion. Only the record change is serialised.
         if (!reclaim)
         {
             await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, force
                 ? ["worktree", "remove", "--force", "--", workspace.Path]
                 : ["worktree", "remove", "--", workspace.Path]);
-            ForgetWorkspace(id);
+            using (await registry.LockWorkspacesAsync(CancellationToken.None)) ForgetWorkspace(id);
             DropIndexes(workspace.Path);
             return workspace;
         }
-        ForgetWorkspace(id);
+        using (await registry.LockWorkspacesAsync(cancellationToken)) ForgetWorkspace(id);
         DropIndexes(workspace.Path);
         try { await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, "worktree", "remove", "--force", "--", workspace.Path); }
         catch (IOException)

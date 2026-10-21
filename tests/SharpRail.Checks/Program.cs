@@ -965,6 +965,14 @@ internal static class Program
             E2E.BranchListE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
+        if (args.SequenceEqual(["--workspace-delete"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            using (new E2E.IsolatedGit(Path.Combine(root, "workspace-delete-git")))
+                E2E.WorkspaceResponsivenessE2E.DeleteOther(Path.Combine(root, "workspace-delete"));
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

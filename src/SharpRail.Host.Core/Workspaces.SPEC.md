@@ -196,7 +196,12 @@ forgetting removes its row while leaving the checkout in place. The Default work
   onwards, attach, remove, reclaim) runs one at a time per host (`HostStateStore.LockWorkspacesAsync`),
   across every session: a list that read Git before a create must not drop the record that create wrote.
   A list also waits for its own session's Git actions, so folder truth read before an `init` is never
-  written after it. A slow base fetch stays outside the gate.
+  written after it. A slow base fetch stays outside the gate, and so does `git worktree remove` (plain,
+  forced or reclaiming): deleting a large checkout takes seconds, and a list held behind it would hold its
+  session's next open too, leaving that window on Loading workspace… for the whole deletion. Only the
+  record change after Git succeeded takes the gate; a list that reads Git mid-removal keeps or drops the
+  record, both of which the removal's own record change then agrees with
+  (`WorkspaceResponsivenessE2E.DeleteOther`, `--workspace-delete`).
 - A missing restored workspace falls back to its Project Home, a missing project to the Welcome, and a
   workspace removed elsewhere returns a window showing it to Project Home with a notice.
 

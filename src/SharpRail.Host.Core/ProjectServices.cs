@@ -340,11 +340,10 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                         throw new InvalidOperationException("The main, active, or locked worktree cannot be removed.");
                     if (registry.Current.Workspaces.Any(workspace => workspace.Path == target.Path && workspace.Kind == WorkspaceKinds.External))
                         throw new InvalidOperationException("An existing worktree stays on disk; remove it from SharpRail instead.");
-                    using (await registry.LockWorkspacesAsync(cancellationToken))
-                    {
-                        await GitRepository.RunAsync(currentRoot, cancellationToken, ["worktree", "remove", .. (action.Kind == "force-remove-worktree" ? new[] { "--force" } : []), "--", target.Path]);
+                    // Git deletes the checkout outside the registry gate, as a workspace removal does; only the record change is serialised.
+                    await GitRepository.RunAsync(currentRoot, cancellationToken, ["worktree", "remove", .. (action.Kind == "force-remove-worktree" ? new[] { "--force" } : []), "--", target.Path]);
+                    using (await registry.LockWorkspacesAsync(CancellationToken.None))
                         registry.ChangeWorkspaces(current => current.Where(workspace => workspace.Path != target.Path));
-                    }
                     DropIndexes(target.Path);
                     break;
                 case "delete-branch":

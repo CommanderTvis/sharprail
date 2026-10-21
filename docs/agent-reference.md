@@ -123,6 +123,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--notifications` | Away notifications with a recording notifier; none posts a real one. |
 | `--registry` | Workspace registry host parity and external-workspace rail. |
 | `--scintilla-core` | Managed Scintilla core: ports of upstream test/unit suites plus bidi, shaping, view and editor-model checks; no Avalonia setup. |
+| `--workspace-delete` | Force-deleting another dirty workspace with a large build tree: UI heartbeat, the open workspace stays mounted, a switch during the deletion is prompt. |
 | `--syntax` | TextMate coverage, incremental edits, Unicode, theme changes, attachment/disposal, diff syntax styling. |
 | `--documents` | Resource renderers and file/diff body translations. |
 | `--editor`, `--markdown`, `--markdown-find`, `--markdown-images`, `--markdown-chunks` | Editor integration, source editing, Markdown rendering and search; image loading; chunked large Markdown blocks. |

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -20,6 +21,79 @@ internal static class WorkspaceResponsivenessE2E
     {
         using var git = new IsolatedGit(Path.Combine(root, "workspace-responsiveness-git"));
         CreateAndDelete(Path.Combine(root, "workspace-responsiveness"));
+        DeleteOther(Path.Combine(root, "workspace-responsiveness-other"));
+    }
+
+    /// <summary>
+    /// Force-deletes another, dirty workspace with a large build tree (read-only files included) from the rail while the Default
+    /// workspace is open, and has the window re-sync its project's worktrees as it does when it is activated again. The UI thread
+    /// keeps beating, the open workspace never unmounts or shows its loading placeholder, and switching to a third workspace while
+    /// the deletion runs mounts it promptly instead of waiting behind the removal.
+    /// </summary>
+    internal static void DeleteOther(string directory)
+    {
+        using var app = OpenFixtureProject(directory);
+        var path = CreateWorkspaceViaDialog(app);
+        var other = CreateWorkspaceViaDialog(app);
+        app.Click(Select(app, app.Window.ProjectRoot));
+        Until(() => Active(app, app.Window.ProjectRoot));
+        File.WriteAllText(Path.Combine(path, "unsaved.txt"), "dirty\n");
+        File.WriteAllText(Path.Combine(path, ".gitignore"), "bin/\nobj/\n.tools/\n");
+        foreach (var tree in new[] { "bin", "obj", ".tools" })
+            for (var folder = 0; folder < 600; folder++)
+            {
+                var folderPath = Path.Combine(path, tree, "d" + folder);
+                Directory.CreateDirectory(folderPath);
+                for (var file = 0; file < 40; file++)
+                {
+                    var filePath = Path.Combine(folderPath, "f" + file);
+                    File.WriteAllText(filePath, "x");
+                    if (tree == ".tools") File.SetAttributes(filePath, FileAttributes.ReadOnly);
+                }
+            }
+        Settle(1000);
+        var root = app.Window.WorkspaceRoot;
+        var worst = TimeSpan.Zero;
+        var unmounted = false;
+        var last = Stopwatch.GetTimestamp();
+        var beat = new DispatcherTimer(TimeSpan.FromMilliseconds(5), DispatcherPriority.Normal, (_, _) =>
+        {
+            var now = Stopwatch.GetTimestamp();
+            var gap = Stopwatch.GetElapsedTime(last, now);
+            last = now;
+            if (gap > worst) worst = gap;
+            if (!app.Window.WorkspaceMounted || app.Window.WorkspaceRoot != root || app.Window.AtProjectHome ||
+                app.Window.GetLogicalDescendants().OfType<Avalonia.Controls.Control>().Any(control => control.Name == "WorkspaceLoading" && control.IsEffectivelyVisible))
+                unmounted = true;
+        });
+        beat.Start();
+        try
+        {
+            RemoveWorkspace(app, path);
+            var confirm = Dialog(app);
+            Require(confirm.Title == "Delete uncommitted changes?", "Dirty removal must ask before force deletion.");
+            app.Click(Named<Avalonia.Controls.Button>(confirm, "WorkspaceForceRemove"));
+            // Git is deleting the checkout now; the window re-syncs its worktrees as activation does.
+            Until(() => ItemText(app, path, "WorkspaceBranch") == "Removing…");
+            Settle(300);
+            typeof(SharpRail.UI.WorkbenchWindow).GetMethod("RefreshProjectWorkspaces", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .Invoke(app.Window, null);
+            Settle(200);
+            var stillMounted = !unmounted;
+            var switching = Stopwatch.GetTimestamp();
+            app.Click(Select(app, other));
+            Until(() => Active(app, other));
+            var switched = Stopwatch.GetElapsedTime(switching);
+            var removing = Directory.Exists(path);
+            Until(() => !WorktreePaths(app).Contains(path) && !Directory.Exists(path));
+            Settle(300);
+            Console.WriteLine($"MEASURE delete other workspace max UI stall {worst.TotalMilliseconds:0} ms, switch during removal {switched.TotalMilliseconds:0} ms (removal still running: {removing})");
+            Require(stillMounted, "Deleting another workspace unmounted or reloaded the open one.");
+            Require(worst < Limit, $"Deleting another workspace stalled the UI thread for {worst.TotalMilliseconds:0} ms.");
+            Require(switched < TimeSpan.FromMilliseconds(1000), $"Opening a workspace waited {switched.TotalMilliseconds:0} ms behind another workspace's removal.");
+        }
+        finally { beat.Stop(); }
+        Console.WriteLine("PASS deleting another dirty workspace keeps the open one mounted, the UI thread responsive and switching prompt");
     }
 
     private static void CreateAndDelete(string directory)
