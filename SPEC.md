@@ -347,7 +347,7 @@ views own canonical document membership, order, preview slots and selection.
 Switching workspaces retains geometry. Removing/merging groups remaps every
 retained workspace; closing the final tab preserves empty groups.
 
-Balanced: left 18%, right 28% with Specs/Files above Changes/Review (1.25:1).
+Balanced: left 18%, right 28% with Specs/Files above Review (1.25:1); Changes lives in Files as its Changed mode.
 Center splits are binary, maximum four leaves,
 320px minimum width/180px minimum height for interactive split/resize.
 Auxiliary groups default to six per side, configurable 1–32.

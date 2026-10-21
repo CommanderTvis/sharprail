@@ -204,6 +204,18 @@ internal sealed class E2eWorkspace : IDisposable
     /// <summary>Shows a side tool through its rail entry; the entry already pressed would fold its pane instead, so it is left alone.</summary>
     internal void ShowTool(string id)
     {
+        // Changes is Files' Changed mode; All is chosen explicitly when Files itself is asked for.
+        if (id is "changes" or "files")
+        {
+            ShowTool("tool:files");
+            var mode = id == "changes" ? "FilesModeChanged" : "FilesModeAll";
+            Until(() => Window.GetLogicalDescendants().OfType<ToggleButton>().Any(button => button.Name == mode && button.IsEffectivelyVisible));
+            var toggle = Window.GetLogicalDescendants().OfType<ToggleButton>().First(button => button.Name == mode && button.IsEffectivelyVisible);
+            if (toggle.IsChecked != true) Click(toggle);
+            Until(() => Window.FilesShowChanged == (id == "changes"));
+            return;
+        }
+        if (id == "tool:files") id = "files";
         // Settle first, as a fresh click does: a restore still landing may select the tool meanwhile.
         Window.MouseMove(new Point(Window.Bounds.Width - 2, Window.Bounds.Height - 2));
         Settle(550);

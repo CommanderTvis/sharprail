@@ -119,7 +119,8 @@ public sealed partial class WorkbenchWindow
     // Re-lists the root and every loaded folder so expanded folders keep their children.
     private async Task RefreshFilesAsync(long request, IReadOnlyList<string>? loadFolders = null)
     {
-        var folders = folderCache.Keys.Concat(loadFolders ?? []).Prepend("").Distinct().ToArray();
+        // Remembered expanded folders are listed too, so a restored tree opens them rather than forgetting them.
+        var folders = folderCache.Keys.Concat(expandedFolders).Concat(loadFolders ?? []).Prepend("").Distinct().ToArray();
         var listed = new Dictionary<string, IReadOnlyList<ProjectFile>>();
         foreach (var folder in folders)
         {

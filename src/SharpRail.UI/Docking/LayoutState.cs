@@ -119,7 +119,9 @@ public sealed class DockState
         HomeProjectsWidth = HomeProjectsWidth
     };
 
-    public static readonly string[] ToolNames = ["projects", "files", "changes", "review", "lsp"];
+    public static readonly string[] ToolNames = ["projects", "files", "review", "lsp"];
+    /// <summary>Core tools retired from layouts: Changes became Files' Changed mode (ThinkRail #779).</summary>
+    public static readonly IReadOnlySet<string> RetiredToolIds = new HashSet<string> { "changes" };
     /// <summary>The spec dialect plugin's Specs tool, which the presets seat first in the right rail.</summary>
     public const string SpecsTool = "plugin:spec-dialect:specs";
     /// <summary>Core tool ids that moved into a plugin, and the plugin tool id a persisted layout reads them as.</summary>
@@ -142,6 +144,8 @@ public sealed class DockState
         try { SeparatePanes(); }
         catch (Exception error) when (error is NullReferenceException or InvalidOperationException or ArgumentException) { }
         static string Rename(string id) => LegacyToolIds.GetValueOrDefault(id) ?? id;
+        try { DropRetiredTools(); }
+        catch (NullReferenceException) { }
         try
         {
             foreach (var group in Groups)
@@ -164,6 +168,24 @@ public sealed class DockState
                         map[key] = Rename(value);
         }
         catch (NullReferenceException) { }
+    }
+
+    /// <summary>
+    /// Removes retired core tools wherever a persisted layout names them, so an older layout keeps its arrangement
+    /// rather than failing validation and resetting; a group left without tools stays as an empty slot.
+    /// </summary>
+    private void DropRetiredTools()
+    {
+        foreach (var group in Groups) group.Tools.RemoveAll(tab => tab.IsTool && RetiredToolIds.Contains(tab.Id));
+        foreach (var id in RetiredToolIds) { ToolRestore.Remove(id); ToolRestorePositions.Remove(id); }
+        foreach (var panes in ProjectPanes.Values.Concat(DefaultProjectPanes is { } defaults ? [defaults] : []))
+        {
+            panes.OpenTools.RemoveAll(RetiredToolIds.Contains);
+            foreach (var (key, value) in panes.SelectedTools.ToArray()) if (RetiredToolIds.Contains(value)) panes.SelectedTools.Remove(key);
+        }
+        foreach (var view in Workspaces.Values)
+            foreach (var map in new[] { view.Selected, view.BeforeToolByTabId })
+                foreach (var (key, value) in map.ToArray()) if (RetiredToolIds.Contains(value)) map.Remove(key);
     }
 
     /// <summary>Moves document tabs into the centre before discarding the retired bottom zone and its terminal placements.</summary>
@@ -271,7 +293,7 @@ public sealed class DockState
         var center = new DockGroup();
         var left = new DockGroup { Region = "left", Tools = [Tool("projects")] };
         var top = new DockGroup { Region = "right", Tools = [Tool(SpecsTool), Tool("files")], Weight = 1.25 };
-        var lower = new DockGroup { Region = "right", Tools = [Tool("changes"), Tool("review")] };
+        var lower = new DockGroup { Region = "right", Tools = [Tool("review")] };
         var state = new DockState { Center = new() { GroupId = center.Id }, Groups = [center, left, top, lower] };
         if (name == "focus") state.LeftVisible = state.RightVisible = false;
         if (name == "review")
@@ -279,7 +301,7 @@ public sealed class DockState
             var secondary = new DockGroup();
             state.Groups.Add(secondary);
             state.Center = new() { Axis = "vertical", First = new() { GroupId = center.Id }, Second = new() { GroupId = secondary.Id } };
-            top.Tools = [Tool("changes"), Tool("review")]; top.Weight = 1.4;
+            top.Tools = [Tool("review")]; top.Weight = 1.4;
             lower.Tools = [Tool(SpecsTool), Tool("files")];
             state.LeftWidth = .16; state.RightWidth = .32;
         }

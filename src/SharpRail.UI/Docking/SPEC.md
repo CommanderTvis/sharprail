@@ -82,7 +82,9 @@ workspace first and the view goes once another is active.
 - Center: a horizontal/vertical binary tree of at most four leaves; a split halves one leaf. Interactive
   split and resize keep each pane at least 320px wide and 180px high. Remove promotes the sibling and
   moves the removed leaf's documents into it in every view.
-- Auxiliary eligibility: Projects, Specs, Files, Changes and Review are singleton tools, auxiliary-only.
+- Auxiliary eligibility: Projects, Specs, Files and Review are singleton tools, auxiliary-only. Changes is
+  Files' Changed mode (ThinkRail #779); a persisted layout or preset naming the retired `changes` tool loses that
+  tab on load and keeps the rest of its arrangement (upstream resets such a layout instead).
   Documents are center-only. Terminals may sit in the center or any auxiliary region. Hiding a tool keeps its
   restore group and position; Show restores it there and selects it.
 - Tools and terminals never share a pane ([Panes](#tool-and-terminal-panes)).
@@ -220,7 +222,7 @@ rebuilding it.
 ## Presets
 
 Balanced, Focus and Review are built-in frame definitions (`DockState.Preset`). Balanced: left 18%,
-right 28% with Specs/Files over Changes/Review at 1.25:1. A workspace
+right 28% with Specs/Files over Review at 1.25:1. A workspace
 whose spec graph comes back empty opens that rail on Files instead: once per workspace, when the graph
 arrives, a group still on its seeded first tool Specs moves its selection to the next tool without taking
 focus. Specs stays docked, and anything the user selects afterwards is theirs. Focus hides
@@ -419,4 +421,4 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
 focus persistence, finger-following, revert, interruption, Projects to Tools and hit-testing of hidden pages. Dragging tabs between regions is not offered here.
 
 Core includes the Code Intelligence tool (`lsp`, right by default), restored and moved through the same tool catalog
-and persisted frame as Files and Changes. Existing presets retain their current selected tools.
+and persisted frame as Files and Review. Existing presets retain their current selected tools.

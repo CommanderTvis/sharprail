@@ -246,11 +246,11 @@ internal static class TerminalChromeChecks
             app.Window.Layout.Tabs(side.Id).All(tab => tab.IsTool),
             "The side menu must create terminals in a terminal pane of its own side.");
         app.ContextAction(app.Find<Button>("Tab_projects"), "Close");
-        app.ContextAction(app.Find<Button>("Tab_changes"), "Close");
+        app.ContextAction(app.Find<Button>("Tab_review"), "Close");
         add = app.Find<Button>("AddToGroup_" + side.Id);
         app.Click(add); Until(() => add.ContextMenu!.IsOpen);
         var entries = add.ContextMenu!.Items.OfType<MenuItem>().ToArray();
-        Require(entries.Any(item => Equals(item.Header, "Show Changes")) && !entries.Any(item => Equals(item.Header, "Show Projects")),
+        Require(entries.Any(item => Equals(item.Header, "Show Review")) && !entries.Any(item => Equals(item.Header, "Show Projects")),
             "A side menu must offer only its own side's hidden tools.");
         add.ContextMenu.Close();
         Console.WriteLine("PASS upstream layout.spec.ts: the side group menu shows tools for its own side and opens terminals in that group");

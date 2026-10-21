@@ -81,7 +81,7 @@ internal static class PaneRetentionChecks
         var actionDetaches = 0;
         action.DetachedFromVisualTree += (_, _) => actionDetaches++;
 
-        window.Layout.RestoreTool("changes");
+        window.RevealToolFor(window.WorkspaceRoot, "changes");
         Await(window.RefreshAsync());
         Until(() => window.GetLogicalDescendants().OfType<Border>().Any(frame => frame.Classes.Contains("change-row")));
         var changesPanel = app.Find<Grid>("ChangesPanel");
@@ -125,7 +125,8 @@ internal static class PaneRetentionChecks
 
         registry.RemovePlugin("retained");
         Register();
-        window.Layout.RestoreTool("plugin:retained:panel");
+        // Changes now opens in Files, which may share the plugin pane's group, so the panel is selected explicitly.
+        window.RevealToolFor(window.WorkspaceRoot, "plugin:retained:panel");
         Require(!ReferenceEquals(pane, app.Find<Border>("RetainedPane")) && builds[firstWorkspace] == 2,
             "Removing a plugin must evict its cached panes.");
         Await(window.OpenProjectAsync(second));

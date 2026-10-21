@@ -106,11 +106,7 @@ public sealed partial class WorkbenchWindow
         Ui.Place(toolbar, ChangesViewToggle("List", false), 0, 2);
         Ui.Place(toolbar, ChangesViewToggle("Tree", true), 0, 4);
         Ui.Place(panel, Ui.Frame(toolbar));
-        var changes = git.Changes.Where(change => changeScope switch
-        {
-            "Staged" => change.IndexStatus is not (" " or "?"),
-            _ => true
-        }).ToArray();
+        var changes = ScopedChanges();
         if (gitLoading || gitError is not null)
         {
             var message = Ui.Text(gitError ?? "Loading Git…", Ui.Hint, 12);
@@ -292,7 +288,7 @@ public sealed partial class WorkbenchWindow
         {
             changeTree = tree;
             ReconcileChangesPanel();
-            surface.RefreshContents("changes");
+            UpdateFilesHeader();
         };
         return button;
     }
@@ -483,12 +479,8 @@ public sealed partial class WorkbenchWindow
         summary.Name = "ReviewSummary";
         panel.Children.Add(summary);
         panel.Children.Add(new ContentControl { Name = "ReviewPullRequestHost", Content = PullRequestSection() });
-        panel.Children.Add(Ui.Text("Select a file in Changes to inspect its diff.", Ui.Hint, 12));
-        panel.Children.Add(Ui.Button("Show Changes", () =>
-        {
-            var group = Layout.State.Groups.FirstOrDefault(item => item.Tools.Any(tab => tab.Id == "changes"));
-            if (group is null) Layout.RestoreTool("changes"); else Layout.Select(group.Id, "changes");
-        }, "fileDiff"));
+        panel.Children.Add(Ui.Text("Select a file in Files · Changed to inspect its diff.", Ui.Hint, 12));
+        panel.Children.Add(Ui.Button("Show Changes", RevealChanges, "fileDiff"));
         return panel;
     }
 

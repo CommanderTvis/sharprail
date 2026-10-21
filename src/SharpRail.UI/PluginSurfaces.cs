@@ -557,6 +557,8 @@ public sealed partial class WorkbenchWindow
 
     internal void RevealToolFor(string workspace, string tool)
     {
+        // The changed-file list is Files' Changed mode, no longer a tool of its own.
+        if (workspace == workspaceRoot && tool == "changes") { RevealChanges(); return; }
         if (workspace != workspaceRoot || !Layout.IsToolAvailable(tool)) return;
         var group = Layout.State.Groups.FirstOrDefault(item => item.Tools.Any(tab => tab.Id == tool));
         if (group is null) Layout.RestoreTool(tool);

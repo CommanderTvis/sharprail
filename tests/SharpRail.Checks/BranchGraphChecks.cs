@@ -237,7 +237,7 @@ internal static class BranchGraphChecks
         SameProjectSwitch(app, panel, sha);
         rows = window.GetLogicalDescendants().OfType<Button>().Where(button => button.Name == "GraphCommit").ToArray();
         app.Click(rows[0]);
-        window.Layout.RestoreTool("changes");
+        window.RevealToolFor(window.WorkspaceRoot, "changes");
         E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ChangesScope" && button.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains(sha[..7], StringComparison.Ordinal) == true)));
         window.Layout.RestoreTool(Tool);
         var scroll = panel.GetLogicalDescendants().OfType<ScrollViewer>().Single();
@@ -287,7 +287,7 @@ internal static class BranchGraphChecks
         var row = panel.GetLogicalDescendants().OfType<GraphCommitRow>().First();
         var workspace = app.Window.WorkspaceRoot;
         app.Click(row);
-        app.Window.Layout.RestoreTool("changes");
+        app.Window.RevealToolFor(app.Window.WorkspaceRoot, "changes");
         E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ChangesScope" &&
             button.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains(sha[..7], StringComparison.Ordinal) == true)));
         Require(app.Window.WorkspaceRoot == workspace, "The retained commit row must apply its scope to the newly selected worktree.");

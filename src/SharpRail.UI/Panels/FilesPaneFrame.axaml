@@ -1,5 +1,5 @@
 <Grid xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:panels="using:SharpRail.UI.Panels" x:Class="SharpRail.UI.Panels.FilesPaneFrame"
-      RowDefinitions="Auto,*">
+      RowDefinitions="Auto,Auto,*">
   <panels:FileTransferProgress x:Name="TransferProgress" Grid.Row="0" />
 </Grid>

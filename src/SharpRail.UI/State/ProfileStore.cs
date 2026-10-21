@@ -58,6 +58,13 @@ public sealed class SystemThemePair
 
 public record GitSelection(string Target, string Scope, GitCommit? Commit);
 
+/// <summary>Folders expanded in Files' All tree and folders collapsed in its Changed tree (one set for every scope).</summary>
+public sealed class FilesTreeMemory
+{
+    public HashSet<string> Expanded { get; set; } = [];
+    public HashSet<string> ChangedCollapsed { get; set; } = [];
+}
+
 /// <summary>State one window restores: its frame, window-local default preset and last location.</summary>
 public sealed class WindowProfile
 {
@@ -79,6 +86,8 @@ public sealed class Profile
     /// <summary>Remotes whose branches every branch picker shows collapsed.</summary>
     public HashSet<string> CollapsedRemotes { get; set; } = [];
     public Dictionary<string, GitSelection> GitSelections { get; set; } = [];
+    /// <summary>The Files tool's remembered tree per workspace, kept across workspace switches and restarts.</summary>
+    public Dictionary<string, FilesTreeMemory> FilesTrees { get; set; } = [];
     /// <summary>Plugins' client-local preferences, keyed <c>endpoint|plugin:id:key</c>, so two hosts' plugins never share a value.</summary>
     public Dictionary<string, string> PluginPreferences { get; set; } = [];
     /// <summary>Set once shared fields have moved to the local host's <c>state.json</c>.</summary>
@@ -166,6 +175,14 @@ public sealed class ProfileStore
                     if (!ValidPath(entry.Key) || string.IsNullOrWhiteSpace(entry.Value) || entry.Value.Contains('\0'))
                         labels.Remove(entry.Key);
             Data.GitSelections ??= [];
+            Data.FilesTrees ??= [];
+            foreach (var entry in Data.FilesTrees.ToArray())
+                if (!ValidPath(entry.Key) || entry.Value is null) Data.FilesTrees.Remove(entry.Key);
+                else
+                {
+                    entry.Value.Expanded = [.. (entry.Value.Expanded ?? []).Where(path => !string.IsNullOrEmpty(path) && !path.Contains('\0'))];
+                    entry.Value.ChangedCollapsed = [.. (entry.Value.ChangedCollapsed ?? []).Where(path => !string.IsNullOrEmpty(path) && !path.Contains('\0'))];
+                }
             Data.SettledShelfNotices ??= [];
             foreach (var entry in Data.GitSelections.ToArray())
             {

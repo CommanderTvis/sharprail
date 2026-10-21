@@ -28,7 +28,8 @@ public sealed partial class WorkbenchWindow
             var end = depth + 1;
             while (descendants.All(change => change.Parts.Length > end + 1 && change.Parts[end] == parts[end])) end++;
             var label = string.Join('/', parts.Skip(depth).Take(end - depth));
-            var node = new TreeViewItem { IsExpanded = true, Tag = string.Join('/', parts.Take(end)) };
+            var node = new TreeViewItem { Tag = string.Join('/', parts.Take(end)) };
+            TrackChangedFolder(node, (string)node.Tag);
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,8,Auto"), Height = 28 };
             var folderLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,6,*"), ClipToBounds = true };
             Ui.Place(folderLabel, Ui.Icon("folder"));

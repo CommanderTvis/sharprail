@@ -113,19 +113,22 @@ public sealed partial class WorkbenchWindow
         panel.DetachedFromVisualTree += (_, _) => directoryTimer.Stop();
         WireFileDragging(tree, panel);
         tree.SetRoots(FileEntries([], folderCache.GetValueOrDefault("") ?? [], tree));
-        Ui.Place(panel, tree, 1);
+        Ui.Place(panel, FilesHeader(), 1);
+        Ui.Place(panel, tree, 2);
+        // The panel is registered by the caller; mode and marks look it up there once it is.
+        Dispatcher.UIThread.Post(() => { if (ReferenceEquals(toolContent.GetValueOrDefault("files"), panel)) ApplyFilesMode(panel); });
         return panel;
     }
 
-    private DrawnTreeEntry FileNode(ProjectFile file, DrawnTree tree)
+    private DrawnTreeEntry FileNode(ProjectFile file, DrawnTree tree, bool ignoredParent = false)
     {
         var entry = new DrawnTreeEntry(file.Path, file.Name)
         {
             Tag = file,
             Help = file.Path,
             Tip = ProjectFileTip(file),
-            Muted = file.GitIgnored,
-            Italic = file.GitIgnored,
+            Muted = file.GitIgnored || ignoredParent,
+            Italic = file.GitIgnored || ignoredParent,
             CanExpand = file.IsDirectory,
             IconKey = _ => ProjectFileIconKey(file),
             Icon = _ => ProjectFileIcon(file)
@@ -133,11 +136,12 @@ public sealed partial class WorkbenchWindow
         entry.Menu = () => FileActions(file, () => tree.Expand(entry, true));
         if (file.IsDirectory)
         {
+            // A folder opens when it or a folder inside it was left expanded, so a compact chain that splits keeps its expansion.
             var prefix = file.Path + Path.DirectorySeparatorChar;
             entry.Expanded = expandedFolders.Contains(file.Path) || expandedFolders.Any(path => path.StartsWith(prefix, StringComparison.Ordinal));
             async Task Expand()
             {
-                expandedFolders.Add(file.Path);
+                if (expandedFolders.Add(file.Path)) SaveFilesTree();
                 if (folderCache.ContainsKey(file.Path)) return;
                 var request = projectRequest;
                 try
@@ -146,7 +150,7 @@ public sealed partial class WorkbenchWindow
                     var entries = await Task.Run(async () => await host.ListFilesAsync(file.Path, lifetime.Token), lifetime.Token);
                     if (request != projectRequest) return;
                     folderCache[file.Path] = entries;
-                    entry.Children = FileEntries(entry.Children, entries, tree);
+                    entry.Children = FileEntries(entry.Children, entries, tree, entry.Muted);
                     tree.SetRoots(tree.Roots);
                 }
                 catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
@@ -154,7 +158,8 @@ public sealed partial class WorkbenchWindow
             entry.ExpansionChanged = expanded =>
             {
                 if (expanded) _ = Expand();
-                else expandedFolders.Remove(file.Path);
+                // Collapsing forgets the folders inside too, or they would reopen it on the next rebuild.
+                else if (expandedFolders.RemoveWhere(path => path == file.Path || path.StartsWith(prefix, StringComparison.Ordinal)) > 0) SaveFilesTree();
             };
             entry.Activate = _ => tree.Expand(entry, !entry.Expanded);
             if (entry.Expanded) _ = Expand();

@@ -51,7 +51,7 @@ internal static class DrawerChecks
         var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true);
         window.Width = 400; window.Height = 800;
         window.Show();
-        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "changes"), "The compact Git workspace did not mount.");
+        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "review"), "The compact Git workspace did not mount.");
         var layout = window.Layout;
         var projects = Named<Button>(window, "PageProjects");
         var current = Named<Button>(window, "PageCurrent");
@@ -77,7 +77,7 @@ internal static class DrawerChecks
         Require(sections.Length == window.Layout.Tools.Count - 1 && sections.Length >= 4 && sections.All(section => section.Name != "DrawerSection_projects") &&
             Region("right").GetLogicalDescendants().OfType<Border>().Count(border => border.Name == "DrawerSectionBody") == 1,
             "Tools must list every tool but Projects as sections, seated in a group or not, and show one of them.");
-        Click(sections.Single(section => section.Name == "DrawerSection_changes"));
+        Click(sections.Single(section => section.Name == "DrawerSection_review"));
         Require(Region("right").GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "DrawerSectionBody").Child is not null &&
             layout.State.RightVisible, "Choosing a section must show that tool and stay on Tools.");
         Click(current);

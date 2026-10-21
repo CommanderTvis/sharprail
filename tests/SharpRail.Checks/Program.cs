@@ -957,6 +957,14 @@ internal static class Program
             Console.WriteLine("PASS workspace and project E2E checks");
             return;
         }
+        if (args.SequenceEqual(["--files-modes"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.FilesModesE2E.Run(root);
+            Console.WriteLine("PASS Files modes checks");
+            return;
+        }
         if (args.SequenceEqual(["--changes"]) || args.SequenceEqual(["--changes-menu"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -1081,6 +1089,7 @@ internal static class Program
         Gate.Case("file-drop-gestures", FileDropChecks.Gestures);
         Gate.Case("file-manager", FileManagerChecks.Run);
         Gate.Case("file-reveal-ui", () => E2E.FileRevealE2E.Run(root));
+        Gate.Case("files-modes-ui", () => E2E.FilesModesE2E.Run(root));
         Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));

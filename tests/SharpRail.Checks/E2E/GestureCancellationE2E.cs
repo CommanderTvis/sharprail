@@ -42,9 +42,9 @@ internal static class GestureCancellationE2E
         Require(app.Window.Layout.Group(files).Folded, "The Files group must fold.");
         app.Click(app.Find<Button>("Tab_" + app.Window.Layout.Selected(files)!.Id.Replace(':', '_')));
         Require(!app.Window.Layout.Group(files).Folded, "The Files group must unfold.");
-        app.ShowTool("changes");
-        var changes = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes")).Id;
-        Require(app.Window.Layout.Selected(changes)?.Id == "changes" && !app.Find<Border>("GestureToast").IsVisible,
+        app.ShowTool("review");
+        var changes = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review")).Id;
+        Require(app.Window.Layout.Selected(changes)?.Id == "review" && !app.Find<Border>("GestureToast").IsVisible,
             "Ordinary transitions after a committed gesture must never announce a cancellation.");
         Console.WriteLine("PASS upstream layout.spec.ts: local layout transitions with no gesture in progress never announce a canceled drag");
     }

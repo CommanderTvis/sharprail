@@ -131,7 +131,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Activated += (_, _) => { if (WorkspaceMounted) RefreshProjectWorkspaces(); };
         Closed += (_, _) =>
         {
-            RememberGitSelection(); lifetime.Cancel(); StopWatching(); profile.Save();
+            RememberGitSelection(); RememberFilesTree(); lifetime.Cancel(); StopWatching(); profile.Save();
             ClearDocumentContent(); ClearRetainedTools();
         };
         AddHandler(KeyDownEvent, (_, e) => { if (workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
@@ -328,7 +328,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     private async Task OpenWorkspaceAsync(string path, bool project, bool home = false, Action<Exception>? failed = null)
     {
-        RememberGitSelection();
+        RememberGitSelection(); RememberFilesTree();
         var previous = WorkspaceMounted ? (atHome ? "" : workspaceRoot) : null;
         var request = ++projectRequest; WorkspaceMounted = false;
         startupMilestones?.Begin(request);
@@ -377,7 +377,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             Layout.SetGitAvailable(git.IsRepository);
             gitLoading = true; gitError = null;
             RestoreGitSelection();
-            if (!sameProject) { folderCache.Clear(); expandedFolders.Clear(); }
+            if (!sameProject) folderCache.Clear();
+            RestoreFilesTree(sameProject);
             // The rail survives any switch whose projects and workspaces it already lists; only its styling follows.
             var rail = toolContent.GetValueOrDefault("projects");
             var filesPanel = sameProject ? toolContent.GetValueOrDefault("files") : null;
@@ -505,7 +506,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 {
                     "projects" => ProjectsPanel(),
                     "files" => FilesPanel(),
-                    "changes" => ChangesPanel(),
                     "review" => ReviewPanel(),
                     "lsp" => LanguagePanel(),
                     _ => PluginTool(tab.Id)

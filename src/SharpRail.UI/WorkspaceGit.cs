@@ -123,6 +123,7 @@ public sealed partial class WorkbenchWindow
             return;
         }
         ReconcileChangesPanel();
+        UpdateFileMarks();
         if (toolContent.ContainsKey("review"))
         {
             var previousKey = reviewKey;
@@ -130,7 +131,7 @@ public sealed partial class WorkbenchWindow
             if (previousKey != reviewKey) RefreshReviewPanel();
         }
         UpdateRailSelection();
-        surface.RefreshContents("changes", "review");
+        surface.RefreshContents("review");
     }
 
     private ContextMenu? gitPanelMenu;

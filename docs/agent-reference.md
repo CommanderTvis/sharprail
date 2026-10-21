@@ -130,6 +130,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--workspace-tools` | Host MCP workspace tools and UI integration. |
 | `--serving`, `--project-close` | Embedded-host serving; teardown. |
 | `--pane-retention`, `--startup`, `--live-diffs` | Retained controls; progressive startup; refreshing open diffs. |
+| `--files-modes` | Files All \| Changed: Git marks, ignored dimming, remembered expanded folders across switches and reloads (local Git fixture). |
 | `--dock-input` | Dock pointer and keyboard input, tab menus including file-path copies. |
 | `--change-actions`, `--review` | Toast and diff revert/undo; Review panel. |
 | `--drawers` | Phone pages: the compact page bar, Settings as a page, and the persistent page hosts and their slide. |

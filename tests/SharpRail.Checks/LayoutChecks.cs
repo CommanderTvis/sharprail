@@ -220,7 +220,7 @@ internal static class LayoutChecks
 
         var tools = new LayoutSession();
         tools.SwitchWorkspace("tools");
-        Require(tools.IsToolShowing("projects") && tools.IsToolShowing("changes") && !tools.IsToolShowing("review"), "A tool shows only as its group's shown tab.");
+        Require(tools.IsToolShowing("projects") && tools.IsToolShowing(DockState.SpecsTool) && !tools.IsToolShowing("files"), "A tool shows only as its group's shown tab.");
         tools.Visible("left", false);
         Require(!tools.IsToolShowing("projects"), "A hidden side shows no tool.");
         Console.WriteLine("PASS fork model.test.ts tab panes: grouping, contiguity, member drops, joining, preview, exclusivity, closing, persistence; isToolShowing");
@@ -234,7 +234,9 @@ internal static class LayoutChecks
         var bottom = session.State.Center.Leaves().Single();
         session.NewTerminal(bottom);
         var side = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool)).Id;
-        var lower = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes")).Id;
+        var lower = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review")).Id;
+        // The rail-entry checks below need a second tool in the lower pane.
+        session.RestoreTool("lsp", lower); session.Select(lower, "review");
         var terminal = session.Tabs(bottom).Single();
         Require(terminal is { Kind: "terminal", Title: "Terminal 1" } && session.Selected(bottom)?.Id == terminal.Id,
             "An explicit terminal must open selected in its center group.");
@@ -252,7 +254,7 @@ internal static class LayoutChecks
         var legacy = session.State.Copy();
         legacy.Workspaces["one"].Documents[created].Clear();
         legacy.Workspaces["one"].Documents[lower] = [terminal];
-        legacy.Workspaces["one"].BeforeToolByTabId[terminal.Id] = "changes";
+        legacy.Workspaces["one"].BeforeToolByTabId[terminal.Id] = "review";
         Require(!LayoutSession.IsValid(legacy), "A mixed tool and terminal pane must be invalid.");
         var migrated = new LayoutSession(System.Text.Json.JsonSerializer.Deserialize<DockState>(System.Text.Json.JsonSerializer.Serialize(legacy)));
         Require(migrated.State.Workspaces["one"].Documents[created].Single().Id == terminal.Id &&
@@ -292,7 +294,7 @@ internal static class LayoutChecks
         Require(!session.ActivateEntry(lower, "review") && session.Epoch == epoch + 1 && session.State.RightVisible &&
             !session.Group(lower).Folded && session.Selected(lower)?.Id == "review", "An unpressed rail entry must reveal and select in one transition.");
         Require(session.ActivateEntry(lower, "review") && session.Group(lower).Folded, "The pressed rail entry must fold its pane.");
-        Require(!session.ActivateEntry(lower, "changes") && !session.Group(lower).Folded && session.Selected(lower)?.Id == "changes",
+        Require(!session.ActivateEntry(lower, "lsp") && !session.Group(lower).Folded && session.Selected(lower)?.Id == "lsp",
             "Another entry of a folded pane must unfold it and select itself.");
         Require(!session.ActivateEntry(below.Id, null) && !session.Group(below.Id).Folded, "A terminal pane's entry must unfold it.");
 

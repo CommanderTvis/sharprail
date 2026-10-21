@@ -75,13 +75,13 @@ public sealed partial class WorkbenchWindow
 
     private void ShowWelcome()
     {
-        RememberGitSelection();
+        RememberGitSelection(); RememberFilesTree();
         projectRequest++; gitRefresh?.Cancel(); StopWatching();
         switchingWorkspace = false;
         WorkspaceMounted = false; atHome = false; cleanWelcome = true;
         projectRoot = ""; workspaceRoot = "";
         git = new(false, "", [], [], []); gitLoading = false; gitError = null;
-        folderCache.Clear(); expandedFolders.Clear(); toolContent.Clear(); selectionHistory.Clear();
+        folderCache.Clear(); expandedFolders.Clear(); changedCollapsed.Clear(); toolContent.Clear(); selectionHistory.Clear();
         slot.LastProject = ""; slot.LastProjectRoot = ""; slot.LastAtHome = false; restorePending = false; syncedProject = "";
         SaveProfile();
         UpdateScopeLabels();

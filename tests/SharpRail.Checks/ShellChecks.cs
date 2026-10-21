@@ -446,7 +446,7 @@ internal static class ShellChecks
     private static void ArrangementIsolation(string directory)
     {
         using var app = new E2eWorkspace(directory, prepare: _ => WorkspaceTabsE2E.Git(directory, "init", "-q", "-b", "main"));
-        Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == "changes"));
+        Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == "review"));
         app.Open("README.md", true); app.Open("notes.txt", true);
         var surface = app.Find<DockSurface>("WorkspaceWorkbench");
         var detached = new List<string>();

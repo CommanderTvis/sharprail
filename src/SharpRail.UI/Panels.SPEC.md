@@ -5,7 +5,7 @@ status: active
 title: Workbench panels
 ---
 
-# Workbench panels: Projects, Files, Specs, Changes, Review and Welcome
+# Workbench panels: Projects, Files (All | Changed), Specs, Review and Welcome
 
 Upstream: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 Changes-row truncation and Markdown source contract: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
@@ -171,6 +171,32 @@ rows and the diff path chip take a file icon from an active plugin's file-icon s
 can be set by a plugin (W18): uncommitted, one commit, the comparison target, or a pinned base.
 
 ## Files
+
+Files is one tool with a fixed header row: an **All | Changed** switch and, at its right, Collapse all folders
+(ThinkRail #779, `FilesModes.cs`). **Changed** is the [Changes](#changes) view itself, unchanged (scope, target,
+List | Tree, diff opening, row actions, review-tab activation), built on first use and kept in the tool-content map
+under `changes`; the separate Changes tool is retired. **All** is the file tree below. The mode is window-wide and
+session-only, default All; Show Changes on Review, a plugin `RevealTool(…, "changes")` and the checks' Changes helper
+reveal Files and select Changed in one step. The Changed label carries the scope's change count when it is non-zero.
+
+- Marks come from the window's one Git snapshot, the same list Changed shows, so count, marks and list cannot
+  disagree, and they are applied to in-memory rows only. A changed file shows its name and a trailing `M`/`A`/`U`/`R`
+  letter in the status colour (modified `Warning`, added and untracked `Success`, renamed `Info`); every ancestor
+  folder, expanded or collapsed, shows its name and a trailing dot in `Warning`. Deleted files are not listed and
+  mark no folder. Paths are compared with `/`, so Windows separators cannot hide nested marks. A failed refresh keeps
+  the last marks; a switched workspace starts with none until its first read.
+- Git-ignored entries and everything inside an ignored folder are dimmed (`Hint`, italic).
+- Expanded All folders and collapsed Changed-tree folders (one set for every scope) are remembered per workspace in
+  the profile (`Profile.FilesTrees`, keyed by workspace root, dropped when the workspace is removed), so they survive
+  the All ↔ Changed switch, side-tab switches, workspace switches and restarts. A workspace with no memory yet
+  keeps the tree its project's previous workspace showed (the retained pane below), rather than upstream's empty one. A folder reopens when it or a folder inside it
+  was left expanded (so a splitting compact chain keeps its expansion); collapsing a folder forgets the folders
+  inside it. Collapse all folders collapses All, or
+  every folder of Changed's Tree view when it has a change; it is disabled in Changed's List view.
+- Not ported from #779: auto-reveal and highlight of the active editor tab's file, per-view scroll memory across
+  reloads (scroll survives within a session through pane retention), and the host-side `/` path fix and
+  `git check-ignore` reader (SharpRail's host already lists `/`-compatible relative paths on macOS and Linux and
+  reports ignored state itself).
 
 Git-ignored Files rows remain openable and show a muted icon and chevron, a subtle italic label, and an “Ignored by git” tooltip. Icon-plugin refreshes preserve the ignored appearance.
 
@@ -462,7 +488,7 @@ whose diffs load and unload editors. These are synthetic results, not native pre
 ## Review
 
 The tool summarises the changed-file count on the current branch, offers Show Changes (which reveals or
-restores the Changes tool) and owns the branch's pull request, a deterministic host flow of push plus `gh`
+restores Files and selects Changed) and owns the branch's pull request, a deterministic host flow of push plus `gh`
 (see Git.SPEC.md). Upstream hangs this flow on its plan pane; SharpRail has no plan, so it lives here and the
 description comes from the host's draft (branch name and commit subjects).
 

@@ -37,7 +37,7 @@ public sealed partial class WorkbenchWindow
     {
         removedWorkspaces.Add(path);
         selectionHistory.Remove(path);
-        if (profile.Data.GitSelections.Remove(path)) SaveProfile();
+        if (profile.Data.GitSelections.Remove(path) | profile.Data.FilesTrees.Remove(path)) SaveProfile();
         Layout.DropWorkspace(path);
     }
 

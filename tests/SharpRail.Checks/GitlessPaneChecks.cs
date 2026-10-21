@@ -12,7 +12,7 @@ namespace SharpRail.Checks;
 internal static class GitlessPaneChecks
 {
     private const string Graph = "plugin:branch-graph:graph";
-    private static readonly string[] GitTools = ["changes", "review", Graph];
+    private static readonly string[] GitTools = ["review", Graph];
 
     internal static void Run(string root)
     {

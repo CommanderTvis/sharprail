@@ -253,7 +253,7 @@ internal static class UiChecks
         var window = new WorkbenchWindow(host, root, store, E2E.E2eTerminals.Plain);
         window.Width = 1352; window.Height = 848;
         window.Show();
-        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "changes"), "The Git workspace did not mount.");
+        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "review"), "The Git workspace did not mount.");
         Pump(() => window.GetLogicalDescendants().OfType<DrawnTree>().Any(tree => tree.Name == "SpecsTree"), "The spec dialect's Specs panel did not mount.");
         Pump(() => Find<DrawnTree>(window, "SpecsTree").Roots.Any(item => Equals(item.Tag, "SPEC.md") &&
             item.Children.Any(child => Equals(child.Tag, "src/SPEC.md"))), "Spec hierarchy did not render.");
@@ -277,7 +277,7 @@ internal static class UiChecks
         var controls = window.GetLogicalDescendants().OfType<Control>().Distinct().ToArray();
         Require(controls.Length > 100, "UI was flattened.");
         Require(Find<Control>(window, "ProjectsPanel").Bounds.Width > 200, "Projects geometry differs.");
-        Require(Find<Control>(window, "ChangesPanel").Bounds.Width > 300, "Changes geometry differs.");
+        Require(Find<Control>(window, "ReviewPanel").Bounds.Width > 300, "Review geometry differs.");
         var projectTab = Find<Button>(window, "Tab_projects");
         var projectLabel = window.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "PaneTitle" && text.Text == "Projects");
         Require(projectTab.Bounds.Size == new Size(32, 32) && projectLabel.FontWeight == Ui.InterfaceWeight,
