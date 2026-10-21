@@ -13,13 +13,14 @@ using SharpRail.UI.Rendering;
 namespace SharpRail.UI;
 
 /// <summary>
-/// Lays the header's Project, Workspace and Branch segments in a row. As width shrinks the branch yields
-/// first, then the project; a segment too narrow to read is dropped, and the workspace takes what is left.
+/// Lays the header's Project, Workspace, Branch, Remote and Pull request segments in a row. As width shrinks Remote
+/// yields first, then Pull request, the branch and the project; a segment too narrow to read is dropped, and the workspace takes what is left.
 /// </summary>
 public sealed class LocationStrip : Panel
 {
     private const double Least = 72;
-    private static readonly int[] YieldOrder = [2, 0];
+    // Remote, then Pull request, then the branch, then the project yield; the workspace keeps what is left.
+    private static readonly int[] YieldOrder = [3, 4, 2, 0];
     private double[] widths = [];
 
     protected override Size MeasureOverride(Size availableSize)

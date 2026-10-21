@@ -161,6 +161,23 @@ clients re-read Git although no file in the workspace changed.
   `unauthenticated`. `SHARPRAIL_GH_OFFLINE=1` skips `gh`. The lookup cache is dropped after a push and a mutation.
 - Remote-ness is decided against `git remote`, never against the string's shape.
 
+## Branch status and actions
+
+Ported from ThinkRail #771 and #776. `GetBranchStatusAsync(fresh)` reports the current branch's remote facts: whether
+origin exists and its forge (github, gitlab, other), whether `origin/<branch>` exists (published), commits ahead and
+behind it (a fresh read fetches that branch first), commits ahead of the review base, whether the branch is its
+own base, and HEAD. On GitHub it adds the open pull request (the cached open-review lookup) and the newest pull
+request heading the branch in any state with its draft flag, checks (failing, pending, passing from the status
+rollup), review decision, merge state, whether its head is origin's own repository, and the merge methods the
+repository allows (`gh repo view`, cached per origin for ten minutes). An unborn branch has no status.
+
+`ApplyBranchActionAsync` runs push, ready, merge, reopen or delete-remote only when the workspace is still on the
+branch and commit the caller saw. Push never forces and asks for confirmation (`confirmBase`) on the base branch.
+Pull request actions refuse a pull request from another repository with the same branch name. Merge passes the
+method and `--match-head-commit`; deleting the remote branch runs `git push origin --delete` leased to the last
+fetched tip, never `gh --delete-branch`, and only after GitHub reports the merge, so a queued merge keeps its
+branch. Both operations travel over WebSocket RPC; a host that predates them reports no status.
+
 ## Get right
 
 - A failed read is an error, never "no changes". The Changes panel keeps its last list and offers Retry;

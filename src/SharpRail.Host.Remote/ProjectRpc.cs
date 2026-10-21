@@ -156,6 +156,41 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
             ? new OpenReviewReply { Found = true, Number = review.Number, Url = review.Url, Provider = review.Provider, UnpushedCommits = review.UnpushedCommits, BehindCommits = review.BehindCommits }
             : new OpenReviewReply());
 
+    public ValueTask<BranchStatusReply> GetBranchStatusAsync(OpenReviewRequest request, CallContext context = default) => Execute(async () =>
+        await Host(context).GetBranchStatusAsync(request.Fresh, context.CancellationToken) is not { } status ? new BranchStatusReply() : new BranchStatusReply
+        {
+            Found = true,
+            Branch = status.Branch,
+            HasOrigin = status.HasOrigin,
+            Provider = status.Provider,
+            Published = status.Published,
+            Ahead = status.Ahead,
+            Behind = status.Behind,
+            AheadOfBase = status.AheadOfBase,
+            OnBase = status.OnBase,
+            BaseName = status.BaseName,
+            Head = status.Head,
+            Review = status.Review is { } review ? new OpenReviewReply { Found = true, Number = review.Number, Url = review.Url, Provider = review.Provider, UnpushedCommits = review.UnpushedCommits, BehindCommits = review.BehindCommits } : null,
+            Details = status.Details is { } details ? new ReviewDetailsMessage
+            {
+                Number = details.Number,
+                Url = details.Url,
+                State = details.State,
+                Draft = details.Draft,
+                Checks = details.Checks,
+                ReviewDecision = details.ReviewDecision,
+                MergeState = details.MergeState,
+                MergeMethods = [.. details.MergeMethods],
+                SameRepository = details.SameRepository
+            } : null
+        });
+
+    public ValueTask<BranchActionReply> ApplyBranchActionAsync(BranchActionRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
+    {
+        var result = await host.ApplyBranchActionAsync(new(request.Kind, request.Branch, request.Head, request.ConfirmBase, request.Method, request.DeleteBranch), token);
+        return new BranchActionReply { Outcome = result.Outcome, Message = result.Message };
+    });
+
     public ValueTask<PrDraftReply> PreviewPrAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
         var draft = await Host(context).PreviewPrAsync(context.CancellationToken);

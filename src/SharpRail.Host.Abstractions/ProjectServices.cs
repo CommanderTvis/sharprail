@@ -104,6 +104,28 @@ public record EditorInfo(string Id, string Label);
 public record DiffStats(int Added, int Removed);
 /// <summary>The open pull request of the workspace branch; counts are -1 when unknown.</summary>
 public record OpenReview(int Number, string Url, string Provider, int UnpushedCommits, int BehindCommits);
+/// <summary>
+/// The review facts of the branch's pull request on GitHub (ThinkRail #776): State is OPEN, MERGED or CLOSED; Checks is
+/// passing, failing, pending or empty; ReviewDecision and MergeState are GitHub's values; MergeMethods are merge, squash
+/// and rebase as the repository allows them. SameRepository is false for a pull request whose head is a fork's branch.
+/// </summary>
+public record ReviewDetails(int Number, string Url, string State, bool Draft, string Checks, string ReviewDecision, string MergeState,
+    IReadOnlyList<string> MergeMethods, bool SameRepository);
+/// <summary>
+/// The branch's remote state and next step (ThinkRail #771): whether origin exists and which forge it is (github, gitlab,
+/// other), whether the branch is published there, commits ahead and behind it (-1 when unknown), commits ahead of the
+/// review base, whether the branch is its own base, the commit HEAD names, the open pull request and its details.
+/// </summary>
+public record BranchStatus(string Branch, bool HasOrigin, string Provider, bool Published, int Ahead, int Behind, int AheadOfBase,
+    bool OnBase, string BaseName, string Head, OpenReview? Review, ReviewDetails? Details);
+/// <summary>
+/// A branch mutation bound to what the caller saw: Kind is push, ready, merge, reopen or delete-remote; Head is the commit
+/// the caller's status named (the host refuses when the branch moved); ConfirmBase allows pushing a branch that is its
+/// own base; Method and DeleteBranch apply to merge.
+/// </summary>
+public record BranchAction(string Kind, string Branch, string Head, bool ConfirmBase = false, string Method = "", bool DeleteBranch = false);
+/// <summary>Outcome is done, confirmBase or authFailed; Message says what happened or why not.</summary>
+public record BranchActionResult(string Outcome, string Message);
 public record PrDraft(string Title, string Body);
 public record PrRequest(string Title, bool TitleEdited, string Body, bool Draft);
 /// <summary>Action is created, updated, pushed, compare or authFailed; GhProblem is missing or unauthenticated when gh could not be used.</summary>
@@ -188,6 +210,11 @@ public partial interface IProjectServices
         => ValueTask.FromException<SharprailDirectoryStatus>(new NotSupportedException("This host cannot exclude the .sharprail directory."));
     ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default);
     ValueTask<PrDraft> PreviewPrAsync(CancellationToken cancellationToken = default);
+    /// <summary>The branch's remote facts and review; null for a detached HEAD or a host that predates the operation.</summary>
+    ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default) => ValueTask.FromResult<BranchStatus?>(null);
+    /// <summary>Pushes the branch or acts on its pull request after checking the branch still matches what the caller saw.</summary>
+    ValueTask<BranchActionResult> ApplyBranchActionAsync(BranchAction action, CancellationToken cancellationToken = default) =>
+        ValueTask.FromException<BranchActionResult>(new NotSupportedException("This host cannot push or act on pull requests."));
     ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default);
     ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default);

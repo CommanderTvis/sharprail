@@ -311,7 +311,7 @@ public sealed partial class WorkbenchWindow
     {
         await Dialogs.PathName(this, "Rename project", state.Current.ProjectName(project), "Rename", _ => false,
             async name => await Task.Run(async () => await state.ChangeAsync(HostStateChange.RenameProject(project, name))),
-            explanation: "The name shown for this project. Its folder and workspaces keep their paths.", selectStem: false);
+            explanation: "The name shown for this project. Its folder and workspaces keep their paths.", selectStem: false, pathLike: false);
         FocusProject(project);
     }
 

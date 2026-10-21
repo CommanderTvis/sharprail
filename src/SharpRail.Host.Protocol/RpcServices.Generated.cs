@@ -43,6 +43,8 @@ public static class RpcServices
         public ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default) => client.Unary<OpenReviewRequest, OpenReviewReply>("IProjectRpc/GetOpenReviewAsync", request, context);
         public ValueTask<PrDraftReply> PreviewPrAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, PrDraftReply>("IProjectRpc/PreviewPrAsync", request, context);
         public ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default) => client.Unary<OpenPrRequest, PrReply>("IProjectRpc/OpenPrAsync", request, context);
+        public ValueTask<BranchStatusReply> GetBranchStatusAsync(OpenReviewRequest request, CallContext context = default) => client.Unary<OpenReviewRequest, BranchStatusReply>("IProjectRpc/GetBranchStatusAsync", request, context);
+        public ValueTask<BranchActionReply> ApplyBranchActionAsync(BranchActionRequest request, CallContext context = default) => client.Unary<BranchActionRequest, BranchActionReply>("IProjectRpc/ApplyBranchActionAsync", request, context);
         public ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, EditorsReply>("IProjectRpc/ListEditorsAsync", request, context);
         public ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default) => client.Unary<OpenInEditorRequest, SaveFileReply>("IProjectRpc/OpenInEditorAsync", request, context);
         public ValueTask<DiffStatsReply> GetDiffStatsAsync(DiffStatsRequest request, CallContext context = default) => client.Unary<DiffStatsRequest, DiffStatsReply>("IProjectRpc/GetDiffStatsAsync", request, context);

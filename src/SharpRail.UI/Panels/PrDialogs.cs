@@ -18,6 +18,40 @@ public enum PrSetupChoice { Closed, Retry, Compare }
 public static class PrDialogs
 {
     /// <summary>
+    /// Merge PR (ThinkRail #776): offers only the methods the repository allows, starting from the remembered one, and
+    /// whether to delete the remote branch afterwards. Returns null when cancelled.
+    /// </summary>
+    public static async Task<(string Method, bool DeleteBranch)?> MergeAsync(Window owner, int number, IReadOnlyList<string> methods, string method, bool deleteBranch)
+    {
+        var window = Dialogs.Create($"Merge PR #{number}", 460);
+        window.Tag = "PrMergeDialog";
+        var fields = window.FindControl<StackPanel>("DialogFields")!;
+        var chosen = methods.Contains(method) ? method : methods[0];
+        foreach (var option in methods)
+        {
+            var radio = new RadioButton
+            {
+                Name = "PrMergeMethod_" + option,
+                GroupName = "merge-method",
+                Content = option switch { "squash" => "Squash and merge", "rebase" => "Rebase and merge", _ => "Create a merge commit" },
+                IsChecked = option == chosen
+            };
+            radio.IsCheckedChanged += (_, _) => { if (radio.IsChecked == true) chosen = option; };
+            fields.Children.Add(radio);
+        }
+        var delete = new CheckBox { Name = "PrMergeDeleteBranch", Content = "Delete the remote branch after merging", IsChecked = deleteBranch };
+        fields.Children.Add(delete);
+        (string, bool)? answer = null;
+        var buttons = window.FindControl<StackPanel>("DialogActions")!;
+        buttons.Children.Add(Ui.Button("Cancel", () => window.Close()));
+        var confirm = Dialogs.Primary(Ui.Button("Merge", () => { answer = (chosen, delete.IsChecked == true); window.Close(); }));
+        confirm.Name = "PrMergeConfirm"; confirm.IsDefault = true;
+        buttons.Children.Add(confirm);
+        await window.ShowDialog(owner);
+        return answer;
+    }
+
+    /// <summary>
     /// Edits the title and description before anything is pushed. <paramref name="submit"/> answers whether the dialog
     /// may close; a failure keeps it open with the edits. Returns false when the user cancelled.
     /// </summary>

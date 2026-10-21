@@ -203,9 +203,22 @@ host state: it shows what the window already knows and calls the same methods as
   placeholder does; the Default workspace's caption is plain. The pill opens the branch card, which takes focus itself: the branch with Copy (a
   transient notice confirms), and Compare to, which is the Changes panel's own picker
   writing the same per-workspace selection and the same host review target, so the two can never disagree.
+- REMOTE and PULL REQUEST (ThinkRail #771 and #776, `BranchShip.cs`) are present for a mounted workspace's branch
+  whenever the host reports a branch status, and turn it into the branch's next step through one rule
+  (`ShipActions`). Remote reads No remote, Not published, In sync, or ↑N / ↓N, with Publish, Push N or Sync… (the
+  shell-inert `git pull --rebase origin <branch>` to copy; never a force push). Pushing a branch that is its own
+  base asks first and names it. Pull request shows `PR #N`, `Draft #N`, `Merged #N` or `Closed #N` (opening the
+  pull request) with a checks glyph, or No PR / — ; its next step is Open PR and Draft (the Review panel's compose
+  dialog), Ready for review, Merge PR (a dialog offering only the repository's methods and branch deletion,
+  remembered per project in the profile), Reopen, or Delete remote branch. While the branch and origin differ the
+  step stays with Remote. Merge follows GitHub's merge state, never approvals. The status is read when the branch
+  changes, at most every 15 seconds on Git refreshes, after every action, and every 20 seconds while checks run.
+  Not ported: Fix with agent and Ask agent to integrate (embedded chat is out of scope), description sources,
+  PR templates and Generate with agent, GitLab's Create MR, Merge locally, split-button menus (each step is one
+  button) and the branch card's Checks and Review rows.
 - Pills and the rename input never start a window drag; captions and the space between remain part of the
   title bar.
-- `LocationStrip` lays the segments out. As width shrinks the branch yields first, then the project; a
+- `LocationStrip` lays the segments out. As width shrinks Remote yields first, then Pull request, the branch and the project; a
   segment that would fall under 72px is dropped whole, and the workspace keeps what is left, so workspace
   identity stays visible at the minimum window width.
 
@@ -424,8 +437,8 @@ workspace frame's left side.
 - Away notifications off macOS, reading the system's permission state (a denied permission drops
   notifications silently; Settings only points at the system's settings), and the fork's chooser when
   several terminals ask at once.
-- The location bar's REMOTE and PULL REQUEST chips and the branch card's Remote and review rows; the pull
-  request surface lives in the Review panel only. The card has no separate Based on row.
+- The branch card's Remote and review rows (REMOTE and PULL REQUEST are ported, see Location bar). The card has no
+  separate Based on row.
 - A registered URL scheme for location links (they are opened only by `--link` at launch), and a remote
   host cannot confirm that a workspace folder still exists before a history step opens it.
 - Ctrl+, opening Settings on Windows and Linux, from a terminal too and not with Shift held (a layout whose comma

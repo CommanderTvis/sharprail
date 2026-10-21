@@ -1698,3 +1698,115 @@ SharpRail.Host.Abstractions.HostState.ProjectLabels.get -> System.Collections.Ge
 SharpRail.Host.Abstractions.HostState.ProjectLabels.init -> void
 SharpRail.Host.Abstractions.HostState.ProjectName(string! projectRoot) -> string!
 static SharpRail.Host.Abstractions.HostStateChange.RenameProject(string! projectRoot, string! name) -> SharpRail.Host.Abstractions.HostStateChange!
+override SharpRail.Host.Abstractions.BranchAction.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.BranchAction.GetHashCode() -> int
+override SharpRail.Host.Abstractions.BranchAction.ToString() -> string!
+override SharpRail.Host.Abstractions.BranchActionResult.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.BranchActionResult.GetHashCode() -> int
+override SharpRail.Host.Abstractions.BranchActionResult.ToString() -> string!
+override SharpRail.Host.Abstractions.BranchStatus.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.BranchStatus.GetHashCode() -> int
+override SharpRail.Host.Abstractions.BranchStatus.ToString() -> string!
+override SharpRail.Host.Abstractions.ReviewDetails.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.ReviewDetails.GetHashCode() -> int
+override SharpRail.Host.Abstractions.ReviewDetails.ToString() -> string!
+SharpRail.Host.Abstractions.BranchAction
+SharpRail.Host.Abstractions.BranchAction.Branch.get -> string!
+SharpRail.Host.Abstractions.BranchAction.Branch.init -> void
+SharpRail.Host.Abstractions.BranchAction.BranchAction(SharpRail.Host.Abstractions.BranchAction! original) -> void
+SharpRail.Host.Abstractions.BranchAction.BranchAction(string! Kind, string! Branch, string! Head, bool ConfirmBase = false, string! Method = "", bool DeleteBranch = false) -> void
+SharpRail.Host.Abstractions.BranchAction.ConfirmBase.get -> bool
+SharpRail.Host.Abstractions.BranchAction.ConfirmBase.init -> void
+SharpRail.Host.Abstractions.BranchAction.Deconstruct(out string! Kind, out string! Branch, out string! Head, out bool ConfirmBase, out string! Method, out bool DeleteBranch) -> void
+SharpRail.Host.Abstractions.BranchAction.DeleteBranch.get -> bool
+SharpRail.Host.Abstractions.BranchAction.DeleteBranch.init -> void
+SharpRail.Host.Abstractions.BranchAction.Head.get -> string!
+SharpRail.Host.Abstractions.BranchAction.Head.init -> void
+SharpRail.Host.Abstractions.BranchAction.Kind.get -> string!
+SharpRail.Host.Abstractions.BranchAction.Kind.init -> void
+SharpRail.Host.Abstractions.BranchAction.Method.get -> string!
+SharpRail.Host.Abstractions.BranchAction.Method.init -> void
+SharpRail.Host.Abstractions.BranchActionResult
+SharpRail.Host.Abstractions.BranchActionResult.BranchActionResult(SharpRail.Host.Abstractions.BranchActionResult! original) -> void
+SharpRail.Host.Abstractions.BranchActionResult.BranchActionResult(string! Outcome, string! Message) -> void
+SharpRail.Host.Abstractions.BranchActionResult.Deconstruct(out string! Outcome, out string! Message) -> void
+SharpRail.Host.Abstractions.BranchActionResult.Message.get -> string!
+SharpRail.Host.Abstractions.BranchActionResult.Message.init -> void
+SharpRail.Host.Abstractions.BranchActionResult.Outcome.get -> string!
+SharpRail.Host.Abstractions.BranchActionResult.Outcome.init -> void
+SharpRail.Host.Abstractions.BranchStatus
+SharpRail.Host.Abstractions.BranchStatus.Ahead.get -> int
+SharpRail.Host.Abstractions.BranchStatus.Ahead.init -> void
+SharpRail.Host.Abstractions.BranchStatus.AheadOfBase.get -> int
+SharpRail.Host.Abstractions.BranchStatus.AheadOfBase.init -> void
+SharpRail.Host.Abstractions.BranchStatus.BaseName.get -> string!
+SharpRail.Host.Abstractions.BranchStatus.BaseName.init -> void
+SharpRail.Host.Abstractions.BranchStatus.Behind.get -> int
+SharpRail.Host.Abstractions.BranchStatus.Behind.init -> void
+SharpRail.Host.Abstractions.BranchStatus.Branch.get -> string!
+SharpRail.Host.Abstractions.BranchStatus.Branch.init -> void
+SharpRail.Host.Abstractions.BranchStatus.BranchStatus(SharpRail.Host.Abstractions.BranchStatus! original) -> void
+SharpRail.Host.Abstractions.BranchStatus.BranchStatus(string! Branch, bool HasOrigin, string! Provider, bool Published, int Ahead, int Behind, int AheadOfBase, bool OnBase, string! BaseName, string! Head, SharpRail.Host.Abstractions.OpenReview? Review, SharpRail.Host.Abstractions.ReviewDetails? Details) -> void
+SharpRail.Host.Abstractions.BranchStatus.Deconstruct(out string! Branch, out bool HasOrigin, out string! Provider, out bool Published, out int Ahead, out int Behind, out int AheadOfBase, out bool OnBase, out string! BaseName, out string! Head, out SharpRail.Host.Abstractions.OpenReview? Review, out SharpRail.Host.Abstractions.ReviewDetails? Details) -> void
+SharpRail.Host.Abstractions.BranchStatus.Details.get -> SharpRail.Host.Abstractions.ReviewDetails?
+SharpRail.Host.Abstractions.BranchStatus.Details.init -> void
+SharpRail.Host.Abstractions.BranchStatus.HasOrigin.get -> bool
+SharpRail.Host.Abstractions.BranchStatus.HasOrigin.init -> void
+SharpRail.Host.Abstractions.BranchStatus.Head.get -> string!
+SharpRail.Host.Abstractions.BranchStatus.Head.init -> void
+SharpRail.Host.Abstractions.BranchStatus.OnBase.get -> bool
+SharpRail.Host.Abstractions.BranchStatus.OnBase.init -> void
+SharpRail.Host.Abstractions.BranchStatus.Provider.get -> string!
+SharpRail.Host.Abstractions.BranchStatus.Provider.init -> void
+SharpRail.Host.Abstractions.BranchStatus.Published.get -> bool
+SharpRail.Host.Abstractions.BranchStatus.Published.init -> void
+SharpRail.Host.Abstractions.BranchStatus.Review.get -> SharpRail.Host.Abstractions.OpenReview?
+SharpRail.Host.Abstractions.BranchStatus.Review.init -> void
+SharpRail.Host.Abstractions.IProjectServices.ApplyBranchActionAsync(SharpRail.Host.Abstractions.BranchAction! action, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.BranchActionResult!>
+SharpRail.Host.Abstractions.IProjectServices.GetBranchStatusAsync(bool fresh, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.BranchStatus?>
+SharpRail.Host.Abstractions.ReviewDetails
+SharpRail.Host.Abstractions.ReviewDetails.Checks.get -> string!
+SharpRail.Host.Abstractions.ReviewDetails.Checks.init -> void
+SharpRail.Host.Abstractions.ReviewDetails.Deconstruct(out int Number, out string! Url, out string! State, out bool Draft, out string! Checks, out string! ReviewDecision, out string! MergeState, out System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, out bool SameRepository) -> void
+SharpRail.Host.Abstractions.ReviewDetails.Draft.get -> bool
+SharpRail.Host.Abstractions.ReviewDetails.Draft.init -> void
+SharpRail.Host.Abstractions.ReviewDetails.MergeMethods.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Host.Abstractions.ReviewDetails.MergeMethods.init -> void
+SharpRail.Host.Abstractions.ReviewDetails.MergeState.get -> string!
+SharpRail.Host.Abstractions.ReviewDetails.MergeState.init -> void
+SharpRail.Host.Abstractions.ReviewDetails.Number.get -> int
+SharpRail.Host.Abstractions.ReviewDetails.Number.init -> void
+SharpRail.Host.Abstractions.ReviewDetails.ReviewDecision.get -> string!
+SharpRail.Host.Abstractions.ReviewDetails.ReviewDecision.init -> void
+SharpRail.Host.Abstractions.ReviewDetails.ReviewDetails(int Number, string! Url, string! State, bool Draft, string! Checks, string! ReviewDecision, string! MergeState, System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, bool SameRepository) -> void
+SharpRail.Host.Abstractions.ReviewDetails.ReviewDetails(SharpRail.Host.Abstractions.ReviewDetails! original) -> void
+SharpRail.Host.Abstractions.ReviewDetails.SameRepository.get -> bool
+SharpRail.Host.Abstractions.ReviewDetails.SameRepository.init -> void
+SharpRail.Host.Abstractions.ReviewDetails.State.get -> string!
+SharpRail.Host.Abstractions.ReviewDetails.State.init -> void
+SharpRail.Host.Abstractions.ReviewDetails.Url.get -> string!
+SharpRail.Host.Abstractions.ReviewDetails.Url.init -> void
+static SharpRail.Host.Abstractions.BranchAction.operator !=(SharpRail.Host.Abstractions.BranchAction? left, SharpRail.Host.Abstractions.BranchAction? right) -> bool
+static SharpRail.Host.Abstractions.BranchAction.operator ==(SharpRail.Host.Abstractions.BranchAction? left, SharpRail.Host.Abstractions.BranchAction? right) -> bool
+static SharpRail.Host.Abstractions.BranchActionResult.operator !=(SharpRail.Host.Abstractions.BranchActionResult? left, SharpRail.Host.Abstractions.BranchActionResult? right) -> bool
+static SharpRail.Host.Abstractions.BranchActionResult.operator ==(SharpRail.Host.Abstractions.BranchActionResult? left, SharpRail.Host.Abstractions.BranchActionResult? right) -> bool
+static SharpRail.Host.Abstractions.BranchStatus.operator !=(SharpRail.Host.Abstractions.BranchStatus? left, SharpRail.Host.Abstractions.BranchStatus? right) -> bool
+static SharpRail.Host.Abstractions.BranchStatus.operator ==(SharpRail.Host.Abstractions.BranchStatus? left, SharpRail.Host.Abstractions.BranchStatus? right) -> bool
+static SharpRail.Host.Abstractions.ReviewDetails.operator !=(SharpRail.Host.Abstractions.ReviewDetails? left, SharpRail.Host.Abstractions.ReviewDetails? right) -> bool
+static SharpRail.Host.Abstractions.ReviewDetails.operator ==(SharpRail.Host.Abstractions.ReviewDetails? left, SharpRail.Host.Abstractions.ReviewDetails? right) -> bool
+virtual SharpRail.Host.Abstractions.BranchAction.<Clone>$() -> SharpRail.Host.Abstractions.BranchAction!
+virtual SharpRail.Host.Abstractions.BranchAction.EqualityContract.get -> System.Type!
+virtual SharpRail.Host.Abstractions.BranchAction.Equals(SharpRail.Host.Abstractions.BranchAction? other) -> bool
+virtual SharpRail.Host.Abstractions.BranchAction.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SharpRail.Host.Abstractions.BranchActionResult.<Clone>$() -> SharpRail.Host.Abstractions.BranchActionResult!
+virtual SharpRail.Host.Abstractions.BranchActionResult.EqualityContract.get -> System.Type!
+virtual SharpRail.Host.Abstractions.BranchActionResult.Equals(SharpRail.Host.Abstractions.BranchActionResult? other) -> bool
+virtual SharpRail.Host.Abstractions.BranchActionResult.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SharpRail.Host.Abstractions.BranchStatus.<Clone>$() -> SharpRail.Host.Abstractions.BranchStatus!
+virtual SharpRail.Host.Abstractions.BranchStatus.EqualityContract.get -> System.Type!
+virtual SharpRail.Host.Abstractions.BranchStatus.Equals(SharpRail.Host.Abstractions.BranchStatus? other) -> bool
+virtual SharpRail.Host.Abstractions.BranchStatus.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SharpRail.Host.Abstractions.ReviewDetails.<Clone>$() -> SharpRail.Host.Abstractions.ReviewDetails!
+virtual SharpRail.Host.Abstractions.ReviewDetails.EqualityContract.get -> System.Type!
+virtual SharpRail.Host.Abstractions.ReviewDetails.Equals(SharpRail.Host.Abstractions.ReviewDetails? other) -> bool
+virtual SharpRail.Host.Abstractions.ReviewDetails.PrintMembers(System.Text.StringBuilder! builder) -> bool

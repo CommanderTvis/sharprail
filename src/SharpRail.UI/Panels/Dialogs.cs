@@ -112,7 +112,7 @@ public static class Dialogs
     /// cannot be confirmed; the dialog stays open while <paramref name="submit"/> runs and shows its failure.
     /// </summary>
     public static async Task PathName(Window owner, string title, string initial, string confirmLabel,
-        Func<string, bool> exists, Func<string, Task> submit, string? explanation = null, bool selectStem = true)
+        Func<string, bool> exists, Func<string, Task> submit, string? explanation = null, bool selectStem = true, bool pathLike = true)
     {
         var window = Create(title, 520);
         if (explanation is not null)
@@ -135,7 +135,7 @@ public static class Dialogs
         void Validate()
         {
             var name = input.Text ?? "";
-            var problem = name.Trim().Length == 0 || name == initial ? "" : PathNameProblem(name) ?? (exists(name) ? $"{name} already exists" : null);
+            var problem = name.Trim().Length == 0 || name == initial ? "" : (pathLike ? PathNameProblem(name) : name != name.Trim() ? "A name cannot start or end with a space." : null) ?? (exists(name) ? $"{name} already exists" : null);
             error.Text = problem ?? ""; error.IsVisible = !string.IsNullOrEmpty(problem);
             confirm.IsEnabled = problem is null && !busy;
         }

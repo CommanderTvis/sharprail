@@ -53,13 +53,13 @@ internal static class LocationBarChecks
     private static void Switchers(string directory)
     {
         using var app = OpenFixtureProject(directory);
-        Require(Shown(app, "ProjectSegment") && Shown(app, "WorkspaceSegment") && !Shown(app, "BranchSegment"),
+        Require(Shown(app, "ProjectSegment") && Shown(app, "WorkspaceSegment") && !Shown(app, "BranchSegment") && !Shown(app, "RemoteSegment") && !Shown(app, "PullRequestSegment"),
             "Project Home shows the Project and Workspace segments and no Branch segment.");
         Require(Label(app, "ProjectLabel") == "sample-project" && Label(app, "WorkspaceLabel") == "Project home",
             "Project Home names the project and reads Project home.");
         var captions = app.Find<SharpRail.UI.LocationStrip>("LocationBar").GetLogicalDescendants().OfType<TextBlock>()
             .Where(text => text.Classes.Contains("location-caption") && text.Name is null).Select(text => text.Text);
-        Require(captions.SequenceEqual(["Project", "Workspace", "Branch"]), "Each segment carries its sentence-case caption.");
+        Require(captions.SequenceEqual(["Project", "Workspace", "Branch", "Remote", "Pull request"]), "Each segment carries its sentence-case caption.");
         Require(new[] { "ProjectSegment", "WorkspaceSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
             "Segments are separated by space alone, without hairlines.");
         Require(new[] { "ProjectChevron", "WorkspaceChevron", "BranchChevron" }.All(name => app.Find<ContentControl>(name).Opacity == 0),
@@ -148,6 +148,11 @@ internal static class LocationBarChecks
         Switch(app, app.Root);
         app.ShowTool("changes");
         Until(() => Buttons(app).Any(button => button.Name == "ChangesBranch"));
+        // Upstream #771: Remote and Pull request are present for a branch even without an origin or a PR.
+        Until(() => app.Find<Border>("RemoteSegment").IsVisible && app.Find<Border>("PullRequestSegment").IsVisible);
+        Require(app.Find<TextBlock>("RemoteState").Text == "No remote" && app.Find<TextBlock>("PullRequestState").Text == "—" &&
+            !Buttons(app).Any(button => button.Name?.StartsWith("Remote", StringComparison.Ordinal) == true),
+            "Without an origin the header says so and offers no push.");
         var pill = app.Find<Button>("ScopeBranch");
         var flyout = (Flyout)pill.Flyout!;
         app.Click(pill);

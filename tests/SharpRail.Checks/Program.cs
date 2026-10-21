@@ -439,6 +439,11 @@ internal static class Program
             Console.WriteLine("PASS shell and header checks");
             return;
         }
+        if (args.SequenceEqual(["--branch-status"]))
+        {
+            BranchStatusChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--pull-requests"]))
         {
             PullRequestChecks.Run(root).GetAwaiter().GetResult();
@@ -1044,6 +1049,7 @@ internal static class Program
         Gate.Case("file-drop-host", () => FileDropChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("projects", () => ProjectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("pull-requests", () => PullRequestChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("branch-status", () => BranchStatusChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("changes", () => ChangeChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("content", () => ContentChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("state", () => StateChecks.Run(root).GetAwaiter().GetResult());

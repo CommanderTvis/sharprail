@@ -206,6 +206,20 @@ internal static class RpcDispatch
                 await stream.Send(await service.OpenPrAsync(request, context));
                 break;
             }
+            case "IProjectRpc/GetBranchStatusAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<OpenReviewRequest>(stream);
+                await stream.Send(await service.GetBranchStatusAsync(request, context));
+                break;
+            }
+            case "IProjectRpc/ApplyBranchActionAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<BranchActionRequest>(stream);
+                await stream.Send(await service.ApplyBranchActionAsync(request, context));
+                break;
+            }
             case "IProjectRpc/ListEditorsAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);

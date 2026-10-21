@@ -216,6 +216,7 @@ public sealed partial class WorkbenchWindow
             // Nothing is unpushed right after the push; how far origin is ahead is only known to a fetch.
             if (result.Number > 0) { reviewLookup++; openReview = new(result.Number, result.Url, "github", 0, -1); }
             _ = LookupOpenReviewAsync(true);
+            RequestBranchStatus(true, force: true);
             if (result.DirtyFiles > 0)
                 Toasts.Push(ToastVariant.Info, $"{result.DirtyFiles} uncommitted {(result.DirtyFiles == 1 ? "file" : "files")} stayed local.", "Uncommitted changes");
             if (result.Action == "authFailed") return (PrOutcome.Setup, new("pushAuth"));

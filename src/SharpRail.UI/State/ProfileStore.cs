@@ -88,6 +88,8 @@ public sealed class Profile
     public Dictionary<string, GitSelection> GitSelections { get; set; } = [];
     /// <summary>The Files tool's remembered tree per workspace, kept across workspace switches and restarts.</summary>
     public Dictionary<string, FilesTreeMemory> FilesTrees { get; set; } = [];
+    /// <summary>The merge method and delete-branch choice last used per project root, as <c>method|delete</c> (ThinkRail #776).</summary>
+    public Dictionary<string, string> MergePreferences { get; set; } = [];
     /// <summary>Plugins' client-local preferences, keyed <c>endpoint|plugin:id:key</c>, so two hosts' plugins never share a value.</summary>
     public Dictionary<string, string> PluginPreferences { get; set; } = [];
     /// <summary>Set once shared fields have moved to the local host's <c>state.json</c>.</summary>
@@ -176,6 +178,7 @@ public sealed class ProfileStore
                         labels.Remove(entry.Key);
             Data.GitSelections ??= [];
             Data.FilesTrees ??= [];
+            Data.MergePreferences ??= [];
             foreach (var entry in Data.FilesTrees.ToArray())
                 if (!ValidPath(entry.Key) || entry.Value is null) Data.FilesTrees.Remove(entry.Key);
                 else

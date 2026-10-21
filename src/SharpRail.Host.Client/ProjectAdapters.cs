@@ -45,6 +45,8 @@ public sealed partial class LocalProjectAdapter(IProjectServices host) : IProjec
     public ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.UndoChangeAsync(receiptId, expectModifiedHash, cancellationToken));
     public ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.GetOpenReviewAsync(fresh, cancellationToken));
     public ValueTask<PrDraft> PreviewPrAsync(CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.PreviewPrAsync(cancellationToken));
+    public ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.GetBranchStatusAsync(fresh, cancellationToken));
+    public ValueTask<BranchActionResult> ApplyBranchActionAsync(BranchAction action, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ApplyBranchActionAsync(action, cancellationToken));
     public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.OpenPrAsync(request, cancellationToken));
     public ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListSpecsAsync(cancellationToken));
     public ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListWorkspacesAsync(projectRoot, cancellationToken));
@@ -245,6 +247,32 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
     {
         var reply = await service.GetOpenReviewAsync(new() { Fresh = fresh }, Context(cancellationToken));
         return reply.Found ? new(reply.Number, reply.Url, reply.Provider, reply.UnpushedCommits, reply.BehindCommits) : null;
+    }
+
+    public async ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default)
+    {
+        var reply = await service.GetBranchStatusAsync(new() { Fresh = fresh }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(1)));
+        if (!reply.Found) return null;
+        var review = reply.Review is { Found: true } open ? new OpenReview(open.Number, open.Url, open.Provider, open.UnpushedCommits, open.BehindCommits) : null;
+        var details = reply.Details is { } found
+            ? new ReviewDetails(found.Number, found.Url, found.State, found.Draft, found.Checks, found.ReviewDecision, found.MergeState, found.MergeMethods.ToArray(), found.SameRepository)
+            : null;
+        return new(reply.Branch, reply.HasOrigin, reply.Provider, reply.Published, reply.Ahead, reply.Behind, reply.AheadOfBase, reply.OnBase, reply.BaseName, reply.Head, review, details);
+    }
+
+    // Pushing and gh together may run for minutes, so this call carries its own long deadline.
+    public async ValueTask<BranchActionResult> ApplyBranchActionAsync(BranchAction action, CancellationToken cancellationToken = default)
+    {
+        var reply = await service.ApplyBranchActionAsync(new BranchActionRequest
+        {
+            Kind = action.Kind,
+            Branch = action.Branch,
+            Head = action.Head,
+            ConfirmBase = action.ConfirmBase,
+            Method = action.Method,
+            DeleteBranch = action.DeleteBranch
+        }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(5)));
+        return new(reply.Outcome, reply.Message);
     }
 
     public async ValueTask<PrDraft> PreviewPrAsync(CancellationToken cancellationToken = default)

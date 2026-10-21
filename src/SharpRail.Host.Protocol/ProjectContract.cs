@@ -269,6 +269,8 @@ public partial interface IProjectRpc
     ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default);
     ValueTask<PrDraftReply> PreviewPrAsync(ProjectRequest request, CallContext context = default);
     ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default);
+    ValueTask<BranchStatusReply> GetBranchStatusAsync(OpenReviewRequest request, CallContext context = default);
+    ValueTask<BranchActionReply> ApplyBranchActionAsync(BranchActionRequest request, CallContext context = default);
     ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default);
     ValueTask<DiffStatsReply> GetDiffStatsAsync(DiffStatsRequest request, CallContext context = default);
@@ -404,6 +406,56 @@ public sealed class PrDraftReply
 {
     [ProtoMember(1)] public string Title { get; set; } = "";
     [ProtoMember(2)] public string Body { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class ReviewDetailsMessage
+{
+    [ProtoMember(1)] public int Number { get; set; }
+    [ProtoMember(2)] public string Url { get; set; } = "";
+    [ProtoMember(3)] public string State { get; set; } = "";
+    [ProtoMember(4)] public bool Draft { get; set; }
+    [ProtoMember(5)] public string Checks { get; set; } = "";
+    [ProtoMember(6)] public string ReviewDecision { get; set; } = "";
+    [ProtoMember(7)] public string MergeState { get; set; } = "";
+    [ProtoMember(8)] public List<string> MergeMethods { get; set; } = [];
+    [ProtoMember(9)] public bool SameRepository { get; set; }
+}
+
+[ProtoContract]
+public sealed class BranchStatusReply
+{
+    [ProtoMember(1)] public bool Found { get; set; }
+    [ProtoMember(2)] public string Branch { get; set; } = "";
+    [ProtoMember(3)] public bool HasOrigin { get; set; }
+    [ProtoMember(4)] public string Provider { get; set; } = "";
+    [ProtoMember(5)] public bool Published { get; set; }
+    [ProtoMember(6)] public int Ahead { get; set; }
+    [ProtoMember(7)] public int Behind { get; set; }
+    [ProtoMember(8)] public int AheadOfBase { get; set; }
+    [ProtoMember(9)] public bool OnBase { get; set; }
+    [ProtoMember(10)] public string BaseName { get; set; } = "";
+    [ProtoMember(11)] public string Head { get; set; } = "";
+    [ProtoMember(12)] public OpenReviewReply? Review { get; set; }
+    [ProtoMember(13)] public ReviewDetailsMessage? Details { get; set; }
+}
+
+[ProtoContract]
+public sealed class BranchActionRequest
+{
+    [ProtoMember(1)] public string Kind { get; set; } = "";
+    [ProtoMember(2)] public string Branch { get; set; } = "";
+    [ProtoMember(3)] public string Head { get; set; } = "";
+    [ProtoMember(4)] public bool ConfirmBase { get; set; }
+    [ProtoMember(5)] public string Method { get; set; } = "";
+    [ProtoMember(6)] public bool DeleteBranch { get; set; }
+}
+
+[ProtoContract]
+public sealed class BranchActionReply
+{
+    [ProtoMember(1)] public string Outcome { get; set; } = "";
+    [ProtoMember(2)] public string Message { get; set; } = "";
 }
 
 [ProtoContract]
