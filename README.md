@@ -140,7 +140,7 @@ From a source checkout; [DEVELOPMENT.md](DEVELOPMENT.md) lists what to install p
 repo provisions itself. macOS builds need the Xcode command-line tools, LLVM at
 `/opt/homebrew/opt/llvm`, and its Metal Toolchain
 (`xcodebuild -downloadComponent MetalToolchain`). The first build downloads pinned
-Ghostty 1.2.3, Zig 0.14.1, Scintilla, SheenBidi and Merman into `.tools`. No installed
+Ghostty 1.2.3, Zig 0.14.1 and Merman into `.tools`. No installed
 Ghostty application is required.
 
 ```sh

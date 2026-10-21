@@ -44,7 +44,7 @@ both `MacIntel` and `macOS`, so standard fields, editors and terminal shortcuts 
 
 ## Native components and platform services
 
-Pinned libghostty-vt and its existing bridge, Scintilla and SheenBidi compile into static WASM libraries
+Pinned libghostty-vt and its existing bridge compile into a static WASM library
 linked into the managed runtime alongside matching Skia and HarfBuzz assets. Ghostty allocations use the
 runtime's allocator, including terminal pages, rather than growing an independent heap. Native draw callbacks use unmanaged function
 pointers. The browser retains the shared Skia terminal renderer as a loading fallback, with host-owned session lifetime and replay. Read-only attachments receive recorded live alternate-screen
@@ -59,6 +59,8 @@ the browser keeps its untrimmed managed runtime.
 
 Release Build and Publish use hybrid WASM AOT for Avalonia.Base and System.Private.CoreLib
 (and their shared generic instances); other assemblies remain interpreted. This is not NativeAOT.
+The code editor (`SharpRail.Scintilla`) is managed and so also interpreted; its typing, scrolling
+and wrapping speed in the browser is not yet measured.
 Debug remains interpreted; SharpRailBrowserAot=false explicitly opts out for diagnostics. The pinned
 SDK requires the linker pipeline for Publish, but every resolved managed assembly is rooted and
 uses copy mode, with IL stripping disabled. A mandatory SHA-256 comparison verifies every linked

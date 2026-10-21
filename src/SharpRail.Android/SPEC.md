@@ -179,18 +179,16 @@ profile) and the endpoint.
 | Library | Source | Built by |
 | --- | --- | --- |
 | `libGhosttyAvaloniaVt.so` | libghostty-vt at the commit pinned in `src/Ghostty.Avalonia/build-native.sh`, behind the Skia control's C shim | `src/Ghostty.Avalonia/build-android.sh` |
-| `libSharpRail.Scintilla.so` | The patched Scintilla and SheenBidi sources of the desktop build, with libc++ linked statically | `src/SharpRail.Scintilla/build-android.sh` |
 | `libSharpRailTailscale.so` | pinned Tailscale `tsnet` behind the app-private C ABI | `scripts/build-tailscale-android.sh` |
 | `libpdfium.so` | `bblanchon.PDFium.Android`, pinned with the desktop PDFium packages | NuGet |
 | `libSharpRailMermaid.so` | Merman 0.7.0's prebuilt `libmerman_ffi.so` (the desktop's C ABI) from `merman-android-v0.7.0.aar`, pinned in `mise.android.lock` | `bootstrap:android` (`.tools/merman-android`) |
 
-The `BuildNativeLibraries` target runs the native scripts (Tailscale, Ghostty, Scintilla) for `arm64-v8a` and `x86_64` before every build,
+The `BuildNativeLibraries` target runs the native scripts (Tailscale, Ghostty) for `arm64-v8a` and `x86_64` before every build,
 copies Merman's `jni/<abi>/libmerman_ffi.so` to `obj/native/android/<abi>/libSharpRailMermaid.so` (the name `MermaidRenderer`'s
 P/Invoke loads; the library has no SONAME, depends only on libc, libm and libdl, and its release build already aligns
 segments to 16 KB), and adds their outputs as `AndroidNativeLibrary` items. All use the NDK r27d that `scripts/mise run bootstrap:android` installs
 under `.tools/android-ndk`, target API 24 and align segments to 16 KB pages. The Ghostty library lands in the
-shared cache `.tools/ghostty-avalonia/android/<abi>`, the Scintilla library in
-`src/SharpRail.Scintilla/obj/native/android/<abi>`. PDF Preview's desktop PDFium packages are referenced with
+shared cache `.tools/ghostty-avalonia/android/<abi>`. PDF Preview's desktop PDFium packages are referenced with
 their assets excluded.
 
 Terminals draw with `GhosttySkiaView` only: `TerminalBackends` returns the Skia terminal on Android whatever

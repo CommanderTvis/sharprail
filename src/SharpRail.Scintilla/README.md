@@ -1,23 +1,12 @@
 # SharpRail.Scintilla
 
-An Avalonia text editor control built on Scintilla 5.6.7, drawn with SkiaSharp. Text
-is shaped with HarfBuzz and ordered with the Unicode Bidirectional Algorithm
-(SheenBidi 3.0.0), so emoji sequences, combining marks, ligatures, complex scripts
-and mixed right-to-left text lay out, hit-test and edit correctly. It depends only on
-Avalonia, Avalonia.Skia, SkiaSharp and HarfBuzzSharp, and runs on macOS arm64/x64,
-Windows x64/ARM64, Linux x64/arm64 and Android arm64-v8a/x86_64; `ScintillaEditor.IsSupported` says whether the platform has it.
-
-Windows builds invoke `build-windows.ps1`, using pinned Zig, Scintilla and SheenBidi
-sources. The DLL is `SharpRailScintillaNative.dll`, distinct from the managed
-assembly, and is copied beside the app on build and publish. Windows editing uses
-Ctrl+C/X/V/A/Z and Ctrl+Y; the default typeface is Cascadia Mono. For reuse outside
-this repository, also copy `scripts/windows-native.ps1` to the matching relative
-location; it owns checkout-local downloads and build locks.
-
-Linux builds invoke `build-linux.sh linux-x64` or `linux-arm64`, which compiles the same sources with the pinned Zig for `x86_64-linux-gnu.2.31` or `aarch64-linux-gnu.2.31`
-from any macOS or Linux host. `libSharpRail.Scintilla.so` links libc++ statically, exports only the `sr_*` bridge through a version
-script and needs just libc, libm and libdl, so it runs on distributions with glibc 2.31 or newer. Linux editing uses the Ctrl
-shortcuts of Windows; the library is found by the runtime's default probing beside the app. arm64 is not built.
+An Avalonia text editor control whose document and editing model are a managed C# port of the parts of
+Scintilla 5.6.7 that SharpRail uses, drawn with SkiaSharp. Text is shaped with HarfBuzz and ordered with a
+managed Unicode Bidirectional Algorithm (UAX #9), so emoji sequences, combining marks, ligatures, complex
+scripts and mixed right-to-left text lay out, hit-test and edit correctly. It depends only on Avalonia,
+Avalonia.Skia, SkiaSharp and HarfBuzzSharp, ships no native library and runs wherever those do (desktop,
+Android and the browser); `ScintillaEditor.IsSupported` is always true. Windows and Linux editing use the
+Ctrl shortcuts; the Windows default typeface is Cascadia Mono.
 
 ```csharp
 var editor = new ScintillaEditor(text, typeface)   // the caller keeps the SKTypeface; Menlo by default
@@ -56,50 +45,53 @@ clamps an existing offset to the new viewport.
 
 ## Architecture
 
-Scintilla owns the document, UTF-8 byte positions, selections, undo, wrapping and
-the editor model. `Native/` supplies its `Editor` platform hooks and a `Surface`
-whose drawing and measuring calls cross a C ABI to `SkiaSurface`; Scintilla's
-Cocoa view is not used. Avalonia owns focus, pointer capture, text input, clipboard
-and scheduling. Native calls and text measurement run on the UI thread; rendering
-records an immutable `SKPicture` that Avalonia's renderer replays.
+Everything below the public control is `internal` and lives in three layers:
 
-Rendering reuses the last recorded `SKPicture` until Scintilla invalidates (the native
-window sets a dirty flag), so scrolling within a line only moves a transform. Wrapping
-of off-screen lines runs in idle slices of about 10 ms; `TextShaper` caches each code
-point's font and keeps two generations of shaped text, so a whole-document wrap pass
-does not evict what is on screen.
+- `Core/` is pure managed code with no Avalonia or Skia: the gap buffers (`SplitVector`, `Partitioning`,
+  `RunStyles`), `CellBuffer` with UTF-8 bytes, styles, line starts and undo history, `Document` (EOL modes,
+  character classes, word boundaries, decorations for indicators, margin text, styling) and the single
+  stream `Selection`.
+- `View/` is wired directly to SkiaSharp and HarfBuzzSharp; Scintilla's Surface and Platform abstraction is
+  dropped, and `SKCanvas`, `SKRect`, `SKPoint` and `SKColor` stand in for its geometry types. `ViewStyle`
+  holds styles, indicators and margins; `Bidi` implements UAX #9 on Avalonia's public `Codepoint` bidi
+  class and paired-bracket data; `LineShaper` and `TextShaper` shape lines; `EditView` lays out and paints.
+- `Editing/Editor` is the editor model. `Send(ScintillaMessage, w, l)` handles the numeric messages listed in
+  `ScintillaMessage`, typed methods replace the pointer messages, and it handles keys (the default key
+  map), text input, mouse selection, caret blinking, idle wrapping and painting. `ScintillaDocument` owns
+  one `Editor` and keeps every call on the UI thread.
 
-Text layout runs in Scintilla's bidirectional mode for every line:
+Unicode categories, case mapping, grapheme segmentation (`StringInfo`) and UTF-8 conversion come from .NET.
+Autocompletion, call tips, lexers, folding, markers, annotations, multiple and rectangular selection,
+printing, change history, regular-expression search and code pages other than UTF-8 are not ported.
+Avalonia owns focus, pointer capture, text input, clipboard and scheduling; rendering records an
+immutable `SKPicture` that Avalonia's renderer replays.
 
-1. `Native/Layout.cxx` splits each screen line at font changes, tabs and control
-   character representations, runs SheenBidi over it and orders the runs visually.
-2. `TextShaper` segments each run into grapheme clusters (UAX #29), picks a font per
-   cluster — the editor typeface, the system emoji font for emoji presentation, or
-   a system fallback — and shapes consecutive clusters with HarfBuzz.
-3. The layout keeps the clusters as caret stops in visual order. Scintilla asks it
-   for caret positions, hit tests, selection and indicator intervals, and draws
-   each styled segment's glyphs at their visual positions.
+Rendering reuses the last recorded `SKPicture` until the editor invalidates (a dirty flag), so scrolling
+within a line only moves a transform. Wrapping of off-screen lines runs in idle slices of about 10 ms;
+`TextShaper` caches each code point's font and keeps two generations of shaped text, so a whole-document
+wrap pass does not evict what is on screen.
 
-Upstream Scintilla positions text and backgrounds logically even in bidirectional
-mode, so `Native/EditView.patch` routes those two drawing paths through the layout.
-The build applies it to the pinned source. Caret keys, Backspace and Delete step
-over whole grapheme clusters; word movement, line ends and selections keep
-Scintilla's behaviour.
+Text layout is bidirectional for every line:
+
+1. `EditView` splits each screen line at font changes, tabs and control character representations, runs
+   the bidi algorithm over it and orders the runs visually, line ends last.
+2. `TextShaper` segments each run into grapheme clusters (UAX #29), picks a font per cluster — the
+   editor typeface, the system emoji font for emoji presentation, or a system fallback — and shapes
+   consecutive clusters with HarfBuzz.
+3. The layout keeps the clusters as caret stops in visual order and answers caret positions, hit tests,
+   selection and indicator intervals; text and backgrounds are drawn at their visual positions.
+
+Caret keys, Backspace and Delete step over whole grapheme clusters; word movement, line ends and
+selections keep Scintilla's behaviour.
 
 ## Building
 
-`dotnet build` runs `build-native.sh`, which needs the Xcode command-line tools. It
-downloads the SHA-256-pinned Scintilla and SheenBidi archives into `obj/native`,
-patches Scintilla and links `libSharpRail.Scintilla.dylib`, which is copied to the
-output and publish directories of every project that references this one.
+`dotnet build` is enough on every platform; there is no native build step.
 
-### Android
+The ported upstream unit tests (`test/unit`) and the bidi, shaping, view and editor-model checks run with
+`.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --scintilla-core`.
 
-`build-android.sh <arm64-v8a|x86_64> [cache directory]` compiles the same patched sources with
-the NDK from `scripts/mise run bootstrap:android` into `<cache>/android/<abi>/libSharpRail.Scintilla.so`
-(API 24, static libc++, 16 KB pages, only the `sr_*` entry points exported). The bridge draws
-through callbacks into SkiaSharp, so it links no Skia. `dotnet build` does not run it: the
-Android app runs it per ABI and packages the result as an `AndroidNativeLibrary`.
+### Touch and soft keyboards
 
 A finger taps to place the caret, drags to scroll with inertia and holds to select a word; mouse
 and pen keep selecting by dragging. The soft keyboard edits through Avalonia's input connection,
@@ -118,8 +110,7 @@ A read-only editor requests no keyboard there.
   not implemented. Soft keyboards are asked not to compose (no suggestions); touch has
   no selection handles or copy menu.
 
-Scintilla's license is in `licenses/Scintilla.txt`; SheenBidi is Apache-2.0
-(`licenses/SheenBidi.txt`). HarfBuzzSharp and SkiaSharp retain their NuGet package
+Scintilla's license, which covers the ported code, is in `licenses/Scintilla.txt`. HarfBuzzSharp and SkiaSharp retain their NuGet package
 licenses.
 
 ## Text size and wrapping
@@ -128,10 +119,6 @@ licenses.
 editor changes it live and raises `TextSizeChosen` when it settles, for the host to remember. `WrapWidth`
 is given at the default size and keeps its count of characters at any other. `WrapAlways` wraps at the
 pane's edge even with no wrap width, for screens where sideways scrolling is a chore.
-
-The browser links the same editor and SheenBidi into WASM through `scripts/wasm-native.sh`. Its native
-draw callback uses an unmanaged function pointer; managed rendering and editing behavior stay shared.
-WASM requires `PTRDIFF_DOESNT_ALIAS_INT` when building Scintilla template instantiations.
 
 ### Diagnostics
 
@@ -143,7 +130,7 @@ conversion. Underlines do not modify source text or undo history.
 
 Diagnostic underlines may carry optional message text. Hover shows messages for overlapping byte ranges in severity order; pointer exit, editing, scrolling and detach/dispose clear the tooltip. Hit testing accounts for fractional vertical scrolling and excludes blank space beyond text.
 
-Text and whole-line palettes support an optional Italic style flag. Native font styles are explicitly set/reset when palettes apply, preserving text and undo state.
+Text and whole-line palettes support an optional Italic style flag. Font styles are explicitly set/reset when palettes apply, preserving text and undo state.
 
 `CenterLine` centers a zero-based document line using its wrapped display-line position
 and current viewport height; ordinary selection still only ensures caret visibility.

@@ -17,7 +17,7 @@ Detail moved out of `AGENTS.md`. Read the section you need; do not load it whole
 | `src/SharpRail.Plugins.Agent.Skills` | Workflow skills both agent plugins ship, adapted from the fork's `packages/pi-thinkrail-workflow/skills`: text only, no project. The Claude Code and Codex host projects each stage them as assets. |
 | `src/SharpRail.Plugins.Agent.UI` | Shared account, usage, terminal facts, manual-launch notices and attention wording for Codex and Claude Code. Depends on the UI kit and Avalonia only. |
 | `src/SharpRail.Plugins.*` | Builtin plugins: SpecDialect, Blueprint, ClaudeCode, Discord, BranchGraph, Visualize, Codex, Air Governance, Air Context, Tailscale. Each owns its contract, Host/UI halves, assets, license and `SPEC.md`. |
-| `src/SharpRail.Scintilla` | Self-contained Avalonia editor control (Scintilla, Skia, HarfBuzz, SheenBidi). Its `README.md` documents API, native build and limits. References no SharpRail project. |
+| `src/SharpRail.Scintilla` | Self-contained Avalonia editor control: a managed port of Scintilla (`Core`, `View`, `Editing`) drawn with Skia, shaped with HarfBuzz, with a managed UAX #9 on Avalonia's Codepoint data; no native build. Its `README.md` documents API, architecture and limits. References no SharpRail project. |
 | `src/SharpRail.UI` | Avalonia application entry point and workbench. |
 | `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, gestures, tab chrome and search popover. |
 | `src/SharpRail.UI/Panels` | Settings and shared dialogs, compiled XAML frames and page templates. |
@@ -122,6 +122,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--shared-terminals` | Two-client terminal sharing, watching, take-over. |
 | `--notifications` | Away notifications with a recording notifier; none posts a real one. |
 | `--registry` | Workspace registry host parity and external-workspace rail. |
+| `--scintilla-core` | Managed Scintilla core: ports of upstream test/unit suites plus bidi, shaping, view and editor-model checks; no Avalonia setup. |
 | `--syntax` | TextMate coverage, incremental edits, Unicode, theme changes, attachment/disposal, diff syntax styling. |
 | `--documents` | Resource renderers and file/diff body translations. |
 | `--editor`, `--markdown`, `--markdown-find`, `--markdown-images`, `--markdown-chunks` | Editor integration, source editing, Markdown rendering and search; image loading; chunked large Markdown blocks. |

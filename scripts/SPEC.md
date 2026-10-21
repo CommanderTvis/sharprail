@@ -33,8 +33,7 @@ upload.
 Their public surface is the task list, [scripts/README.md](README.md), `AGENTS.md` and the root
 `README.md`. Native libraries belong to the project that ships them and are MSBuild targets there (see
 Invariants): Merman and notifications in `SharpRail.UI.csproj`, the Ghostty libraries in
-`src/Ghostty.Avalonia` (`build-native.sh`, `build-android.sh`, `build-windows.ps1`), the editor bridge in
-`src/SharpRail.Scintilla`, the WASM libraries in `SharpRail.Browser.csproj` (`wasm-native.sh`) and the file
+`src/Ghostty.Avalonia` (`build-native.sh`, `build-android.sh`, `build-windows.ps1`), the WASM libraries in `SharpRail.Browser.csproj` (`wasm-native.sh`) and the file
 icons in the kit. The Ghostty recipes apply the checked-in texture export and scrollback memory patches to
 the pinned Ghostty source. `android` needs the Android SDK (`ANDROID_HOME`, default `~/Library/Android/sdk`)
 and a JDK 17 or 21 (the pinned `.tools/jdk` from `bootstrap:android`, or `JAVA_HOME` when set), fails with a message when either is missing, and installs the `android`

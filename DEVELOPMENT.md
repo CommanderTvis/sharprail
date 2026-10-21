@@ -11,7 +11,7 @@ and links them into `.tools`. The tasks that need a bootstrap run it themselves.
 
 | Command | Installs | Used by |
 | --- | --- | --- |
-| `scripts/mise run bootstrap` | .NET SDK (`.tools/dotnet`), Zig 0.14.1 and 0.16.0 (Windows: the `http:zig-windows` archive), Merman (macOS), Scintilla and SheenBidi sources | every build, check and package task |
+| `scripts/mise run bootstrap` | .NET SDK (`.tools/dotnet`), Zig 0.14.1 and 0.16.0 (Windows: the `http:zig-windows` archive), Merman (macOS) | every build, check and package task |
 | `scripts/mise run bootstrap:android` | Android NDK r27d (`.tools/android-ndk`), Temurin JDK 21 (`.tools/jdk`), Merman's Android libraries (`.tools/merman-android`) | `android`, `package:android` |
 | `scripts/mise run bootstrap:browser` | Node, pnpm, uv, Binaryen, PDFium WASM | `browser`, `package:browser` |
 | `scripts/mise run bootstrap:linux` | appimagetool and the AppImage runtime | `package:linux` |
@@ -32,9 +32,8 @@ runtime, not by the build.
 ### macOS (desktop build, `build`, `dev`, `package:macos`, `check:terminal`)
 
 - `bash` and `curl` (system): `scripts/mise-pinned` downloads mise with them.
-- Xcode command-line tools (`xcode-select --install`): `xcrun clang` builds the Scintilla, Merman and notification
-  libraries, and `xcrun --sdk macosx` supplies the SDK to Zig (`src/Ghostty.Avalonia/build-native.sh`,
-  `src/SharpRail.Scintilla/build-native.sh`). `codesign` and `hdiutil` (system) sign the bundle and make the
+- Xcode command-line tools (`xcode-select --install`): `xcrun clang` builds the Merman and notification libraries,
+  and `xcrun --sdk macosx` supplies the SDK to Zig (`src/Ghostty.Avalonia/build-native.sh`). `codesign` and `hdiutil` (system) sign the bundle and make the
   `dmg`.
 - The Metal toolchain (`xcodebuild -downloadComponent MetalToolchain`): libghostty compiles its Metal shaders.
 - LLVM at `/opt/homebrew/opt/llvm` (`brew install llvm`): `build-native.sh` archives libghostty with its

@@ -70,17 +70,6 @@ function Invoke-Zig([string] $Zig, [string] $RuntimeIdentifier, [string] $Out, [
     throw $message
 }
 
-# The Zig for the C and C++ natives. Zig 0.16.0 for aarch64-windows crashes (0xC0000005) in every compile that links
-# or compiles C++ on the windows-11-arm runner, while 0.14.1 works there (the probe-windows-arm64-zig workflow), so
-# win-arm64 builds the Scintilla natives with the 0.14.1 that bootstrap links as .tools\zig-0.14.1. Everything else
-# keeps the Zig of Get-WindowsZig.
-function Get-WindowsCZig([string] $RuntimeIdentifier) {
-    if ($RuntimeIdentifier -ne 'win-arm64') { return Get-WindowsZig }
-    $zig = Join-Path $PSScriptRoot '../.tools/zig-0.14.1/zig.exe'
-    if (!(Test-Path $zig)) { throw 'No Zig 0.14.1 in .tools; run scripts\mise run bootstrap.' }
-    return [IO.Path]::GetFullPath($zig)
-}
-
 function Enter-NativeBuild([string] $Cache) {
     New-Item -ItemType Directory $Cache -Force | Out-Null
     while ($true) {

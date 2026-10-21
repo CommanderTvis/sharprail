@@ -83,17 +83,16 @@
   <ItemGroup>
     <WasmOptConfigurationFlags Include="--enable-nontrapping-float-to-int" />
     <NativeFileReference Include="../../.tools/wasm-native/GhosttyAvaloniaVt.a" />
-    <NativeFileReference Include="../../.tools/wasm-native/SharpRail.Scintilla.a" />
   </ItemGroup>
   <Import Project="BrowserAot.targets" />
   <Target Name="CompressBrowserBundle" AfterTargets="_WasmBuildAppCore" Condition="'$(Configuration)' == 'Release' and '$(WasmGenerateAppBundle)' == 'true'">
     <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-compress.mjs&quot; &quot;$(WasmAppDir)&quot;" />
   </Target>
   <ItemGroup>
-    <WasmNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/Native/Wasm.patch;../SharpRail.Scintilla/Native/*;../../scripts/wasm-native.sh;../../mise.lock;../../mise.browser.lock" />
+    <WasmNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/Native/Wasm.patch;../../scripts/wasm-native.sh;../../mise.lock;../../mise.browser.lock" />
   </ItemGroup>
   <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild"
-          Inputs="@(WasmNativeSource)" Outputs="../../.tools/wasm-native/GhosttyAvaloniaVt.a;../../.tools/wasm-native/SharpRail.Scintilla.a">
+          Inputs="@(WasmNativeSource)" Outputs="../../.tools/wasm-native/GhosttyAvaloniaVt.a">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:browser" />
     <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
   </Target>

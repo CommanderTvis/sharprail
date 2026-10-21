@@ -1,6 +1,6 @@
 #!/bin/sh
-# Builds the WASM static libraries (libghostty-vt and the editor bridge). The browser project's BuildBrowserNative target
-# decides when it runs: when a source, this script or the lockfile is newer than the libraries.
+# Builds the WASM static library libghostty-vt. The browser project's BuildBrowserNative target decides when it runs:
+# when a source, this script or the lockfile is newer than the library.
 set -eu
 cd "$(dirname "$0")/.."
 root="$PWD"
@@ -43,27 +43,3 @@ sh scripts/zig-deps.sh tgz
 emcc -pthread -O2 -DGHOSTTY_STATIC -I "$source/include" -c src/Ghostty.Avalonia/Native/GhosttyVt.c -o "$cache/GhosttyVt.o"
 cp "$cache/ghostty/lib/libghostty-vt.a" "$cache/GhosttyAvaloniaVt.a"
 emar r "$cache/GhosttyAvaloniaVt.a" "$cache/GhosttyVt.o"
-
-scintilla="$root/.tools/scintilla"
-bidi="$root/.tools/sheenbidi"
-patched="$cache/scintilla-patched"
-patch_hash="$(shasum -a 256 src/SharpRail.Scintilla/Native/EditView.patch)"
-if [ "$(cat "$patched/.patch" 2>/dev/null)" != "$patch_hash" ]; then
-    # Each patch revision has its own source directory; existing build inputs stay intact.
-    patched="$cache/scintilla-$(printf '%s' "$patch_hash" | cut -c1-16)"
-    if [ ! -d "$patched" ]; then
-        cp -R "$scintilla/." "$patched"
-        chmod -R u+w "$patched"
-        patch -s -p1 -d "$patched" < src/SharpRail.Scintilla/Native/EditView.patch
-        printf '%s\n' "$patch_hash" > "$patched/.patch"
-    fi
-fi
-mkdir -p "$cache/editor"
-emcc -pthread -O2 -DSB_CONFIG_UNITY -I "$bidi/Headers" -I "$bidi/Source" -c "$bidi/Source/SheenBidi.c" -o "$cache/editor/SheenBidi.o"
-for file in "$patched"/src/*.cxx "$root"/src/SharpRail.Scintilla/Native/*.cxx; do
-    case "$file" in */AutoComplete.cxx|*/CallTip.cxx|*/ScintillaBase.cxx) continue;; esac
-    name="$(basename "$file" .cxx)"
-    case "$file" in */Native/*) name="Bridge$name";; esac
-    emcc -pthread -DPTRDIFF_DOESNT_ALIAS_INT -x c++ -std=c++17 -O2 -DNDEBUG -fwasm-exceptions -I "$patched/include" -I "$patched/src" -I "$bidi/Headers" -c "$file" -o "$cache/editor/$name.o"
-done
-emar rcs "$cache/SharpRail.Scintilla.a" "$cache/editor"/*.o

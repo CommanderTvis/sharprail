@@ -97,15 +97,9 @@ Side resize projection adapts the constraint and delta-distribution rules from
 react-resizable-panels 2.1.9 (Copyright 2023 Brian Vaughn, MIT).
 See licenses/React-Resizable-Panels.txt; no JavaScript runtime is bundled.
 
-The macOS code editor embeds Scintilla 5.6.7 (Copyright Neil Hodgson and
-contributors), fetched from https://www.scintilla.org/scintilla567.tgz with its
-SHA-256 pinned in src/SharpRail.Scintilla/build-native.sh and patched by
-src/SharpRail.Scintilla/Native/EditView.patch. See
-src/SharpRail.Scintilla/licenses/Scintilla.txt. It also embeds SheenBidi 3.0.0
-(Copyright 2014-2026 Muhammad Tayyab Akram, Apache-2.0), fetched from
-https://github.com/Tehreer/SheenBidi with its SHA-256 pinned in the same script.
-See src/SharpRail.Scintilla/licenses/SheenBidi.txt.
-The custom platform port uses SkiaSharp 4.148.0, the version Avalonia’s Skia backend
+The code editor is a managed C# port of parts of Scintilla 5.6.7 (Copyright Neil
+Hodgson and contributors). See src/SharpRail.Scintilla/licenses/Scintilla.txt.
+The editor's drawing uses SkiaSharp 4.148.0, the version Avalonia’s Skia backend
 and Svg.Skia share in this app;
 SkiaSharp, Skia, HarfBuzzSharp and HarfBuzz retain their NuGet package licenses. No Cocoa Scintilla view
 or Lexilla binary is bundled.
@@ -127,8 +121,7 @@ ListenableFuture, JetBrains Annotations and JSpecify dependencies: the bindings 
 See licenses/AndroidX-Bindings.txt. SkiaSharp and HarfBuzzSharp's Android native assets
 retain their NuGet package licenses.
 
-The Android editor library links LLVM libc++ and libc++abi statically from the Android NDK
-r27d (Apache-2.0 WITH LLVM-exception). See licenses/LLVM-libcxx.txt. The Android terminal
+The Android terminal
 library is libghostty-vt at the commit above and links only the system C library.
 Krafs.Publicizer 2.3.2 (MIT) is used while building the Android client and is not
 redistributed.
