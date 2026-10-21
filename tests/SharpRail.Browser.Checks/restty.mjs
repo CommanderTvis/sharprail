@@ -101,6 +101,7 @@ try {
     const tick = () => { globalThis.animationFrames++; if (dirty) { globalThis.gpuFrames++; dirty = false; } requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
   }, { address, token, fixture, zoom: Number(process.env.SETTINGS_ZOOM ?? 1) });
+  const loadStarted = performance.now();
   await page.goto(address);
   await page.waitForFunction(() => [...document.querySelectorAll('.sharprail-restty')].some(element => element.dataset.ready === 'true' && element.querySelector('canvas') && element.checkVisibility()), {}, { timeout: 90000 });
   const term = page.locator('.sharprail-restty:has(canvas):visible').first();
@@ -331,6 +332,48 @@ try {
     assert.equal(JSON.parse(await invoke('DroppedFiles')).length, 1);
     assert.deepEqual(errors, []);
     console.log('PASS browser file drops: restty DOM coordinates, client bytes uploaded to host, agent callback and inactive rejection');
+  } else if (process.argv.includes('--perf')) {
+    // Startup, terminal throughput, editor and diff timings for comparing browser AOT assembly sets.
+    const startupMs = performance.now() - loadStarted;
+    const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return await exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+    }, { method, args });
+    const frame = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const stats = values => { const sorted = [...values].sort((a, b) => a - b); return { median: sorted[Math.floor(sorted.length / 2)], p95: sorted[Math.floor(sorted.length * .95)] }; };
+    await term.locator('canvas').click();
+    await page.keyboard.type('seq 1 20000; echo PERF_$((40+2))_DONE');
+    let started = performance.now();
+    await page.keyboard.press('Enter');
+    while (!(await screen()).includes('PERF_42_DONE')) {
+      if (performance.now() - started > 120000) throw new Error('Terminal output did not finish: ' + (await screen()).slice(-600));
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    const terminalMs = performance.now() - started;
+    started = performance.now();
+    const editor = JSON.parse(await invoke('OpenEditorBench', 100000));
+    await frame();
+    editor.ToFrameMs = performance.now() - started;
+    await page.waitForTimeout(500);
+    const length = await invoke('EditorBenchLength');
+    const typing = [];
+    for (let index = 0; index < 100; index++) {
+      started = performance.now(); await page.keyboard.press('x'); await frame(); typing.push(performance.now() - started);
+    }
+    assert.equal(await invoke('EditorBenchLength'), length + 100, 'Typing did not reach the editor');
+    const scrolling = [];
+    for (let index = 1; index <= 60; index++) {
+      started = performance.now(); await invoke('ScrollEditorBench', index * 300); await frame(); scrolling.push(performance.now() - started);
+    }
+    const typingCpu = JSON.parse(await invoke('EditorCpuBench', 100, false));
+    const scrollingCpu = JSON.parse(await invoke('EditorCpuBench', 60, true));
+    started = performance.now();
+    const diff = JSON.parse(await invoke('OpenDiffBench', 2000));
+    await frame();
+    diff.ToFrameMs = performance.now() - started;
+    await invoke('RestorePerf');
+    assert.deepEqual(errors, []);
+    console.log('PERF', JSON.stringify({ startupMs, terminalMs, editor, typing: stats(typing), scrolling: stats(scrolling), typingCpu, scrollingCpu, diff }));
   } else if (process.argv.includes('--prose')) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
       const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');

@@ -15,20 +15,29 @@
   <Target Name="VerifyBrowserManagedAssemblies" AfterTargets="ILLink" Condition="'$(SharpRailBrowserAot)' == 'true'">
     <Exec Command="node &quot;$(MSBuildProjectDirectory)/verify-preserved-assemblies.mjs&quot; &quot;$(IntermediateOutputPath)browser-preserved-assemblies.txt&quot;" />
   </Target>
+  <!-- The assemblies compiled to WebAssembly ahead of time; every other assembly stays interpreted. The rationale for
+       each is in SPEC.md ("Browser AOT assemblies"). Both targets below fail when the selected or compiled set drifts. -->
+  <PropertyGroup>
+    <BrowserAotAssemblies Condition="'$(BrowserAotAssemblies)' == ''">System.Private.CoreLib;Avalonia.Base;SharpRail.Scintilla;SkiaSharp;HarfBuzzSharp;Avalonia.Skia;Avalonia.HarfBuzz;Avalonia.Controls;Avalonia.Browser;SharpRail.UI;SharpRail.Plugins.UI.Kit;System.Text.Json;System.Linq;System.Collections;System.Text.RegularExpressions;TextMateSharp;Markdig;SharpRail.Host.Protocol;SharpRail.Host.Client;System.Runtime.InteropServices.JavaScript</BrowserAotAssemblies>
+    <_BrowserAotList>;$(BrowserAotAssemblies);</_BrowserAotList>
+    <!-- Bitcode files are named <assembly>.dll.bc. -->
+    <_BrowserAotBitcodeList>;$(BrowserAotAssemblies.Replace(';', '.dll;')).dll;</_BrowserAotBitcodeList>
+  </PropertyGroup>
   <Target Name="SelectBrowserAotAssemblies" BeforeTargets="_WasmAotCompileApp" Condition="'$(SharpRailBrowserAot)' == 'true'">
     <ItemGroup>
-      <_WasmAssembliesInternal Update="@(_WasmAssembliesInternal)" Condition="'%(Filename)' != 'Avalonia.Base' and '%(Filename)' != 'System.Private.CoreLib'">
+      <BrowserAotName Include="$(BrowserAotAssemblies)" />
+      <BrowserAotAssembly Include="@(_WasmAssembliesInternal)" Condition="$(_BrowserAotList.Contains(';%(_WasmAssembliesInternal.Filename);'))" />
+      <_WasmAssembliesInternal Update="@(_WasmAssembliesInternal)" Condition="!$(_BrowserAotList.Contains(';%(_WasmAssembliesInternal.Filename);'))">
         <AOT_InternalForceToInterpret>true</AOT_InternalForceToInterpret>
       </_WasmAssembliesInternal>
-      <BrowserAotAssembly Include="@(_WasmAssembliesInternal)" Condition="'%(Filename)' == 'Avalonia.Base' or '%(Filename)' == 'System.Private.CoreLib'" />
     </ItemGroup>
-    <Error Condition="@(BrowserAotAssembly->Count()) != 2" Text="The pinned browser AOT policy requires Avalonia.Base and System.Private.CoreLib." />
+    <Error Condition="@(BrowserAotAssembly->Count()) != @(BrowserAotName->Count())" Text="Browser AOT expects $(BrowserAotAssemblies) but found @(BrowserAotAssembly->'%(Filename)')." />
   </Target>
   <Target Name="VerifyBrowserAotAssemblies" AfterTargets="_WasmAotCompileApp" Condition="'$(SharpRailBrowserAot)' == 'true'">
     <ItemGroup>
-      <BrowserCompiledAotAssembly Include="@(_BitcodeFile)" Condition="'%(Filename)' == 'Avalonia.Base.dll' or '%(Filename)' == 'System.Private.CoreLib.dll'" />
-      <BrowserUnexpectedAotAssembly Include="@(_BitcodeFile)" Condition="'%(Filename)' != 'Avalonia.Base.dll' and '%(Filename)' != 'System.Private.CoreLib.dll' and '%(Filename)' != 'aot-instances.dll'" />
+      <BrowserCompiledAotAssembly Include="@(_BitcodeFile)" Condition="$(_BrowserAotBitcodeList.Contains(';%(_BitcodeFile.Filename);'))" />
+      <BrowserUnexpectedAotAssembly Include="@(_BitcodeFile)" Condition="!$(_BrowserAotBitcodeList.Contains(';%(_BitcodeFile.Filename);')) and '%(_BitcodeFile.Filename)' != 'aot-instances.dll'" />
     </ItemGroup>
-    <Error Condition="@(BrowserCompiledAotAssembly->Count()) != 2 or @(BrowserUnexpectedAotAssembly->Count()) != 0" Text="The pinned browser SDK must compile only Avalonia.Base, System.Private.CoreLib and shared generic instances." />
+    <Error Condition="@(BrowserCompiledAotAssembly->Count()) != @(BrowserAotName->Count()) or @(BrowserUnexpectedAotAssembly->Count()) != 0" Text="The browser AOT compilation must cover exactly $(BrowserAotAssemblies) plus shared generic instances; compiled @(_BitcodeFile->'%(Filename)')." />
   </Target>
 </Project>

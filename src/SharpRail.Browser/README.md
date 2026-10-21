@@ -57,14 +57,15 @@ checks Settings repaint stability, reopening, dismissal and terminal input recov
 
 The acceptance runner also supports `SHARPRAIL_BROWSER_BUNDLE=/absolute/bundle/path node tests/SharpRail.Browser.Checks/check.mjs` for a normal deployment-bundle smoke check.
 
-Release Build and Publish use selective hybrid WASM AOT for the layout/runtime hot paths.
+Release Build and Publish use selective hybrid WASM AOT for the runtime, layout, drawing, editor,
+Markdown, highlighting and RPC hot paths (the list and its reasons are in [SPEC.md](SPEC.md)).
 The first native compilation takes longer; later builds reuse its cache. Managed assemblies,
 reflection and dynamically loaded plugins are preserved. Debug remains interpreted. For an
 interpreted diagnostic build, use
 `.tools/dotnet/dotnet build src/SharpRail.Browser -c Release -p:SharpRailBrowserAot=false`.
 
-The measured native runtime grows from 11.61 MB interpreted to 37.90 MB with selective AOT.
-Gzip level 9 produces 11.40 MB and Brotli quality 11 produces 7.92 MB.
+The measured native runtime grows from 11.61 MB interpreted to 61.9 MB with selective AOT
+(12.4 MB Brotli).
 Release bundles now include precompressed `.br` and `.gz` sidecars. The standalone host
 negotiates these at the original URLs using `Accept-Encoding`, retaining the original MIME type,
 COOP/COEP headers and conditional caching. Uncompressed bundles and clients remain supported.

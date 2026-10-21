@@ -57,10 +57,9 @@ so the managed interpreter does not process each cell of a common ASCII row. Bro
 compare the batched and shared paths pixel for pixel. Runtime-loaded plugins remain supported;
 the browser keeps its untrimmed managed runtime.
 
-Release Build and Publish use hybrid WASM AOT for Avalonia.Base and System.Private.CoreLib
-(and their shared generic instances); other assemblies remain interpreted. This is not NativeAOT.
-The code editor (`SharpRail.Scintilla`) is managed and so also interpreted; its typing, scrolling
-and wrapping speed in the browser is not yet measured.
+Release Build and Publish use hybrid WASM AOT for the assemblies in `BrowserAotAssemblies`
+(`BrowserAot.targets`) and their shared generic instances; other assemblies remain interpreted.
+This is not NativeAOT. The build fails when the selected or compiled set differs from that list.
 Debug remains interpreted; SharpRailBrowserAot=false explicitly opts out for diagnostics. The pinned
 SDK requires the linker pipeline for Publish, but every resolved managed assembly is rooted and
 uses copy mode, with IL stripping disabled. A mandatory SHA-256 comparison verifies every linked
@@ -69,6 +68,31 @@ Copy mode still performs trim analysis, so only this browser copy-only configura
 trim analyzer and linker trim-analysis warnings; ordinary warnings and referenced-project analyzers
 remain enabled. Build guards reject trimming, IL stripping, disabled reflection or a non-hybrid runtime,
 and verify both selected and compiled AOT assembly sets. SDK upgrades must retain these guarantees.
+
+### Browser AOT assemblies
+
+| Assembly | Why it is compiled |
+|---|---|
+| System.Private.CoreLib, System.Collections, System.Linq | Strings, spans, collections and LINQ under every other hot path. |
+| Avalonia.Base, Avalonia.Controls, Avalonia.Browser | Layout, rendering, input and the browser platform loop on every frame. |
+| Avalonia.Skia, SkiaSharp, Avalonia.HarfBuzz, HarfBuzzSharp | Drawing and text shaping wrappers called per glyph run. |
+| SharpRail.Scintilla | The managed code editor: document, layout, shaping and painting. |
+| SharpRail.UI, SharpRail.Plugins.UI.Kit | Workbench, diff, Markdown, tree and terminal glue drawing. |
+| Markdig, TextMateSharp, System.Text.RegularExpressions | Markdown parsing and syntax highlighting of whole documents. |
+| SharpRail.Host.Protocol, SharpRail.Host.Client, System.Text.Json | Every host RPC message is serialized and dispatched through them. |
+| System.Runtime.InteropServices.JavaScript | Terminal output and every other JS interop call cross it. |
+
+Everything else stays interpreted: plugins (cold, loaded on demand, many), the host core, XAML
+loading, Fluent theme, SVG, YAML/TOML, XML and data serialization, and TextMateSharp.Grammars
+(6.7 MB of grammar data with little code). Measured on 2026-10-21 (Apple Silicon, headless
+Chromium, `restty.mjs --perf` and `--prose`) against the earlier CoreLib/Avalonia.Base-only set:
+editor typing and scrolling CPU per step 7.1 and 6.9 ms became 3.0 and 2.8 ms; a 100,000-line
+editor opened to its first frame in 150 instead of 240 ms; a 2,000-hunk diff in 100 instead of
+160 ms; 646 KB of prose parsed in 5 instead of 42 ms and painted in 130 instead of 230 ms; 20,000
+terminal lines finished in 180–240 instead of about 470 ms. The Brotli `_framework` grew from
+21.9 MB to 26.5 MB (dotnet.native.wasm 7.8 MB to 12.4 MB); clean Release builds stayed at 3–5 minutes.
+`restty.mjs --perf` (test-only bundle) prints those startup, terminal, editor and diff timings for
+comparing sets; pass `-p:BrowserAotAssemblies="..."` to build a candidate.
 
 The opt-in restty.mjs --prose journey measures a 646,081-character, 1,025-block Markdown document
 with a 3-second first-frame budget. It checks every block has an exact measured size, bounds mounted
