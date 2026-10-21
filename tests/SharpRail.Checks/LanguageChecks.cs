@@ -780,6 +780,7 @@ internal static class LanguageChecks
         finally { window.Close(); frame.Editor.Dispose(); SynchronizationContext.SetSynchronizationContext(previous); }
         DocumentUi(fixture);
         SettingsUi(fixture);
+        LanguagePaneNarrowChecks.Run(fixture);
         using var toolWorkspace = new E2E.E2eWorkspace(Path.Combine(fixture, "language-tool-rail"), openFiles: false);
         toolWorkspace.Click(toolWorkspace.Find<Button>("RailUnplaced_lsp"));
         E2E.E2eWorkspace.Until(() => toolWorkspace.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "LspPanel" && control.IsEffectivelyVisible));

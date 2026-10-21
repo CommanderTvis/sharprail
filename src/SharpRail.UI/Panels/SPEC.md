@@ -259,3 +259,12 @@ orchestrators start the ones agents need when they create a workspace, that agen
 on demand, and that starting one by hand is for editor features. A headless check (`--lsp-ui`,
 `--lsp-settings`) asserts the text in both places. Rows of running servers show who started them and the
 agent call count with the time of the latest call.
+
+Server rows adapt to the pane width with a container query on the row (static, in
+`LanguagePanel.axaml`). Above 300px the name sits between the marks and the actions (settings and
+Start/Retry); at 300px and below the marks keep the first line, then the name, the actions and the
+details each take the full row width. The name wraps only between words, trims with an ellipsis and
+shows itself as a tooltip. The shared pane header trims its title before its buttons, so no pane title
+runs under + or −. `--lsp-narrow` (also part of `--lsp-ui`) asserts at 160, 220, 320 and 480px that
+no row text is narrower than its longest word, names never break inside a word, row actions stay
+visible inside the row, and pane titles end before their buttons.

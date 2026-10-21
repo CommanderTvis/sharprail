@@ -372,7 +372,10 @@ public sealed partial class DockSurface
         label.VerticalAlignment = VerticalAlignment.Center;
         label.TextTrimming = TextTrimming.CharacterEllipsis;
         icon.VerticalAlignment = VerticalAlignment.Center;
-        var caption = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(12, 0, 4, 0), HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.Transparent, Children = { icon, label } };
+        icon.Margin = new Thickness(0, 0, 8, 0);
+        Avalonia.Controls.DockPanel.SetDock(icon, Avalonia.Controls.Dock.Left);
+        // A dock panel, not a horizontal stack, so a narrow pane trims the title before the actions instead of drawing it under them.
+        var caption = new Avalonia.Controls.DockPanel { Margin = new Thickness(12, 0, 4, 0), HorizontalAlignment = HorizontalAlignment.Left, Background = Brushes.Transparent, ClipToBounds = true, Children = { icon, label } };
         caption.Name = "PaneCaption";
         Ui.Place(header, caption);
         actions = new StackPanel { Orientation = Orientation.Horizontal };

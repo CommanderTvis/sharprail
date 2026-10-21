@@ -192,6 +192,13 @@ internal static class Program
             LanguageChecks.UiChecks(root);
             return;
         }
+        if (args.SequenceEqual(["--lsp-narrow"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            LanguagePaneNarrowChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--lsp-on-demand"]))
         {
             LanguageOnDemandChecks.Run(root).GetAwaiter().GetResult();
