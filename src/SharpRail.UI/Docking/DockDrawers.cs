@@ -117,6 +117,10 @@ public sealed partial class DockSurface
     private void PlaceSlide()
     {
         if (slide is not { } pages) return;
+        // PageSlide moves a page by changing its TranslateTransform in place, which on Android never moved the page on
+        // screen; a new transform each frame, which PageSlide then sets, does.
+        PageHost(pages.From).RenderTransform = new TranslateTransform();
+        PageHost(pages.To).RenderTransform = new TranslateTransform();
         pageSlide.Update(slideProgress, PageHost(pages.From), PageHost(pages.To), pages.To > pages.From, shell.Bounds.Width, []);
     }
 

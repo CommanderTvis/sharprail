@@ -218,7 +218,7 @@ internal static class DrawerChecks
         var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true);
         window.Width = 400; window.Height = 800;
         window.Show();
-        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "changes"), "The compact Git workspace did not mount.");
+        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "review"), "The compact Git workspace did not mount.");
         var layout = window.Layout;
         var surface = Named<SharpRail.UI.Docking.DockSurface>(window, "WorkspaceWorkbench");
         var center = Named<Border>(window, "CenterRegion");
@@ -265,14 +265,26 @@ internal static class DrawerChecks
         // A finger drags Projects in: the pages follow it, and stay apart by exactly one page.
         var width = window.Bounds.Width;
         var y = window.Bounds.Height / 2;
+        // Sampled frame by frame, under the finger and after it lets go: every frame must move the pages, and with a
+        // transform of its own, since a transform changed in place does not move a page on Android.
+        var samples = new List<(ITransform? Transform, double Offset)>();
+        void Sample() => samples.Add((Region("left").RenderTransform, Offset(Region("left"))));
         var touch = window.TouchBegin(new(width * 0.2, y), RawInputModifiers.None);
-        for (var step = 1; step <= 5; step++) window.TouchMove(touch, new(width * (0.2 + 0.4 * step / 5), y), RawInputModifiers.None);
-        Frames(2);
+        for (var step = 1; step <= 5; step++) { window.TouchMove(touch, new(width * (0.2 + 0.4 * step / 5), y), RawInputModifiers.None); Frames(1); Sample(); }
         Require(surface.PageSliding && Region("left").IsVisible && center.IsVisible &&
             Math.Abs(Offset(center) - width * 0.4) < 2 && Math.Abs(Offset(Region("left")) - (width * 0.4 - width)) < 2,
             "A held page must follow the finger, the page it leaves beside it.");
+        var held = samples.Count;
         using (var wait = new CancellationTokenSource(400)) Dispatcher.UIThread.MainLoop(wait.Token);
         window.TouchEnd(touch, new(width * 0.6, y), RawInputModifiers.None);
+        for (var frame = 0; frame < 120 && surface.PageSliding; frame++) { Sample(); Frames(1); }
+        var settling = samples.Skip(held).Where(sample => sample.Offset < -1).ToArray();
+        Require(samples.Take(held).Select(sample => sample.Offset).Zip(samples.Skip(1).Take(held - 1).Select(sample => sample.Offset)).All(pair => pair.Second > pair.First),
+            "Each move of a held finger must carry the page further in.");
+        Require(settling.Length >= 3 && settling.Zip(settling.Skip(1)).All(pair => pair.Second.Offset >= pair.First.Offset) &&
+            settling.Any(sample => sample.Offset > width * 0.4 - width + 2), "A page let go must slide the rest of the way over several frames.");
+        Require(samples.Zip(samples.Skip(1)).All(pair => pair.Second.Offset == pair.First.Offset || !ReferenceEquals(pair.First.Transform, pair.Second.Transform)),
+            "Every slide frame must give the page a new transform, or Android leaves it where it was.");
         AtRest(-1, "A page carried past the third must complete.");
         Require(layout.State.LeftVisible, "A completed drag must leave Projects shown.");
         touch = window.TouchBegin(new(width * 0.6, y), RawInputModifiers.None);

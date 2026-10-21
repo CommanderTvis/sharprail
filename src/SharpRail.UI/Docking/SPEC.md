@@ -405,8 +405,10 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
   rebuild or, for Tools, when its sections change. Only the page on screen, and the one sliding with it, is
   visible: hidden pages take no touch, focus, frames or automation. The slide is Avalonia's `PageSlide` driven
   through `IProgressPageTransition.Update` (finger progress while held, a 260 ms cubic ease-out to the end or
-  back on release, then `Reset`); the page on its way out of an unheld slide is not hit-testable, and a held
-  drag stops gesture recognisers under the finger from taking the touch. A switch that interrupts a slide
+  back on release, then `Reset`). Each frame gives both pages a new `TranslateTransform` before `Update` sets
+  it: a transform changed in place left the pages unmoved on Android, so the slide showed only its end. The
+  page on its way out of an unheld slide is not hit-testable, and a held drag stops gesture recognisers under
+  the finger from taking the touch. A switch that interrupts a slide
   turns it round when it goes back, and otherwise starts from the page most on screen.
   Settings is the page after Tools but a window of its own, so nothing is dragged: a sweep past Tools opens it
   when the finger lifts, and a sweep back over it closes it.
