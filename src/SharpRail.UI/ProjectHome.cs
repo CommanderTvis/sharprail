@@ -227,25 +227,36 @@ public sealed partial class WorkbenchWindow
     private void FillProjectMenu(ContextMenu menu)
     {
         menu.Items.Clear();
-        var create = Ui.Menu("Create project…", () => _ = CreateProjectAsync());
+        var create = Ui.Menu("Create project…", CreateProject);
         create.Name = "CreateProjectMenu";
         menu.Items.Add(create);
         menu.Items.Add(Ui.Menu("Open project", () => _ = PickProjectAsync()));
         menu.Items.Add(Ui.Menu(remote ? "Enter host path…" : "Enter path…", () => _ = EnterHostPathAsync(null)));
-        var clone = Ui.Menu("Clone repository…", () => _ = CloneProjectAsync());
+        var clone = Ui.Menu("Clone repository…", CloneProject);
         clone.Name = "CloneProjectMenu";
         menu.Items.Add(clone);
-        var recents = state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
+        var recents = RecentProjects();
         if (recents.Length == 0) return;
         menu.Items.Add(new Separator());
         menu.Items.Add(new MenuItem { Header = "Recent", IsEnabled = false });
         foreach (var path in recents)
         {
-            var item = Ui.Menu(path, () => _ = OpenPickedProjectAsync(path));
+            var item = Ui.Menu(path, () => OpenRecentProject(path));
             item.Name = "RecentProject";
             menu.Items.Add(item);
         }
     }
+
+    /// <summary>The host's recent projects that are not open, as the add-project menu lists them.</summary>
+    internal string[] RecentProjects() => state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
+
+    /// <summary>Raised after a host broadcast changed the project rail: open projects, recents or labels.</summary>
+    internal event Action? ProjectsChanged;
+
+    // The add-project menu's commands, which the macOS menu bar reaches too.
+    internal void OpenRecentProject(string path) => _ = OpenPickedProjectAsync(path);
+    internal void CreateProject() => _ = CreateProjectAsync();
+    internal void CloneProject() => _ = CloneProjectAsync();
 
     private ContextMenu ProjectActions(string project)
     {

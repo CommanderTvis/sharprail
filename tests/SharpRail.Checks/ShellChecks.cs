@@ -7,8 +7,10 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Checks.E2E;
+using SharpRail.Host.Abstractions;
 using SharpRail.UI;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;
@@ -25,6 +27,7 @@ internal static class ShellChecks
     {
         LocationBarChecks.Run(root);
         Menu(Path.Combine(root, "shell-menu"));
+        if (OperatingSystem.IsMacOS()) MenuBar(Path.Combine(root, "shell-menu-bar"));
         Chrome(Path.Combine(root, "shell-chrome"));
         RegionErrors();
         RunConnectionErrors(root);
@@ -282,13 +285,147 @@ internal static class ShellChecks
         var workbench = Entry(ApplicationMenu.Build(app.Window, app.Window.Commands), "Window").Menu!;
         app.Open("README.md", true);
         app.Window.Layout.Focus(app.Center);
-        Pick(workbench, "Close");
+        Pick(Entry(ApplicationMenu.Build(app.Window, app.Window.Commands), "File").Menu!, "Close Tab");
         Until(() => app.Tabs.All(tab => tab.Path != "README.md"));
-        Require(app.Window.IsVisible, "Close in a workbench window closes the selected tab through the app command, never the window.");
+        Require(app.Window.IsVisible, "Close Tab in a workbench window closes the selected tab through the app command, never the window.");
         Pick(workbench, "Minimize");
         Require(app.Window.WindowState == WindowState.Minimized, "Minimize minimizes the window.");
         app.Window.WindowState = WindowState.Normal;
         Console.WriteLine("PASS shell: the application menu routes editing and window commands to their existing paths");
+    }
+
+    /// <summary>A workbench window's menu bar: only secondary ways into commands the window already has, each through its own path.</summary>
+    private static void MenuBar(string directory)
+    {
+        var serverState = "idle";
+        var operations = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        using var app = new E2eWorkspace(directory, prepare: host => host.LanguageReply = request =>
+        {
+            operations.Enqueue(request.Operation);
+            return request.Operation is "inspect" or "status" or "references" ? new(serverState, "Fixture status", "typescript") : null;
+        });
+        File.WriteAllText(Path.Combine(directory, "Example.ts"), "const example = 1;");
+        var window = app.Window;
+        var bar = ApplicationMenu.Build(window, window.Commands);
+        Require(Headers(bar).SequenceEqual(["File", "Edit", "View", "Window", "Help"]), "A workbench window gets File, Edit, View, Window and Help: " + string.Join(", ", Headers(bar)));
+        var file = Entry(bar, "File").Menu!;
+        var edit = Entry(bar, "Edit").Menu!;
+        var view = Entry(bar, "View").Menu!;
+        var windows = Entry(bar, "Window").Menu!;
+        var help = Entry(bar, "Help").Menu!;
+        string[] language = ["Go to Declaration", "Go to Type Declaration", "Go to Implementation", "Find Usages", "Document symbols", "Workspace Problems",
+            "Language server status", "Start / Retry language server", "Stop language server"];
+        Require(Headers(file).SequenceEqual(["New Workspace", "New Window", "-", "Open Project…", "Clone Repository…", "Create Project…", "Open Recent", "-", "Close Tab", "Close Window"]),
+            "File: " + string.Join(", ", Headers(file)));
+        Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All", "-", "Find", "-", .. language]), "Edit: " + string.Join(", ", Headers(edit)));
+        Require(Headers(view).SequenceEqual(["Zoom In", "Zoom Out", "Actual Size"]), "View: " + string.Join(", ", Headers(view)));
+        Require(Headers(windows).SequenceEqual(["Minimize", "Zoom", "-", "Host Settings…", "Connect to a Tailscale Host…", "-", "Bring All to Front"]), "Window: " + string.Join(", ", Headers(windows)));
+        Require(Headers(help).SequenceEqual(["Report an Issue…"]), "Help: " + string.Join(", ", Headers(help)));
+
+        // Every chord is the one the window already answers to.
+        static bool Shows(NativeMenu menu, string header, KeyGesture? gesture) => Equals(Entry(menu, header).Gesture, gesture);
+        Require(Shows(file, "New Workspace", WindowShortcuts.NewWorkspace.Gesture) && Shows(file, "New Window", WindowShortcuts.NewWindow.Gesture) &&
+            Shows(file, "Open Project…", WindowShortcuts.OpenProject.Gesture) && Shows(file, "Clone Repository…", null) && Shows(file, "Create Project…", null) &&
+            Shows(file, "Close Tab", WindowShortcuts.Close) && Shows(file, "Close Window", new KeyGesture(Key.W, KeyModifiers.Meta | KeyModifiers.Shift)) &&
+            Shows(edit, "Find", new KeyGesture(Key.F, KeyModifiers.Meta)) && Shows(edit, "Go to Declaration", new KeyGesture(Key.F12)) &&
+            Shows(edit, "Find Usages", new KeyGesture(Key.F7, KeyModifiers.Alt)) && Shows(edit, "Go to Implementation", null) &&
+            Shows(view, "Zoom In", WindowShortcuts.ZoomIn.Gesture) && Shows(view, "Zoom Out", WindowShortcuts.ZoomOut.Gesture) && Shows(view, "Actual Size", WindowShortcuts.ZoomReset.Gesture),
+            "Menu items show the window's own chords.");
+        var closeWindow = new KeyGesture(Key.W, KeyModifiers.Meta | KeyModifiers.Shift);
+        Require(window.ShortcutFor(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = closeWindow.Key, KeyModifiers = closeWindow.KeyModifiers }) is null,
+            "Close Window's chord must not collide with a window chord.");
+
+        // File: the add-project menu's own commands.
+        var picked = 0;
+        window.FolderPicker = () => { picked++; return Task.FromResult<string?>(null); };
+        Pick(file, "Open Project…");
+        Until(() => picked == 1);
+        foreach (var (header, title) in new[] { ("Clone Repository…", "Clone repository"), ("Create Project…", "Create project") })
+        {
+            Pick(file, header);
+            Until(() => window.OwnedWindows.Count == 1);
+            var dialog = (Window)window.OwnedWindows[0];
+            Require(dialog.Title == title, $"{header} opens the {title} dialog, opened {dialog.Title}.");
+            dialog.Close(); Until(() => window.OwnedWindows.Count == 0);
+        }
+        Pick(file, "New Workspace");
+        Until(() => window.OwnedWindows.Count == 1);
+        ((Window)window.OwnedWindows[0]).Close(); Until(() => window.OwnedWindows.Count == 0);
+
+        // View: the zoom chords' own steps.
+        Pick(view, "Actual Size");
+        Pick(view, "Zoom In");
+        Require(window.Preferences.Zoom > 1, "Zoom In steps the interface zoom up.");
+        Pick(view, "Actual Size");
+        Require(window.Preferences.Zoom == 1, "Actual Size resets the interface zoom.");
+        Pick(view, "Zoom Out");
+        Require(window.Preferences.Zoom < 1, "Zoom Out steps the interface zoom down.");
+        Pick(view, "Actual Size");
+
+        // Window: Settings opened on its Host page.
+        Pick(windows, "Host Settings…");
+        Until(() => window.OwnedWindows.Count == 1);
+        var settings = (SharpRail.UI.Panels.SettingsWindow)window.OwnedWindows[0];
+        Require(settings.Section == "Host", "Host Settings opens Settings › Host, opened " + settings.Section);
+        var launches = 0;
+        var launcher = SharpRail.UI.Panels.SettingsWindow.ConnectTailscale;
+        SharpRail.UI.Panels.SettingsWindow.ConnectTailscale = _ => launches++;
+        try
+        {
+            settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "HostTailscaleConnect").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            settings.Close(); Until(() => window.OwnedWindows.Count == 0);
+            Pick(windows, "Connect to a Tailscale Host…");
+            Require(launches == 2, "The Tailscale item starts the same client as Settings › Host's button.");
+        }
+        finally { SharpRail.UI.Panels.SettingsWindow.ConnectTailscale = launcher; }
+
+        // Edit: Find arrives as its chord; the language items follow the focused editor's running server.
+        var chords = new List<(Key Key, KeyModifiers Modifiers)>();
+        var target = app.Find<Button>("Tab_files");
+        target.KeyDown += (_, e) => chords.Add((e.Key, e.KeyModifiers));
+        target.Focus();
+        Pick(edit, "Find");
+        Require(chords.Contains((Key.F, KeyModifiers.Meta)), "Find reaches the focused control as Command-F.");
+        Require(language.All(header => !Entry(edit, header).IsEnabled), "Language items are disabled without a focused editor.");
+        var open = window.OpenDocumentAsync("Example.ts", true);
+        Until(() => open.IsCompleted); open.GetAwaiter().GetResult();
+        var code = window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Single();
+        code.Editor.Focus(); Settle();
+        Require(language.All(header => !Entry(edit, header).IsEnabled), "Language items stay disabled while the file has no running server.");
+        serverState = "ready";
+        Until(() => language.All(header => Entry(edit, header).IsEnabled));
+        operations.Clear();
+        Pick(edit, "Find Usages");
+        Until(() => operations.Contains("references"));
+        code.FindControl<Avalonia.Controls.Primitives.Popup>("LanguagePopup")!.IsOpen = false;
+        code.Editor.Focus();
+        serverState = "stopped";
+        Until(() => language.All(header => !Entry(edit, header).IsEnabled));
+        serverState = "ready";
+        Until(() => language.All(header => Entry(edit, header).IsEnabled));
+        target.Focus(); Settle();
+        Require(language.All(header => !Entry(edit, header).IsEnabled), "Leaving the editor disables the language items.");
+
+        // Close Tab is the tab-close command; Close Window closes this window only.
+        app.Open("README.md", true);
+        window.Layout.Focus(app.Center);
+        Pick(file, "Close Tab");
+        Until(() => app.Tabs.All(tab => tab.Path != "README.md"));
+        var second = app.NewWindow();
+        Pick(Entry(ApplicationMenu.Build(second.Window, second.Window.Commands), "File").Menu!, "Close Window");
+        Until(() => !second.Window.IsVisible);
+        Require(window.IsVisible, "Close Window closes only its own window.");
+        // Open Recent is the host's recents outside the open projects, and follows the broadcast.
+        var recent = directory + "-recent"; Directory.CreateDirectory(recent);
+        var recents = Entry(file, "Open Recent").Menu!;
+        Require(!Headers(recents).Contains(recent), "A project that never closed is not recent.");
+        var change = Task.Run(async () => { await app.State!.ChangeAsync([HostStateChange.OpenProject(recent)]); await app.State!.ChangeAsync([HostStateChange.CloseProject(recent)]); });
+        Until(() => change.IsCompleted && Headers(recents).Contains(recent));
+        change.GetAwaiter().GetResult();
+        Pick(recents, recent);
+        Until(() => app.State!.Current.Projects.Contains(recent) && !Headers(recents).Contains(recent));
+
+        Console.WriteLine("PASS shell: the workbench menu bar mirrors existing commands with their chords and follows recents and language state");
     }
 
     private static void Chrome(string directory)

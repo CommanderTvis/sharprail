@@ -15,26 +15,30 @@ public sealed partial class SettingsWindow
             foreach (var refresh in refreshers) refresh();
     });
 
+    /// <summary>
+    /// Opens the Tailscale client in a separate app instance, keeping this one's local host; a failure to start it is
+    /// reported on the dispatcher. Settings › Host's button and the macOS Window menu both call it.
+    /// </summary>
+    internal static Action<Action<string>> ConnectTailscale { get; set; } = failed => _ = Task.Run(() =>
+    {
+        try
+        {
+            var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
+            if (Path.GetFileNameWithoutExtension(Environment.ProcessPath) == "dotnet") start.ArgumentList.Add(typeof(App).Assembly.Location);
+            start.ArgumentList.Add("--tailscale");
+            System.Diagnostics.Process.Start(start)?.Dispose();
+        }
+        catch (Exception failure) when (failure is IOException or System.ComponentModel.Win32Exception)
+        {
+            Dispatcher.UIThread.Post(() => failed(failure.Message));
+        }
+    });
+
     private Control ServingSettings()
     {
         var page = Page("HostPage");
         PageControl<Button>(page, "HostTailscaleConnect").Click += (_, _) =>
-        {
-            _ = Task.Run(() =>
-            {
-                try
-                {
-                    var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
-                    if (Path.GetFileNameWithoutExtension(Environment.ProcessPath) == "dotnet") start.ArgumentList.Add(typeof(App).Assembly.Location);
-                    start.ArgumentList.Add("--tailscale");
-                    System.Diagnostics.Process.Start(start)?.Dispose();
-                }
-                catch (Exception failure) when (failure is IOException or System.ComponentModel.Win32Exception)
-                {
-                    Dispatcher.UIThread.Post(() => { error.Text = failure.Message; error.IsVisible = true; });
-                }
-            });
-        };
+            ConnectTailscale(message => { error.Text = message; error.IsVisible = true; });
         if (window.Workbench.Listener is not { } listener)
         {
             PageControl<StackPanel>(page, "HostControls").IsVisible = false;

@@ -54,7 +54,7 @@ internal sealed partial class CodeDocumentView
     {
         languageTimer.Tick += async (_, _) => await InspectLanguageAsync();
         AttachedToVisualTree += (_, _) => { languageTimer.Start(); _ = InspectLanguageAsync(); };
-        DetachedFromVisualTree += (_, _) => { languageTimer.Stop(); languageRequest?.Cancel(); this.FindControl<Popup>("LanguagePopup")!.IsOpen = false; };
+        DetachedFromVisualTree += (_, _) => { SetLanguageAvailable(false); languageTimer.Stop(); languageRequest?.Cancel(); this.FindControl<Popup>("LanguagePopup")!.IsOpen = false; };
         Editor.TextChanged += (_, _) =>
         {
             languageVersion++; languageRequest?.Cancel();
@@ -129,6 +129,30 @@ internal sealed partial class CodeDocumentView
     private static readonly (string Label, string Operation)[] NavigationOperations =
         [("Go to Declaration (F12)", "definition"), ("Go to Type Declaration", "typeDefinition"), ("Go to Implementation", "implementation"), ("Find Usages (Alt+F7)", "references")];
 
+    private static readonly (string Label, string Operation)[] ServerOperations =
+        [("Document symbols", "symbols"), ("Workspace Problems", "diagnostics"), ("Language server status", "status"), ("Start / Retry language server", "retry"), ("Stop language server", "stop")];
+
+    /// <summary>The language actions the editor's context menu offers, in its order; the macOS menu bar lists the same ones.</summary>
+    internal static IEnumerable<(string Label, string Operation)> LanguageOperations => NavigationOperations.Concat(ServerOperations);
+
+    /// <summary>Whether the last language answer for this file named a running server, as the context menu requires; in memory only.</summary>
+    internal bool LanguageAvailable { get; private set; }
+
+    /// <summary>Raised when <see cref="LanguageAvailable"/> changes.</summary>
+    internal event Action? LanguageAvailabilityChanged;
+
+    private void SetLanguageAvailable(bool available)
+    {
+        if (available == LanguageAvailable) return;
+        LanguageAvailable = available;
+        LanguageAvailabilityChanged?.Invoke();
+    }
+
+    private static bool Running(LanguageResult result) => result.Server.Length > 0 && result.State is "ready" or "initializing";
+
+    /// <summary>Runs one of <see cref="LanguageOperations"/> as its context-menu item does.</summary>
+    internal void RunLanguageOperation(string operation) => _ = RunLanguageAsync(operation, wholeWorkspace: operation == "diagnostics");
+
     internal void AddLanguageMenu(ContextMenu menu)
     {
         var generation = 0;
@@ -141,17 +165,18 @@ internal sealed partial class CodeDocumentView
             try
             {
                 var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, LanguageSourceServer.Length > 0 ? "" : path, "status", Server: LanguageSourceServer)));
-                if (current != generation || disposed || !IsEffectivelyVisible || result.Server.Length == 0 || result.State is not ("ready" or "initializing")) return;
+                if (!disposed) SetLanguageAvailable(Running(result));
+                if (current != generation || disposed || !IsEffectivelyVisible || !Running(result)) return;
             }
             catch { return; }
             menu.Items.Add(new Separator { Tag = "lsp" });
             foreach (var (label, operation) in NavigationOperations)
             {
-                var item = Ui.Menu(label, () => _ = RunLanguageAsync(operation)); item.Tag = "lsp"; menu.Items.Add(item);
+                var item = Ui.Menu(label, () => RunLanguageOperation(operation)); item.Tag = "lsp"; menu.Items.Add(item);
             }
-            foreach (var (label, operation) in new[] { ("Document symbols", "symbols"), ("Workspace Problems", "diagnostics"), ("Language server status", "status"), ("Start / Retry language server", "retry"), ("Stop language server", "stop") })
+            foreach (var (label, operation) in ServerOperations)
             {
-                var item = Ui.Menu(label, () => _ = RunLanguageAsync(operation, wholeWorkspace: operation == "diagnostics"));
+                var item = Ui.Menu(label, () => RunLanguageOperation(operation));
                 item.Name = "Language_" + operation; item.Tag = "lsp"; menu.Items.Add(item);
             }
         };
@@ -231,7 +256,9 @@ internal sealed partial class CodeDocumentView
                 await Task.Delay(500, token);
                 result = await host.LanguageAsync(request with { Operation = operation == "retry" ? "status" : operation }, token);
             }
-            if (disposed || token.IsCancellationRequested || version != languageVersion) return;
+            if (disposed || token.IsCancellationRequested) return;
+            SetLanguageAvailable(Running(result));
+            if (version != languageVersion) return;
             this.FindControl<TextBlock>("LanguageStatus")!.Text = result.Server + " · " + result.Detail +
                 (operation is "inspect" or "diagnostics" ? $" · {result.Diagnostics.Count} problems ({result.Freshness})" : "");
             ToolTip.SetTip(this.FindControl<TextBlock>("LanguageStatus")!, result.Detail + "\nCoverage: " + result.Coverage);

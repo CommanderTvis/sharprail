@@ -163,6 +163,16 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     internal WindowShortcut? ShortcutFor(KeyEventArgs e) =>
         ShortcutCommands().FirstOrDefault(entry => entry.Shortcut.Matches(e) && entry.Enabled()).Shortcut;
 
+    /// <summary>Whether a window chord's command applies now, for a menu item that mirrors it.</summary>
+    internal bool CanRun(WindowShortcut shortcut) => ShortcutCommands().Any(entry => entry.Shortcut == shortcut && entry.Enabled());
+
+    /// <summary>Runs a window chord's command as its key press would, for a menu item that mirrors it.</summary>
+    internal void Run(WindowShortcut shortcut)
+    {
+        foreach (var entry in ShortcutCommands())
+            if (entry.Shortcut == shortcut && entry.Enabled()) { entry.Run(); return; }
+    }
+
     private bool RunShortcut(KeyEventArgs e)
     {
         foreach (var entry in ShortcutCommands())

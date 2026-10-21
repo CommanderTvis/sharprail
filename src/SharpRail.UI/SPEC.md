@@ -152,16 +152,36 @@ Other platforms, and windows with no native handle, zoom.
 
 ## Application menu
 
-On macOS the native menu bar is installed before the first window opens. The application
-menu keeps the platform's own items (Services, Hide, Hide Others, Show All, Quit); every window that opens,
-dialogs included, gets Edit (Undo, Redo, Cut, Copy, Paste, Delete, Select All) and Window (Minimize, Zoom,
-Close, Bring All to Front) with their conventional chords. Items call what their chords already reach, so
-a menu pick and a key press are one path and dispatch once: Close uses the normal tab-close action in a workbench
-window and closes any other window; an editing command acts on a focused text box directly and reaches
-every other focused control as its chord, because editors, terminals and selectable text implement those
-chords themselves. Delete has no chord and is never forwarded. The menu's Quit is the platform item and
-ends the app through the lifetime's shutdown directly; only the keyboard chord, which the window sees
-first, runs the confirmation gesture. Other platforms have no menu bar and keep their chords.
+On macOS the native menu bar is installed before the first window opens. Every item is only a second way into
+something the window already does, and calls what that primary path calls; a command with no primary path gets no
+item. The application menu holds About SharpRail and Settings… (⌘,, the window's Preferences chord, acting only when
+a workbench window is key) and keeps the platform's own items (Services, Hide, Hide Others, Show All, Quit).
+
+A workbench window gets:
+
+- File: New Workspace ⌘N, New Window ⇧⌘N, Open Project… ⌘O (the window chords' commands); Clone Repository…,
+  Create Project… and Open Recent ▸ (the add-project menu's commands and its list: host recents that are not open,
+  refilled when a host broadcast changes the project rail; there is no Clear Menu, as nothing clears recents);
+  Close Tab ⌘W (the normal tab-close action) and Close Window ⇧⌘W (the window's close button).
+- Edit: Undo, Redo, Cut, Copy, Paste, Delete, Select All; Find ⌘F; then the editor context menu's language actions
+  in its order (Go to Declaration F12, Go to Type Declaration, Go to Implementation, Find Usages ⌥F7, Document
+  symbols, Workspace Problems, Language server status, Start / Retry language server, Stop language server).
+  They are enabled only while the focused control is a code editor whose last language answer named a running
+  (ready or initializing) server, the condition the context menu applies; the menu follows focus and the editor's
+  in-memory answers and never asks the host.
+- View: Zoom In ⌘+, Zoom Out ⌘−, Actual Size ⌘0 (the zoom chords' commands).
+- Window: Minimize, Zoom, Host Settings… (Settings › Host), Connect to a Tailscale Host… (the same client launch as
+  Settings › Host's button; a failure shows as a toast), Bring All to Front.
+- Help: Report an Issue… opens the new-issue page of the repository About links to.
+
+A chord-backed item runs the window's own chord table entry only when that entry is enabled. Any other window,
+dialogs included, gets Edit (Undo, Redo, Cut, Copy, Paste, Delete, Select All) and Window (Minimize, Zoom, Close,
+Bring All to Front), where Close closes that window. An editing command acts on a focused text box directly and
+reaches every other focused control as its chord, because editors, terminals and selectable text implement those
+chords themselves; Find is forwarded the same way. Delete has no chord and is never forwarded. A key press the
+window handles never reaches the menu, so each dispatches once. The menu's Quit is the platform item and ends the
+app through the lifetime's shutdown directly; only the keyboard chord, which the window sees first, runs the
+confirmation gesture. Other platforms have no menu bar and keep their chords.
 
 ## Location bar
 
@@ -459,7 +479,7 @@ and Copy details (version and runtime lines as plain text). It reads assembly at
 telemetry or UI-thread I/O; Third-party notices looks for the shipped `THIRD-PARTY-NOTICES.md` on a worker and falls back to the
 repository copy. The version is the assembly informational version: the packaging tasks pass `SharpRailBuildStamp`
 (`YYYYMMDD-<short commit>`, as the nightly names its builds), giving `0.2.0+<stamp>`; a local build reads `dev`.
-On macOS the application menu's first item is "About SharpRail", set from `App.Initialize` (`ApplicationMenu.SetApplicationMenu`):
+On macOS the application menu's first item is "About SharpRail", followed by Settings…, set from `App.Initialize` (`ApplicationMenu.SetApplicationMenu`):
 Avalonia fills an application menu that is still unset when the platform builds the menu bar with its own "About Avalonia".
 Elsewhere About is Settings › About. The dialog closes with Escape or the close chord. Checks: `--about`.
 

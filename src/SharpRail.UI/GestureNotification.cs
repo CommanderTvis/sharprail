@@ -14,7 +14,7 @@ public sealed partial class WorkbenchWindow
     /// <summary>This window's toasts: receipts, refusals and results that need no decision.</summary>
     public ToastQueue Toasts { get; } = new();
 
-    private void ShowNotification(string message)
+    internal void ShowNotification(string message)
     {
         this.FindControl<TextBlock>("GestureToastMessage")!.Text = message;
         var toast = this.FindControl<Border>("GestureToast")!;

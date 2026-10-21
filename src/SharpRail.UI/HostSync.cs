@@ -142,6 +142,7 @@ public sealed partial class WorkbenchWindow
                 UpdateRailSelection();
                 if (atHome || cleanWelcome) surface.RefreshEmptyContents();
             });
+        if (rail) ProjectsChanged?.Invoke();
         else if (registry) UpdateRailSelection();
         if (WorkspaceMounted && (!ReferenceEquals(next.WorkspaceDiffBases, previous.WorkspaceDiffBases) || !ReferenceEquals(next.WorkspaceBases, previous.WorkspaceBases)))
             _ = RefreshWorkspaceStatsAsync(projectRequest);

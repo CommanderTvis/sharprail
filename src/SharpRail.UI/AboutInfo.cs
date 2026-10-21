@@ -12,6 +12,8 @@ public static class AboutInfo
     public const string Name = "SharpRail";
     public const string Description = "A native C# and Avalonia workbench for projects, worktrees, terminals and Git";
     public const string Repository = "https://github.com/CommanderTvis/sharprail";
+    /// <summary>A new issue on the repository the About screen links to.</summary>
+    public const string NewIssue = Repository + "/issues/new";
     public const string Upstream = "https://github.com/JetBrains/thinkrail";
     public const string License = "Derived from ThinkRail, licensed under the Apache License 2.0. Bundled components keep their own licenses.";
     public const string NoticesFile = "THIRD-PARTY-NOTICES.md";

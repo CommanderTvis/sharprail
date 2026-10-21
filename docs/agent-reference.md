@@ -112,7 +112,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--rail` | Retained Projects controls and geometry. |
 | `--state` | Host state and profile/preset migration. |
 | `--file-drop` | Workspace file drag representations, transfers, attachment gestures. |
-| `--about` | About screen: version fallback, runtime and copy text, links, application menu, Escape. |
+| `--about` | About screen: version fallback, runtime and copy text, links, application menu (About, Settings), Escape. |
 | `--connection-errors` | Connection failure details and retry. |
 | `--windows` | Windows host, desktop and native renderer checks (Windows only). |
 | `--terminals` | Host terminals, terminal translations, Skia renderer. |
@@ -136,7 +136,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--dock-input` | Dock pointer and keyboard input, tab menus including file-path copies. |
 | `--change-actions`, `--review` | Toast and diff revert/undo; Review panel. |
 | `--drawers` | Phone pages: the compact page bar, Settings as a page, and the persistent page hosts and their slide. |
-| `--shell` | Window shell: location bar, application menu, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
+| `--shell` | Window shell: location bar, application menu and the macOS workbench menu bar, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
 | `--ui` | Headless UI checks and upstream translations without host suites. |
 | `--design` | Design-system guards and theme translations; `--design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Generated` from `src/SharpRail.UI/Rendering/Design`. Edit the authored sources, not generated C#. |
 | `--zig-deps` | `scripts/zig-deps.lock` matches the Ghostty pins in `mise.toml` and every native build path restores the mirror. |

@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Platform;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
@@ -39,9 +40,14 @@ internal static class AboutChecks
         Require(links.Contains(AboutInfo.Repository) && links.Contains(AboutInfo.Upstream), "The links must target the repository and upstream ThinkRail.");
 
         // The macOS application menu: About SharpRail in place of the framework's About Avalonia.
-        var menu = ApplicationMenu.AppMenu(() => { });
-        var headers = menu.Items.OfType<NativeMenuItem>().Select(item => item.Header ?? "").ToList();
-        Require(headers.SequenceEqual(["About SharpRail"]), "The application menu must hold exactly About SharpRail.");
+        var settings = 0;
+        var menu = ApplicationMenu.AppMenu(() => { }, () => settings++);
+        var headers = menu.Items.OfType<NativeMenuItem>().Where(item => item is not NativeMenuItemSeparator).Select(item => item.Header ?? "").ToList();
+        Require(headers.SequenceEqual(["About SharpRail", "Settings…"]) && menu.Items[1] is NativeMenuItemSeparator, "The application menu must hold About SharpRail, then Settings.");
+        var preferences = menu.Items.OfType<NativeMenuItem>().Single(item => item.Header == "Settings…");
+        Require(preferences.Gesture is { } chord && chord.Equals(WindowShortcuts.Settings.Gesture), "Settings shows the window's Settings chord.");
+        ((INativeMenuItemExporterEventsImplBridge)preferences).RaiseClicked();
+        Require(settings == 1, "Settings runs its command.");
         Require(!headers.Any(header => header.Contains("Avalonia", StringComparison.OrdinalIgnoreCase)), "The application menu must not offer About Avalonia.");
 
         // The dialog closes with Escape.

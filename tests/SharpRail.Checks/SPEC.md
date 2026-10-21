@@ -586,7 +586,14 @@ header narrows. A rename left pending by an unreachable host being abandoned is 
 
 The rest of `ShellChecks` covers the application menu (composition, chords, a text box taking editing
 commands directly, any other control receiving them as chords with Delete never forwarded, Zoom, Close
-closing a dialog but only the selected tab of a workbench window, Minimize), window chrome (the full-screen
+closing a dialog, Close Tab closing only the selected tab of a workbench window, Minimize), the macOS workbench
+menu bar (exact menus, items, order and chords, Close Window's chord colliding with no window chord; Open Project
+asking the folder picker, Clone and Create opening their dialogs, New Workspace its dialog, Open Recent following a
+recents broadcast and opening the project, the zoom items stepping the interface zoom, Host Settings opening
+Settings › Host, the Tailscale item and Settings › Host's button reaching one launcher, Find arriving as Command-F,
+the language items disabled without a focused editor or a running server, enabled with the fixture server, sending
+the editor's own request and following a stopped server and focus leaving the editor, Close Tab and Close Window;
+Report an Issue's browser launch is not asserted), window chrome (the full-screen
 inset, the double-click preference mapping and its effect, ignored in full screen; pinch against one
 baseline, both bounds, resting between steps, persistence, the chords stepping from there, the routed
 magnify gesture and a claimed one), region errors (a body that throws while being built and one that throws
