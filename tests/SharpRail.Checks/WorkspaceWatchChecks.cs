@@ -38,13 +38,14 @@ internal static class WorkspaceWatchChecks
             catch (SharpRail.Host.Protocol.RpcException) { }
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS workspace file streams: local/remote ready, nested write, rename, Git metadata, root capture, cancellation and host shutdown");
+        Console.WriteLine("PASS workspace file streams: local/remote ready, nested write, rename, .sharprail config, Git metadata, root capture, cancellation and host shutdown");
     }
 
     private static async Task Cases(IProjectServices host, string root)
     {
         Directory.CreateDirectory(Path.Combine(root, "nested"));
         Directory.CreateDirectory(Path.Combine(root, ".git", "refs", "heads"));
+        Directory.CreateDirectory(Path.Combine(root, ".sharprail"));
         await host.OpenProjectAsync(root);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         await using var stream = host.WatchFilesAsync(timeout.Token).GetAsyncEnumerator(timeout.Token);
@@ -63,6 +64,8 @@ internal static class WorkspaceWatchChecks
         await Changed("nested/before.txt");
         File.Move(Path.Combine(root, "nested", "before.txt"), Path.Combine(root, "nested", "after.txt"));
         await Changed("nested/before.txt", "nested/after.txt");
+        await File.WriteAllTextAsync(Path.Combine(root, ".sharprail", "workspace.toml"), "clone = []");
+        await Changed(".sharprail/workspace.toml");
         await File.WriteAllTextAsync(Path.Combine(root, ".git", "HEAD"), "ref: refs/heads/main");
         while (!stream.Current.GitChanged) Require(await stream.MoveNextAsync(), "HEAD changes arrive as Git metadata.");
         var other = Path.Combine(root, "other-root");

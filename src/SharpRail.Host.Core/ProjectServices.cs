@@ -96,7 +96,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
             .ThenBy(file => file.Name, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
-    private static bool Hidden(string name) => name is ".git" or ".sharprail" or ".tools" || name.StartsWith(FileTransferPrefix, StringComparison.Ordinal);
+    private static bool Hidden(string name) => name is ".git" or ".tools" || name.StartsWith(FileTransferPrefix, StringComparison.Ordinal);
 
     private static string? SingleChildDirectory(string directory)
     {

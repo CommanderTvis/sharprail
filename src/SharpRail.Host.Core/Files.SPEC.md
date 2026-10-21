@@ -43,7 +43,9 @@ Listings mark Git-ignored entries without hiding them, using a NUL-delimited `gi
   it, names `.git` at any component in any letter case, or crosses a symbolic link. The leaf may be missing,
   which the operation then reports itself. A read also refuses a linked leaf; a change write leaves the leaf
   to its caller, which never follows it. Listings skip links entirely.
-- Listings hide `.git`, `.sharprail` and `.tools`, sort directories first and then by name
+- Listings hide `.git` and `.tools` (the repository's provisioned, Git-ignored toolchains) but show the project's
+  `.sharprail` like any directory: its committed config (`workspace.toml`, `language.toml`) is edited there, and
+  ignored local state inside it carries the usual ignore mark. They sort directories first and then by name
   case-insensitively, and compact a run of directories that each hold exactly one directory into one
   `a/b/c` row.
 
@@ -70,7 +72,7 @@ Listings mark Git-ignored entries without hiding them, using a NUL-delimited `gi
 `SearchAsync` is a plain case-insensitive substring sweep of the workspace, with no index, query language
 or external tool. In a Git worktree it reads the files `ls-files --cached --others --exclude-standard`
 names, so ignored files are skipped; a folder without Git has nothing ignored and skips only the hidden
-`.git`, `.sharprail` and `.tools` directories. Links, files over 512 KB and files carrying a NUL byte are
+`.git` and `.tools` directories. Links, files over 512 KB and files carrying a NUL byte are
 skipped. Each hit is a path, a 1-based line and that line's text cut at 400 characters; the sweep stops at
 200 hits and says it was truncated.
 
@@ -130,8 +132,8 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
 - `IProjectServices.WatchFilesAsync` owns watchers for the workspace captured when enumeration starts.
   Its first empty batch confirms registration and requests a rescan. Each subscriber disposes its watchers on cancellation.
   Local and remote windows consume the same stream; no initial scan or Git snapshot is required.
-- Watchers skip `.git`, `.tools`, `node_modules` and everything inside `.sharprail`, but report the `.sharprail`
-  directory entry itself, so a new project config directory refreshes Git (see Panels.SPEC.md).
+- Watchers skip `.git`, `.tools` and `node_modules` but report `.sharprail` and everything inside it, so a new
+  project config directory refreshes Git (see Panels.SPEC.md) and an edited `workspace.toml` refreshes Files.
 - Host batches settle for 50 ms, cap pending paths at 4096 and request a rescan on overflow or watcher error.
   Reconnection invalidates open documents to recover changes missed while disconnected.
 - The notification is an invalidation nudge, not data: the workbench re-reads through the same host
@@ -141,7 +143,7 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
   subscriber cancels. Switching workspace or closing a window cancels its subscription. Frames cap paths at 100 and request a full rescan on
   overflow, watcher errors, Git metadata changes and initial registration. The UI retries a failed
   stream after one second, with a fresh registration rescan covering disconnected changes.
-- One recursive watcher covers the workspace root, ignoring `.git`, `.sharprail`, `.tools`,
+- One recursive watcher covers the workspace root, ignoring `.git`, `.tools`,
   `node_modules` and `.DS_Store` events. Git metadata changes
   (commit, checkout, branch switch) that leave the working tree unchanged are seen through a second,
   non-recursive watcher on the worktree's Git directory (`HEAD`, `index`), the common directory's

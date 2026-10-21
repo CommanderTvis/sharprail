@@ -57,6 +57,33 @@ internal static class ProjectChecks
         await local.OpenProjectAsync(fixture);
     }
 
+    // The project's .sharprail holds committed config beside local, ignored state; Files shows both like any directory.
+    private static async Task CheckSharprailDirectory(IProjectServices local, IProjectServices remote, string fixture)
+    {
+        var folder = Path.Combine(fixture, "sharprail-fixture");
+        Directory.CreateDirectory(Path.Combine(folder, ".sharprail"));
+        E2E.IsolatedGit.Repository(folder, (".sharprail/workspace.toml", "clone = []\n"), (".gitignore", ".sharprail/context/\n"));
+        Directory.CreateDirectory(Path.Combine(folder, ".sharprail", "context"));
+        File.WriteAllText(Path.Combine(folder, ".sharprail", "context", "TASK.md"), "local");
+        Directory.CreateDirectory(Path.Combine(folder, ".tools"));
+        foreach (var host in new[] { local, remote })
+        {
+            await host.OpenProjectAsync(folder);
+            var top = await host.ListFilesAsync("");
+            Require(top.Any(file => file.Name == ".sharprail" && file.IsDirectory && !file.GitIgnored), "Files must show the project's .sharprail directory.");
+            Require(!top.Any(file => file.Name is ".git" or ".tools"), "Files must keep hiding .git and .tools.");
+            var inside = await host.ListFilesAsync(".sharprail");
+            Require(inside.Any(file => file.Name == "workspace.toml" && !file.GitIgnored) &&
+                inside.Any(file => file.Name == "context" && file.GitIgnored), "Files must list .sharprail's shared config and mark its ignored local state.");
+            Require((await host.SearchAsync("clone = []")).Hits.Any(hit => hit.Path == ".sharprail/workspace.toml"), "Search must cover .sharprail config.");
+            await host.OpenProjectAsync(fixture);
+        }
+        File.WriteAllText(Path.Combine(folder, ".sharprail", "workspace.toml"), "clone = [\"x\"]\n");
+        await local.OpenProjectAsync(folder);
+        Require((await local.GetGitAsync()).Changes.Any(change => change.Path == ".sharprail/workspace.toml"), "Changed view must show a modified workspace.toml.");
+        await local.OpenProjectAsync(fixture);
+    }
+
     public static async Task Run(string fixture)
     {
         var core = new ProjectServices(fixture);
@@ -86,6 +113,7 @@ internal static class ProjectChecks
             try { await remote.ListFilesAsync("no-such-folder"); throw new InvalidOperationException("Missing folder listed."); }
             catch (DirectoryNotFoundException) { }
             await CheckIgnoredFiles(local, remote, fixture);
+            await CheckSharprailDirectory(local, remote, fixture);
             await CheckWatching(local, remote, fixture);
             Require(await remote.ReadFileAsync("README.md") == markdown, "Remote text differs.");
             await File.WriteAllTextAsync(Path.Combine(fixture, "controls.txt"), "before\0after\n");

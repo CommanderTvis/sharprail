@@ -211,7 +211,7 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
 
 - A lazily populated tree of the workspace. Directories read one level at a time through
   `ListFilesAsync` when expanded; a not-yet-read directory shows a `Loading…` child. Dotfiles are listed like any
-  other entry; the host leaves out only `.git`, `.sharprail` and `.tools`.
+  other entry; the host leaves out only `.git` and `.tools`; the project's `.sharprail` shows with its ignored local state muted.
   A run of directories that each hold exactly one directory is one `a/b/c`
   row, compacted by the host listing; it splits in place when a sibling appears and keeps what was expanded.
 - Loaded entries are data in the kit's virtualized drawn tree. Only viewport rows acquire
@@ -347,8 +347,8 @@ scroll position and expansion. A loaded snapshot stays visible while its replace
   tracked nor ignored and the project has not declined, raises one toast per workspace and window offering
   Add to .git/info/exclude or Keep it in the repo. Keep records `HostState.SharprailExcludeDeclined` for the
   project (every window and client stops asking); closing the toast records nothing. The action excludes in
-  the shared `info/exclude`, never `.gitignore`, then refreshes Git. The host watcher reports the
-  `.sharprail` directory entry itself so its appearance refreshes the panel; nothing inside it is watched.
+  the shared `info/exclude`, never `.gitignore`, then refreshes Git. The host watcher reports
+  `.sharprail` and its contents like any directory, so its appearance and config edits refresh the panel.
 - Rendering of the diff itself is `Rendering/DiffView` (see Rendering/SPEC.md).
 
 ## Changes review
