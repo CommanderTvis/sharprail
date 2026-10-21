@@ -51,26 +51,28 @@ public sealed partial class MermaidView : ContentControl
     private async void Render()
     {
         CancelRendering();
-        var lifetime = rendering = new CancellationTokenSource();
+        rendering = new CancellationTokenSource();
+        // Detaching disposes the source mid-render, so only the token, which outlives it, is read after an await.
+        var token = rendering.Token;
         var options = MermaidRenderer.Options();
         SvgSource? svg = null;
         DiagramText? text = null;
         MermaidRenderer.Result result;
         try
         {
-            result = await MermaidRenderer.RenderAsync(source, options, lifetime.Token);
+            result = await MermaidRenderer.RenderAsync(source, options, token);
             if (result.Svg is { } sourceSvg)
             {
                 (svg, text) = await Task.Run(() =>
                 {
                     var loaded = SvgSource.LoadFromSvg(sourceSvg);
                     return (loaded, DiagramText.From(loaded.Svg?.Model, MermaidRenderer.IsTreeView(sourceSvg)));
-                }, lifetime.Token);
+                }, token);
             }
         }
         catch (OperationCanceledException) { return; }
-        finally { if (lifetime.IsCancellationRequested) svg?.Dispose(); }
-        if (lifetime.IsCancellationRequested) return;
+        finally { if (token.IsCancellationRequested) svg?.Dispose(); }
+        if (token.IsCancellationRequested) return;
         var failed = result.Error is not null || svg?.Picture is null;
         this.FindControl<TextBlock>("Loading")!.IsVisible = false;
         this.FindControl<StackPanel>("MermaidError")!.IsVisible = failed;

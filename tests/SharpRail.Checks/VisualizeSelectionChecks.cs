@@ -26,6 +26,7 @@ internal static class VisualizeSelectionChecks
     {
         if (!OperatingSystem.IsMacOS()) { Console.WriteLine("SKIP visualize selection: Mermaid rendering requires macOS"); return; }
         TreeRoot();
+        Reattach();
         Readable();
         Selection();
         Flowchart();
@@ -40,6 +41,37 @@ internal static class VisualizeSelectionChecks
         var all = text.Text(0, text.Length);
         Require(all == "Begin here All done", $"A flowchart's node labels read left to right on one line, got '{all}'.");
         Console.WriteLine("PASS flowchart labels are read as selectable text");
+    }
+
+    // Dragging a tab detaches its diagram while it renders and attaches it elsewhere; a render that finishes after the
+    // detach must neither crash the dispatcher nor leave the view empty.
+    private static void Reattach()
+    {
+        var first = new ContentControl();
+        var second = new ContentControl();
+        var window = new Window { Width = 600, Height = 400, Content = new StackPanel { Children = { first, second } } };
+        window.Show();
+        var diagram = new MermaidView(Tree);
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            first.Content = diagram;
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(attempt % 4);
+            first.Content = null;
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(5);
+            Dispatcher.UIThread.RunJobs();
+        }
+        second.Content = diagram;
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (diagram.FindControl<ContentControl>("Drawing") is not { IsVisible: true, Content: not null } && DateTime.UtcNow < deadline)
+        {
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(10);
+        }
+        Require(diagram.FindControl<ContentControl>("Drawing") is { IsVisible: true, Content: not null }, "A diagram attached again after detaches mid-render draws.");
+        window.Close();
+        Console.WriteLine("PASS a diagram detached mid-render and attached elsewhere draws without crashing");
     }
 
     private static void TreeRoot()
