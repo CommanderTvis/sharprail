@@ -130,8 +130,9 @@ public sealed partial class HostStateStore : IHostStateService
                 {
                     Settings = stored.Settings ?? new(),
                     Presets = stored.Presets ?? [],
-                    Projects = stored.Projects ?? [],
-                    RecentProjects = stored.RecentProjects ?? [],
+                    // Directories stored before the one spelling (ThinkRail #775) are healed here and saved with the next write.
+                    Projects = [.. (stored.Projects ?? []).Select(ProjectPaths.Heal)],
+                    RecentProjects = [.. (stored.RecentProjects ?? []).Select(ProjectPaths.Heal)],
                     ProjectRecords = stored.ProjectRecords ?? [],
                     WorkspaceLanguages = stored.WorkspaceLanguages ?? [],
                     ProjectLanguageAutostart = stored.ProjectLanguageAutostart ?? [],
@@ -140,7 +141,7 @@ public sealed partial class HostStateStore : IHostStateService
                     ProjectLabels = stored.ProjectLabels ?? [],
                     WorkspaceBases = stored.WorkspaceBases ?? [],
                     WorkspaceDiffBases = stored.WorkspaceDiffBases ?? [],
-                    Workspaces = stored.Workspaces ?? [],
+                    Workspaces = [.. (stored.Workspaces ?? []).Select(record => record is null ? record! : record with { ProjectRoot = ProjectPaths.Heal(record.ProjectRoot), Path = ProjectPaths.Heal(record.Path) })],
                     PluginSettings = stored.PluginSettings ?? [],
                     PluginPaths = stored.PluginPaths ?? [],
                     // Sessions end with the app, so a record whose workspace folder is gone can never resume; plugins

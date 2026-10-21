@@ -44,8 +44,6 @@ public sealed partial class WorkbenchWindow
         return ("M", Ui.Warning);
     }
 
-    private static string MarkKey(string path) => path.Replace('\\', '/');
-
     private void UpdateFileMarks()
     {
         // A switched workspace starts loading with no changes, so its predecessor's marks go; a failed refresh keeps the last.
@@ -57,7 +55,7 @@ public sealed partial class WorkbenchWindow
             foreach (var change in ScopedChanges())
             {
                 if (ChangeMark(change) is not { } mark) continue;
-                var path = MarkKey(change.Path);
+                var path = change.Path;
                 marks[path] = mark;
                 for (var slash = path.LastIndexOf('/'); slash > 0; slash = path.LastIndexOf('/', slash - 1)) folders.Add(path[..slash]);
             }
@@ -81,7 +79,7 @@ public sealed partial class WorkbenchWindow
     {
         if (entry.Tag is ProjectFile file)
         {
-            var key = MarkKey(file.Path);
+            var key = file.Path;
             if (file.IsDirectory)
             {
                 var marked = markedFolders.Contains(key);

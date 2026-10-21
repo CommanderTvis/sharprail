@@ -10,9 +10,21 @@ internal static class ProjectPaths
     internal static string Resolve(string path, string home)
     {
         if (path.Contains('\0')) throw new ArgumentException("Invalid project path.");
-        var expanded = path == "~" ? home : path.StartsWith("~/", StringComparison.Ordinal) ? Path.Combine(home, path[2..]) : path;
+        var expanded = path == "~" ? home : path.StartsWith("~/", StringComparison.Ordinal) || OperatingSystem.IsWindows() && path.StartsWith(@"~\", StringComparison.Ordinal)
+            ? Path.Combine(home, path[2..]) : path;
         if (!Path.IsPathFullyQualified(expanded)) throw new ArgumentException($"Project path must be absolute or start with ~/: {path}");
-        return Path.GetFullPath(expanded);
+        return DirectoryIdentity(expanded);
+    }
+
+    /// <summary>
+    /// The one stored spelling of a directory identity (ThinkRail #775): the host's resolved full path, with the
+    /// platform's separators and no trailing separator except at a root such as <c>/</c> or <c>C:\</c>. Case is kept.
+    /// </summary>
+    internal static string DirectoryIdentity(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(full) ?? "";
+        return full.Length > root.Length ? full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) : full;
     }
 
     internal static async Task<ProjectPathKind> InspectAsync(string path, CancellationToken cancellationToken)
@@ -23,13 +35,20 @@ internal static class ProjectPaths
         return await ToplevelAsync(resolved, cancellationToken) is null ? ProjectPathKind.Initable : ProjectPathKind.Repository;
     }
 
+    /// <summary>Heals a stored directory written before the one spelling: a well-formed absolute path takes it, anything else stays for validation to judge.</summary>
+    internal static string Heal(string path)
+    {
+        try { return !string.IsNullOrEmpty(path) && !path.Contains('\0') && Path.IsPathFullyQualified(path) ? DirectoryIdentity(path) : path; }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return path; }
+    }
+
     /// <summary>The working tree a folder belongs to, or null when Git finds none there.</summary>
     internal static async Task<string?> ToplevelAsync(string directory, CancellationToken cancellationToken)
     {
         try
         {
             var toplevel = (await GitRepository.RunAsync(directory, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n');
-            return toplevel.Length > 0 ? Path.GetFullPath(toplevel) : null;
+            return toplevel.Length > 0 ? DirectoryIdentity(toplevel) : null;
         }
         catch (IOException) { return null; }
     }

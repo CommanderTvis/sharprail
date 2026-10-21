@@ -354,7 +354,7 @@ internal static class GitRepository
             else if (line.StartsWith("locked", StringComparison.Ordinal)) locked = true;
             else if (line.Length == 0 && path.Length > 0)
             {
-                result.Add(new(Path.GetFullPath(path), branch, result.Count == 0, locked));
+                result.Add(new(ProjectPaths.DirectoryIdentity(path), branch, result.Count == 0, locked));
                 path = ""; branch = ""; locked = false;
             }
         }

@@ -37,7 +37,7 @@ public sealed partial class WorkbenchWindow
                     entry.Children = [new(file.Path + "/loading", "Loading…") { Muted = true }];
                 }
                 // A retained row follows this workspace's remembered expansion, so a switch or restore reopens its folders.
-                var remembered = expandedFolders.Contains(file.Path) || expandedFolders.Any(path => path.StartsWith(file.Path + Path.DirectorySeparatorChar, StringComparison.Ordinal));
+                var remembered = expandedFolders.Contains(file.Path) || expandedFolders.Any(path => HostPaths.IsUnder(path, file.Path));
                 if (kept && entry.Expanded != remembered)
                 {
                     entry.Expanded = remembered;

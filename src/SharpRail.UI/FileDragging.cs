@@ -61,7 +61,7 @@ public sealed partial class WorkbenchWindow
         {
             Clear();
             var entry = DragEntry(e.Source);
-            var folder = entry?.Tag is ProjectFile file ? file.IsDirectory ? file.Path : Path.GetDirectoryName(file.Path) ?? "" : "";
+            var folder = entry?.Tag is ProjectFile file ? file.IsDirectory ? file.Path : HostPaths.Parent(file.Path) : "";
             var source = e.DataTransfer.TryGetValue(WorkspaceFileFormat);
             var valid = WorkspaceMounted && !switchingWorkspace && !progress.Busy && (source is null ? e.DataTransfer.Contains(DataFormat.File)
                 : ReferenceEquals(source.Owner, workbench) && source.Root == workspaceRoot && CanDropPath(source.Path, folder));
@@ -75,7 +75,7 @@ public sealed partial class WorkbenchWindow
         {
             Clear();
             var entry = DragEntry(e.Source);
-            var folder = entry?.Tag is ProjectFile file ? file.IsDirectory ? file.Path : Path.GetDirectoryName(file.Path) ?? "" : "";
+            var folder = entry?.Tag is ProjectFile file ? file.IsDirectory ? file.Path : HostPaths.Parent(file.Path) : "";
             var source = e.DataTransfer.TryGetValue(WorkspaceFileFormat);
             var files = e.DataTransfer.TryGetFiles()?.ToArray() ?? [];
             var copy = e.KeyModifiers.HasFlag(OperatingSystem.IsMacOS() ? KeyModifiers.Alt : KeyModifiers.Control);

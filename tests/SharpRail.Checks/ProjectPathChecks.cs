@@ -29,6 +29,37 @@ internal static class ProjectPathChecks
             try { ProjectPaths.Resolve(relative, home); throw new InvalidOperationException($"A relative project path was accepted: {relative}"); }
             catch (ArgumentException) { }
 
+        // Upstream #775: one stored spelling of a directory. Separators are the host's, a trailing one goes except at a
+        // root, and case is kept. Windows drive and backslash forms run only on a Windows host and are unverified here.
+        var sep = Path.DirectorySeparatorChar;
+        Require(ProjectPaths.Resolve(Path.Combine(root, "Mixed", "Case") + sep, home) == Path.Combine(root, "Mixed", "Case") &&
+            ProjectPaths.DirectoryIdentity(Path.GetPathRoot(root)!) == Path.GetPathRoot(root) &&
+            ProjectPaths.Heal(Path.Combine(root, "healed") + sep + sep) == Path.Combine(root, "healed") && ProjectPaths.Heal("relative/") == "relative/",
+            "A directory identity is resolved, keeps its case and loses a trailing separator except at a root.");
+        if (OperatingSystem.IsWindows())
+            Require(ProjectPaths.Resolve(@"~\repo", home) == Path.Combine(home, "repo") && ProjectPaths.DirectoryIdentity("C:/Users/me/repo/") == @"C:\Users\me\repo" &&
+                ProjectPaths.DirectoryIdentity(@"C:\") == @"C:\", "Windows spells a directory one way whatever git printed.");
+        Require(SharpRail.UI.HostPaths.Parent("src/auth/login.ts") == "src/auth" && SharpRail.UI.HostPaths.Parent("top.txt") == "" &&
+            SharpRail.UI.HostPaths.Join("src", @"auth\new.ts") == "src/auth/new.ts" && SharpRail.UI.HostPaths.Join("", "a/b.md") == "a/b.md" &&
+            SharpRail.UI.HostPaths.IsUnder("src/auth/x", "src") && !SharpRail.UI.HostPaths.IsUnder("srcx/a", "src") && !SharpRail.UI.HostPaths.IsUnder("Src/a", "src"),
+            "Workspace-relative paths join and split with '/' only, case-sensitively.");
+        var stateDirectory = Path.Combine(root, "path-state");
+        Directory.CreateDirectory(stateDirectory);
+        var healed = Path.Combine(root, "healed-project");
+        Directory.CreateDirectory(healed); Directory.CreateDirectory(healed + "-recent");
+        File.WriteAllText(Path.Combine(stateDirectory, HostStateStore.FileName),
+            System.Text.Json.JsonSerializer.Serialize(new { Projects = new[] { healed + sep }, RecentProjects = new[] { healed + "-recent" + sep + sep } }));
+        var loaded = new HostStateStore(stateDirectory).Current;
+        Require(loaded.Projects.SequenceEqual([healed]) && loaded.RecentProjects.SequenceEqual([healed + "-recent"]), $"Stored directories are healed to the one spelling on load: {string.Join(",", loaded.Projects)} / {string.Join(",", loaded.RecentProjects)}.");
+        var listing = E2E.IsolatedGit.Repository(Path.Combine(root, "path-listing"));
+        Directory.CreateDirectory(Path.Combine(listing, "src", "auth"));
+        Directory.CreateDirectory(Path.Combine(listing, "src", "ui"));
+        File.WriteAllText(Path.Combine(listing, "src", "auth", "login.ts"), "x");
+        var services = new ProjectServices(listing);
+        Require((await services.ListFilesAsync("src")).Select(file => file.Path).Order().SequenceEqual(["src/auth", "src/ui"]) &&
+            (await services.ListFilesAsync("src/auth")).Single().Path == "src/auth/login.ts", "Listed paths are workspace-relative with '/'.");
+        Console.WriteLine("PASS upstream #775: one directory spelling, healed records and '/' workspace-relative paths (Windows forms unverified)");
+
         using var git = new E2E.IsolatedGit(Path.Combine(root, "path-git"));
         var plain = Path.Combine(root, "path-plain");
         Directory.CreateDirectory(Path.Combine(plain, "inner"));

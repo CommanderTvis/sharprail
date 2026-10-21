@@ -185,7 +185,7 @@ reveal Files and select Changed in one step. The Changed label carries the scope
   disagree, and they are applied to in-memory rows only. A changed file shows its name and a trailing `M`/`A`/`U`/`R`
   letter in the status colour (modified `Warning`, added and untracked `Success`, renamed `Info`); every ancestor
   folder, expanded or collapsed, shows its name and a trailing dot in `Warning`. Deleted files are not listed and
-  mark no folder. Paths are compared with `/`, so Windows separators cannot hide nested marks. A failed refresh keeps
+  mark no folder. Paths are the host's `/`-spelled relative paths (see #775 below), so Windows separators cannot hide nested marks. A failed refresh keeps
   the last marks; a switched workspace starts with none until its first read.
 - Git-ignored entries and everything inside an ignored folder are dimmed (`Hint`, italic).
 - Expanded All folders and collapsed Changed-tree folders (one set for every scope) are remembered per workspace in

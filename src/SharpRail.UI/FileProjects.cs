@@ -71,7 +71,7 @@ public sealed partial class WorkbenchWindow
     private void ProjectFileActions(ContextMenu menu, ProjectFile file)
     {
         if (fileProjectsWorkspace != workspaceRoot) return;
-        var folder = (file.IsDirectory ? file.Path : Path.GetDirectoryName(file.Path) ?? "").Replace('\\', '/');
+        var folder = file.IsDirectory ? file.Path : HostPaths.Parent(file.Path);
         var candidates = fileProjects.Where(project => project.Root.Length == 0 || folder == project.Root || folder.StartsWith(project.Root + "/", StringComparison.Ordinal))
             .ToArray();
         var applicable = candidates.GroupBy(project => project.Server).SelectMany(group => group.Where(project => project.Root.Length == group.Max(item => item.Root.Length))).ToArray();

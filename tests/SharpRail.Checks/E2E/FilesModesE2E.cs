@@ -126,13 +126,13 @@ internal static class FilesModesE2E
 
     private static DrawnTreeEntry Row(E2eWorkspace app, string path)
     {
-        var id = path.Replace('/', Path.DirectorySeparatorChar);
+        var id = path;
         Until(() => Tree(app).Rows.Any(row => row.Id == id), "row " + path);
         return Tree(app).Rows.Single(row => row.Id == id);
     }
 
     private static bool Expanded(E2eWorkspace app, params string[] paths) =>
-        paths.All(path => Tree(app).Rows.FirstOrDefault(row => row.Id == path.Replace('/', Path.DirectorySeparatorChar)) is { Expanded: true } row &&
+        paths.All(path => Tree(app).Rows.FirstOrDefault(row => row.Id == path) is { Expanded: true } row &&
             row.Children.Any(child => child.Tag is ProjectFile));
 
     private static void Expand(E2eWorkspace app, string path)

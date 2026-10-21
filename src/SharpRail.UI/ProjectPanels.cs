@@ -137,8 +137,7 @@ public sealed partial class WorkbenchWindow
         if (file.IsDirectory)
         {
             // A folder opens when it or a folder inside it was left expanded, so a compact chain that splits keeps its expansion.
-            var prefix = file.Path + Path.DirectorySeparatorChar;
-            entry.Expanded = expandedFolders.Contains(file.Path) || expandedFolders.Any(path => path.StartsWith(prefix, StringComparison.Ordinal));
+            entry.Expanded = expandedFolders.Contains(file.Path) || expandedFolders.Any(path => HostPaths.IsUnder(path, file.Path));
             async Task Expand()
             {
                 if (expandedFolders.Add(file.Path)) SaveFilesTree();
@@ -159,7 +158,7 @@ public sealed partial class WorkbenchWindow
             {
                 if (expanded) _ = Expand();
                 // Collapsing forgets the folders inside too, or they would reopen it on the next rebuild.
-                else if (expandedFolders.RemoveWhere(path => path == file.Path || path.StartsWith(prefix, StringComparison.Ordinal)) > 0) SaveFilesTree();
+                else if (expandedFolders.RemoveWhere(path => path == file.Path || HostPaths.IsUnder(path, file.Path)) > 0) SaveFilesTree();
             };
             entry.Activate = _ => tree.Expand(entry, !entry.Expanded);
             if (entry.Expanded) _ = Expand();
@@ -178,7 +177,7 @@ public sealed partial class WorkbenchWindow
     private ContextMenu FileActions(ProjectFile file, Action expand)
     {
         // New creates inside a folder row and beside a file row; a compact chain's row stands for its deepest folder.
-        var parent = Path.GetDirectoryName(file.Path) ?? "";
+        var parent = HostPaths.Parent(file.Path);
         var into = file.IsDirectory ? file.Path : parent;
         var menu = new ContextMenu { Name = "FileNodeActions" };
         void Add(string header, string name, Action action, string? icon = null)
@@ -210,12 +209,12 @@ public sealed partial class WorkbenchWindow
     }
 
     private static bool PathListed(IReadOnlyList<ProjectFile> entries, string path) => entries.Any(entry =>
-        entry.Path == path || entry.Path.StartsWith(path + Path.DirectorySeparatorChar, StringComparison.Ordinal));
+        entry.Path == path || HostPaths.IsUnder(entry.Path, path));
 
     private async Task CreatePathAsync(string folder, bool directory, Action expand)
     {
         var workspace = workspaceRoot;
-        string Target(string name) => Path.Combine(folder, name.Replace('/', Path.DirectorySeparatorChar));
+        string Target(string name) => HostPaths.Join(folder, name);
         // A collapsed folder has not been listed yet; its names are needed to warn about a collision as it is typed.
         if (!folderCache.TryGetValue(folder, out var entries))
         {
@@ -237,8 +236,8 @@ public sealed partial class WorkbenchWindow
 
     private async Task RenamePathAsync(ProjectFile file)
     {
-        var parent = Path.GetDirectoryName(file.Path) ?? "";
-        string Target(string name) => Path.Combine(parent, name.Replace('/', Path.DirectorySeparatorChar));
+        var parent = HostPaths.Parent(file.Path);
+        string Target(string name) => HostPaths.Join(parent, name);
         await Dialogs.PathName(this, "Rename " + Path.GetFileName(file.Path), Path.GetFileName(file.Path), "Rename",
             name => !string.Equals(Target(name), file.Path, StringComparison.OrdinalIgnoreCase) &&
                 PathListed(folderCache.GetValueOrDefault(parent) ?? [], Target(name)),
@@ -253,7 +252,7 @@ public sealed partial class WorkbenchWindow
     {
         var workspace = workspaceRoot;
         var request = projectRequest;
-        static string Target(string path) => path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        static string Target(string path) => HostPaths.Join("", path);
         await Dialogs.PathName(this, (copy ? "Copy " : "Move ") + Path.GetFileName(file.Path), file.Path, copy ? "Copy" : "Move",
             path => folderCache.Values.Any(entries => PathListed(entries, Target(path))), async path =>
             {
@@ -263,7 +262,7 @@ public sealed partial class WorkbenchWindow
                 await Task.Run(async () => await host.ApplyFileActionAsync(new(copy ? "copy" : "rename", file.Path, target) { WorkspaceRoot = workspace }, lifetime.Token), lifetime.Token);
                 if (workspace != workspaceRoot || request != projectRequest) return;
                 var parents = new List<string>();
-                for (var parent = Path.GetDirectoryName(target); !string.IsNullOrEmpty(parent); parent = Path.GetDirectoryName(parent))
+                for (var parent = HostPaths.Parent(target); parent.Length > 0; parent = HostPaths.Parent(parent))
                 {
                     parents.Add(parent); expandedFolders.Add(parent);
                 }

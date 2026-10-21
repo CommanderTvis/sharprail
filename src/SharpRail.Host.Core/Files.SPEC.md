@@ -265,3 +265,14 @@ include framework-created streams, not global pool availability or resources of 
 Language-server navigation exposes exact dependency files for reading and marks them read-only in
 the returned document. This does not authorize writes or arbitrary external reads. The exposure is
 scoped to the workspace that requested navigation and ends when that workspace closes.
+
+## Path spelling
+
+Ported from ThinkRail #775. A directory identity (project root, workspace path, recents) has one stored spelling:
+the host's resolved full path (`ProjectPaths.DirectoryIdentity`), with the platform's separators, no trailing
+separator except at a root, and case kept (no case folding). Paths take it where they enter: user input
+(`~`, and `~\` on Windows), `git rev-parse --show-toplevel` and `git worktree list`. Records stored before the rule
+are healed on load and saved with the next write. Workspace-relative paths travel with `/` on every host; the UI's
+Files tree joins, splits and compares them with `/` (`HostPaths.Parent/Join/IsUnder`) rather than the client's
+separator. Covered by `ProjectPathChecks`; the Windows drive and backslash forms run only on a Windows host and are
+unverified here.
