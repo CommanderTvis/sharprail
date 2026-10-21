@@ -110,7 +110,8 @@ internal static partial class AirContextChecks
         var other2 = Path.Combine(workspace, "context-other"); Directory.CreateDirectory(other2);
         Require(!(await rig.Workspace(other2)).Enabled && !Enabled(rig.StateDirectory).Contains(other2), "Cloud enablement was inherited into another workspace.");
         var crossed = await search.Call(new() { ["query"] = "x", ["workspace"] = other2 }, default);
-        Require(crossed.Error && crossed.Text.Contains("bound to their calling", StringComparison.Ordinal), "Context search crossed workspaces.");
+        Require(crossed.Error && crossed.Text.Contains("not a known SharpRail workspace of this project", StringComparison.Ordinal) && crossed.Text.Contains("Known workspaces:", StringComparison.Ordinal), "Context search crossed into an unknown workspace or did not list the known ones: " + crossed.Text);
+        await ResolveSiblingAsync();
         var escaped = await search.Call(new() { ["query"] = "x", ["path"] = "../outside" }, default);
         Require(escaped.Error && escaped.Text.Contains("outside this workspace", StringComparison.Ordinal), "Context path escaped the workspace.");
         var userOnly = await search.Call(new() { ["query"] = "x", ["operation"] = "enable" }, default);
@@ -246,5 +247,20 @@ internal static partial class AirContextChecks
         }
         finally { foreach (var dialog in Dialogs()) dialog.Close(); }
         Console.WriteLine("PASS Context workspace UI: cloud confirmation/cancel, host enablement, sign-in terminal, explicit indexing, redacted logs and owned stop");
+    }
+
+    private static async Task ResolveSiblingAsync()
+    {
+        HostWorkspace Workspace(string path, string project) => new(path, project, Path.GetFileName(path), "main", path, false);
+        var known = new[] { Workspace("/p/main", "/p/main"), Workspace("/p/feature", "/p/main"), Workspace("/q/other", "/q/other") };
+        ValueTask<HostWorkspace?> Find(string id) => ValueTask.FromResult(known.FirstOrDefault(item => item.Id == id));
+        ValueTask<IReadOnlyList<HostWorkspace>> List(string? project) => ValueTask.FromResult<IReadOnlyList<HostWorkspace>>([.. known.Where(item => project is null || item.ProjectId == project)]);
+        Require(await AirContextHost.ResolveWorkspaceAsync("/p/main", null, Find, List) == "/p/main", "The calling workspace is not the default.");
+        Require(await AirContextHost.ResolveWorkspaceAsync("/p/main", "/p/feature", Find, List) == "/p/feature", "A subagent in a sibling worktree of the same project was not routed to it.");
+        foreach (var refused in new[] { "/q/other", "/p/unknown" })
+        {
+            try { await AirContextHost.ResolveWorkspaceAsync("/p/main", refused, Find, List); throw new InvalidOperationException("A workspace outside this project was accepted: " + refused); }
+            catch (UnauthorizedAccessException error) { Require(error.Message.Contains("/p/feature", StringComparison.Ordinal) && !error.Message.Contains("/q/other,", StringComparison.Ordinal), "The refusal did not list this project's workspaces: " + error.Message); }
+        }
     }
 }

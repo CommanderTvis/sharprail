@@ -38,6 +38,20 @@ public sealed class AirContextHost : PluginHostModule
     /// <summary>The guidance moved verbatim from the Claude Code and Codex instructions; it exists only while the plugin is enabled.</summary>
     internal const string Guidance = "Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. You MUST call `context_search` first, before grep or reading files, for unfamiliar code, feature locations and cross-cutting behavior whenever this workspace has it enabled; do not wait for the user to ask. When you brief a subagent, its brief MUST say the same, that it passes `workspace` to every `context_*` call, and that its final report MUST state how many `context_search` calls it made; reject a report with none for code-discovery work. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, say so in your report and continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then MUST use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these SharpRail tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.";
 
+    /// <summary>The workspace a Context tool call targets: its own, or a sibling worktree of the same project that a subagent works in.</summary>
+    internal static async ValueTask<string> ResolveWorkspaceAsync(string calling, string? requested, Func<string, ValueTask<HostWorkspace?>> find, Func<string?, ValueTask<IReadOnlyList<HostWorkspace>>> list)
+    {
+        if (requested is null) return calling;
+        if (!Path.IsPathFullyQualified(requested)) throw new UnauthorizedAccessException("Pass the workspace as an absolute path.");
+        var target = Path.TrimEndingDirectorySeparator(Path.GetFullPath(requested));
+        if (target == calling) return calling;
+        var origin = await find(calling);
+        var found = await find(target);
+        if (found is not null && origin is not null && found.ProjectId == origin.ProjectId) return Path.TrimEndingDirectorySeparator(Path.GetFullPath(found.Path));
+        var known = await list(origin?.ProjectId);
+        throw new UnauthorizedAccessException($"{target} is not a known SharpRail workspace of this project. Known workspaces: {(known.Count == 0 ? "none" : string.Join(", ", known.Select(item => item.Path)))}.");
+    }
+
     private sealed class Activation(IPluginHostContext context)
     {
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(5) };
@@ -202,9 +216,7 @@ public sealed class AirContextHost : PluginHostModule
             var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(call.WorkspaceId ?? call.Cwd));
             try
             {
-                requested ??= workspace;
-                if (!Path.IsPathFullyQualified(requested) || Path.TrimEndingDirectorySeparator(Path.GetFullPath(requested)) != workspace)
-                    throw new UnauthorizedAccessException("Context tools are bound to their calling SharpRail workspace.");
+                workspace = await AirContextHost.ResolveWorkspaceAsync(workspace, requested, id => context.WorkspaceAsync(id, token), project => context.WorkspacesAsync(project, token));
                 var result = await ExecuteAsync(new(workspace, operation, query, path, limit), token);
                 var response = new JsonObject { ["state"] = result.State, ["detail"] = result.Detail, ["enabled"] = result.Enabled };
                 if (result.Data.Length > 0)
