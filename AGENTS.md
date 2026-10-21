@@ -1,6 +1,6 @@
 # SharpRail instructions
 
-.NET 10 C# solution (`SharpRail.slnx`): Avalonia workbench over a transport-independent host, with builtin plugins. Detail on demand: `docs/agent-reference.md` (project map, host-change layers, workbench partials, state and terminal details, check modes, artifact paths), `scripts/README.md`, module `SPEC.md` files, `SPEC.md`, `STATUS.md`, `context-log.md` (latest entries for continuation state), `gotchas.md` if present.
+.NET 10 C# solution (`SharpRail.slnx`): Avalonia workbench over a transport-independent host, with builtin plugins. Detail on demand: `DEVELOPMENT.md` (what the repo provisions versus what the machine needs), `docs/agent-reference.md` (project map, host-change layers, workbench partials, state and terminal details, check modes, artifact paths), `scripts/README.md`, module `SPEC.md` files, `SPEC.md`, `STATUS.md`, `context-log.md` (latest entries for continuation state), `gotchas.md` if present.
 
 ## Hard rules
 

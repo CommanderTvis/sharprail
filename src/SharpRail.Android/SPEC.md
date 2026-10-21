@@ -211,7 +211,8 @@ selection and deliberate taps retain their feedback and behavior.
 ## Build
 
 `scripts/mise run android [build|run|apk]` is the entry point (see [scripts/SPEC.md](../../scripts/SPEC.md)). It
-needs the Android SDK in `ANDROID_HOME` and a JDK 17 or 21 in `JAVA_HOME`, and installs the `android` workload
+needs the Android SDK in `ANDROID_HOME` and runs with the pinned Temurin JDK 21 that `bootstrap:android` links as
+`.tools/jdk` (a set `JAVA_HOME` overrides it), and installs the `android` workload
 into the shared SDK when missing. `build` and `run` use Debug unless `SHARPRAIL_CONFIGURATION` says
 otherwise; `run` also installs on the connected device or emulator and launches the app. `apk` builds Release
 and copies the signed package to `artifacts/android/SharpRail.apk`. No release keystore is configured, so the

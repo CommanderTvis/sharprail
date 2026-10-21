@@ -136,7 +136,8 @@ not GPU time or frames actually displayed.
 
 ## Run
 
-From a source checkout. macOS builds need the Xcode command-line tools, LLVM at
+From a source checkout; [DEVELOPMENT.md](DEVELOPMENT.md) lists what to install per platform and what the
+repo provisions itself. macOS builds need the Xcode command-line tools, LLVM at
 `/opt/homebrew/opt/llvm`, and its Metal Toolchain
 (`xcodebuild -downloadComponent MetalToolchain`). The first build downloads pinned
 Ghostty 1.2.3, Zig 0.14.1, Scintilla, SheenBidi and Merman into `.tools`. No installed
@@ -212,8 +213,8 @@ stops.
 ## Android client
 
 The Android app is a client only: it shows the same workbench, while projects, settings, plugins and shells
-stay on a host it connects to. It needs the Android SDK (`ANDROID_HOME`) and a JDK 17 or 21 (`JAVA_HOME`);
-the script installs the .NET `android` workload and the pinned NDK into `.tools`.
+stay on a host it connects to. It needs the Android SDK (`ANDROID_HOME`);
+the tasks install the .NET `android` workload, the pinned NDK and the pinned JDK into `.tools`.
 
 ```sh
 scripts/mise run android run   # build, install on the connected device or emulator, and start
