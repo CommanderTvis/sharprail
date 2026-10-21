@@ -128,7 +128,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
         Opened += async (_, _) => { StartupPhases.Mark("window-opened"); await StartAsync(); };
-        Activated += (_, _) => { if (WorkspaceMounted) RefreshProjectWorkspaces(); };
+        Activated += (_, _) => { if (WorkspaceMounted) { RefreshProjectWorkspaces(); MarkShownWorkspaceRead(); } };
         Closed += (_, _) =>
         {
             RememberGitSelection(); RememberFilesTree(); lifetime.Cancel(); StopWatching(); profile.Save();
@@ -411,6 +411,9 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             if (!atHome) ShareTerminals(workspaceRoot);
             foreach (var removed in removedWorkspaces) Layout.DropWorkspace(removed);
             ShowReady();
+            // Leaving a workspace releases a hand-set unread hold; arriving at one in a focused window reads it.
+            if (heldUnread != workspaceRoot) heldUnread = "";
+            MarkShownWorkspaceRead();
             errorText.IsVisible = false;
             ReportProfileError();
             LocationChanged?.Invoke();

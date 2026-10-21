@@ -58,6 +58,7 @@ public sealed partial class HostStateStore
                 {
                     WorkspaceLanguages = Without(result.WorkspaceLanguages, gone),
                     WorkspaceLabels = Without(result.WorkspaceLabels, gone),
+                    UnreadWorkspaces = Without(result.UnreadWorkspaces, gone),
                     WorkspaceBases = Without(result.WorkspaceBases, gone),
                     WorkspaceDiffBases = Without(result.WorkspaceDiffBases, gone)
                 };

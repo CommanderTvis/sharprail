@@ -97,6 +97,7 @@ public sealed class StateReply
     [ProtoMember(16)] public List<TerminalAgentMessage> TerminalAgents { get; set; } = [];
     // Member 19 carried Air Context's enabled workspaces until it became a plugin (protocol 8); the number is retired.
     [ProtoMember(24)] public List<LabelMessage> ProjectLabels { get; set; } = [];
+    [ProtoMember(25)] public List<WorkspaceRefMessage> UnreadWorkspaces { get; set; } = [];
     [ProtoMember(22)] public List<string> SharprailExcludeDeclined { get; set; } = [];
     [ProtoMember(20)] public List<WorkspaceRefMessage> ProjectLanguageAutostart { get; set; } = [];
     [ProtoMember(18)] public List<WorkspaceRefMessage> WorkspaceLanguages { get; set; } = [];

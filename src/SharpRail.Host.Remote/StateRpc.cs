@@ -78,6 +78,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         RecentProjects = state.RecentProjects.ToList(),
         ProjectRecords = state.ProjectRecords.Select(record => new ProjectRecordMessage { Id = record.Id, Path = record.Path, Slug = record.Slug, LastOpened = record.LastOpened }).ToList(),
         Labels = state.WorkspaceLabels.Select(entry => new LabelMessage { Path = entry.Key, Label = entry.Value }).ToList(),
+        UnreadWorkspaces = state.UnreadWorkspaces.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         ProjectLabels = state.ProjectLabels.Select(entry => new LabelMessage { Path = entry.Key, Label = entry.Value }).ToList(),
         SharprailExcludeDeclined = state.SharprailExcludeDeclined.ToList(),
         WorkspaceLanguages = state.WorkspaceLanguages.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),

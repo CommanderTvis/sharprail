@@ -119,7 +119,8 @@ public sealed class ClaudeCodeUI : PluginUIModule
         context.NotifyAttention(new(push.WorkspaceId, push.TabKey, AgentAttention.Title("Claude", reason.Value, report.Project),
             AgentAttention.Body(report.Summary, report.Response, report.Query, report.ErrorType))
         {
-            StillNeeded = () => store.Session(push.WorkspaceId, push.TabKey)?.Status == push.Status
+            StillNeeded = () => store.Session(push.WorkspaceId, push.TabKey)?.Status == push.Status,
+            Reason = reason switch { AgentAttentionReason.Blocked => "blocked", AgentAttentionReason.Failed => "failed", _ => "done" }
         });
     }
 }

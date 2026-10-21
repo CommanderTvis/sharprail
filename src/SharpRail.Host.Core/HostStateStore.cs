@@ -37,6 +37,7 @@ public sealed partial class HostStateStore : IHostStateService
         public Dictionary<string, string> ProjectLanguageAutostart { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
         public Dictionary<string, string> ProjectLabels { get; set; } = [];
+        public Dictionary<string, string> UnreadWorkspaces { get; set; } = [];
         public Dictionary<string, string> WorkspaceBases { get; set; } = [];
         public Dictionary<string, string> WorkspaceDiffBases { get; set; } = [];
         public List<WorkspaceRecord> Workspaces { get; set; } = [];
@@ -139,6 +140,7 @@ public sealed partial class HostStateStore : IHostStateService
                     SharprailExcludeDeclined = stored.SharprailExcludeDeclined ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
                     ProjectLabels = stored.ProjectLabels ?? [],
+                    UnreadWorkspaces = stored.UnreadWorkspaces ?? [],
                     WorkspaceBases = stored.WorkspaceBases ?? [],
                     WorkspaceDiffBases = stored.WorkspaceDiffBases ?? [],
                     Workspaces = [.. (stored.Workspaces ?? []).Select(record => record is null ? record! : record with { ProjectRoot = ProjectPaths.Heal(record.ProjectRoot), Path = ProjectPaths.Heal(record.Path) })],
@@ -405,6 +407,7 @@ public sealed partial class HostStateStore : IHostStateService
                 SharprailExcludeDeclined = snapshot.SharprailExcludeDeclined.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
                 ProjectLabels = snapshot.ProjectLabels.ToDictionary(),
+                UnreadWorkspaces = snapshot.UnreadWorkspaces.ToDictionary(),
                 WorkspaceBases = snapshot.WorkspaceBases.ToDictionary(),
                 WorkspaceDiffBases = snapshot.WorkspaceDiffBases.ToDictionary(),
                 Workspaces = snapshot.Workspaces.ToList(),
@@ -454,6 +457,7 @@ public sealed partial class HostStateStore : IHostStateService
             Projects = value.Projects.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
             RecentProjects = value.RecentProjects.Where(item => item is not null && ValidPath(item)).Distinct().Take(HostStateChange.RecentLimit).ToArray(),
             WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
+            UnreadWorkspaces = value.UnreadWorkspaces.Where(entry => ValidPath(entry.Key) && UnreadRank(entry.Value) > 0).ToDictionary(),
             ProjectLabels = value.ProjectLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && NormalizeProjectName(entry.Value) == entry.Value).ToDictionary(),
             WorkspaceBases = value.WorkspaceBases.Where(entry => ValidPath(entry.Key) && entry.Value is not null && GitRefs.IsSafe(entry.Value)).ToDictionary(),
             WorkspaceDiffBases = value.WorkspaceDiffBases.Where(entry => ValidPath(entry.Key) && entry.Value is not null && GitRefs.IsSafe(entry.Value) &&
@@ -602,6 +606,16 @@ public sealed partial class HostStateStore : IHostStateService
                 else if (labels.GetValueOrDefault(key) == label) return current;
                 else labels[key] = label;
                 return current with { WorkspaceLabels = labels };
+            case "workspace-unread":
+                if (!ValidPath(key)) throw new ArgumentException("Invalid workspace path.");
+                if (UnreadRank(value) == 0) throw new ArgumentException("Unknown unread reason " + value + ".");
+                if (UnreadRank(current.UnreadWorkspaces.GetValueOrDefault(key)) >= UnreadRank(value)) return current;
+                return current with { UnreadWorkspaces = new Dictionary<string, string>(current.UnreadWorkspaces) { [key] = value } };
+            case "workspace-read":
+                if (!current.UnreadWorkspaces.TryGetValue(key, out var unread)) return current;
+                // Mark as read by hand never dismisses an agent that still waits for input; seeing the workspace does.
+                if (unread == "blocked" && value != "seen") return current;
+                return current with { UnreadWorkspaces = Without(current.UnreadWorkspaces, key) };
             case "project-label":
                 if (!ValidPath(key)) throw new ArgumentException("Invalid project path.");
                 var projectName = NormalizeProjectName(value) ?? throw new ArgumentException("A project name has 1 to 100 characters.");
@@ -708,4 +722,7 @@ public sealed partial class HostStateStore : IHostStateService
         var name = string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         return name.Length is >= 1 and <= 100 ? name : null;
     }
+
+    /// <summary>How strongly a reason asks for the user: blocked over failed over done over a hand-set mark; 0 for none.</summary>
+    internal static int UnreadRank(string? reason) => reason switch { "blocked" => 4, "failed" => 3, "done" => 2, "manual" => 1, _ => 0 };
 }

@@ -108,6 +108,7 @@ internal static class UiChecks
         Gate.Case("FilesE2E", () => E2E.FilesE2E.Run(root));
         Gate.Case("file-transfer-actions", () => E2E.FilesE2E.Transfers(root));
         Gate.Case("ProjectContextE2E", () => E2E.ProjectContextE2E.Run(root));
+        Gate.Case("WorkspaceUnreadE2E", () => E2E.WorkspaceUnreadE2E.Run(root));
         Gate.Case("MultiClientE2E", () => E2E.MultiClientE2E.Run(root));
         Gate.Case("ReconnectE2E", () => E2E.ReconnectE2E.Run(root));
         Gate.Case("BranchListE2E", () => E2E.BranchListE2E.Run(root));

@@ -547,6 +547,7 @@ public sealed partial class WorkbenchWindow
             reveal.Name = "WorkspaceReveal";
             menu.Items.Add(reveal);
         }
+        menu.Items.Add(UnreadMenuItem(menu, worktree));
         if (worktree.Kind == WorkspaceKinds.Default) return openIn;
         if (SettleMenuItem(worktree) is { } settle) menu.Items.Add(settle);
         // An attached worktree is the user's: SharpRail neither renames nor removes it, it only stops listing it.

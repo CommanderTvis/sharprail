@@ -304,6 +304,12 @@ public sealed record AttentionNotification(string WorkspaceId, string TabKey, st
     /// attention the user already gave. <see langword="null"/> always shows.
     /// </summary>
     public Func<bool>? StillNeeded { get; init; }
+
+    /// <summary>
+    /// Why the terminal wants the user: <c>blocked</c>, <c>failed</c> or <c>done</c>. The workbench marks the workspace
+    /// unread for it in host state unless the user is looking at that workspace; empty counts as done.
+    /// </summary>
+    public string Reason { get; init; } = "";
 }
 
 /// <summary>One client-local preference, namespaced by <see cref="PluginIdentity.PreferenceKey"/> and qualified by host endpoint.</summary>

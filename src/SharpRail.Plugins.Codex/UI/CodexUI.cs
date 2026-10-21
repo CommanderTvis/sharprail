@@ -48,7 +48,8 @@ public sealed class CodexUI : PluginUIModule
         var project = push.Cwd?.TrimEnd('/', '\\').Split('/', '\\')[^1];
         context.NotifyAttention(new(push.WorkspaceId, push.TabKey, AgentAttention.Title("Codex", reason.Value, project), AgentAttention.Body())
         {
-            StillNeeded = () => store.Session(push.WorkspaceId, push.TabKey)?.Status == push.Status
+            StillNeeded = () => store.Session(push.WorkspaceId, push.TabKey)?.Status == push.Status,
+            Reason = reason == AgentAttentionReason.Blocked ? "blocked" : "done"
         });
     }
 

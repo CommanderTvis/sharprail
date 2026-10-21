@@ -95,6 +95,22 @@ persisted and kept across close and reopen; the path, project record and worktre
 whitespace runs and trims, and rejects a name outside 1 to 100 characters or with control characters; the folder
 name clears the label. `HostState.ProjectName` is the shown name. Remote clients receive it as `StateReply` member 24.
 
+## Unread workspaces
+
+Ported from ThinkRail #770 onto SharpRail's own unread model (the STATUS A18 gap). Upstream keeps per-chat completion
+receipts; SharpRail has no embedded chat, so the unit is the workspace and the sources are the agent terminals.
+`UnreadWorkspaces` maps a workspace path to the strongest reason it is unread: `blocked` (an agent waits for input),
+`failed`, `done`, or `manual` (marked by hand); a weaker reason never replaces a stronger one. It is persisted, sent to
+remote clients as `StateReply` member 25, and dropped with the workspace's record.
+
+- A plugin's attention notification (Codex and Claude Code report `blocked`, `failed` or `done` as
+  `AttentionNotification.Reason`) marks its workspace unread unless a focused window of that client shows it.
+  Every client may report the same result; the change is idempotent.
+- A focused window that shows the workspace (on mounting it or on activation) marks it read with `seen`, which
+  clears every reason. Mark as read by hand clears any reason but `blocked`, which only seeing the workspace clears.
+- Mark as unread on the shown workspace holds in that window until the user leaves it and comes back, so it is not
+  read again on the next activation. Another client showing it may still read it; that is accepted, as upstream.
+
 ## Workspace review targets
 
 - `WorkspaceBases` is creation provenance: the host records the base ref when it creates a worktree from

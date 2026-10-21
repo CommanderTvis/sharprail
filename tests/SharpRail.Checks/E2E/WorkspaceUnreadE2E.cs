@@ -1,0 +1,69 @@
+using Avalonia.Controls;
+using Avalonia.LogicalTree;
+
+using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.UI;
+
+using static SharpRail.Checks.E2E.E2eWorkspace;
+using static SharpRail.Checks.E2E.WorkspaceFixture;
+
+namespace SharpRail.Checks.E2E;
+
+/// <summary>
+/// Upstream #770 on SharpRail's unread model (STATUS A18): an agent result in a workspace the user is not looking at
+/// leaves it unread in host state for every window; seeing it in a focused window reads it; the workspace menu marks it
+/// unread (held while shown) or read, and Mark as read keeps a waiting agent's mark.
+/// </summary>
+internal static class WorkspaceUnreadE2E
+{
+    internal static void Run(string root)
+    {
+        var directory = Path.Combine(root, "workspace-unread");
+        using var git = new IsolatedGit(Path.Combine(root, "workspace-unread-git"));
+        using var app = OpenFixtureProject(directory);
+        var project = app.Window.ProjectRoot;
+        var other = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        app.Window.Activate();
+        Until(() => app.Window.IsActive);
+        Border Dot(E2eWorkspace client, string path) => Item(client, path).GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "WorkspaceUnread");
+        string? Mark(string path) => app.Workbench.State.Current.UnreadWorkspaces.GetValueOrDefault(path);
+
+        // A result in a workspace that is not shown leaves it unread, in every window.
+        using var observer = app.NewWindow();
+        app.Window.Activate();
+        app.Workbench.RequestAttention(new(project, "terminal:1", "Claude finished", "") { Reason = "done" });
+        Until(() => Mark(project) == "done" && Dot(app, project).IsVisible && Dot(observer, project).IsVisible);
+        // A result in the shown workspace of the focused window is seen at once.
+        app.Workbench.RequestAttention(new(other, "terminal:2", "Codex finished", "") { Reason = "done" });
+        Settle(300);
+        Require(Mark(other) is null, "A result the user is looking at must not mark its workspace unread.");
+        // Arriving at the unread workspace in a focused window reads it.
+        WorkspaceTabsE2E.Switch(app, project);
+        app.Window.Activate();
+        Until(() => Mark(project) is null && !Dot(app, project).IsVisible);
+        Console.WriteLine("PASS upstream #770: a result not looked at marks its workspace unread for every window; seeing it reads it");
+
+        // Mark as unread on the shown workspace stays lit until the user leaves and comes back.
+        var menu = OpenWorkspaceMenu(app, project);
+        app.Click(menu.Items.OfType<MenuItem>().Single(item => item.Name == "WorkspaceReadToggle" && Equals(item.Header, "Mark as unread")), freshGesture: false);
+        Until(() => Mark(project) == "manual");
+        app.Window.Activate(); Settle(300);
+        Require(Mark(project) == "manual" && Dot(app, project).IsVisible, "A hand-set mark on the shown workspace holds while it stays shown.");
+        WorkspaceTabsE2E.Switch(app, other);
+        Require(Mark(project) == "manual", "Leaving keeps the mark.");
+        WorkspaceTabsE2E.Switch(app, project);
+        app.Window.Activate();
+        Until(() => Mark(project) is null);
+        // Mark as read clears a result but never a waiting agent; seeing the workspace does.
+        app.Workbench.RequestAttention(new(other, "terminal:2", "Codex needs you", "") { Reason = "blocked" });
+        Until(() => Mark(other) == "blocked");
+        menu = OpenWorkspaceMenu(app, other);
+        app.Click(menu.Items.OfType<MenuItem>().Single(item => item.Name == "WorkspaceReadToggle" && Equals(item.Header, "Mark as read")), freshGesture: false);
+        Settle(300);
+        Require(Mark(other) == "blocked", "Mark as read must not dismiss a waiting agent.");
+        WorkspaceTabsE2E.Switch(app, other);
+        app.Window.Activate();
+        Until(() => Mark(other) is null);
+        Console.WriteLine("PASS upstream #770: Mark as unread holds while shown and clears on return; Mark as read keeps a waiting agent's mark");
+    }
+}

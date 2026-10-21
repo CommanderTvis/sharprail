@@ -133,7 +133,7 @@ public sealed partial class WorkbenchWindow
         }
         var registry = !next.Workspaces.SequenceEqual(previous.Workspaces);
         var rail = RailSignature() != railSignature || !next.Projects.SequenceEqual(previous.Projects) || !next.RecentProjects.SequenceEqual(previous.RecentProjects) ||
-            next.WorkspaceLabels.Count != previous.WorkspaceLabels.Count || !ReferenceEquals(next.ProjectLabels, previous.ProjectLabels) ||
+            next.WorkspaceLabels.Count != previous.WorkspaceLabels.Count || !ReferenceEquals(next.ProjectLabels, previous.ProjectLabels) || !ReferenceEquals(next.UnreadWorkspaces, previous.UnreadWorkspaces) ||
             next.WorkspaceLabels.Any(entry => previous.WorkspaceLabels.GetValueOrDefault(entry.Key) != entry.Value);
         if (rail)
             KeepingFocus(() =>

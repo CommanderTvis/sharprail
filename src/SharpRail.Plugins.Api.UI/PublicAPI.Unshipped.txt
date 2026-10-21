@@ -729,3 +729,5 @@ override SharpRail.Plugins.Api.UI.SlotSectionRegistration.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.SlotSectionRegistration.ToString() -> string!
 static SharpRail.Plugins.Api.UI.SlotSectionRegistration.operator !=(SharpRail.Plugins.Api.UI.SlotSectionRegistration? left, SharpRail.Plugins.Api.UI.SlotSectionRegistration? right) -> bool
 static SharpRail.Plugins.Api.UI.SlotSectionRegistration.operator ==(SharpRail.Plugins.Api.UI.SlotSectionRegistration? left, SharpRail.Plugins.Api.UI.SlotSectionRegistration? right) -> bool
+SharpRail.Plugins.Api.UI.AttentionNotification.Reason.get -> string!
+SharpRail.Plugins.Api.UI.AttentionNotification.Reason.init -> void

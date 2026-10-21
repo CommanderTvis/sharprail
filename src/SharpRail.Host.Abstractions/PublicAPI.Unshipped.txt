@@ -1810,3 +1810,7 @@ virtual SharpRail.Host.Abstractions.ReviewDetails.<Clone>$() -> SharpRail.Host.A
 virtual SharpRail.Host.Abstractions.ReviewDetails.EqualityContract.get -> System.Type!
 virtual SharpRail.Host.Abstractions.ReviewDetails.Equals(SharpRail.Host.Abstractions.ReviewDetails? other) -> bool
 virtual SharpRail.Host.Abstractions.ReviewDetails.PrintMembers(System.Text.StringBuilder! builder) -> bool
+SharpRail.Host.Abstractions.HostState.UnreadWorkspaces.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Host.Abstractions.HostState.UnreadWorkspaces.init -> void
+static SharpRail.Host.Abstractions.HostStateChange.MarkUnread(string! path, string! reason) -> SharpRail.Host.Abstractions.HostStateChange!
+static SharpRail.Host.Abstractions.HostStateChange.MarkRead(string! path, bool seen = false) -> SharpRail.Host.Abstractions.HostStateChange!

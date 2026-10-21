@@ -373,8 +373,18 @@ public sealed partial class WorkbenchWindow
             VerticalAlignment = VerticalAlignment.Center,
             IsVisible = false
         };
-        labels.Children.Add(new DockPanel { Children = { chip, label } });
-        DockPanel.SetDock(chip, Dock.Right);
+        var unreadDot = new Border { Name = "WorkspaceUnread", Width = 8, Height = 8, CornerRadius = new(4), Margin = new(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, IsVisible = false };
+        labels.Children.Add(new DockPanel { Children = { chip, unreadDot, label } });
+        DockPanel.SetDock(chip, Dock.Right); DockPanel.SetDock(unreadDot, Dock.Right);
+        void ShowUnread()
+        {
+            var reason = state.Current.UnreadWorkspaces.GetValueOrDefault(worktree.Path);
+            unreadDot.IsVisible = reason is not null;
+            if (reason is null) return;
+            var (brush, tip) = UnreadLook(reason);
+            unreadDot.Background = brush; ToolTip.SetTip(unreadDot, tip); AutomationProperties.SetName(unreadDot, tip);
+        }
+        ShowUnread();
         var added = Ui.Text("", Ui.Success, 12);
         var removed = Ui.Text("", Ui.Danger, 12);
         var totals = new StackPanel { Name = "WorkspaceDiffStats", Orientation = Orientation.Horizontal, Spacing = 4, Children = { added, removed } };
@@ -441,6 +451,7 @@ public sealed partial class WorkbenchWindow
             button.IsEnabled = !removingWorkspaces.Contains(worktree.Path);
             contents.Opacity = button.IsEnabled ? 1 : 0.5;
             ShowBranch();
+            ShowUnread();
             refreshSettle?.Invoke();
         };
         AutomationProperties.SetName(button, name);

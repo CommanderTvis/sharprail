@@ -53,6 +53,19 @@ internal static class StateStoreChecks
         await store.ChangeAsync([HostStateChange.CloseProject(renamed)]);
         Console.WriteLine("PASS upstream projects.test.ts (#764): renameProject normalises, rejects empty, long and control names, and survives close/reopen");
 
+        // Upstream #770 on the A18 unread model: stronger reasons win, Mark as read keeps a waiting agent, seeing clears all.
+        var unreadPath = Path.Combine(directory, "unread-workspace");
+        await store.ChangeAsync([HostStateChange.MarkUnread(unreadPath, "manual")]);
+        await store.ChangeAsync([HostStateChange.MarkUnread(unreadPath, "blocked")]);
+        var held = await store.ChangeAsync([HostStateChange.MarkUnread(unreadPath, "done")]);
+        Require(held.UnreadWorkspaces.GetValueOrDefault(unreadPath) == "blocked", "A stronger unread reason must not be downgraded.");
+        Require((await store.ChangeAsync([HostStateChange.MarkRead(unreadPath)])).UnreadWorkspaces.ContainsKey(unreadPath), "Mark as read keeps a waiting agent.");
+        Require(new HostStateStore(directory).Current.UnreadWorkspaces.GetValueOrDefault(unreadPath) == "blocked", "Unread marks persist.");
+        Require(!(await store.ChangeAsync([HostStateChange.MarkRead(unreadPath, seen: true)])).UnreadWorkspaces.ContainsKey(unreadPath), "Seeing the workspace clears every mark.");
+        try { await store.ChangeAsync([HostStateChange.MarkUnread(unreadPath, "shiny")]); throw new InvalidOperationException("An unknown unread reason was accepted."); }
+        catch (ArgumentException) { }
+        Console.WriteLine("PASS upstream #770 host: unread marks rank, persist, survive Mark as read while blocked and clear when seen");
+
         var legacy = await store.ChangeAsync([HostStateChange.Setting("theme", "light")]);
         Require(legacy.Settings is { Theme: "light", ThemeMode: "fixed" }, "A theme change without a mode must switch the host to fixed mode.");
         var paired = await store.ChangeAsync([HostStateChange.Setting("theme-mode", "system"), HostStateChange.Setting("theme", "dark")]);

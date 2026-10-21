@@ -165,8 +165,17 @@ public sealed class Workbench : IDisposable
     /// <summary>Queues a desktop notification for a terminal that needs the user; shown only while the app is away.</summary>
     internal void RequestAttention(AttentionNotification notification)
     {
+        // A result the user is not looking at leaves its workspace unread for every window and client (ThinkRail #770).
+        if (!windows.Any(window => window.IsActive && window.ShowsWorkspace(notification.WorkspaceId)))
+            _ = MarkUnreadAsync(notification.WorkspaceId, notification.Reason is "blocked" or "failed" ? notification.Reason : "done");
         if (Notifier is null) return;
         (attention ??= new(this, Notifier, NotificationWindow)).Request(notification);
+    }
+
+    private async Task MarkUnreadAsync(string workspace, string reason)
+    {
+        try { await Task.Run(() => State.ChangeAsync([HostStateChange.MarkUnread(workspace, reason)])); }
+        catch (Exception error) { Console.Error.WriteLine("Couldn't mark the workspace unread: " + error.Message); }
     }
 
     internal WorkbenchWindow? WindowHolding(string workspace, string tabKey) => windows.FirstOrDefault(window =>
