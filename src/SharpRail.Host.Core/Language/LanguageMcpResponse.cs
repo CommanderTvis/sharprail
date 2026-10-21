@@ -91,6 +91,7 @@ internal static class LanguageMcpResponse
                 ["state"] = server.State,
                 ["detail"] = Clip(server.Detail, 1_000),
                 ["version"] = server.Version,
+                ["startedBy"] = server.StartedBy.Length == 0 ? null : server.StartedBy,
                 ["hasWorkspaceConfiguration"] = server.Configured,
                 ["restartRequired"] = server.ActiveConfiguration.Length > 0 && server.ActiveConfiguration != server.Configuration,
                 ["lastExit"] = server.Exit is not { } exit ? null : new JsonObject

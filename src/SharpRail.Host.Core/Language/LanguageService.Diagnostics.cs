@@ -60,7 +60,6 @@ public sealed partial class LanguageService
             }
             try
             {
-                entry.Used = DateTime.UtcNow;
                 var session = await entry.Session.Value;
                 var result = await session.ExecuteAsync(new(request.Workspace, path, "fileDiagnostics"), token);
                 // Push-only servers report asynchronously after didOpen/didChange. Bound the wait

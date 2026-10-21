@@ -81,12 +81,70 @@ public sealed partial class HostStateStore
         {
             foreach (var server in LanguageServers.Catalog)
             {
-                if (!Current.Settings.LspEnabled || !Current.Workspaces.Any(item => item.Path == workspace)) return;
+                if (!Current.Settings.LspEnabled || !Current.Workspaces.Any(item => item.Path == workspace) && !Current.Projects.Contains(workspace)) return;
                 var options = WorkspaceLanguageConfiguration.Parse(WorkspaceLanguage(workspace, server.Id), server.Id);
                 if (options.AutoStart)
-                    try { await Languages.ExecuteAsync(new(workspace, Operation: "status", Server: server.Id)); }
+                    try { await Languages.ExecuteAsync(new(workspace, Operation: "status", Server: server.Id, Origin: LanguageOrigins.Config)); }
                     catch (Exception) { /* The pane reports startup failures through server state. */ }
             }
+            // The project's shared choices (.sharprail/language.toml autoStart, or its local override) start in every workspace of the project.
+            try { await ProjectLanguageAutostartAsync(new(workspace, Operation: "prepareAgent"), CancellationToken.None); }
+            catch (Exception) { /* A workspace outside a registered project has no shared choices. */ }
         });
+    }
+
+    /// <summary>Names a workspace_create caller may use for a server, besides its catalog id.</summary>
+    private static readonly Dictionary<string, string> LanguageAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["c#"] = "csharp",
+        ["cs"] = "csharp",
+        ["dotnet"] = "csharp",
+        ["c"] = "clangd",
+        ["c++"] = "clangd",
+        ["cpp"] = "clangd",
+        ["javascript"] = "typescript",
+        ["js"] = "typescript",
+        ["ts"] = "typescript",
+        ["py"] = "python",
+        ["golang"] = "go",
+        ["rs"] = "rust",
+        ["bash"] = "shell",
+        ["sh"] = "shell",
+        ["rb"] = "ruby",
+        ["kt"] = "kotlin"
+    };
+
+    /// <summary>
+    /// Starts language servers for a new workspace without waiting for them: "auto" means every server whose files are present, otherwise server ids or
+    /// language names. Returns each requested server with its state right after the start was requested (starting, ready, needs-acceptance or failed).
+    /// </summary>
+    internal async Task<IReadOnlyList<(string Server, string State, string Detail)>> StartRequestedLanguagesAsync(string workspace, IReadOnlyList<string> requested, CancellationToken token)
+    {
+        var ids = new List<string>();
+        var rows = new List<(string Server, string State, string Detail)>();
+        foreach (var name in requested.Select(item => item.Trim()).Where(item => item.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (name.Equals("auto", StringComparison.OrdinalIgnoreCase)) ids.AddRange(await Task.Run(() => Languages.DetectedServers(workspace), token));
+            else if (LanguageServers.Catalog.FirstOrDefault(server => server.Id.Equals(LanguageAliases.GetValueOrDefault(name, name), StringComparison.OrdinalIgnoreCase)) is { } known) ids.Add(known.Id);
+            else rows.Add((name, "failed", $"Unknown language server or language '{name}'. Use \"auto\" or one of: {string.Join(", ", LanguageServers.Catalog.Select(server => server.Id))}."));
+        }
+        var started = await Task.WhenAll(ids.Distinct().Select(id => Task.Run(async () =>
+        {
+            try
+            {
+                var result = await Languages.ExecuteAsync(new(workspace, Operation: "status", Server: id, Origin: LanguageOrigins.Workspace), token);
+                var state = result.State switch
+                {
+                    "installing" or "initializing" or "actionRequired" => "starting",
+                    "ready" => "ready",
+                    "requiresAcceptance" => "needs-acceptance",
+                    _ => "failed"
+                };
+                return (id, state, result.Detail);
+            }
+            catch (Exception error) when (error is not OperationCanceledException) { return (id, "failed", error.Message); }
+        }, token)));
+        rows.AddRange(started);
+        return rows;
     }
 }

@@ -13,23 +13,31 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
 
     public McpServer.McpTool Create(string workspace) => new(
         "workspace_create", "Create a workspace",
-        "Create a Git worktree for this terminal's project in SharpRail's managed directory. The description is displayed in Projects. Returns the path and branch; does not switch your terminal.",
+        "Create a Git worktree for this terminal's project in SharpRail's managed directory. The description is displayed in Projects. Returns the path and branch; does not switch your terminal. Example: workspace_create({description, languageServers:[\"csharp\"]}) also starts the C# server, which keeps running for the life of the workspace.",
         JsonNode.Parse("""
             {"type":"object","properties":{
               "description":{"type":"string","minLength":1,"description":"A concise description of the work, displayed to the user as the workspace label."},
               "branch":{"type":"string","description":"New branch name. Omit to use SharpRail's next available workspace branch."},
-              "baseBranch":{"type":"string","description":"Base branch or commit. Defaults to HEAD of the calling workspace; use the user's requested base."}
+              "baseBranch":{"type":"string","description":"Base branch or commit. Defaults to HEAD of the calling workspace; use the user's requested base."},
+              "languageServers":{"type":"array","items":{"type":"string"},"description":"Language servers to start for the new workspace, as ids or language names (\"csharp\", \"typescript\", \"go\"), or \"auto\" for every server with files in the project. Starts in the background; the result lists each server's state. List the servers the agents of this workspace need."}
             },"required":["description"],"additionalProperties":false}
             """)!.AsObject(),
         async (arguments, token) =>
         {
-            if (arguments.Any(argument => argument.Key is not ("description" or "branch" or "baseBranch")))
-                throw new ArgumentException("Only description, branch and baseBranch are accepted.");
+            if (arguments.Any(argument => argument.Key is not ("description" or "branch" or "baseBranch" or "languageServers")))
+                throw new ArgumentException("Only description, branch, baseBranch and languageServers are accepted.");
             var description = Text(arguments, "description")?.Trim();
             if (string.IsNullOrEmpty(description) || description.Contains('\0'))
                 throw new ArgumentException("Provide a description of the work for the workspace label.");
             var branch = Text(arguments, "branch");
             var baseBranch = Text(arguments, "baseBranch") ?? "HEAD";
+            var languages = arguments["languageServers"] switch
+            {
+                null => [],
+                JsonArray list => list.Select(item => item is JsonValue value && value.TryGetValue<string>(out var name) ? name : throw new ArgumentException("languageServers holds server ids or language names.")).ToArray(),
+                JsonValue single when single.TryGetValue<string>(out var one) => [one],
+                _ => throw new ArgumentException("languageServers is an array of server ids or language names, or \"auto\".")
+            };
             await creation.WaitAsync(token);
             try
             {
@@ -41,7 +49,9 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
                 branch ??= catalog.SuggestedBranch;
                 await project.ApplyGitActionAsync(new("create-worktree", catalog.SuggestedPath, branch, baseBranch), token);
                 await state.ChangeAsync([HostStateChange.Label(catalog.SuggestedPath, description)], CancellationToken.None);
-                return (JsonSerializer.Serialize(new { path = catalog.SuggestedPath, branch, description }), false);
+                var started = languages.Length == 0 ? [] : await state.StartRequestedLanguagesAsync(catalog.SuggestedPath, languages, token);
+                return (JsonSerializer.Serialize(new { path = catalog.SuggestedPath, branch, description, languageServers = started.Count == 0 ? null : started.Select(row => new { server = row.Server, state = row.State, detail = row.Detail }).ToArray() },
+                    new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull }), false);
             }
             finally { creation.Release(); }
         });

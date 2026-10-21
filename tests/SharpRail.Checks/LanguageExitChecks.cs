@@ -25,7 +25,7 @@ internal static class LanguageExitChecks
     {
         Records();
         foreach (var remote in new[] { false, true }) await Exercise(Path.Combine(fixture, "language-exit", remote ? "remote" : "local"), remote);
-        Console.WriteLine("PASS language server exit records: exit code and signal, bounded stderr, stop reasons, idle stop, persistence, transport and notifications");
+        Console.WriteLine("PASS language server exit records: exit code and signal, bounded stderr, stop reasons, workspace removal, persistence, transport and notifications");
     }
 
     private static void Records()
@@ -130,18 +130,23 @@ internal static class LanguageExitChecks
             var clean = await Died(stopped.Time);
             Require(clean.Unexpected && clean.ExitCode == 0 && clean.Reason.Contains("Exited with code 0 on its own", StringComparison.Ordinal), "A clean exit nobody asked for was not reported: " + clean.Reason);
 
-            // Idle stop: a running server SharpRail stops names the idle limit and does not notify.
+            // Servers run for the lifetime of their workspace: nothing evicts one for being unused, and removing the workspace stops it and says so.
+            Require(typeof(LanguageService).GetMembers(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+                .All(member => !member.Name.Contains("Idle", StringComparison.Ordinal)), "The language service still has idle eviction.");
             await host.LanguageAsync(new(workspace, Operation: "restart", Server: "typescript", Configuration: "{}"));
             using (var ready = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                 while ((await host.LanguageAsync(new(workspace, Operation: "status", Server: "typescript"), ready.Token)).State != "ready") await Task.Delay(30, ready.Token);
-            var beforeIdle = (await Deaths())[workspace + "\0typescript"];
-            state.Languages.IdleLimit = TimeSpan.Zero;
-            await Task.Delay(50);
-            state.Languages.EvictIdle();
-            var idle = await Died(clean.Time);
-            Require(!idle.Unexpected && idle.Initiator.Contains("idle", StringComparison.Ordinal) && (await Row()).State == "idle" && (await Row()).Detail.Contains("idle", StringComparison.Ordinal) &&
-                (await Deaths())[workspace + "\0typescript"] == beforeIdle, "An idle stop is silent or reported as a crash: " + idle.Reason);
-            state.Languages.IdleLimit = TimeSpan.FromMinutes(10);
+            var beforeRemoval = (await Deaths())[workspace + "\0typescript"];
+            state.Languages.SampleMemory();
+            await Task.Delay(300);
+            Require((await Row()).State == "ready", "Sampling memory stopped a server that nobody asked to stop.");
+            var removal = new TaskCompletionSource<LanguageExit>(TaskCreationOptions.RunContinuationsAsynchronously);
+            state.Languages.ExitObserved = (_, id, exit) => { if (id == "typescript") removal.TrySetResult(exit); };
+            await state.Languages.CloseWorkspaceAsync(workspace);
+            var idle = await removal.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            state.Languages.ExitObserved = null;
+            Require(!idle.Unexpected && idle.Reason.Contains("workspace removed", StringComparison.Ordinal) && idle.StartedBy == "human" && (await Row()).State == "idle" &&
+                (await Deaths())[workspace + "\0typescript"] == beforeRemoval, "Removing the workspace did not stop its server with that reason, silently: " + idle.Reason);
 
             // The last unexpected record survives a host restart.
             await StartDying(new { code = 137 });

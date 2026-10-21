@@ -1653,6 +1653,8 @@ SharpRail.Host.Abstractions.LanguageExit.Signal.get -> string!
 SharpRail.Host.Abstractions.LanguageExit.Signal.init -> void
 SharpRail.Host.Abstractions.LanguageExit.UptimeSeconds.get -> int
 SharpRail.Host.Abstractions.LanguageExit.UptimeSeconds.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.StartedBy.get -> string!
+SharpRail.Host.Abstractions.LanguageServerState.StartedBy.init -> void
 SharpRail.Host.Abstractions.LanguageServerState.Exit.get -> SharpRail.Host.Abstractions.LanguageExit?
 SharpRail.Host.Abstractions.LanguageServerState.Exit.init -> void
 override SharpRail.Host.Abstractions.LanguageExit.Equals(object? obj) -> bool
@@ -1664,6 +1666,8 @@ SharpRail.Host.Abstractions.LanguageExit.Initiator.get -> string!
 SharpRail.Host.Abstractions.LanguageExit.Initiator.init -> void
 SharpRail.Host.Abstractions.LanguageExit.Reason.get -> string!
 SharpRail.Host.Abstractions.LanguageExit.Reason.init -> void
+SharpRail.Host.Abstractions.LanguageExit.StartedBy.get -> string!
+SharpRail.Host.Abstractions.LanguageExit.StartedBy.init -> void
 SharpRail.Host.Abstractions.LanguageExit.Time.get -> string!
 SharpRail.Host.Abstractions.LanguageExit.Time.init -> void
 SharpRail.Host.Abstractions.LanguageExit.Unexpected.get -> bool

@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
+using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Language;
 
@@ -69,6 +71,9 @@ internal static class LanguageOnDemandChecks
             "Diagnostics skipped a file because its server was not running: " + scan);
         Require((await rig.Row("typescript")).State == "ready" && (await rig.Row("python")).State == "ready", "Diagnostics did not leave the started servers running.");
 
+        var listed = await rig.Call("lsp_status", new { operation = "servers", workspace });
+        Require(listed["servers"]!.AsArray().Where(row => row!["id"]!.ToString() is "typescript" or "python").All(row => row!["startedBy"]!.ToString() == "agent"), "lsp_status did not say that an agent started the servers: " + listed);
+
         // A server the user stopped explicitly stays stopped and the answer names the exact call that starts it.
         await rig.State.Languages.ExecuteAsync(new(workspace, Operation: "stop", Server: "python"));
         var stopped = await rig.Call("lsp_diagnostics", new { paths = new[] { "agent.py" }, workspace });
@@ -105,5 +110,72 @@ internal static class LanguageOnDemandChecks
         }
         finally { LanguageMcpTools.ToolDeadline = previous; }
         Console.WriteLine("PASS language on demand: tools start the owning servers, report stopped and disabled servers actionably and never hang");
+    }
+
+    private static async Task Until(Func<Task<bool>> condition, string what)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (!await condition())
+        {
+            if (DateTime.UtcNow > deadline) throw new TimeoutException("Timed out waiting for " + what);
+            await Task.Delay(30);
+        }
+    }
+
+    /// <summary>
+    /// Language servers live as long as their workspace: project autoStart starts one in every workspace including the Default and later worktrees,
+    /// removing a workspace stops only its own, workspace_create starts the requested servers in the background, and nothing stops a server for being unused.
+    /// </summary>
+    internal static async Task Lifetime(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-lifetime");
+        using var git = new IsolatedGit(Path.Combine(root, "git"));
+        var repo = IsolatedGit.Repository(Path.Combine(root, "project"), ("code.ts", "const target = 1;"));
+        Directory.CreateDirectory(Path.Combine(repo, ".sharprail"));
+        await File.WriteAllTextAsync(Path.Combine(repo, ".sharprail", "language.toml"), "version = 1\n\n[servers.typescript]\nautoStart = true\n");
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(Path.Combine(root, "state"));
+        try
+        {
+            var executable = Environment.ProcessPath!;
+            string[] arguments = Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location, "--fake-lsp"] : ["--fake-lsp"];
+            await state.ChangeAsync([HostStateChange.Setting("language-server:typescript", JsonSerializer.Serialize(new LanguageServerOptions(Command: executable, Arguments: arguments), JsonSerializerOptions.Web))]);
+            IProjectServices host = new LocalProjectAdapter(new ProjectServices(repo, state));
+            var removals = new System.Collections.Concurrent.ConcurrentDictionary<string, LanguageExit>();
+            state.Languages.ExitObserved = (workspace, _, exit) => removals[workspace] = exit;
+            async Task<LanguageServerState> Row(string workspace) => (await host.LanguageAsync(new(workspace, Operation: "servers"))).Servers.Single(item => item.Id == "typescript");
+            async Task<bool> Ready(string workspace) => (await Row(workspace)).State == "ready";
+
+            await state.ChangeAsync([HostStateChange.OpenProject(repo)]);
+            try { await Until(() => Ready(repo), "the Default workspace's configured server"); }
+            catch (TimeoutException) { Console.WriteLine("DEBUG projects=" + string.Join(",", state.Current.Projects) + " repo=" + repo + " row=" + (await Row(repo)).State + " prepare=" + (await host.LanguageAsync(new(repo, Operation: "prepareAgent"))).Detail + " " + (await Row(repo)).State); throw; }
+            Require((await Row(repo)).StartedBy == "config", "The configured server does not say that the project configuration started it.");
+            var first = (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Create(repo, "First")))!;
+            var second = (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Create(repo, "Second")))!;
+            await Until(() => Ready(first.Path), "the first worktree's configured server");
+            await Until(() => Ready(second.Path), "the second worktree's configured server");
+
+            // Removing one workspace stops only its own server, with the reason.
+            await host.ApplyWorkspaceActionAsync(WorkspaceAction.ForceRemove(first.Id));
+            await Until(() => Task.FromResult(removals.ContainsKey(first.Path)), "the removed workspace's server to stop");
+            Require(removals[first.Path] is { Unexpected: false } stopped && stopped.Reason.Contains("workspace removed", StringComparison.Ordinal) && stopped.StartedBy == "config", "Removal did not stop the server with its reason: " + removals[first.Path].Reason);
+            Require(await Ready(second.Path) && await Ready(repo), "Removing a workspace stopped another workspace's server.");
+
+            // workspace_create starts the requested servers in the background and reports their states.
+            var create = new WorkspaceMcpTools(state).Create(repo);
+            var created = await create.Call(new JsonObject { ["description"] = "Needs TypeScript", ["languageServers"] = new JsonArray("auto", "no-such-language") }, default);
+            var reply = JsonNode.Parse(created.Text)!;
+            var requested = reply["languageServers"]!.AsArray().ToDictionary(row => row!["server"]!.ToString(), row => row!["state"]!.ToString());
+            Require(!created.Error && requested["typescript"] is "starting" or "ready" && requested["no-such-language"] == "failed", "workspace_create did not report the requested servers: " + created.Text);
+            var path = reply["path"]!.ToString();
+            await Until(() => Ready(path), "the server requested by workspace_create");
+            Require((await Row(path)).StartedBy is "config" or "workspace creation", "The server's origin is missing.");
+            Console.WriteLine("PASS language server lifetime: autoStart in every workspace, removal stops only its own, workspace_create starts and reports servers");
+        }
+        finally
+        {
+            await state.StopLanguagesAsync();
+            Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
+        }
     }
 }

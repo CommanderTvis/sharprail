@@ -268,6 +268,8 @@ public sealed partial class HostStateStore : IHostStateService
                 await languageService.SuspendAsync();
             if (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider && languages is { } jvmLanguages)
                 await jvmLanguages.SwitchJvmProviderAsync(next.Settings.JavaKotlinProvider == "intellij", CancellationToken.None);
+            // A project opened for the first time starts the language servers its shared configuration marks autoStart in its Default workspace.
+            foreach (var project in next.Projects.Except(previous.Projects)) StartWorkspaceLanguages(project);
             return next;
         }
         finally { changesGate.Release(); }

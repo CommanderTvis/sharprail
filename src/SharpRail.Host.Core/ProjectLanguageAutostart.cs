@@ -14,12 +14,13 @@ public sealed partial class HostStateStore
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
         string project;
         string[] selected;
-        var shared = ProjectOfWorkspace(workspace) is { } known
+        var shared = (ProjectOfWorkspace(workspace) ?? (Current.Projects.Contains(workspace) ? workspace : null)) is { } known
             ? ProjectLanguage(known).Servers.Where(item => item.Value["autoStart"]?.GetValue<bool>() == true).Select(item => item.Key).Order(StringComparer.Ordinal).ToArray()
             : [];
         lock (gate)
         {
             project = state.Workspaces.FirstOrDefault(item => item.Path == workspace)?.ProjectRoot
+                ?? (state.Projects.Contains(workspace) ? workspace : null)
                 ?? throw new ArgumentException("Choose a registered project workspace.");
             // The local list, once it exists, overrides the project file; its first change starts from the file's choices.
             selected = state.ProjectLanguageAutostart.TryGetValue(project, out var local)
@@ -47,10 +48,10 @@ public sealed partial class HostStateStore
                 token.ThrowIfCancellationRequested();
                 try
                 {
-                    var result = await Languages.ExecuteAsync(new(workspace, Operation: "status", Server: server), token);
+                    var result = await Languages.ExecuteAsync(new(workspace, Operation: "status", Server: server, Origin: LanguageOrigins.Config), token);
                     if (result.State is "error" or "stopped")
                         await Languages.ExecuteAsync(new(workspace, Operation: "restart", Server: server,
-                            Configuration: WorkspaceLanguage(workspace, server)), token);
+                            Configuration: WorkspaceLanguage(workspace, server), Origin: LanguageOrigins.Config), token);
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
                 catch (Exception error) { System.Diagnostics.Trace.WriteLine("Language server startup: " + error.Message); }

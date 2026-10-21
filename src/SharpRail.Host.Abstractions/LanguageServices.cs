@@ -17,6 +17,9 @@ public sealed record LanguageServerState(string Id, string Path, string State, s
 {
     /// <summary>How the most recent run of this server ended, when the host knows; it outlives the process and host restarts.</summary>
     public LanguageExit? Exit { get; init; }
+
+    /// <summary>Who started the running server: "human", "config", "workspace creation" or "agent"; informational, it never changes how long the server runs.</summary>
+    public string StartedBy { get; init; } = "";
 }
 
 /// <summary>
@@ -24,7 +27,11 @@ public sealed record LanguageServerState(string Id, string Path, string State, s
 /// <paramref name="Unexpected"/> is false for stops the user or SharpRail's lifecycle asked for. <paramref name="Details"/> is a copyable report with the
 /// stderr tail, recent JSON-RPC messages and requests in flight.
 /// </summary>
-public sealed record LanguageExit(string Time, string Reason, bool Unexpected, string Initiator, int? ExitCode, string Signal, int UptimeSeconds, long MemoryBytes, string Details);
+public sealed record LanguageExit(string Time, string Reason, bool Unexpected, string Initiator, int? ExitCode, string Signal, int UptimeSeconds, long MemoryBytes, string Details)
+{
+    /// <summary>Who started the process that ended: "human", "config", "workspace creation" or "agent".</summary>
+    public string StartedBy { get; init; } = "";
+}
 
 /// <summary>A detected build root or provider-reported directory role; State identifies provenance without asserting complete import or package ownership.</summary>
 public sealed record LanguageProject(string Root, string Manifest, string Server, string Kind, string State, string Detail);

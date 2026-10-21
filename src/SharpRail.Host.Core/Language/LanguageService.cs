@@ -19,20 +19,21 @@ public sealed partial class LanguageService : IAsyncDisposable
     internal bool AllowsRead(string workspace, string path) => exposed.ContainsKey((workspace, path));
     private readonly LanguageServers servers;
     private readonly CancellationTokenSource lifetime = new();
-    private readonly Timer idle;
+    private readonly Timer sampler;
     private readonly Func<bool> enabled;
     private readonly Func<string, string, string> configuration;
     private readonly Action<string, string, string>? saveConfiguration;
     private int disposed;
     private readonly LanguageExitStore exits;
-    /// <summary>How long a server may go unused before SharpRail stops it to free memory; the stop is recorded as the reason.</summary>
-    internal TimeSpan IdleLimit { get; set; } = TimeSpan.FromMinutes(10);
+    /// <summary>Called with workspace, server id and each exit record the host writes, for requested stops as well as deaths.</summary>
+    internal Action<string, string, LanguageExit>? ExitObserved { get; set; }
     /// <summary>Called with workspace, server id, time and reason when a server dies without anyone asking it to; the host publishes it to clients.</summary>
     internal Action<string, string, string, string>? DeathObserved { get; init; }
     private sealed class Entry
     {
         internal Lazy<Task<LanguageSession>> Session = null!;
-        internal DateTime Used = DateTime.UtcNow;
+        /// <summary>Who started this server: human, config, workspace creation or agent. Informational only; no origin changes how long the server runs.</summary>
+        internal string StartedBy = LanguageOrigins.Human;
         internal string Configuration = "";
         internal string State = "installing";
         internal int ExpiryRecorded;
@@ -50,7 +51,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         this.configuration = workspaceConfiguration ?? ((_, _) => "{}");
         this.saveConfiguration = saveConfiguration;
         this.enabled = enabled ?? (() => Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1");
-        idle = new Timer(_ => EvictIdle(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        sampler = new Timer(_ => SampleMemory(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
     public async ValueTask<LanguageResult> ExecuteAsync(LanguageRequest request, CancellationToken token = default)
@@ -108,7 +109,6 @@ public sealed partial class LanguageService : IAsyncDisposable
             if (!entries.TryGetValue(workspace + "\0" + request.Server, out var owner) ||
                 !owner.Session.IsValueCreated || !owner.Session.Value.IsCompletedSuccessfully || !owner.Session.Value.Result.OwnsVirtual(request.Path))
                 return new("unavailable", "Use the exact URI and source server returned by navigation in this workspace's current session.") { Freshness = "unavailable" };
-            owner.Used = DateTime.UtcNow;
             try { return await owner.Session.Value.Result.ExecuteAsync(request, token); }
             catch (IOException error) { return new("unavailable", error.Message, request.Server) { Freshness = "unavailable" }; }
         }
@@ -174,7 +174,6 @@ public sealed partial class LanguageService : IAsyncDisposable
                     if (!running.Session.IsValueCreated || !running.Session.Value.IsCompletedSuccessfully) continue;
                     try
                     {
-                        running.Used = DateTime.UtcNow;
                         var inspection = await running.Session.Value.Result.WorkspaceDiagnosticsAsync(token);
                         if (inspection.State == "expired") RecordExpiry(running, sessionKey);
                         results.Add(inspection);
@@ -245,7 +244,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             return new("disabled", "Disabled in Settings > LSP. Enable this server before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
         // Only the dictionary winner starts a process.
         var options = WorkspaceLanguageConfiguration.Parse(configuration(workspace, server.Id), server.Id);
-        var candidate = new Entry(lifetime.Token) { Configuration = WorkspaceLanguageConfiguration.Serialize(options) };
+        var candidate = new Entry(lifetime.Token) { Configuration = WorkspaceLanguageConfiguration.Serialize(options), StartedBy = LanguageOrigins.Normalize(request.Origin) };
         candidate.Session = new(() => Task.Run(async () =>
         {
             var log = logs.GetOrAdd(key, _ => new());
@@ -263,7 +262,7 @@ public sealed partial class LanguageService : IAsyncDisposable
                     servers.ConfigureCaches(start, server, workspace);
                 }
                 candidate.State = "initializing"; candidate.Detail = "Starting and indexing the workspace…";
-                var session = await LanguageSession.StartAsync(start, workspace, server, deadline.Token, options, log, servers.DirectoryPath, exit => RecordExit(workspace, server.Id, exit));
+                var session = await LanguageSession.StartAsync(start, workspace, server, deadline.Token, options, log, servers.DirectoryPath, exit => RecordExit(workspace, server.Id, exit, candidate.StartedBy));
                 try { if (drafts.TryGetValue(key, out var saved)) await session.RestoreDraftsAsync(saved, deadline.Token); }
                 catch
                 {
@@ -295,7 +294,6 @@ public sealed partial class LanguageService : IAsyncDisposable
             entry = entries.GetOrAdd(key, candidate);
         }
         if (!ReferenceEquals(candidate, entry)) candidate.Stop.Dispose();
-        entry.Used = DateTime.UtcNow;
         var sessionTask = entry.Session.Value;
         if (!sessionTask.IsCompleted && request.Operation != "close")
         {
@@ -318,9 +316,11 @@ public sealed partial class LanguageService : IAsyncDisposable
         catch (Exception error) { return new(error is IntelliJExpiredException ? "expired" : error is IntelliJAcceptanceException ? "requiresAcceptance" : "error", error.Message + " Use Retry after resolving the problem.", server.Id, request.Version) { Freshness = "unavailable" }; }
     }
 
-    private void RecordExit(string workspace, string server, LanguageExit exit)
+    private void RecordExit(string workspace, string server, LanguageExit exit, string startedBy)
     {
+        exit = exit with { StartedBy = startedBy, Details = $"Started by: {startedBy}\n" + exit.Details };
         exits.Set(workspace, server, exit);
+        ExitObserved?.Invoke(workspace, server, exit);
         if (exit.Unexpected && Volatile.Read(ref disposed) == 0) DeathObserved?.Invoke(workspace, server, exit.Time, exit.Reason);
     }
 
@@ -380,13 +380,13 @@ public sealed partial class LanguageService : IAsyncDisposable
             if (id is "java" or "kotlin" && UsesIntelliJ(workspace)) { state = "disabled"; detail = "IntelliJ is selected for Java and Kotlin. Existing provider settings are preserved."; }
             if (!enabled()) { state = "disabled"; detail = "Language services are disabled on this host. Workspace settings are preserved."; }
             var exit = exits.Get(workspace, id);
-            if (entries.TryGetValue(key, out var running) && running.Session.IsValueCreated && running.Session.Value is { IsCompletedSuccessfully: true } finished) exit = finished.Result.ExitRecord ?? exit;
+            if (entries.TryGetValue(key, out var running) && running.Session.IsValueCreated && running.Session.Value is { IsCompletedSuccessfully: true } finished) exit = finished.Result.ExitRecord is { } live ? exit is not null && exit.Time == live.Time ? exit : live : exit;
             if (exit is not null && state is "idle" or "stopped")
                 detail = (exit.Unexpected ? "Stopped unexpectedly: " : "Last run: ") + exit.Reason + " " + detail;
             rows.Add(new(id, path, state, detail, LanguageServers.Catalog.Single(server => server.Id == id).Version,
                 WorkspaceLanguageConfiguration.Serialize(WorkspaceLanguageConfiguration.Parse(configuration(workspace, id), id)),
                 entries.GetValueOrDefault(key)?.Configuration ?? "", configuration(workspace, id) != "{}")
-            { Exit = exit });
+            { Exit = exit, StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "" });
         }
         return new(enabled() ? "ready" : "disabled", enabled() ? "Available language servers; detected languages are listed first." : "Language services are disabled. Workspace settings remain available.") { Servers = rows };
     }
@@ -424,6 +424,10 @@ public sealed partial class LanguageService : IAsyncDisposable
         }
     }
 
+    /// <summary>The ids of the servers that own at least one file in the workspace; scans the tree, so call it off the UI thread.</summary>
+    internal IReadOnlyList<string> DetectedServers(string workspace)
+        => [.. Discover(workspace).Select(path => Detect(workspace, path)).OfType<LanguageServer>().Select(server => server.Id).Distinct()];
+
     private static IEnumerable<string> Discover(string workspace)
     {
         var seen = new HashSet<string>();
@@ -455,14 +459,11 @@ public sealed partial class LanguageService : IAsyncDisposable
         }));
     }
 
-    internal void EvictIdle()
+    /// <summary>Samples each running server's resident memory for its exit record; servers run for the lifetime of their workspace and are never stopped for being unused.</summary>
+    internal void SampleMemory()
     {
         foreach (var entry in entries.Values)
             if (entry.Session.IsValueCreated && entry.Session.Value is { IsCompletedSuccessfully: true } running) running.Result.SampleMemory();
-        foreach (var (key, entry) in entries)
-            if (entry.State != "expired" && DateTime.UtcNow - entry.Used > IdleLimit &&
-                !(entry.Session.IsValueCreated && (!entry.Session.Value.IsCompleted || entry.Session.Value is { IsCompletedSuccessfully: true } task && (task.Result.HasDrafts || task.Result.IsIndexing))) && entries.TryRemove(new KeyValuePair<string, Entry>(key, entry)))
-                _ = StopAsync(entry, $"it was idle for {IdleLimit.TotalMinutes:0.##} minutes (SharpRail's idle limit); it starts again on first use");
     }
 
     public async ValueTask CloseWorkspaceAsync(string workspace)
@@ -473,7 +474,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         foreach (var key in drafts.Keys) if (key.StartsWith(workspace + "\0", StringComparison.Ordinal)) drafts.TryRemove(key, out _);
         foreach (var (key, entry) in entries)
             if (key.StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)) + "\0", StringComparison.Ordinal) && entries.TryRemove(new KeyValuePair<string, Entry>(key, entry)))
-                await StopAsync(entry, "the workspace was closed or removed");
+                await StopAsync(entry, "workspace removed");
         exits.Remove(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)));
     }
 
@@ -503,7 +504,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
-        lifetime.Cancel(); await idle.DisposeAsync();
+        lifetime.Cancel(); await sampler.DisposeAsync();
         foreach (var entry in entries.Values) await StopAsync(entry, "the host is shutting down");
         entries.Clear(); logs.Clear(); lifetime.Dispose();
     }
