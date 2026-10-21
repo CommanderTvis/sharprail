@@ -58,7 +58,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
         if (settings().Source == AirSources.Central && observed.Auth == "connected" && central is { State: "supported", Path: not null })
         {
             var read = await cli.LimitReadAsync(central.Path, cancellationToken);
-            credits = read.Credits;
+            credits = read.Credits is { } fresh ? fresh with { ReadAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() } : null;
             identity = read.Credits is null ? default : (read.Email, read.License);
         }
         else { credits = null; identity = default; }

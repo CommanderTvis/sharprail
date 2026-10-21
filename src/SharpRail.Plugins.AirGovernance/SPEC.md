@@ -72,6 +72,28 @@ central-cli.labs.jb.gg as text; the plugin never runs it.
 
 With Central chosen and signed in, the pane also shows the chosen source's remaining credits, for example `16.27 of 20.00 credits remaining, refills 2027-01-15` (plus the top-up when nonzero). They are read from `central limit --json` with every automatic check and after a successful Switch: `tariffQuota.available` and `maximum` (numbers or numeric strings; else `maxDollars` less `usedDollars`), `topUpQuota.available` and `refillNext` (epoch ms). Status and the pane carry only those numbers, never the email or licence name. Missing, malformed, negative, non-finite or inconsistent values, a failed or timed-out command, signed out and the direct source all show nothing.
 
+## Credits in the header
+
+While Central is the chosen source and governs at least one agent (`AirLaunch.Wired`: an enabled Claude Code or Codex
+switch), the UI half shows the remaining credits as `x / y credits` at the trailing end of each window's header,
+before the connection status and Settings, through the Plugin API's header item (W24); otherwise it shows nothing.
+The numbers are the status channel's credits (above), so the host that runs `central` supplies them, including a
+remote one; the host stamps each successful read with its time (`ReadAt`). The tooltip names the governed agents,
+the plan's remaining and total credits, the top-up when nonzero, the next refill and when the credits were read
+(the licence name and email stay off the status channel, so the plan is not named). Below a tenth of the plan left,
+top-up included, the item uses the warning colour. Clicking it opens Settings › Air Governance.
+
+Reads are the status method with the probe (so the same `--version`, `status` and `limit --json` as the pane), one
+shared reader per activation however many windows show the item: when an item attaches or its window activates,
+when a terminal whose agent ran through `central run` leaves the host projection, and every 5 minutes, at most once
+per 15 s (the pane's throttle); and at once when the source or an agent switch changes. Reads never overlap; a forced
+read during one runs after it. Nothing is read while no item is attached, Central governs no agent or the plugin is
+disabled. Status pushes (the pane's checks, actions and the agents' Account reads) update the item without a read.
+Before the first read nothing is shown; after a read without credits the item shows `credits ?` in the warning
+colour with the reason in the tooltip (not installed, outdated, cannot be used, not signed in, sign-in unknown, no
+credits reported, or the call's error). A compact (phone) workbench shows no header items; the credits stay in
+Settings › Air Governance.
+
 ## Account for governed agents
 
 A host-side launch contribution also carries `Account` (Plugin API H18): source `Central`, read on request. Codex and
@@ -132,7 +154,9 @@ status rows, `login export`, access switching, proxy, login, update) plus a `run
 the contributions per source and toggle, the Claude and Codex launch lines executed by a real shell so prompts with
 quotes and `$(...)` arrive as single arguments, a fake HOME whose `.claude`, `.codex`, `CLAUDE_CONFIG_DIR` and
 `CODEX_HOME` stay byte- and time-identical across every action and source switch, failures, access switching, the
-host seam over plugin RPC (including disable) and the pane and real launchers through headless input.
+host seam over plugin RPC (including disable), the pane and real launchers through headless input, and the header
+item against a stand-in host: hidden for direct and for Central with no agent, credits after a toggle, the warning
+colour, the reason when credits cannot be read, a pushed status, the click into Settings, and removal on disable.
 The listing runs against a loopback fake of the OAuth server and Cloud (a checks-only endpoint override that production
 code never sets): success with the current marker, signed out, unknown environment, redirect, malformed and oversized
 responses, rotation, secrets absent from every surfaced string, switching with proxy-restart failure and A, B, A.

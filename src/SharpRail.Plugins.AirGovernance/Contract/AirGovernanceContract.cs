@@ -43,7 +43,8 @@ public sealed record AirAgent(string Id, string Label, bool Enabled, string? Lau
 /// <param name="Total">The recurring quota.</param>
 /// <param name="TopUp">Credits left of the top-up quota; zero when there is none.</param>
 /// <param name="RefillNext">When the quota refills, Unix milliseconds, or <see langword="null"/> when Central did not say.</param>
-public sealed record AirCredits(double Remaining, double Total, double TopUp = 0, long? RefillNext = null);
+/// <param name="ReadAt">When the host read them from Central, Unix milliseconds.</param>
+public sealed record AirCredits(double Remaining, double Total, double TopUp = 0, long? RefillNext = null, long? ReadAt = null);
 
 /// <param name="Credits">Only with Central chosen and signed in, and only when the last check could read them; otherwise <see langword="null"/>.</param>
 public sealed record AirStatus(AirCentral Central, string Source, IReadOnlyList<AirAgent> Agents, bool Busy = false, string? Detail = null, AirCredits? Credits = null);
@@ -63,6 +64,9 @@ public static class AirLaunch
 {
     /// <summary>The agent launcher ids the plugin knows, with the agent names <c>central run</c> takes.</summary>
     public static readonly IReadOnlyDictionary<string, string> CentralNames = new Dictionary<string, string> { ["claude"] = "claude-code", ["codex"] = "codex" };
+
+    /// <summary>Whether Central is the chosen source and governs at least one agent's launches.</summary>
+    public static bool Wired(AirSettings settings) => CentralNames.Keys.Any(launcherId => Enabled(settings, launcherId));
 
     public static bool Enabled(AirSettings settings, string launcherId) =>
         settings.Source == AirSources.Central && CentralNames.ContainsKey(launcherId) && (launcherId == "claude" ? settings.ClaudeCode : settings.Codex);

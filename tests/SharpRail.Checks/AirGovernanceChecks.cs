@@ -710,8 +710,9 @@ internal static class AirGovernanceChecks
             Require(workbench.PluginRegistry.LaunchContributions("claude").Count == 0, "Disabling the plugin removes its contributions at once.");
         }
         finally { window.Close(); }
+        RunHeader(root);
         RunLaunchers(root);
-        Console.WriteLine("PASS Air Governance UI: plugin settings persistence, launch command shape, access switching, contributions and subscription teardown");
+        Console.WriteLine("PASS Air Governance UI: plugin settings persistence, launch command shape, access switching, contributions and subscription teardown, and the header's credits item");
     }
 
     // The real launchers of the Claude Code and Codex plugins in the app, with a fake central first on PATH.
@@ -759,5 +760,89 @@ internal static class AirGovernanceChecks
             Require(fixture.Log.All(line => !line.StartsWith("run", StringComparison.Ordinal)), "Building commands never runs an agent through central.");
         }
         finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
+    }
+
+    // The header item (Plugin API W24): shown only while Central governs an agent, with the credits or the reason they are missing.
+    private static void RunHeader(string root)
+    {
+        var directory = Path.Combine(root, "air-governance-header");
+        if (Directory.Exists(directory)) Directory.Delete(directory, true);
+        Directory.CreateDirectory(directory);
+        var profile = new ProfileStore(Path.Combine(directory, "profile"));
+        var store = profile.OpenState();
+        var roster = new PluginRosterEntry("air-governance", "Air Governance", "asset:air-governance.svg", "0.1.0", 1, PluginOrigin.Builtin, PluginStatus.Disabled)
+        {
+            Channels = new Dictionary<string, PluginRosterChannel> { ["status"] = new(PluginChannelKind.State, "status", []) }
+        };
+        var fake = new FakePluginHost(new LocalStateAdapter(store), store.Current, roster);
+        static AirStatus Status(string auth, string source, AirCredits? credits = null) =>
+            new(new("supported", auth, "running", "curl", "/usr/local/bin/central", "1.13.0"), source, [], Credits: credits);
+        fake.Replies["status"] = Status("unknown", AirSources.Direct);
+        using var workbench = new Workbench(profile, new SharedState(fake, profile.Data.Preferences), E2eTerminals.Plain, false, () => new LocalProjectAdapter(new ProjectServices(directory, store)), fake);
+        var window = workbench.Open(profile.Data.Windows[0], "");
+        window.Width = 1200; window.Height = 800; window.Show();
+        var throttle = AirCreditsFeed.Throttle;
+        AirCreditsFeed.Throttle = TimeSpan.Zero;
+        try
+        {
+            int Probes() => fake.Calls.Count(call => call.Method == "status" && call.Params is AirStatusParams { Probe: true });
+            void Settings(object value) => _ = workbench.State.ChangeAsync([HostStateChange.PluginSettings("air-governance", JsonSerializer.Serialize(value))]);
+            AirCreditsHeader? Item() => window.GetLogicalDescendants().OfType<AirCreditsHeader>().SingleOrDefault();
+            string Text() => Item()!.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "AirCreditsHeaderText").Text ?? "";
+            string Tip() => ToolTip.GetTip(Item()!) as string ?? "";
+            void Settle() { for (var i = 0; i < 5; i++) { Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(40); } }
+
+            Require(Item() is null, "A disabled plugin contributes no header item.");
+            Settings(new { enabled = true });
+            E2eWorkspace.Until(() => Item() is not null);
+            Settle();
+            Require(!Item()!.IsVisible && Probes() == 0, "With the direct source the item shows nothing and reads nothing.");
+
+            Settings(new { enabled = true, source = AirSources.Central, claudeCode = false, codex = false });
+            Settle();
+            Require(!Item()!.IsVisible && Probes() == 0, "Central chosen but no agent governed: nothing is shown and Central is not read.");
+
+            fake.Replies["status"] = Status("connected", AirSources.Central, new(16.27, 20, 0, 1800000000000, 1790000000000));
+            Settings(new { enabled = true, source = AirSources.Central, claudeCode = true, codex = false });
+            E2eWorkspace.Until(() => Item()!.IsVisible && Text() == "16.27 / 20.00 credits");
+            Require(Probes() >= 1 && Tip().Contains("for Claude Code", StringComparison.Ordinal) && Tip().Contains("Refills 2027-", StringComparison.Ordinal) &&
+                Tip().Contains("Updated 2026-", StringComparison.Ordinal) && Tip().Contains("Settings › Air Governance", StringComparison.Ordinal) && !Tip().Contains("Top-up", StringComparison.Ordinal),
+                "One governed agent shows the credits, with the refill and read time in the tooltip: " + Tip());
+            var label = Item()!.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "AirCreditsHeaderText");
+            Require(ReferenceEquals(label.Foreground, SharpRail.Plugins.UI.Kit.Ui.Muted), "Plenty of credits are muted.");
+
+            var before = Probes();
+            fake.Replies["status"] = Status("connected", AirSources.Central, new(1.5, 20, 0.25, 1800000000000, 1790000000000));
+            Settings(new { enabled = true, source = AirSources.Central, claudeCode = true, codex = true });
+            E2eWorkspace.Until(() => Text() == "1.50 / 20.00 credits");
+            Require(Probes() > before && ReferenceEquals(label.Foreground, SharpRail.Plugins.UI.Kit.Ui.Warning) && Tip().Contains("Claude Code and Codex", StringComparison.Ordinal) && Tip().Contains("Top-up: 0.25", StringComparison.Ordinal),
+                "A toggle change reads at once; under a tenth left turns the warning colour and the tooltip names the top-up.");
+
+            fake.Replies["status"] = Status("signed-out", AirSources.Central);
+            Settings(new { enabled = true, source = AirSources.Central, claudeCode = false, codex = true });
+            E2eWorkspace.Until(() => Text() == "credits ?");
+            Require(Item()!.IsVisible && Tip().Contains("Not signed in to Central.", StringComparison.Ordinal) && Tip().Contains("for Codex", StringComparison.Ordinal),
+                "Credits that cannot be read show a warning with the reason: " + Tip());
+
+            fake.Push("air-governance", "status", Status("connected", AirSources.Central, new(10, 20)));
+            E2eWorkspace.Until(() => Text() == "10.00 / 20.00 credits");
+
+            Item()!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
+            var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+            Require(settings.Section == "plugin:air-governance:air-governance", "Clicking the item opens Settings › Air Governance, not " + settings.Section);
+            settings.Close();
+            Settle();
+
+            Settings(new { enabled = true, source = AirSources.Direct });
+            E2eWorkspace.Until(() => !Item()!.IsVisible);
+            before = Probes();
+            Settle();
+            Require(Probes() == before, "Switching back to direct hides the item and stops reading.");
+
+            Settings(new { enabled = false, source = AirSources.Central });
+            E2eWorkspace.Until(() => Item() is null);
+        }
+        finally { AirCreditsFeed.Throttle = throttle; window.Close(); }
     }
 }
