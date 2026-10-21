@@ -94,10 +94,19 @@ internal static class LanguageOnDemandChecks
         await rig.State.Languages.ExecuteAsync(new(workspace, "code.ts", "retry"));
 
         // A symbol query without a path searches the workspace; a missing path names the working call.
-        var search = await rig.Call("lsp_navigate", new { operation = "definition", query = "target", workspace });
+        var search = await rig.Call("lsp_navigate", new { operation = "symbols", query = "target", workspace });
         Require(search["state"]!.ToString() == "ready" && search["locations"]!.AsArray().Count > 0 && search["detail"]!.ToString().Contains("searched workspace symbols", StringComparison.Ordinal), "A query without a path did not search the workspace: " + search);
+        // A positional operation named by a symbol runs at its declaration through the tool, with no position.
+        var named = await rig.Call("lsp_navigate", new { operation = "references", query = "target", workspace });
+        Require(named["state"]!.ToString() == "ready" && named["locations"]!.AsArray().Count > 0 && named["detail"]!.ToString().Contains("Resolved \"target\" to code.ts", StringComparison.Ordinal), "References by name did not resolve the declaration: " + named);
+        // A server missing for an unrelated language (pwsh, go) never turns another server's answer into a failed call.
+        Require(LanguageUsage.CombinedState("workspaceSymbols", ["ready", "error", "error"]) == "ready" && LanguageUsage.CombinedState("workspaceSymbols", ["error", "error"]) == "error"
+            && LanguageUsage.CombinedState("diagnostics", ["ready", "error"]) == "error", "A symbol search answered by one server was reported as failed because another server is missing.");
+        var navigate = rig.Tools.Single(tool => tool.Name == "lsp_navigate");
+        foreach (var phrase in new[] { "{\"operation\":\"references\",\"query\":", "zero-based", "one-based", "ambiguous", "instead of grep" })
+            Require(navigate.Description.Contains(phrase, StringComparison.Ordinal), "lsp_navigate's description lacks: " + phrase);
         var rejected = (await McpServer.HandleAsync(JsonNode.Parse(JsonSerializer.Serialize(new { jsonrpc = "2.0", id = 99, method = "tools/call", @params = new { name = "lsp_navigate", arguments = new { operation = "definition", workspace } } })), rig.Tools, default)).Body!.ToJsonString();
-        Require(rejected.Contains("Working call", StringComparison.Ordinal) && rejected.Contains("src/Foo.cs", StringComparison.Ordinal), "A missing path did not name the working call: " + rejected);
+        Require(rejected.Contains("Working call", StringComparison.Ordinal) && rejected.Contains("a symbol name as query", StringComparison.Ordinal) && rejected.Contains("zero-based", StringComparison.Ordinal), "A missing path did not name the working call: " + rejected);
 
         // A server that hangs cannot hang the tool: the call returns an initializing status at its deadline.
         await rig.State.Languages.ExecuteAsync(new(workspace, Operation: "restart", Server: "typescript", Configuration: """{"settings":{"fixtureDie":{"hang":true}}}"""));

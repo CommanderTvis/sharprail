@@ -185,9 +185,19 @@ Settings hint); terms that need the user keep blocking with their actionable mes
 call has a 90 second deadline (`LanguageLimits.ToolDeadline`); past it the call is cancelled and
 returns state `initializing` with the servers still starting under `starting`, never a hang.
 
-`lsp_navigate` with a symbol `query` and no `path` searches workspace symbols across the servers
-for the workspace's languages and says so in `detail`. A call that needs a path and has none is
-rejected with the exact working call as JSON. A response carries a one-line `hint` when a server
+`lsp_navigate` hover, definition, type definition, implementation and references with a symbol
+`query` and no `path` resolve the name through workspace symbols (the server is sent the last
+segment; a simple name, `Type/Member` or `Namespace.Type.Member` all work) and run at the one
+matching declaration, naming it in `detail`. Several same-named declarations are narrowed by a
+qualified query through each candidate file's outline (at most 20 files); otherwise the result is
+`ambiguous` with the candidates as locations and a working path/line/column call in `detail`.
+No match is `notFound` naming the `workspaceSymbols` call. Other operations with a query and no
+path search workspace symbols and say so in `detail`; that search is `ready` when any server
+answered, with servers missing for other languages listed in `detail` rather than failing the
+call (`CombinedState`). An open, clean document whose file changed on disk is resynchronized
+before the next request, so dependents do not report phantom missing members. A call that needs a path and has none is rejected with the exact working call as JSON. A
+positional call that finds nothing says positions are zero-based while preview prefixes are
+one-based, and names the query form. The tool description gives a call shape per operation. A response carries a one-line `hint` when a server
 for the requested language exists but is stopped, disabled or unsupported.
 
 Usage is counted per workspace and server (calls, successes, failures, last used; a failed or
@@ -304,8 +314,10 @@ Document outlines retain qualified parent/child names and full symbol ranges. `s
 selects an exact qualified name or the smallest symbol containing a UTF-16 position; ambiguous
 names return candidates. Bodies are capped at 12,000 characters with an explicit truncation flag
 and source range. Location-only servers do not pretend their symbol locations are body ranges.
-Navigation also accepts exact qualified outline names for hover, definition, type definition,
-implementation and references. Resolve documentSymbol selectionRange on every request after buffer
+Navigation also accepts outline names for hover, definition, type definition, implementation and
+references: an exact qualified name wins, otherwise a name whose `/`- or `.`-separated segments end
+the qualified outline name (parameter lists and ` : type` suffixes ignored unless the query spells
+them). Not found names the `symbols` outline call; ambiguous lists the qualified candidates. Resolve documentSymbol selectionRange on every request after buffer
 synchronization. Missing/ambiguous names or absent selection ranges never fall back to guessed
 positions. Existing cursor navigation remains available for overload selection.
 The source operation reads file/dependency text in 12,000-character pages (offset and nextOffset

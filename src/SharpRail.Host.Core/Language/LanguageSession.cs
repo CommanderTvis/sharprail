@@ -254,6 +254,11 @@ internal sealed partial class LanguageSession : IAsyncDisposable
             foreach (var change in changes) changed.TryRemove(change);
             if (changes.Length > 0)
                 await connection.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = changes.Select(change => new { uri = change.Key, type = change.Value }).ToArray() }, token);
+            // An open document keeps the server's view of the file, so one edited on disk is resynchronized here: otherwise
+            // files that depend on it report phantom errors (a member "does not exist") until it is diagnosed itself.
+            foreach (var change in changes)
+                if (change.Key != uri && change.Value != 3 && documents.TryGetValue(change.Key, out var open) && !open.Dirty)
+                    await RefreshOpenAsync(change.Key, open, token);
             documents.TryGetValue(uri, out var document);
             if (document is not null && request.Text is not null && document.Dirty && document.Owner != request.DocumentId && document.Text != request.Text)
                 return new("conflict", "Another editor owns a different unsaved buffer for this file.", server.Id, request.Version);
@@ -350,9 +355,21 @@ internal sealed partial class LanguageSession : IAsyncDisposable
                 if ((capabilities["documentSymbolProvider"] is null || capabilities["documentSymbolProvider"]!.ToJsonString() == "false") && !registeredCapabilities.Values.Contains("textDocument/documentSymbol"))
                     return result with { State = "unsupported", Detail = "Symbol-selected navigation requires a document outline. Use an explicit position." };
                 var outline = await connection.RequestAsync("textDocument/documentSymbol", new { textDocument = new { uri } }, token);
-                var matches = SymbolSelections(outline).Where(item => item.Name == request.Query).ToArray();
+                // An exact qualified name wins; otherwise a simple or partly qualified name matches the end of the outline name.
+                var selections = SymbolSelections(outline).ToArray();
+                var exact = selections.Any(item => item.Name == request.Query);
+                bool Named(string name) => exact ? name == request.Query : LanguageUsage.EndsWithName(name, request.Query);
+                var matches = selections.Where(item => Named(item.Name)).ToArray();
                 if (matches.Length != 1 || matches[0].Range is null)
-                    return result with { State = matches.Length == 0 ? "notFound" : matches.Length > 1 ? "ambiguous" : "unsupported", Detail = "Select an exact qualified outline name with a unique selection range, or use an explicit position.", Locations = Symbols(outline, request.Path).Where(item => item.Text == request.Query).Skip(request.Offset).Take(request.Limit).ToArray(), Total = matches.Length, Truncated = request.Offset + request.Limit < matches.Length, Freshness = "partial" };
+                    return result with
+                    {
+                        State = matches.Length == 0 ? "notFound" : matches.Length > 1 ? "ambiguous" : "unsupported",
+                        Detail = matches.Length == 0 ? LanguageUsage.OutlineNotFound(request) : matches.Length > 1 ? LanguageUsage.OutlineAmbiguous(request, matches.Length) : "The outline gives this symbol no selection range; use its line and column (zero-based).",
+                        Locations = Symbols(outline, request.Path).Where(item => Named(item.Text)).Skip(request.Offset).Take(request.Limit).ToArray(),
+                        Total = matches.Length,
+                        Truncated = request.Offset + request.Limit < matches.Length,
+                        Freshness = "partial"
+                    };
                 var position = matches[0].Range!["start"]!;
                 request = request with { Line = position["line"]!.GetValue<int>(), Column = position["character"]!.GetValue<int>() };
             }
@@ -369,6 +386,22 @@ internal sealed partial class LanguageSession : IAsyncDisposable
             return new("expired", IntelliJDistribution.Expired, server.Id, request.Version) { Freshness = "unavailable" };
         }
         finally { gate.Release(); }
+    }
+
+    private async Task RefreshOpenAsync(string uri, Document open, CancellationToken token)
+    {
+        string text;
+        try { text = await ReadAsync(new Uri(uri).LocalPath, token); }
+        catch (IOException) { return; }
+        catch (UnauthorizedAccessException) { return; }
+        if (text == open.Text) return;
+        var sync = capabilities["textDocumentSync"];
+        var kind = sync is JsonObject ? sync["change"]?.GetValue<int>() ?? 0 : sync?.GetValue<int>() ?? 0;
+        if (kind == 0) return;
+        var document = open with { Text = text, Version = ++nextDocumentVersion };
+        documents[uri] = document; diagnostics.TryRemove(uri, out _);
+        object[] contentChanges = kind == 2 ? [new { range = new { start = new { line = 0, character = 0 }, end = End(open.Text) }, text }] : [new { text }];
+        await connection.NotifyAsync("textDocument/didChange", new { textDocument = new { uri, version = document.Version }, contentChanges }, token);
     }
 
     private static async Task<string> ReadAsync(string path, CancellationToken token)

@@ -313,6 +313,22 @@ internal static class LanguageChecks
             var bySymbol = await Ready(host, new(root, "outline.ts", "definition", Query: "Suite/run", Line: 99, Column: 99));
             Require(bySymbol.Locations.Single() is { Line: 1, Column: 2 }, "Symbol navigation guessed a position instead of using the selection range.");
             Require((await Ready(host, new(root, "outline.ts", "definition", Query: "missing"))).State == "notFound", "Missing navigation symbol fell back to a guessed cursor.");
+            // Names instead of positions: a simple or partly qualified outline name, and a symbol name without a path.
+            Require((await Ready(host, new(root, "outline.ts", "definition", Query: "run"))).Locations.Single() is { Line: 1, Column: 2 }, "A simple name did not select its unique outline symbol.");
+            Require((await Ready(host, new(root, "outline.ts", "definition", Query: "Suite.run"))).Locations.Single() is { Line: 1, Column: 2 }, "A dotted qualified name did not select its outline symbol.");
+            var missingInFile = await Ready(host, new(root, "outline.ts", "references", Query: "missing"));
+            Require(missingInFile.State == "notFound" && missingInFile.Detail.Contains("\"operation\":\"symbols\",\"path\":\"outline.ts\"", StringComparison.Ordinal), "A name missing from a file did not name the outline call: " + missingInFile.Detail);
+            await File.WriteAllTextAsync(Path.Combine(root, "runner.ts"), "function run() {}");
+            var byName = await Ready(host, new(root, Operation: "references", Query: "Suite"));
+            Require(byName.State == "ready" && byName.Locations.Single().Path == "outline.ts" && byName.Detail.Contains("Resolved \"Suite\" to outline.ts line 0, column 6", StringComparison.Ordinal),
+                "References by name did not run at the declaration: " + byName.State + " " + byName.Detail);
+            var sameName = await Ready(host, new(root, Operation: "definition", Query: "run"));
+            Require(sameName.State == "ambiguous" && sameName.Total == 2 && sameName.Locations.Select(item => item.Path).Order().SequenceEqual(["outline.ts", "runner.ts"]) && sameName.Detail.Contains("\"operation\":\"definition\",\"path\":", StringComparison.Ordinal),
+                "A shared name did not list its candidates with a working call: " + sameName.Detail);
+            var qualified = await Ready(host, new(root, Operation: "definition", Query: "Suite/run"));
+            Require(qualified.State == "ready" && qualified.Locations.Single() is { Path: "outline.ts", Line: 1, Column: 2 }, "A qualified name did not choose among same-named symbols: " + qualified.Detail);
+            var unknown = await Ready(host, new(root, Operation: "implementation", Query: "Nowhere"));
+            Require(unknown.State == "notFound" && unknown.Detail.Contains("\"operation\":\"workspaceSymbols\"", StringComparison.Ordinal), "An unknown name did not name the search call: " + unknown.Detail);
             await File.WriteAllTextAsync(Path.Combine(root, "ambiguous.ts"), "function overload() {}");
             Require((await Ready(host, new(root, "ambiguous.ts", "definition", Query: "overload"))).State == "ambiguous", "Overloads selected an arbitrary definition.");
             var overloadPage = await Ready(host, new(root, "ambiguous.ts", "definition", Query: "overload", Offset: 1, Limit: 1));
@@ -1550,6 +1566,14 @@ internal static class LanguageChecks
             else if (method == "textDocument/documentSymbol" && uri.EndsWith("ambiguous.ts", StringComparison.Ordinal))
                 result = new[] { new { name = "overload", kind = 6, range, selectionRange = range }, new { name = "overload", kind = 6, range, selectionRange = range } };
             else if (method == "textDocument/documentSymbol") result = new[] { new { name = "target", kind = 13, range } };
+            else if (method == "workspace/symbol" && File.Exists("outline.ts") && parameters?["query"]?.ToString() is "Suite" or "run")
+            {
+                var outlineUri = new Uri(Path.GetFullPath("outline.ts")).AbsoluteUri;
+                object At(string target, int line, int character) => new { uri = target, range = new { start = new { line, character }, end = new { line, character = character + 3 } } };
+                result = parameters["query"]!.ToString() == "Suite"
+                    ? new object[] { new { name = "Suite", kind = 5, location = At(outlineUri, 0, 6) }, new { name = "SuiteHelper", kind = 5, location = At(outlineUri, 4, 0) } }
+                    : [new { name = "run", kind = 6, location = At(outlineUri, 1, 2) }, new { name = "run()", kind = 6, location = At(new Uri(Path.GetFullPath("runner.ts")).AbsoluteUri, 0, 9) }];
+            }
             else if (method == "workspace/symbol") result = new[] { new { name = "target", kind = 13, location = new { uri = documents.Keys.First(), range } } };
             else if (method == "textDocument/typeDefinition") result = new[] { new { uri = new Uri(Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, "..", "library.ts"))).AbsoluteUri, range } };
             else if (method == "textDocument/references")

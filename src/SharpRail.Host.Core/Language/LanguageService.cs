@@ -154,7 +154,8 @@ public sealed partial class LanguageService : IAsyncDisposable
         var mapped = "";
         if (request.Path.Length == 0 && selectedServer is null)
         {
-            // A symbol query without a file asks every server that has files here, instead of failing.
+            // A positional operation named by a symbol runs at that symbol's declaration; other symbol queries search the workspace.
+            if (LanguageUsage.ResolvesByName(request)) return await ByNameAsync(request, token);
             if (LanguageUsage.MapsToWorkspaceSearch(request))
             {
                 mapped = $"No path was given, so this searched workspace symbols for \"{request.Query}\" across the servers for this workspace's languages. ";
@@ -189,7 +190,8 @@ public sealed partial class LanguageService : IAsyncDisposable
                 token.ThrowIfCancellationRequested();
                 results.Add(await ExecuteAsync(request with { Path = path }, token));
             }
-            return new(results.Any(result => result.State == "expired") ? "expired" : results.Any(result => result.State == "requiresAcceptance") ? "requiresAcceptance" : results.Any(result => result.State is "installing" or "initializing") ? "initializing" : results.Any(result => result.State == "error") ? "error" : results.Any(result => result.State == "unavailable") ? "unavailable" : "ready",
+            var state = LanguageUsage.CombinedState(request.Operation, results.Select(result => result.State).ToArray());
+            return new(state,
                 mapped + (results.Count == 0 ? "No language server is configured for any file in this workspace." : string.Join("\n", results.Select(result => result.Server + ": " + result.Detail).Distinct())), Version: request.Version)
             {
                 Diagnostics = results.SelectMany(result => result.Diagnostics).Distinct().ToArray(),

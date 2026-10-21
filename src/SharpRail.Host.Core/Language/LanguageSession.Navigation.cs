@@ -36,6 +36,8 @@ internal sealed partial class LanguageSession
         }
         else if (symbols && request.Query.Length > 0)
             items = items.Where(item => item.Text.Contains(request.Query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        else if (!symbols && request.Operation != "workspaceSymbols" && items.Length == 0 && result.State == "ready")
+            result = result with { Detail = $"Nothing found at line {request.Line}, column {request.Column}. Positions are zero-based, while preview prefixes are one-based line numbers. To skip positions, pass the symbol name as query instead: " + $$"""{"operation":"{{request.Operation}}","query":"Name"}.""" };
 
         var page = items.Skip(request.Offset).Take(request.Limit).ToArray();
         var sources = new Dictionary<string, string>(StringComparer.Ordinal);
