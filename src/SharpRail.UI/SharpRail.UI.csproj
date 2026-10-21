@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../DesktopGc.props" />
   <PropertyGroup><OutputType>WinExe</OutputType><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <!-- The About screen's version: the packaging tasks pass SharpRailBuildStamp (UTC date and short commit); a local build reads "dev". -->
   <PropertyGroup>

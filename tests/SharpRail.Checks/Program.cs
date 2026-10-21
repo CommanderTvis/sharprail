@@ -743,6 +743,11 @@ internal static class Program
             DockInputChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--gc-settings"]))
+        {
+            GcSettingsChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--startup"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -971,6 +976,7 @@ internal static class Program
             return;
         }
         Gate.Case("packaged-app", PackagedApp.Run);
+        Gate.Case("gc-settings", () => GcSettingsChecks.Run(root));
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
         Gate.Case("zig-deps", () => ZigDepsChecks.Run());
         Gate.Case("check-root", CheckRootChecks.Run);

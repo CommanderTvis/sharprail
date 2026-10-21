@@ -22,6 +22,7 @@ needed. `SHARPRAIL_CONFIGURATION=Debug` selects a Debug build for debugging, `SH
 the initial workspace (default: this checkout), and `SHARPRAIL_PROFILE` selects a
 separate profile instead of `~/.sharprail`. Additional arguments go to the app.
 The script clears inherited Claude Code session identity before launch.
+The Release build uses the memory settings in `DesktopGc.props` and the idle memory trim (`performance/README.md`).
 
 ### Browser
 

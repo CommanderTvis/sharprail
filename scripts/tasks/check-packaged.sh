@@ -23,6 +23,7 @@ if [ "$(uname -s)" = Linux ]; then
   mkdir -p "$stage/run"
   cp -R "$shipped/." "$stage/run/"
   artifacts/linux/checks/SharpRail.Checks --stage-packaged artifacts/linux/checks "$stage/run"
+  export SHARPRAIL_PACKAGED_CLIENT="$PWD/$shipped"
   SHARPRAIL_REQUIRE_R2R=1 SHARPRAIL_PACKAGED_APP="$PWD/$shipped" "$stage/run/SharpRail.Checks" "$@"
   exit
 fi
@@ -37,5 +38,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 mkdir -p "$stage"
 cp -R "$bundle" "$stage/"
+export SHARPRAIL_PACKAGED_CLIENT="$PWD/$bundle/Contents/MacOS"
+[ ! -d artifacts/host ] || export SHARPRAIL_PACKAGED_HOST="$PWD/artifacts/host"
 artifacts/checks/SharpRail.Checks --stage-packaged artifacts/checks "$stage/SharpRail.app/Contents/MacOS"
 SHARPRAIL_REQUIRE_R2R=1 SHARPRAIL_PACKAGED_APP="$PWD/$bundle" "$stage/SharpRail.app/Contents/MacOS/SharpRail.Checks" "$@"

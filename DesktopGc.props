@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Memory settings of the desktop app and the standalone host (the projects that import this file), written into their runtimeconfig.json
+    and so shipped in every package. Android and Browser run Mono and do not import it. Measured in performance/README.md:
+    ConserveMemory trades a little more compaction for a committed heap close to the live set; the concurrent GC stays on (turning it
+    off doubled total pause time); tiered PGO off drops instrumentation memory and shortens startup. IdleMemoryTrim in SharpRail.UI
+    returns the rest to the OS when the app is idle.
+  -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
+    <RuntimeHostConfigurationOption Update="System.Runtime.TieredPGO" Value="false" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TieredPGO>false</TieredPGO>
+  </PropertyGroup>
+</Project>

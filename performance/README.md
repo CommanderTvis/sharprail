@@ -101,3 +101,20 @@ Primary tool references: [dotnet-trace](https://learn.microsoft.com/en-us/dotnet
 [macOS resource accounting](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/resource.h).
 
 The runner does not enforce CPU affinity, desktop quiescence or thermal isolation. Results from a shared development Mac are exploratory baselines; background desktop activity can contribute to variation.
+
+## Memory settings
+
+The desktop app and the standalone host import `DesktopGc.props`, so every packaged `SharpRail.UI.runtimeconfig.json` and
+`SharpRail.Host.Remote.runtimeconfig.json` carries `System.GC.ConserveMemory=5` and `System.Runtime.TieredPGO=false` (the Server
+and hard-limit settings stay off; Android and Browser do not import it). `check:packaged` fails when a packaged runtimeconfig
+loses them (`--gc-settings` runs only that case). `IdleMemoryTrim` additionally runs one blocking, compacting
+`GC.Collect(2, Aggressive)` per idle period (30 s without input and under 5% of a core, never in the first 60 s).
+
+Measured on an Apple-silicon Mac, Release, isolated profile, this checkout as the workspace:
+
+- Startup, `workspace-ready` median of 5 launches from `managed-entry`: default 1031 ms, ConserveMemory=5 1014 ms, ConserveMemory=7 1031 ms, TieredPGO off 985 ms. Debug build: 1.5 to 5.0 s (3 launches, noisy), median 2.9 s.
+- Fresh app, physical footprint 20 s after launch (median of 2 to 3): Debug 270 MB, Release 256 MB; no GC option moves it by more than noise, because a fresh app has nothing to return.
+- Long-session emulation (a console workload with 430 MB live small objects, 60 MB live large objects and about 10 MB/s of churn, 90 s of use then idle; one run per variant, so indicative): committed heap after use, default 789 MB (384 MB fragmentation), ConserveMemory=5 657 MB, ConserveMemory=7 602 MB, non-concurrent GC 730 MB with total pause 4.4 s against 2.0 s, so it was rejected.
+- The idle compaction took 100 to 150 ms once and cut the committed heap from 758 MB to 366 MB (fragmentation 369 MB to 0); worst GC pause stayed near 113 to 152 ms.
+
+Switch back to a Debug build with `SHARPRAIL_CONFIGURATION=Debug scripts/mise run dev`. The first Release `dev` build compiles everything once (about 12 minutes on a cold tree here, native libraries only when their inputs changed); later runs rebuild incrementally in seconds.

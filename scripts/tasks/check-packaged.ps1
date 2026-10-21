@@ -7,5 +7,7 @@ $directory = if ($RuntimeIdentifier -eq 'win-x64') { 'windows' } else { 'windows
 $checks = Join-Path $root "artifacts/$directory/checks/SharpRail.Checks.exe"
 if (!(Test-Path $checks)) { throw "No packaged app to check: run scripts\mise run package:windows $RuntimeIdentifier first." }
 $env:SHARPRAIL_REQUIRE_R2R = '1'
+$env:SHARPRAIL_PACKAGED_CLIENT = Join-Path $root "artifacts/$directory/client"
+$env:SHARPRAIL_PACKAGED_HOST = Join-Path $root "artifacts/$directory/host"
 & $checks @Arguments
 exit $LASTEXITCODE
