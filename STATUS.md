@@ -193,11 +193,11 @@ run it, how its history moves", 2026-09-14 authored; refs read locally on 2026-1
 transcript controls (#748)". The previous synced commit was JetBrains `f7cca7bfb0b1d0543eb9898c52d28df5a784eb09`
 (2026-10-11). Fork code porting is recorded by fork commit title in "Fork port log" below.
 
-Latest tracked JetBrains commit: the same `3bee4f164` (`upstream/main` as present in the checkout on 2026-10-18;
-nothing was fetched). The range after `f7cca7bfb` is 35 commits (22 of them listed in [Current porting
-gaps](#current-porting-gaps) from the earlier research up to `be06fb019`). The separate `upstream` branch is
-synced to `5ab283a35` (2026-10-13) and still needs its own pass for the commits after it; do not carry them over by
-hand.
+Latest tracked JetBrains commit: `d3aae2d04` (2026-10-21), "Minor performance improvements (#798)" (`upstream/main`
+fetched on 2026-10-21). The 19 commits after `3bee4f164` are triaged under [Current porting gaps](#current-porting-gaps);
+none of them is in the fork yet (its tip `5c7a43068` still sits on `3bee4f164`), so the `main` spec sync above was not
+advanced. The separate `upstream` branch is synced to `5ab283a35` (2026-10-13) and still needs its own pass for the
+commits after it; do not carry them over by hand.
 
 Latest tracked fork commit: `30a81cab56e98a541d2dfa61bf3bfbd9318bbfb8`, the tip of
 `origin/claude-code-integration-plugin-api` in the checkout. The previously recorded tip `281bda97` carries the same
@@ -1000,6 +1000,28 @@ Applicable commits below are linked to their immutable source diffs. Chat/pi-onl
 The researched range contains 22 commits after `f7cca7bfb`; the remaining 13 up to `3bee4f164` were triaged on
 2026-10-18 and only the applicable ones are listed (the rest are AI, pi or MCP: #706, #727 content, #728, #730's
 chat parts, #744, #745, #748 and the pi package commits).
+
+#### JetBrains commits after `3bee4f164` (triaged 2026-10-21)
+
+Verdicts: ported, port (needed; owning module), adapt (needs a SharpRail design), not applicable.
+
+Files, Git and review panels:
+- `6f85210f3` merge Changes into a VS Code-like Files panel (#779): ported on this branch (Files All | Changed, marks, ignored dimming, remembered expansion; see Panels spec).
+- `443919c57` one spelling for Windows directory and relative paths (#775): adapt; SharpRail host paths are `/`-normalised in Files/Git, Windows hosts are unverified.
+- `1ce7211de` always show Remote and Pull request in the topbar with the branch's next step (#771): port; location strip (Shell/Location spec) with Git/GitHub host data.
+- `46b522166` GitHub review details and actions in the topbar (#776): port after #771; GitHub plugin and location strip.
+- `5bdaf6a4e` extract file and diff renderers into a package (#783): not applicable; TS packaging refactor.
+- `bbb0e3079` visualize workspace files and mockups in chat (#784): not applicable; chat and pi extension.
+
+Projects and workspaces:
+- `7641d7df9` rename projects from the project context menu (#764): port; host state project list (`IHostStateService`) and Projects rail menu.
+- `ac5476b55` mark a workspace as read or unread (#770): adapt; depends on the unread watermark (A18), which SharpRail lacks.
+
+Chat, pi, MCP and agent internals (not applicable: embedded chat and pi are out of scope):
+- `2ce6ccb73` extension dialogs in chat, MCP "Always allow" (#749); `4499b93f9` calmer Connect dialog (#761); `58bb7f96d` host questionnaires vs extensions (#754); `988a50662` MCP call arguments in approval prompt (#763); `dfdcaa9be` background results row (#778); `da9bb4235` transcript reads without watcher wait (#786); `d3aae2d04` minor chat/renderer performance (#798).
+
+Build, docs and website (not applicable: Bun/CLI/website only):
+- `a9c560a37` JSC bytecode CLI (#781); `54fbcd55a` pin Bun 1.4.3 (#780); `abafac7a8` README stars badge (#785); `ebb8e23b6` 0.2.0 blog post (#768).
 
 #### Agent workflow gaps for Codex and Claude Code
 
