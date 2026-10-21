@@ -712,6 +712,13 @@ public sealed partial class LayoutSession
         if (region == "right") state.RightVisible = visible;
     });
 
+    /// <summary>Shows one side region, or none, and hides the other in a single change.</summary>
+    public void ShowSide(string? region) => Change(state =>
+    {
+        state.LeftVisible = region == "left";
+        state.RightVisible = region == "right";
+    });
+
     public void RestoreTool(string id, string? target = null) => Change(state =>
     {
         if (IsToolAvailable(id)) RestoreToolIn(state, id, target);

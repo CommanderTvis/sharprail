@@ -123,6 +123,8 @@ public sealed partial class WorkbenchWindow
                 surface.HoldPage(() => ShowPage(Region(next)));
             }
             surface.DragPage(moved.X);
+            // The page under the finger stays in place now, so a scroller in it must not take the touch over.
+            e.PreventGestureRecognition();
             e.Handled = true;
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, (_, e) =>
@@ -173,8 +175,8 @@ public sealed partial class WorkbenchWindow
     private void ShowPage(string? region)
     {
         openSettings?.Close();
-        CloseDrawers();
-        if (region is not null) Layout.Visible(region, true);
+        // One change, so Projects to Tools slides straight across instead of by way of the centre.
+        if (Layout.State.LeftVisible != (region == "left") || Layout.State.RightVisible != (region == "right")) Layout.ShowSide(region);
     }
 
     private void CloseDrawers()
