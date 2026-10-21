@@ -36,7 +36,7 @@ internal static class AboutChecks
         var buttons = fields.GetLogicalDescendants().OfType<Button>().Select(button => button.Name).ToList();
         Require(buttons.Contains("AboutNotices") && buttons.Contains("AboutCopy") && buttons.Contains("AboutRepository") && buttons.Contains("AboutUpstream"), "The About view must offer notices, copy and both links.");
         var links = fields.GetLogicalDescendants().OfType<Button>().Where(button => button.Tag is Uri).Select(button => ((Uri)button.Tag!).AbsoluteUri.TrimEnd('/')).ToList();
-        Require(links.Contains(AboutInfo.Repository) && links.Contains(AboutInfo.Upstream), "The links must target the repository and the upstream fork.");
+        Require(links.Contains(AboutInfo.Repository) && links.Contains(AboutInfo.Upstream), "The links must target the repository and upstream ThinkRail.");
 
         // The macOS application menu: About SharpRail in place of the framework's About Avalonia.
         var menu = ApplicationMenu.AppMenu(() => { });
