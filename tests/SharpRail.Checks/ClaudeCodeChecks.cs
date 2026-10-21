@@ -459,6 +459,7 @@ internal static class ClaudeCodeChecks
         await IdeProtocol(runtime, project);
         await ConfigCases(runtime, state, project, directory);
         await Skills();
+        await CodeIntelHooks();
         await state.ChangeAsync([HostStateChange.PluginEnabled("claude-code", false)]);
         await runtime.Schedule();
         Require(Directory.GetFiles(Path.Combine(Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")!, "ide"), "*.lock").Length == 0 &&
@@ -467,6 +468,63 @@ internal static class ClaudeCodeChecks
         await Pickers();
         await ModelLists(directory);
         Console.WriteLine("PASS Claude Code host: disabled lifecycle, configuration provenance, reviewed writes, token status, spending and revive");
+    }
+
+    /// <summary>
+    /// The code-intelligence hooks: a reminder at session and subagent start, and an advisory, rate-limited nudge before a
+    /// grep for a code symbol that names the equivalent lsp_navigate call. They never block and never fail.
+    /// </summary>
+    private static async Task CodeIntelHooks()
+    {
+        var plugin = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin");
+        var hooks = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(plugin, "hooks", "hooks.json"))).RootElement.GetProperty("hooks");
+        Require(hooks.GetProperty("PreToolUse")[0].GetProperty("matcher").GetString() == "Grep|Glob|Bash" && hooks.TryGetProperty("SubagentStart", out _)
+            && hooks.GetProperty("SessionStart").EnumerateArray().Any(group => group.GetProperty("hooks")[0].GetProperty("command").GetString()!.EndsWith("code-intel.sh session", StringComparison.Ordinal)),
+            "The plugin does not register the code-intelligence hooks.");
+        if (OperatingSystem.IsWindows()) return;
+        var state = Path.Combine(Path.GetTempPath(), "sharprail-code-intel-check-" + Environment.ProcessId);
+        try
+        {
+            async Task<(int Exit, string Output)> Hook(string mode, string input, bool managed = true)
+            {
+                var start = new System.Diagnostics.ProcessStartInfo("sh") { RedirectStandardInput = true, RedirectStandardOutput = true, UseShellExecute = false };
+                start.ArgumentList.Add(Path.Combine(plugin, "scripts", "code-intel.sh"));
+                start.ArgumentList.Add(mode);
+                start.Environment["CODE_INTEL_STATE"] = state;
+                if (managed) start.Environment["THINKRAIL_MCP_URL"] = "http://127.0.0.1:1/mcp";
+                else start.Environment.Remove("THINKRAIL_MCP_URL");
+                using var process = System.Diagnostics.Process.Start(start)!;
+                await process.StandardInput.WriteAsync(input);
+                process.StandardInput.Close();
+                var output = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+                return (process.ExitCode, output.Trim());
+            }
+            string Context((int Exit, string Output) result, string hookEvent)
+            {
+                Require(result.Exit == 0, hookEvent + " hook failed with exit " + result.Exit);
+                var output = JsonDocument.Parse(result.Output).RootElement.GetProperty("hookSpecificOutput");
+                Require(output.GetProperty("hookEventName").GetString() == hookEvent && !output.TryGetProperty("permissionDecision", out _), hookEvent + " hook answered with the wrong shape: " + result.Output);
+                return output.GetProperty("additionalContext").GetString()!;
+            }
+            string Grep(string session, string pattern, string? path = null, string? glob = null) => JsonSerializer.Serialize(new { session_id = session, cwd = "/work/space", tool_name = "Grep", tool_input = new { pattern, path, glob } });
+            string Bash(string session, string command) => JsonSerializer.Serialize(new { session_id = session, cwd = "/work/space", tool_name = "Bash", tool_input = new { command } });
+
+            Require(Context(await Hook("session", "{}"), "SessionStart").Contains("lsp_navigate before grep", StringComparison.Ordinal), "The session reminder does not name lsp_navigate.");
+            Require(Context(await Hook("subagent", "{}"), "SubagentStart").Contains("lsp_diagnostics", StringComparison.Ordinal), "The subagent reminder does not name lsp_diagnostics.");
+            var nudge = Context(await Hook("pretool", Grep("grep", "TerminalView", "src", "*.cs")), "PreToolUse");
+            Require(nudge.Contains("{\"operation\":\"references\",\"query\":\"TerminalView\",\"workspace\":\"/work/space\"}", StringComparison.Ordinal), "A code-symbol grep was not answered with the lsp_navigate call: " + nudge);
+            Require(Context(await Hook("pretool", Bash("bash", "rg -n \"class LanguageService\\b\" src --type cs | head")), "PreToolUse").Contains("\"query\":\"LanguageService\"", StringComparison.Ordinal), "A shell rg for a declaration was not nudged.");
+            Require(Context(await Hook("pretool", JsonSerializer.Serialize(new { session_id = "glob", cwd = "/work/space", tool_name = "Glob", tool_input = new { pattern = "**/*TerminalView*.cs" } })), "PreToolUse").Contains("\"operation\":\"workspaceSymbols\"", StringComparison.Ordinal), "A file glob for a type was not pointed at workspaceSymbols.");
+            foreach (var (name, input) in new[] { ("docs", Grep("quiet-1", "TerminalView", glob: "*.md")), ("literal", Bash("quiet-2", "grep -rn 'error message' src")), ("status", Bash("quiet-3", "git status --short")), ("config", Bash("quiet-4", "rg -n Version Directory.Packages.props")), ("broken", "not json") })
+                Require(await Hook("pretool", input) is (0, ""), "A non-code search was nudged: " + name);
+            Require(await Hook("pretool", Grep("unmanaged", "TerminalView"), managed: false) is (0, ""), "The hook spoke outside a SharpRail session.");
+            var answers = new List<bool>();
+            for (var call = 0; call < 6; call++) answers.Add((await Hook("pretool", Grep("limited", "LanguageUsage"))).Output.Length > 0);
+            Require(answers.SequenceEqual([true, false, false, false, false, true]), "The nudge is not rate-limited to the first and every fifth search: " + string.Join(",", answers));
+        }
+        finally { if (Directory.Exists(state)) Directory.Delete(state, true); }
+        Console.WriteLine("PASS code-intelligence hooks: session and subagent reminders, advisory rate-limited grep nudges, silent for non-code and outside SharpRail");
     }
 
     /// <summary>

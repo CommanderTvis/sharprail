@@ -1,5 +1,5 @@
 {
-	"description": "SharpRail terminal status tracking and notifications",
+	"description": "SharpRail terminal status tracking, notifications and code-intelligence reminders",
 	"hooks": {
 		"SessionStart": [
 			{
@@ -8,6 +8,39 @@
 					{
 						"type": "command",
 						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/on-session-start.sh"
+					}
+				]
+			},
+			{
+				"matcher": "startup|resume|clear|compact",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/code-intel.sh session",
+						"timeout": 5
+					}
+				]
+			}
+		],
+		"SubagentStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/code-intel.sh subagent",
+						"timeout": 5
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"matcher": "Grep|Glob|Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/code-intel.sh pretool",
+						"timeout": 5
 					}
 				]
 			}
