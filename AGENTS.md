@@ -45,8 +45,7 @@
 
 ## Scratch files
 
-- Put temporary files in one task-specific subdirectory of `.bench` (git-ignored, disposable, small) and remove it when the task ends, including after failed checks. Keep no historical logs, captures, copied trees, build outputs, caches or archives; reuse or replace evidence instead of numbering copies.
-- Keep `.bench/checks-last-run.txt` while `--last-failed` needs it. Never delete another active task's files.
+- Put temporary files in the agent scratchpad or the OS temp directory (a task-specific subdirectory, removed when the task ends, including after failed checks); never in the checkout. The checks do this themselves via `CheckRoot` (`SHARPRAIL_CHECKS_ROOT`, `SHARPRAIL_CHECKS_KEEP=1`). `.bench` (git-ignored) holds only tiny persistent files such as `checks-last-run.txt`, which `--last-failed` needs. Keep no historical logs, captures, copied trees, build outputs, caches or archives. Never delete another active task's files.
 - Record durable verification facts in owning module specs and dated task outcomes in `context-log.md`. Keep scratch evidence only if the user asks.
 
 ## Startup performance
