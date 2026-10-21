@@ -773,7 +773,8 @@ public sealed partial class DockSurface
     private ContextMenu GroupMenu(DockGroup group, Control geometry)
     {
         var menu = new ContextMenu();
-        if (group.Region == "center")
+        // A phone keeps one centre group, its tabs listed in Projects: there is no room to split it.
+        if (group.Region == "center" && !Drawers)
         {
             var right = Ui.Menu("New split right", () => Session.NewGroup(group.Id, "right"));
             var below = Ui.Menu("New split below", () => Session.NewGroup(group.Id, "bottom"));
@@ -784,7 +785,7 @@ public sealed partial class DockSurface
             };
             menu.Items.Add(right); menu.Items.Add(below);
         }
-        else
+        else if (group.Region != "center")
         {
             menu.Items.Add(Ui.Menu("New pane before", () => Session.NewGroup(group.Id, "before"), CanCreate(group)));
             menu.Items.Add(Ui.Menu("New pane after", () => Session.NewGroup(group.Id, "after"), CanCreate(group)));
