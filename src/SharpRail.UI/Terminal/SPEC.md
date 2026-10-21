@@ -380,7 +380,10 @@ by `TerminalBackends` exactly as the app composes them (the local host behind `L
 must underline every listed form (bare, `./`, relative, `:line`, `:line:col`, absolute inside and outside the
 workspace, `~/`) with exact ranges, leave directories and missing names plain, and open line and column
 on activation. Every `ITerminalService` wrapper must forward `FindFileLinksAsync`: the interface's
-empty default once silently disabled all links in the app while direct-host checks passed. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
+empty default once silently disabled all links in the app while direct-host checks passed. `--loopback-terminals`
+requires `LoopbackTerminals` and `LocalTerminalAdapter` to implement every `ITerminalService` member themselves
+(the throwing `SaveClipboardImageAsync` default once refused every local clipboard image) and pastes a PNG
+through the app's local wiring. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
 stale-link clearing and retained web-link hover.
 
 Browser composition defaults to restty; see [Browser](../../SharpRail.Browser/SPEC.md).

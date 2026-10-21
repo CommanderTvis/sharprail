@@ -17,5 +17,8 @@ public sealed class LoopbackTerminals(ITerminalService terminals, LoopbackServer
     // Without forwarding, the interface's empty default would silently disable every terminal file link.
     public ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
         => terminals.FindFileLinksAsync(sessionId, text, cancellationToken);
+    // Without forwarding, the interface's throwing default would refuse every clipboard image pasted into a local terminal.
+    public ValueTask<string> SaveClipboardImageAsync(string sessionId, ReadOnlyMemory<byte> png, CancellationToken cancellationToken = default)
+        => terminals.SaveClipboardImageAsync(sessionId, png, cancellationToken);
     public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => terminals.CloseAsync(sessionId, cancellationToken);
 }

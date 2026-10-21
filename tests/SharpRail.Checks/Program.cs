@@ -317,6 +317,11 @@ internal static class Program
             TerminalResumeHintChecks.Run();
             return;
         }
+        if (args.SequenceEqual(["--loopback-terminals"]))
+        {
+            LoopbackTerminalChecks.Run().GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--terminal-replay"]))
         {
             TerminalReplayChecks.Run();
@@ -1073,6 +1078,7 @@ internal static class Program
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-commit-links", () => TerminalCommitLinkChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("terminal-links", () => TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("loopback-terminals", () => LoopbackTerminalChecks.Run().GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("windows-host", () => WindowsChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
