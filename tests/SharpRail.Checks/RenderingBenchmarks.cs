@@ -26,6 +26,7 @@ internal static class RenderingBenchmarks
     {
         if (surface == "markdown-selection") { MarkdownSelectionBenchmark.Run(); return; }
         if (surface == "changes-review") { ChangesReviewBenchmark.Run(); return; }
+        if (surface == "editor") { EditorBenchmark.Run(); return; }
         const int count = 2000;
         var context = DispatchProxy.Create<IPluginUIContext, RenderingBenchmarkContext>();
         using var app = surface is "files" or "files-mixed" ? new E2eWorkspace(root, profileRoot: Path.Combine(root, "profile")) : null;
