@@ -1,9 +1,13 @@
+using System.Text.Json;
+
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
+using Avalonia.VisualTree;
 
 namespace SharpRail.UI.Docking;
 
@@ -13,57 +17,117 @@ namespace SharpRail.UI.Docking;
 public sealed partial class DockSurface
 {
     private const string ProjectsTool = "projects";
-    private string? drawerSection;
+    private string? drawerSection, sectionsBuilt;
     private int shownPage, slideRun;
-    private (RenderTargetBitmap Picture, Image Leaving, int Direction)? slide;
+    // The page a running slide carries out and the one it carries in: both live hosts, side by side in the shell.
+    private (int From, int To)? slide;
     private double slideProgress;
-    private bool slideHeld, slideSkipped;
+    private bool slideHeld;
     private static readonly TimeSpan SlideTime = TimeSpan.FromMilliseconds(260);
+    private readonly PageSlide pageSlide = new(SlideTime);
+    private readonly Dictionary<string, Border[]> pageBodies = [];
+    private readonly Dictionary<int, IInputElement> pageFocus = [];
+
+    // Projects, the centre and Tools are three hosts that live as long as the surface: a page switch moves them and
+    // leaves their contents, scroll positions and focus where they were. A side page is built the first time it shows.
+    private Border PageHost(int page) => page < 0 ? auxiliaryRegions["left"] : page > 0 ? auxiliaryRegions["right"] : centerRegion;
+
+    private bool PageOnScreen(int page) => page == shownPage || slide is { } pages && (pages.From == page || pages.To == page);
+
+    /// <summary>The page shown at rest or being slid to; -1 is Projects, 0 the centre and 1 Tools.</summary>
+    internal int ShownPage => shownPage;
+
+    /// <summary>Whether a page slide is running or held under a finger.</summary>
+    internal bool PageSliding => slide is not null;
 
     // Projects, the centre and Tools lie side by side. Moving between them carries the page being left out and
     // the next one in together: under the finger while it drags, and the rest of the way once it lets go.
-    private Action? PageSlide()
+    private void SwitchPage()
     {
         var next = Side("left") ? -1 : Side("right") ? 1 : 0;
-        var direction = Math.Sign(next - shownPage);
-        shownPage = next;
-        if (direction == 0) return null;
-        EndSlide();
-        if (slideSkipped) { slideSkipped = false; return null; }
-        if (Bounds.Width <= 0 || Bounds.Height <= 0 || TopLevel.GetTopLevel(this) is not { } top) return null;
-        var scaling = top.RenderScaling;
-        // Rendering a visual into a bitmap applies the bitmap's density twice, so its root gives the screen's pixels.
-        var density = 96 * Math.Sqrt(scaling);
-        var picture = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(Bounds.Width * scaling), (int)Math.Ceiling(Bounds.Height * scaling)), new Vector(density, density));
-        picture.Render(shell);
-        return () =>
+        if (next == shownPage) { ShowPages(); return; }
+        var from = shownPage;
+        var progress = 0.0;
+        if (slide is { } running)
         {
-            var leaving = new Image { Source = picture, Width = Bounds.Width, Height = Bounds.Height, Stretch = Stretch.Fill };
-            overlay.Children.Add(leaving);
-            slide = (picture, leaving, direction);
-            slideProgress = 0;
-            PlaceSlide();
-            if (!slideHeld) SettleSlide(true, null);
-        };
+            // A switch that interrupts a slide turns it round when it goes back, and otherwise starts from the page
+            // that is most of the way on screen.
+            if (next == running.From) progress = 1 - slideProgress;
+            else from = slideProgress < .5 ? running.From : running.To;
+        }
+        else RememberFocus(from);
+        EndSlide();
+        shownPage = next;
+        if (from == next || Bounds.Width <= 0 || TopLevel.GetTopLevel(this) is null)
+        {
+            ShowPages();
+            RestoreFocus(next);
+            return;
+        }
+        slide = (from, next);
+        slideProgress = progress;
+        // The page on its way out takes no new touch: what is under a finger is the page coming in, or nothing. A
+        // finger already dragging keeps the page it pressed, or its touch would lose its target mid-drag.
+        if (!slideHeld) PageHost(from).IsHitTestVisible = false;
+        ShowPages();
+        PlaceSlide();
+        if (!slideHeld) SettleSlide(true, null);
+    }
+
+    // Only the page on screen, and the one sliding with it, is visible: the others take no input, focus or frames.
+    private void ShowPages()
+    {
+        for (var page = -1; page <= 1; page++)
+        {
+            var host = PageHost(page);
+            var shown = PageOnScreen(page);
+            if (shown) BuildPage(page);
+            else pageSlide.Reset(host);
+            host.IsVisible = shown && (page == 0 || host.Child is not null);
+        }
+    }
+
+    private void BuildPage(int page)
+    {
+        if (page == 0) return;
+        var region = page < 0 ? "left" : "right";
+        var frame = auxiliaryRegions[region];
+        if (frame.Child is not null || !Side(region)) return;
+        var hosts = contentHosts.Count;
+        frame.Child = page < 0 ? BuildProjects() : BuildSections();
+        pageBodies[region] = [.. contentHosts.Skip(hosts)];
+    }
+
+    private void DropPage(string region)
+    {
+        foreach (var body in pageBodies.GetValueOrDefault(region) ?? []) { body.Child = null; contentHosts.Remove(body); }
+        pageBodies.Remove(region);
+        auxiliaryRegions[region].Child = null;
+    }
+
+    // The sections are drawn from every side group at once: redrawn when what they show changed, on screen now or
+    // the next time Tools shows.
+    private void RefreshSections()
+    {
+        if (auxiliaryRegions["right"].Child is null || SectionsSignature() == sectionsBuilt) return;
+        DropPage("right");
+        if (PageOnScreen(1)) ShowPages();
     }
 
     private void PlaceSlide()
     {
         if (slide is not { } pages) return;
-        shell.RenderTransform = new TranslateTransform(pages.Direction * Bounds.Width * (1 - slideProgress), 0);
-        pages.Leaving.RenderTransform = new TranslateTransform(-pages.Direction * Bounds.Width * slideProgress, 0);
+        pageSlide.Update(slideProgress, PageHost(pages.From), PageHost(pages.To), pages.To > pages.From, shell.Bounds.Width, []);
     }
 
     private void EndSlide()
     {
         slideRun++;
-        if (slide is { } pages)
-        {
-            overlay.Children.Remove(pages.Leaving);
-            pages.Picture.Dispose();
-            slide = null;
-        }
-        shell.RenderTransform = null;
+        if (slide is not { } pages) return;
+        pageSlide.Reset(PageHost(pages.From));
+        pageSlide.Reset(PageHost(pages.To));
+        PageHost(pages.From).IsHitTestVisible = true;
+        slide = null;
     }
 
     private void SettleSlide(bool complete, Action? revert)
@@ -75,26 +139,45 @@ public sealed partial class DockSurface
         var started = System.Diagnostics.Stopwatch.StartNew();
         void Step(TimeSpan _)
         {
-            if (run != slideRun) return;
+            if (run != slideRun || slide is not { } pages) return;
             var elapsed = Math.Min(1, started.Elapsed / time);
             if (elapsed < 1 && TopLevel.GetTopLevel(this) is { } top)
             {
                 slideProgress = from + (to - from) * (1 - Math.Pow(1 - elapsed, 3));
                 PlaceSlide();
                 top.RequestAnimationFrame(Step);
+                return;
             }
-            else if (complete) EndSlide();
-            else
-            {
-                // The page that was left comes back under its picture, which goes once it is rebuilt.
-                slideProgress = 0;
-                PlaceSlide();
-                slideSkipped = true;
-                revert?.Invoke();
-                if (slideSkipped) { slideSkipped = false; EndSlide(); }
-            }
+            // The page that was left is back at rest before the state follows it, so that change has nothing to move.
+            if (!complete) shownPage = pages.From;
+            EndSlide();
+            ShowPages();
+            RestoreFocus(shownPage);
+            if (!complete) revert?.Invoke();
         }
         Step(default);
+    }
+
+    private void RememberFocus(int page)
+    {
+        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is Visual focused && PageHost(page).IsVisualAncestorOf(focused))
+            pageFocus[page] = (IInputElement)focused;
+    }
+
+    private void RestoreFocus(int page)
+    {
+        if (pageFocus.Remove(page, out var focused) && focused is Visual visual && PageHost(page).IsVisualAncestorOf(visual))
+            focused.Focus();
+    }
+
+    // Leaving the phone layout puts the centre back for the columns, with nothing left mid-slide.
+    private void LeavePages()
+    {
+        EndSlide();
+        shownPage = 0;
+        pageFocus.Clear();
+        pageBodies.Clear();
+        centerRegion.IsVisible = true;
     }
 
     /// <summary>Changes the page for a finger that is dragging it in: the pages wait for <see cref="DragPage"/> rather than slide by themselves.</summary>
@@ -108,7 +191,7 @@ public sealed partial class DockSurface
     internal void DragPage(double travelled)
     {
         if (!slideHeld || slide is not { } pages) return;
-        slideProgress = Math.Clamp(-pages.Direction * travelled / Math.Max(1, Bounds.Width), 0, 1);
+        slideProgress = Math.Clamp(-Math.Sign(pages.To - pages.From) * travelled / Math.Max(1, Bounds.Width), 0, 1);
         PlaceSlide();
     }
 
@@ -118,12 +201,7 @@ public sealed partial class DockSurface
         if (!slideHeld) return;
         slideHeld = false;
         if (slide is not null) SettleSlide(complete, revert);
-        else if (!complete)
-        {
-            slideSkipped = true;
-            revert();
-            slideSkipped = false;
-        }
+        else if (!complete) revert();
     }
 
     private Control BuildProjects()
@@ -135,18 +213,36 @@ public sealed partial class DockSurface
         return body;
     }
 
-    private Control BuildSections()
+    // Every tool the workbench has, in a side group or not: plugins' tools that no group holds yet included.
+    private ((DockGroup? Group, DockTab Tab)[] Sections, (DockGroup? Group, DockTab Tab) Open) Sections()
     {
-        // Every tool the workbench has, in a side group or not: plugins' tools that no group holds yet included.
         var placed = Session.State.Groups.SelectMany(group => Session.Tabs(group.Id).Where(tab => tab.IsTool).Select(tab => (Group: (DockGroup?)group, Tab: tab)))
             .ToDictionary(tool => tool.Tab.Id);
         var sections = Session.Tools.Where(tool => tool.Id != ProjectsTool)
             .Select(tool => placed.TryGetValue(tool.Id, out var seat) ? seat : (Group: null, Tab: DockState.Tool(tool.Id))).ToArray();
-        var grid = new Grid { Name = "DrawerSections" };
-        if (sections.Length == 0) return grid;
+        if (sections.Length == 0) return (sections, default);
         var open = sections.FirstOrDefault(section => section.Tab.Id == drawerSection);
         if (open.Tab is null) open = sections.FirstOrDefault(section => section.Group is { Region: "right" } seat && Session.Selected(seat.Id)?.Id == section.Tab.Id);
         if (open.Tab is null) open = sections[0];
+        return (sections, open);
+    }
+
+    private string SectionsSignature()
+    {
+        var (sections, open) = Sections();
+        return JsonSerializer.Serialize(new
+        {
+            Open = open.Tab?.Id,
+            Sections = sections.Select(section => new { section.Tab.Id, Group = section.Group?.Id, Title = Session.ToolTitle(section.Tab) })
+        });
+    }
+
+    private Control BuildSections()
+    {
+        var (sections, open) = Sections();
+        sectionsBuilt = SectionsSignature();
+        var grid = new Grid { Name = "DrawerSections" };
+        if (sections.Length == 0) return grid;
         drawerSection = open.Tab.Id;
         foreach (var (group, tab) in sections)
         {
@@ -181,7 +277,7 @@ public sealed partial class DockSurface
                 if (drawerSection == tab.Id) return;
                 drawerSection = tab.Id;
                 // Selecting tells a seated tool it is on screen; one already selected, or seated nowhere, only redraws.
-                if (group is null || Session.Selected(group.Id)?.Id == tab.Id) Rebuild();
+                if (group is null || Session.Selected(group.Id)?.Id == tab.Id) RefreshSections();
                 else Session.Select(group.Id, tab.Id);
             };
             grid.RowDefinitions.Add(new(GridLength.Auto));

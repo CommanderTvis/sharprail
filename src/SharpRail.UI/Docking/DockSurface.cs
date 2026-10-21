@@ -64,7 +64,7 @@ public sealed partial class DockSurface : Grid
     public bool Drawers
     {
         get;
-        set { if (field == value) return; field = value; Rebuild(); }
+        set { if (field == value) return; field = value; if (!value) LeavePages(); Rebuild(); }
     }
     private bool refreshPending;
     private bool rebuildPending;
@@ -101,6 +101,8 @@ public sealed partial class DockSurface : Grid
         {
             var resizing = CancelForLayoutChange();
             if (!resizing && selectionUpdates.TryGetValue(group, out var update) && CenterTabs?.Invoke() == renderedMode) { update(); RebuildRails(); }
+            // A phone's side pages draw no group of their own: only Tools' sections show what a side group selects.
+            else if (Drawers && !resizing && Session.Group(group).Region != "center" && CenterTabs?.Invoke() == renderedMode) { RefreshSections(); RebuildRails(); }
             else Rebuild();
         };
         if (build) Rebuild();
@@ -133,8 +135,6 @@ public sealed partial class DockSurface : Grid
         if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
         { rebuildPending = true; return; }
         rebuildPending = false;
-        // The page being left is pictured before anything is rebuilt, so it can slide away over the next one.
-        var slide = Drawers ? PageSlide() : null;
         renderedTools = Session.Tools;
         refreshPending = false;
         CancelDrag();
@@ -154,7 +154,7 @@ public sealed partial class DockSurface : Grid
         }
         shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
         var state = Session.State;
-        if (Drawers) { RebuildDrawers(state); RebuildRails(); slide?.Invoke(); return; }
+        if (Drawers) { RebuildDrawers(state); RebuildRails(); return; }
         var geometry = GeometryState();
         var widths = new SideGeometry(geometry, ShellWidth).Project();
         var left = SideGeometry.Shown(geometry, "left");
@@ -178,33 +178,31 @@ public sealed partial class DockSurface : Grid
     private bool Side(string region) => (region == "left" ? Session.State.LeftVisible : Session.State.RightVisible) &&
         Session.State.Groups.Any(group => group.Region == region);
 
-    // A visible side overlays the centre on compact screens.
+    // On compact screens each side is a page over the whole workbench; only the pages on screen are built.
     private void RebuildDrawers(DockState state)
     {
         foreach (var width in new[] { 0d, 0, 1, 0, 0 }) shell.ColumnDefinitions.Add(new(new GridLength(width, width > 0 ? GridUnitType.Star : GridUnitType.Pixel)));
         shell.RowDefinitions.Add(new(new GridLength(1, GridUnitType.Star)));
         centerRegion.Child = BuildCenter(state.Center);
-        foreach (var region in new[] { "left", "right" })
+        pageBodies.Clear();
+        foreach (var frame in auxiliaryRegions.Values)
         {
-            if (!Side(region)) continue;
-            PlaceAuxiliary(region == "right" ? BuildSections() : BuildProjects(), region, 0, 1);
-            var frame = auxiliaryRegions[region];
-            Grid.SetColumnSpan(frame, 5);
+            Grid.SetRow(frame, 0); Grid.SetColumn(frame, 0); Grid.SetRowSpan(frame, 1); Grid.SetColumnSpan(frame, 5);
             frame.ZIndex = 11; frame.Background = Ui.Sidebar;
         }
         renderedStructure = Structure();
+        SwitchPage();
         NestedStripsChanged?.Invoke(nestedStrips);
     }
 
     private bool Retarget()
     {
         if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive)) return false;
-        // A drawer's sections are drawn from every group of the region at once, so they are redrawn whole.
-        if (Drawers && Side("right")) return false;
         if (!renderedTools.SequenceEqual(Session.Tools) || CenterTabs?.Invoke() != renderedMode || Structure() != renderedStructure) return false;
         foreach (var (id, built) in builtGroups.ToArray())
             if (GroupSignature(id) == built.Signature) selectionUpdates[id]();
             else RebuildGroup(Session.Group(id), built);
+        if (Drawers) { RefreshSections(); SwitchPage(); }
         RebuildRails();
         NestedStripsChanged?.Invoke(nestedStrips);
         return true;
@@ -216,6 +214,8 @@ public sealed partial class DockSurface : Grid
         structure.Workspaces = []; structure.ActiveWorkspace = "";
         // Per-project pane bookkeeping: what it changes on screen is already in the groups and visibility above.
         structure.ActiveProject = ""; structure.DefaultProjectPanes = null; structure.ProjectPanes = [];
+        // A phone shows one side at a time as a page, which moves without redrawing the others.
+        if (Drawers) { structure.LeftVisible = false; structure.RightVisible = false; }
         return (Home ? "home:" : "") + JsonSerializer.Serialize(structure);
     }
 
