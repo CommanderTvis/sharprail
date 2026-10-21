@@ -20,8 +20,8 @@ cache="$(cd "$cache" && pwd -P)"
 vt_commit="${GHOSTTY_VT_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
 vt_zig="$GHOSTTY_VT_ZIG"
 # MSBuild may invoke this alongside other native builds sharing the cache.
-while ! mkdir "$cache/build.lock" 2>/dev/null; do sleep 1; done
-trap 'rmdir "$cache/build.lock"' EXIT HUP INT TERM
+. "$project/../../scripts/lock.sh"
+acquire_lock "$cache/build.lock"
 
 out="$cache/$rid"
 zig="$project/../../.tools/zig-$vt_zig"

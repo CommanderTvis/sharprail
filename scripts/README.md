@@ -104,7 +104,7 @@ Native libraries are MSBuild targets in the project that owns them, with their s
 lockfile as inputs: `scripts/mise run build` (or any `dotnet build`) rebuilds a library only when one
 changed. The recipes (`build-merman.sh`, `build-notifications.sh`, `wasm-native.sh`, and the
 `build-native`, `build-android`, `build-linux` and `build-windows` scripts beside Ghostty and Scintilla) are run by those targets under
-`scripts/mise x --`, which supplies the pins in `[env]`; they are not entry points. macOS native builds
+`scripts/mise x --`, which supplies the pins in `[env]`; they are not entry points. They serialise on a directory lock taken through `scripts/lock.sh`, which records the owner's PID: a lock whose owner is gone (a killed build, a machine that slept) is removed instead of waited for, and a wait names the holder. macOS native builds
 need clang, the Xcode command-line tools and, for libghostty, the Metal toolchain. The Linux libraries need only the pinned Zig, which
 cross-compiles them for `x86_64-linux-gnu` or `aarch64-linux-gnu` against glibc 2.31 from macOS or Linux alike.
 

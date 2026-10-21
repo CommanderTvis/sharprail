@@ -23,8 +23,8 @@ case "$(uname -s)" in Darwin) ndk_host=darwin-x86_64 ;; Linux) ndk_host=linux-x8
 ndk="${ANDROID_NDK_HOME:-$project/../../.tools/android-ndk}"
 [ -f "$ndk/source.properties" ] || { echo "No Android NDK at $ndk; run scripts/mise run bootstrap:android." >&2; exit 1; }
 # MSBuild may invoke this for several ABIs, alongside the desktop build.
-while ! mkdir "$cache/build.lock" 2>/dev/null; do sleep 1; done
-trap 'rmdir "$cache/build.lock"' EXIT HUP INT TERM
+. "$project/../../scripts/lock.sh"
+acquire_lock "$cache/build.lock"
 
 out="$cache/android/$abi"
 fingerprint="$abi $api $(cat "$ndk/source.properties" Native/GhosttyVt.c build-android.sh | shasum -a 256)"

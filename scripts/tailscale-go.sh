@@ -13,8 +13,8 @@ case "$(uname -s)-$(uname -m)" in
 esac
 cache="$root/.tools/tailscale-go"
 mkdir -p "$cache"
-while ! mkdir "$cache/build.lock" 2>/dev/null; do sleep 1; done
-trap 'rmdir "$cache/build.lock"' EXIT HUP INT TERM
+. "$root/scripts/lock.sh"
+acquire_lock "$cache/build.lock"
 if [ ! -x "$cache/go/bin/go" ] || [ "$(cat "$cache/version" 2>/dev/null || true)" != "$version-$platform" ]; then
  curl -fL --retry 3 "https://go.dev/dl/go$version.$platform.tar.gz" -o "$cache/go.tar.gz"
  printf '%s  %s\n' "$checksum" "$cache/go.tar.gz" | shasum -a 256 -c - >/dev/null

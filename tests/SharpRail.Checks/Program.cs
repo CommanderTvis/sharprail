@@ -561,6 +561,11 @@ internal static class Program
             ZigDepsChecks.Run();
             return;
         }
+        if (args.SequenceEqual(["--lock-script"]))
+        {
+            LockScriptChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--android"]))
         {
             AndroidClientChecks.Run(root);
@@ -979,6 +984,7 @@ internal static class Program
         Gate.Case("gc-settings", () => GcSettingsChecks.Run(root));
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
         Gate.Case("zig-deps", () => ZigDepsChecks.Run());
+        Gate.Case("lock-script", () => LockScriptChecks.Run());
         Gate.Case("check-root", CheckRootChecks.Run);
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);

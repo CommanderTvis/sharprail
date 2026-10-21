@@ -8,6 +8,6 @@ root="$(cd .tools/dotnet && pwd -P)"
 # Workload packs land in packs/ (or, for android, are listed by `workload list`); either proves it is installed.
 installed() { [ -d "$root/packs/$marker" ] || .tools/dotnet/dotnet workload list 2>/dev/null | grep -q "^$workload"; }
 installed && exit 0
-while ! mkdir "$root/.workload.lock" 2>/dev/null; do sleep 1; done
-trap 'rmdir "$root/.workload.lock"' EXIT HUP INT TERM
+. "$PWD/scripts/lock.sh"
+acquire_lock "$root/.workload.lock"
 installed || .tools/dotnet/dotnet workload install "$workload" "$@"

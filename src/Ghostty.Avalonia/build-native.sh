@@ -24,8 +24,8 @@ case "${1:-}" in
   *) echo 'The Ghostty libraries must be built on their target macOS architecture.' >&2; exit 1 ;;
 esac
 # MSBuild may invoke this from multiple referencing projects.
-while ! mkdir "$cache/build.lock" 2>/dev/null; do sleep 1; done
-trap 'rmdir "$cache/build.lock"' EXIT HUP INT TERM
+. "$project/../../scripts/lock.sh"
+acquire_lock "$cache/build.lock"
 
 # The Zig toolchains are installed by `scripts/mise run bootstrap` and linked as .tools/zig-<version>.
 zig_path() {

@@ -13,8 +13,8 @@ esac
 out="$root/.tools/tailscale-android/$abi"
 sh scripts/tailscale-go.sh
 mkdir -p "$out"
-while ! mkdir "$cache/build.lock" 2>/dev/null; do sleep 1; done
-trap 'rmdir "$cache/build.lock"' EXIT HUP INT TERM
+. "$root/scripts/lock.sh"
+acquire_lock "$cache/build.lock"
 ndk="${ANDROID_NDK_HOME:-$root/.tools/android-ndk}"
 [ -d "$ndk/toolchains" ] || { echo 'Run scripts/mise run bootstrap:android first.' >&2; exit 1; }
 case "$(uname -s)" in Darwin) ndk_host=darwin-x86_64 ;; Linux) ndk_host=linux-x86_64 ;; esac
