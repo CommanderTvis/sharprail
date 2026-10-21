@@ -80,6 +80,7 @@ internal static class EpubChecks
         File.WriteAllBytes(Path.Combine(workspace, "book.epub"), Fixture(epub3: true, filler: 12));
         File.WriteAllBytes(Path.Combine(workspace, "legacy.epub"), Fixture(epub3: false));
         File.WriteAllBytes(Path.Combine(workspace, "large.epub"), Fixture(epub3: true, filler: 2000));
+        File.WriteAllBytes(Path.Combine(workspace, "reattach.epub"), Fixture(epub3: true, filler: 400));
         var server = remote ? RemoteServer.Create(workspace, IPAddress.Loopback, 0, "epub-ui", Path.Combine(root, "state")) : null;
         try
         {
@@ -225,8 +226,68 @@ internal static class EpubChecks
         });
         Require(sweep < StallBudget, $"Paginating a large book stalls the UI thread for {sweep.TotalMilliseconds:0} ms (budget {StallBudget.TotalMilliseconds:0} ms).");
         Console.WriteLine($"PASS EPUB large book ({(remote ? "remote" : "local")}): longest UI-thread stall {stall.TotalMilliseconds:0} ms opening, {sweep.TotalMilliseconds:0} ms paginating {large.PageCount} pages");
+        Reattach(app, large);
         SetEnabled(app, false);
         E2eWorkspace.Until(() => !window.GetLogicalDescendants().OfType<EpubViewer>().Any());
+    }
+
+    /// <summary>
+    /// The dock detaches a restored tab and attaches it again: a viewer detached mid-load, then moved to another host
+    /// and back, still finishes the book, and one moved after loading keeps it, with no exception on the dispatcher.
+    /// </summary>
+    private static void Reattach(E2eWorkspace app, EpubViewer previous)
+    {
+        var window = app.Window;
+        var failures = new List<Exception>();
+        void Unhandled(object? sender, DispatcherUnhandledExceptionEventArgs e) => failures.Add(e.Exception);
+        Dispatcher.UIThread.UnhandledException += Unhandled;
+        try
+        {
+            app.Open("reattach.epub", keep: true);
+            E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<EpubViewer>().Any(viewer => viewer != previous && viewer.IsEffectivelyVisible));
+            var viewer = window.GetLogicalDescendants().OfType<EpubViewer>().First(viewer => viewer != previous && viewer.IsEffectivelyVisible);
+            Require(viewer.Preview is null, "The reattach check must detach the viewer while its book is still loading.");
+            Move(viewer);
+            E2eWorkspace.Until(() => viewer.Preview is not null);
+            Settle();
+            var status = Named<TextBlock>(viewer, "EpubStatus");
+            Require(viewer.Book is not null && !(status.IsEffectivelyVisible && status.Text == "Opening the book…"), "A viewer detached mid-load and attached again finishes the book: " + status.Text);
+            Require(viewer.Preview!.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(), "The reattached book renders its text.");
+            Move(viewer);
+            Settle();
+            Require(viewer.Preview is not null && viewer.Book is not null && viewer.Preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(),
+                "A loaded viewer moved to another host and back keeps its book.");
+            Require(failures.Count == 0, "Detaching and reattaching the viewer raised on the dispatcher: " + string.Join("; ", failures.Select(error => error.Message)));
+            Console.WriteLine("PASS EPUB reattach: detached mid-load and after load, moved to another host and back, the book loads and renders");
+        }
+        finally { Dispatcher.UIThread.UnhandledException -= Unhandled; }
+
+        // Detach as the dock does, attach in another window, then return to the dock's host.
+        static void Move(EpubViewer viewer)
+        {
+            Action restore;
+            switch (viewer.Parent)
+            {
+                case ContentControl content: content.Content = null; restore = () => content.Content = viewer; break;
+                case Decorator decorator: decorator.Child = null; restore = () => decorator.Child = viewer; break;
+                case Panel panel:
+                    var index = panel.Children.IndexOf(viewer);
+                    panel.Children.RemoveAt(index);
+                    restore = () => panel.Children.Insert(index, viewer);
+                    break;
+                default: throw new InvalidOperationException("Unexpected viewer host: " + viewer.Parent?.GetType().Name);
+            }
+            Dispatcher.UIThread.RunJobs();
+            var away = new Window { Width = 800, Height = 600 };
+            away.Show();
+            away.Content = viewer;
+            Dispatcher.UIThread.RunJobs();
+            away.Content = null;
+            away.Close();
+            Dispatcher.UIThread.RunJobs();
+            restore();
+            Dispatcher.UIThread.RunJobs();
+        }
     }
 
     private static void SetEnabled(E2eWorkspace app, bool enabled)
