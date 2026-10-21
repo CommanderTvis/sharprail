@@ -658,6 +658,13 @@ internal static class Program
             E2E.MarkdownMermaidE2E.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--visualize-selection"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            VisualizeSelectionChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--visualize-host"]))
         {
             VisualizeChecks.Host(root).GetAwaiter().GetResult();
@@ -1086,6 +1093,7 @@ internal static class Program
         Gate.Case("away-notifications", () => AwayNotificationChecks.Run(root));
         Gate.Case("plugin-watch", () => PluginWatchChecks.Run(root));
         Gate.Case("visualize-ui", () => E2E.VisualizeE2E.Run(root));
+        Gate.Case("visualize-selection", VisualizeSelectionChecks.Run);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

@@ -114,6 +114,9 @@ publish toggle automation changes without requesting another update.
 - Owns, in `SharpRail.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
   full-screen diagram rendering, pan and zoom). The full-screen viewer claims trackpad magnify gestures
   and clamps their scale through `ZoomGesture`.
+  `MermaidRenderer` removes the implicit "/" root row that Mermaid's tree view (and Merman 0.7, matching it)
+  draws above the source's first node, shifting the drawing up a row and left a level. Merman 0.7 has no
+  tree view annotations (`:::class`, `## description`, `icon(...)`, from Mermaid 12); they stay parse errors.
 - Public API analyzers validate declarations against committed API baselines during compilation.
 - Allowed deps: Avalonia and Avalonia.Themes.Fluent, SkiaSharp, Markdig, Svg.Controls.Skia.Avalonia, and
   `SharpRail.Scintilla`. The Merman native library stays copied by the app's project; the kit binds it by name.
