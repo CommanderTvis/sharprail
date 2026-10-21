@@ -85,7 +85,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
             Colors = TerminalTheme.Colors(),
             AgentNewline = agentNewline,
             ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
-            ResolveHighlightedLinks = launch.ResolveCommitLinks,
+            ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
             OpenFileLink = launch.OpenFileLink
         };
         texture.OperationFailed += TextureFailed;

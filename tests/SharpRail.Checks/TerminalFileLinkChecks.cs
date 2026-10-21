@@ -54,6 +54,11 @@ internal static class TerminalFileLinkChecks
             await File.WriteAllTextAsync(punctuated, "parentheses");
             One($"({punctuated}).", punctuated, visible: punctuated);
             One("unicode-界é.cs", Path.Combine(directory, "unicode-界é.cs"));
+            await File.WriteAllTextAsync(Path.Combine(directory, "DEVELOPMENT.md"), "development");
+            One("See DEVELOPMENT.md.", Path.Combine(directory, "DEVELOPMENT.md"), visible: "DEVELOPMENT.md");
+            One("./DEVELOPMENT.md", Path.Combine(directory, "DEVELOPMENT.md"));
+            foreach (var value in new[] { "NOTES.md", "1.13.0", "github.com", "e.g.", "done.", "main", "--lsp-ui" })
+                Require(TerminalFileLinks.Find(value, directory, directory).Count == 0, "Unexpected link: " + value);
             foreach (var value in new[] { ".", "..", "...", "missing/Main.cs", "src/Absent.cs", "https://example.test/src/Main.cs", "src/Main.cs:12oops" })
                 Require(TerminalFileLinks.Find(value, directory, directory).Count == 0, "Unexpected link: " + value);
             Require(TerminalFileLinks.Find("README.md", null, directory).Count == 0, "Unknown cwd linked a relative file.");
@@ -77,6 +82,60 @@ internal static class TerminalFileLinkChecks
         }
         finally { Directory.Delete(directory, true); }
         Console.WriteLine("PASS terminal file parsing, existence, source positions, shell cwd and local/remote resolution");
+    }
+
+    // The renderer's always-on underline layer must cover validated files, not only commit ids.
+    internal static void RunUi(string root)
+    {
+        var directory = Path.Combine(root, "file-link-highlights");
+        Directory.CreateDirectory(Path.Combine(directory, "sub"));
+        var development = Path.Combine(directory, "DEVELOPMENT.md");
+        File.WriteAllText(development, "development");
+        File.WriteAllText(Path.Combine(directory, "sub", "Inner.md"), "inner");
+        var host = new PtyTerminalService(shell: "/bin/sh");
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var session = Wait(host.AttachAsync(new("highlights", directory, "file-link-highlights"), timeout.Token).AsTask());
+            var output = Task.Run(async () => { await foreach (var unused in session.ReadAsync(timeout.Token)) { } });
+            var opened = new List<Ghostty.Avalonia.TerminalLink>();
+            var launch = new SharpRail.UI.Terminal.TerminalLaunch(directory, "highlights", directory, "client")
+            { OpenFileLink = link => { opened.Add(link); return Task.CompletedTask; } };
+            using var backend = new SharpRail.UI.Terminal.SkiaTerminal(launch, host);
+            var view = (Ghostty.Avalonia.GhosttySkiaView)backend.Child!;
+            Require(view.ResolveHighlightedLinks is not null, "Bare file names need a visible-link resolver without a commit resolver.");
+            const string text = "Read DEVELOPMENT.md and ./DEVELOPMENT.md, not NOTES.md 1.13.0 github.com e.g. done. Inner.md";
+            IReadOnlyList<Ghostty.Avalonia.TerminalLink> Underlined() => Wait(Task.Run(() => view.ResolveHighlightedLinks!(text, timeout.Token)));
+            var links = Underlined();
+            Require(links.Select(link => text.Substring(link.Start, link.Length)).SequenceEqual(["DEVELOPMENT.md", "./DEVELOPMENT.md"]) &&
+                links.All(link => link.Path == development), "Visible root files were not underlined exactly: " + string.Join(", ", links));
+            Wait(view.OpenFileLink!(links[0]));
+            Require(opened.SingleOrDefault()?.Path == development, "Activating an underlined bare file did not open it.");
+            Wait(session.WriteAsync(Encoding.UTF8.GetBytes("cd sub\n"), timeout.Token).AsTask());
+            var inner = Path.Combine(directory, "sub", "Inner.md");
+            while (!links.Any(link => link.Path == inner))
+            {
+                Thread.Sleep(30);
+                timeout.Token.ThrowIfCancellationRequested();
+                links = Underlined();
+            }
+            Wait(host.CloseAsync("highlights", timeout.Token).AsTask());
+            Wait(output);
+        }
+        finally
+        {
+            Wait(host.DisposeAsync().AsTask());
+            Directory.Delete(directory, true);
+        }
+        Console.WriteLine("PASS terminal visible file underlines: bare and ./ names, cwd changes, false-positive words and activation");
+    }
+
+    private static T Wait<T>(Task<T> task) { Wait((Task)task); return task.Result; }
+
+    private static void Wait(Task task)
+    {
+        while (!task.IsCompleted) Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        task.GetAwaiter().GetResult();
     }
 
     private static async Task Exercise(ITerminalService service, string directory, string id, IProjectServices project)

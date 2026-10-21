@@ -302,7 +302,7 @@ on macOS (Ctrl elsewhere), and modifier-click opens the URL using the system
 browser. Soft-wrapped URLs remain one link across rows; explicit newlines remain
 boundaries. Right-click over a web URL offers Open link alongside the terminal clipboard menu,
 without Command/Ctrl. The action opens the URI captured at right-click even if output changes. Mouse
-tracking forwards RMB to the program; Shift bypasses tracking for the menu, and right-click on an underlined resolved reference (a validated commit hash) always opens the menu, as a modifier-click on a link wins over reporting. Native Metal resolves
+tracking forwards RMB to the program; Shift bypasses tracking for the menu, and right-click on an underlined resolved reference (a validated file or commit hash) always opens the menu, as a modifier-click on a link wins over reporting. Native Metal resolves
 OSC 8 label targets as well; browser Skia inherits HTTP(S) text detection. The separate restty canvas
 has no exposed point-to-link query and does not yet offer this action. Ordinary clicks and drags retain terminal selection behavior.
 
@@ -348,6 +348,10 @@ unchanged. Relative paths and bare filenames resolve against the shell's current
 there is no recursive filename search. Absolute paths, home-relative paths, local `file://` URLs,
 `:line`, `:line:column`, `:start-end` and `: (line, column)` positions are accepted. The start of a
 range is the navigation target. Directory candidates aid parsing but are not editor links.
+Existing files, including bare names such as `DEVELOPMENT.md` and `./DEVELOPMENT.md`, are also
+underlined throughout the visible viewport without a modifier, through the same visible-text
+resolution, debounce and cache as commit ids; files take precedence over commits. Words that do not
+name an existing file (`1.13.0`, `github.com`, `e.g.`, a sentence-ending `done.`, branch names) stay plain.
 
 The terminal host runs a bounded character scanner and checks filesystem existence off the dispatcher.
 Unknown working directories disable relative links. Remote sessions resolve on their host, including
@@ -363,7 +367,8 @@ existence and the current directory. HTTP(S) links retain their browser action. 
 exposes resolver/navigation callbacks and has no host or application dependency.
 
 `--terminal-links` exercises parser boundaries, positions, existing/missing targets, working-directory
-changes through direct and WebSocket RPC adapters, and Skia wrapped-path hover and click. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
+changes through direct and WebSocket RPC adapters, Skia wrapped-path hover and click, and the
+renderer's no-modifier underlines for bare and `./` file names, prose false positives and cwd changes. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
 stale-link clearing and retained web-link hover.
 
 Browser composition defaults to restty; see [Browser](../../SharpRail.Browser/SPEC.md).

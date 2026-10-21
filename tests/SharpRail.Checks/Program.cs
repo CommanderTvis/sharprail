@@ -299,6 +299,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             GhosttySkiaChecks.CheckFileLinks();
+            TerminalFileLinkChecks.RunUi(root);
             EditorWorkbenchChecks.FileLinkPosition(root);
             return;
         }
