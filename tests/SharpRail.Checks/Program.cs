@@ -202,6 +202,11 @@ internal static class Program
             LanguageChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--scintilla-core"]))
+        {
+            ScintillaCore.ScintillaCoreChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--syntax"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -1028,6 +1033,7 @@ internal static class Program
         Gate.Case("check-root", CheckRootChecks.Run);
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);
+        Gate.Case("scintilla-core", ScintillaCore.ScintillaCoreChecks.Run);
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
         Gate.Case("android-client", () => AndroidClientChecks.Run(root));
         Gate.Case("open-world", CheckOpenWorld);
