@@ -19,6 +19,7 @@ case "${1:-build}" in
         node tests/SharpRail.Browser.Checks/check.mjs
         node tests/SharpRail.Browser.Checks/local-approval.mjs
         node tests/SharpRail.Browser.Checks/restty.mjs --hover
+        node tests/SharpRail.Browser.Checks/restty.mjs --stream
         ;;
     run)
         : "${SHARPRAIL_TOKEN:?Set SHARPRAIL_TOKEN to the host session token.}"

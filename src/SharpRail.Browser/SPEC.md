@@ -159,6 +159,16 @@ scrolling remains enabled for read-only scrollback. They never reach Avalonia wi
 target from Projects; moving back to Projects restores its normal wheel scrolling. The terminal's
 wheel ownership listener is removed during disposal. The focused `restty.mjs --wheel` check covers
 writable and read-only scrollback, returning to Projects and listener teardown.
+Output keeps the viewport on the bottom while restty prunes scrollback. Restty 0.3.0's native scroll
+host turns every host scroll event into a viewport offset, including the asynchronous echo of its own
+scrollTop writes and the clamp when pruned scrollback shrinks its spacer; applied after newer output, that
+stale offset pinned the viewport mid-scrollback, so large output looked stalled (20,000 lines stalled
+in 3 of 3 ten-run journeys, and 200,000 lines stalled in every run at line 190,600) although every byte had
+reached restty. A capture listener on the terminal element passes host scroll events only during wheel
+input (1 s) or a held pointer. `restty.mjs --stream` (in `scripts/mise run browser check`) streams
+`seq 1 200000` three times and fails when the completion marker is not on screen within 15 s of the last
+byte or within the budget; after the fix 10 x 200,000 lines ran at 80,000 to 133,000 lines/s and
+10 x 20,000 lines at 79,000 to 98,000 lines/s with no stall.
 Pointer offsets, including coalesced samples, use the owning Avalonia container's CSS coordinates;
 terminal-relative offsets must never hover or click Projects. Movement bubbles to update managed
 hover, while primary presses/releases and cancellation remain native. Otherwise Avalonia's implicit

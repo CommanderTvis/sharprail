@@ -60,6 +60,22 @@ export async function initialize(element, id, themeJson) {
   }
   state.wheelHandler = event => event.stopPropagation();
   element.addEventListener('wheel', state.wheelHandler, { passive: true });
+  // Restty 0.3.0's native scroll host maps every host scroll event to a viewport offset, including the
+  // asynchronous echo of its own scrollTop writes and the clamp when pruned scrollback shrinks its spacer.
+  // Applied after newer output, that stale offset pins the viewport above the bottom and output appears to
+  // stall. Scroll events on non-bubbling targets reach this capture listener first; only user scrolling passes.
+  state.scrollInput = { wheel: -Infinity, pointers: 0 };
+  state.scrollListeners = [
+    ['wheel', () => { state.scrollInput.wheel = performance.now(); }],
+    ['pointerdown', () => { state.scrollInput.pointers++; }],
+    ['pointerup', () => { state.scrollInput.pointers = Math.max(0, state.scrollInput.pointers - 1); }],
+    ['pointercancel', () => { state.scrollInput.pointers = Math.max(0, state.scrollInput.pointers - 1); }],
+    ['scroll', event => {
+      if (event.target.classList?.contains('restty-native-scroll-host') && !state.scrollInput.pointers &&
+          performance.now() - state.scrollInput.wheel > 1000) event.stopPropagation();
+    }]
+  ];
+  for (const [type, listener] of state.scrollListeners) element.addEventListener(type, listener, { capture: true, passive: true });
   // Avalonia consumes bubbling keyboard events before restty's window listener.
   state.keyListeners = [];
   for (const type of ['keydown', 'keyup']) {
@@ -191,6 +207,7 @@ export function destroy(element) {
   for (const [type, listener] of s.keyListeners ?? []) element.removeEventListener(type, listener);
   if (s.newlineHandler) element.removeEventListener('keydown', s.newlineHandler, true);
   if (s.wheelHandler) element.removeEventListener('wheel', s.wheelHandler);
+  for (const [type, listener] of s.scrollListeners ?? []) element.removeEventListener(type, listener, true);
   try { s.runtime?.lifecycle.destroy(); }
   finally {
     // Restty 0.3.0 does not delete its base WebGL buffers, shaders or atlas.

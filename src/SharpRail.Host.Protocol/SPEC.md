@@ -65,6 +65,8 @@ project: local adapters call Core directly, with no serialization.
   fields: a host that predates them acknowledges such an attach as detached and an older client never asks,
   so the protocol version was not raised. Later inputs carry data, resize or kill; later outputs carry data with
   positions and end with exactly one of exited (with code) or detached.
+  The Browser output stall of large terminal output was not in this stream: byte counters at restty's input
+  showed every byte of 200,000 lines delivered (see the Browser SPEC's terminal section).
   `IsBusyAsync` and `CloseAsync` are unary.
 - Plugins: the roster (`ListAsync`, `RescanAsync`, `RetryAsync`), one generic
   `CallAsync` (plugin id, method name, params JSON → result JSON, `null` for a null

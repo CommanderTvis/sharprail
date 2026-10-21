@@ -58,6 +58,13 @@ try {
       configurable: true, value: { writeText: async text => globalThis.selectedText = text }
     }));
   }
+  if (process.argv.includes('--stream')) {
+    const source = await fs.readFile(path.join(bundle, 'restty-bridge.js'), 'utf8');
+    const output = 'export function output(element, bytes) {';
+    assert(source.includes(output));
+    await page.route('**/restty-bridge.js', route => route.fulfill({ contentType: 'text/javascript',
+      body: source.replace(output, output + ' globalThis.streamBytes = (globalThis.streamBytes ?? 0) + bytes.length; globalThis.streamCalls = (globalThis.streamCalls ?? 0) + 1;') }));
+  }
   if (process.argv.includes('--settings')) {
     page.setDefaultTimeout(30000);
     await page.addInitScript(() => {
@@ -332,6 +339,38 @@ try {
     assert.equal(JSON.parse(await invoke('DroppedFiles')).length, 1);
     assert.deepEqual(errors, []);
     console.log('PASS browser file drops: restty DOM coordinates, client bytes uploaded to host, agent callback and inactive rejection');
+  } else if (process.argv.includes('--stream')) {
+    // Large output must reach the visible screen: restty must keep its viewport on the bottom while scrollback
+    // is pruned. A stall is the completion marker never showing although every byte was written to restty.
+    const lines = Number(process.env.STREAM_LINES ?? 200000), runs = Number(process.env.STREAM_RUNS ?? 3);
+    const stallMs = Number(process.env.STREAM_STALL_MS ?? 15000), budgetMs = Number(process.env.STREAM_BUDGET_MS ?? lines * 0.05 + 10000);
+    const counters = () => page.evaluate(() => ({ bytes: globalThis.streamBytes ?? 0, calls: globalThis.streamCalls ?? 0 }));
+    await term.locator('canvas').click();
+    const results = [];
+    for (let run = 1; run <= runs; run++) {
+      const marker = `STREAM_${run}_DONE`;
+      await page.keyboard.type(`clear; seq 1 ${lines}; echo STREAM_$((${run}))_DONE`);
+      const before = await counters();
+      const started = performance.now();
+      await page.keyboard.press('Enter');
+      let last = before, progressed = started;
+      while (true) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const now = performance.now(), value = await counters(), text = await screen();
+        if (text.split('\n').some(line => line.trim() === marker)) break;
+        if (value.bytes !== last.bytes) { last = value; progressed = now; }
+        const tail = () => text.trimEnd().split('\n').filter(line => /^\d+$/.test(line.trim())).at(-1);
+        if (now - progressed > stallMs)
+          throw new Error(`Stream stalled on run ${run} at line ${tail()} after ${Math.round(now - started)} ms: ${last.bytes - before.bytes} bytes in ${last.calls - before.calls} writes`);
+        if (now - started > budgetMs)
+          throw new Error(`Stream exceeded ${budgetMs} ms on run ${run} at line ${tail()}: ${value.bytes - before.bytes} bytes`);
+      }
+      const ms = performance.now() - started, value = await counters();
+      results.push({ run, ms: Math.round(ms), linesPerSecond: Math.round(lines / ms * 1000), bytes: value.bytes - before.bytes, writes: value.calls - before.calls });
+    }
+    assert.deepEqual(errors, []);
+    console.log('STREAM', JSON.stringify({ lines, results }));
+    console.log(`PASS restty streamed ${runs} x ${lines} lines without a stall`);
   } else if (process.argv.includes('--perf')) {
     // Startup, terminal throughput, editor and diff timings for comparing browser AOT assembly sets.
     const startupMs = performance.now() - loadStarted;
