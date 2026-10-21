@@ -193,6 +193,10 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
   Dialogs close on Escape or the platform close chord without referencing the app assembly.
 - `IDialogOwner.Dim` is how `DialogWindow` dims the window that owns it; `DialogWindow.Create(title, width)` is the
   standard card the app's `Dialogs` and `MermaidDialog` build on.
+- `MarkdownPreview.LineOffset`, `ScrollToLine` and `SourceAt` address the rendered document by one-based source
+  line: the offset a top-level block (or chunk) starts at, optionally a share of its height into it and optionally
+  mounting it first; and, for an offset, the covering mounted block's first line and share. Readers built on the
+  preview (the EPUB Reader) jump by line and keep a location across re-layout with them.
 - `MarkdownDocumentView.Preview` exposes the rendered document, and `MarkdownPreview.SelectionChanged` reports the
   selected text, which the app feeds into the plugin editor-event stream. Each rendered block remembers the source
   lines it came from, so `SelectedLines` names a selection in the file; `ContextActions` supplies extra items for the

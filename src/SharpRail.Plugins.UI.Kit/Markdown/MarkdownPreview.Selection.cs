@@ -55,6 +55,54 @@ public sealed partial class MarkdownPreview
         return control;
     }
 
+    /// <summary>
+    /// The scroll offset at which the top-level block (or chunk) holding the one-based source <paramref name="line"/>,
+    /// or the first block after it, starts. With <paramref name="reveal"/> a block that is not mounted is mounted and
+    /// measured first (which scrolls to it); without, such a block answers null. Null also when there is none.
+    /// <paramref name="fraction"/> moves the answer that share of the block's height into it.
+    /// </summary>
+    public double? LineOffset(int line, bool reveal = true, double fraction = 0)
+    {
+        var target = sourceBlocks.Where(entry => entry.End >= line)
+            .OrderBy(entry => Math.Max(0, entry.Start - line)).ThenBy(entry => entry.End - entry.Start)
+            .Select(entry => entry.Control).FirstOrDefault();
+        if (target is null) return null;
+        if (target.TranslatePoint(default, this) is null)
+        {
+            if (!reveal) return null;
+            RevealBlock(target);
+            UpdateLayout();
+        }
+        return target.TranslatePoint(default, this) is { } point ? Math.Max(0, Offset.Y + point.Y + fraction * target.Bounds.Height) : null;
+    }
+
+    /// <summary>
+    /// The first source line of the smallest mounted top-level block (or chunk) covering scroll offset
+    /// <paramref name="offset"/>, and how far into the block's height the offset falls; a location that survives
+    /// re-layout, for <see cref="LineOffset"/> to find again. Null when no mounted block covers it.
+    /// </summary>
+    public (int Line, double Fraction)? SourceAt(double offset)
+    {
+        (int Line, double Fraction, int Size)? found = null;
+        foreach (var (control, start, end) in sourceBlocks)
+        {
+            if (control.TranslatePoint(default, this) is not { } point) continue;
+            var top = Offset.Y + point.Y;
+            if (top > offset + 0.5 || top + control.Bounds.Height <= offset || found is { } best && best.Size <= end - start) continue;
+            found = (start, control.Bounds.Height > 0 ? Math.Clamp((offset - top) / control.Bounds.Height, 0, 1) : 0, end - start);
+        }
+        return found is { } result ? (result.Line, result.Fraction) : null;
+    }
+
+    /// <summary>Scrolls so the block holding the one-based source <paramref name="line"/> starts at the top of the viewport.</summary>
+    /// <returns>Whether such a block exists.</returns>
+    public bool ScrollToLine(int line)
+    {
+        if (LineOffset(line) is not { } offset) return false;
+        Offset = new Vector(Offset.X, offset);
+        return true;
+    }
+
     internal void RevealSourceLine(int line)
     {
         Control? target = null;

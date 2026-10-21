@@ -116,6 +116,20 @@
           "SharpRail.Plugins.Discord": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.epub": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.epub.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Epub": "[1.0.0, )",
+          "VersOne.Epub": "[3.3.6, )"
+        }
+      },
       "sharprail.plugins.specdialect": {
         "type": "Project",
         "dependencies": {
@@ -155,6 +169,12 @@
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
           "SharpRail.Plugins.Visualize": "[1.0.0, )"
         }
+      },
+      "VersOne.Epub": {
+        "type": "CentralTransitive",
+        "requested": "[3.3.6, )",
+        "resolved": "3.3.6",
+        "contentHash": "X7b7Zvw5lLCRYDdDjqWldkZMZ/+rIvSWHAZjRxdq0fCL8+vv4W/OBiSIL0x8fTv2mlPNWGJcL48BIyIfpw2GBg=="
       },
       "YamlDotNet": {
         "type": "CentralTransitive",

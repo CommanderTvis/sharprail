@@ -628,6 +628,7 @@ internal static class Program
             ClaudeCodeChecks.Launcher(root);
             DiscordChecks.RunUi(root);
             PdfPreviewChecks.Run(root);
+            EpubChecks.Run(root);
             BranchGraphChecks.RunUi(root);
             E2E.VisualizeE2E.Run(root);
             FileIconsChecks.UiChecks(root);
@@ -722,6 +723,14 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PdfPreviewChecks.Run(root);
             Console.WriteLine("PASS PDF Preview checks");
+            return;
+        }
+        if (args.SequenceEqual(["--epub"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            EpubChecks.Run(root);
+            Console.WriteLine("PASS EPUB Reader checks");
             return;
         }
         if (args.SequenceEqual(["--discord"]))
@@ -1125,6 +1134,7 @@ internal static class Program
         Gate.Case("claude-code-ui", () => ClaudeCodeChecks.RunUi(root));
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
+        Gate.Case("epub-reader", () => EpubChecks.Run(root));
         Gate.Case("BranchGraphChecks-RunUi", () => BranchGraphChecks.RunUi(root));
         Gate.Case("FileIconsChecks-UiChecks", () => FileIconsChecks.UiChecks(root));
         Gate.Case("codex-ui", () => E2E.CodexE2E.Run(root));

@@ -267,6 +267,13 @@ drawing controls are compiled XAML; no app dependency is introduced into the plu
 
 The bundled file-type icon set is [core UI functionality](../../SharpRail.Plugins.UI.Kit/FileIcons/SPEC.md), not a builtin plugin. External file-icon slots still override it; plugin asset icons retain their fallback glyph until a valid SVG is available.
 
+## Builtins disabled by default
+
+Builtin plugins whose manifest sets `EnabledByDefault = false` (Claude Code, Codex, Discord, Air Governance, Air
+Context, Tailscale and the [EPUB Reader](../../SharpRail.Plugins.Epub/SPEC.md)) are listed in Settings › Plugins but
+contribute nothing until enabled there. The EPUB Reader is the builtin file viewer for `.epub`: while it is
+disabled no viewer claims the extension and the open path is unchanged.
+
 ## Tailscale before connection
 
 The builtin [Tailscale plugin](../../SharpRail.Plugins.Tailscale/SPEC.md) contributes approval Settings

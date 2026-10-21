@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="VersOne.Epub" />
+    <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <ProjectReference Include="../Contract/SharpRail.Plugins.Epub.csproj" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+  </ItemGroup>
+</Project>

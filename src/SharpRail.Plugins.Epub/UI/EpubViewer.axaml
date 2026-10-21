@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.Plugins.Epub.UI.EpubViewer"
+             Focusable="True">
+  <Grid RowDefinitions="Auto,*">
+    <Border x:Name="Toolbar" Padding="8,4" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <Button x:Name="EpubTocToggle" Padding="6,2" Content="Contents" ToolTip.Tip="Show or hide the table of contents" />
+        <StackPanel x:Name="EpubModes" Grid.Column="1" Orientation="Horizontal" Spacing="2" Margin="8,0" VerticalAlignment="Center" />
+        <TextBlock x:Name="EpubTitle" Grid.Column="2" Margin="8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <StackPanel x:Name="EpubPager" Grid.Column="3" Orientation="Horizontal" Spacing="6" IsVisible="False">
+          <Button x:Name="EpubPrevious" Padding="8,2" Content="‹" ToolTip.Tip="Previous page (Left, Page Up)" />
+          <TextBlock x:Name="EpubPage" VerticalAlignment="Center" MinWidth="96" TextAlignment="Center" />
+          <Button x:Name="EpubNext" Padding="8,2" Content="›" ToolTip.Tip="Next page (Right, Page Down, Space)" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+      <Border x:Name="EpubToc" Width="240" BorderThickness="0,0,1,0">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+          <StackPanel x:Name="EpubTocEntries" Margin="6" Spacing="1" />
+        </ScrollViewer>
+      </Border>
+      <Panel x:Name="EpubPageArea" Grid.Column="1" ClipToBounds="True">
+        <Border x:Name="EpubDocument" />
+        <Border x:Name="EpubPageMask" VerticalAlignment="Top" IsHitTestVisible="False" IsVisible="False" />
+        <TextBlock x:Name="EpubStatus" Margin="24" TextWrapping="Wrap" Text="Opening the book…" />
+      </Panel>
+    </Grid>
+  </Grid>
+</UserControl>
