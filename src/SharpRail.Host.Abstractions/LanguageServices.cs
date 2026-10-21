@@ -1,8 +1,8 @@
 namespace SharpRail.Host.Abstractions;
 
-/// <summary>A workspace-explicit language request. Positions are zero-based UTF-16; null Text reads disk.</summary>
+/// <summary>A workspace-explicit language request. Positions are zero-based UTF-16; null Text reads disk. Origin is empty for a person using the editor or panes, "config" for a configured autostart and "agent-tool" for an agent's MCP tool call.</summary>
 public sealed record LanguageRequest(string Workspace, string Path = "", string Operation = "inspect", int Line = 0,
-    int Column = 0, string? Text = null, string DocumentId = "", long Version = 0, string Query = "", bool Dirty = false, string Server = "", string Scope = "", IReadOnlyList<string>? Paths = null, int Offset = 0, int Limit = 200, string? Configuration = null);
+    int Column = 0, string? Text = null, string DocumentId = "", long Version = 0, string Query = "", bool Dirty = false, string Server = "", string Scope = "", IReadOnlyList<string>? Paths = null, int Offset = 0, int Limit = 200, string? Configuration = null, string Origin = "");
 
 /// <summary>A location, diagnostic or semantic token. Positions are zero-based UTF-16.</summary>
 public sealed record LanguageItem(string Path, int Line, int Column, int EndLine, int EndColumn,

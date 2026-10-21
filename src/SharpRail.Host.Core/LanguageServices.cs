@@ -53,6 +53,9 @@ public sealed partial class ProjectServices
 
 public static class LanguageMcpTools
 {
+    /// <summary>The deadline of every language tool call; settable for checks.</summary>
+    internal static TimeSpan ToolDeadline { get; set; } = LanguageLimits.ToolDeadline;
+
     public static IReadOnlyList<McpServer.McpTool> Create(HostStateStore state, string callingWorkspace)
     {
         return [Tool("lsp_diagnostics", "diagnostics"), Tool("lsp_navigate", "definition"), Tool("lsp_status", "status")];
@@ -60,7 +63,7 @@ public static class LanguageMcpTools
         McpServer.McpTool Tool(string name, string operation) => new(name, name.Replace('_', ' '),
             operation switch
             {
-                "diagnostics" => "Inspect edited paths or scope=workspace using running language servers; never installs servers. Prefer edited-file scans. Partial/pending/unversioned coverage does not mean clean. Follow page nextOffset. Pass the absolute workspace, including in subagents.",
+                "diagnostics" => "Inspect edited paths or scope=workspace. Starts the language servers that own the files on demand and waits up to 60 s; coverage says checked, pending or skipped per file. Prefer edited-file scans. Partial/pending/unversioned coverage does not mean clean. Follow page nextOffset. Pass the absolute workspace, including in subagents.",
                 "definition" => "Read-only semantic navigation across languages. Prefer this to grep for code relationships. Positions are zero-based UTF-16; alternatively use an exact qualified query from symbols for hover/definition/typeDefinition/implementation/references. Ambiguous names require an explicit position. symbolBody reads one outline range. scope=dependencies includes external server results. For returned jar:/jrt: paths, pass the exact path and its source as server with operation=source for bounded source text; offset then counts UTF-16 characters. No arbitrary URI reads or commands. Unsupported providers/schemes report source unavailable. Installing/initializing means retry later; partial coverage is not a complete index. Sessions stay warm: do not restart between queries. Use search for non-code or incomplete semantic results. Pass absolute workspace; follow pagination.",
                 _ => "Manage workspace language servers. servers lists states; catalog identifies implementations. retry starts a server; restart applies saved settings. configurationSchema lists version-specific named settings; configuration reads saved and active settings; configure saves a complete object without starting. Read before replacing settings. Missing libraries: use provider initializationOptions/settings or clangd includePaths/compilerFlags/compilationDatabasePath. Arguments replace server arguments; null keeps defaults; ${workspaceFolder} expands on host. Settings persist and are visible in the LSP pane. stop ends a process; logs reads bounded evidence. Reuse warm sessions, poll status during import/indexing. Terms acceptance remains user-only. Pass absolute workspace, including in subagents."
             },
@@ -118,9 +121,17 @@ public static class LanguageMcpTools
                     }
                     if (scope.Length == 0) scope = paths is null ? "workspace" : "files";
                 }
-                var result = await state.Languages.ExecuteAsync(new(workspace, path,
+                using var bounded = CancellationTokenSource.CreateLinkedTokenSource(token);
+                bounded.CancelAfter(ToolDeadline);
+                var elapsed = System.Diagnostics.Stopwatch.StartNew();
+                LanguageResult result;
+                try
+                {
+                    result = await state.Languages.ExecuteForAgentAsync(new(workspace, path,
                     selectedOperation, arguments["line"]?.GetValue<int>() ?? 0,
-                    arguments["column"]?.GetValue<int>() ?? 0, Query: arguments["query"]?.GetValue<string>() ?? "", Server: arguments["server"]?.GetValue<string>() ?? "", Scope: scope, Paths: paths, Offset: offset, Limit: limit, Configuration: arguments["configuration"]?.ToJsonString()), token);
+                    arguments["column"]?.GetValue<int>() ?? 0, Query: arguments["query"]?.GetValue<string>() ?? "", Server: arguments["server"]?.GetValue<string>() ?? "", Scope: scope, Paths: paths, Offset: offset, Limit: limit, Configuration: arguments["configuration"]?.ToJsonString()), bounded.Token);
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested) { result = state.Languages.DeadlineExceeded(Path.TrimEndingDirectorySeparator(workspace), elapsed.Elapsed, ToolDeadline); }
                 return (LanguageMcpResponse.Format(result, selectedOperation, offset, limit, path.Length > 0), result.State is "error" or "conflict");
             });
         static JsonObject Schema(JsonObject schema, string operation)

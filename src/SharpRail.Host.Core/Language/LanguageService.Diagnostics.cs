@@ -19,6 +19,17 @@ public sealed partial class LanguageService
         var files = new List<LanguageFileResult>();
         var diagnostics = new List<LanguageItem>();
         var until = DateTime.UtcNow + TimeSpan.FromMinutes(2);
+        // Every needed server starts now, in parallel, so no file is skipped merely because its server was stopped.
+        var starts = new Dictionary<string, LanguageResult>();
+        var owners = new Dictionary<string, string>();
+        foreach (var path in selection)
+        {
+            try { ProjectServices.Contain(request.Workspace, path); }
+            catch (UnauthorizedAccessException) { continue; }
+            if (Detect(request.Workspace, path) is { } owner) owners.TryAdd(owner.Id, path);
+        }
+        var started = await Task.WhenAll(owners.Select(async pair => (pair.Key, Result: await EnsureStartedAsync(request.Workspace, pair.Value, request.Origin, token))));
+        foreach (var (id, result) in started) starts[id] = result;
         foreach (var path in selection)
         {
             token.ThrowIfCancellationRequested();
@@ -37,7 +48,9 @@ public sealed partial class LanguageService
             if (!entries.TryGetValue(request.Workspace + "\0" + server.Id, out var entry) ||
                 !entry.Session.IsValueCreated || !entry.Session.Value.IsCompletedSuccessfully)
             {
-                files.Add(new(path, "skipped", "unavailable", $"{server.Id} is not running. Start it with lsp_status operation=retry and server={server.Id}, or in the LSP pane, then retry."));
+                var start = starts.GetValueOrDefault(server.Id);
+                if (start?.State is "installing" or "initializing") files.Add(new(path, "pending", "pending", start.Detail));
+                else files.Add(new(path, "skipped", "unavailable", start is null || start.Detail.Length == 0 ? $"{server.Id} could not be started. Check lsp_status operation=servers." : $"{server.Id}: {start.Detail}"));
                 continue;
             }
             if (DateTime.UtcNow >= until)
@@ -65,8 +78,8 @@ public sealed partial class LanguageService
             catch (Exception error) { files.Add(new(path, "error", "unavailable", error.Message)); }
         }
         var checkedCount = files.Count(file => file.State == "checked");
-        return new(files.Any(file => file.State == "error") ? "error" : "ready",
-            $"Checked {checkedCount} of {files.Count} selected files using running language servers.")
+        return new(files.Any(file => file.State == "error") ? "error" : starts.Values.Any(start => start.State is "installing" or "initializing") ? "initializing" : "ready",
+            $"Checked {checkedCount} of {files.Count} selected files; servers that were not running were started on demand.")
         {
             Files = files,
             Diagnostics = diagnostics.Distinct().ToArray(),

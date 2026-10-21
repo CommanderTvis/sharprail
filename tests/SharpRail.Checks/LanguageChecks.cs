@@ -178,8 +178,11 @@ internal static class LanguageChecks
                 while (!(await host.LanguageAsync(new(emptyWorkspace, Operation: "logs", Server: "typescript"), exitDeadline.Token)).Detail.Contains("exit: Exited with code 7", StringComparison.Ordinal))
                     await Task.Delay(30, exitDeadline.Token);
             await host.LanguageAsync(new(emptyWorkspace, Operation: "stop", Server: "typescript"));
-            var beforeStart = await host.LanguageAsync(new(root, Operation: "diagnostics", Scope: "files", Paths: ["code.ts"]));
-            Require(beforeStart.Files is [{ State: "skipped" }] && beforeStart.Freshness == "partial", "Explicit diagnostics started an idle server.");
+            var onDemand = Path.Combine(root, "on-demand"); Directory.CreateDirectory(onDemand);
+            await File.WriteAllTextAsync(Path.Combine(onDemand, "code.ts"), "😀 target");
+            var beforeStart = await host.LanguageAsync(new(onDemand, Operation: "diagnostics", Scope: "files", Paths: ["code.ts"]));
+            Require(beforeStart.Files is [{ State: "checked" }] && beforeStart.Freshness == "current", "Explicit diagnostics did not start the idle server that owns the file.");
+            await host.LanguageAsync(new(onDemand, Operation: "stop", Server: "typescript"));
             using var remoteState = server is null ? null : new RemoteStateAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "language-test");
             IHostStateService settingsHost = remoteState ?? (IHostStateService)new LocalStateAdapter(state);
             await settingsHost.ChangeAsync([HostStateChange.Setting("language-server:typescript", JsonSerializer.Serialize(new LanguageServerOptions(Disabled: true), JsonSerializerOptions.Web))]);

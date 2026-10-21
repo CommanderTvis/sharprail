@@ -191,6 +191,11 @@ internal static class Program
             LanguageChecks.UiChecks(root);
             return;
         }
+        if (args.SequenceEqual(["--lsp-on-demand"]))
+        {
+            LanguageOnDemandChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--lsp"]))
         {
             LanguageChecks.Run(root).GetAwaiter().GetResult();
@@ -1002,6 +1007,7 @@ internal static class Program
         Gate.Case("project-language-file", () => ProjectLanguageFileChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-language-autostart", () => ProjectLanguageAutostartChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-services", () => LanguageChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("language-on-demand", () => LanguageOnDemandChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-exit", () => LanguageExitChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-commit-links", () => TerminalCommitLinkChecks.Run(root).GetAwaiter().GetResult());

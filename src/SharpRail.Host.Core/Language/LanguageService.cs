@@ -225,6 +225,8 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (request.Operation == "close")
             drafts.AddOrUpdate(key, [], (_, saved) => saved.Where(item => item.DocumentId != request.DocumentId || item.Path != request.Path).ToArray());
         if (request.Operation == "retry") stopped.TryRemove(key, out _);
+        else if (stopped.ContainsKey(key) && servers.Options(server.Id)?.Disabled == true)
+            return new("disabled", "Disabled in Settings > LSP. Enable this server before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
         else if (stopped.ContainsKey(key)) return new("stopped", "Language server stopped. Use Retry to restart.", server.Id, request.Version);
         if (request.Operation == "close" && !entries.ContainsKey(key)) return new("closed", Version: request.Version);
         if (request.Operation == "retry" && entries.TryRemove(key, out var previous))

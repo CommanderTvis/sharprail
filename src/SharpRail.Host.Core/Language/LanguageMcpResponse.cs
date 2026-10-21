@@ -22,6 +22,8 @@ internal static class LanguageMcpResponse
             return response.ToJsonString(Json);
         }
         if (result.Server.Length > 0) response["server"] = result.Server;
+        if (result.State == "initializing" && result.Servers.Count > 0 && operation is not ("catalog" or "servers"))
+            response["starting"] = new JsonArray(result.Servers.Select(server => (JsonNode?)new JsonObject { ["id"] = server.Id, ["state"] = server.State, ["detail"] = Clip(server.Detail, 300) }).ToArray());
         if (result.Configuration.Length > 0) response["configuration"] = JsonNode.Parse(result.Configuration);
         if (result.ActiveConfiguration.Length > 0) response["activeConfiguration"] = JsonNode.Parse(result.ActiveConfiguration);
         if (operation is "status" or "retry" or "restart" or "source")

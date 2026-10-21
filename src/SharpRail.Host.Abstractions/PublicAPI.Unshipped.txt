@@ -1433,19 +1433,21 @@ SharpRail.Host.Abstractions.LanguageRequest.Column.get -> int
 SharpRail.Host.Abstractions.LanguageRequest.Column.init -> void
 SharpRail.Host.Abstractions.LanguageRequest.Configuration.get -> string?
 SharpRail.Host.Abstractions.LanguageRequest.Configuration.init -> void
-SharpRail.Host.Abstractions.LanguageRequest.Deconstruct(out string! Workspace, out string! Path, out string! Operation, out int Line, out int Column, out string? Text, out string! DocumentId, out long Version, out string! Query, out bool Dirty, out string! Server, out string! Scope, out System.Collections.Generic.IReadOnlyList<string!>? Paths, out int Offset, out int Limit, out string? Configuration) -> void
+SharpRail.Host.Abstractions.LanguageRequest.Deconstruct(out string! Workspace, out string! Path, out string! Operation, out int Line, out int Column, out string? Text, out string! DocumentId, out long Version, out string! Query, out bool Dirty, out string! Server, out string! Scope, out System.Collections.Generic.IReadOnlyList<string!>? Paths, out int Offset, out int Limit, out string? Configuration, out string! Origin) -> void
 SharpRail.Host.Abstractions.LanguageRequest.Dirty.get -> bool
 SharpRail.Host.Abstractions.LanguageRequest.Dirty.init -> void
 SharpRail.Host.Abstractions.LanguageRequest.DocumentId.get -> string!
 SharpRail.Host.Abstractions.LanguageRequest.DocumentId.init -> void
 SharpRail.Host.Abstractions.LanguageRequest.Equals(SharpRail.Host.Abstractions.LanguageRequest? other) -> bool
-SharpRail.Host.Abstractions.LanguageRequest.LanguageRequest(string! Workspace, string! Path = "", string! Operation = "inspect", int Line = 0, int Column = 0, string? Text = null, string! DocumentId = "", long Version = 0, string! Query = "", bool Dirty = false, string! Server = "", string! Scope = "", System.Collections.Generic.IReadOnlyList<string!>? Paths = null, int Offset = 0, int Limit = 200, string? Configuration = null) -> void
+SharpRail.Host.Abstractions.LanguageRequest.LanguageRequest(string! Workspace, string! Path = "", string! Operation = "inspect", int Line = 0, int Column = 0, string? Text = null, string! DocumentId = "", long Version = 0, string! Query = "", bool Dirty = false, string! Server = "", string! Scope = "", System.Collections.Generic.IReadOnlyList<string!>? Paths = null, int Offset = 0, int Limit = 200, string? Configuration = null, string! Origin = "") -> void
 SharpRail.Host.Abstractions.LanguageRequest.Limit.get -> int
 SharpRail.Host.Abstractions.LanguageRequest.Limit.init -> void
 SharpRail.Host.Abstractions.LanguageRequest.Line.get -> int
 SharpRail.Host.Abstractions.LanguageRequest.Line.init -> void
 SharpRail.Host.Abstractions.LanguageRequest.Offset.get -> int
 SharpRail.Host.Abstractions.LanguageRequest.Offset.init -> void
+SharpRail.Host.Abstractions.LanguageRequest.Origin.get -> string!
+SharpRail.Host.Abstractions.LanguageRequest.Origin.init -> void
 SharpRail.Host.Abstractions.LanguageRequest.Operation.get -> string!
 SharpRail.Host.Abstractions.LanguageRequest.Operation.init -> void
 SharpRail.Host.Abstractions.LanguageRequest.Path.get -> string!
