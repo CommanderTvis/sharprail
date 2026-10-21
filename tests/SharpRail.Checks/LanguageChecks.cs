@@ -1272,7 +1272,8 @@ internal static class LanguageChecks
             Lang(dying);
             E2E.E2eWorkspace.Until(() => { Lang(new(root, "code.ts", "hover", 0, 3)); if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return RowStatus(0) == "error"; });
             var deadRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
-            E2E.E2eWorkspace.Until(() => deadRow.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ServerDetail" && text.Text!.StartsWith("Stopped unexpectedly: Exited with code 137", StringComparison.Ordinal)));
+            E2E.E2eWorkspace.Until(() => { if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ServerDetail" && text.Text!.StartsWith("Stopped unexpectedly: Exited with code 137", StringComparison.Ordinal)); });
+            deadRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
             var exitDetails = deadRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerExitDetailsAction");
             Require(exitDetails.IsVisible && deadRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerExitCopyAction").IsVisible &&
                 deadRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerLogsAction").IsVisible &&
