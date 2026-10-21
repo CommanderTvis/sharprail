@@ -13,7 +13,7 @@ namespace SharpRail.UI.Rendering;
 /// <summary>
 /// Where a diff tab remembers that its reader chose Show diff anyway, and how it opens the editable file.
 /// A standalone tab and each Changes review section own one, so the choice survives remounts and refreshes of
-/// that tab only. <paramref name="OpenFile"/> is null when no side of the diff is the worktree's.
+/// that tab only. <see cref="OpenFile"/> is null when no side of the diff is the worktree's.
 /// </summary>
 internal sealed class DiffGuardMemory(Action? openFile = null)
 {
