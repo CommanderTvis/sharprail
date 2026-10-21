@@ -1006,16 +1006,16 @@ chat parts, #744, #745, #748 and the pi package commits).
 Verdicts: ported, port (needed; owning module), adapt (needs a SharpRail design), not applicable.
 
 Files, Git and review panels:
-- `6f85210f3` merge Changes into a VS Code-like Files panel (#779): ported on this branch (Files All | Changed, marks, ignored dimming, remembered expansion; see Panels spec).
-- `443919c57` one spelling for Windows directory and relative paths (#775): adapt; SharpRail host paths are `/`-normalised in Files/Git, Windows hosts are unverified.
-- `1ce7211de` always show Remote and Pull request in the topbar with the branch's next step (#771): port; location strip (Shell/Location spec) with Git/GitHub host data.
-- `46b522166` GitHub review details and actions in the topbar (#776): port after #771; GitHub plugin and location strip.
+- `6f85210f3` merge Changes into a VS Code-like Files panel (#779): ported (`7d6a0187`, `51c8c632`; see Panels spec).
+- `443919c57` one spelling for Windows directory and relative paths (#775): ported (`d2d885de`; Files.SPEC "Path spelling"); unverified on a Windows host.
+- `1ce7211de` always show Remote and Pull request in the topbar with the branch's next step (#771): ported (`79991218`, with #776; UI SPEC Location bar, Git.SPEC "Branch status and actions").
+- `46b522166` GitHub review details and actions in the topbar (#776): ported (`79991218`); Fix with agent and Merge locally are not.
 - `5bdaf6a4e` extract file and diff renderers into a package (#783): not applicable; TS packaging refactor.
 - `bbb0e3079` visualize workspace files and mockups in chat (#784): not applicable; chat and pi extension.
 
 Projects and workspaces:
-- `7641d7df9` rename projects from the project context menu (#764): port; host state project list (`IHostStateService`) and Projects rail menu.
-- `ac5476b55` mark a workspace as read or unread (#770): adapt; depends on the unread watermark (A18), which SharpRail lacks.
+- `7641d7df9` rename projects from the project context menu (#764): ported (`e9a5d4e0`).
+- `ac5476b55` mark a workspace as read or unread (#770): ported with a workspace-level unread model that closes A18 (566a059e; HostState.SPEC "Unread workspaces").
 
 Chat, pi, MCP and agent internals (not applicable: embedded chat and pi are out of scope):
 - `2ce6ccb73` extension dialogs in chat, MCP "Always allow" (#749); `4499b93f9` calmer Connect dialog (#761); `58bb7f96d` host questionnaires vs extensions (#754); `988a50662` MCP call arguments in approval prompt (#763); `dfdcaa9be` background results row (#778); `da9bb4235` transcript reads without watcher wait (#786); `d3aae2d04` minor chat/renderer performance (#798).
@@ -1036,7 +1036,6 @@ SharpRail counterparts: [Codex](src/SharpRail.Plugins.Codex/SPEC.md), [Claude Co
 | A14 | Partial | Consistent account connection and default model/effort controls for the supported CLIs. Launch defaults and provider-owned account/config surfaces exist, but their workbench presentation remains uneven. |
 | A16 | Partial | Live tokens/cost/context telemetry with explicit finalized boundaries. SharpRail exposes rollout/transcript tokens and account limits, but not the complete common context/cost presentation; Claude deliberately avoids estimated subscription cost. |
 | A17 | Missing | Workspace/project rollup replaces identity glyph with the shared working brand badge; attention is a separate static binary dot. Plugin decorations are on terminal tabs, including nested Projects tabs, not a normalized workspace/project rollup. |
-| A18 | Missing | Owner-wide unread-result watermark cleared only when the relevant result is visibly seen; converges across clients. Terminal done/blocked statuses are not this durable read model. |
 | A19 | Missing | CLI-reported background work keeps the workspace working and suppresses premature done attention. Establish which lifecycle signals Claude Code and Codex expose before defining a shared status contract; SharpRail does not own their command/subagent execution. |
 | A26 | Partial | Common MCP Settings: user/project scope, shadowed entries, stdio/HTTP editors, JSON paste, presets and field-preserving writes. Claude has reviewed configuration composers; Codex exposes configuration/provenance; no unified manager matching this complete workflow. |
 | A32 | Partial | Portable skills loaded from multiple agent roots with source provenance, group/individual enablement, live stale/reload badge and project trust acknowledgement. Provider capability panes expose discovery, but no shared per-session manager with those guarantees. |
