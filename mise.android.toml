@@ -35,3 +35,13 @@ checksum = "sha256:ce79869e1307ed8ee1e2baa86a412b1eb5b75d10a01006d788a6f968bcfae
 [tools."http:jdk".platforms.linux-arm64]
 url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.12.1_1.tar.gz"
 checksum = "sha256:23e37e026f12f3e706f18938ff611db3032d075b09d0879a25d06718c773e223"
+
+# Merman's Android archive (the same release as the desktop pin in mise.toml): its jni/<abi>/libmerman_ffi.so are the C
+# ABI the desktop dylib exports, 16 KB aligned, which the Android client packages as libSharpRailMermaid.so. The release's
+# sha256.sum does not list the .aar; the checksum is GitHub's published asset digest and matches the downloaded file.
+[tools."http:merman-android"]
+version = "0.7.0"
+os = ["macos", "linux"]
+url = "https://github.com/Latias94/merman/releases/download/v0.7.0/merman-android-v0.7.0.aar"
+checksum = "sha256:16e62f3079bef0b16748f9c0acbc3e8675fbdca35414cb97436212a2e34f0334"
+format = "zip"

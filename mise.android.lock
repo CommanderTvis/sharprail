@@ -47,3 +47,31 @@ url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0
 [tools."http:jdk"."platforms.macos-x64"]
 checksum = "sha256:44db0f08196daf19a47f90d13388b0c943b67663cb537f998fe29e836fa842ce"
 url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_mac_hotspot_21.0.12.1_1.tar.gz"
+
+[[tools."http:merman-android"]]
+version = "0.7.0"
+backend = "http:merman-android"
+specifiers = ["0.7.0"]
+
+[tools."http:merman-android".options]
+format = "zip"
+
+[tools."http:merman-android"."platforms.linux-arm64"]
+checksum = "sha256:16e62f3079bef0b16748f9c0acbc3e8675fbdca35414cb97436212a2e34f0334"
+url = "https://github.com/Latias94/merman/releases/download/v0.7.0/merman-android-v0.7.0.aar"
+
+[tools."http:merman-android"."platforms.linux-x64"]
+checksum = "sha256:16e62f3079bef0b16748f9c0acbc3e8675fbdca35414cb97436212a2e34f0334"
+url = "https://github.com/Latias94/merman/releases/download/v0.7.0/merman-android-v0.7.0.aar"
+
+[tools."http:merman-android"."platforms.linux-x64-musl"]
+checksum = "sha256:16e62f3079bef0b16748f9c0acbc3e8675fbdca35414cb97436212a2e34f0334"
+url = "https://github.com/Latias94/merman/releases/download/v0.7.0/merman-android-v0.7.0.aar"
+
+[tools."http:merman-android"."platforms.macos-arm64"]
+checksum = "sha256:16e62f3079bef0b16748f9c0acbc3e8675fbdca35414cb97436212a2e34f0334"
+url = "https://github.com/Latias94/merman/releases/download/v0.7.0/merman-android-v0.7.0.aar"
+
+[tools."http:merman-android"."platforms.macos-x64"]
+checksum = "sha256:16e62f3079bef0b16748f9c0acbc3e8675fbdca35414cb97436212a2e34f0334"
+url = "https://github.com/Latias94/merman/releases/download/v0.7.0/merman-android-v0.7.0.aar"
