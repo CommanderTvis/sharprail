@@ -83,8 +83,8 @@ The host half contributes the `visualize` item to the agent instructions (H20, o
 - The state channel and render report cross the existing plugin WebSocket RPC adapter remotely and remain typed
   calls in embedded mode. Register the pending render verdict before publication: an embedded client
   may report synchronously where the fork sends a WebSocket message.
-- The kit renders Mermaid off the UI thread through the pinned Merman native library instead of browser
-  Mermaid. Pan and zoom use the same gesture math as PDF Preview (25–600%, toolbar factor 1.15).
+- The kit renders Mermaid off the UI thread through the pinned Merman native library (macOS, Android; the
+  browser client uses its WASM build) instead of browser Mermaid. Pan and zoom use the same gesture math as PDF Preview (25–600%, toolbar factor 1.15).
   Comparison, diagram, error, navigation and companion frames are compiled Avalonia XAML.
 - Diagram text and comparison cards are selectable and copyable in the pane (see the UI Kit spec).
 - Theme rerenders update the existing diagram navigation control, retaining its zoom and scroll.

@@ -141,11 +141,11 @@ run = [
 ]
 
 [tasks."bootstrap:android"]
-description = "Install the Android NDK and JDK into the shared store and link them into .tools"
+description = "Install the Android NDK, JDK and Merman library into the shared store and link them into .tools"
 env = { MISE_ENV = "android" }
 run = [
-  '"{{mise_bin}}" install http:android-ndk http:jdk',
-  'sh scripts/link-tools.sh "{{mise_bin}}" android-ndk=http:android-ndk jdk=http:jdk',
+  '"{{mise_bin}}" install http:android-ndk http:jdk http:merman-android',
+  'sh scripts/link-tools.sh "{{mise_bin}}" android-ndk=http:android-ndk jdk=http:jdk merman-android=http:merman-android',
 ]
 
 [tasks."bootstrap:browser"]

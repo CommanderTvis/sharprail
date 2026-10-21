@@ -119,7 +119,8 @@ publish toggle automation changes without requesting another update.
   tree view annotations (`:::class`, `## description`, `icon(...)`, from Mermaid 12); they stay parse errors.
 - Public API analyzers validate declarations against committed API baselines during compilation.
 - Allowed deps: Avalonia and Avalonia.Themes.Fluent, SkiaSharp, Markdig, Svg.Controls.Skia.Avalonia, and
-  `SharpRail.Scintilla`. The Merman native library stays copied by the app's project; the kit binds it by name.
+  `SharpRail.Scintilla`. The Merman native library stays copied by the app's project (the Android project packages the release's
+  `.so` per ABI under the same name); the kit binds it by name.
 - Forbidden: any `SharpRail.Host.*` project, `SharpRail.UI`, and the plugin API assemblies. A parameter or
   callback replaces every reach the moved code had: `MarkdownPreview` takes an image reader
   (`Func<string, CancellationToken, ValueTask<byte[]?>>`) instead of `IProjectServices`, a spec-link resolver

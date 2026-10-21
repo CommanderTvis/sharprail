@@ -36,7 +36,7 @@ Detail moved out of `AGENTS.md`. Read the section you need; do not load it whole
 | `scripts/mise*`, `scripts/mise-pinned*` | Entry points for toolchain commands; checksum-pinned mise, tool store shared by all checkouts, ignores the user's mise config. |
 | `scripts/tasks` | What the mise tasks run (`dev` runs a Release build unless `SHARPRAIL_CONFIGURATION=Debug`, `host`, `package-macos`, `dmg`, `package-windows`, `android`, `browser`, `check-packaged`, `check-terminal`, `check-fsevents`, `workload`). Never run directly. |
 | `scripts/link-tools.sh` / `.ps1`, `scripts/fetch-git.sh` | Link store installs into `.tools`; fetch a source pinned by Git commit. |
-| `scripts/build-merman.sh` | Links the xcframework mise installs (`.tools/merman`) into `src/SharpRail.UI/obj/native/libSharpRailMermaid.dylib`; the kit's `Visualization/MermaidRenderer.cs` renders SVG through it. Other platforms show source with an unavailability message. |
+| `scripts/build-merman.sh` | Links the xcframework mise installs (`.tools/merman`) into `src/SharpRail.UI/obj/native/libSharpRailMermaid.dylib`; the kit's `Visualization/MermaidRenderer.cs` renders SVG through it. Android packages Merman's prebuilt `.so` from `.tools/merman-android` (`scripts/mise run bootstrap:android`) under the same name; Browser renders through `@mermanjs/web` WASM. Windows and Linux show source with an unavailability message. |
 | `scripts/build-notifications.sh` | Compiles the notifications bridge into `src/SharpRail.UI/obj/native/libSharpRailNotifications.dylib` when `Native/Notifications.m` changes. |
 | `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture. |
 
@@ -143,6 +143,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--runner` | The runner itself. |
 | `--headscale` | Opt-in and slow, never in the argument-free suite: a real host and client on two tailnet nodes of a throwaway Headscale. Skips with a message unless `sh scripts/build-headscale-test.sh` has run (`SHARPRAIL_REQUIRE_HEADSCALE=1` fails instead). |
 | `--android` | Android host address parsing and remembered endpoint (the client needs a device: `scripts/mise run android run`). |
+| `--android-package [apk]` | Not in the argument-free suite: the built APK (default `artifacts/android/SharpRail.apk`, from `scripts/mise run package:android`) carries `libSharpRailMermaid.so` for arm64-v8a and x86_64, for the right machine, exporting Merman's C ABI with 16 KB aligned segments. |
 
 Gate options (argument-free gate only; not focused modes): `--lanes N|auto` splits across processes, `--last-failed` reruns unfinished work (serial), `--list-cases`, `--case A,B` (for example `--case language-exit` for server exit records, `--case language-services` for the language host). `tests/SharpRail.Checks/Runner.cs` owns these, the idle-sleep assertion and interrupt cleanup. A suite joins the gate through `Gate.Case` in `Program.cs` or `UiChecks.cs`. Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 

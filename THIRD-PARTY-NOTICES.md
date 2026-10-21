@@ -49,7 +49,8 @@ changed to name SharpRail and the tools Claude Code and Codex sessions have.
 
 Mermaid diagrams are laid out by Merman 0.7.0 (https://github.com/Latias94/merman,
 MIT OR Apache-2.0): its released macOS merman-ffi static library is linked into
-libSharpRailMermaid and its SVG is drawn with Svg.Skia (MIT). Merman's Rust crate
+libSharpRailMermaid, its released Android merman-ffi shared libraries
+(merman-android-v0.7.0.aar) ship as libSharpRailMermaid.so, and its SVG is drawn with Svg.Skia (MIT). Merman's Rust crate
 dependencies retain their licenses; licenses/Merman-Crates.txt lists each crate
 with its license.
 

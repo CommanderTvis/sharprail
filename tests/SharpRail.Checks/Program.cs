@@ -577,6 +577,11 @@ internal static class Program
             LockScriptChecks.Run();
             return;
         }
+        if (args is ["--android-package", ..] && args.Length <= 2)
+        {
+            AndroidPackageChecks.Run(args.ElementAtOrDefault(1));
+            return;
+        }
         if (args.SequenceEqual(["--android"]))
         {
             AndroidClientChecks.Run(root);

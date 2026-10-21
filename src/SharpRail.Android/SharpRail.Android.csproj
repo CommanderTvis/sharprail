@@ -88,7 +88,7 @@
     <Publicize Include="Avalonia.Android:Avalonia.Android.AvaloniaView._root" />
     <Publicize Include="Avalonia.Android:Avalonia.Android.AvaloniaView.Dispose" />
   </ItemGroup>
-  <!-- The terminal state and editor libraries, built with the checkout's NDK for each packaged ABI. -->
+  <!-- The terminal state and editor libraries, built with the checkout's NDK for each packaged ABI, and Merman's prebuilt one. -->
   <ItemGroup>
     <NativeAbi Include="arm64-v8a;x86_64" />
     <AndroidNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/build-android.sh;../SharpRail.Scintilla/Native/*;../SharpRail.Scintilla/build-android.sh;../../scripts/build-tailscale-android.sh;Tailscale.Native/*.go;Tailscale.Native/go.mod;Tailscale.Native/go.sum;../../mise.lock;../../mise.android.lock" />
@@ -96,6 +96,8 @@
     <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/../../.tools/tailscale-android/%(Identity)/libSharpRailTailscale.so')" />
     <AndroidNativeLibrary Include="@(NativeAbi->'$(GhosttyNativeCache)/android/%(Identity)/libGhosttyAvaloniaVt.so')" />
     <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/../SharpRail.Scintilla/obj/native/android/%(Identity)/libSharpRail.Scintilla.so')" />
+    <!-- Merman's .so (pinned in mise.android.lock) under the name MermaidRenderer's P/Invoke resolves; it has no SONAME. -->
+    <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/obj/native/android/%(Identity)/libSharpRailMermaid.so')" />
     <AndroidAsset Include="$(MSBuildProjectDirectory)/../../.tools/tailscale-android/arm64-v8a/THIRD-PARTY-NOTICES.txt" LogicalName="licenses/tailscale/THIRD-PARTY-NOTICES.txt" />
     <AndroidAsset Include="$(MSBuildProjectDirectory)/../../.tools/tailscale-android/arm64-v8a/TAILSCALE-LICENSE" LogicalName="licenses/tailscale/TAILSCALE-LICENSE" />
     <AndroidAsset Include="$(MSBuildProjectDirectory)/../../.tools/tailscale-android/arm64-v8a/GO-LICENSE" LogicalName="licenses/tailscale/GO-LICENSE" />
@@ -106,6 +108,8 @@
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-tailscale-android.sh&quot; %(NativeAbi.Identity)" />
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../Ghostty.Avalonia/build-android.sh&quot; %(NativeAbi.Identity) &quot;$(GhosttyNativeCache)&quot;" />
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../SharpRail.Scintilla/build-android.sh&quot; %(NativeAbi.Identity)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)/../../.tools/merman-android/jni/%(NativeAbi.Identity)/libmerman_ffi.so"
+          DestinationFiles="$(MSBuildProjectDirectory)/obj/native/android/%(NativeAbi.Identity)/libSharpRailMermaid.so" />
   </Target>
   <!-- Avalonia's reference assemblies make its platform interfaces unimplementable; the implementation assemblies do not. -->
   <Target Name="UseAvaloniaImplementationAssemblies" AfterTargets="ResolveAssemblyReferences" BeforeTargets="PublicizeAssemblies">

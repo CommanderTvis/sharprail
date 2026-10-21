@@ -467,7 +467,8 @@ mode, source editor identity and scroll position. Closing the tab disposes both 
 Source and diff views remain read-only. See [Rendering/SPEC.md](src/SharpRail.UI/Rendering/SPEC.md).
 The Markdown source and path-truncation wording follows JetBrains/thinkrail's
 `apps/web/src/panels/SPEC.md` at `be804a563`, with the platform adaptations above.
-` ```mermaid ` fences render natively on macOS through Merman as vector diagrams
+` ```mermaid ` fences render on macOS and Android through Merman's native library (the browser
+through its WASM build) as vector diagrams
 themed from the current appearance tokens, with a full-screen pan/zoom view; other
 platforms show the source with an unavailability message. Invalid diagrams show
 "Diagram failed to render" with Merman's message above the source as a code block;

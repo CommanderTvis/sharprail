@@ -78,7 +78,7 @@ native libraries, terminal renderer, publish task and package each target has).
 
 `mise.toml` is the manifest: the .NET SDK (`global.json` must name the same version), both Zig toolchains,
 Merman, the Scintilla and SheenBidi sources, and the pinned Ghostty commits; `mise.android.toml` pins the
-NDK and the JDK, `mise.browser.toml` Node, pnpm, uv and Binaryen. `mise.lock`, `mise.android.lock` and
+NDK, the JDK and Merman's Android archive, `mise.browser.toml` Node, pnpm, uv and Binaryen. `mise.lock`, `mise.android.lock` and
 `mise.browser.lock` record the resolved version and SHA-256 of every archive for every platform and are
 committed (`scripts/mise lock` refreshes them; CI sets `MISE_LOCKED=1`, which refuses anything not in them).
 The .NET SDK is an `http:dotnet` tool for the same reason: mise's core dotnet tool records no URL or checksum, so
@@ -146,7 +146,8 @@ and commit the lock. the `--zig-deps` check mode fails when the lock is stale.
 
 Set `ANDROID_HOME` to an installed Android SDK (default:
 `~/Library/Android/sdk`). The JDK is provisioned like the .NET SDK: `bootstrap:android` (which the Android
-tasks run first) installs the pinned Temurin 21 from `mise.android.toml` and links it as `.tools/jdk`. A
+tasks run first) installs the pinned Temurin 21 from `mise.android.toml` and links it as `.tools/jdk`, and Merman's
+Android archive as `.tools/merman-android`, whose per-ABI `.so` the APK packages as `libSharpRailMermaid.so`. A
 `JAVA_HOME` in the environment, when set, names another JDK 17 or 21 instead. The task installs the .NET
 Android workload when missing and the pinned NDK.
 
