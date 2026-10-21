@@ -1259,7 +1259,7 @@ internal static class LanguageChecks
             var pythonIndex = Enumerable.Range(0, servers.ItemCount).Single(index => servers.Items[index]!.ToString()!.StartsWith("Python (Pyright)", StringComparison.Ordinal));
             servers.SelectedIndex = pythonIndex;
             servers.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter });
-            E2E.E2eWorkspace.Until(() => RowStatus(pythonIndex) == "error");
+            E2E.E2eWorkspace.Until(() => { if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return RowStatus(pythonIndex) == "error"; });
             servers.SelectedIndex = 0;
             var failedRow = (Avalonia.Controls.ListBoxItem)servers.ContainerFromIndex(pythonIndex)!;
             Require(failedRow.GetLogicalDescendants().OfType<Avalonia.Controls.TextBlock>().Any(text => text.Name == "ServerDetail" &&

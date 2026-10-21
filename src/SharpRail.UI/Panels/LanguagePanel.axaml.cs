@@ -60,6 +60,8 @@ internal sealed partial class LanguagePanel : UserControl
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(3) };
     private CancellationTokenSource? lifetime;
     private bool busy;
+    // A Start/Retry or Stop the user asked for while another request ran; it runs next instead of being dropped.
+    private (string Operation, LanguageServerState? Target, bool AcceptanceReviewed)? pending;
     private IReadOnlyList<LanguageServerState> inventory = [];
     private readonly Dictionary<string, LanguageConfigurationView> configurations = [];
     private readonly HashSet<string> added = [];
@@ -216,8 +218,8 @@ internal sealed partial class LanguagePanel : UserControl
             container = list.ContainerFromIndex(list.SelectedIndex) as ListBoxItem;
         if (container?.Content is not ServerRow row) return;
         list.SelectedItem = row;
-        var start = new MenuItem { Header = "Start / Retry", IsEnabled = !busy };
-        var stop = new MenuItem { Header = "Stop", IsEnabled = !busy && row.Server.State is not ("idle" or "stopped" or "disabled") };
+        var start = new MenuItem { Header = "Start / Retry" };
+        var stop = new MenuItem { Header = "Stop", IsEnabled = row.Server.State is not ("idle" or "stopped" or "disabled") };
         start.Click += async (_, _) => await RunAsync("retry", row.Server);
         stop.Click += async (_, _) => await RunAsync("stop", row.Server);
         var logs = new MenuItem { Header = "View logs" };
@@ -231,9 +233,15 @@ internal sealed partial class LanguagePanel : UserControl
 
     private async Task RunAsync(string operation, LanguageServerState? target = null, bool acceptanceReviewed = false)
     {
-        if (busy || lifetime is not { } current) return;
+        if (lifetime is not { } current) return;
         var selected = (this.FindControl<ListBox>("Servers")!.SelectedItem as ServerRow)?.Server;
         if (operation is "retry" or "stop" && (target ?? selected) is null) return;
+        if (busy)
+        {
+            // A background refresh must not swallow the user's Start or Stop: remember it for when the running request ends.
+            if (operation != "servers") pending = (operation, target ?? selected, acceptanceReviewed);
+            return;
+        }
         busy = true;
         this.FindControl<Button>("Refresh")!.IsEnabled = false;
         try
@@ -281,6 +289,11 @@ internal sealed partial class LanguagePanel : UserControl
         {
             busy = false;
             this.FindControl<Button>("Refresh")!.IsEnabled = true;
+            if (pending is { } next && current == lifetime)
+            {
+                pending = null;
+                Dispatcher.UIThread.Post(async () => await RunAsync(next.Operation, next.Target, next.AcceptanceReviewed));
+            }
         }
     }
 }
