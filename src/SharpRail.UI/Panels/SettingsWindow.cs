@@ -279,6 +279,17 @@ public sealed partial class SettingsWindow : Window
         showSectionList?.Invoke(false);
     }
 
+    /// <summary>
+    /// Redraws the current page for a change the user did not make here (a host broadcast, the system theme, a failed save):
+    /// on a phone the section list stays in front when it is showing, since only choosing a section leaves it.
+    /// </summary>
+    private void RefreshSection()
+    {
+        var listing = showSectionList is not null && this.FindControl<Border>("SettingsNavigationPane")!.IsVisible;
+        ShowSection(section);
+        if (listing) showSectionList!(true);
+    }
+
     private void PaintNavigation()
     {
         foreach (var entry in navigation)
@@ -293,7 +304,7 @@ public sealed partial class SettingsWindow : Window
     /// <summary>The device's appearance can change while Settings is open; keep the current system resolution accurate.</summary>
     private void SystemThemeChanged()
     {
-        if (section == "Appearance" && state.Preferences.ThemeMode == "system") ShowSection(section);
+        if (section == "Appearance" && state.Preferences.ThemeMode == "system") RefreshSection();
     }
 
     private void CapabilitiesChanged(HostHandshake? handshake)
@@ -308,7 +319,7 @@ public sealed partial class SettingsWindow : Window
         RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
         if (section == "Code Intelligence" && (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider || previous.Settings.LanguageServers != next.Settings.LanguageServers || previous.Settings.LspEnabled != next.Settings.LspEnabled)) foreach (var refresh in refreshers) refresh();
         else if (section == "Line width") foreach (var refresh in refreshers) refresh();
-        else if (section is "Appearance" or "Layout" or "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) ShowSection(section);
+        else if (section is "Appearance" or "Layout" or "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) RefreshSection();
         else if (section == "Notifications") foreach (var refresh in refreshers) refresh();
     }
 
@@ -327,7 +338,7 @@ public sealed partial class SettingsWindow : Window
         catch (Exception failure) when (failure is not OperationCanceledException)
         {
             error.Text = "The host could not save this change: " + failure.Message; error.IsVisible = true;
-            ShowSection(section);
+            RefreshSection();
         }
     }
 
@@ -343,7 +354,7 @@ public sealed partial class SettingsWindow : Window
         catch (Exception failure) when (failure is not OperationCanceledException)
         {
             error.Text = "The host could not save this change: " + failure.Message; error.IsVisible = true;
-            ShowSection(section);
+            RefreshSection();
         }
         finally { themeChanging = false; GateThemeControls(); }
     }
@@ -694,7 +705,7 @@ public sealed partial class SettingsWindow : Window
         catch (Exception failure) when (failure is not OperationCanceledException)
         {
             error.Text = "The host could not save this change: " + failure.Message; error.IsVisible = true;
-            ShowSection(section); return;
+            RefreshSection(); return;
         }
         if (window.Slot.DefaultPreset == name) { window.Slot.DefaultPreset = next; Save(); }
     }

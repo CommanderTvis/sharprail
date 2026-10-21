@@ -79,6 +79,8 @@ internal static class ProjectsE2E
 
     private static void ExpectExpansion(E2eWorkspace app, bool expanded)
     {
+        // A window mounts before the host's broadcast of its project registration lists the project in the rail.
+        Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectExpand"));
         var toggle = app.Find<Button>("ProjectExpand");
         Require(Equals(ToolTip.GetTip(toggle), expanded ? "Collapse project" : "Expand project"),
             "Project expansion must survive window recreation.");

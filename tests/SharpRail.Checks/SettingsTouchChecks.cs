@@ -6,6 +6,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
 using SharpRail.Checks.E2E;
+using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.UI;
 using SharpRail.UI.Android;
@@ -37,6 +38,13 @@ internal static class SettingsTouchChecks
             var scroller = navigation.GetLogicalDescendants().OfType<ScrollViewer>().Single();
             var appearance = settings.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "Settings_Appearance");
             var label = appearance.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Text == "Appearance");
+            // The window's own project registration, or any other projects broadcast, may land while the list is up; it must not open a section.
+            var other = Path.Combine(root, "settings-touch-other");
+            Directory.CreateDirectory(other);
+            Until(() => window.Workbench.State.Current.Projects.Contains(window.ProjectRoot));
+            var opened = Task.Run(() => window.Workbench.State.ChangeAsync(HostStateChange.OpenProject(other)));
+            Until(() => opened.IsCompleted && window.Workbench.State.Current.Projects.Contains(other));
+            Require(navigation.IsVisible && settings.Section == "Appearance", "A projects broadcast must leave the phone's Settings section list in front.");
             var start = Center(label);
             var finger = settings.TouchBegin(start, RawInputModifiers.None);
             settings.TouchMove(finger, start - new Vector(0, 30), RawInputModifiers.None);
