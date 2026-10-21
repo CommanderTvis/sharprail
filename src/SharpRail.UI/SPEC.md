@@ -172,7 +172,7 @@ A workbench window gets:
 - View: Zoom In ⌘+, Zoom Out ⌘−, Actual Size ⌘0 (the zoom chords' commands).
 - Window: Minimize, Zoom, Host Settings… (Settings › Host), Connect to a Tailscale Host… (the same client launch as
   Settings › Host's button; a failure shows as a toast), Bring All to Front.
-- Help: Report an Issue… opens the new-issue page of the repository About links to.
+- Help: Report an Issue… (Settings › About's Report an issue link, opening the repository's new-issue page).
 
 A chord-backed item runs the window's own chord table entry only when that entry is enabled. Any other window,
 dialogs included, gets Edit (Undo, Redo, Cut, Copy, Paste, Delete, Select All) and Window (Minimize, Zoom, Close,
@@ -474,7 +474,7 @@ workspace frame's left side.
 ## About
 
 The About screen (`AboutInfo`, `Panels/AboutFields`) shows the brand icon, name, version, one-line description, runtime lines
-(runtime, OS and architecture, Avalonia, renderer), the repository and ThinkRail links, a license summary, Third-party notices
+(runtime, OS and architecture, Avalonia, renderer), the repository, ThinkRail and Report an issue (new-issue page) links, a license summary, Third-party notices
 and Copy details (version and runtime lines as plain text). It reads assembly attributes and the runtime only, with no network,
 telemetry or UI-thread I/O; Third-party notices looks for the shipped `THIRD-PARTY-NOTICES.md` on a worker and falls back to the
 repository copy. The version is the assembly informational version: the packaging tasks pass `SharpRailBuildStamp`

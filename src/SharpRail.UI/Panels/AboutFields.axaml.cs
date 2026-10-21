@@ -26,6 +26,8 @@ public sealed partial class AboutFields : UserControl
         Muted("AboutLicense").Text = AboutInfo.License;
         Link("AboutRepository", "Source repository ↗", AboutInfo.Repository);
         Link("AboutUpstream", "Based on ThinkRail ↗", AboutInfo.Upstream);
+        var issue = Link("AboutIssue", "Report an issue ↗", AboutInfo.NewIssue, open: false);
+        issue.Click += (_, _) => { if (TopLevel.GetTopLevel(issue) is { } top) ReportIssue(top); };
         var actions = this.FindControl<WrapPanel>("AboutActions")!;
         var notices = Ui.Button("Third-party notices", () => _ = OpenNotices());
         notices.Name = "AboutNotices";
@@ -45,13 +47,17 @@ public sealed partial class AboutFields : UserControl
         return text;
     }
 
-    private void Link(string name, string label, string url)
+    /// <summary>Opens the repository's new-issue page; About's Report an issue link and the Help menu both call this.</summary>
+    internal static void ReportIssue(TopLevel top) => _ = LanguageProviderLinks.Launch(top, new Uri(AboutInfo.NewIssue));
+
+    private Button Link(string name, string label, string url, bool open = true)
     {
         var button = this.FindControl<Button>(name)!;
         button.Content = Ui.Text(label, Ui.Accent);
         button.Tag = new Uri(url);
         ToolTip.SetTip(button, url);
-        button.Click += LanguageProviderLinks.Open;
+        if (open) button.Click += LanguageProviderLinks.Open;
+        return button;
     }
 
     private async Task CopyDetails()

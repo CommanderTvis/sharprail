@@ -14,7 +14,8 @@
     <TextBlock x:Name="AboutLicense" FontSize="12" TextWrapping="Wrap" />
     <WrapPanel Orientation="Horizontal">
       <Button x:Name="AboutRepository" Padding="0,0,16,0" Background="Transparent" BorderThickness="0" />
-      <Button x:Name="AboutUpstream" Padding="0" Background="Transparent" BorderThickness="0" />
+      <Button x:Name="AboutUpstream" Padding="0,0,16,0" Background="Transparent" BorderThickness="0" />
+      <Button x:Name="AboutIssue" Padding="0" Background="Transparent" BorderThickness="0" />
     </WrapPanel>
     <WrapPanel x:Name="AboutActions" Orientation="Horizontal" />
   </StackPanel>

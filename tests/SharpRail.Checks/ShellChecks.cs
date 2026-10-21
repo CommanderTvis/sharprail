@@ -321,6 +321,13 @@ internal static class ShellChecks
         Require(Headers(view).SequenceEqual(["Zoom In", "Zoom Out", "Actual Size"]), "View: " + string.Join(", ", Headers(view)));
         Require(Headers(windows).SequenceEqual(["Minimize", "Zoom", "-", "Host Settings…", "Connect to a Tailscale Host…", "-", "Bring All to Front"]), "Window: " + string.Join(", ", Headers(windows)));
         Require(Headers(help).SequenceEqual(["Report an Issue…"]), "Help: " + string.Join(", ", Headers(help)));
+        // Help: About's Report an issue path (`--about` clicks the link through the same launch).
+        var launched = new List<(TopLevel Top, Uri Uri)>();
+        var launch = SharpRail.UI.Panels.LanguageProviderLinks.Launch;
+        SharpRail.UI.Panels.LanguageProviderLinks.Launch = (top, uri) => { launched.Add((top, uri)); return Task.CompletedTask; };
+        try { Pick(help, "Report an Issue…"); }
+        finally { SharpRail.UI.Panels.LanguageProviderLinks.Launch = launch; }
+        Require(launched.Count == 1 && launched[0].Top == window && launched[0].Uri.AbsoluteUri == AboutInfo.NewIssue, "Report an Issue… must take About's Report an issue path.");
 
         // Every chord is the one the window already answers to.
         static bool Shows(NativeMenu menu, string header, KeyGesture? gesture) => Equals(Entry(menu, header).Gesture, gesture);

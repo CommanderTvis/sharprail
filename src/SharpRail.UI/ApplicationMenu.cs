@@ -116,8 +116,8 @@ public static class ApplicationMenu
             new NativeMenuItemSeparator(),
             Item("Bring All to Front", Key.None, KeyModifiers.None, () => BringAllToFront(window)),
         ];
-        // About links to the repository; this is the same repository's new-issue page.
-        NativeMenu help = [Item("Report an Issue…", Key.None, KeyModifiers.None, () => _ = window.Launcher.LaunchUriAsync(new Uri(AboutInfo.NewIssue)))];
+        // The secondary way into About's Report an issue link.
+        NativeMenu help = [Item("Report an Issue…", Key.None, KeyModifiers.None, () => Panels.AboutFields.ReportIssue(window))];
         return
         [
             new NativeMenuItem("File") { Menu = file }, new NativeMenuItem("Edit") { Menu = edit }, new NativeMenuItem("View") { Menu = view },

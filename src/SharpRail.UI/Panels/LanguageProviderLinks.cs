@@ -22,9 +22,12 @@ internal static class LanguageProviderLinks
         links.IsVisible = website.IsVisible || repository.IsVisible;
     }
 
+    /// <summary>Opens a link through the window's launcher: every link button and the Help menu's Report an Issue… go through it.</summary>
+    internal static Func<TopLevel, Uri, Task> Launch { get; set; } = (top, uri) => top.Launcher.LaunchUriAsync(uri);
+
     internal static async void Open(object? sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: Uri uri } button && TopLevel.GetTopLevel(button) is { } top)
-            await top.Launcher.LaunchUriAsync(uri);
+            await Launch(top, uri);
     }
 }

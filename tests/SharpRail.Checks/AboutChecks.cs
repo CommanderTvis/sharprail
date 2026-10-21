@@ -37,7 +37,24 @@ internal static class AboutChecks
         var buttons = fields.GetLogicalDescendants().OfType<Button>().Select(button => button.Name).ToList();
         Require(buttons.Contains("AboutNotices") && buttons.Contains("AboutCopy") && buttons.Contains("AboutRepository") && buttons.Contains("AboutUpstream"), "The About view must offer notices, copy and both links.");
         var links = fields.GetLogicalDescendants().OfType<Button>().Where(button => button.Tag is Uri).Select(button => ((Uri)button.Tag!).AbsoluteUri.TrimEnd('/')).ToList();
-        Require(links.Contains(AboutInfo.Repository) && links.Contains(AboutInfo.Upstream), "The links must target the repository and upstream ThinkRail.");
+        Require(links.Contains(AboutInfo.Repository) && links.Contains(AboutInfo.Upstream) && links.Contains(AboutInfo.NewIssue), "The links must target the repository, upstream ThinkRail and the new-issue page.");
+
+        // Report an issue is the primary way the Help menu's Report an Issue… follows (`--shell` picks that item): both open the new-issue page through the shared launch.
+        var launched = new List<(TopLevel Top, Uri Uri)>();
+        var launch = LanguageProviderLinks.Launch;
+        LanguageProviderLinks.Launch = (top, uri) => { launched.Add((top, uri)); return Task.CompletedTask; };
+        try
+        {
+            var host = new Window { Content = fields };
+            host.Show();
+            var issue = fields.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "AboutIssue");
+            Require(issue.IsVisible && ((Uri)issue.Tag!).AbsoluteUri == AboutInfo.NewIssue, "Report an issue must show and target AboutInfo.NewIssue.");
+            issue.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Require(launched.Count == 1 && launched[0].Top == host && launched[0].Uri.AbsoluteUri == AboutInfo.NewIssue, "Report an issue must open the new-issue page from its window.");
+            host.Close();
+        }
+        finally { LanguageProviderLinks.Launch = launch; }
 
         // The macOS application menu: About SharpRail in place of the framework's About Avalonia.
         var settings = 0;
