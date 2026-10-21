@@ -55,7 +55,7 @@ fixture, excluded from the gate and run only when measurement is requested. Each
 scrolling process mounts 2,000 blocks or rows, captures actual headless Skia frames and
 scrolls 120 steps. It reports mount time/allocations, retained managed-memory delta
 after collection, process resident memory, mounted visual/logical counts and scroll
-frame median/p95/allocations. Screenshots go to disposable `.bench/rendering`.
+frame median/p95/allocations. Screenshots go to the run's `CheckRoot` artifacts.
 `markdown-large` adds a 5,000-row table and a 20,000-line code block to the 2,000 paragraphs,
 reports construction separately and scrolls through the whole extent.
 `files` uses C# files; `files-mixed` alternates five file types with every seventh entry ignored.
@@ -177,7 +177,7 @@ only repeated in each lane. Selection is by a case's ordinal in the order the ga
 no listing pass and is identical in every process of one build.
 
 - `--lanes N` (1–16, or `auto` for half the processors clamped to 1–8) runs the gate as `N` processes of
-  the same executable. Each owns shard `i/N`, its own `.bench/check-fixture-<guid>` and its own hosts on
+  the same executable. Each owns shard `i/N`, its own `CheckRoot` directory and its own hosts on
   ephemeral ports, so lanes share nothing but the checkout. Output is relayed with a `[lane i]` prefix and
   the owner merges the lanes' results into one verdict, rejecting a case reported by two lanes. The
   argument-free run stays one serial process: unlike upstream it does not default to lanes, because a
@@ -275,8 +275,12 @@ Shared input helpers reacquire redrawn controls by row and control identity, inc
 when a review section contains several buttons with the same name. Double-clicking a Changes row
 waits for the individual file tab so resource checks cannot inspect the intermediate review section.
 
-Every run creates its fixture under `.bench/check-fixture-<guid>` and sets
-`GIT_CEILING_DIRECTORIES` so fixture Git discovery never climbs into the checkout.
+Every run creates its fixtures, screenshots and scratch files through `CheckRoot`, one
+`sharprail-checks-<pid>-<id>` directory under the OS temporary directory (never the checkout;
+`SHARPRAIL_CHECKS_ROOT` picks another parent, `SHARPRAIL_CHECKS_KEEP=1` keeps it). The root is deleted
+when the process ends, on success, failure and interrupt; a failed gate keeps it until the next
+successful run, and the next run deletes the roots of dead processes older than an hour.
+`GIT_CEILING_DIRECTORIES` is the temporary parent. `-- --check-root` proves the lifecycle.
 Each E2E case gets its own repository root and its own profile directory; no path
 may fall back to `~/.sharprail` or the developer's real profile or host state.
 `E2E/IsolatedGit.cs` gives fixture repositories, and every Git process the app

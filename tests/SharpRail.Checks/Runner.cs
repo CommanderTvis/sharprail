@@ -70,6 +70,7 @@ internal static class Runner
         if (args.Length > 0 && args[0] == "--fake-lsp") { LanguageChecks.Fake().GetAwaiter().GetResult(); return 0; }
         if (args.SequenceEqual(["--fake-lsp-push"])) { LanguageChecks.Fake(push: true).GetAwaiter().GetResult(); return 0; }
         if (args.Contains("--terminal-relay")) { Program.Checks(args); return 0; }
+        if (args is ["--check-root-child", var childMode]) return CheckRootChecks.Child(childMode);
         if (args.SequenceEqual(["--tree-fixture"])) return RunnerChecks.TreeFixture();
         if (args.SequenceEqual(["--tree-fixture-leaf"])) return RunnerChecks.TreeFixtureLeaf();
         RunnerOptions options;
@@ -100,6 +101,7 @@ internal static class Runner
         catch (Exception error)
         {
             Console.Error.WriteLine(error);
+            Evidence();
             if (Gate.KeepGoing) CiReport.Publish(Gate.Failures, Gate.Timings, Gate.Passed.Count, Gate.Skipped, ShardLabel(), true);
             CiReport.Failed(Gate.Running ?? (options.Rest.Length > 0 ? "checks " + string.Join(' ', options.Rest) : "(setup)"), error, Gate.Passed.Count, Gate.Skipped);
             if (gate) Record(Gate.Remaining, options.Cases is null);
@@ -108,8 +110,12 @@ internal static class Runner
         if (gate && Gate.KeepGoing && !options.List)
             CiReport.Publish(Gate.Failures, Gate.Timings, Gate.Passed.Count, Gate.Skipped, ShardLabel(), true);
         if (gate) Record(Gate.Failed, options.Cases is null);
+        if (Gate.Failures.Count > 0 || (gate && Gate.Failed.Count > 0)) Evidence();
         return Gate.Failures.Count > 0 ? 1 : 0;
     }
+
+    // Fixture gates fail on purpose; only a real run keeps its fixtures as evidence.
+    private static void Evidence() { if (RunnerChecks.FixtureGate is null) CheckRoot.MarkFailed(); }
 
     private static string? ShardLabel() => Gate.Shard.Total > 1 ? Gate.Shard.ToString() : null;
 
@@ -133,8 +139,7 @@ internal static class Runner
     /// </summary>
     private static int RunLanes(RunnerOptions options)
     {
-        var results = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "check-lanes-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(results);
+        var results = CheckRoot.Create("lanes");
         var self = Environment.ProcessPath!;
         var output = new object();
         var lanes = Enumerable.Range(1, options.Lanes).Select(index =>
@@ -173,7 +178,6 @@ internal static class Runner
             unfinished.AddRange(left);
             lane.Process.Dispose();
         }
-        Directory.Delete(results, true);
         var repeated = passed.GroupBy(name => name).Where(group => group.Count() > 1).Select(group => group.Key).ToArray();
         if (repeated.Length > 0) Console.WriteLine("FAIL cases ran in more than one lane: " + string.Join(", ", repeated));
         if (options.List) return 0;

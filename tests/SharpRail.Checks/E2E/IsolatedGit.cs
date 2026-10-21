@@ -20,7 +20,7 @@ internal sealed class IsolatedGit : IDisposable
     /// reads the developer's global or system configuration: no signing prompt, no identity, no hooks or aliases from
     /// it. Scoped instances restore to this, never to the real configuration.
     /// </summary>
-    internal static void ForProcess() => Isolate(Path.Combine(Path.GetTempPath(), "sharprail-checks-git", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+    internal static void ForProcess() => Isolate(Path.Combine(CheckRoot.Root, "git"));
 
     /// <summary>A fixture commit sees signing off and the private identity, never the developer's configuration.</summary>
     internal static void CheckIsolation()

@@ -952,9 +952,8 @@ internal static class LanguageChecks
     {
         if (Environment.GetEnvironmentVariable("SHARPRAIL_LSP_CAPTURE") != "1") return;
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        Directory.CreateDirectory(".bench/lsp-ui");
         using var frame = window.CaptureRenderedFrame();
-        frame!.Save(".bench/lsp-ui/" + name + ".png", Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        frame!.Save(CheckRoot.Artifact("lsp-ui", name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 
     private static void SettingsUi(string fixture)
@@ -1074,10 +1073,9 @@ internal static class LanguageChecks
             if (Environment.GetEnvironmentVariable("SHARPRAIL_LSP_CAPTURE") == "1")
             {
                 var results = view.FindControl<Border>("LanguageResults")!;
-                Directory.CreateDirectory(".bench/lsp-ui");
                 using var capture = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize((int)Math.Ceiling(results.Bounds.Width), (int)Math.Ceiling(results.Bounds.Height)), new Vector(96, 96));
                 capture.Render(results);
-                capture.Save(".bench/lsp-ui/code-preview.png", Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                capture.Save(CheckRoot.Artifact("lsp-ui", "code-preview.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
             popup.IsOpen = false;
             view.Editor.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.F12, KeyModifiers = Avalonia.Input.KeyModifiers.Shift });

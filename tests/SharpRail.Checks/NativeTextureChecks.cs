@@ -190,8 +190,7 @@ internal static class NativeTextureChecks
 
         async Task<SKColor[]> CaptureHighlights()
         {
-            var directory = Path.Combine(".bench", "native-commit-highlight-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(directory);
+            var directory = CheckRoot.Create("native-commit-highlight");
             var capturePath = Path.GetFullPath(Path.Combine(directory, "frame.png"));
             try
             {
@@ -251,10 +250,10 @@ internal static class NativeTextureChecks
                 var response = System.Text.Encoding.UTF8.GetBytes(Osc52Checks.Sequence(allow ? text : ""));
                 await Command(native, terminal, "stty -echo -icanon min 0 time 20; printf '\\n" + marker + "_BEGIN\\n\\033]52;c;?\\007'; dd bs=1 count=" + response.Length + " 2>/dev/null | od -An -tx1; stty sane; printf '\\n" + marker + "\\n'");
                 try { await Until(() => terminal.ReadScreen().Split('\n').Any(line => line.Trim() == marker), "Metal clipboard query did not finish."); }
-                catch { File.WriteAllText(".bench/osc52-query-screen.txt", terminal.ReadScreen()); throw; }
+                catch { File.WriteAllText(CheckRoot.Artifact("osc52-query-screen.txt"), terminal.ReadScreen()); throw; }
                 var hex = Osc52Checks.ReadHex(terminal.ReadScreen(), marker);
                 var expected = Convert.ToHexString(response).ToLowerInvariant();
-                if (hex != expected) File.WriteAllText(".bench/osc52-reply-screen.txt", terminal.ReadScreen());
+                if (hex != expected) File.WriteAllText(CheckRoot.Artifact("osc52-reply-screen.txt"), terminal.ReadScreen());
                 Require(hex == expected, "Metal clipboard read permission or encoded response: " + hex);
             }
             Require(Osc52Checks.Prompts() == 3, "Metal clipboard reads did not each request permission.");
@@ -295,8 +294,7 @@ internal static class NativeTextureChecks
 
         async Task Capture(Func<SKColor, bool> matches, int x = 200, int y = 10, bool compareTheme = false)
         {
-            Directory.CreateDirectory(".bench");
-            var path = Path.GetFullPath(".bench/ghostty-skia-native.png");
+            var path = CheckRoot.Artifact("ghostty-skia-native.png");
             var deadline = DateTime.UtcNow.AddSeconds(10);
             do
             {
@@ -342,7 +340,7 @@ internal static class NativeTextureChecks
     private static async Task Check(Window window)
     {
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
-        var clipboard = Path.GetFullPath(Path.Combine(".bench", "texture-paste-" + Guid.NewGuid().ToString("N")));
+        var clipboard = CheckRoot.Create("texture-paste");
         using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), "/bin/sh", ClipboardImageDirectory: clipboard))
         { Width = 640, Height = 360, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
         var clip = new Border
@@ -397,7 +395,7 @@ internal static class NativeTextureChecks
         Type(native, "printf '\\033[48;2;255;0;0mTEXTURE_%s\\033[0m\\n' GPU\r");
         await Until(() => terminal.ReadScreen().Contains("TEXTURE_GPU", StringComparison.Ordinal), "AppKit input did not reach the texture terminal's shell.");
         await Task.Delay(250);
-        var path = Path.GetFullPath(".bench/ghostty-texture-composited.png");
+        var path = CheckRoot.Artifact("ghostty-texture-composited.png");
         var capture = new ProcessStartInfo("/usr/sbin/screencapture") { UseShellExecute = false };
         foreach (var argument in new[] { "-x", "-o", "-l", Native.WindowNumber(native).ToString(), path }) capture.ArgumentList.Add(argument);
         using (var process = Process.Start(capture)!) { await process.WaitForExitAsync(); Require(process.ExitCode == 0, "Own-window capture failed."); }
@@ -502,8 +500,7 @@ internal static class NativeTextureChecks
         var native = Native.Content(Title);
         async Task<SKColor[]> Capture()
         {
-            var directory = Path.Combine(".bench", "native-scroll-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(directory);
+            var directory = CheckRoot.Create("native-scroll");
             var capturePath = Path.Combine(directory, "frame.png");
             try
             {
@@ -551,7 +548,7 @@ internal static class NativeTextureChecks
 
     private static async Task Command(nint native, Control target, string command)
     {
-        var path = Path.GetFullPath(Path.Combine(".bench", "osc52-" + Guid.NewGuid().ToString("N") + ".sh"));
+        var path = CheckRoot.Artifact("osc52-" + Guid.NewGuid().ToString("N") + ".sh");
         File.WriteAllText(path, command + "\n");
         Native.Activate(native);
         target.Focus();
@@ -563,7 +560,7 @@ internal static class NativeTextureChecks
     [SupportedOSPlatform("macos")]
     private static async Task CheckSessions(Window window)
     {
-        var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "texture-sessions-" + Guid.NewGuid().ToString("N"));
+        var root = CheckRoot.Create("texture-sessions");
         Directory.CreateDirectory(root);
         using var traffic = new HttpRequestProbe();
         await using (var pty = new PtyTerminalService())
@@ -682,7 +679,7 @@ internal static class NativeTextureChecks
                 var response = System.Text.Encoding.UTF8.GetBytes(Osc52Checks.Sequence("host read", terminator: end));
                 await Command(native, target, "stty -echo -icanon min 0 time 20; printf '\\n" + marker + "_BEGIN\\n\\033]52;c;?\\007'; dd bs=1 count=" + response.Length + " 2>/dev/null | od -An -tx1; stty sane; printf '\\n" + marker + "\\n'");
                 try { await Until(() => screen().Split('\n').Any(line => line.Trim() == marker), "OSC 52 read did not return to " + text); }
-                catch { File.WriteAllText(".bench/osc52-host-read-screen.txt", screen()); throw; }
+                catch { File.WriteAllText(CheckRoot.Artifact("osc52-host-read-screen.txt"), screen()); throw; }
                 var hex = Osc52Checks.ReadHex(screen(), marker);
                 var expected = Convert.ToHexString(response).ToLowerInvariant();
                 Require(hex == expected && Osc52Checks.Prompts() == prompts + 1, "Host OSC 52 read response or permission: " + text);

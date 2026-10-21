@@ -303,7 +303,7 @@ internal static class UiChecks
         window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Dispatcher.UIThread.RunJobs();
         Require(workspaceRows.IsEffectivelyVisible && Equals(ToolTip.GetTip(Find<Button>(window, "ProjectExpand")), "Collapse project"),
             "Keyboard project expansion did not restore its workspaces.");
-        Capture(window, ".bench/prototype-empty-headless.png");
+        Capture(window, "prototype-empty-headless.png");
         var specNode = Find<DrawnTree>(window, "SpecsTree").Roots.Single(item => Equals(item.Tag, "SPEC.md"));
         var child = specNode.Children.Single(item => Equals(item.Tag, "src/SPEC.md"));
         Require(child.Text == "Architecture · components", "Spec titles must compact spaced em dashes to middle dots.");
@@ -394,7 +394,7 @@ internal static class UiChecks
         Require(window.Layout.Tabs(primary).Count == 1, "Preview did not replace.");
         Await(window.OpenDocumentAsync("README.md", true));
         Require(window.Layout.Tabs(primary).Count == 2, "Kept tab missing.");
-        Capture(window, ".bench/prototype-markdown.png");
+        Capture(window, "prototype-markdown.png");
 
         var filesGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files")).Id;
         // Hide folds the pane onto its rail: it keeps no interior strip and focus moves to its pressed entry's place.
@@ -483,7 +483,7 @@ internal static class UiChecks
         var settings = new SettingsWindow(window, () => { });
         _ = settings.ShowDialog(window);
         settings.ShowSection("Appearance");
-        Capture(settings, ".bench/prototype-settings.png");
+        Capture(settings, "prototype-settings.png");
         var light = Find<Button>(settings, "Theme_light");
         Require(light.Bounds.Width > 500 && Find<Button>(settings, "Settings_Appearance").Bounds.Width == 167,
             "Settings rows did not fill their reference columns.");
@@ -567,6 +567,6 @@ internal static class UiChecks
     {
         using var frame = window.CaptureRenderedFrame();
         Require(frame is not null, "No rendered screenshot.");
-        frame!.Save(Path.Combine(Directory.GetCurrentDirectory(), path), PngBitmapEncoderOptions.Default);
+        frame!.Save(CheckRoot.Artifact(path), PngBitmapEncoderOptions.Default);
     }
 }

@@ -94,7 +94,7 @@ internal static class Osc52Checks
     {
         var lines = screen.Split('\n').Select(line => line.Trim()).ToArray();
         var start = Array.FindLastIndex(lines, line => line == marker + "_BEGIN");
-        if (start < 0) File.WriteAllText(".bench/osc52-reply-screen.txt", screen);
+        if (start < 0) File.WriteAllText(CheckRoot.Artifact("osc52-reply-screen.txt"), screen);
         Require(start >= 0, "clipboard reply start marker is missing");
         var reply = string.Join(" ", lines.Skip(start + 1).TakeWhile(line => line != marker));
         return string.Concat(Regex.Matches(reply, @"\b[0-9a-f]{2}\b").Select(match => match.Value));

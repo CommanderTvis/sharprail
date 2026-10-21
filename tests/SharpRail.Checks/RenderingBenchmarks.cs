@@ -26,7 +26,6 @@ internal static class RenderingBenchmarks
     {
         if (surface == "markdown-selection") { MarkdownSelectionBenchmark.Run(); return; }
         if (surface == "changes-review") { ChangesReviewBenchmark.Run(); return; }
-        Directory.CreateDirectory(Path.Combine(".bench", "rendering"));
         const int count = 2000;
         var context = DispatchProxy.Create<IPluginUIContext, RenderingBenchmarkContext>();
         using var app = surface is "files" or "files-mixed" ? new E2eWorkspace(root, profileRoot: Path.Combine(root, "profile")) : null;
@@ -100,7 +99,7 @@ internal static class RenderingBenchmarks
         var scrollAllocated = GC.GetTotalAllocatedBytes() - allocated;
         if (scroll.Offset.Y <= 0) throw new InvalidOperationException($"The benchmark did not scroll: extent={scroll.Extent}, viewport={scroll.Viewport}.");
         using (var frame = host.CaptureRenderedFrame())
-            (frame ?? throw new InvalidOperationException("The benchmark did not render a frame.")).Save(Path.Combine(".bench", "rendering", surface + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            (frame ?? throw new InvalidOperationException("The benchmark did not render a frame.")).Save(CheckRoot.Artifact("rendering", surface + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
         frames.Sort();
         Console.WriteLine(JsonSerializer.Serialize(new
         {

@@ -193,7 +193,7 @@ internal static class RunnerChecks
         return (process.ExitCode, ran, output + error.GetAwaiter().GetResult());
     }
 
-    private static ProcessStartInfo Self(params string[] args)
+    internal static ProcessStartInfo Self(params string[] args)
     {
         var self = Environment.ProcessPath!;
         var start = new ProcessStartInfo(self);
@@ -215,7 +215,7 @@ internal static class RunnerChecks
         Require(whole.Output.Contains("PASS 10 cases across 3 lanes", StringComparison.Ordinal) && File.ReadAllText(lastRun).Length == 0,
             "A passing lane run must merge into one result and leave nothing unfinished.");
         Require(Enumerable.Range(1, 3).All(lane => whole.Output.Contains($"[lane {lane}] RAN ", StringComparison.Ordinal)), "Every lane must own cases.");
-        Require(!Directory.EnumerateDirectories(Path.Combine(directory, ".bench"), "check-lanes-*").Any(), "Lane result files must not outlive the run.");
+        Require(!Directory.EnumerateDirectories(Path.Combine(directory, ".bench")).Any(), "A run must leave no fixture or lane folder in the checkout.");
 
         var failed = RunGate(directory, "c4", null, "--lanes", "3");
         Expect(failed, 1, Names(0, 1, 2, 3, 5, 6, 8, 9), "A failing lane must stop at its failure while the others finish.");

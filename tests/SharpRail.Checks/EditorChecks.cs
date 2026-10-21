@@ -82,8 +82,9 @@ internal static class EditorChecks
             Pump();
             using var before = window.CaptureRenderedFrame();
             Require(before is not null, "Skia editor did not render.");
-            Directory.CreateDirectory(".bench");
-            before!.Save(".bench/scintilla-before.png", Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            var beforePath = CheckRoot.Artifact("scintilla-before.png");
+            var afterPath = CheckRoot.Artifact("scintilla-after.png");
+            before!.Save(beforePath, Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             window.MouseWheel(new Point(250, 150), new Vector(0, -8)); Pump();
             Require(editor.FirstVisibleLine > 0, "Wheel input did not scroll Scintilla's viewport.");
             Require(editor.VerticalScroll.Maximum > 0 && editor.VerticalScroll.Value == editor.FirstVisibleLine, "Scroll extents did not track the viewport.");
@@ -101,8 +102,8 @@ internal static class EditorChecks
             editor.ScrollToLine(10); Pump();
             Require(editor.FirstVisibleLine == 10 && editor.VerticalScroll.Value == 10, "Scrollbar position did not scroll the editor.");
             using var after = window.CaptureRenderedFrame();
-            after!.Save(".bench/scintilla-after.png", Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
-            Require(!File.ReadAllBytes(".bench/scintilla-before.png").SequenceEqual(File.ReadAllBytes(".bench/scintilla-after.png")), "Scrolling did not change rendered editor content.");
+            after!.Save(afterPath, Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            Require(!File.ReadAllBytes(beforePath).SequenceEqual(File.ReadAllBytes(afterPath)), "Scrolling did not change rendered editor content.");
             window.MouseDown(new Point(110, 50), MouseButton.Left);
             window.MouseMove(new Point(250, 50));
             window.MouseUp(new Point(250, 50), MouseButton.Left); Pump();

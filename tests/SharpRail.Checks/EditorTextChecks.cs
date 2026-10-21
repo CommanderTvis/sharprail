@@ -69,8 +69,7 @@ internal static class EditorTextChecks
         try
         {
             using var frame = window.CaptureRenderedFrame();
-            Directory.CreateDirectory(".bench");
-            frame!.Save(".bench/scintilla-text.png", Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+            frame!.Save(CheckRoot.Artifact("scintilla-text.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
         }
         finally { window.Close(); }
     }

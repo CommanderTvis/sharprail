@@ -42,7 +42,7 @@ internal static class Program
         }
         if (args.Contains("--native-scroll") || args.Contains("--native-file-links") || args.Contains("--native-direct") || args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52")) { NativeTextureChecks.Run(args); return; }
         if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
-        var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "check-fixture-" + Guid.NewGuid().ToString("N"));
+        var root = CheckRoot.Create("fixture");
         Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(root, "host-state"));
         // Enabling Codex installs its skills under CODEX_HOME; no check may reach the developer's own.
         Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(root, "codex-home"));
@@ -50,7 +50,7 @@ internal static class Program
         // The checks binary is the fake language server and lives in the repository, which executables are otherwise never taken from.
         SharpRail.Host.Core.Language.LanguageExecutables.CheckExemptions.Add(SharpRail.Host.Core.Language.LanguageExecutables.Real(Environment.ProcessPath!));
         Directory.CreateDirectory(Path.Combine(root, "src"));
-        Environment.SetEnvironmentVariable("GIT_CEILING_DIRECTORIES", Directory.GetCurrentDirectory());
+        Environment.SetEnvironmentVariable("GIT_CEILING_DIRECTORIES", CheckRoot.Parent);
         File.WriteAllText(Path.Combine(root, "hello.txt"), "hello");
         File.WriteAllText(Path.Combine(root, "README.md"), "# Preview\n\nA **bold** paragraph with a [link](#preview).\n\n- [x] Done\n- [ ] Next\n\n| Name | Value |\n| --- | --- |\n| A | 1 |\n\n> [!NOTE]\n> A callout.\n\n\u0060\u0060\u0060cs\npublic class Example { }\n\u0060\u0060\u0060\n");
         File.WriteAllText(Path.Combine(root, "SPEC.md"), "---\nid: goal\ntitle: Project goal\ntype: product-goal\n---\n# Goal\n");
@@ -566,6 +566,11 @@ internal static class Program
             AndroidClientChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--check-root"]))
+        {
+            CheckRootChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--runner"]))
         {
             RunnerChecks.Run(root);
@@ -968,6 +973,7 @@ internal static class Program
         Gate.Case("packaged-app", PackagedApp.Run);
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
         Gate.Case("zig-deps", () => ZigDepsChecks.Run());
+        Gate.Case("check-root", CheckRootChecks.Run);
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);

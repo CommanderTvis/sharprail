@@ -239,7 +239,7 @@ internal static class SyntaxHighlightChecks
 
     private static void Settings()
     {
-        var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "highlighting-settings-" + Guid.NewGuid().ToString("N"));
+        var root = CheckRoot.Create("highlighting-settings");
         using var app = new E2E.E2eWorkspace(root, openFiles: false);
         app.Window.ShowSettings("Highlighting");
         Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
@@ -289,8 +289,7 @@ internal static class SyntaxHighlightChecks
     {
         Pump();
         using var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("Syntax view did not render.");
-        Directory.CreateDirectory(".bench/textmate");
-        frame.Save(".bench/textmate/" + name + ".png", Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        frame.Save(CheckRoot.Artifact("textmate", name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
         using var stream = new MemoryStream();
         frame.Save(stream, Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
         stream.Position = 0;

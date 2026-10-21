@@ -428,8 +428,7 @@ internal static class GhosttySkiaChecks
             Require(screen.Contains("red plain ╭─╮ 漢字 é 👍🏽", StringComparison.Ordinal), "the screen text was not kept: " + screen);
             using (var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("Skia terminal did not render."))
             {
-                Directory.CreateDirectory(".bench");
-                frame.Save(".bench/ghostty-skia.png", PngBitmapEncoderOptions.Default);
+                frame.Save(CheckRoot.Artifact("ghostty-skia.png"), PngBitmapEncoderOptions.Default);
                 var pixels = Pixels(frame);
                 Require(pixels.Any(p => p.R > 0xb0 && p.G < 0x80 && p.B < 0x80), "SGR red text drew no red pixels.");
                 Require(pixels.Count(p => p == Color.FromRgb(0, 0, 255)) > 100, "the 24-bit background drew no blue cells.");

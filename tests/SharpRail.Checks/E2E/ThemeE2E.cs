@@ -119,7 +119,7 @@ internal static class ThemeE2E
                     "The fixed theme must fill its own slot of the derived pair.");
                 Settle(100);
                 using (var frame = settings.CaptureRenderedFrame()!)
-                    frame.Save(Path.Combine(Directory.GetCurrentDirectory(), ".bench", "theme-settings-system.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                    frame.Save(CheckRoot.Artifact("theme-settings-system.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
 
                 app.Click(Option(settings, "ThemeMode_fixed"));
                 Until(() => Ui.Theme == fixedTheme && app.Window.Preferences.ThemeMode == "fixed");
@@ -245,7 +245,7 @@ internal static class ThemeE2E
         Settle();
 
         using var frame = app.Window.CaptureRenderedFrame()!;
-        frame.Save(Path.Combine(Directory.GetCurrentDirectory(), ".bench", "theme-contrast-tabs.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        frame.Save(CheckRoot.Artifact("theme-contrast-tabs.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
         foreach (var group in new[] { app.Center })
         {
             var chrome = app.Window.Layout.Tabs(group).Select(tab => app.Find<Grid>("DockTab_" + tab.Id.Replace(':', '_').Replace('/', '_'))).ToArray();
@@ -305,7 +305,7 @@ internal static class ThemeE2E
             Until(() => !ReferenceEquals(Diagram().Source, before));
             Settle(100);
             using (var frame = app.Window.CaptureRenderedFrame()!)
-                frame.Save(Path.Combine(Directory.GetCurrentDirectory(), ".bench", $"theme-{theme.Id}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                frame.Save(CheckRoot.Artifact($"theme-{theme.Id}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             Require(Ui.InfoWash.Color == Ui.Alpha(theme["info"], 12),
                 $"Markdown washes must follow {theme.Id}.");
         }

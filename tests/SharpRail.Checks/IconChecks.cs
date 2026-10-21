@@ -67,8 +67,7 @@ internal static class IconChecks
             "Host settings must use the server glyph rather than a terminal glyph.");
         Dispatcher.UIThread.RunJobs(); settings.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         using var frame = settings.CaptureRenderedFrame()!;
-        Directory.CreateDirectory(".bench/vector-icons");
-        frame.Save(".bench/vector-icons/settings.png", PngBitmapEncoderOptions.Default);
+        frame.Save(CheckRoot.Artifact("vector-icons", "settings.png"), PngBitmapEncoderOptions.Default);
         settings.Close();
         Console.WriteLine("PASS actual Settings Host navigation uses the original server vector glyph");
     }
@@ -187,8 +186,7 @@ internal static class IconChecks
         var window = new Window { Width = 330, Height = 155, Background = Ui.Surface, Content = panel };
         window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         using var frame = window.CaptureRenderedFrame()!;
-        Directory.CreateDirectory(".bench/vector-icons");
-        frame.Save(".bench/vector-icons/rendered.png", PngBitmapEncoderOptions.Default);
+        frame.Save(CheckRoot.Artifact("vector-icons", "rendered.png"), PngBitmapEncoderOptions.Default);
         window.Close();
     }
 }
