@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -69,10 +70,11 @@ internal static class ProjectContextE2E
         var menuOrigin = Menu(fixture).TranslatePoint(default, app.Window)!.Value;
         Require(Math.Abs(menuOrigin.X - pointer.X) < 8 && Math.Abs(menuOrigin.Y - pointer.Y) < 8, $"The project menu opens at the pointer ({menuOrigin} vs {pointer}).");
         var parts = Menu(fixture).Items.Cast<object>().ToArray();
-        Require(parts.Length == 5 && parts[0] is MenuItem { Header: "Start work", Icon: not null } &&
+        Require(parts.Length == 6 && parts[0] is MenuItem { Header: "Start work", Icon: not null } &&
             parts[1] is MenuItem { Header: "Open existing worktree…", Icon: not null } && parts[2] is Separator &&
-            parts[3] is MenuItem { Header: "Copy absolute path" } && parts[4] is MenuItem { Header: "Close project", Icon: not null },
-            "Project actions stay compact: Start work, Open existing worktree, separator, Copy absolute path, Close project.");
+            parts[3] is MenuItem { Header: "Copy absolute path" } && parts[4] is MenuItem { Header: "Rename…", Icon: not null } &&
+            parts[5] is MenuItem { Header: "Close project", Icon: not null },
+            "Project actions stay compact: Start work, Open existing worktree, separator, Copy absolute path, Rename, Close project.");
         Press(Entry(fixture, "ProjectMenuCreateWorkspace"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuCreateWorkspace").IsFocused);
         Press(Entry(fixture, "ProjectMenuCreateWorkspace"), Avalonia.Input.Key.Down);
@@ -80,6 +82,8 @@ internal static class ProjectContextE2E
         Press(Entry(fixture, "ProjectMenuOpenExisting"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuCopyPath").IsFocused);
         Press(Entry(fixture, "ProjectMenuCopyPath"), Avalonia.Input.Key.Down);
+        Until(() => Entry(fixture, "ProjectMenuRename").IsFocused);
+        Press(Entry(fixture, "ProjectMenuRename"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuClose").IsFocused);
         CloseMenu(Menu(fixture));
         Until(() => Name(fixture).IsFocused);
@@ -132,6 +136,23 @@ internal static class ProjectContextE2E
         bool Listed(E2eWorkspace client, string project) => Controls(client).OfType<Grid>().Any(row => row.Name == "ProjectRow" && Equals(row.Tag, project));
         Require(Listed(observer, fixture) && Listed(observer, second), "The observer lists both open projects.");
         app.Window.Activate();
+        // Upstream #764: Rename changes only the shown name, through the host, so every window follows it.
+        app.Click(Name(second), mouseButton: MouseButton.Right);
+        Until(() => Menu(second).IsOpen);
+        app.Click(Entry(second, "ProjectMenuRename"), freshGesture: false);
+        var rename = Dialog(app);
+        var renameInput = rename.GetLogicalDescendants().OfType<TextBox>().Single(box => box.Name == "PathNameInput");
+        Require(renameInput.Text == "second-project", "Rename starts from the shown name.");
+        renameInput.Text = "Second   project";
+        Until(() => renameInput.IsFocused);
+        Press(renameInput, Avalonia.Input.Key.Enter);
+        try { Until(() => !app.Window.OwnedWindows.Any()); }
+        catch (InvalidOperationException) { throw new InvalidOperationException("Rename dialog stayed: " + string.Join(" | ", rename.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text))); }
+        bool Shown(E2eWorkspace client, string text) => Controls(client).OfType<Button>()
+            .Any(button => button.Name == "ProjectName" && Equals(button.Tag, second) && AutomationProperties.GetName(button) == text);
+        Until(() => Shown(app, "Second project") && Shown(observer, "Second project") && app.Workbench.State.Current.ProjectName(second) == "Second project");
+        Require(Directory.Exists(second) && app.Workbench.State.Current.Projects.Contains(second), "Renaming keeps the project's path and identity.");
+        Console.WriteLine("PASS upstream projects.spec.ts (#764): renaming a project from its context menu updates every window and keeps its path");
         CloseChoice(second);
         confirm = Dialog(app);
         app.Click(confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Close project"));

@@ -90,6 +90,11 @@ presets belong to the UI.
 - A plain folder opens as a project directly, with no Git required: it is its own root and its Default
   workspace is the only one it has. A folder that later gains a `.git` is a repository on its next open.
 
+Project display names (ThinkRail #764): `project-label` stores a name for a project root in `ProjectLabels`,
+persisted and kept across close and reopen; the path, project record and worktrees are unchanged. The host collapses
+whitespace runs and trims, and rejects a name outside 1 to 100 characters or with control characters; the folder
+name clears the label. `HostState.ProjectName` is the shown name. Remote clients receive it as `StateReply` member 24.
+
 ## Workspace review targets
 
 - `WorkspaceBases` is creation provenance: the host records the base ref when it creates a worktree from

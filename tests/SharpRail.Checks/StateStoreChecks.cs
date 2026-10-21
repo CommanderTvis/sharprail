@@ -37,6 +37,22 @@ internal static class StateStoreChecks
         }
         catch (ArgumentException) { }
 
+        // Upstream #764: a project rename is display-only, normalised, persisted and kept across close and reopen.
+        var renamed = Path.Combine(directory, "renamed-project");
+        await store.ChangeAsync([HostStateChange.OpenProject(renamed)]);
+        var named = await store.ChangeAsync([HostStateChange.RenameProject(renamed, "  My \t  project ")]);
+        Require(named.ProjectName(renamed) == "My project" && named.Projects.Contains(renamed), "A project rename collapses whitespace and keeps the path.");
+        foreach (var bad in new[] { "   ", new string('x', 101), "bad\u0001name" })
+            try { await store.ChangeAsync([HostStateChange.RenameProject(renamed, bad)]); throw new InvalidOperationException("An invalid project name was accepted: " + bad); }
+            catch (ArgumentException) { }
+        await store.ChangeAsync([HostStateChange.CloseProject(renamed)]);
+        await store.ChangeAsync([HostStateChange.OpenProject(renamed)]);
+        Require(new HostStateStore(directory).Current.ProjectName(renamed) == "My project", "A project name survives close, reopen and a reload.");
+        var cleared = await store.ChangeAsync([HostStateChange.RenameProject(renamed, "renamed-project")]);
+        Require(!cleared.ProjectLabels.ContainsKey(renamed) && cleared.ProjectName(renamed) == "renamed-project", "The folder name clears the label.");
+        await store.ChangeAsync([HostStateChange.CloseProject(renamed)]);
+        Console.WriteLine("PASS upstream projects.test.ts (#764): renameProject normalises, rejects empty, long and control names, and survives close/reopen");
+
         var legacy = await store.ChangeAsync([HostStateChange.Setting("theme", "light")]);
         Require(legacy.Settings is { Theme: "light", ThemeMode: "fixed" }, "A theme change without a mode must switch the host to fixed mode.");
         var paired = await store.ChangeAsync([HostStateChange.Setting("theme-mode", "system"), HostStateChange.Setting("theme", "dark")]);

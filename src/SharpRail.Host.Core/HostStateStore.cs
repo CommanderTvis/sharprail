@@ -36,6 +36,7 @@ public sealed partial class HostStateStore : IHostStateService
         public Dictionary<string, string> WorkspaceLanguages { get; set; } = [];
         public Dictionary<string, string> ProjectLanguageAutostart { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
+        public Dictionary<string, string> ProjectLabels { get; set; } = [];
         public Dictionary<string, string> WorkspaceBases { get; set; } = [];
         public Dictionary<string, string> WorkspaceDiffBases { get; set; } = [];
         public List<WorkspaceRecord> Workspaces { get; set; } = [];
@@ -136,6 +137,7 @@ public sealed partial class HostStateStore : IHostStateService
                     ProjectLanguageAutostart = stored.ProjectLanguageAutostart ?? [],
                     SharprailExcludeDeclined = stored.SharprailExcludeDeclined ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
+                    ProjectLabels = stored.ProjectLabels ?? [],
                     WorkspaceBases = stored.WorkspaceBases ?? [],
                     WorkspaceDiffBases = stored.WorkspaceDiffBases ?? [],
                     Workspaces = stored.Workspaces ?? [],
@@ -401,6 +403,7 @@ public sealed partial class HostStateStore : IHostStateService
                 ProjectLanguageAutostart = snapshot.ProjectLanguageAutostart.ToDictionary(),
                 SharprailExcludeDeclined = snapshot.SharprailExcludeDeclined.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
+                ProjectLabels = snapshot.ProjectLabels.ToDictionary(),
                 WorkspaceBases = snapshot.WorkspaceBases.ToDictionary(),
                 WorkspaceDiffBases = snapshot.WorkspaceDiffBases.ToDictionary(),
                 Workspaces = snapshot.Workspaces.ToList(),
@@ -450,6 +453,7 @@ public sealed partial class HostStateStore : IHostStateService
             Projects = value.Projects.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
             RecentProjects = value.RecentProjects.Where(item => item is not null && ValidPath(item)).Distinct().Take(HostStateChange.RecentLimit).ToArray(),
             WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
+            ProjectLabels = value.ProjectLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && NormalizeProjectName(entry.Value) == entry.Value).ToDictionary(),
             WorkspaceBases = value.WorkspaceBases.Where(entry => ValidPath(entry.Key) && entry.Value is not null && GitRefs.IsSafe(entry.Value)).ToDictionary(),
             WorkspaceDiffBases = value.WorkspaceDiffBases.Where(entry => ValidPath(entry.Key) && entry.Value is not null && GitRefs.IsSafe(entry.Value) &&
                 value.WorkspaceBases.GetValueOrDefault(entry.Key) != entry.Value).ToDictionary(),
@@ -597,6 +601,14 @@ public sealed partial class HostStateStore : IHostStateService
                 else if (labels.GetValueOrDefault(key) == label) return current;
                 else labels[key] = label;
                 return current with { WorkspaceLabels = labels };
+            case "project-label":
+                if (!ValidPath(key)) throw new ArgumentException("Invalid project path.");
+                var projectName = NormalizeProjectName(value) ?? throw new ArgumentException("A project name has 1 to 100 characters.");
+                var projectLabels = current.ProjectLabels.ToDictionary();
+                if (projectName == Path.GetFileName(key.TrimEnd(Path.DirectorySeparatorChar))) { if (!projectLabels.Remove(key)) return current; }
+                else if (projectLabels.GetValueOrDefault(key) == projectName) return current;
+                else projectLabels[key] = projectName;
+                return current with { ProjectLabels = projectLabels };
             case "workspace-diff-base":
                 if (!ValidPath(key)) throw new ArgumentException("Invalid workspace path.");
                 var targets = current.WorkspaceDiffBases.ToDictionary();
@@ -687,4 +699,12 @@ public sealed partial class HostStateStore : IHostStateService
 
     private static int? Number(string value) =>
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) && number is >= 40 and <= 240 ? number : null;
+
+    /// <summary>Collapses whitespace runs and trims; null unless 1 to 100 characters without control characters remain.</summary>
+    internal static string? NormalizeProjectName(string? value)
+    {
+        if (value is null || value.Any(character => char.IsControl(character) && !char.IsWhiteSpace(character))) return null;
+        var name = string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return name.Length is >= 1 and <= 100 ? name : null;
+    }
 }

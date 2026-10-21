@@ -44,8 +44,10 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
 - The whole row is one rounded highlight: hover highlights it, and the selected project at Project Home stays
   highlighted.
 - Right-click opens the project context menu at the row without selecting or navigating; with the name
-  focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Start work, Copy absolute path, Open existing
-  worktree…, separator, Close project. Create is exactly the `+` flow (opening the project's home first if
+  focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Start work, Open existing worktree…, separator,
+  Copy absolute path, Rename…, Close project. Rename (ThinkRail #764) opens the name dialog on the shown name and
+  sends `HostStateChange.RenameProject`; every window follows the broadcast, restyling the row's text in place.
+  Upstream renames inline in the row; SharpRail uses its name dialog, which also refuses leading or trailing spaces. Create is exactly the `+` flow (opening the project's home first if
   needed).
 - Open existing worktree… opens a chooser (`Panels/ExistingWorktreeDialog.cs`) fed by the host's list of
   unattached worktrees: branch and absolute path per row, detached-HEAD rows visible but disabled, an empty

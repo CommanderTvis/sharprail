@@ -99,7 +99,7 @@ public sealed partial class WorkbenchWindow
         // A header rename belongs to the workspace it started on; leaving that workspace abandons it.
         if (renameInHeader && renaming is not null && (atHome || renaming != workspaceRoot))
         { renaming = null; renameBox = null; renameCommitPending = false; }
-        projectLabel.Text = projectRoot.Length == 0 ? "SharpRail" : DirectoryName(projectRoot);
+        projectLabel.Text = projectRoot.Length == 0 ? "SharpRail" : state.Current.ProjectName(projectRoot);
         this.FindControl<TextBlock>("ProjectInitial")!.Text = InitialOf(projectLabel.Text);
         workspaceLabel.Text = projectRoot.Length == 0 ? "" : atHome ? "Project home" : WorkspaceName(workspaceRoot);
         this.FindControl<Border>("WorkspaceSegment")!.IsVisible = projectRoot.Length > 0;
@@ -133,7 +133,7 @@ public sealed partial class WorkbenchWindow
             scope.Name = "WelcomeScope";
             panel.Children.Add(scope);
         }
-        var title = Ui.Text(clean ? "SharpRail" : DirectoryName(projectRoot), Ui.TextBrush, 24);
+        var title = Ui.Text(clean ? "SharpRail" : state.Current.ProjectName(projectRoot), Ui.TextBrush, 24);
         title.Name = "WelcomeTitle";
         panel.Children.Add(title);
         // The reference's screen is heading, then one to three cards; no pitch prose.
@@ -263,6 +263,9 @@ public sealed partial class WorkbenchWindow
         menu.Items.Add(existing);
         menu.Items.Add(new Separator());
         menu.Items.Add(copy);
+        var rename = Ui.Menu("Rename…", () => _ = RenameProjectAsync(project));
+        rename.Name = "ProjectMenuRename"; rename.Icon = Ui.Icon("pencil", null, 14);
+        menu.Items.Add(rename);
         menu.Items.Add(close);
         menu.Closed += (_, _) => { if (!creatingWorkspace) FocusProject(project); };
         return menu;
@@ -300,9 +303,21 @@ public sealed partial class WorkbenchWindow
         finally { creatingWorkspace = false; }
     }
 
+    /// <summary>
+    /// Renames a project for display through the host (ThinkRail #764); the rail and header follow the broadcast,
+    /// and a rejection stays in the dialog. Its path, workspaces and worktrees are untouched.
+    /// </summary>
+    private async Task RenameProjectAsync(string project)
+    {
+        await Dialogs.PathName(this, "Rename project", state.Current.ProjectName(project), "Rename", _ => false,
+            async name => await Task.Run(async () => await state.ChangeAsync(HostStateChange.RenameProject(project, name))),
+            explanation: "The name shown for this project. Its folder and workspaces keep their paths.", selectStem: false);
+        FocusProject(project);
+    }
+
     private async Task CloseProjectAsync(string project)
     {
-        var name = DirectoryName(project);
+        var name = state.Current.ProjectName(project);
         // A project whose folder is gone has nothing left to lose, so it closes without asking.
         var missing = !remote && !Directory.Exists(project);
         if (!missing && !await Dialogs.Confirm(this, $"Close {name}?",

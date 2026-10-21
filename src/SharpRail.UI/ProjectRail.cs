@@ -259,10 +259,10 @@ public sealed partial class WorkbenchWindow
         select.Classes.Add("project-name");
         select.Click += (_, _) => _ = RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees)
             ? OpenProjectAsync(project) : OpenProjectHomeAsync(project);
-        AutomationProperties.SetName(select, new DirectoryInfo(project).Name);
+        AutomationProperties.SetName(select, state.Current.ProjectName(project));
         var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
         var folder = Ui.Icon("folderFill", Ui.Muted, 14);
-        var name = Ui.Text(new DirectoryInfo(project).Name, Ui.Muted);
+        var name = Ui.Text(state.Current.ProjectName(project), Ui.Muted);
         var countText = Ui.Text("", Ui.Hint, 12);
         countText.Name = "ProjectWorkspaceCount";
         countText.VerticalAlignment = VerticalAlignment.Center;
@@ -274,6 +274,8 @@ public sealed partial class WorkbenchWindow
             highlight.Classes.Set("active", project == projectRoot && (atHome || plain));
             ((Border)folder).Background = project == projectRoot ? Ui.Accent : Ui.Muted;
             name.Foreground = project == projectRoot ? Ui.TextBrush : Ui.Muted;
+            // A rename arrives as a host broadcast; the row keeps its controls and only its text follows.
+            if (name.Text != state.Current.ProjectName(project)) { name.Text = state.Current.ProjectName(project); AutomationProperties.SetName(select, name.Text); }
             var folded = Collapsed(project);
             if (folded != collapsed) toggle.Content = Ui.Icon(folded ? "arrowRight" : "arrowDown");
             collapsed = folded;

@@ -108,7 +108,7 @@ public sealed partial class WorkbenchWindow
         menu.Items.Add(MenuLabel("Projects"));
         foreach (var project in state.Current.Projects)
         {
-            var item = Ui.Menu(DirectoryName(project), () => _ = OpenProjectHomeAsync(project));
+            var item = Ui.Menu(state.Current.ProjectName(project), () => _ = OpenProjectHomeAsync(project));
             item.Name = "ScopeProjectOption"; item.Tag = project;
             item.ToggleType = MenuItemToggleType.Radio; item.IsChecked = project == projectRoot;
             ToolTip.SetTip(item, project);

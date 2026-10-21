@@ -84,6 +84,11 @@ public sealed record HostState
     /// <summary>Project roots whose user chose to keep an untracked <c>.sharprail</c> directory in the repository; they are not asked again.</summary>
     public IReadOnlyList<string> SharprailExcludeDeclined { get; init; } = [];
     public IReadOnlyDictionary<string, string> WorkspaceLabels { get; init; } = new Dictionary<string, string>();
+    /// <summary>A project's display name by root, when renamed; persisted, kept across close and reopen (ThinkRail #764).</summary>
+    public IReadOnlyDictionary<string, string> ProjectLabels { get; init; } = new Dictionary<string, string>();
+    /// <summary>A project's display name: its renamed label, else its folder name.</summary>
+    public string ProjectName(string projectRoot) => ProjectLabels.GetValueOrDefault(projectRoot) ??
+        (Path.GetFileName(projectRoot.TrimEnd('/', '\\')) is { Length: > 0 } name ? name : projectRoot);
     /// <summary>The ref each workspace was created from, recorded by the host and never changed by a client.</summary>
     public IReadOnlyDictionary<string, string> WorkspaceBases { get; init; } = new Dictionary<string, string>();
     /// <summary>A review target re-pointed away from the creation base; absent while they agree.</summary>
@@ -130,6 +135,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange DeclineSharprailExclude(string projectRoot) => new("sharprail-exclude-declined", projectRoot);
     /// <summary>Persists the title of a terminal tab for every client.</summary>
     public static HostStateChange TitleTerminal(TerminalRef terminal, string title) => new("terminal-title", JsonSerializer.Serialize(terminal), title);
+    /// <summary>Renames a project for display only; its path and identity stay. A name equal to the folder name clears the label.</summary>
+    public static HostStateChange RenameProject(string projectRoot, string name) => new("project-label", projectRoot, name);
     public static HostStateChange OpenProject(string path) => new("project-open", path);
     /// <summary>Moves an open project to the front of the recents.</summary>
     public static HostStateChange CloseProject(string path) => new("project-close", path);

@@ -1694,3 +1694,7 @@ SharpRail.Host.Abstractions.LanguageServerState.Usage.get -> SharpRail.Host.Abst
 SharpRail.Host.Abstractions.LanguageServerState.Usage.init -> void
 SharpRail.Host.Abstractions.LanguageResult.Hint.get -> string!
 SharpRail.Host.Abstractions.LanguageResult.Hint.init -> void
+SharpRail.Host.Abstractions.HostState.ProjectLabels.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Host.Abstractions.HostState.ProjectLabels.init -> void
+SharpRail.Host.Abstractions.HostState.ProjectName(string! projectRoot) -> string!
+static SharpRail.Host.Abstractions.HostStateChange.RenameProject(string! projectRoot, string! name) -> SharpRail.Host.Abstractions.HostStateChange!

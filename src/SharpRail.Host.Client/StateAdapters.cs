@@ -116,6 +116,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         RecentProjects = reply.RecentProjects.ToArray(),
         ProjectRecords = reply.ProjectRecords.Select(record => new ProjectRecord(record.Id, record.Path, record.Slug, record.LastOpened)).ToArray(),
         WorkspaceLabels = reply.Labels.ToDictionary(label => label.Path, label => label.Label),
+        ProjectLabels = reply.ProjectLabels.ToDictionary(label => label.Path, label => label.Label),
         SharprailExcludeDeclined = reply.SharprailExcludeDeclined.ToArray(),
         WorkspaceLanguages = reply.WorkspaceLanguages.ToDictionary(entry => entry.Path, entry => entry.Reference),
         ProjectLanguageAutostart = reply.ProjectLanguageAutostart.ToDictionary(entry => entry.Path, entry => entry.Reference),
