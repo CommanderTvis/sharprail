@@ -106,7 +106,8 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | Mode | Covers |
 | --- | --- |
 | `--plugins`, `--codex`, `--codex-terminals`, `--claude-code`, `--specs`, `--branch-graph` | Plugin runtime and each builtin plugin. |
-| `--lsp-ui` | Language editor overlay and the LSP pane, including a dead server row with Details and Copy details. |
+| `--lsp-ui` | Language editor overlay and the LSP pane, including a dead server row with Details and Copy details, the lifetime note and the "started by / Agent calls" line. |
+| `--lsp-on-demand` | The lsp tools start the owning servers and never hang (deadline), path-free symbol search, usage counts and hints, workspace-lifetime servers (project `autoStart` in every workspace, removal stops only its own, `workspace_create` `languageServers`). `--case language-on-demand` runs it in the gate; `--case language-exit` covers exit records including "workspace removed". |
 | `--vertical-tabs` | Projects-only tab projection and interactions. |
 | `--rail` | Retained Projects controls and geometry. |
 | `--state` | Host state and profile/preset migration. |

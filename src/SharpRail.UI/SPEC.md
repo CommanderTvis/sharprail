@@ -539,6 +539,12 @@ Enter/Space starts idle or stopped servers and retries failed or unavailable ser
 shows Start or Retry beside its status. For other states, activation expands or collapses details
 and managed version, with a disclosure arrow. Right-click retains Start/Retry and Stop. Errors and
 installation progress always wrap inside their own row, even when unselected. There is no detached selected-server detail block below the list.
+The pane opens with one muted line (`LanguageNotes.Lifetime`, also the first note of Settings › Code
+Intelligence): language servers run for the lifetime of their workspace, orchestrators start the ones
+agents need when they create a workspace, agent tools start any other on demand, and starting one here
+is for language features in the editor. No idle or eviction wording appears anywhere. A row with a
+running server adds a muted line "started by <human|config|workspace creation|agent> · Agent calls: N
+(last: 12 min ago)", or "Agent calls: none yet", so it is visible whether agents use the tools.
 Settings > LSP uses a server navigation rail beside the configuration form for each server’s
 enablement, per-server PATH opt-in (off by default; the managed installation is the default), executable and argument overrides, and shows the exact executable path and version a server would run (managed, PATH or override, resolved off the UI thread) with a one-line unverified-binary warning for PATH. A host-wide Enable LSP
 checkbox immediately stops running servers and blocks editor and agent language requests while off;

@@ -93,7 +93,10 @@ never killed or globally stopped. The native watch daemon is not started or cont
 SharpRail's terminal-authenticated namespace and explicit headless MCP route expose, while the plugin is enabled:
 
 - context_search: descriptive semantic discovery, an optional contained path filter
-  and bounded output. It cannot choose another workspace or an arbitrary upstream tool.
+  and bounded output. It cannot choose an arbitrary upstream tool. All three tools take an optional
+  absolute `workspace`: the calling workspace by default, or another known SharpRail workspace of the
+  same project (a subagent working in a sibling worktree); an unknown workspace or one of another
+  project is refused with the list of the project's known workspaces.
 - context_status: cheap managed state, with optional vendor-reported index status.
 - context_index: refresh an already-enabled workspace and return immediately.
 

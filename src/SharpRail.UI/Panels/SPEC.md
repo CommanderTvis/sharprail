@@ -250,3 +250,12 @@ reached from another device.
 Settings retain their mounted page through unrelated host-state broadcasts, including terminal titles and agent activity. Changes to settings, shared presets or the project list still reconcile the affected controls; background activity must not repeatedly replace an open page or lose its input state.
 
 The 2026-10-18 regression reproduced Appearance page replacement on a terminal-title broadcast before the guard, then passed for Appearance, Layout and Projects while preserving refresh on a real appearance change. Actual Chrome Settings/RPC journeys passed at 1840×1340/DPR1 and 1437×907 with 125% interface zoom/DPR2, including repeated broadcasts, stable dialog geometry/visibility, pointer dismissal and recovered terminal input. These passes do not establish Safari/Firefox or physical Retina acceptance.
+
+## Code Intelligence notes
+
+The Code Intelligence pane and the Settings › Code Intelligence page both state, in one muted line
+(`LanguageNotes.Lifetime`), that language servers run for the lifetime of their workspace, that
+orchestrators start the ones agents need when they create a workspace, that agent tools start any other
+on demand, and that starting one by hand is for editor features. A headless check (`--lsp-ui`,
+`--lsp-settings`) asserts the text in both places. Rows of running servers show who started them and the
+agent call count with the time of the latest call.

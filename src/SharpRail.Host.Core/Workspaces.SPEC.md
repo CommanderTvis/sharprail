@@ -61,6 +61,10 @@ forgetting removes its row while leaving the checkout in place. The Default work
   label. It returns path, branch and description without switching the terminal's workspace.
   An omitted base or an explicit `HEAD` is resolved to a commit in the calling checkout before creation
   is routed through the main worktree; a non-Default workspace may have a different HEAD.
+  An optional `languageServers` (server ids, language names or `"auto"`) starts those language
+  servers for the new workspace in the background; the result lists each with its state (`starting`,
+  `ready`, `needs-acceptance`, `failed` and the reason) and creation never waits for them. See the
+  [language SPEC](Language/SPEC.md).
 - `set_title` (`title`) sits beside it and titles the calling terminal's tab (whitespace collapsed, 60
   characters, at least one letter or digit). The title is host state per terminal
   (`HostState.TerminalTitles`), so every window shows it; a later call replaces it and closing the terminal

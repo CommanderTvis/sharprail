@@ -153,8 +153,53 @@ Host administrators may set `<stateDir>/language/servers.json`, keyed by catalog
 server, or `disabled: true`. This file is host-owned, never read from a repository.
 `SHARPRAIL_LSP_DISABLE=1` disables language startup, including in ordinary check fixtures.
 
-Idle sessions without drafts expire after ten minutes. Workspace removal and host shutdown end
-their processes. Stopping a listener does not stop an embedded host's language sessions.
+### Server lifetime and start origin
+
+A language server lives as long as its workspace. There is no idle eviction: nothing stops a server
+for being unused, however long. It ends when the user stops it, its workspace is removed (exit reason
+"workspace removed"), its configuration changes and the user restarts it, the host shuts down or
+language services are turned off, or it crashes (an unexpected exit record). Memory is the accepted
+cost. Stopping a listener does not stop an embedded host's language sessions. A once-a-minute timer
+only samples resident memory for the exit record.
+
+Each running server records who started it, as information only (it never changes how long the server
+runs): `human` (the pane, Settings, an editor request), `config` (`autoStart` in a workspace's
+settings or the project's `.sharprail/language.toml`, or the project's local autostart list),
+`workspace creation` (`workspace_create` with `languageServers`) or `agent` (an `lsp_*` tool call that
+started it on demand). It is `LanguageServerState.StartedBy`, `startedBy` in `lsp_status` operation
+`servers`, and `LanguageExit.StartedBy` plus a "Started by" line in the exit details.
+
+Project `autoStart` starts in every workspace of the project: the Default workspace when its project
+is first opened, every workspace created later (also by `workspace_create`) and every agent launch.
+Removing a workspace stops only its own servers.
+
+### Agent tool calls
+
+The `lsp_*` tools never depend on an agent starting servers first. `lsp_diagnostics` (files or
+workspace scope), `lsp_navigate` and symbol and outline operations start the server that owns the
+requested files when it is not running, all needed servers in parallel, and wait up to 60 seconds
+(`LanguageLimits.OnDemandStartWait`); past that the file is `pending` or the result state is
+`initializing` with "N s elapsed; retry or wait". A server the user stopped explicitly stays stopped
+and a disabled server says so (the file is `skipped` with the exact `lsp_status retry` call or the
+Settings hint); terms that need the user keep blocking with their actionable message. Every `lsp_*`
+call has a 90 second deadline (`LanguageLimits.ToolDeadline`); past it the call is cancelled and
+returns state `initializing` with the servers still starting under `starting`, never a hang.
+
+`lsp_navigate` with a symbol `query` and no `path` searches workspace symbols across the servers
+for the workspace's languages and says so in `detail`. A call that needs a path and has none is
+rejected with the exact working call as JSON. A response carries a one-line `hint` when a server
+for the requested language exists but is stopped, disabled or unsupported.
+
+Usage is counted per workspace and server (calls, successes, failures, last used; a failed or
+cancelled call is a failure; no caller identity is kept) in memory and in
+`<state>/language/usage.json` (atomic replace, at most 128 pairs, least recently used dropped, removed
+with the workspace). It is `LanguageServerState.Usage`, `usage` in `lsp_status` operation `servers`, the
+"Agent calls: N (last: 12 min ago)" line of the pane row, and an "Agent calls" line in the exit details.
+
+`workspace_create` takes `languageServers` (ids, language names such as `csharp` or `ts`, or `"auto"`
+for every server whose files are present). The servers start in the background, the tool returns at
+once with each requested server and its state (`starting`, `ready`, `needs-acceptance`, `failed`
+with the reason), and `lsp_*` calls then wait on them with the bounded wait.
 
 ### Process exit records
 
@@ -163,14 +208,13 @@ The connection watches the process itself (not stdout EOF) and, once it has exit
 drained (two seconds at most), records the time, uptime, exit code, the signal that code names
 (Unix exit codes above 128 are 128 plus the signal; Windows fault statuses are named), the last 200
 stderr lines, the last 60 JSON-RPC method names with times (never payloads), the requests still
-unanswered, the last sampled resident memory (once a minute by the existing idle timer, never a new
+unanswered, the last sampled resident memory (once a minute by the memory sampling timer, never a new
 thread) and the memory the host process may use. Reasons separate facts from suspicion: exit 137
 reads "killed by SIGKILL ... often the OOM killer or jetsam, but also a manual kill -9; the cause is not
 confirmed". A server may also exit with such a number by itself.
 
 Every stop SharpRail causes names its reason before the kill (a stop or restart request, a Java/Kotlin
-provider switch, suspension, workspace removal, host shutdown, the ten-minute idle limit with its
-duration, a failed start, a failed draft restore, or a stdin write that failed or was cancelled and
+provider switch, suspension, workspace removal ("workspace removed"), host shutdown, a failed start, a failed draft restore, or a stdin write that failed or was cancelled and
 left the JSON-RPC stream unusable). Those records are `Unexpected = false` except failures. Anything
 else, including exit 0 nobody asked for, is `Unexpected = true`. SharpRail sends no `shutdown`/`exit`
 handshake; it kills the process tree.
@@ -271,8 +315,7 @@ Workspace-symbol searches can span languages; narrow to a file for single-server
 
 MCP tools advertise separate diagnostic, navigation and lifecycle schemas/descriptions rather than
 repeating every configuration field. Older explicit operation dispatch remains compatible.
-Status/start/restart expose freshness and project coverage. Existing ten-minute idle retention
-remains, but importing/indexing sessions and dirty buffers are not evicted. Repeated requests use
+Status/start/restart expose freshness and project coverage. Repeated requests use
 the same process; agents should poll readiness rather than repeatedly restart.
 MCP replies omit irrelevant empty collections. Navigation includes paging metadata; diagnostics
 include analysis freshness, aggregate coverage counts and independently paged diagnostic/file
