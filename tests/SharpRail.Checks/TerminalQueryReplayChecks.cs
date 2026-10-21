@@ -38,8 +38,41 @@ internal static class TerminalReplayChecks
         Require(Encoding.UTF8.GetString(restored.Snapshot()) == "\x1b[0m" + visible, "Old recordings must be filtered on restore too.");
         var otherQueries = "\x1bZ\x1b[>0c\x1b[?6n\x1b[?2026$p\x1b[>q\x1b[14t\x1b[18t\x1bP$qm\x1b\\\x1bP+q544e\x1b\\\x1b]4;0;?\x07\x1b]52;c;?\x07";
         Require(TerminalReplay.WithoutQueries(Encoding.UTF8.GetBytes(otherQueries)).Length == 0, "Capability, mode, geometry and clipboard queries must not replay.");
+        KittyGraphicsRevive();
         AlternateReplay();
         Console.WriteLine("PASS terminal replay: historical probes cannot type into a revived shell; split reads, old recordings, display content and live replies retained");
+    }
+
+    // An agent probes Kitty graphics on start; its recording is restored after a restart, revived, and restored
+    // again. Answers to the replayed probes would precede the revive command in the new shell's input.
+    private static void KittyGraphicsRevive()
+    {
+        const string probe = "\x1b_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\";
+        const string silent = "\x1b_Ga=T,q=2,f=24,s=1,v=1;AAAA\x1b\\";
+        var session = Encoding.UTF8.GetBytes("% claude --resume old\r\n" + probe + probe + probe + "agent output\r\n" + silent + "% ");
+        var first = new TerminalRecorder();
+        first.Push(session);
+        var revived = new TerminalRecorder();
+        revived.Restore(first.Snapshot());
+        revived.Push("% "u8);
+        var again = new TerminalRecorder();
+        again.Restore(revived.Snapshot());
+        foreach (var replay in new[] { first.Snapshot(), revived.Snapshot(), again.Snapshot() })
+        {
+            var text = Encoding.UTF8.GetString(replay);
+            Require(!text.Contains("a=q"), "A replay kept the agent's Kitty graphics probe.");
+            Require(text.Contains("agent output") && text.Contains(silent), "A replay lost display content or a silenced graphics command.");
+            if (!OperatingSystem.IsMacOS()) continue;
+            var replies = new List<byte>();
+            using var vt = new Vt(80, 24, 100, reply => replies.AddRange(reply.ToArray()));
+            vt.Write(replay);
+            Require(replies.Count == 0, "Replayed Kitty graphics answered into the revived shell: " + Encoding.UTF8.GetString(replies.ToArray()).Replace("\x1b", "^["));
+        }
+        if (!OperatingSystem.IsMacOS()) return;
+        var live = new List<byte>();
+        using (var vt = new Vt(80, 24, 100, reply => live.AddRange(reply.ToArray())))
+            vt.Write(Encoding.UTF8.GetBytes(probe));
+        Require(Encoding.UTF8.GetString(live.ToArray()).Contains("Gi=31;OK"), "A live Kitty graphics probe must still be answered.");
     }
 
     private static void AlternateReplay()

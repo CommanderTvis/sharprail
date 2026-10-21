@@ -163,7 +163,9 @@ including draining output while closing the pseudoconsole.
   shell. This is bounded byte replay, not an unbounded VT screen model: very long incremental sessions
   can outlive retained history. Watching never triggers a resize/redraw or input in the holder.
 - Saved-screen snapshots omit cursor/status, device, keyboard, color, mode, geometry and capability
-  queries. Repainting historical output must not send their replies into a new shell or corrupt its
+  queries, and every Kitty graphics command the terminal would answer (all but `q=2`): an agent's
+  `a=q` probe replayed into a revived tab once typed `ESC _ Gi=31;OK ESC \` ahead of the resume
+  command, which zsh read as insert-last-word plus junk. Repainting historical output must not send their replies into a new shell or corrupt its
   editable agent-resume command. The same filtering covers old recordings loaded from disk and both
   local/remote renderers. Incomplete trailing control sequences wait for a later complete snapshot;
   ordinary text, styles, titles and links remain. Live output and exact-offset resume bytes are unchanged.

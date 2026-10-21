@@ -35,8 +35,8 @@ internal static class TerminalReplay
                         !(bytes[index] == 0x1b && index + 1 < bytes.Length && bytes[index + 1] == '\\')) index++;
                     if (index == bytes.Length) break;
                     var body = bytes[payload..index];
-                    query = kind == ']' ? OscQuery(body) : kind == 'P' &&
-                        (body.StartsWith("$q"u8) || body.StartsWith("+q"u8));
+                    query = kind == ']' ? OscQuery(body) : kind == 'P' ? body.StartsWith("$q"u8) || body.StartsWith("+q"u8) :
+                        kind == '_' && KittyGraphicsAnswered(body);
                     index += bytes[index] == 7 ? 1 : 2;
                 }
                 else query = kind == 'Z';
@@ -46,6 +46,19 @@ internal static class TerminalReplay
             written += index - start;
         }
         return result[..written];
+    }
+
+    // A Kitty graphics command the terminal answers: every one, a=q probes included, unless q=2 silences it.
+    // Replayed into a fresh view, the answer would be typed into the revived shell as input.
+    private static bool KittyGraphicsAnswered(ReadOnlySpan<byte> payload)
+    {
+        if (payload.IsEmpty || payload[0] != 'G') return false;
+        var control = payload[1..];
+        var separator = control.IndexOf((byte)';');
+        if (separator >= 0) control = control[..separator];
+        foreach (var range in control.Split((byte)','))
+            if (control[range].SequenceEqual("q=2"u8)) return false;
+        return true;
     }
 
     private static bool WindowQuery(ReadOnlySpan<byte> parameters)
