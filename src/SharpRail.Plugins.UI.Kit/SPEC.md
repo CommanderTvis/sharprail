@@ -117,6 +117,14 @@ publish toggle automation changes without requesting another update.
   `MermaidRenderer` removes the implicit "/" root row that Mermaid's tree view (and Merman 0.7, matching it)
   draws above the source's first node, shifting the drawing up a row and left a level. Merman 0.7 has no
   tree view annotations (`:::class`, `## description`, `icon(...)`, from Mermaid 12); they stay parse errors.
+  It themes diagrams through Merman's `host_theme`: the appearance plus design-token roles (canvas, surface,
+  text, line, border, note, actor, status colours), which Merman expands into every diagram's theme variables.
+  Plain base-theme variables are not enough: Merman 0.7 does not derive sequence, gantt and similar variables
+  from them, and its tree view reads only its own `treeView` variables, so it drew black text and lines on dark
+  themes. On a dark theme the renderer also maps the near-black ink Merman 0.7 still writes as literals (gantt
+  ticks, mindmap labels, markers) to the theme text colour, a Merman limitation handled centrally for every
+  surface. `--visualize-selection` holds text at 4.5:1 and connecting lines at 3:1 in dark and light themes
+  in the Visualize card, Markdown preview and their full-screen viewers.
 - Public API analyzers validate declarations against committed API baselines during compilation.
 - Allowed deps: Avalonia and Avalonia.Themes.Fluent, SkiaSharp, Markdig, Svg.Controls.Skia.Avalonia, and
   `SharpRail.Scintilla`. The Merman native library stays copied by the app's project (the Android project packages the release's

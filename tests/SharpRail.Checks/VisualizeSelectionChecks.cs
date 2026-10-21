@@ -16,7 +16,8 @@ using static SharpRail.Checks.E2E.E2eWorkspace;
 namespace SharpRail.Checks;
 
 // The Visualize pane's diagrams are pictures; these checks hold that their text still selects and copies like a
-// document's, that a tree view starts at the source's first node, and that comparison cards are selectable text.
+// document's, that a tree view starts at the source's first node, that every surface draws diagrams readably in dark and
+// light themes, and that comparison cards are selectable text.
 internal static class VisualizeSelectionChecks
 {
     private const string Tree = "treeView-beta\n    \"SharpRail tasks/\"\n        \"In progress/\"\n            \"Some item\"\n";
@@ -25,6 +26,7 @@ internal static class VisualizeSelectionChecks
     {
         if (!OperatingSystem.IsMacOS()) { Console.WriteLine("SKIP visualize selection: Mermaid rendering requires macOS"); return; }
         TreeRoot();
+        Readable();
         Selection();
         Flowchart();
         Comparison();
@@ -50,6 +52,96 @@ internal static class VisualizeSelectionChecks
         var annotated = MermaidRenderer.Render("treeView-beta\n    \"a\" :::highlight\n", MermaidRenderer.Options());
         Require(annotated.Error is { Length: > 0 }, "Merman 0.7 has no tree view annotations; the parser error reaches the caller instead of a wrong drawing.");
         Console.WriteLine("PASS tree view starts at the source's first node");
+    }
+
+    // Every surface that shows a diagram (the Visualize card, Markdown preview, and the full-screen viewer each opens)
+    // draws its text at WCAG 4.5:1 and its connecting lines at 3:1 against the theme's surfaces, with no implicit tree root.
+    private static void Readable()
+    {
+        var original = Ui.Theme;
+        try
+        {
+            foreach (var theme in new[] { "dark", "light" })
+            {
+                Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(theme));
+                foreach (var (kind, source) in new[] { ("tree view", Tree), ("flowchart", "flowchart LR\n    Start[Begin here] --> Finish[All done]\n") })
+                {
+                    var card = new MermaidView(source);
+                    Surface($"{theme} {kind} in the Visualize card", card, "DiagramImage", "MermaidFullscreen", kind == "tree view");
+                    var context = new SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true);
+                    using var preview = new SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview("```mermaid\n" + source + "```\n", "README.md", context);
+                    Surface($"{theme} {kind} in Markdown preview", preview, "MermaidDiagram", "MermaidFullscreen", kind == "tree view");
+                }
+            }
+        }
+        finally { Ui.Apply(original); }
+        Console.WriteLine("PASS diagrams read in dark and light themes inline and full screen, with no tree root");
+    }
+
+    private static void Surface(string name, Control host, string image, string fullscreen, bool tree)
+    {
+        var window = new Window { Width = 700, Height = 500, Content = host };
+        window.Show();
+        try
+        {
+            Until(() => host.GetVisualDescendants().OfType<Image>().Any(control => control.Name == image && Diagram(control) is not null));
+            Inspect(name, Diagram(host.GetVisualDescendants().OfType<Image>().First(control => control.Name == image))!, tree);
+            var owned = window.OwnedWindows.Count;
+            host.GetVisualDescendants().OfType<Button>().First(control => control.Name == fullscreen)
+                .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Until(() => window.OwnedWindows.Count > owned);
+            var dialog = window.OwnedWindows[^1];
+            Until(() => dialog.GetVisualDescendants().OfType<Image>().Any(control => control.Name == "DiagramImage" && Diagram(control) is not null));
+            Inspect(name + ", full screen", Diagram(dialog.GetVisualDescendants().OfType<Image>().First(control => control.Name == "DiagramImage"))!, tree);
+            dialog.Close();
+        }
+        finally { window.Close(); }
+    }
+
+    private static Avalonia.Svg.Skia.SvgSource? Diagram(Image image)
+        => image.Source is Avalonia.Svg.Skia.SvgImage { Source: { Picture: not null } svg } ? svg : null;
+
+    private static void Inspect(string name, Avalonia.Svg.Skia.SvgSource svg, bool tree)
+    {
+        var text = DiagramText.From(svg.Svg?.Model, outline: tree);
+        Require(text.Length > 0 && !text.Runs.Any(run => run.Text == "/"), $"{name}: the drawing has labels and no implicit \"/\" root: {string.Join(" | ", text.Runs.Select(run => run.Text))}");
+        var (texts, lines) = (new List<Avalonia.Media.Color>(), new List<Avalonia.Media.Color>());
+        void Walk(ShimSkiaSharp.SKPicture picture)
+        {
+            foreach (var command in picture.Commands ?? [])
+            {
+                switch (command)
+                {
+                    case ShimSkiaSharp.DrawPictureCanvasCommand { Picture: { } inner }: Walk(inner); break;
+                    case ShimSkiaSharp.DrawTextCanvasCommand { Paint.Color: { } color }: texts.Add(Colour(color)); break;
+                    case ShimSkiaSharp.DrawTextBlobCanvasCommand { Paint.Color: { } color }: texts.Add(Colour(color)); break;
+                    case ShimSkiaSharp.DrawPathCanvasCommand { Paint: { Style: ShimSkiaSharp.SKPaintStyle.Stroke, Color: { } color } }: lines.Add(Colour(color)); break;
+                }
+            }
+        }
+        Walk(svg.Svg!.Model!);
+        Require(texts.Count > 0 && lines.Count > 0, $"{name}: the drawing has text and lines.");
+        foreach (var background in new[] { Ui.Surface.Color, Ui.Elevated.Color })
+        {
+            foreach (var colour in texts.Distinct())
+                Require(Contrast(colour, background) >= 4.5, $"{name}: text {colour} on {background} has contrast {Contrast(colour, background):0.00}, under 4.5.");
+            // Box outlines use the theme's border token, which is deliberately subtle around a filled box like any card's.
+            foreach (var colour in lines.Distinct().Where(colour => colour != Ui.BorderBrush.Color))
+                Require(Contrast(colour, background) >= 3, $"{name}: line {colour} on {background} has contrast {Contrast(colour, background):0.00}, under 3.");
+        }
+    }
+
+    private static Avalonia.Media.Color Colour(ShimSkiaSharp.SKColor color) => Avalonia.Media.Color.FromArgb(color.Alpha, color.Red, color.Green, color.Blue);
+
+    private static double Contrast(Avalonia.Media.Color a, Avalonia.Media.Color b)
+    {
+        static double Channel(byte value) => value / 255.0 is var c && c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+        static double Luminance(Avalonia.Media.Color c) => 0.2126 * Channel(c.R) + 0.7152 * Channel(c.G) + 0.0722 * Channel(c.B);
+        // A translucent colour is judged as composited over the background it is drawn on.
+        var alpha = a.A / 255.0;
+        var over = Avalonia.Media.Color.FromRgb((byte)(a.R * alpha + b.R * (1 - alpha)), (byte)(a.G * alpha + b.G * (1 - alpha)), (byte)(a.B * alpha + b.B * (1 - alpha)));
+        var (light, dark) = (Math.Max(Luminance(over), Luminance(b)), Math.Min(Luminance(over), Luminance(b)));
+        return (light + 0.05) / (dark + 0.05);
     }
 
     private static void Selection()

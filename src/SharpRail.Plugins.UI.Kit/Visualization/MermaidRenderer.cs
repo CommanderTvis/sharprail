@@ -17,28 +17,42 @@ public static class MermaidRenderer
     /// <summary>A platform renderer with the same Merman options contract, such as the browser WASM runtime.</summary>
     public static Func<string, string, Task<Result>>? PlatformRender { private get; set; }
 
-    /// <summary>Captures the current appearance as Mermaid's base theme, as the reference derives it from its CSS tokens.</summary>
+    /// <summary>
+    /// Captures the current appearance as Merman's host theme: its appearance plus the design tokens as semantic roles,
+    /// which Merman expands into every diagram's theme variables. Mermaid's base theme derives sequence, state, gantt
+    /// and the rest from a few primary colours in JavaScript; Merman does not, and its tree view reads only its own
+    /// <c>treeView</c> variables (black by default), so only the roles reach every diagram type.
+    /// </summary>
     public static string Options() => new JsonObject
     {
-        ["site_config"] = new JsonObject
+        ["host_theme"] = new JsonObject
         {
-            ["theme"] = "base",
-            ["themeVariables"] = new JsonObject
+            ["appearance"] = Ui.Theme.IsLight ? "light" : "dark",
+            ["roles"] = new JsonObject
             {
-                ["background"] = Hex(Ui.Surface),
-                ["mainBkg"] = Hex(Ui.Elevated),
-                ["primaryColor"] = Hex(Ui.Elevated),
-                ["primaryTextColor"] = Hex(Ui.TextBrush),
-                ["primaryBorderColor"] = Hex(Ui.BorderBrush),
-                ["secondaryColor"] = Hex(Ui.Hover),
-                ["tertiaryColor"] = Hex(Ui.Surface),
-                ["lineColor"] = Hex(Ui.Muted),
-                ["textColor"] = Hex(Ui.TextBrush),
-                ["nodeBorder"] = Hex(Ui.BorderBrush),
-                ["clusterBkg"] = Hex(Ui.Surface),
-                ["clusterBorder"] = Hex(Ui.BorderBrush),
-                ["titleColor"] = Hex(Ui.TextBrush)
-            }
+                ["canvas"] = Hex(Ui.Surface),
+                ["surface"] = Hex(Ui.Elevated),
+                ["surface_alt"] = Hex(Ui.Hover),
+                ["surface_muted"] = Hex(Ui.Surface),
+                ["text"] = Hex(Ui.TextBrush),
+                ["subtle_text"] = Hex(Ui.Muted),
+                ["border"] = Hex(Ui.BorderBrush),
+                ["line"] = Hex(Ui.Muted),
+                ["edge_label_background"] = Hex(Ui.Surface),
+                ["cluster_background"] = Hex(Ui.Surface),
+                ["cluster_border"] = Hex(Ui.BorderBrush),
+                ["note_background"] = Hex(Ui.WarningWash),
+                ["note_border"] = Hex(Ui.Warning),
+                ["note_text"] = Hex(Ui.TextBrush),
+                ["actor_background"] = Hex(Ui.Elevated),
+                ["actor_border"] = Hex(Ui.BorderBrush),
+                ["actor_text"] = Hex(Ui.TextBrush),
+                ["error"] = Hex(Ui.Danger),
+                ["warning"] = Hex(Ui.Warning),
+                ["success"] = Hex(Ui.Success)
+            },
+            // Mermaid's stylesheets pin some text to #333 with !important; stripping it lets the roles win.
+            ["output"] = new JsonObject { ["pipeline"] = "resvg-safe", ["css_override_policy"] = "strip-existing-important" }
         },
         // Svg.Skia cannot draw <foreignObject> labels; the preview supplies the surface colour.
         ["svg"] = new JsonObject { ["pipeline"] = "resvg-safe", ["root_background_color"] = "transparent" }
@@ -47,7 +61,7 @@ public static class MermaidRenderer
     /// <summary>Runs the platform renderer or native parsing and layout off the caller's UI thread.</summary>
     public static async Task<Result> RenderAsync(string source, string options, CancellationToken cancellationToken = default)
         => PlatformRender is { } platform
-            ? WithoutTreeRoot(await platform(source, options))
+            ? Finish(await platform(source, options), options)
             : await Task.Run(() => Render(source, options), cancellationToken);
 
     /// <summary>Blocks on native parsing and layout; call it off the UI thread.</summary>
@@ -63,7 +77,7 @@ public static class MermaidRenderer
             var bytes = new byte[checked((int)result.Length)];
             Marshal.Copy(result.Data, bytes, 0, bytes.Length);
             var text = Encoding.UTF8.GetString(bytes);
-            if (result.Code == 0) return WithoutTreeRoot(new Result(text, null));
+            if (result.Code == 0) return Finish(new Result(text, null), options);
             return new Result(null, JsonNode.Parse(text)?["message"]?.GetValue<string>() ?? text);
         }
         catch (JsonException) { return new Result(null, "The diagram renderer returned an unreadable error."); }
@@ -73,8 +87,28 @@ public static class MermaidRenderer
     /// <summary>Whether rendered SVG is a tree view, whose text reads as an indented outline.</summary>
     internal static bool IsTreeView(string svg) => svg.Contains("aria-roledescription=\"treeView\"", StringComparison.Ordinal);
 
-    private static Result WithoutTreeRoot(Result result)
-        => result.Svg is { } svg && IsTreeView(svg) ? result with { Svg = WithoutTreeRoot(svg) } : result;
+    private static Result Finish(Result result, string options)
+        => result.Svg is not { } svg ? result : result with { Svg = WithReadableInk(IsTreeView(svg) ? WithoutTreeRoot(svg) : svg, options) };
+
+    // Mermaid's own default ink: near-black text and strokes that Merman 0.7 still writes as literals in some diagrams.
+    private static readonly System.Text.RegularExpressions.Regex InkAttribute =
+        new(@"(?<![-\w])(fill|stroke|color)=""(?:#000|#000000|#333|#333333|black)""", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    private static readonly System.Text.RegularExpressions.Regex InkDeclaration =
+        new(@"(?<![-\w])(fill|stroke|color)\s*:\s*(?:#000|#000000|#333|#333333|black|rgb\(\s*0\s*,\s*0\s*,\s*0\s*\))(?=\s*[;}!""])", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Merman 0.7 ignores the host theme in places and keeps Mermaid's default near-black ink: gantt axis ticks,
+    /// mindmap labels, packet and sequence markers. On a dark theme that ink is unreadable, so it becomes the theme's
+    /// text colour; light themes keep it, as it reads on their surfaces.
+    /// </summary>
+    internal static string WithReadableInk(string svg, string options)
+    {
+        if (JsonNode.Parse(options)?["host_theme"] is not { } host
+            || (string?)host["appearance"] != "dark"
+            || (string?)host["roles"]?["text"] is not { } ink) return svg;
+        svg = InkAttribute.Replace(svg, match => $"{match.Groups[1].Value}=\"{ink}\"");
+        return InkDeclaration.Replace(svg, match => $"{match.Groups[1].Value}:{ink}");
+    }
 
     /// <summary>
     /// Mermaid's tree view (and Merman, which matches it) hangs every top-level node under an implicit root it draws as
