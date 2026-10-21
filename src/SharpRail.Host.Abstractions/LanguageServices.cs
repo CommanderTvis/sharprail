@@ -20,7 +20,13 @@ public sealed record LanguageServerState(string Id, string Path, string State, s
 
     /// <summary>Who started the running server: "human", "config", "workspace creation" or "agent"; informational, it never changes how long the server runs.</summary>
     public string StartedBy { get; init; } = "";
+
+    /// <summary>How agents have used this server through the lsp tools in this workspace; null when none has.</summary>
+    public LanguageUsageSummary? Usage { get; init; }
 }
+
+/// <summary>Counts of agent tool calls that used one language server in one workspace, with the time of the latest (UTC, round-trip format).</summary>
+public sealed record LanguageUsageSummary(int Calls, int Successes, int Failures, string LastUsed);
 
 /// <summary>
 /// The host's record of one language-server process ending. <paramref name="Reason"/> is one line of facts and labelled suspicions;
@@ -56,6 +62,9 @@ public sealed record LanguageResult(string State, string Detail = "", string Ser
     public IReadOnlyList<LanguageItem> Tokens { get; init; } = [];
     public string Freshness { get; init; } = "pending";
     public string Coverage { get; init; } = "open documents";
+
+    /// <summary>One line naming the call that fixes a stopped, disabled or unsupported server the request needed; empty otherwise.</summary>
+    public string Hint { get; init; } = "";
 }
 
 public partial interface IProjectServices

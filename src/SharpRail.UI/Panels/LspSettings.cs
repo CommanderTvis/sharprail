@@ -24,6 +24,7 @@ public sealed partial class SettingsWindow
         var arguments = PageControl<TextBox>(panel, "LspArguments");
         var message = PageControl<TextBlock>(panel, "LspMessage");
         var save = PageControl<Button>(panel, "LspSave");
+        PageControl<TextBlock>(panel, "LspLifetimeNote").Text = LanguageNotes.Lifetime;
         var feature = PageControl<CheckBox>(panel, "LspFeatureEnabled");
         feature.IsChecked = state.Current.Settings.LspEnabled;
         feature.Click += async (_, _) =>

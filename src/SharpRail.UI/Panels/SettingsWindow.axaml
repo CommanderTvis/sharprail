@@ -16,6 +16,7 @@
       <StackPanel Spacing="8">
         <TextBlock Text="Language servers" Classes="settings-heading" />
         <TextBlock Text="Shared by all workspaces and clients of this host. Per-server changes apply on the next Start / Retry." Classes="settings-description" />
+        <TextBlock x:Name="LspLifetimeNote" Classes="settings-description" />
         <CheckBox x:Name="LspFeatureEnabled" Content="Enable LSP" />
         <TextBlock Text="Turning this off stops all language servers and disables editor and agent language features. Saved server configurations are kept." Classes="settings-description" />
         <ContentControl x:Name="JvmProviderSettings" Margin="0,8" />

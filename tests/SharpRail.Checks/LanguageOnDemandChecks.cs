@@ -74,10 +74,15 @@ internal static class LanguageOnDemandChecks
         var listed = await rig.Call("lsp_status", new { operation = "servers", workspace });
         Require(listed["servers"]!.AsArray().Where(row => row!["id"]!.ToString() is "typescript" or "python").All(row => row!["startedBy"]!.ToString() == "agent"), "lsp_status did not say that an agent started the servers: " + listed);
 
+        var typescriptUse = listed["servers"]!.AsArray().Single(row => row!["id"]!.ToString() == "typescript")!["usage"];
+        Require(typescriptUse is not null && typescriptUse["calls"]!.GetValue<int>() == 1 && typescriptUse["successes"]!.GetValue<int>() == 1 && typescriptUse["lastUsed"]!.ToString().Length > 0, "lsp_status did not count the agent's call: " + listed);
+
         // A server the user stopped explicitly stays stopped and the answer names the exact call that starts it.
         await rig.State.Languages.ExecuteAsync(new(workspace, Operation: "stop", Server: "python"));
         var stopped = await rig.Call("lsp_diagnostics", new { paths = new[] { "agent.py" }, workspace });
         var stoppedFile = stopped["files"]![0]!;
+        Require(stopped["hint"]!.ToString().Contains("agent.py", StringComparison.Ordinal) && stopped["hint"]!.ToString().Contains("retry", StringComparison.Ordinal), "A skipped file carried no one-line hint: " + stopped);
+        Require((await rig.Row("python")).Usage is { Calls: 2 }, "The pane's usage summary does not count both calls.");
         Require(stoppedFile["state"]!.ToString() == "skipped" && stoppedFile["detail"]!.ToString().Contains("\"operation\":\"retry\"", StringComparison.Ordinal), "A stopped server was not reported with the call that starts it: " + stopped);
 
         // A disabled server says so.
@@ -109,6 +114,15 @@ internal static class LanguageOnDemandChecks
                 "A hanging server hung or was not reported as initializing: " + hung);
         }
         finally { LanguageMcpTools.ToolDeadline = previous; }
+        // The counts survive a host restart and stay bounded.
+        await rig.State.StopLanguagesAsync();
+        var reopened = new HostStateStore(Path.Combine(root, "state"));
+        try
+        {
+            var again = (await reopened.Languages.ExecuteAsync(new(workspace, Operation: "servers"))).Servers.Single(row => row.Id == "python");
+            Require(again.Usage is { Calls: >= 2 } && new FileInfo(Path.Combine(root, "state", "language", "usage.json")).Length < 100_000, "Usage counts were lost or unbounded after a restart.");
+        }
+        finally { await reopened.StopLanguagesAsync(); }
         Console.WriteLine("PASS language on demand: tools start the owning servers, report stopped and disabled servers actionably and never hang");
     }
 

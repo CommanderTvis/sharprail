@@ -28,6 +28,10 @@ internal sealed partial class LanguagePanel : UserControl
         public bool RestartRequired => Server.ActiveConfiguration.Length > 0 && Server.Configuration != Server.ActiveConfiguration;
         public string SettingsTooltip => RestartRequired ? "Workspace settings · restart needed" : "Workspace settings";
         public Control SettingsIcon => Ui.Icon("settings", RestartRequired ? Ui.Accent : Ui.Muted);
+        public bool HasProvenance => Server.State is "ready" or "initializing" or "installing" or "actionRequired";
+        /// <summary>Who started the running server and whether agents use it, so the user sees at a glance whether the tools are used.</summary>
+        public string Provenance => (Server.StartedBy.Length > 0 ? "started by " + Server.StartedBy + " · " : "") + (Server.Usage is { Calls: > 0 } use
+            ? $"Agent calls: {use.Calls} (last: {LanguageNotes.Ago(use.LastUsed, DateTime.UtcNow)})" : "Agent calls: none yet");
         public bool CanStart => Server.State is "idle" or "stopped" or "error" or "unavailable" or "requiresAcceptance";
         public string Disclosure => CanStart ? Server.State is "error" or "unavailable" ? "Retry ▷" : "Start ▷" : Expanded ? "▾" : "▸";
         public Avalonia.Media.IBrush DetailBrush => ShowExit || Server.State is "error" or "unavailable" ? Ui.Danger : Ui.Muted;
@@ -68,6 +72,7 @@ internal sealed partial class LanguagePanel : UserControl
         AvaloniaXamlLoader.Load(this);
         Name = "LspPanel";
         this.FindControl<TextBlock>("Workspace")!.Text = workspace;
+        this.FindControl<TextBlock>("LifetimeNote")!.Text = LanguageNotes.Lifetime;
         if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
         var servers = this.FindControl<ListBox>("Servers")!;
         servers.ContextRequested += ServerContextRequested;

@@ -22,6 +22,7 @@ internal static class LanguageMcpResponse
             return response.ToJsonString(Json);
         }
         if (result.Server.Length > 0) response["server"] = result.Server;
+        if (result.Hint.Length > 0) response["hint"] = Clip(result.Hint, 400);
         if (result.State == "initializing" && result.Servers.Count > 0 && operation is not ("catalog" or "servers"))
             response["starting"] = new JsonArray(result.Servers.Select(server => (JsonNode?)new JsonObject { ["id"] = server.Id, ["state"] = server.State, ["detail"] = Clip(server.Detail, 300) }).ToArray());
         if (result.Configuration.Length > 0) response["configuration"] = JsonNode.Parse(result.Configuration);
@@ -92,6 +93,7 @@ internal static class LanguageMcpResponse
                 ["detail"] = Clip(server.Detail, 1_000),
                 ["version"] = server.Version,
                 ["startedBy"] = server.StartedBy.Length == 0 ? null : server.StartedBy,
+                ["usage"] = server.Usage is not { } use ? null : new JsonObject { ["calls"] = use.Calls, ["successes"] = use.Successes, ["failures"] = use.Failures, ["lastUsed"] = use.LastUsed },
                 ["hasWorkspaceConfiguration"] = server.Configured,
                 ["restartRequired"] = server.ActiveConfiguration.Length > 0 && server.ActiveConfiguration != server.Configuration,
                 ["lastExit"] = server.Exit is not { } exit ? null : new JsonObject

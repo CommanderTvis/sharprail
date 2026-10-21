@@ -969,6 +969,8 @@ internal static class LanguageChecks
         {
             E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.ListBox>("LspServer").ItemCount == LanguageServers.Catalog.Length);
             Require(Find<ComboBox>("JvmProvider") is not null, "Settings omitted workspace provider selection.");
+            Require(Find<TextBlock>("LspLifetimeNote").Text == SharpRail.UI.Panels.LanguageNotes.Lifetime && Find<TextBlock>("LspLifetimeNote").Text!.Contains("lifetime of their workspace", StringComparison.Ordinal),
+                "Settings did not tell the user that servers run for their workspace's lifetime and that agents start them.");
             Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Name == "ShowAirContext"),
                 "Code Intelligence still offers an Air Context switch; the plugin is turned off in Settings › Plugins.");
             var rail = Find<Avalonia.Controls.ListBox>("LspServer");
@@ -1243,6 +1245,13 @@ internal static class LanguageChecks
             window.MouseUp(startPoint, Avalonia.Input.MouseButton.Left);
             E2E.E2eWorkspace.Until(() => RowStatus(0) == "ready");
             Require(!pane.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Inspect"), "LSP pane retained Workspace Problems.");
+            Require(pane.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "LifetimeNote" && text.Text == SharpRail.UI.Panels.LanguageNotes.Lifetime && text.IsVisible),
+                "The Code Intelligence pane does not tell the user that servers run for their workspace's lifetime and that agents start them.");
+            E2E.E2eWorkspace.Until(() =>
+            {
+                if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ServerProvenance" && text.IsVisible &&
+                text.Text!.StartsWith("started by human", StringComparison.Ordinal) && text.Text.Contains("Agent calls: none yet", StringComparison.Ordinal));
+            });
             navigated = null;
             ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerSourceAction").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => navigated is not null);

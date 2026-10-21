@@ -25,6 +25,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     private readonly Action<string, string, string>? saveConfiguration;
     private int disposed;
     private readonly LanguageExitStore exits;
+    private readonly LanguageUsageStore usage;
     /// <summary>Called with workspace, server id and each exit record the host writes, for requested stops as well as deaths.</summary>
     internal Action<string, string, LanguageExit>? ExitObserved { get; set; }
     /// <summary>Called with workspace, server id, time and reason when a server dies without anyone asking it to; the host publishes it to clients.</summary>
@@ -48,6 +49,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     {
         servers = new(directory, configuration);
         exits = new(directory);
+        usage = new(directory);
         this.configuration = workspaceConfiguration ?? ((_, _) => "{}");
         this.saveConfiguration = saveConfiguration;
         this.enabled = enabled ?? (() => Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1");
@@ -318,7 +320,8 @@ public sealed partial class LanguageService : IAsyncDisposable
 
     private void RecordExit(string workspace, string server, LanguageExit exit, string startedBy)
     {
-        exit = exit with { StartedBy = startedBy, Details = $"Started by: {startedBy}\n" + exit.Details };
+        var use = usage.Get(workspace, server);
+        exit = exit with { StartedBy = startedBy, Details = $"Started by: {startedBy}\n" + (use is null ? "Agent calls: none\n" : $"Agent calls: {use.Calls} ({use.Successes} ok, {use.Failures} failed), last {use.LastUsed}\n") + exit.Details };
         exits.Set(workspace, server, exit);
         ExitObserved?.Invoke(workspace, server, exit);
         if (exit.Unexpected && Volatile.Read(ref disposed) == 0) DeathObserved?.Invoke(workspace, server, exit.Time, exit.Reason);
@@ -386,7 +389,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             rows.Add(new(id, path, state, detail, LanguageServers.Catalog.Single(server => server.Id == id).Version,
                 WorkspaceLanguageConfiguration.Serialize(WorkspaceLanguageConfiguration.Parse(configuration(workspace, id), id)),
                 entries.GetValueOrDefault(key)?.Configuration ?? "", configuration(workspace, id) != "{}")
-            { Exit = exit, StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "" });
+            { Exit = exit, Usage = usage.Get(workspace, id), StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "" });
         }
         return new(enabled() ? "ready" : "disabled", enabled() ? "Available language servers; detected languages are listed first." : "Language services are disabled. Workspace settings remain available.") { Servers = rows };
     }
@@ -476,6 +479,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             if (key.StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)) + "\0", StringComparison.Ordinal) && entries.TryRemove(new KeyValuePair<string, Entry>(key, entry)))
                 await StopAsync(entry, "workspace removed");
         exits.Remove(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)));
+        usage.Remove(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)));
     }
 
     private async Task PreserveDraftsAsync(string key, Entry entry, CancellationToken token)

@@ -1672,3 +1672,25 @@ SharpRail.Host.Abstractions.LanguageExit.Time.get -> string!
 SharpRail.Host.Abstractions.LanguageExit.Time.init -> void
 SharpRail.Host.Abstractions.LanguageExit.Unexpected.get -> bool
 SharpRail.Host.Abstractions.LanguageExit.Unexpected.init -> void
+override SharpRail.Host.Abstractions.LanguageUsageSummary.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageUsageSummary.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageUsageSummary.ToString() -> string!
+SharpRail.Host.Abstractions.LanguageUsageSummary
+SharpRail.Host.Abstractions.LanguageUsageSummary.<Clone>$() -> SharpRail.Host.Abstractions.LanguageUsageSummary!
+SharpRail.Host.Abstractions.LanguageUsageSummary.Deconstruct(out int Calls, out int Successes, out int Failures, out string! LastUsed) -> void
+SharpRail.Host.Abstractions.LanguageUsageSummary.Equals(SharpRail.Host.Abstractions.LanguageUsageSummary? other) -> bool
+SharpRail.Host.Abstractions.LanguageUsageSummary.LanguageUsageSummary(int Calls, int Successes, int Failures, string! LastUsed) -> void
+static SharpRail.Host.Abstractions.LanguageUsageSummary.operator !=(SharpRail.Host.Abstractions.LanguageUsageSummary? left, SharpRail.Host.Abstractions.LanguageUsageSummary? right) -> bool
+static SharpRail.Host.Abstractions.LanguageUsageSummary.operator ==(SharpRail.Host.Abstractions.LanguageUsageSummary? left, SharpRail.Host.Abstractions.LanguageUsageSummary? right) -> bool
+SharpRail.Host.Abstractions.LanguageUsageSummary.Calls.get -> int
+SharpRail.Host.Abstractions.LanguageUsageSummary.Calls.init -> void
+SharpRail.Host.Abstractions.LanguageUsageSummary.Successes.get -> int
+SharpRail.Host.Abstractions.LanguageUsageSummary.Successes.init -> void
+SharpRail.Host.Abstractions.LanguageUsageSummary.Failures.get -> int
+SharpRail.Host.Abstractions.LanguageUsageSummary.Failures.init -> void
+SharpRail.Host.Abstractions.LanguageUsageSummary.LastUsed.get -> string!
+SharpRail.Host.Abstractions.LanguageUsageSummary.LastUsed.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.Usage.get -> SharpRail.Host.Abstractions.LanguageUsageSummary?
+SharpRail.Host.Abstractions.LanguageServerState.Usage.init -> void
+SharpRail.Host.Abstractions.LanguageResult.Hint.get -> string!
+SharpRail.Host.Abstractions.LanguageResult.Hint.init -> void

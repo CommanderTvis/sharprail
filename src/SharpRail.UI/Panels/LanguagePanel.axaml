@@ -23,6 +23,7 @@
     <StackPanel x:Name="LanguageServersSection" Spacing="8">
       <TextBlock Text="Language servers" FontSize="16" FontWeight="SemiBold" />
       <TextBlock Text="Diagnostics, navigation and refactoring for your project." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+      <TextBlock x:Name="LifetimeNote" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock x:Name="Status" Text="Reading language servers…" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" Margin="0,4" />
     <Border x:Name="AgentLspGuidance" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.Accent}" BorderThickness="2,0,0,0" Padding="8">
       <StackPanel Spacing="4">
@@ -73,6 +74,7 @@
                       HorizontalAlignment="Left" HorizontalContentAlignment="Left" ToolTip.Tip="Open file in editor">
                 <TextBlock Text="{Binding Detection}" FontSize="12" TextWrapping="Wrap" />
               </Button>
+              <TextBlock Name="ServerProvenance" IsVisible="{Binding HasProvenance}" Text="{Binding Provenance}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
               <TextBlock Name="ServerVersion" IsVisible="{Binding Expanded}" Text="{Binding Version}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
             </StackPanel>
           </Grid>
