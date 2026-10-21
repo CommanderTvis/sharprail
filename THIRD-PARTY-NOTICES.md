@@ -76,6 +76,8 @@ included in the published app's Resources directory.
 Markdown parsing uses Markdig (BSD-2-Clause). Avalonia, protobuf-net, and other NuGet dependencies retain their package licenses.
 The spec dialect plugin parses YAML with YamlDotNet 18.1.0 (MIT);
 see licenses/YamlDotNet.txt.
+The EPUB Reader plugin reads EPUB packages with VersOne.Epub 3.3.6 (Unlicense, https://github.com/vers-one/EpubReader),
+which has no further dependencies on .NET Standard 2.0; see licenses/VersOne.Epub-Unlicense.txt.
 
 PDF Preview renders through PDFium 156.0.8076 from bblanchon.PDFium.macOS/Linux, and from
 bblanchon.PDFium.Android in the Android client.
