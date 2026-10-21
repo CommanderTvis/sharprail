@@ -231,8 +231,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         };
         connection.IsHitTestVisible = workbench.ChangeHost is not null;
         var settings = this.FindControl<Button>("SettingsButton")!;
+        // Plugins' header items (W24) lead the trailing group, before the host and connection status. A phone-sized
+        // workbench has no room for them beside the location; their details stay in Settings.
+        var headerItems = new Plugins.PluginHeaderItems(workbench.PluginRegistry) { IsVisible = !workbench.Compact };
         settings.Content = Ui.Icon("settings");
         settings.Click += (_, _) => ShowSettings();
+        if (settings.Parent is Panel trailing) trailing.Children.Insert(0, headerItems);
         if (!OperatingSystem.IsMacOS()) { ToolTip.SetTip(settings, "Settings"); AutomationProperties.SetName(settings, "Settings"); }
         if (OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
         // Linux window managers differ on client-side decorations: the header is the title bar only where LinuxWindowChrome trusts the

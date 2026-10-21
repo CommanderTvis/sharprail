@@ -726,7 +726,12 @@ to pi.
 | W20 | ask for a desktop notification about a terminal that needs the user while the app is away (`NotifyAttention` with an `AttentionNotification`) | `Notify` is an in-window toast; nothing reaches a user who is elsewhere |
 | W21 | contribute an action to the context menu of a file and of lines selected in it (`FileAction` with a `FileActionRegistration`; the target names the workspace, path and one-based lines) | the Files row menu is fixed; the code editor and the Markdown preview have no menu a plugin can reach |
 | W23 | contribute a section to a named place in one of core's own pages (`SlotSection` with a `SlotSectionRegistration`; places are the `UiSlots` ids `core:code-intelligence-settings` and `core:workspace-languages`, created with the page's workspace id), and open a core Settings page (`OpenSettings`, `UiPages`) | the pages are closed; a plugin's own Settings section (W4) is a separate page, not part of Code Intelligence |
+| W24 | contribute an item to the trailing end of every window's header, before the connection status and Settings (`HeaderItem` with a `HeaderItemRegistration`), and open a plugin's own Settings section (`OpenSettings(UiPages.PluginSection(id))`) | the header's trailing group is fixed |
 | W22 | the UI-side twin of H18: contribute to and read agent launch contributions, so every launcher, start action and resume of an agent applies them (`AgentLaunch`, `AgentLaunchContributions`) | the agent plugins build their launch lines from their own settings alone |
+
+W24 has no counterpart in the fork. Core's `PluginHeaderItems` follows the registry like a slot, so a disabled plugin leaves
+no item; the item hides itself while it has nothing to show and reads its data from the plugin's channels. A compact
+(phone) workbench shows no header items.
 
 W23 has no counterpart in the fork. A slot section exists only while its plugin is enabled: core's `PluginSlot` follows the
 registry, so a disabled plugin leaves no section and no placeholder, and enabling adds it without reopening the page. Core

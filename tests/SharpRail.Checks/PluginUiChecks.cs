@@ -118,13 +118,17 @@ internal static class PluginUiChecks
         registry.AddFileIconSlot("b", (_, _) => "file-line");
         registry.AddDocumentLinkSlot("b", (_, _) => null);
         registry.AddFileViewer("b", first, PluginFileRead.Text);
+        registry.AddHeaderItem("b", new(() => new Border()));
+        Require(registry.ActiveHeaderItems().Single().PluginId == "b", "An active plugin's header item is shown.");
+        registry.AddHeaderItem("c", new(() => new Border()));
+        Require(registry.ActiveHeaderItems().Count == 1, "An inactive plugin's header item is not.");
         registry.AddSettingsSection("a", new("A", "puzzle", () => new Border()));
         tables.Clear();
         registry.RemovePlugin("b");
         Require(tables.Count == 1, "RemovePlugin must be one write.");
         Require(registry.SideTools.Count == 0 && registry.Companions.Count == 0 && registry.FileViewers.Count == 0 && registry.TabDecorators.Count == 0 &&
             registry.Launchers.Count == 0 && registry.LauncherList.Count == 0 && registry.WorkspaceActions.Count == 0 && registry.ProjectActions.Count == 0 &&
-            registry.TerminalAccessories.Count == 0 && registry.FileIconSlots.Count == 0 && registry.DocumentLinkSlots.Count == 0 && !registry.Active.Contains("b"),
+            registry.TerminalAccessories.Count == 0 && registry.FileIconSlots.Count == 0 && registry.DocumentLinkSlots.Count == 0 && registry.HeaderItems.All(row => row.PluginId != "b") && !registry.Active.Contains("b"),
             "RemovePlugin must drop every row of the plugin.");
         Require(registry.SettingsSections.Count == 1 && registry.SettingsSections[0].PluginId == "a", "RemovePlugin must keep other plugins' rows.");
         Require(registry.Tool("plugin:b:two")!.Dormant, "A removed plugin's tool stays in the catalog, dormant.");

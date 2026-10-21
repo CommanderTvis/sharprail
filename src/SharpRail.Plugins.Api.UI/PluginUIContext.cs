@@ -50,7 +50,7 @@ public interface IPluginEditors
 }
 
 /// <summary>
-/// The context passed to <see cref="PluginUIModule.Activate"/>: the closed set of UI capabilities (W1–W23 in the
+/// The context passed to <see cref="PluginUIModule.Activate"/>: the closed set of UI capabilities (W1–W24 in the
 /// module spec, without chat). Registrations are accepted only while <c>Activate</c> runs, so a plugin's whole
 /// surface exists when it returns and the runtime can remove it by plugin id; every registration is unmounted
 /// when the plugin is disabled. Calls arrive and callbacks run on the UI thread.
@@ -180,8 +180,8 @@ public interface IPluginUIContext
     /// <param name="action">The action.</param>
     void FileAction(FileActionRegistration action);
 
-    /// <summary>Opens Settings on one of core's pages in the active window (W23).</summary>
-    /// <param name="page">The page, one of the <see cref="UiPages"/> ids.</param>
+    /// <summary>Opens Settings on one of core's pages, or on a plugin's own section, in the active window (W23).</summary>
+    /// <param name="page">The page, one of the <see cref="UiPages"/> ids or <see cref="UiPages.PluginSection"/>.</param>
     void OpenSettings(string page);
 
     /// <summary>
@@ -190,6 +190,13 @@ public interface IPluginUIContext
     /// </summary>
     /// <param name="section">The section.</param>
     void SlotSection(SlotSectionRegistration section);
+
+    /// <summary>
+    /// Contributes an item to the trailing end of each workbench window's header (W24). It exists only while the plugin
+    /// is enabled; a compact (phone) workbench has no header row for it and shows none.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    void HeaderItem(HeaderItemRegistration item);
 
     /// <summary>Contributes a terminal accessory row (W11).</summary>
     /// <param name="registration">The accessory.</param>

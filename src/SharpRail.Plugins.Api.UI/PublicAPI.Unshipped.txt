@@ -731,3 +731,17 @@ static SharpRail.Plugins.Api.UI.SlotSectionRegistration.operator !=(SharpRail.Pl
 static SharpRail.Plugins.Api.UI.SlotSectionRegistration.operator ==(SharpRail.Plugins.Api.UI.SlotSectionRegistration? left, SharpRail.Plugins.Api.UI.SlotSectionRegistration? right) -> bool
 SharpRail.Plugins.Api.UI.AttentionNotification.Reason.get -> string!
 SharpRail.Plugins.Api.UI.AttentionNotification.Reason.init -> void
+SharpRail.Plugins.Api.UI.HeaderItemRegistration
+SharpRail.Plugins.Api.UI.HeaderItemRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.HeaderItemRegistration!
+SharpRail.Plugins.Api.UI.HeaderItemRegistration.Create.get -> System.Func<Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.HeaderItemRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.HeaderItemRegistration.Deconstruct(out System.Func<Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.HeaderItemRegistration.Equals(SharpRail.Plugins.Api.UI.HeaderItemRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.HeaderItemRegistration.HeaderItemRegistration(System.Func<Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.HeaderItem(SharpRail.Plugins.Api.UI.HeaderItemRegistration! item) -> void
+override SharpRail.Plugins.Api.UI.HeaderItemRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.HeaderItemRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.HeaderItemRegistration.ToString() -> string!
+static SharpRail.Plugins.Api.UI.HeaderItemRegistration.operator !=(SharpRail.Plugins.Api.UI.HeaderItemRegistration? left, SharpRail.Plugins.Api.UI.HeaderItemRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.HeaderItemRegistration.operator ==(SharpRail.Plugins.Api.UI.HeaderItemRegistration? left, SharpRail.Plugins.Api.UI.HeaderItemRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.UiPages.PluginSection(string! pluginId, string? sectionId = null) -> string!

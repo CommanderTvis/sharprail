@@ -51,7 +51,8 @@ required scope is absent. Payloads that are themselves collections retain their 
 
 - Tables are `Manifests`/`Roster`, `Active` (the loader's per-plugin activation flag), and one list per kind:
   `SideTools`, `SettingsSections`, `Companions`, `FileViewers`, `TabDecorators`, `Launchers`,
-  `WorkspaceActions`, `ProjectActions`, `TerminalAccessories`, `FileIconSlots`, `DocumentLinkSlots`. Every
+  `WorkspaceActions`, `ProjectActions`, `TerminalAccessories`, `FileIconSlots`, `DocumentLinkSlots`,
+  `FileActions`, `SlotSections`, `HeaderItems`. Every
   row is tagged with its plugin id. `RemovePlugin(id)` drops every row tagged with that id, across every
   table, in one write. Workspace and project actions are separate tables, so a reader never hands a
   project-scoped factory a workspace's arguments.

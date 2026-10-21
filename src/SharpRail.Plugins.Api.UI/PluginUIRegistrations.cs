@@ -172,9 +172,23 @@ public static class UiPages
 {
     /// <summary>Settings › Code Intelligence.</summary>
     public const string CodeIntelligence = "Code Intelligence";
+
+    /// <summary>A plugin's own Settings section (W4), for <see cref="IPluginUIContext.OpenSettings"/>.</summary>
+    /// <param name="pluginId">The plugin that registered the section.</param>
+    /// <param name="sectionId">The section's <see cref="SettingsSectionRegistration.Id"/>; defaults to the plugin's id.</param>
+    /// <returns>The page id.</returns>
+    public static string PluginSection(string pluginId, string? sectionId = null) => "plugin:" + pluginId + ":" + (sectionId ?? pluginId);
 }
 
 /// <summary>Contributes a section to a named place in one of core's pages (W23).</summary>
 /// <param name="Slot">The place, one of the <see cref="UiSlots"/> ids.</param>
 /// <param name="Create">Creates the section's control for a workspace id, or <see langword="null"/> when the page has none; a new control each time the section is shown.</param>
 public sealed record SlotSectionRegistration(string Slot, Func<string?, Control> Create);
+
+/// <summary>
+/// Contributes a small item to the trailing end of every workbench window's header, before the connection status and
+/// Settings (W24). The control decides what it shows: it hides itself (<c>IsVisible</c> false) while it has nothing
+/// to say, and reads its data from the plugin's channels, never from I/O on the UI thread.
+/// </summary>
+/// <param name="Create">Creates the item's control; called once per window, a new control each time.</param>
+public sealed record HeaderItemRegistration(Func<Control> Create);

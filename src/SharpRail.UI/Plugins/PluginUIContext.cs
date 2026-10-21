@@ -202,6 +202,7 @@ internal sealed class PluginUIContext : IPluginUIContext
     public void SettingsSection(SettingsSectionRegistration section) { Guard(); Registry.AddSettingsSection(Id, section); }
     public void OpenSettings(string page) => Workbench.ActiveWindow?.ShowSettings(page);
     public void SlotSection(SlotSectionRegistration section) { Guard(); Registry.AddSlotSection(Id, section); }
+    public void HeaderItem(HeaderItemRegistration item) { Guard(); Registry.AddHeaderItem(Id, item); }
     public void SideTool(SideToolRegistration registration) { Guard(); Registry.AddSideTool(Id, registration); }
     public void Companion(CompanionRegistration registration) { Guard(); Registry.AddCompanion(Id, registration); }
     public void TabDecoration(Func<TabRef, TabDecoration?> decorate) { Guard(); Registry.AddTabDecorator(Id, decorate); }
