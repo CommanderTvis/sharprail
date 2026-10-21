@@ -83,6 +83,12 @@ internal static class LanguageOnDemandChecks
         await rig.State.ChangeAsync([HostStateChange.Setting("language-server:typescript", JsonSerializer.Serialize(rig.Fake, JsonSerializerOptions.Web))]);
         await rig.State.Languages.ExecuteAsync(new(workspace, "code.ts", "retry"));
 
+        // A symbol query without a path searches the workspace; a missing path names the working call.
+        var search = await rig.Call("lsp_navigate", new { operation = "definition", query = "target", workspace });
+        Require(search["state"]!.ToString() == "ready" && search["locations"]!.AsArray().Count > 0 && search["detail"]!.ToString().Contains("searched workspace symbols", StringComparison.Ordinal), "A query without a path did not search the workspace: " + search);
+        var rejected = (await McpServer.HandleAsync(JsonNode.Parse(JsonSerializer.Serialize(new { jsonrpc = "2.0", id = 99, method = "tools/call", @params = new { name = "lsp_navigate", arguments = new { operation = "definition", workspace } } })), rig.Tools, default)).Body!.ToJsonString();
+        Require(rejected.Contains("Working call", StringComparison.Ordinal) && rejected.Contains("src/Foo.cs", StringComparison.Ordinal), "A missing path did not name the working call: " + rejected);
+
         // A server that hangs cannot hang the tool: the call returns an initializing status at its deadline.
         await rig.State.Languages.ExecuteAsync(new(workspace, Operation: "restart", Server: "typescript", Configuration: """{"settings":{"fixtureDie":{"hang":true}}}"""));
         using (var ready = new CancellationTokenSource(TimeSpan.FromSeconds(20)))

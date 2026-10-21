@@ -17,7 +17,7 @@ public sealed partial class LanguageService
             return await ExecuteAsync(request, token);
         if (!Path.IsPathFullyQualified(request.Workspace) || !Directory.Exists(request.Workspace)) return await ExecuteAsync(request, token);
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
-        if (request.Path.Length == 0 && request.Operation == "workspaceSymbols")
+        if (request.Path.Length == 0 && (request.Operation == "workspaceSymbols" || LanguageUsage.MapsToWorkspaceSearch(request)))
         {
             await Task.WhenAll(Discover(workspace).Select(path => EnsureStartedAsync(workspace, path, request.Origin, token)));
             return await ExecuteAsync(request, token);

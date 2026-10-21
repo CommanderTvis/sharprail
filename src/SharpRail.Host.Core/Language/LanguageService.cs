@@ -149,9 +149,16 @@ public sealed partial class LanguageService : IAsyncDisposable
                 };
             request = request with { Operation = "retry" };
         }
+        var mapped = "";
         if (request.Path.Length == 0 && selectedServer is null)
         {
-            if (request.Operation is not ("diagnostics" or "status" or "workspaceSymbols")) throw new ArgumentException("This operation requires a path.");
+            // A symbol query without a file asks every server that has files here, instead of failing.
+            if (LanguageUsage.MapsToWorkspaceSearch(request))
+            {
+                mapped = $"No path was given, so this searched workspace symbols for \"{request.Query}\" across the servers for this workspace's languages. ";
+                request = request with { Operation = "workspaceSymbols" };
+            }
+            if (request.Operation is not ("diagnostics" or "status" or "workspaceSymbols")) throw new ArgumentException(LanguageUsage.PathRequired(request.Operation, workspace));
             var results = new List<LanguageResult>();
             if (request.Operation == "diagnostics")
             {
@@ -182,7 +189,7 @@ public sealed partial class LanguageService : IAsyncDisposable
                 results.Add(await ExecuteAsync(request with { Path = path }, token));
             }
             return new(results.Any(result => result.State == "expired") ? "expired" : results.Any(result => result.State == "requiresAcceptance") ? "requiresAcceptance" : results.Any(result => result.State is "installing" or "initializing") ? "initializing" : results.Any(result => result.State == "error") ? "error" : results.Any(result => result.State == "unavailable") ? "unavailable" : "ready",
-                results.Count == 0 ? "No running language servers. Start a server to request inspections." : string.Join("\n", results.Select(result => result.Server + ": " + result.Detail).Distinct()), Version: request.Version)
+                mapped + (results.Count == 0 ? "No language server is configured for any file in this workspace." : string.Join("\n", results.Select(result => result.Server + ": " + result.Detail).Distinct())), Version: request.Version)
             {
                 Diagnostics = results.SelectMany(result => result.Diagnostics).Distinct().ToArray(),
                 Total = results.Sum(result => result.Total),
