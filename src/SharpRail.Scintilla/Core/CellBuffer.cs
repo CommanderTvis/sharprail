@@ -143,13 +143,24 @@ internal sealed class CellBuffer
         perLine?.RemoveLine(line);
     }
 
+    /// <summary>SharpRail extension: inserted bytes take the neighbouring style instead of 0, so container-styled text keeps its token colour until restyled.</summary>
+    internal bool InheritInsertionStyle { get; set; }
+
+    private byte InsertionStyle(int position)
+    {
+        if (position > 0 && substance.ValueAt(position - 1) is not ((byte)'\r' or (byte)'\n')) return style.ValueAt(position - 1);
+        if (position < substance.Length && substance.ValueAt(position) is not ((byte)'\r' or (byte)'\n')) return style.ValueAt(position);
+        return position > 0 ? style.ValueAt(position - 1) : (byte)0;
+    }
+
     private void BasicInsertString(int position, ReadOnlySpan<byte> s)
     {
         if (s.Length == 0) return;
         byte chAfter = substance.ValueAt(position);
         int lineInsert = LineFromPosition(position) + 1;
+        byte inherited = InheritInsertionStyle ? InsertionStyle(position) : (byte)0;
         substance.InsertFromSpan(position, s);
-        style.InsertValue(position, s.Length, 0);
+        style.InsertValue(position, s.Length, inherited);
 
         bool atLineStart = LineStart(lineInsert - 1) == position;
         // Point all the lines after the insertion point further along in the buffer.

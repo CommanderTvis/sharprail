@@ -32,6 +32,23 @@ public sealed partial class EditorFrame
         });
     }
 
+    // Keeps semantic roles of unchanged bytes across an edit (common prefix and suffix), as VS Code shifts tokens until fresh ones arrive.
+    private void RebaseSemanticStyles(string text)
+    {
+        var before = Encoding.UTF8.GetBytes(semanticText!);
+        var after = Encoding.UTF8.GetBytes(text);
+        var old = semanticStyles!;
+        var prefix = 0;
+        while (prefix < before.Length && prefix < after.Length && before[prefix] == after[prefix]) prefix++;
+        var suffix = 0;
+        while (suffix < before.Length - prefix && suffix < after.Length - prefix && before[^(suffix + 1)] == after[^(suffix + 1)]) suffix++;
+        var styles = new byte[after.Length];
+        Array.Fill(styles, byte.MaxValue);
+        old.AsSpan(0, prefix).CopyTo(styles);
+        old.AsSpan(old.Length - suffix).CopyTo(styles.AsSpan(styles.Length - suffix));
+        semanticStyles = styles; semanticText = text; lastSemanticTokens = [];
+    }
+
     internal static byte[] SemanticStyles(string text, IReadOnlyList<SemanticToken> tokens)
     {
         var styles = new byte[Encoding.UTF8.GetByteCount(text)]; Array.Fill(styles, byte.MaxValue);

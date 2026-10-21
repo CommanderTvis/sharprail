@@ -133,6 +133,13 @@ internal sealed class Document
 
     // Modification
 
+    /// <summary>SharpRail extension: whether inserted bytes take the neighbouring style (see <see cref="CellBuffer.InheritInsertionStyle"/>).</summary>
+    internal bool InheritInsertionStyle
+    {
+        get => cb.InheritInsertionStyle;
+        set => cb.InheritInsertionStyle = value;
+    }
+
     internal int InsertString(int position, string text) => InsertString(position, Encoding.UTF8.GetBytes(text));
 
     /// <summary>Inserts bytes, returning the length inserted (0 when read-only or re-entered).</summary>

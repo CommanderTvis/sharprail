@@ -89,6 +89,9 @@ internal sealed class ScintillaDocument : IDisposable
     /// <summary>Applies one style per byte from the styling position, like SCI_SETSTYLINGEX.</summary>
     internal void SetStyling(ReadOnlySpan<byte> styles) => Editor.SetStylingEx(styles);
 
+    /// <summary>Whether typed text takes its neighbour's style until the container restyles it.</summary>
+    internal bool InheritInsertionStyle { set => Editor.Document.InheritInsertionStyle = value; }
+
     internal nint Revision => (nint)Editor.Revision;
 
     /// <summary>Whether the editor invalidated anything since the flag was last cleared.</summary>

@@ -22,7 +22,7 @@ editor.SelectionChanged += (_, _) => { /* editor.Selection: one-based lines and 
 `StyleText` accepts one palette index per UTF-8 document byte and an opaque colour
 palette, allowing an editor-independent tokenizer to style text without editing it.
 Its style IDs start at 40, separate from whole-line styles and Scintilla defaults.
-`ClearTextStyles` restores the default style in one document operation. The UI kit
+While text styles are applied, inserted bytes take the neighbouring style (SharpRail extension to `CellBuffer`) instead of style 0, so typing never flashes default-coloured text before the tokenizer restyles; `ClearTextStyles` turns this off and restores the default style in one document operation. The UI kit
 supplies background TextMate highlighting for file and diff frames.
 
 `LineStyles` is a palette of whole-line styles (a foreground and an optional

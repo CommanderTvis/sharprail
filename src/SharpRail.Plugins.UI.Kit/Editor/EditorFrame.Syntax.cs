@@ -56,7 +56,7 @@ public sealed partial class EditorFrame
         RequestSyntax();
     }
 
-    private void SyntaxChanged(object? sender, EventArgs e) { semanticStyles = null; syntaxStyles = null; RequestSyntax(); }
+    private void SyntaxChanged(object? sender, EventArgs e) { syntaxStyles = null; RequestSyntax(); }
     private void GrammarChanged() { syntaxStyles = null; RequestSyntax(); }
 
     private async void RequestSyntax()
@@ -155,13 +155,12 @@ public sealed partial class EditorFrame
 
     private void ApplySyntaxTheme()
     {
-        if (syntaxStyles is not null && highlightedText != Editor.Text)
-        {
-            syntaxStyles = null;
-            if (!deferSyntaxColors) this.FindControl<ContentControl>("EditorBody")!.Opacity = 0;
-        }
-        if (semanticStyles is not null && semanticText != Editor.Text) semanticStyles = null;
+        // Stale results are dropped without touching the document: its current styles (inserted text inherits its
+        // neighbour's) stay painted until the pending pass lands, so colours never blink off while typing.
+        if (syntaxStyles is not null && highlightedText != Editor.Text) syntaxStyles = null;
+        if (semanticStyles is not null && semanticText != Editor.Text) RebaseSemanticStyles(Editor.Text);
         if (syntaxDisposed || (deferSyntaxColors && semanticStyles is null) || (syntaxStyles is null && semanticStyles is null)) return;
+        if (syntaxStyles is null && syntaxPath is not null && !deferSyntaxColors && Editor.Text.Length <= TextMateHighlighter.MaximumCharacters) return;
         var palette = new List<ScintillaLineStyle>();
         for (var kind = -1; kind < (syntaxLineStyles is null ? 0 : Editor.LineStyles.Count); kind++)
         {

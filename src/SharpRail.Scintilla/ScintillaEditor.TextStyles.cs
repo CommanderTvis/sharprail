@@ -17,6 +17,7 @@ public sealed partial class ScintillaEditor
             throw new ArgumentException("Style index is outside the palette.", nameof(styles));
         textStyles = palette;
         appliedColors = null;
+        document.InheritInsertionStyle = true;
         var nativeStyles = new byte[styles.Length];
         for (var i = 0; i < styles.Length; i++) nativeStyles[i] = (byte)(FirstTextStyle + styles[i]);
         document.Send(ScintillaMessage.StartStyling);
@@ -28,6 +29,7 @@ public sealed partial class ScintillaEditor
     public void ClearTextStyles()
     {
         textStyles = [];
+        document.InheritInsertionStyle = false;
         document.Send(ScintillaMessage.StartStyling);
         document.Send(ScintillaMessage.SetStyling, document.Send(ScintillaMessage.GetLength));
         InvalidateVisual();

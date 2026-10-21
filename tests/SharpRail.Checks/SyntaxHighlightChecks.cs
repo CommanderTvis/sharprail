@@ -42,7 +42,8 @@ internal static class SyntaxHighlightChecks
     internal static void Run()
     {
         Task.Run(Grammars).GetAwaiter().GetResult();
-        if (OperatingSystem.IsMacOS()) { Editor(); Documents(); Diffs(); SingleSidedDiffs(); Settings(); }
+        Task.Run(IncrementalTokenizing).GetAwaiter().GetResult();
+        if (OperatingSystem.IsMacOS()) { Editor(); Typing(); Documents(); Diffs(); SingleSidedDiffs(); Settings(); }
         Console.WriteLine("PASS TextMate language coverage, edits, Unicode, lifecycle, themes and diffs");
     }
 
@@ -211,6 +212,76 @@ internal static class SyntaxHighlightChecks
             window.Content = null; Pump();
         }
         finally { Ui.Apply(theme); window.Close(); frame.Editor.Dispose(); SynchronizationContext.SetSynchronizationContext(synchronization); }
+    }
+
+    private static byte[] Styles(ScintillaEditor editor)
+    {
+        var styles = new byte[Encoding.UTF8.GetByteCount(editor.Text)];
+        for (var i = 0; i < styles.Length; i++) styles[i] = unchecked((byte)editor.Document.Send(ScintillaMessage.GetStyleAt, i));
+        return styles;
+    }
+
+    // Typing faster than the highlight debounce, with a frame between keystrokes, must never drop a colour.
+    private static void Typing()
+    {
+        const string source = "// header comment\nnamespace N;\npublic class A\n{\n    string s = \"hello world\";\n    // trailing note\n    int n = 42;\n}\n";
+        var frame = new EditorFrame(source, "TypingSyntaxEditor");
+        frame.Highlight("a.cs");
+        var window = new Window { Width = 640, Height = 300, Content = frame };
+        var synchronization = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(null);
+        window.Show();
+        try
+        {
+            Until(() => NativeStyle(frame.Editor, "public") >= 40);
+            foreach (var (after, role) in new[] { ("\"hello", "string"), ("// trailing", "comment") })
+            {
+                var text = frame.Editor.Text;
+                var start = text.IndexOf(after, StringComparison.Ordinal) + after.Length;
+                var position = Encoding.UTF8.GetByteCount(text.AsSpan(0, start));
+                var baseline = Styles(frame.Editor);
+                frame.Editor.Focus(); frame.Editor.SelectRange(start, 0); Pump();
+                var typed = 0;
+                foreach (var ch in "xyzw")
+                {
+                    window.KeyTextInput(ch.ToString()); typed++; Pump();
+                    var styles = Styles(frame.Editor);
+                    Require(styles.Length == baseline.Length + typed, "Typing did not reach the editor.");
+                    for (var i = 0; i < styles.Length; i++)
+                    {
+                        var expected = i < position ? baseline[i] : i >= position + typed ? baseline[i - typed] : (byte)(40 + Role(role));
+                        Require(styles[i] == expected, $"Typing into a {role} changed byte {i} from style {expected} to {styles[i]} after {typed} keystrokes.");
+                    }
+                }
+                var final = frame.Editor.Text;
+                var fresh = new TextMateHighlighter().Highlight(final, "a.cs", null, CancellationToken.None).Select(style => (byte)(40 + style)).ToArray();
+                Until(() => Styles(frame.Editor).SequenceEqual(fresh));
+            }
+        }
+        finally { window.Close(); frame.Editor.Dispose(); SynchronizationContext.SetSynchronizationContext(synchronization); }
+    }
+
+    // An edit retokenizes from the edited line until the grammar state converges, also when lines shift.
+    private static void IncrementalTokenizing()
+    {
+        var builder = new StringBuilder();
+        for (var i = 0; i < 5000; i++) builder.Append("    public int Field").Append(i).Append(" = ").Append(i).Append("; // note\n");
+        var text = builder.ToString();
+        var highlighter = new TextMateHighlighter();
+        highlighter.Highlight(text, "a.cs", null, CancellationToken.None);
+        var middle = text.IndexOf("Field2500", StringComparison.Ordinal);
+        foreach (var edit in new[] { "x", "\n", "/*" })
+        {
+            var edited = text.Insert(middle, edit);
+            var timer = Stopwatch.StartNew();
+            var styles = highlighter.Highlight(edited, "a.cs", null, CancellationToken.None);
+            var elapsed = timer.Elapsed;
+            var tokenized = highlighter.TokenizedLines;
+            Require(styles.SequenceEqual(new TextMateHighlighter().Highlight(edited, "a.cs", null, CancellationToken.None)), $"Incremental tokenizing of {edit.Trim()} differs from a fresh pass.");
+            Console.WriteLine($"Keystroke {(edit == "\n" ? "newline" : edit)} on 5000 lines: {tokenized} lines tokenized, {elapsed.TotalMilliseconds:F1} ms");
+            if (edit != "/*") Require(tokenized <= 3, $"Inserting {edit.Trim()} retokenized {tokenized} lines instead of the edited ones.");
+            highlighter.Highlight(text, "a.cs", null, CancellationToken.None);
+        }
     }
 
     private static void Documents()

@@ -24,6 +24,8 @@ internal sealed class TextMateHighlighter
     private string? scope;
     private IGrammar? grammar;
     private List<CachedLine> cache = [];
+    /// <summary>Lines the last <see cref="Highlight"/> call tokenized rather than reused from the per-line cache.</summary>
+    internal int TokenizedLines { get; private set; }
     private sealed record CachedLine(string Text, IStateStack? Before, IStateStack? After, byte[] Styles);
 
     internal static string? Detect(string path) => Detect(path, CustomHighlighting.Current);
@@ -68,10 +70,12 @@ internal sealed class TextMateHighlighter
             grammar = detected is null ? null : registry.LoadGrammar(detected);
             cache = [];
         }
+        TokenizedLines = 0;
         var styles = new byte[Encoding.UTF8.GetByteCount(text)];
         if (grammar is null || text.Length > MaximumCharacters) return styles;
         var lines = SplitLines(text);
         var nextCache = new List<CachedLine>(lines.Count);
+        var shift = lines.Count - cache.Count;
         IStateStack? oldState = null, newState = null;
         var offset = 0;
         for (var index = 0; index < lines.Count; index++)
@@ -86,8 +90,8 @@ internal sealed class TextMateHighlighter
             if (row.Old) { highlighted = Tokenize(source, oldState); oldState = highlighted.After; }
             if (row.New)
             {
-                highlighted = rows is null && index < cache.Count && cache[index].Text == source && Equals(cache[index].Before, newState)
-                    ? cache[index] : Tokenize(source, newState);
+                highlighted = rows is null ? Cached(index, source, newState) ?? Cached(index - shift, source, newState) : null;
+                highlighted ??= Tokenize(source, newState);
                 newState = highlighted.After;
             }
             if (highlighted is not null)
@@ -99,8 +103,13 @@ internal sealed class TextMateHighlighter
         return styles;
     }
 
+    // Lines after an inserted or deleted line sit at index - shift in the previous cache; reuse stops mattering once the state converges.
+    private CachedLine? Cached(int index, string source, IStateStack? state) =>
+        index >= 0 && index < cache.Count && cache[index].Text == source && Equals(cache[index].Before, state) ? cache[index] : null;
+
     private CachedLine Tokenize(string line, IStateStack? state)
     {
+        TokenizedLines++;
         var styles = new byte[Encoding.UTF8.GetByteCount(line)];
         if (line.Length > 16_384) return new(line, state, null, styles);
         var result = grammar!.TokenizeLine(line, state!, TimeSpan.FromMilliseconds(50));

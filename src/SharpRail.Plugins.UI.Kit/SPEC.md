@@ -323,8 +323,16 @@ and asserts the role of each token and that keys, strings and comments differ in
 
 Grammar loading and tokenization run off the dispatcher. Each document caches line
 text and incoming/outgoing tokenizer state, so unchanged lines with unchanged incoming
-state reuse their tokens. Edits coalesce for 60 ms, superseded requests cancel, and
-results apply only to the still-attached document version. Detaching cancels work
+state reuse their tokens; lines shifted by an inserted or deleted line are matched at their
+shifted index, so an edit retokenizes from the edited line until the state converges (`--syntax`
+reports lines tokenized per keystroke on 5000 lines: one for a character, two for a newline).
+Edits coalesce for 60 ms, superseded requests cancel, and
+results apply only to the still-attached document version, in one styling pass without clearing.
+Colours never blink off while typing: typed bytes take the neighbouring token's style
+(the previous byte's, or the next byte's at a line start) until the pass lands, stale results are
+dropped without restyling or hiding the editor, and `--syntax` types into a string and a comment
+with a frame between keystrokes, faster than the debounce, requiring every byte outside the typed
+range to keep its style in every frame and the settled styles to equal a fresh tokenization. Detaching cancels work
 and discards cached style bytes; reattaching highlights the current buffer, including
 edits made while detached, before any cached syntax styles can be recoloured.
 Theme changes recolour existing tokens.
@@ -421,6 +429,8 @@ When supported semantic tokens arrive, semantic roles override TextMate colors o
 reported spans. Uncovered spans retain syntax colors, including keywords, comments and literals;
 sparse server responses must not erase lexical highlighting. Empty/unsupported tokens, edits and stopped
 servers retain or restore TextMate fallback. Subsequent syntax refreshes cannot overwrite semantics.
+Edits keep semantic roles on bytes outside the edited span (common prefix and suffix) until fresh tokens
+arrive, and semantic results wait for the current syntax pass rather than painting over unstyled syntax.
 
 Token types map to palette roles: namespace, class, struct, interface, enum, typeParameter, delegate and
 record to `type`; parameter and variable to `variable`; property, field and event to `property`;
