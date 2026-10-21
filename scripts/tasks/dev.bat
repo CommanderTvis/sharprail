@@ -1,12 +1,12 @@
 @echo off
 rem Builds SharpRail from source and starts it (`scripts\mise run dev`; the Windows counterpart of dev.sh).
 rem The app is a GUI executable, so it is started detached and no console window stays open for it.
-rem SHARPRAIL_PROFILE keeps a separate profile; SHARPRAIL_CONFIGURATION defaults to Debug. Arguments go to the app.
+rem SHARPRAIL_PROFILE keeps a separate profile; SHARPRAIL_CONFIGURATION defaults to Release (Debug for debugging). Arguments go to the app.
 setlocal
 cd /d "%~dp0..\.."
 set "DOTNET_ROOT=%CD%\.tools\dotnet"
 if not defined SHARPRAIL_ROOT set "SHARPRAIL_ROOT=%CD%"
-if not defined SHARPRAIL_CONFIGURATION set "SHARPRAIL_CONFIGURATION=Debug"
+if not defined SHARPRAIL_CONFIGURATION set "SHARPRAIL_CONFIGURATION=Release"
 rem Run from inside a Claude Code session, the app must not carry that session's identity (or its NO_COLOR,
 rem which would otherwise switch colour off in every terminal tab) into its terminals.
 if defined CLAUDECODE set "NO_COLOR="

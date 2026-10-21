@@ -17,8 +17,8 @@ The UI kit's `BuildFileIcons` target (a skipped build when the generator and tab
 scripts/mise run dev
 ```
 
-Builds and runs the desktop app in Debug by default, bootstrapping the SDK if
-needed. `SHARPRAIL_CONFIGURATION=Release` selects Release, `SHARPRAIL_ROOT` selects
+Builds and runs the desktop app in Release by default, bootstrapping the SDK if
+needed. `SHARPRAIL_CONFIGURATION=Debug` selects a Debug build for debugging, `SHARPRAIL_ROOT` selects
 the initial workspace (default: this checkout), and `SHARPRAIL_PROFILE` selects a
 separate profile instead of `~/.sharprail`. Additional arguments go to the app.
 The script clears inherited Claude Code session identity before launch.

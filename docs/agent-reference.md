@@ -34,7 +34,7 @@ Detail moved out of `AGENTS.md`. Read the section you need; do not load it whole
 | `tests/SharpRail.Checks` | Executable checks (host transports, extensibility, layout, UI, Git/worktree). `E2E/` translates upstream scenarios with real headless Avalonia input. |
 | `mise.toml`, `mise.android.toml`, `mise.browser.toml` (+ `.lock`) | The single toolchain manifest and every task. `scripts/mise run targets` prints the artifact matrix. |
 | `scripts/mise*`, `scripts/mise-pinned*` | Entry points for toolchain commands; checksum-pinned mise, tool store shared by all checkouts, ignores the user's mise config. |
-| `scripts/tasks` | What the mise tasks run (`dev`, `host`, `package-macos`, `dmg`, `package-windows`, `android`, `browser`, `check-packaged`, `check-terminal`, `check-fsevents`, `workload`). Never run directly. |
+| `scripts/tasks` | What the mise tasks run (`dev` runs a Release build unless `SHARPRAIL_CONFIGURATION=Debug`, `host`, `package-macos`, `dmg`, `package-windows`, `android`, `browser`, `check-packaged`, `check-terminal`, `check-fsevents`, `workload`). Never run directly. |
 | `scripts/link-tools.sh` / `.ps1`, `scripts/fetch-git.sh` | Link store installs into `.tools`; fetch a source pinned by Git commit. |
 | `scripts/build-merman.sh` | Links the xcframework mise installs (`.tools/merman`) into `src/SharpRail.UI/obj/native/libSharpRailMermaid.dylib`; the kit's `Visualization/MermaidRenderer.cs` renders SVG through it. Other platforms show source with an unavailability message. |
 | `scripts/build-notifications.sh` | Compiles the notifications bridge into `src/SharpRail.UI/obj/native/libSharpRailNotifications.dylib` when `Native/Notifications.m` changes. |

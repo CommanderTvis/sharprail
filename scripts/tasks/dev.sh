@@ -2,6 +2,7 @@
 # `scripts/mise run dev`: builds SharpRail from source and runs it, like the reference's `bun run desktop:dev`.
 # The workspace defaults to this checkout (SHARPRAIL_ROOT) and the profile to ~/.sharprail;
 # set SHARPRAIL_PROFILE to try something without touching your own. Arguments go to the app.
+# It is a Release build (a Debug one holds more memory); SHARPRAIL_CONFIGURATION=Debug selects Debug for debugging.
 set -eu
 cd "$(dirname "$0")/../.."
 # The app host finds the checkout's runtime, and terminal relays inherit it.
@@ -11,4 +12,4 @@ export SHARPRAIL_ROOT="${SHARPRAIL_ROOT:-$PWD}"
 unset CLAUDECODE CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_ENTRYPOINT CLAUDE_CODE_EXECPATH CLAUDE_CODE_SESSION_ID \
   CLAUDE_CODE_BRIDGE_SESSION_ID CLAUDE_CODE_MESSAGING_SOCKET CLAUDE_CODE_MESSAGING_TOKEN CLAUDE_CODE_SESSION_ATTENDED \
   CLAUDE_CODE_SSE_PORT CLAUDE_PID CLAUDE_EFFORT
-exec .tools/dotnet/dotnet run --project src/SharpRail.UI -c "${SHARPRAIL_CONFIGURATION:-Debug}" -- "$@"
+exec .tools/dotnet/dotnet run --project src/SharpRail.UI -c "${SHARPRAIL_CONFIGURATION:-Release}" -- "$@"
