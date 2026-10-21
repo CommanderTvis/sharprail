@@ -319,7 +319,7 @@ bounded source retrieval with the returned URI/source provider. Reuse warm sessi
 readiness; retain text-search fallbacks for incomplete or unsupported semantic results.
 
 
-The prompt appendix carries the tool guidance enabled plugins contribute (H20; Air Context's context_search/status/index paragraph while that plugin is enabled), then LSP for known symbols/current drafts. The file is composed on activation and for every terminal the plugin starts, so a plugin turned off leaves nothing in it; an edited file is the user's and is left alone. No jbcontext global Claude setup/hooks/skills are installed; the Air Context plugin triggers indexing only after workspace enablement.
+The prompt appendix carries the tool guidance enabled plugins contribute (H20; Air Context's context_search/status/index paragraph while that plugin is enabled), then the Code Intelligence section: why grep is wrong for code here (with the macOS renderer example), name-based `lsp_navigate` calls first, when grep is still fine, `lsp_diagnostics` on edited paths, and that subagents do not receive the appendix so a brief must carry it; it stays under 4,000 characters. The file is composed on activation and for every terminal the plugin starts, so a plugin turned off leaves nothing in it; an edited file is the user's and is left alone. No jbcontext global Claude setup/hooks/skills are installed; the Air Context plugin triggers indexing only after workspace enablement.
 
 ## Launch contributions
 
