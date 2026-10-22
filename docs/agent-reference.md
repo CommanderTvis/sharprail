@@ -169,7 +169,7 @@ Other check facts:
 
 The nightly workflow builds the macOS DMG, Android APK and Windows x64/ARM64 ZIPs at 03:00 UTC or on manual dispatch; each Windows job (`windows-2025`, `windows-11-arm`) requires the packaged ReadyToRun `--windows` gate before the four assets publish together. Verify the actual workflow run and release assets before reporting a nightly deployed or runtime-verified.
 
-Every workflow step that builds, packages or checks runs through `scripts/ci-run.sh` (`scripts/ci-run.ps1` on Windows): it keeps the output in `$RUNNER_TEMP/sharprail-ci/`, and on failure `scripts/ci-diagnose.sh` annotates the first error lines (MSBuild `file(line,col): error` lines become file annotations; step titles must not contain `:` or `,`) and writes them with the log tail to the step summary. Each job ends with `if: failure()` `.github/actions/diagnostics`, which uploads `diagnostics-<job>` (step logs, `.bench/checks-last-run.txt`, any `*.binlog`) for 7 days. Retried nightly attempts run with `SHARPRAIL_CI_QUIET=1` until the last. Add new steps through the wrapper.
+Every workflow step that builds, packages or checks runs through `scripts/ci-run.sh` (`scripts/ci-run.ps1` on Windows): it keeps the output in `$RUNNER_TEMP/sharprail-ci/`, and on failure `scripts/ci-diagnose.sh` annotates the first error lines (MSBuild `file(line,col): error` lines become file annotations; step titles must not contain `:` or `,`) and writes them with the log tail to the step summary. Each job ends with `if: failure()` `.github/actions/diagnostics`, which uploads `diagnostics-<job>` (step logs, `.bench/checks-last-run.txt`, any `*.binlog`) for 7 days. Add new steps through the wrapper.
 
 ## UI convention
 

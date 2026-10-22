@@ -30,14 +30,7 @@ jobs:
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
-      # The terminal library's build fetches its dependencies over git, which drops connections now and then;
-      # what it has fetched stays cached, so another attempt carries on from there.
-      - run: |
-          for attempt in 1 2 3; do
-            SHARPRAIL_CI_QUIET=$([ $attempt = 3 ] || echo 1) sh scripts/ci-run.sh "Package macOS" sh scripts/mise run package:macos osx-arm64 && exit 0
-            sleep 30
-          done
-          exit 1
+      - run: sh scripts/ci-run.sh "Package macOS" sh scripts/mise run package:macos osx-arm64
       - run: sh scripts/ci-run.sh "Disk image" sh scripts/mise run dmg "artifacts/${{ steps.stamp.outputs.name }}.dmg"
       - uses: actions/upload-artifact@v7
         with:
@@ -106,16 +99,9 @@ jobs:
         run: |
           [ -n "$GPG_SIGNING_KEY" ] || { echo "::error::GPG_SIGNING_KEY is not set"; exit 1; }
           printf '%s' "$GPG_SIGNING_KEY" | gpg --batch --import
-      # The terminal library's build fetches its dependencies over git, which drops connections now and then;
-      # what it has fetched stays cached, so another attempt carries on from there.
       - env:
           SHARPRAIL_GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-        run: |
-          for attempt in 1 2 3; do
-            SHARPRAIL_CI_QUIET=$([ $attempt = 3 ] || echo 1) sh scripts/ci-run.sh "Package Linux" sh scripts/mise run package:linux && exit 0
-            sleep 30
-          done
-          exit 1
+        run: sh scripts/ci-run.sh "Package Linux" sh scripts/mise run package:linux
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
@@ -147,16 +133,9 @@ jobs:
         run: |
           [ -n "$GPG_SIGNING_KEY" ] || { echo "::error::GPG_SIGNING_KEY is not set"; exit 1; }
           printf '%s' "$GPG_SIGNING_KEY" | gpg --batch --import
-      # The terminal library's build fetches its dependencies over git, which drops connections now and then;
-      # what it has fetched stays cached, so another attempt carries on from there.
       - env:
           SHARPRAIL_GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-        run: |
-          for attempt in 1 2 3; do
-            SHARPRAIL_CI_QUIET=$([ $attempt = 3 ] || echo 1) sh scripts/ci-run.sh "Package Linux ARM64" sh scripts/mise run package:linux linux-arm64 && exit 0
-            sleep 30
-          done
-          exit 1
+        run: sh scripts/ci-run.sh "Package Linux ARM64" sh scripts/mise run package:linux linux-arm64
       - env:
           SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: sh scripts/ci-run.sh "Packaged check Linux ARM64" sh scripts/mise run check:packaged -- --linux
