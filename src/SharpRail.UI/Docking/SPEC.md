@@ -243,6 +243,8 @@ geometry, folds or visibility. The dock chrome keeps its controls; only bodies s
 are keyed by workspace and tab id so one workspace's terminal or editor never appears in another. A
 first visit creates an empty view without placing, reserving or starting a terminal.
 Terminals and agents start only through explicit launches.
+Asking for the workspace already shown and mounted (a rail row, a location-bar entry, a tab under it) is a
+no-op: nothing unmounts, reloads or redraws. A switch still in flight or a failed mount opens it again.
 
 
 Previously mounted tool bodies remain visible while routing resolves. Workspace-scoped plugin tools and

@@ -104,6 +104,19 @@ internal static class RailRetentionChecks
                 $"Switching to {Path.GetFileName(target)} keeps the workspace rows instead of rebuilding the list.");
             Require(detached == 0, $"Switching to {Path.GetFileName(target)} keeps the rail mounted instead of re-attaching it.");
         }
+        // Clicking the workspace already shown is a no-op: no unmount, and no rail row or tab strip rebuilt.
+        var strips = Controls(app).OfType<ContentControl>().Where(control => control.Name == "WorkspaceTabs").ToDictionary(control => control, control => control.Content);
+        var held = app.Host.HoldOpen();
+        app.Click(Select(app, second));
+        Settle(300);
+        var remounting = !app.Window.WorkspaceMounted;
+        held.SetResult();
+        Require(!remounting, "Clicking the current workspace must not start a remount.");
+        Settle(500);
+        Require(app.Window.WorkspaceMounted && Active(app, second) && detached == 0 && Rows(app).Zip(rows).All(pair => ReferenceEquals(pair.First, pair.Second)) &&
+            strips.All(pair => ReferenceEquals(pair.Key.Content, pair.Value)),
+            "Clicking the current workspace keeps its rail rows and tab strips.");
+        Console.WriteLine("PASS clicking the current workspace is a no-op");
         // Folding a project hides its rows in place: nothing in the rail is rebuilt, so nothing flickers.
         var fold = Controls(app).OfType<Button>().Single(button => button.Name == "ProjectExpand");
         app.Click(fold);

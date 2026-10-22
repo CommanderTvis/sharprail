@@ -342,6 +342,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     private async Task OpenWorkspaceAsync(string path, bool project, bool home = false, Action<Exception>? failed = null)
     {
+        // The workspace already shown and settled is not remounted; a pending or failed mount still opens again.
+        if (WorkspaceMounted && !switchingWorkspace && atHome == home && path == (home ? projectRoot : workspaceRoot)) return;
         RememberGitSelection(); RememberFilesTree();
         var previous = WorkspaceMounted ? (atHome ? "" : workspaceRoot) : null;
         var request = ++projectRequest; WorkspaceMounted = false;
