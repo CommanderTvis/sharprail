@@ -413,7 +413,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             SetBranch("");
             git = sameProject ? new(git.IsRepository, "", [], git.Worktrees, git.Branches) : new(false, "", [], [], []);
             Layout.SetGitAvailable(git.IsRepository);
-            gitLoading = true; gitError = null;
+            gitLoading = true; gitStale = false; gitError = null;
             RestoreGitSelection();
             if (!sameProject) folderCache.Clear();
             RestoreFilesTree(sameProject);

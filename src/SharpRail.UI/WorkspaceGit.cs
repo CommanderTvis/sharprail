@@ -8,6 +8,8 @@ public sealed partial class WorkbenchWindow
     private CancellationTokenSource? gitRefresh;
     private bool gitLoading;
     private string? gitError;
+    // A worktree list change arrived while the mount's Git load was running: load again once it lands instead of cancelling it.
+    private bool gitStale;
     private SharpRail.Host.Abstractions.BranchCatalog gitBranches = new([], [], "");
 
     private void RememberGitSelection()
@@ -70,6 +72,7 @@ public sealed partial class WorkbenchWindow
             gitLoading = false; gitError = null;
             RefreshGitPanels();
             startupMilestones?.Complete(request, "git");
+            ReloadStaleGit(request);
             _ = RefreshWorkspaceStatsAsync(request);
             ConsiderSharprailExclude(request, snapshot);
         }
@@ -86,8 +89,22 @@ public sealed partial class WorkbenchWindow
             gitLoading = false; gitError = "Git could not be loaded: " + error.Message;
             startupMilestones?.Complete(request, "git", error.Message);
             RefreshGitPanels();
+            ReloadStaleGit(request);
             Console.Error.WriteLine(error);
         }
+    }
+
+    private void RefreshGitAfterLoad()
+    {
+        if (gitLoading) gitStale = true;
+        else _ = RefreshGitAsync(projectRequest);
+    }
+
+    private void ReloadStaleGit(long request)
+    {
+        if (!gitStale) return;
+        gitStale = false;
+        _ = RefreshGitAsync(request);
     }
 
     private Task ShowAllChangesAsync(long request)

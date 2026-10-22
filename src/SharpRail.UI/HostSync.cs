@@ -176,7 +176,7 @@ public sealed partial class WorkbenchWindow
             ShowNotification($"{name} was removed.");
         }
         else if (WorkspaceMounted && !previous.WorkspacesOf(projectRoot).Select(workspace => workspace.Path)
-            .SequenceEqual(next.WorkspacesOf(projectRoot).Select(workspace => workspace.Path))) _ = RefreshGitAsync(projectRequest);
+            .SequenceEqual(next.WorkspacesOf(projectRoot).Select(workspace => workspace.Path))) RefreshGitAfterLoad();
     }
 
     /// <summary>
