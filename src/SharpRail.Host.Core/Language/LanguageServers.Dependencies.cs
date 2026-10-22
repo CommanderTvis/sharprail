@@ -20,7 +20,21 @@ internal sealed partial class LanguageServers
     internal static Dictionary<string, string> ParseTools(string json) => string.IsNullOrWhiteSpace(json) ? new(StringComparer.Ordinal)
         : JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new(StringComparer.Ordinal);
 
-    private string ToolOverride(string executable) => ParseTools(ToolPaths()).GetValueOrDefault(executable) ?? "";
+    // The tool paths parsed from the last host settings text; parsed again only when that text changes.
+    private sealed record ParsedTools(string Json, IReadOnlyDictionary<string, string> Tools);
+    private ParsedTools toolPaths = new("", new Dictionary<string, string>(StringComparer.Ordinal));
+
+    private IReadOnlyDictionary<string, string> CurrentTools()
+    {
+        var json = ToolPaths();
+        var parsed = Volatile.Read(ref toolPaths);
+        if (string.Equals(parsed.Json, json, StringComparison.Ordinal)) return parsed.Tools;
+        parsed = new(json, ParseTools(json));
+        Volatile.Write(ref toolPaths, parsed);
+        return parsed.Tools;
+    }
+
+    private string ToolOverride(string executable) => CurrentTools().GetValueOrDefault(executable) ?? "";
 
     /// <summary>
     /// Finds one tool without running it: the user's path for it first, then <paramref name="homeVariable"/>'s <c>bin</c> and root, then the
@@ -79,7 +93,7 @@ internal sealed partial class LanguageServers
         var managed = !(spec.AllowsOverride && !string.IsNullOrWhiteSpace(custom?.Command)) && !(custom?.AllowPath == true && spec.PathCapable) && spec.Pinning != LanguageServerPinning.None;
         var root = Path.Combine(directory, "servers", server.Id, ManagedArtifacts.Directory(server, ManagedArtifacts.Platform()));
         var installed = File.Exists(Path.Combine(root, ".ready")) && spec.Installed(root) || File.Exists(Path.Combine(root, ".sharprail-artifact.json"));
-        var tools = ParseTools(ToolPaths());
+        var tools = CurrentTools();
         return [.. spec.Dependencies.Select(dependency =>
         {
             var probe = ProbeTool(dependency.Executable, workspace, dependency.HomeVariable, fresh);

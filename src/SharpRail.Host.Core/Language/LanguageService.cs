@@ -72,7 +72,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         };
         if (request.Operation == "resolution")
         {
-            var chosen = servers.Servers.FirstOrDefault(server => server.Id == request.Server) ?? throw new ArgumentException("Unknown language server.");
+            var chosen = servers.Find(request.Server) ?? throw new ArgumentException("Unknown language server.");
             if (!Path.IsPathFullyQualified(request.Workspace) || !Directory.Exists(request.Workspace)) throw new ArgumentException("Language requests require an existing absolute workspace directory.");
             var resolution = await servers.ResolveAsync(chosen, Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace)), token);
             return new(resolution.State, resolution.Message, chosen.Id) { Configuration = resolution.ToJson() };
@@ -124,7 +124,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         {
             if (request.Operation is not ("retry" or "restart" or "stop" or "status" or "configurationSchema" or "configuration" or "configure" or "logs") || request.Path.Length > 0 || request.Text is not null)
                 throw new ArgumentException("Select a server only for path-free lifecycle operations.");
-            selectedServer = servers.Servers.FirstOrDefault(server => server.Id == request.Server)
+            selectedServer = servers.Find(request.Server)
                 ?? throw new ArgumentException("Unknown language server.");
         }
         if (request.Operation == "configurationSchema")
@@ -394,7 +394,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             if (entries.TryGetValue(key, out var running) && running.Session.IsValueCreated && running.Session.Value is { IsCompletedSuccessfully: true } finished) exit = finished.Result.ExitRecord is { } live ? exit is not null && exit.Time == live.Time ? exit : live : exit;
             if (exit is not null && state is "idle" or "stopped")
                 detail = (exit.Unexpected ? "Stopped unexpectedly: " : "Last run: ") + exit.Reason + " " + detail;
-            rows.Add(new(id, path, state, detail, servers.Servers.Single(server => server.Id == id).Version,
+            rows.Add(new(id, path, state, detail, catalogServer.Version,
                 WorkspaceLanguageConfiguration.Serialize(WorkspaceLanguageConfiguration.Parse(configuration(workspace, id), id)),
                 entries.GetValueOrDefault(key)?.Configuration ?? "", configuration(workspace, id) != "{}")
             {
@@ -422,15 +422,22 @@ public sealed partial class LanguageService : IAsyncDisposable
     /// <summary>The server chosen to replace others in this workspace: the host-wide choice when there is one, else the workspace's (H21).</summary>
     private LanguageServer? Replacing(string workspace)
     {
-        var replacing = servers.Servers.Where(server => server.Spec.Replaces.Count > 0);
-        if (GlobalProvider?.Invoke() is { } global) return replacing.FirstOrDefault(server => server.Id == global);
-        return replacing.FirstOrDefault(server => WorkspaceLanguageConfiguration.Parse(configuration(workspace, server.Id), server.Id).UseForJavaAndKotlin);
+        var replacing = servers.Current.Replacing;
+        if (GlobalProvider?.Invoke() is { } global)
+        {
+            foreach (var server in replacing)
+                if (server.Id == global) return server;
+            return null;
+        }
+        foreach (var server in replacing)
+            if (WorkspaceLanguageConfiguration.Parse(configuration(workspace, server.Id), server.Id).UseForJavaAndKotlin) return server;
+        return null;
     }
 
     /// <summary>The servers that must not run beside the chosen replacement, or every replacing server when none is chosen.</summary>
     private IEnumerable<string> Competing(LanguageServer? chosen) => chosen is not null
-        ? chosen.Spec.Replaces.Concat(servers.Servers.Where(server => server.Spec.Replaces.Count > 0 && server != chosen).Select(server => server.Id))
-        : servers.Servers.Where(server => server.Spec.Replaces.Count > 0).Select(server => server.Id);
+        ? chosen.Spec.Replaces.Concat(servers.Current.Replacing.Where(server => server != chosen).Select(server => server.Id))
+        : servers.Current.Replacing.Select(server => server.Id);
 
     private LanguageServer? Detect(string workspace, string path)
     {

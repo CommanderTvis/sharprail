@@ -22,6 +22,44 @@ internal sealed record LanguageServer(LanguageServerSpec Spec)
     internal string Implementation => Spec.Implementation;
 }
 
+/// <summary>
+/// One immutable view of the language server catalog (H21): the servers in roster order with lookups by id, extension and
+/// file name, each keeping the first server in roster order, as the linear scans they replace did.
+/// </summary>
+internal sealed class LanguageServerCatalog
+{
+    private readonly Dictionary<string, LanguageServer> byId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, LanguageServer> byExtension = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, LanguageServer> byFileName = new(StringComparer.Ordinal);
+
+    internal LanguageServerCatalog(IReadOnlyList<LanguageServerSpec> specs, LanguageServer[] servers)
+    {
+        Specs = specs;
+        Servers = servers;
+        var replacing = new List<LanguageServer>();
+        foreach (var server in servers)
+        {
+            byId.TryAdd(server.Id, server);
+            foreach (var extension in server.Extensions) byExtension.TryAdd(extension, server);
+            foreach (var name in server.Spec.FileNames) byFileName.TryAdd(name, server);
+            if (server.Spec.Replaces.Count > 0) replacing.Add(server);
+        }
+        Replacing = [.. replacing];
+    }
+
+    internal IReadOnlyList<LanguageServerSpec> Specs { get; }
+    internal IReadOnlyList<LanguageServer> Servers { get; }
+    /// <summary>The servers that can replace others, in roster order.</summary>
+    internal IReadOnlyList<LanguageServer> Replacing { get; }
+
+    internal LanguageServer? Find(string id) => byId.GetValueOrDefault(id);
+
+    /// <summary>The first server in roster order listing the path's extension, else its file name; looked up without allocating.</summary>
+    internal LanguageServer? Detect(string path) =>
+        byExtension.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(Path.GetExtension(path.AsSpan()), out var server) ? server
+            : byFileName.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(Path.GetFileName(path.AsSpan()), out server) ? server : null;
+}
+
 internal sealed partial class LanguageServers(string directory, Func<string>? configuration = null, HttpClient? managedDownloads = null,
     Func<IReadOnlyList<LanguageServerSpec>>? catalog = null)
 {
@@ -36,31 +74,58 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
     }
 
     private static readonly ConditionalWeakTable<LanguageServerSpec, LanguageServer> Views = new();
-    private static readonly Lazy<IReadOnlyList<LanguageServer>> Builtin = new(() => Wrap(Plugins.BuiltinPlugins.LanguageServers.Select(plugin => plugin.Spec).ToArray()));
+    private static readonly Lazy<LanguageServerCatalog> Builtin = new(() => Snapshot(Plugins.BuiltinPlugins.LanguageServers.Select(plugin => plugin.Spec).ToArray()));
 
     /// <summary>The servers the builtin plugins provide, whether or not they are enabled; a host without a plugin runtime serves these.</summary>
-    internal static IReadOnlyList<LanguageServer> Catalog => Builtin.Value;
+    internal static IReadOnlyList<LanguageServer> Catalog => Builtin.Value.Servers;
+
+    /// <summary>The builtin servers' specs, built once.</summary>
+    internal static IReadOnlyList<LanguageServerSpec> BuiltinSpecs => Builtin.Value.Specs;
 
     private static readonly ConcurrentDictionary<string, LanguageServer> Seen = new(StringComparer.Ordinal);
 
-    internal static IReadOnlyList<LanguageServer> Wrap(IReadOnlyList<LanguageServerSpec> specs) => [.. specs.Select(spec => Seen[spec.Id] = Views.GetValue(spec, item => new LanguageServer(item)))];
+    // The last snapshot built, keyed by the spec list it was built from: the plugin runtime hands out the same list until its roster changes.
+    private static LanguageServerCatalog? last;
+    private static long rebuilds;
+
+    /// <summary>How many catalog snapshots this process has built, for checks.</summary>
+    internal static long Rebuilds => Interlocked.Read(ref rebuilds);
+
+    /// <summary>The immutable catalog of these specs: reused while the same list is passed, rebuilt when it changes.</summary>
+    internal static LanguageServerCatalog Snapshot(IReadOnlyList<LanguageServerSpec> specs)
+    {
+        var current = Volatile.Read(ref last);
+        if (current is not null && ReferenceEquals(current.Specs, specs)) return current;
+        if (Builtin.IsValueCreated && ReferenceEquals(Builtin.Value.Specs, specs)) return Builtin.Value;
+        var wrapped = new LanguageServer[specs.Count];
+        for (var i = 0; i < wrapped.Length; i++)
+        {
+            var spec = specs[i];
+            wrapped[i] = Seen[spec.Id] = Views.GetValue(spec, item => new LanguageServer(item));
+        }
+        var built = new LanguageServerCatalog(specs, wrapped);
+        Interlocked.Increment(ref rebuilds);
+        Volatile.Write(ref last, built);
+        return built;
+    }
+
+    internal static IReadOnlyList<LanguageServer> Wrap(IReadOnlyList<LanguageServerSpec> specs) => Snapshot(specs).Servers;
 
     /// <summary>
     /// A server this process knows: a builtin one, or one any plugin has provided. Saved settings and project files name
     /// servers this way, so they stay valid while the providing plugin is disabled.
     /// </summary>
-    internal static LanguageServer? Known(string id) => Catalog.FirstOrDefault(server => server.Id == id) ?? Seen.GetValueOrDefault(id);
+    internal static LanguageServer? Known(string id) => Builtin.Value.Find(id) ?? Seen.GetValueOrDefault(id);
+
+    /// <summary>The catalog enabled plugins provide now, in roster order.</summary>
+    internal LanguageServerCatalog Current => catalog is null ? Builtin.Value : Snapshot(catalog());
 
     /// <summary>The servers enabled plugins provide now, in roster order.</summary>
-    internal IReadOnlyList<LanguageServer> Servers => catalog is null ? Catalog : Wrap(catalog());
+    internal IReadOnlyList<LanguageServer> Servers => Current.Servers;
 
-    internal LanguageServer? Find(string id) => Servers.FirstOrDefault(server => server.Id == id);
+    internal LanguageServer? Find(string id) => Current.Find(id);
 
-    internal LanguageServer? Detect(string path) => Detect(Servers, path);
-
-    internal static LanguageServer? Detect(IReadOnlyList<LanguageServer> servers, string path) =>
-        servers.FirstOrDefault(server => server.Extensions.Contains(Path.GetExtension(path)))
-        ?? servers.FirstOrDefault(server => server.Spec.FileNames.Contains(Path.GetFileName(path)));
+    internal LanguageServer? Detect(string path) => Current.Detect(path);
 
     internal static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
     private readonly ConcurrentDictionary<string, SemaphoreSlim> installations = new();

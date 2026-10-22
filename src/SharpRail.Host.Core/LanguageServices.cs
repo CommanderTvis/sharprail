@@ -50,7 +50,7 @@ public sealed partial class HostStateStore
     internal Func<IReadOnlyList<LanguageServerSpec>>? LanguageServerSource { get; set; }
 
     /// <summary>The servers in the catalog now: the plugin runtime's, or, for a host that runs none, the builtin plugins'.</summary>
-    internal IReadOnlyList<LanguageServerSpec> LanguageServerSpecs() => LanguageServerSource?.Invoke() ?? [.. LanguageServers.Catalog.Select(server => server.Spec)];
+    internal IReadOnlyList<LanguageServerSpec> LanguageServerSpecs() => LanguageServerSource?.Invoke() ?? LanguageServers.BuiltinSpecs;
 
     internal IReadOnlyList<LanguageServer> LanguageCatalog => LanguageServers.Wrap(LanguageServerSpecs());
 

@@ -18,6 +18,17 @@ settings, `.sharprail/language.toml` entries and project files naming it stay va
 first reconcile settles, the host serves the builtin servers that are about to activate, so startup requests are
 not refused; a host without a plugin runtime (checks, a bare `HostStateStore`) serves the builtin servers.
 
+The catalog is one immutable snapshot shared by every caller (the Code Intelligence pane, dependency probes, the
+workspace language census, Settings, file routing and the lsp tools): the servers in roster order with lookups by
+id, extension and file name that keep the first server in roster order, and the servers that can replace others.
+The plugin runtime hands out the same spec list until an active plugin's language server table changes (a roster,
+enablement or activation change), and the snapshot is rebuilt only when that list changes; queries allocate
+nothing. Host tool paths are parsed again only when their settings text changes; dependency probes keep their
+2-second reuse. `--lsp-catalog` checks the rebuild counter, that indexed detection matches the roster-order scan,
+and an allocation budget per query. Measured on 2026-10-22 with three 1,800-file workspaces, one `servers` request
+per workspace (one pane refresh) allocated 4.1 MiB before the snapshot and 0.63 MiB after, with gen0 collections
+per refresh round falling from 1.53 to 0.22; the remainder is the file scan and row building, not the catalog.
+
 Each provider owns its identity, pinned version and pins (archives with SHA-256, NuGet packages with SHA-512,
 embedded npm or Go lock files), owned files, aliases, configuration controls, project manifests, project kinds
 and scope text, language ids, initialization and settings defaults, and its install and launch steps. The host

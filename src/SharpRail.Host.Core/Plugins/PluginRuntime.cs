@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -801,7 +802,40 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         return ActiveLanguageServerSpecs();
     }
 
-    internal IReadOnlyList<LanguageServerSpec> ActiveLanguageServerSpecs() => [.. Active().SelectMany(active => active.Tables.LanguageServers)];
+    // The active plugins' language server tables the last list was built from, compared by reference so an unchanged roster
+    // returns the same list without allocating, and the host's catalog snapshot keyed on that list is reused.
+    private readonly List<ImmutableList<LanguageServerSpec>> languageInputs = [];
+    private IReadOnlyList<LanguageServerSpec> languageSpecs = [];
+    private bool languageBuilt;
+
+    internal IReadOnlyList<LanguageServerSpec> ActiveLanguageServerSpecs()
+    {
+        lock (gate)
+        {
+            if (languageBuilt && LanguageInputsUnchanged()) return languageSpecs;
+            languageInputs.Clear();
+            var specs = new List<LanguageServerSpec>();
+            foreach (var entry in registry.All)
+                if (entry is { State: PluginStatus.Active, Activation: { } tables })
+                {
+                    languageInputs.Add(tables.LanguageServers);
+                    specs.AddRange(tables.LanguageServers);
+                }
+            languageSpecs = [.. specs];
+            languageBuilt = true;
+            return languageSpecs;
+        }
+    }
+
+    private bool LanguageInputsUnchanged()
+    {
+        var entries = registry.All;
+        var index = 0;
+        for (var i = 0; i < entries.Count; i++)
+            if (entries[i] is { State: PluginStatus.Active, Activation: { } tables })
+                if (index >= languageInputs.Count || !ReferenceEquals(languageInputs[index++], tables.LanguageServers)) return false;
+        return index == languageInputs.Count;
+    }
 
     /// <param name="workspace">The absolute workspace a session starts in, whose languages the Code Intelligence text names; empty for the workspace-independent text.</param>
     internal IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace = "")
