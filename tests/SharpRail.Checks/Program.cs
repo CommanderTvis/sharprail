@@ -145,6 +145,13 @@ internal static class Program
             WorkspaceToolChecks.RunUi(root);
             return;
         }
+        if (args.SequenceEqual(["--workspace-create-stall"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            WorkspaceCreateStallChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--context-ui"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
