@@ -186,10 +186,17 @@ internal static class NativeTextureChecks
         }
         Require(highlighted, "Metal must underline resolved visible commits without modifier-hover.");
         terminal.ResolveHighlightedLinks = null;
-        await Task.Delay(300);
-        Require((await CaptureHighlights()).SequenceEqual(plain), "Disabling Metal highlights left stale underlines.");
+        // Stale means it stays: a loaded machine may present the cleared frame late.
+        var cleared = false;
+        for (var attempt = 0; attempt < 30 && !cleared; attempt++)
+        {
+            await Task.Delay(100);
+            cleared = (await CaptureHighlights()).SequenceEqual(plain);
+        }
+        Require(cleared, "Disabling Metal highlights left stale underlines.");
         window.Content = null;
         Console.WriteLine("PASS native Metal file hover, Unicode, soft wrapping, click coordinates, persistent highlight pixels and stale-link clearing");
+        await TerminalFileLinkChecks.UnderlinesFollowFrames(window);
 
         async Task<SKColor[]> CaptureHighlights()
         {

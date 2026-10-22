@@ -376,7 +376,7 @@ internal static class TerminalFileLinkChecks
     // style) and sit under link text in that same frame. An overlay drawn from older cell geometry is the
     // terminal's foreground colour and lands under other rows or blank cells.
     [System.Runtime.Versioning.SupportedOSPlatform("macos")]
-    private static async Task UnderlinesFollowFrames(Avalonia.Controls.Window window)
+    internal static async Task UnderlinesFollowFrames(Avalonia.Controls.Window window)
     {
         const string name = "LinkFile.cs";
         static Task<IReadOnlyList<Ghostty.Avalonia.TerminalLink>> Resolve(string text, CancellationToken token)
@@ -411,20 +411,36 @@ internal static class TerminalFileLinkChecks
             var pointer = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), Avalonia.Input.PointerType.Mouse, true);
             var frames = 0;
             var underlined = 0;
-            async Task Sample(string phase)
+            async Task Sample(string phase, bool scaled = false)
             {
                 using var image = await NativeTextureChecks.CaptureWindow();
                 var (columns, rows) = grid();
                 var scale = image.Width / window.Bounds.Width;
                 var problem = Misplaced(image, view.Bounds.Width * scale / columns, view.Bounds.Height * scale / rows, out var found);
-                Require(problem is null, $"{renderer} {phase}, frame {frames}: {problem}");
+                // A frame presented mid-resize is the previous texture scaled to the new bounds, which blends the
+                // underline's colour; it must still carry every underline, but its colours are not exact.
+                Require(scaled || problem is null, $"{renderer} {phase}, frame {frames}: {problem}");
+                var missing = Bare(image, view.Bounds.Width * scale / columns, view.Bounds.Height * scale / rows);
+                Require(missing is null, $"{renderer} {phase}, frame {frames}: {missing}");
                 underlined += found;
                 frames++;
             }
-            // Stream: a red link on every third line, plain text between, scrolling the screen as it goes.
+            // The link line resolves once; from then on every frame showing that line text must underline it, however
+            // the view rebuilds, without waiting for another resolution (a new line may underline in a later frame).
+            var linkLine = $"\e[38;2;255;0;0m{name}\e[0m opened\r\n";
+            write(Encoding.UTF8.GetBytes(linkLine));
+            for (var attempt = 0; attempt < 50; attempt++)
+            {
+                await Task.Delay(100);
+                using var image = await NativeTextureChecks.CaptureWindow();
+                var (columns, rows) = grid();
+                var scale = image.Width / window.Bounds.Width;
+                if (Bare(image, view.Bounds.Width * scale / columns, view.Bounds.Height * scale / rows) is null) break;
+            }
+            // Stream: the link line on every third line, plain text between, scrolling the screen as it goes.
             for (var line = 0; line < 120; line++)
             {
-                write(Encoding.UTF8.GetBytes(line % 3 == 0 ? $"\e[38;2;255;0;0m{name}\e[0m line {line} words\r\n" : $"plain line {line} words here\r\n"));
+                write(Encoding.UTF8.GetBytes(line % 3 == 0 ? linkLine : $"plain line {line} words here\r\n"));
                 if (line % 6 == 5) { await Task.Delay(15); if (line % 12 == 11) await Sample("while output streams"); }
             }
             await Task.Delay(600);
@@ -437,6 +453,24 @@ internal static class TerminalFileLinkChecks
                 view.RaiseEvent(new Avalonia.Input.PointerWheelEventArgs(view, pointer, view, point, 10, new Avalonia.Input.PointerPointProperties(),
                     Avalonia.Input.KeyModifiers.None, new Avalonia.Vector(0, delta)));
                 await Sample("while scrolling");
+                await Task.Delay(40);
+                await Sample("after a scroll step");
+            }
+            // Rebuilds: an output burst that rewrites a line in place, then resizes that reflow the grid. Links already
+            // resolved stay underlined in every frame; nothing waits for a new resolution.
+            for (var burst = 0; burst < 6; burst++)
+            {
+                write(Encoding.UTF8.GetBytes($"\rprogress {burst} of 6\e[K"));
+                await Sample("during an output burst");
+            }
+            write(Encoding.UTF8.GetBytes("\r\e[K"));
+            foreach (var (width, height) in new[] { (860.0, 600.0), (900.0, 560.0), (900.0, 600.0) })
+            {
+                window.Width = width; window.Height = height;
+                await Task.Delay(30);
+                await Sample("while resizing", scaled: true);
+                await Task.Delay(120);
+                await Sample("after a resize");
             }
             window.Content = null;
             Console.WriteLine($"PASS {renderer}: link underlines drawn in-frame under link text across {frames} frames of streaming and scrolling ({underlined} underline runs)");
@@ -468,6 +502,34 @@ internal static class TerminalFileLinkChecks
                     for (var column = start; column < x; column++)
                         if (Red(image.GetPixel(column, above))) text++;
                 if (text < cellWidth) return $"an underline at y={y}, x={start}..{x} has no link text above it in the same frame";
+            }
+        return null;
+    }
+
+    // Returns why a frame shows link text without its underline: a red glyph pixel with no red underline run (at least
+    // three cells wide) below it within one cell. The bottom row may be clipped, so it is skipped.
+    private static string? Bare(SkiaSharp.SKBitmap image, double cellWidth, double cellHeight)
+    {
+        var pixels = image.Pixels;
+        var (width, height) = (image.Width, image.Height);
+        static bool Red(SkiaSharp.SKColor color) => color.Red > 170 && color.Green < 100 && color.Blue < 100;
+        var minimum = (int)(cellWidth * 3);
+        var underline = new bool[width * height];
+        for (var y = 0; y < height; y++)
+            for (var x = 0; x < width;)
+            {
+                if (!Red(pixels[y * width + x])) { x++; continue; }
+                var start = x;
+                while (x < width && Red(pixels[y * width + x])) x++;
+                if (x - start >= minimum) for (var i = start; i < x; i++) underline[y * width + i] = true;
+            }
+        for (var y = 0; y < height - (int)(cellHeight * 1.5); y++)
+            for (var x = 0; x < width; x++)
+            {
+                if (underline[y * width + x] || !Red(pixels[y * width + x])) continue;
+                var below = false;
+                for (var down = y + 1; down <= Math.Min(height - 1, y + (int)cellHeight) && !below; down++) below = underline[down * width + x];
+                if (!below) return $"link text at x={x}, y={y} has no underline in this frame";
             }
         return null;
     }

@@ -60,6 +60,42 @@ export fn gav_ghostty_context_link(surface: *Surface, x: f64, y: f64, shift: boo
     return core.contextLink(pixels, shift, output[0..capacity]);
 }
 
+// Attach host-resolved links to the text of the visible logical lines. `cells` are viewport indexes (row * columns +
+// column) read by gav_ghostty_link_line and `codepoints` the base codepoint each showed; a cell whose text already
+// changed is skipped. Each visible line carrying marks has its links replaced; with `mode` 1 a visible line without
+// marks loses its links (the marks are a full resolution of the viewport), with 0 it keeps them (the marks only repeat
+// lines resolved earlier), and 2 first drops every line's links. The renderer underlines a line's links in every frame
+// that shows the same line text, wherever it is.
+export fn gav_ghostty_set_line_links(surface: *Surface, cells: [*]const u32, codepoints: [*]const u32, count: usize, mode: u32) bool {
+    const core = &surface.core_surface;
+    const view = &core.renderer;
+    {
+        core.renderer_state.mutex.lock();
+        defer core.renderer_state.mutex.unlock();
+        const pages = &core.io.terminal.screen.pages;
+        if (mode == 2) view.gavClearLineLinks();
+        var wanted: std.AutoHashMapUnmanaged(u32, u32) = .empty;
+        defer wanted.deinit(view.alloc);
+        for (0..count) |i| wanted.put(view.alloc, cells[i], codepoints[i]) catch return false;
+        var marks: std.ArrayListUnmanaged(u32) = .empty;
+        defer marks.deinit(view.alloc);
+        var row: u32 = 0;
+        while (row < pages.rows) {
+            const after = view.gavReadLine(pages, row) catch return false;
+            marks.clearRetainingCapacity();
+            for (view.gav_line_cells.items, view.gav_line_codes.items, 0..) |cell, code, index| {
+                const expected = wanted.get(cell) orelse continue;
+                if ((if (code == 0) ' ' else code) != expected) continue;
+                marks.append(view.alloc, @intCast(index)) catch return false;
+            }
+            view.gavSetLineLinks(marks.items, mode != 0) catch return false;
+            row = after;
+        }
+    }
+    core.renderer_thread.wakeup.notify() catch {};
+    return true;
+}
+
 // Replace the file-link cells the renderer underlines. `cells` are viewport indexes (row * columns + column) read by
 // gav_ghostty_link_line, `codepoints` the base codepoint each showed. Cells whose text already moved are dropped; the
 // renderer keeps the rest in screen coordinates and underlines them in the same frame as their text.

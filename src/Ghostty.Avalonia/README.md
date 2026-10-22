@@ -288,9 +288,14 @@ on a remote host and paste the returned shell path instead of writing a client-l
 
 Both renderers also accept `ResolveHighlightedLinks` for background resolution of visible references. Valid ranges are underlined independently of hover, and a plain click (no drag) on one opens it through `OpenFileLink`; the press still reaches selection or a mouse-tracking program. Resolution is debounced, bounded, cancelled on detach/disposal, and never runs on the UI thread.
 
-Underlines are drawn by the renderer in the frame that shows their text, never as an overlay. Skia marks
-the cells of the snapshot it paints. Metal hands the cells (viewport index and base codepoint) to
-Ghostty's renderer (`gav_ghostty_set_link_underlines`, `Native/LinkUnderlines.patch`), which keeps them
-in screen coordinates and, while copying terminal state for each frame, underlines a cell only if it
-still shows that codepoint. Output and scrolling move the underline with the text in the same frame;
-rewritten or pruned cells lose it until the next resolution. Modifier-hover underlines use the same path.
+Underlines are drawn by the renderer in the frame that shows their text, never as an overlay. Resolved
+links are attached to the text of the logical line they were found on (trailing blanks ignored), as
+IntelliJ's terminal keeps filter results on its output model: a line keeps its links wherever it scrolls
+and however often the view rebuilds or reflows, and only a later resolution covering that line replaces
+them. A failed or pending resolution never removes links; new lines underline once their resolution
+arrives. Skia marks the cells of the snapshot it paints from that line map. Metal hands the cells
+(viewport index and base codepoint) to Ghostty's renderer (`gav_ghostty_set_line_links`,
+`Native/LinkUnderlines.patch`), which keys them by the line's cell text and, while copying terminal state
+for each frame, underlines every visible line whose text it knows (about 10 µs per frame at 112x34).
+Modifier-hover underlines are transient: `gav_ghostty_set_link_underlines` keeps them in screen
+coordinates and drops a cell in the frame where it shows another codepoint.

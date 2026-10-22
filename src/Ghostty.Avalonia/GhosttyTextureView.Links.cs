@@ -16,14 +16,14 @@ public sealed partial class GhosttyTextureView
     private TerminalLinkHighlights? highlights;
     private bool highlightDirty = true;
     private readonly DispatcherTimer highlightTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
-    // Cells Ghostty's renderer underlines, by viewport index (row * columns + column) with the base codepoint each
-    // showed. The renderer draws them with the text of the same frame and drops a cell whose text changed.
+    // Cells to underline, by viewport index (row * columns + column) with the base codepoint each showed. Visible-link
+    // cells go to the renderer attached to their line's text, so it keeps underlining them in every frame showing that
+    // line; hover cells are a transient set in screen coordinates. A cell whose text changed is dropped in that frame.
     private readonly Dictionary<int, uint> highlightMarks = [];
     private readonly Dictionary<int, uint> hoverMarks = [];
     private readonly List<(Rect Cell, TerminalLink Link)> highlightTargets = [];
     private int[] pushedCells = [];
-    /// <summary>The viewport cells last handed to the renderer to underline, for checks.</summary>
-    internal IReadOnlyList<int> UnderlinedCells => pushedCells;
+    private int[] pushedHighlights = [];
     internal IReadOnlyList<(string Visible, TerminalLink Link)> HighlightedLinks => highlights?.Underlined ?? [];
     /// <summary>Resolves references to underline throughout the visible terminal, without requiring hover.</summary>
     public Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? ResolveHighlightedLinks
@@ -46,15 +46,27 @@ public sealed partial class GhosttyTextureView
     {
         highlightMarks.Clear();
         highlightTargets.Clear();
-        PushUnderlines();
+        pushedHighlights = [];
+        if (!disposed) SetLineLinks(terminal.Handle, [], [], 0, 2);
+    }
+
+    // A settled resolution of the visible text replaces every visible line's links; otherwise only lines resolved
+    // earlier are repeated, so nothing already underlined is dropped while a resolution is pending.
+    private void PushHighlights(bool settled)
+    {
+        if (disposed) return;
+        var cells = highlightMarks.Keys.Order().ToArray();
+        if (!settled && cells.SequenceEqual(pushedHighlights)) return;
+        var codepoints = cells.Select(cell => highlightMarks[cell]).ToArray();
+        if (SetLineLinks(terminal.Handle, cells.Select(cell => (uint)cell).ToArray(), codepoints, (nuint)cells.Length, settled ? 1u : 0u)) pushedHighlights = cells;
     }
 
     private void PushUnderlines()
     {
         if (disposed) return;
-        var cells = highlightMarks.Keys.Union(hoverMarks.Keys).Order().ToArray();
+        var cells = hoverMarks.Keys.Order().ToArray();
         if (cells.SequenceEqual(pushedCells)) return;
-        var codepoints = cells.Select(cell => highlightMarks.TryGetValue(cell, out var code) ? code : hoverMarks[cell]).ToArray();
+        var codepoints = cells.Select(cell => hoverMarks[cell]).ToArray();
         if (SetLinkUnderlines(terminal.Handle, cells.Select(cell => (uint)cell).ToArray(), codepoints, (nuint)cells.Length)) pushedCells = cells;
     }
 
@@ -62,16 +74,17 @@ public sealed partial class GhosttyTextureView
     {
         highlightMarks.Clear();
         highlightTargets.Clear();
-        if (!active || disposed || highlights?.Resolve is null || Bounds.Width <= 0 || Bounds.Height <= 0) { PushUnderlines(); return; }
+        if (!active || disposed || highlights?.Resolve is null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         var scalars = new uint[16384];
         var cells = new uint[scalars.Length];
         var info = new double[6];
         if (ReadLinkLine(terminal.Handle, Bounds.Width / 2, Bounds.Height / 2, scalars, cells, (nuint)scalars.Length, info) == 0 || info[2] <= 0 || info[3] <= 0)
-        { PushUnderlines(); return; }
+            return;
         var text = new StringBuilder();
         var positions = new List<(int Cell, uint Code)>();
         var rows = Size.Rows;
-        for (var row = 0; row < rows && text.Length < 16000;)
+        var row = 0;
+        for (; row < rows && text.Length < 16000;)
         {
             var count = (int)ReadLinkLine(terminal.Handle, info[4] + info[2] / 2, info[5] + (row + 0.5) * info[3], scalars, cells, (nuint)scalars.Length, info);
             if (count == 0) break;
@@ -87,13 +100,15 @@ public sealed partial class GhosttyTextureView
             row = (int)cells[count - 1] / (int)info[0] + 1;
         }
         var columns = (int)info[0];
-        foreach (var link in highlights.Update(text.ToString()))
+        var resolved = highlights.Update(text.ToString());
+        foreach (var link in resolved)
             foreach (var (cell, code) in positions.Skip(link.Start).Take(link.Length).Where(mark => mark.Cell >= 0).Distinct())
             {
                 highlightMarks.TryAdd(cell, code);
                 highlightTargets.Add((new Rect(info[4] + cell % columns * info[2], info[5] + cell / columns * info[3], info[2], info[3]), link));
             }
-        PushUnderlines();
+        // A resolution of text cut short says nothing about the lines after the cut.
+        PushHighlights(highlights.Settled && row >= rows);
     }
 
     /// <summary>The centre of a viewport cell in view coordinates, for checks.</summary>
@@ -126,6 +141,10 @@ public sealed partial class GhosttyTextureView
     [DllImport("GhosttyAvaloniaView", EntryPoint = "gav_texture_set_link_underlines")]
     [return: MarshalAs(UnmanagedType.I1)]
     private static extern bool SetLinkUnderlines(nint view, uint[] cells, uint[] codepoints, nuint count);
+
+    [DllImport("GhosttyAvaloniaView", EntryPoint = "gav_texture_set_line_links")]
+    [return: MarshalAs(UnmanagedType.I1)]
+    private static extern bool SetLineLinks(nint view, uint[] cells, uint[] codepoints, nuint count, uint mode);
 
     [DllImport("GhosttyAvaloniaView", EntryPoint = "gav_texture_link_line")]
     private static extern nuint ReadLinkLine(nint view, double x, double y, [Out] uint[] text, [Out] uint[] cells, nuint capacity, [Out] double[] info);

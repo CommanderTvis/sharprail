@@ -15,11 +15,10 @@
  pub fn Renderer(comptime GraphicsAPI: type) type {
      return struct {
          const Self = @This();
-@@ -153,6 +161,14 @@
-         /// to determine if any possible changes have been made to the
+@@ -154,6 +162,23 @@
          /// cells for the draw call.
          cells_rebuilt: bool = false,
-+
+ 
 +        /// Host-resolved file links to underline, set by the embedding view under the renderer state mutex. Each
 +        /// cell is kept in screen coordinates with the codepoint it showed, so the underline moves with the text
 +        /// through scrolling and disappears in the frame where that cell shows something else.
@@ -27,22 +26,112 @@
 +
 +        /// The viewport cells (y * columns + x) underlined in the last built frame. Only the render thread uses it.
 +        gav_visible: std.AutoHashMapUnmanaged(u32, void) = .empty,
- 
++
++        /// Host-resolved links attached to the text of the logical line they were found on: the key is the line's
++        /// cells (see gavReadLine) as bytes, the value the indexes of its cells to underline. Every frame looks up the
++        /// visible lines' own text, so an underline moves with its line through scrolling, output and reflow and is
++        /// never dropped while that text is unchanged; only the embedding view's next resolution of the line replaces
++        /// it. Set under the renderer state mutex.
++        gav_line_links: std.StringHashMapUnmanaged([]u32) = .empty,
++        gav_line_codes: std.ArrayListUnmanaged(u32) = .empty,
++        gav_line_cells: std.ArrayListUnmanaged(u32) = .empty,
++
          /// The current GPU uniform values.
          uniforms: shaderpkg.Uniforms,
-@@ -761,6 +777,8 @@
+ 
+@@ -761,6 +786,12 @@
  
          pub fn deinit(self: *Self) void {
              self.swap_chain.deinit();
 +            self.gav_links.deinit(self.alloc);
 +            self.gav_visible.deinit(self.alloc);
++            self.gavClearLineLinks();
++            self.gav_line_links.deinit(self.alloc);
++            self.gav_line_codes.deinit(self.alloc);
++            self.gav_line_cells.deinit(self.alloc);
  
              if (DisplayLink != void) {
                  if (self.display_link) |display_link| {
-@@ -1075,6 +1093,40 @@
+@@ -1075,6 +1106,133 @@
                  @floatFromInt(self.grid_metrics.cell_width),
                  @floatFromInt(self.grid_metrics.cell_height),
              };
++        }
++
++        pub const gav_hidden = std.math.maxInt(u32);
++
++        /// Reads the logical line through viewport row `row` (from its first wrapped row, possibly in scrollback, to
++        /// its last) into gav_line_codes, one entry per cell: the base codepoint, a space for a blank cell and 0 for
++        /// the right half of a wide character; and into gav_line_cells each cell's viewport index, or gav_hidden
++        /// outside the viewport. Returns the first viewport row after the line. Caller must hold the state mutex.
++        pub fn gavReadLine(self: *Self, pages: *terminal.PageList, row: u32) !u32 {
++            self.gav_line_codes.clearRetainingCapacity();
++            self.gav_line_cells.clearRetainingCapacity();
++            var pin = pages.pin(.{ .viewport = .{ .y = @intCast(row) } }) orelse return row + 1;
++            var y: i64 = row;
++            var up: usize = 0;
++            while (up < 64) : (up += 1) {
++                const above = pin.up(1) orelse break;
++                if (!above.rowAndCell().row.wrap) break;
++                pin = above;
++                y -= 1;
++            }
++            var down: usize = 0;
++            while (true) : (down += 1) {
++                const visible = y >= 0 and y < pages.rows;
++                for (pin.cells(.all), 0..) |cell, x| {
++                    const codepoint: u32 = if (cell.wide == .spacer_tail) 0 else if (cell.codepoint() == 0) ' ' else cell.codepoint();
++                    try self.gav_line_codes.append(self.alloc, codepoint);
++                    try self.gav_line_cells.append(self.alloc, if (visible) @intCast(y * pages.cols + @as(i64, @intCast(x))) else gav_hidden);
++                }
++                if (!pin.rowAndCell().row.wrap or down >= 128) break;
++                pin = pin.down(1) orelse break;
++                y += 1;
++            }
++            return @intCast(@max(y + 1, @as(i64, row) + 1));
++        }
++
++        /// The key of the line last read by gavReadLine: its cells without trailing blanks.
++        pub fn gavLineKey(self: *Self) []const u8 {
++            var len = self.gav_line_codes.items.len;
++            while (len > 0 and self.gav_line_codes.items[len - 1] == ' ') len -= 1;
++            return std.mem.sliceAsBytes(self.gav_line_codes.items[0..len]);
++        }
++
++        pub fn gavClearLineLinks(self: *Self) void {
++            var it = self.gav_line_links.iterator();
++            while (it.next()) |entry| {
++                self.alloc.free(entry.key_ptr.*);
++                self.alloc.free(entry.value_ptr.*);
++            }
++            self.gav_line_links.clearRetainingCapacity();
++        }
++
++        /// Attaches `marks` (indexes into the line last read by gavReadLine) to that line's text, replacing what it
++        /// had; no marks detaches the line when `replace` is set and keeps it otherwise. Caller must hold the mutex.
++        pub fn gavSetLineLinks(self: *Self, marks: []const u32, replace: bool) !void {
++            const key = self.gavLineKey();
++            if (marks.len == 0) {
++                if (!replace) return;
++                if (self.gav_line_links.fetchRemove(key)) |old| {
++                    self.alloc.free(old.key);
++                    self.alloc.free(old.value);
++                }
++                return;
++            }
++            if (self.gav_line_links.count() >= 4096) self.gavClearLineLinks();
++            const value = try self.alloc.dupe(u32, marks);
++            errdefer self.alloc.free(value);
++            const entry = try self.gav_line_links.getOrPut(self.alloc, key);
++            if (entry.found_existing) {
++                self.alloc.free(entry.value_ptr.*);
++            } else {
++                entry.key_ptr.* = self.alloc.dupe(u8, key) catch |err| {
++                    _ = self.gav_line_links.remove(key);
++                    return err;
++                };
++            }
++            entry.value_ptr.* = value;
 +        }
 +
 +        /// Maps the file-link cells to this frame's viewport. A cell is underlined only while it still shows the
@@ -52,6 +141,23 @@
 +            var next: std.AutoHashMapUnmanaged(u32, void) = .empty;
 +            errdefer next.deinit(self.alloc);
 +            const pages = &t.screen.pages;
++            if (self.gav_line_links.count() > 0) {
++                var row: u32 = 0;
++                while (row < pages.rows) {
++                    const after = try self.gavReadLine(pages, row);
++                    if (self.gav_line_links.get(self.gavLineKey())) |marks| {
++                        const codes = self.gav_line_codes.items;
++                        const cells = self.gav_line_cells.items;
++                        for (marks) |mark| {
++                            if (mark >= cells.len or cells[mark] == gav_hidden) continue;
++                            try next.put(self.alloc, cells[mark], {});
++                            if (mark + 1 < cells.len and codes[mark + 1] == 0 and cells[mark + 1] != gav_hidden)
++                                try next.put(self.alloc, cells[mark + 1], {});
++                        }
++                    }
++                    row = after;
++                }
++            }
 +            if (self.gav_links.items.len > 0) place: {
 +                const top_pin = pages.pin(.{ .viewport = .{} }) orelse break :place;
 +                const top = (pages.pointFromPin(.screen, top_pin) orelse break :place).screen.y;
@@ -80,14 +186,13 @@
          }
  
          /// Update the frame data.
-@@ -1190,10 +1242,13 @@
-                 {
+@@ -1191,9 +1349,12 @@
                      try self.prepKittyGraphics(state.terminal);
                  }
-+
+ 
 +                // Place the file-link underlines from the same terminal state this frame copies.
 +                const gav_changed = try self.gavPlaceLinks(state.terminal);
- 
++
                  // If we have any terminal dirty flags set then we need to rebuild
                  // the entire screen. This can be optimized in the future.
 -                const full_rebuild: bool = rebuild: {
@@ -95,7 +200,7 @@
                      {
                          const Int = @typeInfo(terminal.Terminal.Dirty).@"struct".backing_integer.?;
                          const v: Int = @bitCast(state.terminal.flags.dirty);
-@@ -2719,7 +2774,8 @@
+@@ -2719,7 +2880,8 @@
                      // Give links a single underline, unless they already have
                      // an underline, in which case use a double underline to
                      // distinguish them.
