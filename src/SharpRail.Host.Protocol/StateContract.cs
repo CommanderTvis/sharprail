@@ -44,6 +44,7 @@ public sealed class SettingsMessage
     [ProtoMember(20)] public string WindowDecorations { get; set; } = "";
     [ProtoMember(17)] public string LanguageServers { get; set; } = "";
     [ProtoMember(21)] public string LanguageTools { get; set; } = "";
+    [ProtoMember(24)] public string LanguageLimits { get; set; } = "";
     [ProtoMember(11)] public string CustomHighlighting { get; set; } = "";
     [ProtoMember(12)] public bool? VerticalCenterTabs { get; set; }
     [ProtoMember(13)] public bool? VerticalTabsInProjects { get; set; }

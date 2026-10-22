@@ -32,6 +32,15 @@ public sealed record LanguageServerState(string Id, string Path, string State, s
 
     /// <summary>The host tools the server declares, probed without starting it; null when the host did not probe them.</summary>
     public IReadOnlyList<LanguageDependencyState>? Dependencies { get; init; }
+
+    /// <summary>The workspace a running server serves, in the host-wide <c>running</c> listing; empty elsewhere.</summary>
+    public string Workspace { get; init; } = "";
+
+    /// <summary>The server's last sampled memory in bytes (physical footprint on macOS, resident set elsewhere), in the <c>running</c> listing.</summary>
+    public long MemoryBytes { get; init; }
+
+    /// <summary>Seconds since a request last used the server, in the <c>running</c> listing.</summary>
+    public long IdleSeconds { get; init; }
 }
 
 /// <summary>

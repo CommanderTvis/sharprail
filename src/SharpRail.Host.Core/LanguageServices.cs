@@ -20,11 +20,18 @@ public sealed partial class HostStateStore
                 if (languages is not null) return languages;
                 languages = new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language"),
                     () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage, LanguageServerSpecs)
-                { DeathObserved = PublishLanguageDeath, GlobalProvider = () => Current.Settings.JavaKotlinProvider, ToolPaths = () => Current.Settings.LanguageTools };
+                { DeathObserved = PublishLanguageDeath, GlobalProvider = () => Current.Settings.JavaKotlinProvider, ToolPaths = () => Current.Settings.LanguageTools, Limits = CurrentLanguageLimits };
                 WorkspaceRemoved += workspace => _ = languages.CloseWorkspaceAsync(workspace);
                 return languages;
             }
         }
+    }
+
+    /// <summary>The language-server limits from host settings; a value that no longer parses falls back to the defaults.</summary>
+    private LanguageServerLimits CurrentLanguageLimits()
+    {
+        try { return LanguageServerLimits.Parse(Current.Settings.LanguageLimits); }
+        catch (Exception error) when (error is ArgumentException or FormatException or InvalidOperationException or System.Text.Json.JsonException) { return LanguageServerLimits.Default; }
     }
 
     private ProjectLanguageCache? projectLanguages;

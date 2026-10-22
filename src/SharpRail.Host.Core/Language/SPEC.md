@@ -223,12 +223,70 @@ flag from the stored server options; a `disabled` key in `servers.json` is ignor
 
 ### Server lifetime and start origin
 
-A language server lives as long as its workspace. There is no idle eviction: nothing stops a server
-for being unused, however long. It ends when the user stops it, its workspace is removed (exit reason
-"workspace removed"), its configuration changes and the user restarts it, the host shuts down or
-language services are turned off, or it crashes (an unexpected exit record). Memory is the accepted
-cost. Stopping a listener does not stop an embedded host's language sessions. A once-a-minute timer
-only samples resident memory for the exit record.
+A language server runs while its workspace uses it, within the limits below. It ends when the user
+stops it, the limits stop it (it then restarts on its next request), its workspace is removed (exit
+reason "workspace removed") or its project is closed ("its project was closed"), its configuration
+changes and the user restarts it, the host shuts down or language services are turned off, or it
+crashes (an unexpected exit record). Stopping a listener does not stop an embedded host's language
+sessions.
+
+### Server limits
+
+Many workspaces each running Roslyn (1–3 GiB each) exhausted a 24 GiB machine, so memory is bounded
+(`LanguageService.Limits.cs`, `LanguageMemory.cs`). The host setting `language-limits` (JSON
+`{"idleMinutes","memoryBudgetMb","caps":{id:n,"*":n}}`, validated and normalized by the host) holds them;
+every decision reads the current value, and a change triggers an enforcement pass.
+
+- Memory budget, the primary limit, across all servers of every kind. Default (`memoryBudgetMb` 0): 30% of
+  physical memory (or the container limit) clamped to 3–24 GiB — 7.2 GiB on 24 GiB, 4.8 GiB on 16 GiB,
+  9.6 GiB on 32 GiB: room for about 8–12 Roslyn servers at the measured ~0.5–0.8 GiB settled footprint,
+  far below the 40 GiB seen, while the floor still fits one large server and the ceiling stops a big
+  machine handing everything to servers. Memory is sampled every 15 s on a timer thread: macOS physical
+  footprint (`proc_pid_rusage`, what Activity Monitor shows; resident size undercounts compressed
+  memory), resident set elsewhere. Child processes (Roslyn's build host) are not counted.
+- Count cap per server kind, the secondary guard: `csharp` 4, `intellij`, `kotlin` and `scala` (JVM) 2,
+  every other kind 6 (`*`).
+- Idle timeout, default 10 minutes (0 never): a server no request used for that long stops.
+- Memory pressure: when macOS reports a warning or critical pressure level
+  (`kern.memorystatus_vm_pressure_level` ≥ 2), Linux has under 10% `MemAvailable`, or Windows passes the
+  runtime's high-memory-load threshold, servers not used within the last 2 minutes stop.
+
+A server is used by every request that reaches its entry (editor, pane, agent tools); listing servers does
+not count. The limits never stop a server with a request in flight or with an editor buffer open (a
+document with an owner; the host does not know which window has focus, so every editor protects). Over
+budget, the enforcement pass stops the least recently used other servers until the total is within the
+budget. Before a server starts, it is admitted only if its kind is under its cap and the total is under
+the budget; otherwise the least recently used stoppable server (of the same kind for the cap) stops
+first. When nothing can stop, the start waits: its entry reports `initializing` with "Waiting for a free
+language server slot…", which the on-demand wait and `lsp_*` answers pass through unchanged, and it retries
+when a server stops or goes idle (and at least every 5 s); the wait does not count against the 15 minute
+startup deadline. A stop by the limits keeps drafts, writes an expected exit record whose reason names
+the limit ("stopped by the language server limits: unused for 10 min", "...exceeded the 7372 MiB memory
+budget", "...the system is short of memory"), and remembers no stop, so the next request starts the
+server again.
+
+The host-wide `running` operation lists every running server (workspace, state, busy/editor open/idle,
+idle seconds, memory, started by) with a summary (budget, whether automatic, total, physical memory,
+pressure, limits, default caps); `release` (workspace + server) stops one the same way, refusing a busy
+one. Settings › Code Intelligence shows both (UI SPEC).
+
+Process hygiene: every launch carries `SHARPRAIL_LANGUAGE_REGISTRY`, and its pid, start time and process
+name are recorded in `language/processes/<host pid>-<host start ms>.pids` until it exits. On Unix the first
+launch starts one `/bin/sh` watchdog per host that polls the host pid every 2 s and kills the recorded
+servers once the host process is gone, however it ended. Each host start sweeps the directory off the
+caller's thread: records of hosts that are no longer running are killed when the pid still has the
+recorded name and a start time within 2 s (a reused pid is spared), then deleted; records of a running host
+(another SharpRail on the same storage) are kept. Windows has no watchdog: servers end with their closed
+stdin, and the next start sweeps.
+
+Footprint: C# launches set `DOTNET_gcServer=0` and `DOTNET_GCConserveMemory=7` unless the user exported
+them (Roslyn ships with server GC). Measured on SharpRail.slnx (74 projects, macOS arm64, physical
+footprint after the project graph loaded, a document opened and a workspace symbol search, settled):
+server GC 810–855 MiB; workstation GC 519–556 MiB; workstation GC with conserve-memory 514 MiB (about −38%; conserve-memory
+adds little over workstation GC alone).
+`DOTNET_GCHeapHardLimit` is not set: a hard limit turns a large solution into out-of-memory failures.
+Roslyn's analyzer and compiler diagnostics already default to open files, so no scope setting changes;
+references and diagnostics are unchanged (the freshness checks pass).
 
 Each running server records who started it, as information only (it never changes how long the server
 runs): `human` (the pane, Settings, an editor request), `config` (`autoStart` in a workspace's

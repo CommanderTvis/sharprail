@@ -22,6 +22,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     private readonly LanguageServers servers;
     private readonly CancellationTokenSource lifetime = new();
     private readonly Timer sampler;
+    private readonly string processes;
     private readonly Func<bool> enabled;
     private readonly Func<string, string, string> configuration;
     private readonly Action<string, string, string>? saveConfiguration;
@@ -44,6 +45,14 @@ public sealed partial class LanguageService : IAsyncDisposable
         internal readonly CancellationTokenSource Stop;
         internal readonly CancellationToken Token;
         internal int Stopped;
+        internal string Workspace = "";
+        internal string ServerId = "";
+        /// <summary>When a request last used this server, in <see cref="Ticks"/> milliseconds.</summary>
+        internal long LastUsed;
+        /// <summary>Requests this server is answering now; a busy server is never stopped by the limits.</summary>
+        internal int InFlight;
+        /// <summary>Whether the limits admitted this server; a server waiting for a slot holds none.</summary>
+        internal bool HoldsSlot;
         internal Entry(CancellationToken token) { Stop = CancellationTokenSource.CreateLinkedTokenSource(token); Token = Stop.Token; }
     }
 
@@ -56,7 +65,10 @@ public sealed partial class LanguageService : IAsyncDisposable
         this.configuration = workspaceConfiguration ?? ((_, _) => "{}");
         this.saveConfiguration = saveConfiguration;
         this.enabled = enabled ?? (() => Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1");
-        sampler = new Timer(_ => SampleMemory(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        processes = Path.Combine(directory, "processes");
+        // Servers a crashed or killed host left behind are found by their recorded id, name and start time, off the caller's thread.
+        _ = Task.Run(() => LanguageProcesses.Sweep(processes));
+        sampler = new Timer(_ => _ = EnforceAsync(), null, EnforcementPeriod, EnforcementPeriod);
     }
 
     /// <summary>The user's host-wide tool paths from host state (JSON of executable name to path), honoured by probes and launches.</summary>
@@ -70,6 +82,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         {
             Servers = servers.Servers.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version) { Presentation = Present(server) }).ToArray()
         };
+        if (request.Operation == "running") return Running();
         if (request.Operation == "resolution")
         {
             var chosen = servers.Find(request.Server) ?? throw new ArgumentException("Unknown language server.");
@@ -77,7 +90,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             var resolution = await servers.ResolveAsync(chosen, Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace)), token);
             return new(resolution.State, resolution.Message, chosen.Id) { Configuration = resolution.ToJson() };
         }
-        if (!enabled() && request.Operation is not ("configurationSchema" or "configuration" or "configure" or "servers" or "logs"))
+        if (!enabled() && request.Operation is not ("configurationSchema" or "configuration" or "configure" or "servers" or "logs" or "release"))
         {
             if (request.Operation == "close")
                 foreach (var draftKey in drafts.Keys.Where(key => key.StartsWith(Path.TrimEndingDirectorySeparator(request.Workspace) + "\0", StringComparison.Ordinal)))
@@ -89,6 +102,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             throw new ArgumentException("Language requests require an existing absolute workspace directory.");
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
         request = request with { Workspace = workspace };
+        if (request.Operation == "release") return await ReleaseAsync(workspace, request.Server);
         if (request.Operation is not ("servers" or "inspect" or "diagnostics" or "hover" or "definition" or "typeDefinition" or "implementation" or "references" or "source" or "symbolBody" or "symbols" or "workspaceSymbols" or "close" or "status" or "retry" or "restart" or "stop" or "configurationSchema" or "configuration" or "configure" or "logs" or "projects"))
             throw new ArgumentException("Unknown language operation.");
         if (request.Offset < 0 || request.Limit is < 1 or > 200) throw new ArgumentException("Offset must be nonnegative and limit must be between 1 and 200.");
@@ -250,13 +264,15 @@ public sealed partial class LanguageService : IAsyncDisposable
         }
         // Only the dictionary winner starts a process.
         var options = WorkspaceLanguageConfiguration.Parse(configuration(workspace, server.Id), server.Id);
-        var candidate = new Entry(lifetime.Token) { Configuration = WorkspaceLanguageConfiguration.Serialize(options), StartedBy = LanguageOrigins.Normalize(request.Origin) };
+        var candidate = new Entry(lifetime.Token) { Configuration = WorkspaceLanguageConfiguration.Serialize(options), StartedBy = LanguageOrigins.Normalize(request.Origin), Workspace = workspace, ServerId = server.Id, LastUsed = Ticks() };
         candidate.Session = new(() => Task.Run(async () =>
         {
             var log = logs.GetOrAdd(key, _ => new());
             log.Add("lifecycle", "Starting " + server.Id + ".");
             try
             {
+                // Waiting for a slot does not count against the startup deadline.
+                await AcquireSlotAsync(candidate, candidate.Token);
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(candidate.Token);
                 deadline.CancelAfter(TimeSpan.FromMinutes(15));
                 // A workspace just created is still receiving its cloned restore and build outputs; starting without them costs a full restore.
@@ -264,6 +280,7 @@ public sealed partial class LanguageService : IAsyncDisposable
                 await WorkspaceClone.WhenClonedAsync(workspace, LanguageLimits.CloneWait, deadline.Token);
                 var sessionDirectory = servers.SessionDirectory(server, workspace);
                 var start = await servers.ProvisionAsync(server, workspace, deadline.Token, options, sessionDirectory);
+                start.Environment[LanguageProcesses.Variable] = processes;
                 if (options.Arguments is not null)
                 {
                     foreach (var argument in options.Arguments)
@@ -307,6 +324,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             entry = entries.GetOrAdd(key, candidate);
         }
         if (!ReferenceEquals(candidate, entry)) candidate.Stop.Dispose();
+        Touch(entry);
         var sessionTask = entry.Session.Value;
         if (!sessionTask.IsCompleted && request.Operation != "close")
         {
@@ -319,7 +337,14 @@ public sealed partial class LanguageService : IAsyncDisposable
         try
         {
             var session = await sessionTask.WaitAsync(token);
-            var result = await session.ExecuteAsync(request, token);
+            LanguageResult result;
+            Interlocked.Increment(ref entry.InFlight);
+            try { result = await session.ExecuteAsync(request, token); }
+            finally
+            {
+                Touch(entry);
+                if (Interlocked.Decrement(ref entry.InFlight) == 0) Pulse();
+            }
             if (result.State == "expired") RecordExpiry(entry, key, workspace);
             foreach (var location in result.Locations)
                 if (Path.IsPathFullyQualified(location.Path)) exposed[(workspace, location.Path)] = true;
@@ -533,7 +558,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         }));
     }
 
-    /// <summary>Samples each running server's resident memory for its exit record; servers run for the lifetime of their workspace and are never stopped for being unused.</summary>
+    /// <summary>Samples each running server's memory for the limits and its exit record.</summary>
     internal void SampleMemory()
     {
         foreach (var entry in entries.Values)
@@ -559,9 +584,11 @@ public sealed partial class LanguageService : IAsyncDisposable
             drafts[key] = await (await task).DraftsAsync(token);
     }
 
-    private static async Task StopAsync(Entry entry, string reason)
+    private async Task StopAsync(Entry entry, string reason)
     {
         if (Interlocked.Exchange(ref entry.Stopped, 1) != 0) return;
+        Volatile.Write(ref entry.HoldsSlot, false);
+        Pulse();
         entry.Stop.Cancel();
         try
         {

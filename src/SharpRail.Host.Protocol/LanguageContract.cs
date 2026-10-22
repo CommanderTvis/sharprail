@@ -56,6 +56,9 @@ public sealed class LanguageServerDto
     [ProtoMember(10)] public LanguageServerPresentationDto? Presentation { get; set; }
     [ProtoMember(11)] public List<LanguageDependencyDto> Dependencies { get; set; } = [];
     [ProtoMember(12)] public bool DependenciesProbed { get; set; }
+    [ProtoMember(13)] public string Workspace { get; set; } = "";
+    [ProtoMember(14)] public long MemoryBytes { get; set; }
+    [ProtoMember(15)] public long IdleSeconds { get; set; }
 }
 
 [ProtoContract]

@@ -38,6 +38,10 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     private int disposed;
     private string? ownedCache;
     internal bool HasDrafts { get; private set; }
+    /// <summary>Whether an editor buffer (a document with an owner) is open in this session; such a server is never stopped by the limits.</summary>
+    internal bool HasEditors { get; private set; }
+    /// <summary>The last sampled resident memory of the server process, in bytes; zero before the first sample.</summary>
+    internal long MemoryBytes => connection.MemoryBytes;
     internal bool Exited => connection.Exited;
     internal LanguageExit? ExitRecord => connection.ExitRecord;
     /// <summary>Names why SharpRail is about to end this server, so its exit record explains the death.</summary>
@@ -161,7 +165,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             documents[uri] = document;
             await connection.NotifyAsync("textDocument/didOpen", new { textDocument = new { uri, languageId = LanguageServers.LanguageId(path, server), version = document.Version, text = document.Text } }, token);
         }
-        HasDrafts = documents.Values.Any(value => value.Dirty);
+        HasDrafts = documents.Values.Any(value => value.Dirty); HasEditors = documents.Values.Any(value => value.Owner.Length > 0);
     }
 
     internal async Task<LanguageResult> WorkspaceDiagnosticsAsync(CancellationToken token)
@@ -215,7 +219,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 {
                     await connection.NotifyAsync("textDocument/didClose", new { textDocument = new { uri } }, token);
                     documents.Remove(uri); diagnostics.TryRemove(uri, out _);
-                    HasDrafts = documents.Values.Any(value => value.Dirty);
+                    HasDrafts = documents.Values.Any(value => value.Dirty); HasEditors = documents.Values.Any(value => value.Owner.Length > 0);
                 }
                 return new("closed", Server: server.Id, Version: request.Version);
             }
@@ -250,7 +254,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             }
             else if (request.Text is not null)
                 documents[uri] = document = document with { Owner = request.DocumentId, ClientVersion = request.Version, Dirty = request.Dirty };
-            HasDrafts = documents.Values.Any(value => value.Dirty);
+            HasDrafts = documents.Values.Any(value => value.Dirty); HasEditors = documents.Values.Any(value => value.Owner.Length > 0);
             if (saved && capabilities["textDocumentSync"] is JsonObject synchronization && synchronization["save"] is { } save && save.ToJsonString() != "false")
                 await connection.NotifyAsync("textDocument/didSave", new { textDocument = new { uri }, text }, token);
 

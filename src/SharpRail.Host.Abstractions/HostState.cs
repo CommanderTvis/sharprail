@@ -37,6 +37,8 @@ public sealed record HostSettings
     public string LanguageServers { get; init; } = "";
     /// <summary>Host-wide paths of the tools language servers need (go, node, java...), keyed by executable name, stored as JSON; absent tools are found on PATH.</summary>
     public string LanguageTools { get; init; } = "";
+    /// <summary>Limits on running language servers (idle timeout, memory budget, per-server caps) as JSON; empty uses the defaults.</summary>
+    public string LanguageLimits { get; init; } = "";
     /// <summary>Custom TextMate grammars and filename patterns, as a JSON array shared with clients.</summary>
     public string CustomHighlighting { get; init; } = "";
     /// <summary>Whether centre tabs use a vertical strip; null keeps an older client's preference.</summary>

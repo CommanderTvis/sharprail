@@ -32,6 +32,8 @@ internal sealed class LanguageConnection : IAsyncDisposable
     private string? stopReason;
     private bool stopFailure;
     private long memoryBytes;
+    /// <summary>The last sampled resident memory, in bytes.</summary>
+    internal long MemoryBytes { get { lock (trace) return memoryBytes; } }
     private DateTime memoryAt;
     internal const int StderrLines = 200, MessageCapacity = 60;
     internal LanguageExit? ExitRecord { get; private set; }
@@ -57,6 +59,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
         log.Add("launch", "Workspace: " + workspace);
         log.Add("launch", start.FileName + " " + JsonSerializer.Serialize(start.ArgumentList));
         process = Process.Start(start) ?? throw new IOException("The language server did not start.");
+        LanguageProcesses.Started(process, start);
         errors = Task.Run(async () =>
         {
             var buffer = new char[2048];
@@ -91,8 +94,8 @@ internal sealed class LanguageConnection : IAsyncDisposable
         try
         {
             if (process.HasExited) return;
-            process.Refresh();
-            lock (trace) { memoryBytes = process.WorkingSet64; memoryAt = DateTime.UtcNow; }
+            var footprint = LanguageMemory.Footprint(process);
+            lock (trace) { memoryBytes = footprint; memoryAt = DateTime.UtcNow; }
         }
         catch (Exception error) when (error is InvalidOperationException or NotSupportedException or System.ComponentModel.Win32Exception) { }
     }
@@ -127,6 +130,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
         try
         {
             await process.WaitForExitAsync();
+            LanguageProcesses.Exited(process.Id);
             // Output written just before the exit may still be in the pipe; the grace period also covers grandchildren that keep it open.
             await Task.WhenAny(errors, Task.Delay(TimeSpan.FromSeconds(2)));
             var code = process.ExitCode;

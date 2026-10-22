@@ -258,6 +258,11 @@ public sealed partial class HostStateStore : IHostStateService
                     RemoveTerminalAgents(agents.Contains);
                     RemoveTerminalTitles(terminal => agents.Contains(terminal) || roots.Contains(terminal.WorkspaceId));
                 }
+            // A closed project's language servers stop now; its settings, drafts and exit records stay for when it reopens.
+            if (languages is { } closing)
+                foreach (var project in previous.Projects.Except(next.Projects))
+                    foreach (var workspace in previous.WorkspacesOf(project).Select(workspace => workspace.Path).Append(project).Distinct())
+                        await closing.StopWorkspaceAsync(workspace, "its project was closed");
             lock (gate)
             {
                 // Terminal closure can remove agent records while the shells drain.
@@ -272,6 +277,8 @@ public sealed partial class HostStateStore : IHostStateService
             }
             if (previous.Settings.LspEnabled && !next.Settings.LspEnabled && languages is { } languageService)
                 await languageService.SuspendAsync();
+            if (previous.Settings.LanguageLimits != next.Settings.LanguageLimits && languages is { } limited)
+                _ = Task.Run(limited.EnforceAsync, CancellationToken.None);
             if (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider && languages is { } jvmLanguages)
                 await jvmLanguages.SwitchProviderAsync(CancellationToken.None);
             // A project opened for the first time starts the language servers its shared configuration marks autoStart in its Default workspace.
@@ -575,6 +582,7 @@ public sealed partial class HostStateStore : IHostStateService
                     "bell-features" when HostSettings.NormalizeBellFeatures(value) is { } bell => settings with { BellFeatures = bell },
                     _ when key.StartsWith("language-server:", StringComparison.Ordinal) => settings with { LanguageServers = SetLanguageServer(settings.LanguageServers, key[16..], value) },
                     _ when key.StartsWith("language-tool:", StringComparison.Ordinal) => settings with { LanguageTools = SetLanguageTool(settings.LanguageTools, key[14..], value) },
+                    "language-limits" => settings with { LanguageLimits = value.Length == 0 ? "" : Language.LanguageServerLimits.Parse(value).Serialize() },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },
                     "vertical-tabs" when bool.TryParse(value, out var vertical) => settings with { VerticalCenterTabs = vertical },
                     "settle-idle-days" when value is "" or "never" => settings with { SettleIdleDays = null },

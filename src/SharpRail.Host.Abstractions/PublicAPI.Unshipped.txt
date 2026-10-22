@@ -1918,3 +1918,11 @@ static readonly SharpRail.Host.Abstractions.TerminalSignal.ProgressTimeout -> Sy
 static SharpRail.Host.Abstractions.HostSettings.NormalizeBellFeatures(string! value) -> string?
 static SharpRail.Host.Abstractions.TerminalSignal.operator !=(SharpRail.Host.Abstractions.TerminalSignal? left, SharpRail.Host.Abstractions.TerminalSignal? right) -> bool
 static SharpRail.Host.Abstractions.TerminalSignal.operator ==(SharpRail.Host.Abstractions.TerminalSignal? left, SharpRail.Host.Abstractions.TerminalSignal? right) -> bool
+SharpRail.Host.Abstractions.HostSettings.LanguageLimits.get -> string!
+SharpRail.Host.Abstractions.HostSettings.LanguageLimits.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.Workspace.get -> string!
+SharpRail.Host.Abstractions.LanguageServerState.Workspace.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.MemoryBytes.get -> long
+SharpRail.Host.Abstractions.LanguageServerState.MemoryBytes.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.IdleSeconds.get -> long
+SharpRail.Host.Abstractions.LanguageServerState.IdleSeconds.init -> void
