@@ -1076,9 +1076,17 @@ internal static class LanguageChecks
                 "Hovering the Unicode diagnostic underline did not show its severity, source and message.");
             window.MouseMove(view.Editor.TranslatePoint(new Point(view.Editor.Bounds.Width - 8, hoverPoint.Y), window)!.Value);
             Require(!ToolTip.GetIsOpen(view.Editor), "Diagnostic hover remained over blank space.");
+            var openedWith = -1;
+            view.Editor.ContextMenu!.Opened += (_, _) => openedWith = view.Editor.ContextMenu.Items.Count;
             view.Editor.RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs());
-            E2E.E2eWorkspace.Until(() => view.Editor.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name == "Language_diagnostics"));
+            E2E.E2eWorkspace.Until(() => view.Editor.ContextMenu!.IsOpen && view.Editor.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Name == "Language_diagnostics"));
+            Require(openedWith == view.Editor.ContextMenu.Items.Count,
+                $"The editor context menu opened with {openedWith} items and grew to {view.Editor.ContextMenu.Items.Count} afterwards, so its native popup clipped them.");
             var problems = view.Editor.ContextMenu!.Items.OfType<Avalonia.Controls.MenuItem>().Single(item => item.Name == "Language_diagnostics");
+            var menuRoot = (Avalonia.Visual)TopLevel.GetTopLevel(problems)!;
+            E2E.E2eWorkspace.Until(() => menuRoot.Bounds.Height > 0 && problems.IsArrangeValid);
+            Require(view.Editor.ContextMenu.Items.OfType<MenuItem>().All(item => item.TranslatePoint(new Point(0, item.Bounds.Height), menuRoot) is { } bottom && bottom.Y <= menuRoot.Bounds.Height + 0.5),
+                $"The editor context menu's popup ({menuRoot.Bounds.Height:0}px tall) clipped its items.");
             problems.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.MenuItem.ClickEvent));
             view.Editor.ContextMenu.Close();
             var list = Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.ListBox>(view, "LanguageItems")!;

@@ -313,8 +313,8 @@ internal static class ShellChecks
         var view = Entry(bar, "View").Menu!;
         var windows = Entry(bar, "Window").Menu!;
         var help = Entry(bar, "Help").Menu!;
-        string[] language = ["Go to Declaration", "Go to Type Declaration", "Go to Implementation", "Find Usages", "Document symbols", "Workspace Problems",
-            "Language server status", "Start / Retry language server", "Stop language server"];
+        string[] language = ["Go to Declaration", "Go to Type Declaration", "Go to Implementation", "Find Usages", "Document Symbols", "Workspace Problems",
+            "Language Server Status", "Start / Retry Language Server", "Stop Language Server"];
         Require(Headers(file).SequenceEqual(["New Workspace", "New Window", "-", "Open Project…", "Clone Repository…", "Create Project…", "Open Recent", "-", "Close Tab", "Close Window"]),
             "File: " + string.Join(", ", Headers(file)));
         Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All", "-", "Find", "-", .. language]), "Edit: " + string.Join(", ", Headers(edit)));

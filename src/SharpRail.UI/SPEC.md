@@ -165,7 +165,7 @@ A workbench window gets:
   Close Tab ⌘W (the normal tab-close action) and Close Window ⇧⌘W (the window's close button).
 - Edit: Undo, Redo, Cut, Copy, Paste, Delete, Select All; Find ⌘F; then the editor context menu's language actions
   in its order (Go to Declaration F12, Go to Type Declaration, Go to Implementation, Find Usages ⌥F7, Document
-  symbols, Workspace Problems, Language server status, Start / Retry language server, Stop language server).
+  Symbols, Workspace Problems, Language Server Status, Start / Retry Language Server, Stop Language Server).
   They are enabled only while the focused control is a code editor whose last language answer named a running
   (ready or initializing) server, the condition the context menu applies; the menu follows focus and the editor's
   in-memory answers and never asks the host.
@@ -712,6 +712,9 @@ Editor and agent diagnostic operations remain available independently.
 Editor context menus check the file-specific running server before exposing language
 commands. Idle, stopped, disabled, unavailable and unsupported files have no LSP
 actions; status lookup does not start a server. Initializing sessions retain actions.
+The menu stays closed until that lookup has added its actions and then opens once with
+its final items, because a native popup keeps the size measured at opening and would
+clip items added later.
 
 Successful server discovery has no redundant status caption. Transient status and
 action/error feedback use the same secondary typography as the section description.

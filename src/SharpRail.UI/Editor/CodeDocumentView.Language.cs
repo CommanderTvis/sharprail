@@ -130,7 +130,7 @@ internal sealed partial class CodeDocumentView
         [("Go to Declaration (F12)", "definition"), ("Go to Type Declaration", "typeDefinition"), ("Go to Implementation", "implementation"), ("Find Usages (Alt+F7)", "references")];
 
     private static readonly (string Label, string Operation)[] ServerOperations =
-        [("Document symbols", "symbols"), ("Workspace Problems", "diagnostics"), ("Language server status", "status"), ("Start / Retry language server", "retry"), ("Stop language server", "stop")];
+        [("Document Symbols", "symbols"), ("Workspace Problems", "diagnostics"), ("Language Server Status", "status"), ("Start / Retry Language Server", "retry"), ("Stop Language Server", "stop")];
 
     /// <summary>The language actions the editor's context menu offers, in its order; the macOS menu bar lists the same ones.</summary>
     internal static IEnumerable<(string Label, string Operation)> LanguageOperations => NavigationOperations.Concat(ServerOperations);
@@ -155,30 +155,42 @@ internal sealed partial class CodeDocumentView
 
     internal void AddLanguageMenu(ContextMenu menu)
     {
+        // A native popup keeps the size it measured when it opened, so language items added after opening were clipped.
+        // Hold the menu closed until they are in, then open it once with its final content.
         var generation = 0;
+        var ready = false;
         menu.Closed += (_, _) => generation++;
         menu.Opening += async (_, e) =>
         {
+            if (ready) { ready = false; e.Cancel = false; return; }
             var current = ++generation;
             foreach (var item in menu.Items.OfType<Control>().Where(item => Equals(item.Tag, "lsp")).ToArray()) menu.Items.Remove(item);
-            e.Cancel = false;
+            e.Cancel = true;
+            var running = false;
             try
             {
                 var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, LanguageSourceServer.Length > 0 ? "" : path, "status", Server: LanguageSourceServer)));
                 if (!disposed) SetLanguageAvailable(Running(result));
-                if (current != generation || disposed || !IsEffectivelyVisible || !Running(result)) return;
+                running = Running(result);
             }
-            catch { return; }
-            menu.Items.Add(new Separator { Tag = "lsp" });
-            foreach (var (label, operation) in NavigationOperations)
+            catch { }
+            if (current != generation || disposed || !IsEffectivelyVisible) return;
+            if (running)
             {
-                var item = Ui.Menu(label, () => RunLanguageOperation(operation)); item.Tag = "lsp"; menu.Items.Add(item);
+                menu.Items.Add(new Separator { Tag = "lsp" });
+                foreach (var (label, operation) in NavigationOperations)
+                {
+                    var item = Ui.Menu(label, () => RunLanguageOperation(operation)); item.Tag = "lsp"; menu.Items.Add(item);
+                }
+                foreach (var (label, operation) in ServerOperations)
+                {
+                    var item = Ui.Menu(label, () => RunLanguageOperation(operation));
+                    item.Name = "Language_" + operation; item.Tag = "lsp"; menu.Items.Add(item);
+                }
             }
-            foreach (var (label, operation) in ServerOperations)
-            {
-                var item = Ui.Menu(label, () => RunLanguageOperation(operation));
-                item.Name = "Language_" + operation; item.Tag = "lsp"; menu.Items.Add(item);
-            }
+            if (menu.Items.Count == 0) return;
+            ready = true;
+            menu.Open(Editor);
         };
     }
 
