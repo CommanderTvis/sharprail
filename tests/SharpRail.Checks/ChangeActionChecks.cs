@@ -131,16 +131,26 @@ internal static class ChangeActionChecks
         UntilRows(app, "scoped.txt");
         Require(!Rows() && HasMenuItem(app, "ChangesScope", item => item.Name == "ChangesCommitsLoading"),
             "Commit rows must not be read before the scope menu opens.");
+        var probe = MenuFillProbe.Watch(app.Find<Button>("ChangesScope").ContextMenu!, "Changes scope menu");
         OpenMenu(app, "ChangesScope");
         Until(() => HasMenuItem(app, "ChangesScope", CommitItem("scope menu commit")));
         Until(() => HasMenuItem(app, "ChangesScope", item => Equals(item.Header, "No uncommitted changes") && !item.IsEnabled));
+        probe.RequireOpenedFilled();
         CloseMenu(app.Find<Button>("ChangesScope"));
+        IsolatedGit.Run(worktree, "branch", "menu-fill-probe");
+        probe = MenuFillProbe.Watch(app.Find<Button>("ChangesBranch").ContextMenu!, "Changes comparison branch menu");
+        OpenMenu(app, "ChangesBranch");
+        Until(() => HasMenuItem(app, "ChangesBranch", item => Equals(item.Tag, "menu-fill-probe")));
+        probe.RequireOpenedFilled();
+        CloseMenu(app.Find<Button>("ChangesBranch"));
 
         File.WriteAllText(Path.Combine(worktree, "dirty.txt"), "dirty\n");
         UntilRows(app, "dirty.txt", "scoped.txt");
         Require(Rows(), "A rebuilt panel keeps the rows the menu last read.");
+        probe = MenuFillProbe.Watch(app.Find<Button>("ChangesScope").ContextMenu!, "Changes scope menu");
         OpenMenu(app, "ChangesScope");
         Until(() => HasMenuItem(app, "ChangesScope", item => Equals(item.Header, "Uncommitted") && item.IsEnabled));
+        probe.RequireOpenedFilled();
         CloseMenu(app.Find<Button>("ChangesScope"));
         Pick(app, "ChangesScope", CommitItem("scope menu commit"));
         UntilRows(app, "scoped.txt");

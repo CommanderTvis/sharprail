@@ -15,6 +15,7 @@ public sealed partial class GhosttyTextureView
     private KeyModifiers pendingTextModifiers;
     private bool contextClick;
     internal ContextMenu? ClipboardMenu { get; private set; }
+    private int clipboardMenuRequest;
     private Point linkPointer = new(-1, -1);
 
     private void RefreshLinkModifiers(KeyModifiers modifiers)

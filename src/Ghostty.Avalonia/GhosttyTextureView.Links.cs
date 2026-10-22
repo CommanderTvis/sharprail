@@ -171,13 +171,25 @@ public sealed partial class GhosttyTextureView
 
     private async void ShowClipboardMenu(string? url, Task<TerminalContextLink?>? lookup = null)
     {
-        ClipboardMenu = new ContextMenu();
+        // A native popup keeps the size it measured when it opened, so the file-link lookup finishes before the menu
+        // opens with its final items; a newer request drops this one.
+        var request = ++clipboardMenuRequest;
+        var resolved = url is null && lookup is not null ? await lookup : null;
+        if (disposed || request != clipboardMenuRequest) return;
+        var menu = new ContextMenu();
         if (url is not null)
         {
             var open = new MenuItem { Header = "Open link", Tag = url };
             open.Click += async (_, _) => await OpenUrlAsync(url);
-            ClipboardMenu.Items.Add(open);
-            ClipboardMenu.Items.Add(new Separator());
+            menu.Items.Add(open);
+            menu.Items.Add(new Separator());
+        }
+        else if (resolved is not null)
+        {
+            var open = new MenuItem { Header = "Open link", Tag = resolved.Link.Path };
+            open.Click += async (_, _) => await resolved.Activate();
+            menu.Items.Add(open);
+            menu.Items.Add(new Separator());
         }
         foreach (var (title, action) in new[] { ("Copy", "copy_to_clipboard"), ("Paste", "paste_from_clipboard"), ("Select All", "select_all") })
         {
@@ -188,17 +200,10 @@ public sealed partial class GhosttyTextureView
                 if (action == "paste_from_clipboard") UserInput?.Invoke(this, EventArgs.Empty);
                 Native.Action(terminal.Handle, action);
             };
-            ClipboardMenu.Items.Add(item);
+            menu.Items.Add(item);
         }
-        var menu = ClipboardMenu;
+        ClipboardMenu = menu;
         menu.Open(this);
-        if (url is null && lookup is not null && await lookup is { } resolved && !disposed && ReferenceEquals(ClipboardMenu, menu) && menu.IsOpen)
-        {
-            var open = new MenuItem { Header = "Open link", Tag = resolved.Link.Path };
-            open.Click += async (_, _) => await resolved.Activate();
-            menu.Items.Insert(0, new Separator());
-            menu.Items.Insert(0, open);
-        }
     }
 
     // Ghostty's own links (OSC 8 hyperlinks, URLs) and the menu's Open link: file URLs open in the application.

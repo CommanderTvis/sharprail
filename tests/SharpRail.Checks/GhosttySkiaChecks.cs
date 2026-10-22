@@ -315,8 +315,12 @@ internal static class GhosttySkiaChecks
             Require(opened[0].Line == 12 && opened[0].Column == 3, "file click lost source coordinates.");
             window.KeyRelease(Key.LWin, RawInputModifiers.None, PhysicalKey.MetaLeft, null); Pump();
             Require(view.Cursor?.ToString() != "Hand", "file hover survived modifier release.");
-            window.MouseDown(point, MouseButton.Right); window.MouseUp(point, MouseButton.Right); Pump();
+            window.MouseDown(point, MouseButton.Right); window.MouseUp(point, MouseButton.Right);
+            Until(() => view.ClipboardMenu?.IsOpen == true, "terminal context menu");
+            var openedWith = MenuFillProbe.Snapshot(view.ClipboardMenu!.Items);
             Until(() => view.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Open link")) == true, "resolved target context menu without modifier");
+            Require(openedWith == MenuFillProbe.Snapshot(view.ClipboardMenu!.Items),
+                $"The terminal context menu opened with [{openedWith}] and its file link was added afterwards, so its native popup clipped it.");
             var contextOpen = view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
             view.ClipboardMenu.Close(); Pump();
             contextOpen.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));

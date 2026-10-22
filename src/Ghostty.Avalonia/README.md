@@ -269,7 +269,9 @@ full repaint, replay yielding to input, cancellation, split UTF-8 and exit order
 Resolution receives one logical line off the dispatcher and returns UTF-16 spans with file targets
 and one-based positions. The embedding host owns filesystem checks and navigation. Modifier-hover
 underlines resolved files; modifier-click revalidates before navigation. Right-click resolves the
-captured logical line asynchronously and adds Open link for a verified target; activation rechecks
+captured logical line asynchronously and opens the menu once that answer is in, with Open link for a
+verified target (a native popup keeps the size measured at opening, so a late item would be clipped);
+a newer right-click drops the older answer. Activation rechecks
 it even after the menu closes. Existing URL actions take precedence. The embedding application may
 use private non-file targets in the same callback without adding domain logic to this library. Soft wraps and Unicode cell
 mapping are preserved. The Metal bridge snapshots only the hovered line under the renderer lock.

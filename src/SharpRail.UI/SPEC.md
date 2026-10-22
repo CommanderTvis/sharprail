@@ -713,7 +713,7 @@ Editor context menus check the file-specific running server before exposing lang
 commands. Idle, stopped, disabled, unavailable and unsupported files have no LSP
 actions; status lookup does not start a server. Initializing sessions retain actions.
 The menu stays closed until that lookup has added its actions and then opens once with
-its final items, because a native popup keeps the size measured at opening and would
+its final items (`MenuFill`), because a native popup keeps the size measured at opening and would
 clip items added later.
 
 Successful server discovery has no redundant status caption. Transient status and

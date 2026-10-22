@@ -18,7 +18,6 @@ public sealed partial class WorkbenchWindow
     private GitCommit? selectedCommit;
     // What the scope menu last read for this workspace and comparison; null until its first open.
     private IReadOnlyList<GitCommit>? scopeCommits;
-    private CancellationTokenSource? scopeMenuLoad;
     private bool changeTree;
     private readonly List<(Border Frame, GitChange Change)> changeFrames = [];
 
@@ -94,7 +93,7 @@ public sealed partial class WorkbenchWindow
         }
         // The rows of the last open stay while this open's read runs, so a reopened menu does not flash empty.
         if (scopeCommits is null) Note("ChangesCommitsLoading", "Loading commits…"); else ShowCommits(scopeCommits);
-        scopeMenu.Opened += (_, _) => _ = LoadScopeMenuAsync(uncommitted, ShowCommits);
+        LoadScopeMenu(scope, scopeMenu, uncommitted, ShowCommits);
         selectors.Children.Add(scope);
         if (git.IsRepository)
         {
@@ -144,38 +143,31 @@ public sealed partial class WorkbenchWindow
     }
 
     // The menu's commit rows and its uncommitted probe are read on each open, never when the panel mounts, and
-    // each degrades on its own.
-    private async Task LoadScopeMenuAsync(MenuItem uncommitted, Action<IReadOnlyList<GitCommit>?> showCommits)
+    // each degrades on its own. The menu opens once both are in, so its native popup is measured with them.
+    private void LoadScopeMenu(Button scope, ContextMenu scopeMenu, MenuItem uncommitted, Action<IReadOnlyList<GitCommit>?> showCommits)
     {
-        scopeMenuLoad?.Cancel(); scopeMenuLoad?.Dispose();
-        var load = scopeMenuLoad = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-        var token = load.Token;
         var request = projectRequest;
-        var target = comparison;
-        bool Current() => !token.IsCancellationRequested && request == projectRequest && target == comparison;
-        var commits = Task.Run(async () => await host.ListCommitsAsync(target, token), token);
-        var probe = Task.Run(async () => await host.GetGitAsync("", token, "uncommitted"), token);
-        try
+        MenuFill.FillBeforeOpening(scopeMenu, scope, async token =>
         {
-            var listed = await commits;
-            if (Current()) { scopeCommits = listed; showCommits(listed); }
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception error)
+            var target = comparison;
+            var commits = Task.Run(async () => await host.ListCommitsAsync(target, token), token);
+            var probe = Task.Run(async () => await host.GetGitAsync("", token, "uncommitted"), token);
+            IReadOnlyList<GitCommit>? listed = null; Exception? listError = null; GitSnapshot? status = null;
+            try { listed = await commits; }
+            catch (Exception error) when (error is not OperationCanceledException) { listError = error; Console.Error.WriteLine(error); }
+            try { status = await probe; }
+            catch (Exception error) when (error is not OperationCanceledException) { Console.Error.WriteLine(error); }
+            return (Target: target, Commits: listed, ListFailed: listError is not null, Status: status);
+        }, read =>
         {
-            Console.Error.WriteLine(error);
-            if (Current() && scopeCommits is null) showCommits(null);
-        }
-        try
-        {
-            var status = await probe;
-            if (!Current()) return;
+            if (request != projectRequest || read.Target != comparison) return;
+            if (read.Commits is not null) { scopeCommits = read.Commits; showCommits(read.Commits); }
+            else if (read.ListFailed && scopeCommits is null) showCommits(null);
+            if (read.Status is not { } status) return;
             var none = status.IsRepository && status.Changes.Count == 0;
             uncommitted.Header = none ? "No uncommitted changes" : "Uncommitted";
             uncommitted.IsEnabled = !none;
-        }
-        catch (OperationCanceledException) { }
-        catch (Exception error) { Console.Error.WriteLine(error); }
+        }, lifetime: lifetime.Token);
     }
 
     /// <summary>The comparison target picker of Changes and of the header's branch card: one selection, one handler.</summary>
@@ -227,20 +219,11 @@ public sealed partial class WorkbenchWindow
             branches.ContextMenu.Items.Add(Ui.Menu("Refresh git", () => _ = RefreshAsync()));
         }
         Fill(gitBranches);
-        var opening = 0;
-        branches.ContextMenu!.Opened += async (_, _) =>
+        var request = projectRequest;
+        MenuFill.FillBeforeOpening(branches.ContextMenu!, branches, async token => await host.ListBranchesAsync(false, token), catalog =>
         {
-            var sequence = ++opening;
-            var request = projectRequest;
-            try
-            {
-                var catalog = await Task.Run(async () => await host.ListBranchesAsync(false, lifetime.Token), lifetime.Token);
-                if (sequence == opening && request == projectRequest && branches.ContextMenu.IsOpen && !lifetime.IsCancellationRequested)
-                    Fill(catalog);
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception error) { Console.Error.WriteLine(error); }
-        };
+            if (request == projectRequest) Fill(catalog);
+        }, error => Console.Error.WriteLine(error), lifetime.Token);
         return branches;
     }
 
@@ -264,7 +247,7 @@ public sealed partial class WorkbenchWindow
         };
         AutomationProperties.SetName(button, description);
         ToolTip.SetTip(button, label);
-        button.Click += (_, _) => button.ContextMenu.Open(button);
+        button.Click += (_, _) => MenuFill.Open(button.ContextMenu, button);
         return button;
     }
 

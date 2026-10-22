@@ -305,8 +305,10 @@ scroll position and expansion. A loaded snapshot stays visible while its replace
   commit rows and an uncommitted-scope status probe, which lets the Uncommitted row read “No uncommitted
   changes”, disabled, instead of opening an unexplained empty list. Each degrades on its own: a failed
   commit read says “Commits could not be loaded” when there are no earlier rows to keep, and a failed probe
-  leaves the row as it was. Until the first read lands the menu says `Loading commits…`; a reopened menu
-  keeps the previous rows while it re-reads. A selected commit scope already read the catalogue to
+  leaves the row as it was. The menu opens only once both answers are in
+  (`MenuFill`), so its native popup is measured with its final rows; the comparison-branch menu likewise
+  re-reads the branch catalogue before it opens. Before the first read the rows say `Loading commits…`;
+  a reopened menu shows the rows of its new read. A selected commit scope already read the catalogue to
   validate its commit, so its rows are present without opening. Changing the comparison target or the
   workspace drops the rows.
 - A selected commit that no longer exists (rebase, reset) resets the scope to All changes with a notice.

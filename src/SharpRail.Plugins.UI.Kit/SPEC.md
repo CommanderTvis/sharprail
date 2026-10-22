@@ -34,6 +34,18 @@ as primary buttons: retain the manifest foreground when readable, otherwise use 
 black or white against both normal and hovered fills. Button factory labels and icons follow the
 control foreground. Disabled controls use the shared disabled colors.
 
+## Menus filled before opening
+
+A native popup keeps the size it measured when it opened, so items added or changed afterwards are clipped.
+A context menu whose items need off-UI-thread work registers through `MenuFill.FillBeforeOpening`: an open
+request (a context request, or `MenuFill.Open` from code, since `ContextMenu.Open` raises no `Opening`) keeps
+the menu closed, gathers on the thread pool, applies the result on the UI thread and then opens the menu once
+on the control that asked. A newer request, a cancelled lifetime or a holder that left the visual tree drops
+the result, and a menu with no items stays closed. The editor menu, the Changes scope and comparison-branch
+menus and the Projects workspace menu (its Open in editors) use it; Ghostty's terminal menu, which cannot depend
+on this kit, follows the same rule itself. Checks record each menu's items when it opens and require them unchanged
+once its read has landed (`MenuFillProbe`).
+
 ## Quiet scrollbars
 
 Adapted from upstream `apps/web/src/components/SPEC.md` (`QuietScrollArea`, `styles/global.css`). The same

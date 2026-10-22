@@ -405,6 +405,7 @@ public sealed partial class GhosttySkiaView
 
     private bool contextClick;
     internal ContextMenu? ClipboardMenu { get; private set; }
+    private int clipboardMenuRequest;
 
     private async void ShowClipboardMenu(string? url = null, Task<TerminalContextLink?>? lookup = null)
     {
@@ -414,24 +415,29 @@ public sealed partial class GhosttySkiaView
         paste.Click += (_, _) => _ = ClipboardAsync(true);
         var all = new MenuItem { Header = "Select All" };
         all.Click += (_, _) => { SelectAll(); Dispatcher.UIThread.Post(() => ShowClipboardMenu()); };
-        ClipboardMenu = new ContextMenu();
+        // A native popup keeps the size it measured when it opened, so the file-link lookup finishes before the menu
+        // opens with its final items; a newer request drops this one.
+        var request = ++clipboardMenuRequest;
+        var resolved = url is null && lookup is not null ? await lookup : null;
+        if (disposed || request != clipboardMenuRequest) return;
+        var menu = new ContextMenu();
         if (url is not null)
         {
             var open = new MenuItem { Header = "Open link", Tag = url };
             open.Click += (_, _) => _ = OpenLinkAsync(url);
-            ClipboardMenu.Items.Add(open);
-            ClipboardMenu.Items.Add(new Separator());
+            menu.Items.Add(open);
+            menu.Items.Add(new Separator());
         }
-        ClipboardMenu.Items.Add(copy); ClipboardMenu.Items.Add(paste); ClipboardMenu.Items.Add(all);
-        var menu = ClipboardMenu;
-        menu.Open(this);
-        if (url is null && lookup is not null && await lookup is { } resolved && !disposed && ReferenceEquals(ClipboardMenu, menu) && menu.IsOpen)
+        else if (resolved is not null)
         {
             var open = new MenuItem { Header = "Open link", Tag = resolved.Link.Path };
             open.Click += async (_, _) => await resolved.Activate();
-            menu.Items.Insert(0, new Separator());
-            menu.Items.Insert(0, open);
+            menu.Items.Add(open);
+            menu.Items.Add(new Separator());
         }
+        menu.Items.Add(copy); menu.Items.Add(paste); menu.Items.Add(all);
+        ClipboardMenu = menu;
+        menu.Open(this);
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)

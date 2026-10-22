@@ -153,30 +153,16 @@ internal sealed partial class CodeDocumentView
     /// <summary>Runs one of <see cref="LanguageOperations"/> as its context-menu item does.</summary>
     internal void RunLanguageOperation(string operation) => _ = RunLanguageAsync(operation, wholeWorkspace: operation == "diagnostics");
 
-    internal void AddLanguageMenu(ContextMenu menu)
-    {
-        // A native popup keeps the size it measured when it opened, so language items added after opening were clipped.
-        // Hold the menu closed until they are in, then open it once with its final content.
-        var generation = 0;
-        var ready = false;
-        menu.Closed += (_, _) => generation++;
-        menu.Opening += async (_, e) =>
-        {
-            if (ready) { ready = false; e.Cancel = false; return; }
-            var current = ++generation;
-            foreach (var item in menu.Items.OfType<Control>().Where(item => Equals(item.Tag, "lsp")).ToArray()) menu.Items.Remove(item);
-            e.Cancel = true;
-            var running = false;
-            try
+    internal void AddLanguageMenu(ContextMenu menu) =>
+        // The menu opens only once the status lookup has added or removed its language items.
+        MenuFill.FillBeforeOpening(menu, Editor,
+            async token => await host.LanguageAsync(new(workspace, LanguageSourceServer.Length > 0 ? "" : path, "status", Server: LanguageSourceServer), token),
+            result =>
             {
-                var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, LanguageSourceServer.Length > 0 ? "" : path, "status", Server: LanguageSourceServer)));
-                if (!disposed) SetLanguageAvailable(Running(result));
-                running = Running(result);
-            }
-            catch { }
-            if (current != generation || disposed || !IsEffectivelyVisible) return;
-            if (running)
-            {
+                RemoveLanguageItems(menu);
+                if (disposed) return;
+                SetLanguageAvailable(Running(result));
+                if (!Running(result)) return;
                 menu.Items.Add(new Separator { Tag = "lsp" });
                 foreach (var (label, operation) in NavigationOperations)
                 {
@@ -187,11 +173,12 @@ internal sealed partial class CodeDocumentView
                     var item = Ui.Menu(label, () => RunLanguageOperation(operation));
                     item.Name = "Language_" + operation; item.Tag = "lsp"; menu.Items.Add(item);
                 }
-            }
-            if (menu.Items.Count == 0) return;
-            ready = true;
-            menu.Open(Editor);
-        };
+            },
+            _ => RemoveLanguageItems(menu));
+
+    private static void RemoveLanguageItems(ContextMenu menu)
+    {
+        foreach (var item in menu.Items.OfType<Control>().Where(item => Equals(item.Tag, "lsp")).ToArray()) menu.Items.Remove(item);
     }
 
     private async Task InspectLanguageAsync()

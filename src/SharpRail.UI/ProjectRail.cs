@@ -502,7 +502,7 @@ public sealed partial class WorkbenchWindow
         };
         var menu = WorkspaceActions(worktree, kebab);
         button.ContextMenu = menu;
-        kebab.Click += (_, _) => { if (button.IsEnabled) menu.Open(button); };
+        kebab.Click += (_, _) => { if (button.IsEnabled) MenuFill.Open(menu, button); };
         void Reveal() => settle.Opacity = kebab.Opacity = ProjectsHoverEnabled && button.IsEnabled && (item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen) ? 1 : 0;
         item.PointerEntered += (_, _) => { Reveal(); if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
         item.PointerExited += (_, _) => Reveal();

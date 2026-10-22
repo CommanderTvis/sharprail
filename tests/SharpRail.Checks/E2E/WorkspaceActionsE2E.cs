@@ -40,10 +40,13 @@ internal static class WorkspaceActionsE2E
         {
             using var app = OpenFixtureProject(directory);
             var workspace = CreateWorkspaceViaDialog(app);
+            Until(() => Item(app, workspace).GetLogicalChildren().OfType<Button>().Any(button => button.Name == "WorkspaceSelect"));
+            var probe = MenuFillProbe.Watch(Item(app, workspace).GetLogicalChildren().OfType<Button>().Single(button => button.Name == "WorkspaceSelect").ContextMenu!, "workspace actions menu");
             var menu = OpenWorkspaceMenu(app, workspace);
             var openIn = MenuEntry(menu, "WorkspaceOpenIn")!;
             app.Click(openIn, freshGesture: false);
             Until(() => openIn.IsSubMenuOpen && openIn.Items.OfType<MenuItem>().Any(item => item.Name == "WorkspaceOpenInEditor" && Equals(item.Header, "VS Code")));
+            probe.RequireOpenedFilled();
             var vsCode = openIn.Items.OfType<MenuItem>().Single(item => item.Name == "WorkspaceOpenInEditor" && Equals(item.Header, "VS Code"));
             TopLevel.GetTopLevel(vsCode)!.UpdateLayout();
             app.Click(vsCode, freshGesture: false);

@@ -536,7 +536,13 @@ public sealed partial class WorkbenchWindow
     {
         var menu = new ContextMenu { Name = "WorkspaceActions", Placement = PlacementMode.BottomEdgeAlignedRight, PlacementTarget = kebab };
         var openIn = AddWorkspaceActions(menu, worktree, header: false);
-        menu.Opened += (_, _) => _ = LoadEditorsAsync(openIn, worktree.Path);
+        // The Open in submenu lists the host's editors; the menu opens once they are read.
+        MenuFill.FillBeforeOpening(menu, kebab, async token => editors ?? await host.ListEditorsAsync(token), found =>
+        {
+            editors = found;
+            FillEditors(openIn, worktree.Path);
+            ScopeWorkspaceActions(menu, worktree);
+        }, Report, lifetime.Token);
         return menu;
     }
 
@@ -573,14 +579,16 @@ public sealed partial class WorkbenchWindow
             !WorktreeLocked(worktree.Path));
         remove.Name = "WorkspaceRemove";
         menu.Items.Add(remove);
-        void ScopeActions()
-        {
-            foreach (var item in menu.Items.OfType<Control>().Where(item => item.Name is "WorkspaceRename" or "WorkspaceRemove" || item is Separator))
-                item.IsVisible = worktree.ProjectRoot == projectRoot;
-        }
-        ScopeActions();
-        menu.Opened += (_, _) => ScopeActions();
+        ScopeWorkspaceActions(menu, worktree);
+        menu.Opening += (_, _) => ScopeWorkspaceActions(menu, worktree);
         return openIn;
+    }
+
+    // Renaming and removal stay with the workspace's own project; set before the menu opens, never while it is open.
+    private void ScopeWorkspaceActions(ContextMenu menu, WorkspaceRecord worktree)
+    {
+        foreach (var item in menu.Items.OfType<Control>().Where(item => item.Name is "WorkspaceRename" or "WorkspaceRemove" || item is Separator))
+            item.IsVisible = worktree.ProjectRoot == projectRoot;
     }
 
     private async Task LoadEditorsAsync(MenuItem openIn, string path)
