@@ -283,9 +283,11 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
                 if (StartedByAnotherAgent(terminal) || ProcessTree.CaptureCommand(agentPid) is not { } command) return;
                 claudePidOfTab[terminal] = agentPid;
                 var existing = context.AgentRecord(terminal);
+                // A new process that names its session (SharpRail's --session-id, or --resume with an id) is in that
+                // session from its first moment, before any hook reports; hooks then follow /clear, /resume and forks.
                 context.SetAgentRecord(terminal, new TerminalAgentRecord("claude", command)
                 {
-                    SessionId = existing?.SessionId,
+                    SessionId = AgentResume.LaunchedSessionId(command) ?? existing?.SessionId,
                     Model = existing?.Model,
                     Effort = existing?.Effort,
                     LaunchedByUi = ProcessTree.CaptureUiLaunch(agentPid)
@@ -312,15 +314,21 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         context.RevivePrefill((terminal, record) =>
         {
             if (record.Kind != "claude") return null;
-            var sessionId = record.SessionId is { } id && AgentResume.SessionExists(terminal.WorkspaceId, id) ? id : null;
-            var offer = sessionId is not null ? AgentResume.ResumeCommand(record.Command, sessionId, record.Model, record.Effort, HookPluginDirectory) : AgentResume.ContinueCommand(record.Command, record.Model, record.Effort, HookPluginDirectory);
+            // A tab that knows its session resumes exactly that one, never the directory's latest; a session that never
+            // saved a transcript starts afresh under the same id. Only a legacy record without an id continues.
+            var offer = record.SessionId is { } id && AgentResume.IsSessionId(id)
+                ? AgentResume.SessionExists(terminal.WorkspaceId, id)
+                    ? AgentResume.ResumeCommand(record.Command, id, record.Model, record.Effort, HookPluginDirectory)
+                    : AgentResume.StartCommand(record.Command, id, record.Model, record.Effort, HookPluginDirectory)
+                : AgentResume.ContinueCommand(record.Command, record.Model, record.Effort, HookPluginDirectory);
             if (offer is not null && context.AgentLaunchContributions("claude") is { Count: > 0 } contributions)
                 offer = AgentLaunchComposition.Apply(offer, "claude", contributions, OperatingSystem.IsWindows());
-            if (offer is null || OperatingSystem.IsWindows()) return offer is null ? null : new RevivePrefill(offer);
+            // The revived terminal runs the agent as its program; a Windows host types it as an offer instead.
+            if (offer is null || OperatingSystem.IsWindows()) return offer is null ? null : new RevivePrefill(offer) { Program = true };
             // A revival is SharpRail's own launch, whatever started the session it resumes. The command comes from the
             // process table, which holds no environment, so the agent-view setting is applied again rather than carried.
             var agentView = context.Settings<ClaudeCodeSettings>().DisableAgentView ? "CLAUDE_CODE_DISABLE_AGENT_VIEW=true " : "";
-            return new RevivePrefill("SHARPRAIL_UI_LAUNCH=claude " + agentView + offer);
+            return new RevivePrefill("SHARPRAIL_UI_LAUNCH=claude " + agentView + offer) { Program = true };
         });
     }
 

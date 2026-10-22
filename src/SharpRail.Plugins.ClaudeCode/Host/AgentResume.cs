@@ -7,6 +7,7 @@ internal static partial class AgentResume
 {
     private static readonly HashSet<string> ResumeFlags = ["--resume", "-r"];
     private static readonly HashSet<string> ContinueFlags = ["--continue", "-c"];
+    private const string SessionIdFlag = "--session-id";
     // Flags of the claude CLI that take no value, so the word after them is not theirs.
     private static readonly HashSet<string> BooleanFlags =
         ["--chrome", "--dangerously-skip-permissions", "--debug", "--fork-session", "--ide", "--print", "-p", "--verbose", "--version", "-v", "--help", "-h"];
@@ -23,6 +24,36 @@ internal static partial class AgentResume
     /// </summary>
     public static string? ResumeCommand(string command, string sessionId, string? model = null, string? effort = null, string? pluginDirectory = null) =>
         IsSessionId(sessionId) && Invocation(command, model, effort, pluginDirectory) is { } kept ? $"{kept} --resume {sessionId}" : null;
+
+    /// <summary>
+    /// The same invocation starting a new conversation under a known id: a session SharpRail started with
+    /// <c>--session-id</c> that never saved a transcript cannot be resumed, so its revival starts it afresh under the id
+    /// the tab already records.
+    /// </summary>
+    public static string? StartCommand(string command, string sessionId, string? model = null, string? effort = null, string? pluginDirectory = null) =>
+        IsSessionId(sessionId) && Invocation(command, model, effort, pluginDirectory) is { } kept ? $"{kept} {SessionIdFlag} {sessionId}" : null;
+
+    /// <summary>
+    /// The session a claude command line starts in, when the line names it: <c>--session-id</c>, or <c>--resume</c>
+    /// with an id. A fork gets an id of the CLI's choosing, so it names none.
+    /// </summary>
+    public static string? LaunchedSessionId(string command)
+    {
+        var words = command.Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        string? found = null;
+        for (var index = 1; index < words.Length; index++)
+        {
+            var word = words[index];
+            if (word == "--") break;
+            if (word == "--fork-session") return null;
+            var parts = word.Split('=', 2);
+            if (parts[0] != SessionIdFlag && !ResumeFlags.Contains(parts[0])) continue;
+            var value = parts.Length == 2 ? parts[1] : index + 1 < words.Length ? words[index + 1] : "";
+            value = value.Trim('\'', '"');
+            if (IsSessionId(value)) found = value.ToLowerInvariant();
+        }
+        return found;
+    }
 
     /// <summary>The same invocation asked to pick up the latest conversation in its directory itself.</summary>
     public static string? ContinueCommand(string command, string? model = null, string? effort = null, string? pluginDirectory = null) => Invocation(command, model, effort, pluginDirectory) is { } kept ? $"{kept} --continue" : null;
@@ -63,7 +94,8 @@ internal static partial class AgentResume
                 if (removed) continue;
             }
             if (ContinueFlags.Contains(word)) continue;
-            if (ResumeFlags.Contains(word))
+            if (word.StartsWith(SessionIdFlag + "=", StringComparison.Ordinal)) continue;
+            if (ResumeFlags.Contains(word) || word == SessionIdFlag)
             {
                 // --resume with nothing after it is the interactive picker, not an id to drop.
                 if (index + 1 < words.Length && !words[index + 1].StartsWith('-')) index++;
@@ -92,7 +124,17 @@ internal static partial class AgentResume
     private static partial Regex ShellWord();
 
     /// <summary>
-    /// Where Claude stores a conversation: <c>~/.claude/projects/&lt;cwd with / and . as -&gt;/&lt;session&gt;.jsonl</c>, written only once
+    /// Where Claude keeps the conversation a session started in <paramref name="cwd"/> writes, whether or not it exists
+    /// yet: <c>~/.claude/projects/&lt;cwd with every character but a letter or digit as -&gt;/&lt;session&gt;.jsonl</c>.
+    /// A tab's agent record names the session; with the tab's directory this is where its live usage is read.
+    /// </summary>
+    public static string? ExpectedTranscriptPath(string cwd, string sessionId) =>
+        IsSessionId(sessionId) && cwd.Length > 0 ? Path.Combine(ClaudeEnvironment.ClaudeHome(), "projects", ProjectSlug(cwd), sessionId + ".jsonl") : null;
+
+    private static string ProjectSlug(string cwd) => string.Concat(cwd.Select(character => char.IsAsciiLetterOrDigit(character) ? character : '-'));
+
+    /// <summary>
+    /// Where Claude stores a conversation (<see cref="ExpectedTranscriptPath"/>), written only once
     /// the session has something to save. A session interrupted before that leaves an id that resolves to nothing, so
     /// the offer is made only when the conversation is on disk. <c>--resume</c> itself searches every project on the
     /// machine, so a session picked from the interactive list can belong to a directory this workspace never saw.
@@ -100,12 +142,11 @@ internal static partial class AgentResume
     public static string? TranscriptPath(string cwd, string sessionId)
     {
         if (!IsSessionId(sessionId)) return null;
-        var projects = Path.Combine(ClaudeEnvironment.Home(), ".claude", "projects");
+        var projects = Path.Combine(ClaudeEnvironment.ClaudeHome(), "projects");
         var file = sessionId + ".jsonl";
         if (cwd.Length > 0)
         {
-            var own = Path.Combine(projects, cwd.Replace('/', '-').Replace('.', '-'), file);
-            if (File.Exists(own)) return own;
+            if (ExpectedTranscriptPath(cwd, sessionId) is { } own && File.Exists(own)) return own;
         }
         try
         {

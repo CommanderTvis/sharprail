@@ -145,10 +145,25 @@ bookkeeping and rejecting markers older than the current running turn.
 Token usage is read from the hook's transcript path, incrementally over complete lines. Streaming
 blocks with one message id count once at the last usage; subagent transcripts contribute too.
 There is no estimated usage or subscription cost. Older hooks without a transcript path retain the
-fork's standard-directory fallback.
+fork's standard-directory fallback. That directory is `<CLAUDE_CONFIG_DIR or ~/.claude>/projects/<cwd
+with every character but an ASCII letter or digit as ->/<session>.jsonl` (`AgentResume.ExpectedTranscriptPath`,
+verified against claude 2.1.308, which also resolves the cwd's symlinks): a tab's record id plus its
+directory names its transcript before the file exists.
 
-Revive retains invocation flags, removes old positional prompts and resume/continue flags, then
-offers a known surviving session id or the fork's continue fallback. Blueprint's independent revive
+Session ids are SharpRail's. Every launch that starts a new conversation (no `--continue`, `--resume`,
+`--teleport`, `--fork-session`, `--session-id` or `--print` among its arguments) gets a fresh UUID as
+`--session-id <uuid>`, placed before any positional prompt. Process detection reads the id from the
+command line (`--session-id`, or `--resume` with an id; never a fork) the moment it sees the new process,
+so the record names the session before any hook reports. Hooks still move it afterwards: a report with a
+different session id (/clear, /resume, a fork) replaces the record's id as before.
+
+Revive retains invocation flags, removes old positional prompts and resume/continue/session-id flags,
+and runs the result as the revived terminal's program (`RevivePrefill.Program`): nothing is typed into a
+shell. A record with an id always revives that id: `--resume <id>` when its transcript exists, otherwise
+`--session-id <id>` to start it again under the same id (claude refuses `--session-id` for an id whose
+transcript exists, and `--resume` of an unsaved id). Two tabs in one directory therefore each resume
+their own session. Only a legacy record without an id keeps the fork's `--continue` fallback. When the
+agent exits the tab is an interactive shell in the same directory. Blueprint's independent revive
 hook contributes submit without consuming this plugin's text.
 
 ## IDE and UI

@@ -46,6 +46,15 @@ internal static partial class ClaudeLaunch
     public static string Contribute(string command, IReadOnlyList<AgentLaunchContribution>? contributions, HostPlatform? platform) =>
         contributions is { Count: > 0 } ? AgentLaunchComposition.Apply(command.Trim(), "claude", contributions, Windows(platform)) : command;
 
+    // Arguments that pick an existing conversation, or leave its id to the CLI, rather than start a new one.
+    private static readonly string[] SessionChoices = ["--continue", "-c", "--resume", "-r", "--teleport", "--session-id", "--fork-session", "--print", "-p"];
+
+    /// <summary>
+    /// A fresh id for a new conversation, so SharpRail knows the session before any hook reports it; null when the
+    /// arguments continue, resume, fork or teleport one, or print and exit.
+    /// </summary>
+    public static string? NewSessionId(string args) => SessionChoices.Any(choice => HasOption(args, choice)) ? null : Guid.NewGuid().ToString();
+
     public static string LaunchCommand(string command, string args = "")
     {
         var head = command.Trim();
@@ -69,13 +78,14 @@ internal static partial class ClaudeLaunch
     /// </summary>
     public static string SessionCommand(string command, string args, bool disableAgentView = true, bool appendSystemPrompt = true,
         HostPlatform? platform = null, string? windowsShell = null, string? model = null, string? effort = null,
-        IReadOnlyList<AgentLaunchContribution>? contributions = null)
+        IReadOnlyList<AgentLaunchContribution>? contributions = null, string? sessionId = null)
     {
         var promptFile = appendSystemPrompt ? $"--append-system-prompt-file {EnvironmentReference(ClaudeCodeContract.PromptFileVariable, platform, windowsShell)}" : "";
         var defaults = string.Join(' ', new[]
         {
             model is { Length: > 0 } && !HasOption(args, "--model") ? "--model " + ShellQuotePath(model) : "",
-            effort is { Length: > 0 } && !HasOption(args, "--effort") ? "--effort " + ShellQuotePath(effort) : ""
+            effort is { Length: > 0 } && !HasOption(args, "--effort") ? "--effort " + ShellQuotePath(effort) : "",
+            sessionId is { Length: > 0 } ? "--session-id " + ShellQuotePath(sessionId) : ""
         }.Where(part => part.Length > 0));
         var line = LaunchCommand(Contribute(command, contributions, platform), string.Join(' ', new[] { promptFile, "--plugin-dir " + EnvironmentReference(ClaudeCodeContract.PluginDirectoryVariable, platform, windowsShell), "--add-dir " + EnvironmentReference(ClaudeCodeContract.ScratchVariable, platform, windowsShell), defaults, args }.Where(part => part.Length > 0)));
         if (disableAgentView) line = WithLaunchEnvironment(line, platform, windowsShell);

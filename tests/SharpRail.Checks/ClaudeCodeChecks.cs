@@ -96,7 +96,7 @@ internal static class ClaudeCodeChecks
     {
         var directory = Path.Combine(root, "claude-ui");
         using var environment = new IsolatedEnvironment(directory);
-        using var app = new E2eWorkspace(Path.Combine(directory, "project"), openFiles: false);
+        using var app = new E2eWorkspace(Path.Combine(directory, "project"), openFiles: false, pluginTerminals: !OperatingSystem.IsWindows());
         E2eWorkspace.Until(() => app.Workbench.PluginLoader!.Registry.Entry("claude-code") is not null);
         var registry = app.Workbench.PluginLoader!.Registry;
         Require(!registry.Active.Contains("claude-code") && registry.LauncherList.All(launcher => launcher.Id != "claude"),
@@ -242,10 +242,54 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => compose.IsCompleted);
         Require(compose.GetAwaiter().GetResult() is { Key: "model", Value: var composed } && composed.GetString() == "opus",
             "The value composer opens as an owned dialog and returns the edited value for review.");
+        if (!OperatingSystem.IsWindows()) LaunchedSession(app, directory, launcher);
         app.State.ChangeAsync([HostStateChange.PluginEnabled("claude-code", false)]).AsTask().GetAwaiter().GetResult();
         E2eWorkspace.Until(() => !registry.Active.Contains("claude-code") && registry.LauncherList.All(candidate => candidate.Id != "claude"));
         Require(registry.SideTool(ClaudeCodeManifest.ConfigTool) is null, "Disabling removes Claude controls and launcher together.");
         Console.WriteLine("PASS Claude Code UI: enable, configuration pane, model launcher, compiled settings and disable");
+    }
+
+    /// <summary>
+    /// A launched session runs as the terminal's program under the id SharpRail chose: the agent record names that id
+    /// before any hook reports, and when the agent exits the tab is an interactive shell in the same directory. The fake
+    /// is a process named <c>claude</c> (bash under that name, so detection sees it) that logs its arguments and waits.
+    /// </summary>
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    private static void LaunchedSession(E2eWorkspace app, string directory, AgentLauncher launcher)
+    {
+        var bin = Path.Combine(directory, "fake-bin");
+        Directory.CreateDirectory(bin);
+        var named = Path.Combine(bin, "claude");
+        if (!File.Exists(named)) File.CreateSymbolicLink(named, "/bin/bash");
+        var log = Path.Combine(directory, "launched.log");
+        var pidFile = Path.Combine(directory, "launched.pid");
+        var fake = Path.Combine(bin, "launch-claude");
+        File.WriteAllText(fake, $"#!/bin/bash\nprintf '%s\\n' \"$@\" > '{log}.part' && mv '{log}.part' '{log}'\n" +
+            $"exec -a claude '{named}' -c 'echo $$ > \"$0\"; sleep 600; :' '{pidFile}' \"$@\"\n");
+        File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        app.State!.ChangeAsync([HostStateChange.PluginSettings("claude-code", JsonSerializer.Serialize(new { enabled = true, command = fake, appendSystemPrompt = false }))]).AsTask().GetAwaiter().GetResult();
+        E2eWorkspace.Until(() => launcher.TerminalCommand(new()).Contains(fake, StringComparison.Ordinal));
+        var line = launcher.TerminalCommand(new());
+        var opened = app.Window.OpenPluginTerminalAsync(app.Root, new() { Command = line });
+        E2eWorkspace.Until(() => opened.IsCompleted);
+        var tab = new TerminalRef(app.Root, opened.GetAwaiter().GetResult());
+        E2eWorkspace.Until(() => File.Exists(log) && File.Exists(pidFile) && File.ReadAllText(pidFile).Trim().Length > 0);
+        var args = File.ReadAllLines(log);
+        var at = Array.IndexOf(args, "--session-id");
+        Require(at >= 0 && AgentResume.IsSessionId(args[at + 1]), "A new launch starts claude with a preassigned --session-id: " + string.Join(" ", args));
+        var id = args[at + 1];
+        E2eWorkspace.Until(() => app.State.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == tab)?.Record.SessionId == id);
+        Console.WriteLine("PASS Claude launch: the tab's agent record names the preassigned session before any hook reports");
+        var view = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().Single(candidate => candidate.Launch.TabKey == tab.TabKey);
+        Require(view.Launch.Program is null, "The launch program runs once; restarting the tab opens a plain shell.");
+        using (var agent = System.Diagnostics.Process.GetProcessById(int.Parse(File.ReadAllText(pidFile).Trim(), System.Globalization.CultureInfo.InvariantCulture)))
+            agent.Kill(entireProcessTree: true);
+        E2eWorkspace.Until(() => app.State.Current.TerminalAgents.All(agent => agent.Terminal != tab));
+        var marker = Path.Combine(directory, "after-agent");
+        view.Write($"[ \"$PWD\" -ef '{app.Root}' ] && touch '{marker}'\r");
+        E2eWorkspace.Until(() => File.Exists(marker));
+        Require(view.Backend is { } backend && !backend.Exited.IsCompleted, "The terminal outlives its agent.");
+        Console.WriteLine("PASS Claude launch: when the agent exits the tab is an interactive shell in the same directory");
     }
 
     private static List<Control> Named(Control scope, string name) =>
@@ -278,6 +322,8 @@ internal static class ClaudeCodeChecks
             "Workspace actions follow New terminal under their workspace in Projects.");
 
         int Terminals() => app.Window.Layout.State.Groups.Sum(group => app.Window.Layout.Tabs(group.Id).Count(tab => tab.Kind == "terminal"));
+        // The preassigned id of the last launch, taken out of the arguments the assertions below compare.
+        string? launchedId = null;
         string[] Launch(string preset, Action? choose = null)
         {
             File.Delete(log);
@@ -296,6 +342,9 @@ internal static class ClaudeCodeChecks
             Require(app.Window.Layout.Tabs(app.Center).Any(tab => tab.Kind == "terminal"), "Claude starts in the launcher's own group.");
             E2eWorkspace.Until(() => File.Exists(log));
             var lines = File.ReadAllLines(log);
+            var at = Array.IndexOf(lines, "--session-id");
+            launchedId = at >= 0 ? lines[at + 1] : null;
+            if (at >= 0) lines = [.. lines[..at], .. lines[(at + 2)..]];
             // As the Codex launcher check does: close the started terminals so the empty group offers the launcher again.
             foreach (var group in app.Window.Layout.State.Groups.ToArray())
                 foreach (var tab in app.Window.Layout.Tabs(group.Id).Where(tab => tab.Kind == "terminal").ToArray())
@@ -313,7 +362,8 @@ internal static class ClaudeCodeChecks
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false });
         var sonnet = Launch("model-sonnet");
         Require(sonnet.SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--add-dir", ScratchProbe, "--model", "sonnet"]), "Disabling the prompt appendix retains the directly loaded plugin: " + string.Join(" ", sonnet));
-        Require(Launch("continue")[^1] == "--continue", "Continue passes the per-run flag.");
+        Require(launchedId is { } assigned && AgentResume.IsSessionId(assigned), "A new conversation starts under a preassigned --session-id.");
+        Require(Launch("continue")[^1] == "--continue" && launchedId is null, "Continue passes the per-run flag, and no preassigned id.");
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, model = "opus", effort = "high" });
         Require(Launch("continue").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--add-dir", ScratchProbe, "--model", "opus", "--effort", "high", "--continue"]),
             "The SharpRail defaults reach the shell for a new launch.");
@@ -481,6 +531,7 @@ internal static class ClaudeCodeChecks
             "A revived session is launched by SharpRail, never labelled manual, with the agent view off as the setting says: " + terminals.RevivePrefill!(terminal)?.Text);
         Require(terminals.RevivePrefill!(terminal)?.Text.Contains("--continue", StringComparison.Ordinal) == true,
             "A Claude terminal with no surviving transcript gets the fork's continue offer.");
+        await SessionIdRevival(state, terminals, terminal, Report);
         await IdeProtocol(runtime, project);
         await ConfigCases(runtime, state, project, directory);
         await Skills();
@@ -601,7 +652,54 @@ internal static class ClaudeCodeChecks
         var custom = AgentResume.ContinueCommand("claude --plugin-dir /custom/plugin", pluginDirectory: pluginDirectory)!;
         Require(custom.Contains("--plugin-dir /custom/plugin", StringComparison.Ordinal) && custom.EndsWith("--continue", StringComparison.Ordinal),
             "Revival preserves independently selected plugin directories.");
+        Require(AgentResume.LaunchedSessionId($"claude --model opus --session-id {sessionId} 'a prompt'") == sessionId &&
+            AgentResume.LaunchedSessionId($"claude --session-id={sessionId}") == sessionId && AgentResume.LaunchedSessionId($"claude --resume {sessionId}") == sessionId &&
+            AgentResume.LaunchedSessionId($"claude --resume {sessionId} --fork-session") is null && AgentResume.LaunchedSessionId("claude --continue") is null &&
+            AgentResume.LaunchedSessionId("claude --resume") is null, "A launch line names its session only through --session-id or --resume with an id, never through a fork.");
+        var restarted = AgentResume.StartCommand($"claude --session-id {sessionId} --model opus 'old prompt'", sessionId)!;
+        Require(restarted == $"claude --model opus --session-id {sessionId}", "Restarting an unsaved session drops the old id flag and prompt and names the id once: " + restarted);
+        Require(AgentResume.ResumeCommand($"claude --session-id {sessionId}", sessionId) == $"claude --resume {sessionId}", "Resuming drops the launch's --session-id.");
+        Require(AgentResume.ExpectedTranscriptPath("/private/tmp/a_b.c", sessionId) == Path.Combine(ClaudeEnvironment.ClaudeHome(), "projects", "-private-tmp-a-b-c", sessionId + ".jsonl"),
+            "The transcript path is the Claude config directory's project slug, every character but a letter or digit as '-', plus the id.");
+        Require(ClaudeLaunch.NewSessionId("--model opus") is { } fresh && AgentResume.IsSessionId(fresh) && ClaudeLaunch.NewSessionId("--model opus") != fresh &&
+            new[] { "--continue", "--resume", "--resume x --fork-session", "--teleport", "-c", "-r", "--session-id x", "-p hi" }.All(args => ClaudeLaunch.NewSessionId(args) is null),
+            "Only a new conversation gets a fresh preassigned id.");
+        Require(ClaudeLaunch.SessionCommand("claude", "'Draft'", false, false, sessionId: sessionId).EndsWith($"--session-id {sessionId} 'Draft'", StringComparison.Ordinal),
+            "The preassigned id precedes a positional prompt.");
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A tab that knows its session id revives exactly that session, as the terminal's program: two tabs in one directory
+    /// each resume their own, a session that never saved a transcript starts again under the same id, a hook-reported
+    /// change (/clear) moves the record and its revival, and only a legacy record without an id continues.
+    /// </summary>
+    private static async Task SessionIdRevival(HostStateStore state, Terminals terminals, TerminalRef own, Func<string, string, string, Task<int>> report)
+    {
+        var project = own.WorkspaceId;
+        const string first = "0b4c1d6e-1111-4a2b-8c3d-000000000001", second = "0b4c1d6e-2222-4a2b-8c3d-000000000002", cleared = "0b4c1d6e-3333-4a2b-8c3d-000000000003";
+        var neighbour = new TerminalRef(project, "claude-neighbour");
+        state.SetTerminalAgent(own, new("claude", $"claude --model opus --session-id {first}") { SessionId = first });
+        state.SetTerminalAgent(neighbour, new("claude", $"claude --session-id {second}") { SessionId = second });
+        string Revival(TerminalRef terminal) => terminals.RevivePrefill!(terminal) is { } prefill && (prefill.Program || OperatingSystem.IsWindows())
+            ? prefill.Text : throw new InvalidOperationException("A Claude revival runs as the terminal's program.");
+        Require(Revival(own).EndsWith("--session-id " + first, StringComparison.Ordinal) && !Revival(own).Contains("--continue", StringComparison.Ordinal) &&
+            !Revival(own).Contains("--resume", StringComparison.Ordinal), "A session that never saved a transcript starts again under its own id: " + Revival(own));
+        foreach (var id in new[] { first, second })
+        {
+            var path = AgentResume.ExpectedTranscriptPath(project, id)!;
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, "{}\n");
+        }
+        Require(Revival(own).EndsWith("--resume " + first, StringComparison.Ordinal) && Revival(neighbour).EndsWith("--resume " + second, StringComparison.Ordinal) &&
+            !Revival(own).Contains("--session-id", StringComparison.Ordinal) && Revival(own).Contains("--model opus", StringComparison.Ordinal),
+            "Two Claude tabs in one directory each resume their own session: " + Revival(own) + " | " + Revival(neighbour));
+        Require(await report("claude-fixture-token", JsonSerializer.Serialize(new { @event = "session_start", session_id = cleared, cwd = project }), "POST") == 200 &&
+            state.Current.TerminalAgents.Single(agent => agent.Terminal == own).Record.SessionId == cleared && Revival(own).EndsWith("--session-id " + cleared, StringComparison.Ordinal),
+            "A hook-reported session change (/clear) moves the record, and revival follows it: " + Revival(own));
+        state.SetTerminalAgent(own, new("claude", "claude --model opus"));
+        Require(Revival(own).EndsWith("--continue", StringComparison.Ordinal), "A legacy record without a session id keeps the continue fallback.");
+        state.SetTerminalAgent(neighbour, null);
     }
 
     /// <summary>

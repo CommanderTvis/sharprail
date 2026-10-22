@@ -138,7 +138,8 @@ internal static class ClaudeLauncherAction
         {
             var settings = context.Settings<ClaudeCodeSettings>();
             var started = ClaudeLaunch.SessionCommand(settings.Command, args, settings.DisableAgentView, settings.AppendSystemPrompt,
-                context.Host().HostPlatform, model: settings.Model, effort: settings.Effort, contributions: context.AgentLaunchContributions("claude"));
+                context.Host().HostPlatform, model: settings.Model, effort: settings.Effort, contributions: context.AgentLaunchContributions("claude"),
+                sessionId: ClaudeLaunch.NewSessionId(args));
             if (started.Length == 0) return;
             _ = context.OpenTerminalAsync(workspaceId, new TerminalOpenOptions { Command = started, GroupId = groupId }).AsTask();
         }
