@@ -429,7 +429,7 @@ SharpRail.Plugins.Api.PluginManifest.Category.init -> void
 SharpRail.Plugins.Api.PluginRosterEntry.Category.get -> string?
 SharpRail.Plugins.Api.PluginRosterEntry.Category.init -> void
 SharpRail.Plugins.Api.PluginCategories
-const SharpRail.Plugins.Api.PluginCategories.AiAssistants = "AI Assistants" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Agents = "Agents" -> string!
 const SharpRail.Plugins.Api.PluginCategories.Documents = "Specs & Documents" -> string!
 const SharpRail.Plugins.Api.PluginCategories.Environment = "Environment" -> string!
 const SharpRail.Plugins.Api.PluginCategories.Integrations = "Integrations" -> string!

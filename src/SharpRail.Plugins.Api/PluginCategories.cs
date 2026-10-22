@@ -55,7 +55,7 @@ public static class PluginCategories
     public const string Environment = "Environment";
 
     /// <summary>AI coding agents and the context they use.</summary>
-    public const string AiAssistants = "AI Assistants";
+    public const string Agents = "Agents";
 
     /// <summary>Version control views.</summary>
     public const string VersionControl = "Version Control";
@@ -71,5 +71,5 @@ public static class PluginCategories
 
     /// <summary>The builtin categories in listing order; any other category follows alphabetically, then <see cref="Other"/>.</summary>
     public static IReadOnlyList<string> Order { get; } =
-        [Cpp, CSharp, Css, Dart, Go, JavaScript, Jvm, Php, PowerShell, Python, R, Ruby, Rust, Shell, Swift, Environment, AiAssistants, VersionControl, Documents, Integrations];
+        [Cpp, CSharp, Css, Dart, Go, JavaScript, Jvm, Php, PowerShell, Python, R, Ruby, Rust, Shell, Swift, Environment, Agents, VersionControl, Documents, Integrations];
 }

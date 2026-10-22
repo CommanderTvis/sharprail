@@ -26,6 +26,8 @@ internal sealed class EnvChipsRow : WrapPanel
     {
         Name = "TerminalEnvironmentChips";
         Orientation = Orientation.Horizontal;
+        // The inset the agent plugins give their fact rows, so the chips do not sit against the terminal edge.
+        Margin = new Avalonia.Thickness(8, 2);
         IsVisible = false;
         // The first snapshot arrives on the subscription; later resolutions replace the chips.
         subscription = context.Subscribe(EnvChipsContract.Changed, payload => Dispatcher.UIThread.Post(() => Apply(payload)), new EnvChipsQuery(workspaceId));

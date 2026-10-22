@@ -366,7 +366,7 @@ internal static class PluginUiChecks
         // and a language server beside the plugin that activates the same language's environments.
         var names = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Listing().ToList();
         var headings = names.Where(name => name.StartsWith("PluginCategory_", StringComparison.Ordinal)).Select(name => name["PluginCategory_".Length..]).ToArray();
-        Require(headings.SequenceEqual(["C & C++", "C#", "CSS", "Dart", "Go", "JavaScript & TypeScript", "JVM", "PHP", "PowerShell", "Python", "R", "Ruby", "Rust", "Shell", "Swift", "Environment", "AI Assistants", "Version Control", "Specs & Documents", "Integrations", "Other"]),
+        Require(headings.SequenceEqual(["C & C++", "C#", "CSS", "Dart", "Go", "JavaScript & TypeScript", "JVM", "PHP", "PowerShell", "Python", "R", "Ruby", "Rust", "Shell", "Swift", "Environment", "Agents", "Version Control", "Specs & Documents", "Integrations", "Other"]),
             "Plugins are grouped by category, languages first, then tool groups, with Other last: " + string.Join(", ", headings));
         int At(string name) => names.IndexOf(name);
         Require(At("PluginCategory_Python") < At("PluginRow_lsp-python") && At("PluginRow_lsp-python") < At("PluginRow_env-python") && At("PluginRow_env-python") < At("PluginCategory_R"),
