@@ -49,9 +49,11 @@ internal static class NativeTextureChecks
         fileLinkCheck = args.Contains("--native-file-links");
         scrollCheck = args.Contains("--native-scroll");
         terminalLinkCheck = args.Contains("--native-terminal-links");
-        AppBuilder.Configure<TextureApplication>().UsePlatformDetect()
+        // Shutdown(1) only sets the lifetime's return value; drop it and a failed scenario exits 0.
+        if (AppBuilder.Configure<TextureApplication>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [fallbackCheck ? AvaloniaNativeRenderingMode.Software : AvaloniaNativeRenderingMode.Metal] })
-            .StartWithClassicDesktopLifetime(args);
+            .StartWithClassicDesktopLifetime(args) != 0)
+            throw new InvalidOperationException("Native texture check failed; see the assertion above.");
     }
 
     private sealed class TextureApplication : Application

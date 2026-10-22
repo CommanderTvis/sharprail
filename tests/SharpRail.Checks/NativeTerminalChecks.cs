@@ -43,7 +43,8 @@ internal static class NativeTerminalChecks
         profile.Save();
         Environment.SetEnvironmentVariable("SHARPRAIL_ROOT", fixture);
         Environment.SetEnvironmentVariable("SHARPRAIL_PROFILE", Path.Combine(fixture, ProfileDirectory));
-        AppBuilder.Configure<App>().UsePlatformDetect()
+        // Shutdown(1) only sets the lifetime's return value; drop it and a failed scenario exits 0.
+        if (AppBuilder.Configure<App>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [AvaloniaNativeRenderingMode.Metal] }).AfterSetup(_ =>
             Dispatcher.UIThread.Post(async () =>
             {
@@ -69,7 +70,8 @@ internal static class NativeTerminalChecks
                     desktop.Shutdown(1);
                 }
                 finally { Native.SelectLayout(previousLayout); }
-            })).StartWithClassicDesktopLifetime(args);
+            })).StartWithClassicDesktopLifetime(args) != 0)
+            throw new InvalidOperationException("Native terminal check failed; see the assertion above.");
     }
 
     private static async Task Until(Func<bool> condition, [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(condition))] string? description = null)
