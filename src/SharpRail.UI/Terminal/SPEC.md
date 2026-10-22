@@ -102,7 +102,7 @@ the requested close. Desktop terminals retain their foreground-process confirmat
   exit notice, busy query for close confirmation, clipboard paste handling, theme propagation to Ghostty,
   and the relay's connection handoff.
 - Forbidden: starting or ending shells except through `ITerminalService`; deciding placement or which tab
-  is selected; putting the host token in argv or in a shell's environment; a WebView rendering fallback.
+  is selected; putting the host token in argv or in a shell's environment.
 
 ## Decisions
 

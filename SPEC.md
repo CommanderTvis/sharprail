@@ -453,8 +453,7 @@ reconnecting without server sessions.
 CommonMark/GFM headings/anchors, paragraphs, emphasis, links, inline/fenced code,
 lists/tasks, blockquotes/callouts, tables, rules and images. Text selectable across blocks,
 relative document navigation, safe external link launch, local image loading,
-frontmatter shown as a properties block and bounded configurable line width. No WebView or HTML
-application runtime.
+frontmatter shown as a properties block and bounded configurable line width.
 
 Markdown file tabs render, don't read. A `.md`/`.markdown` file tab (from the file tree
 or the Specs panel — same open path) opens rendered by default and shows a slim

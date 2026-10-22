@@ -6,7 +6,8 @@ SharpRail brings your projects, files, terminals and Git changes into one native
 workbench. Keep a task in its own Git worktree, arrange the panes around the work,
 and review what changed without leaving the app. It is a C# and Avalonia port of
 [CommanderTvis’s ThinkRail fork](https://github.com/commandertvis/thinkrail),
-with no browser, Electron shell or WebView.
+as a native app rather than a browser or Electron shell. Web views may still host
+content inside it where they fit best.
 
 Work on your own machine or connect to another one. Locally, the host runs inside
 the app: file access, Git operations and terminal I/O stay in process, without a
