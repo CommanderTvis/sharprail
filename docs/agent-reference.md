@@ -126,6 +126,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--terminals` | Host terminals, terminal translations, Skia renderer. |
 | `--ghostty-skia` | Skia input, pixel, PTY and renderer Settings. |
 | `--native-texture` | GPU texture composition, input and local/remote renderer switching in a real macOS window. |
+| `--native-frame-pump` | Benchmark: Metal frame-notification cost with two streaming terminals, one hidden, in-process and through an embedded host (`SHARPRAIL_FRAME_PUMP_SECONDS`, default 20). |
 | `--sync` | Multi-window and multi-client translations. |
 | `--shared-terminals` | Two-client terminal sharing, watching, take-over. |
 | `--notifications` | Away notifications with a recording notifier; none posts a real one. |

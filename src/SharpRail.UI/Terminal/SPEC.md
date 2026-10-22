@@ -254,7 +254,23 @@ snapshot copy or CPU readback is required. Avalonia handles input, clipping and 
 Ghostty platform view stays unparented. There is no hosted native terminal view.
 The application prefers Avalonia's Metal backend; unsupported texture import is
 handled by Skia fallback. Failure of that fallback uses the start-failure/retry flow.
-Frame-ready notifications invalidate the control without polling. The compositor
+Frame-ready notifications invalidate the control without polling, at most once per composited
+frame per view: Ghostty's renderer thread sets an atomic flag and posts one cached callback, and
+the flag clears only when the compositor next samples the texture, so later frames in that window
+are covered by that draw and a frame completing after it posts again (the last frame of a burst is
+never lost). The callback allocates no closure; frame counts and texture size are recorded on the
+render thread, and only the first draw posts (to complete readiness). A view that is not
+effectively visible stops posting until it is composed or shown again, and its link highlights
+stay dirty until then. Link state shares two cursors and assigns one only on a change: each new
+`Cursor` owns a native platform cursor released only by its finalizer through a dispatcher post.
+`--native-frame-pump` measures this: two terminals stream at a fixed rate for 20 s (in-process
+8 KB per 2 ms each, then two embedded-host PTYs running a fixed-rate producer), one shown and one
+hidden. Recorded 2026-10-22 on an Apple M4 Pro (ProMotion), two runs each, before → after: shown
+view posts 221–230/s → 95–107/s (equal to its composited frames/s); hidden view 113–119/s → 0;
+in-process allocation 1.24 → 0.75 MiB/s; host-path allocation 20.0–20.4 → 13.4–16.9 MiB/s, gen0
+2.8–2.9/s → 1.9–2.4/s, GC pause 71–72 ms → 58–59 ms per 20 s; longest dispatcher stall
+17–30 ms → 10–15 ms. The remaining host-path garbage is output byte arrays copied per PTY read and
+per recorder push in the host, not UI notifications. The compositor
 wraps a leased source texture for each draw and waits for its GPU read to finish;
 this favors bounded memory and explicit ownership over maximum GPU overlap.
 The latest completed target and in-flight readers remain bounded by Ghostty's

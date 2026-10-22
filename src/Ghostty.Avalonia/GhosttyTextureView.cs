@@ -20,12 +20,22 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
 {
     private readonly GhosttyView terminal;
     private readonly Native.Callback frameReady;
+    private readonly Action frameNotified;
+    private readonly Action firstFrameDrawn;
     private readonly object frameLock = new();
     private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private nint source;
     private TopLevel? topLevel;
+    // Set while a frame notification is posted and its composition has not yet sampled the texture: further
+    // Ghostty frames in that window are covered by the draw that follows, so one post serves a display frame.
     private int notificationPending;
     private int unavailableFrames;
+    private int uiNotifications;
+    private int frames;
+    private int textureWidth, textureHeight;
+    // Whether frame notifications may post: cleared while this view is hidden (nothing would draw); the next
+    // composition of the view, or showing it, sets it again.
+    private volatile bool shown = true;
     private bool active;
     private bool disposed;
 
@@ -38,9 +48,12 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         terminal.Exited += (_, code) => Exited?.Invoke(this, code);
         terminal.OpenUrl += (_, url) => _ = OpenUrlAsync(url);
         frameReady = NotifyFrame;
+        frameNotified = FrameNotified;
+        firstFrameDrawn = FirstFrameDrawn;
         highlightTimer.Tick += (_, _) =>
         {
-            if (!highlightDirty) return;
+            // A hidden view keeps its highlights dirty until it is shown.
+            if (!highlightDirty || !IsEffectivelyVisible) return;
             highlightDirty = false;
             RefreshHighlights();
         };
@@ -51,13 +64,16 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     public Task Ready => ready.Task;
     public event EventHandler<int>? Exited;
     public event EventHandler<Exception>? OperationFailed;
-    public int Frames { get; private set; }
+    /// <summary>GPU draws of a Ghostty frame so far.</summary>
+    public int Frames => Volatile.Read(ref frames);
     internal int UnavailableFrames => Volatile.Read(ref unavailableFrames);
+    /// <summary>Dispatcher posts made for frame notifications and frame bookkeeping.</summary>
+    internal int UiNotifications => Volatile.Read(ref uiNotifications);
     internal int RetainedTextureCount
     {
         get { lock (frameLock) return source == 0 ? 0 : Native.RetainedCount(source); }
     }
-    public PixelSize TextureSize { get; private set; }
+    public PixelSize TextureSize => new(Volatile.Read(ref textureWidth), Volatile.Read(ref textureHeight));
     public bool IsBusy => terminal.IsBusy;
     public TerminalSize Size => terminal.Size;
     public void WriteOutput(ReadOnlySpan<byte> data) => terminal.WriteOutput(data);
@@ -78,6 +94,8 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         if (topLevel is not null) topLevel.ScalingChanged += ScalingChanged;
         Resize();
         lock (frameLock) active = true;
+        shown = true;
+        Volatile.Write(ref notificationPending, 0);
         highlightDirty = true;
         if (highlights?.Resolve is not null) highlightTimer.Start();
         Native.Notify(source, frameReady);
@@ -85,20 +103,46 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         InvalidateVisual();
     }
 
+    // Ghostty's renderer thread, once per completed frame and under its frame lock: no allocation, and at most one
+    // pending post. A hidden view does not post at all; it samples the latest frame when it is next composed.
     private void NotifyFrame()
     {
-        if (Interlocked.Exchange(ref notificationPending, 1) != 0) return;
-        Dispatcher.UIThread.Post(() =>
+        if (!shown || Interlocked.Exchange(ref notificationPending, 1) != 0) return;
+        Interlocked.Increment(ref uiNotifications);
+        Dispatcher.UIThread.Post(frameNotified);
+    }
+
+    private void FrameNotified()
+    {
+        if (!active || disposed || !IsEffectivelyVisible || Bounds.Width <= 0 || Bounds.Height <= 0)
         {
-            Interlocked.Exchange(ref notificationPending, 0);
-            if (active && !disposed) { highlightDirty = true; RefreshFileLink(); InvalidateVisual(); }
-        });
+            // Nothing will compose this view, so the next frame must be able to post once it is shown again.
+            if (active && !disposed && !IsEffectivelyVisible) shown = false;
+            Volatile.Write(ref notificationPending, 0);
+            return;
+        }
+        // The flag stays set until the composition below samples the texture (DrawFrame clears it first).
+        highlightDirty = true;
+        RefreshFileLink();
+        inputMethod?.NotifyCursor();
+        InvalidateVisual();
+    }
+
+    private void FirstFrameDrawn()
+    {
+        if (disposed) return;
+        ready.TrySetResult();
+        inputMethod?.NotifyCursor();
     }
 
     private void DrawFrame(ImmediateDrawingContext context, Rect bounds)
     {
         nint texture, lease;
         int width, height;
+        // Being composed means being shown. Clear the pending notification before sampling, so a frame completing
+        // after this acquire posts again and the last frame of a burst is never left undrawn.
+        shown = true;
+        Volatile.Write(ref notificationPending, 0);
         lock (frameLock)
         {
             if (!active || disposed) return;
@@ -125,14 +169,14 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
                 // The renderer can reuse the source as soon as this lease is returned.
                 gpu.Flush(submit: true, synchronous: true);
             }
-            Dispatcher.UIThread.Post(() =>
+            // Frame bookkeeping stays on the render thread; only the first draw posts, to complete Ready.
+            Volatile.Write(ref textureWidth, width);
+            Volatile.Write(ref textureHeight, height);
+            if (Interlocked.Increment(ref frames) == 1)
             {
-                if (disposed) return;
-                TextureSize = new(width, height);
-                Frames++;
-                ready.TrySetResult();
-                inputMethod?.NotifyCursor();
-            });
+                Interlocked.Increment(ref uiNotifications);
+                Dispatcher.UIThread.Post(firstFrameDrawn);
+            }
         }
         catch (Exception error)
         {
@@ -165,6 +209,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     {
         base.OnPropertyChanged(change);
         if (change.Property == BoundsProperty) Resize();
+        else if (change.Property == IsVisibleProperty && change.GetNewValue<bool>()) { shown = true; InvalidateVisual(); }
     }
 
     public override void Render(DrawingContext context)

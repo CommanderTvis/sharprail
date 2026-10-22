@@ -22,7 +22,6 @@ public sealed partial class GhosttyTextureView
     {
         linkModifiers = modifiers;
         if (!disposed) Native.Mouse(terminal.Handle, linkPointer.X, linkPointer.Y, Vt.Mods(modifiers), -1, 0);
-        if (!disposed) Cursor = new Cursor(Native.OverLink(terminal.Handle) ? StandardCursorType.Hand : StandardCursorType.Ibeam);
         RefreshFileLink();
         InvalidateVisual();
     }
@@ -104,7 +103,6 @@ public sealed partial class GhosttyTextureView
         linkPointer = point;
         linkModifiers = e.KeyModifiers;
         Native.Mouse(terminal.Handle, point.X, point.Y, Vt.Mods(e.KeyModifiers), action, button);
-        Cursor = new Cursor(Native.OverLink(terminal.Handle) ? StandardCursorType.Hand : StandardCursorType.Ibeam);
         RefreshFileLink();
         InvalidateVisual();
     }

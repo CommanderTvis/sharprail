@@ -42,6 +42,23 @@ public sealed partial class GhosttyTextureView
         }
     }
 
+    // Line reads reuse these UI-thread buffers: highlights refresh while output streams.
+    private readonly uint[] linkScalars = new uint[16384], linkCells = new uint[16384];
+    private readonly double[] linkInfo = new double[6];
+    private readonly StringBuilder linkText = new();
+    private readonly List<(int Cell, uint Code)> linkPositions = [];
+
+    // One UTF-16 position per char of the scalar, each with its cell and the cell's base codepoint.
+    private static void AppendScalar(StringBuilder text, List<(int Cell, uint Code)> positions, uint[] scalars, uint[] cells, int i)
+    {
+        var value = Rune.IsValid((int)scalars[i]) ? new Rune(scalars[i]) : Rune.ReplacementChar;
+        Span<char> chars = stackalloc char[2];
+        var length = value.EncodeToUtf16(chars);
+        text.Append(chars[..length]);
+        var code = i > 0 && cells[i - 1] == cells[i] ? positions[^1].Code : scalars[i];
+        for (var unit = 0; unit < length; unit++) positions.Add(((int)cells[i], code));
+    }
+
     private void ClearHighlights()
     {
         highlightMarks.Clear();
@@ -75,27 +92,19 @@ public sealed partial class GhosttyTextureView
         highlightMarks.Clear();
         highlightTargets.Clear();
         if (!active || disposed || highlights?.Resolve is null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
-        var scalars = new uint[16384];
-        var cells = new uint[scalars.Length];
-        var info = new double[6];
+        var (scalars, cells, info) = (linkScalars, linkCells, linkInfo);
         if (ReadLinkLine(terminal.Handle, Bounds.Width / 2, Bounds.Height / 2, scalars, cells, (nuint)scalars.Length, info) == 0 || info[2] <= 0 || info[3] <= 0)
             return;
-        var text = new StringBuilder();
-        var positions = new List<(int Cell, uint Code)>();
+        var (text, positions) = (linkText.Clear(), linkPositions);
+        positions.Clear();
         var rows = Size.Rows;
         var row = 0;
         for (; row < rows && text.Length < 16000;)
         {
             var count = (int)ReadLinkLine(terminal.Handle, info[4] + info[2] / 2, info[5] + (row + 0.5) * info[3], scalars, cells, (nuint)scalars.Length, info);
             if (count == 0) break;
-            for (var i = 0; i < count; i++)
-            {
-                var value = char.ConvertFromUtf32((int)scalars[i]);
-                text.Append(value);
-                // A grapheme's later scalars share its cell; the renderer compares the cell's base codepoint.
-                var code = i > 0 && cells[i - 1] == cells[i] ? positions[^1].Code : scalars[i];
-                foreach (var unused in value) positions.Add(((int)cells[i], code));
-            }
+            // A grapheme's later scalars share its cell; the renderer compares the cell's base codepoint.
+            for (var i = 0; i < count; i++) AppendScalar(text, positions, scalars, cells, i);
             text.Append('\n'); positions.Add((-1, 0));
             row = (int)cells[count - 1] / (int)info[0] + 1;
         }
@@ -152,30 +161,35 @@ public sealed partial class GhosttyTextureView
     private void RefreshFileLink()
     {
         hoverMarks.Clear();
-        if (!disposed) Cursor = new Cursor(Native.OverLink(terminal.Handle) ? StandardCursorType.Hand : StandardCursorType.Ibeam);
+        if (!disposed) SetCursor(Native.OverLink(terminal.Handle));
         if (disposed || ResolveFileLinks is null || linkModifiers != LinkModifier || !new Rect(Bounds.Size).Contains(linkPointer) || Native.OverLink(terminal.Handle))
         { FileHover.Update(null, -1); PushUnderlines(); return; }
-        var scalars = new uint[16384];
-        var cells = new uint[scalars.Length];
-        var info = new double[6];
+        var (scalars, cells, info) = (linkScalars, linkCells, linkInfo);
         var count = (int)ReadLinkLine(terminal.Handle, linkPointer.X, linkPointer.Y, scalars, cells, (nuint)scalars.Length, info);
         if (count == 0) { FileHover.Update(null, -1); PushUnderlines(); return; }
-        var text = new StringBuilder();
-        var positions = new List<(int Cell, uint Code)>();
+        var (text, positions) = (linkText.Clear(), linkPositions);
+        positions.Clear();
         var offset = -1;
         for (var i = 0; i < count; i++)
         {
             if (cells[i] == info[1] && offset < 0) offset = text.Length;
-            var value = char.ConvertFromUtf32((int)scalars[i]);
-            text.Append(value);
-            var code = i > 0 && cells[i - 1] == cells[i] ? positions[^1].Code : scalars[i];
-            foreach (var unused in value) positions.Add(((int)cells[i], code));
+            AppendScalar(text, positions, scalars, cells, i);
         }
         FileHover.Update(text.ToString(), offset);
         if (FileHover.Link is not { } link) { PushUnderlines(); return; }
         foreach (var (cell, code) in positions.Skip(link.Start).Take(link.Length).Distinct()) hoverMarks.TryAdd(cell, code);
         PushUnderlines();
-        Cursor = new Cursor(StandardCursorType.Hand);
+        SetCursor(hand: true);
+    }
+
+    // Each Cursor owns a native platform cursor that only its finalizer releases (through a dispatcher post), and the
+    // link state refreshes on every pointer move and frame: share the two cursors and assign only on a change.
+    private static Cursor? handCursor, ibeamCursor;
+
+    private void SetCursor(bool hand)
+    {
+        var cursor = hand ? handCursor ??= new(StandardCursorType.Hand) : ibeamCursor ??= new(StandardCursorType.Ibeam);
+        if (!ReferenceEquals(Cursor, cursor)) Cursor = cursor;
     }
 
     private Task<TerminalContextLink?> ContextFileLink(Point point)

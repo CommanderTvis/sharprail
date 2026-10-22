@@ -146,7 +146,9 @@ target before Ghostty reuses it. An Avalonia custom draw operation wraps the
 leased Metal texture as a Skia image and samples it directly, preserving the
 canvas clip, transform and opacity. No export surfaces, snapshot textures, GPU
 blits or CPU pixel readback are needed. Coalesced frame-ready notifications
-invalidate the control without a polling timer or an unbounded frame queue.
+invalidate the control without a polling timer or an unbounded frame queue: one
+allocation-free post per composited frame, re-armed when the compositor samples the
+texture, and none while the view is hidden.
 
 The compositor flushes and waits for its GPU read before returning the lease.
 This explicit completion wait trades some GPU overlap for bounded memory and
