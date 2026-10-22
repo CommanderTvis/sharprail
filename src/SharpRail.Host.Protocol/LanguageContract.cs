@@ -52,6 +52,20 @@ public sealed class LanguageServerDto
     [ProtoMember(7)] public string ActiveConfiguration { get; set; } = "";
     [ProtoMember(8)] public bool Configured { get; set; }
     [ProtoMember(9)] public LanguageExitDto? Exit { get; set; }
+    [ProtoMember(10)] public LanguageServerPresentationDto? Presentation { get; set; }
+}
+
+[ProtoContract]
+public sealed class LanguageServerPresentationDto
+{
+    [ProtoMember(1)] public string Name { get; set; } = "";
+    [ProtoMember(2)] public byte[]? Icon { get; set; }
+    [ProtoMember(3)] public string IconFormat { get; set; } = "";
+    [ProtoMember(4)] public List<string> OptionGroups { get; set; } = [];
+    [ProtoMember(5)] public List<string> Replaces { get; set; } = [];
+    [ProtoMember(6)] public bool HasTerms { get; set; }
+    [ProtoMember(7)] public string TermsNote { get; set; } = "";
+    [ProtoMember(8)] public string ReplacesLabel { get; set; } = "";
 }
 
 [ProtoContract]
@@ -117,16 +131,17 @@ public partial interface IProjectRpc
 }
 
 [ProtoContract]
-public sealed class IntelliJTermsRequestDto
+public sealed class LanguageTermsRequestDto
 {
     [ProtoMember(1)] public string Workspace { get; set; } = "";
     [ProtoMember(2)] public bool Accept { get; set; }
     [ProtoMember(3)] public string ArtifactId { get; set; } = "";
     [ProtoMember(4)] public string EulaSha256 { get; set; } = "";
+    [ProtoMember(5)] public string Server { get; set; } = "";
 }
 
 [ProtoContract]
-public sealed class IntelliJTermsReply
+public sealed class LanguageTermsReply
 {
     [ProtoMember(1)] public string State { get; set; } = "";
     [ProtoMember(2)] public string Detail { get; set; } = "";
@@ -140,5 +155,5 @@ public sealed class IntelliJTermsReply
 
 public partial interface IProjectRpc
 {
-    ValueTask<IntelliJTermsReply> IntelliJTermsAsync(IntelliJTermsRequestDto request, CallContext context = default);
+    ValueTask<LanguageTermsReply> LanguageTermsAsync(LanguageTermsRequestDto request, CallContext context = default);
 }

@@ -147,6 +147,18 @@ public interface ILanguageServerInstallation
     Task<string> RunAsync(string executable, IReadOnlyList<string> arguments, string workingDirectory,
         IReadOnlyDictionary<string, string?>? environment = null, CancellationToken cancellationToken = default);
 
+    /// <summary>The user-selected installation directory, or empty for the managed <see cref="Root"/>.</summary>
+    string InstallationPath { get; }
+
+    /// <summary>A directory for one launch, inside <see cref="WorkspaceState"/>, removed when the session ends.</summary>
+    string SessionDirectory { get; }
+
+    /// <summary>The terms the user accepted for this launch, for a server with <see cref="LanguageServerSpec.TermsAsync"/>.</summary>
+    LanguageServerTerms? AcceptedTerms { get; }
+
+    /// <summary>An HTTP client for a provider's own downloads; it follows redirects, so the provider checks the final host.</summary>
+    HttpClient Http { get; }
+
     /// <summary>Downloads one NuGet package into <paramref name="feed"/>, keeping it only when its SHA-512 matches.</summary>
     /// <param name="package">The pinned package.</param>
     /// <param name="feed">The local feed directory.</param>
@@ -271,7 +283,224 @@ public sealed class LanguageServerSpec
 
     /// <summary>Whether a PATH executable is usable, such as a TypeScript server that can reach a compiler.</summary>
     public Func<string, string, bool> AcceptsPathExecutable { get; init; } = (_, _) => true;
+
+    /// <summary>The name people see, such as <c>C# (Roslyn)</c>; empty shows <see cref="Id"/>.</summary>
+    public string Name { get; init; } = "";
+
+    /// <summary>The server's mark in the user interface, or <see langword="null"/> for a generic one.</summary>
+    public LanguageServerIcon? Icon { get; init; }
+
+    /// <summary>The typed workspace options the server accepts.</summary>
+    public LanguageServerOptionGroups OptionGroups { get; init; }
+
+    /// <summary>
+    /// Servers this one replaces when it is chosen for their languages, host-wide or in a workspace; it then serves
+    /// their files and they stay stopped, and while it is not chosen it does not start.
+    /// </summary>
+    public IReadOnlyList<string> Replaces { get; init; } = [];
+
+    /// <summary>The languages of <see cref="Replaces"/> as people name them, such as <c>Java / Kotlin</c>; empty joins the replaced servers' names.</summary>
+    public string ReplacesLabel { get; init; } = "";
+
+    /// <summary>Arguments the provider manages, which configured arguments may not repeat (also as <c>name=value</c>).</summary>
+    public IReadOnlyList<string> ReservedArguments { get; init; } = [];
+
+    /// <summary>Whether a host executable override may replace the managed launch.</summary>
+    public bool AllowsOverride { get; init; } = true;
+
+    /// <summary>
+    /// Reads the installation's terms for review; <c>prepare</c> is whether the provider may download it first. A server
+    /// with terms is installed and launched by its provider: the host never searches PATH for it and starts it only once
+    /// the exact terms were accepted, passing them in <see cref="ILanguageServerInstallation.AcceptedTerms"/>.
+    /// </summary>
+    public Func<ILanguageServerInstallation, bool, CancellationToken, Task<LanguageServerTerms>>? TermsAsync { get; init; }
+
+    /// <summary>What the user should know before reviewing the terms, such as an evaluation-only licence and how the vendor ends it.</summary>
+    public string TermsNote { get; init; } = "";
+
+    /// <summary>The process exit code with which the vendor refuses this build, or <see langword="null"/>.</summary>
+    public int? ExpiredExitCode { get; init; }
+
+    /// <summary>What the host shows once the build expired.</summary>
+    public string ExpiredDetail { get; init; } = "The vendor refused this build.";
+
+    /// <summary>Records an expiry so later launches fail fast, such as by removing a managed installation.</summary>
+    public Action<ILanguageServerInstallation> OnExpired { get; init; } = _ => { };
+
+    /// <summary>Fills initialization options from the typed options, the manifests and the server's directories, after <see cref="DefaultInitialization"/>.</summary>
+    public Action<ILanguageServerStart, JsonObject> ConfigureInitialization { get; init; } = (_, _) => { };
+
+    /// <summary>Additional workspace-relative manifests, such as a compilation database in an excluded directory.</summary>
+    public Func<string, LanguageServerWorkspaceOptions, IEnumerable<string>> AdditionalManifests { get; init; } = (_, _) => [];
+
+    /// <summary>Whether a workspace directory is itself a manifest, such as an Xcode project; it is then not searched.</summary>
+    public Func<string, bool> IsProjectDirectory { get; init; } = _ => false;
+
+    /// <summary>The absolute workspace folders to announce, given the workspace and its manifests.</summary>
+    public Func<string, IReadOnlyList<string>, IReadOnlyList<string>> WorkspaceFolders { get; init; } = (workspace, _) => [workspace];
+
+    /// <summary>A longer timeout for <c>initialize</c>, such as for a server that imports the project first.</summary>
+    public TimeSpan? InitializeTimeout { get; init; }
+
+    /// <summary>A work-done token sent with <c>initialize</c>, or <see langword="null"/>.</summary>
+    public string? InitializeProgressToken { get; init; }
+
+    /// <summary>Whether, given the initialization options, startup waits for <see cref="ProjectLoadedNotification"/> before serving requests.</summary>
+    public Func<JsonObject, bool> LoadsProjects { get; init; } = _ => false;
+
+    /// <summary>The notification that ends <see cref="LoadsProjects"/> loading.</summary>
+    public string ProjectLoadedNotification { get; init; } = "";
+
+    /// <summary>Handles a server notification or request the host does not, such as a progress or restore message; requests are answered with <c>null</c>.</summary>
+    public Action<ILanguageServerSession, string, JsonNode?> OnMessage { get; init; } = (_, _, _) => { };
+
+    /// <summary>URI schemes, with the colon, whose dependency sources <see cref="ReadSourceAsync"/> reads.</summary>
+    public IReadOnlyList<string> SourceSchemes { get; init; } = [];
+
+    /// <summary>Reads a dependency source a navigation result named by a URI in <see cref="SourceSchemes"/>.</summary>
+    public Func<ILanguageServerSession, string, CancellationToken, Task<LanguageServerSource>>? ReadSourceAsync { get; init; }
+
+    /// <summary>Absolute source roots the server reports, shown on directories; the host keeps only those inside the workspace.</summary>
+    public Func<ILanguageServerSession, CancellationToken, Task<IReadOnlyList<string>>>? SourceRootsAsync { get; init; }
 }
+
+/// <summary>The typed workspace options a server accepts besides arguments, initialization options and settings (H21).</summary>
+[Flags]
+public enum LanguageServerOptionGroups
+{
+    /// <summary>Only the common options.</summary>
+    None = 0,
+
+    /// <summary>Include paths, compiler flags and a compilation database directory.</summary>
+    CompilerFlags = 1,
+
+    /// <summary>A user-selected installation directory instead of the managed one.</summary>
+    Installation = 2,
+
+    /// <summary>A project JDK and a build importer.</summary>
+    JvmProject = 4
+}
+
+/// <summary>A server's mark in the user interface: SVG (tinted with the text colour) or PNG bytes.</summary>
+/// <param name="Data">The image bytes.</param>
+/// <param name="Format"><c>svg</c> or <c>png</c>.</param>
+public sealed record LanguageServerIcon(byte[] Data, string Format)
+{
+    /// <summary>Reads an embedded resource of <paramref name="assembly"/>.</summary>
+    /// <param name="assembly">The assembly holding the resource.</param>
+    /// <param name="name">The resource's logical name; its extension gives the format.</param>
+    /// <returns>The icon.</returns>
+    public static LanguageServerIcon Embedded(System.Reflection.Assembly assembly, string name)
+    {
+        using var stream = assembly.GetManifestResourceStream(name) ?? throw new InvalidOperationException($"{assembly.GetName().Name} is built without {name}.");
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return new(buffer.ToArray(), Path.GetExtension(name).TrimStart('.'));
+    }
+}
+
+/// <summary>The typed workspace options of one server, as saved (paths are not yet expanded).</summary>
+/// <param name="IncludePaths">Include paths (<see cref="LanguageServerOptionGroups.CompilerFlags"/>).</param>
+/// <param name="CompilerFlags">Compiler flags (<see cref="LanguageServerOptionGroups.CompilerFlags"/>).</param>
+/// <param name="CompilationDatabasePath">The compilation database directory (<see cref="LanguageServerOptionGroups.CompilerFlags"/>).</param>
+/// <param name="InstallationPath">The user-selected installation (<see cref="LanguageServerOptionGroups.Installation"/>).</param>
+/// <param name="ProjectJdk">The project JDK home (<see cref="LanguageServerOptionGroups.JvmProject"/>).</param>
+/// <param name="BuildTool">The build importer: <c>maven</c>, <c>gradle</c>, <c>bazel</c>, <c>jps</c> or empty (<see cref="LanguageServerOptionGroups.JvmProject"/>).</param>
+/// <param name="InitializationSupplied">The initialization option names the user set.</param>
+public sealed record LanguageServerWorkspaceOptions(IReadOnlyList<string> IncludePaths, IReadOnlyList<string> CompilerFlags, string CompilationDatabasePath,
+    string InstallationPath, string ProjectJdk, string BuildTool, IReadOnlyCollection<string> InitializationSupplied);
+
+/// <summary>What the host lends <see cref="LanguageServerSpec.ConfigureInitialization"/> while it builds a session's initialization options.</summary>
+public interface ILanguageServerStart
+{
+    /// <summary>The absolute workspace.</summary>
+    string Workspace { get; }
+
+    /// <summary>The server's typed workspace options.</summary>
+    LanguageServerWorkspaceOptions Options { get; }
+
+    /// <summary>The project manifests discovery found, workspace-relative with <c>/</c> separators; empty outside a session start.</summary>
+    IReadOnlyList<string> Manifests { get; }
+
+    /// <summary>A per-workspace directory for this server's state, outside the workspace; empty outside a session start.</summary>
+    string WorkspaceState { get; }
+
+    /// <summary>This server version's own cache directory, shared across workspaces; empty outside a session start.</summary>
+    string ServerCache { get; }
+
+    /// <summary>Expands <c>${workspaceFolder}</c> and makes a path absolute against the workspace.</summary>
+    /// <param name="value">The saved path.</param>
+    /// <returns>The absolute path.</returns>
+    string FullPath(string value);
+
+    /// <summary>Expands <c>${workspaceFolder}</c>.</summary>
+    /// <param name="value">The saved value.</param>
+    /// <returns>The expanded value.</returns>
+    string Expand(string value);
+
+    /// <summary>The project JDK: <paramref name="configured"/>, else the workspace <c>.sdkmanrc</c>, else SDKMAN current; throws an <see cref="ArgumentException"/> when none is usable.</summary>
+    /// <param name="configured">An explicit JDK home, or empty.</param>
+    /// <returns>The JDK home (empty when none was found) and where it came from.</returns>
+    (string Path, string Source) ResolveProjectJdk(string configured);
+
+    /// <summary>Adds a line to the session's log.</summary>
+    /// <param name="category">A short category.</param>
+    /// <param name="text">The line.</param>
+    void Log(string category, string text);
+}
+
+/// <summary>A running session, lent to the session hooks of <see cref="LanguageServerSpec"/>.</summary>
+public interface ILanguageServerSession
+{
+    /// <summary>The absolute workspace.</summary>
+    string Workspace { get; }
+
+    /// <summary>Whether the server advertises <paramref name="command"/> through <c>workspace/executeCommand</c>.</summary>
+    /// <param name="command">The command name.</param>
+    /// <returns>Whether it is advertised.</returns>
+    bool SupportsCommand(string command);
+
+    /// <summary>Sends a request to the server.</summary>
+    /// <param name="method">The LSP method.</param>
+    /// <param name="parameters">Its parameters, serialized as JSON.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <param name="timeout">A longer timeout than the host default, or <see langword="null"/>.</param>
+    /// <returns>The result.</returns>
+    Task<JsonNode?> RequestAsync(string method, object? parameters, CancellationToken cancellationToken, TimeSpan? timeout = null);
+
+    /// <summary>Shows a status while the server works, holding navigation results as partial; <see langword="null"/> clears it.</summary>
+    /// <param name="key">The status's key.</param>
+    /// <param name="message">The message, or <see langword="null"/>.</param>
+    void SetProgress(string key, string? message);
+
+    /// <summary>Runs project work, such as a restore, at most once per key; navigation waits for it and a failure is shown as the server's status.</summary>
+    /// <param name="key">The work's key.</param>
+    /// <param name="describe">What the work is, for the log and a failure message.</param>
+    /// <param name="work">The work, cancelled when the session ends.</param>
+    void Track(string key, string describe, Func<CancellationToken, Task> work);
+
+    /// <summary>Whether an absolute path is inside the workspace.</summary>
+    /// <param name="path">The path.</param>
+    /// <returns>Whether it is.</returns>
+    bool Contains(string path);
+}
+
+/// <summary>A read-only dependency source a server returned for a non-file URI.</summary>
+/// <param name="Text">The source text.</param>
+/// <param name="Language">Its LSP language id.</param>
+public sealed record LanguageServerSource(string Text, string Language);
+
+/// <summary>A server installation's terms, read for review (H21). The host records acceptance per server and artifact.</summary>
+/// <param name="Installation">The installation the terms belong to.</param>
+/// <param name="Version">The installation's build.</param>
+/// <param name="ArtifactId">A fingerprint of the whole installation.</param>
+/// <param name="Text">The terms' text.</param>
+/// <param name="TextSha256">The lowercase hex SHA-256 of the terms' bytes.</param>
+public sealed record LanguageServerTerms(string Installation, string Version, string ArtifactId, string Text, string TextSha256);
+
+/// <summary>Thrown by a provider whose server build the vendor refused; the host shows <see cref="LanguageServerSpec.ExpiredDetail"/>.</summary>
+/// <param name="message">What happened.</param>
+public sealed class LanguageServerExpiredException(string message) : IOException(message);
 
 /// <summary>A launch about to start, which <see cref="LanguageServerSpec.ConfigureLaunch"/> may adjust.</summary>
 public sealed class LanguageServerLaunchEdit

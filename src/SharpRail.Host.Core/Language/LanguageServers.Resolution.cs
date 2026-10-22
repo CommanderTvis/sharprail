@@ -27,8 +27,8 @@ internal sealed partial class LanguageServers
             }
             catch (IOException error) { return Result("rejected", "override", custom.Command, "", "", error.Message); }
         }
-        // IntelliJ declares no managed pin of its own: the host installs and launches it.
-        if (server.Spec.Pinning == LanguageServerPinning.None && server.Id != "intellij" || allow)
+        // A server with terms declares no managed pin of the host's: its provider installs and launches it.
+        if (server.Spec.Pinning == LanguageServerPinning.None && server.Spec.TermsAsync is null || allow)
         {
             if (!allow)
                 return Result("needsInstallation", "none", "", "", "", $"{server.Id} needs an installation: SharpRail has no managed installation for it. Install the SDK and allow PATH for this server, then Retry.");

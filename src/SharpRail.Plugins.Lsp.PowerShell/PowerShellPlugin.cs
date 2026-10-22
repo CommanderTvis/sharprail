@@ -20,6 +20,8 @@ public sealed class PowerShellPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "powershell",
+        Name = "PowerShell (Editor Services)",
+        Icon = LanguageServerIcon.Embedded(typeof(PowerShellPlugin).Assembly, "Icon.svg"),
         Version = "4.7.0",
         Executable = "pwsh",
         Extensions = [".ps1", ".psm1", ".psd1"],

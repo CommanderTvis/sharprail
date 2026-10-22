@@ -8,6 +8,8 @@ using System.Text.Json.Nodes;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core.Language;
+using SharpRail.Plugins.Api.Host;
+using SharpRail.Plugins.Lsp.IntelliJ;
 
 namespace SharpRail.Checks;
 
@@ -72,9 +74,9 @@ internal static class IntelliJChecks
         await File.WriteAllTextAsync(launcher, "#!/bin/sh\necho start >> .tools/intellij-launches\nexec " + command + " --fake-lsp \"$@\"\n");
         File.SetUnixFileMode(launcher, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         await host.LanguageAsync(new(workspace, Operation: "configure", Server: "intellij", Configuration: JsonSerializer.Serialize(new { useForJavaAndKotlin = true, installationPath = root })));
-        var review = await host.IntelliJTermsAsync(new(workspace));
+        var review = await host.LanguageTermsAsync(new(workspace, "intellij"));
         Require(!review.Accepted, "A new fixture installation inherited acceptance.");
-        await host.IntelliJTermsAsync(new(workspace, true, review.ArtifactId, review.EulaSha256));
+        await host.LanguageTermsAsync(new(workspace, "intellij", true, review.ArtifactId, review.EulaSha256));
         async Task<LanguageResult> Ready(LanguageRequest request)
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -150,31 +152,38 @@ internal static class IntelliJChecks
             foreach (var os in new[] { "macos", "linux", "windows" })
                 foreach (var arch in new[] { "aarch64", "x86_64" })
                 {
-                    var bundle = IntelliJDistribution.Bundle(os, arch);
+                    var bundle = IntelliJDistribution.Bundle(os + "-" + arch);
                     Require(bundle.Url.Host == "download.jetbrains.com" && bundle.Sha256.Length == 64, "IntelliJ pin is incomplete.");
                 }
-            try { IntelliJDistribution.Bundle("linux", "riscv64"); throw new InvalidOperationException("Unsupported architecture accepted."); }
+            try { IntelliJDistribution.Bundle("linux-riscv64"); throw new InvalidOperationException("Unsupported architecture accepted."); }
             catch (PlatformNotSupportedException) { }
             var bytes = Zip();
-            var fixtureBundle = IntelliJDistribution.Bundle("macos", "aarch64") with { Sha256 = Convert.ToHexStringLower(SHA256.HashData(bytes)) };
+            var fixtureBundle = IntelliJDistribution.Bundle("macos-aarch64") with { Sha256 = Convert.ToHexStringLower(SHA256.HashData(bytes)) };
             var requests = 0;
             using var http = new HttpClient(new Handler(async token => { Interlocked.Increment(ref requests); await Task.Delay(30, token); return bytes; }));
-            var installs = await Task.WhenAll(IntelliJDistribution.InstallAsync(root, fixtureBundle, http, default), IntelliJDistribution.InstallAsync(root, fixtureBundle, http, default));
+            var managed = Path.Combine(root, "servers", "intellij", fixtureBundle.Version + "-" + fixtureBundle.Platform);
+            var installs = await Task.WhenAll(IntelliJDistribution.InstallAsync(managed, fixtureBundle, http, default), IntelliJDistribution.InstallAsync(managed, fixtureBundle, http, default));
             Require(requests == 1 && installs[0] == installs[1], "Concurrent IntelliJ installs were not serialized/reused.");
             var install = installs[0];
             var terms = IntelliJDistribution.EulaHash(Encoding.UTF8.GetBytes("Fixture terms, no actual license acceptance."));
             var agreementStore = Path.Combine(root, "fixture-agreements");
-            try { await IntelliJDistribution.AcknowledgedLaunchAsync(agreementStore, install, root, default); throw new InvalidOperationException("Launch construction bypassed explicit acknowledgement."); }
+            var server = LanguageServers.Catalog.Single(item => item.Id == "intellij");
+            var launching = new Installation(Path.Combine(root, "launch"), install) { SessionDirectory = Path.Combine(root, "session-a") };
+            try { IntelliJDistribution.Launch(launching); throw new InvalidOperationException("Launch construction bypassed explicit acknowledgement."); }
             catch (IOException) { }
-            var review = await IntelliJTerms.ReviewAsync(agreementStore, install, new(install), default);
-            await IntelliJTerms.ReviewAsync(agreementStore, install, new(install, true, review.ArtifactId, review.EulaSha256), default);
-            var start = await IntelliJDistribution.AcknowledgedLaunchAsync(agreementStore, install, IntelliJDistribution.SystemPath(root, "/workspace/a", "process-a"), default);
-            Require(start.ArgumentList.SequenceEqual(new[] { "--stdio", "--system-path", IntelliJDistribution.SystemPath(root, "/workspace/a", "process-a"), "--eula", terms[..16] }), "Public IntelliJ launch protocol differs.");
-            Require(!start.Environment.ContainsKey("IJ_LAUNCHER_DEBUG"), "Inherited launcher debugging corrupts stdio.");
-            Require(IntelliJDistribution.SystemPath(root, "/workspace/a", "process-a") != IntelliJDistribution.SystemPath(root, "/workspace/a", "process-b") &&
-                IntelliJDistribution.SystemPath(root, "/workspace/a", "process-a") != IntelliJDistribution.SystemPath(root, "/workspace/b", "process-a"), "IntelliJ mutable caches collide.");
+            var review = await LanguageTerms.ReviewAsync(agreementStore, server, launching, new("/workspace", "intellij"), default);
+            await LanguageTerms.ReviewAsync(agreementStore, server, launching, new("/workspace", "intellij", true, review.ArtifactId, review.EulaSha256), default);
+            var accepted = await IntelliJTerms.ReadAsync(install, default);
+            Require(LanguageTerms.Accepted(agreementStore, "intellij", accepted), "Explicit acknowledgement was not recorded for the exact artifact.");
+            launching.AcceptedTerms = accepted;
+            var start = IntelliJDistribution.Launch(launching);
+            Require(start.Arguments.SequenceEqual(new[] { "--stdio", "--system-path", launching.SessionDirectory, "--eula", terms[..16] }), "Public IntelliJ launch protocol differs.");
+            Require(start.Environment.TryGetValue("IJ_LAUNCHER_DEBUG", out var debug) && debug is null, "Inherited launcher debugging corrupts stdio.");
+            var directories = new LanguageServers(Path.Combine(root, "directories"));
+            Require(directories.SessionDirectory(server, "/workspace/a") != directories.SessionDirectory(server, "/workspace/a") &&
+                Path.GetDirectoryName(directories.SessionDirectory(server, "/workspace/a")) != Path.GetDirectoryName(directories.SessionDirectory(server, "/workspace/b")), "IntelliJ mutable caches collide.");
             await File.WriteAllTextAsync(Path.Combine(install, "EULA.txt"), "Changed fixture terms");
-            try { await IntelliJDistribution.AcknowledgedLaunchAsync(agreementStore, install, root, default); throw new InvalidOperationException("Changed terms reused acknowledgement."); }
+            try { IntelliJDistribution.Launch(launching); throw new InvalidOperationException("Changed terms reused acknowledgement."); }
             catch (IOException) { }
             foreach (var malicious in new[] { Zip("intellij-server-fixture/../../escape"), Zip(link: "../../../escape") })
             {
@@ -185,31 +194,30 @@ internal static class IntelliJChecks
             await Refuses(Path.Combine(root, "bad-checksum"), fixtureBundle with { Sha256 = new('0', 64) }, http);
             var tar = Tar();
             using var tarHttp = new HttpClient(new Handler(_ => Task.FromResult(tar)));
-            await IntelliJDistribution.InstallAsync(Path.Combine(root, "tar"), IntelliJDistribution.Bundle("linux", "x86_64") with { Sha256 = Convert.ToHexStringLower(SHA256.HashData(tar)) }, tarHttp, default);
+            await IntelliJDistribution.InstallAsync(Path.Combine(root, "tar"), IntelliJDistribution.Bundle("linux-x86_64") with { Sha256 = Convert.ToHexStringLower(SHA256.HashData(tar)) }, tarHttp, default);
             using var cancelledHttp = new HttpClient(new Handler(async token => { await Task.Delay(Timeout.Infinite, token); return bytes; }));
             using var cancellation = new CancellationTokenSource(100);
             try { await IntelliJDistribution.InstallAsync(Path.Combine(root, "cancel"), fixtureBundle, cancelledHttp, cancellation.Token); throw new InvalidOperationException("Provisioning ignored cancellation."); }
             catch (OperationCanceledException) { }
             Require(!Directory.EnumerateFileSystemEntries(root, "*.partial-*", SearchOption.AllDirectories).Any(), "Provisioning leaked partial files.");
-            var server = LanguageServers.Catalog.Single(item => item.Id == "intellij");
             var provisioning = new LanguageServers(Path.Combine(root, "blocked"), () => """{"intellij":{"command":"/must-not-execute","arguments":["--eula","forged"]}}""");
             try { await provisioning.ProvisionAsync(server, root, default); throw new IOException("Override bypassed IntelliJ acceptance."); }
-            catch (IntelliJAcceptanceException) { }
+            catch (LanguageTermsRequiredException) { }
             Require(!Directory.Exists(Path.Combine(root, "blocked")), "Unavailable integration wrote installation/cache state.");
             try { WorkspaceLanguageConfiguration.Parse("""{"acceptedEula":true}""", "intellij"); throw new InvalidOperationException("Agent configuration accepted terms."); }
             catch (System.Text.Json.JsonException) { }
             var options = WorkspaceLanguageConfiguration.Initialization(new(BuildTool: "gradle", ProjectJdk: "/host/project-jdk"), "/workspace", "intellij");
             Require(options["projects"] is JsonArray, "IntelliJ projects must serialize as an array, not an object.");
             Require(options["intellijExtensions"]!.ToString() == "false" && options["defaultSdk"]!.ToString() == "/host/project-jdk" && options["buildTools"]!["file:///workspace"]!.ToString() == "gradle", "IntelliJ initialization advertised unimplemented extensions or lost project settings.");
-            var expiryStorage = Path.Combine(root, "expired-managed");
-            var expiredInstallation = IntelliJDistribution.Installation(expiryStorage, "");
+            var expiry = new Installation(Path.Combine(root, "expired-managed", "servers", "intellij", IntelliJDistribution.Version), "") { Http = http };
+            var expiredInstallation = IntelliJDistribution.Managed(expiry);
             Directory.CreateDirectory(expiredInstallation);
             await File.WriteAllTextAsync(Path.Combine(expiredInstallation, "fixture"), "expired owned artifact");
-            IntelliJDistribution.RecordExpiry(expiryStorage, "");
+            IntelliJDistribution.RecordExpiry(expiry);
             Require(!Directory.Exists(expiredInstallation) && File.Exists(expiredInstallation + ".expired"), "Managed expiry did not retain refusal and delete the owned artifact.");
             var beforeExpiry = requests;
-            try { await IntelliJDistribution.PrepareAsync(expiryStorage, "", http, default); throw new InvalidOperationException("Expired build was downloaded again."); }
-            catch (IntelliJExpiredException) { }
+            try { await IntelliJDistribution.PrepareAsync(expiry, default); throw new InvalidOperationException("Expired build was downloaded again."); }
+            catch (LanguageServerExpiredException) { }
             Require(requests == beforeExpiry, "Expired managed build caused a download loop.");
             ProjectJdk(root);
             await Protocol(Path.Combine(root, "protocol"));
@@ -312,7 +320,7 @@ internal static class IntelliJChecks
     {
         try { await IntelliJDistribution.InstallAsync(root, bundle, http, default); throw new InvalidOperationException("Invalid IntelliJ archive installed."); }
         catch (IOException) { }
-        Require(!Directory.EnumerateFiles(root, ".sharprail-artifact.json", SearchOption.AllDirectories).Any(), "Failed install published a completion marker.");
+        Require(!Directory.Exists(root) || !Directory.EnumerateFiles(root, ".sharprail-artifact.json", SearchOption.AllDirectories).Any(), "Failed install published a completion marker.");
     }
 
     private static Dictionary<string, string> Files() => new()
@@ -355,6 +363,28 @@ internal static class IntelliJChecks
                 writer.WriteEntry(new PaxTarEntry(TarEntryType.RegularFile, "intellij-server-fixture/" + name) { DataStream = data, Mode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute });
             }
         return output.ToArray();
+    }
+
+    /// <summary>What the host lends the IntelliJ provider, with only the members its distribution code reads.</summary>
+    private sealed class Installation(string root, string installationPath) : ILanguageServerInstallation
+    {
+        public string Root => root;
+        public string Workspace => "/workspace";
+        public string WorkspaceState => Path.Combine(root, "state");
+        public string SharedCache => Path.Combine(root, "cache");
+        public string ServerCache => Path.Combine(root, "cache", "intellij");
+        public string Platform => "macos-aarch64";
+        public string InstallationPath => installationPath;
+        public string SessionDirectory { get; init; } = "";
+        public LanguageServerTerms? AcceptedTerms { get; set; }
+        public HttpClient Http { get; init; } = new();
+        public string? FindTool(string executable) => null;
+        public string RequireTool(string executable) => throw new IOException(executable);
+        public string FindInstalled(string name) => throw new IOException(name);
+        public string? FindDotnet() => null;
+        public Task<string> RunAsync(string executable, IReadOnlyList<string> arguments, string workingDirectory, IReadOnlyDictionary<string, string?>? environment = null, CancellationToken cancellationToken = default) =>
+            throw new IOException(executable);
+        public Task FetchNuGetAsync(LanguageServerNuGetPackage package, string feed, CancellationToken cancellationToken = default) => throw new IOException(package.Id);
     }
 
     private sealed class Handler(Func<CancellationToken, Task<byte[]>> response) : HttpMessageHandler

@@ -179,8 +179,8 @@ https://blog.jetbrains.com/wp-content/uploads/2026/02/logo.svg
 Copyright © 2026 JetBrains s.r.o. Air and the Air logo are trademarks of JetBrains s.r.o.
 Used to identify Air Context; https://www.jetbrains.com/air/context/. It ships as the Air Context plugin's `assets/air.svg`.
 
-Provider-specific icons are unmodified assets from the publishers’ repositories.
-Assets/LanguageIcons/SOURCES.json records pinned source revisions and SHA-256 digests;
+Provider-specific icons are unmodified assets from the publishers’ repositories; each ships as its
+language server plugin's `Icon.png` or `Icon.svg`. Assets/LanguageIcons/SOURCES.json records pinned source revisions and SHA-256 digests;
 licenses/lsp-icon-* retain their applicable repository licenses. These identify integrations
 and do not imply publisher endorsement.
 

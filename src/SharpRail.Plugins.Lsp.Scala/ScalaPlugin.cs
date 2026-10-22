@@ -22,6 +22,8 @@ public sealed class ScalaPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "scala",
+        Name = "Scala (Metals)",
+        Icon = LanguageServerIcon.Embedded(typeof(ScalaPlugin).Assembly, "Icon.png"),
         Version = "1.6.9",
         Executable = "metals",
         Extensions = [".scala", ".sc", ".sbt"],

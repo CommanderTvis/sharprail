@@ -24,11 +24,11 @@ internal static class RpcDispatch
                 await stream.Send(await service.LanguageAsync(request, context));
                 break;
             }
-            case "IProjectRpc/IntelliJTermsAsync":
+            case "IProjectRpc/LanguageTermsAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
-                var request = await ReadOne<IntelliJTermsRequestDto>(stream);
-                await stream.Send(await service.IntelliJTermsAsync(request, context));
+                var request = await ReadOne<LanguageTermsRequestDto>(stream);
+                await stream.Send(await service.LanguageTermsAsync(request, context));
                 break;
             }
             case "IProjectRpc/ImportFilesAsync":

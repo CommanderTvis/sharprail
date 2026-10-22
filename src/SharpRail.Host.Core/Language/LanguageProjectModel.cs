@@ -7,58 +7,42 @@ internal sealed record LanguageProjectModel(string Workspace, string Server, str
     /// <summary>The provider whose project policy (H21) this model follows.</summary>
     internal LanguageServer? Provider { get; init; }
 
-    internal static LanguageProjectModel Discover(string workspace, LanguageServer server, CancellationToken token, string compilationDatabase = "")
-        => DiscoverMany(workspace, [server], token, compilationDatabase)[server.Id];
+    internal static LanguageProjectModel Discover(string workspace, LanguageServer server, CancellationToken token, WorkspaceLanguageOptions? options = null)
+        => DiscoverMany(workspace, [server], token, options)[server.Id];
 
     /// <summary>Discovery for a builtin server by id.</summary>
-    internal static LanguageProjectModel Discover(string workspace, string server, CancellationToken token, string compilationDatabase = "")
-        => Discover(workspace, LanguageServers.Catalog.Single(item => item.Id == server), token, compilationDatabase);
+    internal static LanguageProjectModel Discover(string workspace, string server, CancellationToken token, WorkspaceLanguageOptions? options = null)
+        => Discover(workspace, LanguageServers.Catalog.Single(item => item.Id == server), token, options);
 
-    internal static IReadOnlyDictionary<string, LanguageProjectModel> DiscoverMany(string workspace, IReadOnlyList<LanguageServer> servers, CancellationToken token, string compilationDatabase = "")
+    internal static IReadOnlyDictionary<string, LanguageProjectModel> DiscoverMany(string workspace, IReadOnlyList<LanguageServer> servers, CancellationToken token, WorkspaceLanguageOptions? options = null)
     {
         var manifests = servers.ToDictionary(server => server.Id, _ => new List<string>());
         var pending = new Stack<string>([workspace]);
-        var options = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
+        var enumeration = new EnumerationOptions { IgnoreInaccessible = true, AttributesToSkip = FileAttributes.ReparsePoint };
         var visited = 0;
         while (pending.Count > 0 && visited++ < 5000)
         {
             token.ThrowIfCancellationRequested();
             var directory = pending.Pop();
-            foreach (var file in Directory.EnumerateFiles(directory, "*", options))
+            foreach (var file in Directory.EnumerateFiles(directory, "*", enumeration))
             {
                 token.ThrowIfCancellationRequested();
                 foreach (var server in servers)
                     if (server.Spec.IsProjectManifest(file)) manifests[server.Id].Add(Path.GetRelativePath(workspace, file).Replace(Path.DirectorySeparatorChar, '/'));
             }
-            foreach (var child in Directory.EnumerateDirectories(directory, "*", options))
+            foreach (var child in Directory.EnumerateDirectories(directory, "*", enumeration))
             {
-                if (manifests.ContainsKey("swift") && Path.GetExtension(child) is ".xcodeproj" or ".xcworkspace")
-                    manifests["swift"].Add(Path.GetRelativePath(workspace, child).Replace(Path.DirectorySeparatorChar, '/'));
-                else if (!Excluded.Contains(Path.GetFileName(child))) pending.Push(child);
+                var owners = servers.Where(server => server.Spec.IsProjectDirectory(child)).ToArray();
+                foreach (var server in owners) manifests[server.Id].Add(Path.GetRelativePath(workspace, child).Replace(Path.DirectorySeparatorChar, '/'));
+                if (owners.Length == 0 && !Excluded.Contains(Path.GetFileName(child))) pending.Push(child);
             }
         }
-        if (manifests.ContainsKey("clangd") && File.Exists(Path.Combine(workspace, "build", "compile_commands.json"))) manifests["clangd"].Add("build/compile_commands.json");
-        if (manifests.ContainsKey("clangd") && compilationDatabase.Length > 0)
-        {
-            var file = Path.Combine(Path.GetFullPath(Path.Combine(workspace, compilationDatabase)), "compile_commands.json");
-            if (File.Exists(file)) manifests["clangd"].Add(Path.GetRelativePath(workspace, file).Replace(Path.DirectorySeparatorChar, '/'));
-        }
+        var typed = WorkspaceLanguageConfiguration.Typed(options ?? new());
+        foreach (var server in servers) manifests[server.Id].AddRange(server.Spec.AdditionalManifests(workspace, typed));
         return servers.ToDictionary(server => server.Id, server => new LanguageProjectModel(workspace, server.Id, manifests[server.Id].Distinct().Order(StringComparer.Ordinal).ToArray(), pending.Count > 0) { Provider = server });
     }
 
-    internal string[] WorkspaceFolders => Server == "go" && !Manifests.Any(path => path is "go.work" or "go.mod") && Manifests.Any(path => Path.GetFileName(path) == "go.mod")
-        ? Manifests.Where(path => Path.GetFileName(path) == "go.mod").Select(path => Path.GetDirectoryName(Path.Combine(Workspace, path))!).Distinct().ToArray()
-        : [Workspace];
-
-    internal void ConfigureInitialization(System.Text.Json.Nodes.JsonObject options)
-    {
-        if (Server == "rust" && !options.ContainsKey("linkedProjects") && Manifests.Length > 0)
-        {
-            var projects = Manifests.Any(path => path is "Cargo.toml" or "rust-project.json")
-                ? Manifests.Where(path => path is "Cargo.toml" or "rust-project.json") : Manifests;
-            options["linkedProjects"] = new System.Text.Json.Nodes.JsonArray(projects.Select(path => (System.Text.Json.Nodes.JsonNode?)System.Text.Json.Nodes.JsonValue.Create(Path.Combine(Workspace, path))).ToArray());
-        }
-    }
+    internal IReadOnlyList<string> WorkspaceFolders => Provider?.Spec.WorkspaceFolders(Workspace, Manifests) ?? [Workspace];
 
     internal static bool Contains(string directory, string file)
     {

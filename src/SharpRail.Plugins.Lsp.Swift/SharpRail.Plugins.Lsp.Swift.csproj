@@ -2,6 +2,7 @@
   <!-- The Swift (SourceKit-LS) language server plugin: its manifest and host half. -->
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <EmbeddedResource Include="Icon.svg" LogicalName="Icon.svg" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
 </Project>

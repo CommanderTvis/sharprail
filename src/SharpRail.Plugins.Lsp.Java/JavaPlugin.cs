@@ -20,6 +20,8 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "java",
+        Name = "Java (Eclipse JDT)",
+        Icon = LanguageServerIcon.Embedded(typeof(JavaPlugin).Assembly, "Icon.svg"),
         Version = "1.61.0",
         Executable = "jdtls",
         Extensions = [".java"],
@@ -45,6 +47,7 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
         {
             if (!launch.Arguments.Contains("-data")) { launch.Arguments.Add("-data"); launch.Arguments.Add(installation.WorkspaceState); }
         },
+        SourceRootsAsync = SourceRootsAsync,
         ProjectKind = manifest => Path.GetFileName(manifest) switch
         {
             "pom.xml" => "Maven project",
@@ -74,5 +77,14 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
         }
         return Task.FromResult(new LanguageServerLaunch(Path.Combine(java, "bin", "java" + (OperatingSystem.IsWindows() ? ".exe" : "")),
             ["-Declipse.application=org.eclipse.jdt.ls.core.id1", "-Dosgi.bundles.defaultStartLevel=4", "-Declipse.product=org.eclipse.jdt.ls.core.product", "-Xmx1G", "--add-modules=ALL-SYSTEM", "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "-jar", launcher, "-configuration", configuration, "-data", installation.WorkspaceState]));
+    }
+
+    private static async Task<IReadOnlyList<string>> SourceRootsAsync(ILanguageServerSession session, CancellationToken token)
+    {
+        const string command = "java.project.listSourcePaths";
+        if (!session.SupportsCommand(command)) return [];
+        var response = await session.RequestAsync("workspace/executeCommand", new { command, arguments = Array.Empty<string>() }, token);
+        if (response?["status"]?.GetValue<bool>() != true || response["data"] is not System.Text.Json.Nodes.JsonArray paths) return [];
+        return [.. paths.Take(500).Select(item => item?["path"]?.ToString() ?? "").Where(Path.IsPathFullyQualified)];
     }
 }

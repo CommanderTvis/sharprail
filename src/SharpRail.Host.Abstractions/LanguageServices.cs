@@ -23,7 +23,19 @@ public sealed record LanguageServerState(string Id, string Path, string State, s
 
     /// <summary>How agents have used this server through the lsp tools in this workspace; null when none has.</summary>
     public LanguageUsageSummary? Usage { get; init; }
+
+    /// <summary>What the providing plugin says to show for this server.</summary>
+    public LanguageServerPresentation? Presentation { get; init; }
 }
+
+/// <summary>
+/// How a provider asks the user interface to show its server: <paramref name="Name"/>, a mark (<paramref name="Icon"/> bytes in
+/// <paramref name="IconFormat"/> <c>svg</c> or <c>png</c>, or none), the typed option groups it accepts (<c>compilerFlags</c>,
+/// <c>installation</c>, <c>jvmProject</c>), the servers it <paramref name="Replaces"/> when chosen, and whether it has terms to accept,
+/// with <paramref name="TermsNote"/> to read first; <paramref name="ReplacesLabel"/> names the replaced servers' languages.
+/// </summary>
+public sealed record LanguageServerPresentation(string Name, byte[]? Icon = null, string IconFormat = "", IReadOnlyList<string>? OptionGroups = null,
+    IReadOnlyList<string>? Replaces = null, bool HasTerms = false, string TermsNote = "", string ReplacesLabel = "");
 
 /// <summary>Counts of agent tool calls that used one language server in one workspace, with the time of the latest (UTC, round-trip format).</summary>
 public sealed record LanguageUsageSummary(int Calls, int Successes, int Failures, string LastUsed);
@@ -80,14 +92,14 @@ public partial interface IProjectServices
 public sealed record LanguageServerOptions(bool Disabled = false, bool AllowPath = false, string Command = "", string[]? Arguments = null);
 
 /// <summary>User-interface-only terms review/acceptance; acceptance is never a language-agent operation.</summary>
-public sealed record IntelliJTermsRequest(string Workspace, bool Accept = false, string ArtifactId = "", string EulaSha256 = "");
+public sealed record LanguageTermsRequest(string Workspace, string Server, bool Accept = false, string ArtifactId = "", string EulaSha256 = "");
 
 /// <summary>The exact host installation's terms and recorded acknowledgement; acceptance does not establish entitlement.</summary>
-public sealed record IntelliJTermsResult(string State, string Detail = "", string Version = "", string ArtifactId = "", string EulaSha256 = "", string Text = "", bool Accepted = false, string AcceptedAtUtc = "");
+public sealed record LanguageTermsResult(string State, string Detail = "", string Version = "", string ArtifactId = "", string EulaSha256 = "", string Text = "", bool Accepted = false, string AcceptedAtUtc = "");
 
 public partial interface IProjectServices
 {
-    /// <summary>Prepares the installation for review or explicitly acknowledges IntelliJ terms through the authenticated user interface, without execution.</summary>
-    ValueTask<IntelliJTermsResult> IntelliJTermsAsync(IntelliJTermsRequest request, CancellationToken cancellationToken = default)
-        => ValueTask.FromResult(new IntelliJTermsResult("unavailable", "This host does not support IntelliJ terms review."));
+    /// <summary>Prepares a server's installation for review or explicitly acknowledges its terms through the authenticated user interface, without execution.</summary>
+    ValueTask<LanguageTermsResult> LanguageTermsAsync(LanguageTermsRequest request, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(new LanguageTermsResult("unavailable", "This host does not support terms review."));
 }

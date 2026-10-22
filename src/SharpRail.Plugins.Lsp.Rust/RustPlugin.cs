@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
@@ -20,6 +22,8 @@ public sealed class RustPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "rust",
+        Name = "Rust (rust-analyzer)",
+        Icon = LanguageServerIcon.Embedded(typeof(RustPlugin).Assembly, "Icon.svg"),
         Version = "2026-10-12",
         Executable = "rust-analyzer",
         Extensions = [".rs"],
@@ -48,6 +52,17 @@ public sealed class RustPlugin() : LanguageServerPlugin(Id)
         }.Select(item => new LanguageServerArtifact(item.Item1, $"https://github.com/rust-lang/rust-analyzer/releases/download/2026-10-12/rust-analyzer-{item.Item2}.{item.Item3}", item.Item4, item.Item3,
             "https://api.github.com/repos/rust-lang/rust-analyzer/releases/tags/2026-10-12 (asset digest)", GitHub))
         ],
+        OnMessage = (session, method, parameters) =>
+        {
+            if (method == "experimental/serverStatus")
+                session.SetProgress("rust-project", parameters?["quiescent"]?.GetValue<bool>() == true ? null : parameters?["message"]?.ToString() ?? "Loading Cargo project graph…");
+        },
+        ConfigureInitialization = (start, options) =>
+        {
+            if (options.ContainsKey("linkedProjects") || start.Manifests.Count == 0) return;
+            var projects = start.Manifests.Any(path => path is "Cargo.toml" or "rust-project.json") ? start.Manifests.Where(path => path is "Cargo.toml" or "rust-project.json") : start.Manifests;
+            options["linkedProjects"] = new JsonArray([.. projects.Select(path => (JsonNode?)JsonValue.Create(Path.Combine(start.Workspace, path)))]);
+        },
         ProjectKind = _ => "Rust project"
     };
 

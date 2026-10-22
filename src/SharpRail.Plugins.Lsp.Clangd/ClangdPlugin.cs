@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
@@ -18,6 +20,8 @@ public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "clangd",
+        Name = "C / C++ (clangd)",
+        Icon = LanguageServerIcon.Embedded(typeof(ClangdPlugin).Assembly, "Icon.svg"),
         Version = "23.1.0",
         Executable = "clangd",
         Arguments = ["--background-index"],
@@ -48,8 +52,24 @@ public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
         }.Select(item => new LanguageServerArtifact(item.Item1, $"https://github.com/clangd/clangd/releases/download/23.1.0/clangd-{item.Item2}-23.1.0.zip", item.Item3, "zip",
             "https://api.github.com/repos/clangd/clangd/releases/tags/23.1.0 (asset digest)", GitHub))
         ],
+        OptionGroups = LanguageServerOptionGroups.CompilerFlags,
+        AdditionalManifests = AdditionalManifests,
+        ConfigureInitialization = (start, options) =>
+        {
+            var flags = start.Options.CompilerFlags.Select(start.Expand).Concat(start.Options.IncludePaths.Select(path => "-I" + start.FullPath(path))).ToArray();
+            if (flags.Length > 0) options["fallbackFlags"] = new JsonArray([.. flags.Select(flag => (JsonNode?)JsonValue.Create(flag))]);
+            if (start.Options.CompilationDatabasePath.Length > 0) options["compilationDatabasePath"] = start.FullPath(start.Options.CompilationDatabasePath);
+        },
         ProjectKind = manifest => Path.GetFileName(manifest) switch { "CMakeLists.txt" => "CMake project", "compile_commands.json" => "Compilation database", _ => null }
     };
 
     private static readonly string[] GitHub = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"];
+
+    private static IEnumerable<string> AdditionalManifests(string workspace, LanguageServerWorkspaceOptions options)
+    {
+        if (File.Exists(Path.Combine(workspace, "build", "compile_commands.json"))) yield return "build/compile_commands.json";
+        if (options.CompilationDatabasePath.Length == 0) yield break;
+        var file = Path.Combine(Path.GetFullPath(Path.Combine(workspace, options.CompilationDatabasePath)), "compile_commands.json");
+        if (File.Exists(file)) yield return Path.GetRelativePath(workspace, file).Replace(Path.DirectorySeparatorChar, '/');
+    }
 }

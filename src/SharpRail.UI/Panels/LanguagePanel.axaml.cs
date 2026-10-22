@@ -190,7 +190,7 @@ internal sealed partial class LanguagePanel : UserControl
     {
         var list = this.FindControl<ListBox>("Servers")!;
         selectedId ??= (list.SelectedItem as ServerRow)?.Server.Id;
-        var rows = inventory.Where(server => server.Path.Length > 0 || added.Contains(server.Id) || server.Id != "intellij" && server.State is not ("idle" or "disabled") || server.Configured)
+        var rows = inventory.Where(server => server.Path.Length > 0 || added.Contains(server.Id) || server.Presentation?.HasTerms != true && server.State is not ("idle" or "disabled") || server.Configured)
             .Select(server =>
             {
                 if (!configurations.TryGetValue(server.Id, out var view))
@@ -247,23 +247,26 @@ internal sealed partial class LanguagePanel : UserControl
         try
         {
             var token = current.Token;
-            if (operation == "retry" && !acceptanceReviewed && (target ?? selected) is { Id: "intellij" } intellij)
+            if (operation == "retry" && !acceptanceReviewed && (target ?? selected) is { Presentation.HasTerms: true } gated)
             {
-                var saved = await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), token);
-                if (current != lifetime || token.IsCancellationRequested) return;
-                if (saved.Configuration != "intellij")
+                if (gated.Presentation.Replaces is { Count: > 0 })
                 {
-                    SetStatus("Select IntelliJ in Settings → Code Intelligence → Java / Kotlin provider, then choose Apply.");
-                    return;
+                    var saved = await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), token);
+                    if (current != lifetime || token.IsCancellationRequested) return;
+                    if (saved.Configuration != gated.Id)
+                    {
+                        SetStatus($"Select {LanguageServerNameConverter.Display(gated.Id)} in Settings → Code Intelligence → provider choice, then choose Apply.");
+                        return;
+                    }
                 }
-                var acknowledgement = await host.IntelliJTermsAsync(new(workspace), token);
+                var acknowledgement = await host.LanguageTermsAsync(new(workspace, gated.Id), token);
                 if (current != lifetime || token.IsCancellationRequested) return;
                 if (!acknowledgement.Accepted)
                 {
                     if (TopLevel.GetTopLevel(this) is Window owner)
                     {
-                        var terms = new IntelliJTermsWindow(host, workspace, startAfterAcceptance: true);
-                        terms.Closed += async (_, _) => { if (terms.StartRequested) await RunAsync("retry", intellij, acceptanceReviewed: true); };
+                        var terms = new LanguageTermsWindow(host, workspace, gated.Id, startAfterAcceptance: true);
+                        terms.Closed += async (_, _) => { if (terms.StartRequested) await RunAsync("retry", gated, acceptanceReviewed: true); };
                         terms.Show(owner);
                     }
                     return;
@@ -275,6 +278,7 @@ internal sealed partial class LanguagePanel : UserControl
             SetStatus(result.State + ": " + result.Detail);
             if (operation == "servers")
             {
+                LanguageServerNameConverter.Remember(result.Servers);
                 inventory = result.Servers;
                 RefreshRows(selected?.Id);
                 if (result.State == "ready") SetStatus("");

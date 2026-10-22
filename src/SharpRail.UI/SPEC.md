@@ -691,7 +691,7 @@ IntelliJ identifies its public client repository, and Intelephense its documenta
 without implying the proprietary servers are open source. Activation opens the system browser.
 
 Language server labels name both language and implementation, with uniformly sized 24px provider icons.
-Java/Kotlin provider routing is chosen in Settings → Code Intelligence for the current workspace, outside individual server settings.
+Provider routing (a server that replaces others, such as IntelliJ for Java / Kotlin) is chosen in Settings → Code Intelligence, outside individual server settings; the choice appears only while such a server is provided. Server names, marks, typed option panels and the terms review come from each server's presentation, which its plugin declares.
 Apply merges only that choice into the latest saved IntelliJ configuration and does not execute it
 or acknowledge terms. Settings saves preserve the latest provider choice even with local edits.
 External source tabs carry an arrow marker and tooltip in active/inactive workspace projections.

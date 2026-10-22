@@ -3,10 +3,11 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core.Language;
 
-internal sealed partial class LanguageSession : IAsyncDisposable
+internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServerSession
 {
     private readonly LanguageConnection connection;
     private readonly TaskCompletionSource projectInitialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -42,8 +43,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable
     /// <summary>Names why SharpRail is about to end this server, so its exit record explains the death.</summary>
     internal void Terminate(string reason, bool failure = false) => connection.Terminate(reason, failure);
     internal void SampleMemory() => connection.SampleMemory();
-    internal async Task<bool> ObserveExpiryAsync() => server.Id == "intellij" && await connection.ObserveExitAsync() == 7;
-    internal bool Expired => server.Id == "intellij" && connection.ExitCode == 7;
+    internal async Task<bool> ObserveExpiryAsync() => server.Spec.ExpiredExitCode is { } code && await connection.ObserveExitAsync() == code;
+    internal bool Expired => server.Spec.ExpiredExitCode is { } code && connection.ExitCode == code;
     private sealed record Document(string Text, int Version, string Owner, long ClientVersion, bool Dirty);
     private sealed record Published(int? Version, LanguageItem[] Items);
 
@@ -60,32 +61,16 @@ internal sealed partial class LanguageSession : IAsyncDisposable
         };
     }
 
-    internal static async Task<LanguageSession> StartAsync(ProcessStartInfo start, string workspace, LanguageServer server, CancellationToken token, WorkspaceLanguageOptions? options = null, LanguageLog? log = null, string? storage = null, Action<LanguageExit>? onExit = null)
+    /// <param name="sessionDirectory">The launch's own directory (<see cref="ILanguageServerInstallation.SessionDirectory"/>), removed when the session ends.</param>
+    internal static async Task<LanguageSession> StartAsync(ProcessStartInfo start, string workspace, LanguageServer server, CancellationToken token, WorkspaceLanguageOptions? options = null, LanguageLog? log = null, string? storage = null, Action<LanguageExit>? onExit = null, string? sessionDirectory = null)
     {
         options ??= new();
-        var model = LanguageProjectModel.Discover(workspace, server, token, options.CompilationDatabasePath);
-        var initialization = WorkspaceLanguageConfiguration.Initialization(options, workspace, server.Id);
-        model.ConfigureInitialization(initialization);
-        if (server.Id == "php" && storage is not null)
-        {
-            if (!initialization.ContainsKey("storagePath")) initialization["storagePath"] = Path.Combine(storage, "workspaces", LanguageServers.Key(workspace), server.Id);
-            if (!initialization.ContainsKey("globalStoragePath")) initialization["globalStoragePath"] = Path.Combine(storage, "cache", server.Id, server.Version);
-        }
-        var session = new LanguageSession(start, workspace, server, options, log ?? new(), onExit);
-        if (server.Id == "intellij" && storage is not null && start.ArgumentList.IndexOf("--system-path") is var cacheIndex && cacheIndex >= 0 && cacheIndex + 1 < start.ArgumentList.Count)
-        {
-            var cache = start.ArgumentList[cacheIndex + 1];
-            if (LanguageProjectModel.Contains(Path.Combine(storage, "workspaces", LanguageServers.Key(workspace), "intellij"), cache)) session.ownedCache = cache;
-        }
+        log ??= new();
+        var model = LanguageProjectModel.Discover(workspace, server, token, options);
+        var initialization = WorkspaceLanguageConfiguration.Initialization(options, workspace, server.Id, model.Manifests, storage ?? "", log);
+        var session = new LanguageSession(start, workspace, server, options, log, onExit) { ownedCache = sessionDirectory };
         session.projectModel = model;
-        if (server.Id is "intellij" or "kotlin")
-        {
-            var projectJdk = options.ProjectJdk.Length == 0 && options.InitializationOptions is { } supplied && supplied.TryGetProperty("defaultSdk", out _)
-                ? (Path: initialization["defaultSdk"]?.ToString() ?? "", Source: "workspace initialization defaultSdk")
-                : ProjectJava.Resolve(workspace, options.ProjectJdk);
-            session.log.Add("project JDK", projectJdk.Source + (projectJdk.Path.Length > 0 ? ": " + projectJdk.Path : "") + ". This is separate from the server runtime and is not an import-failure diagnosis.");
-        }
-        session.projectLoading = server.Id == "csharp" && initialization["autoLoadProjects"]?.GetValue<int>() != 0 && session.projectModel.Manifests.Length > 0;
+        session.projectLoading = server.Spec.ProjectLoadedNotification.Length > 0 && server.Spec.LoadsProjects(initialization) && session.projectModel.Manifests.Length > 0;
         try
         {
             var result = await session.connection.RequestAsync("initialize", new
@@ -94,7 +79,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable
                 clientInfo = new { name = "SharpRail", version = "1.0" },
                 rootUri = UriOf(workspace + Path.DirectorySeparatorChar),
                 initializationOptions = initialization,
-                workDoneToken = server.Id == "intellij" ? "sharprail-intellij-init" : null,
+                workDoneToken = server.Spec.InitializeProgressToken,
                 workspaceFolders = session.ProjectFolders,
                 capabilities = new
                 {
@@ -123,7 +108,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable
                         }
                     }
                 }
-            }, token, server.Id is "intellij" or "ruby" ? TimeSpan.FromMinutes(15) : null);
+            }, token, server.Spec.InitializeTimeout);
             session.capabilities = result?["capabilities"]?.DeepClone() ?? new JsonObject();
             if (session.capabilities["positionEncoding"]?.ToString() is { } encoding && encoding != "utf-16")
                 throw new IOException("The server selected an unsupported position encoding: " + encoding);
@@ -155,10 +140,10 @@ internal sealed partial class LanguageSession : IAsyncDisposable
         }
         catch (Exception failure)
         {
-            var expired = server.Id == "intellij" && await session.connection.ObserveExitAsync() == 7;
+            var expired = await session.ObserveExpiryAsync();
             session.Terminate("it did not finish starting: " + failure.Message, failure: true);
             await session.DisposeAsync();
-            if (expired) throw new IntelliJExpiredException();
+            if (expired) throw new LanguageServerExpiredException(server.Spec.ExpiredDetail);
             throw;
         }
     }
@@ -215,7 +200,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable
             if (connection.Exited)
             {
                 diagnostics.Clear();
-                if (Expired) return new("expired", IntelliJDistribution.Expired, server.Id, request.Version) { Freshness = "unavailable" };
+                if (Expired) return new("expired", server.Spec.ExpiredDetail, server.Id, request.Version) { Freshness = "unavailable" };
                 throw new IOException("The language server exited.");
             }
             if (request.Operation is "retry" or "status") return new(NeedsConfiguration ? "actionRequired" : IsIndexing ? "initializing" : "ready", ProjectDetail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Coverage = projectModel.Description, Freshness = NeedsConfiguration || IsIndexing || projectModel.Truncated ? "partial" : "current" };
@@ -379,11 +364,11 @@ internal sealed partial class LanguageSession : IAsyncDisposable
             var locations = await connection.RequestAsync(method, parameters, token);
             return await NavigationResultAsync(result, locations, request, token);
         }
-        catch (IOException) when (server.Id == "intellij")
+        catch (IOException) when (server.Spec.ExpiredExitCode is not null)
         {
             if (!await ObserveExpiryAsync()) throw;
             diagnostics.Clear();
-            return new("expired", IntelliJDistribution.Expired, server.Id, request.Version) { Freshness = "unavailable" };
+            return new("expired", server.Spec.ExpiredDetail, server.Id, request.Version) { Freshness = "unavailable" };
         }
         finally { gate.Release(); }
     }
@@ -434,42 +419,45 @@ internal sealed partial class LanguageSession : IAsyncDisposable
                 projectActionReported.TrySetResult();
             }
         }
-        if (server.Id != "csharp" || method != "workspace/_roslyn_projectNeedsRestore") return null;
-        var paths = (parameters?["projectFilePaths"] as JsonArray ?? []).Select(value => value!.GetValue<string>())
-            .Where(path => Path.IsPathFullyQualified(path) && LanguageProjectModel.Contains(workspace, path)).Distinct().ToArray();
-        if (paths.Length == 0) return null;
-        var key = string.Join("\n", paths.Order(StringComparer.Ordinal));
-        projectRestores.GetOrAdd(key, _ => Task.Run(async () =>
-        {
-            try
-            {
-                log.Add("project restore", key);
-                await connection.RequestAsync("workspace/_roslyn_restore", new { projectFilePaths = paths }, lifetime.Token, TimeSpan.FromMinutes(3));
-            }
-            catch (Exception error) when (error is IOException or OperationCanceledException)
-            {
-                detail = "Project restore failed: " + error.Message;
-                log.Add("project restore", detail);
-                throw;
-            }
-        }));
+        server.Spec.OnMessage(this, method, parameters);
         return null;
     }
 
+    string ILanguageServerSession.Workspace => workspace;
+
+    bool ILanguageServerSession.SupportsCommand(string command) =>
+        capabilities["executeCommandProvider"]?["commands"] is JsonArray commands && commands.Any(value => value?.ToString() == command);
+
+    Task<JsonNode?> ILanguageServerSession.RequestAsync(string method, object? parameters, CancellationToken token, TimeSpan? timeout) =>
+        connection.RequestAsync(method, parameters, token, timeout);
+
+    void ILanguageServerSession.SetProgress(string key, string? message)
+    {
+        if (message is null) indexing.TryRemove(key, out _);
+        else indexing[key] = message;
+    }
+
+    bool ILanguageServerSession.Contains(string path) => LanguageProjectModel.Contains(workspace, path);
+
+    void ILanguageServerSession.Track(string key, string describe, Func<CancellationToken, Task> work) => projectRestores.GetOrAdd(key, _ => Task.Run(async () =>
+    {
+        try
+        {
+            log.Add(describe, key);
+            await work(lifetime.Token);
+        }
+        catch (Exception error) when (error is IOException or OperationCanceledException)
+        {
+            detail = char.ToUpperInvariant(describe[0]) + describe[1..] + " failed: " + error.Message;
+            log.Add(describe, detail);
+            throw;
+        }
+    }));
+
     private void OnNotification(string method, JsonNode? parameters)
     {
-        if (method == "experimental/serverStatus" && server.Id == "rust")
-        {
-            if (parameters?["quiescent"]?.GetValue<bool>() == true) indexing.TryRemove("rust-project", out _);
-            else indexing["rust-project"] = parameters?["message"]?.ToString() ?? "Loading Cargo project graph…";
-        }
-        if (method == "$/analyzerStatus" && server.Id == "dart")
-        {
-            if (parameters?["isAnalyzing"]?.GetValue<bool>() == true) indexing["dart-analysis"] = "Resolving Dart analysis contexts…";
-            else indexing.TryRemove("dart-analysis", out _);
-        }
-        if (method == "workspace/projectInitializationComplete") projectInitialized.TrySetResult();
-        if (method == "workspace/_roslyn_projectNeedsRestore") OnClientRequest(method, parameters);
+        server.Spec.OnMessage(this, method, parameters);
+        if (method.Length > 0 && method == server.Spec.ProjectLoadedNotification) projectInitialized.TrySetResult();
         if (method == "textDocument/publishDiagnostics" && parameters?["uri"]?.ToString() is { } uri && Relative(uri) is { } path)
             diagnostics[uri] = new(parameters["version"]?.GetValue<int>(), Diagnostics(parameters["diagnostics"], path));
         if (method == "$/progress" && parameters?["value"] is { } progress)

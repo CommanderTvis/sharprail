@@ -20,6 +20,8 @@ public sealed class RPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "r",
+        Name = "R (languageserver)",
+        Icon = LanguageServerIcon.Embedded(typeof(RPlugin).Assembly, "Icon.svg"),
         Version = "0.3.17",
         Executable = "Rscript",
         Arguments = ["--vanilla", "-e", "languageserver::run()"],

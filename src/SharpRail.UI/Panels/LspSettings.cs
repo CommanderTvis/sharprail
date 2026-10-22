@@ -13,7 +13,7 @@ public sealed partial class SettingsWindow
     {
         var panel = Page("LspPage");
         var provider = new LanguageProviderView(window.Host, window.WorkspaceRoot);
-        PageControl<ContentControl>(panel, "JvmProviderSettings").Content = provider;
+        PageControl<ContentControl>(panel, "ProviderChoiceSettings").Content = provider;
         var selector = PageControl<ListBox>(panel, "LspServer");
         var enabled = PageControl<CheckBox>(panel, "LspEnabled");
         var allowPath = PageControl<CheckBox>(panel, "LspAllowPath");
@@ -142,6 +142,7 @@ public sealed partial class SettingsWindow
                 var workspace = window.WorkspaceRoot;
                 var result = await Task.Run(async () => await window.Host.LanguageAsync(new(workspace, Operation: "catalog"), lifetime.Token), lifetime.Token);
                 if (lifetime.IsCancellationRequested) return;
+                LanguageServerNameConverter.Remember(result.Servers);
                 catalog = result.Servers.OrderBy(server => server.Id, StringComparer.Ordinal).ToArray();
                 selector.ItemsSource = catalog.Select(server => server.Id).ToArray();
                 selector.SelectedIndex = catalog.Length > 0 ? 0 : -1;

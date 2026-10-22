@@ -20,6 +20,8 @@ public sealed class CssPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "css",
+        Name = "CSS (VS Code)",
+        Icon = LanguageServerIcon.Embedded(typeof(CssPlugin).Assembly, "Icon.svg"),
         Version = "4.10.0",
         Executable = "vscode-css-language-server",
         Arguments = ["--stdio"],

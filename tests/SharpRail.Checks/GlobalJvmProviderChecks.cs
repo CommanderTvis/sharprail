@@ -117,12 +117,12 @@ internal static class GlobalJvmProviderChecks
         T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(item => item.Name == name);
         try
         {
-            E2E.E2eWorkspace.Until(() => Find<ComboBox>("JvmProvider").SelectedIndex == 0);
-            Find<ComboBox>("JvmProvider").SelectedIndex = 1;
-            Find<Button>("ApplyJvmProvider").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2E.E2eWorkspace.Until(() => app.State!.Current.Settings.JavaKotlinProvider == "intellij" && Find<ComboBox>("JvmProvider").IsEnabled);
+            E2E.E2eWorkspace.Until(() => Find<ComboBox>("ProviderChoice").SelectedIndex == 0);
+            Find<ComboBox>("ProviderChoice").SelectedIndex = 1;
+            Find<Button>("ApplyProviderChoice").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => app.State!.Current.Settings.JavaKotlinProvider == "intellij" && Find<ComboBox>("ProviderChoice").IsEnabled);
             app.State!.ChangeAsync([HostStateChange.Setting("java-kotlin-provider", "standard")]).AsTask().GetAwaiter().GetResult();
-            E2E.E2eWorkspace.Until(() => Find<ComboBox>("JvmProvider").SelectedIndex == 0);
+            E2E.E2eWorkspace.Until(() => Find<ComboBox>("ProviderChoice").SelectedIndex == 0);
             Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(item => item.Text == "Java / Kotlin provider · all projects on this host"), "Provider UI still claims workspace scope.");
         }
         finally { settings.Close(); }

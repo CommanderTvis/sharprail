@@ -20,6 +20,8 @@ public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "typescript",
+        Name = "JavaScript / TypeScript (TypeScript LS)",
+        Icon = LanguageServerIcon.Embedded(typeof(TypeScriptPlugin).Assembly, "Icon.svg"),
         Version = "6.0.2",
         Executable = "typescript-language-server",
         Arguments = ["--stdio"],
@@ -32,7 +34,7 @@ public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
         HostsRuntime = true,
         NpmPackages = "typescript-language-server@6.0.2 typescript@5.9.3",
         LockFiles = Locks("package-lock.json", "package.json"),
-        Settings = [ Init("TypeScript server memory (MiB)", "maxTsServerMemory", "integer", minimum: 1), Init("TypeScript engine path", "tsserver.path", pathKind: "fileOrFolder", help: "Path to tsserver.js on the workspace host; blank uses the managed engine or project installation."), Init("Server log level", "tsserver.logVerbosity", choices: ["off", "terse", "normal", "requestTime", "verbose"])],
+        Settings = [Init("TypeScript server memory (MiB)", "maxTsServerMemory", "integer", minimum: 1), Init("TypeScript engine path", "tsserver.path", pathKind: "fileOrFolder", help: "Path to tsserver.js on the workspace host; blank uses the managed engine or project installation."), Init("Server log level", "tsserver.logVerbosity", choices: ["off", "terse", "normal", "requestTime", "verbose"])],
         IsProjectManifest = file =>
         {
             var name = Path.GetFileName(file);

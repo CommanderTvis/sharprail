@@ -17,3 +17,5 @@ the catalog, its sessions stop and its saved settings are kept. Implementation: 
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
 and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+
+Without a root `go.work` or `go.mod`, each nested module is announced as its own workspace folder.

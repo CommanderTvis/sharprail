@@ -20,6 +20,8 @@ public sealed class KotlinPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "kotlin",
+        Name = "Kotlin (Kotlin LS)",
+        Icon = LanguageServerIcon.Embedded(typeof(KotlinPlugin).Assembly, "Icon.svg"),
         Version = "263.6379.0",
         Executable = "kotlin-lsp",
         Arguments = ["--stdio"],
@@ -38,6 +40,7 @@ public sealed class KotlinPlugin() : LanguageServerPlugin(Id)
         },
         ProjectScope = _ => "JetBrains Kotlin imports Gradle/Maven JVM projects; dependencies require successful build import. Other project types depend on server support.",
         InstalledExecutable = "intellij-server",
+        ConfigureInitialization = JvmInitialization.Configure,
         Artifacts = [
         .. new[]
         {

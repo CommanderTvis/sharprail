@@ -16,15 +16,10 @@ internal sealed partial class LanguageSession
     private async Task<DependencySource> ReadVirtualAsync(string uri, CancellationToken token)
     {
         if (!OwnsVirtual(uri)) throw new IOException("Dependency source belongs to a different or ended language session.");
-        if (server.Id != "intellij" || !(uri.StartsWith("jar:", StringComparison.Ordinal) || uri.StartsWith("jrt:", StringComparison.Ordinal)))
+        if (server.Spec.ReadSourceAsync is not { } read || !server.Spec.SourceSchemes.Any(scheme => uri.StartsWith(scheme, StringComparison.Ordinal)))
             throw new IOException("This provider or URI scheme has no supported source reader. The original location is preserved.");
-        if (capabilities["executeCommandProvider"]?["commands"] is not JsonArray commands || !commands.Any(command => command?.ToString() == "decompile"))
-            throw new IOException("The server does not advertise dependency source retrieval.");
-        // Public IntelliJ client protocol: preserve the URI exactly, including JAR entry and JDK module.
-        var response = await connection.RequestAsync("workspace/executeCommand", new { command = "decompile", arguments = new[] { uri } }, token);
-        if (response?["code"] is not JsonValue code || !code.TryGetValue<string>(out var text)) throw new IOException("The server returned no dependency source.");
-        if (text.Length > 1_048_576) throw new IOException("Dependency source exceeds the 1 Mi character limit.");
-        return new(text, response["language"]?.ToString() ?? "java");
+        var source = await read(this, uri, token);
+        return new(source.Text, source.Language);
     }
 
     private LanguageResult SourceResult(LanguageRequest request, string text)

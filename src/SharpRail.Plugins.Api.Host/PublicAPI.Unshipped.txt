@@ -502,3 +502,152 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.DefaultSettings.get -> System.Acti
 SharpRail.Plugins.Api.Host.LanguageServerSpec.DefaultSettings.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ProjectKind.get -> System.Func<string!, string?>!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ProjectKind.init -> void
+SharpRail.Plugins.Api.Host.ILanguageServerInstallation.AcceptedTerms.get -> SharpRail.Plugins.Api.Host.LanguageServerTerms?
+SharpRail.Plugins.Api.Host.ILanguageServerInstallation.Http.get -> System.Net.Http.HttpClient!
+SharpRail.Plugins.Api.Host.ILanguageServerInstallation.InstallationPath.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerInstallation.SessionDirectory.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerSession
+SharpRail.Plugins.Api.Host.ILanguageServerSession.Contains(string! path) -> bool
+SharpRail.Plugins.Api.Host.ILanguageServerSession.RequestAsync(string! method, object? parameters, System.Threading.CancellationToken cancellationToken, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonNode?>!
+SharpRail.Plugins.Api.Host.ILanguageServerSession.SetProgress(string! key, string? message) -> void
+SharpRail.Plugins.Api.Host.ILanguageServerSession.SupportsCommand(string! command) -> bool
+SharpRail.Plugins.Api.Host.ILanguageServerSession.Track(string! key, string! describe, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work) -> void
+SharpRail.Plugins.Api.Host.ILanguageServerSession.Workspace.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerStart
+SharpRail.Plugins.Api.Host.ILanguageServerStart.Expand(string! value) -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerStart.FullPath(string! value) -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerStart.Log(string! category, string! text) -> void
+SharpRail.Plugins.Api.Host.ILanguageServerStart.Manifests.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.ILanguageServerStart.Options.get -> SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions!
+SharpRail.Plugins.Api.Host.ILanguageServerStart.ResolveProjectJdk(string! configured) -> (string! Path, string! Source)
+SharpRail.Plugins.Api.Host.ILanguageServerStart.ServerCache.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerStart.Workspace.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerStart.WorkspaceState.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerExpiredException
+SharpRail.Plugins.Api.Host.LanguageServerExpiredException.LanguageServerExpiredException(string! message) -> void
+SharpRail.Plugins.Api.Host.LanguageServerIcon
+SharpRail.Plugins.Api.Host.LanguageServerIcon.<Clone>$() -> SharpRail.Plugins.Api.Host.LanguageServerIcon!
+SharpRail.Plugins.Api.Host.LanguageServerIcon.Data.get -> byte[]!
+SharpRail.Plugins.Api.Host.LanguageServerIcon.Data.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerIcon.Deconstruct(out byte[]! Data, out string! Format) -> void
+SharpRail.Plugins.Api.Host.LanguageServerIcon.Equals(SharpRail.Plugins.Api.Host.LanguageServerIcon? other) -> bool
+SharpRail.Plugins.Api.Host.LanguageServerIcon.Format.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerIcon.Format.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerIcon.LanguageServerIcon(byte[]! Data, string! Format) -> void
+SharpRail.Plugins.Api.Host.LanguageServerOptionGroups
+SharpRail.Plugins.Api.Host.LanguageServerOptionGroups.CompilerFlags = 1 -> SharpRail.Plugins.Api.Host.LanguageServerOptionGroups
+SharpRail.Plugins.Api.Host.LanguageServerOptionGroups.Installation = 2 -> SharpRail.Plugins.Api.Host.LanguageServerOptionGroups
+SharpRail.Plugins.Api.Host.LanguageServerOptionGroups.JvmProject = 4 -> SharpRail.Plugins.Api.Host.LanguageServerOptionGroups
+SharpRail.Plugins.Api.Host.LanguageServerOptionGroups.None = 0 -> SharpRail.Plugins.Api.Host.LanguageServerOptionGroups
+SharpRail.Plugins.Api.Host.LanguageServerSource
+SharpRail.Plugins.Api.Host.LanguageServerSource.<Clone>$() -> SharpRail.Plugins.Api.Host.LanguageServerSource!
+SharpRail.Plugins.Api.Host.LanguageServerSource.Deconstruct(out string! Text, out string! Language) -> void
+SharpRail.Plugins.Api.Host.LanguageServerSource.Equals(SharpRail.Plugins.Api.Host.LanguageServerSource? other) -> bool
+SharpRail.Plugins.Api.Host.LanguageServerSource.Language.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSource.Language.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSource.LanguageServerSource(string! Text, string! Language) -> void
+SharpRail.Plugins.Api.Host.LanguageServerSource.Text.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSource.Text.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.AdditionalManifests.get -> System.Func<string!, SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions!, System.Collections.Generic.IEnumerable<string!>!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.AdditionalManifests.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.AllowsOverride.get -> bool
+SharpRail.Plugins.Api.Host.LanguageServerSpec.AllowsOverride.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ConfigureInitialization.get -> System.Action<SharpRail.Plugins.Api.Host.ILanguageServerStart!, System.Text.Json.Nodes.JsonObject!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ConfigureInitialization.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ExpiredDetail.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ExpiredDetail.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ExpiredExitCode.get -> int?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ExpiredExitCode.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Icon.get -> SharpRail.Plugins.Api.Host.LanguageServerIcon?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Icon.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.InitializeProgressToken.get -> string?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.InitializeProgressToken.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.InitializeTimeout.get -> System.TimeSpan?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.InitializeTimeout.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.IsProjectDirectory.get -> System.Func<string!, bool>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.IsProjectDirectory.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.LoadsProjects.get -> System.Func<System.Text.Json.Nodes.JsonObject!, bool>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.LoadsProjects.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Name.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Name.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.OnExpired.get -> System.Action<SharpRail.Plugins.Api.Host.ILanguageServerInstallation!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.OnExpired.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.OnMessage.get -> System.Action<SharpRail.Plugins.Api.Host.ILanguageServerSession!, string!, System.Text.Json.Nodes.JsonNode?>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.OnMessage.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.OptionGroups.get -> SharpRail.Plugins.Api.Host.LanguageServerOptionGroups
+SharpRail.Plugins.Api.Host.LanguageServerSpec.OptionGroups.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ProjectLoadedNotification.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ProjectLoadedNotification.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ReadSourceAsync.get -> System.Func<SharpRail.Plugins.Api.Host.ILanguageServerSession!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task<SharpRail.Plugins.Api.Host.LanguageServerSource!>!>?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ReadSourceAsync.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Replaces.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Replaces.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ReservedArguments.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ReservedArguments.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.SourceRootsAsync.get -> System.Func<SharpRail.Plugins.Api.Host.ILanguageServerSession!, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!>?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.SourceRootsAsync.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.SourceSchemes.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.SourceSchemes.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsAsync.get -> System.Func<SharpRail.Plugins.Api.Host.ILanguageServerInstallation!, bool, System.Threading.CancellationToken, System.Threading.Tasks.Task<SharpRail.Plugins.Api.Host.LanguageServerTerms!>!>?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsAsync.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsNote.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsNote.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.WorkspaceFolders.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>!, System.Collections.Generic.IReadOnlyList<string!>!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.WorkspaceFolders.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms
+SharpRail.Plugins.Api.Host.LanguageServerTerms.<Clone>$() -> SharpRail.Plugins.Api.Host.LanguageServerTerms!
+SharpRail.Plugins.Api.Host.LanguageServerTerms.ArtifactId.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerTerms.ArtifactId.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Deconstruct(out string! Installation, out string! Version, out string! ArtifactId, out string! Text, out string! TextSha256) -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Equals(SharpRail.Plugins.Api.Host.LanguageServerTerms? other) -> bool
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Installation.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Installation.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms.LanguageServerTerms(string! Installation, string! Version, string! ArtifactId, string! Text, string! TextSha256) -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Text.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Text.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms.TextSha256.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerTerms.TextSha256.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Version.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Version.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.<Clone>$() -> SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions!
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.BuildTool.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.BuildTool.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.CompilationDatabasePath.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.CompilationDatabasePath.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.CompilerFlags.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.CompilerFlags.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! IncludePaths, out System.Collections.Generic.IReadOnlyList<string!>! CompilerFlags, out string! CompilationDatabasePath, out string! InstallationPath, out string! ProjectJdk, out string! BuildTool, out System.Collections.Generic.IReadOnlyCollection<string!>! InitializationSupplied) -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.Equals(SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions? other) -> bool
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.IncludePaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.IncludePaths.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.InitializationSupplied.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.InitializationSupplied.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.InstallationPath.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.InstallationPath.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.LanguageServerWorkspaceOptions(System.Collections.Generic.IReadOnlyList<string!>! IncludePaths, System.Collections.Generic.IReadOnlyList<string!>! CompilerFlags, string! CompilationDatabasePath, string! InstallationPath, string! ProjectJdk, string! BuildTool, System.Collections.Generic.IReadOnlyCollection<string!>! InitializationSupplied) -> void
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.ProjectJdk.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.ProjectJdk.init -> void
+override SharpRail.Plugins.Api.Host.LanguageServerIcon.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.LanguageServerIcon.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.LanguageServerIcon.ToString() -> string!
+override SharpRail.Plugins.Api.Host.LanguageServerSource.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.LanguageServerSource.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.LanguageServerSource.ToString() -> string!
+override SharpRail.Plugins.Api.Host.LanguageServerTerms.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.LanguageServerTerms.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.LanguageServerTerms.ToString() -> string!
+override SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.ToString() -> string!
+static SharpRail.Plugins.Api.Host.LanguageServerIcon.Embedded(System.Reflection.Assembly! assembly, string! name) -> SharpRail.Plugins.Api.Host.LanguageServerIcon!
+static SharpRail.Plugins.Api.Host.LanguageServerIcon.operator !=(SharpRail.Plugins.Api.Host.LanguageServerIcon? left, SharpRail.Plugins.Api.Host.LanguageServerIcon? right) -> bool
+static SharpRail.Plugins.Api.Host.LanguageServerIcon.operator ==(SharpRail.Plugins.Api.Host.LanguageServerIcon? left, SharpRail.Plugins.Api.Host.LanguageServerIcon? right) -> bool
+static SharpRail.Plugins.Api.Host.LanguageServerSource.operator !=(SharpRail.Plugins.Api.Host.LanguageServerSource? left, SharpRail.Plugins.Api.Host.LanguageServerSource? right) -> bool
+static SharpRail.Plugins.Api.Host.LanguageServerSource.operator ==(SharpRail.Plugins.Api.Host.LanguageServerSource? left, SharpRail.Plugins.Api.Host.LanguageServerSource? right) -> bool
+static SharpRail.Plugins.Api.Host.LanguageServerTerms.operator !=(SharpRail.Plugins.Api.Host.LanguageServerTerms? left, SharpRail.Plugins.Api.Host.LanguageServerTerms? right) -> bool
+static SharpRail.Plugins.Api.Host.LanguageServerTerms.operator ==(SharpRail.Plugins.Api.Host.LanguageServerTerms? left, SharpRail.Plugins.Api.Host.LanguageServerTerms? right) -> bool
+static SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.operator !=(SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions? left, SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions? right) -> bool
+static SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.operator ==(SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions? left, SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions? right) -> bool
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ReplacesLabel.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ReplacesLabel.init -> void

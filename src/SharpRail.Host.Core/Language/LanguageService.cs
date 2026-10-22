@@ -11,7 +11,8 @@ namespace SharpRail.Host.Core.Language;
 public sealed partial class LanguageService : IAsyncDisposable
 {
     private readonly object startGate = new();
-    internal Func<bool>? GlobalIntelliJProvider { get; init; }
+    /// <summary>The host-wide provider choice: <c>standard</c>, or the id of a server that replaces others (H21); absent, each workspace chooses.</summary>
+    internal Func<string>? GlobalProvider { get; init; }
     private readonly ConcurrentDictionary<string, Entry> entries = new();
     private readonly ConcurrentDictionary<string, LanguageLog> logs = new();
     private readonly ConcurrentDictionary<string, bool> stopped = new();
@@ -64,7 +65,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (Volatile.Read(ref disposed) != 0) return new("stopped", "The host is shutting down.");
         if (request.Operation == "catalog") return new("ready", servers.Storage)
         {
-            Servers = servers.Servers.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version)).ToArray()
+            Servers = servers.Servers.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version) { Presentation = Present(server) }).ToArray()
         };
         if (request.Operation == "resolution")
         {
@@ -101,10 +102,9 @@ public sealed partial class LanguageService : IAsyncDisposable
             throw new ArgumentException("Navigation scopes are file, module (when supported), workspace or dependencies (all server results); file/module need a path.");
         if (request.Configuration is not null && request.Operation is not ("configure" or "restart")) throw new ArgumentException("Configuration is accepted only by configure or restart.");
         if (request.Operation == "projects") return await ProjectRootsAsync(request, token);
-        var intellijSelected = UsesIntelliJ(workspace);
-        var competing = intellijSelected ? new[] { "java", "kotlin" } : new[] { "intellij" };
-        if (competing.Any(id => entries.ContainsKey(workspace + "\0" + id) || drafts.ContainsKey(workspace + "\0" + id)))
-            await SwitchJvmProviderAsync(workspace, intellijSelected, CancellationToken.None);
+        var provider = Replacing(workspace);
+        if (Competing(provider).Any(id => entries.ContainsKey(workspace + "\0" + id) || drafts.ContainsKey(workspace + "\0" + id)))
+            await SwitchProviderAsync(workspace, provider, CancellationToken.None);
         if (request.Operation == "servers") return ListServers(workspace, token);
         if (LanguageSession.IsVirtual(request.Path))
         {
@@ -142,8 +142,8 @@ public sealed partial class LanguageService : IAsyncDisposable
                 if (saveConfiguration is null) throw new InvalidOperationException("Workspace configuration storage is unavailable.");
                 var priorOptions = WorkspaceLanguageConfiguration.Parse(configuration(workspace, selectedServer.Id), selectedServer.Id);
                 saveConfiguration(workspace, selectedServer.Id, WorkspaceLanguageConfiguration.Serialize(parsed));
-                if (GlobalIntelliJProvider is null && selectedServer.Id == "intellij" && priorOptions.UseForJavaAndKotlin != parsed.UseForJavaAndKotlin)
-                    await SwitchJvmProviderAsync(workspace, parsed.UseForJavaAndKotlin, CancellationToken.None);
+                if (GlobalProvider is null && selectedServer.Spec.Replaces.Count > 0 && priorOptions.UseForJavaAndKotlin != parsed.UseForJavaAndKotlin)
+                    await SwitchProviderAsync(workspace, Replacing(workspace), CancellationToken.None);
             }
             if (request.Operation != "restart")
                 return new("ready", "Workspace settings; configure saves without starting. Restart applies saved settings.", selectedServer.Id)
@@ -173,14 +173,15 @@ public sealed partial class LanguageService : IAsyncDisposable
                     if (!sessionKey.StartsWith(workspace + "\0", StringComparison.Ordinal)) continue;
                     if (running.State == "expired")
                     {
-                        results.Add(new("expired", IntelliJDistribution.Expired, "intellij") { Freshness = "unavailable" });
+                        var expiredId = sessionKey[(sessionKey.IndexOf('\0') + 1)..];
+                        results.Add(new("expired", running.Detail, expiredId) { Freshness = "unavailable" });
                         continue;
                     }
                     if (!running.Session.IsValueCreated || !running.Session.Value.IsCompletedSuccessfully) continue;
                     try
                     {
                         var inspection = await running.Session.Value.Result.WorkspaceDiagnosticsAsync(token);
-                        if (inspection.State == "expired") RecordExpiry(running, sessionKey);
+                        if (inspection.State == "expired") RecordExpiry(running, sessionKey, workspace);
                         results.Add(inspection);
                     }
                     catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
@@ -212,10 +213,10 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (server is null) return new("unsupported", "No language server is configured for this file type.", Version: request.Version);
         if (request.Operation != "stop" && request.Operation != "close")
         {
-            if (server.Id == "intellij" && !UsesIntelliJ(workspace))
-                return new("disabled", "Select IntelliJ for Java and Kotlin in the host settings before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
-            if (server.Id is "java" or "kotlin" && UsesIntelliJ(workspace))
-                return new("disabled", "IntelliJ is selected for Java and Kotlin on this host. Change the host provider choice to use existing providers.", server.Id, request.Version) { Freshness = "unavailable" };
+            if (server.Spec.Replaces.Count > 0 && Replacing(workspace)?.Id != server.Id)
+                return new("disabled", $"Select {Name(server)} for {Languages(server)} in the host settings before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
+            if (Replacing(workspace) is { } replacing && replacing.Spec.Replaces.Contains(server.Id))
+                return new("disabled", $"{Name(replacing)} is selected for {Languages(replacing)} on this host. Change the host provider choice to use existing providers.", server.Id, request.Version) { Freshness = "unavailable" };
         }
         var key = workspace + "\0" + server.Id;
         if (saveConfiguration is not null && (request.Operation == "stop" || request.Operation == "retry" && request.Configuration is null))
@@ -259,23 +260,27 @@ public sealed partial class LanguageService : IAsyncDisposable
             {
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(candidate.Token);
                 deadline.CancelAfter(TimeSpan.FromMinutes(15));
-                var start = await servers.ProvisionAsync(server, workspace, deadline.Token, options);
-                if (options.Arguments is not null && server.Id != "intellij")
+                var sessionDirectory = servers.SessionDirectory(server, workspace);
+                var start = await servers.ProvisionAsync(server, workspace, deadline.Token, options, sessionDirectory);
+                if (options.Arguments is not null)
                 {
+                    foreach (var argument in options.Arguments)
+                        if (server.Spec.ReservedArguments.Any(reserved => argument == reserved || argument.StartsWith(reserved + "=", StringComparison.Ordinal)))
+                            throw new IOException($"{argument} is managed by the {server.Id} provider; remove it from the configured arguments.");
                     // A runtime-hosted server (node, java, pwsh, Rscript) keeps the launcher arguments that name its program; configured ones are appended.
                     if (!LanguageServers.HostsRuntime(server)) start.ArgumentList.Clear();
                     foreach (var argument in options.Arguments) start.ArgumentList.Add(WorkspaceLanguageConfiguration.Expand(argument, workspace));
                     servers.ConfigureCaches(start, server, workspace);
                 }
                 candidate.State = "initializing"; candidate.Detail = "Starting and indexing the workspace…";
-                var session = await LanguageSession.StartAsync(start, workspace, server, deadline.Token, options, log, servers.DirectoryPath, exit => RecordExit(workspace, server.Id, exit, candidate.StartedBy));
+                var session = await LanguageSession.StartAsync(start, workspace, server, deadline.Token, options, log, servers.DirectoryPath, exit => RecordExit(workspace, server.Id, exit, candidate.StartedBy), sessionDirectory);
                 try { if (drafts.TryGetValue(key, out var saved)) await session.RestoreDraftsAsync(saved, deadline.Token); }
                 catch
                 {
                     var expired = await session.ObserveExpiryAsync();
                     session.Terminate("restoring unsaved editor buffers failed", failure: true);
                     await session.DisposeAsync();
-                    if (expired) throw new IntelliJExpiredException();
+                    if (expired) throw new LanguageServerExpiredException(server.Spec.ExpiredDetail);
                     throw;
                 }
                 log.Add("lifecycle", "Initialized; serving this workspace.");
@@ -283,8 +288,8 @@ public sealed partial class LanguageService : IAsyncDisposable
             }
             catch (Exception error)
             {
-                if (error is IntelliJAcceptanceException or IntelliJExpiredException) { candidate.State = error is IntelliJExpiredException ? "expired" : "requiresAcceptance"; candidate.Detail = error.Message; }
-                if (error is IntelliJExpiredException) RecordExpiry(candidate, key);
+                if (error is LanguageTermsRequiredException or LanguageServerExpiredException) { candidate.State = error is LanguageServerExpiredException ? "expired" : "requiresAcceptance"; candidate.Detail = error.Message; }
+                if (error is LanguageServerExpiredException) RecordExpiry(candidate, key, workspace);
                 log.Add("startup", error.Message);
                 throw;
             }
@@ -313,13 +318,13 @@ public sealed partial class LanguageService : IAsyncDisposable
         {
             var session = await sessionTask.WaitAsync(token);
             var result = await session.ExecuteAsync(request, token);
-            if (result.State == "expired") RecordExpiry(entry, key);
+            if (result.State == "expired") RecordExpiry(entry, key, workspace);
             foreach (var location in result.Locations)
                 if (Path.IsPathFullyQualified(location.Path)) exposed[(workspace, location.Path)] = true;
             return result;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-        catch (Exception error) { return new(error is IntelliJExpiredException ? "expired" : error is IntelliJAcceptanceException ? "requiresAcceptance" : "error", error.Message + " Use Retry after resolving the problem.", server.Id, request.Version) { Freshness = "unavailable" }; }
+        catch (Exception error) { return new(error is LanguageServerExpiredException ? "expired" : error is LanguageTermsRequiredException ? "requiresAcceptance" : "error", error.Message + " Use Retry after resolving the problem.", server.Id, request.Version) { Freshness = "unavailable" }; }
     }
 
     private void RecordExit(string workspace, string server, LanguageExit exit, string startedBy)
@@ -331,14 +336,15 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (exit.Unexpected && Volatile.Read(ref disposed) == 0) DeathObserved?.Invoke(workspace, server, exit.Time, exit.Reason);
     }
 
-    private void RecordExpiry(Entry entry, string key)
+    private void RecordExpiry(Entry entry, string key, string workspace)
     {
-        entry.State = "expired"; entry.Detail = IntelliJDistribution.Expired;
-        if (Interlocked.Exchange(ref entry.ExpiryRecorded, 1) != 0) return;
+        var server = LanguageServers.Known(key[(key.IndexOf('\0') + 1)..]);
+        entry.State = "expired"; entry.Detail = server?.Spec.ExpiredDetail ?? entry.Detail;
+        if (server is null || Interlocked.Exchange(ref entry.ExpiryRecorded, 1) != 0) return;
         try
         {
-            var active = WorkspaceLanguageConfiguration.Parse(entry.Configuration, "intellij");
-            IntelliJDistribution.RecordExpiry(servers.Storage, active.InstallationPath);
+            var active = WorkspaceLanguageConfiguration.Parse(entry.Configuration, server.Id);
+            server.Spec.OnExpired(servers.InstallationFor(server, workspace, active.InstallationPath));
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
@@ -376,15 +382,15 @@ public sealed partial class LanguageService : IAsyncDisposable
                     var task = entry.Session.Value;
                     if (task.IsCompletedSuccessfully)
                     {
-                        if (task.Result.Expired) RecordExpiry(entry, key);
+                        if (task.Result.Expired) RecordExpiry(entry, key, workspace);
                         state = task.Result.Expired ? "expired" : task.Result.Exited ? "error" : task.Result.NeedsConfiguration ? "actionRequired" : task.Result.IsIndexing ? "initializing" : "ready";
-                        detail = task.Result.Expired ? IntelliJDistribution.Expired : task.Result.Exited ? (task.Result.ExitRecord is { } died ? (died.Unexpected ? "Stopped unexpectedly: " : "Stopped: ") + died.Reason : "The server exited; its exit status is still being read.") + " Use Start / Retry to restart." : task.Result.Status;
+                        detail = task.Result.Expired ? catalogServer.Spec.ExpiredDetail : task.Result.Exited ? (task.Result.ExitRecord is { } died ? (died.Unexpected ? "Stopped unexpectedly: " : "Stopped: ") + died.Reason : "The server exited; its exit status is still being read.") + " Use Start / Retry to restart." : task.Result.Status;
                     }
-                    else if (task.IsFaulted) { state = task.Exception!.GetBaseException() is IntelliJExpiredException ? "expired" : task.Exception!.GetBaseException() is IntelliJAcceptanceException ? "requiresAcceptance" : "error"; detail = task.Exception!.GetBaseException().Message; }
+                    else if (task.IsFaulted) { state = task.Exception!.GetBaseException() is LanguageServerExpiredException ? "expired" : task.Exception!.GetBaseException() is LanguageTermsRequiredException ? "requiresAcceptance" : "error"; detail = task.Exception!.GetBaseException().Message; }
                     else if (task.IsCanceled) { state = "stopped"; detail = "Startup was cancelled."; }
                 }
             }
-            if (id is "java" or "kotlin" && UsesIntelliJ(workspace)) { state = "disabled"; detail = "IntelliJ is selected for Java and Kotlin. Existing provider settings are preserved."; }
+            if (Replacing(workspace) is { } replacing && replacing.Spec.Replaces.Contains(id)) { state = "disabled"; detail = $"{Name(replacing)} is selected for {Languages(replacing)}. Existing provider settings are preserved."; }
             if (!enabled()) { state = "disabled"; detail = "Language services are disabled on this host. Workspace settings are preserved."; }
             var exit = exits.Get(workspace, id);
             if (entries.TryGetValue(key, out var running) && running.Session.IsValueCreated && running.Session.Value is { IsCompletedSuccessfully: true } finished) exit = finished.Result.ExitRecord is { } live ? exit is not null && exit.Time == live.Time ? exit : live : exit;
@@ -393,39 +399,62 @@ public sealed partial class LanguageService : IAsyncDisposable
             rows.Add(new(id, path, state, detail, servers.Servers.Single(server => server.Id == id).Version,
                 WorkspaceLanguageConfiguration.Serialize(WorkspaceLanguageConfiguration.Parse(configuration(workspace, id), id)),
                 entries.GetValueOrDefault(key)?.Configuration ?? "", configuration(workspace, id) != "{}")
-            { Exit = exit, Usage = usage.Get(workspace, id), StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "" });
+            { Exit = exit, Usage = usage.Get(workspace, id), StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "", Presentation = Present(catalogServer) });
         }
         return new(enabled() ? "ready" : "disabled", enabled() ? "Available language servers; detected languages are listed first." : "Language services are disabled. Workspace settings remain available.") { Servers = rows };
     }
 
-    private bool UsesIntelliJ(string workspace) => GlobalIntelliJProvider?.Invoke() ?? WorkspaceLanguageConfiguration.Parse(configuration(workspace, "intellij"), "intellij").UseForJavaAndKotlin;
+    /// <summary>What the providing plugin asks the user interface to show (H21).</summary>
+    internal static LanguageServerPresentation Present(LanguageServer server) => new(Name(server), server.Spec.Icon?.Data, server.Spec.Icon?.Format ?? "",
+        [.. Enum.GetValues<LanguageServerOptionGroups>().Where(group => group != LanguageServerOptionGroups.None && server.Spec.OptionGroups.HasFlag(group))
+            .Select(group => JsonNamingPolicy.CamelCase.ConvertName(group.ToString()))],
+        server.Spec.Replaces, server.Spec.TermsAsync is not null, server.Spec.TermsNote, server.Spec.ReplacesLabel);
+
+    private static string Name(LanguageServer server) => server.Spec.Name.Length > 0 ? server.Spec.Name : server.Id;
+
+    private string Languages(LanguageServer replacing) => replacing.Spec.ReplacesLabel.Length > 0 ? replacing.Spec.ReplacesLabel
+        : string.Join(" and ", replacing.Spec.Replaces.Select(id => servers.Find(id) is { } replaced ? Name(replaced) : id));
+
+    /// <summary>The server chosen to replace others in this workspace: the host-wide choice when there is one, else the workspace's (H21).</summary>
+    private LanguageServer? Replacing(string workspace)
+    {
+        var replacing = servers.Servers.Where(server => server.Spec.Replaces.Count > 0);
+        if (GlobalProvider?.Invoke() is { } global) return replacing.FirstOrDefault(server => server.Id == global);
+        return replacing.FirstOrDefault(server => WorkspaceLanguageConfiguration.Parse(configuration(workspace, server.Id), server.Id).UseForJavaAndKotlin);
+    }
+
+    /// <summary>The servers that must not run beside the chosen replacement, or every replacing server when none is chosen.</summary>
+    private IEnumerable<string> Competing(LanguageServer? chosen) => chosen is not null
+        ? chosen.Spec.Replaces.Concat(servers.Servers.Where(server => server.Spec.Replaces.Count > 0 && server != chosen).Select(server => server.Id))
+        : servers.Servers.Where(server => server.Spec.Replaces.Count > 0).Select(server => server.Id);
 
     private LanguageServer? Detect(string workspace, string path)
     {
         var server = servers.Detect(path);
-        return server?.Id is "java" or "kotlin" && UsesIntelliJ(workspace) ? servers.Servers.Single(item => item.Id == "intellij") : server;
+        return server is not null && Replacing(workspace) is { } replacing && replacing.Spec.Replaces.Contains(server.Id) ? replacing : server;
     }
 
-    internal async Task SwitchJvmProviderAsync(bool useIntelliJ, CancellationToken token)
+    /// <summary>Applies a host-wide provider choice to every workspace with sessions or drafts.</summary>
+    internal async Task SwitchProviderAsync(CancellationToken token)
     {
         var workspaces = entries.Keys.Concat(drafts.Keys).Select(key => key.Split('\0')[0]).Distinct().ToArray();
-        foreach (var workspace in workspaces) await SwitchJvmProviderAsync(workspace, useIntelliJ, token);
+        foreach (var workspace in workspaces) await SwitchProviderAsync(workspace, Replacing(workspace), token);
     }
 
-    private async Task SwitchJvmProviderAsync(string workspace, bool useIntelliJ, CancellationToken token)
+    private async Task SwitchProviderAsync(string workspace, LanguageServer? chosen, CancellationToken token)
     {
-        foreach (var id in useIntelliJ ? new[] { "java", "kotlin" } : new[] { "intellij" })
+        foreach (var id in Competing(chosen).ToArray())
         {
             var key = workspace + "\0" + id;
             if (entries.TryRemove(key, out var entry))
             {
                 try { await PreserveDraftsAsync(key, entry, token); }
-                finally { await StopAsync(entry, "the Java/Kotlin provider choice changed"); }
+                finally { await StopAsync(entry, "the language provider choice changed"); }
             }
             if (!drafts.TryRemove(key, out var saved)) continue;
             foreach (var draft in saved)
             {
-                var target = workspace + "\0" + (useIntelliJ ? "intellij" : servers.Detect(draft.Path)!.Id);
+                var target = workspace + "\0" + (chosen?.Id ?? servers.Detect(draft.Path)!.Id);
                 drafts.AddOrUpdate(target, [draft], (_, existing) => existing.Where(item => item.DocumentId != draft.DocumentId || item.Path != draft.Path).Append(draft).ToArray());
             }
         }

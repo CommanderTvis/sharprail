@@ -25,7 +25,11 @@ internal enum Pinning
 }
 
 /// <summary>One downloadable platform artifact of a managed server, with the server it belongs to. <see cref="Source"/> records where the hash was obtained.</summary>
-internal sealed record ManagedArtifact(string Server, string Version, string Platform, string Url, string Sha256, string Format, string Source, string[] Hosts);
+internal sealed record ManagedArtifact(string Server, string Version, string Platform, string Url, string Sha256, string Format, string Source, string[] Hosts)
+{
+    /// <summary>The file a single gzipped executable is written to.</summary>
+    internal string Executable { get; init; } = Server;
+}
 
 /// <summary>The pins every provider declares (H21), read from its spec; the host keeps none of its own.</summary>
 internal static class ManagedArtifacts
@@ -48,7 +52,7 @@ internal static class ManagedArtifacts
     };
 
     internal static IEnumerable<ManagedArtifact> Artifacts(LanguageServer server) => server.Spec.Artifacts.Select(item =>
-        new ManagedArtifact(server.Id, server.Version, item.Platform, item.Url, item.Sha256, item.Format, item.Source, [.. item.Hosts]));
+        new ManagedArtifact(server.Id, server.Version, item.Platform, item.Url, item.Sha256, item.Format, item.Source, [.. item.Hosts]) { Executable = LanguageServers.InstalledName(server) });
 
     /// <summary>The verified packages to install on a platform, or null when no runtime pack is pinned for it.</summary>
     internal static LanguageServerNuGetPackage[]? NuGetFor(LanguageServer server, string platform) =>
@@ -95,7 +99,7 @@ internal static class ManagedArtifacts
                     if (item.Sha256.Length != 64 || !item.Sha256.All(char.IsAsciiHexDigitLower)) problems.Add($"{server.Id} {item.Platform}: missing or malformed SHA-256.");
                     if (!Uri.TryCreate(item.Url, UriKind.Absolute, out var uri) || uri.Scheme != "https" || !item.Hosts.Contains(uri.Host)) problems.Add($"{server.Id} {item.Platform}: URL is not HTTPS on an allowed host.");
                     if (item.Source.Length == 0) problems.Add($"{server.Id} {item.Platform}: hash source not recorded.");
-                    if (!item.Url.Contains(item.Version.Split('-')[0], StringComparison.Ordinal) && server.Id != "rust" || item.Version != server.Version) problems.Add($"{server.Id} {item.Platform}: artifact does not match the catalog version.");
+                    if (!item.Url.Contains(item.Version.Split('-')[0], StringComparison.Ordinal) || item.Version != server.Version) problems.Add($"{server.Id} {item.Platform}: artifact does not match the catalog version.");
                 }
                 detail = $"{items.Length} artifact(s), SHA-256 {items.Count(item => item.Sha256.Length == 64)}/{items.Length}";
             }
@@ -272,7 +276,7 @@ internal static class ArtifactInstaller
         if (artifact.Format == "gz")
         {
             // A single compressed executable.
-            var path = Path.Combine(root, artifact.Server == "rust" ? "rust-analyzer" : artifact.Server);
+            var path = Path.Combine(root, artifact.Executable);
             await using var file = File.OpenRead(archive);
             await using var gzip = new GZipStream(file, CompressionMode.Decompress);
             await using var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true);

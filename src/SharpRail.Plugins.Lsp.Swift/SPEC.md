@@ -19,3 +19,5 @@ The spec declares the pinned version, owned files, pinning and its pins, configu
 and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
 
 There is no managed installation: the server runs only from PATH, when the user allows PATH for it, falling back to `xcrun --find sourcekit-lsp` on macOS.
+
+Xcode projects and workspaces are manifests themselves and are not searched.

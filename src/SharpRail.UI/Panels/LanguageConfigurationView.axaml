@@ -42,30 +42,33 @@
   <Expander x:Name="ConfigurationExpander" VerticalAlignment="Top" Header="Workspace settings" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
     <StackPanel Spacing="8" Margin="0,8,0,4">
       <TextBlock x:Name="ConfigurationScope" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" />
-      <StackPanel x:Name="IntelliJOptions" Spacing="8" IsVisible="False">
-        <TextBlock Text="IntelliJ Java and Kotlin · evaluation provider" FontWeight="SemiBold" TextWrapping="Wrap" />
-        <TextBlock Text="Uses JetBrains’ standalone server for Java and Kotlin. Download or select an installation, then review and accept its EULA before starting. The current build is evaluation-only EAP; JetBrains enforces its validity." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
-        <Button x:Name="ReviewIntelliJTerms" Content="Review agreement and start IntelliJ…" HorizontalAlignment="Left" ToolTip.Tip="Saves settings and reviews the agreement before starting. Select the Java / Kotlin provider in Settings → Code Intelligence." />
-        <TextBlock x:Name="IntelliJTermsStatus" Text="Setup checks existing acceptance; changed terms require your acknowledgement." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
-        <TextBlock Text="Installation directory on the workspace host" />
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBox x:Name="IntelliJInstallation" PlaceholderText="Optional absolute path; blank downloads the managed server" />
-          <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="IntelliJInstallation" Click="BrowseFieldClicked" VerticalAlignment="Top" />
-        </Grid>
-        <TextBlock Text="Project JDK on the workspace host" />
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBox x:Name="IntelliJProjectJdk" PlaceholderText="Absolute JDK path; separate from the server’s bundled runtime" />
-          <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="IntelliJProjectJdk" Click="BrowseFieldClicked" VerticalAlignment="Top" />
-        </Grid>
-        <TextBlock Text="Build importer" />
-        <ComboBox x:Name="IntelliJBuildTool" HorizontalAlignment="Stretch" />
-        <TextBlock Text="Terms: JetBrains LSP Extension Public EAP Agreement, version 1.0 (July 31, 2026). Internal evaluation only; ends at the earliest vendor-defined EAP termination. Terms acceptance is not an activation credential and cannot extend a build’s lifetime." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+      <StackPanel x:Name="ProviderOptions" Spacing="8" IsVisible="False">
+        <TextBlock x:Name="ProviderHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock x:Name="ProviderNote" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+        <Button x:Name="ReviewTerms" Content="Review agreement and start…" HorizontalAlignment="Left" ToolTip.Tip="Saves settings and reviews the agreement before starting." />
+        <TextBlock x:Name="TermsStatus" Text="Setup checks existing acceptance; changed terms require your acknowledgement." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+        <StackPanel x:Name="InstallationOptions" Spacing="8">
+          <TextBlock Text="Installation directory on the workspace host" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBox x:Name="InstallationPath" PlaceholderText="Optional absolute path; blank downloads the managed server" />
+            <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="InstallationPath" Click="BrowseFieldClicked" VerticalAlignment="Top" />
+          </Grid>
+        </StackPanel>
+        <StackPanel x:Name="JvmProjectOptions" Spacing="8">
+          <TextBlock Text="Project JDK on the workspace host" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBox x:Name="ProjectJdk" PlaceholderText="Absolute JDK path; separate from the server’s bundled runtime" />
+            <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="ProjectJdk" Click="BrowseFieldClicked" VerticalAlignment="Top" />
+          </Grid>
+          <TextBlock Text="Build importer" />
+          <ComboBox x:Name="BuildTool" HorizontalAlignment="Stretch" />
+        </StackPanel>
       </StackPanel>
       <CheckBox x:Name="ProjectAutoStart" Content="Start before first agent in this project" ToolTip.Tip="Applies to every workspace of this project. Startup is requested before the agent runs; installation and indexing may continue afterward." />
-      <CheckBox x:Name="ShareWithProject" Content="Share with the project (.sharprail/language.toml)" ToolTip.Tip="Writes this server's portable options to the project's committed file, where teammates and agents can edit them. Host paths such as the IntelliJ installation and JDK stay on this host. Saving never creates the file unless this is checked." />
+      <CheckBox x:Name="ShareWithProject" Content="Share with the project (.sharprail/language.toml)" ToolTip.Tip="Writes this server's portable options to the project's committed file, where teammates and agents can edit them. Host paths such as an installation directory and JDK stay on this host. Saving never creates the file unless this is checked." />
       <TextBlock x:Name="ProjectFileNote" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
       <CheckBox x:Name="AutoStart" Content="Start in new workspaces" ToolTip.Tip="New workspaces copy Default’s settings once, then remain independent." />
-      <StackPanel x:Name="ClangOptions" Spacing="8">
+      <StackPanel x:Name="CompilerOptions" Spacing="8">
         <TextBlock Text="Include directories on workspace host" />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <TextBox x:Name="IncludePaths" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One host folder per line; relative to workspace or absolute" ToolTip.Tip="Paths may be relative to this workspace or absolute." />

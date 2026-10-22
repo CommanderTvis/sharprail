@@ -1,33 +1,26 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 
 using Avalonia.Data.Converters;
+
+using SharpRail.Host.Abstractions;
 
 namespace SharpRail.UI.Panels;
 
 internal sealed class LanguageServerNameConverter : IValueConverter
 {
-    internal static string Display(string id) => id switch
+    private static readonly ConcurrentDictionary<string, LanguageServerPresentation> Presentations = new(StringComparer.Ordinal);
+
+    /// <summary>Keeps what the providing plugins say to show for each listed server (H21), so a server named only by id shows the same way.</summary>
+    internal static void Remember(IEnumerable<LanguageServerState> servers)
     {
-        "typescript" => "JavaScript / TypeScript (TypeScript LS)",
-        "python" => "Python (Pyright)",
-        "php" => "PHP (Intelephense)",
-        "css" => "CSS (VS Code)",
-        "shell" => "Shell (Bash LS)",
-        "csharp" => "C# (Roslyn)",
-        "clangd" => "C / C++ (clangd)",
-        "java" => "Java (Eclipse JDT)",
-        "kotlin" => "Kotlin (Kotlin LS)",
-        "intellij" => "Java / Kotlin (IntelliJ)",
-        "ruby" => "Ruby (Ruby LS)",
-        "go" => "Go (gopls)",
-        "rust" => "Rust (rust-analyzer)",
-        "scala" => "Scala (Metals)",
-        "r" => "R (languageserver)",
-        "powershell" => "PowerShell (Editor Services)",
-        "swift" => "Swift (SourceKit-LS)",
-        "dart" => "Dart (Analysis Server)",
-        _ => id
-    };
+        foreach (var server in servers)
+            if (server.Presentation is { } presentation) Presentations[server.Id] = presentation;
+    }
+
+    internal static LanguageServerPresentation? Presentation(string id) => Presentations.GetValueOrDefault(id);
+
+    internal static string Display(string id) => Presentation(id) is { Name.Length: > 0 } presentation ? presentation.Name : id;
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value is string id ? Display(id) : null;
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();

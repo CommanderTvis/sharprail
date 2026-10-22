@@ -272,7 +272,7 @@ public sealed partial class HostStateStore : IHostStateService
             if (previous.Settings.LspEnabled && !next.Settings.LspEnabled && languages is { } languageService)
                 await languageService.SuspendAsync();
             if (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider && languages is { } jvmLanguages)
-                await jvmLanguages.SwitchJvmProviderAsync(next.Settings.JavaKotlinProvider == "intellij", CancellationToken.None);
+                await jvmLanguages.SwitchProviderAsync(CancellationToken.None);
             // A project opened for the first time starts the language servers its shared configuration marks autoStart in its Default workspace.
             foreach (var project in next.Projects.Except(previous.Projects)) StartWorkspaceLanguages(project);
             return next;
@@ -567,7 +567,7 @@ public sealed partial class HostStateStore : IHostStateService
                         => settings with { TerminalReplayKb = kb },
                     "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
                     "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },
-                    "java-kotlin-provider" when value is "standard" or "intellij" => settings with { JavaKotlinProvider = value },
+                    "java-kotlin-provider" when IsProviderChoice(value) => settings with { JavaKotlinProvider = value },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
                     _ when key.StartsWith("language-server:", StringComparison.Ordinal) => settings with { LanguageServers = SetLanguageServer(settings.LanguageServers, key[16..], value) },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },

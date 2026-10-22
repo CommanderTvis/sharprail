@@ -1,100 +1,91 @@
-using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace SharpRail.Host.Core.Language;
+using SharpRail.Plugins.Api.Host;
+
+namespace SharpRail.Plugins.Lsp.IntelliJ;
 
 internal sealed record IntelliJBundle(string Version, string Platform, Uri Url, string Sha256);
 
 internal static class IntelliJDistribution
 {
     internal const string Version = "263.6379.0";
-    internal const string AcceptanceRequired = "Review and accept the IntelliJ EULA in workspace settings before starting this evaluation provider.";
     internal const string Expired = "JetBrains refused this build (exit 7). Install an authorized newer build and review its terms. Existing Java and Kotlin providers remain available.";
     internal const string CatalogSource = "https://github.com/JetBrains/intellij-lsp.nvim/blob/main/lua/intellij-lsp/server_bundles.lua";
 
-    internal static IntelliJBundle Bundle(string os, string arch)
+    internal static IntelliJBundle Bundle(string platform)
     {
-        var hash = (os, arch) switch
+        var hash = platform switch
         {
-            ("macos", "aarch64") => "443157ce085dae947637594ab883692fa7e952ae0c7d0baa6eb917fc91cabdd1",
-            ("macos", "x86_64") => "e5fff8dfa0af523db053bb9cad46529f862116616e1e0d7b2cbaed032eddef15",
-            ("linux", "aarch64") => "7b50afa2d6f08cbd9dc39ccd9bf89c03bb37ff256e25243fc229cf8ec10354ea",
-            ("linux", "x86_64") => "7529cc733d4a020e1c1369183b2f60e135c85b8f074bbf27d1476a5a7b3839c3",
-            ("windows", "aarch64") => "dd160805fbec807c4c9c414f04b67457ec441fd3e3d70bd1a85c321d4b8efbb2",
-            ("windows", "x86_64") => "270d02e08268129022ea5a379ce747f04d91a679213614c597361a7a6d0df41d",
-            _ => throw new PlatformNotSupportedException($"No IntelliJ distribution for {os}/{arch}.")
+            "macos-aarch64" => "443157ce085dae947637594ab883692fa7e952ae0c7d0baa6eb917fc91cabdd1",
+            "macos-x86_64" => "e5fff8dfa0af523db053bb9cad46529f862116616e1e0d7b2cbaed032eddef15",
+            "linux-aarch64" => "7b50afa2d6f08cbd9dc39ccd9bf89c03bb37ff256e25243fc229cf8ec10354ea",
+            "linux-x86_64" => "7529cc733d4a020e1c1369183b2f60e135c85b8f074bbf27d1476a5a7b3839c3",
+            "windows-aarch64" => "dd160805fbec807c4c9c414f04b67457ec441fd3e3d70bd1a85c321d4b8efbb2",
+            "windows-x86_64" => "270d02e08268129022ea5a379ce747f04d91a679213614c597361a7a6d0df41d",
+            _ => throw new PlatformNotSupportedException($"No IntelliJ distribution for {platform}.")
         };
-        var extension = os == "macos" ? ".sit" : os == "windows" ? ".win.zip" : ".tar.gz";
-        return new(Version, os + "-" + arch, new($"https://download.jetbrains.com/language-server/intellij-server/{Version}/intellij-server-{Version}{(arch == "aarch64" ? "-aarch64" : "")}{extension}"), hash);
+        var extension = platform.StartsWith("macos", StringComparison.Ordinal) ? ".sit" : platform.StartsWith("windows", StringComparison.Ordinal) ? ".win.zip" : ".tar.gz";
+        return new(Version, platform, new($"https://download.jetbrains.com/language-server/intellij-server/{Version}/intellij-server-{Version}{(platform.EndsWith("aarch64", StringComparison.Ordinal) ? "-aarch64" : "")}{extension}"), hash);
     }
 
-    internal static IntelliJBundle CurrentBundle() => Bundle(
-        OperatingSystem.IsMacOS() ? "macos" : OperatingSystem.IsWindows() ? "windows" : OperatingSystem.IsLinux() ? "linux" : "unsupported",
-        System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture switch
-        {
-            System.Runtime.InteropServices.Architecture.Arm64 => "aarch64",
-            System.Runtime.InteropServices.Architecture.X64 => "x86_64",
-            _ => "unsupported"
-        });
+    /// <summary>The managed installation directory: <c>servers/intellij/&lt;build&gt;-&lt;platform&gt;</c> beside the host's root for this server.</summary>
+    internal static string Managed(ILanguageServerInstallation installation) =>
+        Path.Combine(Path.GetDirectoryName(installation.Root)!, Version + "-" + installation.Platform);
 
-    internal static string Installation(string storage, string configured)
+    internal static string Installation(ILanguageServerInstallation installation) =>
+        installation.InstallationPath.Length > 0 ? installation.InstallationPath : Managed(installation);
+
+    /// <summary>The installation to review without downloading; a refused managed build fails fast.</summary>
+    internal static string Existing(ILanguageServerInstallation installation)
     {
-        if (configured.Length > 0) return configured;
-        var bundle = CurrentBundle();
-        return Path.Combine(storage, "servers", "intellij", bundle.Version + "-" + bundle.Platform);
+        var root = Installation(installation);
+        if (File.Exists(root + ".expired")) throw new LanguageServerExpiredException(Expired);
+        return root;
     }
 
-    internal static async Task<string> PrepareAsync(string storage, string configured, HttpClient http, CancellationToken token)
+    internal static async Task<string> PrepareAsync(ILanguageServerInstallation installation, CancellationToken token)
     {
-        if (configured.Length > 0) return configured;
-        var destination = Installation(storage, "");
-        if (File.Exists(destination + ".expired")) throw new IntelliJExpiredException();
-        return await InstallAsync(storage, CurrentBundle(), http, token);
+        if (installation.InstallationPath.Length > 0) return installation.InstallationPath;
+        var destination = Managed(installation);
+        if (File.Exists(destination + ".expired")) throw new LanguageServerExpiredException(Expired);
+        return await InstallAsync(destination, Bundle(installation.Platform), installation.Http, token);
     }
 
     internal static string EulaHash(ReadOnlySpan<byte> bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
 
-    internal static async Task<ProcessStartInfo> AcknowledgedLaunchAsync(string storage, string installation, string systemPath, CancellationToken token)
+    internal static LanguageServerLaunch Launch(ILanguageServerInstallation installation)
     {
-        if (File.Exists(installation + ".expired")) throw new IntelliJExpiredException();
-        var agreement = await IntelliJTerms.ReviewAsync(storage, installation, new(installation), token);
-        if (!agreement.Accepted) throw new IntelliJAcceptanceException();
-        return BuildLaunch(installation, systemPath, agreement.EulaSha256);
+        var root = Installation(installation);
+        if (File.Exists(root + ".expired")) throw new LanguageServerExpiredException(Expired);
+        var accepted = installation.AcceptedTerms ?? throw new IOException("IntelliJ terms were not accepted for this artifact.");
+        var actual = EulaHash(File.ReadAllBytes(Path.Combine(root, "EULA.txt")));
+        if (actual != accepted.TextSha256) throw new IOException("IntelliJ terms changed or were not accepted for this artifact.");
+        Directory.CreateDirectory(installation.SessionDirectory);
+        return new(Path.Combine(root, "bin", OperatingSystem.IsWindows() ? "intellij-server.exe" : "intellij-server"),
+            ["--stdio", "--system-path", installation.SessionDirectory, "--eula", actual[..16]])
+        {
+            Environment = new Dictionary<string, string?> { ["IJ_LAUNCHER_DEBUG"] = null, ["INTELLIJ_DATA_SHARING"] = null, ["INTELLIJ_REGION"] = null }
+        };
     }
 
-    private static ProcessStartInfo BuildLaunch(string installation, string systemPath, string acceptedEulaSha256)
+    internal static void RecordExpiry(ILanguageServerInstallation installation)
     {
-        var actual = EulaHash(File.ReadAllBytes(Path.Combine(installation, "EULA.txt")));
-        if (actual != acceptedEulaSha256) throw new IOException("IntelliJ terms changed or were not accepted for this artifact.");
-        var start = new ProcessStartInfo(Path.Combine(installation, "bin", OperatingSystem.IsWindows() ? "intellij-server.exe" : "intellij-server"));
-        foreach (var argument in new[] { "--stdio", "--system-path", systemPath, "--eula", actual[..16] }) start.ArgumentList.Add(argument);
-        foreach (var name in new[] { "IJ_LAUNCHER_DEBUG", "INTELLIJ_DATA_SHARING", "INTELLIJ_REGION" }) start.Environment.Remove(name);
-        return start;
+        if (installation.InstallationPath.Length > 0) return; // Never delete a user-managed installation.
+        var root = Managed(installation);
+        Directory.CreateDirectory(Path.GetDirectoryName(root)!);
+        File.WriteAllText(root + ".expired", Expired);
+        if (Directory.Exists(root)) Directory.Delete(root, true);
     }
 
-    internal static void RecordExpiry(string storage, string configured)
-    {
-        if (configured.Length > 0) return; // Never delete a user-managed installation.
-        var installation = Installation(storage, "");
-        Directory.CreateDirectory(Path.GetDirectoryName(installation)!);
-        File.WriteAllText(installation + ".expired", Expired);
-        if (Directory.Exists(installation)) Directory.Delete(installation, true);
-    }
-
-    internal static string SystemPath(string storage, string workspace, string processInstance) =>
-        Path.Combine(storage, "workspaces", LanguageServers.Key(workspace), "intellij", LanguageServers.Key(processInstance));
-
-    internal static async Task<string> InstallAsync(string storage, IntelliJBundle bundle, HttpClient http, CancellationToken token)
+    internal static async Task<string> InstallAsync(string destination, IntelliJBundle bundle, HttpClient http, CancellationToken token)
     {
         if (bundle.Url.Scheme != "https" || bundle.Url.Host != "download.jetbrains.com") throw new IOException("IntelliJ downloads must originate at JetBrains.");
         if (new[] { bundle.Version, bundle.Platform }.Any(value => value.Length == 0 || value.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('.' or '-' or '_'))))
             throw new IOException("Invalid IntelliJ artifact identity.");
-        var parent = Path.Combine(storage, "servers", "intellij");
-        Directory.CreateDirectory(parent);
-        var destination = Path.Combine(parent, bundle.Version + "-" + bundle.Platform);
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         FileStream lease;
         while (true)
         {
@@ -156,6 +147,12 @@ internal static class IntelliJDistribution
         return EulaHash(File.ReadAllBytes(Path.Combine(root, "EULA.txt")));
     }
 
+    internal static bool Contains(string directory, string file)
+    {
+        var relative = Path.GetRelativePath(directory, file);
+        return !Path.IsPathFullyQualified(relative) && relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+    }
+
     private static async Task ExtractAsync(string archive, string root, bool tar, CancellationToken token)
     {
         var links = new List<(string Path, string Target)>();
@@ -167,7 +164,7 @@ internal static class IntelliJDistribution
             var parts = name.Split('/');
             if (!parts[0].StartsWith("intellij-server-", StringComparison.Ordinal) || parts.Any(part => part is ".." or ".")) throw new IOException("Invalid IntelliJ archive root/path.");
             var path = Path.GetFullPath(Path.Combine(root, string.Join('/', parts.Skip(1))));
-            if (!LanguageProjectModel.Contains(root, path)) throw new IOException("IntelliJ archive escapes installation.");
+            if (!Contains(root, path)) throw new IOException("IntelliJ archive escapes installation.");
             return path;
         }
         async Task Write(string path, Stream input, long size, int mode)
@@ -216,9 +213,9 @@ internal static class IntelliJDistribution
         foreach (var (path, target) in links)
         {
             token.ThrowIfCancellationRequested();
-            if (Path.IsPathFullyQualified(target) || target.Contains('\\') || target.Contains(':') || !LanguageProjectModel.Contains(root, Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, target))))
+            if (Path.IsPathFullyQualified(target) || target.Contains('\\') || target.Contains(':') || !Contains(root, Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, target))))
                 throw new IOException("IntelliJ symbolic link escapes installation.");
-            if (links.Any(link => link.Path != path && LanguageProjectModel.Contains(link.Path, path))) throw new IOException("Nested IntelliJ symbolic link.");
+            if (links.Any(link => link.Path != path && Contains(link.Path, path))) throw new IOException("Nested IntelliJ symbolic link.");
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.CreateSymbolicLink(path, target);
         }
@@ -236,6 +233,3 @@ internal static class IntelliJDistribution
         }
     }
 }
-internal sealed class IntelliJAcceptanceException() : IOException(IntelliJDistribution.AcceptanceRequired);
-
-internal sealed class IntelliJExpiredException() : IOException(IntelliJDistribution.Expired);

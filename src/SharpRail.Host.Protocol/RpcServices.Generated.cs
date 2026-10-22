@@ -17,7 +17,7 @@ public static class RpcServices
     {
         public ValueTask<GitHubAuthenticationReply> GetGitHubAuthenticationAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, GitHubAuthenticationReply>("IProjectRpc/GetGitHubAuthenticationAsync", request, context);
         public ValueTask<LanguageReply> LanguageAsync(LanguageRequestDto request, CallContext context = default) => client.Unary<LanguageRequestDto, LanguageReply>("IProjectRpc/LanguageAsync", request, context);
-        public ValueTask<IntelliJTermsReply> IntelliJTermsAsync(IntelliJTermsRequestDto request, CallContext context = default) => client.Unary<IntelliJTermsRequestDto, IntelliJTermsReply>("IProjectRpc/IntelliJTermsAsync", request, context);
+        public ValueTask<LanguageTermsReply> LanguageTermsAsync(LanguageTermsRequestDto request, CallContext context = default) => client.Unary<LanguageTermsRequestDto, LanguageTermsReply>("IProjectRpc/LanguageTermsAsync", request, context);
         public ValueTask<FileTransferReply> ImportFilesAsync(FileTransferUpload request, CallContext context = default) => client.Unary<FileTransferUpload, FileTransferReply>("IProjectRpc/ImportFilesAsync", request, context);
         public ValueTask<DocumentReply> SavePromptImageAsync(PromptImageRequest request, CallContext context = default) => client.Unary<PromptImageRequest, DocumentReply>("IProjectRpc/SavePromptImageAsync", request, context);
         public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => client.Unary<SaveFileRequest, SaveFileReply>("IProjectRpc/SaveFileAsync", request, context);

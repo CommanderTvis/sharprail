@@ -29,7 +29,7 @@ public sealed partial class WorkbenchWindow
     {
         var projects = file.IsDirectory ? ProjectsAt(file.Path) : [];
         var text = string.Join("\n\n", projects.Select(project =>
-            $"{project.Kind}\n{(project.Manifest.Length > 0 ? "Build file: " + project.Manifest : "Folder: " + (project.Root.Length > 0 ? project.Root : "workspace"))}\nLanguage service: {project.Server switch { "intellij" => "IntelliJ Java/Kotlin", "java" => "Eclipse JDT", _ => project.Server }}"));
+            $"{project.Kind}\n{(project.Manifest.Length > 0 ? "Build file: " + project.Manifest : "Folder: " + (project.Root.Length > 0 ? project.Root : "workspace"))}\nLanguage service: {LanguageServerNameConverter.Display(project.Server)}"));
         return text.Length > 0 ? (file.GitIgnored ? "Ignored by git\n" : "") + text : file.GitIgnored ? "Ignored by git" : null;
     }
 

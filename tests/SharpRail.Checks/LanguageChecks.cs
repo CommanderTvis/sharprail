@@ -537,7 +537,7 @@ internal static class LanguageChecks
         var go = LanguageProjectModel.Discover(Path.Combine(root, "go"), "go", default);
         Require(go.WorkspaceFolders.SequenceEqual([Path.Combine(root, "go", "module")]), "gopls did not receive a nested independent module as a workspace folder.");
         var rust = LanguageProjectModel.Discover(Path.Combine(root, "rust"), "rust", default);
-        var options = new JsonObject(); rust.ConfigureInitialization(options);
+        var options = WorkspaceLanguageConfiguration.Initialization(new(), rust.Workspace, "rust", rust.Manifests);
         Require(options["linkedProjects"]![0]!.ToString() == Path.Combine(root, "rust", "module", "Cargo.toml"), "Nested Cargo projects were not linked for rust-analyzer.");
         Require(WorkspaceLanguageConfiguration.Settings(new(), root, "scala")["metals"]!["autoImportBuilds"]!.ToString() == "all", "Metals build imports remained silently disabled.");
         Console.WriteLine("PASS project-resolution policies for all catalog servers, ignored dependencies, nested module roots and native Go/Rust/Metals setup");
@@ -933,11 +933,11 @@ internal static class LanguageChecks
         foreach (var theme in SharpRail.UI.Rendering.Themes.All)
             foreach (var other in new[] { "variable", "property", "function" })
                 Require(theme.Syntax["type"] != theme.Syntax[other], $"Theme '{theme.Id}' paints types and {other} identically.");
-        using (var png = Avalonia.Platform.AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/LanguageIcons/csharp-provider.png")))
-        using (var bitmap = SkiaSharp.SKBitmap.Decode(png))
+        using (var bitmap = SkiaSharp.SKBitmap.Decode(LanguageServers.Catalog.Single(server => server.Id == "csharp").Spec.Icon!.Data))
             Require(bitmap.GetPixel(0, 0).Alpha == 0 && bitmap.GetPixel(bitmap.Width - 1, bitmap.Height - 1).Alpha == 0,
                 "Roslyn provider artwork must have a transparent background.");
         var original = Ui.Theme;
+        SharpRail.UI.Panels.LanguageServerNameConverter.Remember(LanguageServers.Catalog.Select(server => new LanguageServerState(server.Id, "", "available", "", server.Version) { Presentation = LanguageService.Present(server) }));
         var icons = LanguageServers.Catalog.Select(server => SharpRail.UI.Panels.LanguageServerIconConverter.Create(server.Id)).ToArray();
         var panel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, Margin = new Thickness(8) };
         foreach (var icon in icons) panel.Children.Add(icon);
@@ -985,7 +985,7 @@ internal static class LanguageChecks
         try
         {
             E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.ListBox>("LspServer").ItemCount == LanguageServers.Catalog.Count);
-            Require(Find<ComboBox>("JvmProvider") is not null, "Settings omitted workspace provider selection.");
+            Require(Find<ComboBox>("ProviderChoice") is not null, "Settings omitted workspace provider selection.");
             Require(Find<TextBlock>("LspLifetimeNote").Text == SharpRail.UI.Panels.LanguageNotes.Lifetime && Find<TextBlock>("LspLifetimeNote").Text!.Contains("lifetime of their workspace", StringComparison.Ordinal),
                 "Settings did not tell the user that servers run for their workspace's lifetime and that agents start them.");
             Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Name == "ShowAirContext"),
@@ -1336,29 +1336,29 @@ internal static class LanguageChecks
             intellijRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerSettingsAction").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             var intellijWindow = window.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageSettingsWindow>().Single();
             T IJ<T>(string name) where T : Control => intellijWindow.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
-            Require(IJ<StackPanel>("IntelliJOptions").IsVisible && IJ<Button>("RestartConfiguration").IsEnabled && IJ<CheckBox>("AutoStart").IsEnabled,
+            Require(IJ<StackPanel>("ProviderOptions").IsVisible && IJ<Button>("RestartConfiguration").IsEnabled && IJ<CheckBox>("AutoStart").IsEnabled,
                 "IntelliJ configuration hid its availability or enabled execution.");
-            Require(!pane.GetLogicalDescendants().OfType<ComboBox>().Any(control => control.Name == "JvmProvider"), "Provider routing must live in Settings, not Code Intelligence.");
+            Require(!pane.GetLogicalDescendants().OfType<ComboBox>().Any(control => control.Name == "ProviderChoice"), "Provider routing must live in Settings, not Code Intelligence.");
             var providerView = new SharpRail.UI.Panels.LanguageProviderView(new LocalProjectAdapter(new ProjectServices(root, state)), root);
             var providerWindow = new Window { Content = providerView };
             providerWindow.Show(window);
             T Provider<T>(string name) where T : Control => providerView.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
-            E2E.E2eWorkspace.Until(() => Provider<ComboBox>("JvmProvider").SelectedIndex >= 0);
-            Provider<ComboBox>("JvmProvider").SelectedIndex = 1;
-            Provider<Button>("ApplyJvmProvider").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2E.E2eWorkspace.Until(() => state.Current.Settings.JavaKotlinProvider == "intellij" && Provider<ComboBox>("JvmProvider").IsEnabled);
-            IJ<ComboBox>("IntelliJBuildTool").SelectedItem = "gradle";
-            IJ<TextBox>("IntelliJProjectJdk").Text = "/host/project-jdk";
+            E2E.E2eWorkspace.Until(() => Provider<ComboBox>("ProviderChoice").SelectedIndex >= 0);
+            Provider<ComboBox>("ProviderChoice").SelectedIndex = 1;
+            Provider<Button>("ApplyProviderChoice").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => state.Current.Settings.JavaKotlinProvider == "intellij" && Provider<ComboBox>("ProviderChoice").IsEnabled);
+            IJ<ComboBox>("BuildTool").SelectedItem = "gradle";
+            IJ<TextBox>("ProjectJdk").Text = "/host/project-jdk";
             IJ<Button>("SaveConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => state.Current.WorkspaceLanguages[root].Contains("gradle", StringComparison.Ordinal) && IJ<Button>("SaveConfiguration").IsEnabled);
             Require(IJ<Button>("RestartConfiguration").IsEnabled && state.Current.Settings.JavaKotlinProvider == "intellij", "Saving lost the review/start action or provider selection.");
             var termsInstallation = IntelliJTermsChecks.Installation(Path.Combine(root, ".tools", "ui-terms"));
-            IJ<TextBox>("IntelliJInstallation").Text = termsInstallation;
+            IJ<TextBox>("InstallationPath").Text = termsInstallation;
             IJ<Button>("SaveConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => IJ<Button>("SaveConfiguration").IsEnabled && state.Current.WorkspaceLanguages[root].Contains("ui-terms", StringComparison.Ordinal));
             IJ<Button>("RestartConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2E.E2eWorkspace.Until(() => intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Any());
-            var startupTerms = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Single();
+            E2E.E2eWorkspace.Until(() => intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any());
+            var startupTerms = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => startupTerms.FindControl<CheckBox>("TermsConsent")!.IsEnabled);
             Require(Equals(startupTerms.FindControl<Button>("AcceptTerms")!.Content, "Accept and start") && !startupTerms.FindControl<Button>("AcceptTerms")!.IsEnabled,
                 "Starting IntelliJ did not visibly require unchecked EULA acknowledgement.");
@@ -1366,17 +1366,17 @@ internal static class LanguageChecks
             startupTerms.Close();
             void ReviewTerms()
             {
-                IJ<Button>("ReviewIntelliJTerms").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-                E2E.E2eWorkspace.Until(() => intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Any());
+                IJ<Button>("ReviewTerms").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                E2E.E2eWorkspace.Until(() => intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any());
             }
             ReviewTerms();
-            var termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Single();
+            var termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.FindControl<TextBox>("TermsText")!.Text?.Contains("Synthetic", StringComparison.Ordinal) == true);
             Require(termsWindow.FindControl<CheckBox>("TermsConsent")!.IsChecked == false && !termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled, "EULA consent defaulted to accepted or enabled acceptance before acknowledgement.");
             termsWindow.Close();
             Require(!Directory.Exists(Path.Combine(statePath, "language", "agreements", "intellij")), "Cancelling terms review recorded acceptance.");
             ReviewTerms();
-            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Single();
+            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.FindControl<CheckBox>("TermsConsent")!.IsEnabled);
             termsWindow.FindControl<CheckBox>("TermsConsent")!.IsChecked = true;
             Require(termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled, "Explicit EULA acknowledgement did not enable Accept.");
@@ -1393,9 +1393,9 @@ internal static class LanguageChecks
             catch (Exception error) { throw new InvalidOperationException("Startup message: " + IJ<TextBlock>("ConfigurationMessage").Text, error); }
             Require(state.Current.Settings.JavaKotlinProvider == "intellij", "Setup did not persist IntelliJ provider selection.");
             ReviewTerms();
-            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Single();
+            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.Result?.Accepted == true);
-            Require(Equals(termsWindow.FindControl<Button>("AcceptTerms")!.Content, "Start IntelliJ") && termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled,
+            Require(Equals(termsWindow.FindControl<Button>("AcceptTerms")!.Content, "Start " + SharpRail.UI.Panels.LanguageServerNameConverter.Display("intellij")) && termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled,
                 "Already accepted terms left no direct start action.");
             Require(termsWindow.FindControl<CheckBox>("TermsConsent")!.IsChecked == true && !termsWindow.FindControl<CheckBox>("TermsConsent")!.IsEnabled,
                 "Saved acceptance must be visibly checked and read-only, not look like an unchecked blocked consent control.");
@@ -1404,12 +1404,12 @@ internal static class LanguageChecks
             Require(!termsWindow.StartRequested, "Closing accepted terms requested startup.");
             IJ<Button>("RestartConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => IJ<Button>("RestartConfiguration").IsEnabled);
-            Require(!intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Any(), "Acknowledged IntelliJ settings restart reopened consent.");
+            Require(!intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any(), "Acknowledged IntelliJ settings restart reopened consent.");
             ServerAction(intellijIndex, "Start / Retry");
             E2E.E2eWorkspace.Until(() => Find<Button>("Refresh").IsEnabled);
-            Require(!window.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Any(), "Acknowledged IntelliJ row startup reopened consent.");
+            Require(!window.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any(), "Acknowledged IntelliJ row startup reopened consent.");
             ReviewTerms();
-            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Single();
+            termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.Result?.Accepted == true);
             termsWindow.FindControl<Button>("AcceptTerms")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Require(termsWindow.StartRequested && !termsWindow.IsVisible, "Existing acceptance did not support explicit start.");
@@ -1417,8 +1417,8 @@ internal static class LanguageChecks
             catch (Exception error) { throw new InvalidOperationException("Repeated startup message: " + IJ<TextBlock>("ConfigurationMessage").Text, error); }
             Console.WriteLine("PASS IntelliJ setup saves selection, accepts and starts, reports launch failure, reuses acceptance and never starts on close");
             CaptureLsp(intellijWindow, "intellij-configuration");
-            Provider<ComboBox>("JvmProvider").SelectedIndex = 0;
-            Provider<Button>("ApplyJvmProvider").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Provider<ComboBox>("ProviderChoice").SelectedIndex = 0;
+            Provider<Button>("ApplyProviderChoice").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => IJ<Button>("SaveConfiguration").IsEnabled && state.Current.Settings.JavaKotlinProvider == "standard");
             providerWindow.Close();
             intellijWindow.Close();

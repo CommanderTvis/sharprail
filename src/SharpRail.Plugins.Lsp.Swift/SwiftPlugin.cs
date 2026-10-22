@@ -20,6 +20,8 @@ public sealed class SwiftPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "swift",
+        Name = "Swift (SourceKit-LS)",
+        Icon = LanguageServerIcon.Embedded(typeof(SwiftPlugin).Assembly, "Icon.svg"),
         Version = "toolchain",
         Executable = "sourcekit-lsp",
         Extensions = [".swift"],
@@ -40,6 +42,7 @@ public sealed class SwiftPlugin() : LanguageServerPlugin(Id)
         FindFallbackAsync = async (installation, token) => OperatingSystem.IsMacOS()
             ? (await installation.RunAsync("/usr/bin/xcrun", ["--find", "sourcekit-lsp"], Path.GetTempPath(), null, token)).Trim()
             : null,
+        IsProjectDirectory = directory => Path.GetExtension(directory) is ".xcodeproj" or ".xcworkspace",
         ProjectKind = _ => "Swift project"
     };
 }

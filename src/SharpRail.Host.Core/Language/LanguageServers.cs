@@ -68,25 +68,23 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
 
     internal static string LanguageId(string path, LanguageServer server) => server.Spec.LanguageId(path) ?? server.Id;
 
-    internal async Task<ProcessStartInfo> ProvisionAsync(LanguageServer server, string workspace, CancellationToken token, WorkspaceLanguageOptions? options = null)
+    /// <param name="sessionDirectory">The launch's own directory, or <see langword="null"/> for a fresh one.</param>
+    internal async Task<ProcessStartInfo> ProvisionAsync(LanguageServer server, string workspace, CancellationToken token, WorkspaceLanguageOptions? options = null, string? sessionDirectory = null)
     {
-        if (server.Id == "intellij")
+        var installation = new Installation(this, server, workspace, options?.InstallationPath ?? "", sessionDirectory);
+        if (server.Spec.TermsAsync is { } terms)
         {
-            var installation = IntelliJDistribution.Installation(directory, options?.InstallationPath ?? "");
-            var cache = IntelliJDistribution.SystemPath(directory, workspace, Guid.NewGuid().ToString("N"));
-            var launch = await IntelliJDistribution.AcknowledgedLaunchAsync(directory, installation, cache, token);
+            // A server with terms is the provider's to install and launch, and starts only once these exact terms were accepted.
+            LanguageServerTerms reviewed;
+            try { reviewed = await terms(installation, false, token); }
+            catch (IOException error) when (error is not LanguageServerExpiredException) { throw new LanguageTermsRequiredException(server); }
+            if (!LanguageTerms.Accepted(directory, server.Id, reviewed)) throw new LanguageTermsRequiredException(server);
+            installation.AcceptedTerms = reviewed;
             // Overrides cannot replace the acknowledged launcher or its mandatory protocol arguments.
-            if (Options(server.Id) is { Command.Length: > 0 }) throw new IOException("Use IntelliJ workspace installation directory instead of an executable override.");
-            foreach (var argument in options?.Arguments ?? [])
-            {
-                if (argument is "--stdio" or "--eula" or "--system-path" || argument.StartsWith("--eula=", StringComparison.Ordinal) || argument.StartsWith("--system-path=", StringComparison.Ordinal))
-                    throw new IOException("IntelliJ protocol and acceptance arguments are managed by SharpRail.");
-                launch.ArgumentList.Add(WorkspaceLanguageConfiguration.Expand(argument, workspace));
-            }
-            Directory.CreateDirectory(cache);
-            return launch;
+            if (!server.Spec.AllowsOverride && Options(server.Id) is { Command.Length: > 0 })
+                throw new IOException($"Use the {server.Id} workspace installation directory instead of an executable override.");
         }
-        var start = await ProvisionCoreAsync(server, new(this, server, workspace), token);
+        var start = await ProvisionCoreAsync(server, installation, token);
         ConfigureCaches(start, server, workspace);
         return start;
     }
@@ -108,7 +106,8 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         Directory.CreateDirectory(installation.SharedCache);
         var custom = CustomOptions(server.Id);
         if (custom?.Disabled == true) throw new IOException($"{server.Id} is disabled. Enable it in Settings > Code Intelligence, then Retry.");
-        if (!string.IsNullOrWhiteSpace(custom?.Command))
+        if (spec.TermsAsync is not null && spec.LaunchAsync is { } own) return Start(await own(installation, token));
+        if (!string.IsNullOrWhiteSpace(custom?.Command) && spec.AllowsOverride)
         {
             var explicitPath = ExplicitExecutable(custom.Command, workspace);
             return Start(explicitPath, custom.Arguments ?? server.Arguments);
@@ -170,12 +169,23 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         return Start(installation.FindInstalled(InstalledName(server)), server.Arguments);
     }
 
+    /// <summary>A fresh per-launch directory inside the server's workspace state.</summary>
+    internal string SessionDirectory(LanguageServer server, string workspace) =>
+        Path.Combine(directory, "workspaces", Key(workspace), server.Id, Key(Guid.NewGuid().ToString("N")));
+
+    /// <summary>The installation a provider's terms review reads for a workspace.</summary>
+    internal ILanguageServerInstallation InstallationFor(LanguageServer server, string workspace, string installationPath) => new Installation(this, server, workspace, installationPath);
+
     /// <summary>The executable's file name inside a managed installation.</summary>
     internal static string InstalledName(LanguageServer server) => server.Spec.InstalledExecutable.Length > 0 ? server.Spec.InstalledExecutable : server.Executable;
 
     /// <summary>What the host lends a provider for one server and workspace (H21).</summary>
-    private sealed class Installation(LanguageServers owner, LanguageServer server, string workspace) : ILanguageServerInstallation
+    private sealed class Installation(LanguageServers owner, LanguageServer server, string workspace, string installationPath = "", string? sessionDirectory = null) : ILanguageServerInstallation
     {
+        public string InstallationPath => installationPath;
+        public string SessionDirectory => sessionDirectory ??= owner.SessionDirectory(server, workspace);
+        public LanguageServerTerms? AcceptedTerms { get; set; }
+        public HttpClient Http => LanguageServers.Http;
         public string Root { get; } = Path.Combine(owner.DirectoryPath, "servers", server.Id, ManagedArtifacts.Directory(server, ManagedArtifacts.Platform()));
         public string Workspace => workspace;
         public string WorkspaceState { get; } = Path.Combine(owner.DirectoryPath, "workspaces", Key(workspace), server.Id);

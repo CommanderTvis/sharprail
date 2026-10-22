@@ -1548,52 +1548,50 @@ static SharpRail.Host.Abstractions.LanguageServerOptions.operator ==(SharpRail.H
 static SharpRail.Host.Abstractions.LanguageServerState.operator !=(SharpRail.Host.Abstractions.LanguageServerState? left, SharpRail.Host.Abstractions.LanguageServerState? right) -> bool
 static SharpRail.Host.Abstractions.LanguageServerState.operator ==(SharpRail.Host.Abstractions.LanguageServerState? left, SharpRail.Host.Abstractions.LanguageServerState? right) -> bool
 
-SharpRail.Host.Abstractions.IntelliJTermsRequest
-SharpRail.Host.Abstractions.IntelliJTermsRequest.<Clone>$() -> SharpRail.Host.Abstractions.IntelliJTermsRequest!
-SharpRail.Host.Abstractions.IntelliJTermsRequest.Equals(SharpRail.Host.Abstractions.IntelliJTermsRequest? other) -> bool
-SharpRail.Host.Abstractions.IntelliJTermsRequest.Deconstruct(out string! Workspace, out bool Accept, out string! ArtifactId, out string! EulaSha256) -> void
-SharpRail.Host.Abstractions.IntelliJTermsRequest.IntelliJTermsRequest(string! Workspace, bool Accept = false, string! ArtifactId = "", string! EulaSha256 = "") -> void
-SharpRail.Host.Abstractions.IntelliJTermsRequest.Workspace.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsRequest.Workspace.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsRequest.Accept.get -> bool
-SharpRail.Host.Abstractions.IntelliJTermsRequest.Accept.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsRequest.ArtifactId.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsRequest.ArtifactId.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsRequest.EulaSha256.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsRequest.EulaSha256.init -> void
-override SharpRail.Host.Abstractions.IntelliJTermsRequest.Equals(object? obj) -> bool
-override SharpRail.Host.Abstractions.IntelliJTermsRequest.GetHashCode() -> int
-override SharpRail.Host.Abstractions.IntelliJTermsRequest.ToString() -> string!
-static SharpRail.Host.Abstractions.IntelliJTermsRequest.operator ==(SharpRail.Host.Abstractions.IntelliJTermsRequest? left, SharpRail.Host.Abstractions.IntelliJTermsRequest? right) -> bool
-static SharpRail.Host.Abstractions.IntelliJTermsRequest.operator !=(SharpRail.Host.Abstractions.IntelliJTermsRequest? left, SharpRail.Host.Abstractions.IntelliJTermsRequest? right) -> bool
+SharpRail.Host.Abstractions.LanguageTermsRequest
+SharpRail.Host.Abstractions.LanguageTermsRequest.<Clone>$() -> SharpRail.Host.Abstractions.LanguageTermsRequest!
+SharpRail.Host.Abstractions.LanguageTermsRequest.Equals(SharpRail.Host.Abstractions.LanguageTermsRequest? other) -> bool
+SharpRail.Host.Abstractions.LanguageTermsRequest.Workspace.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsRequest.Workspace.init -> void
+SharpRail.Host.Abstractions.LanguageTermsRequest.Accept.get -> bool
+SharpRail.Host.Abstractions.LanguageTermsRequest.Accept.init -> void
+SharpRail.Host.Abstractions.LanguageTermsRequest.ArtifactId.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsRequest.ArtifactId.init -> void
+SharpRail.Host.Abstractions.LanguageTermsRequest.EulaSha256.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsRequest.EulaSha256.init -> void
+override SharpRail.Host.Abstractions.LanguageTermsRequest.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageTermsRequest.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageTermsRequest.ToString() -> string!
+static SharpRail.Host.Abstractions.LanguageTermsRequest.operator ==(SharpRail.Host.Abstractions.LanguageTermsRequest? left, SharpRail.Host.Abstractions.LanguageTermsRequest? right) -> bool
+static SharpRail.Host.Abstractions.LanguageTermsRequest.operator !=(SharpRail.Host.Abstractions.LanguageTermsRequest? left, SharpRail.Host.Abstractions.LanguageTermsRequest? right) -> bool
 
-SharpRail.Host.Abstractions.IntelliJTermsResult
-SharpRail.Host.Abstractions.IntelliJTermsResult.<Clone>$() -> SharpRail.Host.Abstractions.IntelliJTermsResult!
-SharpRail.Host.Abstractions.IntelliJTermsResult.Equals(SharpRail.Host.Abstractions.IntelliJTermsResult? other) -> bool
-SharpRail.Host.Abstractions.IntelliJTermsResult.Deconstruct(out string! State, out string! Detail, out string! Version, out string! ArtifactId, out string! EulaSha256, out string! Text, out bool Accepted, out string! AcceptedAtUtc) -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.IntelliJTermsResult(string! State, string! Detail = "", string! Version = "", string! ArtifactId = "", string! EulaSha256 = "", string! Text = "", bool Accepted = false, string! AcceptedAtUtc = "") -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.State.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsResult.State.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.Detail.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsResult.Detail.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.Version.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsResult.Version.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.ArtifactId.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsResult.ArtifactId.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.EulaSha256.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsResult.EulaSha256.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.Text.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsResult.Text.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.Accepted.get -> bool
-SharpRail.Host.Abstractions.IntelliJTermsResult.Accepted.init -> void
-SharpRail.Host.Abstractions.IntelliJTermsResult.AcceptedAtUtc.get -> string!
-SharpRail.Host.Abstractions.IntelliJTermsResult.AcceptedAtUtc.init -> void
-override SharpRail.Host.Abstractions.IntelliJTermsResult.Equals(object? obj) -> bool
-override SharpRail.Host.Abstractions.IntelliJTermsResult.GetHashCode() -> int
-override SharpRail.Host.Abstractions.IntelliJTermsResult.ToString() -> string!
-static SharpRail.Host.Abstractions.IntelliJTermsResult.operator ==(SharpRail.Host.Abstractions.IntelliJTermsResult? left, SharpRail.Host.Abstractions.IntelliJTermsResult? right) -> bool
-static SharpRail.Host.Abstractions.IntelliJTermsResult.operator !=(SharpRail.Host.Abstractions.IntelliJTermsResult? left, SharpRail.Host.Abstractions.IntelliJTermsResult? right) -> bool
-SharpRail.Host.Abstractions.IProjectServices.IntelliJTermsAsync(SharpRail.Host.Abstractions.IntelliJTermsRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.IntelliJTermsResult!>
+SharpRail.Host.Abstractions.LanguageTermsResult
+SharpRail.Host.Abstractions.LanguageTermsResult.<Clone>$() -> SharpRail.Host.Abstractions.LanguageTermsResult!
+SharpRail.Host.Abstractions.LanguageTermsResult.Equals(SharpRail.Host.Abstractions.LanguageTermsResult? other) -> bool
+SharpRail.Host.Abstractions.LanguageTermsResult.Deconstruct(out string! State, out string! Detail, out string! Version, out string! ArtifactId, out string! EulaSha256, out string! Text, out bool Accepted, out string! AcceptedAtUtc) -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.LanguageTermsResult(string! State, string! Detail = "", string! Version = "", string! ArtifactId = "", string! EulaSha256 = "", string! Text = "", bool Accepted = false, string! AcceptedAtUtc = "") -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.State.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsResult.State.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.Detail.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsResult.Detail.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.Version.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsResult.Version.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.ArtifactId.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsResult.ArtifactId.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.EulaSha256.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsResult.EulaSha256.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.Text.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsResult.Text.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.Accepted.get -> bool
+SharpRail.Host.Abstractions.LanguageTermsResult.Accepted.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.AcceptedAtUtc.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsResult.AcceptedAtUtc.init -> void
+override SharpRail.Host.Abstractions.LanguageTermsResult.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageTermsResult.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageTermsResult.ToString() -> string!
+static SharpRail.Host.Abstractions.LanguageTermsResult.operator ==(SharpRail.Host.Abstractions.LanguageTermsResult? left, SharpRail.Host.Abstractions.LanguageTermsResult? right) -> bool
+static SharpRail.Host.Abstractions.LanguageTermsResult.operator !=(SharpRail.Host.Abstractions.LanguageTermsResult? left, SharpRail.Host.Abstractions.LanguageTermsResult? right) -> bool
+SharpRail.Host.Abstractions.IProjectServices.LanguageTermsAsync(SharpRail.Host.Abstractions.LanguageTermsRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.LanguageTermsResult!>
 
 SharpRail.Host.Abstractions.LanguageProject.Root.get -> string!
 SharpRail.Host.Abstractions.LanguageProject.Root.init -> void
@@ -1814,3 +1812,35 @@ SharpRail.Host.Abstractions.HostState.UnreadWorkspaces.get -> System.Collections
 SharpRail.Host.Abstractions.HostState.UnreadWorkspaces.init -> void
 static SharpRail.Host.Abstractions.HostStateChange.MarkUnread(string! path, string! reason) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.MarkRead(string! path, bool seen = false) -> SharpRail.Host.Abstractions.HostStateChange!
+SharpRail.Host.Abstractions.LanguageServerPresentation
+SharpRail.Host.Abstractions.LanguageServerPresentation.<Clone>$() -> SharpRail.Host.Abstractions.LanguageServerPresentation!
+SharpRail.Host.Abstractions.LanguageServerPresentation.Equals(SharpRail.Host.Abstractions.LanguageServerPresentation? other) -> bool
+SharpRail.Host.Abstractions.LanguageServerPresentation.HasTerms.get -> bool
+SharpRail.Host.Abstractions.LanguageServerPresentation.HasTerms.init -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.Icon.get -> byte[]?
+SharpRail.Host.Abstractions.LanguageServerPresentation.Icon.init -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.IconFormat.get -> string!
+SharpRail.Host.Abstractions.LanguageServerPresentation.IconFormat.init -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.Name.get -> string!
+SharpRail.Host.Abstractions.LanguageServerPresentation.Name.init -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.OptionGroups.get -> System.Collections.Generic.IReadOnlyList<string!>?
+SharpRail.Host.Abstractions.LanguageServerPresentation.OptionGroups.init -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.Replaces.get -> System.Collections.Generic.IReadOnlyList<string!>?
+SharpRail.Host.Abstractions.LanguageServerPresentation.Replaces.init -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.TermsNote.get -> string!
+SharpRail.Host.Abstractions.LanguageServerPresentation.TermsNote.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.Presentation.get -> SharpRail.Host.Abstractions.LanguageServerPresentation?
+SharpRail.Host.Abstractions.LanguageServerState.Presentation.init -> void
+SharpRail.Host.Abstractions.LanguageTermsRequest.Deconstruct(out string! Workspace, out string! Server, out bool Accept, out string! ArtifactId, out string! EulaSha256) -> void
+SharpRail.Host.Abstractions.LanguageTermsRequest.LanguageTermsRequest(string! Workspace, string! Server, bool Accept = false, string! ArtifactId = "", string! EulaSha256 = "") -> void
+SharpRail.Host.Abstractions.LanguageTermsRequest.Server.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsRequest.Server.init -> void
+override SharpRail.Host.Abstractions.LanguageServerPresentation.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageServerPresentation.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageServerPresentation.ToString() -> string!
+static SharpRail.Host.Abstractions.LanguageServerPresentation.operator !=(SharpRail.Host.Abstractions.LanguageServerPresentation? left, SharpRail.Host.Abstractions.LanguageServerPresentation? right) -> bool
+static SharpRail.Host.Abstractions.LanguageServerPresentation.operator ==(SharpRail.Host.Abstractions.LanguageServerPresentation? left, SharpRail.Host.Abstractions.LanguageServerPresentation? right) -> bool
+SharpRail.Host.Abstractions.LanguageServerPresentation.Deconstruct(out string! Name, out byte[]? Icon, out string! IconFormat, out System.Collections.Generic.IReadOnlyList<string!>? OptionGroups, out System.Collections.Generic.IReadOnlyList<string!>? Replaces, out bool HasTerms, out string! TermsNote, out string! ReplacesLabel) -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.LanguageServerPresentation(string! Name, byte[]? Icon = null, string! IconFormat = "", System.Collections.Generic.IReadOnlyList<string!>? OptionGroups = null, System.Collections.Generic.IReadOnlyList<string!>? Replaces = null, bool HasTerms = false, string! TermsNote = "", string! ReplacesLabel = "") -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.ReplacesLabel.get -> string!
+SharpRail.Host.Abstractions.LanguageServerPresentation.ReplacesLabel.init -> void

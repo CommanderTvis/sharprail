@@ -18,6 +18,8 @@ internal sealed partial class LanguageConfigurationView : UserControl
     private bool loading;
     private bool dirty;
     private bool saving;
+    /// <summary>What the server's plugin declares (H21): terms to accept, servers it replaces, and compiler-flag options.</summary>
+    private readonly bool hasTerms, replaces, compilerFlags;
     private readonly Dictionary<string, string?> loadedText = [];
     private bool? loadedAutoStart;
     private string? loadedBuildTool;
@@ -30,19 +32,31 @@ internal sealed partial class LanguageConfigurationView : UserControl
         Classes.Set("host-path-entry-only", !CanBrowseHostPaths(host));
         Find<TextBlock>("ConfigurationScope").Text = "This workspace only";
         ToolTip.SetTip(Find<TextBlock>("ConfigurationScope"), workspace);
-        Find<StackPanel>("IntelliJOptions").IsVisible = server.Id == "intellij";
-        Find<Button>("ReviewIntelliJTerms").Click += async (_, _) =>
+        var presentation = server.Presentation ?? LanguageServerNameConverter.Presentation(server.Id);
+        var groups = presentation?.OptionGroups ?? [];
+        hasTerms = presentation?.HasTerms == true;
+        replaces = presentation?.Replaces is { Count: > 0 };
+        Find<StackPanel>("ProviderOptions").IsVisible = hasTerms || groups.Contains("installation") || groups.Contains("jvmProject");
+        Find<TextBlock>("ProviderHeading").Text = LanguageServerNameConverter.Display(server.Id);
+        Find<TextBlock>("ProviderNote").Text = presentation?.TermsNote ?? "";
+        Find<TextBlock>("ProviderNote").IsVisible = presentation?.TermsNote is { Length: > 0 };
+        Find<Button>("ReviewTerms").IsVisible = Find<TextBlock>("TermsStatus").IsVisible = hasTerms;
+        Find<Button>("ReviewTerms").Content = "Review agreement and start " + LanguageServerNameConverter.Display(server.Id) + "…";
+        Find<StackPanel>("InstallationOptions").IsVisible = groups.Contains("installation");
+        Find<StackPanel>("JvmProjectOptions").IsVisible = groups.Contains("jvmProject");
+        compilerFlags = groups.Contains("compilerFlags");
+        Find<Button>("ReviewTerms").Click += async (_, _) =>
         {
             await SaveAsync(true, forceReview: true);
         };
         Find<CheckBox>("AutoStart").IsEnabled = true;
         Find<CheckBox>("ProjectAutoStart").Click += async (_, _) => await SaveProjectAutostartAsync();
         Find<Button>("RestartConfiguration").IsEnabled = true;
-        foreach (var name in new[] { "IntelliJInstallation", "IntelliJProjectJdk" })
+        foreach (var name in new[] { "InstallationPath", "ProjectJdk" })
             Find<TextBox>(name).TextChanged += (_, _) => { if (!loading) dirty = true; };
-        Find<ComboBox>("IntelliJBuildTool").ItemsSource = new[] { "Automatic", "maven", "gradle", "bazel", "jps" };
-        Find<ComboBox>("IntelliJBuildTool").SelectionChanged += (_, _) => { if (!loading) dirty = true; };
-        Find<StackPanel>("ClangOptions").IsVisible = server.Id == "clangd";
+        Find<ComboBox>("BuildTool").ItemsSource = new[] { "Automatic", "maven", "gradle", "bazel", "jps" };
+        Find<ComboBox>("BuildTool").SelectionChanged += (_, _) => { if (!loading) dirty = true; };
+        Find<StackPanel>("CompilerOptions").IsVisible = compilerFlags;
         foreach (var name in new[] { "Arguments", "IncludePaths", "CompilerFlags", "CompilationDatabase", "InitializationOptions", "ServerSettings" })
             Find<TextBox>(name).TextChanged += (_, _) => { if (!loading) dirty = true; };
         Find<CheckBox>("AutoStart").IsCheckedChanged += (_, _) => { if (!loading) dirty = true; };
@@ -164,7 +178,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
     {
         if (next == server) { if (!dirty && !saving) ShowState(); return; }
         dirty = invalidFields.Count > 0 || loadedText.Any(item => Find<TextBox>(item.Key).Text != item.Value) ||
-            Find<ComboBox>("IntelliJBuildTool").SelectedItem?.ToString() != loadedBuildTool ||
+            Find<ComboBox>("BuildTool").SelectedItem?.ToString() != loadedBuildTool ||
             Find<CheckBox>("AutoStart").IsChecked != loadedAutoStart ||
             Find<CheckBox>("DefaultArguments").IsChecked != loadedDefaultArguments;
         var changed = server.Configuration != next.Configuration;
@@ -181,10 +195,10 @@ internal sealed partial class LanguageConfigurationView : UserControl
         {
             var options = JsonNode.Parse(server.Configuration.Length == 0 ? "{}" : server.Configuration)!;
             string ReadLines(string name) => string.Join('\n', options[name]?.AsArray().Select(value => value!.GetValue<string>()) ?? []);
-            Find<TextBlock>("IntelliJTermsStatus").Text = "Setup checks the selected installation’s agreement. Existing acceptance is reused; changed terms require acknowledgement.";
-            Find<TextBox>("IntelliJInstallation").Text = options["installationPath"]?.GetValue<string>() ?? "";
-            Find<TextBox>("IntelliJProjectJdk").Text = options["projectJdk"]?.GetValue<string>() ?? "";
-            Find<ComboBox>("IntelliJBuildTool").SelectedItem = options["buildTool"]?.GetValue<string>() is { Length: > 0 } importer ? importer : "Automatic";
+            Find<TextBlock>("TermsStatus").Text = "Setup checks the selected installation’s agreement. Existing acceptance is reused; changed terms require acknowledgement.";
+            Find<TextBox>("InstallationPath").Text = options["installationPath"]?.GetValue<string>() ?? "";
+            Find<TextBox>("ProjectJdk").Text = options["projectJdk"]?.GetValue<string>() ?? "";
+            Find<ComboBox>("BuildTool").SelectedItem = options["buildTool"]?.GetValue<string>() is { Length: > 0 } importer ? importer : "Automatic";
             Find<CheckBox>("AutoStart").IsChecked = options["autoStart"]?.GetValue<bool>() ?? false;
             Find<CheckBox>("DefaultArguments").IsChecked = options["arguments"] is null;
             Find<TextBox>("Arguments").Text = ReadLines("arguments");
@@ -193,9 +207,9 @@ internal sealed partial class LanguageConfigurationView : UserControl
             Find<TextBox>("CompilationDatabase").Text = options["compilationDatabasePath"]?.GetValue<string>() ?? "";
             Find<TextBox>("InitializationOptions").Text = Pretty(options["initializationOptions"]?.ToJsonString() ?? "{}");
             Find<TextBox>("ServerSettings").Text = Pretty(options["settings"]?.ToJsonString() ?? "{}");
-            foreach (var name in new[] { "Arguments", "IncludePaths", "CompilerFlags", "CompilationDatabase", "InitializationOptions", "ServerSettings", "IntelliJInstallation", "IntelliJProjectJdk" })
+            foreach (var name in new[] { "Arguments", "IncludePaths", "CompilerFlags", "CompilationDatabase", "InitializationOptions", "ServerSettings", "InstallationPath", "ProjectJdk" })
                 loadedText[name] = Find<TextBox>(name).Text;
-            loadedBuildTool = Find<ComboBox>("IntelliJBuildTool").SelectedItem?.ToString();
+            loadedBuildTool = Find<ComboBox>("BuildTool").SelectedItem?.ToString();
             loadedAutoStart = Find<CheckBox>("AutoStart").IsChecked;
             loadedDefaultArguments = Find<CheckBox>("DefaultArguments").IsChecked;
             dirty = false;
@@ -209,7 +223,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
     {
         var pending = server.ActiveConfiguration.Length > 0 && server.Configuration != server.ActiveConfiguration;
         Find<Expander>("ConfigurationExpander").Header = pending ? "Workspace settings · restart needed" : "Workspace settings";
-        Find<TextBlock>("ConfigurationMessage").Text = server.State is "error" or "expired" or "disabled" ? server.Detail : pending ? "Saved settings differ from the running server. Restart to apply them." : server.Id == "intellij" ? "Review the agreement and start IntelliJ after choosing it in Settings → Code Intelligence." : "Applies on next start.";
+        Find<TextBlock>("ConfigurationMessage").Text = server.State is "error" or "expired" or "disabled" ? server.Detail : pending ? "Saved settings differ from the running server. Restart to apply them." : replaces ? $"Start {LanguageServerNameConverter.Display(server.Id)} after choosing it in Settings → Code Intelligence." : "Applies on next start.";
         Find<Expander>("ActiveConfigurationExpander").IsVisible = server.ActiveConfiguration.Length > 0;
         Find<TextBlock>("ActiveConfiguration").Text = server.ActiveConfiguration.Length > 0 ? Pretty(server.ActiveConfiguration) : "";
     }
@@ -226,37 +240,37 @@ internal sealed partial class LanguageConfigurationView : UserControl
         }
         saving = true;
         Find<TextBlock>("ConfigurationMessage").Text = restart ? "Starting language server…" : "Saving settings…";
-        Find<Button>("ReviewIntelliJTerms").IsEnabled = false;
+        Find<Button>("ReviewTerms").IsEnabled = false;
         Find<Button>("SaveConfiguration").IsEnabled = Find<Button>("RestartConfiguration").IsEnabled = false;
         try
         {
             var selected = false;
-            if (server.Id == "intellij")
+            if (replaces)
             {
                 var currentOptions = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), current.Token), current.Token);
                 if (lifetime != current) return;
-                selected = currentOptions.Configuration == "intellij";
+                selected = currentOptions.Configuration == server.Id;
             }
-            if (restart && server.Id == "intellij" && !selected)
+            if (restart && replaces && !selected)
             {
-                Find<TextBlock>("ConfigurationMessage").Text = "Select IntelliJ as the Java / Kotlin provider in Settings → Code Intelligence before starting it.";
+                Find<TextBlock>("ConfigurationMessage").Text = $"Select {LanguageServerNameConverter.Display(server.Id)} as the provider in Settings → Code Intelligence before starting it.";
                 return;
             }
             var options = new
             {
-                installationPath = Find<TextBox>("IntelliJInstallation").Text ?? "",
-                projectJdk = Find<TextBox>("IntelliJProjectJdk").Text ?? "",
-                buildTool = Find<ComboBox>("IntelliJBuildTool").SelectedItem?.ToString() is { } selectedImporter && selectedImporter != "Automatic" ? selectedImporter : "",
+                installationPath = Find<TextBox>("InstallationPath").Text ?? "",
+                projectJdk = Find<TextBox>("ProjectJdk").Text ?? "",
+                buildTool = Find<ComboBox>("BuildTool").SelectedItem?.ToString() is { } selectedImporter && selectedImporter != "Automatic" ? selectedImporter : "",
                 autoStart = Find<CheckBox>("AutoStart").IsChecked == true,
                 arguments = Find<CheckBox>("DefaultArguments").IsChecked == true ? null : Lines("Arguments"),
                 initializationOptions = JsonSerializer.Deserialize<JsonElement>(Find<TextBox>("InitializationOptions").Text ?? "{}"),
                 settings = JsonSerializer.Deserialize<JsonElement>(Find<TextBox>("ServerSettings").Text ?? "{}"),
-                includePaths = server.Id == "clangd" ? Lines("IncludePaths") : null,
-                compilerFlags = server.Id == "clangd" ? Lines("CompilerFlags") : null,
+                includePaths = compilerFlags ? Lines("IncludePaths") : null,
+                compilerFlags = compilerFlags ? Lines("CompilerFlags") : null,
                 compilationDatabasePath = Find<TextBox>("CompilationDatabase").Text ?? ""
             };
             var token = current.Token;
-            var reviewBeforeRestart = restart && server.Id == "intellij" && !acceptanceReviewed;
+            var reviewBeforeRestart = restart && hasTerms && !acceptanceReviewed;
             var share = Find<CheckBox>("ShareWithProject").IsChecked == true;
             var serialized = JsonSerializer.Serialize(options, Json);
             if (share)
@@ -278,12 +292,12 @@ internal sealed partial class LanguageConfigurationView : UserControl
             if (restart && !reviewBeforeRestart) Find<TextBlock>("ConfigurationMessage").Text = result.State + ": " + result.Detail;
             if (reviewBeforeRestart && SettingsWindow is { } owner)
             {
-                if (!selected)
+                if (replaces && !selected)
                 {
-                    Find<TextBlock>("ConfigurationMessage").Text = "Select IntelliJ for Java and Kotlin before starting it.";
+                    Find<TextBlock>("ConfigurationMessage").Text = $"Select {LanguageServerNameConverter.Display(server.Id)} as the provider before starting it.";
                     return;
                 }
-                var acknowledgement = await host.IntelliJTermsAsync(new(workspace), token);
+                var acknowledgement = await host.LanguageTermsAsync(new(workspace, server.Id), token);
                 if (lifetime != current || token.IsCancellationRequested) return;
                 if (acknowledgement.Accepted && !forceReview)
                 {
@@ -291,7 +305,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
                     if (lifetime == current) Find<TextBlock>("ConfigurationMessage").Text = started.State + ": " + started.Detail;
                     return;
                 }
-                var terms = new IntelliJTermsWindow(host, workspace, startAfterAcceptance: true);
+                var terms = new LanguageTermsWindow(host, workspace, server.Id, startAfterAcceptance: true);
                 terms.Closed += async (_, _) => { if (terms.StartRequested) await SaveAsync(true, acceptanceReviewed: true); };
                 terms.Show(owner);
             }
@@ -301,7 +315,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         finally
         {
             saving = false;
-            Find<Button>("ReviewIntelliJTerms").IsEnabled = true;
+            Find<Button>("ReviewTerms").IsEnabled = true;
             Find<Button>("SaveConfiguration").IsEnabled = true;
             Find<Button>("RestartConfiguration").IsEnabled = true;
         }

@@ -20,6 +20,8 @@ public sealed class PhpPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "php",
+        Name = "PHP (Intelephense)",
+        Icon = LanguageServerIcon.Embedded(typeof(PhpPlugin).Assembly, "Icon.png"),
         Version = "1.18.5",
         Executable = "intelephense",
         Arguments = ["--stdio"],
@@ -39,6 +41,12 @@ public sealed class PhpPlugin() : LanguageServerPlugin(Id)
             return name == "composer.json";
         },
         ProjectScope = _ => "Intelephense indexes the workspace; external dependencies use environment.includePaths. Feature availability also depends on the server license.",
+        ConfigureInitialization = (start, options) =>
+        {
+            if (start.WorkspaceState.Length == 0) return;
+            options.TryAdd("storagePath", start.WorkspaceState);
+            options.TryAdd("globalStoragePath", start.ServerCache);
+        },
         ProjectKind = _ => "Composer package"
     };
 

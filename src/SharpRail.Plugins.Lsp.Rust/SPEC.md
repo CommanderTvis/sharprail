@@ -17,3 +17,5 @@ the catalog, its sessions stop and its saved settings are kept. Implementation: 
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
 and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
+
+It shows rust-analyzer's `experimental/serverStatus` while the Cargo graph loads and links the discovered Cargo or rust-project manifests unless `linkedProjects` is set.

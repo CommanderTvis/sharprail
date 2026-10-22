@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
@@ -20,6 +22,8 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "csharp",
+        Name = "C# (Roslyn)",
+        Icon = LanguageServerIcon.Embedded(typeof(CSharpPlugin).Assembly, "Icon.png"),
         Version = "5.13.0-1.26507.4",
         Executable = "roslyn-language-server",
         Arguments = ["--stdio", "--autoLoadProjects"],
@@ -48,6 +52,9 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
             launch.Environment["DOTNET_ROOT"] = sdk;
             launch.Environment["PATH"] = sdk + Path.PathSeparator + (launch.Environment.TryGetValue("PATH", out var path) ? path : "");
         },
+        LoadsProjects = options => options["autoLoadProjects"]?.GetValue<int>() != 0,
+        ProjectLoadedNotification = "workspace/projectInitializationComplete",
+        OnMessage = OnMessage,
         ProjectKind = manifest => Path.GetExtension(manifest) == ".csproj" ? "MSBuild project" : "MSBuild solution",
         DefaultInitialization = options => options.TryAdd("autoLoadProjects", 500)
     };
@@ -83,5 +90,16 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
                 installation.Root, new Dictionary<string, string?> { ["NUGET_PACKAGES"] = Path.Combine(feed, "packages") }, token);
         }
         finally { if (Directory.Exists(feed)) Directory.Delete(feed, true); }
+    }
+
+    /// <summary>Roslyn asks for a restore of projects whose assets are missing; each distinct set of workspace projects is restored once.</summary>
+    private static void OnMessage(ILanguageServerSession session, string method, JsonNode? parameters)
+    {
+        if (method != "workspace/_roslyn_projectNeedsRestore") return;
+        var paths = (parameters?["projectFilePaths"] as JsonArray ?? []).Select(value => value!.GetValue<string>())
+            .Where(path => Path.IsPathFullyQualified(path) && session.Contains(path)).Distinct().ToArray();
+        if (paths.Length == 0) return;
+        var key = string.Join("\n", paths.Order(StringComparer.Ordinal));
+        session.Track(key, "project restore", token => session.RequestAsync("workspace/_roslyn_restore", new { projectFilePaths = paths }, token, TimeSpan.FromMinutes(3)));
     }
 }

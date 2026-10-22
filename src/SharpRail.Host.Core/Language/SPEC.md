@@ -22,11 +22,17 @@ Each provider owns its identity, pinned version and pins (archives with SHA-256,
 embedded npm or Go lock files), owned files, aliases, configuration controls, project manifests, project kinds
 and scope text, language ids, initialization and settings defaults, and its install and launch steps. The host
 keeps what is shared: sessions and the protocol, the installation lock and `.ready` marker, verified archive and
-npm installs, overrides and the PATH policy. Still keyed by server id in the host: the IntelliJ distribution,
-terms and launcher; the Java/Kotlin provider switch; clangd fallback flags and compilation database options;
-IntelliJ/Kotlin initialization; and per-server protocol adaptations in the session (C# project loading and
-restore, PHP storage, Rust and Dart status notifications, JDT directories, Go workspace folders, Rust linked
-projects). The UI's display names and icons are also keyed by id, with the id as fallback.
+npm installs, overrides and the PATH policy. No host or UI code names a server: a provider's protocol
+adaptations, typed options, terms, expiry and presentation are all spec hooks.
+
+A server that `Replaces` others (IntelliJ for `java` and `kotlin`) serves their files once chosen, host-wide by
+the provider-choice setting (`standard` or the replacing server's id) or, without one, per workspace by its
+`useForJavaAndKotlin` option; while it is not chosen it does not start, and while it is the replaced servers stay
+stopped and their drafts move to it. A server with `TermsAsync` is installed and launched by its provider: the
+host never searches PATH for it, records acceptance under `agreements/<server>/<artifact>.json`, and starts it only
+with the exact accepted terms; a vendor refusal (`ExpiredExitCode`) invalidates results, runs `OnExpired` and is
+not restarted automatically. Listings carry each server's presentation (name, icon, option groups, replaced
+servers, terms) so the user interface shows what the plugin declares.
 
 The host owns language-server processes and installation storage. Editors and terminal agents
 query the same session for a workspace and server. Every call explicitly identifies its workspace;
@@ -149,11 +155,11 @@ and `ManagedArtifacts.Describe` say exactly which:
 
 | Providers | Acquisition | Pinning |
 | --- | --- | --- |
-| TypeScript, Python, PHP, CSS, Shell | `npm ci --ignore-scripts` from an embedded `package-lock.json` (`Language/Locks/<id>`) | Version and sha512 integrity of the whole dependency graph, registry URLs only |
-| clangd, JDT, Kotlin, PowerShell, rust-analyzer | Release archive from the artifact table in `ManagedArtifacts.cs` (JDT from `jdtls/milestones/<version>`, not the rolling snapshots) | Version and SHA-256 per platform, source of the hash recorded beside it, verified before extraction |
-| IntelliJ | `IntelliJDistribution` | Version and SHA-256 per platform, plus acceptance of its terms |
+| TypeScript, Python, PHP, CSS, Shell | `npm ci --ignore-scripts` from the plugin's embedded `package-lock.json` (`Locks/`) | Version and sha512 integrity of the whole dependency graph, registry URLs only |
+| clangd, JDT, Kotlin, PowerShell, rust-analyzer | Release archive from the plugin's `Artifacts` (JDT from `jdtls/milestones/<version>`, not the rolling snapshots) | Version and SHA-256 per platform, source of the hash recorded beside it, verified before extraction |
+| IntelliJ | The IntelliJ plugin's own distribution code (`TermsAsync` and `LaunchAsync`) | Version and SHA-256 per platform, plus acceptance of its terms recorded by the host |
 | C# | The pointer package and the platform's runtime pack of `roslyn-language-server`, fetched by SharpRail from `api.nuget.org` and installed by `dotnet tool install --source <local feed>` with a private package cache | Version and SHA-512 (NuGet catalog `packageHash`) of every package, verified before dotnet reads it; no Linux musl pack is pinned |
-| Go | `go install golang.org/x/tools/gopls` in a module made from the embedded `Locks/go/go.mod` and `go.sum`, `-mod=readonly`, `GOSUMDB=sum.golang.org`, `GOTOOLCHAIN=local`, and `GONOSUMDB`, `GONOSUMCHECK`, `GOPRIVATE`, `GOINSECURE`, `GONOPROXY`, `GOENV` and `GOWORK` neutralised | Version and `h1:` hashes of the whole module graph; the Go toolchain itself is the host's |
+| Go | `go install golang.org/x/tools/gopls` in a module made from the Go plugin's embedded `go.mod` and `go.sum`, `-mod=readonly`, `GOSUMDB=sum.golang.org`, `GOTOOLCHAIN=local`, and `GONOSUMDB`, `GONOSUMCHECK`, `GOPRIVATE`, `GOINSECURE`, `GONOPROXY`, `GOENV` and `GOWORK` neutralised | Version and `h1:` hashes of the whole module graph; the Go toolchain itself is the host's |
 | Ruby, Scala, R | Package manager (`gem`, Coursier, CRAN) | Managed, partially pinned: exact version only. Ruby: RubyGems resolves ruby-lsp's dependencies at install and checks no stored hash (a frozen `Gemfile.lock` with checksums needs Bundler 2.6+ and Ruby 3.x to generate and verify). Scala: Coursier checks Maven Central's own published checksums but no jar hash is stored here (a lock would need `cs fetch` output pinned per platform). R: `remotes` is installed unpinned to reach `install_version`, and CRAN dependencies float. Not verified on the 2026-10-19 pass because the host had no Ruby 3 or R |
 | Swift, Dart | Host SDK | Not managed |
 
@@ -413,8 +419,8 @@ are fixture-verified only; no catalog-wide semantic-index completeness claim is 
 
 ## Optional IntelliJ Java/Kotlin provider
 
-The host-global Java/Kotlin provider choice selects either `intellij` serving both languages or
-standard `java` (JDT) and `kotlin` providers for every project and client. Switching suspends competing
+The host-global provider choice (`standard` or the id of a server that `Replaces` others) selects either
+`intellij` serving both languages or standard `java` (JDT) and `kotlin` providers for every project and client. Switching suspends competing
 sessions across all active workspaces while retaining drafts and saved provider settings; it does
 not start replacement servers. Explicit global selection overrides legacy workspace flags. On first
 migration, unanimous explicit legacy choices are preserved; missing or conflicting choices select

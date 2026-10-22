@@ -108,7 +108,7 @@ internal sealed partial class LanguageConfigurationView
         if (sender is not Button button) return;
         var field = button.DataContext as LanguageOptionField;
         var target = button.Tag is string name ? Find<TextBox>(name) : null;
-        var directory = field?.PathKind == "folder" || target?.Name is "IncludePaths" or "CompilationDatabase" or "IntelliJInstallation" or "IntelliJProjectJdk";
+        var directory = field?.PathKind == "folder" || target?.Name is "IncludePaths" or "CompilationDatabase" or "InstallationPath" or "ProjectJdk";
         if (button.Tag is "folder") directory = true;
         if (host is not LocalProjectAdapter || OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser()) return;
         if (TopLevel.GetTopLevel(this) is not { } top) return;

@@ -20,6 +20,8 @@ public sealed class PythonPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "python",
+        Name = "Python (Pyright)",
+        Icon = LanguageServerIcon.Embedded(typeof(PythonPlugin).Assembly, "Icon.png"),
         Version = "1.1.414",
         Executable = "pyright-langserver",
         Arguments = ["--stdio"],

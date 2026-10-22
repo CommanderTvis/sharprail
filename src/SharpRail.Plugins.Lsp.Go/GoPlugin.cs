@@ -22,6 +22,8 @@ public sealed class GoPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "go",
+        Name = "Go (gopls)",
+        Icon = LanguageServerIcon.Embedded(typeof(GoPlugin).Assembly, "Icon.svg"),
         Version = "v0.23.0",
         Executable = "gopls",
         Extensions = [".go"],
@@ -42,6 +44,9 @@ public sealed class GoPlugin() : LanguageServerPlugin(Id)
         ProjectScope = _ => "gopls resolves go.work/go.mod and package build context; independent modules are supplied as separate workspace folders.",
         InstallAsync = InstallAsync,
         ConfigureLaunch = (installation, launch) => launch.Environment["GOPLSCACHE"] = installation.ServerCache,
+        WorkspaceFolders = (workspace, manifests) => !manifests.Any(path => path is "go.work" or "go.mod") && manifests.Any(path => Path.GetFileName(path) == "go.mod")
+            ? [.. manifests.Where(path => Path.GetFileName(path) == "go.mod").Select(path => Path.GetDirectoryName(Path.Combine(workspace, path))!).Distinct()]
+            : [workspace],
         ProjectKind = manifest => Path.GetFileName(manifest) == "go.work" ? "Go workspace" : "Go module",
         DefaultInitialization = options => options.TryAdd("semanticTokens", true),
         DefaultSettings = settings =>

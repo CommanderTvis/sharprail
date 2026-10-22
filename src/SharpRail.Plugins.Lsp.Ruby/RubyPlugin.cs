@@ -20,6 +20,8 @@ public sealed class RubyPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "ruby",
+        Name = "Ruby (Ruby LS)",
+        Icon = LanguageServerIcon.Embedded(typeof(RubyPlugin).Assembly, "Icon.png"),
         Version = "0.26.11",
         Executable = "ruby-lsp",
         Extensions = [".rb", ".rake", ".gemspec"],
@@ -45,6 +47,7 @@ public sealed class RubyPlugin() : LanguageServerPlugin(Id)
         {
             Environment = new Dictionary<string, string?> { ["GEM_HOME"] = installation.Root, ["GEM_PATH"] = installation.Root }
         }),
+        InitializeTimeout = TimeSpan.FromMinutes(15),
         ProjectKind = _ => "Ruby project"
     };
 

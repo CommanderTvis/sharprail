@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <EmbeddedResource Include="Locks/**" LogicalName="Locks/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Icon.png" LogicalName="Icon.png" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
 </Project>

@@ -11,6 +11,8 @@ internal sealed partial class LanguageProviderView : UserControl
     private readonly string workspace;
     private CancellationTokenSource? lifetime;
     private string savedProvider = "standard";
+    /// <summary>The choices: <c>standard</c>, then each server that replaces others (H21).</summary>
+    private string[] choices = ["standard"];
 
     internal LanguageProviderView(IProjectServices host, string workspace)
     {
@@ -23,13 +25,24 @@ internal sealed partial class LanguageProviderView : UserControl
             var current = lifetime;
             try
             {
+                var catalog = await host.LanguageAsync(new(workspace, Operation: "catalog"), current.Token);
                 var result = await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), current.Token);
                 if (lifetime != current) return;
+                LanguageServerNameConverter.Remember(catalog.Servers);
+                var replacing = catalog.Servers.Where(server => server.Presentation?.Replaces is { Count: > 0 }).ToArray();
+                choices = ["standard", .. replacing.Select(server => server.Id)];
+                var replaced = replacing.SelectMany(server => server.Presentation!.Replaces!).Distinct().ToArray();
+                var label = replacing.Select(server => server.Presentation!.ReplacesLabel).FirstOrDefault(text => text.Length > 0) ?? string.Join(" / ", replaced.Select(LanguageServerNameConverter.Display));
+                this.FindControl<TextBlock>("ProviderChoiceHeading")!.Text = label + " provider · all projects on this host";
+                providerChoiceLoading = true;
+                this.FindControl<ComboBox>("ProviderChoice")!.ItemsSource = new[] { string.Join(" + ", replaced.Select(LanguageServerNameConverter.Display)) }
+                    .Concat(replacing.Select(server => LanguageServerNameConverter.Display(server.Id))).ToArray();
+                providerChoiceLoading = false;
                 savedProvider = result.Configuration;
-                RefreshProviderChoice(true);
+                RefreshProviderChoice(replacing.Length > 0);
             }
             catch (OperationCanceledException) when (current.IsCancellationRequested) { }
-            catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>("JvmProviderMessage")!.Text = error.Message; }
+            catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>("ProviderChoiceMessage")!.Text = error.Message; }
         };
         DetachedFromVisualTree += (_, _) => { lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
     }
@@ -37,7 +50,7 @@ internal sealed partial class LanguageProviderView : UserControl
     internal void UpdateProvider(string provider)
     {
         savedProvider = provider;
-        RefreshProviderChoice(true);
+        RefreshProviderChoice(choices.Length > 1);
     }
 
     private bool providerChoiceLoading;
@@ -47,39 +60,40 @@ internal sealed partial class LanguageProviderView : UserControl
 
     private void RefreshProviderChoice(bool visible)
     {
-        this.FindControl<StackPanel>("JvmProviderSection")!.IsVisible = visible;
-        savedProviderChoice = savedProvider == "intellij" ? 1 : 0;
+        this.FindControl<StackPanel>("ProviderChoiceSection")!.IsVisible = visible;
+        savedProviderChoice = Math.Max(0, Array.IndexOf(choices, savedProvider));
         if (!providerChoiceDirty && !providerChoiceSaving)
         {
             providerChoiceLoading = true;
-            this.FindControl<ComboBox>("JvmProvider")!.SelectedIndex = savedProviderChoice;
+            this.FindControl<ComboBox>("ProviderChoice")!.SelectedIndex = savedProviderChoice;
             providerChoiceLoading = false;
         }
-        this.FindControl<Button>("ApplyJvmProvider")!.IsEnabled = !providerChoiceSaving && this.FindControl<ComboBox>("JvmProvider")!.SelectedIndex != savedProviderChoice;
+        this.FindControl<Button>("ApplyProviderChoice")!.IsEnabled = !providerChoiceSaving && this.FindControl<ComboBox>("ProviderChoice")!.SelectedIndex != savedProviderChoice;
     }
 
     private void ProviderChoiceChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (providerChoiceLoading) return;
-        providerChoiceDirty = this.FindControl<ComboBox>("JvmProvider")!.SelectedIndex != savedProviderChoice;
-        this.FindControl<Button>("ApplyJvmProvider")!.IsEnabled = providerChoiceDirty && !providerChoiceSaving;
+        providerChoiceDirty = this.FindControl<ComboBox>("ProviderChoice")!.SelectedIndex != savedProviderChoice;
+        this.FindControl<Button>("ApplyProviderChoice")!.IsEnabled = providerChoiceDirty && !providerChoiceSaving;
     }
 
-    private async void ApplyJvmProviderClicked(object? sender, RoutedEventArgs e)
+    private async void ApplyProviderChoiceClicked(object? sender, RoutedEventArgs e)
     {
         if (providerChoiceSaving || lifetime is not { } current) return;
-        var choice = this.FindControl<ComboBox>("JvmProvider")!.SelectedIndex;
-        if (choice is not (0 or 1)) return;
+        var choice = this.FindControl<ComboBox>("ProviderChoice")!.SelectedIndex;
+        if (choice < 0 || choice >= choices.Length) return;
+        var chosen = choices[choice];
         providerChoiceSaving = true;
-        this.FindControl<ComboBox>("JvmProvider")!.IsEnabled = false;
-        this.FindControl<Button>("ApplyJvmProvider")!.IsEnabled = false;
-        var message = this.FindControl<TextBlock>("JvmProviderMessage")!;
+        this.FindControl<ComboBox>("ProviderChoice")!.IsEnabled = false;
+        this.FindControl<Button>("ApplyProviderChoice")!.IsEnabled = false;
+        var message = this.FindControl<TextBlock>("ProviderChoiceMessage")!;
         message.Text = "Saving provider choice…";
         try
         {
             var result = await Task.Run(async () =>
             {
-                return await host.LanguageAsync(new(workspace, Operation: "setJavaKotlinProvider", Configuration: choice == 1 ? "intellij" : "standard"), current.Token);
+                return await host.LanguageAsync(new(workspace, Operation: "setJavaKotlinProvider", Configuration: chosen), current.Token);
             }, current.Token);
             if (lifetime != current) return;
             if (result.State is "error" or "disabled" or "unavailable") { message.Text = result.Detail; return; }
@@ -87,7 +101,7 @@ internal sealed partial class LanguageProviderView : UserControl
             if (lifetime != current) return;
             providerChoiceDirty = false;
             savedProvider = next.Configuration;
-            RefreshProviderChoice(true);
+            RefreshProviderChoice(choices.Length > 1);
             message.Text = "Provider choice saved for every project on this host. Start a server when ready.";
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
@@ -97,8 +111,8 @@ internal sealed partial class LanguageProviderView : UserControl
             providerChoiceSaving = false;
             if (lifetime == current)
             {
-                this.FindControl<ComboBox>("JvmProvider")!.IsEnabled = true;
-                RefreshProviderChoice(true);
+                this.FindControl<ComboBox>("ProviderChoice")!.IsEnabled = true;
+                RefreshProviderChoice(choices.Length > 1);
             }
         }
     }

@@ -20,7 +20,7 @@ public sealed partial class HostStateStore
                 if (languages is not null) return languages;
                 languages = new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language"),
                     () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage, LanguageServerSpecs)
-                { DeathObserved = PublishLanguageDeath, GlobalIntelliJProvider = () => Current.Settings.JavaKotlinProvider == "intellij" };
+                { DeathObserved = PublishLanguageDeath, GlobalProvider = () => Current.Settings.JavaKotlinProvider };
                 WorkspaceRemoved += workspace => _ = languages.CloseWorkspaceAsync(workspace);
                 return languages;
             }
@@ -53,8 +53,8 @@ public sealed partial class HostStateStore
 
 public sealed partial class ProjectServices
 {
-    public ValueTask<IntelliJTermsResult> IntelliJTermsAsync(IntelliJTermsRequest request, CancellationToken cancellationToken = default)
-        => state is null ? ValueTask.FromResult(new IntelliJTermsResult("unavailable", "This host has no language service storage."))
+    public ValueTask<LanguageTermsResult> LanguageTermsAsync(LanguageTermsRequest request, CancellationToken cancellationToken = default)
+        => state is null ? ValueTask.FromResult(new LanguageTermsResult("unavailable", "This host has no language service storage."))
             : state.Languages.TermsAsync(request, cancellationToken);
 
     public ValueTask<LanguageResult> LanguageAsync(LanguageRequest request, CancellationToken cancellationToken = default)

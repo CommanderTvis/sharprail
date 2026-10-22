@@ -10,6 +10,7 @@ public sealed partial class LanguageService
     {
         var detected = await Task.Run(() => ProjectRoots(request with { Offset = 0, Limit = int.MaxValue }, token), token);
         var marks = new List<LanguageProject>(detected.Projects);
+        var competing = Competing(Replacing(request.Workspace)).ToHashSet(StringComparer.Ordinal);
         foreach (var entry in entries.Where(pair => pair.Key.StartsWith(request.Workspace + "\0", StringComparison.Ordinal)).Select(pair => pair.Value))
         {
             if (!entry.Session.IsValueCreated || !entry.Session.Value.IsCompletedSuccessfully) continue;
@@ -17,7 +18,7 @@ public sealed partial class LanguageService
             if (session.Exited) continue;
             var reported = await session.DirectoryMarksAsync(request.Query == "refresh", token);
             marks.AddRange(reported.Where(mark => (request.Server.Length == 0 || mark.Server == request.Server) &&
-                (!UsesIntelliJ(request.Workspace) || mark.Server is not ("java" or "kotlin"))));
+                !competing.Contains(mark.Server)));
         }
         var all = marks.Distinct().OrderBy(mark => mark.Root, StringComparer.Ordinal).ThenBy(mark => mark.Server, StringComparer.Ordinal)
             .ThenBy(mark => mark.Manifest, StringComparer.Ordinal).ToArray();
@@ -38,9 +39,9 @@ public sealed partial class LanguageService
             cached = (DateTime.UtcNow, LanguageProjectModel.DiscoverMany(request.Workspace, servers.Servers, token));
             projectRoots[request.Workspace] = cached;
         }
-        var intellij = UsesIntelliJ(request.Workspace);
+        var competing = Competing(Replacing(request.Workspace)).ToHashSet(StringComparer.Ordinal);
         var projects = cached.Models.Where(pair => request.Server.Length == 0 || pair.Key == request.Server)
-            .Where(pair => intellij ? pair.Key is not ("java" or "kotlin") : pair.Key != "intellij")
+            .Where(pair => !competing.Contains(pair.Key))
             .SelectMany(pair => pair.Value.Manifests.Select(manifest => (Server: pair.Key, Manifest: manifest)))
             .Select(item => (item.Server, item.Manifest, Kind: Kind(item.Server, item.Manifest)))
             .Select(item => item.Kind is not { } kind ? null : new LanguageProject(Path.GetDirectoryName(item.Manifest)?.Replace('\\', '/') ?? "", item.Manifest, item.Server,

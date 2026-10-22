@@ -19,3 +19,5 @@ The spec declares the pinned version, owned files, pinning and its pins, configu
 and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
 
 There is no managed installation: the server runs only from the Dart SDK on PATH, when the user allows PATH for it.
+
+It shows `$/analyzerStatus` while analysis contexts resolve.

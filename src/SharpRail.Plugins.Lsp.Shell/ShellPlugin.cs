@@ -20,6 +20,8 @@ public sealed class ShellPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "shell",
+        Name = "Shell (Bash LS)",
+        Icon = LanguageServerIcon.Embedded(typeof(ShellPlugin).Assembly, "Icon.png"),
         Version = "5.8.1",
         Executable = "bash-language-server",
         Arguments = ["start"],

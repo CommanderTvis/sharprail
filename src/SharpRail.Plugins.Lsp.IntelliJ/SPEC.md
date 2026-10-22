@@ -18,4 +18,11 @@ the catalog, its sessions stop and its saved settings are kept. Implementation: 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
 and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
 
-The spec carries identity, files, provenance and project policy only. The distribution, its terms review and the acknowledged launcher stay in the host (`IntelliJDistribution`, `IntelliJTerms`), which recognises this server by its id; the Java / Kotlin provider setting chooses between this server and the `java` and `kotlin` plugins.
+The plugin owns the pinned distribution (SHA-256 per platform, JetBrains hosts only, bounded and traversal-safe
+extraction), its terms review (the EULA bytes and a fingerprint of the whole installation) and the acknowledged
+launcher (`--stdio --system-path <session directory> --eula <hash prefix>`, launcher debugging variables removed).
+It replaces `java` and `kotlin` when chosen, accepts an installation directory, project JDK and build importer,
+refuses overrides and its protocol arguments in configured ones, reads `jar:`/`jrt:` sources through the public
+`decompile` command, and treats exit 7 as JetBrains refusing the build: a managed installation is then removed and
+marked so it is not downloaded again; a user-selected one is never deleted. The Kotlin plugin keeps its own copy
+of the shared JVM initialization.

@@ -20,6 +20,8 @@ public sealed class DartPlugin() : LanguageServerPlugin(Id)
     public override LanguageServerSpec Spec { get; } = new()
     {
         Id = "dart",
+        Name = "Dart (Analysis Server)",
+        Icon = LanguageServerIcon.Embedded(typeof(DartPlugin).Assembly, "Icon.svg"),
         Version = "toolchain",
         Executable = "dart",
         Arguments = ["language-server", "--protocol=lsp"],
@@ -37,6 +39,10 @@ public sealed class DartPlugin() : LanguageServerPlugin(Id)
             return name == "pubspec.yaml";
         },
         ProjectScope = _ => "Dart analysis contexts follow pubspec/package_config and SDK resolution; dependencies require successful package resolution.",
+        OnMessage = (session, method, parameters) =>
+        {
+            if (method == "$/analyzerStatus") session.SetProgress("dart-analysis", parameters?["isAnalyzing"]?.GetValue<bool>() == true ? "Resolving Dart analysis contexts…" : null);
+        },
         ProjectKind = _ => "Dart package"
     };
 }

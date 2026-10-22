@@ -6,21 +6,26 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.UI.Panels;
 
-internal sealed partial class IntelliJTermsWindow : Window
+internal sealed partial class LanguageTermsWindow : Window
 {
     private readonly IProjectServices host;
     private readonly string workspace;
+    private readonly string server;
+    private readonly string name;
     private readonly CancellationTokenSource lifetime = new();
     private bool busy;
     private readonly bool startAfterAcceptance;
     internal bool StartRequested { get; private set; }
-    internal IntelliJTermsResult? Result { get; private set; }
+    internal LanguageTermsResult? Result { get; private set; }
 
-    internal IntelliJTermsWindow(IProjectServices host, string workspace, bool startAfterAcceptance = false)
+    internal LanguageTermsWindow(IProjectServices host, string workspace, string server, bool startAfterAcceptance = false)
     {
-        this.host = host; this.workspace = workspace; this.startAfterAcceptance = startAfterAcceptance;
+        this.host = host; this.workspace = workspace; this.server = server; this.startAfterAcceptance = startAfterAcceptance;
+        name = LanguageServerNameConverter.Display(server);
         AvaloniaXamlLoader.Load(this);
-        Title = "IntelliJ · License agreement";
+        Title = name + " · License agreement";
+        Find<TextBlock>("TermsHeading").Text = Title;
+        if (LanguageServerNameConverter.Presentation(server) is { TermsNote.Length: > 0 } presentation) Find<TextBlock>("TermsNote").Text = presentation.TermsNote;
         if (startAfterAcceptance) Find<Button>("AcceptTerms").Content = "Accept and start";
         Find<TextBlock>("TermsHeading").PointerPressed += (_, e) => { if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e); };
         Find<CheckBox>("TermsConsent").IsCheckedChanged += (_, _) => UpdateActions();
@@ -43,7 +48,7 @@ internal sealed partial class IntelliJTermsWindow : Window
         var reviewable = Result is { State: "requiresAcceptance", Text.Length: > 0, Accepted: false };
         Find<CheckBox>("TermsConsent").IsEnabled = !busy && reviewable;
         Find<Button>("AcceptTerms").IsEnabled = !busy && (reviewable && Find<CheckBox>("TermsConsent").IsChecked == true || startAfterAcceptance && Result?.Accepted == true);
-        if (startAfterAcceptance) Find<Button>("AcceptTerms").Content = Result?.Accepted == true ? "Start IntelliJ" : "Accept and start";
+        if (startAfterAcceptance) Find<Button>("AcceptTerms").Content = Result?.Accepted == true ? "Start " + name : "Accept and start";
         Find<Button>("ReloadTerms").IsEnabled = !busy;
     }
 
@@ -55,16 +60,16 @@ internal sealed partial class IntelliJTermsWindow : Window
         var token = lifetime.Token;
         try
         {
-            var request = accept ? new IntelliJTermsRequest(workspace, true, Result!.ArtifactId, Result.EulaSha256) : new(workspace);
-            var result = await host.IntelliJTermsAsync(request, token);
+            var request = accept ? new LanguageTermsRequest(workspace, server, true, Result!.ArtifactId, Result.EulaSha256) : new(workspace, server);
+            var result = await host.LanguageTermsAsync(request, token);
             if (token.IsCancellationRequested) return;
             Result = result;
             Find<CheckBox>("TermsConsent").IsChecked = result.Accepted;
             Find<TextBox>("TermsText").Text = result.Text;
             Find<TextBlock>("TermsIdentity").Text = result.Version.Length == 0 ? result.Detail :
-                $"{result.Detail}\nBuild {result.Version}\nArtifact: {result.ArtifactId}\nEULA SHA-256: {result.EulaSha256}";
+                $"{result.Detail}\nBuild {result.Version}\nArtifact: {result.ArtifactId}\nTerms SHA-256: {result.EulaSha256}";
             ToolTip.SetTip(Find<TextBlock>("TermsIdentity"), result.Detail);
-            Find<TextBlock>("TermsStatus").Text = result.Accepted ? "Accepted " + result.AcceptedAtUtc + ". Already accepted — choose Start IntelliJ to continue." :
+            Find<TextBlock>("TermsStatus").Text = result.Accepted ? "Accepted " + result.AcceptedAtUtc + $". Already accepted — choose Start {name} to continue." :
                 result.State == "changed" ? result.Detail : result.State == "requiresAcceptance" ? "No acceptance is recorded for this artifact and agreement." : result.Detail;
             if (result.State == "changed") Result = result with { State = "requiresAcceptance" };
             if (accept && result.Accepted && startAfterAcceptance) { StartRequested = true; Close(); }

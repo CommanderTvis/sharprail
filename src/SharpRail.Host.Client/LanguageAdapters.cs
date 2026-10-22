@@ -5,8 +5,8 @@ namespace SharpRail.Host.Client;
 
 public sealed partial class LocalProjectAdapter
 {
-    public ValueTask<IntelliJTermsResult> IntelliJTermsAsync(IntelliJTermsRequest request, CancellationToken cancellationToken = default)
-        => OffDispatcher.Run(() => host.IntelliJTermsAsync(request, cancellationToken));
+    public ValueTask<LanguageTermsResult> LanguageTermsAsync(LanguageTermsRequest request, CancellationToken cancellationToken = default)
+        => OffDispatcher.Run(() => host.LanguageTermsAsync(request, cancellationToken));
 
     public ValueTask<LanguageResult> LanguageAsync(LanguageRequest request, CancellationToken cancellationToken = default)
         => OffDispatcher.Run(() => host.LanguageAsync(request, cancellationToken));
@@ -14,14 +14,14 @@ public sealed partial class LocalProjectAdapter
 
 public sealed partial class RemoteProjectAdapter
 {
-    public async ValueTask<IntelliJTermsResult> IntelliJTermsAsync(IntelliJTermsRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<LanguageTermsResult> LanguageTermsAsync(LanguageTermsRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            var reply = await service.IntelliJTermsAsync(new() { Workspace = request.Workspace, Accept = request.Accept, ArtifactId = request.ArtifactId, EulaSha256 = request.EulaSha256 }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(15)));
+            var reply = await service.LanguageTermsAsync(new() { Workspace = request.Workspace, Server = request.Server, Accept = request.Accept, ArtifactId = request.ArtifactId, EulaSha256 = request.EulaSha256 }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(15)));
             return new(reply.State, reply.Detail, reply.Version, reply.ArtifactId, reply.EulaSha256, reply.Text, reply.Accepted, reply.AcceptedAtUtc);
         }
-        catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return new("unavailable", "This host does not support IntelliJ terms review."); }
+        catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return new("unavailable", "This host does not support terms review."); }
         catch (RpcException) when (cancellationToken.IsCancellationRequested) { throw new OperationCanceledException(cancellationToken); }
     }
 
@@ -61,7 +61,7 @@ public sealed partial class RemoteProjectAdapter
             Total = reply.Total,
             Truncated = reply.Truncated,
             Files = reply.Files.Select(item => new LanguageFileResult(item.Path, item.State, item.Freshness, item.Detail)).ToArray(),
-            Servers = reply.Servers.Select(item => new LanguageServerState(item.Id, item.Path, item.State, item.Detail, item.Version, item.Configuration, item.ActiveConfiguration, item.Configured) { Exit = item.Exit is { } exit ? new LanguageExit(exit.Time, exit.Reason, exit.Unexpected, exit.Initiator, exit.HasExitCode ? exit.ExitCode : null, exit.Signal, exit.UptimeSeconds, exit.MemoryBytes, exit.Details) : null }).ToArray(),
+            Servers = reply.Servers.Select(item => new LanguageServerState(item.Id, item.Path, item.State, item.Detail, item.Version, item.Configuration, item.ActiveConfiguration, item.Configured) { Presentation = item.Presentation is { } shown ? new LanguageServerPresentation(shown.Name, shown.Icon, shown.IconFormat, shown.OptionGroups, shown.Replaces, shown.HasTerms, shown.TermsNote, shown.ReplacesLabel) : null, Exit = item.Exit is { } exit ? new LanguageExit(exit.Time, exit.Reason, exit.Unexpected, exit.Initiator, exit.HasExitCode ? exit.ExitCode : null, exit.Signal, exit.UptimeSeconds, exit.MemoryBytes, exit.Details) : null }).ToArray(),
             Locations = reply.Locations.Select(MapLanguage).ToArray(),
             Diagnostics = reply.Diagnostics.Select(MapLanguage).ToArray(),
             Tokens = reply.Tokens.Select(MapLanguage).ToArray(),
