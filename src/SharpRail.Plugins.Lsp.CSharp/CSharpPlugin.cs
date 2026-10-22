@@ -50,6 +50,10 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
         InstallAsync = InstallAsync,
         ConfigureLaunch = (installation, launch) =>
         {
+            // Roslyn ships with server GC, which sizes heaps per core; workstation GC with conserve-memory cut one SharpRail.slnx server from
+            // ~830 to ~515 MiB physical footprint without changing answers. A value the user exported is kept.
+            launch.Environment.TryAdd("DOTNET_gcServer", "0");
+            launch.Environment.TryAdd("DOTNET_GCConserveMemory", "7");
             if (installation.FindDotnet() is not { } dotnet) return;
             var sdk = Path.GetDirectoryName(dotnet)!;
             launch.Environment["DOTNET_ROOT"] = sdk;
