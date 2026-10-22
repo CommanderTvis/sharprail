@@ -11,8 +11,8 @@ and links them into `.tools`. The tasks that need a bootstrap run it themselves.
 
 | Command | Installs | Used by |
 | --- | --- | --- |
-| `scripts/mise run bootstrap` | .NET SDK (`.tools/dotnet`), Zig 0.14.1 and 0.16.0 (Windows: the `http:zig-windows` archive), Merman (macOS) | every build, check and package task |
-| `scripts/mise run bootstrap:android` | Android NDK r27d (`.tools/android-ndk`), Temurin JDK 21 (`.tools/jdk`), Merman's Android libraries (`.tools/merman-android`) | `android`, `package:android` |
+| `scripts/mise run bootstrap` | .NET SDK (`.tools/dotnet`), Zig 0.14.1 and 0.16.0 (Windows: the `http:zig-windows` archive), Merman (macOS), Temurin JDK 21 (`.tools/jdk`) | every build, check and package task |
+| `scripts/mise run bootstrap:android` | Android NDK r27d (`.tools/android-ndk`), Merman's Android libraries (`.tools/merman-android`) | `android`, `package:android` |
 | `scripts/mise run bootstrap:browser` | Node, pnpm, uv, Binaryen, PDFium WASM | `browser`, `package:browser` |
 | `scripts/mise run bootstrap:linux` | appimagetool and the AppImage runtime | `package:linux` |
 
@@ -52,14 +52,14 @@ runtime, not by the build.
 - Windows 10 1809 or later / Windows 11, x64 or ARM64; Git for Windows, Windows PowerShell and Windows' `tar.exe`
   ([WINDOWS.md](WINDOWS.md)). No Visual Studio C++ installation is needed: Zig compiles the native libraries
   (`scripts/windows-native.ps1`).
-- Android builds run on macOS or Linux only (the NDK and JDK pins list no Windows archives).
+- Android builds run on macOS or Linux only (the NDK pin lists no Windows archives).
 
 ### Android (`android`, `package:android`; macOS or Linux)
 
 - The Android SDK with `platforms;android-36` and `build-tools;36.0.0` (what the nightly installs with
   `sdkmanager`), at `ANDROID_HOME` (default `~/Library/Android/sdk`). `scripts/tasks/android.sh` stops with
   "No Android SDK at ..." when `$ANDROID_HOME/platforms` is missing.
-- Nothing else: the JDK, NDK and Merman's prebuilt `.so` come from `bootstrap:android`, the .NET `android` workload is installed into
+- Nothing else: the JDK comes from `bootstrap`, the NDK and Merman's prebuilt `.so` from `bootstrap:android`, the .NET `android` workload is installed into
   `.tools/dotnet` on first use. Set `JAVA_HOME` only to build with another JDK 17 or 21.
 - `adb` (SDK platform-tools) and a device or emulator for `android run`.
 

@@ -56,7 +56,7 @@ jobs:
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # The Android workload compiles against this platform, which the runner image may not carry yet.
       - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
-      # The build uses the repo's pinned JDK (.tools/jdk from bootstrap:android); the image's JAVA_HOME would override it.
+      # The build uses the repo's pinned JDK (.tools/jdk from bootstrap); the image's JAVA_HOME would override it.
       - run: sh scripts/ci-run.sh "Package Android" sh scripts/mise run package:android
         env:
           JAVA_HOME: ""

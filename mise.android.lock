@@ -23,31 +23,6 @@ url = "https://dl.google.com/android/repository/android-ndk-r27d-darwin.zip"
 checksum = "sha256:e69092f9d2bfa5d1199039980a14eb91c03cc971ab5c6968fc08a8e6b84e7bb7"
 url = "https://dl.google.com/android/repository/android-ndk-r27d-darwin.zip"
 
-[[tools."http:jdk"]]
-version = "21.0.12.1+1"
-backend = "http:jdk"
-specifiers = ["21.0.12.1+1"]
-
-[tools."http:jdk"."platforms.linux-arm64"]
-checksum = "sha256:23e37e026f12f3e706f18938ff611db3032d075b09d0879a25d06718c773e223"
-url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_aarch64_linux_hotspot_21.0.12.1_1.tar.gz"
-
-[tools."http:jdk"."platforms.linux-x64"]
-checksum = "sha256:ce79869e1307ed8ee1e2baa86a412b1eb5b75d10a01006d788a6f968bcfaee94"
-url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_linux_hotspot_21.0.12.1_1.tar.gz"
-
-[tools."http:jdk"."platforms.linux-x64-musl"]
-checksum = "sha256:ce79869e1307ed8ee1e2baa86a412b1eb5b75d10a01006d788a6f968bcfaee94"
-url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_linux_hotspot_21.0.12.1_1.tar.gz"
-
-[tools."http:jdk"."platforms.macos-arm64"]
-checksum = "sha256:3623232f33a9c3baadf304480b2535f9a3cba8a58d42ecbb438ba267315d9998"
-url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_aarch64_mac_hotspot_21.0.12.1_1.tar.gz"
-
-[tools."http:jdk"."platforms.macos-x64"]
-checksum = "sha256:44db0f08196daf19a47f90d13388b0c943b67663cb537f998fe29e836fa842ce"
-url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jdk_x64_mac_hotspot_21.0.12.1_1.tar.gz"
-
 [[tools."http:merman-android"]]
 version = "0.7.0"
 backend = "http:merman-android"

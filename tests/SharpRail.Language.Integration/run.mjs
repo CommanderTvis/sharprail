@@ -18,6 +18,12 @@ const reports = path.join(root, 'artifacts/lsp-validation');
 await mkdir(cache, { recursive: true });
 await mkdir(reports, { recursive: true });
 const dotnet = path.join(root, '.tools/dotnet/dotnet');
+// The JVM cases run with the repository's pinned JDK (.tools/jdk from `scripts/mise run bootstrap`), or JAVA_HOME when
+// set. The host's project-JDK lookup prefers a machine SDKMAN install, so the child environment points it at an empty
+// candidates directory: the selection never depends on what the machine has installed.
+const jdk = process.env.JAVA_HOME || path.join(root, '.tools/jdk');
+const java = path.join(jdk, 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
+const jvmEnvironment = { JAVA_HOME: jdk, PATH: path.join(jdk, 'bin') + path.delimiter + (process.env.PATH ?? ''), SDKMAN_CANDIDATES_DIR: path.join(cache, 'no-sdkman') };
 const host = path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll');
 await access(host);
 const outcomes = [];
@@ -35,7 +41,7 @@ for (const scenario of cases) {
   let captureLogs;
   let restoreProbe;
   try {
-    const runtime = scenario.runtime === 'dotnet' ? dotnet : scenario.runtime;
+    const runtime = scenario.runtime === 'dotnet' ? dotnet : scenario.runtime === 'java' ? java : scenario.runtime;
     try { report.runtime = command(runtime, scenario.runtime === 'java' ? ['-version'] : scenario.runtime === 'go' ? ['version'] : scenario.runtime === 'cs' ? ['version'] : ['--version'], root).trim(); }
     catch (error) { report.state = 'blocked'; throw Error(`Runtime ${scenario.runtime} unavailable: ${error.message}`); }
     if (scenario.blocked) { report.state = 'blocked'; throw Error(scenario.blocked); }
@@ -53,7 +59,7 @@ for (const scenario of cases) {
       command('git', ['checkout', '--detach', scenario.revision], project);
     }
     if (command('git', ['rev-parse', 'HEAD'], project).trim() !== scenario.revision) throw Error('Project revision mismatch');
-    const projectEnvironment = { ...process.env, BUNDLE_PATH: path.join(project, '.bundle/packages'), BUNDLE_USER_HOME: path.join(cache, 'bundle'), GEM_SPEC_CACHE: path.join(cache, 'gem-specs') };
+    const projectEnvironment = { ...process.env, ...jvmEnvironment, BUNDLE_PATH: path.join(project, '.bundle/packages'), BUNDLE_USER_HOME: path.join(cache, 'bundle'), GEM_SPEC_CACHE: path.join(cache, 'gem-specs') };
     for (const preparation of scenario.prepare ?? []) {
       const argv = Array.isArray(preparation) ? preparation : preparation.command;
       const cwd = Array.isArray(preparation) ? project : path.resolve(project, preparation.cwd);

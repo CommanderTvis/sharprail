@@ -47,9 +47,10 @@ they are not independently downloadable pinned servers. `runtime-pins.json`
 records publisher URLs and SHA-256 for the optional macOS ARM64 Go, Coursier,
 PowerShell and Dart runtimes used for validation. Install these into a disposable
 local tool directory and put their `bin` paths on PATH; the runner does not change
-the machine's SDK selection. JDKs must come from SDKMAN. Select a compatible
-candidate with JAVA_HOME; IntelliJ/Kotlin's project JDK is separate from its bundled
-server runtime. No IntelliJ acceptance record is created or imported by this suite.
+the machine's SDK selection. The JDK is the repository's pinned Temurin 21
+(`.tools/jdk`, installed by `scripts/mise run bootstrap`); the runner passes it to the
+host as JAVA_HOME and ignores any machine JDK manager. Set JAVA_HOME to run against
+another JDK. IntelliJ/Kotlin's project JDK is separate from its bundled server runtime. No IntelliJ acceptance record is created or imported by this suite.
 
 `node tests/SharpRail.Language.Integration/check.mjs` validates the manifest without
 network, server launch or downloads. Diagnostic-probe cases temporarily append a
