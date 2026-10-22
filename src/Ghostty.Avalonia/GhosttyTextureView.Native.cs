@@ -29,6 +29,9 @@ public sealed partial class GhosttyTextureView
         [DllImport(Library, EntryPoint = "gav_texture_over_link")][return: MarshalAs(UnmanagedType.I1)] internal static extern bool OverLink(nint view);
         [DllImport(Library, EntryPoint = "gav_texture_context_link")]
         internal static extern nint ContextLink(nint view, double x, double y, [MarshalAs(UnmanagedType.I1)] bool shift, [Out] byte[] output, nuint capacity);
+        [DllImport(Library, EntryPoint = "gav_texture_prompt_click")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool PromptClick(nint view, double x, double y);
         [DllImport(Library, EntryPoint = "gav_texture_selection")]
         internal static extern nuint Selection(nint view, [Out] byte[]? output, nuint capacity);
         [DllImport(Library, EntryPoint = "gav_texture_command_output")]

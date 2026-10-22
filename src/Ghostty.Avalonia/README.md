@@ -188,7 +188,8 @@ use this patch; it does not reduce the scrollback limit.
 Both texture and Skia controls offer Ghostty's prompt features over OSC 133 marks: `JumpToPrompt` and its default keys
 (Command+Up/Down on macOS, Ctrl+Shift+Up/Down elsewhere); `CommandOutputAt` and Command/Ctrl+triple-click for a command's
 output, also offered by the context menu as Copy Output of This Command. `GhosttyView.ReadViewport` reads the rows on view
-and `GhosttyTextureView.SelectedText` the selection.
+and `GhosttyTextureView.SelectedText` the selection. `ClickToMoveCursor` (default true) turns a plain click on the shell's
+input line into the arrow keys that move its cursor there, only between OSC 133 B and C.
 
 ## Limits and verification
 

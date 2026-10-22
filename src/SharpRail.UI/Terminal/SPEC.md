@@ -500,6 +500,15 @@ own terminal state keeps, so local and remote terminals behave alike.
   the view forwards, so the view selects on Avalonia's third click itself); Skia uses libghostty-vt's
   `ghostty_terminal_select_output` and the gesture's output behaviour. Skia's repeat clicks now carry Ghostty's 500 ms
   interval and one-cell distance; without them double and triple clicks never counted.
+- Click to move (Ghostty's `cursor-click-to-move`, default true; a plain click since Ghostty's current docs, Option+click in
+  1.2.3): a plain click without dragging or selecting, on the input line while the shell waits for input (OSC 133 B
+  written, C not yet), sends the left or right arrows (cursor-keys mode respected) that move the shell's cursor there; a
+  click past the text stops one cell after it. Never on the alternate screen, while a program tracks the mouse, or while a
+  command runs. Skia follows Ghostty's `Screen.promptClickLine` over libghostty-vt's input cells (`gav_vt_prompt_click`);
+  Metal's Ghostty 1.2.3 marks only rows, so `gav_ghostty_prompt_click` counts the cells of the cursor's soft-wrapped line
+  and cannot tell prompt text on that row from input (a click on the prompt moves to the input's start, where the shell
+  stops). Both views expose `ClickToMoveCursor`. A Skia release now ends the selection gesture before releasing the
+  pointer capture, which had reset it first.
 
 ## Dropped attachments
 

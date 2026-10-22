@@ -486,6 +486,91 @@ GAV_API int64_t gav_vt_command_output(gav_vt *vt, double x, double y, char *out,
     return (int64_t)format(vt, &selection, out, capacity);
 }
 
+static bool screen_ref(gav_vt *vt, uint16_t x, uint64_t y, GhosttyGridRef *ref) {
+    GhosttyPoint point = { .tag = GHOSTTY_POINT_TAG_SCREEN, .value = { .coordinate = { .x = x, .y = (uint32_t)y } } };
+    return ghostty_terminal_grid_ref(vt->terminal, point, ref) == GHOSTTY_SUCCESS;
+}
+
+static bool input_cell(gav_vt *vt, uint16_t x, uint64_t y) {
+    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+    GhosttyCell cell = 0;
+    GhosttyCellSemanticContent content = GHOSTTY_CELL_SEMANTIC_OUTPUT;
+    return screen_ref(vt, x, y, &ref) && ghostty_grid_ref_cell(&ref, &cell) == GHOSTTY_SUCCESS &&
+        ghostty_cell_get(cell, GHOSTTY_CELL_DATA_SEMANTIC_CONTENT, &content) == GHOSTTY_SUCCESS && content == GHOSTTY_CELL_SEMANTIC_INPUT;
+}
+
+static bool row_flag(gav_vt *vt, uint64_t y, GhosttyRowData data) {
+    GhosttyRow row;
+    bool value = false;
+    return screen_row(vt, y, &row) && ghostty_row_get(row, data, &value) == GHOSTTY_SUCCESS && value;
+}
+
+// Ghostty's cursor-click-to-move (Surface.maybePromptClick with the line mode, Screen.promptClickLine): a click on the
+// input line while the shell waits at its prompt (OSC 133 B before C) becomes the left or right arrows that move the
+// shell's cursor there, counting only input cells across soft wraps. Writes the keys and returns their length; 0 off the
+// primary screen, away from a prompt, with a selection, or above the prompt.
+GAV_API size_t gav_vt_prompt_click(gav_vt *vt, double px, double py, char *out, size_t capacity) {
+    GhosttyTerminalScreen screen = GHOSTTY_TERMINAL_SCREEN_PRIMARY;
+    bool at_prompt = false;
+    GhosttySelection existing = GHOSTTY_INIT_SIZED(GhosttySelection);
+    GhosttyTerminalScrollbar bar = { 0 };
+    uint16_t columns = 0, rows = 0, cursor_x = 0, cursor_row = 0;
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_ACTIVE_SCREEN, &screen);
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_CURSOR_AT_PROMPT, &at_prompt);
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_COLS, &columns);
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_ROWS, &rows);
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_CURSOR_X, &cursor_x);
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_CURSOR_Y, &cursor_row);
+    if (screen != GHOSTTY_TERMINAL_SCREEN_PRIMARY || !at_prompt || !columns || !rows ||
+        // A single click leaves an empty selection where it pressed; only a selection with text completes a drag instead.
+        (ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_SELECTION, &existing) == GHOSTTY_SUCCESS && format(vt, &existing, NULL, 0) > 0) ||
+        ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_SCROLLBAR, &bar) != GHOSTTY_SUCCESS || bar.total < rows) return 0;
+    double column = px / vt->cell_width, row = py / vt->cell_height;
+    if (column < 0 || row < 0 || column >= columns || row >= rows) return 0;
+    uint16_t click_x = (uint16_t)column;
+    uint64_t click_y = bar.offset + (uint64_t)row, cursor_y = bar.total - rows + cursor_row;
+    // The click must be at or below the prompt the cursor is in.
+    int64_t prompt = (int64_t)cursor_y;
+    GhosttyRow line;
+    while (prompt >= 0 && !(screen_row(vt, (uint64_t)prompt, &line) && row_prompt(line) == GHOSTTY_ROW_SEMANTIC_PROMPT)) prompt--;
+    if (prompt < 0 || click_y < (uint64_t)prompt || (click_y == cursor_y && click_x == cursor_x)) return 0;
+    size_t count = 0;
+    bool right = click_y > cursor_y || (click_y == cursor_y && click_x > cursor_x);
+    if (right) {
+        bool reached = false;
+        for (uint64_t y = cursor_y; y <= click_y && !reached; y++) {
+            if (y != cursor_y && !(screen_row(vt, y, &line) && row_prompt(line) == GHOSTTY_ROW_SEMANTIC_PROMPT_CONTINUATION) &&
+                !row_flag(vt, y, GHOSTTY_ROW_DATA_WRAP_CONTINUATION)) break;
+            uint16_t start = y == cursor_y ? cursor_x + 1 : 0;
+            for (uint16_t x = start; x < columns; x++) {
+                if (!input_cell(vt, x, y)) continue;
+                count++;
+                if (y == click_y && x == click_x) { reached = true; break; }
+            }
+            if (!reached && !row_flag(vt, y, GHOSTTY_ROW_DATA_WRAP)) {
+                // Past the end of the input: one more step reaches the empty cell after it, as an editor would.
+                if (input_cell(vt, cursor_x, cursor_y)) count++;
+                break;
+            }
+        }
+    } else {
+        bool reached = false;
+        for (int64_t y = (int64_t)cursor_y; y >= (int64_t)click_y && !reached; y--) {
+            uint16_t end = (uint64_t)y == cursor_y ? cursor_x : columns;
+            for (int x = (int)end - 1; x >= 0; x--) {
+                if (!input_cell(vt, (uint16_t)x, (uint64_t)y)) continue;
+                count++;
+                if ((uint64_t)y == click_y && x == click_x) { reached = true; break; }
+            }
+            if (!row_flag(vt, (uint64_t)y, GHOSTTY_ROW_DATA_WRAP_CONTINUATION)) break;
+        }
+    }
+    const char *arrow = mode(vt, GHOSTTY_MODE_DECCKM) ? (right ? "\x1bOC" : "\x1bOD") : (right ? "\x1b[C" : "\x1b[D");
+    size_t written = 0;
+    for (size_t i = 0; i < count && written + 3 <= capacity; i++, written += 3) memcpy(out + written, arrow, 3);
+    return written;
+}
+
 // Returns the length of the selected text, which may exceed capacity; 0 without a selection.
 GAV_API size_t gav_vt_selection_text(gav_vt *vt, char *out, size_t capacity) {
     GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);

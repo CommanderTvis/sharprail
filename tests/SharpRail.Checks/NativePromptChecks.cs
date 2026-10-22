@@ -48,11 +48,15 @@ internal static class NativePromptChecks
         using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), ExternalIo: new GhosttyExternalIo()));
         window.Content = terminal;
         await terminal.Ready;
+        // A resize makes Ghostty clear prompt rows for the shell to redraw, which this script cannot; let layout settle.
+        terminal.FocusTerminal();
+        await Task.Delay(500);
         terminal.WriteOutput(Encoding.UTF8.GetBytes(Transcript()));
         await Until(() => terminal.ReadViewport().TrimEnd().EndsWith('%'), "the last prompt is on view: " + terminal.ReadViewport());
         await Jumps(terminal);
         await Output(terminal);
-        Console.WriteLine("PASS Metal prompts: Command+Up/Down jumps between OSC 133 prompts; Command+triple-click and Copy Output of This Command take exactly one command's output");
+        await ClickToMove(window);
+        Console.WriteLine("PASS Metal prompts: Command+Up/Down jumps between OSC 133 prompts; Command+triple-click and Copy Output of This Command take exactly one command's output; a plain click on the input line sends the arrows to it only between OSC 133 B and C");
     }
 
     private static string Top(GhosttyTextureView terminal) => terminal.ReadViewport().Split('\n')[0];
@@ -104,5 +108,50 @@ internal static class NativePromptChecks
         await Until(() => terminal.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => item.Header as string == "Copy Output of This Command") == true,
             "the context menu offering Copy Output of This Command");
         terminal.ClipboardMenu!.Close();
+    }
+
+    private static async Task ClickToMove(Window window)
+    {
+        var io = new GhosttyExternalIo();
+        var sent = new StringBuilder();
+        io.Input += (_, bytes) => { lock (sent) sent.Append(Encoding.UTF8.GetString(bytes.Span)); };
+        using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), ExternalIo: io));
+        window.Content = terminal;
+        await terminal.Ready;
+        string Sent() { lock (sent) { var text = sent.ToString(); sent.Clear(); return text; } }
+        var pointer = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true);
+        async Task Click(Point point)
+        {
+            terminal.RaiseEvent(new PointerPressedEventArgs(terminal, pointer, terminal, point, 1,
+                new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+            terminal.RaiseEvent(new PointerReleasedEventArgs(terminal, pointer, terminal, point, 2,
+                new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+            await Task.Delay(300);
+        }
+        // A resize makes Ghostty clear prompt rows for the shell to redraw, which this script cannot; let focus and layout settle.
+        terminal.FocusTerminal();
+        await Task.Delay(500);
+        // "% " is the prompt; the input "echo abcdefghij" follows, the cursor after it.
+        terminal.WriteOutput(Encoding.UTF8.GetBytes("\u001b[2J\u001b[H" + Prompt + "echo abcdefghij"));
+        await Until(() => terminal.ReadViewport().Contains("echo abcdefghij"), "the input line");
+        Sent();
+        await Click(Cell(terminal, 2 + 7, 0));
+        var left = Sent();
+        Require(left == string.Concat(Enumerable.Repeat("\u001b[D", 8)), "a click on c must send eight left arrows, sent: " + left.Replace("\u001b", "ESC"));
+        // The shell moved its cursor to c; a click past the end of the input stops one cell after it.
+        terminal.WriteOutput("\u001b[8D"u8);
+        await Task.Delay(100);
+        await Task.Delay(700);
+        await Click(Cell(terminal, 40, 0));
+        var right = Sent();
+        Require(right == string.Concat(Enumerable.Repeat("\u001b[C", 8)), "a click past the input must move to its end, sent: " + right.Replace("\u001b", "ESC"));
+        terminal.WriteOutput("\u001b[8C\r\n\u001b]133;C\u0007running"u8);
+        await Task.Delay(100);
+        await Click(Cell(terminal, 3, 1));
+        Require(Sent().Length == 0, "a click while the command runs must send nothing.");
+        terminal.WriteOutput("\u001b]133;D;0\u0007\r\n\u001b[?1049h"u8);
+        await Task.Delay(100);
+        await Click(Cell(terminal, 3, 1));
+        Require(!Sent().Contains("\u001b[D", StringComparison.Ordinal), "a full-screen program must get no arrows.");
     }
 }

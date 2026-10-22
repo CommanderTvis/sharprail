@@ -50,6 +50,7 @@ internal static partial class ShellIntegrationChecks
                 Until(() => View().ReadViewport(false).Contains('%'), "the first prompt");
                 SkiaJumps(window, View);
                 SkiaOutput(window, View);
+                SkiaClickToMove(window, View);
             }
             finally
             {
@@ -59,7 +60,7 @@ internal static partial class ShellIntegrationChecks
             }
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
-        Console.WriteLine("PASS shell integration (Skia): Command+Up/Down jumps between real zsh prompts; Command+triple-click and the menu's Copy Output of This Command take exactly one command's output");
+        Console.WriteLine("PASS shell integration (Skia): Command+Up/Down jumps between real zsh prompts; Command+triple-click and the menu's Copy Output of This Command take exactly one command's output; a click on the input line moves zsh's cursor, and a running command gets no arrows");
     }
 
     private static void Type(Window window, string command)
@@ -124,6 +125,41 @@ internal static partial class ShellIntegrationChecks
         Until(() => view().ClipboardMenu?.Items.OfType<MenuItem>().Any(item => item.Header as string == "Copy Output of This Command") == true,
             "the context menu offering Copy Output of This Command");
         view().ClipboardMenu!.Close();
+        // The open menu took the right button's release; the view's next release completes that click instead.
+        window.MouseDown(position, Avalonia.Input.MouseButton.Left); window.MouseUp(position, Avalonia.Input.MouseButton.Left);
         Pump();
+    }
+
+    private static Point CellOf(Window window, GhosttySkiaView view, string text, int offset)
+    {
+        var rows = view.ReadViewport(false).Split('\n');
+        var row = Array.FindLastIndex(rows, line => line.Contains(text, StringComparison.Ordinal));
+        Require(row >= 0, "no row shows " + text + ": " + string.Join("|", rows));
+        return view.TranslatePoint(view.CellCenter(rows[row].IndexOf(text, StringComparison.Ordinal) + offset, row)!.Value, window)!.Value;
+    }
+
+    private static void SkiaClickToMove(Window window, Func<GhosttySkiaView> view)
+    {
+        window.KeyTextInput("echo CLICK_abcdefghij"); Pump();
+        Until(() => view().ReadViewport(false).Contains("echo CLICK_abcdefghij", StringComparison.Ordinal), "the typed command line");
+        Thread.Sleep(600);
+        var c = CellOf(window, view(), "CLICK_abcdefghij", 8);
+        window.MouseDown(c, Avalonia.Input.MouseButton.Left); window.MouseUp(c, Avalonia.Input.MouseButton.Left); Pump();
+        Thread.Sleep(600); Pump();
+
+        Type(window, "X");
+        Until(() => view().ReadScreen().Contains("\nCLICK_abXcdefghij", StringComparison.Ordinal), "the click moving the cursor before c; screen: " + view().ReadViewport(false));
+        // A running command is not at a prompt: the same click sends it nothing.
+        Type(window, "cat");
+        Thread.Sleep(300);
+        window.KeyTextInput("RUNNING_abc"); Pump();
+        Until(() => view().ReadViewport(false).Contains("RUNNING_abc", StringComparison.Ordinal), "cat's echo");
+        var a = CellOf(window, view(), "RUNNING_abc", 8);
+        window.MouseDown(a, Avalonia.Input.MouseButton.Left); window.MouseUp(a, Avalonia.Input.MouseButton.Left); Pump();
+        Type(window, "");
+        window.KeyPress(Key.D, RawInputModifiers.Control, PhysicalKey.D, "d"); window.KeyRelease(Key.D, RawInputModifiers.Control, PhysicalKey.D, "d"); Pump();
+        Until(() => view().ReadViewport(false).TrimEnd().EndsWith('%'), "the prompt after cat");
+        Require(!view().ReadScreen().Contains("^[[D", StringComparison.Ordinal) && view().ReadScreen().Contains("\nRUNNING_abc\n", StringComparison.Ordinal),
+            "a click while a command runs must send it nothing: " + view().ReadViewport(false));
     }
 }

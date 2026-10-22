@@ -15,6 +15,10 @@ public sealed partial class GhosttyTextureView
     private KeyModifiers pendingTextModifiers;
     private bool contextClick;
     private bool outputClick;
+    private bool promptClick;
+
+    /// <summary>Whether a plain click on the shell's input line moves its cursor (Ghostty's cursor-click-to-move, on by default).</summary>
+    public bool ClickToMoveCursor { get; set; } = true;
     internal ContextMenu? ClipboardMenu { get; private set; }
     private int clipboardMenuRequest;
     private Point linkPointer = new(-1, -1);
@@ -153,6 +157,7 @@ public sealed partial class GhosttyTextureView
         {
             // A plain click on an underlined file opens it on release; the press still starts a selection or reaches the program.
             pressedHighlight = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.KeyModifiers == KeyModifiers.None ? HighlightAt(e.GetPosition(this)) : null;
+            promptClick = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.KeyModifiers == KeyModifiers.None && pressedHighlight is null;
             filePressPoint = e.GetPosition(this);
             // Ghostty's Cmd/Ctrl+triple-click selects the command output under the pointer.
             if (e.ClickCount == 3 && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed &&
@@ -198,6 +203,10 @@ public sealed partial class GhosttyTextureView
             var delta = e.GetPosition(this) - filePressPoint;
             if (highlight is not null && delta.X * delta.X + delta.Y * delta.Y <= 16 && HighlightAt(e.GetPosition(this)) == highlight)
                 _ = OpenHighlightAsync(highlight);
+            // A plain click on the shell's input line moves its cursor there (Ghostty's cursor-click-to-move).
+            else if (promptClick && ClickToMoveCursor && delta.X * delta.X + delta.Y * delta.Y <= 16 && !disposed &&
+                Native.PromptClick(terminal.Handle, e.GetPosition(this).X, e.GetPosition(this).Y))
+                UserInput?.Invoke(this, EventArgs.Empty);
         }
         e.Pointer.Capture(null);
         e.Handled = true;

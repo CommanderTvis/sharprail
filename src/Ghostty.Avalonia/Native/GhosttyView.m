@@ -498,6 +498,10 @@ size_t gav_texture_selection(void *pointer, char *buffer, size_t capacity) {
     ghostty_surface_free_text(view.surface, &text);
     return length;
 }
+extern bool gav_ghostty_prompt_click(ghostty_surface_t surface, double x, double y);
+bool gav_texture_prompt_click(void *pointer, double x, double y) {
+    return gav_ghostty_prompt_click(((__bridge GAVTerminalView *)pointer).surface, x, y);
+}
 extern intptr_t gav_ghostty_command_output(ghostty_surface_t surface, double x, double y, bool select, uint8_t *output, size_t capacity);
 intptr_t gav_texture_command_output(void *pointer, double x, double y, bool select, uint8_t *output, size_t capacity) {
     return gav_ghostty_command_output(((__bridge GAVTerminalView *)pointer).surface, x, y, select, output, capacity);

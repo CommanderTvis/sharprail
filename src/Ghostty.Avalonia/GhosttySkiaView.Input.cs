@@ -21,6 +21,10 @@ public sealed partial class GhosttySkiaView
     private InputClient? inputMethod;
     private string preedit = "";
     private int selecting = -1;
+    private bool promptClick;
+
+    /// <summary>Whether a plain click on the shell's input line moves its cursor (Ghostty's cursor-click-to-move, on by default).</summary>
+    public bool ClickToMoveCursor { get; set; } = true;
     private double wheel;
     private Point? touch;
     private bool tapping;
@@ -284,6 +288,7 @@ public sealed partial class GhosttySkiaView
         if (button != 1) return;
         var point = Grid(e);
         selecting = 0;
+        promptClick = e.KeyModifiers == KeyModifiers.None && pressedHighlight is null;
         vt.TripleClickSelectsOutput = e.KeyModifiers == (MacKeyboard ? KeyModifiers.Meta : KeyModifiers.Control);
         vt.Select(0, point.X, point.Y, Now());
         Redraw();
@@ -356,6 +361,8 @@ public sealed partial class GhosttySkiaView
             var delta = e.GetPosition(this) - linkPressPointer;
             if (delta.X * delta.X + delta.Y * delta.Y <= 16 && HighlightAt(e.GetPosition(this)) == highlight) _ = OpenHighlightAsync(highlight);
         }
+        // Releasing the capture raises capture loss, which ends the selection gesture; read it first.
+        var selected = selecting >= 0;
         e.Pointer.Capture(null);
         if (file is not null)
         {
@@ -371,11 +378,15 @@ public sealed partial class GhosttySkiaView
             e.Handled = true;
             return;
         }
-        if (selecting >= 0)
+        if (selected)
         {
             var point = Grid(e);
             selecting = -1;
             vt.Select(2, point.X, point.Y, Now());
+            // A plain click on the shell's input line moves its cursor there (Ghostty's cursor-click-to-move).
+            var moved = e.GetPosition(this) - linkPressPointer;
+            if (promptClick && ClickToMoveCursor && moved.X * moved.X + moved.Y * moved.Y <= 16 && vt.PromptClick(point.X, point.Y) is { IsEmpty: false } arrows)
+                Send(arrows);
             Redraw();
             return;
         }
