@@ -11,7 +11,7 @@ and links them into `.tools`. The tasks that need a bootstrap run it themselves.
 
 | Command | Installs | Used by |
 | --- | --- | --- |
-| `scripts/mise run bootstrap` | .NET SDK (`.tools/dotnet`), Zig 0.14.1 and 0.16.0 (Windows: the `http:zig-windows` archive), Merman (macOS), Temurin JDK 21 (`.tools/jdk`) | every build, check and package task |
+| `scripts/mise run bootstrap` | .NET SDK (`.tools/dotnet`), Zig 0.14.1 and 0.16.0 (Windows: the `http:zig-windows` archive), Merman (macOS), Temurin JDK 21 (`.tools/jdk`; not Windows, where `JAVA_HOME` names a JDK) | every build, check and package task |
 | `scripts/mise run bootstrap:android` | Android NDK r27d (`.tools/android-ndk`), Merman's Android libraries (`.tools/merman-android`) | `android`, `package:android` |
 | `scripts/mise run bootstrap:browser` | Node, pnpm, uv, Binaryen, PDFium WASM | `browser`, `package:browser` |
 | `scripts/mise run bootstrap:linux` | appimagetool and the AppImage runtime | `package:linux` |

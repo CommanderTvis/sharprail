@@ -146,7 +146,7 @@ and commit the lock. the `--zig-deps` check mode fails when the lock is stale.
 
 Set `ANDROID_HOME` to an installed Android SDK (default:
 `~/Library/Android/sdk`). The JDK is provisioned like the .NET SDK: `bootstrap` installs the pinned Temurin 21
-from `mise.toml` and links it as `.tools/jdk` (on macOS, at the bundle's `Contents/Home`); `bootstrap:android`
+from `mise.toml` and links it as `.tools/jdk` (on macOS, at the bundle's `Contents/Home`; Windows has no pin, see `mise.toml`); `bootstrap:android`
 (which the Android tasks also run first) links Merman's Android archive as `.tools/merman-android`, whose per-ABI `.so` the APK packages as `libSharpRailMermaid.so`. A
 `JAVA_HOME` in the environment, when set, names another JDK 17 or 21 instead. The task installs the .NET
 Android workload when missing and the pinned NDK.
