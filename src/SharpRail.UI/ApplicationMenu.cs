@@ -91,6 +91,8 @@ public static class ApplicationMenu
             new NativeMenuItemSeparator(),
             Item("Close Tab", WindowShortcuts.Close, () => commands.Close(window)),
             Item("Close Window", new KeyGesture(Key.W, Command | KeyModifiers.Shift), window.Close),
+            new NativeMenuItemSeparator(),
+            Save(window),
         ];
         NativeMenu edit = Editing(window);
         edit.Items.Add(new NativeMenuItemSeparator());
@@ -155,6 +157,16 @@ public static class ApplicationMenu
             Refresh();
         }, RoutingStrategies.Bubble, handledEventsToo: true);
         return items;
+    }
+
+    /// <summary>Command-S's own save, enabled while the editor it saves has unsaved changes.</summary>
+    private static NativeMenuItem Save(WorkbenchWindow window)
+    {
+        var item = Item("Save", Key.S, Command, () => { if (window.CanSave) _ = window.SaveSelectedAsync(); });
+        void Refresh() => item.IsEnabled = window.CanSave;
+        Refresh();
+        window.SaveStateChanged += Refresh;
+        return item;
     }
 
     private static NativeMenuItem Zoom(Window window) =>

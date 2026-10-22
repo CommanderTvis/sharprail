@@ -162,7 +162,9 @@ A workbench window gets:
 - File: New Workspace ⌘N, New Window ⇧⌘N, Open Project… ⌘O (the window chords' commands); Clone Repository…,
   Create Project… and Open Recent ▸ (the add-project menu's commands and its list: host recents that are not open,
   refilled when a host broadcast changes the project rail; there is no Clear Menu, as nothing clears recents);
-  Close Tab ⌘W (the normal tab-close action) and Close Window ⇧⌘W (the window's close button).
+  Close Tab ⌘W (the normal tab-close action) and Close Window ⇧⌘W (the window's close button); Save ⌘S (the
+  editor's Command-S save of the focused center group's selected file), enabled only while that editor has unsaved
+  changes and refreshed from its modified state, tab selection and focus. There is no Save All: the editor has none.
 - Edit: Undo, Redo, Cut, Copy, Paste, Delete, Select All; Find ⌘F; then the editor context menu's language actions
   in its order (Go to Declaration F12, Go to Type Declaration, Go to Implementation, Find Usages ⌥F7, Document
   Symbols, Workspace Problems, Language Server Status, Start / Retry Language Server, Stop Language Server).

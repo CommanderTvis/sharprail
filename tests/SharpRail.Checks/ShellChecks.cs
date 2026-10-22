@@ -315,7 +315,7 @@ internal static class ShellChecks
         var help = Entry(bar, "Help").Menu!;
         string[] language = ["Go to Declaration", "Go to Type Declaration", "Go to Implementation", "Find Usages", "Document Symbols", "Workspace Problems",
             "Language Server Status", "Start / Retry Language Server", "Stop Language Server"];
-        Require(Headers(file).SequenceEqual(["New Workspace", "New Window", "-", "Open Project…", "Clone Repository…", "Create Project…", "Open Recent", "-", "Close Tab", "Close Window"]),
+        Require(Headers(file).SequenceEqual(["New Workspace", "New Window", "-", "Open Project…", "Clone Repository…", "Create Project…", "Open Recent", "-", "Close Tab", "Close Window", "-", "Save"]),
             "File: " + string.Join(", ", Headers(file)));
         Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All", "-", "Find", "-", .. language]), "Edit: " + string.Join(", ", Headers(edit)));
         Require(Headers(view).SequenceEqual(["Zoom In", "Zoom Out", "Actual Size"]), "View: " + string.Join(", ", Headers(view)));
@@ -334,6 +334,7 @@ internal static class ShellChecks
         Require(Shows(file, "New Workspace", WindowShortcuts.NewWorkspace.Gesture) && Shows(file, "New Window", WindowShortcuts.NewWindow.Gesture) &&
             Shows(file, "Open Project…", WindowShortcuts.OpenProject.Gesture) && Shows(file, "Clone Repository…", null) && Shows(file, "Create Project…", null) &&
             Shows(file, "Close Tab", WindowShortcuts.Close) && Shows(file, "Close Window", new KeyGesture(Key.W, KeyModifiers.Meta | KeyModifiers.Shift)) &&
+            Shows(file, "Save", new KeyGesture(Key.S, KeyModifiers.Meta)) &&
             Shows(edit, "Find", new KeyGesture(Key.F, KeyModifiers.Meta)) && Shows(edit, "Go to Declaration", new KeyGesture(Key.F12)) &&
             Shows(edit, "Find Usages", new KeyGesture(Key.F7, KeyModifiers.Alt)) && Shows(edit, "Go to Implementation", null) &&
             Shows(view, "Zoom In", WindowShortcuts.ZoomIn.Gesture) && Shows(view, "Zoom Out", WindowShortcuts.ZoomOut.Gesture) && Shows(view, "Actual Size", WindowShortcuts.ZoomReset.Gesture),
@@ -413,6 +414,20 @@ internal static class ShellChecks
         target.Focus(); Settle();
         Require(language.All(header => !Entry(edit, header).IsEnabled), "Leaving the editor disables the language items.");
 
+        // Save is Command-S's save of the selected editor, enabled only while it has unsaved changes.
+        var save = Entry(file, "Save");
+        code.Editor.Focus(); Settle();
+        Require(!save.IsEnabled, "Save is disabled while the editor has no unsaved changes.");
+        code.Editor.ReplaceRange(0, 0, "// menu\n");
+        Until(() => save.IsEnabled);
+        Pick(file, "Save");
+        Until(() => !save.IsEnabled && File.ReadAllText(Path.Combine(directory, "Example.ts")).StartsWith("// menu\n", StringComparison.Ordinal));
+        code.Editor.ReplaceRange(0, 0, "// chord\n");
+        Until(() => save.IsEnabled);
+        code.Editor.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.S, KeyModifiers = KeyModifiers.Meta });
+        Until(() => !save.IsEnabled && File.ReadAllText(Path.Combine(directory, "Example.ts")).StartsWith("// chord\n", StringComparison.Ordinal));
+        target.Focus(); Settle();
+
         // Close Tab is the tab-close command; Close Window closes this window only.
         app.Open("README.md", true);
         window.Layout.Focus(app.Center);
@@ -432,7 +447,7 @@ internal static class ShellChecks
         Pick(recents, recent);
         Until(() => app.State!.Current.Projects.Contains(recent) && !Headers(recents).Contains(recent));
 
-        Console.WriteLine("PASS shell: the workbench menu bar mirrors existing commands with their chords and follows recents and language state");
+        Console.WriteLine("PASS shell: the workbench menu bar mirrors existing commands with their chords and follows recents, language and save state");
     }
 
     private static void Chrome(string directory)

@@ -52,7 +52,7 @@ public sealed partial class WorkbenchWindow
                 Layout.Keep(group.Id, tabId);
                 if (focused) editor!.Focus();
             }
-        }, text => { documents[key] = document with { Text = text }; EmitSaved(key); }, surface.RefreshModified, Report, find);
+        }, text => { documents[key] = document with { Text = text }; EmitSaved(key); }, () => { surface.RefreshModified(); SaveStateChanged?.Invoke(); }, Report, find);
         view.LanguageSourceServer = document.ReadOnly && IsDependencySource(document.Path) ? dependencySourceServers.GetValueOrDefault(workspaceRoot + "\0" + document.Path) ?? "" : "";
         view.Editor.WrapWidth = FileWrapWidth;
         view.DeletedOnDisk = deletedDocuments.Contains(key);
@@ -95,9 +95,26 @@ public sealed partial class WorkbenchWindow
         {
             if (e.Key != Avalonia.Input.Key.S || !(e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Meta) || e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Control))) return;
             e.Handled = true;
-            if (Layout.Selected(Layout.View.FocusedCenter) is { } tab && Body<CodeDocumentView>(workspaceRoot + ":" + tab.Id) is { } view)
-                await view.SaveAsync();
+            await SaveSelectedAsync();
         }, Avalonia.Interactivity.RoutingStrategies.Bubble);
+        Layout.SelectionChanged += _ => SaveStateChanged?.Invoke();
+        Layout.Focused += () => SaveStateChanged?.Invoke();
+        Layout.Changed += () => SaveStateChanged?.Invoke();
+    }
+
+    /// <summary>The focused center group's selected file editor, the one Command-S saves.</summary>
+    private CodeDocumentView? SaveTarget =>
+        Layout.Selected(Layout.View.FocusedCenter) is { } tab ? Body<CodeDocumentView>(workspaceRoot + ":" + tab.Id) : null;
+
+    /// <summary>Whether Command-S has unsaved changes to save; <see cref="SaveStateChanged"/> says when this may have changed.</summary>
+    internal bool CanSave => SaveTarget is { HasPendingChanges: true };
+
+    internal event Action? SaveStateChanged;
+
+    /// <summary>Command-S: saves the focused center group's selected file editor.</summary>
+    internal async Task SaveSelectedAsync()
+    {
+        if (SaveTarget is { } view) await view.SaveAsync();
     }
 
     // Returns whether the documents may now be removed.
