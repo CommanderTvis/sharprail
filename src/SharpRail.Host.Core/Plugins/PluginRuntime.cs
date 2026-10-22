@@ -802,7 +802,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     internal IReadOnlyList<LanguageServerSpec> ActiveLanguageServerSpecs() => [.. Active().SelectMany(active => active.Tables.LanguageServers)];
 
-    internal IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement)
+    /// <param name="workspace">The absolute workspace a session starts in, whose languages the Code Intelligence text names; empty for the workspace-independent text.</param>
+    internal IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace = "")
     {
         bool Applies(PromptContribution item, string owner)
         {
@@ -812,7 +813,9 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             Guard(owner, () => holds = item.When());
             return holds;
         }
-        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.LanguageCatalog).Where(item => Applies(item, "host"));
+        // Only the section placement carries the Code Intelligence text, so a tool-list read starts no census.
+        var profile = workspace.Length > 0 && placement == PromptPlacement.Section ? Seams.State.ProjectLanguages(workspace) : null;
+        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.LanguageCatalog, profile, workspace).Where(item => Applies(item, "host"));
         var plugins = Active().SelectMany(active => active.Tables.Prompts.Select(item => (active.Entry.Id, item)))
             .Where(pair => Applies(pair.item, pair.Id)).OrderBy(pair => pair.item.Order);
         return [.. core.Select(item => item.Text), .. plugins.Select(pair => pair.item.Text)];

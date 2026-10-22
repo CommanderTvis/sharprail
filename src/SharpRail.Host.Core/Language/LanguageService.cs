@@ -481,13 +481,27 @@ public sealed partial class LanguageService : IAsyncDisposable
     private IEnumerable<string> Discover(string workspace)
     {
         var seen = new HashSet<string>();
+        foreach (var (file, server) in Census(workspace))
+            if (seen.Add(server.Id)) yield return file;
+    }
+
+    /// <summary>
+    /// The agent instructions' view of the workspace's languages (H20): the same bounded census as detection, counting every
+    /// file per server (with a chosen replacement standing in for the servers it replaces). Scans the tree, so call it off the UI thread.
+    /// </summary>
+    internal ProjectLanguageProfile LanguageProfile(string workspace, CancellationToken token = default)
+        => ProjectLanguages.Profile(workspace, Census(workspace).Select(item => (item.Path, (Detect(workspace, item.Path) ?? item.Server).Id)), token);
+
+    /// <summary>Every file of the bounded tree walk with the server that owns it, as workspace-relative paths.</summary>
+    private IEnumerable<(string Path, LanguageServer Server)> Census(string workspace)
+    {
         var queue = new Queue<string>(); queue.Enqueue(workspace);
         var visited = 0;
         while (queue.Count > 0 && visited++ < 5000)
         {
             var directory = queue.Dequeue();
             foreach (var file in Directory.EnumerateFiles(directory))
-                if (servers.Detect(file) is { } server && seen.Add(server.Id)) yield return Path.GetRelativePath(workspace, file);
+                if (servers.Detect(file) is { } server) yield return (Path.GetRelativePath(workspace, file), server);
             foreach (var child in Directory.EnumerateDirectories(directory))
                 if (Path.GetFileName(child) is not (".git" or ".tools" or ".bench" or "node_modules" or "bin" or "obj" or "target" or ".venv" or "vendor" or ".gradle" or ".dart_tool")
                     && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0) queue.Enqueue(child);

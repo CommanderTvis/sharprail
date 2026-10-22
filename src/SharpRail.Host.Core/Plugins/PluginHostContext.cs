@@ -194,6 +194,8 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 
     public IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement) => runtime.PromptTexts(agent, placement);
 
+    public IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace) => runtime.PromptTexts(agent, placement, workspace);
+
     public IReadOnlyList<string> ToolGuidanceSections() => runtime.ToolGuidanceSections();
 
     public async ValueTask<GitRunResult> GitAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options = null, CancellationToken cancellationToken = default) =>

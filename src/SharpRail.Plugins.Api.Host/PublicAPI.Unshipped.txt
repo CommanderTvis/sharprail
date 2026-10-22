@@ -314,6 +314,7 @@ SharpRail.Plugins.Api.Host.PromptContribution.When.init -> void
 const SharpRail.Plugins.Api.Host.PromptContribution.MaxTextLength = 16000 -> int
 SharpRail.Plugins.Api.Host.IPluginHostContext.Prompt(SharpRail.Plugins.Api.Host.PromptContribution! contribution) -> void
 SharpRail.Plugins.Api.Host.IPluginHostContext.PromptTexts(string! agent, SharpRail.Plugins.Api.Host.PromptPlacement placement) -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.IPluginHostContext.PromptTexts(string! agent, SharpRail.Plugins.Api.Host.PromptPlacement placement, string! workspace) -> System.Collections.Generic.IReadOnlyList<string!>!
 abstract SharpRail.Plugins.Api.Host.LanguageServerPlugin.Spec.get -> SharpRail.Plugins.Api.Host.LanguageServerSpec!
 override SharpRail.Plugins.Api.Host.LanguageServerArtifact.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.Host.LanguageServerArtifact.GetHashCode() -> int

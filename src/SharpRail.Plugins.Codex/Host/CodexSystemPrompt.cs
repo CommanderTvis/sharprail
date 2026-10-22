@@ -111,4 +111,12 @@ public static class CodexSystemPrompt
         try { return JsonSerializer.Serialize(File.ReadAllText(FilePath()), Relaxed); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return JsonSerializer.Serialize(Text, Relaxed); }
     }
+
+    /// <summary>
+    /// The text one session gets as a JSON string: composed from the workspace's <paramref name="tools"/> and
+    /// <paramref name="sections"/>, so the Code Intelligence part names that project's languages, unless the user edited
+    /// the file; then the file is the text, as written.
+    /// </summary>
+    public static string Json(IReadOnlyList<string> tools, IReadOnlyList<string> sections) =>
+        Edited() ? Json() : JsonSerializer.Serialize(Compose(tools, sections), Relaxed);
 }

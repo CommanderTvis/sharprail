@@ -232,8 +232,19 @@ public interface IPluginHostContext
     IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement);
 
     /// <summary>
+    /// <see cref="PromptTexts(string, PromptPlacement)"/> for a session in one workspace: the host's Code Intelligence
+    /// text then names that workspace's languages, with examples on its own symbols. It never waits for the workspace's
+    /// files to be read: before the first read it is the workspace-independent text, and a later call gets the result.
+    /// </summary>
+    /// <param name="agent">The agent plugin id.</param>
+    /// <param name="placement">Which texts to list.</param>
+    /// <param name="workspace">The workspace's absolute path.</param>
+    /// <returns>The texts, without list markers.</returns>
+    IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace) => PromptTexts(agent, placement);
+
+    /// <summary>
     /// Lists the guidance every enabled plugin contributed with <see cref="ToolGuidance"/> (H20), in activation
-    /// order. It is <see cref="PromptTexts"/> for every agent with <see cref="PromptPlacement.ToolList"/>; an agent
+    /// order. It is <see cref="PromptTexts(string, PromptPlacement)"/> for every agent with <see cref="PromptPlacement.ToolList"/>; an agent
     /// plugin should call that with its own id instead.
     /// </summary>
     /// <returns>The items, without list markers.</returns>

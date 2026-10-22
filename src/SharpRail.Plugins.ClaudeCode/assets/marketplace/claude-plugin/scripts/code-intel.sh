@@ -14,7 +14,15 @@
 
 [ -n "${THINKRAIL_MCP_URL:-}" ] || exit 0
 
-REMINDER='SharpRail code intelligence: for code questions use lsp_navigate before grep, by name with no position, e.g. {"operation":"references","query":"TypeName","workspace":"<absolute path>"} (also definition, implementation, hover; symbols/symbolBody with a path). grep misses implementations, overloads, partial classes, generated and platform-specific code; keep it for literals, config and docs. Run lsp_diagnostics with paths on every edited file before reporting. Pass the absolute workspace to every SharpRail tool.'
+# The session's appended prompt (SHARPRAIL_CLAUDE_PROMPT_FILE) names this project's servers and a real example; the
+# reminder repeats those, or stays generic before the host has read the project's languages.
+SERVERS=''; EXAMPLE=''
+if [ -r "${SHARPRAIL_CLAUDE_PROMPT_FILE:-}" ]; then
+	SERVERS=$(awk '/^This project.s language servers/ { on = 1; next } on && /^- `/ { sub(/^- `/, ""); sub(/`.*/, ""); printf "%s%s", (n++ ? ", " : ""), $0; next } on { exit }' "$SHARPRAIL_CLAUDE_PROMPT_FILE" 2>/dev/null)
+	EXAMPLE=$(awk '/^Examples in this project/ { getline; sub(/^- `/, ""); sub(/`.*/, ""); gsub(/": /, "\":"); gsub(/, "/, ",\""); print; exit }' "$SHARPRAIL_CLAUDE_PROMPT_FILE" 2>/dev/null)
+fi
+[ -n "$EXAMPLE" ] || EXAMPLE='{"operation":"references","query":"TypeName","workspace":"<absolute path>"}'
+REMINDER="SharpRail code intelligence: for code questions use lsp_navigate before grep, by name with no position, e.g. $EXAMPLE (also definition, implementation, hover; symbols/symbolBody with a path).${SERVERS:+ Servers for this project: $SERVERS.} grep misses implementations, overloads, partial classes, generated and platform-specific code; keep it for literals, config and docs. Run lsp_diagnostics with paths on every edited file before reporting. Pass the absolute workspace to every SharpRail tool."
 
 context() {
 	# $1 event name, $2 text without double quotes or backslashes needing more than the escaping below.

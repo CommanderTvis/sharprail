@@ -78,6 +78,23 @@ internal static class SystemPrompt
         return Hash(File.ReadAllText(path)) != File.ReadAllText(StampPath()).Trim();
     }
 
+    /// <summary>
+    /// The file one session appends: the text composed from the workspace's <paramref name="tools"/> and
+    /// <paramref name="sections"/>, so its Code Intelligence part names that project's languages, in a file of its own
+    /// under <c>workspaces/</c>. When the user has edited the shared file, that file is every session's text instead.
+    /// </summary>
+    public static string WriteFor(string workspace, IReadOnlyList<string> tools, IReadOnlyList<string> sections)
+    {
+        if (Edited()) return FilePath();
+        var key = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(workspace)))[..16];
+        var path = Path.Combine(Path.GetDirectoryName(FilePath())!, "workspaces", key + ".md");
+        var text = Compose(tools, sections);
+        if (File.Exists(path) && File.ReadAllText(path) == text) return path;
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, text);
+        return path;
+    }
+
     /// <summary>Writes this build's text with the plugins' <paramref name="tools"/> and <paramref name="sections"/> unless the user has edited the file; <paramref name="reset"/> writes it regardless.</summary>
     public static string Write(IReadOnlyList<string> tools, IReadOnlyList<string> sections, bool reset = false)
     {

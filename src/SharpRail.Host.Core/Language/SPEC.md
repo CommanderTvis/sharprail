@@ -319,6 +319,13 @@ means no matching file was found. Lifecycle requests can select a catalog server
 file; no dummy file is created. Workspace diagnostics query only initialized sessions and never start
 or provision a server. With no running servers they report unavailable coverage, not a clean workspace.
 
+The agent instructions (Plugin API H20) read the same bounded discovery walk as a census
+(`ProjectLanguages.cs`): files per server, a chosen replacement standing in for the servers it replaces,
+ranked by count, and an example type and member from the primary language's most shared file stem
+(regex over at most 256 KiB of one file; no server is started). Results are cached per workspace in
+memory and in `<language storage>/profiles/`; a lookup returns the cached profile at once and starts a
+background census at most once a minute; only a change of the top servers or the example replaces it.
+
 ## Explicit diagnostic scans
 
 Agents can select `paths` containing every edited file, or `scope: "workspace"` to enumerate

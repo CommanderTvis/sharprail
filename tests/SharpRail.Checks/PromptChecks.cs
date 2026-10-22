@@ -91,15 +91,16 @@ internal static class PromptChecks
 
         // The strict Code Intelligence, server-start and delegation rules ride on the feature, in both agents.
         foreach (var prompt in new[] { all.Claude, all.Codex })
-            foreach (var rule in new[] { "You MUST use `lsp_navigate`", "ONLY for literals", "MUST run `lsp_diagnostics` with `paths`", "is NOT a substitute", "NEVER fall back silently to grep", "Only a setting the user disabled", "to EVERY `lsp_*` call", "the brief MUST contain", "The `lsp_*` tools start the language server a file needs and wait for it up to 60 s", "NEVER treat that as \"no results\"", "languageServers: [\"csharp\"]", "\"operation\": \"workspaceSymbols\"", "with the server ids its task needs", "Subagents do NOT receive this text", "macOS uses a different terminal renderer", "{\"operation\": \"references\", \"query\": ", "zero-based", "misses implementations, overloads, partial classes", "NEVER abandon LSP because of a malformed call", "its final report MUST state how many `lsp_navigate` and `lsp_diagnostics` calls", "reject a report with none", "NEVER push unless the user asks", "NEVER bypass or disable commit signing" })
+            foreach (var rule in new[] { "You MUST use `lsp_navigate`", "ONLY for literals", "MUST run `lsp_diagnostics` with `paths`", "is NOT a substitute", "NEVER fall back silently to grep", "Only a setting the user disabled", "to EVERY `lsp_*` call", "the brief MUST contain", "The `lsp_*` tools start the language server a file needs and wait for it up to 60 s", "NEVER treat that as \"no results\"", "languageServers: [", "\"operation\": \"workspaceSymbols\"", "with the server ids its task needs", "Subagents do NOT receive this text", "macOS uses a different terminal renderer", "{\"operation\": \"references\", \"query\": ", "zero-based", "misses implementations, overloads, partial classes", "NEVER abandon LSP because of a malformed call", "its final report MUST state how many `lsp_navigate` and `lsp_diagnostics` calls", "reject a report with none", "NEVER push unless the user asks", "NEVER bypass or disable commit signing" })
                 Require(prompt.Contains(rule, StringComparison.Ordinal), $"The instructions lack the rule \"{rule}\".");
-        Require(CorePrompt.LanguageServices.Length < 4_000, "The Code Intelligence text outgrew its budget: " + CorePrompt.LanguageServices.Length);
+        Require(CorePrompt.LanguageServices.Length < 3_600, "The Code Intelligence text outgrew its budget: " + CorePrompt.LanguageServices.Length);
         Require(!bare.Claude.Contains("context_search", StringComparison.Ordinal) && !all.Claude.Contains("You MUST call `context_search` first", StringComparison.Ordinal), "Air Context rules appear without the plugin.");
 
-        // The list of servers is the catalog's: every id with its file types; there is no per-server disabled mark (a server exists while its plugin is enabled).
-        foreach (var server in LanguageServers.Catalog)
-            Require(all.Claude.Contains($"- `{server.Id}`:", StringComparison.Ordinal) && all.Codex.Contains($"- `{server.Id}`:", StringComparison.Ordinal) && all.Claude.Contains(string.Join(" ", server.Extensions), StringComparison.Ordinal), $"The instructions do not list {server.Id}.");
+        // Without a workspace no server is named and the catalog is never listed; `lsp_status servers` is.
+        Require(Listed(all.Claude).Length == 0 && Listed(all.Codex).Length == 0 && all.Claude.Contains("`lsp_status {\"operation\": \"servers\"}` lists them", StringComparison.Ordinal),
+            "The workspace-independent text lists servers.");
         Require(!all.Claude.Contains("DISABLED by the user", StringComparison.Ordinal) && all.Claude.Contains("\"operation\": \"retry\", \"server\": \"<id>\", \"workspace\"", StringComparison.Ordinal), "The server list or the call example is wrong.");
+        await ProjectTexts(directory, state, runtime);
         await state.ChangeAsync([HostStateChange.Setting("language-server:csharp", "{\"disabled\":true}")]);
         Require(Prompts(runtime).Claude == all.Claude, "A retired per-server disabled flag still changes the server list.");
         await state.ChangeAsync([HostStateChange.Setting("language-server:csharp", "{}")]);
@@ -124,6 +125,88 @@ internal static class PromptChecks
             Require(File.ReadAllText(SystemPrompt.FilePath()) == bare.Claude, "Disabling the plugins left a stale Claude file.");
         }
         finally { Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", previous); }
-        Console.WriteLine("PASS prompt contributions: disabled plugins leave no trace, each adds only its own text, old wording and order kept, language services gate their guidance, files follow the current set");
+        Console.WriteLine("PASS prompt contributions: disabled plugins leave no trace, each adds only its own text, old wording and order kept, language services gate their guidance, files follow the current set, Code Intelligence names each project's languages");
+    }
+
+    /// <summary>The server ids the text lists as the project's, in order.</summary>
+    private static string[] Listed(string text) =>
+        [.. text.Split('\n').Where(line => line.StartsWith("- `", StringComparison.Ordinal) && line.Contains("` (", StringComparison.Ordinal) && line.EndsWith(" files", StringComparison.Ordinal) || line.EndsWith(" file", StringComparison.Ordinal))
+            .Select(line => line[3..line.IndexOf('`', 3)])];
+
+    /// <summary>
+    /// The Code Intelligence text for a workspace names only that project's servers, ranked by file count, with examples
+    /// on its own symbols; the first session never waits for the census and gets the workspace-independent text.
+    /// </summary>
+    private static async Task ProjectTexts(string directory, HostStateStore state, PluginRuntime runtime)
+    {
+        string Project(string name, params (string Path, string Text)[] files)
+        {
+            var root = Path.Combine(directory, "projects", name);
+            foreach (var (path, text) in files)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(root, path))!);
+                File.WriteAllText(Path.Combine(root, path), text);
+            }
+            return root;
+        }
+        string Section(string workspace) => runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, workspace)[0];
+
+        var csharp = Project("csharp",
+            ("src/Market/OrderBook.cs", "namespace Market;\n\npublic sealed partial class OrderBook\n{\n    public void Match(Order order)\n    {\n    }\n}\n"),
+            ("src/Market/OrderBook.Pricing.cs", "namespace Market;\n\npublic sealed partial class OrderBook\n{\n    internal decimal Spread() => 0;\n}\n"),
+            ("src/Market/Order.cs", "namespace Market;\n\npublic sealed record Order(decimal Price);\n"),
+            ("src/Program.cs", "System.Console.WriteLine();\n"),
+            ("README.md", "# Market\n"));
+        var typescript = Project("typescript",
+            ("src/cart.ts", "export class ShoppingCart {\n  private items: string[] = [];\n\n  addItem(item: string): void {\n    this.items.push(item);\n  }\n}\n"),
+            ("src/cart.view.ts", "import { ShoppingCart } from './cart';\nexport const view = new ShoppingCart();\n"),
+            ("src/index.ts", "export * from './cart';\n"),
+            ("styles/cart.css", ".cart { color: red; }\n"),
+            ("styles/base.css", "body { margin: 0; }\n"));
+        var c = Project("c",
+            ("src/parser.c", "#include \"parser.h\"\n\nint parse_config(const char *path)\n{\n    return path != 0;\n}\n"),
+            ("src/parser.h", "int parse_config(const char *path);\n"),
+            ("src/main.c", "int main(void) { return 0; }\n"));
+
+        foreach (var workspace in new[] { csharp, typescript, c })
+        {
+            // Launch never waits: before the census there is no profile and the text is the generic one for this path.
+            Require(state.ProjectLanguages(workspace) is null, "A launch waited for the language census.");
+            var first = Section(workspace);
+            Require(Listed(first).Length == 0 && first.Contains(workspace, StringComparison.Ordinal) && first.Contains("\"query\": \"TypeName\"", StringComparison.Ordinal),
+                "Before the census the text is not the generic one: " + first);
+            await state.ProjectLanguagesPending(workspace);
+        }
+
+        var cs = Section(csharp);
+        Require(Listed(cs).SequenceEqual(["csharp"]), "A C#-only project lists other servers: " + string.Join(", ", Listed(cs)));
+        Require(cs.Contains("- `csharp` (C#: .cs", StringComparison.Ordinal) && cs.Contains("\"operation\": \"references\", \"query\": \"OrderBook\"", StringComparison.Ordinal) &&
+            cs.Contains("\"operation\": \"symbolBody\", \"path\": \"src/Market/OrderBook.cs\", \"query\": \"Match\"", StringComparison.Ordinal) && cs.Contains("languageServers: [\"csharp\"]", StringComparison.Ordinal),
+            "The C# project's examples do not use its symbols: " + cs);
+
+        var ts = Section(typescript);
+        Require(Listed(ts).SequenceEqual(["typescript", "css"]), "A TypeScript and CSS project lists: " + string.Join(", ", Listed(ts)));
+        Require(ts.Contains("Examples in this project (JavaScript / TypeScript)", StringComparison.Ordinal) && ts.Contains("\"query\": \"ShoppingCart\"", StringComparison.Ordinal) &&
+            ts.Contains("\"path\": \"src/cart.ts\", \"query\": \"addItem\"", StringComparison.Ordinal), "The TypeScript project's examples do not use its symbols: " + ts);
+
+        var clang = Section(c);
+        Require(Listed(clang).SequenceEqual(["clangd"]) && clang.Contains("\"query\": \"parse_config\"", StringComparison.Ordinal), "A C project is not clangd with its own function: " + clang);
+
+        // The full catalog is never emitted, for a project or without one.
+        foreach (var text in new[] { cs, ts, clang, Section(Path.Combine(directory, "projects", "missing")) })
+            Require(Listed(text).Length <= ProjectLanguageProfile.Shown && LanguageServers.Catalog.Count(server => text.Contains("`" + server.Id + "` (", StringComparison.Ordinal)) <= ProjectLanguageProfile.Shown,
+                "The text lists the server catalog.");
+
+        // The agents' files: Claude appends a per-workspace file, Codex's launch text is composed for the workspace.
+        var previous = Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR");
+        Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(directory, "project-files"));
+        try
+        {
+            var file = SystemPrompt.WriteFor(csharp, runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList, csharp), runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, csharp));
+            Require(file != SystemPrompt.FilePath() && File.ReadAllText(file).Contains("\"query\": \"OrderBook\"", StringComparison.Ordinal), "Claude's session file is not the workspace's text.");
+            var json = System.Text.Json.JsonSerializer.Deserialize<string>(CodexSystemPrompt.Json(runtime.PromptTexts(CodexManifest.Id, PromptPlacement.ToolList, c), runtime.PromptTexts(CodexManifest.Id, PromptPlacement.Section, c)))!;
+            Require(json.Contains("- `clangd` (", StringComparison.Ordinal), "Codex's launch text is not the workspace's.");
+        }
+        finally { Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", previous); }
     }
 }

@@ -181,7 +181,8 @@ public sealed class CodexHost : PluginHostModule
             WritePrompt();
             var environment = new Dictionary<string, string>
             {
-                [CodexLaunch.PromptJsonVariable] = CodexSystemPrompt.Json(),
+                [CodexLaunch.PromptJsonVariable] = CodexSystemPrompt.Json(context.PromptTexts(CodexManifest.Id, PromptPlacement.ToolList, terminal.WorkspaceId),
+                    context.PromptTexts(CodexManifest.Id, PromptPlacement.Section, terminal.WorkspaceId)),
                 [CodexConfig.StatusUrlEnv] = $"{context.PublicBaseUrl()}/status/{context.TerminalToken(terminal)}"
             };
             var projectId = workspaces.TryGetValue(terminal.WorkspaceId, out var workspace) ? workspace.ProjectId : null;

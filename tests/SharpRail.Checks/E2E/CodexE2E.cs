@@ -658,8 +658,11 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => Args(argsLog).Length > 0);
         var args = WithoutLauncherMcp(Args(argsLog));
         var content = File.ReadAllText(CodexSystemPrompt.FilePath());
-        Require(args.Length == 4 && args[0] == "-c" && args[1].StartsWith("developer_instructions=", StringComparison.Ordinal) &&
-            JsonSerializer.Deserialize<string>(args[1]["developer_instructions=".Length..]) == content, "launch arguments: " + string.Join(" | ", args));
+        // The session gets the file's text with the Code Intelligence section composed for its own workspace.
+        static string Shared(string text) => text.Split("\n## Code intelligence")[0];
+        var launched = args.Length > 1 && args[1].StartsWith("developer_instructions=", StringComparison.Ordinal) ? JsonSerializer.Deserialize<string>(args[1]["developer_instructions=".Length..]) ?? "" : "";
+        Require(args.Length == 4 && args[0] == "-c" && Shared(launched) == Shared(content) && (launched == content || !launched.Contains("<absolute path>", StringComparison.Ordinal)),
+            "launch arguments: " + string.Join(" | ", args));
         // The agent is granted the host-side scratch directory: it exists, lies under the state directory's scratch area and is writable.
         Require(args[2] == "--add-dir" && Directory.Exists(args[3]) && args[3].Contains(Path.DirectorySeparatorChar + "scratch" + Path.DirectorySeparatorChar, StringComparison.Ordinal) &&
             !args[3].StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal), "the scratch grant: " + args[3]);

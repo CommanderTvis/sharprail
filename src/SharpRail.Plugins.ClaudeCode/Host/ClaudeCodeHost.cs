@@ -205,9 +205,19 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         {
             // Plugins enabled or disabled since the last session change what the file says.
             WritePrompt();
+            var promptFile = SystemPrompt.FilePath();
+            try
+            {
+                promptFile = SystemPrompt.WriteFor(terminal.WorkspaceId, context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList, terminal.WorkspaceId),
+                    context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, terminal.WorkspaceId));
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                context.Log.Warn("could not write the workspace's system prompt: " + error.Message);
+            }
             var environment = new Dictionary<string, string>
             {
-                [ClaudeCodeContract.PromptFileVariable] = SystemPrompt.FilePath(),
+                [ClaudeCodeContract.PromptFileVariable] = promptFile,
                 [ClaudeCodeContract.PluginDirectoryVariable] = HookPluginDirectory
             };
             if (context.Projects().FirstOrDefault(project => project.Path == ProjectOf(terminal.WorkspaceId)) is { } project)

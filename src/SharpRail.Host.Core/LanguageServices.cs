@@ -27,6 +27,25 @@ public sealed partial class HostStateStore
         }
     }
 
+    private ProjectLanguageCache? projectLanguages;
+
+    /// <summary>
+    /// The workspace's last known languages for the agent instructions (H20), or <see langword="null"/> before the first
+    /// census. Never waits: a stale or missing entry starts a background census whose result serves the next session.
+    /// </summary>
+    internal ProjectLanguageProfile? ProjectLanguages(string workspace)
+    {
+        if (!Current.Settings.LspEnabled) return null;
+        ProjectLanguageCache cache;
+        lock (gate)
+            cache = projectLanguages ??= new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language"),
+                (path, token) => Languages.LanguageProfile(path, token));
+        return cache.Get(Path.TrimEndingDirectorySeparator(workspace));
+    }
+
+    /// <summary>The census in flight for a workspace's agent instructions, for checks.</summary>
+    internal Task ProjectLanguagesPending(string workspace) => projectLanguages?.Pending(Path.TrimEndingDirectorySeparator(workspace)) ?? Task.CompletedTask;
+
     /// <summary>The language servers enabled plugins provide (H21), set by the plugin runtime when it starts.</summary>
     internal Func<IReadOnlyList<LanguageServerSpec>>? LanguageServerSource { get; set; }
 

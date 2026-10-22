@@ -485,12 +485,14 @@ internal static class ClaudeCodeChecks
         var state = Path.Combine(Path.GetTempPath(), "sharprail-code-intel-check-" + Environment.ProcessId);
         try
         {
-            async Task<(int Exit, string Output)> Hook(string mode, string input, bool managed = true)
+            async Task<(int Exit, string Output)> Hook(string mode, string input, bool managed = true, string? promptFile = null)
             {
                 var start = new System.Diagnostics.ProcessStartInfo("sh") { RedirectStandardInput = true, RedirectStandardOutput = true, UseShellExecute = false };
                 start.ArgumentList.Add(Path.Combine(plugin, "scripts", "code-intel.sh"));
                 start.ArgumentList.Add(mode);
                 start.Environment["CODE_INTEL_STATE"] = state;
+                if (promptFile is not null) start.Environment[ClaudeCodeContract.PromptFileVariable] = promptFile;
+                else start.Environment.Remove(ClaudeCodeContract.PromptFileVariable);
                 if (managed) start.Environment["THINKRAIL_MCP_URL"] = "http://127.0.0.1:1/mcp";
                 else start.Environment.Remove("THINKRAIL_MCP_URL");
                 using var process = System.Diagnostics.Process.Start(start)!;
@@ -512,6 +514,17 @@ internal static class ClaudeCodeChecks
 
             Require(Context(await Hook("session", "{}"), "SessionStart").Contains("lsp_navigate before grep", StringComparison.Ordinal), "The session reminder does not name lsp_navigate.");
             Require(Context(await Hook("subagent", "{}"), "SubagentStart").Contains("lsp_diagnostics", StringComparison.Ordinal), "The subagent reminder does not name lsp_diagnostics.");
+            // With the session's prompt file the reminders repeat its project servers and its real example, nothing else.
+            Directory.CreateDirectory(state);
+            var promptFile = Path.Combine(state, "prompt.md");
+            File.WriteAllText(promptFile, "# x\n\nThis project's language servers, by file count; `lsp_status {}` starts one:\n- `typescript` (JavaScript / TypeScript: .ts): 3 files\n- `css` (CSS: .css): 2 files\nOther servers exist.\n\nExamples in this project (JavaScript / TypeScript):\n- `{\"operation\": \"references\", \"query\": \"ShoppingCart\", \"workspace\": \"/work/space\"}` (also `definition`).\n");
+            foreach (var (mode, hookEvent) in new[] { ("session", "SessionStart"), ("subagent", "SubagentStart") })
+            {
+                var project = Context(await Hook(mode, "{}", promptFile: promptFile), hookEvent);
+                Require(project.Contains("{\"operation\":\"references\",\"query\":\"ShoppingCart\",\"workspace\":\"/work/space\"}", StringComparison.Ordinal) &&
+                    project.Contains("Servers for this project: typescript, css.", StringComparison.Ordinal) && !project.Contains("TypeName", StringComparison.Ordinal) && !project.Contains("csharp", StringComparison.Ordinal),
+                    "The reminder does not repeat the project's servers and example: " + project);
+            }
             var nudge = Context(await Hook("pretool", Grep("grep", "TerminalView", "src", "*.cs")), "PreToolUse");
             Require(nudge.Contains("{\"operation\":\"references\",\"query\":\"TerminalView\",\"workspace\":\"/work/space\"}", StringComparison.Ordinal), "A code-symbol grep was not answered with the lsp_navigate call: " + nudge);
             Require(Context(await Hook("pretool", Bash("bash", "rg -n \"class LanguageService\\b\" src --type cs | head")), "PreToolUse").Contains("\"query\":\"LanguageService\"", StringComparison.Ordinal), "A shell rg for a declaration was not nudged.");
