@@ -120,8 +120,8 @@ public sealed record CodexIdeContext(IReadOnlyList<CodexIdeFile> OpenTabs)
 
 public sealed record CodexNoParams;
 
-/// <summary>The developer instructions file on the host, and whether the user has changed it from SharpRail's text.</summary>
-public sealed record CodexSystemPromptFile(string Path, bool Edited);
+/// <summary>The developer instructions file on the host, and where earlier hand edits SharpRail no longer uses were kept (null when none).</summary>
+public sealed record CodexSystemPromptFile(string Path, string? IgnoredEdits);
 
 public sealed record CodexWorkspaceParams(string WorkspaceId);
 
@@ -177,14 +177,18 @@ public static class CodexContract
     public static readonly PluginMethod<CodexConfigParams, CodexConfigSnapshot> InstallHooks = new("installHooks");
     public static readonly PluginMethod<CodexWorkspaceParams, IReadOnlyList<CodexStatusPush>> StatusSnapshot = new("statusSnapshot");
     public static readonly PluginMethod<CodexNoParams, CodexSystemPromptFile> SystemPromptGet = new("systemPromptGet");
-    /// <summary>Writes SharpRail's own text over the user's edits.</summary>
-    public static readonly PluginMethod<CodexNoParams, CodexSystemPromptFile> SystemPromptReset = new("systemPromptReset");
+    /// <summary>The instruction sections this agent's sessions in a workspace get, with the project's on/off choice for each.</summary>
+    public static readonly PluginMethod<InstructionSectionQuery, InstructionSectionList> InstructionsList = new("instructionsList");
+    /// <summary>Turns one section on or off in the project's <c>.sharprail/instructions.toml</c>.</summary>
+    public static readonly PluginMethod<InstructionSectionToggle, InstructionSectionList> InstructionsSet = new("instructionsSet");
 
     public static readonly PluginChannel<CodexIdeRequest> IdeRequest = PluginChannel<CodexIdeRequest>.Event("ideRequest");
     // The fork declares this a state channel whose snapshot is a list; here a state channel's snapshot must be its
     // payload type, so it is an event channel and the UI half hydrates each workspace through StatusSnapshot itself.
     public static readonly PluginChannel<CodexStatusPush> Status = PluginChannel<CodexStatusPush>.Event("status");
+    /// <summary>A project's <c>.sharprail/instructions.toml</c> changed; open instruction views re-read their sections.</summary>
+    public static readonly PluginChannel<InstructionSectionsChanged> InstructionsChanged = PluginChannel<InstructionSectionsChanged>.Event("instructionsChanged");
 
     public static readonly PluginContract Contract = PluginContract.Create<CodexSettings>(CodexManifest.Id, WireVersion,
-        [IdeReply, Account, Models, ConfigGet, SetValue, CreateInstructions, InstallHooks, StatusSnapshot, SystemPromptGet, SystemPromptReset], [IdeRequest, Status]);
+        [IdeReply, Account, Models, ConfigGet, SetValue, CreateInstructions, InstallHooks, StatusSnapshot, SystemPromptGet, InstructionsList, InstructionsSet], [IdeRequest, Status, InstructionsChanged]);
 }

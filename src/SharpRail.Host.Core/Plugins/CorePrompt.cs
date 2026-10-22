@@ -6,10 +6,51 @@ namespace SharpRail.Host.Core.Plugins;
 
 /// <summary>
 /// The host's own text for the instructions agent plugins give sessions (H20): what belongs to a core feature rather
-/// than to a plugin, each gated on that feature. It comes ahead of every plugin's contributions.
+/// than to a plugin, each gated on that feature. It comes ahead of every plugin's contributions; each piece has an identifier
+/// (<c>core.&lt;id&gt;</c>) a project can turn off in <c>.sharprail/instructions.toml</c>.
 /// </summary>
 internal static class CorePrompt
 {
+    /// <summary>
+    /// The host's sections that every agent gets, in order, by identifier (<c>core.</c> plus it): what used to be each
+    /// agent plugin's fixed text, so a project can turn each off in <c>.sharprail/instructions.toml</c>.
+    /// </summary>
+    internal static readonly IReadOnlyList<(string Id, string Title, string Description, string Text)> Fixed =
+    [
+        ("terminal-title", "Terminal title", "Name this terminal's tab with set_title once the task is clear.", """
+            Call `set_title` once, as soon as the task is clear, with a `title` (3–6 words, in the user's language) for this terminal's tab.
+            An unnamed managed workspace takes the first terminal title as its workspace name and branch slug; choose a concise task title. Manual workspace names are kept.
+            Title work on a PR, issue or ticket `<Verb> #<number> <its exact title>`. Call it again only when the terminal moves to another task.
+            """),
+        ("pull-requests", "Pull request skill", "Use shipping-a-pr only when the user wants work on a pull request.", """
+            Use `shipping-a-pr` only when the user's prompt indicates they want work on a pull request. A request to commit and/or push alone does not authorize using this skill.
+            """),
+        ("workspaces", "Workspaces", "Reuse the prepared workspace; create others only with workspace_create.", """
+            Reuse the current workspace when the user has already prepared it for this task, including a non-Default workspace.
+            Create another workspace only when the task needs additional isolation or parallel work; then you MUST use `workspace_create` (Git worktree).
+            Supply a concise `description` explaining the task: the user sees it as the workspace label in Projects.
+            Supply `branch` when a specific new branch is needed and `baseBranch` for the requested base; otherwise the base is the calling terminal's workspace HEAD.
+            Work in the returned `path`; the tool does not switch your terminal. NEVER use `git worktree add`; use this tool so the workspace is placed and described in SharpRail.
+            """),
+        ("parallel-tasks", "Parallel tasks", "Suggest a subagent and workspace per unrelated task.", """
+            When the user gives you several unrelated tasks or bug reports, suggest parallelizing them with a subagent and a separate SharpRail workspace per independent task, even if this session did not start as an orchestrator.
+            Explain that this keeps each task's context focused and lets the user follow and review the work separately in SharpRail. Make the suggestion before processing the backlog sequentially; delegate only when authorized and subagent tools are available.
+            """),
+        ("workspace-cleanup", "Workspace cleanup", "Remove workspaces you created with workspace_delete once their work is kept.", """
+            Reduce clutter by removing workspaces you created once their work is preserved and they are no longer needed.
+            Leave the checkout first, then call `workspace_delete` with its `path` rather than `git worktree remove`, so Projects updates at once; it refuses uncommitted work. Keep any workspace with an active agent.
+            Removing a workspace removes its checkout, not its branch. Never remove workspaces you did not create or the Default workspace.
+            """),
+        ("push-and-signing", "Pushing and signing", "Never push unasked or bypass commit signing.", """
+            NEVER push unless the user asks. NEVER bypass or disable commit signing: if signing or the SSH agent does not respond, the user is away; stop and report instead of working around it.
+            """),
+        ("warm-workspaces", "Warm workspaces", "Keep .sharprail/workspace.toml listing dependency and cache directories.", """
+            New workspaces can start warm: `.sharprail/workspace.toml` in the project root (committed, yours to edit) lists git-ignored paths cloned from the Default workspace into workspaces created afterwards.
+            Schema (TOML): `version = 1`, then `[clone]` with `include = ["node_modules", ".venv", "**/target"]` and optional `exclude = ["**/target/tmp"]`. Patterns are root-relative: `*`/`?` stay inside a segment, `**` spans segments, a name without `/` matches at any depth.
+            Only ignored, untracked paths are cloned, and without the file nothing is. You MUST add an entry when you introduce a dependency directory or build cache worth sharing; the edit does not affect existing workspaces.
+            """),
+    ];
+
     /// <summary>
     /// The Code Intelligence guidance: the <c>lsp_*</c> rules, stated once, and <c>.sharprail/language.toml</c>.
     /// <c>{{project}}</c> becomes the workspace's servers and examples. It is left out while language services are disabled.
@@ -101,6 +142,11 @@ internal static class CorePrompt
     internal static IReadOnlyList<PromptContribution> Contributions(Func<bool> languageServicesEnabled, Func<IReadOnlyList<LanguageServer>>? catalog = null,
         ProjectLanguageProfile? profile = null, string workspace = "") =>
     [
-        new() { Id = "language-services", Text = Text(catalog?.Invoke(), profile, workspace), Placement = PromptPlacement.Section, When = languageServicesEnabled },
+        .. Fixed.Select(item => new PromptContribution { Id = item.Id, Title = item.Title, Description = item.Description, Text = item.Text, Placement = PromptPlacement.Section }),
+        new()
+        {
+            Id = "code-intelligence", Title = "Code intelligence", Description = "Use lsp_navigate and lsp_diagnostics instead of grep; this project's servers.",
+            Text = Text(catalog?.Invoke(), profile, workspace), Placement = PromptPlacement.Section, When = languageServicesEnabled
+        },
     ];
 }

@@ -45,28 +45,6 @@ public static class CodexPanel
     private static string FormatSize(long bytes) =>
         bytes < 1024 ? $"{bytes} B" : Math.Round(bytes / 1024.0, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.CurrentCulture) + " KB";
 
-    /// <summary>Opens the developer instructions in an editor tab of <paramref name="workspaceId"/>, or the active workspace.</summary>
-    /// <summary>Opens the instructions file as a tab of the workspace; true once the tab is open.</summary>
-    public static async Task<bool> EditSystemPromptAsync(IPluginUIContext context, string? workspaceId = null)
-    {
-        try
-        {
-            if ((workspaceId ?? context.Host().ActiveWorkspaceId) is not { } workspace)
-            {
-                context.Notify(PluginNotificationKind.Info, "Open a workspace to edit the instructions", "The file opens as a tab of the workspace you are in.");
-                return false;
-            }
-            var file = await context.RequestAsync(CodexContract.SystemPromptGet, new CodexNoParams());
-            if (await context.Editors.OpenAsync(workspace, file.Path, new EditorOpenOptions()) is not null) return true;
-            context.Notify(PluginNotificationKind.Error, "Couldn't open the instructions", file.Path);
-        }
-        catch (Exception error) when (error is not OperationCanceledException)
-        {
-            context.Notify(PluginNotificationKind.Error, "Couldn't open the instructions", error.Message);
-        }
-        return false;
-    }
-
     public static Control Create(IPluginUIContext context, string workspaceId)
     {
         CodexConfigSnapshot? snapshot = null;
@@ -232,15 +210,17 @@ public static class CodexPanel
                 row.FindControl<TextBlock>("CodexInstructionsSize")!.Text = FormatSize(file.Bytes);
                 rows.Children.Add(row);
             }
-            // Editable whether or not a session here was launched with it; SharpRail stops refreshing it once it is edited.
+            // Sections can be turned off for the project; the instructions themselves are never edited here.
             if (context.Settings<CodexSettings>().AppendSystemPrompt)
             {
-                var edit = Ui.Button("Edit SharpRail's instructions", () => _ = EditSystemPromptAsync(context, workspaceId), "pencil");
-                edit.Name = "CodexSystemPromptEditPane";
-                edit.Margin = new Thickness(8);
-                edit.HorizontalAlignment = HorizontalAlignment.Left;
-                ToolTip.SetTip(edit, "The developer instructions sessions SharpRail starts add. Your edits are kept.");
-                rows.Children.Add(edit);
+                var view = new InstructionSectionsView("Codex",
+                    () => context.RequestAsync(CodexContract.InstructionsList, new InstructionSectionQuery { WorkspaceId = workspaceId }).AsTask(),
+                    (id, enabled) => context.RequestAsync(CodexContract.InstructionsSet, new InstructionSectionToggle { WorkspaceId = workspaceId, Id = id, Enabled = enabled }).AsTask(),
+                    message => context.Notify(PluginNotificationKind.Error, "Couldn't change SharpRail's instructions", message));
+                IDisposable? subscription = null;
+                view.AttachedToVisualTree += (_, _) => subscription ??= context.Subscribe(CodexContract.InstructionsChanged, _ => view.Refresh());
+                view.DetachedFromVisualTree += (_, _) => { subscription?.Dispose(); subscription = null; };
+                rows.Children.Add(view);
             }
             return frame;
         }

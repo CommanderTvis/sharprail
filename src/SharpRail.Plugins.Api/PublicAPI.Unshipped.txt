@@ -451,3 +451,47 @@ const SharpRail.Plugins.Api.PluginCategories.Swift = "Swift" -> string!
 const SharpRail.Plugins.Api.PluginCategories.Other = "Other" -> string!
 const SharpRail.Plugins.Api.PluginCategories.VersionControl = "Version Control" -> string!
 static SharpRail.Plugins.Api.PluginCategories.Order.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.InstructionSection
+SharpRail.Plugins.Api.InstructionSection.Description.get -> string!
+SharpRail.Plugins.Api.InstructionSection.Description.init -> void
+SharpRail.Plugins.Api.InstructionSection.Enabled.get -> bool
+SharpRail.Plugins.Api.InstructionSection.Enabled.init -> void
+SharpRail.Plugins.Api.InstructionSection.Id.get -> string!
+SharpRail.Plugins.Api.InstructionSection.Id.init -> void
+SharpRail.Plugins.Api.InstructionSection.InstructionSection() -> void
+SharpRail.Plugins.Api.InstructionSection.Source.get -> string!
+SharpRail.Plugins.Api.InstructionSection.Source.init -> void
+SharpRail.Plugins.Api.InstructionSection.SourceName.get -> string!
+SharpRail.Plugins.Api.InstructionSection.SourceName.init -> void
+SharpRail.Plugins.Api.InstructionSection.Text.get -> string!
+SharpRail.Plugins.Api.InstructionSection.Text.init -> void
+SharpRail.Plugins.Api.InstructionSection.Title.get -> string!
+SharpRail.Plugins.Api.InstructionSection.Title.init -> void
+SharpRail.Plugins.Api.InstructionSectionList
+SharpRail.Plugins.Api.InstructionSectionList.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.InstructionSectionList.Diagnostics.init -> void
+SharpRail.Plugins.Api.InstructionSectionList.IgnoredEditsPath.get -> string?
+SharpRail.Plugins.Api.InstructionSectionList.IgnoredEditsPath.init -> void
+SharpRail.Plugins.Api.InstructionSectionList.InstructionSectionList() -> void
+SharpRail.Plugins.Api.InstructionSectionList.Path.get -> string!
+SharpRail.Plugins.Api.InstructionSectionList.Path.init -> void
+SharpRail.Plugins.Api.InstructionSectionList.Sections.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.InstructionSection!>!
+SharpRail.Plugins.Api.InstructionSectionList.Sections.init -> void
+SharpRail.Plugins.Api.InstructionSectionList.UnknownDisabled.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.InstructionSectionList.UnknownDisabled.init -> void
+SharpRail.Plugins.Api.InstructionSectionQuery
+SharpRail.Plugins.Api.InstructionSectionQuery.InstructionSectionQuery() -> void
+SharpRail.Plugins.Api.InstructionSectionQuery.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.InstructionSectionQuery.WorkspaceId.init -> void
+SharpRail.Plugins.Api.InstructionSectionToggle
+SharpRail.Plugins.Api.InstructionSectionToggle.Enabled.get -> bool
+SharpRail.Plugins.Api.InstructionSectionToggle.Enabled.init -> void
+SharpRail.Plugins.Api.InstructionSectionToggle.Id.get -> string!
+SharpRail.Plugins.Api.InstructionSectionToggle.Id.init -> void
+SharpRail.Plugins.Api.InstructionSectionToggle.InstructionSectionToggle() -> void
+SharpRail.Plugins.Api.InstructionSectionToggle.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.InstructionSectionToggle.WorkspaceId.init -> void
+SharpRail.Plugins.Api.InstructionSectionsChanged
+SharpRail.Plugins.Api.InstructionSectionsChanged.InstructionSectionsChanged() -> void
+SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.get -> string!
+SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.init -> void

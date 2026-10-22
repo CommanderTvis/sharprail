@@ -44,7 +44,7 @@ Listings mark Git-ignored entries without hiding them, using a NUL-delimited `gi
   which the operation then reports itself. A read also refuses a linked leaf; a change write leaves the leaf
   to its caller, which never follows it. Listings skip links entirely.
 - Listings hide `.git` and `.tools` (the repository's provisioned, Git-ignored toolchains) but show the project's
-  `.sharprail` like any directory: its committed config (`workspace.toml`, `language.toml`) is edited there, and
+  `.sharprail` like any directory: its committed config (`workspace.toml`, `language.toml`, `instructions.toml`) is edited there, and
   ignored local state inside it carries the usual ignore mark. They sort directories first and then by name
   case-insensitively, and compact a run of directories that each hold exactly one directory into one
   `a/b/c` row.

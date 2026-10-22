@@ -101,6 +101,7 @@ internal static class PromptChecks
             "The workspace-independent text lists servers.");
         Require(!all.Claude.Contains("DISABLED by the user", StringComparison.Ordinal) && all.Claude.Contains("\"operation\": \"retry\", \"server\": \"<id>\", \"workspace\"", StringComparison.Ordinal), "The server list or the call example is wrong.");
         await ProjectTexts(directory, state, runtime);
+        Instructions(directory, state, runtime);
         await state.ChangeAsync([HostStateChange.Setting("language-server:csharp", "{\"disabled\":true}")]);
         Require(Prompts(runtime).Claude == all.Claude, "A retired per-server disabled flag still changes the server list.");
         await state.ChangeAsync([HostStateChange.Setting("language-server:csharp", "{}")]);
@@ -128,6 +129,80 @@ internal static class PromptChecks
         Console.WriteLine("PASS prompt contributions: disabled plugins leave no trace, each adds only its own text, old wording and order kept, language services gate their guidance, files follow the current set, Code Intelligence names each project's languages");
     }
 
+    /// <summary>
+    /// The project's <c>.sharprail/instructions.toml</c> disable-list: every section has a stable id and starts on, a listed id
+    /// leaves its section out of both agents' text, unknown ids are kept and ignored, the file round-trips and is validated,
+    /// a broken file disables nothing and refuses changes, and every change is broadcast.
+    /// </summary>
+    private static void Instructions(string directory, HostStateStore state, PluginRuntime runtime)
+    {
+        var project = Path.Combine(directory, "instructions-project");
+        Directory.CreateDirectory(project);
+        var root = state.InstructionsRoot(project);
+        var file = ProjectInstructionsFile.PathOf(root);
+        string Claude() => SystemPrompt.Compose(runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList, project), runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, project));
+        string Codex() => CodexSystemPrompt.Compose(runtime.PromptTexts(CodexManifest.Id, PromptPlacement.ToolList, project), runtime.PromptTexts(CodexManifest.Id, PromptPlacement.Section, project));
+        var full = (Claude: Claude(), Codex: Codex());
+        var visualize = "plugin." + VisualizeContract.Manifest.Id + ".visualize";
+        string[] ids =
+        [
+            visualize, "plugin." + SpecDialectManifest.Manifest.Id + ".spec-tools", "plugin." + BlueprintContract.Manifest.Id + ".blueprint-check",
+            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.code-intelligence",
+        ];
+        var listed = runtime.InstructionSections(ClaudeCodeContract.Id, project);
+        Require(listed.Sections.Select(section => section.Id).SequenceEqual(ids), "The sections are not the expected ids in composition order: " + string.Join(", ", listed.Sections.Select(section => section.Id)));
+        Require(listed.Sections.All(section => section.Enabled && section.Title.Length > 0 && section.Description.Length > 0 && section.Text.Length > 0) && listed.Path == file && !File.Exists(file),
+            "Without a file every section is on, titled and described.");
+        Require(listed.Sections.All(section => full.Claude.Contains(section.Text.TrimEnd('\n'), StringComparison.Ordinal)), "A listed section's preview is not the text sessions get.");
+
+        var changes = new List<string>();
+        void Changed(string changedRoot) { lock (changes) changes.Add(changedRoot); }
+        state.InstructionsChanged += Changed;
+        try
+        {
+            state.SetInstructionSection(project, "core.workspaces", false);
+            state.SetInstructionSection(project, visualize, false);
+            Require(File.ReadAllText(file).Contains("\"core.workspaces\"", StringComparison.Ordinal) && File.ReadAllText(file).Contains("version = 1", StringComparison.Ordinal),
+                "Turning sections off did not write the disable-list.");
+            foreach (var prompt in new[] { Claude(), Codex() })
+                Require(!prompt.Contains("`workspace_create`", StringComparison.Ordinal) && !prompt.Contains("`visualize`:", StringComparison.Ordinal) && prompt.Contains("`set_title`", StringComparison.Ordinal),
+                    "A disabled section is still composed, or another one went missing.");
+            Require(runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section).Any(text => text.Contains("`workspace_create`", StringComparison.Ordinal)),
+                "The workspace-independent text follows one project's choices.");
+            Require(changes.Count == 2 && changes.All(item => item == root), "Each change was not broadcast once with the project root.");
+
+            // Unknown ids (a plugin that is off or gone) stay in the file and are ignored; other keys survive a rewrite.
+            File.WriteAllText(file, "version = 1\ndisabled = [\"core.workspaces\", \"plugin.gone.thing\"]\nnote = \"kept\"\n");
+            listed = runtime.InstructionSections(CodexManifest.Id, project);
+            Require(listed.UnknownDisabled.SequenceEqual(["plugin.gone.thing"]) && listed.Sections.Single(section => section.Id == visualize).Enabled && !listed.Sections.Single(section => section.Id == "core.workspaces").Enabled,
+                "An edit on disk was not read, or the unknown id was not reported.");
+            Require(changes.Count == 3, "A change found on disk was not broadcast.");
+            state.SetInstructionSection(project, "core.workspaces", true);
+            Require(ProjectInstructionsFile.Read(root).Disabled.SequenceEqual(["plugin.gone.thing"]) && File.ReadAllText(file).Contains("note = \"kept\"", StringComparison.Ordinal),
+                "Saving dropped an unknown id or another key.");
+            Require(Claude() == full.Claude && Codex() == full.Codex, "With only unknown ids listed the text is not the full text.");
+
+            // A broken file turns nothing off and is never overwritten.
+            File.WriteAllText(file, "version = 1\ndisabled = [\"core.workspaces\"");
+            Require(Claude() == full.Claude && runtime.InstructionSections(ClaudeCodeContract.Id, project).Diagnostics.Count == 1, "A broken file changed the text or went unreported.");
+            try { state.SetInstructionSection(project, visualize, false); throw new InvalidOperationException("A broken file was overwritten."); }
+            catch (ArgumentException) { }
+            Require(File.ReadAllText(file) == "version = 1\ndisabled = [\"core.workspaces\"", "A refused change touched the file.");
+        }
+        finally { state.InstructionsChanged -= Changed; File.Delete(file); }
+
+        // Round trip and validation.
+        var parsed = ProjectInstructionsFile.Parse(ProjectInstructionsFile.Render(["core.b", "plugin.x.y", "core.a", "core.a"]), "f", "s");
+        Require(parsed.Disabled.SequenceEqual(["core.a", "core.b", "plugin.x.y"]) && parsed.Diagnostics.Count == 0 && parsed.Writable, "The file does not round-trip.");
+        Require(ProjectInstructionsFile.Parse(ProjectInstructionsFile.Render([]), "f", "s") is { Disabled.Count: 0, Diagnostics.Count: 0 }, "An empty list does not round-trip.");
+        Require(ProjectInstructionsFile.Parse("version = 2\ndisabled = [\"core.a\"]\n", "f", "s") is { Disabled.Count: 0, Diagnostics.Count: 1 }, "Another version was used.");
+        Require(ProjectInstructionsFile.Parse("version = 1\ndisabled = \"core.a\"\n", "f", "s") is { Disabled.Count: 0, Diagnostics.Count: 1 }, "A non-array list was used.");
+        Require(ProjectInstructionsFile.Parse("version = 1\ndisabled = [\"Not An Id\", 3, \"core.ok\"]\n", "f", "s") is { Disabled: ["core.ok"], Diagnostics.Count: 2, Writable: false },
+            "Malformed entries were used, or the file would be rewritten without them.");
+        Require(!ProjectInstructionsFile.ValidId("core.") && !ProjectInstructionsFile.ValidId("other.a") && ProjectInstructionsFile.ValidId("plugin.air-context.tool-guidance"), "Identifier validation is wrong.");
+        Console.WriteLine("PASS instruction sections: stable ids on by default, project disable-list honoured by Claude and Codex, unknown ids kept and ignored, round-trip, validation, broadcast");
+    }
+
     /// <summary>The server ids the text lists as the project's, in order.</summary>
     private static string[] Listed(string text) =>
         [.. text.Split('\n').Where(line => line.StartsWith("- `", StringComparison.Ordinal) && line.Contains("` (", StringComparison.Ordinal) && line.EndsWith(" files", StringComparison.Ordinal) || line.EndsWith(" file", StringComparison.Ordinal))
@@ -149,7 +224,7 @@ internal static class PromptChecks
             }
             return root;
         }
-        string Section(string workspace) => runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, workspace)[0];
+        string Section(string workspace) => runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, workspace)[CorePrompt.Fixed.Count];
 
         var csharp = Project("csharp",
             ("src/Market/OrderBook.cs", "namespace Market;\n\npublic sealed partial class OrderBook\n{\n    public void Match(Order order)\n    {\n    }\n}\n"),

@@ -1,0 +1,23 @@
+<Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.Plugins.Agent.UI.InstructionSectionsView"
+        Name="InstructionSections" CornerRadius="4" BorderThickness="1" Padding="12,8" Margin="8"
+        Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}">
+  <StackPanel Spacing="6">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="SharpRail's instructions" FontSize="13" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" VerticalAlignment="Center" />
+      <Border CornerRadius="3" Padding="5,1" Background="{x:Static kit:Ui.PrimaryMuted}" VerticalAlignment="Center"
+              ToolTip.Tip="The choices live in the project and apply to everyone who commits and pulls them.">
+        <TextBlock Text="SHARED WITH THE TEAM" FontSize="10" Foreground="{x:Static kit:Ui.TextBrush}" />
+      </Border>
+    </StackPanel>
+    <TextBlock x:Name="InstructionSectionsIntro" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+    <SelectableTextBlock x:Name="InstructionSectionsPath" FontSize="12" Foreground="{x:Static kit:Ui.Hint}" TextWrapping="Wrap" FontFamily="{x:Static kit:Ui.CodeFont}" />
+    <TextBlock FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap"
+               Text="Changes apply to new sessions; running sessions keep their instructions until restarted." />
+    <TextBlock x:Name="InstructionSectionsIgnoredEdits" FontSize="12" Foreground="{x:Static kit:Ui.Warning}" TextWrapping="Wrap" IsVisible="False" />
+    <TextBlock x:Name="InstructionSectionsDiagnostics" FontSize="12" Foreground="{x:Static kit:Ui.Warning}" TextWrapping="Wrap" IsVisible="False" />
+    <StackPanel x:Name="InstructionSectionsGroups" Spacing="4" />
+    <TextBlock x:Name="InstructionSectionsUnknown" FontSize="11" Foreground="{x:Static kit:Ui.Hint}" TextWrapping="Wrap" IsVisible="False" />
+  </StackPanel>
+</Border>

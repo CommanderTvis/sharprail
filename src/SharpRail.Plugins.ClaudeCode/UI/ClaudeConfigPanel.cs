@@ -499,17 +499,21 @@ internal sealed class ClaudeConfigPanel : DockPanel
             line.Children.Add(column);
             list.Children.Add(line);
         }
-        // Editable whether or not a session here was launched with it; SharpRail stops refreshing it once it is edited.
-        if (context.Settings<ClaudeCodeSettings>().AppendSystemPrompt)
-        {
-            var edit = Ui.Button("Edit SharpRail's instructions", () => _ = ClaudeParts.EditSystemPromptAsync(context, workspaceId), "pencil");
-            edit.Name = "ClaudeSystemPromptEditPane";
-            edit.Margin = new Thickness(8);
-            edit.HorizontalAlignment = HorizontalAlignment.Left;
-            ToolTip.SetTip(edit, "The system prompt sessions SharpRail starts append. Your edits are kept.");
-            list.Children.Add(edit);
-        }
+        // Sections can be turned off for the project; the instructions themselves are never edited here.
+        if (context.Settings<ClaudeCodeSettings>().AppendSystemPrompt) list.Children.Add(InstructionSections(workspaceId));
         return list;
+    }
+
+    private InstructionSectionsView InstructionSections(string workspace)
+    {
+        var view = new InstructionSectionsView("Claude Code",
+            () => context.RequestAsync(ClaudeCodeContract.InstructionsList, new InstructionSectionQuery { WorkspaceId = workspace }).AsTask(),
+            (id, enabled) => context.RequestAsync(ClaudeCodeContract.InstructionsSet, new InstructionSectionToggle { WorkspaceId = workspace, Id = id, Enabled = enabled }).AsTask(),
+            message => context.Notify(PluginNotificationKind.Error, "Couldn't change SharpRail's instructions", message));
+        IDisposable? subscription = null;
+        view.AttachedToVisualTree += (_, _) => subscription ??= context.Subscribe(ClaudeCodeContract.InstructionsChanged, _ => view.Refresh());
+        view.DetachedFromVisualTree += (_, _) => { subscription?.Dispose(); subscription = null; };
+        return view;
     }
 
     private Control SettingsSurface(ClaudeConfigSnapshot current)

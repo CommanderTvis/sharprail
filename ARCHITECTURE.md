@@ -85,7 +85,7 @@ routed workspace before filling deferred panels.
 
 A project may carry a `.sharprail/` directory in its root. It holds only configuration that is worth
 sharing with the team and editing by hand or by an agent: which ignored paths new workspaces copy, the
-project's language-server choices and the like. It never holds state: which panes or documents are
+project's language-server choices, which agent instruction sections it turns off and the like. It never holds state: which panes or documents are
 open, selections, locations, caches, logs and per-machine values (host paths, consent, tokens) belong
 to the client profile or the host state, not to the project. Files in it are TOML (comments allowed, so users and agents can annotate them), small, versioned,
 tolerant of unknown keys and written atomically through a comment-preserving editor; a malformed file is reported and never blocks

@@ -785,11 +785,6 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         return text;
     }
 
-    /// <summary>
-    /// The texts for one agent and placement: the host's own first, then every active plugin's by order hint and
-    /// activation order, without those whose condition is false. An empty <paramref name="agent"/> matches every agent
-    /// contribution but none addressed to one agent.
-    /// </summary>
     /// <summary>The language servers active plugins provide (H21), in roster order.</summary>
     internal IReadOnlyList<LanguageServerSpec> LanguageServerSpecs()
     {
@@ -837,8 +832,23 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         return index == languageInputs.Count;
     }
 
-    /// <param name="workspace">The absolute workspace a session starts in, whose languages the Code Intelligence text names; empty for the workspace-independent text.</param>
+    /// <param name="workspace">The absolute workspace a session starts in, whose languages the Code Intelligence text names
+    /// and whose project's <c>.sharprail/instructions.toml</c> turns sections off; empty for the workspace-independent text.</param>
     internal IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace = "")
+    {
+        var disabled = workspace.Length > 0 ? Seams.State.ProjectInstructions(workspace).Disabled.ToHashSet(StringComparer.Ordinal) : [];
+        return [.. PromptSections(agent, placement, workspace).Where(item => !disabled.Contains(item.Id)).Select(item => item.Contribution.Text)];
+    }
+
+    /// <summary>The full identifier a project's disable-list names: <c>core.&lt;id&gt;</c> or <c>plugin.&lt;plugin&gt;.&lt;id&gt;</c>.</summary>
+    internal static string SectionId(string? plugin, string id) => plugin is null ? "core." + id : "plugin." + plugin + "." + id;
+
+    /// <summary>
+    /// The contributions for one agent and placement, in composition order: the host's own first, then every active
+    /// plugin's by order hint and activation order, without those whose condition is false. An empty
+    /// <paramref name="agent"/> matches every agent contribution but none addressed to one agent.
+    /// </summary>
+    private IEnumerable<(string Id, string? Plugin, string SourceName, PromptContribution Contribution)> PromptSections(string agent, PromptPlacement placement, string workspace)
     {
         bool Applies(PromptContribution item, string owner)
         {
@@ -850,10 +860,45 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         }
         // Only the section placement carries the Code Intelligence text, so a tool-list read starts no census.
         var profile = workspace.Length > 0 && placement == PromptPlacement.Section ? Seams.State.ProjectLanguages(workspace) : null;
-        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.LanguageCatalog, profile, workspace).Where(item => Applies(item, "host"));
-        var plugins = Active().SelectMany(active => active.Tables.Prompts.Select(item => (active.Entry.Id, item)))
-            .Where(pair => Applies(pair.item, pair.Id)).OrderBy(pair => pair.item.Order);
-        return [.. core.Select(item => item.Text), .. plugins.Select(pair => pair.item.Text)];
+        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.LanguageCatalog, profile, workspace).Where(item => Applies(item, "host"))
+            .Select(item => (SectionId(null, item.Id), (string?)null, "SharpRail", item));
+        var plugins = Active().SelectMany(active => active.Tables.Prompts.Select(item => (active.Entry, item)))
+            .Where(pair => Applies(pair.item, pair.Entry.Id)).OrderBy(pair => pair.item.Order)
+            .Select(pair => (SectionId(pair.Entry.Id, pair.item.Id), (string?)pair.Entry.Id, pair.Entry.Manifest.Label, pair.item));
+        return [.. core, .. plugins];
+    }
+
+    /// <summary>Every section one agent's sessions in <paramref name="workspace"/> would get, tool list then sections, with the project's choice for each.</summary>
+    internal InstructionSectionList InstructionSections(string agent, string workspace)
+    {
+        var file = Seams.State.ProjectInstructions(workspace);
+        var disabled = file.Disabled.ToHashSet(StringComparer.Ordinal);
+        var sections = PromptSections(agent, PromptPlacement.ToolList, workspace).Concat(PromptSections(agent, PromptPlacement.Section, workspace))
+            .Select(item => new InstructionSection
+            {
+                Id = item.Id,
+                Source = item.Plugin ?? "core",
+                SourceName = item.SourceName,
+                Title = item.Contribution.Title ?? DefaultTitle(item.Contribution),
+                Description = item.Contribution.Description ?? "",
+                Text = item.Contribution.Text,
+                Enabled = !disabled.Contains(item.Id),
+            }).ToArray();
+        var known = sections.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
+        return new InstructionSectionList
+        {
+            Path = file.Path,
+            Sections = sections,
+            UnknownDisabled = [.. file.Disabled.Where(id => !known.Contains(id))],
+            Diagnostics = file.Diagnostics,
+        };
+    }
+
+    // A contribution without a title: "tool-guidance-0" reads "Tool guidance", "spec-tools" reads "Spec tools".
+    private static string DefaultTitle(PromptContribution contribution)
+    {
+        var words = contribution.Id.TrimEnd('0', '1', '2', '3', '4', '5', '6', '7', '8', '9').Trim('-', '_', '.').Replace('-', ' ').Replace('_', ' ').Replace('.', ' ');
+        return words.Length == 0 ? contribution.Id : char.ToUpperInvariant(words[0]) + words[1..];
     }
 
     internal string? ToolClash(string name, ActivationTables self)

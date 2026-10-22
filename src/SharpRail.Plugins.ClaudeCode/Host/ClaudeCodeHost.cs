@@ -108,8 +108,15 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         });
         context.Method(ClaudeCodeContract.ModelListGet, (_, _, _) => Done(modelLists.Get(Command())));
         context.Method(ClaudeCodeContract.ModelListPut, (p, _, _) => Done(modelLists.Put(Command(), p.Models)));
-        context.Method(ClaudeCodeContract.SystemPromptGet, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.FilePath(), SystemPrompt.Edited())));
-        context.Method(ClaudeCodeContract.SystemPromptReset, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.Write(context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList), context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section), reset: true), false)));
+        context.Method(ClaudeCodeContract.SystemPromptGet, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.FilePath(), SystemPrompt.IgnoredEdits())));
+        // The project's disable-list is the only way to shape the instructions; the generated files are never edited.
+        InstructionSectionList WithEdits(InstructionSectionList list) => new()
+        {
+            Path = list.Path, Sections = list.Sections, UnknownDisabled = list.UnknownDisabled, Diagnostics = list.Diagnostics, IgnoredEditsPath = SystemPrompt.IgnoredEdits()
+        };
+        context.Method(ClaudeCodeContract.InstructionsList, async (p, _, ct) => WithEdits(await context.InstructionSectionsAsync(ClaudeCodeContract.Id, p.WorkspaceId, ct)));
+        context.Method(ClaudeCodeContract.InstructionsSet, async (p, _, ct) => WithEdits(await context.SetInstructionSectionAsync(ClaudeCodeContract.Id, p.WorkspaceId, p.Id, p.Enabled, ct)));
+        context.OnInstructionSectionsChanged(root => context.Publish(ClaudeCodeContract.InstructionsChanged, new InstructionSectionsChanged { ProjectRoot = root }));
         context.Method(ClaudeCodeContract.PluginUninstallPlan, (p, _, _) => Done(new CommandPlan(ClaudeCommands.PluginUninstall(Command(), p.Name, p.Scope))));
         context.Method(ClaudeCodeContract.PluginUninstall, async (p, _, ct) =>
             await ClaudeCommands.UninstallAsync(Command(), p.Name, p.Scope, (await KnownScopeAsync(p.WorkspaceId, p.TabKey, ct)).Root));

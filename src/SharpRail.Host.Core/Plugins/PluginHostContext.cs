@@ -204,6 +204,32 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 
     public IReadOnlyList<string> ToolGuidanceSections() => runtime.ToolGuidanceSections();
 
+    public ValueTask<InstructionSectionList> InstructionSectionsAsync(string agent, string workspace, CancellationToken cancellationToken = default) =>
+        new(Task.Run(() => runtime.InstructionSections(agent, workspace), cancellationToken));
+
+    public ValueTask<InstructionSectionList> SetInstructionSectionAsync(string agent, string workspace, string id, bool enabled, CancellationToken cancellationToken = default) =>
+        new(Task.Run(() =>
+        {
+            runtime.Seams.State.SetInstructionSection(workspace, id, enabled);
+            return runtime.InstructionSections(agent, workspace);
+        }, cancellationToken));
+
+    public void OnInstructionSectionsChanged(Action<string> handler)
+    {
+        var state = runtime.Seams.State;
+        void Changed(string root) { if (Live) runtime.Guard(Id, () => handler(root)); }
+        Register(table =>
+        {
+            state.InstructionsChanged += Changed;
+            table.Resources = table.Resources.Add(new Unsubscribe(() => state.InstructionsChanged -= Changed));
+        });
+    }
+
+    private sealed class Unsubscribe(Action action) : IDisposable
+    {
+        public void Dispose() => action();
+    }
+
     public async ValueTask<GitRunResult> GitAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options = null, CancellationToken cancellationToken = default) =>
         await runtime.Seams.Git(cwd, args, options, cancellationToken);
 

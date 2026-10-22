@@ -131,6 +131,7 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
+          "SharpRail.Plugins.Api": "[1.0.0, )",
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },

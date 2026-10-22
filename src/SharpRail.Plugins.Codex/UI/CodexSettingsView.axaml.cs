@@ -3,7 +3,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 
@@ -67,19 +66,6 @@ internal sealed partial class CodexSettingsView : StackPanel
         ide.Click += (_, _) => Update(current => current with { IdeContext = !current.IdeContext });
         mcp.Click += (_, _) => Update(current => current with { Mcp = !current.Mcp });
         prompt.Click += (_, _) => Update(current => current with { AppendSystemPrompt = prompt.IsChecked == true });
-        var reset = this.FindControl<Button>("CodexSystemPromptReset")!;
-        // The tab opens in the workbench behind Settings, so Settings steps aside once it is there.
-        this.FindControl<Button>("CodexSystemPromptEdit")!.Click += async (_, _) =>
-        {
-            if (await CodexPanel.EditSystemPromptAsync(context)) (TopLevel.GetTopLevel(this) as Window)?.Close();
-        };
-        // Reset is offered only once the user's edits have taken the file over.
-        async Task ShowEdited(PluginMethod<CodexNoParams, CodexSystemPromptFile> method)
-        {
-            try { reset.IsVisible = (await context.RequestAsync(method, new CodexNoParams())).Edited; }
-            catch (Exception) { context.Notify(PluginNotificationKind.Error, "Couldn't read the Codex instructions"); }
-        }
-        reset.Click += (_, _) => _ = ShowEdited(CodexContract.SystemPromptReset);
 
         // Settings arrive with the host's snapshot; the controls update in place so typing and focus survive.
         void Render(CodexSettings settings)
@@ -99,7 +85,6 @@ internal sealed partial class CodexSettingsView : StackPanel
         IDisposable? subscription = null;
         AttachedToVisualTree += (_, _) =>
         {
-            _ = ShowEdited(CodexContract.SystemPromptGet);
             Render(context.Settings<CodexSettings>());
             subscription ??= context.OnSettings<CodexSettings>(Render);
         };

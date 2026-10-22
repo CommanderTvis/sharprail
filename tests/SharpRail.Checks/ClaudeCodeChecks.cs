@@ -192,6 +192,30 @@ internal static class ClaudeCodeChecks
         Require(rows[rows.IndexOf(imported) - 1].GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeContextStem"),
             "A file that imports another draws the stem its branch hangs from.");
         Console.WriteLine("PASS fork plugins/claude-code/claude-config.spec.ts: an imported instruction file is drawn as a branch of the file that pulled it in");
+        // SharpRail's own instructions are chosen section by section, never edited: ticking writes the project's disable-list.
+        Control? Sections() => app.Window.GetLogicalDescendants().OfType<Control>().SingleOrDefault(control => control.Name == "InstructionSections");
+        CheckBox? SectionBox(string id) => Sections()?.GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
+        E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: true, IsEnabled: true });
+        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ClaudeSystemPromptEditPane") &&
+            !Sections()!.GetLogicalDescendants().OfType<TextBox>().Any() &&
+            Sections()!.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("running sessions keep their instructions", StringComparison.Ordinal) == true) &&
+            Sections()!.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Text?.Contains(Path.Combine(".sharprail", "instructions.toml"), StringComparison.Ordinal) == true),
+            "The Context tab lists SharpRail's sections with the shared file and the restart note, and offers no way to edit text.");
+        var instructionsFile = Path.Combine(app.Root, ".sharprail", "instructions.toml");
+        SectionBox("core.workspaces")!.IsChecked = false;
+        E2eWorkspace.Until(() => File.Exists(instructionsFile) && File.ReadAllText(instructionsFile).Contains("\"core.workspaces\"", StringComparison.Ordinal));
+        E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: false, IsEnabled: true });
+        var preview = Sections()!.GetLogicalDescendants().OfType<Expander>().Single(expander => expander.Name == "InstructionSectionPreview" && Equals(expander.Tag, "core.workspaces"));
+        preview.IsExpanded = true;
+        E2eWorkspace.Settle();
+        Require(preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Name == "InstructionSectionText" && text.Text?.Contains("`workspace_create`", StringComparison.Ordinal) == true),
+            "A section's preview shows its text read-only.");
+        // A change made elsewhere (another view, or the file on disk read by the host) reaches the view through the broadcast.
+        SectionBox("core.workspaces")!.IsChecked = true;
+        E2eWorkspace.Until(() => File.ReadAllText(instructionsFile).Contains("disabled = []", StringComparison.Ordinal));
+        E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: true });
+        File.Delete(instructionsFile);
+        Console.WriteLine("PASS instruction sections view: checkboxes per section, read-only preview, toggles write .sharprail/instructions.toml");
         var pane = app.Window.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeConfigPanel");
         foreach (var width in new[] { 260, 280, 360, 480 })
         {
@@ -229,9 +253,9 @@ internal static class ClaudeCodeChecks
         var switcher = window.GetLogicalDescendants().OfType<CheckBox>().Single(control => control.Name == "ClaudeAppendSystemPrompt");
         switcher.IsChecked = false;
         E2eWorkspace.Until(() => !launcher.TerminalCommand(new()).Contains("--append-system-prompt-file", StringComparison.Ordinal));
-        app.Click(window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeSystemPromptEdit"), freshGesture: false);
-        E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Path.EndsWith("thinkrail-prompt-claude.md", StringComparison.Ordinal)));
-        // The tab opens behind Settings, so Settings closes to show it.
+        Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ClaudeSystemPromptEdit" or "ClaudeSystemPromptReset"),
+            "Settings offer no way to edit SharpRail's instructions.");
+        window.Close();
         E2eWorkspace.Until(() => !app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
         var compose = SettingValueDialog.ShowAsync(app.Window, new("ClaudeCheck", "model", JsonSerializer.SerializeToElement("sonnet"), ["model"], "Review change"));
         E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
@@ -463,23 +487,31 @@ internal static class ClaudeCodeChecks
         Require(measured is { Breakdown: null, Error.Length: > 0 }, "A CLI that prints no report leaves an error to show, not a stuck measurement.");
         var prompt = await Call(ClaudeCodeContract.SystemPromptGet, new NoParams());
         var shipped = File.ReadAllText(prompt.Path);
-        Require(!prompt.Edited && shipped.Length > 0 && runtime.AllowsExternalFile(project, prompt.Path),
-            "Activation writes the appended system prompt, which any workspace may open for editing.");
+        Require(prompt.IgnoredEdits is null && shipped.Length > 0 && runtime.AllowsExternalFile(project, prompt.Path),
+            "Activation writes the appended system prompt, which any workspace may open.");
         Require(shipped.Contains("`workspace_create`", StringComparison.Ordinal) && shipped.Contains("`description`", StringComparison.Ordinal),
             "The appended prompt directs workspace creation through the tool with a visible description.");
         Require(shipped.Contains("`set_title`", StringComparison.Ordinal) && shipped.Contains("`title`", StringComparison.Ordinal) && !shipped.Contains("workspace_name", StringComparison.Ordinal),
             "The appended prompt asks the agent to title its terminal, not to name its workspace.");
         Require(shipped.Contains("`workspace_delete`", StringComparison.Ordinal), "The appended prompt directs workspace cleanup through the tool.");
+        // Hand edits from earlier versions are no longer used: the file is regenerated and the edits are kept aside once.
         File.WriteAllText(prompt.Path, "my own instructions\n");
-        Require((await Call(ClaudeCodeContract.SystemPromptGet, new NoParams())).Edited, "An edit to the system prompt is recognised as the user's.");
         await state.ChangeAsync([HostStateChange.PluginEnabled("claude-code", false)]);
         await runtime.Schedule();
         await state.ChangeAsync([HostStateChange.PluginEnabled("claude-code", true)]);
         await runtime.Schedule();
-        Require((await runtime.ListAsync()).Single().Status == PluginStatus.Active && File.ReadAllText(prompt.Path) == "my own instructions\n",
-            "Reactivating keeps the user's edited system prompt instead of overwriting it.");
-        var reset = await Call(ClaudeCodeContract.SystemPromptReset, new NoParams());
-        Require(!reset.Edited && File.ReadAllText(prompt.Path) == shipped, "Reset puts SharpRail's own text back.");
+        var migrated = await Call(ClaudeCodeContract.SystemPromptGet, new NoParams());
+        Require((await runtime.ListAsync()).Single().Status == PluginStatus.Active && File.ReadAllText(prompt.Path) == shipped &&
+            migrated.IgnoredEdits is { } kept && File.ReadAllText(kept) == "my own instructions\n",
+            "Reactivating regenerates the system prompt and keeps the user's earlier edits aside, unused.");
+        var listed = await Call(ClaudeCodeContract.InstructionsList, new InstructionSectionQuery { WorkspaceId = project });
+        Require(listed.IgnoredEditsPath == migrated.IgnoredEdits && listed.Sections.Any(section => section.Id == "core.workspaces" && section.Enabled),
+            "The instructions listing names the kept edits and offers the core sections, on by default.");
+        var toggled = await Call(ClaudeCodeContract.InstructionsSet, new InstructionSectionToggle { WorkspaceId = project, Id = "core.workspaces", Enabled = false });
+        Require(toggled.Sections.Single(section => section.Id == "core.workspaces").Enabled == false &&
+            File.ReadAllText(Path.Combine(project, ".sharprail", "instructions.toml")).Contains("\"core.workspaces\"", StringComparison.Ordinal),
+            "Turning a section off through the agent's contract writes the project's disable-list.");
+        await Call(ClaudeCodeContract.InstructionsSet, new InstructionSectionToggle { WorkspaceId = project, Id = "core.workspaces", Enabled = true });
         Require(config.Root == project && config.Context.Any(layer => layer.Path == Path.Combine(project, "CLAUDE.md")) &&
             config.Settings.Any(setting => setting.Key == "model" && setting.Value.GetString() == "sonnet" && setting.Origin.Scope == ClaudeConfigScope.Project),
             "Configuration exposes instructions and the winning value's source scope.");

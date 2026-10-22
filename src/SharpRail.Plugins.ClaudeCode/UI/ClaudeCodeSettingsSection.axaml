@@ -42,11 +42,7 @@
         <TextBlock Text="Sessions SharpRail starts append a short system prompt: that they run in a workspace rather than a bare shell, which SharpRail tools to reach for, and how to create worktrees the app lists. Turn it off to start sessions with Claude Code's own prompt only. Applies to new sessions; a resumed one keeps the prompt it began with." />
       </StackPanel>
     </CheckBox>
-    <StackPanel Orientation="Horizontal" Spacing="12" Margin="28,-10,0,0">
-      <Button x:Name="ClaudeSystemPromptEdit" Classes="link" Content="Edit instructions" />
-      <Button x:Name="ClaudeSystemPromptReset" Classes="link" Content="Reset to SharpRail's text" IsVisible="False"
-              ToolTip.Tip="You have edited the instructions, so SharpRail no longer updates them. This puts back the text this version ships." />
-    </StackPanel>
+    <TextBlock Margin="28,-10,0,0" Text="Choose which sections it includes for a project in the Claude Code pane's Context tab; the text itself is not editable." />
     <TextBlock Text="While on: the Claude Code pane resolves the configuration that applies to a workspace, terminals are watched for a running agent, and SharpRail offers to install its Claude Code plugin. Configuration is only ever written after you approve the exact change." />
     <TextBlock Text="While off: no file under ~/.claude is read, the process table is not polled, and the host refuses these requests even if a client asks." />
   </StackPanel>

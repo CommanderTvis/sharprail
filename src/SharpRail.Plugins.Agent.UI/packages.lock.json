@@ -133,6 +133,9 @@
           "Svg.SceneGraph": "5.2.3"
         }
       },
+      "sharprail.plugins.api": {
+        "type": "Project"
+      },
       "sharprail.plugins.ui.kit": {
         "type": "Project",
         "dependencies": {

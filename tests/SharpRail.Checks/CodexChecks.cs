@@ -928,20 +928,20 @@ internal static class CodexChecks
         Require(File.Exists(skill), "activation installs the workflow skills");
         var instructions = Path.Combine(home, "codex", "thinkrail-prompt-codex.md");
         File.WriteAllText(instructions, "my own instructions\n");
-        Require(CodexSystemPrompt.Edited(), "an edit to the instructions is recognised as the user's");
         var again = await new CodexHost().ActivateAsync(new FakeHostContext(root));
-        Equal(File.ReadAllText(instructions), "my own instructions\n", "reactivating keeps the user's edited instructions");
+        Equal(File.ReadAllText(instructions), CodexSystemPrompt.Text, "reactivating regenerates the instructions over earlier hand edits");
+        Equal(File.ReadAllText(CodexSystemPrompt.IgnoredEdits() ?? ""), "my own instructions\n", "the earlier hand edits are kept aside, unused");
         await again!();
         Require(!File.Exists(skill), "disabling removes the workflow skills");
-        CodexSystemPrompt.Write([], [], reset: true);
-        Require(!CodexSystemPrompt.Edited() && File.ReadAllText(instructions) == CodexSystemPrompt.Text, "reset puts SharpRail's text back");
-        // An edited file from before the agent-named file moves over with its edits.
+        // An edited file from before the agent-named file moves over; its edits are kept aside once, never over an earlier copy.
         var legacy = Path.Combine(home, "codex", "developer-instructions.md");
         File.Move(instructions, legacy); File.Move(instructions + ".sharprail-default", legacy + ".sharprail-default");
         File.WriteAllText(legacy, "older edits\n");
         CodexSystemPrompt.Write([], []);
-        Require(!File.Exists(legacy) && File.ReadAllText(instructions) == "older edits\n" && CodexSystemPrompt.Edited(), "the old instructions file moves to its agent name, edits kept");
-        CodexSystemPrompt.Write([], [], reset: true);
+        Require(!File.Exists(legacy) && File.ReadAllText(instructions) == CodexSystemPrompt.Text && File.ReadAllText(CodexSystemPrompt.IgnoredEditsPath()) == "my own instructions\n",
+            "the old instructions file moves to its agent name and is regenerated without clobbering the kept copy");
+        Require(CodexSystemPrompt.Json([], ["only this"]).Contains("only this", StringComparison.Ordinal) && !CodexSystemPrompt.Json([], []).Contains("older edits", StringComparison.Ordinal),
+            "every terminal's text is composed, never the edited file");
         // Only a launch that tags its hook URL records SharpRail's instructions as the session's source.
         await tagged.Report(new { });
         Require(!CodexLaunch.HasSharpRailPrompt(tagged.Record?.Command ?? ""), "an untagged report records no instructions");

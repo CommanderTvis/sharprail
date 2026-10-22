@@ -80,11 +80,17 @@ then the workspace root. Every configuration/read/write/edit/CLI operation carri
 terminal key. The host uses the detected process's current directory, its reported directory, then
 the workspace root. Appended system prompt files are additional instruction layers.
 
-SharpRail's own appended prompt lives at `<stateDir>/claude-code/thinkrail-prompt-claude.md`. Activation refreshes
-it with the running build's text only while it still matches the text SharpRail last wrote (a SHA-256
-stamp beside it); once the user edits it, it is theirs and is never overwritten. Settings › Claude Code
-and the Context pane open it in an editor tab (it is always an exposed external file), and Settings
-offers Reset to SharpRail's text while it is edited.
+SharpRail's own appended prompt lives at `<stateDir>/claude-code/thinkrail-prompt-claude.md`, with each
+workspace's composition under `workspaces/`. They are generated, never the user's: activation and every started
+terminal regenerate them. Their content is shaped only by turning sections off for a project: the Context tab ends with
+the shared instructions view (Agent UI `InstructionSectionsView`) listing the sections Claude's sessions in that
+workspace get, grouped by source (SharpRail, then each enabled plugin), each with a checkbox, title, description,
+size estimate and a read-only preview. Ticking writes the project's `.sharprail/instructions.toml` disable-list through
+the host (`instructionsList`, `instructionsSet`; schema in [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections));
+the view shows that file's path, that it is shared with the team, and that running sessions keep their prompt until
+restarted, and it re-reads on `instructionsChanged`. Nothing offers free-text editing. A shared file the user edited
+under an earlier version (its SHA-256 stamp no longer matches) is copied once to `thinkrail-prompt-claude.custom.md`
+before it is regenerated; that copy is never used or deleted, and the view notes it while it exists.
 Spec tools are suggested only when available and the project uses a spec graph; projects without
 specs require no spec workflow or unsolicited spec creation.
 
@@ -371,14 +377,14 @@ A separate paragraph of the system prompt documents the project's `.sharprail/la
 server options shared through the project; see the [language services](../SharpRail.Host.Core/Language/SPEC.md#project-language-file)
 spec): agents edit it directly, keep comments and unknown keys, and put no host paths or secrets in it.
 
-The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.sharprail/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin or that setting reaches the next terminal; an edited file is left alone. The Code Intelligence section is composed per workspace: it names only that project's language servers (at most four, ranked by file count from the language pane's bounded census, with their ids for `lsp_status retry`), says that `lsp_status servers` lists the others instead of listing the catalog, and gives examples on a real type, member and file of the primary language (picked from the file names most files share, read without starting a server). The census runs in the background and is cached per workspace (in memory and under the host's language storage); a launch never waits for it, so a workspace's first session gets the generic text and later sessions the project's. Without a workspace (the shared file) the section names no server and uses placeholder examples. Each terminal appends its workspace's composition from `<stateDir>/claude-code/workspaces/<hash>.md` (`SHARPRAIL_CLAUDE_PROMPT_FILE`); once the user has edited the shared file, every terminal appends that file instead.
+The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.sharprail/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin, that setting or a project section reaches the next terminal. The Code Intelligence section is composed per workspace: it names only that project's language servers (at most four, ranked by file count from the language pane's bounded census, with their ids for `lsp_status retry`), says that `lsp_status servers` lists the others instead of listing the catalog, and gives examples on a real type, member and file of the primary language (picked from the file names most files share, read without starting a server). The census runs in the background and is cached per workspace (in memory and under the host's language storage); a launch never waits for it, so a workspace's first session gets the generic text and later sessions the project's. Without a workspace (the shared file) the section names no server and uses placeholder examples. Each terminal appends its workspace's composition, less the sections its project turns off, from `<stateDir>/claude-code/workspaces/<hash>.md` (`SHARPRAIL_CLAUDE_PROMPT_FILE`).
 
 Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
 bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import
 readiness; retain text-search fallbacks for incomplete or unsupported semantic results.
 
 
-The prompt appendix carries the tool guidance enabled plugins contribute (H20; Air Context's context_search/status/index paragraph while that plugin is enabled), then the Code Intelligence section: why grep is wrong for code here (with the macOS renderer example), name-based `lsp_navigate` calls first, when grep is still fine, `lsp_diagnostics` on edited paths, and that subagents do not receive the appendix so a brief must carry it, each rule stated once; the fixed text stays under 3,600 characters. The file is composed on activation and for every terminal the plugin starts, so a plugin turned off leaves nothing in it; an edited file is the user's and is left alone. No jbcontext global Claude setup/hooks/skills are installed; the Air Context plugin triggers indexing only after workspace enablement.
+The prompt appendix carries the tool guidance enabled plugins contribute (H20; Air Context's context_search/status/index paragraph while that plugin is enabled), then the Code Intelligence section: why grep is wrong for code here (with the macOS renderer example), name-based `lsp_navigate` calls first, when grep is still fine, `lsp_diagnostics` on edited paths, and that subagents do not receive the appendix so a brief must carry it, each rule stated once; the fixed text stays under 3,600 characters. The file is composed on activation and for every terminal the plugin starts, so a plugin turned off leaves nothing in it. No jbcontext global Claude setup/hooks/skills are installed; the Air Context plugin triggers indexing only after workspace enablement.
 
 ## Launch contributions
 

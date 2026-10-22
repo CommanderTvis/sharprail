@@ -262,6 +262,38 @@ public interface IPluginHostContext
     IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace) => PromptTexts(agent, placement);
 
     /// <summary>
+    /// Lists every section <see cref="PromptTexts(string, PromptPlacement, string)"/> composes for one agent in one
+    /// workspace, both placements, with its stable identifier, title and current text, and whether the workspace's project
+    /// turns it off in <c>.sharprail/instructions.toml</c>. Disabled sections are still listed; sections whose plugin is
+    /// off or whose condition does not hold are not. It reads the project file and must not run on a UI thread.
+    /// </summary>
+    /// <param name="agent">The agent plugin id.</param>
+    /// <param name="workspace">The workspace's absolute path.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    /// <returns>The sections and the project file's state.</returns>
+    ValueTask<InstructionSectionList> InstructionSectionsAsync(string agent, string workspace, CancellationToken cancellationToken = default) =>
+        ValueTask.FromResult(new InstructionSectionList());
+
+    /// <summary>
+    /// Turns one section on or off for the workspace's project by rewriting the disable-list in
+    /// <c>.sharprail/instructions.toml</c>; identifiers it does not know are kept. New sessions get the change; running
+    /// ones keep their instructions. Every <see cref="OnInstructionSectionsChanged"/> handler hears of it.
+    /// </summary>
+    /// <param name="agent">The agent plugin id, for the returned listing.</param>
+    /// <param name="workspace">The workspace's absolute path.</param>
+    /// <param name="id">The section's identifier.</param>
+    /// <param name="enabled">Whether it is on.</param>
+    /// <param name="cancellationToken">Cancels before the write.</param>
+    /// <returns>The listing after the change.</returns>
+    /// <exception cref="ArgumentException">The identifier is malformed, or the file is broken and must be fixed by hand first.</exception>
+    ValueTask<InstructionSectionList> SetInstructionSectionAsync(string agent, string workspace, string id, bool enabled, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This host keeps no instruction settings.");
+
+    /// <summary>Observes changes to any project's <c>.sharprail/instructions.toml</c> made through the host or found on disk; the argument is the project root.</summary>
+    /// <param name="handler">Called on a background thread.</param>
+    void OnInstructionSectionsChanged(Action<string> handler) { }
+
+    /// <summary>
     /// Lists the guidance every enabled plugin contributed with <see cref="ToolGuidance"/> (H20), in activation
     /// order. It is <see cref="PromptTexts(string, PromptPlacement)"/> for every agent with <see cref="PromptPlacement.ToolList"/>; an agent
     /// plugin should call that with its own id instead.

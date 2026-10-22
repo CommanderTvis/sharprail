@@ -80,7 +80,7 @@ public sealed class AirContextHost : PluginHostModule
                 return new ContextRuntime(installed.Installation, workspace, log, store.AuthorizeExecutionAsync);
             });
 
-            context.ToolGuidance(Guidance);
+            context.Prompt(new PromptContribution { Id = "tool-guidance", Title = "Air Context search", Description = "When to search the indexed project with Air Context's context tools.", Text = Guidance });
             context.Method(AirContextContract.Consent, async (request, _, token) => await ConsentAsync(request, token));
             context.Method(AirContextContract.Workspace, async (call, _, token) => await WorkspaceAsync(call, token));
             context.Tool(new PluginTool<ContextSearchParams>("context_search", "context search",

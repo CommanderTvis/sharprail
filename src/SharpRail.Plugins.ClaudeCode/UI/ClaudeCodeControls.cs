@@ -51,16 +51,8 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         command.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) { SaveCommand(command.Text ?? ""); e.Handled = true; } };
         agentView.IsCheckedChanged += (_, _) => Update(settings => settings with { DisableAgentView = agentView.IsChecked == true }, "Couldn't change the agent-view setting");
         systemPrompt.IsCheckedChanged += (_, _) => Update(settings => settings with { AppendSystemPrompt = systemPrompt.IsChecked == true }, "Couldn't change the system prompt setting");
-        var reset = this.FindControl<Button>("ClaudeSystemPromptReset")!;
-        // The tab opens in the workbench behind Settings, so Settings steps aside once it is there.
-        this.FindControl<Button>("ClaudeSystemPromptEdit")!.Click += async (_, _) =>
-        {
-            if (await ClaudeParts.EditSystemPromptAsync(context)) (TopLevel.GetTopLevel(this) as Window)?.Close();
-        };
-        reset.Click += (_, _) => _ = ResetSystemPrompt(reset);
         Show(context.Settings<ClaudeCodeSettings>());
         IDisposable? watch = null;
-        AttachedToVisualTree += (_, _) => _ = ShowEdited(reset);
         AttachedToVisualTree += (_, _) => watch ??= context.OnSettings<ClaudeCodeSettings>(Show);
         DetachedFromVisualTree += (_, _) => { watch?.Dispose(); watch = null; };
     }
@@ -74,22 +66,6 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         agentView.IsChecked = settings.DisableAgentView;
         systemPrompt.IsChecked = settings.AppendSystemPrompt;
         applying = false;
-    }
-
-    // Reset is offered only once the user's edits have taken the file over.
-    private async Task ShowEdited(Button reset)
-    {
-        try { reset.IsVisible = (await context.RequestAsync(ClaudeCodeContract.SystemPromptGet, new NoParams())).Edited; }
-        catch (Exception error) when (error is not OperationCanceledException) { reset.IsVisible = false; }
-    }
-
-    private async Task ResetSystemPrompt(Button reset)
-    {
-        try { reset.IsVisible = (await context.RequestAsync(ClaudeCodeContract.SystemPromptReset, new NoParams())).Edited; }
-        catch (Exception error) when (error is not OperationCanceledException)
-        {
-            context.Notify(PluginNotificationKind.Error, "Couldn't reset the instructions", ClaudeParts.ErrorText(error));
-        }
     }
 
     private void Update(Func<ClaudeCodeSettings, ClaudeCodeSettings> change, string failure)

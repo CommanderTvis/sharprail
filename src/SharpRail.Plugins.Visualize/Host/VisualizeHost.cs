@@ -14,7 +14,7 @@ public sealed class VisualizeHost : PluginHostModule
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
-        context.Prompt(new PromptContribution { Id = "visualize", Text = Guidance, Order = 10 });
+        context.Prompt(new PromptContribution { Id = "visualize", Title = "Visualize", Description = "Draw Mermaid diagrams and option comparisons with visualize instead of ASCII art.", Text = Guidance, Order = 10 });
         Store.Connect(
             payload => context.Publish(VisualizeContract.Changed, payload),
             (workspaceId, tabKey) => context.AgentRecord(new TerminalRef(workspaceId, tabKey))?.SessionId,

@@ -16,8 +16,8 @@ neither depends on the other plugin.
 
 ## Boundary
 
-The module depends on Avalonia and the general UI kit. It has no host, app,
-plugin API or provider-specific dependency. Providers supply facts and callbacks;
+The module depends on Avalonia, the general UI kit and the base plugin API's value
+types (for the instruction sections). It has no host, app, contract or provider-specific dependency. Providers supply facts and callbacks;
 the module owns no session, account or terminal state.
 
 - `Account` and `AccountSeverity` present account headings, rows, usage windows,
@@ -27,6 +27,13 @@ the module owns no session, account or terminal state.
 - `TerminalFacts` presents directory and model facts, token usage, plan progress,
   pickers, file attachment and the session IDE-context toggle. File-reference quoting escapes control
   characters so a dropped filename cannot submit or split the prompt.
+- `InstructionSectionsView` lists SharpRail's instruction sections for one agent and workspace, grouped by
+  source like Blueprint's checkbox controls: a checkbox per section with its title, description, id and a
+  token estimate (characters / 4), and a collapsed read-only preview. The provider supplies the list and toggle
+  calls (run off the UI thread) and refreshes it on its change channel; stale results are dropped, a refused
+  toggle re-reads the file, and a file with diagnostics disables the checkboxes. It shows the project file's path,
+  that it is shared with the team, that running sessions keep their instructions, and a note while earlier hand
+  edits are kept aside. It has no text editing.
 - `ManualLaunchNotice` is a compiled terminal notice explaining intentionally absent launcher
   additions and the workspace launcher alternative. Providers show it only for a known manual origin;
   independently configured hooks and MCP/IDE connections remain available.

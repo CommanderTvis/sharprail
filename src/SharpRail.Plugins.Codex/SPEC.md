@@ -75,10 +75,14 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   external-file registry covers every live Codex tab's chain. Edits and creation offers stay
   workspace-scoped.
 - **Tell Codex it is running in SharpRail** defaults on for POSIX launches. Activation refreshes
-  `<stateDir>/codex/thinkrail-prompt-codex.md` while it still matches the text SharpRail last wrote (a
-  SHA-256 stamp beside it); once the user edits it, it is theirs and is never overwritten. Settings › Codex
-  and the Context pane open it in an editor tab, and Settings offers Reset to SharpRail's text while it
-  is edited. Spec tools are suggested only when available and the project uses a spec graph;
+  `<stateDir>/codex/thinkrail-prompt-codex.md` with the running build's text; it is generated, never the
+  user's. The Context pane ends with the shared instructions view (Agent UI `InstructionSectionsView`): the
+  sections Codex sessions in the workspace get, by source, each with a checkbox, description, size estimate
+  and read-only preview; ticking writes the project's `.sharprail/instructions.toml` disable-list through the
+  host (`instructionsList`, `instructionsSet`, `instructionsChanged`; schema in
+  [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Nothing offers free-text
+  editing. A file edited under an earlier version is copied once to `thinkrail-prompt-codex.custom.md`
+  before it is regenerated; the copy is never used or deleted, and the view notes it while it exists. Spec tools are suggested only when available and the project uses a spec graph;
   projects without specs require no spec workflow or unsolicited spec creation.
   The file describes SharpRail's tools and the project's
   worktree folder (`SHARPRAIL_WORKTREES_DIR`), like Claude Code's appended system prompt. Prompted launches also pass
@@ -232,7 +236,7 @@ A separate paragraph of the system prompt documents the project's `.sharprail/la
 server options shared through the project; see the [language services](../SharpRail.Host.Core/Language/SPEC.md#project-language-file)
 spec): agents edit it directly, keep comments and unknown keys, and put no host paths or secrets in it.
 
-The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.sharprail/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin or that setting reaches the next terminal; an edited file is left alone. The Code Intelligence section is composed per workspace: it names only that project's language servers (at most four, ranked by file count from the language pane's bounded census, with their ids for `lsp_status retry`), says that `lsp_status servers` lists the others instead of listing the catalog, and gives examples on a real type, member and file of the primary language (picked from the file names most files share, read without starting a server). The census runs in the background and is cached per workspace (in memory and under the host's language storage); a launch never waits for it, so a workspace's first session gets the generic text and later sessions the project's. Without a workspace (the shared file) the section names no server and uses placeholder examples. Each terminal's `developer_instructions` carry its workspace's composition unless the user edited the file, which then is the text as written.
+The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.sharprail/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin, that setting or a project section reaches the next terminal. The Code Intelligence section is composed per workspace: it names only that project's language servers (at most four, ranked by file count from the language pane's bounded census, with their ids for `lsp_status retry`), says that `lsp_status servers` lists the others instead of listing the catalog, and gives examples on a real type, member and file of the primary language (picked from the file names most files share, read without starting a server). The census runs in the background and is cached per workspace (in memory and under the host's language storage); a launch never waits for it, so a workspace's first session gets the generic text and later sessions the project's. Without a workspace (the shared file) the section names no server and uses placeholder examples. Each terminal's `developer_instructions` carry its workspace's composition, less the sections its project turns off.
 
 Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
 bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import
@@ -246,7 +250,7 @@ Revival removes and regenerates the three Context approval overrides with the ex
 Generated MCP flags use shell continuation lines below the canonical PTY input limit, preserving individual overrides. Revival recognizes those standalone continuations; initial agent launch does not depend on the shell entering raw input mode first.
 
 The prompt file is composed from the template and the enabled plugins' tool guidance (H20) on activation and for every terminal the plugin
-starts, so a plugin turned off leaves nothing in it; an edited file is the user's and is left alone. The Air Context paragraph is the plugin's own.
+starts, so a plugin turned off leaves nothing in it. The Air Context paragraph is the plugin's own.
 
 ## Launch contributions
 

@@ -343,8 +343,8 @@ public sealed record AccountParams
 
 public sealed record NoParams;
 
-/// <summary>The appended system prompt file on the host, and whether the user has changed it from SharpRail's text.</summary>
-public sealed record SystemPromptFile(string Path, bool Edited);
+/// <summary>The appended system prompt file on the host, and where earlier hand edits SharpRail no longer uses were kept (null when none).</summary>
+public sealed record SystemPromptFile(string Path, string? IgnoredEdits);
 
 public sealed record PluginUninstallPlanParams(string WorkspaceId, string Name, ClaudeWritableScope Scope);
 
@@ -422,8 +422,10 @@ public static class ClaudeCodeContract
     public static readonly PluginMethod<WorkspaceParams, ClaudeConfigSnapshot> ConfigGet = new("configGet");
     public static readonly PluginMethod<AccountParams, ClaudeAccount> Account = new("account");
     public static readonly PluginMethod<NoParams, SystemPromptFile> SystemPromptGet = new("systemPromptGet");
-    /// <summary>Writes SharpRail's own text over the user's edits.</summary>
-    public static readonly PluginMethod<NoParams, SystemPromptFile> SystemPromptReset = new("systemPromptReset");
+    /// <summary>The instruction sections this agent's sessions in a workspace get, with the project's on/off choice for each.</summary>
+    public static readonly PluginMethod<InstructionSectionQuery, InstructionSectionList> InstructionsList = new("instructionsList");
+    /// <summary>Turns one section on or off in the project's <c>.sharprail/instructions.toml</c>.</summary>
+    public static readonly PluginMethod<InstructionSectionToggle, InstructionSectionList> InstructionsSet = new("instructionsSet");
     public static readonly PluginMethod<PluginUninstallPlanParams, CommandPlan> PluginUninstallPlan = new("pluginUninstallPlan");
     public static readonly PluginMethod<PluginUninstallParams, CommandOutput> PluginUninstall = new("pluginUninstall");
     public static readonly PluginMethod<PluginMovePlanParams, CommandsPlan> PluginMovePlan = new("pluginMovePlan");
@@ -451,10 +453,12 @@ public static class ClaudeCodeContract
     public static readonly PluginChannel<ClaudeCodeStatusPush> Status = PluginChannel<ClaudeCodeStatusPush>.State("status", StatusSnapshot, "workspaceId");
     public static readonly PluginChannel<IdeActionRequest> IdeAction = PluginChannel<IdeActionRequest>.Event("ideAction");
     public static readonly PluginChannel<ContextUsageChanged> ContextUsage = PluginChannel<ContextUsageChanged>.Event("contextUsage");
+    /// <summary>A project's <c>.sharprail/instructions.toml</c> changed; open instruction views re-read their sections.</summary>
+    public static readonly PluginChannel<InstructionSectionsChanged> InstructionsChanged = PluginChannel<InstructionSectionsChanged>.Event("instructionsChanged");
 
     public static readonly PluginContract Contract = PluginContract.Create<ClaudeCodeSettings>(Id, 2,
-        [ConfigGet, Account, SystemPromptGet, SystemPromptReset, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
+        [ConfigGet, Account, SystemPromptGet, InstructionsList, InstructionsSet, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
             MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, ModelListGet, ModelListPut, SelectionChanged, DocumentClosed,
             AtMention, ActionReply, StatusSnapshot, ContextUsageGet],
-        [Status, IdeAction, ContextUsage]);
+        [Status, IdeAction, ContextUsage, InstructionsChanged]);
 }

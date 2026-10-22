@@ -114,9 +114,15 @@ public sealed class CodexHost : PluginHostModule
             return SnapshotOf(await WorktreeOf(context, parameters.WorkspaceId, token), parameters.WorkspaceId, parameters.TabKey);
         });
         context.Method(CodexContract.SystemPromptGet, (_, _, _) =>
-            ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.FilePath(), CodexSystemPrompt.Edited())));
-        context.Method(CodexContract.SystemPromptReset, (_, _, _) =>
-            ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.Write(context.PromptTexts(CodexManifest.Id, PromptPlacement.ToolList), context.PromptTexts(CodexManifest.Id, PromptPlacement.Section), reset: true), false)));
+            ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.FilePath(), CodexSystemPrompt.IgnoredEdits())));
+        // The project's disable-list is the only way to shape the instructions; the generated text is never edited.
+        InstructionSectionList WithEdits(InstructionSectionList list) => new()
+        {
+            Path = list.Path, Sections = list.Sections, UnknownDisabled = list.UnknownDisabled, Diagnostics = list.Diagnostics, IgnoredEditsPath = CodexSystemPrompt.IgnoredEdits()
+        };
+        context.Method(CodexContract.InstructionsList, async (p, _, ct) => WithEdits(await context.InstructionSectionsAsync(CodexManifest.Id, p.WorkspaceId, ct)));
+        context.Method(CodexContract.InstructionsSet, async (p, _, ct) => WithEdits(await context.SetInstructionSectionAsync(CodexManifest.Id, p.WorkspaceId, p.Id, p.Enabled, ct)));
+        context.OnInstructionSectionsChanged(root => context.Publish(CodexContract.InstructionsChanged, new InstructionSectionsChanged { ProjectRoot = root }));
         context.Method(CodexContract.StatusSnapshot, (parameters, _, _) => ValueTask.FromResult(statuses.Snapshot(parameters.WorkspaceId)));
 
         context.Route((request, _) =>

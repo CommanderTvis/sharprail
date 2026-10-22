@@ -241,6 +241,45 @@ containment, missing file), and the whole composition (discovery then disabled, 
 answers, a route serving, rescan promoting a fixed manifest, shutdown running disposers dependents-first). The
 fixture plugin under `tests/` is the external plugin these load from disk.
 
+## Agent instruction sections
+
+The instructions agent plugins give sessions (Plugin API H20) are composed of sections, each with a stable id: the
+host's own `core.<id>` (`core.terminal-title`, `core.pull-requests`, `core.workspaces`, `core.parallel-tasks`,
+`core.workspace-cleanup`, `core.push-and-signing`, `core.warm-workspaces`, and `core.code-intelligence` while language
+services are enabled; `CorePrompt.cs`), then every active plugin's `plugin.<plugin id>.<contribution id>` (for example
+`plugin.visualize.visualize`, `plugin.spec-dialect.spec-tools`, `plugin.blueprint.blueprint-check`,
+`plugin.air-context.tool-guidance`). Only enabled plugins' sections, and only those whose condition holds, are composed
+or listed. Each has a title and a one-line description (a contribution without a title gets one from its id).
+
+A project turns sections off in `.sharprail/instructions.toml` in its root (the Default checkout, so every workspace of
+the project agrees; a path that is no registered workspace is its own root). It is shareable, committed config and
+stores only a disable-list, never instruction text, so changing the set of enabled plugins can never make it invalid:
+
+```toml
+# Instruction sections SharpRail leaves out of agent sessions in this project.
+version = 1
+disabled = [
+  "core.workspaces",
+  "plugin.visualize.visualize",
+]
+```
+
+- `version` must be `1`; another version, invalid TOML, a file over 64 KiB, a non-array `disabled` or more than 512
+  ids ignores the whole file (nothing is turned off) and is reported.
+- An id is `core.` or `plugin.` followed by `[a-z0-9._-]`, at most 160 characters. A malformed entry is ignored and
+  reported; valid entries still apply. Duplicates count once.
+- An id no current section has (its plugin is off or gone) is kept in the file and ignored; it is listed as such.
+  Sections not listed are on, so a new section starts enabled.
+- Other top-level keys are kept when the host rewrites the file; comments are not (the host writes a header comment,
+  then the ids sorted one per line).
+- The host reads the file lazily, off the UI thread, with a size-and-mtime stamp so an edit on disk (a pull, a hand
+  edit) is seen by the next composition. It writes only on an explicit toggle (`SetInstructionSectionAsync`), atomically,
+  and refuses to rewrite a file that has any diagnostic, so nothing the user wrote is silently dropped.
+- Every change the host makes or finds raises `OnInstructionSectionsChanged` with the project root; the agent plugins
+  republish it on their `instructionsChanged` channel for open views.
+- `PromptTexts` with a workspace leaves out that project's disabled sections; without a workspace (the shared,
+  workspace-independent files) nothing is left out. Running sessions keep the text they started with.
+
 ## External configuration files
 
 Builtin host modules are constructed for each runtime. Stateful plugin stores and publishers must not

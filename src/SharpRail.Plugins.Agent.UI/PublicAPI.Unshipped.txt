@@ -74,3 +74,6 @@ static SharpRail.Plugins.Agent.UI.PromptComposer.Draft(System.Collections.Generi
 static SharpRail.Plugins.Agent.UI.PromptComposer.IsHint(string! text) -> bool
 static SharpRail.Plugins.Agent.UI.Account.CreditsLine(double remaining, double total, double topUp = 0, long? refillNextMillis = null) -> string!
 static SharpRail.Plugins.Agent.UI.Account.Governed(string! source, string? identity, string? plan, double? remaining, double? total, double topUp, long? refillNextMillis, string? problem, string! namePrefix) -> Avalonia.Controls.Control!
+SharpRail.Plugins.Agent.UI.InstructionSectionsView
+SharpRail.Plugins.Agent.UI.InstructionSectionsView.InstructionSectionsView(string! agentName, System.Func<System.Threading.Tasks.Task<SharpRail.Plugins.Api.InstructionSectionList!>!>! load, System.Func<string!, bool, System.Threading.Tasks.Task<SharpRail.Plugins.Api.InstructionSectionList!>!>! toggle, System.Action<string!>! failed) -> void
+SharpRail.Plugins.Agent.UI.InstructionSectionsView.Refresh() -> void

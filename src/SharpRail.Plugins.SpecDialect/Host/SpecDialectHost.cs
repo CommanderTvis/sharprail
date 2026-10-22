@@ -15,7 +15,7 @@ public sealed class SpecDialectHost : PluginHostModule
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
-        context.Prompt(new PromptContribution { Id = "spec-tools", Text = Guidance, Order = 20 });
+        context.Prompt(new PromptContribution { Id = "spec-tools", Title = "Spec tools", Description = "Read, maintain and validate the project's spec graph with the spec_* tools.", Text = Guidance, Order = 20 });
         // A workspace id is its worktree root; once resolved, its index is reused until the workspace goes away.
         var indexes = new ConcurrentDictionary<string, SpecIndex>(StringComparer.Ordinal);
 

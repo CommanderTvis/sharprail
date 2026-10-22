@@ -36,7 +36,7 @@ internal static class BoundaryChecks
         [ApiHost] = [Api],
         [ApiUi] = [Api],
         [Kit] = [Scintilla],
-        ["SharpRail.Plugins.Agent.UI"] = [Kit],
+        ["SharpRail.Plugins.Agent.UI"] = [Api, Kit],
         ["SharpRail.PluginFixture.Host"] = [Api, ApiHost],
         ["SharpRail.PluginFixture.UI"] = [Api, ApiUi, Kit]
     };

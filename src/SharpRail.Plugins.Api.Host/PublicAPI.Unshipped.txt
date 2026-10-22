@@ -725,3 +725,10 @@ override SharpRail.Plugins.Api.Host.TerminalPromptChanged.ToString() -> string!
 override sealed SharpRail.Plugins.Api.Host.TerminalPromptChanged.Equals(SharpRail.Plugins.Api.Host.TerminalEvent? other) -> bool
 static SharpRail.Plugins.Api.Host.TerminalPromptChanged.operator !=(SharpRail.Plugins.Api.Host.TerminalPromptChanged? left, SharpRail.Plugins.Api.Host.TerminalPromptChanged? right) -> bool
 static SharpRail.Plugins.Api.Host.TerminalPromptChanged.operator ==(SharpRail.Plugins.Api.Host.TerminalPromptChanged? left, SharpRail.Plugins.Api.Host.TerminalPromptChanged? right) -> bool
+SharpRail.Plugins.Api.Host.IPluginHostContext.InstructionSectionsAsync(string! agent, string! workspace, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.InstructionSectionList!>
+SharpRail.Plugins.Api.Host.IPluginHostContext.OnInstructionSectionsChanged(System.Action<string!>! handler) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.SetInstructionSectionAsync(string! agent, string! workspace, string! id, bool enabled, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.InstructionSectionList!>
+SharpRail.Plugins.Api.Host.PromptContribution.Description.get -> string?
+SharpRail.Plugins.Api.Host.PromptContribution.Description.init -> void
+SharpRail.Plugins.Api.Host.PromptContribution.Title.get -> string?
+SharpRail.Plugins.Api.Host.PromptContribution.Title.init -> void

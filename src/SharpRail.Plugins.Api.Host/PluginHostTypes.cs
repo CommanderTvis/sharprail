@@ -187,6 +187,15 @@ public sealed class PromptContribution
     /// <summary>The text. A <see cref="PromptPlacement.ToolList"/> item is written without a list marker.</summary>
     public required string Text { get; init; }
 
+    /// <summary>
+    /// The short title the instructions view shows, such as <c>Visualize</c>; null shows one derived from <see cref="Id"/>.
+    /// Projects turn the text off by its full identifier, <c>plugin.&lt;plugin id&gt;.&lt;Id&gt;</c>.
+    /// </summary>
+    public string? Title { get; init; }
+
+    /// <summary>One line on what the text tells the agent, shown under <see cref="Title"/>.</summary>
+    public string? Description { get; init; }
+
     /// <summary>Where the text goes. The default is <see cref="PromptPlacement.ToolList"/>.</summary>
     public PromptPlacement Placement { get; init; } = PromptPlacement.ToolList;
 

@@ -49,28 +49,6 @@ internal static class ClaudeParts
 
     public static Window? Owner(Control control) => TopLevel.GetTopLevel(control) as Window;
 
-    /// <summary>Opens the appended system prompt in an editor tab of <paramref name="workspaceId"/>, or the active workspace.</summary>
-    /// <summary>Opens the instructions file as a tab of the workspace; true once the tab is open.</summary>
-    public static async Task<bool> EditSystemPromptAsync(IPluginUIContext context, string? workspaceId = null)
-    {
-        try
-        {
-            if ((workspaceId ?? context.Host().ActiveWorkspaceId) is not { } workspace)
-            {
-                context.Notify(PluginNotificationKind.Info, "Open a workspace to edit the instructions", "The file opens as a tab of the workspace you are in.");
-                return false;
-            }
-            var file = await context.RequestAsync(ClaudeCodeContract.SystemPromptGet, new NoParams());
-            if (await context.Editors.OpenAsync(workspace, file.Path, new EditorOpenOptions()) is not null) return true;
-            context.Notify(PluginNotificationKind.Error, "Couldn't open the instructions", file.Path);
-        }
-        catch (Exception error) when (error is not OperationCanceledException)
-        {
-            context.Notify(PluginNotificationKind.Error, "Couldn't open the instructions", ErrorText(error));
-        }
-        return false;
-    }
-
     public static Border ScopeChip(string scope) => ScopedSetting.ScopeChip(scope, "ClaudeScopeChip");
 
     public static Control LaunchFlagChip()

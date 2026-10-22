@@ -13,7 +13,7 @@ public sealed class BlueprintHost : PluginHostModule
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
-        context.Prompt(new PromptContribution { Id = "blueprint-check", Text = Guidance, Order = 30 });
+        context.Prompt(new PromptContribution { Id = "blueprint-check", Title = "Blueprint check", Description = "Verify the rendered view with blueprint_check after writing BLUEPRINT.md.", Text = Guidance, Order = 30 });
         var gate = new object();
         var sessions = new BlueprintSessions(() => context.ReadState<Dictionary<string, PersistedBlueprint>>("blueprints", []),
             records => context.WriteState("blueprints", records), payload => context.Publish(BlueprintContract.Changed, payload));

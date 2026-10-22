@@ -447,6 +447,16 @@ internal static class CodexE2E
         Require(Equals(ToolTip.GetTip(source), agents) && Texts(source) == ScopedSetting.AbbreviateHomePath(agents), "the source path, full in its tooltip");
         var size = One<TextBlock>(row, "CodexInstructionsSize").Text;
         Require(Texts(One<Control>(panel, "CodexContextTotal")).Contains(size!, StringComparison.Ordinal), "the summed persistent context");
+        // SharpRail's instructions are chosen section by section for the project, never edited.
+        CheckBox? SectionBox(string id) => panel.GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
+        E2eWorkspace.Until(() => SectionBox("core.push-and-signing") is { IsChecked: true, IsEnabled: true });
+        Require(!Has(panel, "CodexSystemPromptEditPane") && !One<Control>(panel, "InstructionSections").GetLogicalDescendants().OfType<TextBox>().Any(),
+            "the instructions view offers no way to edit text");
+        var instructionsFile = Path.Combine(codex.App.Window.WorkspaceRoot, ".sharprail", "instructions.toml");
+        SectionBox("core.push-and-signing")!.IsChecked = false;
+        E2eWorkspace.Until(() => File.Exists(instructionsFile) && File.ReadAllText(instructionsFile).Contains("\"core.push-and-signing\"", StringComparison.Ordinal));
+        E2eWorkspace.Until(() => SectionBox("core.push-and-signing") is { IsChecked: false, IsEnabled: true });
+        File.Delete(instructionsFile);
         var body = One<ScrollViewer>(panel, "Body");
         var contextBody = body.Content;
         codex.App.Click(One<Button>(panel, "CodexConfigRefresh"));
@@ -852,8 +862,9 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => codex.App.Workbench.State.Current.PluginSettings[CodexManifest.Id].TryGetProperty("permissionMode", out var value) &&
             value.GetString() == "sandbox-danger-full-access");
         Require((picker.SelectedItem as ComboBoxItem)?.Content as string == "Sandbox: danger-full-access", "the picker shows the saved mode");
-        app.Click(One<Button>(settings, "CodexSystemPromptEdit"), freshGesture: false);
-        E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Path.EndsWith("thinkrail-prompt-codex.md", StringComparison.Ordinal)));
+        Require(!settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "CodexSystemPromptEdit" or "CodexSystemPromptReset"),
+            "settings offer no way to edit SharpRail's instructions");
+        app.Window.OwnedWindows.OfType<SettingsWindow>().Single().Close();
         E2eWorkspace.Until(() => !app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
         E2eWorkspace.Until(() => !app.Window.OwnedWindows.Any());
         Launch(() => app.Click(One<Button>(app.Window, "NewCodex")), "-s", "danger-full-access");
