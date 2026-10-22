@@ -368,25 +368,27 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         var previous = WorkspaceMounted ? (atHome ? "" : workspaceRoot) : null;
         var request = ++projectRequest; WorkspaceMounted = false;
         startupMilestones?.Begin(request);
+        var timeline = switchTimeline = SwitchTimeline.Begin();
         gitRefresh?.Cancel(); StopWatching();
-        switchingWorkspace = true;
+        switchingWorkspace = true; placeholderShown = false;
         foreach (var (id, control) in toolContent)
             if (id != "projects") control.IsHitTestVisible = false;
         SetStatus("Loading");
         var target = home ? HomeKey(path) : path;
-        if (Layout.State.Workspaces.ContainsKey(target)) Layout.SwitchWorkspace(target);
         UpdateRailSelection();
-        PlaceWorkspaceTabs();
-        surface.RefreshContents();
-        surface.RefreshEmptyContents();
+        // Leaving a mounted workspace keeps its inert view until the target resolves, which a local host does within a frame, so a
+        // fast switch never flashes the loading bodies; a slow one shows them after a short delay. A first open shows them at once.
+        if (previous is null) ShowSwitchPlaceholder(target);
+        else _ = ShowSwitchPlaceholderLaterAsync(request, target);
+        timeline?.Mark("requested");
         try { await projectGate.WaitAsync(lifetime.Token); }
         catch (OperationCanceledException) { return; }
         try
         {
             if (request != projectRequest) return;
-            await RenderSwitchAsync();
-            if (request != projectRequest || lifetime.IsCancellationRequested) return;
+            timeline?.Mark("gate");
             var workspace = await host.OpenProjectAsync(path, lifetime.Token);
+            timeline?.Mark("host-open");
             if (request != projectRequest) return;
             // A workspace removed while this open was in flight is not entered again.
             if (!home && workspace.RootPath != workspace.ProjectRoot && removedWorkspaces.Contains(workspace.RootPath)) home = true;
@@ -432,6 +434,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             slot.LastAtHome = home;
             switchingWorkspace = false;
             WorkspaceMounted = true; restorePending = false;
+            timeline?.Mark("state");
             var resolvedTarget = home ? HomeKey(projectRoot) : workspaceRoot;
             if (Layout.State.ActiveWorkspace != resolvedTarget || Layout.State.ActiveProject != projectRoot)
                 Layout.SwitchWorkspace(resolvedTarget, projectRoot);
@@ -440,6 +443,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 surface.RefreshContents();
                 surface.RefreshEmptyContents();
             }
+            timeline?.Mark("bodies");
             surface.RefreshCenterActions();
             ResolveRailDefaults();
             PlaceWorkspaceTabs();
@@ -453,9 +457,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             errorText.IsVisible = false;
             ReportProfileError();
             LocationChanged?.Invoke();
+            timeline?.Mark("mounted");
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 UpdateLayout();
+                timeline?.Mark("layout");
+                timeline?.Flush(workspaceRoot);
                 if (startupMilestones?.Matches(request) == true)
                 {
                     startupMilestones.Emit("workspace-layout");
@@ -466,7 +473,11 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             }, DispatcherPriority.Loaded);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
-        catch (Exception error) when (error is not OperationCanceledException) { (failed ?? Report)(error); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            if (request == projectRequest && !placeholderShown) ShowSwitchPlaceholder(target);
+            (failed ?? Report)(error);
+        }
         finally { if (request == projectRequest) switchingWorkspace = false; projectGate.Release(); }
         if (request == projectRequest && WorkspaceMounted)
         {
@@ -481,6 +492,28 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 _ = SyncWorkspacesAsync(projectRoot);
             }
         }
+    }
+
+    private static readonly TimeSpan SwitchPlaceholderDelay = TimeSpan.FromMilliseconds(100);
+    private bool placeholderShown;
+    private SwitchTimeline? switchTimeline;
+
+    // The target's tab strips with loading bodies, while the host resolves it.
+    private void ShowSwitchPlaceholder(string target)
+    {
+        placeholderShown = true;
+        switchTimeline?.Mark("placeholder");
+        if (Layout.State.Workspaces.ContainsKey(target)) Layout.SwitchWorkspace(target);
+        PlaceWorkspaceTabs();
+        surface.RefreshContents();
+        surface.RefreshEmptyContents();
+    }
+
+    private async Task ShowSwitchPlaceholderLaterAsync(long request, string target)
+    {
+        try { await Task.Delay(SwitchPlaceholderDelay, lifetime.Token); }
+        catch (OperationCanceledException) { return; }
+        if (request == projectRequest && switchingWorkspace && !WorkspaceMounted) ShowSwitchPlaceholder(target);
     }
 
     private async Task LoadWorkspaceFilesAsync(long request)

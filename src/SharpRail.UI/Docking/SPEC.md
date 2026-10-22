@@ -247,7 +247,9 @@ Asking for the workspace already shown and mounted (a rail row, a location-bar e
 no-op: nothing unmounts, reloads or redraws. A switch still in flight or a failed mount opens it again.
 
 
-Previously mounted tool bodies remain visible while routing resolves. Workspace-scoped plugin tools and
+Previously mounted tool bodies remain visible while routing resolves. Leaving a mounted workspace also
+keeps its center bodies and tab strips until routing resolves, unless that takes longer than 100 ms, when
+the target's strips and loading bodies replace them. Workspace-scoped plugin tools and
 center actions return with their existing controls. Paired panes retain their frame and splitters when
 member tab ids and orientation are unchanged; refreshing a member replaces only changed content.
 

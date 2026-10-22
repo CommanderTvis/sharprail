@@ -101,6 +101,30 @@ Workspace switches follow the same ordering. Independent panel results fill prog
 must still belong to the current workspace before they appear. Deferred reads preserve dock chrome
 and do not hold the project-switch gate. Blocking work runs off the UI thread.
 
+A switch away from a mounted workspace awaits exactly one host call before it mounts: opening the target,
+which a local checkout answers from its `.git` files without starting Git. The outgoing view stays in
+place, inert, while that call runs; the target's tab strips and "Loading workspace…" bodies replace it only
+if the call takes longer than 100 ms, or at once when nothing is mounted yet. A fast switch therefore goes
+straight from one workspace to the next without a loading frame. Documents and terminals return with the
+bodies retained under their workspace key; file listing, Git, watchers, language-server requests and the
+open documents' revalidation start only after the first frame. `SHARPRAIL_PERFORMANCE=1` prints one
+`SHARPRAIL_SWITCH` line per switch with each step's milliseconds since the request.
+
+`--workspace-switch` measures this against a project of about 3,000 tracked files over five commits, with
+specs and three extra workspaces that each have two documents and a terminal tab open. It fails if the
+switch issues more than one host call before mounting, counting calls rather than wall time. Measured
+headless on a loaded development machine on 2026-10-22, 12 switches per row, times in ms from the click:
+
+| | Loading shown | Mounted (median / p95) | First frame (median / p95) |
+| --- | --- | --- | --- |
+| Before, cold | 12 of 12 | 25–38 / 69–115 | 110–147 / 277–301 |
+| After, cold | 0 of 12 | 12–21 / 19–154 | 71–146 / 85–390 |
+| Before, warm (switch back) | 12 of 12 | 23–27 / 40–46 | 81–84 / 112–141 |
+| After, warm (switch back) | 0 of 12 | 18–19 / 30–50 | 83–94 / 114–296 |
+
+Ranges span two runs. The first-frame time includes a full software render of the headless window, about
+30 ms when idle, so on this machine it is noise beyond the removed loading frame.
+
 ## Windows
 
 Every window comes from the same app-owned services; there is no second process and no daemon. New window (header

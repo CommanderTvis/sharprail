@@ -133,3 +133,27 @@ public sealed partial class WorkbenchWindow
         }
     }
 }
+/// <summary>
+/// With <c>SHARPRAIL_PERFORMANCE=1</c>, one line per workspace switch naming each step from the request to its layout pass, in
+/// milliseconds since the request: the steps awaited before the workspace mounts are its critical path. Checks observe the
+/// steps as they happen through <see cref="Observer"/>.
+/// </summary>
+internal sealed class SwitchTimeline
+{
+    internal static Action<string>? Observer { get; set; }
+    private readonly long start = Stopwatch.GetTimestamp();
+    private readonly List<string> steps = [];
+
+    internal static SwitchTimeline? Begin() => StartupPhases.Enabled || Observer is not null ? new() : null;
+
+    internal void Mark(string step)
+    {
+        if (StartupPhases.Enabled) steps.Add($"{step}={Stopwatch.GetElapsedTime(start).TotalMilliseconds:F1}");
+        Observer?.Invoke(step);
+    }
+
+    internal void Flush(string target)
+    {
+        if (StartupPhases.Enabled) Console.WriteLine($"SHARPRAIL_SWITCH {string.Join(' ', steps)} target={target}");
+    }
+}
