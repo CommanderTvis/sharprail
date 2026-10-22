@@ -324,6 +324,10 @@ void gav_view_set_colors(void *pointer, const uint32_t *colors, double minimum_c
         if (colors[i + 2] >> 24) [text appendFormat:@"%@ = #%06x\n", optional[i], colors[i + 2] & 0xffffff];
     for (NSUInteger i = 0; i < 16; i++) [text appendFormat:@"palette = %lu=#%06x\n", (unsigned long)i, colors[i + 5] & 0xffffff];
     [text appendFormat:@"minimum-contrast = %@\n", @(minimum_contrast).stringValue];
+    // Ghostty's output is Display P3 and it converts sRGB theme colors into it, but Avalonia composes the texture
+    // untagged, as it draws its own brushes. Taking the theme as Display P3 writes its exact bytes, so the terminal
+    // background matches the surrounding chrome on every display instead of shifting with the display's profile.
+    [text appendString:@"window-colorspace = display-p3\n"];
     NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:[@"ghostty-theme-" stringByAppendingString:NSUUID.UUID.UUIDString]];
     NSError *error = nil;
     if (![text writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:&error]) {

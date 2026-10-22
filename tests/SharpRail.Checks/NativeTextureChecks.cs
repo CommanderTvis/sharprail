@@ -373,7 +373,18 @@ internal static class NativeTextureChecks
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
         };
-        window.Content = new Grid { Background = Brushes.Magenta, Children = { clip, overlay } };
+        // The theme background as Avalonia draws it: the texture must match the chrome, not a display-specific value.
+        var theme = Color.FromRgb(18, 52, 86);
+        var swatch = new Border
+        {
+            Background = new SolidColorBrush(theme),
+            Width = 60,
+            Height = 40,
+            Margin = new Thickness(560, 300, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        window.Content = new Grid { Background = Brushes.Magenta, Children = { clip, overlay, swatch } };
         window.Show();
         await terminal.Ready.WaitAsync(TimeSpan.FromSeconds(20));
         var native = Native.Content(Title);
@@ -387,7 +398,7 @@ internal static class NativeTextureChecks
         Native.Key(native, "1", 83, false);
         Native.Key(native, "\r", 76, false);
         await Until(() => terminal.ReadScreen().Contains("KEYPAD_1_END", StringComparison.Ordinal), "The numeric keypad did not reach the texture shell.");
-        terminal.Colors = terminal.Colors with { Background = Color.FromRgb(18, 52, 86) };
+        terminal.Colors = terminal.Colors with { Background = theme };
         Type(native, "printf 'PASTE_%s_END\\n' \"");
         Native.Paste(native, 0);
         Type(native, "\"\r");
@@ -421,10 +432,11 @@ internal static class NativeTextureChecks
             var green = Pixel(60, 60);
             var clipped = Pixel(550, 100);
             var background = Pixel(450, 240);
+            var chrome = Pixel(590, 320);
             Require(green.Green > 220 && green.Red < 30 && green.Blue < 30, "An Avalonia overlay did not cover the Ghostty texture.");
             Require(clipped.Red > 220 && clipped.Blue > 220 && clipped.Green < 30, "The texture escaped its Avalonia parent clip.");
-            Require(Math.Abs(background.Red - 18) < 3 && Math.Abs(background.Green - 52) < 3 && Math.Abs(background.Blue - 86) < 3,
-                "The texture did not repaint its changed theme background.");
+            Require(Math.Abs(background.Red - chrome.Red) < 3 && Math.Abs(background.Green - chrome.Green) < 3 && Math.Abs(background.Blue - chrome.Blue) < 3,
+                $"The texture did not repaint its changed theme background to match Avalonia's ({background} versus {chrome}).");
             Require(bitmap.Pixels.Count(pixel => pixel.Red > 100 && pixel.Red > pixel.Green * 2 && pixel.Red > pixel.Blue * 2) > 40,
                 "The composed screenshot contains no terminal ANSI red pixels.");
         }

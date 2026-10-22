@@ -213,6 +213,11 @@ Reverse-screen mode (DECSCNM) swaps the default text and background colours toge
 and resetting the mode restores both.
 The Metal bridge loads theme values through a temporary Ghostty configuration file,
 then deletes it after applying the configuration; it does not modify user config files.
+That file sets `window-colorspace = display-p3`: Ghostty's output is Display P3 and would otherwise
+convert the sRGB theme into it, while Avalonia composes the texture untagged, as it draws its own
+brushes. Taking theme values as written keeps the terminal background byte-identical to Avalonia chrome
+of the same colour on every display; `--native-texture` compares the texture with an Avalonia swatch
+rather than an absolute value, which changed with the display's colour profile.
 
 ## Platform
 
@@ -446,5 +451,16 @@ and pixel-exact return, plus lease/failure/recovery/stop cases. That pass did no
 --native-texture theme-color assertion or --native-direct initial renderer-creation wait. Physical
 trackpad/video reproduction and complete current local/remote native parity remain separate gates.
 Physical IME and accessibility acceptance cannot be inferred from synthetic input or pixel checks.
+
+On 2026-10-22 the native texture and terminal checks were found to exit 0 after a failed scenario
+(the lifetime's `Shutdown(1)` result was discarded); they now exit 1. With that visible, the
+--native-texture theme assertion passed only on a display whose profile was close to Display P3; on
+another display the texture background was sRGB(18, 52, 86) converted to Display P3 (27, 51, 83 raw)
+next to Avalonia's raw 18, 52, 86. After the colour-space fix the theme assertion passed on every run
+that reached it. The same runs still showed intermittent, pre-existing failures elsewhere in the
+mode: --native-scroll's fixed 250 ms pixel captures (Ghostty presents the scrolled frame and Avalonia
+draws it within ~15 ms, yet the window capture stays stale until the next composition), OSC 52 query
+timeouts, and the reattachment assertion losing `TEXTURE_GPU` when a host/user prompt wider than the
+narrow resize makes the shell's prompt redraw erase earlier lines.
 
 Validated commit underlines on unchanged visible lines survive asynchronous viewport refreshes and scrolling, with offsets remapped to those lines. Changed lines discard old highlights immediately; detach clears retained results.

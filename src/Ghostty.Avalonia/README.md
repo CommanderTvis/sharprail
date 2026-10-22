@@ -138,6 +138,8 @@ platform NSView required internally by libghostty stays unparented; no
 `Exited` and `GhosttyLaunch` work as for the native control. Application Command
 shortcuts bubble through Avalonia; text and image paste use Ghostty's callbacks.
 Subscribe to `OperationFailed` for compositor errors and dispose on the UI thread.
+Theme colours are written to the texture as given (Ghostty takes them as Display P3, its output
+space, instead of converting from sRGB), so they match Avalonia brushes of the same colour.
 
 The pinned `MetalTexture.patch` exposes completed source textures and guards each
 target before Ghostty reuses it. An Avalonia custom draw operation wraps the
