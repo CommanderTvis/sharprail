@@ -295,6 +295,50 @@ internal static class PdfPreviewChecks
         }
     }
 
+    /// <summary>
+    /// Switching to another tab and back keeps the loaded document: no loading state, no re-rasterization, the same
+    /// page bitmap, zoom and scroll; a change on disk while hidden still reloads on return; closing the tab releases it.
+    /// </summary>
+    private static void TabSwitch(E2eWorkspace app, string target)
+    {
+        var window = app.Window;
+        var preview = window.GetLogicalDescendants().OfType<PdfPreview>().Single();
+        var unzoomed = RasterWidth(window);
+        app.Click(Find<Button>(window, "PdfZoomIn"));
+        E2eWorkspace.Until(() => preview.Scale > 1 && RasterWidth(window) > unzoomed && !preview.Loading);
+        var viewport = Find<ScrollViewer>(window, "PdfPreviewScroll");
+        viewport.Offset = new Vector(viewport.Offset.X, Math.Max(0, viewport.Extent.Height - viewport.Viewport.Height) / 2);
+        var (offset, scale, renders, image) = (viewport.Offset, preview.Scale, preview.Renders, Find<Image>(window, "PdfPage").Source);
+        app.Open("notes.txt", keep: true);
+        E2eWorkspace.Until(() => !preview.IsEffectivelyVisible || TopLevel.GetTopLevel(preview) is null);
+        app.Open("sample.pdf", keep: true);
+        var sawLoading = false;
+        E2eWorkspace.Until(() => { sawLoading |= TopLevel.GetTopLevel(preview) is not null && preview.Loading; return preview.IsEffectivelyVisible && TopLevel.GetTopLevel(preview) is not null; });
+        Dispatcher.UIThread.RunJobs();
+        sawLoading |= preview.Loading;
+        Require(!sawLoading, "Switching back to a PDF tab must not show \"Loading PDF\".");
+        Require(window.GetLogicalDescendants().OfType<PdfPreview>().Single() == preview && Find<Image>(window, "PdfPage").Source == image && image is not null
+            && preview.Renders == renders && preview.Scale == scale && viewport.Offset == offset,
+            $"Switching back keeps the rendered pages, zoom and scroll (renders {renders}->{preview.Renders}, scale {scale}->{preview.Scale}, offset {offset}->{viewport.Offset}).");
+        // A change made while the tab is hidden is shown on return.
+        app.Open("notes.txt", keep: true);
+        E2eWorkspace.Until(() => TopLevel.GetTopLevel(preview) is null);
+        File.WriteAllBytes(target, MinimalPdf("Hidden edit"));
+        app.Open("sample.pdf", keep: true);
+        E2eWorkspace.Until(() => FirstPageText(window).Contains("Hidden edit", StringComparison.Ordinal) && RasterWidth(window) > 0);
+        app.Click(Find<Button>(window, "PdfZoomReset"));
+        // Closing the tab releases the document, its rasters and its revision watch.
+        var tab = app.Find<Button>("Tab_file_sample.pdf").GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true);
+        app.Click(tab.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
+        E2eWorkspace.Until(() => preview.Released);
+        app.Open("sample.pdf", keep: true);
+        E2eWorkspace.Until(() => FirstPageText(window).Contains("Hidden edit", StringComparison.Ordinal) && RasterWidth(window) > 0);
+        File.WriteAllBytes(target, MinimalPdf("By hand"));
+        E2eWorkspace.Until(() => FirstPageText(window).Contains("By hand", StringComparison.Ordinal) && RasterWidth(window) > 0);
+        Require(Find<TextBlock>(window, "PdfZoomLevel").Text == "100%", "A reopened PDF starts at 100%.");
+        Console.WriteLine("PASS PDF tab switch keeps the document, pages, zoom and scroll; hidden edits reload; closing releases");
+    }
+
     private static void EndToEnd(E2eWorkspace app, string target)
     {
         var window = app.Window;
@@ -371,12 +415,7 @@ internal static class PdfPreviewChecks
         app.Click(Find<Button>(window, "PdfReload"));
         E2eWorkspace.Until(() => FirstPageText(window).Contains("By hand", StringComparison.Ordinal));
 
-        var previousImage = Find<Image>(window, "PdfPage");
-        app.Open("notes.txt", keep: true);
-        E2eWorkspace.Until(() => previousImage.Source is null);
-        app.Open("sample.pdf", keep: true);
-        E2eWorkspace.Until(() => FirstPageText(window).Contains("By hand", StringComparison.Ordinal) && RasterWidth(window) > 0);
-        Require(Find<TextBlock>(window, "PdfZoomLevel").Text == "100%", "A remounted PDF reloads after releasing its raster and retains zoom.");
+        TabSwitch(app, target);
         File.WriteAllBytes(target, "not a PDF"u8.ToArray());
         E2eWorkspace.Until(() => Has(window, "PdfPreviewError"));
         Require(!Has(window, "PdfToolbar"), "An unreadable PDF replaces its toolbar with an error and retry.");

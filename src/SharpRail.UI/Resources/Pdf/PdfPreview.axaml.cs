@@ -19,7 +19,7 @@ namespace SharpRail.UI.Resources.Pdf;
 /// A PDF file's pages, rasterized by PDFium at the zoom they are shown at so text stays sharp, with a selectable text
 /// layer over each page, its own toolbar, pinch and Command-wheel zoom, and a reload whenever the file's bytes change.
 /// </summary>
-internal sealed partial class PdfPreview : UserControl, IResourceBody
+internal sealed partial class PdfPreview : UserControl, IResourceBody, IDisposable
 {
     // How long the scale has to hold still before the pages are drawn again at it.
     private static readonly TimeSpan RasterSettle = TimeSpan.FromMilliseconds(120);
@@ -36,6 +36,7 @@ internal sealed partial class PdfPreview : UserControl, IResourceBody
     private byte[]? bytes;
     private double scale = 1;
     private int renders;
+    private bool stale, disposed;
 
     public PdfPreview(Func<CancellationToken, Task<byte[]>> read, Func<Action<int>, IDisposable> observe)
     {
@@ -71,21 +72,37 @@ internal sealed partial class PdfPreview : UserControl, IResourceBody
         });
         AttachedToVisualTree += (_, _) =>
         {
+            if (disposed) return;
             // A compiler rewriting the file is the reason this pane exists: the file's own revision, not the
             // workspace's, so a build writing a dozen other files beside it does not redraw an unchanged document.
-            revisionWatch ??= observe(_ => Load());
-            if (bytes is null && (loading is null || loading.IsCancellationRequested)) Load();
+            // The watch lives as long as the tab, so a change made while it is hidden is noticed on return.
+            revisionWatch ??= observe(_ => { if (TopLevel.GetTopLevel(this) is null) stale = true; else Load(); });
+            // Switching back to a tab shows what it held; only a change on disk, or a load the detach cut short, reads again.
+            if (stale || (bytes is null && (loading is null || loading.IsCancellationRequested))) { stale = false; Load(); }
         };
+        // A hidden tab keeps its document and pages; closing it (Dispose) releases them.
         DetachedFromVisualTree += (_, _) =>
         {
             loading?.Cancel();
-            revisionWatch?.Dispose();
-            revisionWatch = null;
             settle.Stop();
-            bytes = null;
-            ClearPages();
         };
     }
+
+    /// <summary>Releases the document, its rasters and the revision watch when the tab closes.</summary>
+    public void Dispose()
+    {
+        if (disposed) return;
+        disposed = true;
+        loading?.Cancel();
+        revisionWatch?.Dispose();
+        revisionWatch = null;
+        settle.Stop();
+        bytes = null;
+        ClearPages();
+    }
+
+    internal bool Loading => loadingText.IsVisible;
+    internal bool Released => disposed && bytes is null && shown.Count == 0 && revisionWatch is null;
 
     /// <summary>How many times the pages have been rasterized, for the checks.</summary>
     public object? ViewState => null;

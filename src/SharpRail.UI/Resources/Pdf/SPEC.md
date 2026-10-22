@@ -55,7 +55,12 @@ PDFium is not thread-safe: every call runs under one lock, on a background threa
 file's bytes for each read or rasterization and closed in the same call, so no native handle outlives it and a
 closed tab retains no native PDF document handle; the bytes stay in the viewer for the next zoom. Where the native library is absent
 (Windows; Linux ships bblanchon.PDFium.Linux), the viewer says rendering is not available on this platform.
-The viewer releases replaced raster bitmaps, cancels reads on detach and reloads when mounted again.
+The viewer releases replaced raster bitmaps and cancels in-flight reads on detach. A tab switch detaches the
+viewer without closing it: the bytes, page boxes, rasters, zoom and scroll stay, so switching back shows them at
+once with no loading state and no new rasterization. The revision watch lives until the tab closes; a change while
+hidden marks the viewer stale and it reloads on return, as it does for a read the detach cut short. Closing the tab
+disposes the viewer, which releases bytes, bitmaps and the watch. Memory while open is the file's bytes plus one
+raster per page at the current zoom, the same as while visible.
 Text and character boxes are indexed together from PDFium's Unicode values so omitted characters do
 not shift the selection geometry.
 
@@ -107,6 +112,8 @@ minimal one-page fixture generated with correct offsets for each text:
   no Markdown chrome does; a rewrite, a delete-and-rename and a Reload each show the new text without reopening the
   tab;
 - PDF remains available independently of the plugin roster; the resource toggle offers the binary file card.
+- a tab switch away and back keeps the same page bitmap, render count and zoom with no loading state; an edit
+  while hidden reloads on return; closing the tab releases bytes, rasters and the watch;
 - a held file-watch subscription: render the original PDF, rewrite before watching starts, then
   release registration and show the fresh bytes without another edit or Reload gesture.
 
