@@ -755,7 +755,7 @@ internal static class Program
         }
         if (args.SequenceEqual(["--environment"]))
         {
-            EnvironmentChecks.Run(root).GetAwaiter().GetResult();
+            EnvironmentChecks.RunBlocking(root);
             return;
         }
         if (args.SequenceEqual(["--epub"]))
@@ -1176,7 +1176,7 @@ internal static class Program
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
         Gate.Case("epub-reader", () => EpubChecks.Run(root));
-        Gate.Case("environment", () => EnvironmentChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("environment", () => EnvironmentChecks.RunBlocking(root));
         Gate.Case("BranchGraphChecks-RunUi", () => BranchGraphChecks.RunUi(root));
         Gate.Case("FileIconsChecks-UiChecks", () => FileIconsChecks.UiChecks(root));
         Gate.Case("codex-ui", () => E2E.CodexE2E.Run(root));

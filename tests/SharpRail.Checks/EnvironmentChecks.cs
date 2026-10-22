@@ -106,6 +106,10 @@ internal static class EnvironmentChecks
         if (!condition) throw new InvalidOperationException(message);
     }
 
+    // The gate calls this synchronously, after UI cases have left Avalonia's synchronization context on its thread:
+    // run off that context, or every await posts to a dispatcher nothing pumps and the case hangs.
+    internal static void RunBlocking(string root) => Task.Run(() => Run(root)).GetAwaiter().GetResult();
+
     internal static async Task Run(string root)
     {
         if (OperatingSystem.IsWindows())
@@ -116,9 +120,14 @@ internal static class EnvironmentChecks
         var directory = Path.Combine(root, "environment");
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         var tools = Fixture(directory);
+        // Progress lines, so a hang in CI shows which step it is in.
+        Console.WriteLine("environment: resolution");
         await Resolution(directory, tools);
+        Console.WriteLine("environment: runtimes");
         await Runtimes(directory, tools);
+        Console.WriteLine("environment: cache");
         await Cache();
+        Console.WriteLine("environment: shell");
         await Shell(directory, tools);
         Console.WriteLine("PASS environment: the plugins compose in order and each works alone, trust is inherited only for identical configuration, a slow tool never holds a shell up, and a shell starts with the result");
     }
