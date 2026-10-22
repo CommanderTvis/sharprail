@@ -46,6 +46,10 @@ void gav_texture_text(void *view, const char *text);
 void gav_texture_preedit(void *view, const char *text);
 void gav_texture_ime_point(void *view, double *x, double *y, double *width, double *height);
 void gav_texture_mouse(void *view, double x, double y, int32_t mods, int32_t action, int32_t button);
+// The pointer shape Ghostty last asked for (OSC 22 included), as ghostty_action_mouse_shape_e.
+int32_t gav_texture_mouse_shape(void *view);
+// The hovered link's target as UTF-8; returns its length, which may exceed capacity, and 0 over no link.
+size_t gav_texture_link_url(void *view, char *buffer, size_t capacity);
 void gav_texture_scroll(void *view, double x, double y);
 void gav_texture_action(void *view, const char *action);
 

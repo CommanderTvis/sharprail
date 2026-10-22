@@ -361,6 +361,19 @@ internal static class TerminalFileLinkChecks
             until = DateTime.UtcNow.AddSeconds(10);
             while (launched.Count == 0 && DateTime.UtcNow < until) await Task.Delay(50);
             Require(launched.SingleOrDefault()?.AbsoluteUri == "https://example.com/page" && opened.Count == 1, "A web hyperlink no longer reached the browser.");
+            Require(Equals(Avalonia.Controls.ToolTip.GetTip(view), "https://example.com/page"), "The hovered Metal hyperlink did not show its target: " + Avalonia.Controls.ToolTip.GetTip(view));
+            // OSC 22: Ghostty reports the requested shape; off a link the view shows it as an Avalonia cursor.
+            view.WriteOutput("\e]22;wait\e\\"u8);
+            var plain = view.CellCenter(5, 3) ?? throw new InvalidOperationException("Terminal file links: no Metal cell geometry.");
+            until = DateTime.UtcNow.AddSeconds(10);
+            while (view.PointerShape != Avalonia.Input.StandardCursorType.Wait && DateTime.UtcNow < until)
+            {
+                view.RaiseEvent(new Avalonia.Input.PointerEventArgs(Avalonia.Input.InputElement.PointerMovedEvent, view, pointer, view, plain, 4,
+                    new Avalonia.Input.PointerPointProperties(Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PointerUpdateKind.Other), Avalonia.Input.KeyModifiers.None));
+                await Task.Delay(50);
+            }
+            Require(view.PointerShape == Avalonia.Input.StandardCursorType.Wait && Avalonia.Controls.ToolTip.GetTip(view) is null,
+                $"OSC 22 wait showed {view.PointerShape} in Metal, or the link tooltip outlived the hover.");
             window.Content = null;
         }
         finally
@@ -368,7 +381,7 @@ internal static class TerminalFileLinkChecks
             Ghostty.Avalonia.TerminalLinkLauncher.Launch = previousLaunch;
             Directory.Delete(root, true);
         }
-        Console.WriteLine("PASS Metal OSC 8 file hyperlinks open in the application (never the system launcher); web hyperlinks still reach the browser");
+        Console.WriteLine("PASS Metal OSC 8 file hyperlinks open in the application (never the system launcher); web hyperlinks still reach the browser and show their target; OSC 22 sets the cursor");
     }
 
     // Underlines belong to the frame they are presented in. While output streams and the view scrolls, every

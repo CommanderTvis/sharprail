@@ -194,7 +194,7 @@ input line into the arrow keys that move its cursor there, only between OSC 133 
 ## Limits and verification
 
 The Skia path does not reproduce every feature of Ghostty's native renderer:
-image protocols, cross-cell ligatures, OSC 8 hyperlink activation and an accessibility
+image protocols, cross-cell ligatures, OSC 66 text sizing (libghostty-vt parses it but does not implement it) and an accessibility
 text provider are not implemented. Physical macOS IME behavior and font raster
 parity require native validation; headless input does not establish those.
 Windows and Linux build only the Skia control's library. The Android library, touch
@@ -212,8 +212,11 @@ The texture control uses Ghostty's built-in link detection; Skia detects web URL
 from VT cells and soft-wrap metadata.
 Right-click offers Open link when the pointer is over a URL, without a keyboard modifier, alongside
 Copy, Paste and Select All. The menu retains the URI captured at the click even as output changes.
-Mouse-tracking programs retain right-button input; Shift bypasses reporting to open the menu, and right-click on an underlined `ResolveHighlightedLinks` reference always opens it. Native
-Metal also resolves OSC 8 label targets; Skia retains its existing HTTP(S)-text detection.
+Mouse-tracking programs retain right-button input; Shift bypasses reporting to open the menu, and right-click on an underlined `ResolveHighlightedLinks` reference always opens it.
+Both controls also follow OSC 8 hyperlinks: Metal through Ghostty, Skia from the hyperlink libghostty-vt records per
+cell (`gav_vt_hyperlink`), overriding text-detected URLs on those cells. Command-hover underlines the whole target and
+shows it as a tooltip; Command-click opens it like any other link. OSC 22 pointer shapes map to Avalonia cursors in
+both (`gav_vt_mouse_shape`; Ghostty's `mouse_shape` action through `gav_texture_mouse_shape`).
 
 In SharpRail, `--ghostty-skia` runs focused real-pixel/input and host PTY checks;
 `--terminals` additionally checks local/remote host behavior and terminal docking.

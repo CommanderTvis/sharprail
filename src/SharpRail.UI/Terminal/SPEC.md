@@ -371,8 +371,13 @@ on macOS (Ctrl elsewhere), and modifier-click opens the URL using the system
 browser. Soft-wrapped URLs remain one link across rows; explicit newlines remain
 boundaries. Right-click over a web URL offers Open link alongside the terminal clipboard menu,
 without Command/Ctrl. The action opens the URI captured at right-click even if output changes. Mouse
-tracking forwards RMB to the program; Shift bypasses tracking for the menu, and right-click on an underlined resolved reference (a validated file or commit hash) always opens the menu, as a modifier-click on a link wins over reporting. Native Metal resolves
-OSC 8 label targets as well; browser Skia inherits HTTP(S) text detection. The separate restty canvas
+tracking forwards RMB to the program; Shift bypasses tracking for the menu, and right-click on an underlined resolved reference (a validated file or commit hash) always opens the menu, as a modifier-click on a link wins over reporting. Every renderer
+also follows OSC 8 hyperlinks (a label whose target is not its text): Metal through Ghostty, Skia (desktop, Android and
+the browser fallback) from the per-cell hyperlinks libghostty-vt records. Command-hover underlines every cell of the
+hovered target, across soft wraps, and shows the target as the view's tooltip; Command-click routes it as any terminal
+link: `file:` targets to the document tab through the host's resolver, web and other schemes to the system launcher
+without a confirmation, as Metal does. OSC 8 cells take precedence over text-detected URLs, which keep working beside
+them. The separate restty canvas
 has no exposed point-to-link query and does not yet offer this action. Ordinary clicks and drags retain terminal selection behavior.
 
 Host checks cover attach idempotency, takeover and displaced-client rejection, watching, replay without the
@@ -574,3 +579,18 @@ timeouts, and the reattachment assertion losing `TEXTURE_GPU` when a host/user p
 narrow resize makes the shell's prompt redraw erase earlier lines.
 
 Validated commit underlines on unchanged visible lines survive asynchronous viewport refreshes and scrolling, with offsets remapped to those lines. Changed lines discard old highlights immediately; detach clears retained results.
+
+## Titles and pointer shapes
+
+A program's OSC 0/2 title reaches the tab through the host (see
+[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#program-titles)), so every client, local or remote,
+labels the tab the same way whatever renderer it uses and whether or not the tab is mounted. Precedence is user rename >
+an agent's `set_title` > the program's title > the tab's default "Terminal N"; a tab keeps the last title it was given
+when the program clears its own. OSC 1 (icon name) is ignored, as libghostty does; the macOS window title does not follow
+terminals.
+
+OSC 22 pointer shapes become Avalonia cursors in Skia (read from libghostty-vt) and the Metal texture view (Ghostty's
+`mouse_shape` action, which also reports Ghostty's own shape changes); a hovered link still shows a hand. The hosted
+NSView control keeps AppKit's cursor. OSC 66 (kitty text sizing) is parsed but not implemented by the pinned libghostty,
+so no renderer sizes text with it. `--terminals` (Skia) and `--native-terminal-links` (Metal) check OSC 22.
+

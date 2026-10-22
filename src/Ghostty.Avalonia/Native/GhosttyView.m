@@ -10,6 +10,8 @@ extern bool gav_ghostty_agent_newline(ghostty_surface_t surface);
 @interface GAVTerminalView : NSView <NSTextInputClient>
 @property(nonatomic, assign) ghostty_surface_t surface;
 @property(nonatomic, assign) BOOL overLink;
+@property(nonatomic, copy) NSString *linkUrl;
+@property(nonatomic, assign) int32_t mouseShape;
 @property(nonatomic, strong) NSMutableAttributedString *marked;
 @property(nonatomic, strong) NSMutableArray<NSString *> *keyText;
 @property(nonatomic, copy) NSString *clipboardDirectory;
@@ -36,6 +38,13 @@ static bool action(ghostty_app_t instance, ghostty_target_s target, ghostty_acti
     if (value.tag == GHOSTTY_ACTION_MOUSE_OVER_LINK && target.tag == GHOSTTY_TARGET_SURFACE) {
         GAVTerminalView *view = (__bridge GAVTerminalView *)ghostty_surface_userdata(target.target.surface);
         view.overLink = value.action.mouse_over_link.len > 0;
+        view.linkUrl = view.overLink ? [[NSString alloc] initWithBytes:value.action.mouse_over_link.url length:value.action.mouse_over_link.len encoding:NSUTF8StringEncoding] : nil;
+        return true;
+    }
+    if (value.tag == GHOSTTY_ACTION_MOUSE_SHAPE && target.tag == GHOSTTY_TARGET_SURFACE) {
+        // OSC 22 and Ghostty's own shape changes; the texture view maps it to an Avalonia cursor.
+        GAVTerminalView *view = (__bridge GAVTerminalView *)ghostty_surface_userdata(target.target.surface);
+        view.mouseShape = (int32_t)value.action.mouse_shape;
         return true;
     }
     if (value.tag == GHOSTTY_ACTION_SHOW_CHILD_EXITED && target.tag == GHOSTTY_TARGET_SURFACE) {
@@ -274,6 +283,7 @@ static void *create_view(const char *directory, const char *clipboard_directory,
     NSCAssert(NSThread.isMainThread, @"Terminal views require the main thread");
     if (!initialize()) return NULL;
     GAVTerminalView *view = [[GAVTerminalView alloc] initWithFrame:NSMakeRect(0, 0, 640, 360)];
+    view.mouseShape = GHOSTTY_MOUSE_SHAPE_TEXT;
     view.clipboardDirectory = clipboard_directory ? [NSString stringWithUTF8String:clipboard_directory] : nil;
     view.callback = event;
     view.shortcut = shortcut;
@@ -430,6 +440,18 @@ void gav_texture_ime_point(void *pointer, double *x, double *y, double *width, d
 }
 bool gav_texture_over_link(void *pointer) {
     return ((__bridge GAVTerminalView *)pointer).overLink;
+}
+int32_t gav_texture_mouse_shape(void *pointer) {
+    return ((__bridge GAVTerminalView *)pointer).mouseShape;
+}
+// The hovered link's target as UTF-8; returns its length, which may exceed capacity, and 0 over no link.
+size_t gav_texture_link_url(void *pointer, char *buffer, size_t capacity) {
+    NSString *url = ((__bridge GAVTerminalView *)pointer).linkUrl;
+    if (!url) return 0;
+    const char *text = url.UTF8String;
+    size_t length = strlen(text);
+    if (buffer && capacity) memcpy(buffer, text, length < capacity ? length : capacity);
+    return length;
 }
 void gav_texture_mouse(void *pointer, double x, double y, int32_t mods, int32_t action, int32_t button) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;

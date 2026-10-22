@@ -43,6 +43,8 @@ enum {
     GAV_CELL_BOLD = 1 << 0, GAV_CELL_ITALIC = 1 << 1, GAV_CELL_FAINT = 1 << 2, GAV_CELL_BLINK = 1 << 3,
     GAV_CELL_INVERSE = 1 << 4, GAV_CELL_INVISIBLE = 1 << 5, GAV_CELL_STRIKETHROUGH = 1 << 6,
     GAV_CELL_OVERLINE = 1 << 7, GAV_CELL_SELECTED = 1 << 8,
+    // Bit 9 is the managed side's hover mark. The cell carries an OSC 8 hyperlink; gav_vt_hyperlink reads its URI.
+    GAV_CELL_HYPERLINK = 1 << 10,
 };
 
 // Colors are 0xAARRGGBB; a zero alpha means the terminal's default color.
@@ -342,6 +344,8 @@ GAV_API bool gav_vt_snapshot(gav_vt *vt, gav_vt_frame *frame) {
             GhosttyCellWide wide = GHOSTTY_CELL_WIDE_NARROW;
             ghostty_cell_get(raw, GHOSTTY_CELL_DATA_WIDE, &wide);
             cell->wide = (uint8_t)wide;
+            bool hyperlink = false;
+            ghostty_cell_get(raw, GHOSTTY_CELL_DATA_HAS_HYPERLINK, &hyperlink);
             uint32_t length = 0;
             ghostty_render_state_row_cells_get(vt->row_cells, GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_LEN, &length);
             if (length) {
@@ -363,7 +367,8 @@ GAV_API bool gav_vt_snapshot(gav_vt *vt, gav_vt_frame *frame) {
             cell->flags = (style.bold ? GAV_CELL_BOLD : 0) | (style.italic ? GAV_CELL_ITALIC : 0) | (style.faint ? GAV_CELL_FAINT : 0) |
                 (style.blink ? GAV_CELL_BLINK : 0) | (style.inverse ? GAV_CELL_INVERSE : 0) | (style.invisible ? GAV_CELL_INVISIBLE : 0) |
                 (style.strikethrough ? GAV_CELL_STRIKETHROUGH : 0) | (style.overline ? GAV_CELL_OVERLINE : 0) |
-                (selected && x >= selection.start_x && x <= selection.end_x ? GAV_CELL_SELECTED : 0);
+                (selected && x >= selection.start_x && x <= selection.end_x ? GAV_CELL_SELECTED : 0) |
+                (hyperlink ? GAV_CELL_HYPERLINK : 0);
         }
         bool clean = false;
         ghostty_render_state_row_set(vt->rows, GHOSTTY_RENDER_STATE_ROW_OPTION_DIRTY, &clean);
@@ -503,6 +508,23 @@ GAV_API bool gav_vt_jump_to_prompt(gav_vt *vt, int32_t delta) {
     else scroll.value.row = (size_t)found;
     ghostty_terminal_scroll_viewport(vt->terminal, scroll);
     return true;
+}
+
+// The OSC 8 URI of a viewport cell; returns its length, which may exceed capacity, and 0 without one.
+GAV_API size_t gav_vt_hyperlink(gav_vt *vt, uint16_t x, uint16_t y, uint8_t *out, size_t capacity) {
+    GhosttyPoint point = { .tag = GHOSTTY_POINT_TAG_VIEWPORT, .value = { .coordinate = { .x = x, .y = y } } };
+    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+    if (ghostty_terminal_grid_ref(vt->terminal, point, &ref) != GHOSTTY_SUCCESS) return 0;
+    size_t length = 0;
+    GhosttyResult result = ghostty_grid_ref_hyperlink_uri(&ref, out, capacity, &length);
+    return result == GHOSTTY_SUCCESS || result == GHOSTTY_OUT_OF_SPACE ? length : 0;
+}
+
+// The pointer shape the program asked for with OSC 22, as GhosttyMouseShape.
+GAV_API int32_t gav_vt_mouse_shape(gav_vt *vt) {
+    GhosttyMouseShape shape = GHOSTTY_MOUSE_SHAPE_TEXT;
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_MOUSE_SHAPE, &shape);
+    return (int32_t)shape;
 }
 
 GAV_API void gav_vt_select_all(gav_vt *vt) {
@@ -667,7 +689,7 @@ GAV_API int gav_draw_ascii_row(void *canvas, void *fill, void *text, const gav_v
         const void *const *blobs, const gav_row_metrics *m) {
     const gav_vt_cell *cells = frame->cells + m->row * frame->columns;
     const uint16_t allowed = GAV_CELL_BOLD | GAV_CELL_ITALIC | GAV_CELL_FAINT | GAV_CELL_BLINK |
-        GAV_CELL_INVERSE | GAV_CELL_INVISIBLE;
+        GAV_CELL_INVERSE | GAV_CELL_INVISIBLE | GAV_CELL_HYPERLINK;
     for (int x = 0; x < frame->columns; x++) {
         const gav_vt_cell *cell = cells + x;
         if (cell->wide || cell->underline || (cell->flags & ~allowed) || cell->length > 1 ||

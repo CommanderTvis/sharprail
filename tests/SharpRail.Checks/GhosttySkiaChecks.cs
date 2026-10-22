@@ -60,6 +60,8 @@ internal static class GhosttySkiaChecks
         CheckLinkContextMenu();
         CheckHighlightedLinkContextMenu();
         CheckFileLinks();
+        CheckHyperlinks();
+        CheckPointerShapes();
         CheckZoomedDensity();
         Osc52Checks.RunSkia();
         CheckView();
@@ -329,6 +331,89 @@ internal static class GhosttySkiaChecks
             view.Write("\r\e[2Kmissing.cs"u8); Pump();
             window.KeyPress(Key.LWin, RawInputModifiers.Meta, PhysicalKey.MetaLeft, null); Pump();
             Require(view.Cursor?.ToString() != "Hand", "changed output kept stale file link.");
+        }
+        finally { window.Close(); Pump(); }
+    }
+
+    // OSC 8 hyperlinks, read from libghostty-vt's cells: their whole range (wrapped too) underlines under Command-hover,
+    // the target shows as the tooltip, and Command-click routes as Metal does: file URLs to the editor through the
+    // resolver, never the system launcher; web URLs to the launcher. Text-detected URLs keep working beside them.
+    internal static void CheckHyperlinks()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 240, Height = 160, Content = view };
+        var launched = new List<Uri>();
+        var previousLaunch = TerminalLinkLauncher.Launch;
+        TerminalLinkLauncher.Launch = (_, uri) => { launched.Add(uri); return Task.CompletedTask; };
+        var opened = new List<TerminalLink>();
+        var resolved = new List<string>();
+        view.ResolveFileLinks = (text, _) =>
+        {
+            lock (resolved) resolved.Add(text);
+            return Task.FromResult<IReadOnlyList<TerminalLink>>(text == "file:///project/Main.cs" ? [new(0, text.Length, "/project/Main.cs", 1, 1, false)] : []);
+        };
+        view.OpenFileLink = link => { opened.Add(link); return Task.CompletedTask; };
+        window.Show(); Pump();
+        try
+        {
+            var columns = view.Size.Columns;
+            var label = new string('w', columns + 4);
+            view.Focus();
+            view.Write(Encoding.UTF8.GetBytes("\e[?25l\e[H\e]8;;https://example.com/docs\e\\Docs label\e]8;;\e\\ https://p.io/x\r\n" +
+                "\e]8;;file://some-host/project/Main.cs\e\\main file\e]8;;\e\\\r\n\e]8;id=w;https://example.com/wrapped\e\\" + label + "\e]8;;\e\\"));
+            Until(() => view.ReadScreen().Contains("main file", StringComparison.Ordinal) && view.ReadScreen().Contains("wwww", StringComparison.Ordinal), "hyperlink output");
+            Point Cell(int column, int row) => view.CellCenter(column, row) ?? throw new InvalidOperationException("Skia terminal: no cell geometry.");
+            void Hover(int column, int row)
+            {
+                window.MouseMove(Cell(column, row), RawInputModifiers.Meta);
+                window.KeyPress(Key.LWin, RawInputModifiers.Meta, PhysicalKey.MetaLeft, null); Pump();
+            }
+            void Click(int column, int row)
+            {
+                Hover(column, row);
+                window.MouseDown(Cell(column, row), MouseButton.Left, RawInputModifiers.Meta);
+                window.MouseUp(Cell(column, row), MouseButton.Left, RawInputModifiers.Meta);
+                window.KeyRelease(Key.LWin, RawInputModifiers.None, PhysicalKey.MetaLeft, null); Pump();
+            }
+            Hover(3, 0);
+            Require(view.HoveredLink == "https://example.com/docs" && view.Cursor?.ToString() == "Hand" && Equals(ToolTip.GetTip(view), "https://example.com/docs"),
+                $"an OSC 8 label did not hover its target: {view.HoveredLink}, {view.Cursor}");
+            Require(view.LinkCells.SequenceEqual(Enumerable.Range(0, "Docs label".Length)), "the OSC 8 underline range was not exactly its label: " + string.Join(",", view.LinkCells));
+            Hover(columns - 1, 2);
+            Require(view.HoveredLink == "https://example.com/wrapped" && view.LinkCells.SequenceEqual(Enumerable.Range(2 * columns, label.Length)),
+                $"a soft-wrapped OSC 8 link did not underline across both rows ({view.HoveredLink}, {columns}x{view.Size.Rows}): " + string.Join(",", view.LinkCells) + " screen: " + view.ReadScreen());
+            Hover("Docs label ".Length + 2, 0);
+            Require(view.HoveredLink == "https://p.io/x", "text-detected URLs stopped working beside OSC 8 links.");
+            Click(2, 0);
+            Until(() => launched.Count == 1, "OSC 8 web link launch");
+            Require(launched[0].AbsoluteUri == "https://example.com/docs", "Command-click opened " + launched[0]);
+            Click(2, 1);
+            Until(() => opened.Count == 1, "OSC 8 file link navigation");
+            Require(launched.Count == 1 && opened[0].Path == "/project/Main.cs",
+                "an OSC 8 file link must open in the application, never the launcher; resolved: " + string.Join(", ", resolved));
+            window.MouseMove(new Point(1, 1)); Pump();
+            Require(view.HoveredLink is null && ToolTip.GetTip(view) is null, "the link tooltip outlived the hover.");
+            Console.WriteLine("PASS Skia OSC 8 hyperlinks: exact and wrapped ranges, tooltip target, Command-click to the editor (file) and the browser (web), beside text-detected URLs");
+        }
+        finally { TerminalLinkLauncher.Launch = previousLaunch; window.Close(); Pump(); }
+    }
+
+    // OSC 22 asks for a pointer shape; the view maps Ghostty's names to Avalonia cursors, and a hovered link still shows a hand.
+    internal static void CheckPointerShapes()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 240, Height = 160, Content = view };
+        window.Show(); Pump();
+        try
+        {
+            Require(view.PointerShape == StandardCursorType.Ibeam, "the terminal pointer did not start as an I-beam.");
+            foreach (var (name, expected) in new[] { ("pointer", StandardCursorType.Hand), ("wait", StandardCursorType.Wait), ("crosshair", StandardCursorType.Cross),
+                ("ew-resize", StandardCursorType.SizeWestEast), ("not-allowed", StandardCursorType.No), ("default", StandardCursorType.Arrow), ("text", StandardCursorType.Ibeam) })
+            {
+                view.Write(Encoding.UTF8.GetBytes($"\e]22;{name}\e\\")); Pump();
+                Require(view.PointerShape == expected && view.Cursor?.ToString() == expected.ToString(), $"OSC 22 {name} showed {view.PointerShape}, not {expected}.");
+            }
+            Console.WriteLine("PASS Skia OSC 22 pointer shapes map to Avalonia cursors");
         }
         finally { window.Close(); Pump(); }
     }

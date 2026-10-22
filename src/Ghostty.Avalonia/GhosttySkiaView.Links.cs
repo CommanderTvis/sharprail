@@ -32,7 +32,14 @@ public sealed partial class GhosttySkiaView
     private Point linkPointer = new(-1, -1);
     private Point linkPressPointer;
     private KeyModifiers linkModifiers;
-    private string? hoveredUrl, pressedUrl;
+    private string? hoveredUrl, pressedUrl, pointerTip;
+    private StandardCursorType pointerShape = StandardCursorType.Ibeam;
+    /// <summary>The cursor the view shows now, for checks.</summary>
+    internal StandardCursorType PointerShape => pointerShape;
+    /// <summary>The link target under a modifier-hover, shown as the view's tooltip; null over no link.</summary>
+    internal string? HoveredLink => hoveredUrl;
+    /// <summary>The viewport cells underlined as links now, in order, for checks.</summary>
+    internal IReadOnlyList<int> LinkCells => [.. linkCells.Order()];
 
     private KeyModifiers LinkModifier => MacKeyboard ? KeyModifiers.Meta : KeyModifiers.Control;
 
@@ -85,7 +92,26 @@ public sealed partial class GhosttySkiaView
         var x = (int)Math.Floor((point.X - Padding.Left) / cells.CellWidth);
         var y = (int)Math.Floor((point.Y - Padding.Top) / cells.CellHeight);
         return x >= 0 && x < last.Columns && y >= 0 && y < last.Rows
-            ? FindUrls(last).GetValueOrDefault(y * last.Columns + x) : null;
+            ? Links(last).GetValueOrDefault(y * last.Columns + x) : null;
+    }
+
+    /// <summary>
+    /// Web URLs detected in the text, overlaid with the OSC 8 hyperlinks libghostty-vt records per cell. Every cell of one
+    /// hyperlink target shares one string instance, so hovering any of them underlines the whole link, wrapped or not.
+    /// </summary>
+    internal unsafe Dictionary<int, string> Links(Frame frame)
+    {
+        var result = FindUrls(frame);
+        Dictionary<string, string>? targets = null;
+        for (var index = 0; index < frame.Columns * frame.Rows; index++)
+        {
+            if ((frame.Cells[index].Flags & CellFlags.Hyperlink) == 0) continue;
+            if (vt.Hyperlink(index % frame.Columns, index / frame.Columns) is not { Length: > 0 } uri) continue;
+            targets ??= [];
+            if (!targets.TryGetValue(uri, out var shared)) targets[uri] = shared = uri;
+            result[index] = shared;
+        }
+        return result;
     }
 
     private unsafe void UpdateLinks(Frame frame)
@@ -147,7 +173,7 @@ public sealed partial class GhosttySkiaView
                     if (frame.Cells[row * frame.Columns].RowWrapped == 0 || text.Length > 16384) break;
                 }
                 fileText = text.ToString();
-                var urls = FindUrls(frame);
+                var urls = Links(frame);
                 if (urls.TryGetValue(y * frame.Columns + x, out hoveredUrl))
                     foreach (var pair in urls)
                         if (ReferenceEquals(pair.Value, hoveredUrl)) linkCells.Add(pair.Key);
@@ -171,7 +197,15 @@ public sealed partial class GhosttySkiaView
         if (hadLinks || linkCells.Count != 0)
             for (var i = 0; i < frame.Columns * frame.Rows; i++)
                 frame.Cells[i].Flags = (frame.Cells[i].Flags & ~CellFlags.LinkHover) | (linkCells.Contains(i) ? CellFlags.LinkHover : 0);
-        if (hadLinks != (linkCells.Count != 0)) Cursor = new Cursor(hoveredUrl is null && FileHover.Link is null ? StandardCursorType.Ibeam : StandardCursorType.Hand);
+        UpdatePointer();
+    }
+
+    // A hovered link shows a hand and its target; otherwise the pointer takes the shape the program asked for with OSC 22.
+    private void UpdatePointer()
+    {
+        var shape = hoveredUrl is not null || FileHover.Link is not null ? StandardCursorType.Hand : TerminalPointer.For(vt.MouseShape);
+        if (shape != pointerShape) { pointerShape = shape; Cursor = new Cursor(shape); }
+        if (hoveredUrl != pointerTip) { pointerTip = hoveredUrl; ToolTip.SetTip(this, hoveredUrl); }
     }
 
     private unsafe void RefreshLink(PointerEventArgs e)

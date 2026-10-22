@@ -10,7 +10,7 @@ internal enum CellFlags : ushort
 {
     Bold = 1 << 0, Italic = 1 << 1, Faint = 1 << 2, Blink = 1 << 3, Inverse = 1 << 4,
     Invisible = 1 << 5, Strikethrough = 1 << 6, Overline = 1 << 7, Selected = 1 << 8,
-    LinkHover = 1 << 9
+    LinkHover = 1 << 9, Hyperlink = 1 << 10
 }
 
 // Mirrors gav_vt_cell and gav_vt_frame in Native/GhosttyVt.c.
@@ -154,6 +154,20 @@ internal sealed unsafe class Vt : IDisposable
         fixed (byte* output = scratch) return scratch.AsSpan(0, (int)gav_vt_focus(handle, gained, output, (nuint)scratch.Length));
     }
 
+    /// <summary>The OSC 8 URI of a viewport cell from the last snapshot; null without one or for invalid UTF-8.</summary>
+    internal string? Hyperlink(int column, int row)
+    {
+        var length = (int)gav_vt_hyperlink(handle, (ushort)column, (ushort)row, null, 0);
+        if (length == 0) return null;
+        var buffer = new byte[length];
+        fixed (byte* output = buffer) length = (int)gav_vt_hyperlink(handle, (ushort)column, (ushort)row, output, (nuint)buffer.Length);
+        try { return length == buffer.Length ? StrictUtf8.GetString(buffer) : null; }
+        catch (DecoderFallbackException) { return null; }
+    }
+
+    /// <summary>The pointer shape the program asked for with OSC 22, as Ghostty's mouse shape number.</summary>
+    internal int MouseShape => gav_vt_mouse_shape(handle);
+
     internal string SelectionText() => Text(true);
     internal string ScreenText() => Text(false);
 
@@ -222,5 +236,7 @@ internal sealed unsafe class Vt : IDisposable
     [DllImport(Library)] private static extern long gav_vt_command_output(nint vt, double x, double y, byte* output, nuint capacity);
     [DllImport(Library)] private static extern void gav_vt_clear_selection(nint vt);
     [DllImport(Library)] private static extern nuint gav_vt_selection_text(nint vt, byte* output, nuint capacity);
+    [DllImport(Library)] private static extern nuint gav_vt_hyperlink(nint vt, ushort x, ushort y, byte* output, nuint capacity);
+    [DllImport(Library)] private static extern int gav_vt_mouse_shape(nint vt);
     [DllImport(Library)] private static extern nuint gav_vt_screen_text(nint vt, byte* output, nuint capacity);
 }

@@ -23,10 +23,31 @@ public sealed partial class GhosttyTextureView
     private int clipboardMenuRequest;
     private Point linkPointer = new(-1, -1);
 
+    private StandardCursorType? pointerShape;
+    private string? pointerTip;
+    /// <summary>The cursor the view shows now, for checks.</summary>
+    internal StandardCursorType? PointerShape => pointerShape;
+
+    // Ghostty's hovered link shows a hand and its target; otherwise the pointer takes the shape Ghostty reports (OSC 22).
+    private void UpdatePointer()
+    {
+        var over = Native.OverLink(terminal.Handle);
+        var shape = over ? StandardCursorType.Hand : TerminalPointer.For(Native.MouseShape(terminal.Handle));
+        if (shape != pointerShape) { pointerShape = shape; Cursor = SharedCursor(shape); }
+        string? tip = null;
+        if (over && (int)Native.LinkUrl(terminal.Handle, null, 0) is > 0 and var length)
+        {
+            var bytes = new byte[length];
+            tip = Encoding.UTF8.GetString(bytes, 0, (int)Math.Min((nuint)length, Native.LinkUrl(terminal.Handle, bytes, (nuint)length)));
+        }
+        if (tip != pointerTip) { pointerTip = tip; ToolTip.SetTip(this, tip); }
+    }
+
     private void RefreshLinkModifiers(KeyModifiers modifiers)
     {
         linkModifiers = modifiers;
         if (!disposed) Native.Mouse(terminal.Handle, linkPointer.X, linkPointer.Y, Vt.Mods(modifiers), -1, 0);
+        if (!disposed) UpdatePointer();
         RefreshFileLink();
         InvalidateVisual();
     }
@@ -114,6 +135,7 @@ public sealed partial class GhosttyTextureView
         linkPointer = point;
         linkModifiers = e.KeyModifiers;
         Native.Mouse(terminal.Handle, point.X, point.Y, Vt.Mods(e.KeyModifiers), action, button);
+        UpdatePointer();
         RefreshFileLink();
         InvalidateVisual();
     }

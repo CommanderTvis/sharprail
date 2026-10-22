@@ -162,7 +162,7 @@ public sealed partial class GhosttyTextureView
     private void RefreshFileLink()
     {
         hoverMarks.Clear();
-        if (!disposed) SetCursor(Native.OverLink(terminal.Handle));
+        if (!disposed) UpdatePointer();
         if (disposed || ResolveFileLinks is null || linkModifiers != LinkModifier || !new Rect(Bounds.Size).Contains(linkPointer) || Native.OverLink(terminal.Handle))
         { FileHover.Update(null, -1); PushUnderlines(); return; }
         var (scalars, cells, info) = (linkScalars, linkCells, linkInfo);
@@ -180,17 +180,18 @@ public sealed partial class GhosttyTextureView
         if (FileHover.Link is not { } link) { PushUnderlines(); return; }
         foreach (var (cell, code) in positions.Skip(link.Start).Take(link.Length).Distinct()) hoverMarks.TryAdd(cell, code);
         PushUnderlines();
-        SetCursor(hand: true);
+        pointerShape = StandardCursorType.Hand;
+        if (!ReferenceEquals(Cursor, SharedCursor(StandardCursorType.Hand))) Cursor = SharedCursor(StandardCursorType.Hand);
     }
 
     // Each Cursor owns a native platform cursor that only its finalizer releases (through a dispatcher post), and the
-    // link state refreshes on every pointer move and frame: share the two cursors and assign only on a change.
-    private static Cursor? handCursor, ibeamCursor;
+    // pointer state refreshes on every pointer move and frame: share one cursor per shape and assign only on a change.
+    private static readonly Dictionary<StandardCursorType, Cursor> cursors = [];
 
-    private void SetCursor(bool hand)
+    private static Cursor SharedCursor(StandardCursorType shape)
     {
-        var cursor = hand ? handCursor ??= new(StandardCursorType.Hand) : ibeamCursor ??= new(StandardCursorType.Ibeam);
-        if (!ReferenceEquals(Cursor, cursor)) Cursor = cursor;
+        if (!cursors.TryGetValue(shape, out var cursor)) cursors[shape] = cursor = new Cursor(shape);
+        return cursor;
     }
 
     private Task<TerminalContextLink?> ContextFileLink(Point point)
