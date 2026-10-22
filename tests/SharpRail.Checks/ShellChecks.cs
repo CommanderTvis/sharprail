@@ -318,7 +318,13 @@ internal static class ShellChecks
             "Language Server Status", "Start / Retry Language Server", "Stop Language Server"];
         Require(Headers(file).SequenceEqual(["New Workspace", "New Window", "-", "Open Project…", "Clone Repository…", "Create Project…", "Open Recent", "-", "Close Tab", "Close Window", "-", "Save"]),
             "File: " + string.Join(", ", Headers(file)));
-        Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All", "-", "Undo Close Tab", "-", "Find", "-", .. language]), "Edit: " + string.Join(", ", Headers(edit)));
+        Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All", "-", "Undo Close Tab", "-", "Find", "-", .. language, "-", "Secure Keyboard Entry"]),
+            "Edit: " + string.Join(", ", Headers(edit)));
+        // The second way to the terminal context menu's toggle; checks run against a counting fake, never the real call.
+        Pick(edit, "Secure Keyboard Entry");
+        Require(SharpRail.UI.Terminal.SecureInput.Shared.Manual && Entry(edit, "Secure Keyboard Entry").IsChecked, "The Edit menu toggles secure keyboard entry on and checks it.");
+        Pick(edit, "Secure Keyboard Entry");
+        Require(!SharpRail.UI.Terminal.SecureInput.Shared.Manual && !SharpRail.UI.Terminal.SecureInput.Shared.Enabled, "Picking it again turns it off.");
         Require(Headers(view).SequenceEqual(["Zoom In", "Zoom Out", "Actual Size"]), "View: " + string.Join(", ", Headers(view)));
         Require(Headers(windows).SequenceEqual(["Minimize", "Zoom", "-", "Host Settings…", "Connect to a Tailscale Host…", "-", "Bring All to Front"]), "Window: " + string.Join(", ", Headers(windows)));
         Require(Headers(help).SequenceEqual(["Report an Issue…"]), "Help: " + string.Join(", ", Headers(help)));

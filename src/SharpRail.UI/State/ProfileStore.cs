@@ -28,6 +28,8 @@ public sealed class Preferences
     public bool ChangesSingle { get; set; }
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
     public string TerminalRenderer { get; set; } = OperatingSystem.IsMacOS() ? Terminal.TerminalRenderers.Texture : Terminal.TerminalRenderers.Skia;
+    /// <summary>macOS: turn on secure keyboard entry while a focused terminal reads a password, as Ghostty's macos-auto-secure-input.</summary>
+    public bool SecureInputForPasswords { get; set; } = true;
     /// <summary>A single click previews into the group's reusable slot; off, every open keeps its tab.</summary>
     public bool PreviewTabs { get; set; } = true;
     /// <summary>Legacy tab-mode value retained for host/profile compatibility; placement is always in Projects.</summary>

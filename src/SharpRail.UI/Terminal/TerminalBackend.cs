@@ -9,6 +9,8 @@ public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, stri
 {
     public Func<Ghostty.Avalonia.TerminalLink, Task>? OpenFileLink { get; init; }
     public Func<string, CancellationToken, Task<IReadOnlyList<Ghostty.Avalonia.TerminalLink>>>? ResolveCommitLinks { get; init; }
+    // Adds the tab's own items (secure keyboard entry) below the renderer's clipboard items.
+    public Action<ContextMenu>? ExtendContextMenu { get; init; }
     // The tab's layout id; with the workspace root it is the TerminalRef plugins see.
     public string TabKey { get; init; } = "";
     // Attach only when no other client holds the session; a tab created here, or taken over, attaches plainly.
@@ -44,6 +46,8 @@ public interface ITerminalBackend : IDisposable
     // The host's reading of the shell's integration: whether it waits at a prompt or runs a command, its directory, and the
     // recent commands with their exit codes. Null without a report.
     ValueTask<TerminalShellStatus?> ShellStatusAsync() => ValueTask.FromResult<TerminalShellStatus?>(null);
+    // True while the program in the shell reads a password with echo off; false once exited, detached or watching.
+    ValueTask<bool> IsPasswordInputAsync() => ValueTask.FromResult(false);
     // Ends the host session, as closing its tab does.
     ValueTask CloseAsync();
     void FocusTerminal();

@@ -103,6 +103,11 @@ public static class ApplicationMenu
         edit.Items.Add(new NativeMenuItemSeparator());
         var language = Language(window);
         foreach (var item in language) edit.Items.Add(item);
+        if (Terminal.SecureInput.Shared.Supported)
+        {
+            edit.Items.Add(new NativeMenuItemSeparator());
+            edit.Items.Add(SecureKeyboardEntry(Terminal.SecureInput.Shared));
+        }
         NativeMenu view =
         [
             Shortcut("Zoom In", WindowShortcuts.ZoomIn),
@@ -160,6 +165,17 @@ public static class ApplicationMenu
             Refresh();
         }, RoutingStrategies.Bubble, handledEventsToo: true);
         return items;
+    }
+
+    /// <summary>The second way to Ghostty's toggle_secure_input; the terminal's context menu is the first. Checked while on.</summary>
+    internal static NativeMenuItem SecureKeyboardEntry(Terminal.SecureInput secure)
+    {
+        var item = Item(Terminal.TerminalView.SecureInputMenuHeader, Key.None, KeyModifiers.None, secure.Toggle);
+        item.ToggleType = MenuItemToggleType.CheckBox;
+        void Refresh() => item.IsChecked = secure.Manual;
+        Refresh();
+        secure.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(Refresh);
+        return item;
     }
 
     /// <summary>Command-S's own save, enabled while the editor it saves has unsaved changes.</summary>

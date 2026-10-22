@@ -16,6 +16,8 @@ public sealed class LoopbackTerminals(ITerminalService terminals, LoopbackServer
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default) => terminals.IsBusyAsync(sessionId, cancellationToken);
     // Without forwarding, the interface's empty default would hide every shell's prompt state.
     public ValueTask<TerminalShellStatus?> ShellStatusAsync(string sessionId, CancellationToken cancellationToken = default) => terminals.ShellStatusAsync(sessionId, cancellationToken);
+    // Without forwarding, the interface's default would never report a local password prompt.
+    public ValueTask<bool> IsPasswordInputAsync(string sessionId, CancellationToken cancellationToken = default) => terminals.IsPasswordInputAsync(sessionId, cancellationToken);
     // Without forwarding, the interface's empty default would silently disable every terminal file link.
     public ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
         => terminals.FindFileLinksAsync(sessionId, text, cancellationToken);

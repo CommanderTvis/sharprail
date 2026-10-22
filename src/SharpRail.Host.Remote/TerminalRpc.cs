@@ -78,6 +78,9 @@ public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLife
         };
     }
 
+    public async ValueTask<TerminalPasswordInputReply> IsPasswordInputAsync(TerminalSessionRequest request, CallContext context = default)
+        => new() { PasswordInput = await terminals.IsPasswordInputAsync(request.SessionId, context.CancellationToken) };
+
     public async ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default)
     {
         await terminals.CloseAsync(request.SessionId, context.CancellationToken);

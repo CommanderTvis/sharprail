@@ -18,6 +18,7 @@ public sealed class LocalTerminalAdapter(ITerminalService host) : ITerminalServi
     public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default) => host.AttachAsync(request, cancellationToken);
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default) => host.IsBusyAsync(sessionId, cancellationToken);
     public ValueTask<TerminalShellStatus?> ShellStatusAsync(string sessionId, CancellationToken cancellationToken = default) => host.ShellStatusAsync(sessionId, cancellationToken);
+    public ValueTask<bool> IsPasswordInputAsync(string sessionId, CancellationToken cancellationToken = default) => host.IsPasswordInputAsync(sessionId, cancellationToken);
     public ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
         => host.FindFileLinksAsync(sessionId, text, cancellationToken);
     public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => host.CloseAsync(sessionId, cancellationToken);
@@ -78,6 +79,13 @@ public sealed class RemoteTerminalAdapter : ITerminalService, IDisposable
             Marked = reply.Marked,
             Commands = [.. reply.Commands.Select(command => new TerminalCommand(command.Start, command.End, command.HasExitCode ? command.ExitCode : null))]
         };
+    }
+
+    // A host that predates the query never reports a password prompt.
+    public async ValueTask<bool> IsPasswordInputAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        try { return (await Service.IsPasswordInputAsync(new() { SessionId = sessionId }, Options(cancellationToken))).PasswordInput; }
+        catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return false; }
     }
 
     public async ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)

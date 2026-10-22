@@ -465,6 +465,7 @@ public sealed partial class GhosttySkiaView
             menu.Items.Add(copyOutput);
         }
         menu.Items.Add(paste); menu.Items.Add(all);
+        ExtendContextMenu?.Invoke(menu);
         ClipboardMenu = menu;
         menu.Open(this);
     }

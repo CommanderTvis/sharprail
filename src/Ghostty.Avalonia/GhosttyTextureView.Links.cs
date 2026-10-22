@@ -147,6 +147,8 @@ public sealed partial class GhosttyTextureView
     /// <summary>Opens a resolved file in the embedding application's editor.</summary>
     public Func<TerminalLink, Task>? OpenFileLink
     { get => FileHover.Open; set => FileHover.Open = value; }
+    /// <summary>Adds the embedding application's items to the context menu just before it opens, below the clipboard items.</summary>
+    public Action<ContextMenu>? ExtendContextMenu { get; set; }
 
     [DllImport("GhosttyAvaloniaView", EntryPoint = "gav_texture_set_link_underlines")]
     [return: MarshalAs(UnmanagedType.I1)]
@@ -271,6 +273,7 @@ public sealed partial class GhosttyTextureView
                 menu.Items.Add(copyOutput);
             }
         }
+        ExtendContextMenu?.Invoke(menu);
         ClipboardMenu = menu;
         menu.Open(this);
     }

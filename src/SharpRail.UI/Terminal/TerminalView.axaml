@@ -38,6 +38,10 @@
       <TextBlock Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" TextWrapping="Wrap"
                  Text="Press Enter to resume this tab’s previous session." />
     </Border>
+    <!-- Ghostty's secure input indication: the keyboard this terminal reads is hidden from other apps. -->
+    <Border x:Name="TerminalSecureInput" Grid.Row="0" Grid.Column="0" IsVisible="False" Margin="0,8,8,0" Padding="4"
+            HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4" Background="{x:Static rendering:Ui.Elevated}"
+            ToolTip.Tip="Secure keyboard entry is on: other apps cannot read what you type." />
     <!-- While a plugin types a command into the agent, the user's keys are held back. -->
     <Border x:Name="TerminalInputHeld" Grid.Row="0" IsVisible="False" Margin="12" Padding="8,4"
             HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"

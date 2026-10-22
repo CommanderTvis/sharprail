@@ -85,6 +85,12 @@ their MCP identities. The host waits for shell shutdown before completing the pr
 - Busy means a process other than the shell owns the terminal's foreground process group (`tcgetpgrp`);
   a builtin running in the shell itself reads as idle. Closing a busy tab asks first; an idle tab closes
   immediately.
+- A password prompt is Ghostty's heuristic (`termio/Exec.zig`: `password_input = canonical and !echo`): the
+  PTY's line discipline, read with `tcgetattr` on the held slave descriptor, has `ICANON` set and `ECHO`
+  clear, as sudo, ssh and gpg leave it while reading a secret. A shell at its line editor runs non-canonical,
+  so it never reads as one. `IsPasswordInputAsync` answers it on demand (the client polls a focused terminal),
+  false for an unknown, exited or Windows session; a remote host serves it as a unary RPC and an older host
+  reads as false. The client turns it into secure keyboard entry ([Terminal/SPEC.md](../SharpRail.UI/Terminal/SPEC.md#secure-keyboard-entry)).
 - Attach and resize refuse a grid outside 1–32,767 columns and rows (`TerminalGrid.Require`) before
   session lookup or PTY work, so a refused attach leaves no session. The remote adapter applies the same
   check before sending, which keeps the exception identical on both paths; the server ignores an

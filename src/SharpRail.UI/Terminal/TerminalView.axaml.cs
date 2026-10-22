@@ -3,6 +3,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
+using SharpRail.Plugins.UI.Kit;
+
 namespace SharpRail.UI.Terminal;
 
 // A terminal tab's body: attaches to its host session, explains start failures with an in-place retry, shows a
@@ -22,6 +24,10 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly TextBlock exitNotice;
     private readonly Control resumeHint;
     private readonly Control inputHeld;
+    private readonly Border secureIndicator;
+    private readonly Avalonia.Threading.DispatcherTimer passwordPoll;
+    private Window? window;
+    private bool passwordInput, passwordQuery;
     private int inputHolds;
     private int holdEpoch;
     private Action? releaseHint;
@@ -42,7 +48,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
 
     public TerminalView(TerminalFactory factory, TerminalLaunch launch)
     {
-        this.factory = factory; this.launch = launch;
+        this.factory = factory; this.launch = launch with { ExtendContextMenu = AddSecureInputItem };
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("TerminalBody")!;
         failure = this.FindControl<Control>("TerminalStartFailure")!;
@@ -54,6 +60,12 @@ public sealed partial class TerminalView : UserControl, IDisposable
         exitNotice = this.FindControl<TextBlock>("TerminalExited")!;
         resumeHint = this.FindControl<Control>("TerminalResumeHint")!;
         inputHeld = this.FindControl<Control>("TerminalInputHeld")!;
+        secureIndicator = this.FindControl<Border>("TerminalSecureInput")!;
+        secureIndicator.Child = Ui.Icon("lock", Ui.Accent, 14);
+        passwordPoll = new() { Interval = PasswordPollInterval };
+        passwordPoll.Tick += (_, _) => PollPassword();
+        AddHandler(GotFocusEvent, (_, _) => UpdateSecureInput(), RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(LostFocusEvent, (_, _) => UpdateSecureInput(), RoutingStrategies.Bubble, handledEventsToo: true);
         Accessories = this.FindControl<StackPanel>("TerminalAccessories")!;
         companion = this.FindControl<ContentControl>("TerminalCompanion")!;
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
@@ -125,6 +137,69 @@ public sealed partial class TerminalView : UserControl, IDisposable
             if (epoch == Volatile.Read(ref view.holdEpoch)) Interlocked.Decrement(ref view.inputHolds);
             view.ShowInputHeld();
         }
+    }
+
+    /// <summary>How often a focused terminal asks its host whether a password is being read; Ghostty polls termios every 200 ms.</summary>
+    internal static TimeSpan PasswordPollInterval = TimeSpan.FromMilliseconds(200);
+
+    /// <summary>True while this terminal is the reason secure keyboard entry is on; its lock shows.</summary>
+    public bool SecureInputShown => secureIndicator.IsVisible;
+
+    // Only a focused terminal in the active window, live and held by this client, asks its host about password prompts.
+    private bool SecureInputEligible => !disposed && SecureInput.Shared is { Supported: true, Automatic: true } && IsKeyboardFocusWithin &&
+        window is { IsActive: true } && Backend is { } backend && backend.Started.IsCompletedSuccessfully && !IsExited && !IsDetached && !IsWatching && !IsFailed;
+
+    /// <summary>Re-evaluates this terminal's claim on secure input after focus, activation, lifecycle or setting changes.</summary>
+    internal void UpdateSecureInput()
+    {
+        var eligible = SecureInputEligible;
+        if (!eligible) passwordInput = false;
+        if (eligible && !passwordPoll.IsEnabled) { passwordPoll.Start(); PollPassword(); }
+        else if (!eligible) passwordPoll.Stop();
+        if (disposed) SecureInput.Shared.Remove(this);
+        else SecureInput.Shared.SetScoped(this, eligible && passwordInput);
+        ShowSecureInput();
+    }
+
+    // The host answers from the PTY's termios, off the UI thread; a stale answer for a replaced backend is dropped.
+    private async void PollPassword()
+    {
+        if (passwordQuery || Backend is not { } backend) return;
+        passwordQuery = true;
+        bool reading;
+        try { reading = await Task.Run(async () => await backend.IsPasswordInputAsync()); }
+        catch (Exception) { reading = false; }
+        finally { passwordQuery = false; }
+        if (!ReferenceEquals(Backend, backend)) return;
+        passwordInput = reading;
+        UpdateSecureInput();
+    }
+
+    private void ShowSecureInput() => secureIndicator.IsVisible = !disposed && IsKeyboardFocusWithin && SecureInput.Shared.Protects(this);
+
+    private void SecureInputChanged() => Avalonia.Threading.Dispatcher.UIThread.Post(ShowSecureInput);
+
+    private void WindowActivationChanged(object? sender, EventArgs e) => UpdateSecureInput();
+
+    // The terminal's context menu is the primary way to Ghostty's toggle_secure_input; the macOS Edit menu is the second.
+    private void AddSecureInputItem(ContextMenu menu)
+    {
+        if (!SecureInput.Shared.Supported) return;
+        var item = new MenuItem { Header = SecureInputMenuHeader, ToggleType = MenuItemToggleType.CheckBox, IsChecked = SecureInput.Shared.Manual };
+        item.Click += (_, _) => SecureInput.Shared.Toggle();
+        menu.Items.Add(new Separator());
+        menu.Items.Add(item);
+    }
+
+    public const string SecureInputMenuHeader = "Secure Keyboard Entry";
+
+    protected override void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        window = TopLevel.GetTopLevel(this) as Window;
+        if (window is not null) { window.Activated += WindowActivationChanged; window.Deactivated += WindowActivationChanged; }
+        SecureInput.Shared.Changed += SecureInputChanged;
+        UpdateSecureInput();
     }
 
     internal bool FileDropWired { get; set; }
@@ -225,6 +300,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
         ReleaseAllHolds();
         releaseHint?.Invoke(); releaseHint = null; resumeHint.IsVisible = false;
         Backend?.Dispose(); Backend = null; body.Content = null;
+        UpdateSecureInput();
         retry.IsEnabled = false; takeBack.IsEnabled = false;
         exitNotice.IsVisible = false;
         if (takeOver) displaced = false;
@@ -263,8 +339,10 @@ public sealed partial class TerminalView : UserControl, IDisposable
             }
             else if (retrying || focusOnStart) backend.FocusTerminal();
             focusOnStart = false;
+            UpdateSecureInput();
             await Task.WhenAny(backend.Exited, backend.Detached);
             if (current != generation) return;
+            UpdateSecureInput();
             resumeHint.IsVisible = false;
             if (backend.Detached.IsCompleted)
             {
@@ -286,6 +364,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
             detachedNotice.IsVisible = false;
             exitNotice.Text = $"[process exited with code {code}]";
             exitNotice.IsVisible = true;
+            UpdateSecureInput();
             if (backend is SkiaTerminal { KeyBar: { } keys }) keys.IsVisible = false;
         }
         catch (Exception error)
@@ -298,6 +377,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
             failureText.Text = error.Message;
             failure.IsVisible = true;
             retry.IsEnabled = true;
+            UpdateSecureInput();
             if (retrying) retry.Focus();
         }
     }
@@ -326,12 +406,18 @@ public sealed partial class TerminalView : UserControl, IDisposable
         ReleaseAllHolds();
         releaseHint?.Invoke(); releaseHint = null; resumeHint.IsVisible = false;
         Backend?.Dispose(); Backend = null;
+        UpdateSecureInput();
     }
 
     protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
     {
         if (Backend is ITerminalResumeHint source) source.ResumeHint.Dismiss();
         resumeHint.IsVisible = false;
+        if (window is not null) { window.Activated -= WindowActivationChanged; window.Deactivated -= WindowActivationChanged; window = null; }
+        SecureInput.Shared.Changed -= SecureInputChanged;
+        passwordPoll.Stop(); passwordInput = false;
+        SecureInput.Shared.Remove(this);
+        ShowSecureInput();
         base.OnDetachedFromVisualTree(e);
     }
 }

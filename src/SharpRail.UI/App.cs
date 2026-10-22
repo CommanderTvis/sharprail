@@ -168,6 +168,8 @@ public sealed partial class App : Application
         };
         StartupPhases.Mark("app-services-created");
         if (OperatingSystem.IsMacOS()) ApplicationMenu.Install(this, workbench.Commands);
+        SecureInput.Shared.Automatic = profile.Data.Preferences.SecureInputForPasswords;
+        SecureInputLifetime.Install(desktop, SecureInput.Shared);
         foreach (var slot in profile.Data.Windows.ToArray())
         {
             var root = slot.LastProject.Length > 0 ? slot.LastProject : slot == profile.Data.Windows[0] ? initialRoot : "";

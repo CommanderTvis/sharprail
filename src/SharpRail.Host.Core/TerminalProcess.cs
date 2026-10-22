@@ -6,6 +6,8 @@ internal interface ITerminalProcess : IAsyncDisposable
     int Pid { get; }
     string? CurrentDirectory { get; }
     bool IsBusy { get; }
+    // True while the terminal reads a secret: canonical input with echo off.
+    bool IsPasswordInput => false;
     Task<int> Exit { get; }
     // Each chunk is owned by the reader, which releases it once nothing it handed the chunk to still reads it.
     IAsyncEnumerable<TerminalChunk> ReadAsync(CancellationToken cancellationToken = default);

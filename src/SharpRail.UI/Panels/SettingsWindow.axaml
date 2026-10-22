@@ -266,6 +266,16 @@
             <rendering:Switch x:Name="ShellIntegrationEnabled" Grid.Column="1" Label="Shell integration" />
           </Grid>
         </Border>
+        <StackPanel x:Name="TerminalSecureInputSection" Spacing="8" Margin="0,16,0,0">
+          <TextBlock Text="Secure keyboard entry" Classes="settings-heading" />
+          <TextBlock Text="While a focused terminal asks for a password (sudo, ssh, gpg), macOS keeps other apps from reading your keystrokes, and a lock shows in the terminal. It turns off when the prompt ends, the terminal loses focus or SharpRail is in the background. Global hotkeys of other apps do not work meanwhile. A preference of this app." Classes="settings-description" TextWrapping="Wrap" />
+          <Border Padding="12,8" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock Text="Secure input for password prompts (macOS)" Classes="settings-label" />
+              <rendering:Switch x:Name="TerminalSecureInput" Grid.Column="1" Label="Secure input for password prompts (macOS)" />
+            </Grid>
+          </Border>
+        </StackPanel>
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="WorkspacesPage">

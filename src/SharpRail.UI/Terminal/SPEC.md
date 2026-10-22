@@ -364,6 +364,45 @@ This bounds UI work; the host bounds its own queues (see
 Design provenance and Royal Apps MIT attribution are in
 [Ghostty.Avalonia/README.md](../../Ghostty.Avalonia/README.md#skia-rendering-design).
 
+## Secure keyboard entry
+
+A clone of Ghostty's macOS secure input. Ghostty's sources: the options `macos-auto-secure-input` (default true:
+"automatically enable the Secure Input feature when it detects that a password prompt" is being shown, by heuristics
+that do not work over SSH) and `macos-secure-input-indication` (default true: a graphical indication while on), and
+the keybind action `toggle_secure_input` ("applies to the entire application", stays until toggled off or Ghostty quits,
+macOS only) — https://ghostty.org/docs/config/reference and https://ghostty.org/docs/config/keybind/reference.
+libghostty detects the prompt by polling the PTY's termios every 200 ms (`src/termio/Exec.zig`: canonical and not
+echo) and reports it to the apprt as the `GHOSTTY_ACTION_SECURE_INPUT` on/off/toggle action; the macOS app's
+`SecureInput` singleton (`macos/Sources/Features/Secure Input/SecureInput.swift`) balances every
+`EnableSecureEventInput` with one `DisableSecureEventInput`, enables only while the app is active and a scoped
+surface is focused or the global toggle is on, and yields on resign-active.
+
+SharpRail cannot take libghostty's action: every renderer feeds Ghostty from external I/O or the relay, so its
+termios poll sees no shell. The host's PTY answers instead ([Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#decisions)),
+which works the same for a remote host: the host reports the flag, the client's OS enables secure input locally.
+
+- `TerminalView` polls `ITerminalBackend.IsPasswordInputAsync` every 200 ms off the UI thread, only while it has
+  keyboard focus in the active window, is live and held by this client (never failed, exited, detached or
+  watching), and the setting is on. Its claim goes to `SecureInput.Shared`; focus loss, deactivation, the prompt
+  ending, exit, restart, close and leaving the visual tree withdraw it.
+- `SecureInput` mirrors Ghostty's singleton: it wants the reference while the app is active and either the manual
+  toggle is on or, with the setting on, some terminal claims it; it holds at most one reference, so enable and
+  disable always alternate. `SecureInputLifetime` follows window activation and calls `ReleaseAll` on desktop exit,
+  process exit and an unhandled exception; after that nothing re-enables. The Carbon call sits behind
+  `ISecureEventInput`; checks install a counting fake process-wide and never touch the real one.
+- A lock badge (top right of the terminal, with a tooltip) shows on the focused terminal while secure input is on
+  because of it or the manual toggle, Ghostty's indication.
+- Secure Keyboard Entry, a check item, is Ghostty's `toggle_secure_input`: primary in the terminal's context menu
+  (appended through the renderers' `ExtendContextMenu`), secondary in the macOS Edit menu. The toggle is not
+  remembered across launches.
+- Settings › Terminal › "Secure input for password prompts (macOS)", default on, is an app preference
+  (`SecureInputForPasswords`) like the renderer: it concerns this machine's keyboard, not the host. Off withdraws
+  every automatic claim; the manual toggle still works.
+- Elsewhere than macOS `SecureInput.Shared` has no system call: the menu items and the Settings section are hidden
+  and no terminal polls.
+- `--secure-input` (also run by `--terminals`) covers it; `--terminals` also drives a real `stty -echo; read` through
+  the local and remote host.
+
 ## Validation
 
 Both renderers underline HTTP(S) URLs under the pointer while Command is held

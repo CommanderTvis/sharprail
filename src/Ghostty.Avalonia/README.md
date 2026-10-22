@@ -305,6 +305,9 @@ Browser builds link libghostty-vt and the existing C bridge into WASM. The bridg
 allocator to share the managed runtime heap. `GhosttySkiaView.SaveClipboardImage` can store PNG bytes
 on a remote host and paste the returned shell path instead of writing a client-local file.
 
+Both renderers accept `ExtendContextMenu`, called with the right-click menu after its link and clipboard
+items and before it opens, so the application can append its own items.
+
 Both renderers also accept `ResolveHighlightedLinks` for background resolution of visible references. Valid ranges are underlined independently of hover, and a plain click (no drag) on one opens it through `OpenFileLink`; the press still reaches selection or a mouse-tracking program. Resolution is debounced, bounded, cancelled on detach/disposal, and never runs on the UI thread.
 
 Underlines are drawn by the renderer in the frame that shows their text, never as an overlay. Resolved

@@ -139,6 +139,20 @@ internal static class Posix
         return ok;
     }
 
+    /// <summary>
+    /// Ghostty's password-prompt heuristic: the line discipline is canonical with echo off, as sudo, ssh and gpg leave it
+    /// while they read a secret. c_lflag follows three tcflag_t fields, unsigned long on macOS and unsigned int on Linux;
+    /// ECHO is 0x8 on both, ICANON 0x100 on macOS and 0x2 on Linux.
+    /// </summary>
+    internal static bool IsPasswordInput(int fd)
+    {
+        var termios = new byte[256];
+        if (GetAttributes(fd, termios) != 0) return false;
+        var flags = Mac ? BitConverter.ToUInt64(termios, 24) : BitConverter.ToUInt32(termios, 12);
+        var canonical = Mac ? 0x100UL : 0x2UL;
+        return (flags & canonical) != 0 && (flags & 0x8UL) == 0;
+    }
+
     /// <summary>A pipe no other child inherits: close-on-exec on Linux, while macOS spawns close everything by default.</summary>
     internal static (int Read, int Write) OpenPipe()
     {

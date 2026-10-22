@@ -70,6 +70,7 @@ internal static partial class TerminalHostChecks
             await Watching(new LocalTerminalAdapter(local), workspace, "local");
             await LiveInputModes(new LocalTerminalAdapter(local), workspace, "local");
             await Programs(new LocalTerminalAdapter(local), workspace, "local");
+            await PasswordInput(new LocalTerminalAdapter(local), workspace, "local");
             var state = new HostStateStore(null) { Terminals = local };
             await ProjectClosure(new LocalTerminalAdapter(local), new LocalStateAdapter(state), workspace, "local", state);
             TitleScanner();
@@ -99,6 +100,7 @@ internal static partial class TerminalHostChecks
                 await Watching(remote, workspace, "remote");
                 await LiveInputModes(remote, workspace, "remote");
                 await Programs(remote, workspace, "remote");
+                await PasswordInput(remote, workspace, "remote");
                 using var state = new RemoteStateAdapter(address, "terminal-token");
                 await ProjectClosure(remote, state, workspace, "remote");
                 await ProgramTitles(remote, state, (HostStateStore)app.Services.GetRequiredService<IHostStateService>(), workspace, "remote");

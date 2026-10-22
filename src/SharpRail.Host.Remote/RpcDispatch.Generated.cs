@@ -450,6 +450,13 @@ internal static class RpcDispatch
                 await stream.Send(await service.ShellStatusAsync(request, context));
                 break;
             }
+            case "ITerminalRpc/IsPasswordInputAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<TerminalRpc>(services);
+                var request = await ReadOne<TerminalSessionRequest>(stream);
+                await stream.Send(await service.IsPasswordInputAsync(request, context));
+                break;
+            }
             case "ITerminalRpc/CloseAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<TerminalRpc>(services);

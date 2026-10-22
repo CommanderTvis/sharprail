@@ -1990,3 +1990,4 @@ static SharpRail.Host.Abstractions.TerminalCommand.operator ==(SharpRail.Host.Ab
 static SharpRail.Host.Abstractions.TerminalShellStatus.operator !=(SharpRail.Host.Abstractions.TerminalShellStatus? left, SharpRail.Host.Abstractions.TerminalShellStatus? right) -> bool
 static SharpRail.Host.Abstractions.TerminalShellStatus.operator ==(SharpRail.Host.Abstractions.TerminalShellStatus? left, SharpRail.Host.Abstractions.TerminalShellStatus? right) -> bool
 SharpRail.Host.Abstractions.ITerminalService.ShellStatusAsync(string! sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.TerminalShellStatus?>
+SharpRail.Host.Abstractions.ITerminalService.IsPasswordInputAsync(string! sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>

@@ -85,6 +85,12 @@ public sealed class TerminalBusyReply
 }
 
 [ProtoContract]
+public sealed class TerminalPasswordInputReply
+{
+    [ProtoMember(1)] public bool PasswordInput { get; set; }
+}
+
+[ProtoContract]
 public sealed class TerminalClosed;
 
 [ProtoContract]
@@ -125,5 +131,6 @@ public interface ITerminalRpc
     IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default);
     ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default);
     ValueTask<TerminalShellReply> ShellStatusAsync(TerminalSessionRequest request, CallContext context = default);
+    ValueTask<TerminalPasswordInputReply> IsPasswordInputAsync(TerminalSessionRequest request, CallContext context = default);
     ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default);
 }

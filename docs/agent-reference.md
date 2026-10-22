@@ -123,7 +123,8 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--about` | About screen: version fallback, runtime and copy text, links, application menu (About, Settings), Escape. |
 | `--connection-errors` | Connection failure details and retry. |
 | `--windows` | Windows host, desktop and native renderer checks (Windows only). |
-| `--terminals` | Host terminals, terminal translations, Skia renderer. |
+| `--terminals` | Host terminals, terminal translations, Skia renderer, secure keyboard entry. |
+| `--secure-input` | Secure keyboard entry against a counting fake of the Carbon call: coordinator balance, focused password prompts in two terminals, focus/activation/setting/exit/close, both toggles, a remote host's flag. |
 | `--ghostty-skia` | Skia input, pixel, PTY and renderer Settings. |
 | `--native-texture` | GPU texture composition, input and local/remote renderer switching in a real macOS window. |
 | `--native-frame-pump` | Benchmark: Metal frame-notification cost with two streaming terminals, one hidden, in-process and through an embedded host (`SHARPRAIL_FRAME_PUMP_SECONDS`, default 20). |

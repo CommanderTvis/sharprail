@@ -64,7 +64,8 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
                 AgentNewline = agentNewline,
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(remote.Terminals, launch, text, token),
                 ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(remote.Terminals, launch, text, token),
-                OpenFileLink = launch.OpenFileLink
+                OpenFileLink = launch.OpenFileLink,
+                ExtendContextMenu = launch.ExtendContextMenu
             };
             texture.Exited += (_, code) => Ended(code);
             texture.OperationFailed += TextureFailed;
@@ -144,6 +145,12 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
     {
         if (exited.Task.IsCompleted || detached.Task.IsCompleted || connection is null) return ValueTask.FromResult(false);
         return connection.Terminals.IsBusyAsync(launch.SessionId);
+    }
+
+    public ValueTask<bool> IsPasswordInputAsync()
+    {
+        if (exited.Task.IsCompleted || detached.Task.IsCompleted || connection is null) return ValueTask.FromResult(false);
+        return connection.Terminals.IsPasswordInputAsync(launch.SessionId);
     }
 
     public ValueTask CloseAsync() => connection?.Terminals.CloseAsync(launch.SessionId) ?? ValueTask.CompletedTask;

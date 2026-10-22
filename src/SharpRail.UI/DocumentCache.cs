@@ -69,6 +69,12 @@ public sealed partial class WorkbenchWindow
         foreach (var terminal in documentContent.Values.OfType<Terminal.TerminalView>().Where(terminal => !terminal.IsDetached && !terminal.IsWatching)) terminal.Restart();
     }
 
+    /// <summary>Lets every open terminal re-claim or release secure input after its setting changed.</summary>
+    internal void UpdateSecureInput()
+    {
+        foreach (var terminal in documentContent.Values.OfType<Terminal.TerminalView>()) terminal.UpdateSecureInput();
+    }
+
     private void ClearDocumentContent(bool preserveDocuments = false)
     {
         foreach (var key in documentContent.Keys.ToArray())

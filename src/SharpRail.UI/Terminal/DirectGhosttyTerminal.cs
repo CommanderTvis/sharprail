@@ -86,7 +86,8 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
             AgentNewline = agentNewline,
             ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
             ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
-            OpenFileLink = launch.OpenFileLink
+            OpenFileLink = launch.OpenFileLink,
+            ExtendContextMenu = launch.ExtendContextMenu
         };
         texture.OperationFailed += TextureFailed;
         texture.UserInput += (_, _) => ResumeHint.Dismiss();
@@ -225,6 +226,8 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
 
     public ValueTask<bool> IsBusyAsync() => exited.Task.IsCompleted || detached.Task.IsCompleted
         ? ValueTask.FromResult(false) : terminals.IsBusyAsync(launch.SessionId);
+    public ValueTask<bool> IsPasswordInputAsync() => exited.Task.IsCompleted || detached.Task.IsCompleted || session is null
+        ? ValueTask.FromResult(false) : terminals.IsPasswordInputAsync(launch.SessionId);
     public ValueTask CloseAsync() => terminals.CloseAsync(launch.SessionId);
     public void FocusTerminal() { texture?.FocusTerminal(); fallback?.FocusTerminal(); }
 

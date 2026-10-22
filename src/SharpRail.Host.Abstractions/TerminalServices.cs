@@ -61,6 +61,9 @@ public interface ITerminalService
     ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default);
     // True while a process other than the shell owns the terminal's foreground.
     ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default);
+    // True while the shell's program reads a secret (canonical input with echo off: sudo, ssh, gpg), so the client
+    // showing it can protect the keyboard. Hosts without a PTY answer false.
+    ValueTask<bool> IsPasswordInputAsync(string sessionId, CancellationToken cancellationToken = default) => ValueTask.FromResult(false);
     // Resolves one hovered logical line on the terminal host, using the current shell directory.
     ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
         => ValueTask.FromResult<IReadOnlyList<TerminalFileLink>>([]);

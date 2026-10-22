@@ -305,6 +305,14 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         lock (gate) return ValueTask.FromResult(sessions.GetValueOrDefault(sessionId)?.Shell);
     }
 
+    public ValueTask<bool> IsPasswordInputAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ITerminalProcess? process;
+        lock (gate) process = sessions.GetValueOrDefault(sessionId)?.Process;
+        return ValueTask.FromResult(process?.IsPasswordInput == true);
+    }
+
     public async ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
     {
         ITerminalProcess? process;
@@ -607,6 +615,8 @@ internal sealed class PtySession : ITerminalProcess
             return group > 0 && group != pid;
         }
     }
+    // The slave side carries the line discipline the reading program set.
+    public bool IsPasswordInput => !exited.Task.IsCompleted && Volatile.Read(ref disposed) == 0 && Posix.IsPasswordInput(slave);
 
     private PtySession(string id, int master, int slave, int pid)
     {

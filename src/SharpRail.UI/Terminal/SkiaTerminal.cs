@@ -48,7 +48,8 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
                 Name = "TerminalSkiaView",
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
                 ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
-                OpenFileLink = launch.OpenFileLink
+                OpenFileLink = launch.OpenFileLink,
+                ExtendContextMenu = launch.ExtendContextMenu
             };
         }
         catch (DllNotFoundException)
@@ -275,6 +276,8 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
 
     public ValueTask<bool> IsBusyAsync() =>
         exited.Task.IsCompleted || detached.Task.IsCompleted || session is null ? ValueTask.FromResult(false) : terminals.IsBusyAsync(launch.SessionId);
+    public ValueTask<bool> IsPasswordInputAsync() =>
+        exited.Task.IsCompleted || detached.Task.IsCompleted || session is null || Watching ? ValueTask.FromResult(false) : terminals.IsPasswordInputAsync(launch.SessionId);
 
     public ValueTask CloseAsync() => terminals.CloseAsync(launch.SessionId);
 

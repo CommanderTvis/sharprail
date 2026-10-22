@@ -878,6 +878,18 @@ public sealed partial class SettingsWindow : Window
         integration.IsChecked = state.Current.Settings.ShellIntegrationEnabled;
         integration.IsEnabled = state.Supports(HostProtocol.ShellIntegration);
         integration.CheckedChange += on => Share(HostStateChange.Setting("shell-integration", on ? "true" : "false"));
+        // Secure Event Input exists only on macOS; elsewhere the section is hidden.
+        PageControl<StackPanel>(panel, "TerminalSecureInputSection").IsVisible = Terminal.SecureInput.Shared.Supported;
+        var secure = PageControl<Switch>(panel, "TerminalSecureInput");
+        secure.IsChecked = state.Preferences.SecureInputForPasswords;
+        secure.CheckedChange += on =>
+        {
+            if (state.Preferences.SecureInputForPasswords == on) return;
+            state.Preferences.SecureInputForPasswords = on;
+            Save();
+            Terminal.SecureInput.Shared.Automatic = on;
+            foreach (var open in window.Workbench.Windows) open.UpdateSecureInput();
+        };
         return panel;
     }
 

@@ -78,6 +78,7 @@ internal sealed class E2eTerminals(ITerminalService? inner = null, ITerminalCata
 
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default) => inner.IsBusyAsync(sessionId, cancellationToken);
     public ValueTask<TerminalShellStatus?> ShellStatusAsync(string sessionId, CancellationToken cancellationToken = default) => inner.ShellStatusAsync(sessionId, cancellationToken);
+    public ValueTask<bool> IsPasswordInputAsync(string sessionId, CancellationToken cancellationToken = default) => inner.IsPasswordInputAsync(sessionId, cancellationToken);
 
     public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => inner.CloseAsync(sessionId, cancellationToken);
 

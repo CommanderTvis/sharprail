@@ -32,6 +32,8 @@ internal static class Program
         if (args.SequenceEqual(["--native-editor-find"])) { NativeEditorFindChecks.Run(args); return; }
         if (args.Contains("--fake-agent-launch")) { Thread.Sleep(30_000); return; }
         Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "1");
+        // No check may take this machine's real Secure Event Input.
+        RecordingSecureEventInput.Install();
         E2E.IsolatedGit.ForProcess();
         if (args.Length > 0 && E2E.CodexE2E.Fake(args[0], args[1..]) is { } fixtureExit) { Environment.Exit(fixtureExit); return; }
         if (!args.Contains("--terminal-relay")) E2E.IsolatedGit.CheckIsolation();
@@ -360,6 +362,13 @@ internal static class Program
             PtyOutputAllocationChecks.Run(root, TimeSpan.FromSeconds(seconds), args.Contains("remote")).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--secure-input"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            SecureInputChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--loopback-terminals"]))
         {
             LoopbackTerminalChecks.Run().GetAwaiter().GetResult();
@@ -401,6 +410,7 @@ internal static class Program
             E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
             GhosttySkiaChecks.Run(root);
             ShellIntegrationChecks.RunSkia(root);
+            SecureInputChecks.Run(root);
             Console.WriteLine("PASS terminal checks");
             return;
         }
