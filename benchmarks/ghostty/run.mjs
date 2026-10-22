@@ -14,7 +14,7 @@ for (let i=1; i <= (kind === 'attribution' ? 1 : 3); i++) {
   if (!power().includes("'AC Power'")) throw Error('AC power required');
   const output = resolve(batch, String(i));
   const child = spawn(resolve(`benchmarks/ghostty/${kind}/bin/Release/net10.0/${executables[kind]}`), [mode,output],
-    {env:{...process.env,DOTNET_ROOT:resolve('.tools/dotnet')},stdio:['ignore','pipe','pipe']});
+    {env:{...process.env,DOTNET_ROOT:execFileSync('sh',[resolve('scripts/tool'),'dotnet'],{encoding:'utf8'}).trim()},stdio:['ignore','pipe','pipe']});
   let log='', failure;
   child.stdout.on('data', x=>log+=x); child.stderr.on('data', x=>log+=x);
   const readings=[];

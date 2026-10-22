@@ -3,8 +3,9 @@ rem Builds, publishes, checks or runs the browser client (`scripts\mise run brow
 setlocal EnableDelayedExpansion
 cd /d "%~dp0..\.."
 set "ROOT=%CD%"
-set "DOTNET=%ROOT%\.tools\dotnet\dotnet.exe"
-if not exist ".tools\dotnet\packs\Microsoft.NETCore.App.Runtime.Mono.multithread.browser-wasm" (
+set "DOTNET=dotnet"
+for /f "usebackq delims=" %%d in (`call "%ROOT%\scripts\tool.cmd" dotnet`) do set "DOTNET_SDK=%%d"
+if not exist "%DOTNET_SDK%\packs\Microsoft.NETCore.App.Runtime.Mono.multithread.browser-wasm" (
   "%DOTNET%" workload install wasm-experimental --skip-manifest-update || exit /b 1
 )
 if not defined SHARPRAIL_CONFIGURATION set "SHARPRAIL_CONFIGURATION=Release"

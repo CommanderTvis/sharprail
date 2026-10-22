@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const dotnet = path.join(root, '.tools/dotnet/dotnet');
+const dotnet = process.env.DOTNET ?? 'dotnet';
 const hostAssembly = path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll');
 export const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 export const digest = bytes => createHash('sha256').update(bytes).digest('hex');

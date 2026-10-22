@@ -2,7 +2,7 @@ param([ValidateSet('win-x64', 'win-arm64')][string] $RuntimeIdentifier = 'win-x6
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/../windows-native.ps1"
 $root = [IO.Path]::GetFullPath("$PSScriptRoot/../..")
-$dotnet = Join-Path $root '.tools/dotnet/dotnet.exe'
+$dotnet = 'dotnet'
 # win-x64 keeps its original locations; win-arm64 publishes beside them without replacing them.
 $directory = if ($RuntimeIdentifier -eq 'win-x64') { 'windows' } else { 'windows-arm64' }
 $output = Join-Path $root "artifacts/$directory"

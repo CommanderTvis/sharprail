@@ -4,10 +4,10 @@
 set -eu
 cd "$(dirname "$0")/../.."
 workload="$1"; marker="$2"; shift 2
-root="$(cd .tools/dotnet && pwd -P)"
+root="$(scripts/tool dotnet)"
 # Workload packs land in packs/ (or, for android, are listed by `workload list`); either proves it is installed.
-installed() { [ -d "$root/packs/$marker" ] || .tools/dotnet/dotnet workload list 2>/dev/null | grep -q "^$workload"; }
+installed() { [ -d "$root/packs/$marker" ] || dotnet workload list 2>/dev/null | grep -q "^$workload"; }
 installed && exit 0
 . "$PWD/scripts/lock.sh"
 acquire_lock "$root/.workload.lock"
-installed || .tools/dotnet/dotnet workload install "$workload" "$@"
+installed || dotnet workload install "$workload" "$@"

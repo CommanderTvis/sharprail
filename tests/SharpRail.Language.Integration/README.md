@@ -16,7 +16,7 @@ not PASS. Nonzero exit status means at least one selected case failed or was blo
 Set `SHARPRAIL_ROOT` to the absolute project directory, `SHARPRAIL_STATE_DIR` to an
 isolated persistent directory, `SHARPRAIL_TOKEN` to a private random value,
 `SHARPRAIL_BIND=127.0.0.1`, `SHARPRAIL_PORT=54124`, and `SHARPRAIL_HEADLESS_MCP=1`.
-Run `.tools/dotnet/dotnet src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll`.
+Run `dotnet src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll`.
 POST JSON-RPC MCP requests to `http://127.0.0.1:54124/mcp` with
 `Authorization: Bearer <token>`. `initialize`, `tools/list`, and `tools/call` use the
 same three language tools as agent terminals. The root is the default workspace;
@@ -48,7 +48,7 @@ records publisher URLs and SHA-256 for the optional macOS ARM64 Go, Coursier,
 PowerShell and Dart runtimes used for validation. Install these into a disposable
 local tool directory and put their `bin` paths on PATH; the runner does not change
 the machine's SDK selection. The JDK is the repository's pinned Temurin 21
-(`.tools/jdk`, installed by `scripts/mise run bootstrap`); the runner passes it to the
+(`scripts/tool jdk`); the runner passes it to the
 host as JAVA_HOME and ignores any machine JDK manager. Set JAVA_HOME to run against
 another JDK. IntelliJ/Kotlin's project JDK is separate from its bundled server runtime. No IntelliJ acceptance record is created or imported by this suite.
 

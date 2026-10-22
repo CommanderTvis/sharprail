@@ -24,8 +24,8 @@ vt_zig="$GHOSTTY_VT_ZIG"
 acquire_lock "$cache/build.lock"
 
 out="$cache/$rid"
-zig="$project/../../.tools/zig-$vt_zig"
-[ -x "$zig/zig" ] || { echo "No Zig $vt_zig in .tools; run scripts/mise run bootstrap." >&2; exit 1; }
+zig="$("$project/../../scripts/tool" "zig-$vt_zig")"
+[ -x "$zig/zig" ] || { echo "No Zig $vt_zig in $zig." >&2; exit 1; }
 fingerprint="$vt_commit $target $("$zig/zig" version) $(cat Native/GhosttyVt.c build-linux.sh | shasum -a 256)"
 if [ -f "$out/libGhosttyAvaloniaVt.so" ] && [ "$(cat "$out/vt.fingerprint" 2>/dev/null)" = "$fingerprint" ]; then exit 0; fi
 

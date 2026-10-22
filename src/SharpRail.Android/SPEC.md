@@ -182,13 +182,12 @@ profile) and the endpoint.
 | `libGhosttyAvaloniaVt.so` | libghostty-vt at the commit pinned in `src/Ghostty.Avalonia/build-native.sh`, behind the Skia control's C shim | `src/Ghostty.Avalonia/build-android.sh` |
 | `libSharpRailTailscale.so` | pinned Tailscale `tsnet` behind the app-private C ABI | `scripts/build-tailscale-android.sh` |
 | `libpdfium.so` | `bblanchon.PDFium.Android`, pinned with the desktop PDFium packages | NuGet |
-| `libSharpRailMermaid.so` | Merman 0.7.0's prebuilt `libmerman_ffi.so` (the desktop's C ABI) from `merman-android-v0.7.0.aar`, pinned in `mise.android.lock` | `bootstrap:android` (`.tools/merman-android`) |
+| `libSharpRailMermaid.so` | Merman 0.7.0's prebuilt `libmerman_ffi.so` (the desktop's C ABI) from `merman-android-v0.7.0.aar`, pinned in `mise.android.lock` | `scripts/tool merman-android` |
 
 The `BuildNativeLibraries` target runs the native scripts (Tailscale, Ghostty) for `arm64-v8a` and `x86_64` before every build,
 copies Merman's `jni/<abi>/libmerman_ffi.so` to `obj/native/android/<abi>/libSharpRailMermaid.so` (the name `MermaidRenderer`'s
 P/Invoke loads; the library has no SONAME, depends only on libc, libm and libdl, and its release build already aligns
-segments to 16 KB), and adds their outputs as `AndroidNativeLibrary` items. All use the NDK r27d that `scripts/mise run bootstrap:android` installs
-under `.tools/android-ndk`, target API 24 and align segments to 16 KB pages. The Ghostty library lands in the
+segments to 16 KB), and adds their outputs as `AndroidNativeLibrary` items. All use the NDK r27d that mise installs on first use (`scripts/tool android-ndk`), target API 24 and align segments to 16 KB pages. The Ghostty library lands in the
 shared cache `.tools/ghostty-avalonia/android/<abi>`. PDF Preview's desktop PDFium packages are referenced with
 their assets excluded.
 
@@ -214,8 +213,7 @@ selection and deliberate taps retain their feedback and behavior.
 ## Build
 
 `scripts/mise run android [build|run|apk]` is the entry point (see [scripts/SPEC.md](../../scripts/SPEC.md)). It
-needs the Android SDK in `ANDROID_HOME` and runs with the pinned Temurin JDK 21 that `bootstrap:android` links as
-`.tools/jdk` (a set `JAVA_HOME` overrides it), and installs the `android` workload
+needs the Android SDK in `ANDROID_HOME` and runs with the pinned Temurin JDK 21 that mise installs on first use (`scripts/tool jdk`) (a set `JAVA_HOME` overrides it), and installs the `android` workload
 into the shared SDK when missing. `build` and `run` use Debug unless `SHARPRAIL_CONFIGURATION` says
 otherwise; `run` also installs on the connected device or emulator and launches the app. `apk` builds Release
 and copies the signed package to `artifacts/android/SharpRail.apk`. No release keystore is configured, so the

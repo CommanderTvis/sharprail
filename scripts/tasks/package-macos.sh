@@ -2,7 +2,7 @@
 set -eu
 # `scripts/mise run package:macos [osx-arm64|osx-x64]`: publishes the app, host and checks and builds artifacts/SharpRail.app.
 cd "$(dirname "$0")/../.."
-dotnet_cmd="${DOTNET:-.tools/dotnet/dotnet}"
+dotnet_cmd="${DOTNET:-dotnet}"
 rid="${1:-osx-arm64}"
 # Publish copies only newer files; stale outputs (for example a native library from a
 # downgraded timestamp) would otherwise survive into the package.

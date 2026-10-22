@@ -56,10 +56,9 @@ required; Zig and native sources are downloaded into checkout caches with pinned
 hashes/revisions. No Visual Studio C++ installation is needed.
 
 ```powershell
-scripts\mise.cmd run bootstrap
-.\.tools\dotnet\dotnet.exe build SharpRail.slnx -c Release
-.\.tools\dotnet\dotnet.exe format SharpRail.slnx --verify-no-changes --no-restore
-.\.tools\dotnet\dotnet.exe run --project tests/SharpRail.Checks -c Release --no-build -- --windows
+scripts\mise.cmd x -- dotnet build SharpRail.slnx -c Release
+scripts\mise.cmd x -- dotnet format SharpRail.slnx --verify-no-changes --no-restore
+scripts\mise.cmd x -- dotnet run --project tests/SharpRail.Checks -c Release --no-build -- --windows
 scripts\mise.cmd run package:windows
 ```
 

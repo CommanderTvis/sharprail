@@ -6,18 +6,19 @@ What a source checkout provisions itself, and what you must install on the machi
 ## Provisioned by the repo
 
 `scripts/mise` runs a mise that is already on the machine (PATH, Homebrew or `~/.local/bin`) as is, with your own mise
-configuration and mise's default data directory. Without one it downloads the pinned mise release and uses the shared
-store `~/.sharprail/tools` (`SHARPRAIL_TOOLS`), as CI does. Either way mise installs the tools below from `mise*.toml`
-(versions and SHA-256 per platform in the matching `mise*.lock`) and `scripts/mise run bootstrap` links them into
-`.tools`. The tasks that need a bootstrap run it themselves. A system mise must be at least the `min_version` in
-`mise.toml`; to reuse an existing private store, point it at it with `MISE_DATA_DIR=~/.sharprail/tools`.
+configuration; without one it downloads the pinned, checksum-verified mise release into mise's data directory, as CI
+does. Either way there is no bootstrap step: mise installs the tools below from `mise*.toml` (versions and SHA-256 per
+platform in the matching `mise*.lock`) on first use, into its own data directory (default `~/.local/share/mise`), which
+every checkout and worktree of the user shares. `scripts/tool <name>` prints where a pinned tool lives (installing it
+first when missing), and builds and tasks that run under `scripts/mise` find `dotnet` and the other binaries on PATH.
+A system mise must be at least the `min_version` in `mise.toml`.
 
-| Command | Installs | Used by |
+| Tool (`scripts/tool` name) | Pinned in | Used by |
 | --- | --- | --- |
-| `scripts/mise run bootstrap` | .NET SDK (`.tools/dotnet`), Zig 0.14.1 and 0.16.0 (Windows: the `http:zig-windows` archive), Merman (macOS), Temurin JDK 21 (`.tools/jdk`; not Windows, where `JAVA_HOME` names a JDK) | every build, check and package task |
-| `scripts/mise run bootstrap:android` | Android NDK r27d (`.tools/android-ndk`), Merman's Android libraries (`.tools/merman-android`) | `android`, `package:android` |
-| `scripts/mise run bootstrap:browser` | Node, pnpm, uv, Binaryen, PDFium WASM | `browser`, `package:browser` |
-| `scripts/mise run bootstrap:linux` | appimagetool and the AppImage runtime | `package:linux` |
+| .NET SDK (`dotnet`), Zig 0.14.1 and 0.16.0 (`zig-0.14.1`, `zig-0.16.0`; Windows: `zig-windows`), Merman (`merman`, macOS), Temurin JDK 21 (`jdk`; not Windows, where `JAVA_HOME` names a JDK) | `mise.toml` | every build, check and package task |
+| Android NDK r27d (`android-ndk`), Merman's Android libraries (`merman-android`) | `mise.android.toml` | `android`, `package:android` |
+| Node, pnpm, uv, Binaryen, PDFium WASM (`node`, `pnpm`, `uv`, `binaryen`, `pdfium-wasm`) | `mise.browser.toml` | `browser`, `package:browser` |
+| appimagetool and the AppImage runtime (`appimagetool`, `appimage-runtime`) | `mise.toml` | `package:linux` |
 
 Fetched by the build recipes, pinned by commit or checksum: Ghostty sources and the Zig dependency mirror
 (`scripts/zig-deps.sh`), Go for the Android Tailscale bridge (`scripts/tailscale-go.sh`, `.tools/tailscale-go`).
@@ -30,7 +31,7 @@ runtime, not by the build.
 
 - Git 2.36 or newer on `PATH`: the build fetches pinned sources with it, and the app needs `git worktree list -z`
   (older Git shows a Git error in Changes, see [LINUX.md](LINUX.md)).
-- Network access to the download hosts in the `mise*.toml` files, GitHub and nuget.org for the first bootstrap.
+- Network access to the download hosts in the `mise*.toml` files, GitHub and nuget.org for the first install.
 
 ### macOS (desktop build, `build`, `dev`, `package:macos`, `check:terminal`)
 
@@ -44,7 +45,7 @@ runtime, not by the build.
 
 ### Linux (`build`, `package:linux`, running the AppImage)
 
-- `bash`, `curl`, `tar`, POSIX `sh`, `patch` and `shasum` (coreutils/perl): bootstrap and the native recipes.
+- `bash`, `curl`, `tar`, POSIX `sh`, `patch` and `shasum` (coreutils/perl): the mise download and the native recipes.
 - glibc 2.31 or newer, an X11 or XWayland session, the X11 client libraries (`libX11`, `libXcursor`, `libXrandr`,
   `libXi`), `fontconfig` and a GL or software Skia stack to run the app (see [LINUX.md](LINUX.md)).
 - The AppImage is packed on a host of the target architecture (`scripts/tasks/package-linux.sh` refuses
@@ -62,8 +63,8 @@ runtime, not by the build.
 - The Android SDK with `platforms;android-36` and `build-tools;36.0.0` (what the nightly installs with
   `sdkmanager`), at `ANDROID_HOME` (default `~/Library/Android/sdk`). `scripts/tasks/android.sh` stops with
   "No Android SDK at ..." when `$ANDROID_HOME/platforms` is missing.
-- Nothing else: the JDK comes from `bootstrap`, the NDK and Merman's prebuilt `.so` from `bootstrap:android`, the .NET `android` workload is installed into
-  `.tools/dotnet` on first use. Set `JAVA_HOME` only to build with another JDK 17 or 21.
+- Nothing else: the JDK, the NDK and Merman's prebuilt `.so` come from mise on first use, and the .NET `android` workload is installed into
+  the SDK's directory on first use. Set `JAVA_HOME` only to build with another JDK 17 or 21.
 - `adb` (SDK platform-tools) and a device or emulator for `android run`.
 
 ### Optional

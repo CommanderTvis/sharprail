@@ -27,10 +27,11 @@ esac
 . "$project/../../scripts/lock.sh"
 acquire_lock "$cache/build.lock"
 
-# The Zig toolchains are installed by `scripts/mise run bootstrap` and linked as .tools/zig-<version>.
+# The Zig toolchains are the pins of mise.toml; scripts/tool prints (and installs, when missing) one.
 zig_path() {
-  [ -x "$project/../../.tools/zig-$1/zig" ] || { echo "No Zig $1 in .tools; run scripts/mise run bootstrap." >&2; exit 1; }
-  printf '%s\n' "$project/../../.tools/zig-$1/zig"
+  zig_dir="$("$project/../../scripts/tool" "zig-$1")"
+  [ -x "$zig_dir/zig" ] || { echo "No Zig $1 in $zig_dir." >&2; exit 1; }
+  printf '%s\n' "$zig_dir/zig"
 }
 checkout() {
   dir="$cache/$1"

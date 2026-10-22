@@ -68,7 +68,7 @@ try {
   if (process.env.SHARPRAIL_BROWSER_BUNDLE) await fs.writeFile(path.join(scratch, 'state/state.json'), JSON.stringify({ PluginSettings: { fixture: { enabled: true } } }));
   const browserPort = await port();
   const address = `http://127.0.0.1:${browserPort}`;
-  host = spawn(path.join(root, '.tools/dotnet/dotnet'), ['src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll'], {
+  host = spawn(process.env.DOTNET ?? 'dotnet', ['src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll'], {
     cwd: root, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, SHARPRAIL_ROOT: fixture, SHARPRAIL_STATE_DIR: path.join(scratch, 'state'),
       SHARPRAIL_TOKEN: token, SHARPRAIL_PORT: String(browserPort),
       SHARPRAIL_BROWSER_ROOT: process.env.SHARPRAIL_BROWSER_BUNDLE ?? path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle'), Logging__LogLevel__Default: 'Warning' }

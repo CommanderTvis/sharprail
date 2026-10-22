@@ -89,7 +89,7 @@ selections keep Scintilla's behaviour.
 `dotnet build` is enough on every platform; there is no native build step.
 
 The ported upstream unit tests (`test/unit`) and the bidi, shaping, view and editor-model checks run with
-`.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --scintilla-core`.
+`dotnet run --project tests/SharpRail.Checks -c Release -- --scintilla-core`.
 
 ### Touch and soft keyboards
 

@@ -145,8 +145,7 @@ Ghostty 1.2.3, Zig 0.14.1 and Merman into `.tools`. No installed
 Ghostty application is required.
 
 ```sh
-scripts/mise run bootstrap
-.tools/dotnet/dotnet run --project src/SharpRail.UI -c Release
+scripts/mise x -- dotnet run --project src/SharpRail.UI -c Release
 ```
 
 To build the ReadyToRun macOS app bundle:
@@ -180,7 +179,7 @@ Renderer benchmark sources and reproduction commands are in
 ## Checks
 
 ```sh
-.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release
+dotnet run --project tests/SharpRail.Checks -c Release
 ```
 
 `-- --editor`, `-- --terminals`, `-- --ghostty-skia`, `-- --sync` and `-- --workspaces` run focused

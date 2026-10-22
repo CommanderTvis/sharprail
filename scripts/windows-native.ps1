@@ -26,11 +26,11 @@ function Get-ZigWindowsTarget([string] $RuntimeIdentifier) {
 # a mangled feature list to Clang (unknown argument '-fuse-crypto-eor'). Baseline is the same everywhere.
 $ZigWindowsCpu = 'baseline'
 
-# The Zig that `scripts/mise run bootstrap` installs (http:zig-windows in mise.toml) and links as .tools\zig-windows.
+# The Zig that mise installs (http:zig-windows in mise.toml); scripts\tool.cmd prints where it is.
 # Zig cross-compiles, so it matches the host and the target is chosen per build.
 function Get-WindowsZig {
-    $zig = Join-Path $PSScriptRoot '../.tools/zig-windows/zig.exe'
-    if (!(Test-Path $zig)) { throw 'No Zig in .tools; run scripts\mise run bootstrap.' }
+    $zig = Join-Path (& (Join-Path $PSScriptRoot 'tool.cmd') zig-windows) 'zig.exe'
+    if (!(Test-Path $zig)) { throw "No Zig at $zig." }
     return [IO.Path]::GetFullPath($zig)
 }
 

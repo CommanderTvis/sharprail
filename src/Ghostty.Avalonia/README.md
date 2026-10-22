@@ -50,7 +50,7 @@ The native view uses Ghostty 1.2.3; the VT library uses unreleased Ghostty commi
 
 `build-android.sh <arm64-v8a|x86_64> [cache-directory]` cross-builds the same pinned
 VT source for Android API 24 with the NDK from `ANDROID_NDK_HOME` (in SharpRail,
-`scripts/mise run bootstrap:android`), from macOS or Linux. It writes
+`scripts/tool android-ndk`), from macOS or Linux. It writes
 `android/<abi>/libGhosttyAvaloniaVt.so` into the cache, 16 KB page aligned and
 depending only on bionic. Package it for its ABI, for example as an
 `AndroidNativeLibrary` item; the runtime loads it from the APK by name. Android has

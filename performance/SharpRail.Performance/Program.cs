@@ -2,7 +2,7 @@ using SharpRail.Performance;
 
 var root = Directory.GetCurrentDirectory();
 while (!File.Exists(Path.Combine(root, "SharpRail.slnx"))) root = Directory.GetParent(root)?.FullName ?? throw new IOException("Run inside the SharpRail checkout.");
-var dotnet = Environment.GetEnvironmentVariable("DOTNET") ?? Path.Combine(root, ".tools/dotnet/dotnet");
+var dotnet = Environment.GetEnvironmentVariable("DOTNET") ?? "dotnet";
 var command = args.FirstOrDefault() ?? "help";
 var options = new Dictionary<string, string>(StringComparer.Ordinal);
 for (var index = 1; index < args.Length; index += 2)

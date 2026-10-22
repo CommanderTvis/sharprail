@@ -105,10 +105,12 @@
   </ItemGroup>
   <Target Name="BuildNativeLibraries" BeforeTargets="BeforeBuild"
           Inputs="@(AndroidNativeSource)" Outputs="@(AndroidNativeLibrary)">
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:android" />
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-tailscale-android.sh&quot; %(NativeAbi.Identity)" />
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../Ghostty.Avalonia/build-android.sh&quot; %(NativeAbi.Identity) &quot;$(GhosttyNativeCache)&quot;" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)/../../.tools/merman-android/jni/%(NativeAbi.Identity)/libmerman_ffi.so"
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/tool&quot; merman-android" ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="MermanAndroidDirectory" />
+    </Exec>
+    <Copy SourceFiles="$(MermanAndroidDirectory)/jni/%(NativeAbi.Identity)/libmerman_ffi.so"
           DestinationFiles="$(MSBuildProjectDirectory)/obj/native/android/%(NativeAbi.Identity)/libSharpRailMermaid.so" />
   </Target>
   <!-- Avalonia's reference assemblies make its platform interfaces unimplementable; the implementation assemblies do not. -->

@@ -1,0 +1,32 @@
+#!/bin/sh
+# scripts/tool <name>: prints the directory mise keeps a pinned tool in (installing it first when it is missing), so
+# scripts and builds find a tool without a link in the checkout. A macOS JDK bundle prints its Contents/Home.
+# Names: dotnet, zig-0.14.1, zig-0.16.0, merman, jdk, appimagetool, appimage-runtime, android-ndk, merman-android,
+# node, pnpm, uv, binaryen, pdfium-wasm, zig-windows. The android and browser tools come from their own mise files.
+set -eu
+root="$(cd "$(dirname "$0")/.." && pwd)"
+env_name=""
+case "${1:?usage: scripts/tool <name>}" in
+  dotnet) spec=http:dotnet ;;
+  zig-*) if [ "$1" = zig-windows ]; then spec=http:zig-windows; else spec="zig@${1#zig-}"; fi ;;
+  merman) spec=http:merman ;;
+  jdk) spec=http:jdk ;;
+  appimagetool) spec=http:appimagetool ;;
+  appimage-runtime) spec=http:appimage-runtime ;;
+  android-ndk) spec=http:android-ndk; env_name=android ;;
+  merman-android) spec=http:merman-android; env_name=android ;;
+  node|pnpm|uv) spec="$1"; env_name=browser ;;
+  binaryen) spec=http:binaryen; env_name=browser ;;
+  pdfium-wasm) spec=http:pdfium-wasm; env_name=browser ;;
+  *) echo "scripts/tool: unknown tool $1" >&2; exit 2 ;;
+esac
+[ -z "$env_name" ] || export MISE_ENV="$env_name"
+mise="$root/scripts/mise"
+dir="$("$mise" where "$spec" 2>/dev/null || true)"
+if [ -z "$dir" ] || [ ! -d "$dir" ]; then
+  "$mise" install "$spec" >&2
+  dir="$("$mise" where "$spec")"
+fi
+dir="$(cd "$dir" && pwd -P)"
+[ ! -d "$dir/Contents/Home" ] || dir="$dir/Contents/Home"
+printf '%s\n' "$dir"

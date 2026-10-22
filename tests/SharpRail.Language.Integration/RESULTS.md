@@ -36,7 +36,7 @@ The IntelliJ projects-array and importer-JDK changes have fixture coverage only 
 The managed catalog pins server releases. Swift uses the installed Apple toolchain's
 SourceKit-LSP; Dart used SDK 3.13.5. Neither has an independently pinned server binary.
 Java 21 was selected for the real JVM corpus (then from SDKMAN; the runner now uses
-the pinned `.tools/jdk`); detekt's Gradle 8 build rejected
+the pinned JDK from `scripts/tool jdk`); detekt's Gradle 8 build rejected
 Java 25. The server's bundled JVM and the project's importer JDK are different selections.
 R required a usable CRAN runtime and native package build toolchain; no system installation
 or Homebrew JDK was used. Named configuration fields are curated public settings, not

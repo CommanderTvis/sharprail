@@ -1,5 +1,6 @@
-# The toolchain manifest of this checkout. `scripts/mise run bootstrap` installs the pins below into the tool store
-# shared by all checkouts (SHARPRAIL_TOOLS, default ~/.sharprail/tools) and links them into .tools; mise.lock holds
+# The toolchain manifest of this checkout. mise installs the pins below on demand (`scripts/mise run <task>`, or
+# `scripts/mise install`) into its own data directory, which every checkout and worktree of the user shares, and
+# `scripts/tool <name>` prints where one is; mise.lock holds
 # the resolved versions and archive checksums of every platform and is committed. The Android NDK
 # (mise.android.toml) and the browser toolchain (mise.browser.toml) have their own files and locks so that the
 # default install stays small. Pinned here as well: the .NET SDK (global.json must name the same version) and the
@@ -55,10 +56,10 @@ os = ["macos"]
 url = "https://github.com/Latias94/merman/releases/download/v0.7.0/Merman.xcframework-v0.7.0.zip"
 checksum = "sha256:29a46ea5da99bad60888581073e88345ce370366a4855b4e2996355a7d0e880b"
 
-# Eclipse Temurin JDK 21, linked as .tools/jdk: the JDK the Android build and the JVM language checks run with, so no
+# Eclipse Temurin JDK 21 (`scripts/tool jdk`): the JDK the Android build and the JVM language checks run with, so no
 # machine JDK (or SDKMAN) is needed for development. The checksums are those of the Adoptium release's .sha256.txt
 # assets and match the downloaded archives. The macOS archives keep the JDK home under Contents/Home; the link
-# scripts point .tools/jdk at that home. There is no Windows pin: the Windows zip stores bin/server/classes*.jsa
+# scripts/tool prints that home. There is no Windows pin: the Windows zip stores bin/server/classes*.jsa
 # read-only, and mise's http backend then fails the extraction with "Access is denied" when it resets the extracted
 # files' mtimes (it opens each one for writing). On Windows, JAVA_HOME names the JDK.
 [tools."http:jdk"]
@@ -78,8 +79,8 @@ url = "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0
 checksum = "sha256:23e37e026f12f3e706f18938ff611db3032d075b09d0879a25d06718c773e223"
 
 # The Linux AppImage is a pinned type 2 runtime followed by a squashfs image, which appimagetool writes. Both are
-# single files from tagged releases (the install keeps them as .tools/appimagetool/appimagetool.AppImage and
-# .tools/appimage-runtime/runtime); appimagetool is itself an AppImage and runs with APPIMAGE_EXTRACT_AND_RUN=1.
+# single files from tagged releases (the install keeps them as appimagetool/appimagetool.AppImage and
+# appimage-runtime/runtime under `scripts/tool`'s directories); appimagetool is itself an AppImage and runs with APPIMAGE_EXTRACT_AND_RUN=1.
 [tools."http:appimagetool"]
 version = "1.9.1"
 os = ["linux"]
@@ -104,14 +105,14 @@ checksum = "sha256:00cbdfcf917cc6c0ff6d3347d59e0ca1f7f45a6df1a428a0d6d8a78664d87
 # NU1004/NU1403. `mise run restore:update` is the one task that may change the locks.
 RestoreLockedMode = "true"
 # Pinned Ghostty revisions, fetched by commit by the recipes that build them, with the Zig each builds with
-# (a version listed under [tools], linked as .tools/zig-<version>).
+# (a version listed under [tools]; `scripts/tool zig-<version>`).
 GHOSTTY_VIEW_COMMIT = "6d2dd585a5d87fa745d48188dd096ca6e63014d0" # v1.2.3
 GHOSTTY_VIEW_ZIG = "0.14.1"
 GHOSTTY_VT_COMMIT = "59c2dc032aba42aa5064bf206cc27286add3e9d8"
 GHOSTTY_VT_ZIG = "0.16.0"
 # Zig's global cache (fetched package sources, compiled helpers) is content-addressed and locks per entry, so
 # checkouts share one; the per-build caches stay beside each checkout's outputs.
-ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_TOOLS | default(value=env.HOME ~ '/.sharprail/tools') }}/zig-cache"
+ZIG_GLOBAL_CACHE_DIR = "{{ env.XDG_CACHE_HOME | default(value=env.HOME ~ '/.cache') }}/sharprail/zig"
 
 # ARTIFACT MATRIX (printed by `scripts/mise run targets`; the one place that says what ships where)
 #
@@ -132,81 +133,34 @@ description = "Print the artifact matrix: target, native libraries, terminal ren
 run = "sed -n '/^# ARTIFACT MATRIX/,/^# END MATRIX/p' mise.toml"
 run_windows = "powershell -NoProfile -Command \"Get-Content mise.toml | Select-String -Pattern '^# ' | ForEach-Object { $_.Line }\""
 
-[tasks.bootstrap]
-quiet = true
-description = "Install the pinned toolchain into the shared store and link it into .tools"
-run = [
-  '"{{mise_bin}}" install http:dotnet zig http:merman http:jdk',
-  'sh scripts/link-tools.sh "{{mise_bin}}" dotnet=http:dotnet zig-0.14.1=zig@0.14.1 zig-0.16.0=zig@0.16.0 merman=http:merman jdk=http:jdk',
-]
-run_windows = [
-  '"{{mise_bin}}" install http:dotnet http:zig-windows',
-  'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-tools.ps1 "{{mise_bin}}" dotnet=http:dotnet zig-windows=http:zig-windows',
-]
-
-[tasks."bootstrap:linux"]
-description = "Install the AppImage runtime and appimagetool into the shared store and link them into .tools (Linux)"
-run = [
-  '"{{mise_bin}}" install http:appimagetool http:appimage-runtime',
-  'sh scripts/link-tools.sh "{{mise_bin}}" appimagetool=http:appimagetool appimage-runtime=http:appimage-runtime',
-]
-
-[tasks."bootstrap:android"]
-description = "Install the Android NDK and Merman library into the shared store and link them into .tools"
-env = { MISE_ENV = "android" }
-run = [
-  '"{{mise_bin}}" install http:android-ndk http:merman-android',
-  'sh scripts/link-tools.sh "{{mise_bin}}" android-ndk=http:android-ndk merman-android=http:merman-android',
-]
-
-[tasks."bootstrap:browser"]
-description = "Install Node, pnpm, uv and Binaryen into the shared store and link them into .tools"
-env = { MISE_ENV = "browser" }
-run = [
-  '"{{mise_bin}}" install',
-  'sh scripts/link-tools.sh "{{mise_bin}}" node=node pnpm=pnpm uv=uv binaryen=http:binaryen pdfium-wasm=http:pdfium-wasm',
-]
-
 [tasks.build]
 description = "Release build of SharpRail.slnx: the compiler gate, and every native library that is out of date"
-depends = ["bootstrap"]
-run = ".tools/dotnet/dotnet build SharpRail.slnx -c Release"
-run_windows = ".tools\\dotnet\\dotnet.exe build SharpRail.slnx -c Release"
+run = "dotnet build SharpRail.slnx -c Release"
 
 [tasks.restore]
 description = "Restore the solution's packages in locked mode (packages.lock.json, nuget.org only)"
-depends = ["bootstrap"]
-run = ".tools/dotnet/dotnet restore SharpRail.slnx"
-run_windows = ".tools\\dotnet\\dotnet.exe restore SharpRail.slnx"
+run = "dotnet restore SharpRail.slnx"
 
 [tasks."restore:update"]
 description = "Re-resolve packages and rewrite the packages.lock.json files; use after changing a package version or reference, then commit the locks"
-depends = ["bootstrap"]
 env = { RestoreLockedMode = "false" }
-run = [".tools/dotnet/dotnet restore SharpRail.slnx --force-evaluate", ".tools/dotnet/dotnet restore scripts/host-link.cs --force-evaluate"]
-run_windows = [".tools\\dotnet\\dotnet.exe restore SharpRail.slnx --force-evaluate", ".tools\\dotnet\\dotnet.exe restore scripts\\host-link.cs --force-evaluate"]
+run = ["dotnet restore SharpRail.slnx --force-evaluate", "dotnet restore scripts/host-link.cs --force-evaluate"]
+run_windows = ["dotnet restore SharpRail.slnx --force-evaluate", "dotnet restore scripts\\host-link.cs --force-evaluate"]
 
 [tasks.audit]
 description = "Fail on any known vulnerability (moderate or above, transitive included) in the locked packages"
-depends = ["bootstrap"]
-run = ".tools/dotnet/dotnet restore SharpRail.slnx --force -p:WarningsNotAsErrors="
-run_windows = ".tools\\dotnet\\dotnet.exe restore SharpRail.slnx --force -p:WarningsNotAsErrors="
+run = "dotnet restore SharpRail.slnx --force -p:WarningsNotAsErrors="
 
 [tasks.format]
 description = "Verify formatting as CI does; pass --include with touched files to scope it"
-depends = ["bootstrap"]
-run = ".tools/dotnet/dotnet format SharpRail.slnx --verify-no-changes --no-restore"
-run_windows = ".tools\\dotnet\\dotnet.exe format SharpRail.slnx --verify-no-changes --no-restore"
+run = "dotnet format SharpRail.slnx --verify-no-changes --no-restore"
 
 [tasks.check]
 description = "Run the checks executable (mise run check -- --terminals, --case A,B ...)"
-depends = ["bootstrap"]
-run = ".tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release --"
-run_windows = ".tools\\dotnet\\dotnet.exe run --project tests/SharpRail.Checks -c Release --"
+run = "dotnet run --project tests/SharpRail.Checks -c Release --"
 
 [tasks.perf]
 description = "Run the profiling harness (mise run perf -- self-test)"
-depends = ["bootstrap"]
 run = "sh performance/run.sh"
 
 [tasks.rpc]
@@ -215,19 +169,16 @@ run = "uv run --no-project python scripts/generate-rpc.py"
 
 [tasks.dev]
 description = "Build the desktop app from source and run it in Release (SHARPRAIL_CONFIGURATION=Debug to debug; SHARPRAIL_PROFILE, SHARPRAIL_ROOT)"
-depends = ["bootstrap"]
 run = "sh scripts/tasks/dev.sh"
 run_windows = "scripts\\tasks\\dev.bat"
 
 [tasks.host]
 description = "Run only the remote host and print its connection QR code (SHARPRAIL_CONNECT_HOST)"
-depends = ["bootstrap"]
 run = "sh scripts/tasks/host.sh"
 run_windows = "scripts\\tasks\\host.bat"
 
 [tasks."package:macos"]
 description = "Publish the app, host and checks and build artifacts/SharpRail.app (osx-arm64 by default, or osx-x64)"
-depends = ["bootstrap"]
 run = "sh scripts/tasks/package-macos.sh"
 
 [tasks."zig-deps:mirror"]
@@ -240,33 +191,27 @@ run = "sh scripts/tasks/dmg.sh"
 
 [tasks."package:windows"]
 description = "Publish the Windows client, host and checks and zip them (-RuntimeIdentifier win-x64 or win-arm64)"
-depends = ["bootstrap"]
 run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks/package-windows.ps1"
 run = "echo 'Windows packages are built on Windows.' >&2; exit 1"
 
 [tasks."package:linux"]
 description = "Publish the Linux client and checks and build artifacts/SharpRail-linux-<x64|arm64>.AppImage (linux-x64 by default, or `linux-arm64`; builds on Linux)"
-depends = ["bootstrap"]
 run = "sh scripts/tasks/package-linux.sh"
 
 [tasks."package:android"]
 description = "Build the signed Release Android package into artifacts/android/SharpRail.apk"
-depends = ["bootstrap", "bootstrap:android"]
 run = "sh scripts/tasks/android.sh apk"
 
 [tasks.android]
 description = "Build, install and start the Android client (build|run|apk)"
-depends = ["bootstrap", "bootstrap:android"]
 run = "sh scripts/tasks/android.sh"
 
 [tasks."package:browser"]
 description = "Publish the browser client into artifacts/browser"
-depends = ["bootstrap"]
 run = "sh scripts/tasks/browser.sh publish"
 
 [tasks.browser]
 description = "Build, run, publish or check the browser client (build|run|publish|check)"
-depends = ["bootstrap"]
 run = "sh scripts/tasks/browser.sh"
 run_windows = "scripts\\tasks\\browser.bat"
 
@@ -277,10 +222,8 @@ run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks
 
 [tasks."check:terminal"]
 description = "Build the Ghostty libraries and run the native shell/Metal probe (macOS)"
-depends = ["bootstrap"]
 run = "sh scripts/tasks/check-terminal.sh"
 
 [tasks."check:fsevents"]
 description = "Run the FSEvents resource-lifetime check with the checks' interposer (macOS)"
-depends = ["bootstrap"]
 run = "sh scripts/tasks/check-fsevents.sh"

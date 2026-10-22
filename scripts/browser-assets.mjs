@@ -32,8 +32,8 @@ await fs.cp(path.join(project, 'node_modules/restty/dist'), path.join(vendor, 'r
 await fs.copyFile(path.join(project, 'node_modules/restty/LICENSE'), path.join(vendor, 'Restty-LICENSE'));
 await fs.copyFile(path.join(await fs.realpath(path.join(project, 'node_modules/restty')), '../text-shaper/LICENSE'), path.join(vendor, 'TextShaper-LICENSE'));
 await fs.copyFile(path.join(root, 'src/SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf'), path.join(vendor, 'JetBrainsMono-Regular.ttf'));
-// PDFium's WASM build is pinned and checksummed in mise.browser.toml and linked by `scripts/mise run bootstrap:browser`.
-const cache = path.join(root, '.tools/pdfium-wasm');
+// PDFium's WASM build is pinned and checksummed in mise.browser.toml; `scripts/tool pdfium-wasm` prints where mise keeps it.
+const cache = execFileSync('sh', [path.join(root, 'scripts/tool'), 'pdfium-wasm'], { encoding: 'utf8' }).trim();
 await fs.copyFile(path.join(cache, 'lib/pdfium.wasm'), path.join(vendor, 'pdfium.wasm'));
 const glue = await fs.readFile(path.join(cache, 'lib/pdfium.js'), 'utf8');
 await fs.writeFile(path.join(vendor, 'pdfium.js'), `export default function loadPdfium(options) {

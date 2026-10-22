@@ -20,7 +20,7 @@ if (!option('--server')) throw Error('Explicitly select --server go,dart or use 
 const selected = option('--server').split(',');
 const base = path.resolve(option('--scratch') ?? path.join(root, '.tools/lsp-shared-cache/run'));
 const reportDirectory = path.join(root, 'artifacts/lsp-shared-cache');
-const dotnet = path.join(root, '.tools/dotnet/dotnet');
+const dotnet = process.env.DOTNET ?? 'dotnet';
 const hostAssembly = path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll');
 const outcomes = [];
 await access(hostAssembly);

@@ -6,7 +6,7 @@ set -eu
 # elsewhere to stop after assembling artifacts/linux/AppDir. With SHARPRAIL_GPG_KEY_ID set (a key in the GPG keyring), the image
 # carries an embedded signature that AppImageLauncher and appimaged verify.
 cd "$(dirname "$0")/../.."
-dotnet_cmd="${DOTNET:-.tools/dotnet/dotnet}"
+dotnet_cmd="${DOTNET:-dotnet}"
 rid="${1:-linux-x64}"
 case "$rid" in
   linux-x64) appimage_arch=x86_64 ;;
@@ -77,11 +77,10 @@ if [ "$(uname -s)" != Linux ]; then
   echo "Assembled $app; run this task on Linux to build the AppImage."
   exit 0
 fi
-# These tools exist for Linux only, so the task installs them here rather than depending on their bootstrap.
-sh scripts/mise run bootstrap:linux
-tool=.tools/appimagetool/appimagetool.AppImage
-runtime=.tools/appimage-runtime/runtime
-[ -f "$tool" ] && [ -f "$runtime" ] || { echo 'bootstrap:linux did not install appimagetool.' >&2; exit 1; }
+# These tools exist for Linux only; scripts/tool installs them on first use.
+tool="$(scripts/tool appimagetool)/appimagetool.AppImage"
+runtime="$(scripts/tool appimage-runtime)/runtime"
+[ -f "$tool" ] && [ -f "$runtime" ] || { echo 'scripts/tool did not install appimagetool.' >&2; exit 1; }
 # The store is read-only and appimagetool needs neither FUSE nor a writable home: it unpacks itself and writes only the image.
 # The task argument (the runtime identifier) is not an appimagetool argument.
 set --

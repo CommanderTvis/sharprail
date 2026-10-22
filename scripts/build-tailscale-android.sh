@@ -15,8 +15,8 @@ sh scripts/tailscale-go.sh
 mkdir -p "$out"
 . "$root/scripts/lock.sh"
 acquire_lock "$cache/build.lock"
-ndk="${ANDROID_NDK_HOME:-$root/.tools/android-ndk}"
-[ -d "$ndk/toolchains" ] || { echo 'Run scripts/mise run bootstrap:android first.' >&2; exit 1; }
+ndk="${ANDROID_NDK_HOME:-$("$root/scripts/tool" android-ndk)}"
+[ -d "$ndk/toolchains" ] || { echo "No Android NDK at $ndk." >&2; exit 1; }
 case "$(uname -s)" in Darwin) ndk_host=darwin-x86_64 ;; Linux) ndk_host=linux-x86_64 ;; esac
 export GOOS=android GOARCH="$goarch" CGO_ENABLED=1 GOTOOLCHAIN=local
 export GOCACHE="$cache/build-cache" GOMODCACHE="$cache/modules"

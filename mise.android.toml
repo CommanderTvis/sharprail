@@ -1,4 +1,4 @@
-# Loaded with MISE_ENV=android (the bootstrap:android task): the NDK the Android client's native libraries are
+# Loaded with MISE_ENV=android (`scripts/tool android-ndk`): the NDK the Android client's native libraries are
 # built with, kept out of the default install because they are large.
 [settings]
 lockfile = true

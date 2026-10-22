@@ -573,7 +573,7 @@ internal static class LanguageChecks
         const string declaration = "namespace Sample; public sealed class Widget { public int Value => 42; }\n";
         await File.WriteAllTextAsync(Path.Combine(root, "Library", "Widget.cs"), declaration);
         await File.WriteAllTextAsync(Path.Combine(root, "Consumer", "Usage.cs"), "namespace Consumer; public static class Usage { public static int Read() => new Sample.Widget().Value; }\n");
-        var dotnet = Path.GetFullPath(".tools/dotnet/dotnet");
+        var dotnet = Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(4));
         var restore = LanguageServers.Start(dotnet, ["restore", Path.Combine(root, "Fixture.slnx")]);
         restore.WorkingDirectory = root; restore.RedirectStandardOutput = restore.RedirectStandardError = true;

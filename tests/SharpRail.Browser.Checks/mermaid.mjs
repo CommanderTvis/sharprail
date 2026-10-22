@@ -32,7 +32,7 @@ try {
   const server = net.createServer(); server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const port = server.address().port; await new Promise(resolve => server.close(resolve));
   const address = `http://127.0.0.1:${port}`;
-  host = spawn(path.join(root, '.tools/dotnet/dotnet'), [path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll')], {
+  host = spawn(process.env.DOTNET ?? 'dotnet', [path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll')], {
     cwd: fixture, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, SHARPRAIL_ROOT: fixture, SHARPRAIL_STATE_DIR: path.join(scratch, 'state'),
       SHARPRAIL_TOKEN: token, SHARPRAIL_PORT: String(port), SHARPRAIL_BROWSER_ROOT: path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle') }
   });

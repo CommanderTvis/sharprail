@@ -37,7 +37,7 @@ After a test-only Release browser build, `node tests/SharpRail.Browser.Checks/lo
 checks the real browser’s blank-token consent, deny/cancel/allow, reload, revocation, restart and
 remote-token behavior against an isolated embedded app. Build the solution first for its
 headless app fixture. The focused command
-`.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --local-browser-approval`
+`dotnet run --project tests/SharpRail.Checks -c Release -- --local-browser-approval`
 covers the host boundary and headless app approval/Settings interactions.
 
 A deployment must support WebSocket upgrades at `/rpc` and preserve `Cross-Origin-Opener-Policy:
@@ -62,7 +62,7 @@ Markdown, highlighting and RPC hot paths (the list and its reasons are in [SPEC.
 The first native compilation takes longer; later builds reuse its cache. Managed assemblies,
 reflection and dynamically loaded plugins are preserved. Debug remains interpreted. For an
 interpreted diagnostic build, use
-`.tools/dotnet/dotnet build src/SharpRail.Browser -c Release -p:SharpRailBrowserAot=false`.
+`dotnet build src/SharpRail.Browser -c Release -p:SharpRailBrowserAot=false`.
 
 The measured native runtime grows from 11.61 MB interpreted to 61.9 MB with selective AOT
 (12.4 MB Brotli).

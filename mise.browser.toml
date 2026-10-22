@@ -1,4 +1,4 @@
-# Loaded with MISE_ENV=browser (the bootstrap:browser task): the toolchain of the WASM client.
+# Loaded with MISE_ENV=browser (`scripts/tool node` and friends): the toolchain of the WASM client.
 [settings]
 lockfile = true
 

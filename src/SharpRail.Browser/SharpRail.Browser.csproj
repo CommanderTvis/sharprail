@@ -12,7 +12,6 @@
     <DefineConstants Condition="'$(BrowserChecks)' == 'true'">$(DefineConstants);BROWSER_CHECKS</DefineConstants>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <BrowserBinaryen>$(MSBuildProjectDirectory)/../../.tools/binaryen</BrowserBinaryen>
     <EmccFlags>$(EmccFlags) -Wno-version-check</EmccFlags>
     <SharpRailBrowserAot Condition="'$(SharpRailBrowserAot)' == '' and '$(Configuration)' == 'Release'">true</SharpRailBrowserAot>
     <SharpRailBrowserAot Condition="'$(SharpRailBrowserAot)' == ''">false</SharpRailBrowserAot>
@@ -96,7 +95,6 @@
   </ItemGroup>
   <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild"
           Inputs="@(WasmNativeSource)" Outputs="../../.tools/wasm-native/GhosttyAvaloniaVt.a">
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:browser" />
     <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
   </Target>
   <!-- The vendored assets come from the pnpm lockfile, the PDFium pin and the licence files. -->
@@ -105,7 +103,6 @@
   </ItemGroup>
   <Target Name="StageBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildBrowserNative"
           Inputs="@(BrowserAssetSource)" Outputs="wwwroot/vendor/PDFium-LICENSE">
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:browser" />
     <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-assets.mjs&quot;" />
   </Target>
   <Target Name="IncludeBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="StageBrowserAssets">
@@ -115,6 +112,9 @@
     </ItemGroup>
   </Target>
   <Target Name="UseBrowserBinaryen" AfterTargets="_SetupEmscripten">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/tool&quot; binaryen" ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="BrowserBinaryen" />
+    </Exec>
     <ItemGroup>
       <EmscriptenEnvVars Remove="@(EmscriptenEnvVars)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('DOTNET_EMSCRIPTEN_BINARYEN_ROOT=')) Or $([System.String]::Copy('%(Identity)').StartsWith('PATH='))" />
       <EmscriptenEnvVars Include="DOTNET_EMSCRIPTEN_BINARYEN_ROOT=$(BrowserBinaryen)" />

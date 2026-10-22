@@ -2,12 +2,12 @@
 
 Run the examples from the repository root. Everything is a mise task: `scripts/mise run <task>`
 (`scripts\mise.cmd` on Windows); the files in `scripts/tasks` are what the tasks run and are not entry
-points. Builds use the .NET SDK linked at `.tools/dotnet`. The first task downloads the pinned toolchain
+points. Builds use the pinned .NET SDK, which mise puts on PATH. The first task installs the pinned toolchain
 (see Toolchain below).
 
 ## File icon assets
 
-The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `build-file-icons.sh` or `build-file-icons.ps1` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `.tools/dotnet/dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. Outputs stay under `.tools/file-icons`.
+The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `build-file-icons.sh` or `build-file-icons.ps1` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. Outputs stay under `.tools/file-icons`.
 
 ## Start the app or a server
 
@@ -17,7 +17,7 @@ The UI kit's `BuildFileIcons` target (a skipped build when the generator and tab
 scripts/mise run dev
 ```
 
-Builds and runs the desktop app in Release by default, bootstrapping the SDK if
+Builds and runs the desktop app in Release by default, installing the SDK if
 needed. `SHARPRAIL_CONFIGURATION=Debug` selects a Debug build for debugging, `SHARPRAIL_ROOT` selects
 the initial workspace (default: this checkout), and `SHARPRAIL_PROFILE` selects a
 separate profile instead of `~/.sharprail`. Additional arguments go to the app.
@@ -47,7 +47,7 @@ the standalone host negotiates sidecars without request-time compression. See th
 the interpreted diagnostic override and the optional prose performance journey.
 It installs the `wasm-experimental` workload when the
 multithreaded browser runtime pack is missing. Browser builds install Node, pnpm, uv and
-Binaryen through `bootstrap:browser`, and need Git and a macOS or Linux build host.
+Binaryen through mise (`scripts/tool`), and need Git and a macOS or Linux build host.
 
 | Command | Purpose and output |
 | --- | --- |
@@ -85,19 +85,19 @@ The .NET SDK is an `http:dotnet` tool for the same reason: mise's core dotnet to
 `mise.toml` names Microsoft's per-platform archives (from the 10.0 `releases.json`, whose SHA-512 the pinned SHA-256s
 were checked against) and `global.json` pins the same version with `rollForward` disabled.
 
-With a mise installed on the machine, `scripts/mise` runs it as is and tools install into its default data directory
-(set `MISE_DATA_DIR=~/.sharprail/tools` to reuse the store below). Without one, tools install into a store shared by every checkout, `~/.sharprail/tools` (`%USERPROFILE%\.sharprail\tools`;
-set `SHARPRAIL_TOOLS` to move it), one directory per version, so checkouts at the same pin share one copy and
-a version bump leaves older checkouts valid. mise installs into a temporary directory and renames it, under its
-own lock, so concurrent bootstraps are safe. `scripts/mise run bootstrap` (also `bootstrap:android` and
-`bootstrap:browser`; the builds and tasks that need them run them) links the installs into `.tools`
-(`.tools/dotnet`, `.tools/zig-0.14.1`, `.tools/merman`, ...). Installs other than the SDK are made read-only; a
-real directory at a link's place from an older layout is renamed `<name>.local-<time>`, not deleted. The SDK
-stays writable because `dotnet workload install` adds packs to it; those installs are serialised with a lock
-(`scripts/tasks/workload.sh`).
+With a mise installed on the machine, `scripts/mise` runs it as is; without one it downloads the pinned mise release. Either
+way tools install into mise's data directory (default `~/.local/share/mise`), one directory per version, which every
+checkout and worktree of the user shares, so checkouts at the same pin share one copy and a version bump leaves older
+checkouts valid. mise installs into a temporary directory and renames it, under its own lock, so concurrent installs are
+safe. There is no bootstrap step and no link in the checkout: a task installs the tools it needs on first use, tasks and
+`scripts/mise x -- <command>` get them on PATH, and `scripts/tool <name>` (`scripts\tool.cmd` on Windows) prints a tool's
+directory (installing it first when missing): `dotnet`, `zig-0.14.1`, `zig-0.16.0`, `merman`, `jdk`, `appimagetool`,
+`appimage-runtime`, and from the android and browser mise files `android-ndk`, `merman-android`, `node`, `pnpm`, `uv`,
+`binaryen`, `pdfium-wasm`. The SDK directory stays writable because `dotnet workload install` adds packs to it; those
+installs are serialised with a lock (`scripts/tasks/workload.sh`).
 
-Caches written during builds: Zig's global package cache is shared in the store
-(`ZIG_GLOBAL_CACHE_DIR`; Zig locks it per entry, so concurrent builds are its designed use), while the
+Caches written during builds: Zig's global package cache is shared
+(`ZIG_GLOBAL_CACHE_DIR`, under `~/.cache/sharprail`; Zig locks it per entry, so concurrent builds are its designed use), while the
 per-build caches, patched sources, objects and libraries stay per checkout (`.tools/ghostty-avalonia`,
 `obj/native`, `.tools/wasm-native`) because they embed absolute paths. NuGet's cache is NuGet's own.
 
@@ -146,9 +146,9 @@ and commit the lock. the `--zig-deps` check mode fails when the lock is stale.
 ## Android
 
 Set `ANDROID_HOME` to an installed Android SDK (default:
-`~/Library/Android/sdk`). The JDK is provisioned like the .NET SDK: `bootstrap` installs the pinned Temurin 21
-from `mise.toml` and links it as `.tools/jdk` (on macOS, at the bundle's `Contents/Home`; Windows has no pin, see `mise.toml`); `bootstrap:android`
-(which the Android tasks also run first) links Merman's Android archive as `.tools/merman-android`, whose per-ABI `.so` the APK packages as `libSharpRailMermaid.so`. A
+`~/Library/Android/sdk`). The JDK is provisioned like the .NET SDK: mise installs the pinned Temurin 21
+from `mise.toml` on first use and `scripts/tool jdk` prints it (on macOS, at the bundle's `Contents/Home`; Windows has no pin, see `mise.toml`); `scripts/tool merman-android`
+prints Merman's Android archive, whose per-ABI `.so` the APK packages as `libSharpRailMermaid.so`. A
 `JAVA_HOME` in the environment, when set, names another JDK 17 or 21 instead. The task installs the .NET
 Android workload when missing and the pinned NDK.
 
@@ -195,7 +195,7 @@ SDK, Zig compiler and native cache (`obj/native/<rid>`) follow the host and runt
 self-contained ReadyToRun client and the checks to `artifacts/linux` and packs the client into
 `artifacts/SharpRail-linux-x64.AppImage` (`SharpRail-linux-arm64.AppImage` for `linux-arm64`, with the aarch64 appimagetool and runtime): an `AppDir` (`AppRun`, a desktop file, the
 icon, the client under `usr/lib/sharprail`) written as a squashfs image behind the pinned type 2 runtime by the pinned appimagetool
-(`bootstrap:linux` installs both from checksummed releases). Neither FUSE nor a display is needed to build it. On another host
+(`scripts/tool` installs both from checksummed releases). Neither FUSE nor a display is needed to build it. On another host
 `SHARPRAIL_APPDIR_ONLY=1 scripts/mise run package:linux [linux-arm64]` publishes the Linux client (the natives cross-compile with Zig) and stops at
 `artifacts/linux/AppDir`. `scripts/mise run check:packaged -- --linux` unpacks the image with the runtime's own
 `--appimage-extract` (the image for the host's architecture), stages the checks beside a copy of that payload and runs the Linux gate. See [LINUX.md](../LINUX.md).
@@ -212,7 +212,7 @@ managed check suite.
 For source checks, use the checkout-local SDK:
 
 ```sh
-.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --terminals
+dotnet run --project tests/SharpRail.Checks -c Release -- --terminals
 ```
 
 The available focused modes and verification rules are documented in
@@ -223,7 +223,7 @@ The available focused modes and verification rules are documented in
 | File | Invocation and purpose |
 | --- | --- |
 | `generate-rpc.py` | `scripts/mise run rpc` regenerates `src/SharpRail.Host.Protocol/RpcServices.Generated.cs` and `src/SharpRail.Host.Remote/RpcDispatch.Generated.cs` from `*Contract.cs`. It edits tracked source; review and format the generated diff. |
-| `host-link.cs` | `.tools/dotnet/dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `SHARPRAIL_TOKEN`, `SHARPRAIL_PORT` and optional `SHARPRAIL_CONNECT_HOST`. Used by the `host` task; restores QRCoder as a file-based app dependency, locked in its own `host-link.packages.lock.json` (refreshed by `restore:update`) because `scripts/packages.lock.json` is shared by the other file-based scripts. |
+| `host-link.cs` | `dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `SHARPRAIL_TOKEN`, `SHARPRAIL_PORT` and optional `SHARPRAIL_CONNECT_HOST`. Used by the `host` task; restores QRCoder as a file-based app dependency, locked in its own `host-link.packages.lock.json` (refreshed by `restore:update`) because `scripts/packages.lock.json` is shared by the other file-based scripts. |
 | `benchmark.mjs` | `node scripts/benchmark.mjs [embedded\|remote] [rounds] [workspace]` measures published app startup and process-tree RSS. Defaults: embedded, 10 rounds, current directory. Requires macOS, AC power, Node, clang and published artifacts; run only when measurement is requested. Writes `.bench/results-<mode>-<timestamp>.json` and compiles the helper below. |
 | `window-probe.m` | Native CoreGraphics helper compiled by the benchmark as `.bench/window-probe`; reports when CoreGraphics first lists a normal window at least 300 × 200 for a process ID. Not a standalone build/launch entry point. |
 
@@ -273,4 +273,4 @@ for its ABI and native tests; no system Go installation or separate Android VPN 
 the checksum-pinned Headscale v0.29.5 release for this platform (macOS or Linux, arm64 or x64), the
 `tsforward` userspace node and a desktop build of the embedded Tailscale library. The Go toolchain comes
 from `scripts/tailscale-go.sh`, which the Android build shares. Then
-`.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --headscale` runs the slow check.
+`dotnet run --project tests/SharpRail.Checks -c Release -- --headscale` runs the slow check.

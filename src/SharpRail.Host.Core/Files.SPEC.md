@@ -205,9 +205,9 @@ From the repository root, use the performance toolkit's pinned local tools:
 ```sh
 watcher_pid=12345 # replace with the host process ID
 mkdir -p artifacts
-(cd performance && ../.tools/dotnet/dotnet tool restore)
-(cd performance && ../.tools/dotnet/dotnet tool run dotnet-counters -- monitor --process-id "$watcher_pid" --counters SharpRail-WorkspaceWatchers)
-(cd performance && ../.tools/dotnet/dotnet tool run dotnet-trace -- collect --process-id "$watcher_pid" --providers SharpRail-WorkspaceWatchers --output ../artifacts/watchers.nettrace)
+(cd performance && dotnet tool restore)
+(cd performance && dotnet tool run dotnet-counters -- monitor --process-id "$watcher_pid" --counters SharpRail-WorkspaceWatchers)
+(cd performance && dotnet tool run dotnet-trace -- collect --process-id "$watcher_pid" --providers SharpRail-WorkspaceWatchers --output ../artifacts/watchers.nettrace)
 scripts/mise run check:fsevents
 ```
 

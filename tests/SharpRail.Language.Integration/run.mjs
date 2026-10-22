@@ -17,11 +17,11 @@ const cache = path.join(root, '.tools/lsp-validation');
 const reports = path.join(root, 'artifacts/lsp-validation');
 await mkdir(cache, { recursive: true });
 await mkdir(reports, { recursive: true });
-const dotnet = path.join(root, '.tools/dotnet/dotnet');
-// The JVM cases run with the repository's pinned JDK (.tools/jdk from `scripts/mise run bootstrap`), or JAVA_HOME when
+const dotnet = process.env.DOTNET ?? 'dotnet';
+// The JVM cases run with the repository's pinned JDK (`scripts/tool jdk`), or JAVA_HOME when
 // set. The host's project-JDK lookup prefers a machine SDKMAN install, so the child environment points it at an empty
 // candidates directory: the selection never depends on what the machine has installed.
-const jdk = process.env.JAVA_HOME || path.join(root, '.tools/jdk');
+const jdk = process.env.JAVA_HOME || execFileSync('sh', [path.join(root, 'scripts/tool'), 'jdk'], { encoding: 'utf8' }).trim();
 const java = path.join(jdk, 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
 const jvmEnvironment = { JAVA_HOME: jdk, PATH: path.join(jdk, 'bin') + path.delimiter + (process.env.PATH ?? ''), SDKMAN_CANDIDATES_DIR: path.join(cache, 'no-sdkman') };
 const host = path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll');

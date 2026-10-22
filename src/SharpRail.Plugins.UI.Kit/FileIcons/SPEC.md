@@ -17,7 +17,7 @@ pale accents, flattens gradients and removes definitions. All 1,251 generated fo
 byte-identical. Generated assets belong in ignored `.tools/file-icons/assets/file-icons` and are
 embedded by the kit build, rather than copied into a plugin directory. The Unix and PowerShell
 build wrappers serialize generation and cache its source fingerprint. Run
-`.tools/dotnet/dotnet run scripts/generate-file-icons.cs -- --check` to verify the table and assets.
+`dotnet run scripts/generate-file-icons.cs -- --check` to verify the table and assets.
 
 Settings › Appearance exposes the shared host setting. Turning it off restores generic file
 glyphs in Files and document tabs and removes core file-type icons from Changes. Custom plugin

@@ -1,9 +1,6 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
-dotnet_cmd="${DOTNET:-.tools/dotnet/dotnet}"
-if [ -z "${DOTNET:-}" ] && [ ! -x "$dotnet_cmd" ]; then
-  echo 'Bootstrapping the checkout-local .NET SDK for profiling.' >&2
-  sh scripts/mise run bootstrap >&2
-fi
+# Under `scripts/mise x --` (or `scripts/mise run perf`) the pinned SDK is the dotnet on PATH.
+dotnet_cmd="${DOTNET:-dotnet}"
 exec "$dotnet_cmd" run --project performance/SharpRail.Performance -c Release -- "$@"

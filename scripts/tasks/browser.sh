@@ -3,7 +3,7 @@ set -eu
 # `scripts/mise run browser [build|run|publish|check]`.
 cd "$(dirname "$0")/../.."
 root="$PWD"
-dotnet="$root/.tools/dotnet/dotnet"
+dotnet=dotnet
 sh scripts/tasks/workload.sh wasm-experimental Microsoft.NETCore.App.Runtime.Mono.multithread.browser-wasm --skip-manifest-update
 configuration="${SHARPRAIL_CONFIGURATION:-Release}"
 case "${1:-build}" in

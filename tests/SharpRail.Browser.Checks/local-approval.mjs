@@ -28,7 +28,7 @@ const server = http.createServer(async (request, response) => {
 });
 server.listen(0, '127.0.0.1'); await once(server, 'listening');
 const address = `http://127.0.0.1:${server.address().port}`;
-const host = spawn(path.join(root, '.tools/dotnet/dotnet'), ['tests/SharpRail.Checks/bin/Release/net10.0/SharpRail.Checks.dll', '--local-browser-fixture'], { cwd: root, stdio: ['pipe', 'pipe', 'pipe'] });
+const host = spawn(process.env.DOTNET ?? 'dotnet', ['tests/SharpRail.Checks/bin/Release/net10.0/SharpRail.Checks.dll', '--local-browser-fixture'], { cwd: root, stdio: ['pipe', 'pipe', 'pipe'] });
 let stderr = '', last;
 host.stderr.on('data', data => { stderr += data; });
 const replies = [];

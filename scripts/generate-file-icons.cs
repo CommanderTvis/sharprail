@@ -1,6 +1,6 @@
 // Regenerates the core file icons’ recoloured SVGs and its committed name table from the pinned
 // material-icon-theme release, or with --check fails when either is stale. Run from the checkout root:
-//   .tools/dotnet/dotnet run scripts/generate-file-icons.cs [-- --check]
+//   dotnet run scripts/generate-file-icons.cs [-- --check]
 using System.Formats.Tar;
 using System.Globalization;
 using System.IO.Compression;
@@ -93,7 +93,7 @@ if (check)
     var onDisk = Directory.Exists(assetsDirectory) ? Directory.GetFiles(assetsDirectory, "*.svg") : [];
     stale |= onDisk.Length != svgs.Count || svgs.Any(svg => !File.Exists(Path.Combine(assetsDirectory, svg.Key + ".svg")) ||
         File.ReadAllText(Path.Combine(assetsDirectory, svg.Key + ".svg")) != svg.Value);
-    if (stale) { Console.Error.WriteLine("file icons: STALE; run .tools/dotnet/dotnet run scripts/generate-file-icons.cs and commit the result."); return 1; }
+    if (stale) { Console.Error.WriteLine("file icons: STALE; run dotnet run scripts/generate-file-icons.cs and commit the result."); return 1; }
     Console.WriteLine($"file icons: up to date (v{Version})");
     return 0;
 }
