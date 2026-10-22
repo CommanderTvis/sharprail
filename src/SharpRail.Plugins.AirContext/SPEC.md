@@ -89,7 +89,10 @@ JetBrains identity/cache. The workspace confirmation discloses that distinction.
 ## Runtime and agent workflow
 
 First recognition of a SharpRail UI-launched Codex/Claude process (a terminal agent change the plugin observes) requests background
-indexing only for an enabled workspace. A per-host launch set handles restored records
+indexing only for an enabled workspace. A workspace the host creates (`WorkspaceCreated`: `workspace_create`, the UI, or a
+remote host) in an enabled project requests the same background indexing, off the observer's thread, and publishes its state on
+`changed`, so agents in a new worktree can search without a UI launch there; one of a project the user never enabled starts nothing
+(`--context` checks both with the fixture CLI). A per-host launch set handles restored records
 without retriggering on model/status updates. Each workspace deduplicates in-flight
 index jobs. The native indexer receives the fixed absolute project path and JSON output;
 the CLI owns native/distributed indexing locks. Jobs have a 30-minute bound and stop

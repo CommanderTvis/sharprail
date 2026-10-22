@@ -136,6 +136,7 @@ internal static partial class AirContextChecks
         var storage = Path.Combine(root, "air-context-project");
         string Dir(string name) { var path = Path.Combine(storage, name); Directory.CreateDirectory(path); return path; }
         var (project, feature, later, other) = (Dir("project"), Dir("worktrees/feature"), Dir("worktrees/later"), Dir("other"));
+        var (created, otherCreated) = (Dir("worktrees/created"), Dir("other-worktrees/created"));
         var trees = new List<WorktreeInfo> { new(project, "main", true, false), new(feature, "feature", false, false) };
         Task<IReadOnlyList<WorktreeInfo>> Worktrees(string path, CancellationToken _)
         {
@@ -146,7 +147,8 @@ internal static partial class AirContextChecks
         var bundle = new ContextBundle("project", "fixture", new("https://download.jetbrains.com/fixture"), Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData("fixture"u8)));
         using var fixtures = new Fixtures();
         fixtures.Value.Consent = directory => new(directory, http, bundle);
-        fixtures.Value.Runtime = (path, log, _) => Task.FromResult<IContextRuntime>(new WorkflowRuntime(path, log));
+        var runtimes = new System.Collections.Concurrent.ConcurrentDictionary<string, WorkflowRuntime>(StringComparer.Ordinal);
+        fixtures.Value.Runtime = (path, log, _) => Task.FromResult<IContextRuntime>(runtimes[path] = new WorkflowRuntime(path, log));
         async Task<Rig> Open(string state)
         {
             var rig = await Rig.Open(project, state, remote: false, worktrees: Worktrees);
@@ -167,6 +169,15 @@ internal static partial class AirContextChecks
             var status = await rig.Tools(later).Single(tool => tool.Name == "context_status").Call(new(), default);
             Require(Reply(status)["enabled"]!.GetValue<bool>() && Reply(status)["state"]!.ToString() != "disabled", "context_status in a new worktree reported disabled: " + status.Text);
             Require(!(await rig.Workspace(other)).Enabled, "Enabling one project enabled another.");
+            // Creating a workspace of the enabled project starts its indexing in the background (the fixture CLI uploads nothing).
+            lock (trees) trees.Add(new(created, "created", false, false));
+            rig.State.ChangeWorkspaces(current => current
+                .Append(new WorkspaceRecord(Guid.NewGuid().ToString(), project, WorkspaceKinds.Managed, created, "created", "main"))
+                .Append(new WorkspaceRecord(Guid.NewGuid().ToString(), other, WorkspaceKinds.Managed, otherCreated, "created", "main")));
+            await rig.UntilAsync(() => Task.FromResult(runtimes.TryGetValue(created, out var started) && started.Indexes == 1), "a new workspace of the enabled project to start indexing");
+            Require((await rig.Workspace(created)).Enabled, "A created workspace of the enabled project is not enabled.");
+            await Task.Delay(300);
+            Require(!runtimes.ContainsKey(otherCreated) && !(await rig.Workspace(otherCreated)).Enabled, "A workspace of a project the user never enabled started indexing.");
             Require(!(await rig.Workspace(later, "disable")).Enabled, "Disabling from a worktree failed.");
             Require(!(await rig.Workspace(project)).Enabled && !(await rig.Workspace(feature)).Enabled && Enabled(rig.StateDirectory).Length == 0, "Disabling from a worktree did not disable the project.");
         }

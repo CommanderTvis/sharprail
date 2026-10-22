@@ -65,6 +65,9 @@ forgetting removes its row while leaving the checkout in place. The Default work
   servers for the new workspace in the background; the result lists each with its state (`starting`,
   `ready`, `needs-acceptance`, `failed` and the reason) and creation never waits for them. See the
   [language SPEC](Language/SPEC.md).
+- A workspace created this way (or from the UI) inherits its project's Air Context enablement, the Default
+  workspace's state, and starts indexing in the background when the project is enabled; see the
+  [Air Context SPEC](../SharpRail.Plugins.AirContext/SPEC.md).
 - `set_title` (`title`) sits beside it and titles the calling terminal's tab (whitespace collapsed, 60
   characters, at least one letter or digit). The title is host state per terminal
   (`HostState.TerminalTitles`), so every window shows it; a later call replaces it and closing the terminal

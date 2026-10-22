@@ -119,6 +119,9 @@ public sealed class AirContextHost : PluginHostModule
             {
                 // The project's consent outlives any one of its workspaces.
                 if (change is WorkspaceRemoved removed) _ = active.ForgetWorkspaceAsync(removed.Id);
+                // A new workspace of an enabled project starts indexing in the background, as the Default workspace
+                // does when an agent launches there, so agents working in it can search without a UI launch.
+                else if (change is WorkspaceCreated created) _ = Task.Run(() => CreatedAsync(active, created.Workspace.Path));
             });
             string[] seeded;
             lock (gate) seeded = [.. enabled];
@@ -135,6 +138,18 @@ public sealed class AirContextHost : PluginHostModule
         internal async ValueTask DisposeAsync()
         {
             if (service is { } active) await active.DisposeAsync();
+        }
+
+        private async Task CreatedAsync(ContextService active, string path)
+        {
+            var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+            try
+            {
+                if (!Directory.Exists(workspace) || !await EnabledAsync(workspace, default)) return;
+                await active.AgentStartedAsync(workspace);
+                context.Publish(AirContextContract.Changed, (await ExecuteAsync(new(workspace, "status"), default)).For(workspace));
+            }
+            catch (Exception error) when (error is IOException or InvalidOperationException or ArgumentException or UnauthorizedAccessException) { }
         }
 
         private static bool ValidPath(string value) => value.Length > 0 && !value.Contains('\0') && Path.IsPathFullyQualified(value);
