@@ -103,8 +103,10 @@ public sealed partial class WorkbenchWindow
     }
 
     /// <summary>The focused center group's selected file editor, the one Command-S saves.</summary>
+    // A window whose workspace has not mounted yet has no focused center group to read.
     private CodeDocumentView? SaveTarget =>
-        Layout.Selected(Layout.View.FocusedCenter) is { } tab ? Body<CodeDocumentView>(workspaceRoot + ":" + tab.Id) : null;
+        Layout.State.Groups.Any(group => group.Id == Layout.View.FocusedCenter) && Layout.Selected(Layout.View.FocusedCenter) is { } tab
+            ? Body<CodeDocumentView>(workspaceRoot + ":" + tab.Id) : null;
 
     /// <summary>Whether Command-S has unsaved changes to save; <see cref="SaveStateChanged"/> says when this may have changed.</summary>
     internal bool CanSave => SaveTarget is { HasPendingChanges: true };
