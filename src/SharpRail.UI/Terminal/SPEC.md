@@ -492,6 +492,14 @@ own terminal state keeps, so local and remote terminals behave alike.
   skipping the one on view; a prompt in the active area returns to the bottom. Metal sends the binding action to Ghostty;
   Skia reproduces `PageList.scrollPrompt` over libghostty-vt's row marks (`gav_vt_jump_to_prompt`). `--shell-integration`
   (Skia, real zsh) and `--native-prompts` (Metal window, Ghostty's marks) check it.
+- Command output (Ghostty's `Screen.selectOutput`; gesture from Ghostty's `Surface.zig`): Command+triple-click on macOS
+  (Ctrl+triple-click elsewhere) on a command's output selects exactly that output, from its first output row to the last
+  non-blank row before the next prompt; prompt and input rows select nothing. The right-click menu offers "Copy Output of
+  This Command" when the click was on output (the text is taken at the click). Metal answers through
+  `gav_ghostty_command_output` (Native/prompt-surface.zig, prompts.zig; Ghostty 1.2.3 did not apply the gesture to events
+  the view forwards, so the view selects on Avalonia's third click itself); Skia uses libghostty-vt's
+  `ghostty_terminal_select_output` and the gesture's output behaviour. Skia's repeat clicks now carry Ghostty's 500 ms
+  interval and one-cell distance; without them double and triple clicks never counted.
 
 ## Dropped attachments
 

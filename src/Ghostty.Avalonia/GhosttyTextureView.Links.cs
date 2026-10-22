@@ -4,6 +4,7 @@ using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Threading;
 
@@ -202,7 +203,32 @@ public sealed partial class GhosttyTextureView
         return FileHover.ResolveContext();
     }
 
-    private async void ShowClipboardMenu(string? url, Task<TerminalContextLink?>? lookup = null)
+    /// <summary>The selected text; empty without a selection.</summary>
+    public string SelectedText
+    {
+        get
+        {
+            if (disposed) return "";
+            var length = (int)Native.Selection(terminal.Handle, null, 0);
+            if (length == 0) return "";
+            var buffer = new byte[length + 1];
+            Native.Selection(terminal.Handle, buffer, (nuint)buffer.Length);
+            return Encoding.UTF8.GetString(buffer, 0, length);
+        }
+    }
+
+    /// <summary>The output of the command at a point in the view, or null when the point is not in a command's output.</summary>
+    public string? CommandOutputAt(Point point)
+    {
+        if (disposed) return null;
+        var length = (long)Native.CommandOutput(terminal.Handle, point.X, point.Y, false, null, 0);
+        if (length < 0) return null;
+        var buffer = new byte[length];
+        length = Native.CommandOutput(terminal.Handle, point.X, point.Y, false, buffer, (nuint)buffer.Length);
+        return length < 0 ? null : Encoding.UTF8.GetString(buffer, 0, (int)Math.Min(length, buffer.Length));
+    }
+
+    private async void ShowClipboardMenu(string? url, Task<TerminalContextLink?>? lookup = null, string? output = null)
     {
         // A native popup keeps the size it measured when it opened, so the file-link lookup finishes before the menu
         // opens with its final items; a newer request drops this one.
@@ -234,6 +260,15 @@ public sealed partial class GhosttyTextureView
                 Native.Action(terminal.Handle, action);
             };
             menu.Items.Add(item);
+            if (action == "copy_to_clipboard" && output is not null)
+            {
+                var copyOutput = new MenuItem { Header = "Copy Output of This Command" };
+                copyOutput.Click += async (_, _) =>
+                {
+                    if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(output);
+                };
+                menu.Items.Add(copyOutput);
+            }
         }
         ClipboardMenu = menu;
         menu.Open(this);

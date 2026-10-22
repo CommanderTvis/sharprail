@@ -488,6 +488,20 @@ bool gav_texture_set_line_links(void *pointer, const uint32_t *cells, const uint
     return gav_ghostty_set_line_links(((__bridge GAVTerminalView *)pointer).surface, cells, codepoints, count, mode);
 }
 
+// The selected text, NUL-terminated within capacity; its full length.
+size_t gav_texture_selection(void *pointer, char *buffer, size_t capacity) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_text_s text;
+    if (!ghostty_surface_has_selection(view.surface) || !ghostty_surface_read_selection(view.surface, &text)) return 0;
+    size_t length = text.text_len;
+    if (capacity) { size_t count = MIN(length, capacity - 1); memcpy(buffer, text.text, count); buffer[count] = 0; }
+    ghostty_surface_free_text(view.surface, &text);
+    return length;
+}
+extern intptr_t gav_ghostty_command_output(ghostty_surface_t surface, double x, double y, bool select, uint8_t *output, size_t capacity);
+intptr_t gav_texture_command_output(void *pointer, double x, double y, bool select, uint8_t *output, size_t capacity) {
+    return gav_ghostty_command_output(((__bridge GAVTerminalView *)pointer).surface, x, y, select, output, capacity);
+}
 extern intptr_t gav_ghostty_context_link(ghostty_surface_t surface, double x, double y, bool shift, uint8_t *output, size_t capacity);
 intptr_t gav_texture_context_link(void *pointer, double x, double y, bool shift, uint8_t *output, size_t capacity) {
     return gav_ghostty_context_link(((__bridge GAVTerminalView *)pointer).surface, x, y, shift, output, capacity);

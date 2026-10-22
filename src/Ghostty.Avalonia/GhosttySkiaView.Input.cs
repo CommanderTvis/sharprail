@@ -278,12 +278,13 @@ public sealed partial class GhosttySkiaView
         {
             contextClick = true;
             var url = UrlAt(e.GetPosition(this));
-            ShowClipboardMenu(url, url is null ? ContextFileLink(e.GetPosition(this)) : null);
+            ShowClipboardMenu(url, url is null ? ContextFileLink(e.GetPosition(this)) : null, CommandOutputAt(e.GetPosition(this)));
             return;
         }
         if (button != 1) return;
         var point = Grid(e);
         selecting = 0;
+        vt.TripleClickSelectsOutput = e.KeyModifiers == (MacKeyboard ? KeyModifiers.Meta : KeyModifiers.Control);
         vt.Select(0, point.X, point.Y, Now());
         Redraw();
     }
@@ -413,7 +414,11 @@ public sealed partial class GhosttySkiaView
     internal ContextMenu? ClipboardMenu { get; private set; }
     private int clipboardMenuRequest;
 
-    private async void ShowClipboardMenu(string? url = null, Task<TerminalContextLink?>? lookup = null)
+    /// <summary>The output of the command at a point in the view, or null when the point is not in a command's output.</summary>
+    public string? CommandOutputAt(Point point) =>
+        disposed ? null : vt.CommandOutput((point.X - Padding.Left) * fontKey.Scale, (point.Y - Padding.Top) * fontKey.Scale);
+
+    private async void ShowClipboardMenu(string? url = null, Task<TerminalContextLink?>? lookup = null, string? output = null)
     {
         var copy = new MenuItem { Header = "Copy", IsEnabled = SelectedText.Length > 0 };
         copy.Click += (_, _) => _ = ClipboardAsync(false);
@@ -441,7 +446,14 @@ public sealed partial class GhosttySkiaView
             menu.Items.Add(open);
             menu.Items.Add(new Separator());
         }
-        menu.Items.Add(copy); menu.Items.Add(paste); menu.Items.Add(all);
+        menu.Items.Add(copy);
+        if (output is not null)
+        {
+            var copyOutput = new MenuItem { Header = "Copy Output of This Command" };
+            copyOutput.Click += (_, _) => _ = CopyAsync(output);
+            menu.Items.Add(copyOutput);
+        }
+        menu.Items.Add(paste); menu.Items.Add(all);
         ClipboardMenu = menu;
         menu.Open(this);
     }

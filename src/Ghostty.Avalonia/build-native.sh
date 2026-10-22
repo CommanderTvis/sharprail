@@ -49,7 +49,7 @@ checkout() {
 }
 fresh() { [ -f "$cache/$1.fingerprint" ] && [ -f "$cache/$2" ] && [ "$(cat "$cache/$1.fingerprint")" = "$3" ]; }
 
-view_fingerprint="$arch $view_commit $view_zig $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/ReverseColors.patch Native/LinkUnderlines.patch Native/ConfigFile.patch Native/ExternalIo.patch Native/keyboard-mode.zig Native/file-links.zig Native/context-link.zig Native/FileLinks.patch build-native.sh | shasum -a 256)"
+view_fingerprint="$arch $view_commit $view_zig $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/ReverseColors.patch Native/LinkUnderlines.patch Native/ConfigFile.patch Native/ExternalIo.patch Native/keyboard-mode.zig Native/file-links.zig Native/context-link.zig Native/prompt-surface.zig Native/prompts.zig Native/FileLinks.patch build-native.sh | shasum -a 256)"
 vt_fingerprint="$arch $vt_commit $vt_zig $(cat Native/GhosttyVt.c Native/GhosttyClipboard.m build-native.sh | shasum -a 256)"
 if fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint" && fresh vt libGhosttyAvaloniaVt.dylib "$vt_fingerprint"; then
   touch "$cache/libGhosttyAvaloniaView.dylib" "$cache/libGhosttyAvaloniaVt.dylib"
@@ -81,8 +81,8 @@ if ! fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint" && [ ! -f "$vie
   patch -s -d "$work/view-source" -p1 < Native/ExternalIo.patch
   git -C "$work/view-source" show "$view_commit:src/config/url.zig" > "$work/view-source/src/config/url.zig"
   patch -s -d "$work/view-source" -p1 < Native/FileLinks.patch
-  cat Native/context-link.zig >> "$work/view-source/src/Surface.zig"
-  cat Native/keyboard-mode.zig Native/file-links.zig >> "$work/view-source/src/apprt/embedded.zig"
+  cat Native/context-link.zig Native/prompt-surface.zig >> "$work/view-source/src/Surface.zig"
+  cat Native/keyboard-mode.zig Native/file-links.zig Native/prompts.zig >> "$work/view-source/src/apprt/embedded.zig"
   view_zig_path="$(zig_path "$view_zig")"
   (
     # Zig 0.14 cannot resolve the arm64e-only stubs in newer Apple SDKs.

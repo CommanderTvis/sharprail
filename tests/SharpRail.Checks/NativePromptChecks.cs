@@ -1,6 +1,7 @@
 using System.Runtime.Versioning;
 using System.Text;
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 
@@ -50,7 +51,8 @@ internal static class NativePromptChecks
         terminal.WriteOutput(Encoding.UTF8.GetBytes(Transcript()));
         await Until(() => terminal.ReadViewport().TrimEnd().EndsWith('%'), "the last prompt is on view: " + terminal.ReadViewport());
         await Jumps(terminal);
-        Console.WriteLine("PASS Metal prompts: Command+Up/Down jumps between OSC 133 prompts");
+        await Output(terminal);
+        Console.WriteLine("PASS Metal prompts: Command+Up/Down jumps between OSC 133 prompts; Command+triple-click and Copy Output of This Command take exactly one command's output");
     }
 
     private static string Top(GhosttyTextureView terminal) => terminal.ReadViewport().Split('\n')[0];
@@ -69,5 +71,38 @@ internal static class NativePromptChecks
         await Jump(PhysicalKey.ArrowDown, "JUMP_CMD2");
         await Jump(PhysicalKey.ArrowDown, "JUMP_CMD3");
         await Jump(PhysicalKey.ArrowDown, null);
+    }
+
+    internal static Point Cell(GhosttyTextureView terminal, int column, int row) =>
+        new(terminal.Bounds.Width / terminal.Size.Columns * (column + 0.5), terminal.Bounds.Height / terminal.Size.Rows * (row + 0.5));
+
+    private static readonly string SeqOutput = string.Join("\n", Enumerable.Range(1, 40));
+
+    private static async Task Output(GhosttyTextureView terminal)
+    {
+        var rows = terminal.ReadViewport().Split('\n');
+        var row = Array.FindIndex(rows, line => line.Trim() == "30");
+        Require(row >= 0, "the last command's output must be on view: " + string.Join("|", rows));
+        var point = Cell(terminal, 0, row);
+        var output = terminal.CommandOutputAt(point);
+        Require(output == SeqOutput, "the output at a point must be exactly that command's output, got: [" + output + "]");
+        Require(terminal.CommandOutputAt(Cell(terminal, 0, Array.FindLastIndex(rows, line => line.TrimEnd().EndsWith('%')))) is null, "a prompt row is no command's output.");
+        var pointer = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true);
+        for (var i = 0; i < 3; i++)
+        {
+            terminal.RaiseEvent(new PointerPressedEventArgs(terminal, pointer, terminal, point, 1,
+                new PointerPointProperties(RawInputModifiers.LeftMouseButton | RawInputModifiers.Meta, PointerUpdateKind.LeftButtonPressed), KeyModifiers.Meta, i + 1));
+            terminal.RaiseEvent(new PointerReleasedEventArgs(terminal, pointer, terminal, point, 2,
+                new PointerPointProperties(RawInputModifiers.Meta, PointerUpdateKind.LeftButtonReleased), KeyModifiers.Meta, MouseButton.Left));
+            await Task.Delay(60);
+        }
+        await Until(() => string.Join("\n", terminal.SelectedText.Split('\n').Select(line => line.TrimEnd())) == SeqOutput, "Command+triple-click selecting the output; selected: [" + terminal.SelectedText + "]");
+        terminal.RaiseEvent(new PointerPressedEventArgs(terminal, pointer, terminal, point, 3,
+            new PointerPointProperties(RawInputModifiers.RightMouseButton, PointerUpdateKind.RightButtonPressed), KeyModifiers.None, 1));
+        terminal.RaiseEvent(new PointerReleasedEventArgs(terminal, pointer, terminal, point, 4,
+            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.RightButtonReleased), KeyModifiers.None, MouseButton.Right));
+        await Until(() => terminal.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => item.Header as string == "Copy Output of This Command") == true,
+            "the context menu offering Copy Output of This Command");
+        terminal.ClipboardMenu!.Close();
     }
 }

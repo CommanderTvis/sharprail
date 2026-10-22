@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -48,6 +49,7 @@ internal static partial class ShellIntegrationChecks
                 terminal.Backend!.FocusTerminal(); Pump();
                 Until(() => View().ReadViewport(false).Contains('%'), "the first prompt");
                 SkiaJumps(window, View);
+                SkiaOutput(window, View);
             }
             finally
             {
@@ -57,7 +59,7 @@ internal static partial class ShellIntegrationChecks
             }
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
-        Console.WriteLine("PASS shell integration (Skia): Command+Up/Down jumps between real zsh prompts");
+        Console.WriteLine("PASS shell integration (Skia): Command+Up/Down jumps between real zsh prompts; Command+triple-click and the menu's Copy Output of This Command take exactly one command's output");
     }
 
     private static void Type(Window window, string command)
@@ -91,5 +93,37 @@ internal static partial class ShellIntegrationChecks
         window.KeyPress(Key.Down, RawInputModifiers.Meta, PhysicalKey.ArrowDown, null);
         window.KeyRelease(Key.Down, RawInputModifiers.Meta, PhysicalKey.ArrowDown, null);
         Until(() => view().ReadViewport(false).TrimEnd().EndsWith('%'), "the bottom after the last prompt");
+    }
+
+    internal static readonly string SeqOutput = "JUMP_CMD3\n" + string.Join("\n", Enumerable.Range(1, 40));
+
+    private static void SkiaOutput(Window window, Func<GhosttySkiaView> view)
+    {
+        var rows = view().ReadViewport(false).Split('\n');
+        var row = Array.FindIndex(rows, line => line.Trim() == "30");
+        Require(row >= 0, "the last command's output must be on view: " + string.Join("|", rows));
+        var point = view().CellCenter(0, row)!.Value;
+        var output = view().CommandOutputAt(point);
+        Require(output == SeqOutput, "the output at a point must be exactly that command's output, got: [" + output + "]");
+        var prompt = Array.FindLastIndex(rows, line => line.TrimEnd().EndsWith('%'));
+        Require(view().CommandOutputAt(view().CellCenter(0, prompt)!.Value) is null, "a prompt row is no command's output.");
+        var position = view().TranslatePoint(point, window)!.Value;
+        window.MouseDown(position, Avalonia.Input.MouseButton.Left); window.MouseUp(position, Avalonia.Input.MouseButton.Left); Pump();
+        window.MouseDown(position, Avalonia.Input.MouseButton.Left); window.MouseUp(position, Avalonia.Input.MouseButton.Left); Pump();
+        Require(view().SelectedText == "30", "a double click must select the word: [" + view().SelectedText + "]");
+        Thread.Sleep(700);
+        for (var i = 0; i < 3; i++)
+        {
+            window.MouseDown(position, Avalonia.Input.MouseButton.Left, RawInputModifiers.Meta);
+            window.MouseUp(position, Avalonia.Input.MouseButton.Left, RawInputModifiers.Meta);
+            Pump();
+        }
+        Until(() => view().SelectedText == SeqOutput, "Command+triple-click selecting the output; selected: [" + view().SelectedText + "]");
+        window.MouseDown(position, Avalonia.Input.MouseButton.Right);
+        window.MouseUp(position, Avalonia.Input.MouseButton.Right);
+        Until(() => view().ClipboardMenu?.Items.OfType<MenuItem>().Any(item => item.Header as string == "Copy Output of This Command") == true,
+            "the context menu offering Copy Output of This Command");
+        view().ClipboardMenu!.Close();
+        Pump();
     }
 }

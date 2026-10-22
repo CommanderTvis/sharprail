@@ -14,6 +14,7 @@ public sealed partial class GhosttyTextureView
     private uint? pendingTextKey;
     private KeyModifiers pendingTextModifiers;
     private bool contextClick;
+    private bool outputClick;
     internal ContextMenu? ClipboardMenu { get; private set; }
     private int clipboardMenuRequest;
     private Point linkPointer = new(-1, -1);
@@ -137,7 +138,7 @@ public sealed partial class GhosttyTextureView
             if (length >= 0)
             {
                 contextClick = true;
-                ShowClipboardMenu(length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null, length == 0 ? ContextFileLink(point) : null);
+                ShowClipboardMenu(length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null, length == 0 ? ContextFileLink(point) : null, CommandOutputAt(point));
                 e.Handled = true;
                 return;
             }
@@ -153,6 +154,15 @@ public sealed partial class GhosttyTextureView
             // A plain click on an underlined file opens it on release; the press still starts a selection or reaches the program.
             pressedHighlight = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.KeyModifiers == KeyModifiers.None ? HighlightAt(e.GetPosition(this)) : null;
             filePressPoint = e.GetPosition(this);
+            // Ghostty's Cmd/Ctrl+triple-click selects the command output under the pointer.
+            if (e.ClickCount == 3 && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed &&
+                e.KeyModifiers == (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control) &&
+                Native.CommandOutput(terminal.Handle, filePressPoint.X, filePressPoint.Y, true, null, 0) >= 0)
+            {
+                outputClick = true;
+                e.Handled = true;
+                return;
+            }
             Mouse(e, 1, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
         }
         e.Handled = true;
@@ -171,6 +181,7 @@ public sealed partial class GhosttyTextureView
     {
         base.OnPointerReleased(e);
         if (contextClick) { contextClick = false; e.Handled = true; return; }
+        if (outputClick) { outputClick = false; e.Pointer.Capture(null); e.Handled = true; return; }
         var file = pressedFile;
         pressedFile = null;
         var highlight = pressedHighlight;

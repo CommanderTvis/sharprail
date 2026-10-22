@@ -89,6 +89,7 @@ typedef struct {
     uint32_t *text;
     size_t text_capacity;
     bool option_as_alt;
+    bool triple_output;
 } gav_vt;
 
 static uint32_t argb(GhosttyColorRgb color) { return 0xFF000000u | (uint32_t)color.r << 16 | (uint32_t)color.g << 8 | color.b; }
@@ -390,6 +391,17 @@ GAV_API void gav_vt_select(gav_vt *vt, int32_t kind, double x, double y, uint64_
     ghostty_selection_gesture_event_set(event, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_POSITION, &position);
     ghostty_selection_gesture_event_set(event, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_GEOMETRY, &geometry);
     ghostty_selection_gesture_event_set(event, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_TIME_NS, &time_ns);
+    // Ghostty's Cmd/Ctrl+triple-click selects the command output under the pointer instead of the line.
+    GhosttySelectionGestureBehaviors behaviors = { GHOSTTY_SELECTION_GESTURE_BEHAVIOR_CELL, GHOSTTY_SELECTION_GESTURE_BEHAVIOR_WORD,
+        vt->triple_output ? GHOSTTY_SELECTION_GESTURE_BEHAVIOR_OUTPUT : GHOSTTY_SELECTION_GESTURE_BEHAVIOR_LINE };
+    // Repeat clicks within half a second and a cell of the last one count, as Ghostty's default click-repeat-interval does.
+    uint64_t interval = 500000000ull;
+    double distance = vt->cell_width;
+    if (kind == 0) {
+        ghostty_selection_gesture_event_set(event, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_BEHAVIORS, &behaviors);
+        ghostty_selection_gesture_event_set(event, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_REPEAT_INTERVAL_NS, &interval);
+        ghostty_selection_gesture_event_set(event, GHOSTTY_SELECTION_GESTURE_EVENT_OPT_REPEAT_DISTANCE, &distance);
+    }
     GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);
     GhosttyResult result = ghostty_selection_gesture_event(vt->gesture, vt->terminal, event, &selection);
     if (result == GHOSTTY_SUCCESS) ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_SELECTION, &selection);
@@ -451,6 +463,27 @@ static size_t format(gav_vt *vt, const GhosttySelection *selection, char *out, s
     size_t written = 0;
     GhosttyResult result = ghostty_terminal_selection_format_buf(vt->terminal, options, (uint8_t *)out, capacity, &written);
     return result == GHOSTTY_SUCCESS || result == GHOSTTY_OUT_OF_SPACE ? written : 0;
+}
+
+GAV_API void gav_vt_set_triple_output(gav_vt *vt, bool value) { vt->triple_output = value; }
+
+static bool viewport_ref(gav_vt *vt, double x, double y, GhosttyGridRef *ref) {
+    uint16_t columns = 0, rows = 0;
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_COLS, &columns);
+    ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_ROWS, &rows);
+    double column = x / vt->cell_width, row = y / vt->cell_height;
+    if (!columns || !rows || column < 0 || row < 0 || column >= columns || row >= rows) return false;
+    GhosttyPoint point = { .tag = GHOSTTY_POINT_TAG_VIEWPORT, .value = { .coordinate = { .x = (uint16_t)column, .y = (uint32_t)row } } };
+    return ghostty_terminal_grid_ref(vt->terminal, point, ref) == GHOSTTY_SUCCESS;
+}
+
+// The command output at a grid pixel, as Ghostty's Cmd/Ctrl+triple-click selects it. Returns the text's length, which
+// may exceed capacity, or -1 when the point is not in a command's output.
+GAV_API int64_t gav_vt_command_output(gav_vt *vt, double x, double y, char *out, size_t capacity) {
+    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+    GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);
+    if (!viewport_ref(vt, x, y, &ref) || ghostty_terminal_select_output(vt->terminal, ref, &selection) != GHOSTTY_SUCCESS) return -1;
+    return (int64_t)format(vt, &selection, out, capacity);
 }
 
 // Returns the length of the selected text, which may exceed capacity; 0 without a selection.
