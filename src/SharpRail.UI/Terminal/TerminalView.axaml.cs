@@ -193,8 +193,16 @@ public sealed partial class TerminalView : UserControl, IDisposable
     {
         if (detachedNotice.IsVisible) takeBack.Focus();
         else if (IsFailed) retry.Focus();
-        else Backend?.FocusTerminal();
+        else
+        {
+            Backend?.FocusTerminal();
+            // A new terminal is focused before its renderer has started (New terminal focuses the pane at once); keep
+            // the request so the surface takes the keyboard when it starts instead of leaving focus on the tab.
+            focusOnStart = Backend is not { Started.IsCompletedSuccessfully: true };
+        }
     }
+
+    private bool focusOnStart;
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {
@@ -247,7 +255,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
                 Offer(displaced ? "Read-only: another client took this terminal over." : "Read-only: in use by another client.");
                 if (retrying) takeBack.Focus();
             }
-            else if (retrying) backend.FocusTerminal();
+            else if (retrying || focusOnStart) backend.FocusTerminal();
+            focusOnStart = false;
             await Task.WhenAny(backend.Exited, backend.Detached);
             if (current != generation) return;
             resumeHint.IsVisible = false;

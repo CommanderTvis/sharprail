@@ -802,7 +802,7 @@ public sealed partial class DockSurface
         if (Session.RequestClose() && fromTab) FocusGroup(id);
     }
 
-    private void FocusGroup(string id, bool focusContent = false) => Dispatcher.UIThread.Post(() =>
+    private void FocusGroup(string id, bool focusContent = false, int attempts = 20) => Dispatcher.UIThread.Post(() =>
     {
         if (!Session.State.Groups.Any(group => group.Id == id)) return;
         if (Session.View.FocusedGroup != id) Session.Focus(id);
@@ -812,11 +812,16 @@ public sealed partial class DockSurface
         { entry.Focus(); return; }
         if (group.Folded) { groupHeaders.GetValueOrDefault(id)?.Focus(); return; }
         var selected = Session.Selected(id);
-        if (focusContent && selected?.Kind == "terminal" &&
-            contentHosts.FirstOrDefault(body => body.Name == "DockBody_" + id)?.Child is Terminal.TerminalView terminal)
+        if (focusContent && selected?.Kind == "terminal")
         {
-            terminal.FocusTerminal();
-            return;
+            if (contentHosts.FirstOrDefault(body => body.Name == "DockBody_" + id)?.Child is Terminal.TerminalView terminal)
+            {
+                terminal.FocusTerminal();
+                return;
+            }
+            // A new terminal's view mounts after this pass, behind a placeholder; focus it once it is there rather
+            // than leaving the keyboard on its tab.
+            if (attempts > 0) { Dispatcher.UIThread.Post(() => FocusGroup(id, focusContent, attempts - 1), DispatcherPriority.Background); return; }
         }
         if (selected is not null && tabSites.TryGetValue(id, out var tabs))
         {
