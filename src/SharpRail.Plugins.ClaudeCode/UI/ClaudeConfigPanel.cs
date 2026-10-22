@@ -349,6 +349,23 @@ internal sealed class ClaudeConfigPanel : DockPanel
         return button;
     }
 
+    // The size column docks right and is measured first, so the left column only gets what is left: the name ellipsizes
+    // within it and the badge wraps below the name instead of running under the size.
+    private static Border SizeColumn(Control size)
+    {
+        var column = new Border { Name = "ClaudeContextSize", Child = size, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top };
+        SetDock(column, Dock.Right);
+        return column;
+    }
+
+    private static WrapPanel Title(string label)
+    {
+        var name = Ui.Text(label, Ui.TextBrush, 13);
+        name.Name = "ClaudeContextName";
+        name.TextTrimming = TextTrimming.CharacterEllipsis;
+        return new WrapPanel { Name = "ClaudeContextTitle", Orientation = Orientation.Horizontal, ItemSpacing = 4, LineSpacing = 2, Children = { name } };
+    }
+
     // Tokens first, as /context counts them; the size on disk stays as muted secondary text.
     private static Control Measure(long tokens, string? size, IBrush color)
     {
@@ -428,8 +445,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             var size = measured is null ? ClaudeParts.Code(FormatSize(layer.Bytes))
                 : memoryTokens.TryGetValue(layer.Path, out var tokens) ? Measure(tokens, FormatSize(layer.Bytes), Ui.Muted)
                 : layer.Lazy == true ? ClaudeParts.Code(FormatSize(layer.Bytes)) : NotLoaded(FormatSize(layer.Bytes));
-            SetDock(size, Dock.Right);
-            line.Children.Add(size);
+            line.Children.Add(SizeColumn(size));
             var icon = Ui.Icon("fileText", Ui.Hint, 14);
             icon.VerticalAlignment = VerticalAlignment.Center;
             var glyph = new Grid { Margin = new Thickness(0, -4, 8, -4), RowDefinitions = new RowDefinitions("*,*") };
@@ -448,8 +464,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             SetDock(glyph, Dock.Left);
             line.Children.Add(glyph);
             var column = new StackPanel();
-            var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-            title.Children.Add(Ui.Text(layer.Label, Ui.TextBrush, 13));
+            var title = Title(layer.Label);
             title.Children.Add(layer.Kind == ClaudeContextKind.SystemPrompt ? ClaudeParts.LaunchFlagChip() : ClaudeParts.ScopeChip(layer.Origin.Scope.Name()));
             if (layer.Lazy == true)
             {
@@ -470,16 +485,14 @@ internal sealed class ClaudeConfigPanel : DockPanel
             if (listed.Contains(file.Name)) continue;
             var line = new DockPanel { Name = "ClaudeContextMeasuredFile", Tag = file.Name, Margin = new Thickness(8, 4) };
             var size = Measure(file.Tokens, null, Ui.Muted);
-            SetDock(size, Dock.Right);
-            line.Children.Add(size);
+            line.Children.Add(SizeColumn(size));
             var icon = Ui.Icon("fileText", Ui.Hint, 14);
             icon.Margin = new Thickness(0, 0, 8, 0);
             icon.VerticalAlignment = VerticalAlignment.Top;
             SetDock(icon, Dock.Left);
             line.Children.Add(icon);
             var column = new StackPanel();
-            var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-            title.Children.Add(Ui.Text(System.IO.Path.GetFileName(file.Name), Ui.TextBrush, 13));
+            var title = Title(System.IO.Path.GetFileName(file.Name));
             title.Children.Add(ClaudeParts.ScopeChip(file.Source));
             column.Children.Add(title);
             column.Children.Add(ClaudeParts.SourceButton(file.Name, null, OpenSource));

@@ -148,6 +148,7 @@ internal static class ClaudeCodeChecks
         Require(launcher.Models!().Select(model => model.Id).SequenceEqual(["opus", "fable", "sonnet", "haiku"]), "The launcher offers the fork's four model aliases.");
         File.WriteAllText(Path.Combine(app.Root, "CLAUDE.md"), "# Project\n\n@AGENTS.md\n");
         File.WriteAllText(Path.Combine(app.Root, "AGENTS.md"), "# Imported\n\nrules\n");
+        File.WriteAllText(Path.Combine(app.Root, "CLAUDE.local.md"), "# Local instructions with a long enough row\n");
         app.Window.Layout.RestoreTool(ClaudeCodeManifest.ConfigTool);
         E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeConfigPanel"));
         E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeContextTotal"));
@@ -190,6 +191,24 @@ internal static class ClaudeCodeChecks
         Require(rows[rows.IndexOf(imported) - 1].GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeContextStem"),
             "A file that imports another draws the stem its branch hangs from.");
         Console.WriteLine("PASS fork plugins/claude-code/claude-config.spec.ts: an imported instruction file is drawn as a branch of the file that pulled it in");
+        var pane = app.Window.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeConfigPanel");
+        foreach (var width in new[] { 260, 280, 360, 480 })
+        {
+            pane.Width = width;
+            E2eWorkspace.Settle();
+            var layerRows = app.Window.GetLogicalDescendants().OfType<Control>().Where(control => control.Name == "ClaudeContextLayer").ToArray();
+            Require(layerRows.Length > 0 && layerRows.All(row =>
+            {
+                var size = row.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeContextSize");
+                var title = row.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeContextTitle");
+                Rect Bounds(Control control) => new(control.TranslatePoint(new(0, 0), row)!.Value, control.Bounds.Size);
+                var titleBounds = title.GetVisualDescendants().OfType<Control>().Where(part => part.IsVisible && part.Bounds.Width > 0)
+                    .Select(part => new Rect(part.TranslatePoint(new(0, 0), row)!.Value, part.Bounds.Size)).Append(Bounds(title));
+                return titleBounds.All(part => !part.Intersects(Bounds(size))) && Bounds(title).Right <= Bounds(size).X;
+            }), $"At {width} px the size column of every persistent context row is clear of its name and badge.");
+        }
+        pane.ClearValue(Control.WidthProperty);
+        E2eWorkspace.Settle();
         app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeSurface_account"));
         E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeAccount"));
         var refresh = app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeConfigRefresh");
