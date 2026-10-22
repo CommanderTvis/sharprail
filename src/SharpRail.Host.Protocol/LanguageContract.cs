@@ -38,6 +38,7 @@ public sealed class LanguageItemDto
     [ProtoMember(10)] public string Body { get; set; } = "";
     [ProtoMember(11)] public bool Truncated { get; set; }
     [ProtoMember(12)] public string Modifiers { get; set; } = "";
+    [ProtoMember(13)] public string Container { get; set; } = "";
 }
 
 [ProtoContract]

@@ -259,6 +259,9 @@ public sealed partial class LanguageService : IAsyncDisposable
             {
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(candidate.Token);
                 deadline.CancelAfter(TimeSpan.FromMinutes(15));
+                // A workspace just created is still receiving its cloned restore and build outputs; starting without them costs a full restore.
+                candidate.Detail = "Waiting for the workspace's cloned build outputs…";
+                await WorkspaceClone.WhenClonedAsync(workspace, LanguageLimits.CloneWait, deadline.Token);
                 var sessionDirectory = servers.SessionDirectory(server, workspace);
                 var start = await servers.ProvisionAsync(server, workspace, deadline.Token, options, sessionDirectory);
                 if (options.Arguments is not null)

@@ -52,6 +52,31 @@ internal static class WorkspaceClone
         return false;
     }
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task> Running = new(StringComparer.Ordinal);
+
+    /// <summary>Runs <see cref="CloneConfiguredAsync"/> in the background and remembers it until it ends, so <see cref="WhenClonedAsync"/> can wait for it.</summary>
+    internal static Task StartConfigured(string source, string target, Action<string>? report = null)
+    {
+        target = Path.TrimEndingDirectorySeparator(Path.GetFullPath(target));
+        var clone = Task.Run(() => CloneConfiguredAsync(source, target, CancellationToken.None, report: report));
+        Running[target] = clone;
+        _ = clone.ContinueWith(_ => Running.TryRemove(new(target, clone)), TaskScheduler.Default);
+        return clone;
+    }
+
+    /// <summary>
+    /// Waits, at most <paramref name="timeout"/>, for a clone into <paramref name="workspace"/> that is still running; true when none is. A language
+    /// server started before the cloned restore and build outputs arrive would restore and design-time build the whole project graph itself.
+    /// </summary>
+    internal static async Task<bool> WhenClonedAsync(string workspace, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        if (!Running.TryGetValue(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)), out var clone)) return true;
+        try { await clone.WaitAsync(timeout, cancellationToken); }
+        catch (TimeoutException) { return false; }
+        catch (Exception error) when (error is not OperationCanceledException) { }
+        return true;
+    }
+
     /// <summary>Where a project states what its created workspaces start with, relative to the project root.</summary>
     internal const string ConfigPath = ".sharprail/workspace.toml";
 

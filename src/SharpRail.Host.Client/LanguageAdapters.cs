@@ -71,5 +71,5 @@ public sealed partial class RemoteProjectAdapter
     }
 
     private static LanguageItem MapLanguage(LanguageItemDto item)
-        => new(item.Path, item.Line, item.Column, item.EndLine, item.EndColumn, item.Text, item.Kind, item.Source, item.Preview, item.Body, item.Truncated) { Modifiers = item.Modifiers };
+        => new(item.Path, item.Line, item.Column, item.EndLine, item.EndColumn, item.Text, item.Kind, item.Source, item.Preview, item.Body, item.Truncated) { Modifiers = item.Modifiers, Container = item.Container };
 }

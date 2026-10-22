@@ -110,9 +110,10 @@ public sealed partial class ProjectServices
         // HEAD is wherever the project stood, not a target a later reader could resolve to the same commit.
         if (!string.IsNullOrWhiteSpace(baseBranch) && baseBranch.Trim() != "HEAD") registry.RecordWorkspaceBase(path, chosen);
         registry.ChangeWorkspaces(current => current.Where(known => known.Path != path).Append(workspace));
-        registry.StartWorkspaceLanguages(path);
         // Off the create's critical path: the workspace is usable now, and the clone only ever adds paths that are still absent.
-        if (path != project) _ = Task.Run(() => WorkspaceClone.CloneConfiguredAsync(project, path, CancellationToken.None, report: message => System.Diagnostics.Trace.TraceWarning(message)));
+        // It starts before the workspace's language servers, which wait for it (bounded) instead of restoring what it brings.
+        if (path != project) _ = WorkspaceClone.StartConfigured(project, path, message => System.Diagnostics.Trace.TraceWarning(message));
+        registry.StartWorkspaceLanguages(path);
         return workspace;
     }
 

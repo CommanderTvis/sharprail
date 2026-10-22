@@ -50,6 +50,7 @@ public sealed partial class ProjectRpc
         Preview = item.Preview,
         Body = item.Body,
         Modifiers = item.Modifiers,
+        Container = item.Container,
         Truncated = item.Truncated
     };
 }

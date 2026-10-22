@@ -10,6 +10,9 @@ public sealed record LanguageItem(string Path, int Line, int Column, int EndLine
 {
     /// <summary>Space-separated semantic-token modifier names from the server legend.</summary>
     public string Modifiers { get; init; } = "";
+
+    /// <summary>The server's container name for a workspace symbol, such as its file and project or its containing type.</summary>
+    public string Container { get; init; } = "";
 }
 
 /// <summary>A supported language server in one workspace; listing never starts a process.</summary>

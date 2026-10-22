@@ -248,6 +248,10 @@ segment; a simple name, `Type/Member` or `Namespace.Type.Member` all work) and r
 matching declaration, naming it in `detail`. Several same-named declarations are narrowed by a
 qualified query through each candidate file's outline (at most 20 files); otherwise the result is
 `ambiguous` with the candidates as locations and a working path/line/column call in `detail`.
+Candidates that are all declarations of one type are one symbol, not a choice: the partial parts of a
+type (confirmed by the server's definition of the first listing them all) and that type's own
+constructors in the same project (server container names) resolve to the type. Types in different
+projects, or anything else sharing the name, stay ambiguous.
 No match is `notFound` naming the `workspaceSymbols` call. Other operations with a query and no
 path search workspace symbols and say so in `detail`; that search is `ready` when any server
 answered, with servers missing for other languages listed in `detail` rather than failing the
@@ -267,6 +271,46 @@ with the workspace). It is `LanguageServerState.Usage`, `usage` in `lsp_status` 
 for every server whose files are present). The servers start in the background, the tool returns at
 once with each requested server and its state (`starting`, `ready`, `needs-acceptance`, `failed`
 with the reason), and `lsp_*` calls then wait on them with the bounded wait.
+
+### Loading project graphs
+
+A server that loads a project graph (Roslyn) answers from whatever part of it is loaded, so the host
+holds back answers that could be silently incomplete. The graph counts as loading during startup until
+`ProjectLoadedNotification`, while any `$/progress` (such as Roslyn's own restore) or tracked restore
+runs, for `SettleGrace` (2 s) after either ends (the restore's outputs reach the watcher and start a
+reload), and from sending a project-input change (a created or deleted watched file, or a file the
+provider's `IsProjectInput` names, such as `project.assets.json` or a `.csproj`) until the server logs
+its `ProjectReloadedMessage`, at most `ReloadWait` (30 s). While loading:
+
+- references, implementation and workspace-symbol searches (and so every by-name lookup) return
+  `initializing` with "still loading the project graph ... call again", never a partial list;
+- an agent's file diagnostics (`fileDiagnostics`, used by `lsp_diagnostics`) report the file `pending`
+  with no diagnostics, since a type merely not loaded yet reads as "does not exist";
+- outlines (`symbols`, `symbolBody`) and `source` answer at once: they are syntax;
+- definition, type definition and hover answer when they found something (a found declaration is
+  right); an empty answer is `initializing` instead of "nothing here".
+
+Agent tool calls wait for the graph within the same bounded on-demand wait (`OnDemandWait`, 60 s,
+counted from the start of the call and inside the 90 s deadline) before answering `initializing`. The
+editor's `inspect` and the pane's workspace problems are unchanged.
+
+### Watched files
+
+Each session subscribes to the host's shared workspace watcher (`WorkspaceWatches`, the one behind
+`WatchFilesAsync`) before `initialize`, so a file created by an agent, Git or the editor while the
+graph loads is still reported. Changes are debounced (250 ms, a steady stream at least every second)
+and sent as `workspace/didChangeWatchedFiles` once the server serves, and before any request that
+finds changes pending. The client declares dynamic registration with relative-pattern support and
+honours the server's `client/registerCapability` watchers (string or relative glob patterns with `*`,
+`**`, `?`, `{a,b}`, `[...]`, and the create/change/delete kind mask), including restore outputs
+under `obj` and reference assemblies. A server that registered none gets changes to files with its
+extensions, its manifests and project inputs, outside build and tool directories. A file born after
+the session's watch began is reported once as created (the server does not know it), a missing one
+as deleted, anything else as changed. Creating or deleting a file with one of the provider's
+`ReloadingExtensions` (Avalonia `.axaml` for C#), which the server watches no glob for, is reported
+as a change of the nearest enclosing project manifest so the project reloads. Lost events (overflow,
+restarted watcher) report every project manifest as changed. Open, clean documents changed on disk
+are resynchronized after the notification.
 
 ### Process exit records
 
@@ -375,8 +419,9 @@ and explicit truncation. Definitions, types, implementations and references incl
 source excerpts. Dirty editor drafts supply source when present; unavailable source is explicit.
 Hover exposes inferred types, signatures and documentation when the server supports it.
 Document outlines retain qualified parent/child names and full symbol ranges. `symbolBody`
-selects an exact qualified name or the smallest symbol containing a UTF-16 position; ambiguous
-names return candidates. Bodies are capped at 12,000 characters with an explicit truncation flag
+selects an exact qualified name, otherwise a name whose segments end the qualified outline name like
+the other outline lookups (`Member`, `Type/Member`, parameter lists and ` : type` ignored unless the
+query spells them), or the smallest symbol containing a UTF-16 position; ambiguous names return candidates. Bodies are capped at 12,000 characters with an explicit truncation flag
 and source range. Location-only servers do not pretend their symbol locations are body ranges.
 Navigation also accepts outline names for hover, definition, type definition, implementation and
 references: an exact qualified name wins, otherwise a name whose `/`- or `.`-separated segments end

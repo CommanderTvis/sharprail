@@ -579,6 +579,12 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.OptionGroups.get -> SharpRail.Plug
 SharpRail.Plugins.Api.Host.LanguageServerSpec.OptionGroups.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ProjectLoadedNotification.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ProjectLoadedNotification.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ProjectReloadedMessage.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ProjectReloadedMessage.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.IsProjectInput.get -> System.Func<string!, bool>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.IsProjectInput.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ReloadingExtensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ReloadingExtensions.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ReadSourceAsync.get -> System.Func<SharpRail.Plugins.Api.Host.ILanguageServerSession!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task<SharpRail.Plugins.Api.Host.LanguageServerSource!>!>?
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ReadSourceAsync.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Replaces.get -> System.Collections.Generic.IReadOnlyList<string!>!

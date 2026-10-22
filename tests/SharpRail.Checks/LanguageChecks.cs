@@ -1441,6 +1441,8 @@ internal static class LanguageChecks
         var input = Console.OpenStandardInput(); var output = Console.OpenStandardOutput();
         var documents = new Dictionary<string, (string Text, int Version)>();
         JsonObject? die = null;
+        var sending = new SemaphoreSlim(1);
+        var project = File.Exists(LanguageFreshnessChecks.FakeProject.Manifest) ? new LanguageFreshnessChecks.FakeProject(Send) : null;
         while (true)
         {
             var header = new StringBuilder(); var one = new byte[1];
@@ -1461,6 +1463,7 @@ internal static class LanguageChecks
                 continue;
             }
             if (method is null) continue;
+            if (project is not null && await project.HandleAsync(method, request["id"], parameters)) continue;
             var uri = parameters?["textDocument"]?["uri"]?.ToString() ?? "";
             if (method is "textDocument/didOpen" or "textDocument/didChange")
             {
@@ -1600,8 +1603,14 @@ internal static class LanguageChecks
         async Task Send(object message)
         {
             var response = JsonSerializer.SerializeToUtf8Bytes(message);
-            await output.WriteAsync(Encoding.ASCII.GetBytes($"Content-Length: {response.Length}\r\n\r\n"));
-            await output.WriteAsync(response); await output.FlushAsync();
+            // The project fixture also sends from background tasks; frames must not interleave.
+            await sending.WaitAsync();
+            try
+            {
+                await output.WriteAsync(Encoding.ASCII.GetBytes($"Content-Length: {response.Length}\r\n\r\n"));
+                await output.WriteAsync(response); await output.FlushAsync();
+            }
+            finally { sending.Release(); }
         }
     }
 }

@@ -56,6 +56,11 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
         },
         LoadsProjects = options => options["autoLoadProjects"]?.GetValue<int>() != 0,
         ProjectLoadedNotification = "workspace/projectInitializationComplete",
+        // Roslyn logs this at the end of every project (re)load batch, including those that watched project files or restore outputs start.
+        ProjectReloadedMessage = "[LanguageServerProjectSystem] Completed (re)load of",
+        IsProjectInput = path => Path.GetFileName(path) == "project.assets.json" || Path.GetExtension(path) is ".csproj" or ".props" or ".targets" or ".sln" or ".slnx",
+        // Avalonia views are AdditionalFiles from a glob; Roslyn watches only C#, Razor and project inputs, so a new view reloads its project.
+        ReloadingExtensions = [".axaml"],
         OnMessage = OnMessage,
         ProjectKind = manifest => Path.GetExtension(manifest) == ".csproj" ? "MSBuild project" : "MSBuild solution",
         DefaultInitialization = options => options.TryAdd("autoLoadProjects", 500)

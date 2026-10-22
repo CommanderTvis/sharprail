@@ -22,6 +22,8 @@ public sealed partial class LanguageService
                 Total = 0,
                 Truncated = false
             };
+        // A type's partial declarations and its own constructors are one symbol to navigate from, not a choice for the caller.
+        if (candidates.Length > 1 && await OneTypeAsync(request, candidates, token) is { } type) candidates = [type];
         if (candidates.Length > 1 && LanguageUsage.IsQualified(request.Query))
         {
             // A qualified name selects among same-named declarations through each file's outline.
@@ -48,5 +50,32 @@ public sealed partial class LanguageService
             Freshness = "partial",
             Coverage = search.Coverage
         };
+    }
+
+    /// <summary>
+    /// The type a name means when every candidate is a declaration of that one type (partial parts, which the server's definition of the first
+    /// lists together) or one of its constructors in the same project; null when the name could mean different symbols.
+    /// </summary>
+    private async Task<LanguageItem?> OneTypeAsync(LanguageRequest request, LanguageItem[] candidates, CancellationToken token)
+    {
+        var name = LanguageUsage.SimpleName(request.Query);
+        var types = candidates.Where(item => item.Kind is "5" or "10" or "11" or "23").ToArray();
+        if (types.Length == 0 || ProjectOf(types[0]) is not { } project || types.Any(item => ProjectOf(item) != project)) return null;
+        var constructors = candidates.Where(item => item.Kind is "6" or "9" && item.Container.StartsWith("in " + name + " (", StringComparison.Ordinal) && ProjectOf(item) == project).ToArray();
+        if (types.Length + constructors.Length != candidates.Length) return null;
+        if (types.Length == 1) return types[0];
+        var first = types[0];
+        var parts = await ExecuteAsync(request with { Operation = "definition", Path = first.Path, Line = first.Line, Column = first.Column, Query = "", Offset = 0, Limit = 200 }, token);
+        return parts.State == "ready" && types.All(item => parts.Locations.Any(part => part.Path == item.Path && part.Line == item.Line)) ? first : null;
+    }
+
+    /// <summary>The project a Roslyn-style container names: "File.cs - Project (tfm)" for a type, "in Type (project Project (tfm))" for a member.</summary>
+    private static string? ProjectOf(LanguageItem item)
+    {
+        var container = item.Container;
+        var member = container.IndexOf("(project ", StringComparison.Ordinal);
+        if (member >= 0 && container.EndsWith(')')) return container[(member + "(project ".Length)..^1];
+        var file = container.LastIndexOf(" - ", StringComparison.Ordinal);
+        return file >= 0 ? container[(file + 3)..] : null;
     }
 }

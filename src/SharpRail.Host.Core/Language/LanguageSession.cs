@@ -18,8 +18,10 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     internal bool NeedsConfiguration => projectAction.Length > 0;
     private readonly TaskCompletionSource projectActionReported = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ConcurrentDictionary<string, string> indexing = new();
-    internal bool IsIndexing => projectLoading || !indexing.IsEmpty || projectRestores.Values.Any(task => !task.IsCompleted);
+    internal bool IsIndexing => projectLoading || !indexing.IsEmpty || projectRestores.Values.Any(task => !task.IsCompleted) || Reloading || Settling;
     internal string Status => projectAction.Length > 0 ? projectAction : detail;
+    /// <summary>What an answer held back while the project graph loads says, with what the server is doing.</summary>
+    internal string LoadingDetail => "The project graph is still loading (" + (Reloading ? "reloading projects after watched project files changed" : detail) + "), so this answer could be incomplete; call again. " + projectModel.Description;
     internal string ProjectDetail => (projectAction.Length > 0 ? projectAction : detail) + ". " + projectModel.Description;
     private readonly ConcurrentDictionary<string, Task> projectRestores = new();
     private readonly LanguageLog log;
@@ -29,10 +31,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     private readonly SemaphoreSlim gate = new(1);
     private readonly Dictionary<string, Document> documents = [];
     private readonly ConcurrentDictionary<string, Published> diagnostics = new();
-    private readonly ConcurrentDictionary<string, int> changed = new();
     private readonly CancellationTokenSource lifetime = new();
     private JsonNode capabilities = new JsonObject();
-    private FileSystemWatcher? watcher;
     private string detail = "Ready";
     private int nextDocumentVersion;
     private int disposed;
@@ -71,6 +71,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         var session = new LanguageSession(start, workspace, server, options, log, onExit) { ownedCache = sessionDirectory };
         session.projectModel = model;
         session.projectLoading = server.Spec.ProjectLoadedNotification.Length > 0 && server.Spec.LoadsProjects(initialization) && session.projectModel.Manifests.Length > 0;
+        session.StartWatching();
         try
         {
             var result = await session.connection.RequestAsync("initialize", new
@@ -85,7 +86,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 {
                     general = new { positionEncodings = new[] { "utf-16" } },
                     window = new { workDoneProgress = true },
-                    workspace = new { workspaceFolders = true, configuration = true, didChangeWatchedFiles = new { dynamicRegistration = true } },
+                    workspace = new { workspaceFolders = true, configuration = true, didChangeWatchedFiles = new { dynamicRegistration = true, relativePatternSupport = true } },
                     textDocument = new
                     {
                         references = new { dynamicRegistration = true },
@@ -124,18 +125,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 session.detail = "Project graph loaded";
                 session.log.Add("project", session.projectModel.Description);
             }
-            try
-            {
-                session.watcher = new(workspace) { IncludeSubdirectories = true, NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName };
-                session.watcher.Changed += (_, e) => session.Changed(e.FullPath, 2);
-                session.watcher.Created += (_, e) => session.Changed(e.FullPath, 1);
-                session.watcher.Deleted += (_, e) => session.Changed(e.FullPath, 3);
-                session.watcher.Renamed += (_, e) => { session.Changed(e.OldFullPath, 3); session.Changed(e.FullPath, 1); };
-                session.watcher.Error += (_, _) => session.detail = "File watching lost events; Retry to reindex.";
-                session.watcher.EnableRaisingEvents = true;
-            }
-            catch (Exception error) when (error is IOException or PlatformNotSupportedException)
-            { session.detail = "File watcher unavailable: " + error.Message; }
+            // Files that changed while the graph loaded are reported now that the server has registered its watchers.
+            session.ServeWatched();
             return session;
         }
         catch (Exception failure)
@@ -146,13 +137,6 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             if (expired) throw new LanguageServerExpiredException(server.Spec.ExpiredDetail);
             throw;
         }
-    }
-
-    private void Changed(string path, int type)
-    {
-        var relative = Path.GetRelativePath(workspace, path);
-        if (relative.Split(Path.DirectorySeparatorChar).Any(part => part is ".git" or ".tools" or "node_modules" or "bin" or "obj" or ".bench" or "target")) return;
-        changed[UriOf(path)] = type;
     }
 
     internal async Task<LanguageRequest[]> DraftsAsync(CancellationToken token)
@@ -235,15 +219,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 }
                 return new("closed", Server: server.Id, Version: request.Version);
             }
-            var changes = changed.ToArray();
-            foreach (var change in changes) changed.TryRemove(change);
-            if (changes.Length > 0)
-                await connection.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = changes.Select(change => new { uri = change.Key, type = change.Value }).ToArray() }, token);
-            // An open document keeps the server's view of the file, so one edited on disk is resynchronized here: otherwise
-            // files that depend on it report phantom errors (a member "does not exist") until it is diagnosed itself.
-            foreach (var change in changes)
-                if (change.Key != uri && change.Value != 3 && documents.TryGetValue(change.Key, out var open) && !open.Dirty)
-                    await RefreshOpenAsync(change.Key, open, token);
+            await SendWatchedAsync(token);
             documents.TryGetValue(uri, out var document);
             if (document is not null && request.Text is not null && document.Dirty && document.Owner != request.DocumentId && document.Text != request.Text)
                 return new("conflict", "Another editor owns a different unsaved buffer for this file.", server.Id, request.Version);
@@ -311,6 +287,9 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                     Freshness = request.Operation == "diagnostics" && result.Coverage != "workspace" ? "partial" : fresh,
                     Detail = request.Text is null && document.Dirty ? detail + "; includes an editor's unsaved buffer" : detail
                 };
+                // An agent's file check while the project graph loads could name types that are merely not loaded yet: it stays pending.
+                if (request.Operation == "fileDiagnostics" && IsIndexing)
+                    result = result with { Diagnostics = [], Freshness = "pending", Detail = LoadingDetail };
                 if (request.Operation == "inspect" && capabilities["semanticTokensProvider"] is JsonObject semantic && semantic["full"] is { } full && full.ToJsonString() != "false")
                 {
                     var tokens = await connection.RequestAsync("textDocument/semanticTokens/full", new { textDocument = new { uri } }, token);
@@ -320,7 +299,11 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             }
             if (NeedsConfiguration) return result with { State = "actionRequired", Detail = ProjectDetail, Freshness = "partial", Coverage = projectModel.Description };
             if (projectRestores.Values.Any(task => task.IsFaulted)) return result with { State = "error", Detail = ProjectDetail, Freshness = "partial", Coverage = projectModel.Description };
-            if (IsIndexing) return result with { State = "initializing", Detail = ProjectDetail, Freshness = "partial" };
+            // An outline is syntax and answers at once. References, implementations and symbol searches could silently miss what is not
+            // loaded yet, so they wait; a definition, type definition or hover that found something is right, and only an empty one waits.
+            var loading = IsIndexing;
+            if (loading && request.Operation is "references" or "implementation" or "workspaceSymbols")
+                return result with { State = "initializing", Detail = LoadingDetail, Freshness = "partial" };
             var method = request.Operation switch
             {
                 "symbols" or "symbolBody" => "textDocument/documentSymbol",
@@ -362,7 +345,10 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 : request.Operation == "references" ? new { textDocument = new { uri }, position = new { line = request.Line, character = request.Column }, context = new { includeDeclaration = true } }
                 : new { textDocument = new { uri }, position = new { line = request.Line, character = request.Column } };
             var locations = await connection.RequestAsync(method, parameters, token);
-            return await NavigationResultAsync(result, locations, request, token);
+            var answered = await NavigationResultAsync(result, locations, request, token);
+            if (loading && request.Operation is "definition" or "typeDefinition" or "hover" && answered.State == "ready" && answered.Total == 0 && answered.Locations.Count == 0)
+                return answered with { State = "initializing", Detail = LoadingDetail, Freshness = "partial" };
+            return answered;
         }
         catch (IOException) when (server.Spec.ExpiredExitCode is not null)
         {
@@ -399,6 +385,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
 
     private object? OnClientRequest(string method, JsonNode? parameters)
     {
+        if (method == "client/registerCapability") Register(parameters);
+        if (method == "client/unregisterCapability") Unregister(parameters);
         if (method == "client/registerCapability")
             foreach (var registration in parameters?["registrations"] as JsonArray ?? [])
                 if (registration?["id"] is { } id && registration["method"] is { } name) registeredCapabilities[id.ToString()] = name.ToString();
@@ -457,6 +445,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     private void OnNotification(string method, JsonNode? parameters)
     {
         server.Spec.OnMessage(this, method, parameters);
+        ObserveLoading(method, parameters);
         if (method.Length > 0 && method == server.Spec.ProjectLoadedNotification) projectInitialized.TrySetResult();
         if (method == "textDocument/publishDiagnostics" && parameters?["uri"]?.ToString() is { } uri && Relative(uri) is { } path)
             diagnostics[uri] = new(parameters["version"]?.GetValue<int>(), Diagnostics(parameters["diagnostics"], path));
@@ -482,7 +471,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             var uri = location["targetUri"]?.ToString() ?? location["uri"]?.ToString();
             var path = uri is null ? fallback : Relative(uri) ?? (Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.IsFile ? parsed.LocalPath : uri);
             var range = location["targetSelectionRange"] ?? location["selectionRange"] ?? location["range"];
-            if (path is not null && range is not null) yield return Item(path, range, value["name"]?.ToString() ?? "", value["kind"]?.ToString() ?? "", server.Id);
+            if (path is not null && range is not null) yield return Item(path, range, value["name"]?.ToString() ?? "", value["kind"]?.ToString() ?? "", server.Id) with { Container = value["containerName"]?.ToString() ?? "" };
             foreach (var child in Locations(value["children"], fallback)) yield return child;
         }
     }
@@ -529,7 +518,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
-        watcher?.Dispose(); lifetime.Cancel();
+        watch?.Dispose(); flushTimer?.Dispose(); lifetime.Cancel();
         await gate.WaitAsync();
         try
         {

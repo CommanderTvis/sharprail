@@ -30,17 +30,40 @@ public sealed partial class LanguageService
             return await ExecuteAsync(request, token);
         if (!Path.IsPathFullyQualified(request.Workspace) || !Directory.Exists(request.Workspace)) return await ExecuteAsync(request, token);
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
+        var waited = Stopwatch.StartNew();
         if (request.Path.Length == 0 && (request.Operation == "workspaceSymbols" || LanguageUsage.MapsToWorkspaceSearch(request)))
         {
-            await Task.WhenAll(Discover(workspace).Select(path => EnsureStartedAsync(workspace, path, request.Origin, token)));
-            return await ExecuteAsync(request, token);
+            var started = await Task.WhenAll(Discover(workspace).Select(path => EnsureStartedAsync(workspace, path, request.Origin, token)));
+            // A symbol search, and the declaration lookup of a by-name call, could miss what a loading project graph has not reached yet.
+            var loading = new List<string>();
+            foreach (var id in started.Select(item => item.Server).Where(id => id.Length > 0).Distinct())
+                if (!await WaitForProjectsAsync(workspace, id, OnDemandWait - waited.Elapsed, token)) loading.Add(id);
+            var searched = await ExecuteAsync(request, token);
+            return searched.State == "initializing" || loading.Count > 0 && searched.State is "notFound" or "ambiguous"
+                ? searched with { State = "initializing", Detail = StillLoading(loading.Count > 0 ? string.Join(", ", loading) : "a language server", waited.Elapsed) + " " + searched.Detail }
+                : searched;
         }
         var result = await ExecuteAsync(request, token);
         if (result.State is not ("installing" or "initializing") || result.Server.Length == 0) return result;
-        var waited = Stopwatch.StartNew();
         if (!await WaitForServerAsync(workspace, result.Server, token)) return result with { Detail = Initializing(result.Server, waited.Elapsed, result.Detail) };
+        result = await ExecuteAsync(request, token);
+        if (result.State != "initializing" || result.Server.Length == 0) return result;
+        // The server runs but its project graph is still loading: wait, bounded, rather than answer from part of it.
+        if (!await WaitForProjectsAsync(workspace, result.Server, OnDemandWait - waited.Elapsed, token))
+            return result with { Detail = StillLoading(result.Server, waited.Elapsed) + " " + result.Detail };
         return await ExecuteAsync(request, token);
     }
+
+    /// <summary>Waits until the running server's project graph is loaded; false when <paramref name="timeout"/> passed first.</summary>
+    internal async Task<bool> WaitForProjectsAsync(string workspace, string server, TimeSpan timeout, CancellationToken token)
+    {
+        if (!entries.TryGetValue(workspace + "\0" + server, out var entry) || !entry.Session.IsValueCreated || !entry.Session.Value.IsCompletedSuccessfully) return true;
+        var session = await entry.Session.Value;
+        return await session.WaitSettledAsync(timeout < TimeSpan.Zero ? TimeSpan.Zero : timeout, token);
+    }
+
+    private string StillLoading(string server, TimeSpan elapsed)
+        => $"{server} is still loading the project graph after {(int)elapsed.TotalSeconds} s (waits up to {(int)OnDemandWait.TotalSeconds} s per call), so no partial answer was given; call again.";
 
     /// <summary>Starts the server that owns <paramref name="path"/> when it is not running and waits for it; the result says honestly when it is still initializing.</summary>
     internal async Task<LanguageResult> EnsureStartedAsync(string workspace, string path, string origin, CancellationToken token)

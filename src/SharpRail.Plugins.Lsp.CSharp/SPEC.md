@@ -19,3 +19,7 @@ The spec declares the pinned version, owned files, pinning and its pins, configu
 and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
 
 It waits for Roslyn's `workspace/projectInitializationComplete` before serving requests while automatic project loading is on, and restores each distinct set of workspace projects Roslyn reports as needing a restore once.
+
+Its project inputs are project and solution files, `.props`/`.targets` and `project.assets.json`; a change to one, or a created or deleted watched source, holds back incomplete answers until Roslyn logs `[LanguageServerProjectSystem] Completed (re)load of`. Avalonia `.axaml` views have no Roslyn watcher, so creating or deleting one is reported as a change of the owning `.csproj`.
+
+Design-time builds (`DesignTimeBuild=true`, which Roslyn sets) skip the repository's native-library targets: in a fresh workspace their checked-out inputs are newer than the cloned outputs, and a failing native build made Roslyn drop the whole project (every `SharpRail.UI` reference was missing).

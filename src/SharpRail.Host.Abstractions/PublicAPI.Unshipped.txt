@@ -1618,6 +1618,8 @@ SharpRail.Host.Abstractions.LanguageProject.Deconstruct(out string! Root, out st
 
 SharpRail.Host.Abstractions.LanguageItem.Modifiers.get -> string!
 SharpRail.Host.Abstractions.LanguageItem.Modifiers.init -> void
+SharpRail.Host.Abstractions.LanguageItem.Container.get -> string!
+SharpRail.Host.Abstractions.LanguageItem.Container.init -> void
 
 SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.get -> bool
 SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.init -> void

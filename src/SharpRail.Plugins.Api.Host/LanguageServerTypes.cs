@@ -365,6 +365,21 @@ public sealed class LanguageServerSpec
     /// <summary>The notification that ends <see cref="LoadsProjects"/> loading.</summary>
     public string ProjectLoadedNotification { get; init; } = "";
 
+    /// <summary>
+    /// Text in a <c>window/logMessage</c> that says the server finished reloading projects after watched project inputs changed;
+    /// empty when the server reports no such end, and project-input changes then never hold requests back.
+    /// </summary>
+    public string ProjectReloadedMessage { get; init; } = "";
+
+    /// <summary>Whether a changed file, by absolute path, makes the server reload its project graph, such as a project file or restore output.</summary>
+    public Func<string, bool> IsProjectInput { get; init; } = _ => false;
+
+    /// <summary>
+    /// Extensions, with the dot, of files the server's project files include by glob but that it registers no watcher for, such as
+    /// Avalonia <c>.axaml</c>: creating or deleting one is reported as a change of the nearest enclosing project manifest.
+    /// </summary>
+    public IReadOnlyList<string> ReloadingExtensions { get; init; } = [];
+
     /// <summary>Handles a server notification or request the host does not, such as a progress or restore message; requests are answered with <c>null</c>.</summary>
     public Action<ILanguageServerSession, string, JsonNode?> OnMessage { get; init; } = (_, _, _) => { };
 

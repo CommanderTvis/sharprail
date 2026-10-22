@@ -28,8 +28,13 @@ public sealed partial class LanguageService
             catch (UnauthorizedAccessException) { continue; }
             if (Detect(request.Workspace, path) is { } owner) owners.TryAdd(owner.Id, path);
         }
+        var waited = System.Diagnostics.Stopwatch.StartNew();
         var started = await Task.WhenAll(owners.Select(async pair => (pair.Key, Result: await EnsureStartedAsync(request.Workspace, pair.Value, request.Origin, token))));
         foreach (var (id, result) in started) starts[id] = result;
+        // A file checked while its project graph loads could report types that are merely not loaded yet; wait for the graph, bounded.
+        var loading = new HashSet<string>();
+        foreach (var id in starts.Keys)
+            if (!await WaitForProjectsAsync(request.Workspace, id, OnDemandWait - waited.Elapsed, token)) loading.Add(id);
         foreach (var path in selection)
         {
             token.ThrowIfCancellationRequested();
@@ -77,7 +82,7 @@ public sealed partial class LanguageService
             catch (Exception error) { files.Add(new(path, "error", "unavailable", error.Message)); }
         }
         var checkedCount = files.Count(file => file.State == "checked");
-        return new(files.Any(file => file.State == "error") ? "error" : starts.Values.Any(start => start.State is "installing" or "initializing") ? "initializing" : "ready",
+        return new(files.Any(file => file.State == "error") ? "error" : starts.Values.Any(start => start.State is "installing" or "initializing") || loading.Count > 0 ? "initializing" : "ready",
             $"Checked {checkedCount} of {files.Count} selected files; servers that were not running were started on demand.")
         {
             Files = files,

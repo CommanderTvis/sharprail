@@ -9,6 +9,8 @@ internal static class LanguageLimits
     internal static readonly TimeSpan OnDemandStartWait = TimeSpan.FromSeconds(60);
     /// <summary>The deadline of every language tool call; past it the call returns an initializing status instead of hanging.</summary>
     internal static readonly TimeSpan ToolDeadline = TimeSpan.FromSeconds(90);
+    /// <summary>How long a server starting in a new workspace waits for the workspace clone of build outputs before starting without them.</summary>
+    internal static readonly TimeSpan CloneWait = TimeSpan.FromSeconds(30);
 }
 
 /// <summary>Request origins and the labels they show; origin is information about who started a server, never a policy.</summary>
