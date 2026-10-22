@@ -30,6 +30,8 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
     private readonly GhosttySkiaView terminal;
     private ITerminalSession? session;
     private bool disposed;
+    private readonly double baseFontSize;
+    private double fontSizeOffset;
 
     internal SkiaTerminal(TerminalLaunch launch, ITerminalService terminals, TerminalResumeHint? resumeHint = null)
     {
@@ -56,6 +58,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
         {
             throw new TerminalStartException("The Skia terminal renderer is not available on this platform.");
         }
+        baseFontSize = terminal.FontSize;
         terminal.Input += (_, data) => { if (!Watching) input.Writer.TryWrite(data); };
         terminal.UserInput += (_, _) => ResumeHint.Dismiss();
         terminal.GridResized += (_, size) => { if (session is { Watching: false } attached) _ = Resize(attached, size); };
@@ -290,6 +293,18 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
     public string ReadScreen(bool omitFaint) => omitFaint ? terminal.ReadViewport(omitFaint: true) : terminal.ReadScreen();
 
     public void SetAgentNewline(bool enabled) => terminal.AgentNewline = enabled;
+
+    // A watched grid keeps the holder's size: the cells grow or shrink and the scroller takes the rest. On Android the
+    // watched font is fitted to the pane instead, so an offset there waits until this view holds the terminal.
+    public void SetFontSizeOffset(double points)
+    {
+        if (fontSizeOffset == points) return;
+        fontSizeOffset = points;
+        if (Watching && OperatingSystem.IsAndroid()) return;
+        terminal.FontSize = Math.Max(1, baseFontSize + points);
+    }
+
+    public void SetMenuExtras(Func<IEnumerable<Control>>? items) => terminal.MenuExtras = items;
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {

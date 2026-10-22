@@ -70,6 +70,11 @@ terminal.GridResized += (_, size) => ResizePty(size.Columns, size.Rows);
 terminal.Write(output.Span);
 ```
 
+`MenuExtras` (both controls) appends caller items to the context menu. The texture control's
+`FontSizeOffset` changes its surface's font with Ghostty's `increase_font_size`, `decrease_font_size` and
+`reset_font_size` actions; the Skia control takes `FontSize` directly. Either refits the grid and raises the
+usual resize.
+
 The caller owns PTY startup, lifetime, reconnects and ordered asynchronous writes.
 Wait for layout before starting the PTY at `Size`. Set `FixedGrid` to show a program
 whose size another viewer decides: the control then measures to exactly that grid

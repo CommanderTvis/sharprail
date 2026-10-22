@@ -60,6 +60,11 @@ public interface ITerminalBackend : IDisposable
     string ReadScreen(bool omitFaint) => ReadScreen();
     // Agent Shift+Enter fallback; negotiated keyboard protocols remain the renderer's own.
     void SetAgentNewline(bool enabled);
+    // Points added to the renderer's base font size for this view alone; the renderer refits its grid, and the PTY
+    // follows only where this client sizes it. Renderers without a font size ignore it.
+    void SetFontSizeOffset(double points) { }
+    // Items the renderer appends to its own context menu, built when the menu opens.
+    void SetMenuExtras(Func<IEnumerable<Control>>? items) { }
 }
 
 public delegate ITerminalBackend TerminalFactory(TerminalLaunch launch);

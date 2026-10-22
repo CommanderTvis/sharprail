@@ -91,6 +91,32 @@ pixels. Wide desktop grids may still need horizontal scrolling at the 10-pixel r
 floor. Rotation and the holder's grid changes recalculate the fit without resizing the host
 terminal or taking ownership; active terminals keep their usual font.
 
+## Font size
+
+Each terminal has its own font size, as each Ghostty surface does. A trackpad pinch (Avalonia's magnify gesture),
+a Control- or Command-wheel and, on Android, a two-finger pinch over the terminal's surface change that terminal's
+font, not the app zoom; `TerminalView` claims them before the window's pinch handler and before the renderer
+scrolls, and gestures over accessories or the companion are not the terminal's. The steps are Ghostty's
+`increase_font_size`/`decrease_font_size` in whole points: a point per wheel notch, and a point per tenth of
+magnification (or pinch scale), with fractions carried so a trackpad stays smooth. The offset from the
+renderer's base size is bounded to −8…+48 points; "Reset Font Size" in the terminal's context menu is Ghostty's
+`reset_font_size`. The base is the renderer's own (13 for Skia, Ghostty's configured size for the texture, 14 for
+restty; there is no Settings terminal font size), and the app zoom still scales on top. The keyboard zoom chords
+always zoom the app, a focused terminal included.
+
+The offset is kept per session for the life of the process, never in the profile: a view rebuilt for the
+same terminal (tab switch, re-attach, renderer restart) keeps it, a restart of the app does not. As with
+Ghostty's `window-inherit-font-size` (default on), a terminal created in this window (`TerminalLaunch.Yield`
+false) starts at the size of the terminal focused last; restored, adopted and watched terminals start at the base.
+
+The renderers apply it through `ITerminalBackend.SetFontSizeOffset`: Skia sets `GhosttySkiaView.FontSize`, the
+texture sends Ghostty's binding actions (`GhosttyTextureView.FontSizeOffset`), restty calls its runtime's
+`setFontSize` and catches Control/Command-wheel (a browser pinch) on its own DOM surface. The grid refits as it
+does for any font change and an attached holder resizes its PTY through the usual resize path; a watcher's grid
+is fixed to the holder's, so its font change only redraws its cells and never resizes another client's PTY.
+Android watchers keep fitting their font to the pane. Restty has no context-menu entry. `--terminals`,
+`--shell` and `--native-texture` cover it.
+
 On Android, every terminal-tab removal asks for confirmation, including idle, exited,
 failed or unmounted terminals. Cancel keeps the tab and session; confirmation permits
 the requested close. Desktop terminals retain their foreground-process confirmation.

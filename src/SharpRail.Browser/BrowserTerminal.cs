@@ -14,6 +14,8 @@ internal sealed class BrowserTerminal : Border, ITerminalBackend
     private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private ITerminalBackend? backend;
     private bool agentNewline;
+    private double fontSizeOffset;
+    private Func<IEnumerable<Control>>? menuExtras;
     private bool disposed;
 
     internal BrowserTerminal(TerminalLaunch launch, ITerminalService terminals) => Started = Start(launch, terminals);
@@ -45,6 +47,8 @@ internal sealed class BrowserTerminal : Border, ITerminalBackend
         }
         lifetime.Token.ThrowIfCancellationRequested();
         backend!.SetAgentNewline(agentNewline);
+        backend.SetFontSizeOffset(fontSizeOffset);
+        backend.SetMenuExtras(menuExtras);
         // Host attachment and streaming failures are not renderer-loading failures.
         await backend.Started;
         _ = Observe();
@@ -68,6 +72,8 @@ internal sealed class BrowserTerminal : Border, ITerminalBackend
     public void Write(string data) => backend?.Write(data);
     public string ReadScreen() => backend?.ReadScreen() ?? "";
     public void SetAgentNewline(bool enabled) { agentNewline = enabled; backend?.SetAgentNewline(enabled); }
+    public void SetFontSizeOffset(double points) { fontSizeOffset = points; backend?.SetFontSizeOffset(points); }
+    public void SetMenuExtras(Func<IEnumerable<Control>>? items) { menuExtras = items; backend?.SetMenuExtras(items); }
     public void Dispose()
     {
         if (disposed) return;

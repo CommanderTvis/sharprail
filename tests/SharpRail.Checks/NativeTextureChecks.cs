@@ -546,6 +546,15 @@ internal static class NativeTextureChecks
         });
         Require(handoffError == 0, Marshal.PtrToStringUTF8(handoffError) ?? "Texture handoff failed.");
         Console.WriteLine("PASS native texture handoff: completed frame remains readable during target reuse; replacement, GPU failure and stop release the producer");
+        var fontGrid = terminal.Size;
+        terminal.FontSizeOffset = 4;
+        await Until(() => terminal.Size.Columns < fontGrid.Columns && terminal.Size.Rows < fontGrid.Rows, "Ghostty's increase_font_size did not refit the grid.");
+        var larger = terminal.Size;
+        terminal.FontSizeOffset = 2;
+        await Until(() => terminal.Size.Columns > larger.Columns, "Ghostty's decrease_font_size did not refit the grid.");
+        terminal.FontSizeOffset = 0;
+        await Until(() => terminal.Size == fontGrid, "Ghostty's reset_font_size did not restore the grid.");
+        Console.WriteLine("PASS native texture font size: increase, decrease and reset refit the surface's grid");
         terminal.WriteOutput(System.Text.Encoding.UTF8.GetBytes("\e[?25l" + string.Concat(Enumerable.Range(0, 200).Select(i => $"SCROLL_LINE_{i}\r\n"))));
         await Until(() => terminal.ReadScreen().Contains("SCROLL_LINE_199", StringComparison.Ordinal), "Scrollback fixture did not reach its bottom.");
         await Task.Delay(250);

@@ -135,6 +135,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             RememberGitSelection(); RememberFilesTree(); lifetime.Cancel(); StopWatching(); profile.Save();
             ClearDocumentContent(); ClearRetainedTools();
         };
+        // App zoom chords win over whatever has focus, a terminal included: on the way down, before a renderer encodes them.
+        AddHandler(KeyDownEvent, (_, e) => { if (RunZoomShortcut(e)) e.Handled = true; }, RoutingStrategies.Tunnel);
         AddHandler(KeyDownEvent, (_, e) => { if (workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
         Deactivated += (_, _) => workbench.Commands.Deactivated();
@@ -181,6 +183,14 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     {
         foreach (var entry in ShortcutCommands())
             if (entry.Shortcut == shortcut && entry.Enabled()) { entry.Run(); return; }
+    }
+
+    private bool RunZoomShortcut(KeyEventArgs e)
+    {
+        foreach (var entry in ShortcutCommands())
+            if (entry.Shortcut == WindowShortcuts.ZoomIn || entry.Shortcut == WindowShortcuts.ZoomOut || entry.Shortcut == WindowShortcuts.ZoomReset)
+                if (entry.Shortcut.Matches(e) && entry.Enabled()) { entry.Run(); return true; }
+        return false;
     }
 
     private bool RunShortcut(KeyEventArgs e)

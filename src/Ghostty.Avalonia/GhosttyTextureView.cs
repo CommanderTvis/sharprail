@@ -66,6 +66,26 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = InputMethod);
     }
 
+    /// <summary>
+    /// Points added to Ghostty's configured font size for this surface alone, applied with its
+    /// <c>increase_font_size</c>, <c>decrease_font_size</c> and <c>reset_font_size</c> actions; Ghostty resizes the grid.
+    /// </summary>
+    public double FontSizeOffset
+    {
+        get;
+        set
+        {
+            if (disposed || value == field) return;
+            var change = value - field;
+            field = value;
+            Native.Action(terminal.Handle, value == 0 ? "reset_font_size"
+                : FormattableString.Invariant($"{(change > 0 ? "increase" : "decrease")}_font_size:{Math.Abs(change):0.###}"));
+        }
+    }
+
+    /// <summary>Items appended to the context menu after the clipboard ones, built when it opens.</summary>
+    public Func<IEnumerable<Control>>? MenuExtras { get; set; }
+
     /// <summary>Completes after Skia's first GPU read of a completed Ghostty frame.</summary>
     public Task Ready => ready.Task;
     public event EventHandler<int>? Exited;

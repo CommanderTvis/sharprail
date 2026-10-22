@@ -15,6 +15,7 @@ using SharpRail.UI;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
+using SharpRail.UI.Terminal;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
@@ -513,7 +514,28 @@ internal static class ShellChecks
         Require(Zoomed(1.5), "Content that claims the gesture keeps it.");
         window.KeyPress(Key.D0, command, PhysicalKey.Digit0, null); Dispatcher.UIThread.RunJobs();
         Require(Zoomed(1), "Mod+0 resets a pinched zoom.");
-        Console.WriteLine("PASS shell: full-screen inset, title-bar double-click preference and pinch zoom");
+
+        // Over a terminal the same gestures size that terminal's font; the app zoom chords still win with it focused.
+        var terminal = TerminalFontZoomChecks.Create("shell-font-zoom");
+        var host = window.FindControl<Grid>("WorkbenchRoot")!;
+        Grid.SetRowSpan(terminal, host.RowDefinitions.Count);
+        host.Children.Add(terminal);
+        Until(() => terminal.Backend is { Started.IsCompletedSuccessfully: true } backend && backend.View.Bounds.Height > 0);
+        var surface = ((SkiaTerminal)terminal.Backend!).Terminal;
+        Magnify(surface, 0.2);
+        TerminalFontZoomChecks.Wheel(window, surface, 1, command == RawInputModifiers.Meta ? KeyModifiers.Meta : KeyModifiers.Control);
+        Require(Zoomed(1) && terminal.FontSizeOffset == 3, $"A pinch and a zooming wheel over a terminal size its font, not the app: {window.Preferences.Zoom}, {terminal.FontSizeOffset}.");
+        terminal.FocusTerminal(); Dispatcher.UIThread.RunJobs();
+        Require(surface.IsKeyboardFocusWithin, "The terminal holds the keyboard.");
+        window.KeyPress(Key.OemPlus, command, PhysicalKey.Equal, null); Dispatcher.UIThread.RunJobs();
+        Require(Zoomed(1.1) && terminal.FontSizeOffset == 3, "Mod+= zooms the app even with a terminal focused.");
+        window.KeyPress(Key.OemMinus, command, PhysicalKey.Minus, null); Dispatcher.UIThread.RunJobs();
+        Require(Zoomed(1), "Mod+- zooms the app out with a terminal focused.");
+        window.KeyPress(Key.OemPlus, command, PhysicalKey.Equal, null); window.KeyPress(Key.D0, command, PhysicalKey.Digit0, null); Dispatcher.UIThread.RunJobs();
+        Require(Zoomed(1) && terminal.FontSizeOffset == 3, "Mod+0 resets the app zoom, not the terminal's font.");
+        terminal.ResetFontSize(); terminal.Dispose(); host.Children.Remove(terminal);
+        Settle(400);
+        Console.WriteLine("PASS shell: full-screen inset, title-bar double-click preference, pinch zoom and terminal font zoom");
     }
 
     private sealed class FailingLayout : Control

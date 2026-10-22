@@ -24,6 +24,8 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
     private bool disposed;
     private readonly CancellationTokenSource lifetime = new();
     private bool agentNewline;
+    private double fontSizeOffset;
+    private Func<IEnumerable<Control>>? menuExtras;
 
     // The relay attaches to the host session; exit status and takeover come back through its status file,
     // because Ghostty's login wrapper does not propagate the child's exit code.
@@ -62,6 +64,8 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
             {
                 Colors = TerminalTheme.Colors(),
                 AgentNewline = agentNewline,
+                FontSizeOffset = fontSizeOffset,
+                MenuExtras = menuExtras,
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(remote.Terminals, launch, text, token),
                 ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(remote.Terminals, launch, text, token),
                 OpenFileLink = launch.OpenFileLink,
@@ -114,6 +118,8 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
         DeleteRelayFiles();
         fallback = new SkiaTerminal(launch, connection!.Terminals, ResumeHint);
         fallback.SetAgentNewline(agentNewline);
+        fallback.SetFontSizeOffset(fontSizeOffset);
+        fallback.SetMenuExtras(menuExtras);
         Child = fallback.View;
         await fallback.Started;
         if (disposed) return;
@@ -208,6 +214,20 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
         agentNewline = enabled;
         if (texture is not null) texture.AgentNewline = enabled;
         fallback?.SetAgentNewline(enabled);
+    }
+
+    public void SetFontSizeOffset(double points)
+    {
+        fontSizeOffset = points;
+        if (texture is not null) texture.FontSizeOffset = points;
+        fallback?.SetFontSizeOffset(points);
+    }
+
+    public void SetMenuExtras(Func<IEnumerable<Control>>? items)
+    {
+        menuExtras = items;
+        if (texture is not null) texture.MenuExtras = items;
+        fallback?.SetMenuExtras(items);
     }
 
     protected override void OnGotFocus(FocusChangedEventArgs e)

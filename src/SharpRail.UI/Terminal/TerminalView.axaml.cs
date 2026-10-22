@@ -1,7 +1,11 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
+
+using SharpRail.Plugins.UI.Kit.Visualization;
 
 using SharpRail.Plugins.UI.Kit;
 
@@ -40,6 +44,12 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private bool agentNewline;
     // This view held the terminal until another client took it.
     private bool displaced;
+    // Font size offsets by session for this process, as Ghostty keeps one per surface: a view rebuilt for the same
+    // terminal (a tab switch, a re-attach) keeps its size, and nothing is written to the profile.
+    private static readonly Dictionary<string, double> fontOffsets = [];
+    private static WeakReference<TerminalView>? lastFocused;
+    private double magnified, wheeled;
+    private double? pinchStart;
 
     // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -81,7 +91,88 @@ public sealed partial class TerminalView : UserControl, IDisposable
         {
             if (InputHeld && !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) e.Handled = true;
         }, RoutingStrategies.Tunnel);
+        // Zoom gestures over the surface size this terminal's font, not the app: they are claimed here before the
+        // window's pinch handler sees them, and the wheel before the renderer scrolls with it.
+        AddHandler(PointerTouchPadGestureMagnifyEvent, (_, e) =>
+        {
+            if (!OverSurface(e.Source)) return;
+            Magnify(e.Delta.X); e.Handled = true;
+        });
+        AddHandler(PointerWheelChangedEvent, (_, e) =>
+        {
+            if (!ZoomGesture.IsZoom(e.KeyModifiers) || !OverSurface(e.Source)) return;
+            WheelZoom(e.Delta.Y); e.Handled = true;
+        }, RoutingStrategies.Tunnel);
+        if (OperatingSystem.IsAndroid())
+        {
+            GestureRecognizers.Add(new PinchGestureRecognizer());
+            AddHandler(PinchEvent, (_, e) =>
+            {
+                pinchStart ??= FontSizeOffset;
+                SetFontSizeOffset(pinchStart.Value + Math.Round((e.Scale - 1) * PointsPerMagnification));
+                e.Handled = true;
+            });
+            AddHandler(PinchEndedEvent, (_, _) => pinchStart = null);
+        }
+        // A new terminal, not one restored or watched, starts at the size of the terminal focused last, as Ghostty's
+        // window-inherit-font-size does.
+        if (!launch.Yield && !fontOffsets.ContainsKey(launch.SessionId) && lastFocused?.TryGetTarget(out var from) == true &&
+            !from.disposed && from.FontSizeOffset != 0)
+            fontOffsets[launch.SessionId] = from.FontSizeOffset;
         Start(retrying: false);
+    }
+
+    /// <summary>The bounds of a terminal's own font size offset, in points.</summary>
+    public const double MinFontSizeOffset = -8, MaxFontSizeOffset = 48;
+    /// <summary>A pinch's magnification per point of font size: a tenth of the gesture changes the size by one point.</summary>
+    internal const double PointsPerMagnification = 10;
+
+    /// <summary>Points this terminal's font is above (or below) the renderer's base size, local to this client.</summary>
+    public double FontSizeOffset => fontOffsets.GetValueOrDefault(launch.SessionId);
+
+    /// <summary>Ghostty's <c>increase_font_size</c>/<c>decrease_font_size</c>: steps this terminal's font by whole points.</summary>
+    public void ChangeFontSize(double points) => SetFontSizeOffset(FontSizeOffset + points);
+
+    /// <summary>Ghostty's <c>reset_font_size</c>: back to the base size.</summary>
+    public void ResetFontSize() => SetFontSizeOffset(0);
+
+    private void SetFontSizeOffset(double points)
+    {
+        points = Math.Clamp(points, MinFontSizeOffset, MaxFontSizeOffset);
+        if (points == FontSizeOffset) return;
+        if (points == 0) fontOffsets.Remove(launch.SessionId); else fontOffsets[launch.SessionId] = points;
+        Backend?.SetFontSizeOffset(points);
+    }
+
+    /// <summary>One step of a trackpad pinch: magnification accumulates and the font moves a point per tenth.</summary>
+    public void Magnify(double delta)
+    {
+        if (!double.IsFinite(delta)) return;
+        magnified += delta * PointsPerMagnification;
+        var points = Math.Truncate(magnified);
+        if (points == 0) return;
+        magnified -= points;
+        ChangeFontSize(points);
+    }
+
+    /// <summary>A zooming wheel: a point per notch, a trackpad's fractions carried to the next event.</summary>
+    public void WheelZoom(double delta)
+    {
+        if (!double.IsFinite(delta)) return;
+        wheeled += delta;
+        var points = Math.Truncate(wheeled);
+        if (points == 0) return;
+        wheeled -= points;
+        ChangeFontSize(points);
+    }
+
+    private bool OverSurface(object? source) => source is Visual visual && (visual == body || body.IsVisualAncestorOf(visual));
+
+    private IEnumerable<Control> MenuExtras()
+    {
+        var reset = new MenuItem { Header = "Reset Font Size", IsEnabled = FontSizeOffset != 0 };
+        reset.Click += (_, _) => ResetFontSize();
+        return [new Separator(), reset];
     }
 
     /// <summary>The longest one hold lasts, so a driver that never returns cannot lock the terminal for good.</summary>
@@ -286,6 +377,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {
         base.OnGotFocus(e);
+        lastFocused = new(this);
         if (e.Source == this) FocusTerminal();
     }
 
@@ -309,6 +401,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
         {
             backend = factory(takeOver ? launch with { Yield = false } : watch ? launch with { Yield = true, Watch = true } : launch);
             Backend = backend;
+            backend.SetFontSizeOffset(FontSizeOffset);
+            backend.SetMenuExtras(MenuExtras);
             if (backend is ITerminalOutput printing) printing.Output += () => { if (ReferenceEquals(Backend, backend)) Output?.Invoke(); };
             Action? updateHint = null;
             if (backend is ITerminalResumeHint source)

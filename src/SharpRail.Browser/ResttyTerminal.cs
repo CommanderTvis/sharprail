@@ -33,6 +33,9 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITer
     private int columns = 80, rows = 24;
     private bool disposed;
     private bool agentNewline;
+    // Restty's own default, matching the bridge's configuration.
+    private const double BaseFontSize = 14;
+    private double fontSizeOffset;
 
     internal ResttyTerminal(TerminalLaunch launch, ITerminalService terminals)
     {
@@ -75,6 +78,7 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITer
             Resize(int.Parse(grid[0]), int.Parse(grid[1]));
             if (disposed) return;
             ResttyInterop.AgentNewline(element!, agentNewline);
+            if (fontSizeOffset != 0) ResttyInterop.FontSize(element!, BaseFontSize + fontSizeOffset);
             ready.TrySetResult();
         }
         catch (Exception error) { ready.TrySetException(new TerminalStartException("Restty could not start: " + error.Message)); }
@@ -94,6 +98,7 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITer
         if (!instances.TryGetValue(value.GetProperty("id").GetInt32(), out var terminal)) return;
         if (value.TryGetProperty("focus", out _)) terminal.FindAncestorOfType<TerminalView>()?.Focus();
         else if (value.TryGetProperty("activity", out _)) { if (!terminal.Watching) terminal.ResumeHint.Dismiss(); }
+        else if (value.TryGetProperty("zoom", out var zoom)) terminal.FindAncestorOfType<TerminalView>()?.ChangeFontSize(zoom.GetDouble());
         else if (value.TryGetProperty("text", out var text)) terminal.QueueInput(text.GetString()!);
         else terminal.Resize(value.GetProperty("columns").GetInt32(), value.GetProperty("rows").GetInt32());
     }
@@ -211,6 +216,11 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITer
         agentNewline = enabled;
         if (element is not null) ResttyInterop.AgentNewline(element, enabled);
     }
+    public void SetFontSizeOffset(double points)
+    {
+        fontSizeOffset = points;
+        if (element is not null && ready.Task.IsCompletedSuccessfully) ResttyInterop.FontSize(element, Math.Max(1, BaseFontSize + points));
+    }
     public void Dispose()
     {
         if (disposed) return;
@@ -247,6 +257,8 @@ internal static partial class ResttyInterop
     internal static partial void Theme(JSObject element, string theme);
     [JSImport("agentNewline", "restty-bridge")]
     internal static partial void AgentNewline(JSObject element, bool enabled);
+    [JSImport("fontSize", "restty-bridge")]
+    internal static partial void FontSize(JSObject element, double value);
     [JSImport("destroy", "restty-bridge")]
     internal static partial void Destroy(JSObject element);
 }

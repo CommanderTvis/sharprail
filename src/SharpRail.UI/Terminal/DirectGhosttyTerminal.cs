@@ -29,6 +29,8 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
     private Task? fallbackStart;
     private bool disposed;
     private bool agentNewline;
+    private double fontSizeOffset;
+    private Func<IEnumerable<Control>>? menuExtras;
 
     internal DirectGhosttyTerminal(TerminalLaunch launch, ITerminalService terminals)
     {
@@ -62,6 +64,20 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
         fallback?.SetAgentNewline(enabled);
     }
 
+    public void SetFontSizeOffset(double points)
+    {
+        fontSizeOffset = points;
+        if (texture is not null) texture.FontSizeOffset = points;
+        fallback?.SetFontSizeOffset(points);
+    }
+
+    public void SetMenuExtras(Func<IEnumerable<Control>>? items)
+    {
+        menuExtras = items;
+        if (texture is not null) texture.MenuExtras = items;
+        fallback?.SetMenuExtras(items);
+    }
+
     public string ReadScreen() => fallback?.ReadScreen() ?? texture?.ReadScreen() ?? "";
 
     // Only the Skia fallback sees cell styling; the native texture's text read is plain.
@@ -84,6 +100,8 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
         {
             Colors = TerminalTheme.Colors(),
             AgentNewline = agentNewline,
+            FontSizeOffset = fontSizeOffset,
+            MenuExtras = menuExtras,
             ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
             ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
             OpenFileLink = launch.OpenFileLink,
@@ -202,6 +220,8 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
         ObjectDisposedException.ThrowIf(disposed, this);
         fallback = new SkiaTerminal(launch, terminals, ResumeHint);
         fallback.SetAgentNewline(agentNewline);
+        fallback.SetFontSizeOffset(fontSizeOffset);
+        fallback.SetMenuExtras(menuExtras);
         Child = fallback.View;
         await fallback.Started;
         if (disposed) return;

@@ -154,6 +154,18 @@ export async function initialize(element, id, themeJson) {
     throw new Error('GPU terminal initialization failed');
   state.runtime.io.connectPty();
   if (state.disposed) return '80,24';
+  // A pinch reaches the page as a Control-wheel; over the terminal it sizes this terminal's font, a point per
+  // notch (100 pixels), and never zooms the page.
+  state.zoom = 0;
+  element.addEventListener('wheel', event => {
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault(); event.stopPropagation();
+    state.zoom -= event.deltaMode === 0 ? event.deltaY / 100 : event.deltaY;
+    const points = Math.trunc(state.zoom);
+    if (points === 0) return;
+    state.zoom -= points;
+    terminalEvent({ id, zoom: points });
+  }, { passive: false, capture: true });
   state.observer = new ResizeObserver(() => { if (!state.watching) state.runtime.interaction.updateSize(); });
   state.observer.observe(element);
   element.dataset.backend = state.runtime.render.getBackend();
@@ -181,6 +193,12 @@ export function watch(element, columns, rows) {
 export function screen(element) {
   const s = states.get(element);
   return s?.handle ? s.wasm.getSelectionText(s.handle, 0, 0, s.rows - 1, s.columns - 1) : '';
+}
+export function fontSize(element, value) {
+  const s = states.get(element);
+  if (!s?.runtime) return;
+  s.runtime.terminal.setFontSize(value);
+  if (!s.watching) s.runtime.interaction.updateSize();
 }
 export function focus(element) { states.get(element)?.runtime?.interaction.focus(); }
 export function theme(element, value) { states.get(element)?.runtime?.terminal.applyTheme(JSON.parse(value)); }

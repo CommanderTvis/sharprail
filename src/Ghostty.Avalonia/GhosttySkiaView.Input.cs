@@ -423,6 +423,9 @@ public sealed partial class GhosttySkiaView
 
     private bool contextClick;
     internal ContextMenu? ClipboardMenu { get; private set; }
+
+    /// <summary>Items appended to the context menu after the clipboard ones, built when it opens.</summary>
+    public Func<IEnumerable<Control>>? MenuExtras { get; set; }
     private int clipboardMenuRequest;
 
     /// <summary>The output of the command at a point in the view, or null when the point is not in a command's output.</summary>
@@ -466,6 +469,7 @@ public sealed partial class GhosttySkiaView
         }
         menu.Items.Add(paste); menu.Items.Add(all);
         ExtendContextMenu?.Invoke(menu);
+        if (MenuExtras?.Invoke() is { } extras) foreach (var extra in extras) menu.Items.Add(extra);
         ClipboardMenu = menu;
         menu.Open(this);
     }

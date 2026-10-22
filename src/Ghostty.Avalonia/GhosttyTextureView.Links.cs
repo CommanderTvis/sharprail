@@ -274,6 +274,7 @@ public sealed partial class GhosttyTextureView
             }
         }
         ExtendContextMenu?.Invoke(menu);
+        if (MenuExtras?.Invoke() is { } extras) foreach (var extra in extras) menu.Items.Add(extra);
         ClipboardMenu = menu;
         menu.Open(this);
     }

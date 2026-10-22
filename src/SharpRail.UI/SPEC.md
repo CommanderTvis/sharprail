@@ -309,15 +309,17 @@ transform bound to that factor and popups inherit their owner's transform, so la
 together and windows reflow rather than resample. Surfaces that rasterize themselves (the Ghostty terminals)
 derive their pixel density from the ancestor transform as well as the render scaling, so zoomed terminals
 stay sharp. The native title bar does not zoom: the title-bar height hint follows the zoomed header while
-the traffic-light inset stays physical. Zoom is independent of the Settings interface font size. The chords
-bubble, so a focused control that claims them (an editor or terminal) keeps them.
+the traffic-light inset stays physical. Zoom is independent of the Settings interface font size. The zoom chords
+are taken on the way down (tunnelling), so they zoom the app whatever has focus, a terminal or editor included;
+the window's other chords bubble, so a focused control that claims them keeps them.
 
 A trackpad pinch drives the same factor continuously. Avalonia reports magnification as deltas with no
 phases, so a gesture starts at the first delta after 250ms of quiet: the factor is captured there and the
 accumulated scale is applied against that baseline, bounded to 50%–200%, so updates never compound. The
 factor may rest between the steps (a persisted factor is clamped, not snapped) and the chords step to the
 adjacent factor from wherever it rests. The profile is saved once, when the gesture ends. The handler
-bubbles, so content that claims the gesture keeps it, and pinch writes the one zoom preference.
+bubbles, so content that claims the gesture keeps it, and pinch writes the one zoom preference. A terminal claims
+pinches and Control/Command-wheel over its surface for its own font size ([Terminal/SPEC.md](Terminal/SPEC.md#font-size)).
 
 ## Locations, history and links
 

@@ -411,6 +411,7 @@ internal static class Program
             GhosttySkiaChecks.Run(root);
             ShellIntegrationChecks.RunSkia(root);
             SecureInputChecks.Run(root);
+            TerminalFontZoomChecks.Run();
             Console.WriteLine("PASS terminal checks");
             return;
         }
