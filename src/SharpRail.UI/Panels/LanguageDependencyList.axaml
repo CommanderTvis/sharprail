@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.UI.Panels.LanguageDependencyList">
+  <ItemsControl Name="DependencyRows">
+    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="4" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+    <ItemsControl.ItemTemplate>
+      <DataTemplate x:CompileBindings="False">
+        <StackPanel Spacing="2">
+          <TextBlock Name="DependencyState" Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="12" TextWrapping="Wrap" />
+          <SelectableTextBlock Name="DependencyHint" IsVisible="{Binding Missing}" Text="{Binding Hint}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <Button Name="DependencyUsePath" Content="Use path…" Classes="link" Click="UseDependencyPathClicked" IsVisible="{Binding CanChange}"
+                    ToolTip.Tip="Choose an existing executable outside the workspace; it is used instead of PATH by every language server" />
+            <Button Name="DependencyClearPath" Content="Clear path" Classes="link" Click="ClearDependencyPathClicked" IsVisible="{Binding CanClear}"
+                    ToolTip.Tip="Find it on PATH again" />
+            <Button Name="DependencyCopyHint" Content="Copy install hint" Classes="link" Click="CopyDependencyHintClicked" IsVisible="{Binding Missing}" />
+          </StackPanel>
+        </StackPanel>
+      </DataTemplate>
+    </ItemsControl.ItemTemplate>
+  </ItemsControl>
+</UserControl>

@@ -284,4 +284,11 @@ A row whose server declares host tools lists them when expanded, and always whil
 then reads `Needs <tool>` before any start. Each tool shows where it was found, or its install hint (selectable, with
 Copy install hint), and offers Use path… (a file picker; the chosen path becomes the host-wide `language-tool:` setting,
 changed off the UI thread) and Clear path when a path is set. Rows re-read the servers when the setting's broadcast
-arrives, so Retry works without a restart. `--lsp-dependencies` asserts this.
+arrives, so Retry works without a restart. The rows are one shared control (`LanguageDependencyList`), which inherits
+the host state from its pane and reports status through a bubbling event.
+
+Settings › Code Intelligence shows the selected server's tools in a System dependencies section under its details, with
+the same control and actions; servers without declared tools show no section, and a server whose required tool is
+missing carries a small red marker in the left list. The page re-reads the catalog (which carries the probe) when
+`LanguageTools` or `LanguageServers` changes, so a path set in either place, or by another client, updates both.
+`--lsp-dependencies` asserts the pane and the page.

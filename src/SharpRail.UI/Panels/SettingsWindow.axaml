@@ -30,8 +30,10 @@
               <ListBox.ItemTemplate>
                 <DataTemplate x:CompileBindings="False">
                   <StackPanel Orientation="Horizontal" Spacing="8">
-                    <ContentControl Name="SettingsLanguageIcon" Content="{Binding Converter={StaticResource LanguageMark}}" />
-                    <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                    <ContentControl Name="SettingsLanguageIcon" Content="{Binding Id, Converter={StaticResource LanguageMark}}" />
+                    <TextBlock Text="{Binding Id}" VerticalAlignment="Center" />
+                    <Ellipse Name="LspMissingMarker" IsVisible="{Binding Missing}" Width="6" Height="6" Fill="{x:Static rendering:Ui.Danger}" VerticalAlignment="Center"
+                             ToolTip.Tip="A tool this server needs is missing" />
                   </StackPanel>
                 </DataTemplate>
               </ListBox.ItemTemplate>
@@ -48,6 +50,11 @@
             <CheckBox x:Name="LspAllowPath" Content="Use the executable on PATH instead of the managed installation" />
             <TextBlock x:Name="LspResolved" TextWrapping="Wrap" />
             <TextBlock x:Name="LspPathWarning" TextWrapping="Wrap" IsVisible="False" />
+            <StackPanel x:Name="LspDependencySection" Spacing="4" IsVisible="False">
+              <TextBlock Text="System dependencies" Classes="settings-label" />
+              <local:LanguageDependencyList x:Name="LspDependencies" />
+              <TextBlock Text="Host tools this server needs. A path you choose is outside the workspace and used by every language server on this host." Classes="settings-description" />
+            </StackPanel>
             <TextBlock Text="The pinned managed installation is the default and is verified before it runs. A PATH executable is an unverified binary that a project could influence, so it is used only when you allow it for this server, and never from inside the workspace. Servers without a managed installation need PATH allowed. Executable overrides are your own explicit choice and are also refused inside the workspace. Project files cannot choose executables." Classes="settings-description" />
             <TextBlock Text="Executable override" Classes="settings-label" />
             <TextBox x:Name="LspCommand" PlaceholderText="Automatic" />

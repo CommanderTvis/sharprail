@@ -992,24 +992,24 @@ internal static class LanguageChecks
                 "Code Intelligence still offers an Air Context switch; the plugin is turned off in Settings › Plugins.");
             var rail = Find<Avalonia.Controls.ListBox>("LspServer");
             Require(!settings.GetLogicalDescendants().OfType<ComboBox>().Any(control => control.Name == "LspServer"), "Server settings must use navigation, not a dropdown.");
-            rail.SelectedItem = "python";
+            rail.SelectedItem = rail.Items.Cast<object>().First(item => item?.ToString() == "python");
             Require(Find<TextBlock>("LspServerHeading").Text == "python", "Server rail did not navigate.");
             Require(Find<TextBlock>("LspImplementation").Text == "Pyright · Microsoft", "Settings hid the implementation provider.");
             E2E.E2eWorkspace.Until(() => Find<WrapPanel>("LspProviderLinks").IsVisible && Find<Button>("LspProviderRepository").Tag is Uri repository && repository.AbsoluteUri.Contains("microsoft/pyright", StringComparison.Ordinal));
             foreach (var provider in LanguageServers.Catalog)
             {
-                rail.SelectedItem = provider.Id;
+                rail.SelectedItem = rail.Items.Cast<object>().First(item => item?.ToString() == provider.Id);
                 var metadata = JsonNode.Parse(LanguageConfigurationCatalog.Read(provider.Id).Configuration)!;
                 E2E.E2eWorkspace.Until(() => Find<WrapPanel>("LspProviderLinks").IsVisible && Find<Button>("LspProviderRepository").Tag is Uri repository && repository.AbsoluteUri == metadata["repository"]!.ToString());
             }
-            rail.SelectedItem = "java";
+            rail.SelectedItem = rail.Items.Cast<object>().First(item => item?.ToString() == "java");
             Require(Find<TextBlock>("LspImplementation").Text!.Contains("Eclipse JDT Language Server", StringComparison.Ordinal), "Java implementation is unclear.");
             Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Content?.ToString()?.StartsWith("Prefer the managed", StringComparison.Ordinal) == true), "The global prefer-managed switch still exists.");
             E2E.E2eWorkspace.Until(() => Find<TextBlock>("LspResolved").Text!.StartsWith("Managed: ", StringComparison.Ordinal) && !Find<TextBlock>("LspPathWarning").IsVisible);
             Require(Find<CheckBox>("LspAllowPath").IsChecked == false, "PATH use is not off by default.");
-            rail.SelectedItem = "swift";
+            rail.SelectedItem = rail.Items.Cast<object>().First(item => item?.ToString() == "swift");
             E2E.E2eWorkspace.Until(() => Find<TextBlock>("LspResolved").Text!.Contains("needs an installation", StringComparison.Ordinal));
-            rail.SelectedItem = "typescript";
+            rail.SelectedItem = rail.Items.Cast<object>().First(item => item?.ToString() == "typescript");
             var feature = Find<CheckBox>("LspFeatureEnabled");
             feature.IsChecked = false;
             feature.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));

@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Markup.Xaml;
-using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -14,31 +13,13 @@ namespace SharpRail.UI.Panels;
 
 internal sealed partial class LanguagePanel : UserControl
 {
-    /// <summary>One host tool a server needs, with the user's ways to provide it: a path of their own, or the install hint to follow.</summary>
-    private sealed record DependencyRow(LanguageDependencyState Dependency, bool CanChangePaths)
-    {
-        public bool Missing => Dependency.State != "found";
-        public string Text => Dependency.State switch
-        {
-            "found" => $"{Dependency.Executable}: {Dependency.Path} ({Dependency.Source switch { "override" => "your path", "home" => "from its home variable", _ => "PATH" }})"
-                + (Dependency.Required ? "" : " · not needed for the current launch"),
-            "rejected" => $"{Dependency.Executable}: your path cannot run. {Dependency.Problem}",
-            _ => $"Needs {Dependency.Executable} ({Dependency.Name})" + (Dependency.Required ? "" : " · not needed for the current launch") + (Dependency.Problem.Length > 0 ? " " + Dependency.Problem : "")
-        };
-        public string Hint => Dependency.InstallHint;
-        public Avalonia.Media.IBrush Brush => Missing && Dependency.Required ? Ui.Danger : Ui.Muted;
-        public bool CanChange => CanChangePaths;
-        public bool CanClear => CanChangePaths && Dependency.Override;
-    }
-
-    private sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false, bool ExitOpen = false, bool CanChangePaths = false)
+    private sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false, bool ExitOpen = false)
     {
         private IEnumerable<LanguageDependencyState> MissingDependencies => (Server.Dependencies ?? []).Where(item => item.Required && item.State != "found");
-        public bool HasMissing => MissingDependencies.Any();
+        public bool HasMissing => LanguageDependencyList.HasMissing(Server.Dependencies);
         /// <summary>The tools the next start needs and cannot find, shown before any start fails.</summary>
         public string Needs => "Needs " + string.Join(", ", MissingDependencies.Select(item => item.Executable));
         public bool ShowDependencies => Server.Dependencies is { Count: > 0 } && (Expanded || HasMissing);
-        public IReadOnlyList<DependencyRow> DependencyRows => [.. (Server.Dependencies ?? []).Select(item => new DependencyRow(item, CanChangePaths))];
         public bool HasExit => Server.Exit is not null && Server.State is not ("ready" or "initializing" or "installing");
         public bool ShowExit => HasExit && Server.Exit!.Unexpected;
         public string ExitToggle => ExitOpen ? "Hide details" : "Details";
@@ -100,6 +81,8 @@ internal sealed partial class LanguagePanel : UserControl
         this.host = host; this.workspace = workspace; this.navigate = navigate; this.state = state;
         AvaloniaXamlLoader.Load(this);
         Name = "LspPanel";
+        LanguageDependencyList.SetHostState(this, state);
+        AddHandler(LanguageDependencyList.StatusEvent, (_, e) => SetStatus(e.Text));
         this.FindControl<TextBlock>("Workspace")!.Text = workspace;
         this.FindControl<TextBlock>("LifetimeNote")!.Text = LanguageNotes.Lifetime;
         if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
@@ -187,49 +170,6 @@ internal sealed partial class LanguagePanel : UserControl
         catch (Exception error) { SetStatus("Couldn't copy the details: " + error.Message); }
     }
 
-    private async void UseDependencyPathClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        e.Handled = true;
-        if (sender is not Button { DataContext: DependencyRow row } || TopLevel.GetTopLevel(this)?.StorageProvider is not { CanOpen: true } storage) return;
-        try
-        {
-            var files = await storage.OpenFilePickerAsync(new() { Title = $"Choose {row.Dependency.Executable} ({row.Dependency.Name})", AllowMultiple = false });
-            if (files.Count == 0) return;
-            var path = files[0].TryGetLocalPath() ?? throw new InvalidOperationException("Choose a local file.");
-            await SetToolAsync(row.Dependency.Executable, path);
-        }
-        catch (Exception error) { SetStatus("Couldn't use that path: " + error.Message); }
-    }
-
-    private async void ClearDependencyPathClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        e.Handled = true;
-        if (sender is not Button { DataContext: DependencyRow row }) return;
-        try { await SetToolAsync(row.Dependency.Executable, ""); }
-        catch (Exception error) { SetStatus("Couldn't clear the path: " + error.Message); }
-    }
-
-    /// <summary>Changes the host-wide tool path through the host; the rows update when its broadcast arrives.</summary>
-    private async Task SetToolAsync(string executable, string path)
-    {
-        if (state is null || lifetime is not { } current) return;
-        await Task.Run(async () => await state.ChangeAsync(HostStateChange.Setting("language-tool:" + executable, path)), current.Token);
-        if (current == lifetime) SetStatus(path.Length > 0 ? $"Using {path} for {executable}. Start / Retry to use it." : $"{executable} is found on PATH again.");
-    }
-
-    private async void CopyDependencyHintClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        e.Handled = true;
-        if (sender is not Button { DataContext: DependencyRow row }) return;
-        try
-        {
-            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard ?? throw new InvalidOperationException("No clipboard.");
-            await clipboard.SetTextAsync(row.Hint);
-            SetStatus("Install hint copied.");
-        }
-        catch (Exception error) { SetStatus("Couldn't copy the hint: " + error.Message); }
-    }
-
     private void ShowLogs(ServerRow row)
     {
         if (TopLevel.GetTopLevel(this) is Window owner)
@@ -268,7 +208,7 @@ internal sealed partial class LanguagePanel : UserControl
                 if (!configurations.TryGetValue(server.Id, out var view))
                     configurations[server.Id] = view = new(host, workspace, server);
                 else view.Update(server, inventorySaves.GetValueOrDefault(server.Id));
-                return new ServerRow(server, view, expanded.Contains(server.Id), exitOpen.Contains(server.Id), state is not null);
+                return new ServerRow(server, view, expanded.Contains(server.Id), exitOpen.Contains(server.Id));
             }).ToArray();
         if (!(list.ItemsSource?.Cast<ServerRow>() ?? []).SequenceEqual(rows))
         {

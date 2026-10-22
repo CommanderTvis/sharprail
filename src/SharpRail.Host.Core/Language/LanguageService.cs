@@ -78,10 +78,16 @@ public sealed partial class LanguageService : IAsyncDisposable
     {
         token.ThrowIfCancellationRequested();
         if (Volatile.Read(ref disposed) != 0) return new("stopped", "The host is shutting down.");
-        if (request.Operation == "catalog") return new("ready", servers.Storage)
+        if (request.Operation == "catalog")
         {
-            Servers = servers.Servers.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version) { Presentation = Present(server) }).ToArray()
-        };
+            // Settings shows each server's host tools before anything starts; probing reads files and PATH only, never runs a tool.
+            var probe = Path.IsPathFullyQualified(request.Workspace) && Directory.Exists(request.Workspace);
+            return new("ready", servers.Storage)
+            {
+                Servers = servers.Servers.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version)
+                { Presentation = Present(server), Dependencies = probe ? servers.ProbeDependencies(server, request.Workspace) : null }).ToArray()
+            };
+        }
         if (request.Operation == "running") return Running();
         if (request.Operation == "resolution")
         {

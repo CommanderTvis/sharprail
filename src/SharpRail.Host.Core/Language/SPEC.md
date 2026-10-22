@@ -179,7 +179,8 @@ A tool resolves from the user's host-wide path for it (host setting `LanguageToo
 path, changed through `language-tool:<executable>`; empty clears), then its home variable (`home/bin`, `home`), then the
 hardened PATH; the workspace rule above applies to all three. `RequireTool`, `FindTool`, `FindDotnet` and the host's npm
 and node lookups all use it, so a path is honoured by the probe and the launch alike. The `servers` operation probes
-every declared tool on the host (answers reused for two seconds) and returns them on each row: a tool is required
+every declared tool on the host (answers reused for two seconds) and returns them on each row, as does `catalog` for
+an existing absolute workspace (for Settings): a tool is required
 only for the managed launch, and an install-only tool only until the managed installation exists. A start refuses
 before installing while a required tool is missing, with `Needs <tool> (<name>). <hint> Or choose an existing <tool>
 with Use path…`. SharpRail never downloads these tools or runs a package manager for them. `--lsp-dependencies`

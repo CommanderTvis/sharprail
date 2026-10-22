@@ -9,6 +9,12 @@ namespace SharpRail.UI.Panels;
 
 public sealed partial class SettingsWindow
 {
+    /// <summary>One server in the Code Intelligence rail; <see cref="Missing"/> marks a tool its next start needs and cannot find.</summary>
+    internal sealed record LspServerItem(string Id, bool Missing)
+    {
+        public override string ToString() => Id;
+    }
+
     private Control LspSettings()
     {
         var panel = Page("LspPage");
@@ -23,6 +29,10 @@ public sealed partial class SettingsWindow
         var arguments = PageControl<TextBox>(panel, "LspArguments");
         var message = PageControl<TextBlock>(panel, "LspMessage");
         var save = PageControl<Button>(panel, "LspSave");
+        var dependencies = PageControl<LanguageDependencyList>(panel, "LspDependencies");
+        var dependencySection = PageControl<StackPanel>(panel, "LspDependencySection");
+        dependencies.HostState = state;
+        dependencies.Status += (_, e) => { message.Foreground = Ui.Muted; message.Text = e.Text; };
         PageControl<TextBlock>(panel, "LspLifetimeNote").Text = LanguageNotes.Lifetime;
         var feature = PageControl<CheckBox>(panel, "LspFeatureEnabled");
         feature.IsChecked = state.Current.Settings.LspEnabled;
@@ -42,11 +52,18 @@ public sealed partial class SettingsWindow
         repository.Click += LanguageProviderLinks.Open;
         var schemas = new Dictionary<string, JsonNode>();
         LanguageServerState[] catalog = [];
+        // The settings the catalog's dependency probe depended on; a change (here or from another client) reprobes.
+        var probed = (state.Current.Settings.LanguageTools, state.Current.Settings.LanguageServers);
         void Load()
         {
             provider.UpdateProvider(state.Current.Settings.JavaKotlinProvider);
             feature.IsChecked = state.Current.Settings.LspEnabled;
-            if (selector.SelectedItem is not string id) return;
+            if (probed != (state.Current.Settings.LanguageTools, state.Current.Settings.LanguageServers))
+            {
+                probed = (state.Current.Settings.LanguageTools, state.Current.Settings.LanguageServers);
+                _ = LoadCatalog();
+            }
+            if (selector.SelectedItem is not LspServerItem { Id: var id }) return;
             PageControl<TextBlock>(panel, "LspServerHeading").Text = id;
             var json = state.Current.Settings.LanguageServers;
             var options = string.IsNullOrWhiteSpace(json) ? new() :
@@ -56,6 +73,8 @@ public sealed partial class SettingsWindow
             arguments.IsEnabled = options.Arguments is not null;
             command.Text = options.Command; arguments.Text = string.Join('\n', options.Arguments ?? []);
             var server = catalog.First(server => server.Id == id);
+            dependencies.Dependencies = server.Dependencies;
+            dependencySection.IsVisible = server.Dependencies is { Count: > 0 };
             PageControl<TextBlock>(panel, "LspImplementation").Text = server.Detail.Length > 0 ? server.Detail : id;
             PageControl<TextBlock>(panel, "LspVersion").Text = server.Version == "toolchain"
                 ? "Version: supplied by the host SDK" : "Pinned managed version: " + server.Version;
@@ -75,11 +94,11 @@ public sealed partial class SettingsWindow
                     schema = JsonNode.Parse(result.Configuration)!;
                     schemas[id] = schema;
                 }
-                if (!lifetime.IsCancellationRequested && selector.SelectedItem is string selected && selected == id)
+                if (!lifetime.IsCancellationRequested && selector.SelectedItem is LspServerItem { Id: var selected } && selected == id)
                     LanguageProviderLinks.Apply(schema, website, repository, links);
             }
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
-            catch (Exception failure) { if (!lifetime.IsCancellationRequested && selector.SelectedItem is string selected && selected == id) message.Text = "Provider links unavailable: " + failure.Message; }
+            catch (Exception failure) { if (!lifetime.IsCancellationRequested && selector.SelectedItem is LspServerItem { Id: var selected } && selected == id) message.Text = "Provider links unavailable: " + failure.Message; }
         }
         async Task LoadResolution(string id)
         {
@@ -88,7 +107,7 @@ public sealed partial class SettingsWindow
             {
                 var workspace = window.WorkspaceRoot;
                 var result = await Task.Run(async () => await window.Host.LanguageAsync(new(workspace, Operation: "resolution", Server: id), lifetime.Token), lifetime.Token);
-                if (lifetime.IsCancellationRequested || selector.SelectedItem is not string selected || selected != id) return;
+                if (lifetime.IsCancellationRequested || selector.SelectedItem is not LspServerItem { Id: var selected } || selected != id) return;
                 var facts = JsonNode.Parse(result.Configuration)!;
                 var path = facts["path"]?.GetValue<string>() ?? "";
                 var version = facts["version"]?.GetValue<string>() ?? "";
@@ -114,7 +133,7 @@ public sealed partial class SettingsWindow
         save.IsEnabled = false;
         save.Click += async (_, _) =>
         {
-            if (selector.SelectedItem is not string id) return;
+            if (selector.SelectedItem is not LspServerItem { Id: var id }) return;
             var args = (arguments.Text ?? "").Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
             var options = new LanguageServerOptions(allowPath.IsChecked == true, (command.Text ?? "").Trim(), string.IsNullOrWhiteSpace(command.Text) || defaultArguments.IsChecked == true ? null : args);
             save.IsEnabled = false;
@@ -147,8 +166,10 @@ public sealed partial class SettingsWindow
                 if (lifetime.IsCancellationRequested) return;
                 LanguageServerNameConverter.Remember(result.Servers);
                 catalog = result.Servers.OrderBy(server => server.Id, StringComparer.Ordinal).ToArray();
-                selector.ItemsSource = catalog.Select(server => server.Id).ToArray();
-                selector.SelectedIndex = catalog.Length > 0 ? 0 : -1;
+                var previous = (selector.SelectedItem as LspServerItem)?.Id;
+                var items = catalog.Select(server => new LspServerItem(server.Id, LanguageDependencyList.HasMissing(server.Dependencies))).ToArray();
+                selector.ItemsSource = items;
+                selector.SelectedItem = items.FirstOrDefault(item => item.Id == previous) ?? items.FirstOrDefault();
                 PageControl<TextBlock>(panel, "LspStorage").Text = result.Detail;
                 save.IsEnabled = catalog.Length > 0;
             }
