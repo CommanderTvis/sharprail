@@ -212,9 +212,8 @@ internal static class DockInputChecks
         Require(centerHeader.ContextMenu?.IsOpen == true &&
             !centerHeader.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Remove group")).IsEnabled,
             "Empty pane header context menu is missing or allows removing the final center group.");
-        Require(centerHeader.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New split right")).IsEnabled &&
-            centerHeader.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New split below")).IsEnabled,
-            "Split actions must use the measured pane size when the context menu opens.");
+        Require(!centerHeader.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Header is string header && header.StartsWith("New split", StringComparison.Ordinal)),
+            "The main column header must offer no split actions.");
         centerHeader.ContextMenu!.Close();
         var rightGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool));
         window.Layout.Select(rightGroup.Id, "files");
@@ -521,40 +520,9 @@ internal static class DockInputChecks
         window.KeyPress(Key.Left, RawInputModifiers.Shift, PhysicalKey.ArrowLeft, null);
         Require(!window.Layout.State.LeftVisible, "Shift-arrow must move through the full range and collapse the side.");
         window.Width = 2200; window.Height = 1600;
-        var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
-        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
-        foreach (var (edge, horizontal, minimum) in new[] { ("right", true, 320d), ("bottom", false, 180d) })
-        {
-            window.Layout.ApplyPreset(DockState.Preset("balanced"));
-            var firstGroup = window.Layout.State.Center.Leaves().Single();
-            Require(window.Layout.NewGroup(firstGroup, edge) && window.Layout.NewGroup(firstGroup, edge),
-                "Nested resize fixture could not create three center panes.");
-            Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-            var centerSeparator = window.GetLogicalDescendants().OfType<ResizeHandle>()
-                .Where(item => item.Name?.StartsWith("CenterSeparator_", StringComparison.Ordinal) == true && item.Parent is Grid grid &&
-                    grid.GetLogicalDescendants().OfType<Grid>().Any(child => child.Name == "CenterPanel") &&
-                    (horizontal ? grid.ColumnDefinitions.Count == 3 && grid.RowDefinitions.Count == 0 :
-                        grid.RowDefinitions.Count == 3 && grid.ColumnDefinitions.Count == 0))
-                .OrderByDescending(item => horizontal ? ((Grid)item.Parent!).Bounds.Width : ((Grid)item.Parent!).Bounds.Height).First();
-            var splitFrame = (Grid)centerSeparator.Parent!;
-            var outer = Find<ResizeHandle>("leftSeparator");
-            var outerRange = (IRangeValueProvider)ControlAutomationPeer.CreatePeerForElement(outer)!;
-            var workbench = Find<DockSurface>("WorkspaceWorkbench");
-            Require(Math.Abs(outerRange.Maximum - Math.Min(.7, Math.Min(1 - window.Layout.State.RightWidth - 1e-6, 1 - 320 / (workbench.Bounds.Width - 80))) * 100) < .001,
-                "Nested center topology must not increase the outer separator's reserved center width.");
-            var dimension = horizontal ? splitFrame.Bounds.Width : splitFrame.Bounds.Height;
-            var firstExtent = horizontal ? splitFrame.ColumnDefinitions[0].ActualWidth : splitFrame.RowDefinitions[0].ActualHeight;
-            Require(Math.Abs(firstExtent - (dimension - 1) / 2) <= 1,
-                $"Decimal-comma split halves are unequal: {edge}, frame={dimension}, first={firstExtent}, ratio={window.Layout.State.Center.Ratio}.");
-            var centerRange = (IRangeValueProvider)ControlAutomationPeer.CreatePeerForElement(centerSeparator)!;
-            Require(Math.Abs(centerRange.Minimum - minimum / dimension * 100) < .001 &&
-                Math.Abs(centerRange.Maximum - (1 - minimum / dimension) * 100) < .001,
-                "Nested center resize must use direct-child minima and the whole split dimension.");
-            centerRange.SetValue(centerRange.Minimum); Dispatcher.UIThread.RunJobs();
-            Require(Math.Abs(window.Layout.State.Center.Ratio - minimum / dimension) < .001,
-                "Resizing a nested center branch must commit the reference minimum ratio.");
-        }
-        System.Globalization.CultureInfo.CurrentCulture = previousCulture;
+        window.Layout.ApplyPreset(DockState.Preset("balanced"));
+        foreach (var edge in new[] { "right", "bottom" })
+            Require(!window.Layout.NewGroup(window.Layout.State.Center.Leaves().Single(), edge), "The main column must refuse custom splits.");
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var centerGroup = window.Layout.State.Center.Leaves().Single();
         surface.WorkspaceRoot = () => "/work/space";
@@ -576,72 +544,23 @@ internal static class DockInputChecks
         Drag("probe", probe.Center);
         Require(window.Layout.Epoch == epoch, "No-op tab drop committed a transition.");
         window.Width = 1680; window.Height = 1000;
-        epoch = window.Layout.Epoch;
         var section = Bounds(Find<Grid>("CenterPanel"));
-        from = Bounds(Find<Button>("Tab_probe")).Center;
-        window.MouseDown(from, MouseButton.Left);
-        window.MouseMove(new Point(section.Right - 8, section.Center.Y));
-        var hints = surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().ToArray();
-        var halfPreview = hints.Single(item => item.BorderThickness.Left == 2);
-        Require(Math.Abs(halfPreview.Width - section.Width / 2) < .01 && halfPreview.Height == section.Height &&
-            halfPreview.CornerRadius.TopLeft == 4 &&
-            halfPreview.Background is Avalonia.Media.SolidColorBrush { Color.A: 51 } &&
-            halfPreview.BorderBrush is Avalonia.Media.SolidColorBrush { Color.A: 255 } &&
-            hints.Any(item => Math.Abs(item.Width - section.Width / 5) < .01 && item.Height == section.Height / 2 &&
-                item.Background is Avalonia.Media.SolidColorBrush { Color.A: 26 }),
-            "Center drag targets must use reference edge rectangles, tint and a rounded full-height half preview.");
-        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-        window.MouseUp(new Point(section.Right - 8, section.Center.Y), MouseButton.Left);
-        Drag("probe", new Point(section.Right - 8, section.Bottom - 8));
-        Require(window.Layout.Epoch == epoch && window.Layout.State.Center.Leaves().Count() == 1,
-            "A center corner outside the reference split target must not accept a drop.");
-        window.MinWidth = 0; window.MinHeight = 0;
-        foreach (var (width, height, allowed) in new[] { (640d, 360d, true), (639d, 359d, false) })
+        // The main column offers tab groups only: no edge of its body is a drop target, from the menu or a drag.
+        foreach (var destination in new[] { new Point(section.Right - 8, section.Center.Y), new Point(section.Left + 8, section.Center.Y),
+                     new Point(section.Center.X, section.Bottom - 8), new Point(section.Center.X, section.Top + 48) })
         {
-            var panel = Find<Grid>("CenterPanel");
-            for (var attempt = 0; attempt < 20; attempt++)
-            {
-                var measured = Bounds(panel);
-                if (Math.Abs(measured.Width - width) < .001 && Math.Abs(measured.Height - height) < .001) break;
-                window.Width += (width - measured.Width) * window.Width / measured.Width;
-                window.Height += (height - measured.Height) * window.Height / measured.Height;
-            }
-            section = Bounds(panel);
-            Require(Math.Abs(section.Width - width) < .01 && Math.Abs(section.Height - height) < .01,
-                "Split boundary fixture did not reach the requested whole-pane dimensions.");
-            var boundaryHeader = Find<Grid>("GroupHeader_" + centerGroup);
-            var menuPoint = Bounds(boundaryHeader).BottomRight - new Vector(2, 2);
-            window.MouseDown(menuPoint, MouseButton.Right); window.MouseUp(menuPoint, MouseButton.Right);
-            Dispatcher.UIThread.RunJobs();
-            var splitItems = boundaryHeader.ContextMenu!.Items.OfType<MenuItem>()
-                .Where(item => Equals(item.Header, "New split right") || Equals(item.Header, "New split below")).ToArray();
-            Require(boundaryHeader.ContextMenu.IsOpen && splitItems.Length == 2 && splitItems.All(item => item.IsEnabled == allowed),
-                $"Split menus must use the inclusive 640 by 360 whole-pane thresholds: pane={section.Size}, open={boundaryHeader.ContextMenu.IsOpen}, allowed={allowed}, items={string.Join(", ", splitItems.Select(item => $"{item.Header}={item.IsEnabled}"))}.");
-            boundaryHeader.ContextMenu.Close();
-            foreach (var destination in new[] { new Point(section.Right - 8, section.Center.Y),
-                         new Point(section.Center.X, section.Bottom - 8) })
-            {
-                var source = Bounds(Find<Button>("Tab_probe"));
-                from = new Point(source.Left + (dragCount++ % 2 == 0 ? 16 : 36), source.Center.Y);
-                window.MouseDown(from, MouseButton.Left); window.MouseMove(destination);
-                Require(surface.Children.OfType<Canvas>().Single().Children.OfType<Border>()
-                        .Any(item => item.BorderThickness.Left == 2) == allowed,
-                    "Drag split targets must use the same whole-pane thresholds as the menu.");
-                window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-                window.MouseUp(destination, MouseButton.Left);
-            }
+            from = Bounds(Find<Button>("Tab_probe")).Center;
+            window.MouseDown(from, MouseButton.Left); window.MouseMove(destination);
+            Require(!surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().Any(hint =>
+                    new Rect(Canvas.GetLeft(hint), Canvas.GetTop(hint), hint.Width, hint.Height).Intersects(section)),
+                "The main column must expose no split targets.");
+            window.MouseUp(destination, MouseButton.Left);
+            Require(window.Layout.State.Center.IsLeaf && window.Layout.Tabs(centerGroup).Count(tab => tab.Id == "probe") == 1, "A drop on the main column must not split it.");
         }
-        window.Width = 900; window.Height = 360;
-        var centerBody = Bounds(Find<Border>("DockBody_" + centerGroup));
-        var constrained = Bounds(Find<Grid>("CenterPanel"));
-        Require(constrained.Width < 640 && constrained.Height < 360, "Minimum-size fixture was not constrained.");
-        foreach (var destination in new[] { new Point(centerBody.Right - 6, centerBody.Center.Y),
-                     new Point(centerBody.Center.X, centerBody.Bottom - 6) })
-        {
-            Drag("probe", destination);
-            Require(window.Layout.State.Center.Leaves().Count() == 1 && window.Layout.Epoch == epoch,
-                "Undersized center accepted a split or mutated a rejected drop.");
-        }
+        var mainHeader = Find<Grid>("GroupHeader_" + centerGroup);
+        Require(mainHeader.ContextMenu!.Items.OfType<MenuItem>().All(item => item.Header is not string header || !header.Contains("split", StringComparison.OrdinalIgnoreCase)) &&
+            Find<Button>("Tab_probe").ContextMenu!.Items.OfType<MenuItem>().All(item => item.Header is not string title || !title.StartsWith("Split", StringComparison.Ordinal)),
+            "Main column menus must offer no split actions.");
         window.Layout.Close(centerGroup, "probe");
         Dispatcher.UIThread.RunJobs();
         var focusStart = window.Layout.State.Groups.First(group => group.Region == "left").Id;

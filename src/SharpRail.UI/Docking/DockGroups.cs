@@ -59,7 +59,7 @@ public sealed partial class DockSurface
                 else AutomationProperties.SetLabeledBy(body, label);
             }
             LabelBody();
-            if (selected is null) body.ContextMenu = GroupMenu(group, panel);
+            if (selected is null) body.ContextMenu = GroupMenu(group);
             contentHosts.Add(body);
             updates.Add(() =>
             {
@@ -102,7 +102,7 @@ public sealed partial class DockSurface
                 Session.Focus(group.Id);
                 e.Handled = true;
             };
-        header.ContextMenu = GroupMenu(group, panel);
+        header.ContextMenu = GroupMenu(group);
         AutomationProperties.SetName(header, GroupLabel(group) + " pane");
         var tabs = new DockTabStrip(Session, group.Id) { Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal, Spacing = nested ? 2 : 0 };
         var scroll = new ScrollViewer
@@ -719,17 +719,8 @@ public sealed partial class DockSurface
             move.Items.Add(target);
         }
         menu.Items.Add(move);
-        if (group.Region == "center")
-        {
-            foreach (var edge in new[] { "left", "right", "top", "bottom" })
-            {
-                var split = Ui.Menu("Split " + (edge switch { "top" => "up", "bottom" => "down", _ => edge }), () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
-                menu.Opening += (_, _) => split.IsEnabled = CanCreate(group) &&
-                    (edge is "left" or "right" ? geometry.Bounds.Width >= 640 : geometry.Bounds.Height >= 360);
-                menu.Items.Add(split);
-            }
-        }
-        else
+        // The main column offers tab groups (above) only; side regions still split into groups.
+        if (group.Region != "center")
         {
             foreach (var edge in new[] { "before", "after" })
             {
@@ -767,25 +758,13 @@ public sealed partial class DockSurface
 
     private string GroupLabel(DockGroup group) => $"{group.Region}: {TitleOf(Session.Selected(group.Id)) ?? "Empty"}";
     private string? TitleOf(DockTab? tab) => tab is null ? null : Session.ToolTitle(tab);
-    private bool CanCreate(DockGroup group) => Session.State.Groups.Count(item => item.Region == group.Region) <
-        (group.Region == "center" ? 4 : Session.State.SideLimit);
+    private bool CanCreate(DockGroup group) => Session.State.Groups.Count(item => item.Region == group.Region) < Session.State.SideLimit;
 
-    private ContextMenu GroupMenu(DockGroup group, Control geometry)
+    private ContextMenu GroupMenu(DockGroup group)
     {
         var menu = new ContextMenu();
-        // A phone keeps one centre group, its tabs listed in Projects: there is no room to split it.
-        if (group.Region == "center" && !Drawers)
-        {
-            var right = Ui.Menu("New split right", () => Session.NewGroup(group.Id, "right"));
-            var below = Ui.Menu("New split below", () => Session.NewGroup(group.Id, "bottom"));
-            menu.Opening += (_, _) =>
-            {
-                right.IsEnabled = CanCreate(group) && geometry.Bounds.Width >= 640;
-                below.IsEnabled = CanCreate(group) && geometry.Bounds.Height >= 360;
-            };
-            menu.Items.Add(right); menu.Items.Add(below);
-        }
-        else if (group.Region != "center")
+        // The main column keeps one group, its tabs arranged as tab groups: it has no split actions.
+        if (group.Region != "center")
         {
             menu.Items.Add(Ui.Menu("New pane before", () => Session.NewGroup(group.Id, "before"), CanCreate(group)));
             menu.Items.Add(Ui.Menu("New pane after", () => Session.NewGroup(group.Id, "after"), CanCreate(group)));

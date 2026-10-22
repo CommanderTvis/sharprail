@@ -63,18 +63,17 @@ internal static class DropHintsE2E
         Require(!hints.Any(hint => Same(PaintedBounds(hint), header)) &&
             !hints.Any(hint => Same(PaintedBounds(hint), rightHeader)) && !hints.Any(hint => hint.Height == 24),
             "A file drag must not frame tab strips (tabs are their only targets), exclude side tools and omit the hidden-bottom target.");
-        var edge = new Rect(section.Right - 4 - section.Width / 5, section.Top + section.Height / 4, section.Width / 5, section.Height / 2);
-        Require(hints.Any(hint => Same(PaintedBounds(hint), edge) && Tint(hint.Background, 26) && Tint(hint.BorderBrush, 51)),
-            "The unhovered right split destination must use the reference subtle tint.");
-        Move(app, surface, edge.Center);
+        Require(!hints.Any(hint => PaintedBounds(hint).Intersects(section)),
+            "The main column offers tab groups only, so its body paints no split destination.");
+        var notes = app.Tab("notes.txt");
+        var after = notes.TranslatePoint(new Point(notes.Bounds.Width / 2, notes.Bounds.Height - 2), surface)!.Value;
+        Move(app, surface, after);
         hints = Overlay(surface).Children.OfType<Border>().ToArray();
-        var half = new Rect(section.Center.X, section.Top, section.Width / 2, section.Height);
-        Require(hints.Any(hint => Same(PaintedBounds(hint), half) && Tint(hint.Background, 51) && Tint(hint.BorderBrush, 255) && hint.BorderThickness == new Thickness(2)) &&
-            hints.Any(hint => Tint(hint.BorderBrush, 51)),
-            "Hovering the split must emphasize its half-pane preview while other valid destinations remain subtle.");
+        Require(hints.Any(hint => hint.Height == 2) && hints.Any(hint => Tint(hint.BorderBrush, 51)),
+            "Hovering an insertion must emphasize its marker while other valid destinations remain subtle.");
         app.Window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-        app.Window.MouseUp(surface.TranslatePoint(edge.Center, app.Window)!.Value, MouseButton.Left); Settle();
-        Require(!surface.IsDragging && Overlay(surface).Children.Count == 0 && app.Window.Layout.State.Center.Leaves().Count() == 1 && app.Tabs.Count == 2,
+        app.Window.MouseUp(surface.TranslatePoint(after, app.Window)!.Value, MouseButton.Left); Settle();
+        Require(!surface.IsDragging && Overlay(surface).Children.Count == 0 && app.Window.Layout.State.Center.IsLeaf && app.Tabs.Count == 2,
             "Escape and release must remove every hint without changing the frame or resource placement.");
         Console.WriteLine("PASS upstream layout.spec.ts: a tab drag reveals every valid destination subtly, then emphasizes the one under the pointer");
     }

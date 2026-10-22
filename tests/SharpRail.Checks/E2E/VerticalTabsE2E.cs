@@ -114,14 +114,10 @@ internal static class VerticalTabsE2E
                 "An inactive Projects tab retains its original workspace when renamed.");
         });
 
-        Case("Projects uniquely marks the active tab across center groups and pane members", app =>
+        Case("Projects uniquely marks the active tab across tabs and pane members", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
             app.ShowTool("projects");
-            var center = app.Center;
-            Require(app.Window.Layout.NewGroup(center, "after"), "A second center group is created.");
-            var other = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
-            Require(app.Window.Layout.Move("file:notes.txt", center, other, 0), "Notes moves to the other group.");
             void Check(string tab)
             {
                 var markers = app.Window.GetLogicalDescendants().OfType<Border>()
@@ -140,16 +136,14 @@ internal static class VerticalTabsE2E
                     markers[0].Bounds.Right < row.Bounds.Width,
                     "The active accent stays inside the row and clear of its rounded corners.");
             }
-            app.Window.Layout.Focus(center); Check("markdown_README.md");
-            app.Window.Layout.Focus(other); Check("file_notes.txt");
-            app.Window.Layout.Focus(center); Check("markdown_README.md");
-            Require(app.Window.Layout.Move("file:notes.txt", other, center, 1), "Notes returns to the first group.");
+            app.Click(app.Tab("README.md")); Check("markdown_README.md");
+            app.Click(app.Tab("notes.txt")); Check("file_notes.txt");
             app.ContextAction(app.Tab("notes.txt"), "Show beside README.md");
             app.Click(app.Tab("README.md")); Check("markdown_README.md");
             app.Click(app.Tab("notes.txt")); Check("file_notes.txt");
         });
 
-        Case("Projects is the only tab home and group splits remain available", app =>
+        Case("Projects is the only tab home and the main column offers tab groups, not splits", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
             SetLayout(app, settings => Require(!settings.GetLogicalDescendants().OfType<Control>().Any(control =>
@@ -158,20 +152,17 @@ internal static class VerticalTabsE2E
             app.Click(app.Tab("notes.txt"), mouseButton: MouseButton.Right);
             var menu = app.Tab("notes.txt").ContextMenu!;
             Until(() => menu.IsOpen);
-            Require(menu.Items.OfType<MenuItem>().Any(item => item.Header as string == "Split right"),
-                "Projects tabs must offer group splits.");
+            Require(!menu.Items.OfType<MenuItem>().Any(item => item.Header is string header && header.StartsWith("Split", StringComparison.Ordinal)) &&
+                menu.Items.OfType<MenuItem>().Any(item => item.Header as string == "Show beside README.md"),
+                "Projects tabs must offer tab groups and no main column splits.");
             menu.Close();
             var center = app.Center;
-            Require(app.Window.Layout.Move("file:notes.txt", center, center, 0, "right"), "Splitting a group right must succeed.");
-            var other = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
-            Require(app.Window.Layout.Tabs(other).Single().Path == "notes.txt" &&
-                app.Window.GetLogicalDescendants().OfType<StackPanel>().Single(panel => panel.Name == "CenterTabsInProjects")
-                    .GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Tab_file_notes.txt"),
-                "The split keeps its tabs listed in Projects.");
-            Require(app.Tab("notes.txt").Focus() && app.Window.Layout.View.FocusedGroup == other,
+            Require(!app.Window.Layout.Move("file:notes.txt", center, center, 0, "right") && app.Window.Layout.State.Center.IsLeaf,
+                "Splitting the main column must be refused.");
+            Require(app.Tab("notes.txt").Focus() && app.Window.Layout.View.FocusedGroup == center,
                 "Focusing a Projects document tab must retain its center group's keyboard ownership.");
             app.Window.KeyPress(Key.W, OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control, PhysicalKey.W, null);
-            Require(app.Window.Layout.Tabs(other).All(tab => tab.Path != "notes.txt"),
+            Require(app.Window.Layout.Tabs(center).All(tab => tab.Path != "notes.txt"),
                 "Close Tab must close the focused Projects document rather than its surrounding tool group.");
         });
 

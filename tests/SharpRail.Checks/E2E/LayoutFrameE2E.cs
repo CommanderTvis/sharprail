@@ -139,9 +139,6 @@ internal static class LayoutFrameE2E
         Until(() => app.Window.Layout.State.Groups.Any(group => group.Tools.Any(tab => tab.Id == tool)));
     }
 
-    private static bool TabFocused(E2eWorkspace app) =>
-        app.Window.GetLogicalDescendants().OfType<Button>().Count(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true && button.IsFocused) == 1;
-
     private static void Commands(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "layout-commands"));
@@ -175,33 +172,9 @@ internal static class LayoutFrameE2E
         Require(!overflow.IsVisible, "Projects lists tabs vertically without a horizontal search trigger.");
         app.Window.Width = 1352; Settle();
 
-        app.ContextAction(app.Tab("notes.txt"), "Split right");
-        Until(() => state().Center.Leaves().Count() == 2);
-        Require(app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Count(handle => handle.Name!.StartsWith("CenterSeparator_", StringComparison.Ordinal)) == 1,
-            "A center split must add one separator.");
-        var notes = state().Center.Leaves().Single(group => app.Window.Layout.Tabs(group).Any(tab => tab.Path == "notes.txt"));
-        var other = state().Center.Leaves().Single(group => group != notes);
-        app.Tab("notes.txt").Focus();
-        app.Window.KeyPress(Key.F6, RawInputModifiers.Control | RawInputModifiers.Shift, PhysicalKey.F6, null);
-        Until(() => app.Window.Layout.View.FocusedCenter == other && TabFocused(app));
-        app.Window.KeyPress(Key.F6, RawInputModifiers.Control, PhysicalKey.F6, null);
-        Until(() => app.Window.Layout.View.FocusedCenter == notes && TabFocused(app));
-
-        app.ContextAction(app.Tab("LINKS.md"), "Split down");
-        Until(() => state().Center.Leaves().Count() == 3);
-        Require(app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Count(handle => handle.Name!.StartsWith("CenterSeparator_", StringComparison.Ordinal)) == 2,
-            "A recursive split must add another separator.");
-        var linksGroup = state().Center.Leaves().Single(group => app.Window.Layout.Tabs(group).Any(tab => tab.Path == "LINKS.md"));
-        var wrapper = app.Tab("LINKS.md").GetLogicalAncestors().OfType<Grid>().First(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true);
-        app.Click(wrapper.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
-        Until(() => app.Window.Layout.Tabs(linksGroup).Count == 0);
-        Require(state().Center.Leaves().Count() == 3, "Closing the last tab must leave the empty group in place.");
-        app.Click(app.Find<Button>("RemoveGroup_" + linksGroup));
-        Until(() => state().Center.Leaves().Count() == 2);
-        Until(() => app.Window.Layout.View.FocusedGroup == app.Window.Layout.View.FocusedCenter &&
-            app.Window.Layout.Selected(app.Window.Layout.View.FocusedCenter) is { } selected &&
-            app.Find<Button>("Tab_" + selected.Id.Replace(':', '_').Replace('/', '_')).IsFocused);
-        Console.WriteLine("PASS upstream layout.spec.ts: keyboard and menu commands reorder, search, recursively split, and explicitly remove empty groups");
+        Require(state().Center.IsLeaf && !app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.Name!.StartsWith("CenterSeparator_", StringComparison.Ordinal)),
+            "The main column must stay one group without center separators.");
+        Console.WriteLine("PASS upstream layout.spec.ts: keyboard and menu commands reorder and search tabs in the one main column group");
     }
 
     private static void FrameSurvivesSwitch(string root)

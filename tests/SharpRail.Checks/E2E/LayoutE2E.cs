@@ -24,8 +24,6 @@ internal static class LayoutE2E
         NarrowViewport(root);
         PointerSplit(root);
         SideSplitTargets(root);
-        DeferredOpens(root);
-        IndependentPreviews(root);
         SideShortcuts(root);
         ZoomShortcuts(root);
         KeyboardTabsAndSeparators(root);
@@ -42,9 +40,9 @@ internal static class LayoutE2E
         app.Open("README.md", true);
         var center = app.Center;
         var side = app.Window.Layout.State.Groups.First(group => group.Region == "right");
-        app.Window.Layout.NewGroup(center, "right");
-        var terminalGroup = app.Window.Layout.State.Groups.Single(group => group.Region == "center" && group.Id != center);
-        app.Window.Layout.NewTerminal(terminalGroup.Id);
+        // The main column holds one group, so the terminal sits in its own pane below the folded side group.
+        app.Window.Layout.NewTerminal(side.Id);
+        var terminalGroup = app.Window.Layout.State.Groups.Single(group => group.Region == "right" && app.Window.Layout.Tabs(group.Id).Any(tab => tab.Kind == "terminal"));
         Control? Terminal() => app.Window.GetLogicalDescendants().OfType<Border>().SingleOrDefault(panel => panel.Name == "DockBody_" + terminalGroup.Id)?.Child;
         var terminal = TerminalsE2E.View(app, app.Window.Layout.Tabs(terminalGroup.Id).Single(tab => tab.Kind == "terminal"));
         var body = app.Find<Border>("DockBody_" + center).Child;
@@ -159,18 +157,20 @@ internal static class LayoutE2E
         Start("notes.txt");
         var body = app.Find<Border>("DockBody_" + app.Center);
         var origin = body.TranslatePoint(default, app.Window)!.Value;
-        var height = body.TranslatePoint(new Point(0, body.Bounds.Height), app.Window)!.Value.Y - origin.Y;
-        var target = new Point(origin.X + body.Bounds.Width * .9 - 4, origin.Y + height / 2);
-        var hints = surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().ToArray();
-        Require(hints.Any(hint => Math.Abs(hint.Width - body.Bounds.Width / 5) < .01 && Math.Abs(hint.Height - height / 2) < .01),
-            "A wide center pane must expose its right split destination before hovering it.");
+        var area = new Rect(origin, body.Bounds.Size);
+        var epoch = app.Window.Layout.Epoch;
+        Require(!surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().Any(hint =>
+                new Rect(Canvas.GetLeft(hint), Canvas.GetTop(hint), hint.Width, hint.Height).Intersects(area)),
+            "The main column must expose no split destination.");
+        var target = new Point(area.Right - 8, area.Center.Y);
         app.Window.MouseMove(target); Settle();
         app.Window.MouseUp(target, MouseButton.Left); Settle();
-        var groups = app.Window.Layout.State.Center.Leaves().ToArray();
-        Require(groups.Length == 2 && groups.SelectMany(app.Window.Layout.Tabs).Count() == 2 &&
-            groups.Count(group => app.Window.Layout.Tabs(group).Any(tab => tab.Path == "notes.txt")) == 1,
-            "A split drop must create two panes and move exactly one tab without duplication.");
-        Console.WriteLine("PASS upstream layout.spec.ts: pointer drag exposes deterministic split targets and moves one tab");
+        Require(app.Window.Layout.State.Center.IsLeaf && app.Window.Layout.Epoch == epoch && app.Tabs.Count == 2,
+            "A drop on the main column's edge must not split it.");
+        Require(app.Tab("notes.txt").ContextMenu!.Items.OfType<MenuItem>()
+                .All(item => item.Header is not string header || !header.StartsWith("Split", StringComparison.Ordinal)),
+            "The tab menu must offer no main column splits.");
+        Console.WriteLine("PASS upstream layout.spec.ts: pointer drag reorders one tab and the main column offers no split targets");
     }
 
     private static void NarrowViewport(string root)
@@ -180,86 +180,25 @@ internal static class LayoutE2E
         using (var app = new E2eWorkspace(directory))
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
-            app.ContextAction(app.Tab("notes.txt"), "Split right");
-            Until(() => app.Window.Layout.State.Center.Leaves().Count() == 2);
             topology = System.Text.Json.JsonSerializer.Serialize(app.Window.Layout.State.Center);
             app.Window.Width = 390; app.Window.Height = 844; Settle();
             var workbench = app.Find<DockSurface>("WorkspaceWorkbench");
             var position = workbench.TranslatePoint(default, app.Window)!.Value;
             Require(app.Window.Bounds.Width == 390 && position.X >= 0 && position.X + workbench.Bounds.Width <= 390,
                 "The workbench must fit a 390-pixel viewport.");
-            Require(app.Window.Layout.State.Center.Leaves().Count() == 2 &&
+            Require(app.Window.Layout.State.Center.IsLeaf &&
                 app.Window.Layout.State.Groups.All(group => group.Region != "bottom") &&
                 System.Text.Json.JsonSerializer.Serialize(app.Window.Layout.State.Center) == topology,
                 "Viewport compression must preserve recursive topology without a bottom zone.");
-            var tab = app.Tab("README.md");
-            // Request the menu without a pointer hit on a row clipped by the narrow sidebar.
-            tab.RaiseEvent(new ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent, Source = tab });
-            Until(() => tab.ContextMenu!.IsOpen);
-            Require(!tab.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Split right")).IsEnabled,
-                "A narrow pane must disable further horizontal splits.");
-            tab.ContextMenu.Close();
         }
         using (var app = new E2eWorkspace(directory, openFiles: false))
         {
             app.Window.Width = 390; app.Window.Height = 844; Settle();
-            Require(app.Window.Layout.State.Center.Leaves().Count() == 2 &&
+            Require(app.Window.Layout.State.Center.IsLeaf &&
                 System.Text.Json.JsonSerializer.Serialize(app.Window.Layout.State.Center) == topology,
                 "Reloading must preserve recursive topology after viewport compression.");
         }
         Console.WriteLine("PASS upstream layout.spec.ts: a narrow viewport compresses locally without rewriting recursive topology");
-    }
-
-    private static void DeferredOpens(string root)
-    {
-        using var app = new E2eWorkspace(Path.Combine(root, "layout-deferred-opens"));
-        app.Open("README.md", true); app.Open("notes.txt", true);
-        app.ContextAction(app.Tab("notes.txt"), "Split right");
-        Until(() => app.Window.Layout.State.Center.Leaves().Count() == 2);
-        var notesGroup = app.Center;
-        app.Click(app.Tab("README.md"));
-        var origin = app.Center;
-        var links = app.Host.Hold("LINKS.md");
-        app.Click(app.FileRow("LINKS.md"));
-        Until(() => app.Host.Reads.GetValueOrDefault("LINKS.md") == 1);
-        app.Click(app.Tab("notes.txt")); links.SetResult();
-        Until(() => app.Window.Layout.Tabs(origin).Any(tab => tab.Path == "LINKS.md"));
-        Require(app.Window.Layout.Selected(origin)?.Path == "README.md" &&
-            app.Center == notesGroup && app.Window.Layout.Selected(notesGroup)?.Path == "notes.txt",
-            $"A delayed open must retain its request-time pane without stealing selection: origin={origin}, selected={app.Window.Layout.Selected(origin)?.Path}, focused={app.Center}, notes={notesGroup}, notesSelected={app.Window.Layout.Selected(notesGroup)?.Path}.");
-        app.Click(app.Tab("README.md"));
-        var alerts = app.Host.Hold("ALERTS.md");
-        app.Click(app.FileRow("ALERTS.md"));
-        Until(() => app.Host.Reads.GetValueOrDefault("ALERTS.md") == 1);
-        foreach (var path in new[] { "README.md", "LINKS.md" })
-        {
-            var wrapper = app.Tab(path).GetLogicalAncestors().OfType<Grid>().First(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true);
-            app.Click(wrapper.GetLogicalDescendants().OfType<Button>().Single(item => item.Name == "CloseTab"));
-        }
-        app.Click(app.Find<Button>("RemoveGroup_" + origin));
-        Until(() => app.Window.Layout.State.Center.Leaves().Count() == 1);
-        alerts.SetResult();
-        Until(() => app.Window.Layout.Selected(app.Center)?.Path == "ALERTS.md");
-        Console.WriteLine("PASS upstream layout.spec.ts: deferred opens stay with their request-time group and reroute only when it disappears");
-    }
-
-    private static void IndependentPreviews(string root)
-    {
-        using var app = new E2eWorkspace(Path.Combine(root, "layout-preview-groups"));
-        app.Open("notes.txt", true); app.Open("README.md");
-        var readmeGroup = app.Center;
-        app.ContextAction(app.Tab("notes.txt"), "Split right");
-        Until(() => app.Window.Layout.State.Center.Leaves().Count() == 2);
-        var notesGroup = app.Center;
-        Require(notesGroup != readmeGroup && app.Window.Layout.Tabs(readmeGroup).Single().Preview,
-            "Splitting a kept tab must leave the other group's preview intact.");
-        app.Open("LINKS.md");
-        Require(app.Window.Layout.Tabs(notesGroup).Any(tab => tab.Path == "LINKS.md" && tab.Preview) &&
-            app.Window.Layout.Tabs(readmeGroup).Single().Path == "README.md" &&
-            app.Window.Layout.Tabs(readmeGroup).Single().Preview &&
-            app.Window.Layout.State.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Count(tab => tab.Preview) == 2,
-            "Each center group must own an independent preview slot.");
-        Console.WriteLine("PASS upstream layout.spec.ts: each center group owns an independent preview slot");
     }
 
     private static void SideShortcuts(string root)

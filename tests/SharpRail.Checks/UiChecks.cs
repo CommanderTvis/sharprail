@@ -458,9 +458,9 @@ internal static class UiChecks
         to = centerPanel.TranslatePoint(new Point(centerPanel.Bounds.Width - 6, centerPanel.Bounds.Height / 2), window)!.Value;
         window.MouseDown(from, MouseButton.Left); window.MouseMove(from + new Vector(10, 10));
         window.MouseMove(to); window.MouseUp(to, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-        Require(window.Layout.State.Center.Leaves().Count() == 2, "Pointer center split failed.");
+        Require(window.Layout.State.Center.IsLeaf, "A pointer drop on the main column's edge must not split it.");
         Require(window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Count(tab => tab.Path == "README.md") == 1,
-            "Center split duplicated a document.");
+            "A refused center drop duplicated a document.");
 
         window.UpdateLayout();
         var separator = window.GetLogicalDescendants().OfType<ResizeHandle>().First(handle => handle.Bounds.Height > 400);

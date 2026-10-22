@@ -79,6 +79,25 @@ internal static class StateChecks
         emptyCenter.RemoveBottomZone();
         Require(emptyView.Selected[emptyCenterId] == "bottom-diff", "A migrated bottom document selection must survive when the centre has no selection.");
 
+        var splitProfile = Path.Combine(root, "center-split-profile");
+        Directory.CreateDirectory(splitProfile);
+        var splitLayout = LayoutChecks.LegacyCenterSplit();
+        File.WriteAllText(Path.Combine(splitProfile, "profile.json"), System.Text.Json.JsonSerializer.Serialize(new
+        {
+            Windows = new[] { new { Layout = splitLayout, LastProject = root } },
+            Preferences = new { CustomPresets = new Dictionary<string, SharpRail.UI.Docking.DockState> { ["Split layout"] = splitLayout.Copy() } }
+        }));
+        var reloaded = new SharpRail.UI.State.ProfileStore(splitProfile).Data;
+        foreach (var frame in new[] { reloaded.Windows[0].Layout, reloaded.Preferences.CustomPresets["Split layout"] })
+        {
+            var center = frame.Center.GroupId;
+            Require(frame.Center.IsLeaf && center == splitLayout.Center.Leaves().First() &&
+                frame.Workspaces["one"].Documents[center].Select(tab => tab.Id).SequenceEqual(["a", "p", "b", "c", "q", "t"]) &&
+                frame.Workspaces["one"].Panes[center].Single().TabIds.SequenceEqual(["b", "c"]) &&
+                frame.Workspaces["two"].Documents[center].Single().Id == "z",
+                "Loading a window or preset with a split main column must keep every tab in one group with its tab groups.");
+        }
+
         var migratedProfile = new SharpRail.UI.State.ProfileStore(Path.Combine(root, "tab-mode-migration"));
         migratedProfile.Data.StateMigrated = true;
         migratedProfile.Data.Preferences.VerticalCenterTabs = true;

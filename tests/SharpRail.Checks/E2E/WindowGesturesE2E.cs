@@ -43,15 +43,12 @@ internal static class WindowGesturesE2E
         Require(!second.Window.Layout.State.LeftVisible && first.Window.Layout.State.LeftVisible &&
             surface.IsDragging && first.Window.Layout.Epoch == epoch && !first.Find<Border>("GestureToast").IsVisible && !first.Find<TextBlock>("WorkspaceError").IsVisible,
             $"A second window's layout transition must not cancel or rearrange the first window's drag: second left={second.Window.Layout.State.LeftVisible}, first left={first.Window.Layout.State.LeftVisible}, drag={surface.IsDragging}, epoch={first.Window.Layout.Epoch}/{epoch}, error={first.Find<TextBlock>("WorkspaceError").IsVisible}.");
-        var body = first.Find<Border>("DockBody_" + first.Center);
-        var origin = body.TranslatePoint(default, first.Window)!.Value;
-        var height = body.TranslatePoint(new Point(0, body.Bounds.Height), first.Window)!.Value.Y - origin.Y;
-        var target = new Point(origin.X + body.Bounds.Width * .9 - 4, origin.Y + height / 2);
+        var readme = first.Tab("README.md");
+        var target = readme.TranslatePoint(new Point(readme.Bounds.Width / 2, 2), first.Window)!.Value;
         first.Window.MouseMove(target); Settle(); first.Window.MouseUp(target, MouseButton.Left); Settle();
-        Require(first.Window.Layout.State.Center.Leaves().Count() == 2 &&
-            first.Window.Layout.State.Center.Leaves().SelectMany(first.Window.Layout.Tabs).Count(tab => tab.Path == "notes.txt") == 1 &&
-            second.Window.Layout.State.Center.Leaves().Count() == 1 && !second.Window.Layout.State.LeftVisible,
-            "The original drag must still split its own center without changing the other window.");
+        Require(first.Tabs.Select(item => item.Path).SequenceEqual(new[] { "notes.txt", "README.md" }) &&
+            second.Window.Layout.State.Center.IsLeaf && !second.Window.Layout.State.LeftVisible,
+            "The original drag must still reorder its own tabs without changing the other window.");
         Console.WriteLine("PASS upstream layout.spec.ts: another window cannot cancel or rearrange an active tab drag");
     }
 

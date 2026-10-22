@@ -188,7 +188,7 @@ public sealed partial class DockSurface
         }
         else
         {
-            button.ContextMenu = GroupMenu(group, button);
+            button.ContextMenu = GroupMenu(group);
             railSites.Add(new(button, group.Region, group.Id, Session.Tabs(group.Id).Count));
         }
         // A folded or hidden pane's focus endpoint is the entry of what it shows.
@@ -403,7 +403,7 @@ public sealed partial class DockSurface
         var frame = PaneHeader("GroupHeader_" + group.Id, icon, Session.ToolTitle(selected), out var label, out var actions);
         frame.Name = "TabStrip_" + group.Id;
         var header = (Grid)frame.Child!;
-        header.ContextMenu = GroupMenu(group, panel);
+        header.ContextMenu = GroupMenu(group);
         var caption = (Control)header.Children[0];
         caption.ContextMenu = TabMenu(group, selected, panel);
         caption.AddHandler(PointerPressedEvent, (_, e) =>

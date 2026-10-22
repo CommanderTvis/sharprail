@@ -84,25 +84,25 @@ internal static class LayoutChecks
         session.Open(new("d", "D", "file", "d.txt"), true);
         session.Select(primary, "b"); session.Close(primary, "b");
         Require(session.Selected(primary)?.Id == "d", "Closing selected tab did not select its right neighbor.");
-        Require(session.Move("a", primary, primary, 0, "right"), "Center split failed.");
-        var secondary = session.State.Center.Leaves().Last();
-        Require(session.Selected(secondary)?.Id == "a", "Split destination must select moved resource.");
+        var epoch = session.Epoch;
+        foreach (var edge in new[] { "left", "right", "top", "bottom" })
+            Require(!session.CanMove("a", primary, primary, 0, edge) && !session.Move("a", primary, primary, 0, edge) && !session.NewGroup(primary, edge),
+                "The main column must refuse custom splits.");
+        Require(session.Epoch == epoch && session.State.Center.Leaves().Single() == primary, "A refused split must change nothing.");
+        Require(session.GroupTabs(primary, "a", "d", "horizontal") && session.PaneFor(primary, "a") is not null,
+            "Tab groups must remain the main column's arrangement.");
         session.SwitchWorkspace("two");
         Require(session.Tabs(primary).Count == 0, "Workspace documents leaked.");
         session.Open(new("c", "C", "markdown", "c.md"), true);
         session.SwitchWorkspace("one");
-        Require(session.Selected(secondary)?.Id == "a", "Workspace selection was lost.");
-        Require(session.RemoveGroup(primary), "Center merge failed.");
-        session.SwitchWorkspace("two");
-        Require(session.Tabs(secondary).Any(tab => tab.Id == "c"), "Removed frame group did not rehome other workspace.");
-        session.Close(secondary, "c");
-        Require(session.State.Center.Leaves().Single() == secondary, "Closing final tab must retain topology.");
-        Require(!session.RemoveGroup(secondary), "Final center leaf must survive.");
+        Require(session.Tabs(primary).Select(tab => tab.Id).Order().SequenceEqual(new[] { "a", "d" }), "Workspace tabs were lost.");
+        Require(!session.RemoveGroup(primary), "Final center leaf must survive.");
+        CheckLegacyCenterSplit();
 
         var files = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files"));
         var projects = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "projects"));
         var before = session.Epoch;
-        Require(!session.Move("files", files.Id, secondary, 0), "Tools must not enter center.");
+        Require(!session.Move("files", files.Id, primary, 0), "Tools must not enter center.");
         Require(session.Epoch == before, "Illegal drop committed state.");
         Require(session.Move("files", files.Id, projects.Id, 1), "Tool move failed.");
         Require(session.State.Groups.SelectMany(group => group.Tools).Count(tab => tab.Id == "files") == 1, "Tool duplicated.");
@@ -124,7 +124,7 @@ internal static class LayoutChecks
 
         session.SwitchWorkspace("one");
         session.ApplyPreset(DockState.Preset("review"));
-        Require(session.State.Center.Leaves().Count() == 2 &&
+        Require(session.State.Center.IsLeaf &&
             session.State.Workspaces["one"].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Id == "a"),
             "Preset lost retained documents.");
         var random = new Random(431);
@@ -134,7 +134,7 @@ internal static class LayoutChecks
             var group = centers[random.Next(centers.Length)];
             switch (random.Next(4))
             {
-                case 0: session.NewGroup(group, random.Next(2) == 0 ? "right" : "bottom"); break;
+                case 0: Require(!session.NewGroup(group, random.Next(2) == 0 ? "right" : "bottom"), "The main column must refuse splits."); break;
                 case 1: session.RemoveGroup(group); break;
                 case 2: session.Open(new("f" + random.Next(8), "File", "file"), random.Next(2) == 0); break;
                 case 3:
@@ -148,6 +148,66 @@ internal static class LayoutChecks
     }
 
     // Fork model.test.ts "tab panes", translated.
+    /// <summary>A layout saved while the main column could split: three centre groups, a tab group, a duplicate and two previews.</summary>
+    internal static DockState LegacyCenterSplit()
+    {
+        var legacy = DockState.Preset("balanced");
+        var first = legacy.Center.GroupId;
+        DockGroup right = new(), below = new();
+        legacy.Groups.Add(right); legacy.Groups.Add(below);
+        legacy.Center = new()
+        {
+            Axis = "horizontal",
+            First = new() { GroupId = first },
+            Second = new() { Axis = "vertical", First = new() { GroupId = right.Id }, Second = new() { GroupId = below.Id } }
+        };
+        legacy.ActiveWorkspace = "one";
+        legacy.Workspaces["one"] = new()
+        {
+            Documents =
+            {
+                [first] = [new("a", "A", "file", "a.txt"), new("p", "P", "file", "p.txt", Preview: true)],
+                [right.Id] = [new("b", "B", "file", "b.txt"), new("c", "C", "file", "c.txt"), new("q", "Q", "file", "q.txt", Preview: true)],
+                [below.Id] = [new("t", "Terminal", "terminal"), new("a", "A", "file", "a.txt")]
+            },
+            Panes = { [right.Id] = [new() { Id = "pair", TabIds = ["b", "c"], Direction = "vertical", Weights = [.3, .7] }] },
+            Selected = { [first] = "a", [right.Id] = "c", [below.Id] = "t" },
+            FocusedCenter = right.Id,
+            FocusedGroup = right.Id
+        };
+        legacy.Workspaces["two"] = new() { Documents = { [below.Id] = [new("z", "Z", "file", "z.txt")] }, Selected = { [below.Id] = "z" }, FocusedCenter = below.Id, FocusedGroup = below.Id };
+        return legacy;
+    }
+
+    /// <summary>A persisted layout whose main column was split restores as one group holding every tab and its tab groups.</summary>
+    private static void CheckLegacyCenterSplit()
+    {
+        var legacy = LegacyCenterSplit();
+        var first = legacy.Center.Leaves().First();
+        var restored = System.Text.Json.JsonSerializer.Deserialize<DockState>(System.Text.Json.JsonSerializer.Serialize(legacy))!;
+        var session = new LayoutSession(restored);
+        Require(session.State.Center.IsLeaf && session.State.Center.GroupId == first &&
+            session.State.Groups.Count(group => group.Region == "center") == 1 && LayoutSession.IsValid(session.State),
+            "A split main column must restore as one group.");
+        var one = session.State.Workspaces["one"];
+        Require(one.Documents[first].Select(tab => tab.Id).SequenceEqual(new[] { "a", "p", "b", "c", "q", "t" }) &&
+            one.Documents[first].Count(tab => tab.Preview) == 1,
+            "Every tab of a split main column must survive once, in order, with one preview.");
+        Require(one.Panes[first].Single() is { Direction: "vertical" } pane && pane.TabIds.SequenceEqual(new[] { "b", "c" }) && pane.Weights.SequenceEqual(new[] { .3, .7 }),
+            "A tab group from a removed split must survive the merge.");
+        Require(one.Selected[first] == "c" && one.FocusedCenter == first && one.FocusedGroup == first,
+            "The merged group must keep the focused split's selection.");
+        Require(session.State.Workspaces["two"].Documents[first].Single().Id == "z", "Other workspaces must keep their tabs.");
+        var preset = legacy.Copy();
+        var custom = new LayoutSession();
+        custom.SwitchWorkspace("one");
+        custom.Open(new("x", "X", "file", "x.txt"), true);
+        custom.ApplyPreset(preset);
+        Require(custom.State.Center.IsLeaf && custom.Tabs(custom.State.Center.GroupId).Single().Id == "x",
+            "A custom preset with a split main column must apply as one group.");
+        Console.WriteLine("PASS a split main column restores as one group with every tab and tab group");
+    }
+
     private static void CheckPanes()
     {
         (LayoutSession Session, string Group) Fresh(params string[] ids)

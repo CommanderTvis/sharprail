@@ -79,9 +79,12 @@ workspace first and the view goes once another is active.
 
 ## Layout grammar
 
-- Center: a horizontal/vertical binary tree of at most four leaves; a split halves one leaf. Interactive
-  split and resize keep each pane at least 320px wide and 180px high. Remove promotes the sibling and
-  moves the removed leaf's documents into it in every view.
+- Center: exactly one group. The main column has no custom splits (no split menu items, drop targets or
+  `NewGroup`/edge moves there); tabs combine only as tab groups ([panes](#tabs-in-projects-and-tab-groups)).
+  `CenterNode` stays a tree for persistence: `DockState.MergeCenter` folds a legacy split, on profile, host
+  preset and session load and when a preset applies, into its first leaf. Every view keeps each tab once in
+  tree order with its tab groups; the focused split's selection and focus move to the survivor, and a second
+  preview stays open as an ordinary tab.
 - Auxiliary eligibility: Projects, Specs, Files and Review are singleton tools, auxiliary-only. Changes is
   Files' Changed mode (ThinkRail #779); a persisted layout or preset naming the retired `changes` tool loses that
   tab on load and keeps the rest of its arrangement (upstream resets such a layout instead).
@@ -128,7 +131,7 @@ A committed transition rebuilds chrome and re-mounts the same body instances the
 
 ## Arrangement and accessibility
 
-A tab drag paints exactly one result: strip insertion, center half split, side before/after
+A tab drag paints exactly one result: strip insertion, side before/after
 group or restoring a hidden side. Touch dragging requires a 500 ms hold
 before movement; moving earlier cancels the draft so the Projects rail can scroll. Mouse dragging retains
 its immediate movement threshold. Only the pointer that pressed the tab may move or release its draft.
@@ -154,7 +157,7 @@ in place; opening its menu reads the current catalogue and excludes tools alread
 in the frame. A change to metadata of a displayed tool refreshes its chrome.
 
 Pointer is never the only path. Tab, group and header menus cover keep, close/hide, reorder, move to
-another group, directional splits, new pane before/after, remove group, fold, region visibility and tool restore; Alt+Shift+Left/Right reorders, Left/Right/Home/End rove, Delete or Mod+W
+another group, side above/below groups, new pane before/after, remove group, fold, region visibility and tool restore; Alt+Shift+Left/Right reorders, Left/Right/Home/End rove, Delete or Mod+W
 closes, separators resize from the keyboard and Escape restores their origin. Ctrl+F6 cycles visible
 groups. Tab strips are 32px with an accent underline on the active tab, bounded widths, hidden scrollbars
 active reveal and edge fades only where clipped; a folded group's restore control is its focus endpoint; overflow search appears only while the strip is clipped, as a 288px dropdown under its
@@ -226,10 +229,10 @@ right 28% with Specs/Files over Review at 1.25:1. A workspace
 whose spec graph comes back empty opens that rail on Files instead: once per workspace, when the graph
 arrives, a group still on its seeded first tool Specs moves its selection to the next tool without taking
 focus. Specs stays docked, and anything the user selects afterwards is theirs. Focus hides
-every auxiliary region; Review splits the center vertically and swaps the right stacks. Custom presets use
+every auxiliary region; Review swaps the right stacks. Custom presets use
 the same grammar, capture geometry, topology, tools, folds and empty slots but never workspace resources,
 and are shared through host state. Applying a preset replaces the frame and redistributes each view's
-documents and explicit terminals across the new center leaves; tools a preset omits receive
+documents and explicit terminals into its center group; tools a preset omits receive
 restore targets. The window's default preset is the Reset frame target and is never reapplied on
 workspace switch.
 
@@ -345,8 +348,8 @@ routing is pending, using the saved active view until the host supplies its proj
 The live tab controls survive that transition. Hiding, folding or covering Projects
 never adds a strip to the editor. Tab-mode and column-width settings are retired; legacy host
 and profile fields have no effect on placement. `DefaultPaneDirection` remains client-local.
-Centre groups can split right/below from their menu, or directionally by dragging a tab onto a
-body's split target. Each group's tabs stay in Projects. Interactive size limits still apply.
+The centre is one group and offers no splits from its menus or by dragging; side-by-side viewing is a tab
+group (pane). Its tabs stay in Projects.
 
 Nested strips retain their centre group as keyboard owner; their containing tool panel cannot take
 Close Tab or group-navigation commands. Rows use an active marker, top/bottom insertion quarters and

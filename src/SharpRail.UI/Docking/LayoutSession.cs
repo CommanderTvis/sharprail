@@ -17,6 +17,7 @@ public sealed partial class LayoutSession
     public LayoutSession(DockState? state = null)
     {
         state?.RemoveBottomZone();
+        state?.MergeCenter();
         state?.MigrateLegacyTools();
         State = state is not null && IsValid(state) ? state : DockState.Preset("balanced");
     }
@@ -424,19 +425,12 @@ public sealed partial class LayoutSession
         if (tab.IsTool ? to.Region == "center" : tab.Kind != "terminal" && to.Region != "center") throw new InvalidOperationException();
         if (edge.Length > 0)
         {
+            // The main column holds one group; tabs there combine only as tab groups (panes).
+            if (to.Region == "center") throw new InvalidOperationException();
             var created = new DockGroup { Region = to.Region };
-            if (to.Region == "center")
-            {
-                if (state.Center.Leaves().Count() >= 4) throw new InvalidOperationException();
-                state.Center = Split(state.Center, destination, created.Id, edge);
-            }
-            else
-            {
-                PrepareAuxiliaryCreation(state, created);
-                var offset = edge is "before" or "left" or "top" ? 0 : 1;
-                state.Groups.Insert(state.Groups.IndexOf(to) + offset, created);
-            }
-            if (!state.Groups.Contains(created)) state.Groups.Add(created);
+            PrepareAuxiliaryCreation(state, created);
+            var offset = edge is "before" or "left" or "top" ? 0 : 1;
+            state.Groups.Insert(state.Groups.IndexOf(to) + offset, created);
             to = created; destination = created.Id; index = 0;
         }
         // Tools and terminals never share a pane.
@@ -500,39 +494,13 @@ public sealed partial class LayoutSession
         }
     }
 
-    private static CenterNode Split(CenterNode node, string target, string created, string edge)
-    {
-        if (node.IsLeaf)
-        {
-            if (node.GroupId != target) return node;
-            var first = edge is "left" or "top";
-            return new()
-            {
-                Axis = edge is "left" or "right" ? "horizontal" : "vertical",
-                First = new() { GroupId = first ? created : target },
-                Second = new() { GroupId = first ? target : created }
-            };
-        }
-        node.First = Split(node.First!, target, created, edge);
-        node.Second = Split(node.Second!, target, created, edge);
-        return node;
-    }
-
     public bool NewGroup(string target, string edge) => Change(state =>
     {
         var prior = state.Groups.Single(group => group.Id == target);
+        if (prior.Region == "center") throw new InvalidOperationException();
         var next = new DockGroup { Region = prior.Region };
-        if (prior.Region == "center")
-        {
-            if (state.Center.Leaves().Count() >= 4) throw new InvalidOperationException();
-            state.Center = Split(state.Center, target, next.Id, edge);
-            state.Groups.Add(next);
-        }
-        else
-        {
-            PrepareAuxiliaryCreation(state, next);
-            state.Groups.Insert(state.Groups.IndexOf(prior) + (edge == "before" ? 0 : 1), next);
-        }
+        PrepareAuxiliaryCreation(state, next);
+        state.Groups.Insert(state.Groups.IndexOf(prior) + (edge == "before" ? 0 : 1), next);
     });
 
     public bool RemoveGroup(string id) => Change(state => RemoveGroupIn(state, id));
@@ -769,6 +737,7 @@ public sealed partial class LayoutSession
     {
         var next = preset.Copy();
         next.RemoveBottomZone();
+        next.MergeCenter();
         next.ActiveProject = State.ActiveProject;
         next.DefaultProjectPanes = CaptureProjectPanes(next);
         next.ProjectPanes = State.ProjectPanes.ToDictionary(pair => pair.Key, pair => pair.Value.Copy());
@@ -806,7 +775,7 @@ public sealed partial class LayoutSession
             if (state.ActiveProject is null || state.ProjectPanes is null ||
                 state.ProjectPanes.Any(pair => pair.Value is null || !ValidProjectPanes(pair.Value)) ||
                 state.DefaultProjectPanes is { } defaults && !ValidProjectPanes(defaults)) return false;
-            if (state.Schema != 1 || state.ToolRestorePositions is null || groups.Count != state.Groups.Count || leaves.Length is < 1 or > 4 ||
+            if (state.Schema != 1 || state.ToolRestorePositions is null || groups.Count != state.Groups.Count || leaves.Length != 1 ||
                 leaves.Distinct().Count() != leaves.Length || leaves.Any(id => !groups.Contains(id)) ||
                 state.Groups.Any(group => group.Region == "center" != leaves.Contains(group.Id)) ||
                 state.Groups.Any(group => string.IsNullOrWhiteSpace(group.Id) ||

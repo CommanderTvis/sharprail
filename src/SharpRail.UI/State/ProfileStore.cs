@@ -217,7 +217,7 @@ public sealed class ProfileStore
             if (!LineWidths.IsValid(Data.Preferences.MarkdownLineWidth)) Data.Preferences.MarkdownLineWidth = LineWidths.MarkdownDefault;
             if (Data.Preferences.TerminalRenderer is not (Terminal.TerminalRenderers.Texture or Terminal.TerminalRenderers.Skia))
                 Data.Preferences.TerminalRenderer = Terminal.TerminalRenderers.Texture;
-            foreach (var preset in Data.Preferences.CustomPresets.Values) { preset?.MigrateLegacyTools(); preset?.RemoveBottomZone(); }
+            foreach (var preset in Data.Preferences.CustomPresets.Values) { preset?.MigrateLegacyTools(); preset?.RemoveBottomZone(); preset?.MergeCenter(); }
             foreach (var name in Data.Preferences.CustomPresets.Keys.Where(name => string.IsNullOrWhiteSpace(name) ||
                 !LayoutSession.IsValid(Data.Preferences.CustomPresets[name])).ToArray()) Data.Preferences.CustomPresets.Remove(name);
             NormalizeTheme(Data.Preferences);
@@ -234,6 +234,7 @@ public sealed class ProfileStore
     {
         window.Layout?.MigrateLegacyTools();
         window.Layout?.RemoveBottomZone();
+        window.Layout?.MergeCenter();
         if (!LayoutSession.IsValid(window.Layout!)) window.Layout = DockState.Preset("balanced");
         if (string.IsNullOrWhiteSpace(window.DefaultPreset)) window.DefaultPreset = "balanced";
         if (window.LastProject is null || window.LastProject.Length > 0 && !ValidPath(window.LastProject)) window.LastProject = "";

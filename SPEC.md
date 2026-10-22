@@ -348,8 +348,8 @@ Switching workspaces retains geometry. Removing/merging groups remaps every
 retained workspace; closing the final tab preserves empty groups.
 
 Balanced: left 18%, right 28% with Specs/Files above Review (1.25:1); Changes lives in Files as its Changed mode.
-Center splits are binary, maximum four leaves,
-320px minimum width/180px minimum height for interactive split/resize.
+The main column holds one center group and never splits: tabs combine there only as tab groups (panes).
+A saved layout or preset with a split center merges into its first group, keeping every tab and tab group.
 Auxiliary groups default to six per side, configurable 1–32.
 Auxiliary panel minimum extent is 120px; folded constraints use 27px divided
 by the whole stack extent, with separator space removed during projection. Expanded
@@ -361,7 +361,7 @@ space; untouched compression and viewport constraint adjustment remain local.
 ### Dragging and resizing
 
 Pointer drag drafts do not mutate persistent state. Drop performs one legal
-move: strip insertion/join, center half split, side before/after group or hidden-side restore. Tools are auxiliary-only;
+move: strip insertion/join, side before/after group or hidden-side restore. Tools are auxiliary-only;
 documents are center-only. Escape/lost capture/outside drop cancel; no duplicate
 resources, illegal previews or partial changes. Valid targets show accent hints
 and the hovered target shows the actual destination. Existing groups may stay empty.

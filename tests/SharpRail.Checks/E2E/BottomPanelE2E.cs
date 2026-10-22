@@ -10,7 +10,7 @@ using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;
 
-// The bottom zone was retired; retain regression coverage for empty startup and explicit group terminals.
+// The bottom zone was retired; retain regression coverage for empty startup and explicit terminals.
 internal static class BottomPanelE2E
 {
     internal static void Run(string root)
@@ -31,11 +31,11 @@ internal static class BottomPanelE2E
         app.Click(app.Find<Button>("NewTerminal_" + center));
         Until(() => app.Workbench.TerminalCatalog!.Workspaces[app.Root].Count == 1 && app.Terminals.StartedIn(app.Root) == 1);
         var terminal = app.Window.Layout.Tabs(center).Single(tab => tab.Kind == "terminal");
-        Require(app.Window.Layout.Move(terminal.Id, center, center, 0, "bottom"), "An explicit terminal can move to a split group below.");
-        var group = app.Window.Layout.State.Center.Leaves().Single(id => id != center);
-        Require(app.Window.Layout.Selected(group)?.Id == terminal.Id && app.Window.Layout.State.Groups.All(item => item.Region != "bottom"),
-            "A split below belongs to the center tree and cannot recreate the bottom zone.");
-        Console.WriteLine("PASS bottom-zone removal: empty startup and explicit terminal group splits");
+        Require(!app.Window.Layout.Move(terminal.Id, center, center, 0, "bottom") &&
+            app.Window.Layout.State.Center.Leaves().Single() == center && app.Window.Layout.Selected(center)?.Id == terminal.Id &&
+            app.Window.Layout.State.Groups.All(item => item.Region != "bottom"),
+            "An explicit terminal cannot split the main column below or recreate the bottom zone.");
+        Console.WriteLine("PASS bottom-zone removal: empty startup and explicit terminals stay in the main column's group");
         NarrowSideResizing(root);
     }
     private static void NarrowSideResizing(string root)

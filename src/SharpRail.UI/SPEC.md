@@ -43,7 +43,7 @@ the UI must never become a second authority for host-owned settings. No backgrou
 
 | Concern | What the user experiences | Contract |
 | --- | --- | --- |
-| Docking | Arrange tabs, split the center, resize and hide tools | [Docking](Docking/SPEC.md) |
+| Docking | Arrange tabs and tab groups, resize and hide tools | [Docking](Docking/SPEC.md) |
 | State | Restore windows while sharing host settings | [State](State/SPEC.md) |
 | Terminals | Attach a view to a shell and recover from connection failures | [Terminals](Terminal/SPEC.md) |
 | Settings and dialogs | Configure the workbench and confirm actions | [Settings](Panels/SPEC.md) |

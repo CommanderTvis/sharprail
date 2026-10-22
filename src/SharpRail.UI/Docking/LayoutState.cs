@@ -243,6 +243,65 @@ public sealed class DockState
         }
     }
 
+    /// <summary>
+    /// Folds a centre split by an older layout or preset into its first centre group: the main column holds one
+    /// group whose tabs combine only as tab groups (panes). Each view keeps every tab once, in tree order, with its
+    /// panes, selection and focus; a second preview stays open as an ordinary tab.
+    /// </summary>
+    public void MergeCenter()
+    {
+        if (Center is null || Center.IsLeaf || Groups is null || Workspaces is null) return;
+        List<string> leaves;
+        try { leaves = Center.Leaves().Where(id => Groups.Any(group => group?.Id == id && group.Region == "center")).Distinct().ToList(); }
+        catch (NullReferenceException) { return; }
+        if (leaves.Count == 0) return;
+        var keep = leaves[0];
+        var removed = leaves.Skip(1).ToList();
+        foreach (var view in Workspaces.Values)
+        {
+            if (view?.Documents is null || view.Selected is null || view.Panes is null) continue;
+            if (!view.Documents.TryGetValue(keep, out var documents)) view.Documents[keep] = documents = [];
+            var present = documents.Select(tab => tab.Id).ToHashSet();
+            var preview = documents.Any(tab => tab.Preview);
+            foreach (var id in removed)
+            {
+                var migrated = new HashSet<string>();
+                if (view.Documents.Remove(id, out var tabs))
+                    foreach (var tab in tabs)
+                    {
+                        if (!present.Add(tab.Id)) continue;
+                        documents.Add(tab.Preview && preview ? tab with { Preview = false } : tab);
+                        preview |= tab.Preview;
+                        migrated.Add(tab.Id);
+                    }
+                foreach (var pane in view.Panes.GetValueOrDefault(id) ?? [])
+                {
+                    var members = pane.TabIds.Where(migrated.Contains).Distinct().ToList();
+                    if (members.Count < DockPane.MinMembers) continue;
+                    if (!view.Panes.TryGetValue(keep, out var panes)) view.Panes[keep] = panes = [];
+                    var copy = pane.Copy();
+                    copy.TabIds = members;
+                    if (members.Count != pane.TabIds.Count) copy.Weights = DockPane.Even(members.Count);
+                    panes.Add(copy);
+                }
+                if (view.FocusedCenter == id && view.Selected.GetValueOrDefault(id) is { } selected && migrated.Contains(selected))
+                    view.Selected[keep] = selected;
+                view.Selected.Remove(id);
+                view.Panes.Remove(id);
+                if (view.FocusedCenter == id) view.FocusedCenter = keep;
+                if (view.FocusedGroup == id) view.FocusedGroup = keep;
+            }
+            if (documents.Count > 0 && !documents.Any(tab => tab.Id == view.Selected.GetValueOrDefault(keep))) view.Selected[keep] = documents[0].Id;
+        }
+        Groups.RemoveAll(group => group is not null && removed.Contains(group.Id));
+        foreach (var tool in ToolRestore?.Where(pair => removed.Contains(pair.Value)).Select(pair => pair.Key).ToArray() ?? [])
+        {
+            ToolRestore!.Remove(tool);
+            ToolRestorePositions?.Remove(tool);
+        }
+        Center = new() { GroupId = keep };
+    }
+
     /// <summary>Whether an auxiliary group may hold <paramref name="tab"/>: tools and terminals never share a pane.</summary>
     public bool CanJoin(WorkspaceView view, DockGroup group, DockTab tab) => group.Region == "center" || (tab.IsTool
         ? (view.Documents.GetValueOrDefault(group.Id)?.Count ?? 0) == 0
@@ -298,9 +357,6 @@ public sealed class DockState
         if (name == "focus") state.LeftVisible = state.RightVisible = false;
         if (name == "review")
         {
-            var secondary = new DockGroup();
-            state.Groups.Add(secondary);
-            state.Center = new() { Axis = "vertical", First = new() { GroupId = center.Id }, Second = new() { GroupId = secondary.Id } };
             top.Tools = [Tool("review")]; top.Weight = 1.4;
             lower.Tools = [Tool(SpecsTool), Tool("files")];
             state.LeftWidth = .16; state.RightWidth = .32;

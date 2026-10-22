@@ -1,5 +1,4 @@
 using Avalonia;
-using Avalonia.Automation.Peers;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -90,18 +89,18 @@ internal static class LayoutSettingsE2E
         Require(System.Text.Json.JsonSerializer.Serialize(app.Window.Layout.State) == before, "Canceling a preset must retain the exact frame and resources.");
         app.Click(PresetButton(settings, "review", "Apply now…")); Respond(app, settings, true);
         var state = app.Window.Layout.State;
-        Require(state.SideLimit == 3 && state.Center.Leaves().Count() == 2 && state.Center.Axis == "vertical" &&
+        Require(state.SideLimit == 3 && state.Center.IsLeaf && Review(state) &&
             state.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Select(tab => tab.Path).Order().SequenceEqual(new[] { "README.md", "notes.txt" }.Order()) &&
             state.Groups.Count(group => group.Region == "left") == 1 && state.Groups.Count(group => group.Region == "right") == 2 &&
             state.Groups.All(group => group.Region != "bottom"),
-            "Review must preserve resources and install its vertical center and auxiliary topology.");
+            "Review must preserve resources in the one main column group and install its auxiliary topology.");
         settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Settle();
         Require(!settings.IsVisible, "Escape must close Settings after applying a preset.");
         var workbench = app.Find<Control>("WorkspaceWorkbench");
         var right = app.Find<Grid>("AuxiliaryStack_right");
         Require(right.Bounds.Width / workbench.Bounds.Width > .3, "Review must allocate more than 30 percent to the right stack.");
-        HorizontalSeparator(app);
-        Console.WriteLine("PASS upstream layout.spec.ts: applying the Review preset preserves resources and installs its vertical center topology");
+        NoCenterSeparator(app);
+        Console.WriteLine("PASS upstream layout.spec.ts: applying the Review preset preserves resources and installs its auxiliary topology");
     }
 
     private static void DefaultReset(string root)
@@ -115,13 +114,13 @@ internal static class LayoutSettingsE2E
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => Label(button, "Reset frame")));
             Respond(app, settings, true);
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SettingsClose"));
-            Require(app.Window.Layout.State.Center.Leaves().Count() == 2 && app.Window.Layout.State.Center.Axis == "vertical", "An explicit reset must use the local default preset.");
-            HorizontalSeparator(app);
+            Require(Review(app.Window.Layout.State), "An explicit reset must use the local default preset.");
+            NoCenterSeparator(app);
         }
         using (var app = new E2eWorkspace(directory, openFiles: false))
         {
-            Require(app.Window.Layout.State.Center.Leaves().Count() == 2 && app.Window.Layout.State.Center.Axis == "vertical", "Reload must retain the reset frame.");
-            HorizontalSeparator(app);
+            Require(Review(app.Window.Layout.State), "Reload must retain the reset frame.");
+            NoCenterSeparator(app);
             var settings = Open(app);
             Require(PresetButton(settings, "review", "Default") is not null, "Reload must retain the local default choice.");
             settings.Close();
@@ -243,11 +242,11 @@ internal static class LayoutSettingsE2E
         Console.WriteLine("PASS upstream layout.spec.ts: custom presets synchronize while defaults and group limits remain window-local");
     }
 
-    private static void HorizontalSeparator(E2eWorkspace app)
-    {
-        var separator = app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Single(handle => handle.Name!.StartsWith("CenterSeparator_", StringComparison.Ordinal));
-        var peer = ControlAutomationPeer.CreatePeerForElement(separator)!;
-        Require(peer.GetAutomationControlType() == AutomationControlType.Separator && peer.GetName() == "Horizontal pane separator",
-            "The vertical center split must expose its horizontal resize separator through native automation.");
-    }
+    // Review seats its tool first in the right rail and keeps the main column one group.
+    private static bool Review(DockState state) => state.Center.IsLeaf &&
+        state.Groups.First(group => group.Region == "right").Tools.FirstOrDefault()?.Id == "review";
+
+    private static void NoCenterSeparator(E2eWorkspace app) =>
+        Require(!app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.Name!.StartsWith("CenterSeparator_", StringComparison.Ordinal)),
+            "The main column must have no split separator.");
 }

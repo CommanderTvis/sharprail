@@ -48,28 +48,10 @@ internal static class NavigationChecks
         Require(window.Layout.Selected(primary)?.Path == "README.md" && window.Layout.Tabs(primary).Count == 1,
             "Reselecting an active tab failed to defeat a deferred open.");
 
-        Require(window.Layout.NewGroup(primary, "right"), "Navigation split failed.");
-        var secondary = window.Layout.State.Center.Leaves().Last();
-        window.Layout.Focus(primary); var firstGate = host.Hold("hello.txt");
-        var first = window.OpenDocumentAsync("hello.txt", true);
-        window.Layout.Focus(secondary); var secondGate = host.Hold("SPEC.md");
-        var second = window.OpenDocumentAsync("SPEC.md", true);
-        secondGate.SetResult(); Await(second); firstGate.SetResult(); Await(first);
-        Require(window.Layout.Tabs(primary).Any(tab => tab.Path == "hello.txt") &&
-            window.Layout.Selected(primary)?.Path == "README.md" && window.Layout.Selected(secondary)?.Path == "SPEC.md" &&
-            window.Layout.View.FocusedCenter == secondary,
-            "Independent pane navigation suppressed another pane's open.");
-
         window.Layout.Focus(primary); gate = host.Hold("hello.txt");
         pending = window.OpenDocumentAsync("hello.txt", true);
         window.Layout.Close(primary, "file:hello.txt"); gate.SetResult(); Await(pending);
         Require(window.Layout.Tabs(primary).All(tab => tab.Path != "hello.txt"), "Deferred open resurrected a closed tab.");
-
-        window.Layout.Focus(secondary); gate = host.Hold("navigation.txt");
-        pending = window.OpenDocumentAsync("navigation.txt", true);
-        Require(window.Layout.RemoveGroup(secondary), "Navigation group removal failed.");
-        gate.SetResult(); Await(pending);
-        Require(window.Layout.Selected(primary)?.Path == "navigation.txt", "Removed-group completion did not reroute to surviving focus.");
 
         gate = host.Hold("hello.txt"); pending = window.OpenDocumentAsync("hello.txt", true);
         Await(window.OpenDocumentAsync("SPEC.md", true)); gate.SetResult(); Await(pending);

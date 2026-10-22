@@ -213,20 +213,10 @@ public sealed partial class DockSurface
                 }
                 continue;
             }
-            var header = group.Region == "center" ? bounds : RectOf(groupHeaders[group.Id]);
+            // The main column holds one group: tabs are arranged there as tab groups, never as custom splits.
+            if (group.Region == "center") continue;
+            var header = RectOf(groupHeaders[group.Id]);
             var section = group.Folded ? bounds : new Rect(bounds.Left, header.Top, bounds.Width, bounds.Bottom - header.Top);
-            if (group.Region == "center")
-            {
-                foreach (var edge in new[] { "left", "right", "top", "bottom" })
-                {
-                    var horizontal = edge is "left" or "right";
-                    if ((horizontal ? section.Width < 640 : section.Height < 360) || !Legal(site.Group, 0, edge)) continue;
-                    var hint = SplitTarget(section, edge);
-                    var half = Edge(section, edge, .5);
-                    candidates.Add(new(new(site.Group, 0, edge, hint), active => Hint(active ? half : hint, active, active)));
-                }
-                continue;
-            }
             if (group.Folded && Legal(site.Group, Session.Tabs(site.Group).Count))
                 candidates.Add(new(new(site.Group, Session.Tabs(site.Group).Count, "", bounds), active =>
                 {
@@ -333,36 +323,20 @@ public sealed partial class DockSurface
         }
     }
 
-    private Border Hint(Rect rect, bool active, bool split = false)
+    private Border Hint(Rect rect, bool active)
     {
         var hint = new Border
         {
             Width = rect.Width,
             Height = rect.Height,
             CornerRadius = new CornerRadius(4),
-            BorderThickness = new Thickness(split ? 2 : 1),
+            BorderThickness = new Thickness(1),
             BorderBrush = active ? Ui.Accent : Ui.PrimarySoft,
             Background = active ? Ui.PrimarySoft : Ui.PrimarySubtle
         };
         Canvas.SetLeft(hint, rect.Left); Canvas.SetTop(hint, rect.Top); overlay.Children.Add(hint);
         return hint;
     }
-
-    private static Rect Edge(Rect bounds, string edge, double ratio) => edge switch
-    {
-        "left" => new(bounds.Left, bounds.Top, bounds.Width * ratio, bounds.Height),
-        "right" => new(bounds.Right - bounds.Width * ratio, bounds.Top, bounds.Width * ratio, bounds.Height),
-        "top" => new(bounds.Left, bounds.Top, bounds.Width, bounds.Height * ratio),
-        _ => new(bounds.Left, bounds.Bottom - bounds.Height * ratio, bounds.Width, bounds.Height * ratio)
-    };
-
-    private static Rect SplitTarget(Rect bounds, string edge) => edge switch
-    {
-        "left" => new(bounds.Left + 4, bounds.Top + bounds.Height / 4, bounds.Width / 5, bounds.Height / 2),
-        "right" => new(bounds.Right - 4 - bounds.Width / 5, bounds.Top + bounds.Height / 4, bounds.Width / 5, bounds.Height / 2),
-        "top" => new(bounds.Left + bounds.Width / 4, bounds.Top + 32, bounds.Width / 2, bounds.Height / 5),
-        _ => new(bounds.Left + bounds.Width / 4, bounds.Bottom - 4 - bounds.Height / 5, bounds.Width / 2, bounds.Height / 5)
-    };
 
     private static Rect AuxiliaryTarget(Rect bounds, string edge) => edge switch
     {
