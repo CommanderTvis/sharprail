@@ -34,6 +34,7 @@ internal static class NativeTerminalChecks
     {
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException("Native terminal checks require macOS.");
         var fixture = CheckRoot.Create("native-terminal");
+        NativeTextureChecks.UseFixtureShell();
         File.WriteAllText(Path.Combine(fixture, ".git"), "gitdir: " + Path.Combine(fixture, "absent"));
         var profile = new ProfileStore(Path.Combine(fixture, ProfileDirectory));
         var layout = new LayoutSession(profile.Data.Windows[0].Layout);

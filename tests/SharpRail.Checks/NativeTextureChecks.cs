@@ -42,6 +42,7 @@ internal static class NativeTextureChecks
     public static void Run(string[] args)
     {
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
+        UseFixtureShell();
         fallbackCheck = args.Contains("--texture-fallback");
         skiaCheck = args.Contains("--native-skia");
         clipboardCheck = args.Contains("--native-osc52");
@@ -54,6 +55,21 @@ internal static class NativeTextureChecks
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [fallbackCheck ? AvaloniaNativeRenderingMode.Software : AvaloniaNativeRenderingMode.Metal] })
             .StartWithClassicDesktopLifetime(args) != 0)
             throw new InvalidOperationException("Native texture check failed; see the assertion above.");
+    }
+
+    /// <summary>
+    /// Runs interactive shells as zsh with a fixed one-character prompt and none of the user's startup files. A
+    /// host- or user-length prompt wider than a narrow resize makes the shell's prompt redraw erase earlier lines,
+    /// and the user's line-editor plugins rewrite typed input.
+    /// </summary>
+    internal static void UseFixtureShell()
+    {
+        var home = CheckRoot.Create("fixture-zsh");
+        File.WriteAllText(Path.Combine(home, ".zshrc"), "PROMPT='$ '\nRPROMPT=''\nunsetopt correct correct_all\n");
+        // Host PTYs build the shell's environment from these; Ghostty's own launches need ZDOTDIR passed explicitly,
+        // since .NET does not change the native environment Ghostty copies.
+        Environment.SetEnvironmentVariable("ZDOTDIR", home);
+        Environment.SetEnvironmentVariable("SHELL", "/bin/zsh");
     }
 
     private sealed class TextureApplication : Application
@@ -358,7 +374,7 @@ internal static class NativeTextureChecks
     {
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
         var clipboard = CheckRoot.Create("texture-paste");
-        using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), "/bin/sh", ClipboardImageDirectory: clipboard))
+        using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), "/bin/zsh", new("ZDOTDIR", Environment.GetEnvironmentVariable("ZDOTDIR")!), clipboard))
         { Width = 640, Height = 360, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
         var clip = new Border
         {
