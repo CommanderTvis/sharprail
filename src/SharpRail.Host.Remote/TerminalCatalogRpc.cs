@@ -15,7 +15,9 @@ public sealed class TerminalCatalogRpc(ITerminalCatalogService catalog, IHostApp
     });
 
     public ValueTask<TerminalCatalogReply> CloseTabAsync(TerminalCatalogRequest request, CallContext context = default) =>
-        Execute(() => catalog.CloseTabAsync(request.WorkspaceRoot, request.Tabs.FirstOrDefault()?.Key ?? "", context.CancellationToken));
+        Execute(() => request.Undoable
+            ? catalog.CloseTabForUndoAsync(request.WorkspaceRoot, request.Tabs.FirstOrDefault()?.Key ?? "", context.CancellationToken)
+            : catalog.CloseTabAsync(request.WorkspaceRoot, request.Tabs.FirstOrDefault()?.Key ?? "", context.CancellationToken));
 
     public ValueTask<TerminalCatalogReply> CloseWorkspaceAsync(TerminalCatalogRequest request, CallContext context = default) =>
         Execute(() => catalog.CloseWorkspaceAsync(request.WorkspaceRoot, context.CancellationToken));

@@ -32,6 +32,7 @@ internal static partial class TerminalHostChecks
             finally { await app.StopAsync(); }
         }
         CatalogStorage(root);
+        await UndoClose(root, workspace);
         await CatalogRevival(root, workspace);
         await RemovedWorkspace(root);
     }

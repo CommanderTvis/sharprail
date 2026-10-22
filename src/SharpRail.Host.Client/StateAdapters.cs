@@ -101,6 +101,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             MarkdownLineWidthBounded = !reply.Settings.MarkdownLineWidthUnbounded,
             TerminalReplayKb = reply.Settings.TerminalReplayKb,
             TerminalKeepAfterExit = reply.Settings.TerminalKeepAfterExit,
+            TerminalUndoCloseSeconds = reply.Settings.TerminalUndoCloseSeconds,
             FileTypeIconsEnabled = !reply.Settings.FileTypeIconsDisabled,
             NotificationsEnabled = !reply.Settings.NotificationsDisabled,
             TerminalNotificationsEnabled = !reply.Settings.TerminalNotificationsDisabled,

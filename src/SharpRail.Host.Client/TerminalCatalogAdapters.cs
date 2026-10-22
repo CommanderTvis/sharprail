@@ -10,6 +10,7 @@ public sealed class LocalTerminalCatalogAdapter(ITerminalCatalogService host) : 
     public ValueTask<TerminalCatalog> OpenWorkspaceAsync(string workspaceRoot, IReadOnlyList<TerminalTab> tabs, CancellationToken cancellationToken = default) => host.OpenWorkspaceAsync(workspaceRoot, tabs, cancellationToken);
     public ValueTask<TerminalCatalog> ReserveAsync(string workspaceRoot, TerminalTab tab, CancellationToken cancellationToken = default) => host.ReserveAsync(workspaceRoot, tab, cancellationToken);
     public ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => host.CloseTabAsync(workspaceRoot, key, cancellationToken);
+    public ValueTask<TerminalCatalog> CloseTabForUndoAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => host.CloseTabForUndoAsync(workspaceRoot, key, cancellationToken);
     public ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default) => host.CloseWorkspaceAsync(workspaceRoot, cancellationToken);
     public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => host.WatchAsync(cancellationToken);
     public IAsyncEnumerable<TerminalSignal> WatchSignalsAsync(CancellationToken cancellationToken = default) => host.WatchSignalsAsync(cancellationToken);
@@ -45,6 +46,10 @@ public sealed class RemoteTerminalCatalogAdapter : ITerminalCatalogService, IDis
 
     public ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) =>
         Execute(() => service.CloseTabAsync(Request(workspaceRoot, [new(key, "")]), Context(cancellationToken)));
+
+    // A host that predates undo ignores the flag and closes the tab outright.
+    public ValueTask<TerminalCatalog> CloseTabForUndoAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) =>
+        Execute(() => { var request = Request(workspaceRoot, [new(key, "")]); request.Undoable = true; return service.CloseTabAsync(request, Context(cancellationToken)); });
 
     public ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default) =>
         Execute(() => service.CloseWorkspaceAsync(Request(workspaceRoot, []), Context(cancellationToken)));

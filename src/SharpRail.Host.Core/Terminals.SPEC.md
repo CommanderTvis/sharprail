@@ -78,7 +78,8 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   host one marker and nothing per chunk, and its view is never left mid-sequence. Terminal query replies come
   only from the holder: a watcher's writes are dropped on the host, and snapshots carry no queries.
 - A shell ends for exactly five reasons: its tab is closed (`CloseTabAsync`, or `CloseAsync` by session
-  id), its workspace is removed, it exits, the host stops, or a client kills it. Detaching, closing a window or dropping a connection kills nothing. There is no idle
+  id; for a user close through `CloseTabForUndoAsync`, once the undo timeout passes), its workspace is
+  removed, it exits, the host stops, or a client kills it. Detaching, closing a window or dropping a connection kills nothing. There is no idle
   culling and no abandoned-client reap. A shell that exits while detached keeps its final output and exit
   status for the next attach; the exit code is the shell's, or 128 plus the terminating signal.
 - Busy means a process other than the shell owns the terminal's foreground process group (`tcgetpgrp`);
@@ -225,6 +226,15 @@ including draining output while closing the pseudoconsole.
   and lets a client that predates the catalog bring its existing tabs.
 - Every change returns the complete snapshot it produced, and `WatchAsync` yields the current one and then
   each later one, keeping only the latest for a slow watcher.
+- `CloseTabForUndoAsync` (the remote request's `Undoable` flag) is a user's close of a live tab: the tab
+  leaves the catalog and every client sees it gone, but its live shell keeps running, detached, for the
+  host setting `TerminalUndoCloseSeconds` (default 5, Ghostty's `undo-timeout`; 0–600, zero disables). Each
+  close has its own timer. Reserving the same tab within it restores it with the same session; afterwards
+  the shell ends as `CloseTabAsync` ends it. An exited shell, a timeout of zero, an implementation without
+  undo (the interface default, a memory catalog) or a host that predates the flag close outright. A tab still
+  waiting for undo is ended, not saved for revival, when the host stops; a workspace removal ends it too.
+  `TerminalUndoCloseChecks.cs` covers restore with output written meanwhile, expiry, zero and host stop,
+  locally and through a real WebSocket RPC host.
 - `CloseTabAsync` removes the tab and ends its shell; `CloseAsync` by session id does the same for the tab
   that session belongs to. `CloseWorkspaceAsync` forgets the workspace and ends every shell started in
   that folder, catalogued or not, with their recordings. The composition root calls it when

@@ -194,7 +194,7 @@ public sealed partial class WorkbenchWindow
             // A workspace seen for the first time brings its tabs when it is shared.
             if (!previous.TryGetValue(workspace, out var before)) continue;
             foreach (var (id, title) in tabs.Where(tab => !before.ContainsKey(tab.Key))) _ = ReserveTerminalAsync(workspace, new(id, title));
-            foreach (var id in before.Keys.Where(id => !tabs.ContainsKey(id))) _ = CloseTerminalAsync(workspace, id);
+            foreach (var id in before.Keys.Where(id => !tabs.ContainsKey(id))) _ = CloseTerminalAsync(workspace, id, undoableTerminalCloses.Contains(workspace + ":" + id));
         }
     }
 
@@ -223,12 +223,15 @@ public sealed partial class WorkbenchWindow
         RefreshTerminals(workspace, tab.Key);
     }
 
-    private async Task CloseTerminalAsync(string workspace, string tabId)
+    // An undoable close leaves the host session running, detached, for the undo timeout.
+    private async Task CloseTerminalAsync(string workspace, string tabId, bool undoable = false)
     {
         ownTerminals.Remove(workspace + ":" + tabId); terminalCommands.Remove(workspace + ":" + tabId);
         try
         {
-            var catalog = await Task.Run(async () => await workbench.TerminalTabs.CloseTabAsync(workspace, tabId, lifetime.Token), lifetime.Token);
+            var catalog = await Task.Run(async () => undoable
+                ? await workbench.TerminalTabs.CloseTabForUndoAsync(workspace, tabId, lifetime.Token)
+                : await workbench.TerminalTabs.CloseTabAsync(workspace, tabId, lifetime.Token), lifetime.Token);
             workbench.OfferTerminalCatalog(catalog);
         }
         catch (Exception error) when (error is OperationCanceledException or NotSupportedException) { }

@@ -44,6 +44,14 @@ public interface ITerminalCatalogService
     ValueTask<TerminalCatalog> ReserveAsync(string workspaceRoot, TerminalTab tab, CancellationToken cancellationToken = default);
     /// <summary>Removes the tab for every client and ends its shell.</summary>
     ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// The user's close of a live tab: removes it for every client like <see cref="CloseTabAsync"/>, but a host that
+    /// keeps closed sessions for undo leaves the shell running, detached, for its undo timeout. Reserving the same
+    /// tab within that time brings it back with the same session; afterwards the shell ends as a close ends it.
+    /// A host without undo closes the tab outright.
+    /// </summary>
+    ValueTask<TerminalCatalog> CloseTabForUndoAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) =>
+        CloseTabAsync(workspaceRoot, key, cancellationToken);
     /// <summary>Ends every terminal rooted in a removed workspace and forgets the workspace.</summary>
     ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default);
     /// <summary>Yields the current snapshot, then every later one, until cancelled or disconnected.</summary>

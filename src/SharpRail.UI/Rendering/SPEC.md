@@ -47,7 +47,7 @@ since the kit has no theme of its own.
   on a row under the message) and a
   Dismiss button. Each card is a `ToastCard` (compiled `ToastCard.axaml`, `x:DataType=Toast`) that fades and rises in; the
   stack owns the per-toast lifetime timers and does not use Avalonia's `WindowNotificationManager`, which would
-  duplicate the queue and move the cards out of the window's logical tree. Cards are kept by toast id, so a push or dismissal never restarts another toast's timer;
+  duplicate the queue and move the cards out of the window's logical tree. Cards are kept by toast id, so a push or dismissal never restarts another toast's timer; a `Countdown` toast shows the whole seconds left of its lifetime after its message, ticking while shown (undo close);
   an error card is announced assertively, the others politely.
 - `LineWidths` converts symbol-count line widths to logical pixels, like CSS `ch` units.
 - `MarkdownLink` is the inline link button that keeps the text baseline of the surrounding paragraph.

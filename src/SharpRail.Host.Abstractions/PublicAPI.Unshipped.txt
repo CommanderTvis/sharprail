@@ -1932,3 +1932,8 @@ SharpRail.Host.Abstractions.TerminalAttachRequest.Program.get -> string?
 SharpRail.Host.Abstractions.TerminalAttachRequest.Program.init -> void
 SharpRail.Host.Abstractions.TerminalPrefill.Program.get -> bool
 SharpRail.Host.Abstractions.TerminalPrefill.Program.init -> void
+SharpRail.Host.Abstractions.HostSettings.TerminalUndoCloseSeconds.get -> int
+SharpRail.Host.Abstractions.HostSettings.TerminalUndoCloseSeconds.init -> void
+const SharpRail.Host.Abstractions.HostSettings.DefaultTerminalUndoCloseSeconds = 5 -> int
+const SharpRail.Host.Abstractions.HostSettings.MaxTerminalUndoCloseSeconds = 600 -> int
+SharpRail.Host.Abstractions.ITerminalCatalogService.CloseTabForUndoAsync(string! workspaceRoot, string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.TerminalCatalog!>

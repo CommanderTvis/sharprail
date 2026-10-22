@@ -321,7 +321,8 @@ public sealed partial class SettingsWindow : Window
         else if (section == "Line width") foreach (var refresh in refreshers) refresh();
         // A project joining the recents list (the window's own open lands after it mounts) leaves the other pages alone.
         else if (section == "Appearance" && previous.Settings != next.Settings || section == "Layout" && (previous.Settings != next.Settings || !previous.Presets.SequenceEqual(next.Presets)) ||
-            section == "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && (previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb || previous.Settings.TerminalKeepAfterExit != next.Settings.TerminalKeepAfterExit)) RefreshSection();
+            section == "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && (previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb || previous.Settings.TerminalKeepAfterExit != next.Settings.TerminalKeepAfterExit ||
+                previous.Settings.TerminalUndoCloseSeconds != next.Settings.TerminalUndoCloseSeconds)) RefreshSection();
         else if (section is "Notifications" or "Terminal") foreach (var refresh in refreshers) refresh();
     }
 
@@ -857,6 +858,20 @@ public sealed partial class SettingsWindow : Window
             exit.Children.Add(Choice("TerminalExit_" + name, label, description, keep == value, () =>
             {
                 if (state.Current.Settings.TerminalKeepAfterExit != value) Share(HostStateChange.Setting("terminal-keep-after-exit", value ? "true" : "false"));
+            }));
+        var undo = PageControl<StackPanel>(panel, "TerminalUndoCloseChoices");
+        var undoSeconds = state.Current.Settings.TerminalUndoCloseSeconds;
+        foreach (var (seconds, label, description) in new[]
+        {
+            (0, "Off", "Closing a tab is final and ends its process at once"),
+            (HostSettings.DefaultTerminalUndoCloseSeconds, "5 seconds", "As Ghostty does (default)"),
+            (15, "15 seconds", "More time to change your mind"),
+            (60, "1 minute", "A closed terminal keeps running for a minute")
+        })
+            undo.Children.Add(Choice("TerminalUndoClose_" + seconds, label, description, undoSeconds == seconds, () =>
+            {
+                if (state.Current.Settings.TerminalUndoCloseSeconds != seconds)
+                    Share(HostStateChange.Setting("terminal-undo-close", seconds.ToString(CultureInfo.InvariantCulture)));
             }));
         return panel;
     }

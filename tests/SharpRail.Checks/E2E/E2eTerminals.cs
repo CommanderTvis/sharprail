@@ -83,6 +83,7 @@ internal sealed class E2eTerminals(ITerminalService? inner = null, ITerminalCata
     public ValueTask<TerminalCatalog> OpenWorkspaceAsync(string workspaceRoot, IReadOnlyList<TerminalTab> tabs, CancellationToken cancellationToken = default) => Catalog.OpenWorkspaceAsync(workspaceRoot, tabs, cancellationToken);
     public ValueTask<TerminalCatalog> ReserveAsync(string workspaceRoot, TerminalTab tab, CancellationToken cancellationToken = default) => Catalog.ReserveAsync(workspaceRoot, tab, cancellationToken);
     public ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => Catalog.CloseTabAsync(workspaceRoot, key, cancellationToken);
+    public ValueTask<TerminalCatalog> CloseTabForUndoAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => Catalog.CloseTabForUndoAsync(workspaceRoot, key, cancellationToken);
     public ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default) => Catalog.CloseWorkspaceAsync(workspaceRoot, cancellationToken);
     public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => Catalog.WatchAsync(cancellationToken);
 

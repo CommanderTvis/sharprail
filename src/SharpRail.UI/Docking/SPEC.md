@@ -315,6 +315,13 @@ no target and no further fallback. The tab button no longer handles Mod+W itself
 When a tab button holds keyboard focus, the close returns focus to the group's newly selected tab, as Delete
 does, so reordering and roving continue from the keyboard.
 
+`LayoutSession.Close` raises `TabClosing` with a `ClosedTab` (workspace, group, index, tab, pane) once a close
+of a document or terminal tab is certain, before `Changed`, including a close retried after the removal veto.
+`Reopen(ClosedTab)` puts it back in the active workspace: its group (a side group only for a terminal and
+never beside tools; else the focused centre group), its index clamped, and its pane when the other members
+remain and belong to no other pane; it selects and reveals it. Undo close builds on these
+([Terminal/SPEC.md](../Terminal/SPEC.md#undo-close)).
+
 Changes review tabs use the ordinary resource preview/keep placement, persisting only identity and
 scope. Body reads start when the mounted review requests them, outside layout hydration. Review progress
 belongs to the window state owner; see [State/SPEC.md](../State/SPEC.md).

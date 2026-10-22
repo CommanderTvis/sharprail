@@ -97,7 +97,8 @@ public sealed partial class LayoutSession
         Focused?.Invoke();
     }
 
-    private bool Change(Action<DockState> mutation, string? selectionGroup = null)
+    // committing runs once the change is certain, before it is published, so listeners of Changed already know why.
+    private bool Change(Action<DockState> mutation, string? selectionGroup = null, Action? committing = null)
     {
         var candidate = State.Copy();
         try { mutation(candidate); }
@@ -115,8 +116,9 @@ public sealed partial class LayoutSession
                 foreach (var tab in view.Documents.Values.SelectMany(tabs => tabs))
                     if (!remaining.Contains(tab.Id) && !CanRemoveDocument(workspace, tab.Id)) blocked.Add((workspace, tab.Id));
             }
-            if (blocked.Count > 0) { RemovalBlocked?.Invoke(blocked, () => Change(mutation, selectionGroup)); return false; }
+            if (blocked.Count > 0) { RemovalBlocked?.Invoke(blocked, () => Change(mutation, selectionGroup, committing)); return false; }
         }
+        committing?.Invoke();
         State = candidate; Epoch++;
         if (selectionGroup is null) Changed?.Invoke();
         else { SelectionChanged?.Invoke(selectionGroup); Focused?.Invoke(); }
@@ -332,7 +334,8 @@ public sealed partial class LayoutSession
     public void Close(string groupId, string tabId)
     {
         Navigating?.Invoke(groupId);
-        Change(state => CloseIn(state, groupId, tabId));
+        var closed = Describe(groupId, tabId);
+        Change(state => CloseIn(state, groupId, tabId), committing: closed is null ? null : () => TabClosing?.Invoke(closed));
     }
 
     private static void CloseIn(DockState state, string groupId, string tabId)

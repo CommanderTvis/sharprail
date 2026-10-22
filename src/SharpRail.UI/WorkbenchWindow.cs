@@ -124,6 +124,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WireHostSync();
         WireSettling();
         WireTerminalCatalog();
+        WireUndoClose();
         WirePlugins();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
@@ -163,6 +164,9 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         (WindowShortcuts.Refresh, () => true, () => _ = RefreshAsync()),
         (WindowShortcuts.Back, () => true, () => _ = GoBackAsync()),
         (WindowShortcuts.Forward, () => true, () => _ = GoForwardAsync()),
+        // A text box or editor keeps its own undo; off macOS a terminal keeps Ctrl+Z for its shell.
+        (WindowShortcuts.UndoClose, () => CanUndoClose() && UndoCloseFocusAllows(!OperatingSystem.IsMacOS()), () => UndoClose()),
+        (WindowShortcuts.RedoClose, () => CanRedoClose() && UndoCloseFocusAllows(!OperatingSystem.IsMacOS()), RedoClose),
     ];
 
     /// <summary>The first chord in <see cref="WindowShortcuts.All"/> order that matches and is enabled.</summary>

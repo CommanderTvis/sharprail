@@ -41,5 +41,18 @@ internal sealed partial class ToastCard : Border
         var dismiss = this.FindControl<Button>("ToastDismiss")!;
         dismiss.Content = Ui.Icon("close", Ui.Muted, 14);
         dismiss.Click += (_, _) => queue.Dismiss(toast.Id);
+        if (toast is { Countdown: true, Lifetime: { } lifetime }) Count(toast, lifetime);
+    }
+
+    // The message gains the whole seconds left, ticking while the card is shown.
+    private void Count(Toast toast, TimeSpan lifetime)
+    {
+        var message = this.FindControl<TextBlock>("ToastMessage")!;
+        var ends = DateTime.UtcNow + lifetime;
+        void Show() => message.Text = $"{toast.Message} ({Math.Max(0, (int)Math.Ceiling((ends - DateTime.UtcNow).TotalSeconds))} s)";
+        var timer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        timer.Tick += (_, _) => Show();
+        AttachedToVisualTree += (_, _) => { Show(); timer.Start(); };
+        DetachedFromVisualTree += (_, _) => timer.Stop();
     }
 }

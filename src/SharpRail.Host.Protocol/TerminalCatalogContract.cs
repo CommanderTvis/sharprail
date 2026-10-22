@@ -16,6 +16,8 @@ public sealed class TerminalCatalogRequest
 {
     [ProtoMember(1)] public string WorkspaceRoot { get; set; } = "";
     [ProtoMember(2)] public List<TerminalTabMessage> Tabs { get; set; } = [];
+    /// <summary>On CloseTab: the user's close of a live tab, which a host with undo keeps restorable for its timeout.</summary>
+    [ProtoMember(3)] public bool Undoable { get; set; }
 }
 
 [ProtoContract]

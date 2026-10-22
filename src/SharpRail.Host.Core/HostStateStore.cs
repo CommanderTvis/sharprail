@@ -457,6 +457,7 @@ public sealed partial class HostStateStore : IHostStateService
                 MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth),
                 TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb),
                 BellFeatures = HostSettings.NormalizeBellFeatures(value.Settings.BellFeatures ?? "") is { } bell && value.Settings.BellFeatures is { Length: > 0 } ? bell : HostSettings.DefaultBellFeatures,
+                TerminalUndoCloseSeconds = Math.Clamp(value.Settings.TerminalUndoCloseSeconds, 0, HostSettings.MaxTerminalUndoCloseSeconds),
                 CustomHighlighting = ValidHighlighting(value.Settings.CustomHighlighting) ? value.Settings.CustomHighlighting : "",
                 WindowDecorations = value.Settings.WindowDecorations is "client" or "system" ? value.Settings.WindowDecorations : "",
                 SettleIdleDays = value.Settings.SettleIdleDays is { } days ? Math.Clamp(days, 1, HostSettings.MaxSettleIdleDays) : null
@@ -575,6 +576,8 @@ public sealed partial class HostStateStore : IHostStateService
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
                     "terminal-keep-after-exit" when bool.TryParse(value, out var keep) => settings with { TerminalKeepAfterExit = keep },
+                    "terminal-undo-close" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) && seconds <= HostSettings.MaxTerminalUndoCloseSeconds
+                        => settings with { TerminalUndoCloseSeconds = seconds },
                     "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
                     "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },
                     "java-kotlin-provider" when IsProviderChoice(value) => settings with { JavaKotlinProvider = value },

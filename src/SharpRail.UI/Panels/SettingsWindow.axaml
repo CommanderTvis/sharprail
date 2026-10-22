@@ -255,6 +255,9 @@
         <TextBlock Text="When the shell exits" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="What a terminal tab does when its shell ends, by exit, Ctrl-D or otherwise. A shell that fails to start, or exits abnormally within moments of starting, always keeps its tab to show why. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
         <StackPanel x:Name="TerminalExitChoices" Spacing="8" />
+        <TextBlock Text="Undo close" Classes="settings-heading" Margin="0,16,0,0" />
+        <TextBlock Text="How long a closed tab can be reopened in place with Undo (Command-Z on macOS). A closed terminal keeps its process running, detached, for this time. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
+        <StackPanel x:Name="TerminalUndoCloseChoices" Spacing="8" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="WorkspacesPage">

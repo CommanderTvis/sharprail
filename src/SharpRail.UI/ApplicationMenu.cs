@@ -96,6 +96,9 @@ public static class ApplicationMenu
         ];
         NativeMenu edit = Editing(window);
         edit.Items.Add(new NativeMenuItemSeparator());
+        // Mod+Z stays Undo's key equivalent; this item shows Ghostty's other undo chord and acts whatever has focus.
+        edit.Items.Add(Item("Undo Close Tab", WindowShortcuts.UndoClose.Gesture, () => window.UndoClose()));
+        edit.Items.Add(new NativeMenuItemSeparator());
         edit.Items.Add(Item("Find", Key.F, Command, () => Edit(window, Key.F, Command, _ => { })));
         edit.Items.Add(new NativeMenuItemSeparator());
         var language = Language(window);

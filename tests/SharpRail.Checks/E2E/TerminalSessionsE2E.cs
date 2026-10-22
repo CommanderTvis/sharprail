@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
+using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Remote;
@@ -152,11 +153,23 @@ internal static class TerminalSessionsE2E
         // Without keepAfterExit, exited shells keep their tabs, as a host that predates the setting does.
         internal RemoteHost(string root, Func<bool>? keepAfterExit = null)
         {
-            pty = new("/bin/sh", keepAfterExit: keepAfterExit);
+            // The shell kept for undo follows the host's own setting, as the composition root wires it; these checks
+            // close for good unless one turns undo on.
+            pty = new("/bin/sh", keepAfterExit: keepAfterExit, undoCloseSeconds: () => (server?.Services.GetRequiredService<IHostStateService>() as HostStateStore)?.Current.Settings.TerminalUndoCloseSeconds ?? 0);
             Host = new E2eTerminals(pty);
             server = RemoteServer.Create(root, IPAddress.Loopback, 0, Token, terminals: Host);
+            UndoCloseSeconds = 0;
             Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();
             Address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+        }
+
+        internal PtyTerminalService Pty => pty;
+
+        /// <summary>The host's undo-close setting, which every client and the host's own sessions follow.</summary>
+        internal int UndoCloseSeconds
+        {
+            set => Task.Run(async () => await server.Services.GetRequiredService<IHostStateService>()
+                .ChangeAsync([HostStateChange.Setting("terminal-undo-close", value.ToString(System.Globalization.CultureInfo.InvariantCulture))])).GetAwaiter().GetResult();
         }
 
         internal E2eTerminals Client(Uri? address = null, AttachFaults? faults = null)

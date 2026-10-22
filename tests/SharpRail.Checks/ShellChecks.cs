@@ -318,7 +318,7 @@ internal static class ShellChecks
             "Language Server Status", "Start / Retry Language Server", "Stop Language Server"];
         Require(Headers(file).SequenceEqual(["New Workspace", "New Window", "-", "Open Project…", "Clone Repository…", "Create Project…", "Open Recent", "-", "Close Tab", "Close Window", "-", "Save"]),
             "File: " + string.Join(", ", Headers(file)));
-        Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All", "-", "Find", "-", .. language]), "Edit: " + string.Join(", ", Headers(edit)));
+        Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All", "-", "Undo Close Tab", "-", "Find", "-", .. language]), "Edit: " + string.Join(", ", Headers(edit)));
         Require(Headers(view).SequenceEqual(["Zoom In", "Zoom Out", "Actual Size"]), "View: " + string.Join(", ", Headers(view)));
         Require(Headers(windows).SequenceEqual(["Minimize", "Zoom", "-", "Host Settings…", "Connect to a Tailscale Host…", "-", "Bring All to Front"]), "Window: " + string.Join(", ", Headers(windows)));
         Require(Headers(help).SequenceEqual(["Report an Issue…"]), "Help: " + string.Join(", ", Headers(help)));
@@ -336,7 +336,7 @@ internal static class ShellChecks
             Shows(file, "Open Project…", WindowShortcuts.OpenProject.Gesture) && Shows(file, "Clone Repository…", null) && Shows(file, "Create Project…", null) &&
             Shows(file, "Close Tab", WindowShortcuts.Close) && Shows(file, "Close Window", new KeyGesture(Key.W, KeyModifiers.Meta | KeyModifiers.Shift)) &&
             Shows(file, "Save", new KeyGesture(Key.S, KeyModifiers.Meta)) &&
-            Shows(edit, "Find", new KeyGesture(Key.F, KeyModifiers.Meta)) && Shows(edit, "Go to Declaration", new KeyGesture(Key.F12)) &&
+            Shows(edit, "Find", new KeyGesture(Key.F, KeyModifiers.Meta)) && Shows(edit, "Undo Close Tab", WindowShortcuts.UndoClose.Gesture) && Shows(edit, "Go to Declaration", new KeyGesture(Key.F12)) &&
             Shows(edit, "Find Usages", new KeyGesture(Key.F7, KeyModifiers.Alt)) && Shows(edit, "Go to Implementation", null) &&
             Shows(view, "Zoom In", WindowShortcuts.ZoomIn.Gesture) && Shows(view, "Zoom Out", WindowShortcuts.ZoomOut.Gesture) && Shows(view, "Actual Size", WindowShortcuts.ZoomReset.Gesture),
             "Menu items show the window's own chords.");

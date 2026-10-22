@@ -189,11 +189,43 @@ again. The window half is `TerminalTabs.cs`; placement is `LayoutSession.Reconci
   already closed.
 - A terminal tab that leaves the layout by this window's doing is closed through `CloseTabAsync`, mounted or
   not, which removes it for every client and ends its shell. A tab the catalog removed only loses its body here.
+  The user's close of a live terminal (its tab's close button, Mod+W, the tab menu, redo) goes through
+  `CloseTabForUndoAsync` instead while the host's undo timeout is above zero: its view only detaches and the
+  host keeps the shell (see Undo close below).
 - The session behind a tab is `TerminalTab.SessionFor(root, key)`, the same for every client.
 - A host that predates the catalog, or refuses a workspace's tabs, leaves that workspace's terminals this
   window's own. A new connection generation announces the shown workspace again.
 - Not ported: dismissing a busy-close confirmation when another client closes the same terminal meanwhile;
   the confirmation then closes a tab that is already gone.
+
+## Undo close
+
+Ghostty 1.2's undo close (`undo`/`redo` keybind actions, `undo-timeout`, default 5 s, zero disables; macOS
+only there, bound to Cmd+Z and Cmd+Shift+T for undo and Cmd+Shift+Z for redo, all "performable" so the key
+passes through when there is nothing to undo; each operation keeps its own timeout).
+
+- The timeout is the host setting `TerminalUndoCloseSeconds` (Settings › Terminal › Undo close: Off, 5 s
+  default, 15 s, 1 min; at most 600), shared by every client. The host reads it at each close.
+- A user close of a document or terminal tab (`LayoutSession.TabClosing`) records the tab, its group, index
+  and pane, and shows a toast "Closed <title> (N s)" with Undo and a live countdown for the timeout. A live
+  terminal in a host-shared workspace keeps its session: the host removes the tab from the catalog (other
+  clients see it gone) and ends the shell only when the timeout passes. An exited or failed terminal, one of
+  a window without a catalog, a tool tab, and every close the layout makes for other reasons (catalog
+  reconciliation, moves, removed groups) are not undoable this way.
+- Undo (`WindowShortcuts.UndoClose`: Mod+Z or Mod+Shift+T; the toast's Undo; Edit › Undo Close Tab on
+  macOS) reopens the most recent unexpired close of the shown workspace in place and selects it. A terminal
+  is reserved again, which the host treats as restore, and its view attaches to the same session, screen and
+  output written meanwhile included; other clients get the tab back beside their others. A document reopens by
+  its path and reloads from disk, so edits a close discarded are not restored.
+- Redo (Mod+Shift+Z) closes the most recently reopened tab again through the ordinary close, undoable again.
+- Like Ghostty's performable bindings the chords act only when there is something to undo or redo; a text box
+  or editor keeps Mod+Z for its own undo, and off macOS a focused terminal keeps Ctrl+Z (suspend) and the
+  chords stand aside. On macOS Cmd+Z reaches undo close even from a terminal, as in Ghostty, since terminal
+  input ignores Command chords.
+- Closing the window ends the sessions it kept for undo; stopping the host ends any left.
+- `--shared-terminals` (and `--terminals`) cover close → toast → Cmd+Z restoring the same live session in place
+  for both clients, Ctrl+Z left to a focused terminal, redo, and zero turning undo off; host behaviour is covered
+  by `TerminalUndoCloseChecks.cs`.
 
 ## Tab lifecycle
 

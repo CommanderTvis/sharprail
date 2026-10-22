@@ -1,5 +1,6 @@
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.LogicalTree;
 
 using SharpRail.Host.Abstractions;
@@ -19,6 +20,7 @@ internal static class SharedTerminalsE2E
     internal static void Run(string root)
     {
         Shared(root);
+        UndoClose(root);
         InProjects(root);
         PhoneToDesktop(root);
         Renderers(root);
@@ -81,6 +83,96 @@ internal static class SharedTerminalsE2E
             Console.WriteLine("PASS terminal exit: a shell that fails to start keeps its tab and Retry");
         }
         finally { b?.Dispose(); a.Dispose(); }
+    }
+
+    // Ghostty's undo close: a closed terminal comes back in place with its shell, for every client, within the host's timeout.
+    private static void UndoClose(string root)
+    {
+        var project = IsolatedGit.Repository(Path.Combine(root, "terminals-undo"));
+        using var host = new RemoteHost(project);
+        host.UndoCloseSeconds = 60;
+        var a = Client(host, project, "desk", project, host.Client());
+        E2eWorkspace? b = null;
+        try
+        {
+            Until(() => a.Window.WorkspaceMounted);
+            var workspace = CreateTerminalWorkspace(a, "workspace-1");
+            var initial = TerminalTabs(a).Single();
+            Ready(a, initial);
+            var bottom = a.Window.Layout.State.Groups.Single(group => a.Window.Layout.Tabs(group.Id).Any(tab => tab.Kind == "terminal")).Id;
+            a.Click(a.Find<Button>("NewTerminal_" + bottom));
+            Until(() => TerminalTabs(a).Length == 2);
+            a.Click(a.Find<Button>("NewTerminal_" + bottom));
+            Until(() => TerminalTabs(a).Length == 3);
+            var middle = TerminalTabs(a)[1];
+            a.Window.Layout.Select(bottom, middle.Id);
+            var shell = Ready(a, middle);
+            shell.Run("echo \"PID_$$_SHELL\"");
+            var pid = System.Text.RegularExpressions.Regex.Match(WaitFor(shell, @"PID_(\d+)_SHELL"), @"PID_(\d+)_SHELL").Groups[1].Value;
+            b = Client(host, project, "phone", workspace, host.Client());
+            Until(() => b.Window.WorkspaceMounted && b.Window.WorkspaceRoot == workspace && Ids(b).SequenceEqual(Ids(a)));
+            var order = Ids(a);
+            var session = TerminalTab.SessionFor(workspace, middle.Id);
+
+            // In the background, so the shell is idle and closes without asking.
+            shell.Run("(sleep 1; echo WHILE_$((40+1))_CLOSED) &");
+            Settle(200);
+            CloseTab(a, middle);
+            Until(() => TerminalTabs(a).Length == 2 && TerminalTabs(b).Length == 2);
+            Require(a.Window.Toasts.Items.Any(toast => toast is { Countdown: true, Message: "Closed Terminal 2", Action.Label: "Undo" }) && host.Pty.ClosingCount == 1 &&
+                !Catalog(host, workspace).Contains(middle.Id), "Closing a live terminal must offer undo while the host keeps its shell out of the catalog.");
+            Settle(1500);
+            // A focused terminal keeps Ctrl+Z for its shell (SIGTSTP): off macOS, where Ctrl is the command key, the undo
+            // chord stands aside for it; Ghostty's terminal input then encodes it (GhosttySkiaChecks covers the encoding).
+            a.Window.Layout.Select(bottom, TerminalTabs(a)[0].Id);
+            Ready(a, TerminalTabs(a)[0]);
+            View(a, TerminalTabs(a)[0]).FocusTerminal();
+            a.Window.KeyPress(Avalonia.Input.Key.Z, Avalonia.Input.RawInputModifiers.Control, Avalonia.Input.PhysicalKey.Z, null);
+            Settle(300);
+            Require(TerminalTabs(a).Length == 2 && a.Window.CanUndoClose() && !a.Window.UndoCloseFocusAllows(control: true) && a.Window.UndoCloseFocusAllows(control: false),
+                "Ctrl+Z in a focused terminal must stay the shell's and reopen nothing.");
+            Console.WriteLine("PASS undo close: Ctrl+Z in a focused terminal is left to the shell");
+
+            a.Window.KeyPress(Avalonia.Input.Key.Z, Command, Avalonia.Input.PhysicalKey.Z, "z");
+            Until(() => Ids(a).SequenceEqual(order));
+            Until(() => Ids(b).Order().SequenceEqual(order.Order()));
+            Require(a.Window.Layout.Selected(bottom)?.Id == middle.Id && Catalog(host, workspace).Contains(middle.Id) && host.Pty.ClosingCount == 0,
+                "Undo must reopen the terminal at its place, selected, and restore it to the host's catalog.");
+            var restored = Ready(a, middle);
+            Expect(restored, "WHILE_41_CLOSED");
+            restored.Run("echo \"PID_$$_AGAIN\"");
+            Expect(restored, "PID_" + pid + "_AGAIN");
+            Require(host.Host.Started.Count(request => request.SessionId == session) == 1, "Undo must reattach the live session rather than start a shell.");
+            Console.WriteLine("PASS undo close: Command-Z reopens a closed terminal in place for every client, with its shell and what it wrote while closed");
+
+            a.Window.KeyPress(Avalonia.Input.Key.Z, Command | Avalonia.Input.RawInputModifiers.Shift, Avalonia.Input.PhysicalKey.Z, "Z");
+            Until(() => TerminalTabs(a).Length == 2 && TerminalTabs(b).Length == 2 && host.Pty.ClosingCount == 1);
+            a.Window.UndoClose();
+            Until(() => Ids(a).SequenceEqual(order));
+            Until(() => Ids(b).Order().SequenceEqual(order.Order()));
+            Expect(Ready(a, middle), "PID_" + pid + "_AGAIN");
+            Console.WriteLine("PASS undo close: redo closes the reopened terminal again, and undo brings it back once more");
+
+            host.UndoCloseSeconds = 0;
+            Settle(1000);
+            CloseTab(a, middle);
+            Until(() => TerminalTabs(a).Length == 2 && !Running(int.Parse(pid)));
+            Require(!a.Window.CanUndoClose() && host.Pty.ClosingCount == 0, "With undo off a close must be final at once.");
+            Console.WriteLine("PASS undo close: a timeout of zero turns undo off and ends the shell at once");
+        }
+        finally { b?.Dispose(); a.Dispose(); }
+    }
+
+    private static string WaitFor(HostTerminal terminal, string pattern)
+    {
+        Until(() => System.Text.RegularExpressions.Regex.IsMatch(terminal.Text, pattern));
+        return terminal.Text;
+    }
+
+    private static bool Running(int pid)
+    {
+        try { using var process = System.Diagnostics.Process.GetProcessById(pid); return !process.HasExited; }
+        catch (ArgumentException) { return false; }
     }
 
     // The Android phone client keeps Projects on its own page.

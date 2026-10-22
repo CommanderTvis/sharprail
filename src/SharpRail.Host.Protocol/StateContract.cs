@@ -34,6 +34,8 @@ public sealed class SettingsMessage
     [ProtoMember(9, IsRequired = true)] public int TerminalReplayKb { get; set; } = 64;
     /// <summary>Optional, so a host that predates it reads as closing the tab.</summary>
     [ProtoMember(25)] public bool TerminalKeepAfterExit { get; set; }
+    /// <summary>Always written, so zero (undo off) differs from a host that predates the setting.</summary>
+    [ProtoMember(26, IsRequired = true)] public int TerminalUndoCloseSeconds { get; set; } = 5;
     [ProtoMember(15)] public bool FileTypeIconsDisabled { get; set; }
     [ProtoMember(10)] public bool NotificationsDisabled { get; set; }
     [ProtoMember(22)] public bool TerminalNotificationsDisabled { get; set; }

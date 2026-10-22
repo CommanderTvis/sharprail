@@ -38,6 +38,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     private readonly TerminalRecordingStore? store;
     private readonly Func<int>? replayBytes;
     private readonly Func<bool>? keepAfterExit;
+    private readonly Func<int>? undoCloseSeconds;
+    // Sessions whose tab the user closed, kept for undo until their expiry fires or the tab is reserved again.
+    private readonly Dictionary<string, CancellationTokenSource> closing = [];
     private bool disposed;
 
     /// <summary>
@@ -67,10 +70,10 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     // like Ghostty's default (wait-after-command = false), unless it exited abnormally; none keeps every tab.
     private readonly string clipboardDirectory;
 
-    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null, Func<bool>? keepAfterExit = null)
+    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null, Func<bool>? keepAfterExit = null, Func<int>? undoCloseSeconds = null)
     {
         if (!OperatingSystem.IsWindows()) Posix.EnsureSupported();
-        this.shell = shell; this.replayBytes = replayBytes; this.keepAfterExit = keepAfterExit;
+        this.shell = shell; this.replayBytes = replayBytes; this.keepAfterExit = keepAfterExit; this.undoCloseSeconds = undoCloseSeconds;
         clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "sharprail-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
         catalog = new TerminalCatalogStore(recordingsDirectory);
         if (recordingsDirectory is null) return;
@@ -117,7 +120,45 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     public ValueTask<TerminalCatalog> ReserveAsync(string workspaceRoot, TerminalTab tab, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult(catalog.Reserve(workspaceRoot, tab));
+        var result = catalog.Reserve(workspaceRoot, tab);
+        // Reserving a tab closed for undo restores it: its session stays and the next attach finds its screen.
+        lock (gate) if (closing.Remove(TerminalTab.SessionFor(workspaceRoot, tab.Key), out var expiry)) expiry.Cancel();
+        return ValueTask.FromResult(result);
+    }
+
+    /// <summary>Sessions closed for undo and not yet ended.</summary>
+    public int ClosingCount { get { lock (gate) return closing.Count; } }
+
+    public async ValueTask<TerminalCatalog> CloseTabForUndoAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default)
+    {
+        var keep = Math.Clamp(undoCloseSeconds?.Invoke() ?? 0, 0, HostSettings.MaxTerminalUndoCloseSeconds);
+        var session = TerminalTab.SessionFor(workspaceRoot, key);
+        bool live;
+        lock (gate) live = !disposed && sessions.TryGetValue(session, out var terminal) && !terminal.Process.Exit.IsCompleted;
+        // An exited shell has nothing to keep; zero turns undo off.
+        if (keep == 0 || !live) return await CloseTabAsync(workspaceRoot, key, cancellationToken);
+        var result = catalog.Remove(workspaceRoot, key);
+        var expiry = new CancellationTokenSource();
+        lock (gate)
+        {
+            if (closing.Remove(session, out var previous)) previous.Cancel();
+            closing[session] = expiry;
+        }
+        _ = ExpireAsync(session, expiry, TimeSpan.FromSeconds(keep));
+        return result;
+    }
+
+    private async Task ExpireAsync(string session, CancellationTokenSource expiry, TimeSpan after)
+    {
+        try { await Task.Delay(after, expiry.Token); }
+        catch (OperationCanceledException) { return; }
+        lock (gate)
+        {
+            if (!closing.TryGetValue(session, out var current) || current != expiry) return;
+            closing.Remove(session);
+            if (catalog.Sessions().Contains(session)) return;
+        }
+        await EndAsync(session);
     }
 
     public async ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default)
@@ -258,6 +299,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             roots.Remove(sessionId);
             foreach (var link in linkedFiles.Where(link => link.Value == sessionId)) linkedFiles.TryRemove(link.Key, out _);
             pending.Remove(sessionId);
+            if (closing.Remove(sessionId, out var expiry)) expiry.Cancel();
             terminals.Remove(sessionId, out closed);
             directories.Remove(sessionId);
             if (tokens.Remove(sessionId, out var token)) owners.TryRemove(token, out _);
@@ -384,11 +426,14 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         lock (gate)
         {
             disposed = true; all = [.. sessions]; sessions.Clear(); roots.Clear(); linkedFiles.Clear();
+            // A tab still waiting for undo was closed: stopping the host ends it for good.
+            foreach (var (id, expiry) in closing) { expiry.Cancel(); store?.Delete(id); }
             if (store is not null)
             {
                 foreach (var (id, bytes) in pending) store.Save(id, bytes);
-                foreach (var (id, terminal) in all) store.Save(id, terminal.Recording());
+                foreach (var (id, terminal) in all.Where(entry => !closing.ContainsKey(entry.Key))) store.Save(id, terminal.Recording());
             }
+            closing.Clear();
         }
         foreach (var (_, terminal) in all) await terminal.DisposeAsync();
         signals.Dispose();

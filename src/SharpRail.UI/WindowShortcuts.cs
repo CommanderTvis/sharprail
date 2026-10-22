@@ -56,10 +56,20 @@ public static class WindowShortcuts
         () => OperatingSystem.IsMacOS() ? new KeyGesture(Key.OemCloseBrackets, KeyModifiers.Meta) : new KeyGesture(Key.Right, KeyModifiers.Alt),
         e => OperatingSystem.IsMacOS() ? e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.OemCloseBrackets : e.KeyModifiers == KeyModifiers.Alt && e.Key == Key.Right);
 
+    /// <summary>
+    /// Ghostty's undo: Mod+Z, or Mod+Shift+T as Ghostty also binds it. Like Ghostty's performable binding it acts only
+    /// when there is a closed tab to reopen, so otherwise the key goes on to whatever has focus.
+    /// </summary>
+    public static readonly WindowShortcut UndoClose = new("UndoClose", () => Mod(Key.T, KeyModifiers.Shift),
+        e => e.KeyModifiers == CommandKeys.Modifier && e.Key == Key.Z || e.KeyModifiers == (CommandKeys.Modifier | KeyModifiers.Shift) && e.Key == Key.T);
+    /// <summary>Ghostty's redo: Mod+Shift+Z closes the tab undo reopened.</summary>
+    public static readonly WindowShortcut RedoClose = new("RedoClose", () => Mod(Key.Z, KeyModifiers.Shift),
+        e => e.KeyModifiers == (CommandKeys.Modifier | KeyModifiers.Shift) && e.Key == Key.Z);
+
     /// <summary>The close chord menus show; <see cref="AppCommands"/> decides when it applies.</summary>
     public static KeyGesture Close => Mod(Key.W);
 
     /// <summary>Every chord, in dispatch order: a more specific chord precedes the one it would also match.</summary>
     public static IReadOnlyList<WindowShortcut> All { get; } =
-    [OpenProject, NewWindow, SearchWorkspace, NewWorkspace, Settings, ToggleLeft, ToggleRight, ZoomIn, ZoomOut, ZoomReset, Refresh, Back, Forward];
+    [OpenProject, NewWindow, SearchWorkspace, NewWorkspace, Settings, ToggleLeft, ToggleRight, ZoomIn, ZoomOut, ZoomReset, Refresh, Back, Forward, UndoClose, RedoClose];
 }

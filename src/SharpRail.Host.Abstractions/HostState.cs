@@ -21,6 +21,8 @@ public sealed record HostSettings
     public int TerminalReplayKb { get; init; } = DefaultTerminalReplayKb;
     /// <summary>Whether a terminal whose shell exits keeps its tab with an exit notice; off closes the tab like Ghostty.</summary>
     public bool TerminalKeepAfterExit { get; init; }
+    /// <summary>How long a terminal tab the user closed keeps its session for undo, in seconds; zero disables undo.</summary>
+    public int TerminalUndoCloseSeconds { get; init; } = DefaultTerminalUndoCloseSeconds;
     /// <summary>Whether clients raise desktop notifications when a terminal's agent needs the user while they are away.</summary>
     public bool NotificationsEnabled { get; init; } = true;
     /// <summary>Whether programs in terminals may raise desktop notifications (OSC 9, OSC 777), like Ghostty's desktop-notifications.</summary>
@@ -73,6 +75,8 @@ public sealed record HostSettings
     public const int MaxSettleIdleDays = 365;
     public const int DefaultTerminalReplayKb = 64;
     public const int MaxTerminalReplayKb = 1024;
+    public const int DefaultTerminalUndoCloseSeconds = 5;
+    public const int MaxTerminalUndoCloseSeconds = 600;
 }
 
 /// <summary>A custom layout preset; the layout is opaque to the host.</summary>

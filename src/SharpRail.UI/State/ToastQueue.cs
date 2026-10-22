@@ -6,9 +6,11 @@ public sealed record ToastAction(string Label, Action Invoke);
 
 /// <summary>
 /// A null <see cref="Duration"/> takes the variant's default: errors stay until dismissed.
-/// A <see cref="Secondary"/> action puts both actions on their own row under the message.
+/// A <see cref="Secondary"/> action puts both actions on their own row under the message. <see cref="Countdown"/> shows
+/// the seconds left of its lifetime beside the message.
 /// </summary>
-public sealed record Toast(long Id, ToastVariant Variant, string Message, string? Title = null, TimeSpan? Duration = null, ToastAction? Action = null, ToastAction? Secondary = null)
+public sealed record Toast(long Id, ToastVariant Variant, string Message, string? Title = null, TimeSpan? Duration = null, ToastAction? Action = null, ToastAction? Secondary = null,
+    bool Countdown = false)
 {
     public TimeSpan? Lifetime => Duration ?? (Variant == ToastVariant.Error ? null : ToastQueue.DefaultDuration);
 }
@@ -29,11 +31,12 @@ public sealed class ToastQueue
     /// Returns the id of the shown toast, which is an identical visible one when there is no action: actions name
     /// different inverses, so actionable toasts are never coalesced and the cap evicts only actionless ones.
     /// </summary>
-    public long Push(ToastVariant variant, string message, string? title = null, TimeSpan? duration = null, ToastAction? action = null, ToastAction? secondary = null)
+    public long Push(ToastVariant variant, string message, string? title = null, TimeSpan? duration = null, ToastAction? action = null, ToastAction? secondary = null,
+        bool countdown = false)
     {
         if (action is null && items.Find(item => item.Action is null && item.Variant == variant && item.Title == title &&
             item.Message == message && item.Duration == duration) is { } twin) return twin.Id;
-        var toast = new Toast(++next, variant, message, title, duration, action, secondary);
+        var toast = new Toast(++next, variant, message, title, duration, action, secondary, countdown);
         items.Add(toast);
         for (var index = 0; items.Count > Capacity && index < items.Count;)
             if (items[index].Action is null) items.RemoveAt(index); else index++;
