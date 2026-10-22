@@ -12,10 +12,11 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-csharp";
 
-    public static readonly PluginManifest Manifest = new(Id, "C# (Roslyn)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "C# (Roslyn)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the C# (Roslyn) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.CSharp.dll"
     };
 

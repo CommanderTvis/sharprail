@@ -10,10 +10,11 @@ public sealed class RubyPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-ruby";
 
-    public static readonly PluginManifest Manifest = new(Id, "Ruby (Ruby LS)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Ruby (Ruby LS)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the Ruby (Ruby LS) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Ruby.dll"
     };
 

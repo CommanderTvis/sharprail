@@ -10,7 +10,7 @@ namespace SharpRail.Plugins.Api;
 /// </summary>
 /// <param name="Id">The plugin's namespace for every method, channel, route, tool id and settings key. For an external plugin it must equal its directory name.</param>
 /// <param name="Label">Shown in the roster, Settings › Plugins and a dormant tool placeholder.</param>
-/// <param name="Icon">A Remix Icon name (for example <c>puzzle-2-line</c>) or <c>asset:&lt;path&gt;</c> naming an SVG under <see cref="Assets"/>; an unknown name falls back to a generic glyph.</param>
+/// <param name="Icon">A Remix Icon name (for example <c>puzzle-2-line</c>) or <c>asset:&lt;path&gt;</c> naming an SVG or PNG under <see cref="Assets"/>; an unknown name falls back to a generic glyph.</param>
 /// <param name="Version">The plugin's own version, informational only.</param>
 /// <param name="ApiGeneration">The <see cref="PluginApi.Generation"/> this plugin was built against; a mismatch is refused before load.</param>
 /// <param name="WireVersion">Incremented whenever the plugin's methods or channels change, so a separately shipped half can detect drift.</param>

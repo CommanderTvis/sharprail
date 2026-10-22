@@ -10,10 +10,11 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-java";
 
-    public static readonly PluginManifest Manifest = new(Id, "Java (Eclipse JDT)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Java (Eclipse JDT)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the Java (Eclipse JDT) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Java.dll"
     };
 

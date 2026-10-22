@@ -8,10 +8,11 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-intellij";
 
-    public static readonly PluginManifest Manifest = new(Id, "Java / Kotlin (IntelliJ)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Java / Kotlin (IntelliJ)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the Java / Kotlin (IntelliJ) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.IntelliJ.dll"
     };
 

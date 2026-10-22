@@ -10,10 +10,11 @@ public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-typescript";
 
-    public static readonly PluginManifest Manifest = new(Id, "JavaScript / TypeScript (TypeScript LS)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "JavaScript / TypeScript (TypeScript LS)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the JavaScript / TypeScript (TypeScript LS) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.TypeScript.dll"
     };
 

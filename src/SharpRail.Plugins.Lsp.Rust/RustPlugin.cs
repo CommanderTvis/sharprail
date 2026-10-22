@@ -12,10 +12,11 @@ public sealed class RustPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-rust";
 
-    public static readonly PluginManifest Manifest = new(Id, "Rust (rust-analyzer)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Rust (rust-analyzer)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the Rust (rust-analyzer) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Rust.dll"
     };
 

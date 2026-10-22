@@ -12,10 +12,11 @@ public sealed class ScalaPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-scala";
 
-    public static readonly PluginManifest Manifest = new(Id, "Scala (Metals)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Scala (Metals)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the Scala (Metals) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Scala.dll"
     };
 

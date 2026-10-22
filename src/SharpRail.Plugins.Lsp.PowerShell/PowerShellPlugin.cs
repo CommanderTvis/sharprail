@@ -10,10 +10,11 @@ public sealed class PowerShellPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-powershell";
 
-    public static readonly PluginManifest Manifest = new(Id, "PowerShell (Editor Services)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "PowerShell (Editor Services)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the PowerShell (Editor Services) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.PowerShell.dll"
     };
 

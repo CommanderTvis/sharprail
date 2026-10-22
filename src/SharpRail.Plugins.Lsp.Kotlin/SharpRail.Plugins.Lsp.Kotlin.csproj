@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <EmbeddedResource Include="Icon.svg" LogicalName="Icon.svg" />
+    <None Include="Icon.svg" Link="plugins/lsp-kotlin/assets/Icon.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
 </Project>

@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <EmbeddedResource Include="Icon.png" LogicalName="Icon.png" />
+    <None Include="Icon.png" Link="plugins/lsp-csharp/assets/Icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
 </Project>

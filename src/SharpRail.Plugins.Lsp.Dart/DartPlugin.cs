@@ -10,10 +10,11 @@ public sealed class DartPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-dart";
 
-    public static readonly PluginManifest Manifest = new(Id, "Dart (Analysis Server)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Dart (Analysis Server)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the Dart (Analysis Server) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Dart.dll"
     };
 

@@ -10,10 +10,11 @@ public sealed class RPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-r";
 
-    public static readonly PluginManifest Manifest = new(Id, "R (languageserver)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "R (languageserver)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the R (languageserver) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.R.dll"
     };
 

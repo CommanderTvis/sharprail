@@ -10,10 +10,11 @@ public sealed class PhpPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-php";
 
-    public static readonly PluginManifest Manifest = new(Id, "PHP (Intelephense)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "PHP (Intelephense)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the PHP (Intelephense) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Php.dll"
     };
 

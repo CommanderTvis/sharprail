@@ -12,6 +12,7 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Plugins.Api;
 using SharpRail.UI.Panels;
+using SharpRail.UI.Plugins;
 using SharpRail.UI.State;
 
 namespace SharpRail.Checks;
@@ -119,5 +120,49 @@ internal static class PluginsSettingsScrollChecks
         window.Close();
         state.Dispose();
         Console.WriteLine("PASS plugins settings: long roster virtualized and recycled, broadcasts update cards in place, toggles work");
+        BuiltinIcons();
+    }
+
+    // Every builtin plugin's card draws its own mark: a language server shows the icon Code Intelligence shows for it.
+    private static void BuiltinIcons()
+    {
+        var read = PluginIcons.ReadAsset;
+        PluginIcons.ReadAsset = async (id, path, token) =>
+        {
+            var file = Path.Combine(AppContext.BaseDirectory, "plugins", id, path);
+            return File.Exists(file) ? await File.ReadAllBytesAsync(file, token) : null;
+        };
+        try
+        {
+            var manifests = SharpRail.Host.Core.Plugins.BuiltinPlugins.All.Select(item => item.Manifest).ToArray();
+            var panel = new StackPanel();
+            var icons = manifests.Select(manifest =>
+            {
+                var entry = new PluginRosterEntry(manifest.Id, manifest.Label, manifest.Icon, manifest.Version, manifest.WireVersion, PluginOrigin.Builtin, PluginStatus.Active) { Assets = manifest.Assets };
+                var icon = PluginIcons.Resolve(entry.Icon, entry, null, 16);
+                panel.Children.Add(icon);
+                return (manifest, icon);
+            }).ToArray();
+            var window = new Window { Width = 200, Height = 200, Content = panel };
+            window.Show();
+            static bool Drawn(Control icon) => icon.GetVisualDescendants().OfType<Image>().Any(image => image.Source is not null);
+            foreach (var (manifest, icon) in icons)
+            {
+                if (manifest.Icon.StartsWith("asset:", StringComparison.Ordinal))
+                    E2eWorkspace.Until(() => { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); return Drawn(icon); });
+                else Require(PluginIcons.Glyph(manifest.Icon) != PluginIcons.Fallback || manifest.Icon.Contains("puzzle", StringComparison.Ordinal),
+                    $"Builtin plugin {manifest.Id} names icon {manifest.Icon}, which draws the generic puzzle glyph.");
+            }
+            foreach (var (manifest, host) in SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries)
+            {
+                var server = (SharpRail.Plugins.Api.Host.LanguageServerPlugin)host!;
+                var file = Path.Combine(AppContext.BaseDirectory, "plugins", manifest.Id, manifest.Assets ?? "", manifest.Icon["asset:".Length..]);
+                Require(server.Spec.Icon is { } mark && File.Exists(file) && File.ReadAllBytes(file).AsSpan().SequenceEqual(mark.Data),
+                    $"{manifest.Id}'s plugin icon must be the mark Code Intelligence shows for {server.Spec.Name}.");
+            }
+            window.Close();
+            Console.WriteLine($"PASS plugins settings: all {manifests.Length} builtin plugin cards draw an icon; language servers show their Code Intelligence marks");
+        }
+        finally { PluginIcons.ReadAsset = read; }
     }
 }

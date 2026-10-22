@@ -229,7 +229,7 @@ names and enum values, unknown members refused).
 | `id` | the namespace for every name above; for an external plugin it must equal its directory name |
 | `label` | shown in the roster and Settings › Plugins |
 | `description` | optional one sentence, shown under the label in Settings |
-| `icon` | a Remix Icon name, or `asset:<path>` naming an SVG under `assets`; an unknown name falls back to a generic glyph, which keeps the icons-only invariant without admitting arbitrary drawing |
+| `icon` | a Remix Icon name, or `asset:<path>` naming an SVG or PNG under `assets` (builtin language server plugins name the mark Code Intelligence shows); an unknown name falls back to a generic glyph, which keeps the icons-only invariant without admitting arbitrary drawing |
 | `version` | the plugin's own version, informational |
 | `apiGeneration` | refused before load if it does not match `PluginApi.Generation` |
 | `wireVersion` | incremented when the plugin's methods or channels change, so a separately shipped half can detect drift |

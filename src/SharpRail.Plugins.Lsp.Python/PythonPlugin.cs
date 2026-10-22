@@ -10,10 +10,11 @@ public sealed class PythonPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-python";
 
-    public static readonly PluginManifest Manifest = new(Id, "Python (Pyright)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Python (Pyright)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the Python (Pyright) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Python.dll"
     };
 

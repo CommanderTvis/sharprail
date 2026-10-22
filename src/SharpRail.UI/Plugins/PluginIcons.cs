@@ -8,7 +8,7 @@ using SharpRail.UI.Rendering;
 namespace SharpRail.UI.Plugins;
 
 /// <summary>
-/// Resolves a plugin's icon name: a Remix Icon name maps to the kit's bundled glyph, <c>asset:&lt;path&gt;</c> draws an SVG
+/// Resolves a plugin's icon name: a Remix Icon name maps to the kit's bundled glyph, <c>asset:&lt;path&gt;</c> draws an SVG or PNG
 /// from the plugin's assets, and anything else is the puzzle glyph, so an icon never admits arbitrary drawing.
 /// </summary>
 public static class PluginIcons

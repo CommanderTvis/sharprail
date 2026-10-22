@@ -10,10 +10,11 @@ public sealed class ShellPlugin() : LanguageServerPlugin(Id)
 {
     public const string Id = "lsp-shell";
 
-    public static readonly PluginManifest Manifest = new(Id, "Shell (Bash LS)", "code-s-slash-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Shell (Bash LS)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Provides the Shell (Bash LS) language server to code intelligence.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Shell.dll"
     };
 
