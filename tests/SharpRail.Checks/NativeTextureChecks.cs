@@ -58,7 +58,12 @@ internal static class NativeTextureChecks
 
     private sealed class TextureApplication : Application
     {
-        public override void Initialize() => Styles.Add(new Avalonia.Themes.Fluent.FluentTheme());
+        public override void Initialize()
+        {
+            Styles.Add(new Avalonia.Themes.Fluent.FluentTheme());
+            // Terminal views read the workbench palette, which App applies at startup; without it TerminalTheme throws.
+            SharpRail.Plugins.UI.Kit.Ui.Apply(SharpRail.UI.Rendering.Themes.All[0]);
+        }
         public override void OnFrameworkInitializationCompleted()
         {
             var desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime!;
@@ -711,7 +716,8 @@ internal static class NativeTextureChecks
 
             async Task Started()
             {
-                await Until(() => tab.Backend is not null, "No renderer backend was created.");
+                await Until(() => tab.Backend is not null || tab.IsFailed, "No renderer backend was created.");
+                Require(!tab.IsFailed, "The terminal failed to start: " + tab.FindControl<SelectableTextBlock>("TerminalStartFailureText")?.Text);
                 await tab.Backend!.Started.WaitAsync(TimeSpan.FromSeconds(20));
                 if (fallbackCheck) Require(tab.GetVisualDescendants().OfType<GhosttySkiaView>().Any() && !tab.GetVisualDescendants().OfType<GhosttyTextureView>().Any(), "Software rendering did not fall back to Skia.");
                 else if (renderer == TerminalRenderers.Texture) Require(tab.GetVisualDescendants().OfType<GhosttyTextureView>().Any(), "The Metal execution check silently fell back to Skia.");
