@@ -249,7 +249,7 @@ internal static class BranchGraphChecks
             window.ShowSettings("Plugins");
             E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
             var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
-            var row = settings.GetLogicalDescendants().OfType<Border>().Single(control => control.Name == "PluginRow_branch-graph");
+            var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("branch-graph")!;
             row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;
             E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(BranchGraphPlugin.Id) == enabled);
             settings.Close();

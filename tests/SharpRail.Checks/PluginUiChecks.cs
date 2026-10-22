@@ -354,11 +354,11 @@ internal static class PluginUiChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
         var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
-        var row = Find<Border>(settings, "PluginRow_fixture");
+        var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!;
         static string Texts(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
         Require(Texts(row).Contains("external", StringComparison.Ordinal) && Texts(row).Contains("v1.0.0", StringComparison.Ordinal) &&
             Texts(row).Contains("disabled", StringComparison.Ordinal), "The fixture's row must show external, its version and disabled: " + Texts(row));
-        var refusedRow = Find<Border>(settings, "PluginRow___refused:broken");
+        var refusedRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("__refused:broken")!;
         Require(Texts(refusedRow).Contains("999", StringComparison.Ordinal) && Texts(refusedRow).Contains("expects 1", StringComparison.Ordinal),
             "A refused row names the plugin's generation and the host's: " + Texts(refusedRow));
         settings.Close();
@@ -375,7 +375,7 @@ internal static class PluginUiChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
         settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
-        var toggle = Find<ToggleSwitch>(Find<Border>(settings, "PluginRow_fixture"), "PluginToggle");
+        var toggle = Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle");
         toggle.IsChecked = true;
         E2eWorkspace.Until(() => loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => Has(settings, "Settings_plugin_fixture_fixture"));
@@ -426,7 +426,7 @@ internal static class PluginUiChecks
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
         settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
-        Find<ToggleSwitch>(Find<Border>(settings, "PluginRow_fixture"), "PluginToggle").IsChecked = false;
+        Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle").IsChecked = false;
         E2eWorkspace.Until(() => !loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => !Has(settings, "Settings_plugin_fixture_fixture"));
         static bool Gone<T>(IReadOnlyList<PluginRow<T>> rows) => rows.All(row => row.PluginId != "fixture");
@@ -445,7 +445,7 @@ internal static class PluginUiChecks
         // Rescan re-reads the plugin roots; a plugin deleted from disk leaves the roster.
         Directory.Delete(Path.Combine(plugins, "removable"), recursive: true);
         app.Click(Find<Button>(settings, "PluginsRescan"), freshGesture: false);
-        E2eWorkspace.Until(() => !Has(settings, "PluginRow_removable") && Has(settings, "PluginRow_fixture"));
+        E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("removable") is null && settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture") is not null);
         settings.Close();
         E2eWorkspace.Until(() => !window.OwnedWindows.Any());
 

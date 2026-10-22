@@ -988,6 +988,13 @@ internal static class Program
             E2E.MarkdownDocumentE2E.Run(e2e);
             return;
         }
+        if (args.SequenceEqual(["--plugins-settings"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            PluginsSettingsScrollChecks.Run(Path.Combine(root, "plugins-settings"));
+            return;
+        }
         if (args.SequenceEqual(["--settings"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

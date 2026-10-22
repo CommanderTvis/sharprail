@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
+
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
 
@@ -12,19 +14,21 @@ using SharpRail.UI.State;
 namespace SharpRail.UI.Panels;
 
 /// <summary>
-/// Settings › Plugins: one row per roster entry with its switch, Retry on a failed row, Rescan, and the extra plugin
-/// roots. Rows are keyed by plugin id and updated in place when the roster changes; nothing changes locally until
-/// the host's snapshot arrives.
+/// Settings › Plugins: one card per roster entry with its switch, Retry on a failed card, Rescan, and the extra plugin
+/// roots. The card list is virtualized; cards are keyed by plugin id and updated in place when the roster changes;
+/// nothing changes locally until the host's snapshot arrives.
 /// </summary>
 public sealed class PluginsSettings : StackPanel
 {
     private readonly SharedState state;
     private readonly IPluginService? service;
     private readonly Window owner;
-    private readonly StackPanel rows = new() { Name = "PluginRows", Spacing = 8 };
+    private readonly ObservableCollection<PluginCardModel> cards = [];
+    private readonly Dictionary<string, PluginCardModel> models = new(StringComparer.Ordinal);
+    private readonly PluginCardList rows;
+    private readonly Control none = new Border { Child = Ui.Text("No plugins are installed.", Ui.Hint, 12), IsVisible = false };
     private readonly StackPanel paths = new() { Name = "PluginPaths", Spacing = 4 };
     private readonly TextBlock error = new() { Name = "PluginsError", IsVisible = false, TextWrapping = TextWrapping.Wrap, Foreground = Ui.Danger, FontSize = 12 };
-    private readonly Dictionary<string, (Border Row, string Signature)> rendered = [];
     private string pathsSignature = "\0";
 
     public PluginsSettings(SharedState state, IPluginService? service, Window owner)
@@ -48,7 +52,17 @@ public sealed class PluginsSettings : StackPanel
         rescan.IsEnabled = service is not null;
         Ui.Place(header, rescan, 0, 1);
         Children.Add(header);
+        // A long roster (one plugin per language server) realizes only the cards near the viewport and recycles them.
+        rows = new PluginCardList(() => new PluginCard(
+            entry => _ = Run($"Couldn't retry {entry.Label}", async () => { if (this.service is not null) await this.service.RetryAsync(entry.Id); }),
+            entry => _ = Toggle(entry)))
+        {
+            Name = "PluginRows",
+            ItemsSource = cards,
+            ItemsPanel = new FuncTemplate<Panel?>(() => new VirtualizingStackPanel())
+        };
         Children.Add(rows);
+        Children.Add(none);
         Children.Add(PathsEditor());
         Children.Add(error);
         Refresh();
@@ -56,137 +70,49 @@ public sealed class PluginsSettings : StackPanel
         DetachedFromVisualTree += (_, _) => state.Changed -= Changed;
     }
 
-    private void Changed(HostState previous, HostState next) => Refresh();
+    private void Changed(HostState previous, HostState next)
+    {
+        // Terminal activity and other unrelated broadcasts leave the roster and the roots as they were.
+        if (previous.Plugins.SequenceEqual(next.Plugins) && previous.PluginPaths.SequenceEqual(next.PluginPaths)) return;
+        Refresh();
+    }
 
-    /// <summary>Updates rows in place: a row whose roster entry is unchanged keeps its control, focus and pointer.</summary>
+    /// <summary>
+    /// Updates cards in place: each plugin keeps one model for the page's life and the list moves, adds or removes only
+    /// what changed, so a realized card keeps its control, focus, pointer and the scroll position.
+    /// </summary>
     public void Refresh()
     {
         var roster = state.Current.Plugins;
-        foreach (var id in rendered.Keys.Where(id => roster.All(entry => entry.Id != id)).ToArray())
-        {
-            rows.Children.Remove(rendered[id].Row);
-            rendered.Remove(id);
-        }
+        var ids = roster.Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal);
+        for (var index = cards.Count - 1; index >= 0; index--)
+            if (!ids.Contains(cards[index].Entry.Id)) { models.Remove(cards[index].Entry.Id); cards.RemoveAt(index); }
         for (var index = 0; index < roster.Count; index++)
         {
             var entry = roster[index];
-            var signature = Signature(entry, roster);
-            if (!rendered.TryGetValue(entry.Id, out var current) || current.Signature != signature)
-            {
-                var row = Row(entry, roster);
-                if (current.Row is not null) rows.Children.Remove(current.Row);
-                rendered[entry.Id] = (row, signature);
-                current = rendered[entry.Id];
-            }
-            if (rows.Children.IndexOf(current.Row) != index)
-            {
-                rows.Children.Remove(current.Row);
-                rows.Children.Insert(Math.Min(index, rows.Children.Count), current.Row);
-            }
+            var dependents = entry.Status != PluginStatus.Disabled ? PluginRegistry.ActiveDependents(entry.Id, roster).Select(id => Label(id, roster)).ToArray() : [];
+            var signature = System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" + string.Join(",", dependents);
+            if (models.TryGetValue(entry.Id, out var model)) model.Update(entry, dependents, signature);
+            else models[entry.Id] = model = new PluginCardModel(entry, dependents, signature);
+            var at = cards.IndexOf(model);
+            if (at < 0) cards.Insert(index, model);
+            else if (at != index) cards.Move(at, index);
         }
-        if (rows.Children.Count == 0 && !rendered.ContainsKey(""))
-        {
-            var none = new Border { Child = Ui.Text("No plugins are installed.", Ui.Hint, 12) };
-            rendered[""] = (none, "");
-            rows.Children.Add(none);
-        }
-        else if (roster.Count > 0 && rendered.Remove("", out var empty)) rows.Children.Remove(empty.Row);
+        none.IsVisible = roster.Count == 0;
         RefreshPaths();
     }
 
-    private static string Signature(PluginRosterEntry entry, IReadOnlyList<PluginRosterEntry> roster) =>
-        System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" +
-        string.Join(",", PluginRegistry.ActiveDependents(entry.Id, roster).Select(id => Label(id, roster)));
+    /// <summary>The card showing <paramref name="id"/>, scrolled into view so the virtualized list realizes it; null when the roster has no such plugin.</summary>
+    public Border? Card(string id)
+    {
+        var index = cards.ToList().FindIndex(model => model.Entry.Id == id);
+        if (index < 0) return null;
+        rows.ScrollIntoView(index);
+        (TopLevel.GetTopLevel(this) as Layoutable ?? this).UpdateLayout();
+        return rows.GetRealizedContainers().OfType<PluginCard>().FirstOrDefault(card => card.Model?.Entry.Id == id);
+    }
 
     private static string Label(string id, IReadOnlyList<PluginRosterEntry> roster) => roster.FirstOrDefault(entry => entry.Id == id)?.Label ?? id;
-
-    private Border Row(PluginRosterEntry entry, IReadOnlyList<PluginRosterEntry> roster)
-    {
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12 };
-        var icon = PluginIcons.ResolveSettings(entry);
-        icon.VerticalAlignment = VerticalAlignment.Top;
-        icon.Margin = new Thickness(0, 2, 0, 0);
-        Ui.Place(grid, icon);
-        var text = new StackPanel { Spacing = 2 };
-        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        title.Children.Add(Ui.Text(entry.Label, Ui.TextBrush));
-        if (entry.Origin == PluginOrigin.External)
-        {
-            var version = Ui.Text("v" + entry.Version, Ui.Hint, 12);
-            version.Name = "PluginVersion";
-            title.Children.Add(version);
-        }
-        var origin = new Border
-        {
-            Name = "PluginOrigin",
-            BorderBrush = Ui.BorderBrush,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(8, 0),
-            Child = Ui.Text(entry.Origin == PluginOrigin.External ? "external" : "builtin", Ui.Hint, 11)
-        };
-        title.Children.Add(origin);
-        var status = Ui.Text(entry.Status.ToString().ToLowerInvariant(), entry.Status is PluginStatus.Failed or PluginStatus.Refused ? Ui.Danger : Ui.Hint, 11);
-        status.Name = "PluginStatus";
-        title.Children.Add(status);
-        text.Children.Add(title);
-        if (entry.Description is { Length: > 0 } description) text.Children.Add(Wrapped(description, Ui.TextBrush, "PluginDescription"));
-        if (Summary(entry) is { } summary) text.Children.Add(Wrapped(summary, Ui.Muted, "PluginContributions"));
-        if (entry.Status is PluginStatus.Failed or PluginStatus.Refused)
-            text.Children.Add(Wrapped(entry.Reason ?? entry.Status.ToString().ToLowerInvariant(), Ui.Danger, "PluginReason"));
-        var enabled = entry.Status != PluginStatus.Disabled;
-        var dependents = enabled ? PluginRegistry.ActiveDependents(entry.Id, roster) : [];
-        if (dependents.Count > 0)
-            text.Children.Add(Wrapped($"Also used by {string.Join(", ", dependents.Select(id => Label(id, roster)))}. Disabling turns them off too.", Ui.Muted, "PluginDependents"));
-        Ui.Place(grid, text, 0, 1);
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Top };
-        if (entry.Status == PluginStatus.Failed)
-        {
-            var retry = Ui.Button("Retry", () => _ = Run($"Couldn't retry {entry.Label}", async () => { if (service is not null) await service.RetryAsync(entry.Id); }));
-            retry.Name = "PluginRetry";
-            actions.Children.Add(retry);
-        }
-        var toggle = new ToggleSwitch { Name = "PluginToggle", IsChecked = enabled, OnContent = null, OffContent = null, MinWidth = 0 };
-        AutomationProperties.SetName(toggle, entry.Label + " enabled");
-        toggle.IsCheckedChanged += (_, _) =>
-        {
-            if (toggle.IsChecked == enabled) return;
-            toggle.IsChecked = enabled;
-            _ = Toggle(entry);
-        };
-        actions.Children.Add(toggle);
-        Ui.Place(grid, actions, 0, 2);
-        return new Border
-        {
-            Name = "PluginRow_" + entry.Id,
-            Tag = entry.Id,
-            Child = grid,
-            Padding = new Thickness(12, 8),
-            CornerRadius = new CornerRadius(4),
-            BorderThickness = new Thickness(1),
-            BorderBrush = Ui.BorderBrush,
-            Background = Ui.Elevated
-        };
-    }
-
-    private static TextBlock Wrapped(string value, IBrush color, string name)
-    {
-        var text = Ui.Text(value, color, 12);
-        text.Name = name;
-        text.TextWrapping = TextWrapping.Wrap;
-        text.TextTrimming = TextTrimming.None;
-        return text;
-    }
-
-    private static string? Summary(PluginRosterEntry entry)
-    {
-        var parts = new List<string>();
-        var tools = entry.Contributes.SideTools.Count;
-        if (tools > 0) parts.Add($"{tools} side tool{(tools == 1 ? "" : "s")}");
-        var viewers = entry.Contributes.FileViewers.Count;
-        if (viewers > 0) parts.Add($"{viewers} file viewer{(viewers == 1 ? "" : "s")}");
-        return parts.Count > 0 ? string.Join(", ", parts) : null;
-    }
 
     /// <summary>Disabling is immediate (the host cascades dependents off); enabling asks first when disabled dependencies must come along.</summary>
     public async Task Toggle(PluginRosterEntry entry)
@@ -261,4 +187,14 @@ public sealed class PluginsSettings : StackPanel
             error.IsVisible = true;
         }
     }
+}
+
+/// <summary>The cards are the list's own containers, so the virtualizing panel recycles a whole card rather than rebuilding its template.</summary>
+internal sealed class PluginCardList(Func<PluginCard> create) : ItemsControl
+{
+    protected override Type StyleKeyOverride => typeof(ItemsControl);
+
+    protected override bool NeedsContainerOverride(object? item, int index, out object? recycleKey) => NeedsContainer<PluginCard>(item, out recycleKey);
+
+    protected override Control CreateContainerForItemOverride(object? item, int index, object? recycleKey) => create();
 }

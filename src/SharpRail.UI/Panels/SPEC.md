@@ -215,8 +215,11 @@ could not save this change: …” inline and re-renders from host state.
   refused row, and the enabled plugins that depend on it. The switch disables at once (the host cascades
   dependents off) and enables after a “Also turn on …?” confirmation when disabled dependencies must come too,
   sent as one batch. Failed rows offer Retry; Rescan re-reads the plugin roots; the External plugin directories
-  editor adds and removes roots as one `plugin-paths` change each. Rows are keyed by plugin id and replaced only
-  when their roster entry changes. A remote host's plugins' UI halves run in this app.
+  editor adds and removes roots as one `plugin-paths` change each. The card list is virtualized: only cards near
+  the viewport are realized, and a card (`PluginCard.axaml`) is recycled across plugins rather than rebuilt. Each
+  plugin keeps one card model for the page's life; a roster change updates that model in place, so a broadcast
+  never recreates a card or moves the scroll, and unrelated broadcasts (roster and roots unchanged) do nothing.
+  `--plugins-settings` checks a 48-plugin roster. A remote host's plugins' UI halves run in this app.
 - A plugin section shows the plugin's own control under its label; when the plugin leaves, an open section falls
   back to Plugins.
 

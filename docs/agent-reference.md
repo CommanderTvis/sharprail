@@ -105,6 +105,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 
 | Mode | Covers |
 | --- | --- |
+| `--plugins-settings` | Settings › Plugins with a long roster: virtualized, recycled cards; broadcasts update in place; toggles; every builtin plugin draws its icon. |
 | `--plugins`, `--codex`, `--codex-terminals`, `--claude-code`, `--specs`, `--branch-graph` | Plugin runtime and each builtin plugin. |
 | `--epub` | EPUB Reader plugin: generated EPUB 3 (nav) and EPUB 2 (NCX) conversion, disabled by default, enable then open, TOC jumps, in-book and external links, images and cover, scroll and paged modes (page count, next/previous, keys, clean page edges, resize keeps location), Find across chapters, theme contrast, remote-host parity, large-book UI stall budget. `--case epub-reader` runs it in the gate. |
 | `--lsp-narrow` | Code Intelligence rows and pane headers at 160–480px: whole names, full-width details, reachable actions, titles clear of buttons. |
