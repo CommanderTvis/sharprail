@@ -36,6 +36,14 @@ internal static class SettingsRefreshChecks
                 change.GetAwaiter().GetResult();
                 Require(ReferenceEquals(body.Content, page), "An unrelated terminal title broadcast rebuilt the " + section + " Settings page.");
                 Require(settings.IsVisible, "A host broadcast dismissed Settings.");
+                if (section == "Projects") continue;
+                // The window's own project open can land after it mounts; only the Projects page lists it.
+                var other = Path.Combine(root, "settings-refresh-" + section);
+                Directory.CreateDirectory(other);
+                var opened = window.Workbench.State.ChangeAsync(HostStateChange.OpenProject(other));
+                Until(() => opened.IsCompleted && window.Workbench.State.Current.Projects.Contains(other));
+                opened.GetAwaiter().GetResult();
+                Require(ReferenceEquals(body.Content, page), "A recent project broadcast rebuilt the " + section + " Settings page.");
             }
             settings.ShowSection("Appearance");
             var appearance = body.Content;

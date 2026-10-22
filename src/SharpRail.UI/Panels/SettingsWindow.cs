@@ -319,7 +319,9 @@ public sealed partial class SettingsWindow : Window
         RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
         if (section == "Code Intelligence" && (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider || previous.Settings.LanguageServers != next.Settings.LanguageServers || previous.Settings.LspEnabled != next.Settings.LspEnabled)) foreach (var refresh in refreshers) refresh();
         else if (section == "Line width") foreach (var refresh in refreshers) refresh();
-        else if (section is "Appearance" or "Layout" or "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) RefreshSection();
+        // A project joining the recents list (the window's own open lands after it mounts) leaves the other pages alone.
+        else if (section == "Appearance" && previous.Settings != next.Settings || section == "Layout" && (previous.Settings != next.Settings || !previous.Presets.SequenceEqual(next.Presets)) ||
+            section == "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) RefreshSection();
         else if (section == "Notifications") foreach (var refresh in refreshers) refresh();
     }
 
