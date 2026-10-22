@@ -192,6 +192,8 @@ internal static class CheckRoot
             if (entry is DirectoryInfo child && child.LinkTarget is null && (child.Attributes & FileAttributes.ReparsePoint) == 0) { bytes += Remove(child); continue; }
             if (entry is FileInfo file && file.LinkTarget is null) bytes += file.Length;
             if (entry is DirectoryInfo link) { link.Delete(); continue; }
+            // Attributes follow a link to its target, which may be a system program the run cannot (and must not) change.
+            if (entry.LinkTarget is not null) { entry.Delete(); continue; }
             if ((entry.Attributes & FileAttributes.ReadOnly) != 0) entry.Attributes &= ~FileAttributes.ReadOnly;
             entry.Delete();
         }

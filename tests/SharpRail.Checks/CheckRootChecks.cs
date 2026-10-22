@@ -49,7 +49,15 @@ internal static class CheckRootChecks
         sentinelFolder = Path.Combine(parent, "outside-" + Guid.NewGuid().ToString("N")[..6]);
         Directory.CreateDirectory(sentinelFolder);
         File.WriteAllText(Path.Combine(sentinelFolder, "keep.txt"), "keep");
-        if (!OperatingSystem.IsWindows()) Directory.CreateSymbolicLink(Path.Combine(directory, "link"), sentinelFolder);
+        if (!OperatingSystem.IsWindows())
+        {
+            Directory.CreateSymbolicLink(Path.Combine(directory, "link"), sentinelFolder);
+            // A fake tool on PATH links a system program, which the run may not change: removing the link never touches its target.
+            var program = Path.Combine(sentinelFolder, "program");
+            File.WriteAllText(program, "keep");
+            File.SetAttributes(program, FileAttributes.ReadOnly);
+            File.CreateSymbolicLink(Path.Combine(directory, "program-link"), program);
+        }
         if (failed) File.WriteAllText(Path.Combine(directory, CheckRoot.FailedMarker), "");
         Directory.SetLastWriteTimeUtc(directory, DateTime.UtcNow - age);
         return directory;
@@ -78,6 +86,8 @@ internal static class CheckRootChecks
             "Recent roots, the roots of live processes, kept failure evidence, new legacy fixtures and unrelated folders stay.");
         Require(freed >= 2 * 4096, "The reclaimed bytes are reported (" + freed + ").");
         Require(File.ReadAllText(Path.Combine(outside, "keep.txt")) == "keep", "A link inside a root is removed, never followed.");
+        Require(OperatingSystem.IsWindows() || File.GetAttributes(Path.Combine(outside, "program")).HasFlag(FileAttributes.ReadOnly),
+            "A file link is removed without changing its read-only target.");
     }
 
     private static string Wait(Process process, out string root)
