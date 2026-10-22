@@ -258,6 +258,14 @@
         <TextBlock Text="Undo close" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="How long a closed tab can be reopened in place with Undo (Command-Z on macOS). A closed terminal keeps its process running, detached, for this time. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
         <StackPanel x:Name="TerminalUndoCloseChoices" Spacing="8" />
+        <TextBlock Text="Shell integration" Classes="settings-heading" Margin="0,16,0,0" />
+        <TextBlock Text="Load Ghostty's shell integration into zsh, bash, fish and elvish, as Ghostty does. It marks each prompt and command output, so you can jump between prompts, select or copy a command's output and click in the command line to move the cursor, and it reports the shell's directory, which new terminals opened from this one start in. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
+        <Border Padding="12,8" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="Shell integration" Classes="settings-label" />
+            <rendering:Switch x:Name="ShellIntegrationEnabled" Grid.Column="1" Label="Shell integration" />
+          </Grid>
+        </Border>
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="WorkspacesPage">

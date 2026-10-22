@@ -322,7 +322,8 @@ public sealed partial class SettingsWindow : Window
         // A project joining the recents list (the window's own open lands after it mounts) leaves the other pages alone.
         else if (section == "Appearance" && previous.Settings != next.Settings || section == "Layout" && (previous.Settings != next.Settings || !previous.Presets.SequenceEqual(next.Presets)) ||
             section == "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && (previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb || previous.Settings.TerminalKeepAfterExit != next.Settings.TerminalKeepAfterExit ||
-                previous.Settings.TerminalUndoCloseSeconds != next.Settings.TerminalUndoCloseSeconds)) RefreshSection();
+                previous.Settings.TerminalUndoCloseSeconds != next.Settings.TerminalUndoCloseSeconds ||
+                previous.Settings.ShellIntegrationEnabled != next.Settings.ShellIntegrationEnabled)) RefreshSection();
         else if (section is "Notifications" or "Terminal") foreach (var refresh in refreshers) refresh();
     }
 
@@ -873,6 +874,10 @@ public sealed partial class SettingsWindow : Window
                 if (state.Current.Settings.TerminalUndoCloseSeconds != seconds)
                     Share(HostStateChange.Setting("terminal-undo-close", seconds.ToString(CultureInfo.InvariantCulture)));
             }));
+        var integration = PageControl<Switch>(panel, "ShellIntegrationEnabled");
+        integration.IsChecked = state.Current.Settings.ShellIntegrationEnabled;
+        integration.IsEnabled = state.Supports(HostProtocol.ShellIntegration);
+        integration.CheckedChange += on => Share(HostStateChange.Setting("shell-integration", on ? "true" : "false"));
         return panel;
     }
 

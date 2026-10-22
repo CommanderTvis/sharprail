@@ -374,9 +374,15 @@ internal static class Program
             TerminalHostChecks.Run(root, watchReplayOnly: true).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--shell-integration"]))
+        {
+            ShellIntegrationChecks.RunHost(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--terminals"]))
         {
             TerminalHostChecks.Run(root).GetAwaiter().GetResult();
+            ShellIntegrationChecks.RunHost(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.TerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
@@ -1146,6 +1152,7 @@ internal static class Program
         Gate.Case("pty-output-allocations", () => { if (!OperatingSystem.IsWindows()) PtyOutputAllocationChecks.Run(root, TimeSpan.FromSeconds(5), remote: false).GetAwaiter().GetResult(); });
         Gate.Case("loopback-terminals", () => LoopbackTerminalChecks.Run().GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("shell-integration", () => ShellIntegrationChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("windows-host", () => WindowsChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("agent-launch-origins", AgentLaunchChecks.RunHost);

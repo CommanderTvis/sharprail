@@ -97,6 +97,17 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   on the host as the inner exception. Because macOS execs the shell from a trampoline, the host checks that
   the shell is an executable file before spawning; otherwise an unusable shell would read as one that
   exited. A missing workspace folder keeps its own message.
+- Shell integration (host setting `ShellIntegrationEnabled`, Settings › Terminal, on by default, read when a POSIX shell
+  starts) loads Ghostty's own scripts the way Ghostty's `shell_integration.zig` does: zsh through `ZDOTDIR` (a user's
+  value kept in `GHOSTTY_ZSH_ZDOTDIR` and restored by Ghostty's `.zshenv`), bash with `--posix` before the login option and
+  `ENV` naming `ghostty.bash` (`GHOSTTY_BASH_INJECT`, `GHOSTTY_BASH_ENV`, `HISTFILE`), fish and elvish through
+  `XDG_DATA_DIRS`; plus `GHOSTTY_RESOURCES_DIR` and `GHOSTTY_SHELL_FEATURES=cursor:blink,title` (Ghostty's defaults
+  without `path`, whose binary SharpRail lacks). Apple's /bin/bash ignores `ENV` and is left alone, as in Ghostty. The
+  scripts are the pinned libghostty-vt commit's `src/shell-integration`, copied by the native builds to the app's
+  `ghostty-shell/` (macOS and Linux); a host without them injects nothing. Inherited `GHOSTTY_*` variables are always
+  removed, so with the setting off a shell gets none. `--shell-integration` checks real zsh in a fixture HOME locally and
+  remotely, the setting off, a user ZDOTDIR, Apple bash and the bash/fish plans; a non-Apple bash or fish was not
+  available to run live.
 - Killing sends SIGHUP to the shell's process group, then SIGKILL if it does not exit.
 - Not tmux: no extra dependency, no competing tab model.
 

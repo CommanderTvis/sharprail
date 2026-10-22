@@ -56,9 +56,18 @@
   <Target Name="IncludeGhosttyNative" DependsOnTargets="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''">
     <ItemGroup>
       <GhosttyResources Include="$(GhosttyNativeCache)/resources/**/*" />
+      <GhosttyShell Include="$(GhosttyNativeCache)/shell/**/*" />
       <Content Include="$(GhosttyNativeCache)/libGhosttyAvaloniaView.dylib" Link="libGhosttyAvaloniaView.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
       <Content Include="$(GhosttyNativeCache)/libGhosttyAvaloniaVt.dylib" Link="libGhosttyAvaloniaVt.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
       <Content Include="@(GhosttyResources)" Link="%(GhosttyResources.RecursiveDir)%(GhosttyResources.Filename)%(GhosttyResources.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+      <Content Include="@(GhosttyShell)" Link="ghostty-shell/%(GhosttyShell.RecursiveDir)%(GhosttyShell.Filename)%(GhosttyShell.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+  <!-- Ghostty's shell-integration scripts, which a Linux terminal host injects into the shells it starts (ghostty-shell/). -->
+  <Target Name="IncludeGhosttyShellLinux" DependsOnTargets="BuildGhosttyLinux" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(SharpRailLinuxRid)' != ''">
+    <ItemGroup>
+      <GhosttyShell Include="$(GhosttyNativeCache)/shell/**/*" />
+      <Content Include="@(GhosttyShell)" Link="ghostty-shell/%(GhosttyShell.RecursiveDir)%(GhosttyShell.Filename)%(GhosttyShell.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
 </Project>

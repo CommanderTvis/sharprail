@@ -5,7 +5,7 @@ const SharpRail.Host.Abstractions.FileLimits.ReadMessageBytes = 83886080 -> int
 const SharpRail.Host.Abstractions.FileLimits.SaveMessageBytes = 150994944 -> int
 const SharpRail.Host.Abstractions.HostProtocol.ChangeWritePath = 2 -> int
 const SharpRail.Host.Abstractions.HostProtocol.AirContextPlugin = 8 -> int
-const SharpRail.Host.Abstractions.HostProtocol.Current = 9 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 10 -> int
 const SharpRail.Host.Abstractions.HostProtocol.RequestReplay = 3 -> int
 const SharpRail.Host.Abstractions.HostProtocol.SharprailExclude = 9 -> int
 const SharpRail.Host.Abstractions.HostProtocol.WebSocketTransport = 5 -> int
@@ -1937,3 +1937,6 @@ SharpRail.Host.Abstractions.HostSettings.TerminalUndoCloseSeconds.init -> void
 const SharpRail.Host.Abstractions.HostSettings.DefaultTerminalUndoCloseSeconds = 5 -> int
 const SharpRail.Host.Abstractions.HostSettings.MaxTerminalUndoCloseSeconds = 600 -> int
 SharpRail.Host.Abstractions.ITerminalCatalogService.CloseTabForUndoAsync(string! workspaceRoot, string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.TerminalCatalog!>
+const SharpRail.Host.Abstractions.HostProtocol.ShellIntegration = 10 -> int
+SharpRail.Host.Abstractions.HostSettings.ShellIntegrationEnabled.get -> bool
+SharpRail.Host.Abstractions.HostSettings.ShellIntegrationEnabled.init -> void

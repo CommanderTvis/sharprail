@@ -103,6 +103,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             TerminalKeepAfterExit = reply.Settings.TerminalKeepAfterExit,
             TerminalUndoCloseSeconds = reply.Settings.TerminalUndoCloseSeconds,
             FileTypeIconsEnabled = !reply.Settings.FileTypeIconsDisabled,
+            ShellIntegrationEnabled = !reply.Settings.ShellIntegrationDisabled,
             NotificationsEnabled = !reply.Settings.NotificationsDisabled,
             TerminalNotificationsEnabled = !reply.Settings.TerminalNotificationsDisabled,
             BellFeatures = HostSettings.NormalizeBellFeatures(reply.Settings.BellFeatures) is { } bell && reply.Settings.BellFeatures.Length > 0 ? bell : HostSettings.DefaultBellFeatures,

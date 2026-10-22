@@ -9,7 +9,10 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 9;
+    public const int Current = 10;
+
+    /// <summary>The host setting that turns Ghostty's shell integration off for shells started afterwards.</summary>
+    public const int ShellIntegration = 10;
 
     /// <summary>
     /// Air Context is a plugin: its visibility switch and enabled workspaces left the host state and its operations left the

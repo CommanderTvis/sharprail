@@ -41,7 +41,11 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     private readonly Func<int>? undoCloseSeconds;
     // Sessions whose tab the user closed, kept for undo until their expiry fires or the tab is reserved again.
     private readonly Dictionary<string, CancellationTokenSource> closing = [];
+    private readonly Func<bool>? shellIntegration;
     private bool disposed;
+
+    /// <summary>The directory holding the <c>shell-integration</c> scripts; by default the one shipped with the app.</summary>
+    public string ShellIntegrationResources { get; set; } = ShellIntegration.DefaultResources;
 
     /// <summary>
     /// Ghostty's default <c>abnormal-command-exit-runtime</c>: a shell that ends this soon after starting failed to launch,
@@ -67,13 +71,15 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     // screen of every session is saved when the service is disposed, and a tab attached again after a restart
     // starts a new shell showing it. replayBytes is read when a shell starts and sizes its replay snapshot; none
     // means the default 64 KiB. keepAfterExit is read when a catalogued shell exits: false closes its tab for every client,
-    // like Ghostty's default (wait-after-command = false), unless it exited abnormally; none keeps every tab.
+    // like Ghostty's default (wait-after-command = false), unless it exited abnormally; none keeps every tab. shellIntegration is read when a POSIX shell starts and says whether
+    // the shell-integration scripts are injected into it; none injects nothing.
     private readonly string clipboardDirectory;
 
-    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null, Func<bool>? keepAfterExit = null, Func<int>? undoCloseSeconds = null)
+    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null, Func<bool>? keepAfterExit = null, Func<int>? undoCloseSeconds = null,
+        Func<bool>? shellIntegration = null)
     {
         if (!OperatingSystem.IsWindows()) Posix.EnsureSupported();
-        this.shell = shell; this.replayBytes = replayBytes; this.keepAfterExit = keepAfterExit; this.undoCloseSeconds = undoCloseSeconds;
+        this.shell = shell; this.replayBytes = replayBytes; this.keepAfterExit = keepAfterExit; this.undoCloseSeconds = undoCloseSeconds; this.shellIntegration = shellIntegration;
         clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "sharprail-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
         catalog = new TerminalCatalogStore(recordingsDirectory);
         if (recordingsDirectory is null) return;
@@ -453,7 +459,8 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             // macOS execs the shell from a trampoline, so a shell that cannot run would otherwise look like one that exited.
             if (!Runnable(shellPath)) throw new IOException("The shell is not an executable file.");
             if (OperatingSystem.IsWindows()) return ConPtySession.Start(request.SessionId, shellPath, directory, request.Columns, request.Rows, mcpUrl, contributed);
-            return PtySession.Start(request.SessionId, shellPath, directory, request.Columns, request.Rows, mcpUrl, contributed, program);
+            var integration = shellIntegration?.Invoke() == true ? ShellIntegrationResources : null;
+            return PtySession.Start(request.SessionId, shellPath, directory, request.Columns, request.Rows, mcpUrl, contributed, program, integration);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
@@ -478,8 +485,16 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         "CLAUDE_CODE_SSE_PORT", "CLAUDE_PID", "CLAUDE_EFFORT"
     ];
 
-    internal static string?[] ShellEnvironment(string? mcpUrl = null, IReadOnlyDictionary<string, string>? contributed = null, string shell = "")
+    internal static string?[] ShellEnvironment(string? mcpUrl = null, IReadOnlyDictionary<string, string>? contributed = null, string shell = "") =>
+        ShellEnvironment(mcpUrl, contributed, shell, null, out _);
+
+    // The environment plugins' hooks apply first; with integration (the scripts' directory), the shell-integration
+    // injection is applied last, to the environment the shell would otherwise get, and its extra shell arguments are returned.
+    // zsh's injection keeps the hooks' ZDOTDIR as the one it restores, so both run.
+    internal static string?[] ShellEnvironment(string? mcpUrl, IReadOnlyDictionary<string, string>? contributed, string shell,
+        string? integration, out string[] arguments)
     {
+        arguments = [];
         var variables = new SortedDictionary<string, string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
             variables[(string)entry.Key] = (string?)entry.Value ?? "";
@@ -488,6 +503,8 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         // An app launched from inside a Claude Code session inherits that session's identity; a Claude started in a
         // new terminal would take itself for its child and stop saving transcripts. Configuration variables stay.
         foreach (var marker in ClaudeSessionMarkers) variables.Remove(marker);
+        // An app started from a Ghostty terminal inherits its integration variables; only the host's own injection sets them.
+        foreach (var key in variables.Keys.Where(key => key.StartsWith("GHOSTTY_", StringComparison.Ordinal)).ToArray()) variables.Remove(key);
         variables["TERM"] = "xterm-256color";
         variables["COLORTERM"] = "truecolor";
         // The PTY registers no utmpx record, so a login shell without LOGNAME asks getlogin(), which reads
@@ -508,6 +525,11 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         foreach (var (key, value) in contributed ?? new Dictionary<string, string>())
             if (key.Length > 0 && !key.Equals("SHARPRAIL_TOKEN", OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) && !key.Contains('=') && !key.Contains('\0') && !value.Contains('\0')) variables[key] = value;
         ShellEnvironmentHooks.Apply(variables, shell);
+        if (integration is not null && ShellIntegration.For(shell, integration, variables) is { } injected)
+        {
+            foreach (var (key, value) in injected.Variables) variables[key] = value;
+            arguments = injected.Arguments;
+        }
         return [.. variables.Select(pair => pair.Key + "=" + pair.Value), null];
     }
 }
@@ -548,7 +570,7 @@ internal sealed class PtySession : ITerminalProcess
     }
 
     internal static PtySession Start(string id, string shell, string directory, int columns, int rows, string? mcpUrl = null,
-        IReadOnlyDictionary<string, string>? contributed = null, string? program = null)
+        IReadOnlyDictionary<string, string>? contributed = null, string? program = null, string? shellIntegration = null)
     {
         var master = Posix.OpenPt(Posix.ORdwr | Posix.ONoctty);
         if (master < 0) throw new IOException("Couldn't open a pseudo-terminal: " + Posix.LastError());
@@ -564,7 +586,8 @@ internal sealed class PtySession : ITerminalProcess
             slave = Posix.Open(device, Posix.ORdwr | Posix.ONoctty);
             if (slave < 0) throw new IOException("Couldn't open the pseudo-terminal: " + Posix.LastError());
             Posix.SetWindowSize(master, columns, rows);
-            var pid = Spawn(shell, directory, device, PtyTerminalService.ShellEnvironment(mcpUrl, contributed, shell), program);
+            var environment = PtyTerminalService.ShellEnvironment(mcpUrl, contributed, shell, shellIntegration, out var options);
+            var pid = Spawn(shell, directory, device, environment, program, options);
             return new PtySession(id, master, slave, pid);
         }
         catch
@@ -575,7 +598,7 @@ internal sealed class PtySession : ITerminalProcess
         }
     }
 
-    private static int Spawn(string shell, string directory, string device, string?[] environment, string? program)
+    private static int Spawn(string shell, string directory, string device, string?[] environment, string? program, string[] options)
     {
         // posix_spawnattr_t and posix_spawn_file_actions_t are pointers on macOS and structs on Linux.
         var attributes = Marshal.AllocHGlobal(1024);
@@ -599,11 +622,11 @@ internal sealed class PtySession : ITerminalProcess
             // macOS applies file actions before POSIX_SPAWN_SETSID, so the slave opened above cannot become
             // the controlling terminal. A trampoline reopens it as the new session leader, then becomes the shell.
             // A program runs through the same login shell, interactive so its rc files apply, then leaves an
-            // interactive shell behind (TerminalProgram).
+            // interactive shell behind (TerminalProgram). Shell integration's options (bash's --posix) come before the login option.
             string[] tail = program is null ? [] : ["-i", "-c", TerminalProgram.Script(shell, program)];
             string?[] arguments = Posix.Mac
-                ? ["sh", "-c", "exec 3<>\"$1\" 3>&-; shift; exec \"$@\"", "sh", device, shell, "-l", .. tail, null]
-                : ["-" + Path.GetFileName(shell), .. tail, null];
+                ? ["sh", "-c", "exec 3<>\"$1\" 3>&-; shift; exec \"$@\"", "sh", device, shell, .. options, "-l", .. tail, null]
+                : ["-" + Path.GetFileName(shell), .. options, .. tail, null];
             var executable = Posix.Mac ? "/bin/sh" : shell;
             var result = Posix.Spawn(out var pid, executable, actions, attributes, arguments, environment);
             if (result != 0) throw new IOException($"Couldn't start {shell}: {Posix.Error(result)}.");

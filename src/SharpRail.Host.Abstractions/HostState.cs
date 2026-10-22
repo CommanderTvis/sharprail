@@ -23,6 +23,8 @@ public sealed record HostSettings
     public bool TerminalKeepAfterExit { get; init; }
     /// <summary>How long a terminal tab the user closed keeps its session for undo, in seconds; zero disables undo.</summary>
     public int TerminalUndoCloseSeconds { get; init; } = DefaultTerminalUndoCloseSeconds;
+    /// <summary>Whether shells the host starts from now on load Ghostty's shell integration (prompt marks and working directory).</summary>
+    public bool ShellIntegrationEnabled { get; init; } = true;
     /// <summary>Whether clients raise desktop notifications when a terminal's agent needs the user while they are away.</summary>
     public bool NotificationsEnabled { get; init; } = true;
     /// <summary>Whether programs in terminals may raise desktop notifications (OSC 9, OSC 777), like Ghostty's desktop-notifications.</summary>

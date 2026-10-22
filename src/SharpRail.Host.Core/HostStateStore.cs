@@ -579,6 +579,7 @@ public sealed partial class HostStateStore : IHostStateService
                     "terminal-undo-close" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) && seconds <= HostSettings.MaxTerminalUndoCloseSeconds
                         => settings with { TerminalUndoCloseSeconds = seconds },
                     "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
+                    "shell-integration" when bool.TryParse(value, out var integrate) => settings with { ShellIntegrationEnabled = integrate },
                     "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },
                     "java-kotlin-provider" when IsProviderChoice(value) => settings with { JavaKotlinProvider = value },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
