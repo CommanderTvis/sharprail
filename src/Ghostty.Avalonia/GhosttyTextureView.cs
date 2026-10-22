@@ -41,9 +41,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         {
             if (!highlightDirty) return;
             highlightDirty = false;
-            var previous = highlightUnderlines.ToArray();
             RefreshHighlights();
-            if (!previous.SequenceEqual(highlightUnderlines)) InvalidateVisual();
         };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = InputMethod);
     }
@@ -147,8 +145,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         if (disposed || !active) return;
         highlightTimer.Stop();
         highlights?.Clear();
-        highlightUnderlines.Clear();
-        highlightCells.Clear();
+        ClearHighlights();
         lock (frameLock) active = false;
         Native.Notify(source, null);
         ready.TrySetException(error);
@@ -171,9 +168,8 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
 
     public override void Render(DrawingContext context)
     {
+        // Link underlines are part of Ghostty's frame (see PushUnderlines), never an overlay that could lag the text.
         context.Custom(new TextureOperation(this, new Rect(Bounds.Size)));
-        foreach (var line in highlightUnderlines) context.FillRectangle(new SolidColorBrush(Colors.Foreground), line);
-        foreach (var line in fileUnderlines) context.FillRectangle(new SolidColorBrush(Colors.Foreground), line);
     }
 
     private sealed class TextureOperation(GhosttyTextureView owner, Rect bounds) : ICustomDrawOperation
@@ -189,8 +185,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     {
         highlightTimer.Stop();
         highlights?.Clear();
-        highlightUnderlines.Clear();
-        highlightCells.Clear();
+        ClearHighlights();
         lock (frameLock) active = false;
         if (!disposed) Native.Notify(source, null);
         if (topLevel is not null) topLevel.ScalingChanged -= ScalingChanged;

@@ -703,6 +703,23 @@ internal static class NativeTextureChecks
     private static void Require(bool condition, string message)
     { if (!condition) throw new InvalidOperationException(message); }
 
+    /// <summary>Captures only this check's own window, as presented.</summary>
+    internal static async Task<SKBitmap> CaptureWindow()
+    {
+        var directory = CheckRoot.Create("native-window-capture");
+        var capturePath = Path.GetFullPath(Path.Combine(directory, "frame.png"));
+        try
+        {
+            var capture = new ProcessStartInfo("/usr/sbin/screencapture") { UseShellExecute = false };
+            foreach (var argument in new[] { "-x", "-o", "-l", Native.WindowNumber(Native.Content(Title)).ToString(), capturePath }) capture.ArgumentList.Add(argument);
+            using var process = Process.Start(capture)!;
+            await process.WaitForExitAsync();
+            Require(process.ExitCode == 0, "Own-window capture failed.");
+            return SKBitmap.Decode(capturePath);
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
     private static class Native
     {
         [DllImport("TerminalEvents", EntryPoint = "sr_texture_handoff")] internal static extern nint Handoff(nint library);

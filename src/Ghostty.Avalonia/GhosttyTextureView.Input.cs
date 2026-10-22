@@ -126,7 +126,7 @@ public sealed partial class GhosttyTextureView
         {
             var point = e.GetPosition(this);
             // An underlined resolved reference wins over mouse reporting, as a modifier-click on a link does.
-            var underlined = highlightCells.Any(cell => cell.Contains(point));
+            var underlined = HighlightAt(point) is not null;
             var buffer = new byte[16384];
             var length = (int)Native.ContextLink(terminal.Handle, point.X, point.Y, underlined || e.KeyModifiers.HasFlag(KeyModifiers.Shift), buffer, (nuint)buffer.Length);
             if (length >= 0)

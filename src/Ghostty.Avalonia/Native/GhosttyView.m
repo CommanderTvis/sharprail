@@ -456,6 +456,11 @@ size_t gav_texture_link_line(void *pointer, double x, double y, uint32_t *text, 
     return gav_ghostty_link_line(view.surface, x, y, text, cells, capacity, info);
 }
 
+extern bool gav_ghostty_set_link_underlines(ghostty_surface_t surface, const uint32_t *cells, const uint32_t *codepoints, size_t count);
+bool gav_texture_set_link_underlines(void *pointer, const uint32_t *cells, const uint32_t *codepoints, size_t count) {
+    return gav_ghostty_set_link_underlines(((__bridge GAVTerminalView *)pointer).surface, cells, codepoints, count);
+}
+
 extern intptr_t gav_ghostty_context_link(ghostty_surface_t surface, double x, double y, bool shift, uint8_t *output, size_t capacity);
 intptr_t gav_texture_context_link(void *pointer, double x, double y, bool shift, uint8_t *output, size_t capacity) {
     return gav_ghostty_context_link(((__bridge GAVTerminalView *)pointer).surface, x, y, shift, output, capacity);

@@ -59,3 +59,31 @@ export fn gav_ghostty_context_link(surface: *Surface, x: f64, y: f64, shift: boo
     if (point.x >= grid.columns or point.y >= grid.rows) return 0;
     return core.contextLink(pixels, shift, output[0..capacity]);
 }
+
+// Replace the file-link cells the renderer underlines. `cells` are viewport indexes (row * columns + column) read by
+// gav_ghostty_link_line, `codepoints` the base codepoint each showed. Cells whose text already moved are dropped; the
+// renderer keeps the rest in screen coordinates and underlines them in the same frame as their text.
+export fn gav_ghostty_set_link_underlines(surface: *Surface, cells: [*]const u32, codepoints: [*]const u32, count: usize) bool {
+    const core = &surface.core_surface;
+    {
+        core.renderer_state.mutex.lock();
+        defer core.renderer_state.mutex.unlock();
+        const term = &core.io.terminal;
+        const pages = &term.screen.pages;
+        const links = &core.renderer.gav_links;
+        links.clearRetainingCapacity();
+        const top_pin = pages.pin(.{ .viewport = .{} }) orelse return false;
+        const top = (pages.pointFromPin(.screen, top_pin) orelse return false).screen.y;
+        for (0..count) |i| {
+            const x = cells[i] % pages.cols;
+            const y = cells[i] / pages.cols;
+            if (y >= pages.rows) continue;
+            const cell = pages.getCell(.{ .viewport = .{ .x = @intCast(x), .y = @intCast(y) } }) orelse continue;
+            const codepoint: u21 = if (cell.cell.codepoint() == 0) ' ' else cell.cell.codepoint();
+            if (codepoint != codepoints[i]) continue;
+            links.append(core.renderer.alloc, .{ .screen = term.active_screen, .x = @intCast(x), .y = top + y, .codepoint = codepoint }) catch return false;
+        }
+    }
+    core.renderer_thread.wakeup.notify() catch {};
+    return true;
+}
