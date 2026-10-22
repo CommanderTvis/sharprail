@@ -26,8 +26,11 @@ internal sealed partial class LanguageSession
             .Distinct().OrderBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Line).ThenBy(item => item.Column).ToArray();
         if (request.Operation == "symbolBody")
         {
+            // Outline names are qualified (Ns/Type/Member(int) : void); like the other outline lookups, an exact name wins, otherwise the
+            // query's segments must end the name, so "Member" and "Type/Member" select it as the outline lists it.
+            var exact = items.Any(item => item.Text == request.Query);
             items = request.Query.Length > 0
-                ? items.Where(item => item.Text == request.Query).ToArray()
+                ? items.Where(item => exact ? item.Text == request.Query : LanguageUsage.EndsWithName(item.Text, request.Query)).ToArray()
                 : items.Where(item => (request.Line > item.Line || request.Line == item.Line && request.Column >= item.Column) &&
                     (request.Line < item.EndLine || request.Line == item.EndLine && request.Column < item.EndColumn))
                     .OrderBy(item => item.EndLine - item.Line).ThenBy(item => item.EndColumn - item.Column).Take(1).ToArray();
