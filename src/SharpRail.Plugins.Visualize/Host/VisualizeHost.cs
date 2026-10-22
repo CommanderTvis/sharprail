@@ -8,7 +8,7 @@ public sealed class VisualizeHost : PluginHostModule
     internal VisualizationStore Store { get; } = new();
 
     /// <summary>The list item about <c>visualize</c> in the instructions agent plugins give sessions (H20).</summary>
-    internal const string Guidance = "`visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view.";
+    internal const string Guidance = "`visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view; `visualize_read` returns what it shows and what the user selected.";
 
     public override PluginContract Contract => VisualizeContract.Contract;
 
@@ -23,6 +23,11 @@ public sealed class VisualizeHost : PluginHostModule
         context.Method(VisualizeContract.Report, (report, _, _) =>
         {
             Store.ReportRender(report.WorkspaceId, report.TabKey, report.Revision, report.Error);
+            return ValueTask.FromResult(new Ack(true));
+        });
+        context.Method(VisualizeContract.Select, (report, _, _) =>
+        {
+            Store.ReportSelection(report.WorkspaceId, report.TabKey, report.Revision, report.Text);
             return ValueTask.FromResult(new Ack(true));
         });
         context.Method(VisualizeContract.Get, (query, _, _) => ValueTask.FromResult(Store.ForWorkspace(query.WorkspaceId)));
@@ -41,6 +46,11 @@ public sealed class VisualizeHost : PluginHostModule
             call.Terminal is { } terminal
                 ? await Store.RunTool(terminal, arguments, cancellationToken)
                 : new PluginToolResult("visualize is only available from a terminal.") { IsError = true }));
+        // Bound to the calling terminal like visualize, so no argument can name another terminal's view.
+        context.Tool(new PluginTool<VisualizeReadParams>("visualize_read", "Read Visualization", VisualizationStore.ReadDescription, (_, call, _) =>
+            ValueTask.FromResult(call.Terminal is { } terminal
+                ? new PluginToolResult(Store.Read(terminal.WorkspaceId, terminal.TabKey).ToJsonString())
+                : new PluginToolResult("visualize_read is only available from a terminal.") { IsError = true })));
 
         return ValueTask.FromResult<PluginDisposer?>(() =>
         {

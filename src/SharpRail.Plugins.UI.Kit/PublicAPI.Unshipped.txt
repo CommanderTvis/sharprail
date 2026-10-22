@@ -364,6 +364,7 @@ static SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.operator ==(S
 static SharpRail.Plugins.UI.Kit.Visualization.VisualizationArgs.ComparisonOptions(System.Text.Json.JsonElement value) -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView!>!
 static SharpRail.Plugins.UI.Kit.Visualization.VisualizationArgs.String(System.Text.Json.JsonElement args, string! key) -> string!
 static SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard.Create(System.Text.Json.JsonElement args, bool interactive = false, System.Action<string?>? onRender = null) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard.SelectedText(Avalonia.Controls.Control! card) -> string!
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.SourceWrapWidth.get -> double
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.SourceWrapWidth.init -> void
 SharpRail.Plugins.UI.Kit.CommandKeys

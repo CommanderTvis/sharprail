@@ -65,7 +65,7 @@ internal static class PromptChecks
         {
             [SpecDialectManifest.Manifest.Id] = "If this project uses a spec graph and the `spec_*` tools are available, you MUST use them (`spec_graph`, `spec_get`, `spec_grep`) to read the affected specs before changing governed behavior, and maintain and validate (`spec_validate`) them in the same change. Projects without specs need no spec workflow; do not create specs unless asked.",
             [BlueprintContract.Manifest.Id] = "`blueprint_check`: you MUST call it to verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.",
-            [VisualizeContract.Manifest.Id] = "`visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view.",
+            [VisualizeContract.Manifest.Id] = "`visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view; `visualize_read` returns what it shows and what the user selected.",
         };
         foreach (var (id, text) in texts)
         {

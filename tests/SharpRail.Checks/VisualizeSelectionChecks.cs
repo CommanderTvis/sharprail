@@ -209,6 +209,7 @@ internal static class VisualizeSelectionChecks
         window.MouseUp(end, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
         Require(pane.SelectedText == "In progress/", $"Dragging over a label selects exactly it, got '{pane.SelectedText}'.");
+        Require(VisualizationCard.SelectedText(view) == "In progress/", "The card reports the diagram selection that visualize_read returns.");
         window.KeyPress(Key.C, command, PhysicalKey.C, null);
         Dispatcher.UIThread.RunJobs();
         Require(Clipboard(window) == "In progress/", $"Copy puts the selected label on the clipboard, got '{Clipboard(window)}'.");
@@ -251,6 +252,11 @@ internal static class VisualizeSelectionChecks
         var selectable = card.GetLogicalDescendants().OfType<SelectableTextBlock>().Select(block => block.Text).ToHashSet();
         foreach (var expected in new[] { "Pick", "OptA", "First path", "Fast", "Costly" })
             Require(selectable.Contains(expected), $"The comparison's \"{expected}\" is selectable text: {string.Join(" | ", selectable)}");
+        Require(VisualizationCard.SelectedText(card).Length == 0, "Nothing selected reads as empty.");
+        var description = card.GetLogicalDescendants().OfType<SelectableTextBlock>().Single(block => block.Text == "First path");
+        description.SelectionStart = 0;
+        description.SelectionEnd = 5;
+        Require(VisualizationCard.SelectedText(card) == "First", $"A comparison card's selection is what the card reports, got '{VisualizationCard.SelectedText(card)}'.");
         window.Close();
         Console.WriteLine("PASS comparison cards are selectable text");
     }

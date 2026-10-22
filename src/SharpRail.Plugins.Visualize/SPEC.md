@@ -34,6 +34,14 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   options) and answers with the title, the revision, and the fact that calling again updates in place, the
   sentence that teaches the agent the iteration loop. The parameters record's `[Description]` attributes become
   the schema's field descriptions.
+- `visualize_read` (no arguments, bound to the calling terminal the same way, refused outside one) answers JSON
+  for that terminal's view only: `shown`; when shown, `revision`, effective `title`, the stored arguments field for
+  field (`type`, `requestedTitle` when one was given, `mermaid` or `options`), `render` (`ok`, `error` with
+  `renderError`, or `pending` while no client has reported this revision), and `selection` (the text the user has
+  selected in the pane for this revision, null when none); `rejected` (`revision`, `error`) when the latest call
+  was refused and rolled back. It is a separate tool rather than an action on `visualize` because `visualize`'s
+  schema, shared with the fork, requires `type`. Verdicts, refusals and selections are in-memory beside the store,
+  forgotten with the workspace; an adopted drawing reads `pending` until a pane reports it.
 - The renderer decides, and the agent hears it. Mermaid is parsed where it is drawn, so whether a diagram is
   valid is not something the host can answer. The tool run therefore waits (5 s) for a client to report, through
   the `report` method, what it made of that revision, and answers with the parse error as an error result when
@@ -56,13 +64,16 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   `BuiltinPlugins.All` builds a fresh module per read, so each host runtime in a process has its own store.
 - The wire (`VisualizeContract`): method `report` (the render verdict), method `get` (the snapshot for the
   `changed` state channel, keyed `workspaceId`; its result is the whole per-workspace map, not one terminal's
-  entry, since the channel's key is workspace-only). Every mutation publishes the whole workspace map on
+  entry, since the channel's key is workspace-only), method `select` (the pane's selected text for a shown revision;
+  one for another revision is dropped). Every mutation publishes the whole workspace map on
   `changed`; the UI half keeps its own per-workspace map built from that.
 - UI half: a companion of kind `visualization` whose availability predicate subscribes to `changed` for the
   workspace it is asked about and answers whether that terminal has an entry; a new or updated revision calls
   `FocusCompanion`, so the drawing surfaces even if the pane was closed, and `Invalidate`, so the companion's
   title follows the drawing. The pane renders the card interactively (the diagram fills the pane and pans and
-  zooms in place) and reports the verdict back through `report` once per shown revision. A publish for another
+  zooms in place) and reports the verdict back through `report` once per shown revision, and the selected text (the kit's
+  `VisualizationCard.SelectedText`: diagram labels or card text) through `select` after each pointer release or key
+  when it changed. A publish for another
   terminal of the same workspace leaves an open pane, and its zoom, alone.
 - The plugin contract carries terminal visualizations, workspace updates and render reports
   between its host and UI halves.
@@ -96,7 +107,8 @@ Terminal ownership acceptance uses the HTTP MCP URL emitted by a real host PTY, 
 and tools/call through that token. Unknown tokens are refused. Updates reopen the owning terminal's
 companion while another window is active and leave unrelated terminals without a drawing.
 
-The focused checks cover shape/schema fields, revisions, whole-workspace snapshots and streams, timeout,
+The focused checks cover `visualize_read` (nothing shown, diagram, comparison, failed parse, selection, another
+terminal's and no terminal's call, over the runtime's MCP table), shape/schema fields, revisions, whole-workspace snapshots and streams, timeout,
 cancellation, immediate embedded reports, refusal/rollback and revision reuse, session binding/adoption,
 workspace removal and host restart. Headless local and WebSocket RPC windows cover diagram/comparison companion
 mounting, title, toolbar/wheel zoom bounds, theme navigation retention, close/reopen and rollback.

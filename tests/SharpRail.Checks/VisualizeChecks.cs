@@ -48,6 +48,7 @@ internal static class VisualizeChecks
         first.Store.Record("isolation", "t1", Diagram("graph TD;A;"));
         Require(second.Store.Get("isolation", "t1") is null, "Each host runtime receives an independent builtin visualization store.");
         await Store();
+        await Read();
         await Module(Path.Combine(root, "visualize-host"));
         await Transport(Path.Combine(root, "visualize-transports"));
         Console.WriteLine("PASS visualize host: shape validation, revisions, render reports, rollback, session persistence and local/remote channels");
@@ -164,6 +165,53 @@ internal static class VisualizeChecks
         }
     }
 
+    // visualize_read: the caller's own view, as last drawn, with its verdict, last refusal and the user's selection.
+    private static async Task Read()
+    {
+        var w1 = new TerminalRef("w1", "t1");
+        var store = new VisualizationStore();
+        var empty = store.Read("w1", "t1");
+        Require(empty.ToJsonString() == """{"shown":false}""", "Nothing shown reads as shown false: " + empty.ToJsonString());
+
+        var drawing = store.RunTool(w1, Diagram("graph TD;A-->B;", "Flow"));
+        Require(store.Read("w1", "t1")["render"]?.GetValue<string>() == "pending", "A drawing no pane has reported is pending.");
+        store.ReportRender("w1", "t1", 1, null);
+        await drawing;
+        var diagram = store.Read("w1", "t1");
+        Require(diagram["shown"]!.GetValue<bool>() && diagram["revision"]!.GetValue<int>() == 1 && diagram["type"]!.GetValue<string>() == "diagram" &&
+            diagram["title"]!.GetValue<string>() == "Flow" && diagram["mermaid"]!.GetValue<string>() == "graph TD;A-->B;" &&
+            diagram["render"]!.GetValue<string>() == "ok" && diagram["selection"] is null && diagram["rejected"] is null,
+            "A rendered diagram reads back its source and verdict: " + diagram.ToJsonString());
+
+        store.ReportSelection("w1", "t1", 1, "B");
+        Require(store.Read("w1", "t1")["selection"]?.GetValue<string>() == "B", "The user's selection reads back.");
+        store.ReportSelection("w1", "t1", 7, "stale");
+        Require(store.Read("w1", "t1")["selection"]?.GetValue<string>() == "B", "A selection of another revision is ignored.");
+        store.ReportSelection("w1", "t1", 1, null);
+        Require(store.Read("w1", "t1")["selection"] is null, "A cleared selection reads as none.");
+        store.ReportSelection("w1", "t1", 1, "A");
+
+        var broken = store.RunTool(w1, Diagram("graph TD;A--", "Broken"));
+        store.ReportRender("w1", "t1", 2, "Parse error on line 1");
+        await broken;
+        var refused = store.Read("w1", "t1");
+        Require(refused["revision"]!.GetValue<int>() == 1 && refused["title"]!.GetValue<string>() == "Flow" && refused["render"]!.GetValue<string>() == "ok" &&
+            refused["rejected"]?["revision"]?.GetValue<int>() == 2 && refused["rejected"]?["error"]?.GetValue<string>() == "Parse error on line 1",
+            "After a failed parse the restored drawing reads with its own verdict and the refusal beside it: " + refused.ToJsonString());
+
+        var comparing = store.RunTool(w1, Comparison("Fast", "Safe"));
+        store.ReportRender("w1", "t1", 2, null);
+        await comparing;
+        var comparison = store.Read("w1", "t1");
+        Require(comparison["type"]!.GetValue<string>() == "comparison" && comparison["title"]!.GetValue<string>() == "Comparison" &&
+            comparison["options"]!.AsArray().Select(option => option!["name"]!.GetValue<string>()).SequenceEqual(["Fast", "Safe"]) &&
+            comparison["mermaid"] is null && comparison["rejected"] is null && comparison["selection"] is null,
+            "A comparison reads back its options; a new revision drops the old selection and refusal: " + comparison.ToJsonString());
+        Require(store.Read("w1", "t2").ToJsonString() == """{"shown":false}""" && store.Read("w2", "t1").ToJsonString() == """{"shown":false}""",
+            "Another terminal's view is not what this terminal reads.");
+        Console.WriteLine("PASS visualize_read: nothing shown, diagram, comparison, failed parse, selection and per-terminal scope");
+    }
+
     // index.test.ts, through the real host runtime: the tool on a terminal's MCP table, the report and get methods,
     // the changed channel, adoption on an agent record change, and forgetting a removed workspace.
     private static async Task Module(string directory)
@@ -215,6 +263,16 @@ internal static class VisualizeChecks
             PluginJson.Convert<VisualizationsChanged>(await runtime.CallAsync(new(VisualizeContract.Id, "get", new VisualizationsQuery(w1), "client")));
         var get = await Get();
         Require(get.Visualizations.Single().Key == "t1" && get.Visualizations["t1"].Title == "Wired", "The get method reads the workspace's map back.");
+        var read = runtime.McpTools(new TerminalRef(w1, "t1"), w1).Single(tool => tool.Name == "visualize_read");
+        Require(read.InputSchema["required"] is null or JsonArray { Count: 0 }, "visualize_read takes no arguments: " + read.InputSchema.ToJsonString());
+        Require(PluginJson.Convert<Ack>(await runtime.CallAsync(new(VisualizeContract.Id, "select", new SelectionReport(w1, "t1", 1) { Text = "B" }, "client"))).Ok, "The select method acknowledges.");
+        var mine = JsonNode.Parse((await read.Call([], CancellationToken.None)).Text)!;
+        Require(mine["title"]?.GetValue<string>() == "Wired" && mine["mermaid"]?.GetValue<string>() == "graph TD;A-->B;" && mine["render"]?.GetValue<string>() == "ok" && mine["selection"]?.GetValue<string>() == "B",
+            "visualize_read over MCP returns the calling terminal's view: " + mine.ToJsonString());
+        var other = await runtime.McpTools(new TerminalRef(w1, "t2"), w1).Single(tool => tool.Name == "visualize_read").Call([], CancellationToken.None);
+        Require(!other.Error && other.Text == """{"shown":false}""", "Another terminal's visualize_read cannot see t1's view: " + other.Text);
+        var readNowhere = await runtime.McpTools(null, w1).Single(tool => tool.Name == "visualize_read").Call([], CancellationToken.None);
+        Require(readNowhere.Error, "Outside a terminal visualize_read refuses.");
         var nowhere = await runtime.McpTools(null, w1).Single(tool => tool.Name == "visualize").Call(JsonNode.Parse("""{"type":"diagram","mermaid":"graph TD;A;"}""")!.AsObject(), CancellationToken.None);
         Require(nowhere.Error && nowhere.Text.Contains("only available from a terminal", StringComparison.Ordinal), "Outside a terminal the tool refuses.");
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using SharpRail.Plugins.Api;
 
@@ -20,7 +21,16 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
         "classDiagram, stateDiagram, erDiagram, gantt); 'comparison' renders side-by-side option cards " +
         "(set `options` to the alternatives, each with pros/cons, an optional `recommended` flag, and an " +
         "optional inline `mermaid`). Calling again replaces this terminal's view in place, so you can " +
-        "iterate on a diagram and the user watches it evolve.";
+        "iterate on a diagram and the user watches it evolve. visualize_read returns what this view shows now and " +
+        "what the user selected in it.";
+
+    internal const string ReadDescription =
+        "Read this terminal's live visualize view as JSON: whether something is shown, its revision, type and title, " +
+        "the `mermaid` source or comparison `options` exactly as last drawn, the render verdict (render: ok, error " +
+        "with renderError, or pending when no pane has reported), the last refused attempt (rejected) if the latest " +
+        "call did not render, and the text the user has selected in the pane (selection, null when none). Use it " +
+        "before editing a drawing you no longer have verbatim, or when the user refers to \"this node\" or " +
+        "\"the selected option\". Only this terminal's own view is readable.";
 
     internal interface IPersistence
     {
@@ -38,7 +48,13 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     private readonly Lock gate = new();
     private readonly Dictionary<(string Workspace, string Tab), TerminalVisualization> byTerminal = [];
     private readonly Dictionary<(string Workspace, string Tab, int Revision), TaskCompletionSource<string?>> pendingVerdicts = [];
+    private readonly Dictionary<(string Workspace, string Tab), Verdict> verdicts = [];
+    private readonly Dictionary<(string Workspace, string Tab), (int Revision, string Text)> selections = [];
+    private readonly Dictionary<(string Workspace, string Tab), (int Revision, string Error)> rejected = [];
     private Action<VisualizationsChanged>? publish;
+
+    /// <summary>What a client reported for a revision: no error when it rendered.</summary>
+    private sealed record Verdict(int Revision, string? Error);
     private Func<string, string, string?> sessionOf = (_, _) => null;
     private IPersistence persisted = new Nowhere();
 
@@ -60,7 +76,11 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     {
         TaskCompletionSource<string?>? pending;
         lock (gate)
+        {
+            // Also kept for visualize_read, for the shown revision only, including one reported after the wait ended.
+            if (byTerminal.GetValueOrDefault((workspaceId, tabKey))?.Revision == revision) verdicts[(workspaceId, tabKey)] = new Verdict(revision, error);
             if (!pendingVerdicts.Remove((workspaceId, tabKey, revision), out pending)) return;
+        }
         pending.TrySetResult(error);
     }
 
@@ -77,6 +97,49 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     internal TerminalVisualization? Get(string workspaceId, string tabKey)
     {
         lock (gate) return byTerminal.GetValueOrDefault((workspaceId, tabKey));
+    }
+
+    /// <summary>What the user has selected in a terminal's pane; a selection of an older revision is stale and dropped.</summary>
+    internal void ReportSelection(string workspaceId, string tabKey, int revision, string? text)
+    {
+        lock (gate)
+        {
+            if (byTerminal.GetValueOrDefault((workspaceId, tabKey))?.Revision != revision) return;
+            if (string.IsNullOrEmpty(text)) selections.Remove((workspaceId, tabKey));
+            else selections[(workspaceId, tabKey)] = (revision, text);
+        }
+    }
+
+    /// <summary>The visualize_read answer for one terminal: its shown drawing, verdict, last refusal and selection.</summary>
+    internal JsonObject Read(string workspaceId, string tabKey)
+    {
+        lock (gate)
+        {
+            var key = (workspaceId, tabKey);
+            var result = new JsonObject();
+            var current = byTerminal.GetValueOrDefault(key);
+            result["shown"] = current is not null;
+            if (current is not null)
+            {
+                result["revision"] = current.Revision;
+                result["title"] = current.Title;
+                // The arguments as last drawn (type, the explicit title if any, mermaid or options), field for field.
+                if (JsonNode.Parse(current.Args.GetRawText()) is JsonObject args)
+                    foreach (var (name, value) in args.ToArray())
+                    {
+                        args.Remove(name);
+                        if (name == "title") result["requestedTitle"] = value;
+                        else result[name] = value;
+                    }
+                var verdict = verdicts.GetValueOrDefault(key) is { } reported && reported.Revision == current.Revision ? reported : null;
+                result["render"] = verdict is null ? "pending" : verdict.Error is null ? "ok" : "error";
+                if (verdict?.Error is { } error) result["renderError"] = error;
+                result["selection"] = selections.GetValueOrDefault(key) is { Text: { } text } selected && selected.Revision == current.Revision ? text : null;
+            }
+            if (rejected.GetValueOrDefault(key) is { Error: { } refusal } last)
+                result["rejected"] = new JsonObject { ["revision"] = last.Revision, ["error"] = refusal };
+            return result;
+        }
     }
 
     internal VisualizationsChanged ForWorkspace(string workspaceId)
@@ -123,17 +186,25 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     {
         lock (gate)
         {
-            foreach (var key in byTerminal.Keys.Where(key => key.Workspace == workspaceId).ToArray()) byTerminal.Remove(key);
+            foreach (var key in byTerminal.Keys.Where(key => key.Workspace == workspaceId).ToArray())
+            {
+                byTerminal.Remove(key);
+                verdicts.Remove(key);
+                selections.Remove(key);
+                rejected.Remove(key);
+            }
             var all = persisted.Read();
             if (all.Remove(workspaceId)) persisted.Write(all);
         }
     }
 
-    private void Restore(string workspaceId, string tabKey, TerminalVisualization visualization)
+    private void Restore(string workspaceId, string tabKey, TerminalVisualization visualization, Verdict? verdict)
     {
         lock (gate)
         {
             byTerminal[(workspaceId, tabKey)] = visualization;
+            if (verdict is null) verdicts.Remove((workspaceId, tabKey));
+            else verdicts[(workspaceId, tabKey)] = verdict;
             publish?.Invoke(Snapshot(workspaceId));
         }
     }
@@ -157,11 +228,13 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     {
         if (arguments.ShapeError() is { } shape) return new PluginToolResult(shape) { IsError = true };
         TerminalVisualization? previous;
+        Verdict? previousVerdict;
         TerminalVisualization visualization;
         Task<string?> verdict;
         lock (gate)
         {
             previous = Get(owner.WorkspaceId, owner.TabKey);
+            previousVerdict = verdicts.GetValueOrDefault((owner.WorkspaceId, owner.TabKey));
             // An in-process client can report during publication; register its verdict before publishing.
             verdict = AwaitRenderVerdict(owner.WorkspaceId, owner.TabKey, (previous?.Revision ?? 0) + 1, cancellationToken);
             visualization = Record(owner.WorkspaceId, owner.TabKey, arguments);
@@ -171,9 +244,11 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
         {
             // A drawing that does not render is not this terminal's view: the last one that did stands, so a typo
             // in an iteration does not cost the user the picture they had.
-            if (previous is not null) Restore(owner.WorkspaceId, owner.TabKey, previous);
+            lock (gate) rejected[(owner.WorkspaceId, owner.TabKey)] = (visualization.Revision, failure);
+            if (previous is not null) Restore(owner.WorkspaceId, owner.TabKey, previous, previousVerdict);
             return new PluginToolResult($"The diagram did not render: {failure}\nFix the mermaid source and call visualize again.") { IsError = true };
         }
+        lock (gate) rejected.Remove((owner.WorkspaceId, owner.TabKey));
         return new PluginToolResult($"Rendered \"{visualization.Title}\" in SharpRail (revision {visualization.Revision}). Call visualize again to update it in place.");
     }
 }

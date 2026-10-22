@@ -2,6 +2,7 @@ using System.Text.Json;
 
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 
 namespace SharpRail.Plugins.UI.Kit.Visualization;
 
@@ -20,6 +21,15 @@ public static class VisualizationCard
         }
         return new VisualizationCardFrame(new DiagramView(args, interactive, onRender), false);
     }
+
+    /// <summary>The text the user has selected in a drawing: diagram labels or card text, empty when none.</summary>
+    public static string SelectedText(Control card) =>
+        card.GetVisualDescendants().Select(control => control switch
+        {
+            PanZoomView diagram => diagram.SelectedText,
+            SelectableTextBlock block => block.SelectedText,
+            _ => ""
+        }).FirstOrDefault(text => text.Length > 0) ?? "";
 }
 
 internal sealed partial class DiagramView : DockPanel

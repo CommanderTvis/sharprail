@@ -25,6 +25,12 @@ public sealed record RenderReport(string WorkspaceId, string TabKey, int Revisio
     public string? Error { get; init; }
 }
 
+/// <summary>The text the user has selected in a terminal's shown revision: none or empty when nothing is selected.</summary>
+public sealed record SelectionReport(string WorkspaceId, string TabKey, int Revision)
+{
+    public string? Text { get; init; }
+}
+
 public sealed record Ack(bool Ok);
 
 public static class VisualizeContract
@@ -33,9 +39,10 @@ public static class VisualizeContract
 
     public static readonly PluginMethod<RenderReport, Ack> Report = new("report");
     public static readonly PluginMethod<VisualizationsQuery, VisualizationsChanged> Get = new("get");
+    public static readonly PluginMethod<SelectionReport, Ack> Select = new("select");
     public static readonly PluginChannel<VisualizationsChanged> Changed = PluginChannel<VisualizationsChanged>.State("changed", Get, "workspaceId");
 
-    public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Report, Get], [Changed]);
+    public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Report, Get, Select], [Changed]);
 
     public static readonly PluginManifest Manifest = new(Id, "Visualize", "bar-chart-box-line", "0.1.0", PluginApi.Generation, 1)
     {

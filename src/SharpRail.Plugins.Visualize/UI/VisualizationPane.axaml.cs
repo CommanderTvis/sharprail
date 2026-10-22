@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
@@ -16,11 +19,15 @@ internal sealed partial class VisualizationPane : Border
     private readonly CompanionHost host;
     private TerminalVisualization? shown;
     private int? reported;
+    private string selected = "";
 
     public VisualizationPane(IPluginUIContext context, VisualizeUI.Drawings drawings, CompanionHost host)
     {
         this.context = context; this.drawings = drawings; this.host = host;
         AvaloniaXamlLoader.Load(this);
+        // A selection ends with a pointer release or a key (Select All); read it once the card has handled either.
+        AddHandler(PointerReleasedEvent, (_, _) => Dispatcher.UIThread.Post(ReportSelection), RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(KeyUpEvent, (_, _) => Dispatcher.UIThread.Post(ReportSelection), RoutingStrategies.Bubble, handledEventsToo: true);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -43,7 +50,24 @@ internal sealed partial class VisualizationPane : Border
         if (visualization?.Revision == shown?.Revision) return;
         shown = visualization;
         reported = null;
+        selected = "";
         this.FindControl<ContentControl>("Drawing")!.Content = visualization is null ? null : VisualizationCard.Create(visualization.Args, interactive: true, error => Report(visualization.Revision, error));
+    }
+
+    /// <summary>Tells the host what the user has selected, so the agent's visualize_read can act on "this node".</summary>
+    internal void ReportSelection()
+    {
+        if (shown is not { } visualization || this.FindControl<ContentControl>("Drawing")!.Content is not Control card) return;
+        var text = VisualizationCard.SelectedText(card);
+        if (text == selected) return;
+        selected = text;
+        _ = Send();
+
+        async Task Send()
+        {
+            try { await context.RequestAsync(VisualizeContract.Select, new SelectionReport(host.WorkspaceId, host.TabKey, visualization.Revision) { Text = text.Length == 0 ? null : text }); }
+            catch (Exception failure) when (failure is PluginCallException or OperationCanceledException) { }
+        }
     }
 
     private void Report(int revision, string? error)

@@ -52,3 +52,6 @@ public sealed record VisualizeParams(
         _ => null
     };
 }
+
+/// <summary>visualize_read takes nothing: the runtime binds it to the calling terminal's view.</summary>
+public sealed record VisualizeReadParams;
