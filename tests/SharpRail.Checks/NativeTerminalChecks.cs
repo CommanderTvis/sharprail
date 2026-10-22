@@ -81,6 +81,7 @@ internal static class NativeTerminalChecks
         while (!condition())
         {
             if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Native terminal condition timed out: " + description);
+            Native.KeepActive();
             await Task.Delay(50);
         }
     }
@@ -91,6 +92,7 @@ internal static class NativeTerminalChecks
         while (!await condition())
         {
             if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Native terminal condition timed out: " + description);
+            Native.KeepActive();
             await Task.Delay(50);
         }
     }
@@ -137,18 +139,18 @@ internal static class NativeTerminalChecks
         await Until(() => Read(original).Contains("TAB_KEYBOARD_OK", StringComparison.Ordinal));
         for (var format = 1; format <= 2; format++)
         {
-            Native.Input(original, "image=");
+            await Send(original, "image=");
             Native.Paste(original, format);
-            Native.Input(original, $"; test -s \"$image\" && printf 'IMAGE_%s_OK\\n' {format}\r");
+            await Send(original, $"; test -s \"$image\" && printf 'IMAGE_%s_OK\\n' {format}\r");
             try { await Until(() => Read(original).Contains($"IMAGE_{format}_OK", StringComparison.Ordinal)); }
             catch (InvalidOperationException error) { throw new InvalidOperationException(Read(original), error); }
         }
         var images = Directory.GetFiles(Path.Combine(root, ProfileDirectory, "clipboard"), "*.png");
         if (images.Length != 2 || images.Any(path => !File.ReadAllBytes(path).Take(8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })))
             throw new InvalidOperationException("Clipboard images were not saved as distinct PNG files.");
-        Native.Input(original, "printf '%s\\n' ");
+        await Send(original, "printf '%s\\n' ");
         Native.Paste(original, 0);
-        Native.Input(original, "\r");
+        await Send(original, "\r");
         await Until(() => Read(original).Contains("TEXT_PASTE_OK", StringComparison.Ordinal));
         Native.Click(original, 30, 30);
         await Task.Delay(100);
@@ -180,9 +182,9 @@ internal static class NativeTerminalChecks
         Native.Key(original, "\x03", 8, true);
         await Type(original, "printf 'CTRL_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(original).Contains("CTRL_KEYBOARD_OK", StringComparison.Ordinal));
-        Native.Input(original, $"export SHARPRAIL_SESSION=original; test \"$PWD\" = '{root.Replace("'", "'\\''")}' && printf '\\nNATIVE_%s_OK\\n' SHELL\r");
+        await Send(original, $"export SHARPRAIL_SESSION=original; test \"$PWD\" = '{root.Replace("'", "'\\''")}' && printf '\\nNATIVE_%s_OK\\n' SHELL\r");
         await Until(() => Read(original).Contains("NATIVE_SHELL_OK", StringComparison.Ordinal) && Native.Rendered(original));
-        Native.Input(original, "printf '\\nNATIVE_PID_%s\\n' \"$$\"\r");
+        await Send(original, "printf '\\nNATIVE_PID_%s\\n' \"$$\"\r");
         await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(original), @"NATIVE_PID_\d+"));
         var processId = int.Parse(System.Text.RegularExpressions.Regex.Match(Read(original), @"NATIVE_PID_(\d+)").Groups[1].Value);
         // Terminals never share a pane with tools, so the terminal moves into a new pane beside the left tools.
@@ -198,7 +200,7 @@ internal static class NativeTerminalChecks
         // Folding the pane moved focus out of it; focus the restored terminal as selecting its tab would.
         original.FindAncestorOfType<TerminalView>()!.FocusTerminal();
         await Until(() => Native.Focused(original));
-        Native.Input(original, "printf '\\nRETAINED_%s\\n' \"$SHARPRAIL_SESSION\"\r");
+        await Send(original, "printf '\\nRETAINED_%s\\n' \"$SHARPRAIL_SESSION\"\r");
         await Until(() => Read(original).Contains("RETAINED_original", StringComparison.Ordinal));
         var other = Path.Combine(root, "other"); Directory.CreateDirectory(other);
         File.WriteAllText(Path.Combine(other, ".git"), "gitdir: " + Path.Combine(other, "absent"));
@@ -214,7 +216,7 @@ internal static class NativeTerminalChecks
         await Until(() => Native.Focused(second!));
         await Type(second!, "printf 'NEW_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(second!).Contains("NEW_KEYBOARD_OK", StringComparison.Ordinal));
-        Native.Input(second!, $"test \"$PWD\" = '{other.Replace("'", "'\\''")}' && printf '\\nISOLATED_%s\\n' \"${{SHARPRAIL_SESSION-unset}}\"\r");
+        await Send(second!, $"test \"$PWD\" = '{other.Replace("'", "'\\''")}' && printf '\\nISOLATED_%s\\n' \"${{SHARPRAIL_SESSION-unset}}\"\r");
         await Until(() => Read(second!).Contains("ISOLATED_unset", StringComparison.Ordinal));
         await window.OpenProjectAsync(root);
         window.Layout.Select(side, tab.Id);
@@ -255,7 +257,7 @@ internal static class NativeTerminalChecks
         await Until(() => first.WorkspaceMounted);
         first.Layout.NewTerminal(first.Layout.State.Center.Leaves().First());
         var view = await Surface(first);
-        Native.Input(view, "export TR_RELOAD=survived; printf 'LOCAL_PID_%s_\\n' \"$$\"\r");
+        await Send(view, "export TR_RELOAD=survived; printf 'LOCAL_PID_%s_\\n' \"$$\"\r");
         await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(view), @"LOCAL_PID_\d+_"));
         var pid = System.Text.RegularExpressions.Regex.Match(Read(view), @"LOCAL_PID_(\d+)_").Groups[1].Value;
         first.GetVisualDescendants().OfType<TerminalView>().Single().FocusTerminal();
@@ -264,6 +266,8 @@ internal static class NativeTerminalChecks
         for (var sample = 0; sample < 10; sample++)
         {
             var marker = "LAT" + sample + "X";
+            await Active(view);
+            await Until(() => Native.Focused(view));
             var clock = System.Diagnostics.Stopwatch.StartNew();
             Native.Key(view, marker[..1], 0, false);
             foreach (var character in marker[1..]) Native.Key(view, character.ToString(), 0, false);
@@ -274,12 +278,12 @@ internal static class NativeTerminalChecks
         delays.Sort();
         Console.WriteLine($"SHARPRAIL_TERMINAL_ECHO median={delays[5]:F1}ms max={delays[^1]:F1}ms");
         if (delays[5] > 100) throw new InvalidOperationException($"Local relay input echo is too slow: median {delays[5]:F1} ms.");
-        Native.Input(view, "printf 'SIZE_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
+        await Send(view, "printf 'SIZE_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
         await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(view), @"SIZE_\d+x\d+_"));
         var before = System.Text.RegularExpressions.Regex.Match(Read(view), @"SIZE_(\d+x\d+)_").Groups[1].Value;
         first.Width -= 300;
         await Task.Delay(500);
-        Native.Input(view, "printf 'RESIZED_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
+        await Send(view, "printf 'RESIZED_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
         await Until(() => System.Text.RegularExpressions.Regex.Match(Read(view), @"RESIZED_(\d+x\d+)_") is { Success: true } match && match.Groups[1].Value != before);
         first.Close();
         await Task.Delay(500);
@@ -289,10 +293,10 @@ internal static class NativeTerminalChecks
         try
         {
             var reopened = await Surface(second);
-            Native.Input(reopened, "printf 'AGAIN_%s_%s_\\n' \"$$\" \"$TR_RELOAD\"\r");
+            await Send(reopened, "printf 'AGAIN_%s_%s_\\n' \"$$\" \"$TR_RELOAD\"\r");
             await Until(() => Read(reopened).Contains($"AGAIN_{pid}_survived_", StringComparison.Ordinal));
             var terminal = second.GetVisualDescendants().OfType<TerminalView>().Single();
-            Native.Input(reopened, "exit 3\r");
+            await Send(reopened, "exit 3\r");
             await Until(() => terminal.IsExited);
             var notice = terminal.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "TerminalExited").Text;
             if (notice != "[process exited with code 3]") throw new InvalidOperationException("The local exit status did not reach the tab: " + notice);
@@ -330,23 +334,23 @@ internal static class NativeTerminalChecks
             await Task.Delay(1000);
             terminal.FocusTerminal();
             await Until(() => Native.Focused(view));
-            Native.Input(view, "printf 'REMOTE_%s_\\n' \"$(pwd -P)\"\r");
+            await Send(view, "printf 'REMOTE_%s_\\n' \"$(pwd -P)\"\r");
             await Until(() => Read(view).Contains("REMOTE_" + root + "_", StringComparison.Ordinal));
-            Native.Input(view, "printf 'SIZE_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
+            await Send(view, "printf 'SIZE_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
             await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(view), @"SIZE_\d+x\d+_"));
             var before = System.Text.RegularExpressions.Regex.Match(Read(view), @"SIZE_(\d+x\d+)_").Groups[1].Value;
             window.Width -= 300;
             await Task.Delay(500);
-            Native.Input(view, "printf 'RESIZED_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
+            await Send(view, "printf 'RESIZED_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
             await Until(() => System.Text.RegularExpressions.Regex.Match(Read(view), @"RESIZED_(\d+x\d+)_") is { Success: true } match && match.Groups[1].Value != before);
             if (await terminal.IsBusyAsync()) throw new InvalidOperationException("An idle remote shell reported a busy foreground.");
-            Native.Input(view, "sleep 30\r");
+            await Send(view, "sleep 30\r");
             await UntilAsync(async () => await terminal.IsBusyAsync(), "remote busy foreground");
             terminal.FocusTerminal();
             await Until(() => Native.Focused(view));
             Native.Key(view, "\x03", 8, true);
             await UntilAsync(async () => !await terminal.IsBusyAsync(), "remote interrupted foreground");
-            Native.Input(view, "exit 3\r");
+            await Send(view, "exit 3\r");
             await Until(() => terminal.IsExited);
             var notice = terminal.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "TerminalExited").Text;
             if (notice != "[process exited with code 3]") throw new InvalidOperationException("The remote exit status did not reach the tab: " + notice);
@@ -354,11 +358,29 @@ internal static class NativeTerminalChecks
         finally { window.Close(); await server.StopAsync(); }
     }
 
+    // Other apps on the machine (concurrent checks, agents) can take activation between keys, and keys sent to an
+    // inactive window are dropped; activate again before every key rather than once per string.
+    private static async Task Active(GhosttyTextureView view)
+    {
+        if (!Native.Ready(view)) Native.Activate(view);
+        await Until(() => { if (!Native.Ready(view)) Native.Activate(view); return Native.Ready(view); });
+    }
+
+    private static async Task Send(GhosttyTextureView view, string text)
+    {
+        foreach (var character in text)
+        {
+            await Active(view);
+            Native.Key(view, character.ToString(), character == '\r' ? (ushort)36 : (ushort)0, false);
+        }
+    }
+
     private static async Task Type(GhosttyTextureView view, string text)
     {
         Native.Activate(view);
         foreach (var character in text)
         {
+            await Active(view);
             await Until(() => Native.Ready(view) && Native.Focused(view));
             Native.Key(view, character.ToString(), character == '\r' ? (ushort)36 : (ushort)0, false);
             await Task.Delay(5);
@@ -367,7 +389,16 @@ internal static class NativeTerminalChecks
 
     private static class Native
     {
-        private static nint Content(GhosttyTextureView view) => WindowContent(((Window)TopLevel.GetTopLevel(view)!).Title!);
+        private static nint Content(GhosttyTextureView view)
+        {
+            var window = (Window)TopLevel.GetTopLevel(view)!;
+            return window.TryGetPlatformHandle() is { HandleDescriptor: "NSWindow", Handle: not 0 } handle
+                ? WindowContentOf(handle.Handle) : WindowContent(window.Title!);
+        }
+        [DllImport("TerminalEvents", EntryPoint = "sr_check_keep_active")]
+        internal static extern void KeepActive();
+        [DllImport("TerminalEvents", EntryPoint = "sr_window_content")]
+        private static extern nint WindowContentOf(nint window);
         internal static void Paste(GhosttyTextureView view, int format) => PasteNative(Content(view), format);
         internal static uint Background(GhosttyTextureView view) => view.Colors.Background.ToUInt32() & 0xffffff;
         internal static void Activate(GhosttyTextureView view) => ActivateNative(Content(view));
@@ -380,10 +411,6 @@ internal static class NativeTerminalChecks
         }
         internal static bool Focused(GhosttyTextureView view) => view.IsKeyboardFocusWithin;
         internal static void Key(GhosttyTextureView view, string text, ushort keyCode, bool control) => KeyNative(Content(view), text, keyCode, control);
-        internal static void Input(GhosttyTextureView view, string text)
-        {
-            foreach (var character in text) Key(view, character.ToString(), character == '\r' ? (ushort)36 : (ushort)0, false);
-        }
         internal static bool Rendered(GhosttyTextureView view) => view.Frames > 0;
         [DllImport("TerminalEvents", EntryPoint = "sr_texture_content")]
         private static extern nint WindowContent([MarshalAs(UnmanagedType.LPUTF8Str)] string title);

@@ -7,6 +7,12 @@
 #import <QuartzCore/QuartzCore.h>
 
 static NSPasteboard *testPasteboard;
+// Workbench windows share a title, so checks that open a second one resolve its content view from its own handle.
+void *sr_window_content(void *pointer) {
+    NSWindow *window = (__bridge NSWindow *)pointer;
+    return (__bridge void *)window.contentView;
+}
+
 void *sr_texture_content(const char *title) {
     NSString *name = [NSString stringWithUTF8String:title];
     for (NSWindow *window in NSApp.windows)
@@ -125,6 +131,15 @@ void sr_check_activate(void *pointer) {
     [view.window makeKeyAndOrderFront:nil];
 }
 
+// Concurrent UI checks on the machine take activation at any moment; a waiting check takes it back for its
+// frontmost window so focus and key routing reflect this app, not whichever ran last.
+void sr_check_keep_active(void) {
+    if (NSApp.active && NSApp.keyWindow) return;
+    NSWindow *target = NSApp.keyWindow ?: NSApp.mainWindow ?: NSApp.orderedWindows.firstObject;
+    [NSApp activateIgnoringOtherApps:YES];
+    [target makeKeyAndOrderFront:nil];
+}
+
 bool sr_check_ready(void *pointer) {
     NSView *view = (__bridge NSView *)pointer;
     return NSApp.active && view.window.keyWindow && view.bounds.size.width > 0;
@@ -164,8 +179,10 @@ void sr_check_key(void *pointer, const char *text, unsigned short keyCode, bool 
         }
         return;
     }
+    // NSApp routes key events to the key window, which is nil while another app (a concurrent check) holds
+    // activation; that dropped keys mid-command. The view's own window delivers to its first responder regardless.
     for (NSNumber *type in @[@(NSEventTypeKeyDown), @(NSEventTypeKeyUp)]) {
-        [NSApp sendEvent:[NSEvent keyEventWithType:type.integerValue location:NSZeroPoint
+        [view.window sendEvent:[NSEvent keyEventWithType:type.integerValue location:NSZeroPoint
             modifierFlags:control ? NSEventModifierFlagControl : 0 timestamp:NSProcessInfo.processInfo.systemUptime
             windowNumber:view.window.windowNumber context:nil characters:characters
             charactersIgnoringModifiers:characters isARepeat:NO keyCode:keyCode]];
@@ -199,7 +216,7 @@ void sr_check_option_backspace(void *pointer) {
         return;
     }
     for (NSNumber *type in @[@(NSEventTypeKeyDown), @(NSEventTypeKeyUp)]) {
-        [NSApp sendEvent:[NSEvent keyEventWithType:type.integerValue location:NSZeroPoint modifierFlags:NSEventModifierFlagOption
+        [view.window sendEvent:[NSEvent keyEventWithType:type.integerValue location:NSZeroPoint modifierFlags:NSEventModifierFlagOption
             timestamp:NSProcessInfo.processInfo.systemUptime windowNumber:view.window.windowNumber context:nil
             characters:@"\x7f" charactersIgnoringModifiers:@"\x7f" isARepeat:NO keyCode:51]];
     }
