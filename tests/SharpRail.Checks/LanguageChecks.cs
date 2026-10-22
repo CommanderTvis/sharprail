@@ -185,9 +185,9 @@ internal static class LanguageChecks
             await host.LanguageAsync(new(onDemand, Operation: "stop", Server: "typescript"));
             using var remoteState = server is null ? null : new RemoteStateAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "language-test");
             IHostStateService settingsHost = remoteState ?? (IHostStateService)new LocalStateAdapter(state);
-            await settingsHost.ChangeAsync([HostStateChange.Setting("language-server:typescript", JsonSerializer.Serialize(new LanguageServerOptions(Disabled: true), JsonSerializerOptions.Web))]);
-            Require((await host.LanguageAsync(new(root, "code.ts"))).State == "disabled" &&
-                (await host.LanguageAsync(new(root, Operation: "servers"))).Servers.Single(item => item.Id == "typescript").State == "disabled", "Disabled server still starts or is advertised as idle.");
+            // There is no per-server allow/deny any more: a retired "disabled" flag is ignored, and the server is still offered.
+            await settingsHost.ChangeAsync([HostStateChange.Setting("language-server:typescript", "{\"disabled\":true}")]);
+            Require((await host.LanguageAsync(new(root, Operation: "servers"))).Servers.Single(item => item.Id == "typescript").State != "disabled", "A retired per-server disabled flag still blocks the server.");
             await settingsHost.ChangeAsync([HostStateChange.Setting("language-server:typescript", JsonSerializer.Serialize(new LanguageServerOptions(Command: executable, Arguments: arguments), JsonSerializerOptions.Web))]);
             try
             {
@@ -1017,16 +1017,16 @@ internal static class LanguageChecks
             feature.IsChecked = true;
             feature.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => app.State!.Current.Settings.LspEnabled && feature.IsEnabled);
-            Find<Avalonia.Controls.CheckBox>("LspEnabled").IsChecked = false;
+            Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Content?.ToString() == "Allow this server to start"), "The per-server allow checkbox still exists.");
             Find<Avalonia.Controls.TextBox>("LspCommand").Text = "/custom/language-server";
             Find<Avalonia.Controls.CheckBox>("LspDefaultArguments").IsChecked = false;
             Find<Avalonia.Controls.TextBox>("LspArguments").Text = "--stdio\n--fixture";
             Find<Avalonia.Controls.Button>("LspSave").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => app.State!.Current.Settings.LanguageServers.Contains("/custom/language-server", StringComparison.Ordinal));
             var saved = JsonSerializer.Deserialize<Dictionary<string, LanguageServerOptions>>(app.State!.Current.Settings.LanguageServers, JsonSerializerOptions.Web)!["typescript"];
-            Require(saved.Disabled && saved.Arguments is ["--stdio", "--fixture"], "LSP settings lost launcher choices.");
+            Require(saved.Arguments is ["--stdio", "--fixture"], "LSP settings lost launcher choices.");
             var update = Task.Run(async () => await app.State.ChangeAsync([HostStateChange.Setting("language-server:typescript", "{}")]));
-            E2E.E2eWorkspace.Until(() => update.IsCompleted && Find<Avalonia.Controls.CheckBox>("LspEnabled").IsChecked == true);
+            E2E.E2eWorkspace.Until(() => update.IsCompleted && Find<Avalonia.Controls.TextBox>("LspCommand").Text == "");
             update.GetAwaiter().GetResult();
             Require(Find<Avalonia.Controls.TextBox>("LspCommand").Text == "", "Another client’s LSP settings did not refresh the page.");
             Require(!Find<Avalonia.Controls.CheckBox>("LspDefaultArguments").IsEnabled && !Find<Avalonia.Controls.TextBox>("LspArguments").IsEnabled,

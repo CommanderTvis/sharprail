@@ -15,7 +15,6 @@ public sealed partial class SettingsWindow
         var provider = new LanguageProviderView(window.Host, window.WorkspaceRoot);
         PageControl<ContentControl>(panel, "ProviderChoiceSettings").Content = provider;
         var selector = PageControl<ListBox>(panel, "LspServer");
-        var enabled = PageControl<CheckBox>(panel, "LspEnabled");
         var allowPath = PageControl<CheckBox>(panel, "LspAllowPath");
         var resolved = PageControl<TextBlock>(panel, "LspResolved");
         var pathWarning = PageControl<TextBlock>(panel, "LspPathWarning");
@@ -52,7 +51,7 @@ public sealed partial class SettingsWindow
             var json = state.Current.Settings.LanguageServers;
             var options = string.IsNullOrWhiteSpace(json) ? new() :
                 JsonSerializer.Deserialize<Dictionary<string, LanguageServerOptions>>(json, JsonSerializerOptions.Web)?.GetValueOrDefault(id) ?? new LanguageServerOptions();
-            enabled.IsChecked = !options.Disabled; allowPath.IsChecked = options.AllowPath;
+            allowPath.IsChecked = options.AllowPath;
             defaultArguments.IsChecked = options.Arguments is null;
             arguments.IsEnabled = options.Arguments is not null;
             command.Text = options.Command; arguments.Text = string.Join('\n', options.Arguments ?? []);
@@ -117,7 +116,7 @@ public sealed partial class SettingsWindow
         {
             if (selector.SelectedItem is not string id) return;
             var args = (arguments.Text ?? "").Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var options = new LanguageServerOptions(enabled.IsChecked != true, allowPath.IsChecked == true, (command.Text ?? "").Trim(), string.IsNullOrWhiteSpace(command.Text) || defaultArguments.IsChecked == true ? null : args);
+            var options = new LanguageServerOptions(allowPath.IsChecked == true, (command.Text ?? "").Trim(), string.IsNullOrWhiteSpace(command.Text) || defaultArguments.IsChecked == true ? null : args);
             save.IsEnabled = false;
             try
             {

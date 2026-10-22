@@ -105,7 +105,6 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         Directory.CreateDirectory(installation.WorkspaceState);
         Directory.CreateDirectory(installation.SharedCache);
         var custom = CustomOptions(server.Id);
-        if (custom?.Disabled == true) throw new IOException($"{server.Id} is disabled. Enable it in Settings > Code Intelligence, then Retry.");
         if (spec.TermsAsync is not null && spec.LaunchAsync is { } own) return Start(await own(installation, token));
         if (!string.IsNullOrWhiteSpace(custom?.Command) && spec.AllowsOverride)
         {

@@ -181,6 +181,7 @@ public sealed partial class HostStateStore : IHostStateService
         var airExplicit = migrated.PluginSettings.TryGetValue(AirContextContract.Id, out var airSettings) && airSettings.ValueKind == JsonValueKind.Object && airSettings.TryGetProperty("enabled", out _);
         if (!airExplicit && (airContextHidden || usedAirContext))
             migrated = migrated with { PluginSettings = new Dictionary<string, JsonElement>(migrated.PluginSettings) { [AirContextContract.Id] = JsonSerializer.SerializeToElement(new { enabled = !airContextHidden }) } };
+        migrated = MigrateDisabledLanguageServers(migrated);
         if (directory is not null && (legacyContextWorkspaces is not null || Directory.Exists(Path.Combine(directory, AirContextMigration.LegacyDirectory))))
         {
             try { AirContextMigration.Migrate(directory, [.. (legacyContextWorkspaces ?? []).Where(ValidPath).Distinct().Order(StringComparer.Ordinal)]); }

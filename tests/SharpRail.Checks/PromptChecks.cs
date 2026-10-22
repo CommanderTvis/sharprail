@@ -87,7 +87,7 @@ internal static class PromptChecks
         Require(runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList).SequenceEqual(expected), "The order hints did not keep the old order.");
         Require(all.Claude.Contains("Prefer available SharpRail MCP tools; disabled plugins may hide tools:\n\n- " + string.Join("\n- ", expected) + "\n\nCall `set_title`", StringComparison.Ordinal),
             "The list is not the old wording.");
-        Require(all.Claude.EndsWith("\n" + CorePrompt.Text(state.Current.Settings.LanguageServers) + "\n", StringComparison.Ordinal) && all.Claude == Prompts(runtime).Claude, "The Code Intelligence text moved or is unstable.");
+        Require(all.Claude.EndsWith("\n" + CorePrompt.Text() + "\n", StringComparison.Ordinal) && all.Claude == Prompts(runtime).Claude, "The Code Intelligence text moved or is unstable.");
 
         // The strict Code Intelligence, server-start and delegation rules ride on the feature, in both agents.
         foreach (var prompt in new[] { all.Claude, all.Codex })
@@ -96,16 +96,13 @@ internal static class PromptChecks
         Require(CorePrompt.LanguageServices.Length < 4_000, "The Code Intelligence text outgrew its budget: " + CorePrompt.LanguageServices.Length);
         Require(!bare.Claude.Contains("context_search", StringComparison.Ordinal) && !all.Claude.Contains("You MUST call `context_search` first", StringComparison.Ordinal), "Air Context rules appear without the plugin.");
 
-        // The list of servers is the catalog's: every id with its file types, and a server the user disabled is marked, not dropped.
+        // The list of servers is the catalog's: every id with its file types; there is no per-server disabled mark (a server exists while its plugin is enabled).
         foreach (var server in LanguageServers.Catalog)
             Require(all.Claude.Contains($"- `{server.Id}`:", StringComparison.Ordinal) && all.Codex.Contains($"- `{server.Id}`:", StringComparison.Ordinal) && all.Claude.Contains(string.Join(" ", server.Extensions), StringComparison.Ordinal), $"The instructions do not list {server.Id}.");
         Require(!all.Claude.Contains("DISABLED by the user", StringComparison.Ordinal) && all.Claude.Contains("\"operation\": \"retry\", \"server\": \"<id>\", \"workspace\"", StringComparison.Ordinal), "The server list or the call example is wrong.");
         await state.ChangeAsync([HostStateChange.Setting("language-server:csharp", "{\"disabled\":true}")]);
-        var marked = Prompts(runtime).Codex;
-        Require(marked.Contains("`csharp`:", StringComparison.Ordinal) && marked.Split('\n').Single(line => line.StartsWith("- `csharp`:", StringComparison.Ordinal)).Contains("DISABLED by the user", StringComparison.Ordinal)
-            && !marked.Split('\n').Single(line => line.StartsWith("- `go`:", StringComparison.Ordinal)).Contains("DISABLED", StringComparison.Ordinal), "A disabled server is not marked in the list.");
+        Require(Prompts(runtime).Claude == all.Claude, "A retired per-server disabled flag still changes the server list.");
         await state.ChangeAsync([HostStateChange.Setting("language-server:csharp", "{}")]);
-        Require(Prompts(runtime).Claude == all.Claude, "Enabling the server again did not restore the list.");
 
         // Language services off: no LSP guidance, and no trace of the tools.
         await state.ChangeAsync([HostStateChange.Setting("lsp-enabled", "false")]);

@@ -241,8 +241,6 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (request.Operation == "close")
             drafts.AddOrUpdate(key, [], (_, saved) => saved.Where(item => item.DocumentId != request.DocumentId || item.Path != request.Path).ToArray());
         if (request.Operation == "retry") stopped.TryRemove(key, out _);
-        else if (stopped.ContainsKey(key) && servers.Options(server.Id)?.Disabled == true)
-            return new("disabled", "Disabled in Settings > LSP. Enable this server before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
         else if (stopped.ContainsKey(key)) return new("stopped", "Language server stopped. Use Retry to restart.", server.Id, request.Version);
         if (request.Operation == "close" && !entries.ContainsKey(key)) return new("closed", Version: request.Version);
         if (request.Operation == "retry" && entries.TryRemove(key, out var previous))
@@ -250,8 +248,6 @@ public sealed partial class LanguageService : IAsyncDisposable
             try { await PreserveDraftsAsync(key, previous, token); }
             finally { await StopAsync(previous, "a start or restart was requested"); }
         }
-        if (!entries.ContainsKey(key) && servers.Options(server.Id)?.Disabled == true)
-            return new("disabled", "Disabled in Settings > LSP. Enable this server before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
         // Only the dictionary winner starts a process.
         var options = WorkspaceLanguageConfiguration.Parse(configuration(workspace, server.Id), server.Id);
         var candidate = new Entry(lifetime.Token) { Configuration = WorkspaceLanguageConfiguration.Serialize(options), StartedBy = LanguageOrigins.Normalize(request.Origin) };
@@ -373,10 +369,6 @@ public sealed partial class LanguageService : IAsyncDisposable
             var key = workspace + "\0" + id;
             var state = stopped.ContainsKey(key) ? "stopped" : "idle";
             var detail = state == "stopped" ? "Stopped. Start to resume analysis." : "Starts on first use; Start provisions it now.";
-            if (servers.Options(id)?.Disabled == true)
-            {
-                state = "disabled"; detail = "Disabled in Settings > LSP. Enable this server before starting it.";
-            }
             if (entries.TryGetValue(key, out var entry))
             {
                 state = entry.State; detail = entry.Detail;

@@ -45,7 +45,6 @@
               <Button x:Name="LspProviderWebsite" Content="Website ↗" Classes="link" Margin="0,0,16,0" />
               <Button x:Name="LspProviderRepository" Content="Source repository ↗" Classes="link" />
             </WrapPanel>
-            <CheckBox x:Name="LspEnabled" Content="Allow this server to start" />
             <CheckBox x:Name="LspAllowPath" Content="Use the executable on PATH instead of the managed installation" />
             <TextBlock x:Name="LspResolved" TextWrapping="Wrap" />
             <TextBlock x:Name="LspPathWarning" TextWrapping="Wrap" IsVisible="False" />

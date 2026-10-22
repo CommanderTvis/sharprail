@@ -101,7 +101,7 @@ public partial interface IProjectServices
 /// is the host user's per-server opt-in to run an unverified executable found on PATH instead, and <paramref name="Command"/> an explicit override.
 /// Neither is ever read from a project file.
 /// </summary>
-public sealed record LanguageServerOptions(bool Disabled = false, bool AllowPath = false, string Command = "", string[]? Arguments = null);
+public sealed record LanguageServerOptions(bool AllowPath = false, string Command = "", string[]? Arguments = null);
 
 /// <summary>User-interface-only terms review/acceptance; acceptance is never a language-agent operation.</summary>
 public sealed record LanguageTermsRequest(string Workspace, string Server, bool Accept = false, string ArtifactId = "", string EulaSha256 = "");

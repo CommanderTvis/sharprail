@@ -581,7 +581,8 @@ is for language features in the editor. No idle or eviction wording appears anyw
 running server adds a muted line "started by <human|config|workspace creation|agent> · Agent calls: N
 (last: 12 min ago)", or "Agent calls: none yet", so it is visible whether agents use the tools.
 Settings > LSP uses a server navigation rail beside the configuration form for each server’s
-enablement, per-server PATH opt-in (off by default; the managed installation is the default), executable and argument overrides, and shows the exact executable path and version a server would run (managed, PATH or override, resolved off the UI thread) with a one-line unverified-binary warning for PATH. A host-wide Enable LSP
+PATH opt-in (off by default; the managed installation is the default), executable and argument overrides, and shows the exact executable path and version a server would run (managed, PATH or override, resolved off the UI thread) with a one-line unverified-binary warning for PATH. There is no per-server allow/deny: a server exists while its
+language server plugin is enabled in Settings > Plugins. A host-wide Enable LSP
 checkbox immediately stops running servers and blocks editor and agent language requests while off;
 server configuration remains available and preserved. Settings are host-wide and update from host broadcasts. Per-server changes take effect
 on the next start/retry; saving never installs or starts a server. The page shows host storage

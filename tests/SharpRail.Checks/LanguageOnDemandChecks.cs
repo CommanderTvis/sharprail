@@ -85,13 +85,6 @@ internal static class LanguageOnDemandChecks
         Require((await rig.Row("python")).Usage is { Calls: 2 }, "The pane's usage summary does not count both calls.");
         Require(stoppedFile["state"]!.ToString() == "skipped" && stoppedFile["detail"]!.ToString().Contains("\"operation\":\"retry\"", StringComparison.Ordinal), "A stopped server was not reported with the call that starts it: " + stopped);
 
-        // A disabled server says so.
-        await rig.State.ChangeAsync([HostStateChange.Setting("language-server:typescript", JsonSerializer.Serialize(new LanguageServerOptions(Disabled: true), JsonSerializerOptions.Web))]);
-        await rig.State.Languages.ExecuteAsync(new(workspace, "code.ts", "stop"));
-        var disabledScan = await rig.Call("lsp_diagnostics", new { paths = new[] { "code.ts" }, workspace });
-        Require(disabledScan["files"]![0]!["detail"]!.ToString().Contains("Disabled", StringComparison.Ordinal), "A disabled server was not reported as disabled: " + disabledScan);
-        await rig.State.ChangeAsync([HostStateChange.Setting("language-server:typescript", JsonSerializer.Serialize(rig.Fake, JsonSerializerOptions.Web))]);
-        await rig.State.Languages.ExecuteAsync(new(workspace, "code.ts", "retry"));
 
         // A symbol query without a path searches the workspace; a missing path names the working call.
         var search = await rig.Call("lsp_navigate", new { operation = "symbols", query = "target", workspace });

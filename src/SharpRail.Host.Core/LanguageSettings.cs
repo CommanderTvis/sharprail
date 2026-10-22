@@ -23,6 +23,36 @@ public sealed partial class HostStateStore
         return JsonSerializer.Serialize(settings, JsonSerializerOptions.Web);
     }
 
+    /// <summary>
+    /// Every language server became its own plugin, so a server the user had disallowed in Settings becomes its plugin disabled
+    /// (unless the plugin already has an explicit choice) and the old per-server flag leaves the settings, so this runs once.
+    /// </summary>
+    internal static HostState MigrateDisabledLanguageServers(HostState current)
+    {
+        if (string.IsNullOrWhiteSpace(current.Settings.LanguageServers)) return current;
+        System.Text.Json.Nodes.JsonObject servers;
+        try { if (System.Text.Json.Nodes.JsonNode.Parse(current.Settings.LanguageServers) is not System.Text.Json.Nodes.JsonObject parsed) return current; servers = parsed; }
+        catch (JsonException) { return current; }
+        Dictionary<string, JsonElement>? plugins = null;
+        foreach (var (id, node) in servers)
+        {
+            if (node is not System.Text.Json.Nodes.JsonObject options) continue;
+            var key = options.Select(entry => entry.Key).FirstOrDefault(name => string.Equals(name, "disabled", StringComparison.OrdinalIgnoreCase));
+            if (key is null) continue;
+            var disabled = options[key] is System.Text.Json.Nodes.JsonValue value && value.TryGetValue<bool>(out var flag) && flag;
+            options.Remove(key);
+            plugins ??= current.PluginSettings.ToDictionary();
+            var plugin = "lsp-" + id;
+            if (!disabled || plugins.TryGetValue(plugin, out var existing) && existing.ValueKind == JsonValueKind.Object && existing.TryGetProperty("enabled", out _)) continue;
+            plugins[plugin] = JsonSerializer.SerializeToElement(new { enabled = false });
+        }
+        return plugins is null ? current : current with
+        {
+            Settings = current.Settings with { LanguageServers = servers.ToJsonString() },
+            PluginSettings = plugins
+        };
+    }
+
     /// <summary>Sets or, with an empty value, clears the host-wide path of a tool language servers need; the path must be absolute.</summary>
     private static string SetLanguageTool(string current, string executable, string value)
     {

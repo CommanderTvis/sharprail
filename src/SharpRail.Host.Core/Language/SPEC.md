@@ -203,8 +203,12 @@ download.
 
 Host administrators may set `<stateDir>/language/servers.json`, keyed by catalog id, with
 `command` and an `arguments` array to override a launcher, `allowPath: true` to allow PATH for that
-server, or `disabled: true`. This file is host-owned, never read from a repository.
+server. This file is host-owned, never read from a repository.
 `SHARPRAIL_LSP_DISABLE=1` disables language startup, including in ordinary check fixtures.
+There is no per-server allow/deny setting: every catalog server may start, and a server is in the catalog
+only while its language server plugin (`lsp-<id>`) is enabled. On load, host state migrates the retired
+per-server `disabled: true` once into that plugin disabled (an explicit plugin choice wins) and drops the
+flag from the stored server options; a `disabled` key in `servers.json` is ignored.
 
 ### Server lifetime and start origin
 
@@ -233,7 +237,7 @@ workspace scope), `lsp_navigate` and symbol and outline operations start the ser
 requested files when it is not running, all needed servers in parallel, and wait up to 60 seconds
 (`LanguageLimits.OnDemandStartWait`); past that the file is `pending` or the result state is
 `initializing` with "N s elapsed; retry or wait". A server the user stopped explicitly stays stopped
-and a disabled server says so (the file is `skipped` with the exact `lsp_status retry` call or the
+and disabled language services say so (the file is `skipped` with the exact `lsp_status retry` call or the
 Settings hint); terms that need the user keep blocking with their actionable message. Every `lsp_*`
 call has a 90 second deadline (`LanguageLimits.ToolDeadline`); past it the call is cancelled and
 returns state `initializing` with the servers still starting under `starting`, never a hang.

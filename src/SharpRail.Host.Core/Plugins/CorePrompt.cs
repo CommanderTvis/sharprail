@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core.Language;
 using SharpRail.Plugins.Api.Host;
@@ -36,22 +34,19 @@ internal static class CorePrompt
 
     /// <summary>
     /// The Code Intelligence text with one line per server of the language catalog (id, implementation, file types), so it
-    /// cannot drift from it. A server the user disabled in Settings is marked, never left out.
+    /// cannot drift from it.
     /// </summary>
-    internal static string Text(string? languageServersJson, IReadOnlyList<LanguageServer>? catalog = null)
+    internal static string Text(IReadOnlyList<LanguageServer>? catalog = null)
     {
-        Dictionary<string, LanguageServerOptions>? options = null;
-        try { options = string.IsNullOrWhiteSpace(languageServersJson) ? null : JsonSerializer.Deserialize<Dictionary<string, LanguageServerOptions>>(languageServersJson, JsonSerializerOptions.Web); }
-        catch (JsonException) { }
         var lines = (catalog ?? LanguageServers.Catalog).Select(server =>
-            $"- `{server.Id}`: {server.Implementation.Split(" · ")[0]}; {string.Join(" ", server.Extensions)}{(options?.GetValueOrDefault(server.Id)?.Disabled == true ? " [DISABLED by the user in Settings > LSP: do not start it, say so in your report]" : "")}");
+            $"- `{server.Id}`: {server.Implementation.Split(" · ")[0]}; {string.Join(" ", server.Extensions)}");
         return LanguageServices.TrimEnd('\n').Replace("{{servers}}",
             "Language servers this SharpRail build manages (start with the `retry` call above; any file type listed here HAS a server, so NEVER conclude there is no LSP for it):\n" + string.Join("\n", lines), StringComparison.Ordinal);
     }
 
     /// <summary>The host's contributions; <paramref name="languageServicesEnabled"/> reads the Code Intelligence setting and <paramref name="languageServers"/> the user's per-server settings.</summary>
-    internal static IReadOnlyList<PromptContribution> Contributions(Func<bool> languageServicesEnabled, Func<string?> languageServers, Func<IReadOnlyList<LanguageServer>>? catalog = null) =>
+    internal static IReadOnlyList<PromptContribution> Contributions(Func<bool> languageServicesEnabled, Func<IReadOnlyList<LanguageServer>>? catalog = null) =>
     [
-        new() { Id = "language-services", Text = Text(languageServers(), catalog?.Invoke()), Placement = PromptPlacement.Section, When = languageServicesEnabled },
+        new() { Id = "language-services", Text = Text(catalog?.Invoke()), Placement = PromptPlacement.Section, When = languageServicesEnabled },
     ];
 }

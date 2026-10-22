@@ -812,7 +812,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             Guard(owner, () => holds = item.When());
             return holds;
         }
-        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.Current.Settings.LanguageServers, () => Seams.State.LanguageCatalog).Where(item => Applies(item, "host"));
+        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.LanguageCatalog).Where(item => Applies(item, "host"));
         var plugins = Active().SelectMany(active => active.Tables.Prompts.Select(item => (active.Entry.Id, item)))
             .Where(pair => Applies(pair.item, pair.Id)).OrderBy(pair => pair.item.Order);
         return [.. core.Select(item => item.Text), .. plugins.Select(pair => pair.item.Text)];

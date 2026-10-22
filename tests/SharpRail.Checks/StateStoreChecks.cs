@@ -37,6 +37,28 @@ internal static class StateStoreChecks
         }
         catch (ArgumentException) { }
 
+        // The retired per-server "Allow this server to start": a disallowed server becomes its plugin disabled, once, and the key is
+        // dropped; an explicit plugin choice wins, and launcher choices stay.
+        var languageDirectory = Path.Combine(root, "state-store-language-migration");
+        Directory.CreateDirectory(languageDirectory);
+        var languageFile = Path.Combine(languageDirectory, HostStateStore.FileName);
+        File.WriteAllText(languageFile, """
+            { "Settings": { "LanguageServers": "{\"go\":{\"disabled\":true,\"allowPath\":true},\"rust\":{\"disabled\":true},\"css\":{\"disabled\":false,\"command\":\"\"}}" },
+              "PluginSettings": { "lsp-rust": { "enabled": true } } }
+            """);
+        var languageStore = new HostStateStore(languageDirectory);
+        static bool? PluginOn(HostState state, string id) => state.PluginSettings.TryGetValue(id, out var value) && value.TryGetProperty("enabled", out var enabled) ? enabled.GetBoolean() : null;
+        var migratedLanguage = languageStore.Current;
+        Require(PluginOn(migratedLanguage, "lsp-go") == false && PluginOn(migratedLanguage, "lsp-rust") == true && PluginOn(migratedLanguage, "lsp-css") is null,
+            "A disallowed server did not become its plugin disabled, or an explicit plugin choice was overwritten.");
+        Require(!migratedLanguage.Settings.LanguageServers.Contains("disabled", StringComparison.OrdinalIgnoreCase) &&
+            JsonNode.Parse(migratedLanguage.Settings.LanguageServers)!["go"]!["allowPath"]!.GetValue<bool>(), "The retired per-server key survived, or launcher choices were lost.");
+        var languageOnDisk = JsonNode.Parse(File.ReadAllText(languageFile))!;
+        Require(!languageOnDisk["Settings"]!["LanguageServers"]!.GetValue<string>().Contains("disabled", StringComparison.OrdinalIgnoreCase) &&
+            languageOnDisk["PluginSettings"]!["lsp-go"]!["enabled"]!.GetValue<bool>() == false, "The migration was not saved, so it would run again.");
+        await languageStore.ChangeAsync([HostStateChange.PluginEnabled("lsp-go", true)]);
+        Require(PluginOn(new HostStateStore(languageDirectory).Current, "lsp-go") == true, "The migration ran again and turned a re-enabled plugin off.");
+
         // Upstream #764: a project rename is display-only, normalised, persisted and kept across close and reopen.
         var renamed = Path.Combine(directory, "renamed-project");
         await store.ChangeAsync([HostStateChange.OpenProject(renamed)]);
