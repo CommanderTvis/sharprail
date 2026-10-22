@@ -37,17 +37,17 @@
     <Content Include="$(GhosttyNativeCache)/$(SharpRailLinuxRid)/libGhosttyAvaloniaVt.so" Link="libGhosttyAvaloniaVt.so" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Native libraries are MSBuild targets: they rebuild when a source, the recipe or the lockfile is newer than the output. -->
-  <Target Name="BuildGhosttyWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(GhosttyWindowsRid)' != ''"
+  <Target Name="BuildGhosttyWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(GhosttyWindowsRid)' != '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="@(GhosttyNativeSource);$(MSBuildProjectDirectory)/build-windows.ps1;$(MSBuildThisFileDirectory)../../scripts/windows-native.ps1;$(MSBuildThisFileDirectory)../../mise.lock"
           Outputs="$(GhosttyNativeCache)/$(GhosttyWindowsRid)/GhosttyAvaloniaVt.dll">
     <Exec Command="$(MiseRun) powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/build-windows.ps1&quot; -RuntimeIdentifier &quot;$(RuntimeIdentifier)&quot; -Cache &quot;$(GhosttyNativeCache)&quot;" />
   </Target>
-  <Target Name="BuildGhosttyLinux" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(SharpRailLinuxRid)' != ''"
+  <Target Name="BuildGhosttyLinux" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(SharpRailLinuxRid)' != '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="@(GhosttyNativeSource);$(MSBuildProjectDirectory)/build-linux.sh;$(MSBuildThisFileDirectory)../../mise.toml;$(MSBuildThisFileDirectory)../../mise.lock"
           Outputs="$(GhosttyNativeCache)/$(SharpRailLinuxRid)/libGhosttyAvaloniaVt.so">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-linux.sh&quot; &quot;$(SharpRailLinuxRid)&quot; &quot;$(GhosttyNativeCache)&quot;" />
   </Target>
-  <Target Name="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''"
+  <Target Name="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="@(GhosttyNativeSource);$(MSBuildProjectDirectory)/build-native.sh;$(MSBuildThisFileDirectory)../../mise.toml;$(MSBuildThisFileDirectory)../../mise.lock"
           Outputs="$(GhosttyNativeCache)/libGhosttyAvaloniaView.dylib;$(GhosttyNativeCache)/libGhosttyAvaloniaVt.dylib">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-native.sh&quot; &quot;$(RuntimeIdentifier)&quot; &quot;$(GhosttyNativeCache)&quot;" />

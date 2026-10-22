@@ -48,11 +48,11 @@
     <Content Include="$(NotificationsLibrary)" Link="libSharpRailNotifications.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- Native libraries are MSBuild targets: they rebuild when an input is newer than the output, and only then. -->
-  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''"
+  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="$(MSBuildProjectDirectory)/../../scripts/build-merman.sh;$(MSBuildProjectDirectory)/../../mise.lock" Outputs="$(MermaidLibrary)">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-merman.sh&quot; &quot;$(MermaidLibrary)&quot;" />
   </Target>
-  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''"
+  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == '' and '$(DesignTimeBuild)' != 'true'"
           Inputs="$(MSBuildProjectDirectory)/Native/Notifications.m;$(MSBuildProjectDirectory)/../../scripts/build-notifications.sh" Outputs="$(NotificationsLibrary)">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-notifications.sh&quot; &quot;$(NotificationsLibrary)&quot;" />
   </Target>

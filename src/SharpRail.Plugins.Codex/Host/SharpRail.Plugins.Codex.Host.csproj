@@ -22,7 +22,7 @@
   <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
     <None Include="$(CodexProcessGroup)" Link="sharprail-codex-process-group" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <Target Name="BuildCodexProcessGroup" BeforeTargets="AssignTargetPaths" Condition="'$(OS)' != 'Windows_NT'"
+  <Target Name="BuildCodexProcessGroup" BeforeTargets="AssignTargetPaths" Condition="'$(OS)' != 'Windows_NT' and '$(DesignTimeBuild)' != 'true'"
           Inputs="$(MSBuildProjectDirectory)/native/process-group.c" Outputs="$(CodexProcessGroup)">
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(CodexProcessGroup)'))" />
     <Exec Command="cc $(CodexProcessGroupFlags) -O2 -Wall -Wextra -Werror &quot;$(MSBuildProjectDirectory)/native/process-group.c&quot; -o &quot;$(CodexProcessGroup)&quot;" />

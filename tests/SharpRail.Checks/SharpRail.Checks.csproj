@@ -16,7 +16,7 @@
     <Using Include="SharpRail.Plugins.UI.Kit.Markdown" />
     <Using Include="SharpRail.Plugins.UI.Kit.Visualization" />
   </ItemGroup>
-  <Target Name="BuildTerminalEvents" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+  <Target Name="BuildTerminalEvents" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(DesignTimeBuild)' != 'true'">
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <Exec Command="clang -dynamiclib -fobjc-arc -Wall -Wextra -Werror -mmacosx-version-min=13.0 &quot;$(MSBuildProjectDirectory)/TerminalEvents.m&quot; &quot;$(MSBuildProjectDirectory)/TextureHandoff.m&quot; -framework AppKit -framework ApplicationServices -framework Carbon -framework IOSurface -framework QuartzCore -framework Metal -o &quot;$(IntermediateOutputPath)libTerminalEvents.dylib&quot;" />
     <ItemGroup>
