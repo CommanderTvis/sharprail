@@ -72,6 +72,8 @@ internal static partial class TerminalHostChecks
             await Programs(new LocalTerminalAdapter(local), workspace, "local");
             var state = new HostStateStore(null) { Terminals = local };
             await ProjectClosure(new LocalTerminalAdapter(local), new LocalStateAdapter(state), workspace, "local", state);
+            TitleScanner();
+            await ProgramTitles(new LocalTerminalAdapter(local), new LocalStateAdapter(state), state, workspace, "local");
         }
 
         await RevivalLocal(root, workspace);
@@ -99,6 +101,7 @@ internal static partial class TerminalHostChecks
                 await Programs(remote, workspace, "remote");
                 using var state = new RemoteStateAdapter(address, "terminal-token");
                 await ProjectClosure(remote, state, workspace, "remote");
+                await ProgramTitles(remote, state, (HostStateStore)app.Services.GetRequiredService<IHostStateService>(), workspace, "remote");
             }
             await Reconnects(address, workspace);
             await Mcp(address, workspace);

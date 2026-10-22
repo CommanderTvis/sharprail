@@ -68,12 +68,14 @@ public sealed partial class HostStateStore : IHostStateService
             if (terminals is not null)
             {
                 terminals.InputAccepted -= TerminalInput;
+                terminals.TitleChanged -= ProgramTitle;
                 terminals.PrepareRevival = null;
             }
             terminals = value;
             if (value is not null)
             {
                 value.InputAccepted += TerminalInput;
+                value.TitleChanged += ProgramTitle;
                 value.PrepareRevival = async (workspace, token) =>
                 {
                     try { await ProjectLanguageAutostartAsync(new(workspace, Operation: "prepareAgent"), token); }
@@ -86,6 +88,8 @@ public sealed partial class HostStateStore : IHostStateService
     private PtyTerminalService? terminals;
 
     private void TerminalInput(string workspace) => RecordWorkspaceActivity(workspace);
+
+    private void ProgramTitle(TerminalRef terminal, string? title) => SetTerminalTitle(terminal, title, TerminalTitleSource.Program);
 
     public string? LastError { get; private set; }
     /// <summary>Raised with the path of a workspace the host removed, so its other resources can end with it.</summary>
@@ -335,15 +339,22 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
 
-    /// <summary>Sets or clears the title of one terminal's tab.</summary>
-    public void SetTerminalTitle(TerminalRef terminal, string? title)
+    /// <summary>
+    /// Sets or clears the title of one terminal's tab from one source. A title from a stronger source stays: a user
+    /// rename outranks an agent's <c>set_title</c>, which outranks the program's OSC title. Program titles are not persisted.
+    /// </summary>
+    /// <returns>False when a stronger source's title kept the tab.</returns>
+    public bool SetTerminalTitle(TerminalRef terminal, string? title, TerminalTitleSource source)
     {
         lock (gate)
         {
+            var existing = state.TerminalTitles.FirstOrDefault(known => known.Terminal == terminal);
+            if (existing is not null && existing.Source < source) return false;
             var titles = state.TerminalTitles.Where(known => known.Terminal != terminal).ToList();
-            if (title is not null) titles.Add(new(terminal, title));
-            if (titles.SequenceEqual(state.TerminalTitles)) return;
-            Publish(state with { TerminalTitles = titles }, persist: true);
+            if (title is not null) titles.Add(new(terminal, title, source));
+            if (titles.SequenceEqual(state.TerminalTitles)) return true;
+            Publish(state with { TerminalTitles = titles }, persist: source != TerminalTitleSource.Program);
+            return true;
         }
     }
 
@@ -422,7 +433,8 @@ public sealed partial class HostStateStore : IHostStateService
                 PluginSettings = snapshot.PluginSettings.ToDictionary(),
                 PluginPaths = snapshot.PluginPaths.ToList(),
                 TerminalAgents = snapshot.TerminalAgents.ToList(),
-                TerminalTitles = snapshot.TerminalTitles.ToList()
+                // A program's OSC title lives only as long as its shell.
+                TerminalTitles = snapshot.TerminalTitles.Where(title => title.Source != TerminalTitleSource.Program).ToList()
             };
             var temporary = path + ".tmp";
             var document = JsonSerializer.SerializeToNode(stored, Json)!;

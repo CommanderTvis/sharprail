@@ -144,7 +144,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             Effort = agent.Effort.Length == 0 ? null : agent.Effort,
             LaunchedByUi = agent.LaunchedByUi
         })).ToArray(),
-        TerminalTitles = reply.TerminalTitles.Select(title => new TerminalTitle(new(title.WorkspaceId, title.TabKey), title.Title)).ToArray(),
+        TerminalTitles = reply.TerminalTitles.Select(title => new TerminalTitle(new(title.WorkspaceId, title.TabKey), title.Title,
+            Enum.IsDefined((TerminalTitleSource)title.Source) ? (TerminalTitleSource)title.Source : TerminalTitleSource.User)).ToArray(),
         Platform = Enum.TryParse<HostPlatform>(reply.Platform, ignoreCase: true, out var platform) ? platform : null
     };
 

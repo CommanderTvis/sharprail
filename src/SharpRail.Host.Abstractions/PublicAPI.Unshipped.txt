@@ -964,11 +964,17 @@ SharpRail.Host.Abstractions.TerminalTab.Title.get -> string!
 SharpRail.Host.Abstractions.TerminalTab.Title.init -> void
 SharpRail.Host.Abstractions.TerminalTitle
 SharpRail.Host.Abstractions.TerminalTitle.<Clone>$() -> SharpRail.Host.Abstractions.TerminalTitle!
-SharpRail.Host.Abstractions.TerminalTitle.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out string! Title) -> void
+SharpRail.Host.Abstractions.TerminalTitle.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out string! Title, out SharpRail.Host.Abstractions.TerminalTitleSource Source) -> void
 SharpRail.Host.Abstractions.TerminalTitle.Equals(SharpRail.Host.Abstractions.TerminalTitle? other) -> bool
 SharpRail.Host.Abstractions.TerminalTitle.Terminal.get -> SharpRail.Plugins.Api.TerminalRef!
 SharpRail.Host.Abstractions.TerminalTitle.Terminal.init -> void
-SharpRail.Host.Abstractions.TerminalTitle.TerminalTitle(SharpRail.Plugins.Api.TerminalRef! Terminal, string! Title) -> void
+SharpRail.Host.Abstractions.TerminalTitle.TerminalTitle(SharpRail.Plugins.Api.TerminalRef! Terminal, string! Title, SharpRail.Host.Abstractions.TerminalTitleSource Source = SharpRail.Host.Abstractions.TerminalTitleSource.User) -> void
+SharpRail.Host.Abstractions.TerminalTitle.Source.get -> SharpRail.Host.Abstractions.TerminalTitleSource
+SharpRail.Host.Abstractions.TerminalTitle.Source.init -> void
+SharpRail.Host.Abstractions.TerminalTitleSource
+SharpRail.Host.Abstractions.TerminalTitleSource.User = 0 -> SharpRail.Host.Abstractions.TerminalTitleSource
+SharpRail.Host.Abstractions.TerminalTitleSource.Agent = 1 -> SharpRail.Host.Abstractions.TerminalTitleSource
+SharpRail.Host.Abstractions.TerminalTitleSource.Program = 2 -> SharpRail.Host.Abstractions.TerminalTitleSource
 SharpRail.Host.Abstractions.TerminalTitle.Title.get -> string!
 SharpRail.Host.Abstractions.TerminalTitle.Title.init -> void
 SharpRail.Host.Abstractions.WorkspaceAction

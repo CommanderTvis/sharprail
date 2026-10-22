@@ -148,7 +148,11 @@ public sealed record HostState
     public IReadOnlyList<PluginRosterEntry> Plugins { get; init; } = [];
     /// <summary>The agent record of each terminal that has one; persisted, and dropped when its terminal closes.</summary>
     public IReadOnlyList<TerminalAgent> TerminalAgents { get; init; } = [];
-    /// <summary>The title chosen for a terminal's tab; persisted, and dropped when the terminal closes.</summary>
+    /// <summary>
+    /// The title of each terminal's tab, at most one per terminal: the strongest of a user rename, an agent's <c>set_title</c>
+    /// and the program's OSC 0/2 title (see <see cref="TerminalTitleSource"/>). User and agent titles persist; program
+    /// titles are live only. All are dropped when the terminal closes.
+    /// </summary>
     public IReadOnlyList<TerminalTitle> TerminalTitles { get; init; } = [];
     /// <summary>The host's operating system; null from a host that does not report it.</summary>
     public HostPlatform? Platform { get; init; }
@@ -156,7 +160,19 @@ public sealed record HostState
 
 public sealed record TerminalAgent(TerminalRef Terminal, TerminalAgentRecord Record);
 
-public sealed record TerminalTitle(TerminalRef Terminal, string Title);
+/// <param name="Source">Who chose the title; a stronger source's title is never replaced by a weaker one's.</param>
+public sealed record TerminalTitle(TerminalRef Terminal, string Title, TerminalTitleSource Source = TerminalTitleSource.User);
+
+/// <summary>Who titled a terminal tab. A user rename outranks an agent's title, which outranks the program's.</summary>
+public enum TerminalTitleSource
+{
+    /// <summary>The user, renaming the tab. The default, so titles stored before sources existed stay as they were.</summary>
+    User = 0,
+    /// <summary>An agent, through the <c>set_title</c> tool.</summary>
+    Agent = 1,
+    /// <summary>The program in the terminal, through OSC 0 or OSC 2.</summary>
+    Program = 2
+}
 
 public sealed record HostStateChange(string Kind, string Key = "", string Value = "")
 {

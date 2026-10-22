@@ -12,6 +12,8 @@ namespace SharpRail.Host.Core;
 internal sealed class HostedTerminal
 {
     private const int RedrawRestoreMilliseconds = 50;
+    // Programs retitle often (an agent animates its title); clients hear the latest title at most this often.
+    internal const int TitleMilliseconds = 1000;
     private readonly Lock gate = new();
     private readonly TerminalRecorder recorder;
     private readonly TerminalShellState shell = new();
@@ -35,6 +37,12 @@ internal sealed class HostedTerminal
     internal Action<TerminalSignal>? Signaled { get; init; }
     internal string SessionId { get; init; } = "";
     private readonly TerminalSignalParser signals = new();
+    /// <summary>Raised off the output lock with the program's latest OSC 0/2 title, null when it cleared it; coalesced.</summary>
+    internal Action<string?>? TitleChanged { get; init; }
+    private readonly TerminalTitleScanner titles = new();
+    private readonly Lock titleGate = new();
+    private string? pendingTitle, shownTitle;
+    private bool titleScheduled;
 
     internal HostedTerminal(ITerminalProcess process, int columns, int rows, byte[]? restored = null, int replayBytes = TerminalRecorder.SnapshotBytes)
     {
@@ -79,6 +87,7 @@ internal sealed class HostedTerminal
                             {
                                 recorder.Push(chunk.Span);
                                 shell.Push(chunk.Span);
+                                if (TitleChanged is not null && titles.Scan(chunk.Span, out var title)) QueueTitle(title);
                                 if (promptChanged) { promptChanged = false; changed = shell.Status; foreground = shell.Foreground; }
                                 current?.Deliver(chunk, recorder.Position, grid);
                                 foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
@@ -103,6 +112,24 @@ internal sealed class HostedTerminal
             foreach (var watcher in watchers) watcher.Finish(code);
             watchers.Clear();
         }
+    }
+
+    private void QueueTitle(string? title)
+    {
+        pendingTitle = title;
+        if (titleScheduled) return;
+        titleScheduled = true;
+        _ = Task.Delay(TitleMilliseconds).ContinueWith(_ =>
+        {
+            string? latest;
+            lock (gate) { latest = pendingTitle; titleScheduled = false; }
+            lock (titleGate)
+            {
+                if (latest == shownTitle) return;
+                shownTitle = latest;
+                TitleChanged?.Invoke(latest);
+            }
+        }, TaskScheduler.Default);
     }
 
     internal async ValueTask DisposeAsync()

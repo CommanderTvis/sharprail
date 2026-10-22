@@ -111,7 +111,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             LaunchedByUi = agent.Record.LaunchedByUi
         }).ToList(),
         TerminalTitles = state.TerminalTitles.Select(title => new TerminalTitleMessage
-        { WorkspaceId = title.Terminal.WorkspaceId, TabKey = title.Terminal.TabKey, Title = title.Title }).ToList(),
+        { WorkspaceId = title.Terminal.WorkspaceId, TabKey = title.Terminal.TabKey, Title = title.Title, Source = (int)title.Source }).ToList(),
         Platform = state.Platform is { } platform ? System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(platform.ToString()) : ""
     };
 }

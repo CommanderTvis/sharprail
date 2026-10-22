@@ -86,19 +86,19 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
                         var branch = slug;
                         for (var suffix = 2; branches.Any(known => known == branch || known.StartsWith(branch + "/", StringComparison.Ordinal) || branch.StartsWith(known + "/", StringComparison.Ordinal)); suffix++)
                             branch = slug + "-" + suffix;
-                        if (state.Current.WorkspaceLabels.ContainsKey(workspace.Path))
-                        {
-                            state.SetTerminalTitle(terminal, title);
-                            return ($"Terminal titled \"{title}\".", false);
-                        }
+                        if (state.Current.WorkspaceLabels.ContainsKey(workspace.Path)) return Titled();
                         await GitRepository.RunAsync(workspace.Path, token, "branch", "-m", branch);
                         state.ChangeWorkspaces(workspaces => workspaces.Select(known => known.Path == workspace.Path ? known with { Branch = branch } : known));
                         state.SetInferredWorkspaceLabel(workspace.Path, title);
                     }
                 }
             }
-            state.SetTerminalTitle(terminal, title);
-            return ($"Terminal titled \"{title}\".", false);
+            return Titled();
+
+            // The user's own name for the tab outranks an agent's title.
+            (string, bool) Titled() => state.SetTerminalTitle(terminal, title, TerminalTitleSource.Agent)
+                ? ($"Terminal titled \"{title}\".", false)
+                : ("The user named this terminal's tab; it keeps that name.", false);
         });
 
     public McpServer.McpTool Delete(string workspace) => new(

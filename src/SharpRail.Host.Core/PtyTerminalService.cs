@@ -242,6 +242,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
                 InputAccepted = () => InputAccepted?.Invoke(directory),
                 SessionId = request.SessionId,
                 Signaled = signals.Publish,
+                TitleChanged = known is null ? null : title => Retitled(request.SessionId, known, title),
                 PromptChanged = (status, foreground) =>
                 {
                     if (known is not null && status.Phase != TerminalShellPhase.Unknown)
@@ -375,6 +376,16 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     /// merely attaching are not input.
     /// </summary>
     public event Action<string>? InputAccepted;
+
+    /// <summary>Raised with a tab's terminal and the title its program set with OSC 0/2 (null when cleared), coalesced.</summary>
+    public event Action<TerminalRef, string?>? TitleChanged;
+
+    // A title that arrives after its tab closed would outlive the tab's other state.
+    private void Retitled(string sessionId, TerminalRef terminal, string? title)
+    {
+        lock (gate) if (!sessions.ContainsKey(sessionId)) return;
+        TitleChanged?.Invoke(terminal, title);
+    }
 
     public string Token(TerminalRef terminal)
     {

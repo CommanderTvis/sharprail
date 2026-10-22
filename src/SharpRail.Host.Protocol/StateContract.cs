@@ -133,6 +133,8 @@ public sealed class TerminalTitleMessage
     [ProtoMember(1)] public string WorkspaceId { get; set; } = "";
     [ProtoMember(2)] public string TabKey { get; set; } = "";
     [ProtoMember(3)] public string Title { get; set; } = "";
+    // TerminalTitleSource; 0, a user rename, from a host that predates sources.
+    [ProtoMember(4)] public int Source { get; set; }
 }
 
 [ProtoContract]

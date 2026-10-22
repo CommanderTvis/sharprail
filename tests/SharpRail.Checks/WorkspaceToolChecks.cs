@@ -199,6 +199,8 @@ internal static class WorkspaceToolChecks
             new HostStateStore(stateDirectory).Current.TerminalTitles.Any(known => known.Terminal == new TerminalRef(root, "claude") && known.Title == "User name"),
             "Client renaming shares and persists the trimmed title through local and remote state adapters.");
         Require((await client.GetStateAsync()).TerminalAgents.SequenceEqual(renameBefore.TerminalAgents), "Renaming leaves terminal agent metadata alone.");
+        var kept = await title(root, new { title = "Agent retitle" });
+        Require(!kept.Error && await Tab(root) == "User name" && await Tab(root, second) == "User name", "set_title must not replace the user's rename: " + kept.Text);
         var before = await client.GetStateAsync();
         var branch = (await GitRepository.RunAsync(workspace.Path, default, "symbolic-ref", "--short", "HEAD")).Trim();
         var other = await title(workspace.Path, new { title = "Виправити вхід" });

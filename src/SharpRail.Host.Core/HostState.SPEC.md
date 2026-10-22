@@ -171,8 +171,12 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   `enabled: false` into each transitive dependent's namespace (`PluginDependents`), touching no other.
 - The shared `terminal-title` state change lets clients rename a terminal through the same title store;
   it validates nonempty identities and titles, persists and broadcasts through local and remote adapters.
-- `TerminalTitles` persist beside them (`SetTerminalTitle`, `RemoveTerminalTitles`): the title an agent gave
-  its terminal's tab through `set_title`, sent to remote clients and dropped with the terminal or its project.
+- `TerminalTitles` persist beside them (`SetTerminalTitle`, `RemoveTerminalTitles`): at most one per terminal, with
+  its source. A user rename (`terminal-title`) outranks an agent's `set_title`, which outranks the program's OSC 0/2
+  title; a weaker source never replaces a stronger one, so `set_title` after a rename keeps the user's name and says so.
+  Program titles ride snapshots and broadcasts but are never persisted. Titles stored before sources existed load as
+  user renames. All are sent to remote clients (protocol field 4; an older host's titles read as user renames) and
+  dropped with the terminal or its project.
   A window writes each title onto the tab that shows the terminal, on a broadcast and when a workspace mounts.
 - `TerminalAgents` persist (`SetTerminalAgent`, `RemoveTerminalAgents`); the roster (`PublishPlugins`) and
   `Platform` ride every snapshot and are never persisted. Publishing an unchanged roster publishes nothing.
