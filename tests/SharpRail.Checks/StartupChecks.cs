@@ -31,6 +31,7 @@ internal static class StartupChecks
     }
 
     private static void Await(Task task) { Pump(() => task.IsCompleted); task.GetAwaiter().GetResult(); }
+    private static void Await(Task task, Action answer) { Pump(() => { answer(); return task.IsCompleted; }); task.GetAwaiter().GetResult(); }
     private static string? Branch(WorkbenchWindow window) => window.FindControl<TextBlock>("BranchLabel")!.Text;
 
     internal static void Run(string root)
@@ -174,11 +175,9 @@ internal static class StartupChecks
             Require(offset.Y > 0, "The Files fixture must have a scrolled viewport.");
             var detaches = 0;
             tree.GetVisualDescendants().OfType<DrawnTreeLabel>().First(label => label.Entry.Id == "shared-05.txt").DetachedFromVisualTree += (_, _) => detaches++;
-            var gitReads = host.Requests.Count;
             var refresh = window.RefreshAsync();
-            Pump(() => host.Requests.Count > gitReads);
-            host.Requests.Last().Result.SetResult(new(true, "main", [], [], []));
-            Await(refresh);
+            // The mount's own Git read can still arrive under load, so answer every read until the refresh completes.
+            Await(refresh, () => { foreach (var request in host.Requests) request.Result.TrySetResult(new(true, "main", [], [], [])); });
             Require(ReferenceEquals(tree, Tree()) && detaches == 0 && scroll.Offset == offset,
                 $"An identical listing must preserve the tree, row attachment and scroll offset: tree={ReferenceEquals(tree, Tree())}, detaches={detaches}, offset={scroll.Offset}, expected={offset}.");
             host.OpenHold = new(TaskCreationOptions.RunContinuationsAsynchronously);
