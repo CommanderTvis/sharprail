@@ -274,10 +274,21 @@ it even after the menu closes. Existing URL actions take precedence. The embeddi
 use private non-file targets in the same callback without adding domain logic to this library. Soft wraps and Unicode cell
 mapping are preserved. The Metal bridge snapshots only the hovered line under the renderer lock.
 The pinned native URL matcher excludes file paths and `file:` URLs so it cannot bypass the host's
-existence check. HTTP(S) and the other native URL schemes retain their native action.
+existence check. Ghostty's own link opening (Command-click on an OSC 8 hyperlink or a matched URL)
+never reaches NSWorkspace: the bridge hands the URL to `GhosttyView.OpenUrl`, and the texture view opens
+a `file:` URL (any host name, as `ls --hyperlink` writes it) through `ResolveFileLinks` and
+`OpenFileLink`, or not at all, so a file never opens in Finder or a default app. HTTP(S) and the other
+schemes go to the system launcher, as does the menu's Open link for them.
 
 Browser builds link libghostty-vt and the existing C bridge into WASM. The bridge uses the Emscripten
 allocator to share the managed runtime heap. `GhosttySkiaView.SaveClipboardImage` can store PNG bytes
 on a remote host and paste the returned shell path instead of writing a client-local file.
 
-Both renderers also accept `ResolveHighlightedLinks` for background resolution of visible references. Valid ranges are underlined independently of hover; the host still supplies navigation through the ordinary file-link callbacks. Resolution is debounced, bounded, cancelled on detach/disposal, and never runs on the UI thread.
+Both renderers also accept `ResolveHighlightedLinks` for background resolution of visible references. Valid ranges are underlined independently of hover, and a plain click (no drag) on one opens it through `OpenFileLink`; the press still reaches selection or a mouse-tracking program. Resolution is debounced, bounded, cancelled on detach/disposal, and never runs on the UI thread.
+
+Underlines are drawn by the renderer in the frame that shows their text, never as an overlay. Skia marks
+the cells of the snapshot it paints. Metal hands the cells (viewport index and base codepoint) to
+Ghostty's renderer (`gav_ghostty_set_link_underlines`, `Native/LinkUnderlines.patch`), which keeps them
+in screen coordinates and, while copying terminal state for each frame, underlines a cell only if it
+still shows that codepoint. Output and scrolling move the underline with the text in the same frame;
+rewritten or pruned cells lose it until the next resolution. Modifier-hover underlines use the same path.

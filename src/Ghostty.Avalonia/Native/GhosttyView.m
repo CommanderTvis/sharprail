@@ -15,6 +15,7 @@ extern bool gav_ghostty_agent_newline(ghostty_surface_t surface);
 @property(nonatomic, copy) NSString *clipboardDirectory;
 @property(nonatomic, assign) gav_view_event_cb callback;
 @property(nonatomic, assign) gav_view_shortcut_cb shortcut;
+@property(nonatomic, assign) gav_view_url_cb openUrl;
 @property(nonatomic, assign) void *context;
 @property(nonatomic, assign) BOOL agentNewline;
 - (void)resizeSurface;
@@ -42,6 +43,15 @@ static bool action(ghostty_app_t instance, ghostty_target_s target, ghostty_acti
         if (view.callback) view.callback(view.context, GAV_VIEW_EXITED, (int32_t)value.action.child_exited.exit_code);
         // Ghostty still prints its own exit notice in the terminal.
         return false;
+    }
+    if (value.tag == GHOSTTY_ACTION_OPEN_URL && target.tag == GHOSTTY_TARGET_SURFACE) {
+        // The owner decides: file links open in the application, never through Finder or a default app.
+        GAVTerminalView *view = (__bridge GAVTerminalView *)ghostty_surface_userdata(target.target.surface);
+        if (view.openUrl) {
+            NSString *text = [[NSString alloc] initWithBytes:value.action.open_url.url length:value.action.open_url.len encoding:NSUTF8StringEncoding];
+            if (text) view.openUrl(view.context, text.UTF8String);
+            return true;
+        }
     }
     if (value.tag == GHOSTTY_ACTION_OPEN_URL) {
         NSString *text = [[NSString alloc] initWithBytes:value.action.open_url.url length:value.action.open_url.len encoding:NSUTF8StringEncoding];
@@ -454,6 +464,12 @@ extern size_t gav_ghostty_link_line(ghostty_surface_t surface, double x, double 
 size_t gav_texture_link_line(void *pointer, double x, double y, uint32_t *text, uint32_t *cells, size_t capacity, double *info) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     return gav_ghostty_link_line(view.surface, x, y, text, cells, capacity, info);
+}
+
+void gav_view_set_url_callback(void *pointer, gav_view_url_cb callback, void *context) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    view.context = context;
+    view.openUrl = callback;
 }
 
 extern bool gav_ghostty_set_link_underlines(ghostty_surface_t surface, const uint32_t *cells, const uint32_t *codepoints, size_t count);

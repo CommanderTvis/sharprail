@@ -36,6 +36,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         terminal = new GhosttyView(launch);
         source = Native.Enable(terminal.Handle);
         terminal.Exited += (_, code) => Exited?.Invoke(this, code);
+        terminal.OpenUrl += (_, url) => _ = OpenUrlAsync(url);
         frameReady = NotifyFrame;
         highlightTimer.Tick += (_, _) =>
         {

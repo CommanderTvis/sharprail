@@ -263,6 +263,9 @@ public sealed partial class GhosttySkiaView
             linkPressPointer = e.GetPosition(this);
             return;
         }
+        // A plain click on an underlined file opens it on release; the press still selects or reaches the program.
+        pressedHighlight = button == 1 && e.KeyModifiers == KeyModifiers.None ? HighlightAt(e.GetPosition(this)) : null;
+        linkPressPointer = e.GetPosition(this);
         // An underlined resolved reference wins over mouse reporting, as a modifier-click on a link does.
         if (!(button == 2 && OverUnderlinedLink(e.GetPosition(this))) && Track(Press, button, e)) return;
         if (button == 2)
@@ -338,7 +341,14 @@ public sealed partial class GhosttySkiaView
         pressedFile = null;
         var link = pressedUrl;
         pressedUrl = null;
+        var highlight = pressedHighlight;
+        pressedHighlight = null;
         RefreshLink(e);
+        if (highlight is not null)
+        {
+            var delta = e.GetPosition(this) - linkPressPointer;
+            if (delta.X * delta.X + delta.Y * delta.Y <= 16 && HighlightAt(e.GetPosition(this)) == highlight) _ = OpenHighlightAsync(highlight);
+        }
         e.Pointer.Capture(null);
         if (file is not null)
         {

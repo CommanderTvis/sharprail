@@ -27,6 +27,8 @@ public sealed partial class GhosttySkiaView
 
     private static readonly Regex UrlPattern = new(@"https?://[^\s<>""'`]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private readonly HashSet<int> linkCells = [];
+    private readonly Dictionary<int, TerminalLink> highlightCells = [];
+    private TerminalLink? pressedHighlight;
     private Point linkPointer = new(-1, -1);
     private Point linkPressPointer;
     private KeyModifiers linkModifiers;
@@ -111,6 +113,7 @@ public sealed partial class GhosttySkiaView
                 if (frame.Cells[row * frame.Columns].RowWrapped == 0) { visibleText.Append('\n'); visiblePositions.Add(-1); }
             }
         linkCells.Clear();
+        highlightCells.Clear();
         hoveredUrl = null;
         var fileText = (string?)null;
         var fileOffset = -1;
@@ -161,7 +164,10 @@ public sealed partial class GhosttySkiaView
         if (highlights?.Resolve is not null)
             foreach (var link in Highlights.Update(visibleText.ToString()))
                 foreach (var index in visiblePositions.Skip(link.Start).Take(link.Length).Where(index => index >= 0))
+                {
                     linkCells.Add(index);
+                    highlightCells.TryAdd(index, link);
+                }
         if (hadLinks || linkCells.Count != 0)
             for (var i = 0; i < frame.Columns * frame.Rows; i++)
                 frame.Cells[i].Flags = (frame.Cells[i].Flags & ~CellFlags.LinkHover) | (linkCells.Contains(i) ? CellFlags.LinkHover : 0);
@@ -201,12 +207,28 @@ public sealed partial class GhosttySkiaView
         catch (Exception error) { OperationFailed?.Invoke(this, error); }
     }
 
+    /// <summary>The centre of a viewport cell in view coordinates, for checks.</summary>
+    internal Point? CellCenter(int column, int row) =>
+        fonts is { } cells ? new(Padding.Left + (column + .5) * cells.CellWidth, Padding.Top + (row + .5) * cells.CellHeight) : null;
+
+    // The underlined file under a plain click, from the frame on screen.
+    private TerminalLink? HighlightAt(Point point)
+    {
+        if (fonts is not { } cells || last.Columns <= 0) return null;
+        var x = (int)Math.Floor((point.X - Padding.Left) / cells.CellWidth);
+        var y = (int)Math.Floor((point.Y - Padding.Top) / cells.CellHeight);
+        return x >= 0 && x < last.Columns && y >= 0 && y < last.Rows ? highlightCells.GetValueOrDefault(y * last.Columns + x) : null;
+    }
+
+    private async Task OpenHighlightAsync(TerminalLink link)
+    {
+        try { if (!disposed && OpenFileLink is { } open) await open(link); }
+        catch (Exception error) { OperationFailed?.Invoke(this, error); }
+    }
+
     private async Task OpenLinkAsync(string url)
     {
-        try
-        {
-            if (TopLevel.GetTopLevel(this)?.Launcher is { } launcher) await launcher.LaunchUriAsync(new Uri(url));
-        }
+        try { await TerminalLinkLauncher.Open(this, url, ResolveFileLinks, OpenFileLink); }
         catch (Exception error) { OperationFailed?.Invoke(this, error); }
     }
 }

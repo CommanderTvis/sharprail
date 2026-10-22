@@ -1,4 +1,33 @@
+using Avalonia;
+using Avalonia.Controls;
+
 namespace Ghostty.Avalonia;
+
+/// <summary>Opens links the terminal itself recognised, keeping file links inside the embedding application.</summary>
+internal static class TerminalLinkLauncher
+{
+    /// <summary>The system launcher, replaceable by checks.</summary>
+    internal static Func<Visual, Uri, Task> Launch = async (visual, uri) =>
+    {
+        if (TopLevel.GetTopLevel(visual)?.Launcher is { } launcher) await launcher.LaunchUriAsync(uri);
+    };
+
+    /// <summary>
+    /// Web links go to the system. A file URL never does (that would reveal it in Finder or a default app): it opens
+    /// through the resolver and the application's editor when it names an existing file on the terminal's host.
+    /// </summary>
+    internal static async Task Open(Visual owner, string url, Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? resolve,
+        Func<TerminalLink, Task>? open)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
+        if (!uri.IsFile) { await Launch(owner, uri); return; }
+        if (resolve is null || open is null) return;
+        // OSC 8 file links name the program's host (file://host/path); the terminal's host resolves the path.
+        var local = new UriBuilder(uri) { Host = "" }.Uri.AbsoluteUri;
+        var links = await Task.Run(() => resolve(local, CancellationToken.None));
+        if (links.FirstOrDefault(link => link.Start == 0 && !link.IsDirectory) is { } target) await open(target);
+    }
+}
 
 /// <summary>A host-resolved file reference, with UTF-16 offsets and one-based source coordinates.</summary>
 public sealed record TerminalLink(int Start, int Length, string Path, int Line, int Column, bool IsDirectory);

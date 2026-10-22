@@ -8,6 +8,10 @@ typedef void (*gav_view_event_cb)(void *context, int32_t kind, int32_t value);
 // Offered every Command key equivalent before Ghostty sees it; returning true consumes the key.
 // key is the key's character ignoring modifiers other than Shift; mods use Ghostty's modifier bits.
 typedef bool (*gav_view_shortcut_cb)(void *context, const char *key, int32_t mods, bool repeat);
+// Receives every link Ghostty opens (an OSC 8 hyperlink or a matched URL) instead of NSWorkspace, on the main thread.
+typedef void (*gav_view_url_cb)(void *context, const char *url);
+// context is the owner's, as passed to gav_view_create (a view with external I/O has none until this call).
+void gav_view_set_url_callback(void *view, gav_view_url_cb callback, void *context);
 // A NULL command runs the login shell; the optional variable is added to the child's environment.
 // A non-NULL clipboard_directory pastes clipboard images as the shell-quoted path of a PNG saved there.
 void *gav_view_create(const char *directory, const char *clipboard_directory, const char *command,

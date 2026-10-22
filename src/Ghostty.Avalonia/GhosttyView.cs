@@ -60,11 +60,17 @@ public sealed partial class GhosttyView : NativeControlHost, IDisposable
             throw new InvalidOperationException("Ghostty could not create a Metal terminal surface.");
         }
         Native.SetColors(view, colors.NativeView(), colors.MinimumContrast);
+        unsafe { Native.SetUrlCallback(view, &OnOpenUrl, GCHandle.ToIntPtr(self)); }
     }
 
     /// <summary>The child exited with its status. Ghostty keeps the final screen until the view is disposed.</summary>
     public event EventHandler<int>? Exited;
     public event EventHandler<GhosttyShortcutEventArgs>? Shortcut;
+    /// <summary>
+    /// A link Ghostty would open: a modifier-click on an OSC 8 hyperlink or a matched URL. Without a handler the
+    /// system opens it; with one, the handler decides, so file links can open in the application instead of Finder.
+    /// </summary>
+    public event EventHandler<string>? OpenUrl;
 
     /// <summary>The AppKit view, for platform automation.</summary>
     public nint Handle => view;
@@ -141,6 +147,24 @@ public sealed partial class GhosttyView : NativeControlHost, IDisposable
         Dispatcher.UIThread.Post(() => owner.Exited?.Invoke(owner, value));
     }
 
+    [UnmanagedCallersOnly]
+    private static unsafe void OnOpenUrl(nint context, byte* url)
+    {
+        if (GCHandle.FromIntPtr(context).Target is GhosttyView owner && Marshal.PtrToStringUTF8((nint)url) is { } text)
+            Dispatcher.UIThread.Post(() => owner.RaiseOpenUrl(text));
+    }
+
+    private async void RaiseOpenUrl(string url)
+    {
+        if (OpenUrl is { } handler) { handler(this, url); return; }
+        try
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && TopLevel.GetTopLevel(this)?.Launcher is { } launcher)
+                await launcher.LaunchUriAsync(uri);
+        }
+        catch (Exception) { /* Opening a link must not take down the terminal. */ }
+    }
+
     // Runs synchronously on the main thread from AppKit's key handling.
     [UnmanagedCallersOnly]
     private static unsafe byte OnShortcut(nint context, byte* key, int mods, byte repeat)
@@ -172,6 +196,8 @@ public sealed partial class GhosttyView : NativeControlHost, IDisposable
             [MarshalAs(UnmanagedType.LPUTF8Str)] string? command, [MarshalAs(UnmanagedType.LPUTF8Str)] string? environmentName,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string? environmentValue, delegate* unmanaged<nint, int, int, void> callback,
             delegate* unmanaged<nint, byte*, int, byte, byte> shortcut, nint context);
+        [DllImport(Library, EntryPoint = "gav_view_set_url_callback")]
+        internal static extern void SetUrlCallback(nint view, delegate* unmanaged<nint, byte*, void> callback, nint context);
         [DllImport(Library, EntryPoint = "gav_view_set_colors")]
         internal static extern void SetColors(nint view, uint[] colors, double minimumContrast);
         [DllImport(Library, EntryPoint = "gav_view_destroy")]

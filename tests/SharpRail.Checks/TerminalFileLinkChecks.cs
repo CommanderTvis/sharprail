@@ -132,7 +132,7 @@ internal static class TerminalFileLinkChecks
 
 
     // The user's agent transcript: a full-screen TUI on the alternate screen, positioned and styled, launched without a shell.
-    internal static (string Directory, string Script, string Home, (string Visible, string Path, int Line, int Column)[] Expected, string[] Plain) AgentScenario(string root)
+    internal static (string Directory, string Script, string Home, (string Visible, string Path, int Line, int Column)[] Expected, string[] Plain, string[] Lines) AgentScenario(string root)
     {
         var directory = Path.Combine(root, "project");
         var sibling = Path.Combine(root, "sibling");
@@ -182,7 +182,7 @@ internal static class TerminalFileLinkChecks
             ("~/.claude/CLAUDE.md", Path.Combine(home, ".claude", "CLAUDE.md"), 1, 1),
             (absolute, absolute, 1, 1), (json, json, 1, 1), (external, external, 1, 1)
         ];
-        return (directory, script, home, expected, ["src/", "docs/screenshots", "scripts/", "NOTES.md", "src/Absent.cs"]);
+        return (directory, script, home, expected, ["src/", "docs/screenshots", "scripts/", "NOTES.md", "src/Absent.cs"], lines);
     }
 
     // The Metal renderers need a real AppKit window, so the scenario runs in a child of this binary.
@@ -205,6 +205,10 @@ internal static class TerminalFileLinkChecks
         var root = CheckRoot.Create("renderer-terminal-links");
         var scenario = AgentScenario(root);
         var previousHome = Environment.GetEnvironmentVariable("HOME");
+        // Every system launch goes through this seam: a file link must never reach Finder or a default app.
+        var launched = new List<Uri>();
+        var previousLaunch = Ghostty.Avalonia.TerminalLinkLauncher.Launch;
+        Ghostty.Avalonia.TerminalLinkLauncher.Launch = (_, uri) => { launched.Add(uri); return Task.CompletedTask; };
         Environment.SetEnvironmentVariable("HOME", scenario.Home);
         SharpRail.Plugins.UI.Kit.Ui.Apply(SharpRail.UI.Rendering.Themes.All[0]);
         await using var host = new PtyTerminalService(shell: scenario.Script);
@@ -226,8 +230,11 @@ internal static class TerminalFileLinkChecks
         {
             await server.StopAsync();
             Environment.SetEnvironmentVariable("HOME", previousHome);
+            Ghostty.Avalonia.TerminalLinkLauncher.Launch = previousLaunch;
         }
         Directory.Delete(root, true);
+        await FileHyperlinksStayInApp(window);
+        await UnderlinesFollowFrames(window);
         Console.WriteLine("PASS agent terminal links in Metal (local and relay) and Skia: bare, ./, relative, :line, :line:col, absolute, external and ~/ files underlined exactly; directories and missing names plain; activation opens line/column");
 
         async Task Renderer(string name, SharpRail.UI.Terminal.TerminalFactory factory)
@@ -260,10 +267,209 @@ internal static class TerminalFileLinkChecks
             Require(found.Count == scenario.Expected.Length && !found.Any(item => scenario.Plain.Contains(item.Visible)), $"{name} underlined extra text: [{shown}].");
             await open!(found.Single(item => item.Visible.EndsWith("Workspaces.SPEC.md:5:3", StringComparison.Ordinal)).Link);
             Require(opened.SingleOrDefault() is { Line: 5, Column: 3 } target && target.Path == scenario.Expected[11].Path, name + " activation opened the wrong place.");
+            // A plain click on the underlined text opens it in the application, at its line and column.
+            var view = ((Avalonia.Controls.Decorator)backend.View).Child!;
+            var pointer = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), Avalonia.Input.PointerType.Mouse, true);
+            Avalonia.Point? Cell(int column, int row) => view switch
+            {
+                Ghostty.Avalonia.GhosttyTextureView texture => texture.CellCenter(column, row),
+                Ghostty.Avalonia.GhosttySkiaView skia => skia.CellCenter(column, row),
+                _ => null
+            };
+            void Click(Avalonia.Point point, Avalonia.Input.KeyModifiers modifiers)
+            {
+                var raw = modifiers == Avalonia.Input.KeyModifiers.Meta ? Avalonia.Input.RawInputModifiers.Meta : Avalonia.Input.RawInputModifiers.None;
+                view.RaiseEvent(new Avalonia.Input.PointerEventArgs(Avalonia.Input.InputElement.PointerMovedEvent, view, pointer, view, point, 1,
+                    new Avalonia.Input.PointerPointProperties(raw, Avalonia.Input.PointerUpdateKind.Other), modifiers));
+                view.RaiseEvent(new Avalonia.Input.PointerPressedEventArgs(view, pointer, view, point, 2,
+                    new Avalonia.Input.PointerPointProperties(raw | Avalonia.Input.RawInputModifiers.LeftMouseButton, Avalonia.Input.PointerUpdateKind.LeftButtonPressed), modifiers, 1));
+                view.RaiseEvent(new Avalonia.Input.PointerReleasedEventArgs(view, pointer, view, point, 3,
+                    new Avalonia.Input.PointerPointProperties(raw, Avalonia.Input.PointerUpdateKind.LeftButtonReleased), modifiers, Avalonia.Input.MouseButton.Left));
+            }
+            async Task<Ghostty.Avalonia.TerminalLink> Opened(string what)
+            {
+                var until = DateTime.UtcNow.AddSeconds(10);
+                while (opened.Count < 2 && DateTime.UtcNow < until) await Task.Delay(50);
+                Require(opened.Count == 2, $"{name}: {what} did not open in the application.");
+                var result = opened[1];
+                opened.RemoveAt(1);
+                return result;
+            }
+            var spec = scenario.Lines[3].IndexOf("src/SharpRail.Host.Core/Workspaces.SPEC.md:5:3", StringComparison.Ordinal);
+            Click(Cell(spec + 5, 3 * 3 + 1) ?? throw new InvalidOperationException(name + " has no cell geometry."), Avalonia.Input.KeyModifiers.None);
+            Require(await Opened("a plain click on an underlined file") is { Line: 5, Column: 3 } clicked && clicked.Path == scenario.Expected[11].Path,
+                name + " plain click opened the wrong place.");
+            Require(launched.Count == 0, $"{name} sent a terminal link to the system launcher: {string.Join(", ", launched)}.");
             window.Content = null;
             await backend.CloseAsync();
             Console.WriteLine("PASS " + name + ": " + found.Count + " agent file links underlined");
         }
+    }
+
+    // Ghostty opens its own links (OSC 8 hyperlinks, as agents and `ls --hyperlink` print) on Command-click. A file
+    // hyperlink must open in the application through the terminal's resolver, never in Finder or a default app.
+    // Ghostty only hovers links while no program tracks the mouse, as with Claude Code at its prompt.
+    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
+    private static async Task FileHyperlinksStayInApp(Avalonia.Controls.Window window)
+    {
+        var root = CheckRoot.Create("terminal-file-hyperlinks");
+        var file = Path.Combine(root, "Linked.cs");
+        File.WriteAllText(file, "linked");
+        var launched = new List<Uri>();
+        var previousLaunch = Ghostty.Avalonia.TerminalLinkLauncher.Launch;
+        Ghostty.Avalonia.TerminalLinkLauncher.Launch = (_, uri) => { launched.Add(uri); return Task.CompletedTask; };
+        var resolved = new List<string>();
+        var opened = new List<Ghostty.Avalonia.TerminalLink>();
+        try
+        {
+            using var view = new Ghostty.Avalonia.GhosttyTextureView(new Ghostty.Avalonia.GhosttyLaunch(root, ExternalIo: new Ghostty.Avalonia.GhosttyExternalIo()))
+            {
+                ResolveFileLinks = (text, _) =>
+                {
+                    lock (resolved) resolved.Add(text);
+                    var uri = new Uri(file).AbsoluteUri;
+                    return Task.FromResult<IReadOnlyList<Ghostty.Avalonia.TerminalLink>>(text == uri ? [new(0, uri.Length, file, 1, 1, false)] : []);
+                },
+                OpenFileLink = link => { opened.Add(link); return Task.CompletedTask; }
+            };
+            window.Width = 900; window.Height = 600;
+            window.Content = view;
+            window.Show();
+            await Task.Delay(500);
+            // The URI names this machine, as `ls --hyperlink` writes it; the terminal's host resolves the path.
+            view.WriteOutput(Encoding.UTF8.GetBytes($"\e[?25l\e[2J\e[H\e]8;;file://{System.Net.Dns.GetHostName()}{new Uri(file).AbsolutePath}\e\\hyperlinked file\e]8;;\e\\ and \e]8;;https://example.com/page\e\\a web page\e]8;;\e\\"));
+            await Task.Delay(300);
+            var pointer = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), Avalonia.Input.PointerType.Mouse, true);
+            async Task CommandClick(int column)
+            {
+                var point = view.CellCenter(column, 0) ?? throw new InvalidOperationException("Terminal file links: no Metal cell geometry.");
+                var meta = Avalonia.Input.RawInputModifiers.Meta;
+                view.RaiseEvent(new Avalonia.Input.PointerEventArgs(Avalonia.Input.InputElement.PointerMovedEvent, view, pointer, view, point, 1,
+                    new Avalonia.Input.PointerPointProperties(meta, Avalonia.Input.PointerUpdateKind.Other), Avalonia.Input.KeyModifiers.Meta));
+                await Task.Delay(100);
+                view.RaiseEvent(new Avalonia.Input.PointerPressedEventArgs(view, pointer, view, point, 2,
+                    new Avalonia.Input.PointerPointProperties(meta | Avalonia.Input.RawInputModifiers.LeftMouseButton, Avalonia.Input.PointerUpdateKind.LeftButtonPressed), Avalonia.Input.KeyModifiers.Meta, 1));
+                view.RaiseEvent(new Avalonia.Input.PointerReleasedEventArgs(view, pointer, view, point, 3,
+                    new Avalonia.Input.PointerPointProperties(meta, Avalonia.Input.PointerUpdateKind.LeftButtonReleased), Avalonia.Input.KeyModifiers.Meta, Avalonia.Input.MouseButton.Left));
+            }
+            await CommandClick(3);
+            var until = DateTime.UtcNow.AddSeconds(10);
+            while (opened.Count == 0 && launched.Count == 0 && DateTime.UtcNow < until) await Task.Delay(50);
+            Require(launched.Count == 0, "A Command-click on an OSC 8 file hyperlink went to the system launcher (Finder): " + string.Join(", ", launched));
+            Require(opened.SingleOrDefault()?.Path == file, "A Command-click on an OSC 8 file hyperlink did not open it in the application; resolved: " + string.Join(", ", resolved));
+            await CommandClick("hyperlinked file and ".Length + 2);
+            until = DateTime.UtcNow.AddSeconds(10);
+            while (launched.Count == 0 && DateTime.UtcNow < until) await Task.Delay(50);
+            Require(launched.SingleOrDefault()?.AbsoluteUri == "https://example.com/page" && opened.Count == 1, "A web hyperlink no longer reached the browser.");
+            window.Content = null;
+        }
+        finally
+        {
+            Ghostty.Avalonia.TerminalLinkLauncher.Launch = previousLaunch;
+            Directory.Delete(root, true);
+        }
+        Console.WriteLine("PASS Metal OSC 8 file hyperlinks open in the application (never the system launcher); web hyperlinks still reach the browser");
+    }
+
+    // Underlines belong to the frame they are presented in. While output streams and the view scrolls, every
+    // underline in a captured window frame must be the link's own colour (the renderer draws it from the cell's
+    // style) and sit under link text in that same frame. An overlay drawn from older cell geometry is the
+    // terminal's foreground colour and lands under other rows or blank cells.
+    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
+    private static async Task UnderlinesFollowFrames(Avalonia.Controls.Window window)
+    {
+        const string name = "LinkFile.cs";
+        static Task<IReadOnlyList<Ghostty.Avalonia.TerminalLink>> Resolve(string text, CancellationToken token)
+        {
+            var links = new List<Ghostty.Avalonia.TerminalLink>();
+            for (var at = text.IndexOf(name, StringComparison.Ordinal); at >= 0; at = text.IndexOf(name, at + 1, StringComparison.Ordinal))
+                links.Add(new(at, name.Length, "/project/" + name, 1, 1, false));
+            return Task.FromResult<IReadOnlyList<Ghostty.Avalonia.TerminalLink>>(links);
+        }
+        foreach (var renderer in new[] { "Metal texture", "Skia" })
+        {
+            Avalonia.Controls.Control view;
+            Action<byte[]> write;
+            Func<(int Columns, int Rows)> grid;
+            IDisposable owner;
+            if (renderer == "Skia")
+            {
+                var skia = new Ghostty.Avalonia.GhosttySkiaView { ResolveHighlightedLinks = Resolve };
+                (view, write, grid, owner) = (skia, bytes => skia.Write(bytes), () => (skia.Size.Columns, skia.Size.Rows), skia);
+            }
+            else
+            {
+                var texture = new Ghostty.Avalonia.GhosttyTextureView(new Ghostty.Avalonia.GhosttyLaunch(Path.GetTempPath(), ExternalIo: new Ghostty.Avalonia.GhosttyExternalIo())) { ResolveHighlightedLinks = Resolve };
+                (view, write, grid, owner) = (texture, bytes => texture.WriteOutput(bytes), () => (texture.Size.Columns, texture.Size.Rows), texture);
+            }
+            using var disposing = owner;
+            window.Width = 900; window.Height = 600;
+            window.Content = view;
+            window.Show();
+            await Task.Delay(500);
+            write(Encoding.UTF8.GetBytes("\e[?25l\e[2J\e[H"));
+            var pointer = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), Avalonia.Input.PointerType.Mouse, true);
+            var frames = 0;
+            var underlined = 0;
+            async Task Sample(string phase)
+            {
+                using var image = await NativeTextureChecks.CaptureWindow();
+                var (columns, rows) = grid();
+                var scale = image.Width / window.Bounds.Width;
+                var problem = Misplaced(image, view.Bounds.Width * scale / columns, view.Bounds.Height * scale / rows, out var found);
+                Require(problem is null, $"{renderer} {phase}, frame {frames}: {problem}");
+                underlined += found;
+                frames++;
+            }
+            // Stream: a red link on every third line, plain text between, scrolling the screen as it goes.
+            for (var line = 0; line < 120; line++)
+            {
+                write(Encoding.UTF8.GetBytes(line % 3 == 0 ? $"\e[38;2;255;0;0m{name}\e[0m line {line} words\r\n" : $"plain line {line} words here\r\n"));
+                if (line % 6 == 5) { await Task.Delay(15); if (line % 12 == 11) await Sample("while output streams"); }
+            }
+            await Task.Delay(600);
+            await Sample("after output settled");
+            Require(underlined > 0, renderer + " drew no link underline in the frame.");
+            // Scroll back through history and down again without waiting for a new link resolution.
+            var point = new Avalonia.Point(view.Bounds.Width / 2, view.Bounds.Height / 2);
+            foreach (var delta in new[] { 3, 3, 3, 3, -3, -3, 5, -5 })
+            {
+                view.RaiseEvent(new Avalonia.Input.PointerWheelEventArgs(view, pointer, view, point, 10, new Avalonia.Input.PointerPointProperties(),
+                    Avalonia.Input.KeyModifiers.None, new Avalonia.Vector(0, delta)));
+                await Sample("while scrolling");
+            }
+            window.Content = null;
+            Console.WriteLine($"PASS {renderer}: link underlines drawn in-frame under link text across {frames} frames of streaming and scrolling ({underlined} underline runs)");
+        }
+    }
+
+    // Finds horizontal underline runs (at least three cells wide; glyph strokes are shorter) and returns why one is
+    // wrong: not the link's red, or with no red link text directly above it in the same image.
+    private static string? Misplaced(SkiaSharp.SKBitmap image, double cellWidth, double cellHeight, out int runs)
+    {
+        runs = 0;
+        var background = image.GetPixel(1, 1);
+        static bool Red(SkiaSharp.SKColor color) => color.Red > 170 && color.Green < 100 && color.Blue < 100;
+        bool Ink(SkiaSharp.SKColor color) =>
+            Math.Abs(color.Red - background.Red) + Math.Abs(color.Green - background.Green) + Math.Abs(color.Blue - background.Blue) > 90;
+        var minimum = (int)(cellWidth * 3);
+        for (var y = (int)cellHeight / 2; y < image.Height; y++)
+            for (var x = 0; x < image.Width;)
+            {
+                if (!Ink(image.GetPixel(x, y))) { x++; continue; }
+                var start = x;
+                var red = 0;
+                for (; x < image.Width && Ink(image.GetPixel(x, y)); x++) if (Red(image.GetPixel(x, y))) red++;
+                if (x - start < minimum) continue;
+                runs++;
+                if (red < (x - start) * 0.8) return $"an underline at y={y}, x={start}..{x} is not the link's colour (an overlay, not the renderer)";
+                var text = 0;
+                for (var above = Math.Max(0, y - (int)cellHeight); above < y - 1; above++)
+                    for (var column = start; column < x; column++)
+                        if (Red(image.GetPixel(column, above))) text++;
+                if (text < cellWidth) return $"an underline at y={y}, x={start}..{x} has no link text above it in the same frame";
+            }
+        return null;
     }
 
     private static T Wait<T>(Task<T> task) { Wait((Task)task); return task.Result; }

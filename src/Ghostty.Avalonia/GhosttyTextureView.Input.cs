@@ -143,7 +143,13 @@ public sealed partial class GhosttyTextureView
         {
             pressedFile = file; filePressPoint = e.GetPosition(this);
         }
-        else Mouse(e, 1, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
+        else
+        {
+            // A plain click on an underlined file opens it on release; the press still starts a selection or reaches the program.
+            pressedHighlight = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.KeyModifiers == KeyModifiers.None ? HighlightAt(e.GetPosition(this)) : null;
+            filePressPoint = e.GetPosition(this);
+            Mouse(e, 1, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
+        }
         e.Handled = true;
     }
 
@@ -162,13 +168,21 @@ public sealed partial class GhosttyTextureView
         if (contextClick) { contextClick = false; e.Handled = true; return; }
         var file = pressedFile;
         pressedFile = null;
+        var highlight = pressedHighlight;
+        pressedHighlight = null;
         if (file is not null)
         {
             Mouse(e, -1, 0);
             var delta = e.GetPosition(this) - filePressPoint;
             if (FileHover.Link == file && delta.X * delta.X + delta.Y * delta.Y <= 16) _ = OpenFileAsync(file);
         }
-        else Mouse(e, 0, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
+        else
+        {
+            Mouse(e, 0, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
+            var delta = e.GetPosition(this) - filePressPoint;
+            if (highlight is not null && delta.X * delta.X + delta.Y * delta.Y <= 16 && HighlightAt(e.GetPosition(this)) == highlight)
+                _ = OpenHighlightAsync(highlight);
+        }
         e.Pointer.Capture(null);
         e.Handled = true;
     }
@@ -177,6 +191,7 @@ public sealed partial class GhosttyTextureView
     {
         base.OnPointerCaptureLost(e);
         pressedFile = null;
+        pressedHighlight = null;
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)

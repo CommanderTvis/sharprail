@@ -352,6 +352,22 @@ Existing files, including bare names such as `DEVELOPMENT.md` and `./DEVELOPMENT
 underlined throughout the visible viewport without a modifier, through the same visible-text
 resolution, debounce and cache as commit ids; files take precedence over commits. Words that do not
 name an existing file (`1.13.0`, `github.com`, `e.g.`, a sentence-ending `done.`, branch names) stay plain.
+A plain click (without dragging) on an underlined file opens it the same way as modifier-click, in a
+SharpRail document tab at its line and column; files outside the workspace open as other external
+files do. Selection and mouse reporting still receive the press.
+
+A terminal link never opens a file in Finder or another application. Ghostty's own links (Command-click
+on an OSC 8 hyperlink: `file://` URLs that `ls --hyperlink` and hyperlink-aware tools print) used to reach
+NSWorkspace and opened Finder or the file's default application; the Metal bridge now hands every such
+URL to the view, which opens `file:` URLs through the terminal host's resolver and the document tab and
+sends only web and other schemes to the system launcher. No explicit "Reveal in Finder" action exists.
+
+Underlines are part of the rendered frame on every renderer, so they stay on their text while output
+streams, the view scrolls or resizes. Skia marks cells of the snapshot it paints. Metal (local and
+remote) passes the underlined cells to Ghostty's renderer, which tracks them in screen coordinates and
+draws them with the cell's style in the same frame, dropping a cell whose text changed until the next
+resolution. The earlier Avalonia overlay was positioned on a 200 ms timer from whatever cell state was
+current then, so it lagged and jumped against the Metal texture.
 
 The terminal host runs a bounded character scanner and checks filesystem existence off the dispatcher.
 Relative names resolve against the terminal process's directory (the shell's, unaffected by a
@@ -379,7 +395,13 @@ positioning and SGR styling, and Metal (local), Skia (local) and Metal (remote r
 by `TerminalBackends` exactly as the app composes them (the local host behind `LoopbackTerminals`)
 must underline every listed form (bare, `./`, relative, `:line`, `:line:col`, absolute inside and outside the
 workspace, `~/`) with exact ranges, leave directories and missing names plain, and open line and column
-on activation. Every `ITerminalService` wrapper must forward `FindFileLinksAsync`: the interface's
+on activation, including a plain click on the underlined text through the view's pointer handling, with
+no call to the system launcher seam. It then Command-clicks an OSC 8 `file://host/path` hyperlink in a
+Metal view (no mouse tracking) and requires the document callback, not the launcher, while a web
+hyperlink still reaches the launcher; and it streams red link lines and wheel-scrolls Metal and Skia
+views, capturing the check window repeatedly: every underline run in each captured frame must be the
+link's own colour (drawn by the renderer) with link text directly above it in that frame. Before the
+fix the Metal frames carried the foreground-coloured overlay. Every `ITerminalService` wrapper must forward `FindFileLinksAsync`: the interface's
 empty default once silently disabled all links in the app while direct-host checks passed. `--loopback-terminals`
 requires `LoopbackTerminals` and `LocalTerminalAdapter` to implement every `ITerminalService` member themselves
 (the throwing `SaveClipboardImageAsync` default once refused every local clipboard image) and pastes a PNG

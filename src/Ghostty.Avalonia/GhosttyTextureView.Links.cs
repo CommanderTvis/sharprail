@@ -111,6 +111,7 @@ public sealed partial class GhosttyTextureView
     }
 
     private TerminalLink? pressedFile;
+    private TerminalLink? pressedHighlight;
     private Point filePressPoint;
     private KeyModifiers linkModifiers;
     private static KeyModifiers LinkModifier => OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
@@ -174,11 +175,7 @@ public sealed partial class GhosttyTextureView
         if (url is not null)
         {
             var open = new MenuItem { Header = "Open link", Tag = url };
-            open.Click += async (_, _) =>
-            {
-                try { if (TopLevel.GetTopLevel(this)?.Launcher is { } launcher) await launcher.LaunchUriAsync(new Uri(url)); }
-                catch (Exception) { /* Opening a link must not replace the terminal renderer. */ }
-            };
+            open.Click += async (_, _) => await OpenUrlAsync(url);
             ClipboardMenu.Items.Add(open);
             ClipboardMenu.Items.Add(new Separator());
         }
@@ -202,6 +199,19 @@ public sealed partial class GhosttyTextureView
             menu.Items.Insert(0, new Separator());
             menu.Items.Insert(0, open);
         }
+    }
+
+    // Ghostty's own links (OSC 8 hyperlinks, URLs) and the menu's Open link: file URLs open in the application.
+    private async Task OpenUrlAsync(string url)
+    {
+        try { await TerminalLinkLauncher.Open(this, url, ResolveFileLinks, OpenFileLink); }
+        catch (Exception) { /* Opening a link must not replace the terminal renderer. */ }
+    }
+
+    private async Task OpenHighlightAsync(TerminalLink link)
+    {
+        try { if (!disposed && OpenFileLink is { } open) await open(link); }
+        catch (Exception) { /* A failed link must not replace a live terminal with the renderer fallback. */ }
     }
 
     private async Task OpenFileAsync(TerminalLink link)
