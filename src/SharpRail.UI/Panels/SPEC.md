@@ -257,11 +257,19 @@ The 2026-10-18 regression reproduced Appearance page replacement on a terminal-t
 ## Code Intelligence notes
 
 The Code Intelligence pane and the Settings › Code Intelligence page both state, in one muted line
-(`LanguageNotes.Lifetime`), that language servers run for the lifetime of their workspace, that
+(`LanguageNotes.Lifetime`), that language servers run while their workspace uses them within the limits, that
 orchestrators start the ones agents need when they create a workspace, that agent tools start any other
 on demand, and that starting one by hand is for editor features. A headless check (`--lsp-ui`,
 `--lsp-settings`) asserts the text in both places. Rows of running servers show who started them and the
 agent call count with the time of the latest call.
+
+Settings › Code Intelligence adds a separate section (`LanguageLimitsView`): every running server on the host
+with its server, workspace folder (full path in the tooltip), busy/editor open/idle state, idle time and
+memory, largest first, each with a Stop that releases it (it restarts on its next request); a summary of the
+total against the memory budget (noting the automatic derivation and system memory pressure); and the
+idle timeout, memory budget, C#, JVM and other count caps, saved as the `language-limits` host setting and
+re-shown from its broadcast. The list polls the host's `running` operation every 5 s off the UI thread while
+the page is shown. `--lsp-limits` checks it headless.
 
 Server rows adapt to the pane width with a container query on the row (static, in
 `LanguagePanel.axaml`). Above 300px the name sits between the marks and the actions (settings and

@@ -130,6 +130,10 @@ public sealed partial class SettingsWindow
             catch (OperationCanceledException) { }
             finally { save.IsEnabled = true; }
         };
+        var limits = new LanguageLimitsView(window.Host, window.WorkspaceRoot, () => state.Current.Settings.LanguageLimits,
+            async json => await state.ChangeAsync(HostStateChange.Setting("language-limits", json)));
+        refreshers.Add(limits.Refresh);
+        if (panel is StackPanel limitsBody) limitsBody.Children.Add(limits);
         if (panel is StackPanel body) body.Children.Add(new SharpRail.UI.Plugins.PluginSlot(window.Workbench.PluginRegistry, SharpRail.Plugins.Api.UI.UiSlots.CodeIntelligenceSettings, window.WorkspaceRoot));
         _ = LoadCatalog();
         return panel;
