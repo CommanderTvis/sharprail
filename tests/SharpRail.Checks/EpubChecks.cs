@@ -243,12 +243,29 @@ internal static class EpubChecks
         Dispatcher.UIThread.UnhandledException += Unhandled;
         try
         {
-            app.Open("reattach.epub", keep: true);
-            E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<EpubViewer>().Any(viewer => viewer != previous && viewer.IsEffectivelyVisible));
-            var viewer = window.GetLogicalDescendants().OfType<EpubViewer>().First(viewer => viewer != previous && viewer.IsEffectivelyVisible);
-            Require(viewer.Preview is null, "The reattach check must detach the viewer while its book is still loading.");
-            Move(viewer);
-            E2eWorkspace.Until(() => viewer.Preview is not null);
+            // A fast machine finishes a small book before a polling loop sees its viewer, so the move is queued ahead of
+            // every load continuation the moment the new viewer attaches: its open request is then still in flight.
+            EpubViewer? caught = null;
+            bool? loadingWhenMoved = null;
+            void Attached(object? sender, LogicalTreeAttachmentEventArgs e)
+            {
+                var attached = (EpubViewer)sender!;
+                attached.AttachedToLogicalTree -= Attached;
+                if (caught is not null) return;
+                caught = attached;
+                Dispatcher.UIThread.Post(() => { loadingWhenMoved = attached.Preview is null; Move(attached); }, DispatcherPriority.Send);
+            }
+            using (StyledElement.ParentProperty.Changed.AddClassHandler<EpubViewer>((created, _) =>
+            {
+                if (created != previous && caught is null) { created.AttachedToLogicalTree -= Attached; created.AttachedToLogicalTree += Attached; }
+            }))
+            {
+                app.Open("reattach.epub", keep: true);
+                E2eWorkspace.Until(() => loadingWhenMoved is not null);
+            }
+            Require(loadingWhenMoved == true, "The reattach check must detach the viewer while its book is still loading.");
+            var viewer = caught!;
+            E2eWorkspace.Until(() => viewer.Preview is not null && viewer.IsEffectivelyVisible);
             Settle();
             var status = Named<TextBlock>(viewer, "EpubStatus");
             Require(viewer.Book is not null && !(status.IsEffectivelyVisible && status.Text == "Opening the book…"), "A viewer detached mid-load and attached again finishes the book: " + status.Text);
