@@ -572,7 +572,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             // Ghostty clears a surface's bell when it gains focus.
             terminal.GotFocus += (_, _) => workbench.Signals.ClearBell(terminal.Launch.SessionId);
             AttachPluginTerminal(terminal);
-            if (terminalCommands.Remove(key, out var command)) _ = TypeWhenStartedAsync(terminal, command);
             return terminal;
         }
         if (documents.TryGetValue(key, out var document))

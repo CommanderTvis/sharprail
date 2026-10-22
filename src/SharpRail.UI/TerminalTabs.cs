@@ -20,7 +20,7 @@ public sealed partial class WorkbenchWindow
     private readonly HashSet<string> reservingTerminals = [];
     // Terminal tabs created here: their first attach takes the session, where every other one yields to its holder.
     private readonly HashSet<string> ownTerminals = [];
-    // Commands a plugin asked to run in a terminal it opened, typed once its shell has started.
+    // Commands a plugin asked to run in a terminal it opened: the new shell runs each as its program.
     private readonly Dictionary<string, string> terminalCommands = [];
     private Dictionary<string, Dictionary<string, string>> knownTerminals = [];
     private bool applyingTerminalCatalog;
@@ -63,6 +63,7 @@ public sealed partial class WorkbenchWindow
         {
             TabKey = tabId,
             Yield = !ownTerminals.Remove(workspace + ":" + tabId),
+            Program = terminalCommands.Remove(workspace + ":" + tabId, out var program) ? program : null,
             ResolveCommitLinks = (text, token) => ResolveTerminalCommits(workspace, text, token),
             OpenFileLink = async link =>
             {
@@ -89,13 +90,6 @@ public sealed partial class WorkbenchWindow
             }
             finally { (project as IDisposable)?.Dispose(); }
         }, token);
-
-    private static async Task TypeWhenStartedAsync(TerminalView terminal, string command)
-    {
-        if (terminal.Backend is not { } backend) return;
-        try { await backend.Started; } catch (Exception) { return; }
-        terminal.Write(command + "\r");
-    }
 
     /// <summary>
     /// Tells the host this window shows a workspace, once per connection. A view that never met the catalog, or

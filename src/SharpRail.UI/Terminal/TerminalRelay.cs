@@ -28,7 +28,7 @@ public static class TerminalRelay
     // The status of a relay whose yielding attach found the session held by another client.
     internal const string YieldedStatus = "yielded";
 
-    internal sealed record Connection(string Endpoint, string Token, string SessionId, string ClientId, string WorkspaceRoot, string StatusPath, string TabKey = "", bool Yield = false);
+    internal sealed record Connection(string Endpoint, string Token, string SessionId, string ClientId, string WorkspaceRoot, string StatusPath, string TabKey = "", bool Yield = false, string? Program = null);
 
     internal static string Directory { get; } = Path.Combine(Path.GetTempPath(), "sharprail-relay-" + Environment.UserName);
 
@@ -76,7 +76,7 @@ public static class TerminalRelay
         ITerminalSession session;
         try
         {
-            session = await terminals.AttachAsync(new(connection.SessionId, connection.WorkspaceRoot, connection.ClientId, columns, rows) { TabKey = connection.TabKey, Yield = connection.Yield });
+            session = await terminals.AttachAsync(new(connection.SessionId, connection.WorkspaceRoot, connection.ClientId, columns, rows) { TabKey = connection.TabKey, Yield = connection.Yield, Program = connection.Program });
         }
         catch (Exception error)
         {

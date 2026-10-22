@@ -126,7 +126,8 @@ and roster registration still precede reconciliation, preserving dormant tools a
   refresh; this requires no Git scan or extra persisted workspace list.
 - `OpenTerminalAsync` with a tab key already open in the target workspace selects that tab without changing it;
   an unknown key places a new terminal tab with that key in the requested or last-focused centre group and
-  types the command once the shell starts. Plugin-opened terminals are centre resources unless the caller names
+  has the host run the command as the new shell's program (then an interactive shell in the same directory), so
+  nothing is typed; the program runs once, and restarting the tab later opens a plain shell. Plugin-opened terminals are centre resources unless the caller names
   another group.
 - Terminal accessory mounts survive shared-state updates while their registration remains the same;
   removing or replacing a registration unmounts only its control. This preserves an active picker,

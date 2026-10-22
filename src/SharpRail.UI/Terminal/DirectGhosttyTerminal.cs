@@ -95,7 +95,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
         await texture.Ready.WaitAsync(lifetime.Token);
         if (fallbackStart is not null) { await fallbackStart; return; }
         var size = texture.Size;
-        var request = new TerminalAttachRequest(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows) { TabKey = launch.TabKey, Yield = launch.Yield };
+        var request = new TerminalAttachRequest(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows) { TabKey = launch.TabKey, Yield = launch.Yield, Program = launch.Program };
         attaching = Task.Run(async () => await terminals.AttachAsync(request, lifetime.Token));
         var attached = await attaching;
         if (disposed || fallbackStart is not null)

@@ -706,3 +706,5 @@ SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.Detail.get -> string?
 SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.Label.get -> string!
 SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.PluginId.get -> string!
 SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.WorkspaceEnvironmentFact(string! pluginId, string! label, string? detail) -> void
+SharpRail.Plugins.Api.Host.RevivePrefill.Program.get -> bool
+SharpRail.Plugins.Api.Host.RevivePrefill.Program.init -> void

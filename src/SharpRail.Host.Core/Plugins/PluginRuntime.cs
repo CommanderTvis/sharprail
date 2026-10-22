@@ -932,16 +932,19 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         if (AgentRecord(terminal) is not { } record) return null;
         string? text = null;
         var submit = false;
+        var program = false;
         foreach (var (entry, tables) in Active())
             foreach (var hook in tables.ReviveHooks)
             {
                 RevivePrefill? offered = null;
                 Guard(entry.Id, () => offered = hook(terminal, record));
                 if (offered is null) continue;
+                // The hook whose text wins decides whether it is typed or run as the program.
+                if (text is null && offered.Text is not null) program = offered.Program;
                 text ??= offered.Text;
                 submit |= offered.Submit;
             }
-        return text is null && !submit ? null : new TerminalPrefill(text ?? "", submit);
+        return text is null && !submit ? null : new TerminalPrefill(text ?? "", submit) { Program = program && text is { Length: > 0 } };
     }
 
     // A closed tab forgets its agent record and its title, including ones persisted for a tab no client attached this run.

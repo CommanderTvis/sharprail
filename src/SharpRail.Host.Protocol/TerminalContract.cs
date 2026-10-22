@@ -20,6 +20,8 @@ public sealed class TerminalInput
     [ProtoMember(9)] public string TabKey { get; set; } = "";
     [ProtoMember(10)] public bool Yield { get; set; }
     [ProtoMember(11)] public bool Watch { get; set; }
+    // The command a creating attach runs as the shell's program; empty for a plain shell.
+    [ProtoMember(12)] public string Program { get; set; } = "";
 }
 
 // One Attached message, then output chunks with the host position after each, then Exited with the exit

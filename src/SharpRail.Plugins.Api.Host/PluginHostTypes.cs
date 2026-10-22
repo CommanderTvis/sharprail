@@ -71,7 +71,15 @@ public sealed record TerminalProcess(TerminalRef Terminal, int? Pid);
 /// </summary>
 /// <param name="Text">Text to type into the revived shell, or null to leave another plugin's text unchanged.</param>
 /// <param name="Submit">Whether to press Return after it rather than leave it staged.</param>
-public sealed record RevivePrefill(string? Text = null, bool Submit = false);
+public sealed record RevivePrefill(string? Text = null, bool Submit = false)
+{
+    /// <summary>
+    /// Run <see cref="Text"/> as the revived terminal's program, through the user's login shell, instead of typing it:
+    /// the terminal drops into an interactive shell in the same directory when it exits. A Windows host types it
+    /// instead, as a non-submitted offer.
+    /// </summary>
+    public bool Program { get; init; }
+}
 
 /// <summary>A workspace lifecycle event, delivered to <see cref="IPluginHostContext.OnWorkspace"/> observers.</summary>
 public abstract record WorkspaceEvent;

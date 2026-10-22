@@ -130,7 +130,7 @@ internal sealed partial class HostTerminal : ITerminalBackend, SharpRail.UI.Term
     {
         var (columns, rows) = (service as E2eTerminals)?.Grid ?? (120, 30);
         var watch = launch.Yield && (launch.Watch || service is not E2eTerminals { WatchesWhenAsked: true });
-        session = await service.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, columns, rows) { TabKey = launch.TabKey, Yield = launch.Yield, Watch = watch }, lifetime.Token);
+        session = await service.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, columns, rows) { TabKey = launch.TabKey, Yield = launch.Yield, Watch = watch, Program = launch.Program }, lifetime.Token);
         if (lifetime.IsCancellationRequested) { await session.DisposeAsync(); return; }
         Yielded = launch.Yield && session.Detached.IsCompleted;
         Watching = session.Watching;

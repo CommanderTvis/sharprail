@@ -158,6 +158,7 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
             Offset = Position,
             TabKey = request.TabKey,
             Yield = request.Yield,
+            Program = request.Program ?? "",
             // A reconnect keeps the role the session has: a watcher resumes watching, a holder never becomes one.
             Watch = connected ? Watching : request.Watch
         };

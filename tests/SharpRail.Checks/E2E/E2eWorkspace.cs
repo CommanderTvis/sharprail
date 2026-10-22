@@ -99,7 +99,8 @@ internal sealed class E2eWorkspace : IDisposable
 
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
         Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
-        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null, bool embedded = false)
+        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null, bool embedded = false,
+        bool pluginTerminals = false)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -119,7 +120,9 @@ internal sealed class E2eWorkspace : IDisposable
         State = profile.OpenState();
         // As in App.cs: the app's own host runs its plugins in process, from the profile directory's plugins/.
         var server = loopback = new LoopbackServer(null, State);
-        pluginRuntime = new PluginRuntime(new() { StateDirectory = profile.DirectoryPath, State = State, PublicBaseUrl = () => server.BaseUrl });
+        // As in the app, plugins can see the host's terminals (process table, revive hooks) when a check asks for it.
+        var hosted = pluginTerminals && terminals is null ? new E2eTerminals(new PtyTerminalService("/bin/sh")) : null;
+        pluginRuntime = new PluginRuntime(new() { StateDirectory = profile.DirectoryPath, State = State, PublicBaseUrl = () => server.BaseUrl, Terminals = hosted?.HostService });
         loopback.Plugins = pluginRuntime;
         pluginRuntime.Start();
         var allowsExternalFile = (Func<string, string, bool>)pluginRuntime.AllowsExternalFile;
@@ -128,7 +131,7 @@ internal sealed class E2eWorkspace : IDisposable
         Host = new(Services());
         prepare?.Invoke(Host);
         ownsTerminals = terminals is null;
-        Terminals = terminals ?? E2eTerminals.ForProfile(profile.DirectoryPath);
+        Terminals = terminals ?? hosted ?? E2eTerminals.ForProfile(profile.DirectoryPath);
         State.Terminals = Terminals.HostService;
         IHostStateService service = new LocalStateAdapter(State);
         var first = true;

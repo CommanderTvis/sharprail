@@ -1926,3 +1926,7 @@ SharpRail.Host.Abstractions.LanguageServerState.MemoryBytes.get -> long
 SharpRail.Host.Abstractions.LanguageServerState.MemoryBytes.init -> void
 SharpRail.Host.Abstractions.LanguageServerState.IdleSeconds.get -> long
 SharpRail.Host.Abstractions.LanguageServerState.IdleSeconds.init -> void
+SharpRail.Host.Abstractions.TerminalAttachRequest.Program.get -> string?
+SharpRail.Host.Abstractions.TerminalAttachRequest.Program.init -> void
+SharpRail.Host.Abstractions.TerminalPrefill.Program.get -> bool
+SharpRail.Host.Abstractions.TerminalPrefill.Program.init -> void

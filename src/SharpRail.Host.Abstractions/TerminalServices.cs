@@ -15,6 +15,9 @@ public record TerminalAttachRequest(string SessionId, string WorkspaceRoot, stri
     // A yielding attach that finds the session held watches it instead of returning detached, and a resume
     // keeps watching. A host that predates watching ignores it.
     public bool Watch { get; init; }
+    // A command line the new shell runs as its program, through the user's login shell, before dropping into an
+    // interactive shell in the same directory. Only an attach that starts the session uses it; nothing is typed.
+    public string? Program { get; init; }
 }
 
 // A PTY's size is a pair of unsigned shorts; a grid outside it is refused before any session work.
@@ -80,6 +83,11 @@ public interface ITerminalSession : IAsyncDisposable
     TerminalPrefill? Prefill { get; }
 }
 
-public sealed record TerminalPrefill(string Text, bool Submit);
+public sealed record TerminalPrefill(string Text, bool Submit)
+{
+    // The host runs Text as the new shell's program instead of handing it to the client to type; a host that cannot
+    // (Windows) hands it over as before.
+    public bool Program { get; init; }
+}
 
 public sealed record TerminalFileLink(int Start, int Length, string Path, int Line, int Column, bool IsDirectory);

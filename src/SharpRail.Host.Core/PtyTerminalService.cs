@@ -148,6 +148,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
                 : !string.IsNullOrEmpty(request.TabKey) ? new(directory, request.TabKey) : terminals.GetValueOrDefault(request.SessionId);
             if (starting is not null) await preparer(starting, cancellationToken);
         }
+        var revived = false;
         // Lookup and start happen under one lock so concurrent attaches never start two shells for a session.
         lock (gate)
         {
@@ -159,8 +160,18 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             terminal = terminals.GetValueOrDefault(request.SessionId);
             var mcp = McpEndpoint is { } endpoint ? $"{endpoint}/mcp/{Mint(request.SessionId, directory, terminal)}" : null;
             var contributed = terminal is not null ? EnvironmentContributor?.Invoke(terminal) : null;
-            process = Start(request, directory, mcp, contributed);
+            // A revive hook's program, or the one the attach asked for, runs as the shell's program; on Windows it is
+            // typed into the shell instead, as before.
             var prefill = terminal is not null ? RevivePrefill?.Invoke(terminal) : null;
+            revived = prefill is not null;
+            var program = request.Program is { Length: > 0 } asked ? asked : prefill is { Program: true } ? prefill.Text : null;
+            if (program is not null && OperatingSystem.IsWindows())
+            {
+                prefill = request.Program is { Length: > 0 } ? new TerminalPrefill(program, true) : prefill! with { Program = false };
+                program = null;
+            }
+            else if (program is not null) prefill = null;
+            process = Start(request, directory, mcp, contributed, program);
             pending.Remove(request.SessionId, out var restored);
             var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
             var hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay) { InputAccepted = () => InputAccepted?.Invoke(directory), SessionId = request.SessionId, Signaled = signals.Publish };
@@ -175,7 +186,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             _ = process.Exit.ContinueWith(exit => lifecycle(new TerminalExited(terminal, exit.Result)),
                 CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
         }
-        if (attachment.Prefill is not null && PrepareRevival is { } prepare) await prepare(directory, cancellationToken);
+        if (revived && PrepareRevival is { } prepare) await prepare(directory, cancellationToken);
         return attachment;
     }
 
@@ -356,16 +367,16 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     // The native reason, the executable path and the value of SHELL stay on the host: a client is told only
     // which choice failed and what to do about it.
-    private ITerminalProcess Start(TerminalAttachRequest request, string directory, string? mcpUrl, IReadOnlyDictionary<string, string>? contributed)
+    private ITerminalProcess Start(TerminalAttachRequest request, string directory, string? mcpUrl, IReadOnlyDictionary<string, string>? contributed, string? program)
     {
         var fromEnvironment = shell is null && ConfiguredShell() is not null;
-        var program = shell ?? LoginShell();
+        var shellPath = shell ?? LoginShell();
         try
         {
             // macOS execs the shell from a trampoline, so a shell that cannot run would otherwise look like one that exited.
-            if (!Runnable(program)) throw new IOException("The shell is not an executable file.");
-            if (OperatingSystem.IsWindows()) return ConPtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows, mcpUrl, contributed);
-            return PtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows, mcpUrl, contributed);
+            if (!Runnable(shellPath)) throw new IOException("The shell is not an executable file.");
+            if (OperatingSystem.IsWindows()) return ConPtySession.Start(request.SessionId, shellPath, directory, request.Columns, request.Rows, mcpUrl, contributed);
+            return PtySession.Start(request.SessionId, shellPath, directory, request.Columns, request.Rows, mcpUrl, contributed, program);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
@@ -460,7 +471,7 @@ internal sealed class PtySession : ITerminalProcess
     }
 
     internal static PtySession Start(string id, string shell, string directory, int columns, int rows, string? mcpUrl = null,
-        IReadOnlyDictionary<string, string>? contributed = null)
+        IReadOnlyDictionary<string, string>? contributed = null, string? program = null)
     {
         var master = Posix.OpenPt(Posix.ORdwr | Posix.ONoctty);
         if (master < 0) throw new IOException("Couldn't open a pseudo-terminal: " + Posix.LastError());
@@ -476,7 +487,7 @@ internal sealed class PtySession : ITerminalProcess
             slave = Posix.Open(device, Posix.ORdwr | Posix.ONoctty);
             if (slave < 0) throw new IOException("Couldn't open the pseudo-terminal: " + Posix.LastError());
             Posix.SetWindowSize(master, columns, rows);
-            var pid = Spawn(shell, directory, device, PtyTerminalService.ShellEnvironment(mcpUrl, contributed, shell));
+            var pid = Spawn(shell, directory, device, PtyTerminalService.ShellEnvironment(mcpUrl, contributed, shell), program);
             return new PtySession(id, master, slave, pid);
         }
         catch
@@ -487,7 +498,7 @@ internal sealed class PtySession : ITerminalProcess
         }
     }
 
-    private static int Spawn(string shell, string directory, string device, string?[] environment)
+    private static int Spawn(string shell, string directory, string device, string?[] environment, string? program)
     {
         // posix_spawnattr_t and posix_spawn_file_actions_t are pointers on macOS and structs on Linux.
         var attributes = Marshal.AllocHGlobal(1024);
@@ -510,10 +521,14 @@ internal sealed class PtySession : ITerminalProcess
             Check(Posix.FileActionsChdir(actions, directory));
             // macOS applies file actions before POSIX_SPAWN_SETSID, so the slave opened above cannot become
             // the controlling terminal. A trampoline reopens it as the new session leader, then becomes the shell.
-            var (program, arguments) = Posix.Mac
-                ? ("/bin/sh", new[] { "sh", "-c", "exec 3<>\"$1\" 3>&-; shift; exec \"$@\"", "sh", device, shell, "-l", null })
-                : (shell, new[] { "-" + Path.GetFileName(shell), null });
-            var result = Posix.Spawn(out var pid, program, actions, attributes, arguments, environment);
+            // A program runs through the same login shell, interactive so its rc files apply, then leaves an
+            // interactive shell behind (TerminalProgram).
+            string[] tail = program is null ? [] : ["-i", "-c", TerminalProgram.Script(shell, program)];
+            string?[] arguments = Posix.Mac
+                ? ["sh", "-c", "exec 3<>\"$1\" 3>&-; shift; exec \"$@\"", "sh", device, shell, "-l", .. tail, null]
+                : ["-" + Path.GetFileName(shell), .. tail, null];
+            var executable = Posix.Mac ? "/bin/sh" : shell;
+            var result = Posix.Spawn(out var pid, executable, actions, attributes, arguments, environment);
             if (result != 0) throw new IOException($"Couldn't start {shell}: {Posix.Error(result)}.");
             return pid;
         }

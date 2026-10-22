@@ -69,6 +69,7 @@ internal static partial class TerminalHostChecks
             await Yielding(new LocalTerminalAdapter(local), workspace, "local");
             await Watching(new LocalTerminalAdapter(local), workspace, "local");
             await LiveInputModes(new LocalTerminalAdapter(local), workspace, "local");
+            await Programs(new LocalTerminalAdapter(local), workspace, "local");
             var state = new HostStateStore(null) { Terminals = local };
             await ProjectClosure(new LocalTerminalAdapter(local), new LocalStateAdapter(state), workspace, "local", state);
         }
@@ -94,6 +95,7 @@ internal static partial class TerminalHostChecks
                 await Yielding(remote, workspace, "remote");
                 await Watching(remote, workspace, "remote");
                 await LiveInputModes(remote, workspace, "remote");
+                await Programs(remote, workspace, "remote");
                 using var state = new RemoteStateAdapter(address, "terminal-token");
                 await ProjectClosure(remote, state, workspace, "remote");
             }
@@ -121,6 +123,37 @@ internal static partial class TerminalHostChecks
     {
         var session = await terminals.AttachAsync(new(id, workspace, "client", 100, 30));
         return (session, new Screen(session));
+    }
+
+    // A terminal started with a program runs it through the login shell without typing it, shows a failing exit
+    // status, then leaves an interactive shell in the same directory. A program on an attach that joins an existing
+    // session is ignored.
+    private static async Task Programs(ITerminalService terminals, string workspace, string mode)
+    {
+        var id = "program-" + Guid.NewGuid().ToString("N");
+        var session = await terminals.AttachAsync(new(id, workspace, "client", 100, 30) { Program = "printf 'PRO%sRAM_%s_\\n' G ran; sh -c 'exit 3'" });
+        var screen = new Screen(session);
+        try
+        {
+            Require(session.Created && session.Prefill is null, mode + " a program is not handed to the client to type");
+            await screen.WaitFor("PROGRAM_ran_", mode + " program");
+            await screen.WaitFor("[exited with status 3]", mode + " program exit status");
+            await screen.Run($"[ \"$PWD\" -ef '{workspace}' ] && printf 'AFTER_%s_\\n' SHELL");
+            await screen.WaitFor("AFTER_SHELL_", mode + " interactive shell in the program's directory");
+            Require(!screen.Text.Contains("PRO%sRAM", StringComparison.Ordinal), mode + " the program line never reaches the terminal as typed input: " + screen.Text);
+            var joined = await terminals.AttachAsync(new(id, workspace, "client", 100, 30) { Program = "printf 'NEVER_%s_\\n' RUN" });
+            var again = new Screen(joined);
+            await again.Run("printf 'JOINED_%s_\\n' OK");
+            await again.WaitFor("JOINED_OK_", mode + " joined session");
+            Require(!again.Text.Contains("NEVER_RUN_", StringComparison.Ordinal), mode + " joining a running session never runs its program");
+            await joined.DisposeAsync();
+            Console.WriteLine($"PASS host terminal programs ({mode}): a program runs through the login shell without being typed, a failing status shows, an interactive shell follows in its directory, and joining never reruns it");
+        }
+        finally
+        {
+            await session.DisposeAsync();
+            await terminals.CloseAsync(id);
+        }
     }
 
     private static async Task RevivalLocal(string root, string workspace)
@@ -161,6 +194,22 @@ internal static partial class TerminalHostChecks
                 "Alternate screen output and mouse modes must not be revived: " + text);
             await screen.Run("printf 'NEW_%s\\n' SHELL");
             await screen.WaitFor("NEW_SHELL", "revival");
+            await session.DisposeAsync();
+        }
+
+        // A revive hook's program runs as the revived terminal's program: the recorded screen first, then its output,
+        // with nothing typed into the shell; when it ends the tab is an interactive shell in the same directory.
+        await using (var third = new PtyTerminalService(recordingsDirectory: directory))
+        {
+            third.RevivePrefill = _ => new("printf 'REV%sVED_%s_\\n' I agent", false) { Program = true };
+            var session = await third.AttachAsync(new(id, workspace, "client", 100, 30) { TabKey = "revived-agent" });
+            var screen = new Screen(session);
+            Require(session.Created && session.Prefill is null, "A program revival hands the client nothing to type.");
+            Require(Encoding.UTF8.GetString(session.Replay.Span).Contains("NEW_SHELL", StringComparison.Ordinal), "The revived program's terminal shows the recorded screen first.");
+            await screen.WaitFor("REVIVED_agent_", "program revival");
+            await screen.Run($"[ \"$PWD\" -ef '{workspace}' ] && printf 'BACK_%s_\\n' SHELL");
+            await screen.WaitFor("BACK_SHELL_", "program revival leaves a shell in the directory");
+            Require(!screen.Text.Contains("REV%sVED", StringComparison.Ordinal), "The revived command is never typed into the shell: " + screen.Text);
             await session.DisposeAsync();
         }
 

@@ -264,7 +264,10 @@ public sealed record PinnedDiffScope(string BaseRef) : GitDiffScope;
 /// <summary>Options for <see cref="IPluginUIContext.OpenTerminalAsync"/>.</summary>
 public sealed record TerminalOpenOptions
 {
-    /// <summary>A command typed into the new shell once it starts.</summary>
+    /// <summary>
+    /// A command the new terminal runs as its program, through the user's login shell, before leaving an interactive
+    /// shell in the same directory; nothing is typed. A Windows host types it into the new shell instead.
+    /// </summary>
     public string? Command { get; init; }
 
     /// <summary>The tab key to open or, when that tab already exists, to select.</summary>

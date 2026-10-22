@@ -76,7 +76,8 @@ public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLife
             {
                 TabKey = attach.TabKey,
                 Yield = attach.Yield,
-                Watch = attach.Watch
+                Watch = attach.Watch,
+                Program = attach.Program is { Length: > 0 } program ? program : null
             }, cancellationToken);
         }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or UnauthorizedAccessException or PlatformNotSupportedException)

@@ -147,7 +147,7 @@ including draining output while closing the pseudoconsole.
   `config.fish`. No dotfile is edited and the shell is started as before. Other shells get the resolved variables at start
   only. The shim files live under the state directory's `shell-integration` and are rewritten when stale.
 - When a shell starts for a known tab, `EnvironmentContributor` adds variables after core's own (never
-  `SHARPRAIL_TOKEN`), `RevivePrefill` may hand the creating attachment a `TerminalPrefill`, and `Lifecycle`
+  `SHARPRAIL_TOKEN`), `RevivePrefill` may hand the creating attachment a `TerminalPrefill` (or a program, below), and `Lifecycle`
   hears `TerminalSpawned` with the shell's pid and later `TerminalExited`. Closing a session calls
   `SessionClosed` with its id and, when known, its tab.
 - `Write` types into a tab's shell host-side, ignoring attachment; `List` is the process table of known tabs
@@ -264,6 +264,24 @@ signals. `MemoryTerminalCatalog` has no shells and reports `NotSupportedExceptio
   by the resume and was bounded meanwhile.
 - `TerminalBackpressureChecks.cs` floods a session nobody reads, locally and remotely, and stalls a proxied
   connection without closing it.
+
+## Terminal programs
+
+- A creating attach may name a program (`TerminalAttachRequest.Program`, carried over RPC), and a revive
+  hook may return its prefill as one (`TerminalPrefill.Program`); the request's wins. On POSIX the shell
+  is started as `<shell> -l -i -c <script>` (the macOS trampoline keeps `-l`; Linux keeps the `-` argv0),
+  so PATH and every rc file apply as at a prompt and the program line keeps the shell's syntax. The script
+  (`TerminalProgram`) runs the program, prints `[exited with status N]` for a non-zero status, then
+  `exec`s `<shell> -i`: an interactive, non-login shell in the same directory that inherits the login
+  shell's environment without running the profile twice (macOS `path_helper` would reorder PATH again).
+  fish gets the same script in its own syntax; every other shell is treated as POSIX.
+- Nothing is typed for a program: the creating attachment carries no prefill, and an attach that joins a
+  running session ignores its program. A revived program's terminal replays the recorded screen first,
+  then the program's own output.
+- Windows keeps the typed policy: a requested program is handed to the client as a submitted prefill, a
+  revive hook's program as the non-submitted offer it would otherwise be.
+- `TerminalHostChecks` covers a program locally and remotely (no typed line, status, shell in its
+  directory, no rerun on join) and a program revival over a recorded screen.
 
 ## Revival
 

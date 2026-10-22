@@ -67,7 +67,7 @@ it over. Centre file-tab previews still follow the client's tabs-in-Projects set
 A backend that acknowledges writing an offered, non-submitted revival prefill shows “Press Enter to
 resume this tab’s previous session.” as a noninteractive overlay. It does not submit the command,
 change the terminal grid or move focus. Ordinary pasted text, submitted prefills and read-only watchers
-never create it. User input or cancellation, detaching the view, exit and disposal dismiss it; late
+never create it, nor does a revival the host runs as the terminal's program, which offers nothing to type. User input or cancellation, detaching the view, exit and disposal dismiss it; late
 write acknowledgements cannot bring it back after input. Automatic terminal-query replies are not
 user input. The hint remains generic: plugins own revival commands and policy.
 

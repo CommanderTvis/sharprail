@@ -213,7 +213,9 @@ session's `TerminalRef`; the session id stays the hash of workspace root and tab
 Environment contributors run when a shell starts, after core's own variables. A shell that starts for a tab whose
 agent record is set offers that record to every active revive hook. The first supplied text wins and all
 submit flags are combined; a submit-only hook leaves another plugin's text intact. The prefill rides
-the attachment to the client, which types it once the shell's first output has arrived. Agent records persist in
+the attachment to the client, which types it once the shell's first output has arrived. A hook that
+marks its prefill `Program` (the winning text's hook decides) has the host run it as the new shell's
+program instead (Terminals.SPEC, Terminal programs), so nothing is typed; Windows hosts type it as before. Agent records persist in
 the host state file, travel on `HostState.TerminalAgents`, and are dropped when the tab closes. Lifecycle events
 fire on spawn (with the shell's pid), exit and close, and on every agent record change.
 

@@ -11,7 +11,7 @@ namespace SharpRail.UI.Terminal;
 public sealed partial class TerminalView : UserControl, IDisposable
 {
     private readonly TerminalFactory factory;
-    private readonly TerminalLaunch launch;
+    private TerminalLaunch launch;
     private readonly ContentControl body;
     private readonly Control failure;
     private readonly SelectableTextBlock failureText;
@@ -247,6 +247,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
             failure.IsVisible = false;
             detachedNotice.IsVisible = false; body.IsVisible = true;
             await backend.Started;
+            // The program ran once, in the session it started; starting this tab again opens a plain shell.
+            launch = launch with { Program = null };
             if (current != generation) return;
             updateHint?.Invoke();
             backend.SetAgentNewline(agentNewline);
