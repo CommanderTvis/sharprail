@@ -25,6 +25,9 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   precedence and never overwrite existing files. External file access uses the generic plugin API.
   Each workspace retains its pane and selected surface; unchanged results preserve the body and local
   input/scroll state. The Account surface retains its control until an explicit account refresh.
+- Where Codex draws OSC 133 marks itself (`TerminalPromptChanged` with `Foreground`, for a terminal whose agent record
+  is Codex's), they set the status: a prompt mark Idle, a command mark Running; an idle mark leaves the hook's Blocked
+  or Done. The shell's own marks around Codex and terminals without marks change nothing, and hooks keep reporting.
 - Hooks install idempotently without granting trust. Status comes from lifecycle events; rollout
   facts carry actual token counts and update_plan records. Nested agents preserve the outer record.
 - Launch and editable revival preserve quoting and supported options, refresh terminal MCP ownership

@@ -931,6 +931,14 @@ internal static class PluginHostChecks
             await Await("ENV_tab-1_1_");
             context.WriteTerminal(tab, "printf 'HOST_%s_\\n' written\r");
             await Await("HOST_written_");
+            // OSC 133 marks reach plugins as prompt changes: the shell's own (its builtin printf) and a foreground program's.
+            await attached.WriteAsync("printf '\\033]133;C\\007'; sh -c \"sleep 0.5; printf '\\\\033]133;A\\\\007PROMPT_MARKED\\\\n'; sleep 0.5\"\r"u8.ToArray());
+            await Await("\\x07PROMPT_MARKED");
+            await Until(() => { lock (events) return Task.FromResult(events.OfType<TerminalPromptChanged>().Any(e => e is { AtPrompt: true, Foreground: true })); },
+                "a foreground program's prompt mark");
+            lock (events)
+                Require(events.OfType<TerminalPromptChanged>().First() is { Terminal: var marked, AtPrompt: false, Foreground: false } && marked == tab,
+                    "the shell's own running mark comes first, not from a foreground program: " + string.Join(", ", events.OfType<TerminalPromptChanged>()));
             await attached.WriteAsync("printf 'MCP_%s_\\n' \"$THINKRAIL_MCP_URL\"\r"u8.ToArray());
             var url = await Await(@"MCP_(http://127\.0\.0\.1:\d+/mcp/[0-9a-f]+)_");
             Require(context.TerminalForToken(url[(url.LastIndexOf('/') + 1)..]) == tab && context.TerminalToken(tab) == url[(url.LastIndexOf('/') + 1)..],

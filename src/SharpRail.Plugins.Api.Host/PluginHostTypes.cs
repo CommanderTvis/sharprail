@@ -59,6 +59,18 @@ public sealed record TerminalClosed(TerminalRef Terminal) : TerminalEvent(Termin
 /// <param name="Record">The new record, or <see langword="null"/> when cleared.</param>
 public sealed record TerminalAgentChanged(TerminalRef Terminal, TerminalAgentRecord? Record) : TerminalEvent(Terminal);
 
+/// <summary>
+/// A terminal's shell-integration prompt state changed (OSC 133): it waits at a prompt (A or B, or after D) or runs a
+/// command (C). <paramref name="Foreground"/> says the mark arrived while a program other than the shell held the
+/// terminal, so that program (an agent) reported its own prompt; a shell's own marks around a program carry false.
+/// Terminals whose output carries no marks raise none, so consumers keep their own signals then.
+/// </summary>
+/// <param name="Terminal">The terminal.</param>
+/// <param name="AtPrompt">True at a prompt, false while a command runs.</param>
+/// <param name="LastExitCode">The last finished command's exit code, when reported.</param>
+/// <param name="Foreground">Whether a program other than the shell emitted the mark.</param>
+public sealed record TerminalPromptChanged(TerminalRef Terminal, bool AtPrompt, int? LastExitCode, bool Foreground) : TerminalEvent(Terminal);
+
 /// <summary>A known terminal and its shell's process id.</summary>
 /// <param name="Terminal">The terminal.</param>
 /// <param name="Pid">The shell's process id, or <see langword="null"/> when it has exited.</param>

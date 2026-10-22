@@ -240,6 +240,19 @@ public sealed class CodexHost : PluginHostModule
             switch (change)
             {
                 case TerminalSpawned: watch.Poke(); break;
+                // Codex's own OSC 133 marks say whether it waits at its prompt; they win over guessing, while a hook's
+                // Blocked or Done stays until it runs again. Without marks only the hook reports.
+                case TerminalPromptChanged { Foreground: true } prompt when context.AgentRecord(prompt.Terminal)?.Kind == CodexManifest.Id:
+                    var last = statuses.Snapshot(prompt.Terminal.WorkspaceId).FirstOrDefault(push => push.TabKey == prompt.Terminal.TabKey);
+                    var next = prompt.AtPrompt ? CodexStatus.Idle : CodexStatus.Running;
+                    if (last?.Status != next && !(prompt.AtPrompt && last?.Status is CodexStatus.Blocked or CodexStatus.Done))
+                    {
+                        var push = new CodexStatusPush(prompt.Terminal.WorkspaceId, prompt.Terminal.TabKey, next, prompt.AtPrompt ? "prompt_mark" : "command_mark")
+                        { Model = last?.Model, Cwd = last?.Cwd, SessionId = last?.SessionId };
+                        statuses.Record(push);
+                        context.Publish(CodexContract.Status, push);
+                    }
+                    break;
                 case TerminalClosed closed: watch.Forget(closed.Terminal.WorkspaceId, closed.Terminal.TabKey); Forget(closed.Terminal); break;
                 case TerminalAgentChanged { Record: null } cleared: watch.Forget(cleared.Terminal.WorkspaceId, cleared.Terminal.TabKey); Forget(cleared.Terminal); break;
             }

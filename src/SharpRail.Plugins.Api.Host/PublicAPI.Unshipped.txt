@@ -708,3 +708,20 @@ SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.PluginId.get -> string!
 SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.WorkspaceEnvironmentFact(string! pluginId, string! label, string? detail) -> void
 SharpRail.Plugins.Api.Host.RevivePrefill.Program.get -> bool
 SharpRail.Plugins.Api.Host.RevivePrefill.Program.init -> void
+SharpRail.Plugins.Api.Host.TerminalPromptChanged
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.AtPrompt.get -> bool
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.AtPrompt.init -> void
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out bool AtPrompt, out int? LastExitCode, out bool Foreground) -> void
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.Equals(SharpRail.Plugins.Api.Host.TerminalPromptChanged? other) -> bool
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.Foreground.get -> bool
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.Foreground.init -> void
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.LastExitCode.get -> int?
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.LastExitCode.init -> void
+SharpRail.Plugins.Api.Host.TerminalPromptChanged.TerminalPromptChanged(SharpRail.Plugins.Api.TerminalRef! Terminal, bool AtPrompt, int? LastExitCode, bool Foreground) -> void
+override SharpRail.Plugins.Api.Host.TerminalPromptChanged.<Clone>$() -> SharpRail.Plugins.Api.Host.TerminalPromptChanged!
+override SharpRail.Plugins.Api.Host.TerminalPromptChanged.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.TerminalPromptChanged.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.TerminalPromptChanged.ToString() -> string!
+override sealed SharpRail.Plugins.Api.Host.TerminalPromptChanged.Equals(SharpRail.Plugins.Api.Host.TerminalEvent? other) -> bool
+static SharpRail.Plugins.Api.Host.TerminalPromptChanged.operator !=(SharpRail.Plugins.Api.Host.TerminalPromptChanged? left, SharpRail.Plugins.Api.Host.TerminalPromptChanged? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalPromptChanged.operator ==(SharpRail.Plugins.Api.Host.TerminalPromptChanged? left, SharpRail.Plugins.Api.Host.TerminalPromptChanged? right) -> bool

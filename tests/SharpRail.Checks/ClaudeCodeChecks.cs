@@ -521,6 +521,19 @@ internal static class ClaudeCodeChecks
         await Report("claude-fixture-token", "{\"event\":\"stop\",\"notify\":false}");
         rows = await Call(ClaudeCodeContract.StatusSnapshot, new StatusSnapshotParams(project));
         Require(rows.Single().Status == ClaudeCodeStatus.Done && rows.Single().Report.Notify == false, "A continuation Stop settles the badge while suppressing notification.");
+        // Claude's own OSC 133 marks (a foreground program's) drive the badge where they arrive; the shell's do not, and an
+        // idle mark keeps the hook's Done.
+        async Task<ClaudeCodeStatus> Marked(bool atPrompt, bool foreground)
+        {
+            terminals.Lifecycle!(new TerminalPromptChanged(terminal, atPrompt, null, foreground));
+            await Task.Delay(100);
+            return (await Call(ClaudeCodeContract.StatusSnapshot, new StatusSnapshotParams(project))).Single().Status ?? ClaudeCodeStatus.Idle;
+        }
+        Require(await Marked(true, true) == ClaudeCodeStatus.Done, "An idle mark keeps the hook's Done.");
+        Require(await Marked(false, false) == ClaudeCodeStatus.Done, "The shell's own running mark is not the agent's.");
+        Require(await Marked(false, true) == ClaudeCodeStatus.Running, "Claude's running mark shows it working.");
+        Require(await Marked(true, true) == ClaudeCodeStatus.Idle, "Claude's prompt mark shows it idle.");
+        await Report("claude-fixture-token", "{\"event\":\"stop\",\"notify\":false}");
         Require(state.Current.TerminalAgents.Single().Record is { Model: "opus", Effort: "high" } &&
             terminals.RevivePrefill!(terminal)?.Text.Contains("--model opus --effort high", StringComparison.Ordinal) == true &&
             !terminals.RevivePrefill!(terminal)!.Text!.Contains("sonnet", StringComparison.Ordinal) && !terminals.RevivePrefill!(terminal)!.Text!.Contains("medium", StringComparison.Ordinal),

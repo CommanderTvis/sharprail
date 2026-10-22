@@ -236,7 +236,18 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             process = Start(request, StartDirectory(request, directory), mcp, contributed, program);
             pending.Remove(request.SessionId, out var restored);
             var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
-            hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay) { InputAccepted = () => InputAccepted?.Invoke(directory), SessionId = request.SessionId, Signaled = signals.Publish };
+            var known = terminal;
+            hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay)
+            {
+                InputAccepted = () => InputAccepted?.Invoke(directory),
+                SessionId = request.SessionId,
+                Signaled = signals.Publish,
+                PromptChanged = (status, foreground) =>
+                {
+                    if (known is not null && status.Phase != TerminalShellPhase.Unknown)
+                        Lifecycle?.Invoke(new TerminalPromptChanged(known, status.Phase != TerminalShellPhase.Running, status.LastExitCode, foreground));
+                }
+            };
             sessions.Add(request.SessionId, hosted);
             directories[request.SessionId] = directory;
             roots[request.SessionId] = directory;

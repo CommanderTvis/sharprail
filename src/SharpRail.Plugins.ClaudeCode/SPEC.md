@@ -64,6 +64,15 @@ Unset launch defaults persist as empty strings so a merged settings update can c
 Wire version 2 covers these added settings: the strict settings schema would make older UI halves
 fall back to defaults, so mismatched host/UI halves stay dormant.
 
+
+## OSC 133 marks
+
+Where Claude Code draws OSC 133 marks itself (`TerminalPromptChanged` with `Foreground`, for a terminal whose agent
+record is Claude's), they set the status, preferred over guessing: a prompt mark Idle (event `prompt_mark`), a command
+mark Running (`command_mark`); an idle mark leaves the hook's Blocked, Done or Failed until Claude runs again. The
+shell's own marks around Claude and terminals without marks change nothing; the hook keeps reporting either way.
+`--plugins` (Claude Code host) and `--codex` check the mapping; `--plugins` also checks the host telling a foreground
+program's mark from the shell's.
 ## Configuration
 
 The pane resolves configuration for the first shown Claude terminal, then the first shown terminal,

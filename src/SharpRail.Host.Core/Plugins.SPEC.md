@@ -217,7 +217,10 @@ the attachment to the client, which types it once the shell's first output has a
 marks its prefill `Program` (the winning text's hook decides) has the host run it as the new shell's
 program instead (Terminals.SPEC, Terminal programs), so nothing is typed; Windows hosts type it as before. Agent records persist in
 the host state file, travel on `HostState.TerminalAgents`, and are dropped when the tab closes. Lifecycle events
-fire on spawn (with the shell's pid), exit and close, and on every agent record change.
+fire on spawn (with the shell's pid), exit and close, and on every agent record change. `TerminalPromptChanged` fires
+when a known terminal's OSC 133 state changes (at a prompt or running, the last exit code), with `Foreground` true when
+the mark came from the program the shell runs: marks between the shell's C and its D, a D only while that program
+still holds the terminal ([Terminals.SPEC.md](Terminals.SPEC.md#decisions)). Terminals without marks raise none.
 
 ## Checks
 

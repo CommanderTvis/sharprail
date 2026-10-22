@@ -297,6 +297,16 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         context.OnTerminal(change =>
         {
             if (change is TerminalSpawned) watch.Poke();
+            else if (change is TerminalPromptChanged { Foreground: true } prompt && context.AgentRecord(prompt.Terminal)?.Kind == "claude" && !StartedByAnotherAgent(prompt.Terminal))
+            {
+                // Claude's own OSC 133 marks say whether it waits at its prompt; they win over guessing, while the hook's
+                // Blocked, Done and Failed stay until it runs again. Without marks only the hook reports.
+                var last = statuses.Snapshot(prompt.Terminal.WorkspaceId).FirstOrDefault(push => push.TabKey == prompt.Terminal.TabKey)?.Status;
+                var next = prompt.AtPrompt ? ClaudeCodeStatus.Idle : ClaudeCodeStatus.Running;
+                if (last != next && !(prompt.AtPrompt && last is ClaudeCodeStatus.Blocked or ClaudeCodeStatus.Done or ClaudeCodeStatus.Failed))
+                    PublishStatus(new ClaudeCodeStatusPush(prompt.Terminal.WorkspaceId, prompt.Terminal.TabKey,
+                        new AgentStatusReport(prompt.AtPrompt ? "prompt_mark" : "command_mark"), next));
+            }
             else if (change is TerminalClosed or TerminalAgentChanged { Record: null })
             {
                 watch.Forget(change.Terminal.WorkspaceId, change.Terminal.TabKey);

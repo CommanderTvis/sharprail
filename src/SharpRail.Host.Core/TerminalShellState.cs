@@ -26,6 +26,11 @@ internal sealed class TerminalShellState
     internal TerminalShellPhase Phase { get; private set; }
     internal int? LastExitCode { get; private set; }
     internal bool Marked { get; private set; }
+    /// <summary>Whether the last mark came from the program the shell runs rather than the shell.</summary>
+    internal bool Foreground { get; private set; }
+    /// <summary>Whether a program other than the shell holds the terminal, asked when a D arrives inside a command.</summary>
+    internal Func<bool>? ForegroundBusy { get; set; }
+    private bool shellRunning, nested;
     /// <summary>Raised under the owner's lock when the phase or the last exit code changes.</summary>
     internal Action? Changed { get; set; }
 
@@ -70,24 +75,33 @@ internal sealed class TerminalShellState
         var parts = text[4..].Split(';');
         foreach (var option in parts.Skip(1))
             if (option.StartsWith("cwd=", StringComparison.OrdinalIgnoreCase) && option.Length > 4 && Path.IsPathRooted(option[4..])) Directory = option[4..];
-        var (phase, exit) = (Phase, LastExitCode);
+        var (phase, exit, foreground) = (Phase, LastExitCode, Foreground);
+        // Marks between the shell's C and its D come from the program it runs (an agent drawing its own prompt): the shell
+        // cannot draw a prompt while its command runs. Such a program's D is told from the shell's by who holds the
+        // terminal when it arrives.
         switch (parts[0])
         {
             case "A" or "P":
                 // P marks a prompt's other parts (continuation, right prompt); only A starts one.
-                if (parts[0] == "A") { Marked = true; Phase = TerminalShellPhase.Prompt; }
+                if (parts[0] == "A") { Marked = true; Phase = TerminalShellPhase.Prompt; Foreground = nested = shellRunning; }
                 break;
             case "B":
                 Marked = true;
                 Phase = TerminalShellPhase.Input;
+                Foreground = nested = shellRunning;
                 break;
             case "C":
                 Marked = true;
                 Phase = TerminalShellPhase.Running;
+                if (shellRunning && nested) { Foreground = true; break; }
+                Foreground = false;
+                shellRunning = true;
                 commandStart = position;
                 break;
             case "D":
                 Marked = true;
+                Phase = TerminalShellPhase.Prompt;
+                if (shellRunning && nested && ForegroundBusy?.Invoke() == true) { Foreground = true; break; }
                 int? code = parts.Length > 1 && int.TryParse(parts[1], System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
                 // A D with no command since the last one (zsh closes an empty prompt) records nothing.
                 if (commandStart is { } start)
@@ -97,10 +111,10 @@ internal sealed class TerminalShellState
                     if (commands.Count > MaxCommands) commands.RemoveFirst();
                 }
                 commandStart = null;
-                Phase = TerminalShellPhase.Prompt;
+                shellRunning = nested = Foreground = false;
                 break;
         }
-        if ((phase, exit) != (Phase, LastExitCode)) Changed?.Invoke();
+        if ((phase, exit, foreground) != (Phase, LastExitCode, Foreground)) Changed?.Invoke();
     }
 
     // file://host/path (percent-encoded) and kitty-shell-cwd://host/path (raw), as Ghostty accepts them; a directory

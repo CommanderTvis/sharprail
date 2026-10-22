@@ -108,6 +108,20 @@ internal static partial class ShellIntegrationChecks
         }
         Require(TerminalShellState.DirectoryOf("kitty-shell-cwd://" + Environment.MachineName + "/raw%20path") == "/raw%20path", "kitty-shell-cwd paths are raw.");
         Require(TerminalShellState.DirectoryOf("file://elsewhere.example/tmp") is null, "another machine's directory must be ignored.");
+        // An agent run by the shell draws its own prompt: its marks are told from the shell's.
+        var busy = false;
+        var nested = new TerminalShellState { ForegroundBusy = () => busy };
+        var seen = new List<(TerminalShellPhase, bool)>();
+        nested.Changed = () => seen.Add((nested.Phase, nested.Foreground));
+        nested.Push("\u001b]133;A\u0007\u001b]133;B\u0007claude\r\n\u001b]133;C\u0007"u8);
+        busy = true;
+        nested.Push("\u001b]133;A\u0007> \u001b]133;B\u0007hi\u001b]133;C\u0007working\u001b]133;D;0\u0007\u001b]133;A\u0007"u8);
+        busy = false;
+        nested.Push("\u001b]133;D;0\u0007\u001b]133;A\u0007"u8);
+        Require(seen.SequenceEqual([(TerminalShellPhase.Prompt, false), (TerminalShellPhase.Input, false), (TerminalShellPhase.Running, false),
+            (TerminalShellPhase.Prompt, true), (TerminalShellPhase.Input, true), (TerminalShellPhase.Running, true), (TerminalShellPhase.Prompt, true),
+            (TerminalShellPhase.Prompt, false)]) && nested.Status.Commands.Count == 1,
+            "an agent's marks inside a shell command: " + string.Join(" ", seen));
         var running = new TerminalShellState();
         running.Push("\u001b]133;C;cwd=/srv/x\u0007"u8);
         Require(running.Phase == TerminalShellPhase.Running && running.Directory == "/srv/x", "a running command and an OSC 133 cwd option.");

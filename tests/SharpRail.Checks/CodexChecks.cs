@@ -863,9 +863,10 @@ internal static class CodexChecks
         public IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId) => [];
         public string TerminalToken(TerminalRef terminal) => "token";
         public TerminalRef? TerminalForToken(string token) => token == "token" ? Terminal : null;
-        public TerminalAgentRecord? AgentRecord(TerminalRef terminal) => Record;
+        public TerminalAgentRecord? AgentRecord(TerminalRef terminal) => terminal == Terminal ? Record : null;
         public void SetAgentRecord(TerminalRef terminal, TerminalAgentRecord? record) => Record = record;
-        public void OnTerminal(Action<TerminalEvent> handler) { }
+        public Action<TerminalEvent>? TerminalObserver;
+        public void OnTerminal(Action<TerminalEvent> handler) => TerminalObserver += handler;
         public IReadOnlyList<TerminalProcess> Terminals() => [];
         public string? WorkspaceForProcess(int pid) => null;
         public void RevivePrefill(Func<TerminalRef, TerminalAgentRecord, RevivePrefill?> hook) => Revive = hook;
@@ -987,6 +988,21 @@ internal static class CodexChecks
         Require(pushes.Record is { Model: "session-model", Effort: "high" }, "sparse later hooks preserve the session choices");
         await pushes.Report(new { session_id = "different-session", hook_event_name = "SessionStart", model = "different-model" });
         Require(pushes.Record is { Model: "different-model", Effort: null }, "a different session does not inherit the old effort");
+        // Codex's own OSC 133 marks (emitted while it holds the terminal) say whether it waits at its prompt; a shell's
+        // marks around it, or a hook's Done, are not overridden by an idle mark.
+        var count = pushes.Published.Count;
+        pushes.TerminalObserver!(new TerminalPromptChanged(pushes.Terminal, false, null, Foreground: false));
+        Require(pushes.Published.Count == count, "the shell's own marks are not the agent's state");
+        pushes.TerminalObserver!(new TerminalPromptChanged(pushes.Terminal, false, null, Foreground: true));
+        Require(pushes.Published[^1] is CodexStatusPush { Status: CodexStatus.Running, Event: "command_mark", Model: "different-model" }, "an agent's running mark");
+        pushes.TerminalObserver!(new TerminalPromptChanged(pushes.Terminal, true, 0, Foreground: true));
+        Require(pushes.Published[^1] is CodexStatusPush { Status: CodexStatus.Idle, Event: "prompt_mark" }, "an agent's prompt mark is idle");
+        await pushes.Report(new { hook_event_name = "Stop" });
+        count = pushes.Published.Count;
+        pushes.TerminalObserver!(new TerminalPromptChanged(pushes.Terminal, true, 0, Foreground: true));
+        Require(pushes.Published.Count == count, "a prompt mark keeps the hook's Done");
+        pushes.TerminalObserver!(new TerminalPromptChanged(new TerminalRef(root, "plain"), false, null, Foreground: true));
+        Require(pushes.Published.Count == count, "a terminal without a Codex record is left alone");
         await dispose!();
     }
 

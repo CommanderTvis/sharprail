@@ -15,6 +15,7 @@ internal sealed class HostedTerminal
     private readonly Lock gate = new();
     private readonly TerminalRecorder recorder;
     private readonly TerminalShellState shell = new();
+    private bool promptChanged;
     private Attachment? current;
     private readonly List<Attachment> watchers = [];
     private string? client;
@@ -22,6 +23,10 @@ internal sealed class HostedTerminal
     private (int Columns, int Rows) grid;
 
     internal ITerminalProcess Process { get; }
+
+    /// <summary>Raised outside the output lock after an OSC 133 mark changed the prompt state; with whether a program other
+    /// than the shell held the terminal then.</summary>
+    internal Action<TerminalShellStatus, bool>? PromptChanged { get; init; }
 
     /// <summary>Raised after the shell accepted input from the attachment that drives it.</summary>
     internal Action? InputAccepted { get; init; }
@@ -35,6 +40,8 @@ internal sealed class HostedTerminal
     {
         Process = process;
         recorder = new(replayBytes);
+        shell.Changed = () => promptChanged = true;
+        shell.ForegroundBusy = () => Process.IsBusy;
         if (restored is { Length: > 0 }) recorder.Restore(restored);
         grid = (columns, rows);
         _ = Task.Run(Pump);
@@ -59,6 +66,8 @@ internal sealed class HostedTerminal
             await foreach (var chunk in Process.ReadAsync())
                 try
                 {
+                    TerminalShellStatus? changed = null;
+                    var foreground = false;
                     if (Signaled is { } signaled) signals.Scan(chunk.Span, SessionId, signaled);
                     while (true)
                     {
@@ -70,6 +79,7 @@ internal sealed class HostedTerminal
                             {
                                 recorder.Push(chunk.Span);
                                 shell.Push(chunk.Span);
+                                if (promptChanged) { promptChanged = false; changed = shell.Status; foreground = shell.Foreground; }
                                 current?.Deliver(chunk, recorder.Position, grid);
                                 foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
                                 break;
@@ -78,6 +88,7 @@ internal sealed class HostedTerminal
                         // Never wait under the output lock: a detached or displaced holder must release us.
                         await space;
                     }
+                    if (changed is not null && PromptChanged is { } report) report(changed, foreground);
                 }
                 finally { chunk.Release(); }
         }

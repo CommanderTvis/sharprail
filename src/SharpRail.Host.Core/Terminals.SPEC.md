@@ -122,6 +122,9 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   closing an empty prompt) records nothing. Busy (close confirmation) is false while marks say the shell waits at its
   prompt, as Ghostty skips confirmation there; otherwise the foreground process group decides as before. A client of a
   host that predates the call reads no status.
+- Marks that arrive between the shell's C and its D are the running program's (an agent drawing its own prompt):
+  `TerminalShellState.Foreground` says so, and a D there counts as the program's only while it still holds the terminal
+  (`tcgetpgrp`), else it is the shell's and ends the command. Plugins hear changes as `TerminalPromptChanged`.
 - Killing sends SIGHUP to the shell's process group, then SIGKILL if it does not exit.
 - Not tmux: no extra dependency, no competing tab model.
 
