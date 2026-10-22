@@ -1,7 +1,10 @@
+using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
+using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI;
@@ -157,35 +160,121 @@ public sealed partial class WorkbenchWindow
     private async Task ReloadOpenDocumentsAsync(long request, IReadOnlyCollection<string> paths)
     {
         var changed = paths.ToHashSet(StringComparer.Ordinal);
-        var tabs = Layout.State.Workspaces.GetValueOrDefault(workspaceRoot)?.Documents.Values
-            .SelectMany(items => items).Where(tab => tab.Kind is "file" or "markdown" &&
+        var open = Layout.State.Workspaces.GetValueOrDefault(workspaceRoot)?.Documents.Values
+            .SelectMany(items => items).Where(tab => tab.Kind is "file" or "markdown" or "viewer").DistinctBy(tab => tab.Id).ToArray() ?? [];
+        var tabs = open.Where(tab => tab.Kind is "file" or "markdown" &&
                 (changed.Contains(tab.Path) || changed.Any(path => tab.Path.StartsWith(path.TrimEnd('/') + "/", StringComparison.Ordinal))))
-            .DistinctBy(tab => tab.Id).ToArray() ?? [];
+            .ToArray();
+        // Tabs whose file is not at its path any more; a rename in this batch moves them, the rest are deleted.
+        var missing = new List<(string Key, DockTab Tab, FileDocument Known, bool Pending)>();
         var refreshed = false;
         foreach (var tab in tabs)
         {
             var key = workspaceRoot + ":" + tab.Id;
             if (!documents.TryGetValue(key, out var current)) continue;
-            if (Body<Editor.CodeDocumentView>(key) is { HasPendingChanges: true }) continue;
+            var pending = Body<Editor.CodeDocumentView>(key) is { HasPendingChanges: true };
             FileDocument file;
             try { file = await Task.Run(async () => await host.ReadFileAsync(tab.Path, lifetime.Token), lifetime.Token); }
             catch (OperationCanceledException) { return; }
             // Only a file that is really gone marks its tab; any other failed read leaves the tab as it was.
             catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
             {
-                if (request == projectRequest) MarkDeletedOnDisk(key, true);
+                if (request == projectRequest) missing.Add((key, tab, current, pending));
                 continue;
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
             catch (Exception error) when (RemoteErrors.IsFailedPrecondition(error)) { continue; }
-            if (request != projectRequest || !LiveDocuments().Contains(key)) continue;
+            if (pending || request != projectRequest || !LiveDocuments().Contains(key)) continue;
             MarkDeletedOnDisk(key, false);
             // Byte-only files read as empty text, so the hash decides whether anything changed.
             if (file.Info?.Sha256 is { } hash ? hash == current.Info?.Sha256 : file.Text == current.Text && file.ImageData is null) continue;
             if (ReloadFileBody(key, tab, file)) continue;
             documents[key] = file; DropDocumentContent(key); refreshed = true;
         }
+        // A rename can report the old name in one batch and the new one in the next; a tab already marked deleted looks again.
+        foreach (var tab in open)
+        {
+            var key = workspaceRoot + ":" + tab.Id;
+            if (deletedDocuments.Contains(key) && missing.All(item => item.Key != key) && documents.TryGetValue(key, out var known))
+                missing.Add((key, tab, known, false));
+        }
+        foreach (var (key, tab, known, pending) in missing)
+        {
+            var target = await FindRenamedAsync(tab.Path, known, changed, open);
+            if (request != projectRequest) return;
+            if (!LiveDocuments().Contains(key)) continue;
+            if (target is not null) { FollowRename(workspaceRoot, tab.Path, target); continue; }
+            // An editor with unsaved edits keeps its buffer silently, as it did before renames were followed.
+            if (!pending) MarkDeletedOnDisk(key, true);
+        }
         if (refreshed) surface.RefreshContents();
+    }
+
+    /// <summary>
+    /// The path an open file was renamed or moved to within this batch of changes: a changed path, or a changed folder
+    /// plus the file's place under a changed folder that vanished, whose content hash matches what the tab last read.
+    /// Paths another open tab already shows are not candidates. Null when no such file exists: the file was deleted.
+    /// </summary>
+    private async Task<string?> FindRenamedAsync(string path, FileDocument known, IReadOnlySet<string> changed, IReadOnlyList<DockTab> open)
+    {
+        if (changed.Count == 0) return null;
+        var name = Path.GetFileName(path);
+        var shown = open.Select(tab => tab.Path).ToHashSet(StringComparer.Ordinal);
+        var candidates = changed.Where(candidate => candidate != path)
+            .Concat(changed.Where(folder => HostPaths.IsUnder(path, folder))
+                .SelectMany(folder => changed.Where(other => other != folder).Select(other => HostPaths.Join(other, path[(folder.Length + 1)..]))))
+            .Where(candidate => !shown.Contains(candidate)).Distinct(StringComparer.Ordinal)
+            .OrderBy(candidate => Path.GetFileName(candidate) == name ? 0 : 1).Take(32).ToArray();
+        // Empty content matches any empty file, so only the same file name in another folder counts as its move.
+        var empty = known.Text.Length == 0 && known.ImageData is null && known.Info?.ByteLength is null or 0;
+        foreach (var candidate in candidates)
+        {
+            if (empty && Path.GetFileName(candidate) != name) continue;
+            FileDocument file;
+            try { file = await Task.Run(async () => await host.ReadFileAsync(candidate, lifetime.Token), lifetime.Token); }
+            catch (OperationCanceledException) { return null; }
+            catch (Exception) { continue; }
+            var same = known.Info?.Sha256 is { Length: > 0 } hash
+                ? file.Info?.Sha256 == hash
+                : file.ImageData is null && known.ImageData is null && file.Text == known.Text;
+            if (same) return candidate;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Moves the open tabs of <paramref name="from"/>, or of files under it when it is a folder, to their new paths in
+    /// <paramref name="workspace"/>. An editor keeps its buffer, unsaved edits, selection, scroll and undo; another
+    /// body is rebuilt once from the content it already has, now described by the new path.
+    /// </summary>
+    private void FollowRename(string workspace, string from, string to)
+    {
+        if (from == to || from.Length == 0) return;
+        var tabs = Layout.State.Workspaces.GetValueOrDefault(workspace)?.Documents.Values.SelectMany(items => items)
+            .Where(tab => tab.Kind is "file" or "markdown" or "viewer" && (tab.Path == from || HostPaths.IsUnder(tab.Path, from)))
+            .DistinctBy(tab => tab.Id).ToArray() ?? [];
+        if (tabs.Length == 0) return;
+        // Retitling the tab redraws its strip, which can take focus from the editor that keeps showing the file.
+        var focused = FocusManager?.GetFocusedElement() as Control;
+        var rebuilt = false;
+        foreach (var tab in tabs)
+        {
+            var target = tab.Path == from ? to : HostPaths.Join(to, tab.Path[(from.Length + 1)..]);
+            var key = workspace + ":" + tab.Id;
+            Layout.Retarget(workspace, tab.Id, target);
+            deletedDocuments.Remove(key);
+            if (documents.TryGetValue(key, out var document)) documents[key] = document with { Path = target };
+            if (Body<Editor.CodeDocumentView>(key) is { } editor)
+            {
+                editor.Retarget(target);
+                editor.DeletedOnDisk = false;
+            }
+            else if (documentContent.ContainsKey(key)) { DropDocumentContent(key); rebuilt = true; }
+        }
+        if (rebuilt) surface.RefreshContents();
+        surface.RefreshModified();
+        if (focused is not null && !focused.IsFocused)
+            Dispatcher.UIThread.Post(() => { if (focused.IsAttachedToVisualTree() && !focused.IsFocused) focused.Focus(); }, DispatcherPriority.Loaded);
     }
 
     private void MarkDeletedOnDisk(string key, bool deleted)

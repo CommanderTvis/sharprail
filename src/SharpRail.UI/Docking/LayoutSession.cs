@@ -284,6 +284,22 @@ public sealed partial class LayoutSession
         });
     }
 
+    /// <summary>
+    /// Points a workspace's document tab at its file's new path after a rename, keeping its id, place, selection and
+    /// preview state; the title becomes the new file name.
+    /// </summary>
+    public void Retarget(string workspace, string tabId, string path)
+    {
+        bool Stale(DockTab tab) => tab.Id == tabId && tab.Path != path;
+        if (State.Workspaces.GetValueOrDefault(workspace)?.Documents.Values.Any(tabs => tabs.Any(Stale)) != true) return;
+        Change(state =>
+        {
+            foreach (var tabs in state.Workspaces[workspace].Documents.Values)
+                for (var index = 0; index < tabs.Count; index++)
+                    if (Stale(tabs[index])) tabs[index] = tabs[index] with { Path = path, Title = System.IO.Path.GetFileName(path) };
+        });
+    }
+
     public void Keep(string groupId, string tabId) => Change(state =>
     {
         var docs = Active(state).Documents.GetValueOrDefault(groupId);

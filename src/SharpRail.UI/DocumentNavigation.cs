@@ -34,7 +34,7 @@ public sealed partial class WorkbenchWindow
         try
         {
             var kind = DocumentKind(path, false);
-            var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
+            var tab = new DockTab(DocumentTabId(kind, path), Path.GetFileName(path), kind, path);
             var key = identity.workspaceRoot + ":" + tab.Id;
             if (!documents.TryGetValue(key, out var document)) document = await ReadForKindAsync(path, kind, lifetime.Token);
             if (!flight.Keep) await settle;
@@ -48,6 +48,18 @@ public sealed partial class WorkbenchWindow
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { browseFlights.Remove(identity); }
+    }
+
+    /// <summary>
+    /// The id of the tab that shows <paramref name="path"/> in the current workspace. A tab keeps its id when it
+    /// follows a rename, so an open tab is found by its path, and a new file at a renamed tab's old path gets a fresh id.
+    /// </summary>
+    private string DocumentTabId(string kind, string path)
+    {
+        var tabs = Layout.State.Workspaces.GetValueOrDefault(workspaceRoot)?.Documents.Values.SelectMany(items => items).ToArray() ?? [];
+        if (tabs.FirstOrDefault(tab => tab.Kind == kind && tab.Path == path) is { } open) return open.Id;
+        var id = kind + ":" + path;
+        return tabs.Any(tab => tab.Id == id) ? id + "#" + Guid.NewGuid().ToString("N")[..8] : id;
     }
 
     /// <summary>Mod+Shift+F: one query over the active worktree; a hit opens its file at that line.</summary>

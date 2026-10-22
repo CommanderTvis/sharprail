@@ -10,7 +10,7 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
 {
     private readonly IProjectServices host;
     private readonly string workspace;
-    private readonly string path;
+    private string path;
     private readonly Action<Exception> report;
     private readonly Action<string> saved;
     private readonly Action modifiedChanged;
@@ -18,6 +18,8 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
     private bool saving, disposed, modified, reloading;
     internal ScintillaEditor Editor { get; }
     internal string FileName => Path.GetFileName(path);
+    /// <summary>The workspace-relative path this buffer saves to; a rename followed by <see cref="Retarget"/> changes it.</summary>
+    internal string FilePath => path;
     internal bool HasPendingChanges => saving || Editor.IsModified;
     private readonly Border deletedBanner;
 
@@ -67,6 +69,20 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         }
         catch (Exception error) { if (!disposed) report(error); }
         finally { saving = false; if (!disposed) UpdateModified(); }
+    }
+
+    /// <summary>
+    /// Follows a rename of this file: saves go to <paramref name="next"/>, highlighting follows its extension and the
+    /// language server closes the old document; the next inspection opens the new one. Text, selection, scroll and
+    /// undo history stay because the buffer is the same.
+    /// </summary>
+    internal void Retarget(string next)
+    {
+        if (disposed || next == path) return;
+        StopLanguage();
+        path = next;
+        frame.Highlight(next);
+        if (IsEffectivelyVisible) languageTimer.Start();
     }
 
     internal void Discard() { Editor.Text = original; UpdateModified(); }

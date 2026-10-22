@@ -243,7 +243,9 @@ public sealed partial class WorkbenchWindow
                 PathListed(folderCache.GetValueOrDefault(parent) ?? [], Target(name)),
             async name =>
             {
+                var workspace = workspaceRoot;
                 await host.ApplyFileActionAsync(new("rename", file.Path, Target(name)), lifetime.Token);
+                if (workspace == workspaceRoot) FollowRename(workspace, file.Path, Target(name));
                 await RefreshFilesAsync(projectRequest);
             });
     }
@@ -261,6 +263,7 @@ public sealed partial class WorkbenchWindow
                 if (!CanTransferPath(file.Path, target)) throw new IOException("Choose a destination outside the source file or folder.");
                 await Task.Run(async () => await host.ApplyFileActionAsync(new(copy ? "copy" : "rename", file.Path, target) { WorkspaceRoot = workspace }, lifetime.Token), lifetime.Token);
                 if (workspace != workspaceRoot || request != projectRequest) return;
+                if (!copy) FollowRename(workspace, file.Path, target);
                 var parents = new List<string>();
                 for (var parent = HostPaths.Parent(target); parent.Length > 0; parent = HostPaths.Parent(parent))
                 {

@@ -114,6 +114,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--vertical-tabs` | Projects-only tab projection and interactions. |
 | `--rail` | Retained Projects controls and geometry. |
 | `--state` | Host state and profile/preset migration. |
+| `--rename-follows` | Open editor and Markdown preview tabs follow a rename from the Files tree and an outside `mv`: unsaved edits, selection and focus kept, title and highlighting path updated, saves go to the new path; deleting still marks the tab. |
 | `--file-drop` | Workspace file drag representations, transfers, attachment gestures. |
 | `--about` | About screen: version fallback, runtime and copy text, links, application menu (About, Settings), Escape. |
 | `--connection-errors` | Connection failure details and retry. |

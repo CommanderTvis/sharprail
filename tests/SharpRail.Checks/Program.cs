@@ -110,6 +110,13 @@ internal static class Program
             E2E.FilesE2E.Transfers(root);
             return;
         }
+        if (args.SequenceEqual(["--rename-follows"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.FilesE2E.RenameFollows(root);
+            return;
+        }
         if (args.SequenceEqual(["--file-drop"]))
         {
             try

@@ -592,7 +592,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             var document = await ReadForKindAsync(path, kind, lifetime.Token);
             var destination = AcceptNavigation(request);
             if (destination is null) return;
-            var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
+            var tab = new DockTab(DocumentTabId(kind, path), Path.GetFileName(path), kind, path);
             var key = workspace + ":" + tab.Id;
             if (Body<Editor.CodeDocumentView>(key) is null)
             { documents[key] = document; DropDocumentContent(key); }

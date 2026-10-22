@@ -264,8 +264,20 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
 - An open file whose file is deleted on disk keeps its buffer and says so: its tab shows a `deleted` mark
   and a Scintilla editor a banner over the text. Only a missing file marks it (a local
   `FileNotFoundException`, a remote `NotFound`); any other failed read leaves the tab as it was, and a later
-  read that finds the file clears the mark. A tab open on a renamed file is left on the old path, and so
-  marks itself deleted.
+  read that finds the file clears the mark. An editor with unsaved edits is never marked.
+- An open tab follows its file through a rename or move, of the file or of a folder above it: its path,
+  title, tooltip, highlighting and language-server document (closed under the old path, opened under the
+  new one on the next inspection) take the new path, and the persisted layout keeps it. The tab keeps its id,
+  place, selection and focus; an editor keeps its buffer, unsaved edits, selection, scroll and undo, and
+  saves to the new path; another body is rebuilt once from the content it already read. Opening the new path
+  selects that tab, and a new file at an old path opens a separate tab. The Files tree's Rename and Move
+  follow directly after the host action succeeds. A rename made elsewhere (shell, agent, `git mv`) is
+  recognised from the watcher: when an open file is missing, a changed path in the same batch, or in a later
+  batch while the tab is marked deleted, whose content hash equals what the tab last read is its new name.
+  Candidates are the batch's paths and, for a file under a changed folder that vanished, that relative path
+  under the batch's other changed folders; paths another open tab shows are skipped, a matching file name is
+  tried first, and an empty file only matches the same name. No match keeps the deleted behaviour above.
+  Moving a file into another workspace is not followed.
 
 ## Specs
 

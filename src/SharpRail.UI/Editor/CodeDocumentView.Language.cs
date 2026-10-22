@@ -492,9 +492,11 @@ internal sealed partial class CodeDocumentView
     {
         languageTimer.Stop(); languageRequest?.Cancel(); this.FindControl<Popup>("LanguagePopup")!.IsOpen = false;
         if (LanguageSourceServer.Length > 0) return;
+        // A rename changes the path right after this, and the old document is the one to close.
+        var closing = path;
         _ = Task.Run(async () =>
         {
-            try { await host.LanguageAsync(new(workspace, path, "close", DocumentId: languageDocument)); }
+            try { await host.LanguageAsync(new(workspace, closing, "close", DocumentId: languageDocument)); }
             catch (Exception) { }
         });
     }

@@ -202,6 +202,82 @@ internal static class FilesE2E
         if (OperatingSystem.IsMacOS()) DeleteToTrash(app, workspace);
     }
 
+    /// <summary>An open tab follows its file through a rename in the Files tree and one made outside SharpRail.</summary>
+    internal static void RenameFollows(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "rename-follows"));
+        var workspace = app.Root;
+        File.WriteAllText(Path.Combine(workspace, "alpha.txt"), "alpha body\nsecond line\n");
+        Node(app, "alpha.txt");
+        app.Open("alpha.txt", keep: true);
+        var tabId = app.Tabs.Single(tab => tab.Path == "alpha.txt").Id;
+        Control Mark() => app.Find<Control>("DockTab_" + tabId.Replace(':', '_').Replace('/', '_'))
+            .GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "DeletedTab");
+        SharpRail.UI.Editor.CodeDocumentView View() => app.Window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Single();
+        Until(() => app.Window.GetVisualDescendants().OfType<SharpRail.UI.Editor.CodeDocumentView>().Any());
+        var view = View();
+        view.Editor.ReplaceRange(0, 0, "edited ");
+        view.Editor.SelectRange(2, 3);
+        view.Editor.Focus();
+        Until(() => view.HasPendingChanges && view.Editor.IsFocused);
+
+        void Follows(string path, string how)
+        {
+            Until(() => app.Tabs.Any(tab => tab.Path == path) && app.Window.Layout.Selected(app.Center)?.Path == path);
+            var tab = app.Tabs.Single(tab => tab.Path == path);
+            Require(tab.Title == Path.GetFileName(path) && app.Tabs.Count(item => item.Kind == "file") == 1,
+                $"{how}: the tab takes the new name instead of opening a second tab or keeping the old one.");
+            Require(ReferenceEquals(View(), view) && view.FilePath == path, $"{how}: the same editor follows the file, so undo and scroll stay.");
+            Require(view.HasPendingChanges && view.Editor.Text.StartsWith("edited alpha", StringComparison.Ordinal), $"{how}: unsaved edits are kept.");
+            Require(view.Editor.Selection.Text == "ite", $"{how}: the selection is kept.");
+            Require(view.Editor.IsFocused, $"{how}: focus is kept.");
+            Require(!Mark().IsVisible && !app.Find<Border>("FileDeletedOnDisk").IsVisible && !app.Find<TextBlock>("WorkspaceError").IsVisible,
+                $"{how}: a renamed file is not reported as deleted.");
+        }
+
+        Choose(app, "alpha.txt", "FileNodeRename");
+        var dialog = Dialog(app);
+        Named<TextBox>(dialog, "PathNameInput").Text = "beta.cs";
+        app.Click(Named<Button>(dialog, "PathNameConfirm"));
+        Until(() => !app.Window.OwnedWindows.Any());
+        view.Editor.Focus();
+        Follows("beta.cs", "Files rename");
+        Settle(800);
+        Follows("beta.cs", "Files rename after the watcher batch");
+        Console.WriteLine("PASS SharpRail: renaming an open file in the Files tree keeps its tab, edits and selection under the new name");
+
+        File.Move(Path.Combine(workspace, "beta.cs"), Path.Combine(workspace, "gamma.cs"));
+        Follows("gamma.cs", "External mv");
+        Console.WriteLine("PASS SharpRail: an open file moved outside SharpRail keeps its tab, edits and selection under the new name");
+
+        _ = app.Window.SaveSelectedAsync();
+        Until(() => !view.HasPendingChanges);
+        Settle(800);
+        Require(File.ReadAllText(Path.Combine(workspace, "gamma.cs")).StartsWith("edited alpha", StringComparison.Ordinal) &&
+            !File.Exists(Path.Combine(workspace, "alpha.txt")) && !File.Exists(Path.Combine(workspace, "beta.cs")),
+            "Saving after a rename writes the new path and never recreates an old one.");
+        Console.WriteLine("PASS SharpRail: saving a followed tab writes its new path");
+
+        File.WriteAllText(Path.Combine(workspace, "notes.md"), "# Notes\n\nbody\n");
+        Node(app, "notes.md");
+        app.Open("notes.md", keep: true);
+        var preview = app.Tabs.Single(tab => tab.Path == "notes.md").Id;
+        Control PreviewMark() => app.Find<Control>("DockTab_" + preview.Replace(':', '_').Replace('/', '_'))
+            .GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "DeletedTab");
+        File.Move(Path.Combine(workspace, "notes.md"), Path.Combine(workspace, "renamed-notes.md"));
+        Until(() => app.Tabs.Any(tab => tab.Path == "renamed-notes.md" && tab.Title == "renamed-notes.md") && !app.Tabs.Any(tab => tab.Path == "notes.md"));
+        Settle(800);
+        Require(!PreviewMark().IsVisible && !app.Find<TextBlock>("WorkspaceError").IsVisible && app.Window.Layout.Selected(app.Center)?.Path == "renamed-notes.md",
+            "A renamed preview tab follows its file without an error state.");
+        Console.WriteLine("PASS SharpRail: a Markdown preview tab follows its file through an outside rename");
+
+        app.Window.Layout.Select(app.Center, tabId);
+        File.Delete(Path.Combine(workspace, "gamma.cs"));
+        Until(() => Mark().IsVisible);
+        Require(app.Tabs.Any(tab => tab.Path == "gamma.cs"), "A deleted file keeps its tab, marked deleted.");
+        Console.WriteLine("PASS SharpRail: a deleted file still marks its tab deleted");
+    }
+
     private static DrawnTreeEntry Node(E2eWorkspace app, string path)
     {
         Until(() => app.Find<DrawnTree>("FilesTree").Rows.Any(node => node.Tag is ProjectFile file && file.Path == path));
