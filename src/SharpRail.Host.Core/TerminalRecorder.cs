@@ -20,7 +20,11 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
     private int recordedLength;
     private byte[] alternateOutput = [];
     private int alternateLength;
-    private byte[] carry = [];
+    // A trailing escape that may still become a private mode sequence (at most 20 bytes), and the scratch
+    // space that joins it with the next chunk, so pushing a chunk allocates nothing.
+    private readonly byte[] carry = new byte[20];
+    private int carryLength;
+    private byte[] joined = [];
     private int? alternate;
     private readonly SortedSet<int> input = [];
     private readonly byte[] resume = new byte[resumeBytes];
@@ -33,12 +37,20 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
         Retain(chunk);
         Position += chunk.Length;
         if (snapshotBytes <= 0 || chunk.IsEmpty) return;
-        var text = carry.Length == 0 ? chunk.ToArray() : [.. carry, .. chunk];
-        carry = [];
+        var text = chunk;
+        if (carryLength > 0)
+        {
+            if (joined.Length < carryLength + chunk.Length) joined = new byte[Math.Max(carryLength + chunk.Length, joined.Length * 2)];
+            carry.AsSpan(0, carryLength).CopyTo(joined);
+            chunk.CopyTo(joined.AsSpan(carryLength));
+            text = joined.AsSpan(0, carryLength + chunk.Length);
+            carryLength = 0;
+        }
         var partial = PartialMode(text);
         if (partial >= 0)
         {
-            carry = text[partial..];
+            text[partial..].CopyTo(carry);
+            carryLength = text.Length - partial;
             text = text[..partial];
         }
         Consume(text);
@@ -73,7 +85,7 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
         if (snapshotBytes <= 0) return;
         var reset = "\x1b[0m"u8;
         if (snapshot.StartsWith(reset)) snapshot = snapshot[reset.Length..];
-        Consume(snapshot.ToArray());
+        Consume(snapshot);
         alternate = null; alternateLength = 0; input.Clear();
     }
 
@@ -102,22 +114,22 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
         chunk[first..].CopyTo(resume);
     }
 
-    private void Consume(byte[] text)
+    private void Consume(ReadOnlySpan<byte> text)
     {
         var cursor = 0;
         var index = 0;
-        while (text.AsSpan(index).IndexOf("\x1b[?"u8) is var found and >= 0)
+        while (text[index..].IndexOf("\x1b[?"u8) is var found and >= 0)
         {
             index += found;
             var end = index + 3;
             while (end < text.Length && (char.IsAsciiDigit((char)text[end]) || text[end] == ';')) end++;
             if (end >= text.Length || (text[end] != 'h' && text[end] != 'l')) { index += 3; continue; }
-            AppendScreen(text.AsSpan(cursor, index - cursor));
+            AppendScreen(text[cursor..index]);
             var previousAlternate = alternate;
             var enabled = text[end] == 'h';
-            foreach (var part in Encoding.ASCII.GetString(text, index + 3, end - index - 3).Split(';'))
+            foreach (var range in text[(index + 3)..end].Split((byte)';'))
             {
-                if (!int.TryParse(part, out var mode)) continue;
+                if (!int.TryParse(text[(index + 3)..end][range], out var mode)) continue;
                 if (AlternateScreens.Contains(mode))
                 {
                     alternate = enabled ? mode : null;
@@ -128,10 +140,10 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
                 else if (Tracked.Contains(mode)) modes[mode] = enabled;
             }
             if (alternate is not null && previousAlternate == alternate)
-                Append(ref alternateOutput, ref alternateLength, text.AsSpan(index, end + 1 - index));
+                Append(ref alternateOutput, ref alternateLength, text[index..(end + 1)]);
             cursor = index = end + 1;
         }
-        AppendScreen(text.AsSpan(cursor));
+        AppendScreen(text[cursor..]);
     }
 
     private void AppendScreen(ReadOnlySpan<byte> text)
@@ -157,11 +169,11 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
     }
 
     // The start of a trailing escape that might still become a private mode sequence, or -1.
-    private static int PartialMode(byte[] text)
+    private static int PartialMode(ReadOnlySpan<byte> text)
     {
-        var escape = Array.LastIndexOf(text, (byte)0x1b);
+        var escape = text.LastIndexOf((byte)0x1b);
         if (escape < 0 || text.Length - escape > 20) return -1;
-        var tail = text.AsSpan(escape + 1);
+        var tail = text[(escape + 1)..];
         if (tail.IsEmpty) return escape;
         if (tail[0] != '[') return -1;
         tail = tail[1..];

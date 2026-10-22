@@ -227,6 +227,15 @@ including draining output while closing the pseudoconsole.
 - A reader coalesces already queued, contiguous output up to 128 KiB before yielding it. This reduces
   framing and browser thread transitions without waiting for more output. Resizes and watcher
   resynchronisations remain ordered boundaries; the position describes the last byte in the batch.
+- Output buffers are pooled. The read pump reads into one reused buffer per session and copies each read
+  once into a right-sized `ArrayPool` array, a reference-counted chunk. The recorder parses it in place and
+  copies it into its preallocated resume ring and snapshot buffers; every attachment that queues the chunk
+  holds a reference and releases it once its reader moves past it or delivery drops it. A reader batches
+  into one pooled buffer of its own. So a chunk `ITerminalSession.ReadAsync` yields is valid only until the
+  reader asks for the next; a reader that keeps bytes longer (the Skia view's queue, the RPC message)
+  copies them. `--pty-output-allocations [seconds] [remote]` streams two shells at a fixed rate and fails
+  when the embedded host allocates more than 0.3 bytes per delivered byte (copying each chunk twice cost
+  about 3; pooled, about 0.15).
 - An attachment whose reader stops reading keeps at most the resume window (1 MiB) queued. Beyond that the
   holder pauses the PTY read pump until space is available, preserving every byte. Detach, takeover and
   explicit close release a stalled pump; it never waits while holding the terminal output lock.

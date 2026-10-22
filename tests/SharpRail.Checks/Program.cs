@@ -339,6 +339,13 @@ internal static class Program
             TerminalResumeHintChecks.Run();
             return;
         }
+        if (args.Length is >= 1 and <= 3 && args[0] == "--pty-output-allocations")
+        {
+            // Optional: the measured seconds (default 20) and "remote" to also measure the WebSocket host.
+            var seconds = args.Length > 1 && int.TryParse(args[1], out var parsed) ? parsed : 20;
+            PtyOutputAllocationChecks.Run(root, TimeSpan.FromSeconds(seconds), args.Contains("remote")).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--loopback-terminals"]))
         {
             LoopbackTerminalChecks.Run().GetAwaiter().GetResult();
@@ -1113,6 +1120,7 @@ internal static class Program
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-commit-links", () => TerminalCommitLinkChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("terminal-links", () => TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("pty-output-allocations", () => { if (!OperatingSystem.IsWindows()) PtyOutputAllocationChecks.Run(root, TimeSpan.FromSeconds(5), remote: false).GetAwaiter().GetResult(); });
         Gate.Case("loopback-terminals", () => LoopbackTerminalChecks.Run().GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("windows-host", () => WindowsChecks.RunHost(root).GetAwaiter().GetResult());

@@ -203,8 +203,10 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
             {
                 try
                 {
-                    await foreach (var chunk in attached.ReadAsync(reading.Token))
+                    await foreach (var pooled in attached.ReadAsync(reading.Token))
                     {
+                        // The queue outlives the chunk, which is valid only until the next read.
+                        ReadOnlyMemory<byte> chunk = pooled.ToArray();
                         var size = attached.Grid;
                         if (chunk.IsEmpty) await output.Writer.WriteAsync((chunk, size), reading.Token);
                         for (var offset = 0; offset < chunk.Length; offset += 8 * 1024)

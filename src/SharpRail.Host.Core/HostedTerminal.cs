@@ -43,24 +43,29 @@ internal sealed class HostedTerminal
     {
         try
         {
+            // The pump owns each chunk until delivery: attachments that queue it retain their own reference.
             await foreach (var chunk in Process.ReadAsync())
-                while (true)
+                try
                 {
-                    Task? space;
-                    lock (gate)
+                    while (true)
                     {
-                        space = current?.WaitForSpace(chunk.Length);
-                        if (space is null)
+                        Task? space;
+                        lock (gate)
                         {
-                            recorder.Push(chunk.Span);
-                            current?.Deliver(chunk, recorder.Position, grid);
-                            foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
-                            break;
+                            space = current?.WaitForSpace(chunk.Length);
+                            if (space is null)
+                            {
+                                recorder.Push(chunk.Span);
+                                current?.Deliver(chunk, recorder.Position, grid);
+                                foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
+                                break;
+                            }
                         }
+                        // Never wait under the output lock: a detached or displaced holder must release us.
+                        await space;
                     }
-                    // Never wait under the output lock: a detached or displaced holder must release us.
-                    await space;
                 }
+                finally { chunk.Release(); }
         }
         catch (Exception) { }
         var code = await Process.Exit;
@@ -146,7 +151,7 @@ internal sealed class HostedTerminal
         catch (Exception error) when (error is IOException or ObjectDisposedException) { return; }
         if (!track) return;
         grid = (columns, rows);
-        foreach (var watcher in watchers) watcher.Deliver(default, recorder.Position, grid);
+        foreach (var watcher in watchers) watcher.Deliver(null, recorder.Position, grid);
     }
 
     private bool Drives(Attachment attachment)
@@ -195,9 +200,11 @@ internal sealed class Attachment : ITerminalSession
     internal const int BacklogBytes = TerminalRecorder.ResumeBytes;
     private readonly HostedTerminal terminal;
     // Not single-reader: delivery drops the oldest chunks itself when the reader falls behind. An item without
-    // data and without a grid marks where a watcher that fell behind resynchronises.
-    private readonly Channel<(ReadOnlyMemory<byte> Data, long End, (int Columns, int Rows) Grid)> output =
-        Channel.CreateUnbounded<(ReadOnlyMemory<byte>, long, (int, int))>();
+    // data and without a grid marks where a watcher that fell behind resynchronises. Each queued chunk holds one
+    // reference, released when the reader moves past it or delivery drops it.
+    private readonly Channel<(TerminalChunk? Chunk, long End, (int Columns, int Rows) Grid)> output =
+        Channel.CreateUnbounded<(TerminalChunk?, long, (int, int))>();
+    private const int BatchBytes = 128 * 1024;
     private long backlog, grid;
     private readonly Lock flow = new();
     private TaskCompletionSource? space;
@@ -253,13 +260,19 @@ internal sealed class Attachment : ITerminalSession
     }
 
     // A stalled read-only watcher resynchronises from a snapshot instead of blocking the holder.
-    internal void Deliver(ReadOnlyMemory<byte> chunk, long end, (int Columns, int Rows) grid)
+    internal void Deliver(TerminalChunk? chunk, long end, (int Columns, int Rows) grid)
     {
-        if (stopping || Behind || !output.Writer.TryWrite((chunk, end, grid))) return;
-        var queued = Interlocked.Add(ref backlog, chunk.Length);
+        if (stopping || Behind) return;
+        chunk?.Retain();
+        if (!output.Writer.TryWrite((chunk, end, grid))) { chunk?.Release(); return; }
+        var queued = Interlocked.Add(ref backlog, chunk?.Length ?? 0);
         if (queued <= BacklogBytes) return;
         if (!Watching) throw new InvalidOperationException("Terminal holder exceeded its output capacity.");
-        while (output.Reader.TryRead(out var dropped)) Interlocked.Add(ref backlog, -dropped.Data.Length);
+        while (output.Reader.TryRead(out var dropped))
+        {
+            Interlocked.Add(ref backlog, -(dropped.Chunk?.Length ?? 0));
+            dropped.Chunk?.Release();
+        }
         Behind = output.Writer.TryWrite(default);
     }
 
@@ -280,34 +293,60 @@ internal sealed class Attachment : ITerminalSession
     public async IAsyncEnumerable<ReadOnlyMemory<byte>> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref reading, 1) != 0) throw new InvalidOperationException("A terminal session has a single reader.");
-        await foreach (var item in output.Reader.ReadAllAsync(cancellationToken))
+        // A yielded chunk stays valid until the reader asks for the next one; then its reference is released.
+        TerminalChunk? held = null;
+        byte[]? batch = null;
+        try
         {
-            var (data, end, size) = item.Grid == default ? terminal.Resynchronise(this) : item;
-            if (item.Grid != default)
+            await foreach (var item in output.Reader.ReadAllAsync(cancellationToken))
             {
-                Interlocked.Add(ref backlog, -data.Length);
-                // Amortize RPC framing and browser thread hops over already queued PTY reads.
-                // A grid change or watcher resynchronisation must remain a separate boundary.
-                ArrayBufferWriter<byte>? batch = null;
-                while (output.Reader.TryPeek(out var next) && next.Grid == size &&
-                    next.End == end + next.Data.Length && data.Length + next.Data.Length <= 128 * 1024)
+                ReadOnlyMemory<byte> data;
+                long end;
+                (int Columns, int Rows) size;
+                if (item.Grid == default) (data, end, size) = terminal.Resynchronise(this);
+                else
                 {
-                    if (!output.Reader.TryRead(out next)) break;
-                    if (batch is null)
+                    (held, end, size) = item;
+                    data = held?.Memory ?? default;
+                    Interlocked.Add(ref backlog, -data.Length);
+                    // Amortize RPC framing and browser thread hops over already queued PTY reads.
+                    // A grid change or watcher resynchronisation must remain a separate boundary.
+                    var batched = 0;
+                    while (output.Reader.TryPeek(out var next) && next.Grid == size &&
+                        next.End == end + (next.Chunk?.Length ?? 0) && data.Length + (next.Chunk?.Length ?? 0) <= BatchBytes)
                     {
-                        batch = new ArrayBufferWriter<byte>(Math.Max(4096, data.Length + next.Data.Length));
-                        batch.Write(data.Span);
+                        if (!output.Reader.TryRead(out next)) break;
+                        if (batched == 0)
+                        {
+                            batch ??= ArrayPool<byte>.Shared.Rent(BatchBytes);
+                            data.Span.CopyTo(batch);
+                            batched = data.Length;
+                            held?.Release();
+                            held = null;
+                        }
+                        if (next.Chunk is { } chunk)
+                        {
+                            chunk.Span.CopyTo(batch.AsSpan(batched));
+                            batched += chunk.Length;
+                            chunk.Release();
+                        }
+                        data = batch.AsMemory(0, batched);
+                        end = next.End;
+                        Interlocked.Add(ref backlog, -(next.Chunk?.Length ?? 0));
                     }
-                    batch.Write(next.Data.Span);
-                    data = batch.WrittenMemory;
-                    end = next.End;
-                    Interlocked.Add(ref backlog, -next.Data.Length);
+                    if (!Watching) SignalSpace();
                 }
-                if (!Watching) SignalSpace();
+                Interlocked.Exchange(ref position, end);
+                Interlocked.Exchange(ref grid, Pack(size));
+                yield return data;
+                held?.Release();
+                held = null;
             }
-            Interlocked.Exchange(ref position, end);
-            Interlocked.Exchange(ref grid, Pack(size));
-            yield return data;
+        }
+        finally
+        {
+            held?.Release();
+            if (batch is not null) ArrayPool<byte>.Shared.Return(batch);
         }
     }
 

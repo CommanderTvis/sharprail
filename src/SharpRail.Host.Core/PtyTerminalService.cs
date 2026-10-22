@@ -428,7 +428,7 @@ internal sealed class PtySession : ITerminalProcess
     private readonly int slave;
     private readonly int pid;
     // Bounded, so a consumer that stalls blocks the read pump and the kernel holds the program back.
-    private readonly Channel<ReadOnlyMemory<byte>> output = Channel.CreateBounded<ReadOnlyMemory<byte>>(new BoundedChannelOptions(16) { SingleReader = true, SingleWriter = true });
+    private readonly Channel<TerminalChunk> output = Channel.CreateBounded<TerminalChunk>(new BoundedChannelOptions(16) { SingleReader = true, SingleWriter = true });
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<int> exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Lock writing = new();
@@ -557,7 +557,8 @@ internal sealed class PtySession : ITerminalProcess
                     break;
                 }
                 if (count == 0) break;
-                var chunk = buffer.AsSpan(0, (int)count).ToArray();
+                // The read buffer is reused; each chunk is copied once into a right-sized pooled array.
+                var chunk = TerminalChunk.Copy(buffer.AsSpan(0, (int)count));
                 if (!output.Writer.TryWrite(chunk)) output.Writer.WriteAsync(chunk).AsTask().GetAwaiter().GetResult();
             }
         }
@@ -568,7 +569,7 @@ internal sealed class PtySession : ITerminalProcess
         }
     }
 
-    public async IAsyncEnumerable<ReadOnlyMemory<byte>> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<TerminalChunk> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref reading, 1) != 0) throw new InvalidOperationException("A terminal session has a single reader.");
         await foreach (var chunk in output.Reader.ReadAllAsync(cancellationToken)) yield return chunk;

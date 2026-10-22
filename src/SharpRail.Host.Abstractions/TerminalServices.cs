@@ -63,6 +63,8 @@ public interface ITerminalSession : IAsyncDisposable
     // A single reader receives live output after the replay. It ends after the shell exits and its final
     // output drains, or when another client takes the session over. A watching reader that falls further
     // behind than the host keeps for it receives a terminal reset and a fresh snapshot instead of the gap.
+    // A chunk is valid only until the reader asks for the next one: the host reuses pooled output buffers,
+    // so a reader that keeps bytes beyond that copies them.
     IAsyncEnumerable<ReadOnlyMemory<byte>> ReadAsync(CancellationToken cancellationToken = default);
     // Input and resizes from a detached or watching client are ignored. A grid outside 1–32,767 is refused.
     ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default);

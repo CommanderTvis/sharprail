@@ -16,7 +16,7 @@ internal sealed class ConPtySession : ITerminalProcess
     private readonly SafeFileHandle process, job;
     private nint console;
     private readonly Lock consoleGate = new(), writing = new();
-    private readonly Channel<ReadOnlyMemory<byte>> chunks = Channel.CreateBounded<ReadOnlyMemory<byte>>(new BoundedChannelOptions(16) { SingleReader = true, SingleWriter = true });
+    private readonly Channel<TerminalChunk> chunks = Channel.CreateBounded<TerminalChunk>(new BoundedChannelOptions(16) { SingleReader = true, SingleWriter = true });
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<int> exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int reading, disposed;
@@ -140,7 +140,7 @@ internal sealed class ConPtySession : ITerminalProcess
             int count;
             while ((count = output.Read(buffer)) > 0)
             {
-                var chunk = buffer.AsSpan(0, count).ToArray();
+                var chunk = TerminalChunk.Copy(buffer.AsSpan(0, count));
                 if (!chunks.Writer.TryWrite(chunk)) chunks.Writer.WriteAsync(chunk).AsTask().GetAwaiter().GetResult();
             }
         }
@@ -152,7 +152,7 @@ internal sealed class ConPtySession : ITerminalProcess
         }
     }
 
-    public async IAsyncEnumerable<ReadOnlyMemory<byte>> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<TerminalChunk> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref reading, 1) != 0) throw new InvalidOperationException("A terminal session has a single reader.");
         await foreach (var chunk in chunks.Reader.ReadAllAsync(cancellationToken)) yield return chunk;
