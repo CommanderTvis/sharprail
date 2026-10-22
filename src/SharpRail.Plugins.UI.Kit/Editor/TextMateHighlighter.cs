@@ -112,7 +112,9 @@ internal sealed class TextMateHighlighter
         TokenizedLines++;
         var styles = new byte[Encoding.UTF8.GetByteCount(line)];
         if (line.Length > 16_384) return new(line, state, null, styles);
-        var result = grammar!.TokenizeLine(line, state!, TimeSpan.FromMilliseconds(50));
+        // No time limit: a line stopped early returns the mid-line rule stack (e.g. still inside a string), which then mis-scopes every later line and
+        // makes cached styles depend on machine load. The 16 KiB line cap above bounds the work instead.
+        var result = grammar!.TokenizeLine(line, state!, TimeSpan.MaxValue);
         foreach (var token in result.Tokens)
         {
             var start = Math.Clamp(token.StartIndex, 0, line.Length);

@@ -43,6 +43,7 @@ internal static class SyntaxHighlightChecks
     {
         Task.Run(Grammars).GetAwaiter().GetResult();
         Task.Run(IncrementalTokenizing).GetAwaiter().GetResult();
+        Task.Run(TomlIncremental).GetAwaiter().GetResult();
         if (OperatingSystem.IsMacOS()) { Editor(); Typing(); Documents(); Diffs(); SingleSidedDiffs(); Settings(); }
         Console.WriteLine("PASS TextMate language coverage, edits, Unicode, lifecycle, themes and diffs");
     }
@@ -281,6 +282,36 @@ internal static class SyntaxHighlightChecks
             Console.WriteLine($"Keystroke {(edit == "\n" ? "newline" : edit)} on 5000 lines: {tokenized} lines tokenized, {elapsed.TotalMilliseconds:F1} ms");
             if (edit != "/*") Require(tokenized <= 3, $"Inserting {edit.Trim()} retokenized {tokenized} lines instead of the edited ones.");
             highlighter.Highlight(text, "a.cs", null, CancellationToken.None);
+        }
+    }
+
+    // The repository's own mise.toml tokenizes identically fresh, while opened line by line and after edits; digits inside strings stay strings.
+    private static void TomlIncremental()
+    {
+        var text = File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "mise.toml")).ReplaceLineEndings("\n") +
+            "\nrun = \"echo 'Windows packages are built on Windows.' >&2; exit 1\"\npath = \".tools\\\\dotnet\\\\dotnet.exe\"\n" +
+            "env = { RestoreLockedMode = \"false\" }\nlist = [\"<x64|arm64>\", \"a \u2013 b \u2014 c\"]\nafter = 7\n";
+        var fresh = new TextMateHighlighter().Highlight(text, "mise.toml", null, default);
+        var exit = text.IndexOf(">&2; exit 1", StringComparison.Ordinal);
+        foreach (var digit in new[] { exit + 3, exit + 10 })
+            Require(fresh[Encoding.UTF8.GetByteCount(text.AsSpan(0, digit))] == Role("string"), "A digit inside a TOML basic string left the string.");
+        var after = Encoding.UTF8.GetByteCount(text.AsSpan(0, text.LastIndexOf("after = 7", StringComparison.Ordinal)));
+        Require(fresh[after] == Role("property") && fresh[after + 8] == Role("number"), "TOML state after strings with quotes and escapes drifted.");
+        var highlighter = new TextMateHighlighter();
+        var lines = text.Split('\n');
+        for (var count = 1; count <= lines.Length; count++)
+        {
+            var prefix = string.Join('\n', lines.Take(count));
+            Require(highlighter.Highlight(prefix, "mise.toml", null, default).SequenceEqual(new TextMateHighlighter().Highlight(prefix, "mise.toml", null, default)),
+                $"Incremental TOML tokenizing diverges from a fresh pass at line {count}.");
+        }
+        var middle = text.IndexOf(">&2", StringComparison.Ordinal);
+        foreach (var edit in new[] { "x", "\n", "\"", "'" })
+        {
+            var edited = text.Insert(middle, edit);
+            Require(highlighter.Highlight(edited, "mise.toml", null, default).SequenceEqual(new TextMateHighlighter().Highlight(edited, "mise.toml", null, default)),
+                $"Incremental TOML tokenizing after inserting {edit.Trim()} differs from a fresh pass.");
+            Require(highlighter.Highlight(text, "mise.toml", null, default).SequenceEqual(fresh), "Undoing a TOML edit did not restore the fresh styles.");
         }
     }
 

@@ -338,6 +338,10 @@ text and incoming/outgoing tokenizer state, so unchanged lines with unchanged in
 state reuse their tokens; lines shifted by an inserted or deleted line are matched at their
 shifted index, so an edit retokenizes from the edited line until the state converges (`--syntax`
 reports lines tokenized per keystroke on 5000 lines: one for a character, two for a newline).
+Lines tokenize without a time limit (lines over 16 384 characters stay plain): a line stopped early
+would hand its mid-line state, such as still inside a string, to every later line and make styles
+depend on machine load. `--syntax` checks the repository's `mise.toml` opened line by line and
+after edits against fresh passes, with digits inside basic strings staying strings.
 Edits coalesce for 60 ms, superseded requests cancel, and
 results apply only to the still-attached document version, in one styling pass without clearing.
 Colours never blink off while typing: typed bytes take the neighbouring token's style
