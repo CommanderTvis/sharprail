@@ -121,16 +121,18 @@ internal static class NativeTerminalChecks
         await Until(() => (shown = window.GetVisualDescendants().OfType<Button>().SingleOrDefault(item => item.Name == "Tab_" + tab.Id.Replace(':', '_'))) is not null);
         ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(shown!)!).Select();
         await Until(() => Native.Focused(original));
-        await Until(() => Native.Background(original) == 0x18181b);
+        // The terminal takes the theme's sidebar colour (the container-terminal-bg role), not the content colour.
+        static uint TerminalBackground(string name) => SharpRail.UI.Rendering.Themes.Resolve(name)["sidebar"].ToUInt32() & 0xffffff;
+        await Until(() => Native.Background(original) == TerminalBackground("dark"));
         Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("light"));
-        await Until(() => Native.Background(original) == 0xf4f4f5);
+        await Until(() => Native.Background(original) == TerminalBackground("light"));
         foreach (var theme in SharpRail.UI.Rendering.Themes.All)
         {
             Ui.Apply(theme);
-            await Until(() => Native.Background(original) == (theme["content"].ToUInt32() & 0xffffff));
+            await Until(() => Native.Background(original) == (theme["sidebar"].ToUInt32() & 0xffffff));
         }
         Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("dark"));
-        await Until(() => Native.Background(original) == 0x18181b);
+        await Until(() => Native.Background(original) == TerminalBackground("dark"));
         await Type(original, "printf 'TAB_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(original).Contains("TAB_KEYBOARD_OK", StringComparison.Ordinal));
         for (var format = 1; format <= 2; format++)
@@ -183,14 +185,19 @@ internal static class NativeTerminalChecks
         Native.Input(original, "printf '\\nNATIVE_PID_%s\\n' \"$$\"\r");
         await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(original), @"NATIVE_PID_\d+"));
         var processId = int.Parse(System.Text.RegularExpressions.Regex.Match(Read(original), @"NATIVE_PID_(\d+)").Groups[1].Value);
-        var side = window.Layout.State.Groups.First(group => group.Region == "left").Id;
-        if (!window.Layout.Move(tab.Id, center, side, 0)) throw new InvalidOperationException("Terminal move refused.");
+        // Terminals never share a pane with tools, so the terminal moves into a new pane beside the left tools.
+        var tools = window.Layout.State.Groups.First(group => group.Region == "left").Id;
+        if (!window.Layout.Move(tab.Id, center, tools, 0, "after")) throw new InvalidOperationException("Terminal move refused.");
+        var side = window.Layout.State.Groups.Single(group => window.Layout.Tabs(group.Id).Any(item => item.Id == tab.Id)).Id;
         await Until(() => window.GetVisualDescendants().Contains(host));
         if (host! != original) throw new InvalidOperationException("Moving a tab replaced the shell.");
         window.Layout.Fold(side);
         await Task.Delay(150);
         window.Layout.Fold(side);
         await Until(() => window.GetVisualDescendants().Contains(host));
+        // Folding the pane moved focus out of it; focus the restored terminal as selecting its tab would.
+        original.FindAncestorOfType<TerminalView>()!.FocusTerminal();
+        await Until(() => Native.Focused(original));
         Native.Input(original, "printf '\\nRETAINED_%s\\n' \"$SHARPRAIL_SESSION\"\r");
         await Until(() => Read(original).Contains("RETAINED_original", StringComparison.Ordinal));
         var other = Path.Combine(root, "other"); Directory.CreateDirectory(other);
@@ -238,10 +245,15 @@ internal static class NativeTerminalChecks
             Native.Activate(view);
             await Until(() => Native.Ready(view));
             await Task.Delay(1000);
+            window.GetVisualDescendants().OfType<TerminalView>().Single().FocusTerminal();
+            await Until(() => Native.Focused(view));
             return view;
         }
         var first = Open();
         first.Show();
+        // A new workspace opens without a terminal; the reopened window below restores this one from its profile.
+        await Until(() => first.WorkspaceMounted);
+        first.Layout.NewTerminal(first.Layout.State.Center.Leaves().First());
         var view = await Surface(first);
         Native.Input(view, "export TR_RELOAD=survived; printf 'LOCAL_PID_%s_\\n' \"$$\"\r");
         await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(view), @"LOCAL_PID_\d+_"));
@@ -307,6 +319,8 @@ internal static class NativeTerminalChecks
         try
         {
             await Until(() => window.WorkspaceMounted);
+            // A new workspace opens without a terminal.
+            window.Layout.NewTerminal(window.Layout.State.Center.Leaves().First());
             GhosttyTextureView? host = null;
             await Until(() => (host = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null && host.RetainedTextureCount != 0);
             var view = host!;
@@ -314,6 +328,8 @@ internal static class NativeTerminalChecks
             Native.Activate(view);
             await Until(() => Native.Ready(view));
             await Task.Delay(1000);
+            terminal.FocusTerminal();
+            await Until(() => Native.Focused(view));
             Native.Input(view, "printf 'REMOTE_%s_\\n' \"$(pwd -P)\"\r");
             await Until(() => Read(view).Contains("REMOTE_" + root + "_", StringComparison.Ordinal));
             Native.Input(view, "printf 'SIZE_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
