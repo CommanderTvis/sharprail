@@ -8,18 +8,25 @@ namespace SharpRail.Checks;
 /// </summary>
 internal sealed class MenuFillProbe
 {
-    private readonly ContextMenu menu;
+    private ContextMenu menu;
+    private readonly Control? owner;
     private readonly string label;
     private string? opened;
+    private ContextMenu? openedMenu;
 
-    private MenuFillProbe(ContextMenu menu, string label)
+    private MenuFillProbe(ContextMenu menu, Control? owner, string label)
     {
         this.menu = menu;
+        this.owner = owner;
         this.label = label;
         menu.Opened += Record;
+        if (owner is not null) owner.PropertyChanged += Reassigned;
     }
 
-    internal static MenuFillProbe Watch(ContextMenu menu, string label) => new(menu, label);
+    internal static MenuFillProbe Watch(ContextMenu menu, string label) => new(menu, null, label);
+
+    /// <summary>Watches whichever menu <paramref name="owner"/> holds: a rebuilt view may hand it a fresh one while it fills.</summary>
+    internal static MenuFillProbe Watch(Control owner, string label) => new(owner.ContextMenu!, owner, label);
 
     /// <summary>The items of a menu, nested ones included, as one comparable string.</summary>
     internal static string Snapshot(ItemCollection items) => string.Join("|", items.Select(item => item switch
@@ -33,13 +40,23 @@ internal sealed class MenuFillProbe
     internal void RequireOpenedFilled()
     {
         menu.Opened -= Record;
+        if (owner is not null) owner.PropertyChanged -= Reassigned;
         var now = Snapshot(menu.Items);
         if (opened is null) throw new InvalidOperationException($"The {label} never opened.");
+        if (!ReferenceEquals(openedMenu, menu)) throw new InvalidOperationException($"The {label} opened a menu its button no longer holds.");
         if (opened != now)
             throw new InvalidOperationException($"The {label} opened with [{opened}] and changed to [{now}] afterwards, so its native popup clipped them.");
     }
 
-    private void Record(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => opened = Snapshot(menu.Items);
+    private void Record(object? sender, Avalonia.Interactivity.RoutedEventArgs e) { openedMenu = menu; opened = Snapshot(menu.Items); }
+
+    private void Reassigned(object? sender, Avalonia.AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property != Control.ContextMenuProperty || e.NewValue is not ContextMenu next || ReferenceEquals(next, menu)) return;
+        menu.Opened -= Record;
+        menu = next;
+        menu.Opened += Record;
+    }
 
     private static string Header(object? header) => header switch
     {

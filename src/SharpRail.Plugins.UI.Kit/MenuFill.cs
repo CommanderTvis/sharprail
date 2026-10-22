@@ -54,6 +54,13 @@ public static class MenuFill
                 if (!Current()) return;
                 failed?.Invoke(error);
             }
+            // A rebuilt view handed the holder a fresh filled menu while this one filled: the request opens that one instead.
+            if (holder.ContextMenu is { } replacement && !ReferenceEquals(replacement, menu) && Requests.TryGetValue(replacement, out var forward) &&
+                Holders.TryGetValue(replacement, out var replacementHolder) && ReferenceEquals(replacementHolder, holder))
+            {
+                forward(holder);
+                return;
+            }
             if (menu.Items.Count == 0 || menu.IsOpen) return;
             ready = true;
             try { menu.Open(holder); }

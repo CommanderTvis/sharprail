@@ -138,9 +138,9 @@ internal static class ChangeActionChecks
         probe.RequireOpenedFilled();
         CloseMenu(app.Find<Button>("ChangesScope"));
         IsolatedGit.Run(worktree, "branch", "menu-fill-probe");
-        probe = MenuFillProbe.Watch(app.Find<Button>("ChangesBranch").ContextMenu!, "Changes comparison branch menu");
+        probe = MenuFillProbe.Watch(app.Find<Button>("ChangesBranch"), "Changes comparison branch menu");
         OpenMenu(app, "ChangesBranch");
-        Until(() => HasMenuItem(app, "ChangesBranch", item => Equals(item.Tag, "menu-fill-probe")));
+        Until(() => HasMenuItem(app, "ChangesBranch", item => Equals(item.Tag, "menu-fill-probe")) && app.Find<Button>("ChangesBranch").ContextMenu!.IsOpen);
         probe.RequireOpenedFilled();
         CloseMenu(app.Find<Button>("ChangesBranch"));
 
