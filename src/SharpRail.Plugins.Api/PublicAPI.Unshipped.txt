@@ -424,3 +424,30 @@ override SharpRail.Plugins.Api.AgentGovernedAccount.GetHashCode() -> int
 override SharpRail.Plugins.Api.AgentGovernedAccount.ToString() -> string!
 static SharpRail.Plugins.Api.AgentGovernedAccount.operator !=(SharpRail.Plugins.Api.AgentGovernedAccount? left, SharpRail.Plugins.Api.AgentGovernedAccount? right) -> bool
 static SharpRail.Plugins.Api.AgentGovernedAccount.operator ==(SharpRail.Plugins.Api.AgentGovernedAccount? left, SharpRail.Plugins.Api.AgentGovernedAccount? right) -> bool
+SharpRail.Plugins.Api.PluginManifest.Category.get -> string?
+SharpRail.Plugins.Api.PluginManifest.Category.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Category.get -> string?
+SharpRail.Plugins.Api.PluginRosterEntry.Category.init -> void
+SharpRail.Plugins.Api.PluginCategories
+const SharpRail.Plugins.Api.PluginCategories.AiAssistants = "AI Assistants" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Documents = "Specs & Documents" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Environment = "Environment" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Integrations = "Integrations" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Cpp = "C & C++" -> string!
+const SharpRail.Plugins.Api.PluginCategories.CSharp = "C#" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Css = "CSS" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Dart = "Dart" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Go = "Go" -> string!
+const SharpRail.Plugins.Api.PluginCategories.JavaScript = "JavaScript & TypeScript" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Jvm = "JVM" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Php = "PHP" -> string!
+const SharpRail.Plugins.Api.PluginCategories.PowerShell = "PowerShell" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Python = "Python" -> string!
+const SharpRail.Plugins.Api.PluginCategories.R = "R" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Ruby = "Ruby" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Rust = "Rust" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Shell = "Shell" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Swift = "Swift" -> string!
+const SharpRail.Plugins.Api.PluginCategories.Other = "Other" -> string!
+const SharpRail.Plugins.Api.PluginCategories.VersionControl = "Version Control" -> string!
+static SharpRail.Plugins.Api.PluginCategories.Order.get -> System.Collections.Generic.IReadOnlyList<string!>!

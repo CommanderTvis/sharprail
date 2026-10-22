@@ -41,6 +41,7 @@ public static class AirContextContract
 
     public static readonly PluginManifest Manifest = new(Id, "Air Context", "asset:air.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.AiAssistants,
         Description = "Semantic code search through JetBrains Air Context; indexing is cloud processing that you enable per project.",
         EnabledByDefault = false,
         Assets = "assets",

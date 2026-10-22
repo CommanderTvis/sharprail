@@ -361,6 +361,18 @@ internal static class PluginUiChecks
         var refusedRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("__refused:broken")!;
         Require(Texts(refusedRow).Contains("999", StringComparison.Ordinal) && Texts(refusedRow).Contains("expects 1", StringComparison.Ordinal),
             "A refused row names the plugin's generation and the host's: " + Texts(refusedRow));
+
+        // Plugins are grouped under category headings: builtin categories in their fixed order, plugins without one under Other last,
+        // and a language server beside the plugin that activates the same language's environments.
+        var names = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Listing().ToList();
+        var headings = names.Where(name => name.StartsWith("PluginCategory_", StringComparison.Ordinal)).Select(name => name["PluginCategory_".Length..]).ToArray();
+        Require(headings.SequenceEqual(["C & C++", "C#", "CSS", "Dart", "Go", "JavaScript & TypeScript", "JVM", "PHP", "PowerShell", "Python", "R", "Ruby", "Rust", "Shell", "Swift", "Environment", "AI Assistants", "Version Control", "Specs & Documents", "Integrations", "Other"]),
+            "Plugins are grouped by category, languages first, then tool groups, with Other last: " + string.Join(", ", headings));
+        int At(string name) => names.IndexOf(name);
+        Require(At("PluginCategory_Python") < At("PluginRow_lsp-python") && At("PluginRow_lsp-python") < At("PluginRow_env-python") && At("PluginRow_env-python") < At("PluginCategory_R"),
+            "The Python language server and the Python environment plugin share the Python group: " + string.Join(", ", names.Take(40)));
+        Require(At("PluginCategory_Other") < At("PluginRow_fixture") && At("PluginRow_fixture") > 0, "A plugin with no category is listed under Other.");
+        Require(loader.Registry.Roster.Where(entry => entry.Origin == PluginOrigin.Builtin).All(entry => entry.Category is { Length: > 0 }), "Every builtin plugin declares a category.");
         settings.Close();
 
         // A tool of a disabled plugin has no tab, strip entry or placeholder until the plugin is on.

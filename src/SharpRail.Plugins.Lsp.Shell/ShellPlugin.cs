@@ -12,6 +12,7 @@ public sealed class ShellPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Shell (Bash LS)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Shell,
         Description = "Provides the Shell (Bash LS) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

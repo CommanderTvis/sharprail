@@ -12,6 +12,7 @@ public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "C / C++ (clangd)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Cpp,
         Description = "Provides the C / C++ (clangd) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

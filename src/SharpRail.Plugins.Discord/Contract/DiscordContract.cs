@@ -56,6 +56,7 @@ public static class DiscordPlugin
 
     public static readonly PluginManifest Manifest = new(Id, "Discord", "discord", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Integrations,
         Description = "Shows what you're working on as Discord Rich Presence.",
         EnabledByDefault = false,
         Assets = "assets",

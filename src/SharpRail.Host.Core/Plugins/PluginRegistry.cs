@@ -24,6 +24,8 @@ internal sealed class ActivationTables(long id)
     public Func<PluginHttpRequest, CancellationToken, ValueTask<PluginHttpResponse>>? Route { get; set; }
     public ImmutableList<PluginToolDefinition> Tools { get; set; } = [];
     public ImmutableList<Func<TerminalRef, IReadOnlyDictionary<string, string>>> Environment { get; set; } = [];
+    public ImmutableList<EnvironmentProvider> EnvironmentProviders { get; set; } = [];
+    public ImmutableList<Action<string, IReadOnlyList<WorkspaceEnvironmentFact>>> EnvironmentObservers { get; set; } = [];
     public ImmutableList<Func<string, IReadOnlyList<string>>> ExternalFiles { get; set; } = [];
     public ImmutableList<Action<TerminalEvent>> TerminalObservers { get; set; } = [];
     public ImmutableList<Func<string, AgentLaunchContribution?>> LaunchContributors { get; set; } = [];
@@ -82,6 +84,7 @@ internal sealed class PluginEntry(PluginManifest manifest, PluginOrigin origin)
     public PluginRosterEntry Roster() => new(Id, Manifest.Label, Manifest.Icon, Manifest.Version, WireVersion, Origin, State)
     {
         Description = Manifest.Description,
+        Category = Manifest.Category,
         Reason = Reason,
         DependsOn = Manifest.DependsOn.Select(dependency => dependency.Id).ToArray(),
         Contributes = Manifest.Contributes,

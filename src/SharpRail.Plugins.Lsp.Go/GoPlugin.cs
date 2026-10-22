@@ -14,6 +14,7 @@ public sealed class GoPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Go (gopls)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Go,
         Description = "Provides the Go (gopls) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

@@ -14,6 +14,7 @@ public sealed class ScalaPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Scala (Metals)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Jvm,
         Description = "Provides the Scala (Metals) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

@@ -680,3 +680,29 @@ SharpRail.Plugins.Api.Host.LanguageServerDependency.Name.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerDependency
 static SharpRail.Plugins.Api.Host.LanguageServerDependency.operator !=(SharpRail.Plugins.Api.Host.LanguageServerDependency? left, SharpRail.Plugins.Api.Host.LanguageServerDependency? right) -> bool
 static SharpRail.Plugins.Api.Host.LanguageServerDependency.operator ==(SharpRail.Plugins.Api.Host.LanguageServerDependency? left, SharpRail.Plugins.Api.Host.LanguageServerDependency? right) -> bool
+SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspaceEnvironment(int order, System.Func<SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! provider) -> void
+SharpRail.Plugins.Api.Host.EnvironmentToolResult
+SharpRail.Plugins.Api.Host.EnvironmentToolResult.EnvironmentToolResult(int? exitCode, string! output, string! error) -> void
+SharpRail.Plugins.Api.Host.EnvironmentToolResult.Error.get -> string!
+SharpRail.Plugins.Api.Host.EnvironmentToolResult.ExitCode.get -> int?
+SharpRail.Plugins.Api.Host.EnvironmentToolResult.Output.get -> string!
+SharpRail.Plugins.Api.Host.EnvironmentToolResult.Succeeded.get -> bool
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.DefaultDirectory.get -> string?
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.Directory.get -> string!
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.Edited(string! name) -> bool
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.Find(string! program) -> string?
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.Get(string! name) -> string?
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.Log.get -> SharpRail.Plugins.Api.Host.IPluginLogger!
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.MatchesDefault(System.Collections.Generic.IReadOnlyList<string!>! files) -> bool
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.PrependPath(string! directory) -> void
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.RunAsync(string! program, System.Collections.Generic.IReadOnlyList<string!>! arguments, string? directory, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.EnvironmentToolResult!>
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.Set(string! name, string? value) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.OnWorkspaceEnvironment(System.Action<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact!>!>! handler) -> void
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.Report(string! label, string? detail = null) -> void
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit.ShellInit(string! shell, string! script) -> void
+SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact
+SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.Detail.get -> string?
+SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.Label.get -> string!
+SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.PluginId.get -> string!
+SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.WorkspaceEnvironmentFact(string! pluginId, string! label, string? detail) -> void

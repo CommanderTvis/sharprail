@@ -88,6 +88,12 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
     public void TerminalEnvironment(Func<TerminalRef, IReadOnlyDictionary<string, string>> contributor) =>
         Register(table => table.Environment = table.Environment.Add(contributor));
 
+    public void WorkspaceEnvironment(int order, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> provider) =>
+        Register(table => table.EnvironmentProviders = table.EnvironmentProviders.Add(new(Id, order, provider)));
+
+    public void OnWorkspaceEnvironment(Action<string, IReadOnlyList<WorkspaceEnvironmentFact>> handler) =>
+        Register(table => table.EnvironmentObservers = table.EnvironmentObservers.Add(handler));
+
     public void AgentLaunch(Func<string, AgentLaunchContribution?> contributor) => Register(table => table.LaunchContributors = table.LaunchContributors.Add(contributor));
 
     public IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId) => runtime.LaunchContributions(agentId);

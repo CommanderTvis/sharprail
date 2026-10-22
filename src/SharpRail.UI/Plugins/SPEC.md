@@ -194,8 +194,11 @@ and roster registration still precede reconciliation, preserving dormant tools a
 with icon, label, version (external plugins only; a builtin's version is the app's), origin, status, a reason
 line for failed and refused rows, a contribution summary, a switch, Retry on failed rows
 (`IPluginService.RetryAsync`), a Rescan button (`RescanAsync`), and an editor for the extra plugin roots (add
-and remove, each change a `plugin-paths` host change). Each row is its own control keyed by plugin id, and a
-roster change updates rows in place.
+and remove, each change a `plugin-paths` host change). Rows sit under one heading per manifest
+category (`PluginCategories.Order` first: the languages alphabetically, then the tool groups; other names alphabetically;
+`Other` for plugins without one, last), by label inside a group, so a language's server and its environment plugin are
+neighbours. Each row is its
+own control keyed by plugin id, and a roster change updates rows and headings in place.
 
 Enabling and disabling walk the roster's `DependsOn` edges rather than touching one row:
 

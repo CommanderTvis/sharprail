@@ -22,6 +22,13 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
     /// <summary>One sentence on what the plugin does, shown under its label in Settings.</summary>
     public string? Description { get; init; }
 
+    /// <summary>
+    /// The group Settings › Plugins lists the plugin under, such as <see cref="PluginCategories.Python"/>: plugins of
+    /// one language share a category (its language server and the plugin that activates its environments belong together). Any other name makes its own group, and a plugin without one is listed under
+    /// <see cref="PluginCategories.Other"/>.
+    /// </summary>
+    public string? Category { get; init; }
+
     /// <summary>Honoured for a builtin plugin; an external plugin always arrives disabled regardless of this value.</summary>
     public bool EnabledByDefault { get; init; }
 

@@ -12,6 +12,7 @@ public sealed class DartPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Dart (Analysis Server)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Dart,
         Description = "Provides the Dart (Analysis Server) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

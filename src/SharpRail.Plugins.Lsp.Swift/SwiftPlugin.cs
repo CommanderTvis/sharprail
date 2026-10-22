@@ -12,6 +12,7 @@ public sealed class SwiftPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Swift (SourceKit-LS)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Swift,
         Description = "Provides the Swift (SourceKit-LS) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

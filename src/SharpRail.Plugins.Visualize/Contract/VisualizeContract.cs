@@ -46,6 +46,7 @@ public static class VisualizeContract
 
     public static readonly PluginManifest Manifest = new(Id, "Visualize", "bar-chart-box-line", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Documents,
         Description = "Gives the terminal agent a live drawing surface.",
         EnabledByDefault = true,
         Host = "SharpRail.Plugins.Visualize.Host.dll",

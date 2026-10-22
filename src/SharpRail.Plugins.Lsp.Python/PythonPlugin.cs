@@ -12,6 +12,7 @@ public sealed class PythonPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Python (Pyright)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Python,
         Description = "Provides the Python (Pyright) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

@@ -39,6 +39,18 @@ using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.Host;
 using SharpRail.Plugins.Visualize;
 using SharpRail.Plugins.Visualize.Host;
+using SharpRail.Plugins.EnvChips;
+using SharpRail.Plugins.EnvChips.Host;
+using SharpRail.Plugins.EnvMise;
+using SharpRail.Plugins.EnvMise.Host;
+using SharpRail.Plugins.EnvDirenv;
+using SharpRail.Plugins.EnvDirenv.Host;
+using SharpRail.Plugins.EnvPython;
+using SharpRail.Plugins.EnvPython.Host;
+using SharpRail.Plugins.EnvJvm;
+using SharpRail.Plugins.EnvJvm.Host;
+using SharpRail.Plugins.EnvJavaScript;
+using SharpRail.Plugins.EnvJavaScript.Host;
 
 namespace SharpRail.Host.Core.Plugins;
 
@@ -110,6 +122,12 @@ public static class BuiltinPlugins
         (AirContextContract.Manifest, new AirContextHost()),
         (TailscaleContract.Manifest, new TailscaleHost(tailscale)),
         (EpubContract.Manifest, new EpubHost()),
+        (EnvMiseContract.Manifest, new EnvMiseHost()),
+        (EnvChipsContract.Manifest, new EnvChipsHost()),
+        (EnvDirenvContract.Manifest, new EnvDirenvHost()),
+        (EnvPythonContract.Manifest, new EnvPythonHost()),
+        (EnvJavaScriptContract.Manifest, new EnvJavaScriptHost()),
+        (EnvJvmContract.Manifest, new EnvJvmHost()),
         .. LanguageServerEntries
     ];
 }

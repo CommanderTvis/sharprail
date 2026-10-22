@@ -10,6 +10,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Java / Kotlin (IntelliJ)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Jvm,
         Description = "Provides the Java / Kotlin (IntelliJ) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

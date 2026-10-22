@@ -137,6 +137,15 @@ including draining output while closing the pseudoconsole.
   session id from, so a tab nobody attached this run still maps to its session.
 - Tokens are per session id and stable: `Token(TerminalRef)` mints or returns one, also for a tab with no
   shell yet, and `ForToken` and `McpOwner` resolve it. Closing the session forgets it.
+- Before a shell starts for a known tab with none running, `EnvironmentPreparer` is awaited outside the service's
+  lock; the plugin runtime resolves the workspace environment there (see `Plugins.SPEC.md`) and the synchronous
+  `EnvironmentContributor` only reads the result.
+- Shell integration (`ShellIntegration.cs`): when the resolved environment carries a script for the shell being started
+  (`SHARPRAIL_SHELL_INIT_<SHELL>`, from mise's and direnv's steps), zsh is pointed at shim start-up files through
+  `ZDOTDIR` that source the user's own `.zshenv`, `.zprofile` and `.zshrc` and then run the script (giving `ZDOTDIR` back,
+  unset when the user had none), and fish gets a vendor snippet through `XDG_DATA_DIRS` that runs it before the user's
+  `config.fish`. No dotfile is edited and the shell is started as before. Other shells get the resolved variables at start
+  only. The shim files live under the state directory's `shell-integration` and are rewritten when stale.
 - When a shell starts for a known tab, `EnvironmentContributor` adds variables after core's own (never
   `SHARPRAIL_TOKEN`), `RevivePrefill` may hand the creating attachment a `TerminalPrefill`, and `Lifecycle`
   hears `TerminalSpawned` with the shell's pid and later `TerminalExited`. Closing a session calls

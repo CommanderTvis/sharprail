@@ -753,6 +753,11 @@ internal static class Program
             Console.WriteLine("PASS PDF Preview checks");
             return;
         }
+        if (args.SequenceEqual(["--environment"]))
+        {
+            EnvironmentChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--epub"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -1171,6 +1176,7 @@ internal static class Program
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
         Gate.Case("epub-reader", () => EpubChecks.Run(root));
+        Gate.Case("environment", () => EnvironmentChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("BranchGraphChecks-RunUi", () => BranchGraphChecks.RunUi(root));
         Gate.Case("FileIconsChecks-UiChecks", () => FileIconsChecks.UiChecks(root));
         Gate.Case("codex-ui", () => E2E.CodexE2E.Run(root));

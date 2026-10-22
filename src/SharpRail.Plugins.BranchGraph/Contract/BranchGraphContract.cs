@@ -33,6 +33,7 @@ public static class BranchGraphPlugin
 
     public static readonly PluginManifest Manifest = new(Id, "Git Graph", "git-branch", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.VersionControl,
         Description = "Shows the project's branch graph as a side tool.",
         EnabledByDefault = true,
         Host = "SharpRail.Plugins.BranchGraph.Host.dll",

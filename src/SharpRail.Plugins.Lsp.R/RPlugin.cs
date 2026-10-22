@@ -12,6 +12,7 @@ public sealed class RPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "R (languageserver)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.R,
         Description = "Provides the R (languageserver) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

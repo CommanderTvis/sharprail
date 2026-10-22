@@ -40,6 +40,7 @@ public static class SpecDialectManifest
 
     public static readonly PluginManifest Manifest = new(SpecDialectContract.Id, "Specs", "book-open", "0.1.0", PluginApi.Generation, SpecDialectContract.WireVersion)
     {
+        Category = PluginCategories.Documents,
         Description = "Reads the project's spec graph and shows it in a Specs panel.",
         EnabledByDefault = true,
         Host = "SharpRail.Plugins.SpecDialect.Host.dll",

@@ -55,6 +55,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         if (Seams.Terminals is { } terminals)
         {
             terminals.EnvironmentContributor = Environment;
+            terminals.EnvironmentPreparer = PrepareEnvironment;
             terminals.Lifecycle = OnTerminal;
             terminals.RevivePrefill = Prefill;
             terminals.SessionClosed = OnSessionClosed;
@@ -867,6 +868,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     private IReadOnlyDictionary<string, string> Environment(TerminalRef terminal)
     {
         var variables = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (name, value) in Resolutions.Contribution(terminal.WorkspaceId)) variables[name] = value;
         foreach (var (entry, tables) in Active())
             foreach (var contributor in tables.Environment)
                 Guard(entry.Id, () =>
@@ -947,6 +949,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         if (Seams.Terminals is { } terminals)
         {
             terminals.EnvironmentContributor = null;
+            terminals.EnvironmentPreparer = null;
             terminals.Lifecycle = null;
             terminals.RevivePrefill = null;
             terminals.SessionClosed = null;

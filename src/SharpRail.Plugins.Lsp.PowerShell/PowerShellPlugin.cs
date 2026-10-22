@@ -12,6 +12,7 @@ public sealed class PowerShellPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "PowerShell (Editor Services)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.PowerShell,
         Description = "Provides the PowerShell (Editor Services) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

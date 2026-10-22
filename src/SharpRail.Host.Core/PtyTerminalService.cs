@@ -41,6 +41,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     public string? McpEndpoint { get; set; }
 
     public Func<TerminalRef, IReadOnlyDictionary<string, string>>? EnvironmentContributor { get; set; }
+    public Func<TerminalRef, CancellationToken, ValueTask>? EnvironmentPreparer { get; set; }
     public Action<TerminalEvent>? Lifecycle { get; set; }
     public Func<TerminalRef, TerminalPrefill?>? RevivePrefill { get; set; }
     internal Func<string, CancellationToken, ValueTask>? PrepareRevival { get; set; }
@@ -137,6 +138,14 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         ITerminalProcess process;
         Attachment attachment;
         TerminalRef? terminal;
+        // A plugin resolves the shell's environment here, awaited and outside the lock, so the contributor only reads it.
+        if (EnvironmentPreparer is { } preparer)
+        {
+            TerminalRef? starting;
+            lock (gate) starting = sessions.ContainsKey(request.SessionId) ? null
+                : !string.IsNullOrEmpty(request.TabKey) ? new(directory, request.TabKey) : terminals.GetValueOrDefault(request.SessionId);
+            if (starting is not null) await preparer(starting, cancellationToken);
+        }
         // Lookup and start happen under one lock so concurrent attaches never start two shells for a session.
         lock (gate)
         {
@@ -377,7 +386,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         "CLAUDE_CODE_SSE_PORT", "CLAUDE_PID", "CLAUDE_EFFORT"
     ];
 
-    internal static string?[] ShellEnvironment(string? mcpUrl = null, IReadOnlyDictionary<string, string>? contributed = null)
+    internal static string?[] ShellEnvironment(string? mcpUrl = null, IReadOnlyDictionary<string, string>? contributed = null, string shell = "")
     {
         var variables = new SortedDictionary<string, string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
@@ -406,6 +415,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         // Plugin contributions come after core's own variables, and never re-expose the host's token.
         foreach (var (key, value) in contributed ?? new Dictionary<string, string>())
             if (key.Length > 0 && !key.Equals("SHARPRAIL_TOKEN", OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) && !key.Contains('=') && !key.Contains('\0') && !value.Contains('\0')) variables[key] = value;
+        ShellIntegration.Apply(variables, shell);
         return [.. variables.Select(pair => pair.Key + "=" + pair.Value), null];
     }
 }
@@ -462,7 +472,7 @@ internal sealed class PtySession : ITerminalProcess
             slave = Posix.Open(device, Posix.ORdwr | Posix.ONoctty);
             if (slave < 0) throw new IOException("Couldn't open the pseudo-terminal: " + Posix.LastError());
             Posix.SetWindowSize(master, columns, rows);
-            var pid = Spawn(shell, directory, device, PtyTerminalService.ShellEnvironment(mcpUrl, contributed));
+            var pid = Spawn(shell, directory, device, PtyTerminalService.ShellEnvironment(mcpUrl, contributed, shell));
             return new PtySession(id, master, slave, pid);
         }
         catch

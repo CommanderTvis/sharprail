@@ -57,6 +57,7 @@ public sealed class PluginRosterMessage
     [ProtoMember(13)] public List<PluginChannelMessage> Channels { get; set; } = [];
     [ProtoMember(14)] public string Ui { get; set; } = "";
     [ProtoMember(15)] public string Assets { get; set; } = "";
+    [ProtoMember(16)] public string Category { get; set; } = "";
 }
 
 [ProtoContract]

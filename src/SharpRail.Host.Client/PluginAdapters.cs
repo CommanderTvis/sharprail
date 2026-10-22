@@ -137,6 +137,7 @@ internal static class PluginWire
             Parse(entry.Origin, PluginOrigin.External), Parse(entry.Status, PluginStatus.Refused))
         {
             Description = Optional(entry.Description),
+            Category = Optional(entry.Category),
             Reason = Optional(entry.Reason),
             DependsOn = entry.DependsOn.ToArray(),
             Contributes = new()

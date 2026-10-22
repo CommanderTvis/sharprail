@@ -12,6 +12,7 @@ public sealed class PhpPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "PHP (Intelephense)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Php,
         Description = "Provides the PHP (Intelephense) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

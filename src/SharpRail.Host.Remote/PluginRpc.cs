@@ -71,6 +71,7 @@ internal static class PluginWire
         Id = entry.Id,
         Label = entry.Label,
         Description = entry.Description ?? "",
+        Category = entry.Category ?? "",
         Icon = entry.Icon,
         Version = entry.Version,
         WireVersion = entry.WireVersion,

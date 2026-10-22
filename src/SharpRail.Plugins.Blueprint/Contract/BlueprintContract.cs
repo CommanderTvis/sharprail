@@ -28,6 +28,7 @@ public static class BlueprintContract
         [Open, SetAuthor, Close, Get, Select, Edit, ConfirmEdits, DiscardEdits], [Changed]);
     public static readonly PluginManifest Manifest = new(Id, "Blueprint", "pencil-ruler-2", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Documents,
         Description = "Authors interactive Blueprint specs and reacts to their edits.",
         EnabledByDefault = true,
         DependsOn = [new("spec-dialect", 1)],

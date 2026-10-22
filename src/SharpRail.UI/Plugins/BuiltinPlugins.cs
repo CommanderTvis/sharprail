@@ -14,6 +14,8 @@ using SharpRail.Plugins.Codex;
 using SharpRail.Plugins.Codex.UI;
 using SharpRail.Plugins.Discord;
 using SharpRail.Plugins.Discord.UI;
+using SharpRail.Plugins.EnvChips;
+using SharpRail.Plugins.EnvChips.UI;
 using SharpRail.Plugins.Epub;
 using SharpRail.Plugins.Epub.UI;
 using SharpRail.Plugins.SpecDialect;
@@ -39,6 +41,7 @@ public static class BuiltinPlugins
         (AirGovernanceContract.Manifest, () => new AirGovernanceUI()),
         (AirContextContract.Manifest, () => new AirContextUI()),
         (TailscaleContract.Manifest, () => new TailscaleUI()),
-        (EpubContract.Manifest, () => new EpubUI())
+        (EpubContract.Manifest, () => new EpubUI()),
+        (EnvChipsContract.Manifest, () => new EnvChipsUI())
     ];
 }

@@ -12,6 +12,7 @@ public sealed class KotlinPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Kotlin (Kotlin LS)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Jvm,
         Description = "Provides the Kotlin (Kotlin LS) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

@@ -12,6 +12,7 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
 
     public static readonly PluginManifest Manifest = new(Id, "Java (Eclipse JDT)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Jvm,
         Description = "Provides the Java (Eclipse JDT) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

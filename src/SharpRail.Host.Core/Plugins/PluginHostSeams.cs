@@ -14,6 +14,8 @@ public interface IPluginTerminalSeams
     string? WorkspaceForProcess(int pid);
     /// <summary>Environment for a shell starting for a tab, after core's own variables.</summary>
     Func<TerminalRef, IReadOnlyDictionary<string, string>>? EnvironmentContributor { get; set; }
+    /// <summary>Awaited before a shell starts for a tab with none running, outside the terminal service's lock.</summary>
+    Func<TerminalRef, CancellationToken, ValueTask>? EnvironmentPreparer { get; set; }
     /// <summary>Spawn (with the shell's pid) and exit of a shell whose tab is known.</summary>
     Action<TerminalEvent>? Lifecycle { get; set; }
     /// <summary>Offered when a fresh shell starts for a tab; the prefill rides the creating attachment.</summary>

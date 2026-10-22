@@ -104,6 +104,7 @@ public static class AirGovernanceContract
 
     public static readonly PluginManifest Manifest = new(Id, "Air Governance", "asset:air-governance.svg", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.AiAssistants,
         Description = "Starts Codex and Claude Code through JetBrains Air governance with the Central CLI, per launch, or leaves them on their own accounts.",
         EnabledByDefault = false,
         Assets = "assets",

@@ -14,8 +14,8 @@ using SharpRail.UI.State;
 namespace SharpRail.UI.Panels;
 
 /// <summary>
-/// Settings › Plugins: one card per roster entry with its switch, Retry on a failed card, Rescan, and the extra plugin
-/// roots. The card list is virtualized; cards are keyed by plugin id and updated in place when the roster changes;
+/// Settings › Plugins: one card per roster entry, grouped under a heading per category, with its switch, Retry on a failed
+/// card, Rescan, and the extra plugin roots. The card list is virtualized; cards are keyed by plugin id and updated in place when the roster changes;
 /// nothing changes locally until the host's snapshot arrives.
 /// </summary>
 public sealed class PluginsSettings : StackPanel
@@ -79,28 +79,54 @@ public sealed class PluginsSettings : StackPanel
 
     /// <summary>
     /// Updates cards in place: each plugin keeps one model for the page's life and the list moves, adds or removes only
-    /// what changed, so a realized card keeps its control, focus, pointer and the scroll position.
+    /// what changed, so a realized card keeps its control, focus, pointer and the scroll position. Cards sit under one
+    /// heading per manifest category: <see cref="PluginCategories.Order"/> first, other names alphabetically, "Other" last,
+    /// and plugins by label inside each.
     /// </summary>
     public void Refresh()
     {
         var roster = state.Current.Plugins;
-        var ids = roster.Select(entry => entry.Id).ToHashSet(StringComparer.Ordinal);
-        for (var index = cards.Count - 1; index >= 0; index--)
-            if (!ids.Contains(cards[index].Entry.Id)) { models.Remove(cards[index].Entry.Id); cards.RemoveAt(index); }
-        for (var index = 0; index < roster.Count; index++)
+        var desired = new List<PluginCardModel>();
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var group in roster.GroupBy(Category).OrderBy(group => CategoryRank(group.Key)).ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
         {
-            var entry = roster[index];
-            var dependents = entry.Status != PluginStatus.Disabled ? PluginRegistry.ActiveDependents(entry.Id, roster).Select(id => Label(id, roster)).ToArray() : [];
-            var signature = System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" + string.Join(",", dependents);
-            if (models.TryGetValue(entry.Id, out var model)) model.Update(entry, dependents, signature);
-            else models[entry.Id] = model = new PluginCardModel(entry, dependents, signature);
-            var at = cards.IndexOf(model);
-            if (at < 0) cards.Insert(index, model);
-            else if (at != index) cards.Move(at, index);
+            var first = true;
+            foreach (var entry in group.OrderBy(entry => entry.Label, StringComparer.OrdinalIgnoreCase).ThenBy(entry => entry.Id, StringComparer.Ordinal))
+            {
+                ids.Add(entry.Id);
+                var heading = first ? group.Key : null;
+                first = false;
+                var dependents = entry.Status != PluginStatus.Disabled ? PluginRegistry.ActiveDependents(entry.Id, roster).Select(id => Label(id, roster)).ToArray() : [];
+                var signature = System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" + string.Join(",", dependents) + "\n" + heading;
+                if (models.TryGetValue(entry.Id, out var model)) model.Update(entry, dependents, signature, heading);
+                else models[entry.Id] = model = new PluginCardModel(entry, dependents, signature, heading);
+                desired.Add(model);
+            }
+        }
+        foreach (var id in models.Keys.Where(id => !ids.Contains(id)).ToArray()) models.Remove(id);
+        for (var index = cards.Count - 1; index >= 0; index--)
+            if (!ids.Contains(cards[index].Entry.Id)) cards.RemoveAt(index);
+        for (var index = 0; index < desired.Count; index++)
+        {
+            if (index < cards.Count && ReferenceEquals(cards[index], desired[index])) continue;
+            var at = cards.IndexOf(desired[index]);
+            if (at < 0) cards.Insert(index, desired[index]);
+            else cards.Move(at, index);
         }
         none.IsVisible = roster.Count == 0;
         RefreshPaths();
     }
+
+    private static string Category(PluginRosterEntry entry) => entry.Category is { Length: > 0 } category ? category.Trim() : PluginCategories.Other;
+
+    private static int CategoryRank(string category)
+    {
+        var index = PluginCategories.Order.ToList().IndexOf(category);
+        return index >= 0 ? index : category == PluginCategories.Other ? int.MaxValue : PluginCategories.Order.Count;
+    }
+
+    /// <summary>The list as shown, top to bottom: <c>PluginCategory_&lt;name&gt;</c> for a heading and <c>PluginRow_&lt;id&gt;</c> for a card.</summary>
+    internal IReadOnlyList<string> Listing() => [.. cards.SelectMany(model => model.Heading is { } heading ? new[] { "PluginCategory_" + heading, "PluginRow_" + model.Entry.Id } : ["PluginRow_" + model.Entry.Id])];
 
     /// <summary>The card showing <paramref name="id"/>, scrolled into view so the virtualized list realizes it; null when the roster has no such plugin.</summary>
     public Border? Card(string id)

@@ -60,6 +60,7 @@ public sealed partial class PluginRuntime
                 !events.Any(change => change is WorkspaceRemoved { Id: var id } && id == path) &&
                 await WorkspaceAsync(path, lifetime.Token) is { } workspace)
                 events.Add(new WorkspaceUpdated(workspace));
+        foreach (var change in events.OfType<WorkspaceCreated>()) WarmEnvironment(change.Workspace.Path);
         foreach (var (entry, tables) in Active())
         {
             lock (tables.Registration)

@@ -72,6 +72,7 @@ public interface IPluginHostContext
     /// <param name="contributor">Called with the spawning terminal; returns variables to add.</param>
     void TerminalEnvironment(Func<TerminalRef, IReadOnlyDictionary<string, string>> contributor);
 
+
     /// <summary>
     /// Contributes to the launch of another plugin's agent, such as a wrapper command, environment variables or extra
     /// arguments, applied wherever that plugin builds a command line on the host, such as a revive offer (H18).
@@ -220,6 +221,24 @@ public interface IPluginHostContext
     /// <param name="spec">The server.</param>
     /// <exception cref="ArgumentException">The id is malformed or already provided by an active plugin.</exception>
     void LanguageServer(LanguageServerSpec spec);
+
+    /// <summary>
+    /// Provides a step of every workspace's shell environment (H22). Before a shell starts for a tab with none running
+    /// the host runs the enabled plugins' steps in <paramref name="order"/> (ties by plugin id) on a pool thread, each
+    /// seeing what the earlier ones produced, and gives the shell the variables that differ from the host's own. The
+    /// host bounds the wait, shares a resolution already running for the workspace and keeps the last good result for
+    /// a shell that cannot wait. A step that throws is logged and skipped.
+    /// </summary>
+    /// <param name="order">Where the step runs among the others; lower runs first.</param>
+    /// <param name="provider">Edits the workspace's environment.</param>
+    void WorkspaceEnvironment(int order, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> provider);
+
+    /// <summary>
+    /// Observes every workspace environment resolution (H22): the workspace's root directory and what the enabled steps
+    /// reported through <see cref="IWorkspaceEnvironmentEdit.Report"/>, in step order. The list is empty when nothing applies.
+    /// </summary>
+    /// <param name="handler">Called on a pool thread after each resolution.</param>
+    void OnWorkspaceEnvironment(Action<string, IReadOnlyList<WorkspaceEnvironmentFact>> handler);
 
     /// <summary>
     /// Lists the texts the host and every enabled plugin contribute for one agent and placement (H20): the host's own

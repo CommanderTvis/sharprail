@@ -111,7 +111,7 @@ GHOSTTY_VT_COMMIT = "59c2dc032aba42aa5064bf206cc27286add3e9d8"
 GHOSTTY_VT_ZIG = "0.16.0"
 # Zig's global cache (fetched package sources, compiled helpers) is content-addressed and locks per entry, so
 # checkouts share one; the per-build caches stay beside each checkout's outputs.
-ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_TOOLS }}/zig-cache"
+ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_TOOLS | default(value=env.HOME ~ '/.sharprail/tools') }}/zig-cache"
 
 # ARTIFACT MATRIX (printed by `scripts/mise run targets`; the one place that says what ships where)
 #

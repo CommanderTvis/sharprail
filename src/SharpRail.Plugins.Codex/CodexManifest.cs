@@ -10,6 +10,7 @@ public static class CodexManifest
 
     public static readonly PluginManifest Manifest = new(Id, "Codex", Icon, "0.1.0", PluginApi.Generation, CodexContract.WireVersion)
     {
+        Category = PluginCategories.AiAssistants,
         Description = "Runs OpenAI Codex in the terminal with live status and SharpRail's MCP tools.",
         EnabledByDefault = false,
         Host = "SharpRail.Plugins.Codex.Host.dll",

@@ -39,6 +39,7 @@ public static class EpubContract
     public static readonly PluginContract Contract = PluginContract.Create<EpubSettings>(Id, 1, [Open, Resource], []);
     public static readonly PluginManifest Manifest = new(Id, "EPUB Reader", "book-line", "0.1.0", PluginApi.Generation, 1)
     {
+        Category = PluginCategories.Documents,
         Description = "Opens .epub books in a reader with a table of contents, scrolling and paginated modes, and search.",
         EnabledByDefault = false,
         Host = "SharpRail.Plugins.Epub.Host.dll",

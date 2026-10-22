@@ -212,6 +212,7 @@ internal static class BlueprintChecks
     {
         public List<(TerminalRef Terminal, string Text)> Writes { get; } = [];
         public Func<TerminalRef, IReadOnlyDictionary<string, string>>? EnvironmentContributor { get; set; }
+        public Func<TerminalRef, CancellationToken, ValueTask>? EnvironmentPreparer { get; set; }
         public Action<TerminalEvent>? Lifecycle { get; set; }
         public Func<TerminalRef, TerminalPrefill?>? RevivePrefill { get; set; }
         public Action<string, TerminalRef?>? SessionClosed { get; set; }
