@@ -6780,3 +6780,13 @@ appimagetool and the packaged gate (CI will).
 2026-10-22: Moved the remaining id-keyed language behaviour into the plugins (workspace-6). H21 gained presentation (name, embedded icon), typed option groups, `Replaces` (IntelliJ for Java/Kotlin; the provider-choice setting now holds `standard` or the replacing server's id), `TermsAsync` with host-recorded acceptance (`LanguageTermsAsync`, renamed from `IntelliJTermsAsync`, now carries the server), vendor expiry, `ConfigureInitialization` (`ILanguageServerStart`), extra manifests/manifest directories, workspace folders, initialize timeout/token, project-load waiting, `OnMessage`, dependency sources and source roots (`ILanguageServerSession`). IntelliJ's distribution, terms reading and launcher live in its plugin; icons moved into each plugin; listings carry `LanguageServerPresentation` to the UI. The persisted setting key stays `java-kotlin-provider` and the option stays `useForJavaAndKotlin`.
 
 2026-10-22: Dev and test tooling no longer depends on SDKMAN (build/jdk-in-tools): the pinned Temurin 21.0.12.1+1 moved from `mise.android.toml` to `mise.toml` (adds Windows x64/ARM64, checksums from Adoptium's .sha256.txt assets), so `scripts/mise run bootstrap` links `.tools/jdk` on every platform; `link-tools.sh` points it at a macOS bundle's `Contents/Home`, and Android uses the same link (JAVA_HOME still overrides). The language integration runner passes `.tools/jdk` (or JAVA_HOME) to the host and isolates it from a machine SDKMAN. Product project-JDK selection is unchanged. Verified with SDKMAN_DIR/SDKMAN_CANDIDATES_DIR/JAVA_HOME unset: bootstrap (also MISE_LOCKED=1), Release build, `android build`, `--case language-services,global-jvm-provider`, integration `check.mjs` and `run.mjs --server java` (guava, passed).
+
+## 2026-10-22 — workspace switch without the loading flash
+
+Profiled switching between workspaces of one project with the new `--workspace-switch` check and the
+`SHARPRAIL_PERFORMANCE=1` `SHARPRAIL_SWITCH` timeline. The switch already awaited only one host call (open)
+before mounting; Git, files, watchers, language and document revalidation already ran after it. The visible
+cost was a forced "Loading workspace…" frame on every switch. Leaving a mounted workspace now keeps its inert
+view until the target resolves and shows loading bodies only after 100 ms. Measurements are in
+`src/SharpRail.UI/SPEC.md`. `--startup` failed 2 of 5 runs with the change at its Git-failure step (baseline
+4 of 4 passed); not resolved.

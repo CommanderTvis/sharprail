@@ -142,6 +142,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--workspace-tools` | Host MCP workspace tools and UI integration. |
 | `--serving`, `--project-close` | Embedded-host serving; teardown. |
 | `--pane-retention`, `--startup`, `--live-diffs` | Retained controls; progressive startup; refreshing open diffs. |
+| `--workspace-switch` | Workspace-switch profile on a realistic project: click to mounted, first frame and usable content, cold and switching back; fails if a switch issues more than one host call before mounting. |
 | `--files-modes` | Files All \| Changed: Git marks, ignored dimming, remembered expanded folders across switches and reloads (local Git fixture). |
 | `--dock-input` | Dock pointer and keyboard input, tab menus including file-path copies. |
 | `--change-actions`, `--review` | Toast and diff revert/undo; Review panel. |

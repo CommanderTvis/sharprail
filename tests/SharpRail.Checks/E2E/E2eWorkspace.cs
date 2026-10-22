@@ -100,7 +100,7 @@ internal sealed class E2eWorkspace : IDisposable
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
         Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
         Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null, bool embedded = false,
-        bool pluginTerminals = false)
+        bool pluginTerminals = false, Func<IProjectServices, IProjectServices>? wrap = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -128,7 +128,7 @@ internal sealed class E2eWorkspace : IDisposable
         var allowsExternalFile = (Func<string, string, bool>)pluginRuntime.AllowsExternalFile;
         // The app's embedded host is reached through its local adapter, which keeps Core off the dispatcher; checks of that opt in.
         IProjectServices Services() => embedded ? new LocalProjectAdapter(new ProjectServices(root, State, allowsExternalFile)) : new ProjectServices(root, State, allowsExternalFile);
-        Host = new(Services());
+        Host = new(wrap?.Invoke(Services()) ?? Services());
         prepare?.Invoke(Host);
         ownsTerminals = terminals is null;
         Terminals = terminals ?? hosted ?? E2eTerminals.ForProfile(profile.DirectoryPath);
