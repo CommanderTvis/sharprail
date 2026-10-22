@@ -78,14 +78,17 @@ internal static partial class ClaudeLaunch
     /// </summary>
     public static string SessionCommand(string command, string args, bool disableAgentView = true, bool appendSystemPrompt = true,
         HostPlatform? platform = null, string? windowsShell = null, string? model = null, string? effort = null,
-        IReadOnlyList<AgentLaunchContribution>? contributions = null, string? sessionId = null)
+        IReadOnlyList<AgentLaunchContribution>? contributions = null, string? sessionId = null,
+        string? permissionMode = null)
     {
         var promptFile = appendSystemPrompt ? $"--append-system-prompt-file {EnvironmentReference(ClaudeCodeContract.PromptFileVariable, platform, windowsShell)}" : "";
         var defaults = string.Join(' ', new[]
         {
             model is { Length: > 0 } && !HasOption(args, "--model") ? "--model " + ShellQuotePath(model) : "",
             effort is { Length: > 0 } && !HasOption(args, "--effort") ? "--effort " + ShellQuotePath(effort) : "",
-            sessionId is { Length: > 0 } ? "--session-id " + ShellQuotePath(sessionId) : ""
+            sessionId is { Length: > 0 } ? "--session-id " + ShellQuotePath(sessionId) : "",
+            permissionMode is { Length: > 0 } && !HasOption(args, "--permission-mode") && !HasOption(args, "--dangerously-skip-permissions")
+                ? "--permission-mode " + ShellQuotePath(permissionMode) : ""
         }.Where(part => part.Length > 0));
         var line = LaunchCommand(Contribute(command, contributions, platform), string.Join(' ', new[] { promptFile, "--plugin-dir " + EnvironmentReference(ClaudeCodeContract.PluginDirectoryVariable, platform, windowsShell), "--add-dir " + EnvironmentReference(ClaudeCodeContract.ScratchVariable, platform, windowsShell), defaults, args }.Where(part => part.Length > 0)));
         if (disableAgentView) line = WithLaunchEnvironment(line, platform, windowsShell);

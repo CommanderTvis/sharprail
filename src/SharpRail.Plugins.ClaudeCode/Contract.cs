@@ -329,6 +329,8 @@ public sealed record ClaudeCodeSettings
     public string Effort { get; init; } = "";
     public bool DisableAgentView { get; init; } = true;
     public bool AppendSystemPrompt { get; init; } = true;
+    /// <summary>The <c>--permission-mode</c> SharpRail launches with; empty adds no flag, so Claude's own default applies.</summary>
+    public string PermissionMode { get; init; } = "";
 }
 
 public sealed record WorkspaceParams(string WorkspaceId)
@@ -442,6 +444,8 @@ public static class ClaudeCodeContract
     public static readonly PluginMethod<NoParams, ModelListResult> ModelListGet = new("modelListGet");
     /// <summary>Stores a picker list a terminal just read, under the key the host computes for its CLI.</summary>
     public static readonly PluginMethod<ModelListPutParams, Ack> ModelListPut = new("modelListPut");
+    /// <summary>The permission modes the host's CLI accepts, read once from its help, and the user's configured default.</summary>
+    public static readonly PluginMethod<NoParams, PermissionModesResult> PermissionModesGet = new("permissionModesGet");
     public static readonly PluginMethod<IdeSelectionChanged, Ack> SelectionChanged = new("selectionChanged");
     public static readonly PluginMethod<IdeDocumentClosed, Ack> DocumentClosed = new("documentClosed");
     public static readonly PluginMethod<IdeAtMention, IdeAtMentionResult> AtMention = new("atMention");
@@ -458,7 +462,7 @@ public static class ClaudeCodeContract
 
     public static readonly PluginContract Contract = PluginContract.Create<ClaudeCodeSettings>(Id, 2,
         [ConfigGet, Account, SystemPromptGet, InstructionsList, InstructionsSet, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
-            MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, ModelListGet, ModelListPut, SelectionChanged, DocumentClosed,
+            MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, ModelListGet, ModelListPut, PermissionModesGet, SelectionChanged, DocumentClosed,
             AtMention, ActionReply, StatusSnapshot, ContextUsageGet],
         [Status, IdeAction, ContextUsage, InstructionsChanged]);
 }

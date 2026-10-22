@@ -56,7 +56,8 @@ public sealed class ClaudeCodeUI : PluginUIModule
             var args = string.Join(' ', parts);
             return ClaudeLaunch.SessionCommand(command, args, settings.DisableAgentView,
                 settings.AppendSystemPrompt, context.Host().HostPlatform, model: options.Model is null ? settings.Model : null, effort: settings.Effort,
-                contributions: context.AgentLaunchContributions("claude"), sessionId: ClaudeLaunch.NewSessionId(args));
+                contributions: context.AgentLaunchContributions("claude"), sessionId: ClaudeLaunch.NewSessionId(args),
+                permissionMode: settings.PermissionMode);
         }, () => new(true))
         { CreateIcon = glyph.Create, Models = () => [.. ClaudeLaunch.Models.Select(model => new LauncherModel(model.Id, model.Label, "asset:claude.svg"))] });
         context.WorkspaceAction(new WorkspaceScopedActionRegistration("claude-launch",

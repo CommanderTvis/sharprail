@@ -43,6 +43,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
     internal IdeBridge.IdeBridge? Bridge => bridge;
 
     private readonly ModelListCache modelLists = new(ModelListCache.DefaultPath());
+    private readonly PermissionModeProbe permissionModes = new();
 
     private string Command() => context.Settings<ClaudeCodeSettings>().Command.Trim() is { Length: > 0 } command ? command : "claude";
 
@@ -108,6 +109,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         });
         context.Method(ClaudeCodeContract.ModelListGet, (_, _, _) => Done(modelLists.Get(Command())));
         context.Method(ClaudeCodeContract.ModelListPut, (p, _, _) => Done(modelLists.Put(Command(), p.Models)));
+        context.Method(ClaudeCodeContract.PermissionModesGet, async (_, _, _) => await permissionModes.GetAsync(Command()));
         context.Method(ClaudeCodeContract.SystemPromptGet, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.FilePath(), SystemPrompt.IgnoredEdits())));
         // The project's disable-list is the only way to shape the instructions; the generated files are never edited.
         InstructionSectionList WithEdits(InstructionSectionList list) => new()

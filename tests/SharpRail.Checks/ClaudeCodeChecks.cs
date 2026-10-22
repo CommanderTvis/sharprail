@@ -331,7 +331,7 @@ internal static class ClaudeCodeChecks
         Directory.CreateDirectory(directory);
         var log = Path.Combine(directory, "launch.log");
         var fake = Path.Combine(directory, "fake-claude");
-        File.WriteAllText(fake, $"#!/bin/sh\nprintf '%s\\n' \"agent-view=$CLAUDE_CODE_DISABLE_AGENT_VIEW\" \"$@\" > '{log}.part' && mv '{log}.part' '{log}'\n");
+        File.WriteAllText(fake, $"#!/bin/sh\nif [ \"$1\" = --help ]; then printf '%s\\n' '  --permission-mode <mode>   Permission mode to use (choices: \"acceptEdits\", \"manual\",' '      \"plan\", \"bypassPermissions\")'; exit 0; fi\nprintf '%s\\n' \"agent-view=$CLAUDE_CODE_DISABLE_AGENT_VIEW\" \"$@\" > '{log}.part' && mv '{log}.part' '{log}'\n");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         using var app = new E2eWorkspace(Path.Combine(directory, "project"), openFiles: false);
         E2eWorkspace.Until(() => app.Workbench.PluginLoader!.Registry.Entry("claude-code") is not null);
@@ -360,7 +360,14 @@ internal static class ClaudeCodeChecks
             var items = menu.Items.OfType<MenuItem>().ToDictionary(item => item.Name!);
             Require((string)items["ClaudeLaunch_continue"].Header! == "Continue the last conversation" && items.ContainsKey("ClaudeLaunch_model-opus") &&
                 ((string)items["ClaudeLaunch_teleport"].Header!).StartsWith("Teleport", StringComparison.Ordinal), "The menu offers continue, teleport and the models.");
-            app.Click(items["ClaudeLaunch_" + preset], freshGesture: false);
+            if (preset.StartsWith("permission-", StringComparison.Ordinal))
+            {
+                var submenu = items["ClaudeLaunch_permission"];
+                submenu.IsSubMenuOpen = true;
+                E2eWorkspace.Until(() => submenu.Items.OfType<MenuItem>().Any(item => item.Name == "ClaudeLaunch_" + preset));
+                app.Click(submenu.Items.OfType<MenuItem>().Single(item => item.Name == "ClaudeLaunch_" + preset), freshGesture: false);
+            }
+            else app.Click(items["ClaudeLaunch_" + preset], freshGesture: false);
             choose?.Invoke();
             E2eWorkspace.Until(() => !menu.IsOpen && Terminals() == before + 1);
             Require(app.Window.Layout.Tabs(app.Center).Any(tab => tab.Kind == "terminal"), "Claude starts in the launcher's own group.");
@@ -402,6 +409,25 @@ internal static class ClaudeCodeChecks
             app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ClaudeCustomStart"), freshGesture: false);
         });
         Require(custom[^3..].SequenceEqual(["--permission-mode", "plan", "--verbose"]), "Custom arguments reach the command line: " + string.Join(" ", custom));
+        // Permission modes come from the fake CLI's help, not a built-in list: "manual" is only there.
+        E2eWorkspace.Until(() => SharpRail.Plugins.ClaudeCode.UI.PermissionModeSource.Current.FromCli);
+        Require(SharpRail.Plugins.ClaudeCode.UI.PermissionModeSource.Current.Modes.SequenceEqual(["acceptEdits", "manual", "plan", "bypassPermissions"]),
+            "The launcher offers the modes the CLI's help lists.");
+        var planned = Launch("permission-plan");
+        Require(planned[^2..].SequenceEqual(["--permission-mode", "plan"]), "A per-launch mode passes --permission-mode: " + string.Join(" ", planned));
+        Require(!Launch("continue").Contains("--permission-mode"), "Without a saved mode the flag is left off.");
+        Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, permissionMode = "acceptEdits" });
+        var saved = Launch("continue");
+        Require(saved[^3..].SequenceEqual(["--permission-mode", "acceptEdits", "--continue"]),
+            "The saved mode reaches every launch: " + string.Join(" ", saved));
+        Require(!Launch("permission-default").Contains("--permission-mode"), "Claude Code's default for one run omits even the saved mode.");
+        Require(Launch("permission-bypassPermissions").Count(word => word == "--permission-mode") == 1, "A per-launch mode replaces the saved one without duplicating the flag.");
+        {
+            var button = (Button)Named(app.Window, "NewClaude").First(control => control.IsEffectivelyVisible);
+            var bypass = button.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "ClaudeLaunch_permission").Items.OfType<MenuItem>().Single(item => item.Name == "ClaudeLaunch_permission-bypassPermissions");
+            Require(ReferenceEquals(bypass.Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger) && ((string)bypass.Header!).Contains("dangerous", StringComparison.Ordinal),
+                "Bypass permissions is marked dangerous in the launcher.");
+        }
         Console.WriteLine("PASS fork plugins/claude-code/claude-launcher.spec.ts: the launcher starts Claude Code in its own group, and offers per-run flags on right-click");
 
         Settings(new { enabled = true, command = "claude" });
@@ -414,6 +440,20 @@ internal static class ClaudeCodeChecks
         defaultModel.Text = "sonnet";
         defaultModel.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
         E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].TryGetProperty("model", out var value) && value.GetString() == "sonnet");
+        var permission = window.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "ClaudePermissionMode");
+        E2eWorkspace.Until(() => permission.Items.OfType<ComboBoxItem>().Any(item => Equals(item.Tag, "bypassPermissions")));
+        var dangerous = permission.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, "bypassPermissions"));
+        Require(ReferenceEquals(dangerous.Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger), "Bypass permissions is marked dangerous in Settings.");
+        permission.SelectedItem = dangerous;
+        E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].TryGetProperty("permissionMode", out var value) && value.GetString() == "bypassPermissions");
+        Require(ReferenceEquals(window.GetLogicalDescendants().OfType<TextBlock>().Single(control => control.Name == "ClaudePermissionModeNote").Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger),
+            "Settings warns while the default skips permission checks.");
+        Require(app.Workbench.PluginLoader!.Registry.LauncherList.Single(item => item.Id == "claude").TerminalCommand(new()).Contains("--permission-mode bypassPermissions", StringComparison.Ordinal),
+            "The saved default applies to the generic launcher too.");
+        permission.SelectedItem = permission.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, ""));
+        E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].GetProperty("permissionMode").GetString() == "");
+        Require(!app.Workbench.PluginLoader!.Registry.LauncherList.Single(item => item.Id == "claude").TerminalCommand(new()).Contains("--permission-mode", StringComparison.Ordinal),
+            "Claude Code's default omits the flag.");
         var defaultEffort = window.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "ClaudeDefaultEffort");
         defaultEffort.SelectedItem = defaultEffort.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, "high"));
         E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].TryGetProperty("effort", out var value) && value.GetString() == "high");
@@ -577,6 +617,12 @@ internal static class ClaudeCodeChecks
         Require(terminals.RevivePrefill!(terminal)?.Text.Contains("--continue", StringComparison.Ordinal) == true,
             "A Claude terminal with no surviving transcript gets the fork's continue offer.");
         await SessionIdRevival(state, terminals, terminal, Report);
+        Require(ClaudePermissionModes.Parse("  --permission-mode <mode>   Permission mode to use for the session\n      (choices: \"acceptEdits\", \"auto\",\n      \"bypassPermissions\", \"plan\")\n  --print").SequenceEqual(["acceptEdits", "auto", "bypassPermissions", "plan"]) &&
+            ClaudePermissionModes.Parse("no such option").Count == 0, "Permission modes are read from the help's choices, wrapped or not.");
+        Require(AgentResume.ResumeCommand("claude --permission-mode plan --model opus", "11111111-2222-3333-4444-555555555555")!.Contains("--permission-mode plan --model opus --resume", StringComparison.Ordinal),
+            "A revived session keeps the permission mode it was started with.");
+        Require((await Call(ClaudeCodeContract.PermissionModesGet, new NoParams())) is { FromCli: false } fallback && fallback.Modes.SequenceEqual(ClaudePermissionModes.Fallback),
+            "A CLI whose help cannot be read gets the fallback modes.");
         await IdeProtocol(runtime, project);
         await ConfigCases(runtime, state, project, directory);
         await Skills();

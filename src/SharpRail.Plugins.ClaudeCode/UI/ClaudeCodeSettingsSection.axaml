@@ -30,6 +30,11 @@
       <ComboBox x:Name="ClaudeDefaultEffort" HorizontalAlignment="Stretch" AutomationProperties.Name="Claude Code default effort" />
       <TextBlock Text="Applies to new SharpRail launches. Revived sessions restore their last used model and effort. Per-launch choices take precedence." />
     </StackPanel>
+    <StackPanel Spacing="4">
+      <TextBlock Classes="heading" Text="Default permission mode" />
+      <ComboBox x:Name="ClaudePermissionMode" HorizontalAlignment="Stretch" AutomationProperties.Name="Claude Code default permission mode" />
+      <TextBlock x:Name="ClaudePermissionModeNote" Text="Passed as --permission-mode to sessions SharpRail starts. Claude Code's default leaves the flag off, so your own Claude settings decide. The launcher's right-click menu picks a mode for one run." />
+    </StackPanel>
     <CheckBox x:Name="ClaudeDisableAgentView">
       <StackPanel Spacing="2">
         <TextBlock Classes="heading" Text="Start Claude Code without its own agent view" />

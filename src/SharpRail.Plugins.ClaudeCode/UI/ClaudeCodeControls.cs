@@ -17,6 +17,8 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
     private readonly TextBox command;
     private readonly TextBox model;
     private readonly ComboBox effort;
+    private readonly ComboBox permissionMode;
+    private readonly TextBlock permissionNote;
     private readonly CheckBox agentView;
     private readonly CheckBox systemPrompt;
     private bool applying;
@@ -44,6 +46,14 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
             if (effort.SelectedItem is ComboBoxItem { Tag: string value })
                 Update(settings => settings with { Effort = value }, "Couldn't change the default effort");
         };
+        permissionMode = this.FindControl<ComboBox>("ClaudePermissionMode")!;
+        permissionNote = this.FindControl<TextBlock>("ClaudePermissionModeNote")!;
+        FillPermissionModes(PermissionModeSource.Current, context.Settings<ClaudeCodeSettings>().PermissionMode);
+        permissionMode.SelectionChanged += (_, _) =>
+        {
+            if (permissionMode.SelectedItem is ComboBoxItem { Tag: string value } && value != context.Settings<ClaudeCodeSettings>().PermissionMode)
+                Update(settings => settings with { PermissionMode = value }, "Couldn't change the default permission mode");
+        };
         agentView = this.FindControl<CheckBox>("ClaudeDisableAgentView")!;
         systemPrompt = this.FindControl<CheckBox>("ClaudeAppendSystemPrompt")!;
         this.FindControl<Button>("ClaudeCommandBrowse")!.Click += (_, _) => _ = Browse();
@@ -53,6 +63,13 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         systemPrompt.IsCheckedChanged += (_, _) => Update(settings => settings with { AppendSystemPrompt = systemPrompt.IsChecked == true }, "Couldn't change the system prompt setting");
         Show(context.Settings<ClaudeCodeSettings>());
         IDisposable? watch = null;
+        AttachedToVisualTree += async (_, _) =>
+        {
+            var modes = await PermissionModeSource.RefreshAsync(context);
+            applying = true;
+            FillPermissionModes(modes, context.Settings<ClaudeCodeSettings>().PermissionMode);
+            applying = false;
+        };
         AttachedToVisualTree += (_, _) => watch ??= context.OnSettings<ClaudeCodeSettings>(Show);
         DetachedFromVisualTree += (_, _) => { watch?.Dispose(); watch = null; };
     }
@@ -63,9 +80,36 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         command.Text = settings.Command;
         if (!model.IsFocused) model.Text = settings.Model;
         effort.SelectedItem = effort.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.Effort ?? ""));
+        if (!permissionMode.Items.OfType<ComboBoxItem>().Any(item => Equals(item.Tag, settings.PermissionMode)))
+            FillPermissionModes(PermissionModeSource.Current, settings.PermissionMode);
+        permissionMode.SelectedItem = permissionMode.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.PermissionMode));
+        ShowPermissionNote(settings.PermissionMode);
         agentView.IsChecked = settings.DisableAgentView;
         systemPrompt.IsChecked = settings.AppendSystemPrompt;
         applying = false;
+    }
+
+    // Rebuilt in place from the modes the host's CLI lists; the caller holds `applying` so the rebuild saves nothing.
+    private void FillPermissionModes(PermissionModesResult modes, string saved)
+    {
+        permissionMode.Items.Clear();
+        permissionMode.Items.Add(new ComboBoxItem { Name = "ClaudePermissionMode_default", Content = PermissionModeSource.DefaultLabel(modes), Tag = "" });
+        foreach (var mode in PermissionModeSource.Modes(modes, saved))
+        {
+            var item = new ComboBoxItem { Name = "ClaudePermissionMode_" + mode.Id, Content = PermissionModeSource.Label(mode), Tag = mode.Id };
+            PermissionModeSource.Mark(item, mode);
+            permissionMode.Items.Add(item);
+        }
+        permissionMode.SelectedItem = permissionMode.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, saved));
+    }
+
+    private void ShowPermissionNote(string saved)
+    {
+        var dangerous = ClaudePermissionModes.IsDangerous(saved);
+        permissionNote.Text = dangerous
+            ? "Every session SharpRail starts will skip all permission checks. Only use this in a sandbox with no internet access."
+            : "Passed as --permission-mode to sessions SharpRail starts. Claude Code's default leaves the flag off, so your own Claude settings decide. The launcher's right-click menu picks a mode for one run.";
+        permissionNote.Foreground = dangerous ? Ui.Danger : Ui.Muted;
     }
 
     private void Update(Func<ClaudeCodeSettings, ClaudeCodeSettings> change, string failure)
@@ -110,12 +154,13 @@ internal static class ClaudeLauncherAction
 {
     public static Control Create(IPluginUIContext context, ClaudeGlyph glyph, string workspaceId, string groupId)
     {
-        void Launch(string args = "")
+        // A null mode is the saved default; an empty one is Claude Code's own, so the flag is left off for this run.
+        void Launch(string args = "", string? mode = null)
         {
             var settings = context.Settings<ClaudeCodeSettings>();
             var started = ClaudeLaunch.SessionCommand(settings.Command, args, settings.DisableAgentView, settings.AppendSystemPrompt,
                 context.Host().HostPlatform, model: settings.Model, effort: settings.Effort, contributions: context.AgentLaunchContributions("claude"),
-                sessionId: ClaudeLaunch.NewSessionId(args));
+                sessionId: ClaudeLaunch.NewSessionId(args), permissionMode: mode ?? settings.PermissionMode);
             if (started.Length == 0) return;
             _ = context.OpenTerminalAsync(workspaceId, new TerminalOpenOptions { Command = started, GroupId = groupId }).AsTask();
         }
@@ -156,6 +201,26 @@ internal static class ClaudeLauncherAction
                 menu.Items.Add(item);
             }
         }
+        // This run's permission mode, from the modes the host's CLI lists; the default leaves Claude's own settings in charge.
+        menu.Items.Add(new Separator());
+        var permissions = new MenuItem { Name = "ClaudeLaunch_permission", Header = "Permission mode" };
+        void FillPermissions(PermissionModesResult modes)
+        {
+            permissions.Items.Clear();
+            var plain = new MenuItem { Name = "ClaudeLaunch_permission-default", Header = PermissionModeSource.DefaultLabel(modes) };
+            plain.Click += (_, _) => Launch(mode: "");
+            permissions.Items.Add(plain);
+            foreach (var mode in PermissionModeSource.Modes(modes))
+            {
+                var item = new MenuItem { Name = "ClaudeLaunch_permission-" + mode.Id, Header = PermissionModeSource.Label(mode), Tag = mode.Id };
+                PermissionModeSource.Mark(item, mode);
+                item.Click += (_, _) => Launch(mode: mode.Id);
+                permissions.Items.Add(item);
+            }
+        }
+        FillPermissions(PermissionModeSource.Current);
+        menu.Opening += async (_, _) => FillPermissions(await PermissionModeSource.RefreshAsync(context));
+        menu.Items.Add(permissions);
         // Any flags the presets do not cover, typed per run; the last ones typed come back prefilled.
         menu.Items.Add(new Separator());
         var custom = new MenuItem { Name = "ClaudeLaunch_custom", Header = "With custom arguments…" };

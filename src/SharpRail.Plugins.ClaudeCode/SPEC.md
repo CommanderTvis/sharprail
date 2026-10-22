@@ -60,6 +60,20 @@ Settings supplies optional model and effort defaults for new SharpRail launches,
 `--model` and `--effort`. Empty choices use the CLI's defaults. Generic launcher selections and
 workspace-launcher arguments take precedence over these defaults without editing Claude's saved
 configuration or a running session.
+Settings also holds a default permission mode, mirroring Codex's default permissions mode: a chosen
+mode adds `--permission-mode <mode>` to every SharpRail launch (workspace launcher and generic
+launcher); the empty "Claude Code's default" omits the flag so `permissions.defaultMode` in the
+user's `~/.claude/settings.json` (named in that entry's label when set) decides. The workspace
+launcher's right-click Permission mode submenu picks a mode for one run, replacing the saved one,
+or omits the flag with its default entry; a `--permission-mode` or `--dangerously-skip-permissions`
+in the run's own arguments wins over both. The modes are the `choices` of `--permission-mode` in
+`claude --help`, probed on the host once per executable (`permissionModesGet`) and kept for the
+process; an unreadable help is not cached and yields the fallback default, acceptEdits, plan, auto,
+dontAsk, bypassPermissions. A saved mode the CLI no longer lists stays offered. `bypassPermissions`
+is labelled dangerous in the danger colour in both places, and Settings turns its note into a
+warning while it is the default; like Codex's full-access sandbox it needs no confirmation.
+Revival keeps the mode in the recorded command (`--resume` accepts the flag). The running terminal
+does not show the mode, as Codex's does not.
 Unset launch defaults persist as empty strings so a merged settings update can clear an earlier override.
 Wire version 2 covers these added settings: the strict settings schema would make older UI halves
 fall back to defaults, so mismatched host/UI halves stay dormant.
