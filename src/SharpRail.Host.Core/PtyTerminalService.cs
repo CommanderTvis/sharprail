@@ -24,6 +24,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     private readonly ConcurrentDictionary<(string Workspace, string Path), string> linkedFiles = new();
     public bool AllowsFileLink(string workspace, string path) => linkedFiles.ContainsKey((workspace, path));
     private readonly TerminalCatalogStore catalog;
+    private readonly TerminalSignalHub signals = new();
     // The tab each session shows, known once a client attaches with its tab key.
     private readonly Dictionary<string, TerminalRef> terminals = [];
     private readonly Dictionary<string, string> directories = [];
@@ -124,6 +125,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     }
 
     public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => catalog.WatchAsync(cancellationToken);
+    public IAsyncEnumerable<TerminalSignal> WatchSignalsAsync(CancellationToken cancellationToken = default) => signals.WatchAsync(cancellationToken);
     /// <summary>The session id a client derives for a tab: the hash of workspace root and tab key the app uses.</summary>
     public static string SessionFor(TerminalRef terminal) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(terminal.WorkspaceId + "\n" + terminal.TabKey)).AsSpan(0, 16));
@@ -161,7 +163,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             var prefill = terminal is not null ? RevivePrefill?.Invoke(terminal) : null;
             pending.Remove(request.SessionId, out var restored);
             var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
-            var hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay) { InputAccepted = () => InputAccepted?.Invoke(directory) };
+            var hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay) { InputAccepted = () => InputAccepted?.Invoke(directory), SessionId = request.SessionId, Signaled = signals.Publish };
             sessions.Add(request.SessionId, hosted);
             directories[request.SessionId] = directory;
             roots[request.SessionId] = directory;
@@ -221,6 +223,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             if (tokens.Remove(sessionId, out var token)) owners.TryRemove(token, out _);
         }
         store?.Delete(sessionId);
+        signals.End(sessionId);
         if (terminal is not null) await terminal.DisposeAsync();
         SessionClosed?.Invoke(sessionId, closed);
     }
@@ -348,6 +351,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             }
         }
         foreach (var (_, terminal) in all) await terminal.DisposeAsync();
+        signals.Dispose();
     }
 
     // The native reason, the executable path and the value of SHELL stay on the host: a client is told only

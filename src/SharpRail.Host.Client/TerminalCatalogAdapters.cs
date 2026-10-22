@@ -12,6 +12,7 @@ public sealed class LocalTerminalCatalogAdapter(ITerminalCatalogService host) : 
     public ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => host.CloseTabAsync(workspaceRoot, key, cancellationToken);
     public ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default) => host.CloseWorkspaceAsync(workspaceRoot, cancellationToken);
     public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => host.WatchAsync(cancellationToken);
+    public IAsyncEnumerable<TerminalSignal> WatchSignalsAsync(CancellationToken cancellationToken = default) => host.WatchSignalsAsync(cancellationToken);
 }
 
 /// <summary>
@@ -57,6 +58,23 @@ public sealed class RemoteTerminalCatalogAdapter : ITerminalCatalogService, IDis
             try { if (!await replies.MoveNextAsync()) yield break; }
             catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { throw Unsupported(error); }
             yield return Map(replies.Current);
+        }
+    }
+
+    /// <summary>Ends with an exception when the transport drops; a host that predates signals reports <see cref="NotSupportedException"/>.</summary>
+    public async IAsyncEnumerable<TerminalSignal> WatchSignalsAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await using var replies = service.WatchSignalsAsync(new(), Context(cancellationToken, stream: true)).GetAsyncEnumerator(cancellationToken);
+        while (true)
+        {
+            try { if (!await replies.MoveNextAsync()) yield break; }
+            catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { throw new NotSupportedException("This host does not report terminal signals.", error); }
+            var reply = replies.Current;
+            if (reply.Kind is < 0 or > 2 || reply.State is < 0 or > 4) continue;
+            yield return new(reply.SessionId, (TerminalSignalKind)reply.Kind)
+            {
+                Progress = (TerminalProgressState)reply.State, Percent = Math.Clamp(reply.Percent, -1, 100), Title = reply.Title, Body = reply.Body
+            };
         }
     }
 

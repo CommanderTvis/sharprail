@@ -409,6 +409,13 @@ internal static class RpcDispatch
                 await foreach (var reply in service.WatchAsync(request, context).WithCancellation(stream.Token)) await stream.Send(reply);
                 break;
             }
+            case "ITerminalCatalogRpc/WatchSignalsAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<TerminalCatalogRpc>(services);
+                var request = await ReadOne<TerminalCatalogRequest>(stream);
+                await foreach (var reply in service.WatchSignalsAsync(request, context).WithCancellation(stream.Token)) await stream.Send(reply);
+                break;
+            }
             case "ITerminalRpc/FindFileLinksAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<TerminalRpc>(services);

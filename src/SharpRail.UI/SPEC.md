@@ -412,6 +412,36 @@ adding only what a client alone knows: focus, a collection window, the system ch
 - Multi-client is accepted, as in the fork: focus is client-local, so one event may notify in several
   connected apps.
 
+## Program progress, notifications and bells
+
+Ghostty's terminal signals for every terminal, whichever renderer draws it. The host reads them from live output
+([Terminals.SPEC.md](../SharpRail.Host.Core/Terminals.SPEC.md#terminal-signals)) and the workbench subscribes once
+(`ITerminalCatalogService.WatchSignalsAsync`), so remote clients and watchers see the same; a host without signals
+leaves tabs plain.
+
+- Progress (OSC 9;4) lives in `TerminalSignalBoard` by session and draws as a 2 px bar along the bottom of the
+  terminal's tab, its phone chip and its row in Projects' tab list (`DockSurface.TabOverlay`), updating itself
+  without rebuilding the strip. As in Ghostty's `SurfaceProgressBar`: a percent fills that fraction; a report without
+  one bounces a quarter-width segment over a 30% track (1.2 s ease each way), except paused, which is full. Normal
+  and indeterminate use the accent role, error danger, paused warning. A new subscription resets the board.
+- Bell: `bell-features` as in Ghostty. `title` shows a bell icon beside the tab title until the terminal gains
+  focus or is on screen when its window activates (Ghostty prepends 🔔 to the title until focus); `attention`
+  bounces the Dock once (`NSInformationalRequest`) while no SharpRail window is active; `system` plays the alert
+  sound. Every bell also marks a hidden phone chip. A bell in a focused, visible terminal only plays the sound.
+- Program notifications (OSC 9, OSC 777;notify, OSC 99) go through `AttentionNotifications` when
+  `terminal-notifications` is on: shown unless the terminal is on screen in an active window (Ghostty's
+  `requireFocus`), titled by the program (or the tab title), subtitled "tab title — workspace label", and
+  clicking one reveals that tab. An identical title and body within 5 s of the last is dropped; the 1 s
+  collection window bounds the rate as Ghostty's one per second does.
+- Agent dedupe, by terminal and a 5 s window: an agent plugin's attention request for a terminal replaces a
+  pending program notification for it in the collection window, a program notification arriving after it is
+  dropped, and so is a bell's attention request. Agent tabs otherwise notify like any terminal, so Codex's
+  `tui.notification_method = osc9` notifies from a background tab. Claude Code's plugin reports by POST, not
+  OSC 777; SharpRail does not change what either CLI emits.
+- `--terminal-signals` covers the host parser, the timeout, local and remote streams and exit, then the
+  workbench: tab and Projects progress through a real shell, notifications in and out of view, OSC 99 chunks,
+  agent dedupe, bells, the Settings › Terminal controls and exit clearing; `--drawers` covers chips.
+
 Automated notification checks inject a recording notifier and do not post a real system notification.
 A signed-app away notification and click-to-correct-window/terminal journey remain native acceptance;
 headless gate passes do not establish OS permission or delivery.

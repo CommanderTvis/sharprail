@@ -1876,3 +1876,45 @@ SharpRail.Host.Abstractions.LanguageDependencyState.Deconstruct(out string! Exec
 SharpRail.Host.Abstractions.LanguageDependencyState.Equals(SharpRail.Host.Abstractions.LanguageDependencyState? other) -> bool
 static SharpRail.Host.Abstractions.LanguageDependencyState.operator !=(SharpRail.Host.Abstractions.LanguageDependencyState? left, SharpRail.Host.Abstractions.LanguageDependencyState? right) -> bool
 static SharpRail.Host.Abstractions.LanguageDependencyState.operator ==(SharpRail.Host.Abstractions.LanguageDependencyState? left, SharpRail.Host.Abstractions.LanguageDependencyState? right) -> bool
+const SharpRail.Host.Abstractions.HostSettings.DefaultBellFeatures = "attention,title" -> string!
+override SharpRail.Host.Abstractions.TerminalSignal.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.TerminalSignal.GetHashCode() -> int
+override SharpRail.Host.Abstractions.TerminalSignal.ToString() -> string!
+SharpRail.Host.Abstractions.HostSettings.Bell(string! feature) -> bool
+SharpRail.Host.Abstractions.HostSettings.BellFeatures.get -> string!
+SharpRail.Host.Abstractions.HostSettings.BellFeatures.init -> void
+SharpRail.Host.Abstractions.HostSettings.TerminalNotificationsEnabled.get -> bool
+SharpRail.Host.Abstractions.HostSettings.TerminalNotificationsEnabled.init -> void
+SharpRail.Host.Abstractions.ITerminalCatalogService.WatchSignalsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<SharpRail.Host.Abstractions.TerminalSignal!>!
+SharpRail.Host.Abstractions.TerminalProgressState
+SharpRail.Host.Abstractions.TerminalProgressState.Error = 2 -> SharpRail.Host.Abstractions.TerminalProgressState
+SharpRail.Host.Abstractions.TerminalProgressState.Indeterminate = 3 -> SharpRail.Host.Abstractions.TerminalProgressState
+SharpRail.Host.Abstractions.TerminalProgressState.None = 0 -> SharpRail.Host.Abstractions.TerminalProgressState
+SharpRail.Host.Abstractions.TerminalProgressState.Normal = 1 -> SharpRail.Host.Abstractions.TerminalProgressState
+SharpRail.Host.Abstractions.TerminalProgressState.Paused = 4 -> SharpRail.Host.Abstractions.TerminalProgressState
+SharpRail.Host.Abstractions.TerminalSignal
+SharpRail.Host.Abstractions.TerminalSignal.<Clone>$() -> SharpRail.Host.Abstractions.TerminalSignal!
+SharpRail.Host.Abstractions.TerminalSignal.Body.get -> string!
+SharpRail.Host.Abstractions.TerminalSignal.Body.init -> void
+SharpRail.Host.Abstractions.TerminalSignal.Deconstruct(out string! SessionId, out SharpRail.Host.Abstractions.TerminalSignalKind Kind) -> void
+SharpRail.Host.Abstractions.TerminalSignal.Equals(SharpRail.Host.Abstractions.TerminalSignal? other) -> bool
+SharpRail.Host.Abstractions.TerminalSignal.Kind.get -> SharpRail.Host.Abstractions.TerminalSignalKind
+SharpRail.Host.Abstractions.TerminalSignal.Kind.init -> void
+SharpRail.Host.Abstractions.TerminalSignal.Percent.get -> int
+SharpRail.Host.Abstractions.TerminalSignal.Percent.init -> void
+SharpRail.Host.Abstractions.TerminalSignal.Progress.get -> SharpRail.Host.Abstractions.TerminalProgressState
+SharpRail.Host.Abstractions.TerminalSignal.Progress.init -> void
+SharpRail.Host.Abstractions.TerminalSignal.SessionId.get -> string!
+SharpRail.Host.Abstractions.TerminalSignal.SessionId.init -> void
+SharpRail.Host.Abstractions.TerminalSignal.TerminalSignal(string! SessionId, SharpRail.Host.Abstractions.TerminalSignalKind Kind) -> void
+SharpRail.Host.Abstractions.TerminalSignal.Title.get -> string!
+SharpRail.Host.Abstractions.TerminalSignal.Title.init -> void
+SharpRail.Host.Abstractions.TerminalSignalKind
+SharpRail.Host.Abstractions.TerminalSignalKind.Bell = 1 -> SharpRail.Host.Abstractions.TerminalSignalKind
+SharpRail.Host.Abstractions.TerminalSignalKind.Notification = 2 -> SharpRail.Host.Abstractions.TerminalSignalKind
+SharpRail.Host.Abstractions.TerminalSignalKind.Progress = 0 -> SharpRail.Host.Abstractions.TerminalSignalKind
+static readonly SharpRail.Host.Abstractions.HostSettings.BellFeatureNames -> System.Collections.Generic.IReadOnlyList<string!>!
+static readonly SharpRail.Host.Abstractions.TerminalSignal.ProgressTimeout -> System.TimeSpan
+static SharpRail.Host.Abstractions.HostSettings.NormalizeBellFeatures(string! value) -> string?
+static SharpRail.Host.Abstractions.TerminalSignal.operator !=(SharpRail.Host.Abstractions.TerminalSignal? left, SharpRail.Host.Abstractions.TerminalSignal? right) -> bool
+static SharpRail.Host.Abstractions.TerminalSignal.operator ==(SharpRail.Host.Abstractions.TerminalSignal? left, SharpRail.Host.Abstractions.TerminalSignal? right) -> bool

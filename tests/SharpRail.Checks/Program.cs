@@ -792,6 +792,14 @@ internal static class Program
             Console.WriteLine("PASS Claude Code checks");
             return;
         }
+        if (args.SequenceEqual(["--terminal-signals"]))
+        {
+            TerminalHostChecks.Signals(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            TerminalSignalUiChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--notifications"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -1189,6 +1197,7 @@ internal static class Program
         Gate.Case("FileIconsChecks-UiChecks", () => FileIconsChecks.UiChecks(root));
         Gate.Case("codex-ui", () => E2E.CodexE2E.Run(root));
         Gate.Case("away-notifications", () => AwayNotificationChecks.Run(root));
+        Gate.Case("terminal-signals-ui", () => TerminalSignalUiChecks.Run(root));
         Gate.Case("plugin-watch", () => PluginWatchChecks.Run(root));
         Gate.Case("visualize-ui", () => E2E.VisualizeE2E.Run(root));
         Gate.Case("visualize-selection", VisualizeSelectionChecks.Run);

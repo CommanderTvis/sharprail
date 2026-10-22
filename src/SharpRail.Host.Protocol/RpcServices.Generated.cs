@@ -81,6 +81,7 @@ public static class RpcServices
         public ValueTask<TerminalCatalogReply> CloseTabAsync(TerminalCatalogRequest request, CallContext context = default) => client.Unary<TerminalCatalogRequest, TerminalCatalogReply>("ITerminalCatalogRpc/CloseTabAsync", request, context);
         public ValueTask<TerminalCatalogReply> CloseWorkspaceAsync(TerminalCatalogRequest request, CallContext context = default) => client.Unary<TerminalCatalogRequest, TerminalCatalogReply>("ITerminalCatalogRpc/CloseWorkspaceAsync", request, context);
         public IAsyncEnumerable<TerminalCatalogReply> WatchAsync(TerminalCatalogRequest request, CallContext context = default) => client.Stream<TerminalCatalogRequest, TerminalCatalogReply>("ITerminalCatalogRpc/WatchAsync", request, context);
+        public IAsyncEnumerable<TerminalSignalMessage> WatchSignalsAsync(TerminalCatalogRequest request, CallContext context = default) => client.Stream<TerminalCatalogRequest, TerminalSignalMessage>("ITerminalCatalogRpc/WatchSignalsAsync", request, context);
     }
     private sealed class TerminalRpcClient(IRpcClient client) : ITerminalRpc
     {

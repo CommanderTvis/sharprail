@@ -48,4 +48,40 @@ public interface ITerminalCatalogService
     ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default);
     /// <summary>Yields the current snapshot, then every later one, until cancelled or disconnected.</summary>
     IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Yields the progress of every session that shows one, then each later signal its programs send: progress
+    /// changes (OSC 9;4), bells and desktop notifications (OSC 9, OSC 777). A catalog without shells throws
+    /// <see cref="NotSupportedException"/>.
+    /// </summary>
+    IAsyncEnumerable<TerminalSignal> WatchSignalsAsync(CancellationToken cancellationToken = default) => TerminalSignal.Unsupported(cancellationToken);
+}
+
+/// <summary>The ConEmu progress states of OSC 9;4; <see cref="None"/> removes the bar.</summary>
+public enum TerminalProgressState { None = 0, Normal = 1, Error = 2, Indeterminate = 3, Paused = 4 }
+
+public enum TerminalSignalKind { Progress, Bell, Notification }
+
+/// <summary>
+/// Something a program in a terminal asked its viewers for. <see cref="Percent"/> is 0–100, or -1 when the report
+/// carries none; <see cref="Title"/> and <see cref="Body"/> belong to a notification.
+/// </summary>
+public sealed record TerminalSignal(string SessionId, TerminalSignalKind Kind)
+{
+    public TerminalProgressState Progress { get; init; }
+    public int Percent { get; init; } = -1;
+    public string Title { get; init; } = "";
+    public string Body { get; init; } = "";
+
+    /// <summary>How long a progress report lasts without another before it is removed, as in Ghostty.</summary>
+    public static readonly TimeSpan ProgressTimeout = TimeSpan.FromSeconds(15);
+
+#pragma warning disable CS1998 // An iterator that only throws.
+    internal static async IAsyncEnumerable<TerminalSignal> Unsupported([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        throw new NotSupportedException("This host does not report terminal signals.");
+#pragma warning disable CS0162
+        yield break;
+#pragma warning restore CS0162
+    }
+#pragma warning restore CS1998
 }

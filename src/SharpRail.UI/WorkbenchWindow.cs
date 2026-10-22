@@ -138,6 +138,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
         Deactivated += (_, _) => workbench.Commands.Deactivated();
         Activated += (_, _) => { if (toolContent.ContainsKey("review")) RefreshOpenReview(); };
+        // A bell is seen once its terminal is on screen in an active window.
+        Activated += (_, _) =>
+        {
+            foreach (var content in documentContent.Values)
+                if (content is Terminal.TerminalView { IsEffectivelyVisible: true } view && TopLevel.GetTopLevel(view) == this) workbench.Signals.ClearBell(view.Launch.SessionId);
+        };
         AddHandler(KeyDownEvent, (_, e) => { if (RunShortcut(e)) e.Handled = true; }, RoutingStrategies.Bubble);
     }
 
@@ -486,6 +492,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         return text;
     }
 
+    /// <summary>Whether this window shows a terminal tab on screen, and with <paramref name="focused"/> also focuses it.</summary>
+    internal bool ShowsTerminal(string workspace, string tabId, bool focused = false) =>
+        workspace == workspaceRoot && WorkspaceMounted && !atHome &&
+        documentContent.GetValueOrDefault(workspace + ":" + tabId) is Terminal.TerminalView { IsEffectivelyVisible: true } view &&
+        TopLevel.GetTopLevel(view) == this && (!focused || view.IsKeyboardFocusWithin);
+
     /// <summary>Something new happened in a tab: a phone marks it on a tab group's chip while another member shows.</summary>
     internal void NoteTabActivity(string workspace, string tabId)
     {
@@ -557,6 +569,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             documentContent[key] = terminal;
             var workspace = workspaceRoot;
             terminal.Output += () => NoteTabActivity(workspace, tab.Id);
+            // Ghostty clears a surface's bell when it gains focus.
+            terminal.GotFocus += (_, _) => workbench.Signals.ClearBell(terminal.Launch.SessionId);
             AttachPluginTerminal(terminal);
             if (terminalCommands.Remove(key, out var command)) _ = TypeWhenStartedAsync(terminal, command);
             return terminal;

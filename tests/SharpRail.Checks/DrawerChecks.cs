@@ -358,7 +358,7 @@ internal static class DrawerChecks
         Button[] Chips() => [.. pane.GetLogicalDescendants().OfType<Button>().Where(chip => chip.Name == "PaneChip")];
         Border[] Hosts() => [.. pane.GetLogicalDescendants().OfType<Border>().Where(host => host.Name == "PaneMemberHost")];
         Control? Terminal(string id) => pane.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().FirstOrDefault(view => view.Name == "TerminalSurface_" + id.Replace(':', '_'));
-        bool Dot(string id) => Chips().Single(chip => Equals(chip.Tag, id)).Content is StackPanel { Children: [_, Avalonia.Controls.Shapes.Ellipse dot] } && dot.IsVisible;
+        bool Dot(string id) => Chips().Single(chip => Equals(chip.Tag, id)).Content is Panel { Children: [StackPanel { Children: [_, Avalonia.Controls.Shapes.Ellipse dot] }, ..] } && dot.IsVisible;
         void Frames(int count) { for (var frame = 0; frame < count; frame++) { AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); Thread.Sleep(16); } }
         void Shows(string id, string message) => Pump(() => pane.Shown == id && Hosts().Length == 1 && Equals(Hosts()[0].Tag, id), message);
         Require(Chips().Length == 3 && Chips().Select(chip => chip.Tag).SequenceEqual([first, notes, second]) && Hosts().Length == 1 &&
@@ -366,6 +366,15 @@ internal static class DrawerChecks
             "A group of three must show one member and three chips, the shown one lit.");
         Pump(() => terminals.Views.Count == 1 && terminals.Views[0].Text.Length > 0, "The shown terminal did not start.");
         var firstView = Terminal(first)!;
+        // A member's terminal progress runs along its chip, shown or not, coloured by its state.
+        var progressing = SharpRail.UI.Terminal.TerminalLaunch.SessionFor(window.WorkspaceRoot, second);
+        SharpRail.UI.Terminal.TerminalProgressStrip? ChipProgress(string id) => Chips().Single(chip => Equals(chip.Tag, id))
+            .GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalProgressStrip>().SingleOrDefault();
+        window.Workbench.Signals.SetProgress(progressing, SharpRail.Host.Abstractions.TerminalProgressState.Error, 30);
+        Pump(() => ChipProgress(second) is { IsVisible: true, State: SharpRail.Host.Abstractions.TerminalProgressState.Error, Percent: 30 } &&
+            ChipProgress(first) is { IsVisible: false } && ChipProgress(notes) is null, "A terminal member's chip must show its progress.");
+        window.Workbench.Signals.SetProgress(progressing, SharpRail.Host.Abstractions.TerminalProgressState.None, -1);
+        Pump(() => ChipProgress(second) is { IsVisible: false }, "Removing the progress must clear the chip's bar.");
 
         // What the host keeps for the group: its tabs, its selection and the group's members, direction and weights.
         string Shared() => System.Text.Json.JsonSerializer.Serialize(new

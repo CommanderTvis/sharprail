@@ -32,7 +32,7 @@ public sealed partial class DockSurface
     private Control PhonePane(DockGroup group, DockPane pane, DockTab[] members, DockTab selected)
     {
         var view = new PhonePaneView(group.Id, pane.Id, tab => renderContent(tab), shown => MemberShown(pane.Id, shown),
-            tab => memberActivity.Contains((Session.State.ActiveWorkspace, tab)));
+            tab => memberActivity.Contains((Session.State.ActiveWorkspace, tab)), tab => TabOverlay?.Invoke(tab));
         phonePanes[group.Id] = view;
         view.Show(members, PhoneMember(pane, selected, members));
         MemberShown(pane.Id, view.Shown);

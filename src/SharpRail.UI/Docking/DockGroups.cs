@@ -225,6 +225,7 @@ public sealed partial class DockSurface
             if (vertical) { underline.Width = 2; underline.HorizontalAlignment = nested ? HorizontalAlignment.Right : HorizontalAlignment.Left; }
             else { underline.Height = 2; underline.VerticalAlignment = VerticalAlignment.Bottom; }
             Ui.Place(chrome, underline);
+            if (TabOverlay?.Invoke(tab) is { } overlay) Ui.Place(chrome, overlay);
             void UpdateActiveMarker() => underline.IsVisible = Session.Selected(group.Id)?.Id == tab.Id &&
                 (!nested || Session.View.FocusedCenter == group.Id);
             activeUpdates.Add(() => { UpdateActiveMarker(); UpdateBackground(); });

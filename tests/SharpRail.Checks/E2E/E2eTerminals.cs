@@ -20,8 +20,9 @@ internal sealed class E2eTerminals(ITerminalService? inner = null, ITerminalCata
     internal PtyTerminalService? HostService => inner as PtyTerminalService;
     // The catalog of the host these terminals run on. The shared headless host serves many apps, so each app
     // without a host of its own keeps a catalog of its own and ends closed tabs' shells itself.
-    internal ITerminalCatalogService Catalog { get; } = catalog ?? inner as ITerminalCatalogService ??
-        new MemoryTerminalCatalog(end: inner is null ? id => Pty.CloseAsync(id) : null);
+    // Programs' signals come from the host that runs the shells, as they do from the app's own host.
+    internal ITerminalCatalogService Catalog { get; } = new Signaling(catalog ?? inner as ITerminalCatalogService ??
+        new MemoryTerminalCatalog(end: inner is null ? id => Pty.CloseAsync(id) : null), inner as ITerminalCatalogService ?? Pty);
     // The grid this client's terminal bodies attach with.
     internal (int Columns, int Rows) Grid { get; set; } = (120, 30);
     // As the Metal renderers do, a body watches only when it was made for that; false asks with every yielding attach, as Skia does.
@@ -186,4 +187,15 @@ internal sealed partial class HostTerminal : ITerminalBackend, SharpRail.UI.Term
         lifetime.Cancel();
         if (session is not null) _ = session.DisposeAsync().AsTask();
     }
+}
+
+// A catalog whose terminal signals are those of the host running its shells.
+internal sealed class Signaling(ITerminalCatalogService catalog, ITerminalCatalogService host) : ITerminalCatalogService
+{
+    public ValueTask<TerminalCatalog> OpenWorkspaceAsync(string workspaceRoot, IReadOnlyList<TerminalTab> tabs, CancellationToken cancellationToken = default) => catalog.OpenWorkspaceAsync(workspaceRoot, tabs, cancellationToken);
+    public ValueTask<TerminalCatalog> ReserveAsync(string workspaceRoot, TerminalTab tab, CancellationToken cancellationToken = default) => catalog.ReserveAsync(workspaceRoot, tab, cancellationToken);
+    public ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => catalog.CloseTabAsync(workspaceRoot, key, cancellationToken);
+    public ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default) => catalog.CloseWorkspaceAsync(workspaceRoot, cancellationToken);
+    public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => catalog.WatchAsync(cancellationToken);
+    public IAsyncEnumerable<TerminalSignal> WatchSignalsAsync(CancellationToken cancellationToken = default) => host.WatchSignalsAsync(cancellationToken);
 }

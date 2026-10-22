@@ -25,6 +25,11 @@ internal sealed class HostedTerminal
     /// <summary>Raised after the shell accepted input from the attachment that drives it.</summary>
     internal Action? InputAccepted { get; init; }
 
+    /// <summary>Receives, on the read pump, each progress, bell and notification in live output; never replays.</summary>
+    internal Action<TerminalSignal>? Signaled { get; init; }
+    internal string SessionId { get; init; } = "";
+    private readonly TerminalSignalParser signals = new();
+
     internal HostedTerminal(ITerminalProcess process, int columns, int rows, byte[]? restored = null, int replayBytes = TerminalRecorder.SnapshotBytes)
     {
         Process = process;
@@ -47,6 +52,7 @@ internal sealed class HostedTerminal
             await foreach (var chunk in Process.ReadAsync())
                 try
                 {
+                    if (Signaled is { } signaled) signals.Scan(chunk.Span, SessionId, signaled);
                     while (true)
                     {
                         Task? space;
@@ -69,6 +75,8 @@ internal sealed class HostedTerminal
         }
         catch (Exception) { }
         var code = await Process.Exit;
+        // The shell's output has ended: whatever progress it showed is over.
+        Signaled?.Invoke(new(SessionId, TerminalSignalKind.Progress) { Progress = TerminalProgressState.None });
         lock (gate)
         {
             exitCode = code;

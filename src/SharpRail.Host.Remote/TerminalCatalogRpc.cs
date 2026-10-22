@@ -27,6 +27,26 @@ public sealed class TerminalCatalogRpc(ITerminalCatalogService catalog, IHostApp
         await foreach (var snapshot in catalog.WatchAsync(watch.Token)) yield return Map(snapshot);
     }
 
+    public async IAsyncEnumerable<TerminalSignalMessage> WatchSignalsAsync(TerminalCatalogRequest request, CallContext context = default)
+    {
+        using var watch = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
+        IAsyncEnumerator<TerminalSignal> signals;
+        try { signals = catalog.WatchSignalsAsync(watch.Token).GetAsyncEnumerator(watch.Token); }
+        catch (NotSupportedException error) { throw new RpcException(new Status(StatusCode.Unimplemented, error.Message)); }
+        await using (signals)
+            while (true)
+            {
+                try { if (!await signals.MoveNextAsync()) yield break; }
+                catch (NotSupportedException error) { throw new RpcException(new Status(StatusCode.Unimplemented, error.Message)); }
+                var signal = signals.Current;
+                yield return new()
+                {
+                    SessionId = signal.SessionId, Kind = (int)signal.Kind, State = (int)signal.Progress, Percent = signal.Percent,
+                    Title = signal.Title, Body = signal.Body
+                };
+            }
+    }
+
     private static async ValueTask<TerminalCatalogReply> Execute(Func<ValueTask<TerminalCatalog>> operation)
     {
         try { return Map(await operation()); }

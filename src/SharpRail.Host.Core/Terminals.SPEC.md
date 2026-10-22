@@ -191,7 +191,7 @@ including draining output while closing the pseudoconsole.
 
 - Which terminals exist is shared state, keyed by workspace root and a client-minted tab key; the session
   behind a tab is `TerminalTab.SessionFor(root, key)`, the same for every client. Output stays addressed
-  to one attachment; the catalog is the only terminal state that is broadcast.
+  to one attachment; the catalog and terminal signals are the only terminal state that is broadcast.
 - Reservation and attachment are separate. `ReserveAsync` records a tab without starting anything and is
   idempotent, its title included. Attach remains the only way a shell is born and does not touch the
   catalog, so a client reserves a tab before it shows one; a session no tab names is allowed (the relay,
@@ -217,6 +217,25 @@ including draining output while closing the pseudoconsole.
   `HostStateStore.WorkspaceRemoved` fires after a worktree removal.
 - `TerminalCatalogChecks.cs` covers all of this locally and through a real WebSocket RPC host, including a worktree
   removed through the project host.
+
+## Terminal signals
+
+Ghostty's apprt actions `progress_report`, `desktop_notification` and `ring_bell`, read by the host so every renderer
+and every client sees them. `TerminalSignalParser` scans each session's live output on its read pump (never a
+replay or recording), keeping escape state across reads: OSC 9;4;state[;percent] (states 0–4, percent clamped to
+0–100), OSC 9;text other than a ConEmu command number (iTerm2), OSC 777;notify;title;body, OSC 99 (kitty's basic
+subset: title and body payloads, base64 `e=1`, chunks joined by `i=` until `d` is not 0, urgency read and not
+shown; queries, icons, buttons, sounds and close are ignored and nothing is answered), and BEL outside OSC, DCS, SOS,
+PM and APC strings, at most one per 100 ms as in Ghostty. A full reset (RIS) removes the progress, as Ghostty's does.
+Bytes still reach clients unchanged; an OSC over 4 KiB is dropped.
+
+`TerminalSignalHub` keeps the progress of every session and fans signals out through `WatchSignalsAsync` on the
+catalog service: a new watcher receives every current progress first, then each signal, and a slow watcher loses
+its oldest (1024 queued). A progress with no further report for 15 s is removed (Ghostty's macOS surface timer), as
+is a session's when its shell's output ends or it closes. Remote clients receive the same stream over
+`ITerminalCatalogRpc.WatchSignalsAsync`; a host that predates it answers Unimplemented and the client shows no
+signals. `MemoryTerminalCatalog` has no shells and reports `NotSupportedException`. `--terminals` and
+`--terminal-signals` check parsing, the timeout, local and remote delivery and exit.
 
 ## Backpressure
 

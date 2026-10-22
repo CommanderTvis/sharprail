@@ -191,6 +191,12 @@ public sealed partial class WorkbenchWindow
             adornment.VerticalAlignment = VerticalAlignment.Center;
             Ui.Place(row, adornment, 0, 3);
         }
+        if (workbench.Signals.Strip(workspace, tab) is { } strip)
+        {
+            Grid.SetColumnSpan(strip, 4);
+            strip.Margin = new Thickness(0, 0, 0, -6);
+            row.Children.Add(strip);
+        }
         var button = new Button
         {
             Name = "WorkspaceTabPreview",

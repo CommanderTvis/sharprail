@@ -23,6 +23,7 @@ public sealed partial class PhonePaneView : UserControl
     private readonly Func<DockTab, Control> content;
     private readonly Action<string> shown;
     private readonly Func<string, bool> active;
+    private readonly Func<DockTab, Control?> overlay = _ => null;
     private DockTab[] members = [];
     private Border? current;
     private int index;
@@ -42,10 +43,12 @@ public sealed partial class PhonePaneView : UserControl
         active = _ => false;
     }
 
-    internal PhonePaneView(string groupId, string paneId, Func<DockTab, Control> content, Action<string> shown, Func<string, bool> active) : this()
+    internal PhonePaneView(string groupId, string paneId, Func<DockTab, Control> content, Action<string> shown, Func<string, bool> active,
+        Func<DockTab, Control?>? overlay = null) : this()
     {
         GroupId = groupId; PaneId = paneId;
         this.content = content; this.shown = shown; this.active = active;
+        if (overlay is not null) this.overlay = overlay;
     }
 
     internal string GroupId { get; } = "";
@@ -78,7 +81,7 @@ public sealed partial class PhonePaneView : UserControl
         {
             var id = chip.Tag as string;
             chip.Classes.Set("selected", id == Shown);
-            if (chip.Content is StackPanel { Children: [_, Ellipse dot] }) dot.IsVisible = id != Shown && id is not null && active(id);
+            if (chip.Content is Panel { Children: [StackPanel { Children: [_, Ellipse dot] }, ..] }) dot.IsVisible = id != Shown && id is not null && active(id);
         }
     }
 
@@ -132,8 +135,10 @@ public sealed partial class PhonePaneView : UserControl
                 Name = "PaneChip",
                 Tag = member.Id,
                 Classes = { "PaneChip" },
-                Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { label, dot } }
+                // The overlay, such as a terminal's progress, runs along the chip's bottom edge.
+                Content = new Panel { Children = { new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { label, dot } } } }
             };
+            if (overlay(member) is { } layer) ((Panel)chip.Content).Children.Add(layer);
             AutomationProperties.SetName(chip, member.Title);
             var id = member.Id;
             chip.Click += (_, _) => Select(id);

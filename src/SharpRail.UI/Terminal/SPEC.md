@@ -219,6 +219,14 @@ brushes. Taking theme values as written keeps the terminal background byte-ident
 of the same colour on every display; `--native-texture` compares the texture with an Avalonia swatch
 rather than an absolute value, which changed with the display's colour profile.
 
+## Program signals
+
+Progress bars, bell marks and program notifications do not come from libghostty's apprt actions: the Metal
+renderers' native `progress_report`/`desktop_notification`/`ring_bell` callbacks are not wired, and the Skia,
+Android and Browser renderers have none. The host parses the same sequences from the PTY output, so all renderers
+and remote viewers agree without a native rebuild (`TerminalSignalBoard.cs`;
+[UI SPEC](../SPEC.md#program-progress-notifications-and-bells)).
+
 ## Platform
 
 Settings → Terminal also offers the host's replay size (Off, 16 KB, 64 KB, 256 KB, 1 MB): how much recent

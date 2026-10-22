@@ -24,6 +24,9 @@ public sealed class Workbench : IDisposable
     private readonly TaskCompletionSource<bool> terminalCatalogStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private WorkbenchWindow? activeWindow;
     private AttentionNotifications? attention;
+    // When each terminal's agent last asked for the user, so its program's own notification or bell does not repeat it.
+    private readonly Dictionary<(string Workspace, string Tab), DateTime> agentAttention = [];
+    private static readonly TimeSpan AgentDedupe = TimeSpan.FromSeconds(5);
     private int highlightingVersion;
     private bool disposed;
 
@@ -35,6 +38,7 @@ public sealed class Workbench : IDisposable
         Profile = profile; State = state; Terminals = terminals; Remote = remote; this.sessions = sessions; Plugins = plugins;
         TerminalTabs = terminalTabs ?? new Host.Core.MemoryTerminalCatalog();
         _ = Task.Run(WatchTerminalsAsync);
+        _ = Task.Run(WatchSignalsAsync);
         PluginLoader = new(this);
         WorkspaceWatches = new(this, sessions);
         state.Changed += (_, _) => ProjectionChanged?.Invoke();
@@ -66,6 +70,8 @@ public sealed class Workbench : IDisposable
     internal Task<bool> TerminalCatalogStarted => terminalCatalogStarted.Task;
     /// <summary>Raised on the UI thread when <see cref="TerminalCatalog"/> advances.</summary>
     public event Action? TerminalCatalogChanged;
+    /// <summary>The progress and unseen bell of every terminal, as its host reports them.</summary>
+    internal Terminal.TerminalSignalBoard Signals { get; } = new();
     public bool Remote { get; }
     /// <summary>A phone-sized screen: windows show their side panels as drawers over the centre.</summary>
     public bool Compact { get; init; }
@@ -165,6 +171,7 @@ public sealed class Workbench : IDisposable
     /// <summary>Queues a desktop notification for a terminal that needs the user; shown only while the app is away.</summary>
     internal void RequestAttention(AttentionNotification notification)
     {
+        agentAttention[(notification.WorkspaceId, notification.TabKey)] = DateTime.UtcNow;
         foreach (var window in windows) window.NoteTabActivity(notification.WorkspaceId, notification.TabKey);
         // A result the user is not looking at leaves its workspace unread for every window and client (ThinkRail #770).
         if (!windows.Any(window => window.IsActive && window.ShowsWorkspace(notification.WorkspaceId)))
@@ -228,6 +235,70 @@ public sealed class Workbench : IDisposable
             catch (OperationCanceledException) { return; }
         }
     }
+
+    private async Task WatchSignalsAsync()
+    {
+        while (!lifetime.IsCancellationRequested)
+        {
+            try
+            {
+                var first = true;
+                await foreach (var signal in TerminalTabs.WatchSignalsAsync(lifetime.Token))
+                {
+                    var opening = first; first = false;
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (lifetime.IsCancellationRequested) return;
+                        if (opening) Signals.ResetProgress();
+                        OfferSignal(signal);
+                    });
+                }
+            }
+            catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
+            // A host that predates terminal signals, or a catalog without shells: tabs show no progress or bells.
+            catch (NotSupportedException) { return; }
+            catch (Exception) { }
+            try { await Task.Delay(State.RetryDelay, lifetime.Token); }
+            catch (OperationCanceledException) { return; }
+        }
+    }
+
+    /// <summary>Applies one terminal signal on the UI thread: progress to every tab, a bell or a program's notification to its terminal.</summary>
+    internal void OfferSignal(TerminalSignal signal)
+    {
+        if (signal.Kind == TerminalSignalKind.Progress) { Signals.SetProgress(signal.SessionId, signal.Progress, signal.Percent); return; }
+        if (TerminalFor(signal.SessionId) is not { } terminal) return;
+        var settings = State.Current.Settings;
+        // An agent's attention for this terminal moments ago already notified and asked for attention.
+        var agent = agentAttention.TryGetValue(terminal, out var at) && DateTime.UtcNow - at < AgentDedupe;
+        if (signal.Kind == TerminalSignalKind.Bell)
+        {
+            if (settings.Bell("system")) Notifier?.Beep();
+            if (ShowsTerminal(terminal.Workspace, terminal.Tab, focused: true)) return;
+            foreach (var window in windows) window.NoteTabActivity(terminal.Workspace, terminal.Tab);
+            if (settings.Bell("title")) Signals.RingBell(signal.SessionId);
+            if (settings.Bell("attention") && !agent && !Focused) Notifier?.RequestAttention();
+            return;
+        }
+        if (agent || !settings.TerminalNotificationsEnabled || Notifier is null) return;
+        var tabTitle = TerminalCatalog?.Workspaces.GetValueOrDefault(terminal.Workspace)?.FirstOrDefault(tab => tab.Key == terminal.Tab)?.Title ?? "Terminal";
+        foreach (var window in windows) window.NoteTabActivity(terminal.Workspace, terminal.Tab);
+        (attention ??= new(this, Notifier, NotificationWindow)).RequestProgram(
+            new(terminal.Workspace, terminal.Tab, signal.Title.Length > 0 ? signal.Title : tabTitle, signal.Body), tabTitle);
+    }
+
+    // The catalogued tab a host session belongs to.
+    private (string Workspace, string Tab)? TerminalFor(string session)
+    {
+        foreach (var (workspace, tabs) in TerminalCatalog?.Workspaces ?? new Dictionary<string, IReadOnlyList<TerminalTab>>())
+            foreach (var tab in tabs)
+                if (TerminalTab.SessionFor(workspace, tab.Key) == session) return (workspace, tab.Key);
+        return null;
+    }
+
+    /// <summary>Whether a terminal is on screen in an active window, and with <paramref name="focused"/> also has keyboard focus.</summary>
+    internal bool ShowsTerminal(string workspace, string tabKey, bool focused = false) =>
+        windows.Any(window => window.IsActive && window.ShowsTerminal(workspace, tabKey, focused));
 
     public int FileRevision(string workspace, string path) => fileRevisions.GetValueOrDefault((workspace, path));
 
