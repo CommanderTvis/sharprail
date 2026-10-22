@@ -22,6 +22,8 @@ public sealed class TerminalInput
     [ProtoMember(11)] public bool Watch { get; set; }
     // The command a creating attach runs as the shell's program; empty for a plain shell.
     [ProtoMember(12)] public string Program { get; set; } = "";
+    // The session whose reported working directory a new shell starts in; empty for the workspace root.
+    [ProtoMember(13)] public string DirectoryFrom { get; set; } = "";
 }
 
 // One Attached message, then output chunks with the host position after each, then Exited with the exit

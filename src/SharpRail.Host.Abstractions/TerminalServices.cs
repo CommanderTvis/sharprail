@@ -18,6 +18,27 @@ public record TerminalAttachRequest(string SessionId, string WorkspaceRoot, stri
     // A command line the new shell runs as its program, through the user's login shell, before dropping into an
     // interactive shell in the same directory. Only an attach that starts the session uses it; nothing is typed.
     public string? Program { get; init; }
+    // The session whose shell-reported working directory (OSC 7) a new shell starts in, as a terminal opened from another
+    // one does; a session in another workspace, or one that reported none, leaves the workspace root.
+    public string? DirectoryFrom { get; init; }
+}
+
+/// <summary>Where a terminal's shell is, by its shell integration's OSC 133 marks; Unknown before the first mark.</summary>
+public enum TerminalShellPhase { Unknown, Prompt, Input, Running }
+
+/// <summary>A command that finished: host output positions of its output's start (OSC 133 C) and end (D), and its exit code if reported.</summary>
+public sealed record TerminalCommand(long Start, long End, int? ExitCode);
+
+/// <summary>
+/// What a terminal's shell integration reported, read by the host from the output it records: the phase, the working
+/// directory (OSC 7, or an OSC 133 <c>cwd=</c> option), the last command's exit code and the recent commands.
+/// </summary>
+public sealed record TerminalShellStatus(TerminalShellPhase Phase, string? Directory, int? LastExitCode)
+{
+    /// <summary>The most recent finished commands, oldest first.</summary>
+    public IReadOnlyList<TerminalCommand> Commands { get; init; } = [];
+    /// <summary>Whether any OSC 133 mark arrived, so a consumer knows to prefer this over its own guesses.</summary>
+    public bool Marked { get; init; }
 }
 
 // A PTY's size is a pair of unsigned shorts; a grid outside it is refused before any session work.

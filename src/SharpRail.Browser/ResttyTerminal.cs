@@ -102,7 +102,7 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITer
     {
         await ready.Task.WaitAsync(lifetime.Token);
         var attached = await terminals.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, columns, rows)
-        { TabKey = launch.TabKey, Yield = launch.Yield, Watch = launch.Watch, Program = launch.Program }, lifetime.Token);
+        { TabKey = launch.TabKey, Yield = launch.Yield, Watch = launch.Watch, Program = launch.Program, DirectoryFrom = launch.DirectoryFrom }, lifetime.Token);
         if (disposed) { await attached.DisposeAsync(); return; }
         session = attached;
         if (attached.Watching) ResttyInterop.Watch(element!, attached.Grid.Columns, attached.Grid.Rows);

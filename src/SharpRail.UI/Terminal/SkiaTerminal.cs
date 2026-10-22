@@ -100,7 +100,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
         try
         {
             attached = await terminals.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows)
-            { TabKey = launch.TabKey, Yield = launch.Yield, Watch = launch.Yield, Program = launch.Program }, lifetime.Token);
+            { TabKey = launch.TabKey, Yield = launch.Yield, Watch = launch.Yield, Program = launch.Program, DirectoryFrom = launch.DirectoryFrom }, lifetime.Token);
         }
         catch (Exception error) when (RemoteErrors.IsTransport(error)) { throw new TerminalStartException(error.Message); }
         if (disposed) { await attached.DisposeAsync(); throw new ObjectDisposedException(nameof(SkiaTerminal)); }

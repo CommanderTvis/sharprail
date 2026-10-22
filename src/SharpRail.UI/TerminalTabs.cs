@@ -24,6 +24,8 @@ public sealed partial class WorkbenchWindow
     private readonly Dictionary<string, string> terminalCommands = [];
     private Dictionary<string, Dictionary<string, string>> knownTerminals = [];
     private bool applyingTerminalCatalog;
+    // Terminal tabs created here, by the terminal they were opened from: its shell's directory is where theirs starts.
+    private readonly Dictionary<string, string> terminalSources = [];
     // A terminal chosen before this window's layout had it.
     private (string Workspace, string Tab)? awaitedTerminal;
 
@@ -64,6 +66,7 @@ public sealed partial class WorkbenchWindow
             TabKey = tabId,
             Yield = !ownTerminals.Remove(workspace + ":" + tabId),
             Program = terminalCommands.Remove(workspace + ":" + tabId, out var program) ? program : null,
+            DirectoryFrom = terminalSources.Remove(workspace + ":" + tabId, out var source) ? source : null,
             ResolveCommitLinks = (text, token) => ResolveTerminalCommits(workspace, text, token),
             OpenFileLink = async link =>
             {
@@ -193,7 +196,13 @@ public sealed partial class WorkbenchWindow
         {
             // A workspace seen for the first time brings its tabs when it is shared.
             if (!previous.TryGetValue(workspace, out var before)) continue;
-            foreach (var (id, title) in tabs.Where(tab => !before.ContainsKey(tab.Key))) _ = ReserveTerminalAsync(workspace, new(id, title));
+            foreach (var (id, title) in tabs.Where(tab => !before.ContainsKey(tab.Key)))
+            {
+                // A new tab starts where the terminal it was opened from is, as Ghostty's inherit-working-directory does.
+                if (Layout.TakeTerminalSource(workspace, id) is { } source && before.ContainsKey(source))
+                    terminalSources[workspace + ":" + id] = TerminalLaunch.SessionFor(workspace, source);
+                _ = ReserveTerminalAsync(workspace, new(id, title));
+            }
             foreach (var id in before.Keys.Where(id => !tabs.ContainsKey(id))) _ = CloseTerminalAsync(workspace, id, undoableTerminalCloses.Contains(workspace + ":" + id));
         }
     }
@@ -215,7 +224,7 @@ public sealed partial class WorkbenchWindow
             // A host without a catalog keeps the tab this window's own; a refused tab goes with the next reconciliation.
             if (error is not NotSupportedException)
             {
-                ownTerminals.Remove(key); terminalCommands.Remove(key);
+                ownTerminals.Remove(key); terminalCommands.Remove(key); terminalSources.Remove(key);
                 Report(new IOException("The host could not open this terminal: " + error.Message));
                 ApplyTerminalCatalog();
             }
@@ -226,7 +235,7 @@ public sealed partial class WorkbenchWindow
     // An undoable close leaves the host session running, detached, for the undo timeout.
     private async Task CloseTerminalAsync(string workspace, string tabId, bool undoable = false)
     {
-        ownTerminals.Remove(workspace + ":" + tabId); terminalCommands.Remove(workspace + ":" + tabId);
+        ownTerminals.Remove(workspace + ":" + tabId); terminalCommands.Remove(workspace + ":" + tabId); terminalSources.Remove(workspace + ":" + tabId);
         try
         {
             var catalog = await Task.Run(async () => undoable

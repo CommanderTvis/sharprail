@@ -28,6 +28,7 @@ internal static partial class ShellIntegrationChecks
             Directory.Exists(Path.Combine(resources, "shell-integration", "fish", "vendor_conf.d")),
             "the app must ship Ghostty's zsh, bash and fish scripts in " + resources);
         Plans(resources);
+        ShellModel();
         var fixture = Fixture(root);
         await WithFixture(fixture, async () =>
         {
@@ -37,6 +38,7 @@ internal static partial class ShellIntegrationChecks
                 await Marked(new LocalTerminalAdapter(on), workspace, "local");
                 await UserStartup(new LocalTerminalAdapter(on), fixture, workspace);
             }
+            await LinksFollowReports(workspace);
             await using (var off = new PtyTerminalService("/bin/zsh", shellIntegration: () => false))
                 await Unmarked(new LocalTerminalAdapter(off), workspace, "local");
             if (OperatingSystem.IsMacOS())
@@ -90,6 +92,27 @@ internal static partial class ShellIntegrationChecks
         Require(ShellIntegration.For("/bin/bash", resources, empty) is null == OperatingSystem.IsMacOS(), "only Apple's /bin/bash, which ignores ENV, is left alone.");
     }
 
+    // The host's reading of shell integration from raw output, split anywhere.
+    private static void ShellModel()
+    {
+        var bytes = Encoding.UTF8.GetBytes("\u001b]133;A;cl=line\u0007% \u001b]133;B\u0007ls\r\n\u001b]133;C\u0007out\r\n\u001b]133;D;2\u0007" +
+            "\u001b]7;file://localhost/tmp/a%20b\u001b\\\u001b]133;A\u0007\u001b]133;D\u0007\u001b]133;P;k=s\u0007");
+        for (var split = 0; split <= bytes.Length; split++)
+        {
+            var state = new TerminalShellState();
+            state.Push(bytes.AsSpan(0, split)); state.Push(bytes.AsSpan(split));
+            var status = state.Status;
+            Require(status.Phase == TerminalShellPhase.Prompt && status.LastExitCode == 2 && status.Directory == "/tmp/a b" && status.Marked &&
+                status.Commands.Count == 1 && status.Commands[0].ExitCode == 2 && status.Commands[0].End > status.Commands[0].Start,
+                $"split at {split}: {status} {string.Join(",", status.Commands)}");
+        }
+        Require(TerminalShellState.DirectoryOf("kitty-shell-cwd://" + Environment.MachineName + "/raw%20path") == "/raw%20path", "kitty-shell-cwd paths are raw.");
+        Require(TerminalShellState.DirectoryOf("file://elsewhere.example/tmp") is null, "another machine's directory must be ignored.");
+        var running = new TerminalShellState();
+        running.Push("\u001b]133;C;cwd=/srv/x\u0007"u8);
+        Require(running.Phase == TerminalShellPhase.Running && running.Directory == "/srv/x", "a running command and an OSC 133 cwd option.");
+    }
+
     private static string Fixture(string root)
     {
         var fixture = Path.Combine(root, "shell-integration");
@@ -134,10 +157,67 @@ internal static partial class ShellIntegrationChecks
             await screen.WaitFor(CommandEnd + ";0", mode + " command end with status");
             await screen.Run("cd 'nested dir'");
             await screen.WaitFor("nested dir\u0007", mode + " OSC 7 after cd");
+            await Inherits(terminals, session.Id, workspace, mode);
+            await LinksFollowCd(terminals, session, screen, workspace, mode);
             await screen.Run("env | grep -c '^GHOSTTY_ZSH_ZDOTDIR=\\|^ZDOTDIR=' ; echo ZDOT_$?");
             await screen.WaitFor("ZDOT_1", mode + " ZDOTDIR restored after startup");
         }
         finally { await session.KillAsync(); await terminals.CloseAsync(session.Id); }
+    }
+
+    // A terminal opened from this one starts in the directory its shell reported; one from another workspace does not.
+    private static async Task Inherits(ITerminalService terminals, string source, string workspace, string mode)
+    {
+        await using var child = await terminals.AttachAsync(new("inherit-" + Guid.NewGuid().ToString("N"), workspace, "client", 100, 30) { DirectoryFrom = source });
+        var screen = new Output(child);
+        try
+        {
+            await screen.Run("printf 'CHILD_%s_\\n' \"$(basename \"$(pwd)\")\"");
+            await screen.WaitFor("CHILD_nested dir_", mode + " new terminal in the reported directory");
+        }
+        finally { await child.KillAsync(); await terminals.CloseAsync(child.Id); }
+        var elsewhere = Path.Combine(Path.GetDirectoryName(workspace)!, "home");
+        await using var other = await terminals.AttachAsync(new("other-" + Guid.NewGuid().ToString("N"), elsewhere, "client", 100, 30) { DirectoryFrom = source });
+        var otherScreen = new Output(other);
+        try
+        {
+            await otherScreen.Run("printf 'OTHER_%s_\\n' \"$(basename \"$(pwd)\")\"");
+            await otherScreen.WaitFor("OTHER_home_", mode + " another workspace keeps its root");
+        }
+        finally { await other.KillAsync(); await terminals.CloseAsync(other.Id); }
+    }
+
+    // Relative file links resolve in the directory the shell reports after a cd, on the host that runs it.
+    private static async Task LinksFollowCd(ITerminalService terminals, ITerminalSession session, Output screen, string workspace, string mode)
+    {
+        var reported = Path.Combine(workspace, "reported-" + mode);
+        Directory.CreateDirectory(reported);
+        await File.WriteAllTextAsync(Path.Combine(reported, "only-here.txt"), "x");
+        Require((await terminals.FindFileLinksAsync(session.Id, "see only-here.txt")).Count == 0, mode + " a file outside the shell's directory must not link.");
+        await screen.Run($"cd '{reported}'");
+        await screen.WaitFor("reported-" + mode + "\u0007", mode + " OSC 7 after cd");
+        var links = await terminals.FindFileLinksAsync(session.Id, "see only-here.txt");
+        Require(links.Count == 1 && links[0].Path.EndsWith("/reported-" + mode + "/only-here.txt", StringComparison.Ordinal),
+            mode + " a relative link must resolve in the reported directory: " + string.Join(",", links.Select(link => link.Path)));
+    }
+
+    // A program without shell integration that reports a directory (OSC 7) moves link resolution there, though the
+    // process itself never left the workspace: the report wins over the process probe.
+    private static async Task LinksFollowReports(string workspace)
+    {
+        await using var host = new PtyTerminalService("/bin/sh");
+        var terminals = new LocalTerminalAdapter(host);
+        await using var session = await terminals.AttachAsync(new("report-" + Guid.NewGuid().ToString("N"), workspace, "client", 100, 30));
+        var screen = new Output(session);
+        var reported = Path.Combine(workspace, "reported dir");
+        Directory.CreateDirectory(reported);
+        await File.WriteAllTextAsync(Path.Combine(reported, "report-only.txt"), "x");
+        await screen.Run($"printf '\\033]7;file://localhost%s\\007MOVED\\n' '{reported.Replace(" ", "%20")}'");
+        await screen.WaitFor("MOVED", "a reported directory");
+        var links = await terminals.FindFileLinksAsync(session.Id, "see report-only.txt");
+        Require(links.Count == 1 && links[0].Path == Path.Combine(reported, "report-only.txt"),
+            "a relative link must resolve in the OSC 7 directory: " + string.Join(",", links.Select(link => link.Path)));
+        await session.KillAsync();
     }
 
     private static async Task Unmarked(ITerminalService terminals, string workspace, string mode)

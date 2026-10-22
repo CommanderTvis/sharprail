@@ -108,6 +108,13 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   removed, so with the setting off a shell gets none. `--shell-integration` checks real zsh in a fixture HOME locally and
   remotely, the setting off, a user ZDOTDIR, Apple bash and the bash/fish plans; a non-Apple bash or fish was not
   available to run live.
+- The host reads shell integration from the output it records (`TerminalShellState`, per session, under the output lock,
+  sequences split anywhere): the working directory from OSC 7 (`file://` percent-decoded, `kitty-shell-cwd://` raw; a host
+  name other than this machine's, as an ssh session reports, is ignored) or a `cwd=` option on an OSC 133 mark. A new
+  shell whose attach names `DirectoryFrom` (a session of the same workspace) starts in that directory when it still exists,
+  else in the workspace root, as Ghostty's window/tab/split-inherit-working-directory (default true) do; the session stays
+  keyed to its workspace. Relative file links resolve in the reported directory first, then the shell process's, then the
+  launch directory. Local and remote hosts alike: the attach field crosses the wire (`TerminalInput` member 13).
 - Killing sends SIGHUP to the shell's process group, then SIGKILL if it does not exit.
 - Not tmux: no extra dependency, no competing tab model.
 

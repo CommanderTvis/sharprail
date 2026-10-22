@@ -374,6 +374,14 @@ internal static class Program
             TerminalHostChecks.Run(root, watchReplayOnly: true).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--terminal-directory"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            using var git = new E2E.IsolatedGit(Path.Combine(root, "terminals-git"));
+            E2E.TerminalsE2E.InheritsDirectory(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
         if (args.SequenceEqual(["--shell-integration"]))
         {
             ShellIntegrationChecks.RunHost(root).GetAwaiter().GetResult();

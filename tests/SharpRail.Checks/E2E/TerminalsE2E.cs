@@ -20,6 +20,7 @@ internal static class TerminalsE2E
     {
         using var git = new IsolatedGit(Path.Combine(root, "terminals-git"));
         OpensExplicitly(root);
+        InheritsDirectory(root);
         StartFailure(root);
         WorkspaceScoped(root);
         MultipleTerminals(root);
@@ -82,6 +83,31 @@ internal static class TerminalsE2E
     private static DialogWindow? Dialog(E2eWorkspace app) => app.Window.OwnedWindows.OfType<DialogWindow>().SingleOrDefault();
 
     private static bool Busy(TerminalView view) => view.IsBusyAsync().AsTask().GetAwaiter().GetResult();
+
+    // A terminal opened from another starts in the directory that one's shell reported (OSC 7), as Ghostty's
+    // tab-inherit-working-directory does; with no report it starts in the worktree.
+    internal static void InheritsDirectory(string root)
+    {
+        using var app = Open(root, "terminals-inherit");
+        var workspace = CreateTerminalWorkspace(app, "workspace-1");
+        var first = Ready(app, TerminalTabs(app)[0]);
+        NewTerminal(app, app.Center);
+        Until(() => TerminalTabs(app).Length == 2);
+        var plain = Ready(app, TerminalTabs(app)[1]);
+        plain.Run("printf 'PLAIN_%s\\n' \"$(basename \"$(pwd)\")\"");
+        Expect(plain, "PLAIN_workspace-1");
+        app.Click(app.Find<Grid>("DockTab_" + TerminalTabs(app)[0].Id.Replace(':', '_')));
+        Until(() => Presented(app, View(app, TerminalTabs(app)[0])));
+        first.Run("mkdir -p 'deep dir' && printf '\\033]7;file://localhost%s\\007REPORTED\\n' \"$(pwd)/deep%20dir\"");
+        Expect(first, "REPORTED");
+        NewTerminal(app, app.Center);
+        Until(() => TerminalTabs(app).Length == 3);
+        var inherited = Ready(app, TerminalTabs(app)[2]);
+        inherited.Run("printf 'INHERITED_%s\\n' \"$(basename \"$(pwd)\")\"");
+        Expect(inherited, "INHERITED_deep dir");
+        Require(Path.GetFileName(workspace) == "workspace-1", "the workspace is the one created.");
+        Console.WriteLine("PASS terminal working directory: a terminal opened from another starts in its reported OSC 7 directory, else the worktree");
+    }
 
     private static void OpensExplicitly(string root)
     {

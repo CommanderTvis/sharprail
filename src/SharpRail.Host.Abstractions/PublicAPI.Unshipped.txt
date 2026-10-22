@@ -1940,3 +1940,46 @@ SharpRail.Host.Abstractions.ITerminalCatalogService.CloseTabForUndoAsync(string!
 const SharpRail.Host.Abstractions.HostProtocol.ShellIntegration = 10 -> int
 SharpRail.Host.Abstractions.HostSettings.ShellIntegrationEnabled.get -> bool
 SharpRail.Host.Abstractions.HostSettings.ShellIntegrationEnabled.init -> void
+SharpRail.Host.Abstractions.TerminalAttachRequest.DirectoryFrom.get -> string?
+SharpRail.Host.Abstractions.TerminalAttachRequest.DirectoryFrom.init -> void
+SharpRail.Host.Abstractions.TerminalCommand
+SharpRail.Host.Abstractions.TerminalCommand.<Clone>$() -> SharpRail.Host.Abstractions.TerminalCommand!
+SharpRail.Host.Abstractions.TerminalCommand.Deconstruct(out long Start, out long End, out int? ExitCode) -> void
+SharpRail.Host.Abstractions.TerminalCommand.End.get -> long
+SharpRail.Host.Abstractions.TerminalCommand.End.init -> void
+SharpRail.Host.Abstractions.TerminalCommand.Equals(SharpRail.Host.Abstractions.TerminalCommand? other) -> bool
+SharpRail.Host.Abstractions.TerminalCommand.ExitCode.get -> int?
+SharpRail.Host.Abstractions.TerminalCommand.ExitCode.init -> void
+SharpRail.Host.Abstractions.TerminalCommand.Start.get -> long
+SharpRail.Host.Abstractions.TerminalCommand.Start.init -> void
+SharpRail.Host.Abstractions.TerminalCommand.TerminalCommand(long Start, long End, int? ExitCode) -> void
+SharpRail.Host.Abstractions.TerminalShellPhase
+SharpRail.Host.Abstractions.TerminalShellPhase.Input = 2 -> SharpRail.Host.Abstractions.TerminalShellPhase
+SharpRail.Host.Abstractions.TerminalShellPhase.Prompt = 1 -> SharpRail.Host.Abstractions.TerminalShellPhase
+SharpRail.Host.Abstractions.TerminalShellPhase.Running = 3 -> SharpRail.Host.Abstractions.TerminalShellPhase
+SharpRail.Host.Abstractions.TerminalShellPhase.Unknown = 0 -> SharpRail.Host.Abstractions.TerminalShellPhase
+SharpRail.Host.Abstractions.TerminalShellStatus
+SharpRail.Host.Abstractions.TerminalShellStatus.<Clone>$() -> SharpRail.Host.Abstractions.TerminalShellStatus!
+SharpRail.Host.Abstractions.TerminalShellStatus.Commands.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.TerminalCommand!>!
+SharpRail.Host.Abstractions.TerminalShellStatus.Commands.init -> void
+SharpRail.Host.Abstractions.TerminalShellStatus.Deconstruct(out SharpRail.Host.Abstractions.TerminalShellPhase Phase, out string? Directory, out int? LastExitCode) -> void
+SharpRail.Host.Abstractions.TerminalShellStatus.Directory.get -> string?
+SharpRail.Host.Abstractions.TerminalShellStatus.Directory.init -> void
+SharpRail.Host.Abstractions.TerminalShellStatus.Equals(SharpRail.Host.Abstractions.TerminalShellStatus? other) -> bool
+SharpRail.Host.Abstractions.TerminalShellStatus.LastExitCode.get -> int?
+SharpRail.Host.Abstractions.TerminalShellStatus.LastExitCode.init -> void
+SharpRail.Host.Abstractions.TerminalShellStatus.Marked.get -> bool
+SharpRail.Host.Abstractions.TerminalShellStatus.Marked.init -> void
+SharpRail.Host.Abstractions.TerminalShellStatus.Phase.get -> SharpRail.Host.Abstractions.TerminalShellPhase
+SharpRail.Host.Abstractions.TerminalShellStatus.Phase.init -> void
+SharpRail.Host.Abstractions.TerminalShellStatus.TerminalShellStatus(SharpRail.Host.Abstractions.TerminalShellPhase Phase, string? Directory, int? LastExitCode) -> void
+override SharpRail.Host.Abstractions.TerminalCommand.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.TerminalCommand.GetHashCode() -> int
+override SharpRail.Host.Abstractions.TerminalCommand.ToString() -> string!
+override SharpRail.Host.Abstractions.TerminalShellStatus.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.TerminalShellStatus.GetHashCode() -> int
+override SharpRail.Host.Abstractions.TerminalShellStatus.ToString() -> string!
+static SharpRail.Host.Abstractions.TerminalCommand.operator !=(SharpRail.Host.Abstractions.TerminalCommand? left, SharpRail.Host.Abstractions.TerminalCommand? right) -> bool
+static SharpRail.Host.Abstractions.TerminalCommand.operator ==(SharpRail.Host.Abstractions.TerminalCommand? left, SharpRail.Host.Abstractions.TerminalCommand? right) -> bool
+static SharpRail.Host.Abstractions.TerminalShellStatus.operator !=(SharpRail.Host.Abstractions.TerminalShellStatus? left, SharpRail.Host.Abstractions.TerminalShellStatus? right) -> bool
+static SharpRail.Host.Abstractions.TerminalShellStatus.operator ==(SharpRail.Host.Abstractions.TerminalShellStatus? left, SharpRail.Host.Abstractions.TerminalShellStatus? right) -> bool

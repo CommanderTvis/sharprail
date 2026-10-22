@@ -14,6 +14,7 @@ internal sealed class HostedTerminal
     private const int RedrawRestoreMilliseconds = 50;
     private readonly Lock gate = new();
     private readonly TerminalRecorder recorder;
+    private readonly TerminalShellState shell = new();
     private Attachment? current;
     private readonly List<Attachment> watchers = [];
     private string? client;
@@ -39,6 +40,12 @@ internal sealed class HostedTerminal
         _ = Task.Run(Pump);
     }
 
+    /// <summary>What the shell's integration reported so far.</summary>
+    internal TerminalShellStatus Shell
+    {
+        get { lock (gate) return shell.Status; }
+    }
+
     internal byte[] Recording()
     {
         lock (gate) return recorder.Snapshot();
@@ -62,6 +69,7 @@ internal sealed class HostedTerminal
                             if (space is null)
                             {
                                 recorder.Push(chunk.Span);
+                                shell.Push(chunk.Span);
                                 current?.Deliver(chunk, recorder.Position, grid);
                                 foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
                                 break;

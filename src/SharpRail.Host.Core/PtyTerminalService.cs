@@ -233,7 +233,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
                 program = null;
             }
             else if (program is not null) prefill = null;
-            process = Start(request, directory, mcp, contributed, program);
+            process = Start(request, StartDirectory(request, directory), mcp, contributed, program);
             pending.Remove(request.SessionId, out var restored);
             var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
             hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay) { InputAccepted = () => InputAccepted?.Invoke(directory), SessionId = request.SessionId, Signaled = signals.Publish };
@@ -269,6 +269,16 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         catch (Exception) { }
     }
 
+    // A terminal opened from another one starts where that one's shell last reported being (OSC 7), as Ghostty's
+    // window-inherit-working-directory does; only within the same workspace, and only a directory that still exists.
+    private string StartDirectory(TerminalAttachRequest request, string workspace)
+    {
+        if (request.DirectoryFrom is not { Length: > 0 } from || roots.GetValueOrDefault(from) != workspace ||
+            sessions.GetValueOrDefault(from)?.Shell.Directory is not { } reported) return workspace;
+        try { return Path.IsPathFullyQualified(reported) && Directory.Exists(reported) ? reported : workspace; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException) { return workspace; }
+    }
+
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -278,12 +288,17 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     public async ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
     {
         ITerminalProcess? process;
-        string? workspace;
-        lock (gate) { process = sessions.GetValueOrDefault(sessionId)?.Process; workspace = roots.GetValueOrDefault(sessionId); }
+        string? workspace, reported;
+        lock (gate)
+        {
+            var hosted = sessions.GetValueOrDefault(sessionId);
+            process = hosted?.Process; workspace = roots.GetValueOrDefault(sessionId); reported = hosted?.Shell.Directory;
+        }
         if (process is null || text.Length > TerminalFileLinks.MaxLineLength) return [];
-        // A POSIX directory probe fails only transiently; the launch directory is then the best guess. ConPTY never knows the
-        // directory, and guessing there would misreport it after a cd.
-        var directory = process.CurrentDirectory ?? (OperatingSystem.IsWindows() ? null : workspace);
+        // The directory the shell last reported (OSC 7) comes first; then the shell process's own, then the launch directory. A
+        // POSIX directory probe fails only transiently. ConPTY never knows the directory, and guessing there would misreport
+        // it after a cd, so Windows without a report links absolute paths only.
+        var directory = reported is not null && Directory.Exists(reported) ? reported : process.CurrentDirectory ?? (OperatingSystem.IsWindows() ? null : workspace);
         var links = await Task.Run(() => TerminalFileLinks.Find(text, directory,
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), cancellationToken), cancellationToken);
         lock (gate)

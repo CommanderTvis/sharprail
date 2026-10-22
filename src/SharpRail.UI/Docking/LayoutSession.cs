@@ -309,6 +309,11 @@ public sealed partial class LayoutSession
         if (index >= 0) docs![index] = docs[index] with { Preview = false };
     });
 
+    private readonly Dictionary<(string Workspace, string Tab), string> terminalSources = [];
+
+    /// <summary>The terminal tab a new terminal was opened from, once; null when it was opened from none.</summary>
+    public string? TakeTerminalSource(string workspace, string tabId) => terminalSources.Remove((workspace, tabId), out var source) ? source : null;
+
     /// <summary>Adds a terminal to a group; from a tool pane it creates a tool-free pane directly below and places it there.</summary>
     public void NewTerminal(string groupId, string? id = null) => Change(state =>
     {
@@ -321,8 +326,14 @@ public sealed partial class LayoutSession
             state.Groups.Insert(state.Groups.IndexOf(group) + 1, below);
             group = below; groupId = below.Id;
         }
+        // The terminal it is opened from: the one its group shows, else the focused one (Ghostty's tab- and
+        // split-inherit-working-directory follow the previously focused terminal).
+        string? Terminal(string group) => view.Selected.GetValueOrDefault(group) is { } shown &&
+            view.Documents.GetValueOrDefault(group)?.Any(tab => tab.Id == shown && tab.Kind == "terminal") == true ? shown : null;
+        var source = Terminal(groupId) ?? Terminal(view.FocusedGroup);
         if (!view.Documents.TryGetValue(groupId, out var tabs)) view.Documents[groupId] = tabs = [];
         var tab = new DockTab(id ?? "terminal:" + Guid.NewGuid().ToString("N"), "Terminal " + view.NextTerminalNumber++, "terminal");
+        if (source is not null) terminalSources[(state.ActiveWorkspace, tab.Id)] = source;
         tabs.Add(tab); group.Folded = false;
         view.Selected[groupId] = tab.Id; view.FocusedGroup = groupId;
         if (group.Region == "center") view.FocusedCenter = groupId;

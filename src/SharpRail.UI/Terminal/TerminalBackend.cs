@@ -18,6 +18,8 @@ public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, stri
     // A command the shell runs as its program when this attach starts the session (a launched agent); cleared once
     // the session has started, so a later restart of the tab opens a plain shell.
     public string? Program { get; init; }
+    // A new shell starts in the working directory this session's shell reported (the terminal it was opened from).
+    public string? DirectoryFrom { get; init; }
 
     // A tab's session is the same for every window and client of the host, so each reaches the same shell.
     public static string SessionFor(string workspaceRoot, string tabId) => TerminalTab.SessionFor(workspaceRoot, tabId);

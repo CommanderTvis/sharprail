@@ -510,6 +510,15 @@ own terminal state keeps, so local and remote terminals behave alike.
   stops). Both views expose `ClickToMoveCursor`. A Skia release now ends the selection gesture before releasing the
   pointer capture, which had reset it first.
 
+## Working directory of new terminals
+
+A terminal opened from another (New terminal in its group, or a pane below) starts where that terminal's shell last
+reported being (OSC 7): `LayoutSession.NewTerminal` records the group's shown terminal, else the focused one, and the tab's
+first attach carries its session as `TerminalLaunch.DirectoryFrom`; without a report the shell starts in the worktree.
+The host resolves it ([Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#decisions)), so remote hosts behave
+alike. `--terminal-directory` (and `--terminals`) checks it through the workbench; `--shell-integration` checks real zsh
+locally and remotely and file links following the report.
+
 ## Dropped attachments
 
 Plugin accessory controls advertise whether their agent accepts files and provide the prompt insertion
