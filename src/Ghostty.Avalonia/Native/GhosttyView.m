@@ -369,13 +369,15 @@ bool gav_view_rendered(void *pointer) {
     IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, NULL);
     return varied;
 }
-size_t gav_view_read(void *pointer, char *buffer, size_t capacity) {
+// The whole screen and scrollback, or with `viewport` only the rows on view.
+size_t gav_view_read_area(void *pointer, bool viewport, char *buffer, size_t capacity) {
     if (!capacity) return 0;
     buffer[0] = 0;
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_point_tag_e tag = viewport ? GHOSTTY_POINT_VIEWPORT : GHOSTTY_POINT_SCREEN;
     ghostty_selection_s selection = {
-        .top_left = { .tag = GHOSTTY_POINT_SCREEN, .coord = GHOSTTY_POINT_COORD_TOP_LEFT },
-        .bottom_right = { .tag = GHOSTTY_POINT_SCREEN, .coord = GHOSTTY_POINT_COORD_BOTTOM_RIGHT }
+        .top_left = { .tag = tag, .coord = GHOSTTY_POINT_COORD_TOP_LEFT },
+        .bottom_right = { .tag = tag, .coord = GHOSTTY_POINT_COORD_BOTTOM_RIGHT }
     };
     ghostty_text_s text;
     if (!ghostty_surface_read_text(view.surface, selection, &text)) return 0;
@@ -384,6 +386,7 @@ size_t gav_view_read(void *pointer, char *buffer, size_t capacity) {
     ghostty_surface_free_text(view.surface, &text);
     return count;
 }
+size_t gav_view_read(void *pointer, char *buffer, size_t capacity) { return gav_view_read_area(pointer, false, buffer, capacity); }
 
 void gav_texture_resize(void *pointer, double width, double height, double scale) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;

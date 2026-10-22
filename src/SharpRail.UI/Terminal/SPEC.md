@@ -481,6 +481,18 @@ Browser composition defaults to restty; see [Browser](../../SharpRail.Browser/SP
 Its initialization fallback uses the shared Skia backend over remote adapters and WASM libghostty-vt.
 In that fallback, pasted PNG images are uploaded to the host terminal service, and only the returned host path is typed.
 
+## Prompts and command output
+
+These follow Ghostty and need its shell integration (the host injects it; see
+[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#decisions)). Both renderers read the OSC 133 marks their
+own terminal state keeps, so local and remote terminals behave alike.
+
+- Jump to prompt (Ghostty's `jump_to_prompt`, default bindings Command+Up/Down on macOS as in Terminal.app, Ctrl+Shift+Up/Down
+  elsewhere, from Ghostty's `Config.zig` at the pinned VT commit): the viewport's top moves to the previous or next prompt,
+  skipping the one on view; a prompt in the active area returns to the bottom. Metal sends the binding action to Ghostty;
+  Skia reproduces `PageList.scrollPrompt` over libghostty-vt's row marks (`gav_vt_jump_to_prompt`). `--shell-integration`
+  (Skia, real zsh) and `--native-prompts` (Metal window, Ghostty's marks) check it.
+
 ## Dropped attachments
 
 Plugin accessory controls advertise whether their agent accepts files and provide the prompt insertion

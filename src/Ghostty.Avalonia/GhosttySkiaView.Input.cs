@@ -69,6 +69,12 @@ public sealed partial class GhosttySkiaView
             e.Handled = true;
             return;
         }
+        if (PromptNavigation.Delta(e, MacKeyboard) is not 0 and var jump)
+        {
+            JumpToPrompt(jump);
+            e.Handled = true;
+            return;
+        }
         // Command shortcuts belong to the application, as in Ghostty's own macOS app.
         if (MacKeyboard && mods.HasFlag(KeyModifiers.Meta)) return;
         keyBarReleaseModifiers = TakeModifiers();

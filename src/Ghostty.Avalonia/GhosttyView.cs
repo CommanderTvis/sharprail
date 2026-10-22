@@ -100,11 +100,16 @@ public sealed partial class GhosttyView : NativeControlHost, IDisposable
     internal bool SendAgentNewline() => view != 0 && Native.AgentNewline(view);
 
     /// <summary>The screen as plain text.</summary>
-    public string ReadScreen()
+    public string ReadScreen() => Read(false);
+
+    /// <summary>The rows on view as plain text.</summary>
+    public string ReadViewport() => Read(true);
+
+    private string Read(bool viewport)
     {
         if (view == 0) return "";
         var buffer = new byte[1 << 20];
-        var count = (int)Native.Read(view, buffer, (nuint)buffer.Length);
+        var count = (int)Native.ReadArea(view, viewport, buffer, (nuint)buffer.Length);
         return System.Text.Encoding.UTF8.GetString(buffer, 0, count);
     }
 
@@ -214,8 +219,8 @@ public sealed partial class GhosttyView : NativeControlHost, IDisposable
         internal static extern bool AgentNewline(nint view);
         [DllImport(Library, EntryPoint = "gav_view_input")]
         internal static extern void Input(nint view, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
-        [DllImport(Library, EntryPoint = "gav_view_read")]
-        internal static extern nuint Read(nint view, byte[] buffer, nuint capacity);
+        [DllImport(Library, EntryPoint = "gav_view_read_area")]
+        internal static extern nuint ReadArea(nint view, [MarshalAs(UnmanagedType.I1)] bool viewport, byte[] buffer, nuint capacity);
         [DllImport(Library, EntryPoint = "gav_view_rendered")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool Rendered(nint view);

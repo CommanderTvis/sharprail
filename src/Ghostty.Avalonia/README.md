@@ -183,6 +183,11 @@ scrollback pages. It preserves their allocation size and capacity so repeated
 ANSI/Unicode scrolling does not lose allocations. Both native Metal controls
 use this patch; it does not reduce the scrollback limit.
 
+## Prompts
+
+Both texture and Skia controls offer Ghostty's prompt features over OSC 133 marks: `JumpToPrompt` and its default keys
+(Command+Up/Down on macOS, Ctrl+Shift+Up/Down elsewhere). `GhosttyView.ReadViewport` reads the rows on view.
+
 ## Limits and verification
 
 The Skia path does not reproduce every feature of Ghostty's native renderer:

@@ -396,6 +396,44 @@ GAV_API void gav_vt_select(gav_vt *vt, int32_t kind, double x, double y, uint64_
     else if (kind == 0) ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_SELECTION, NULL);
 }
 
+// Rows in screen coordinates: 0 is the oldest scrollback row; the scrollbar's offset is the viewport's top row.
+static bool screen_row(gav_vt *vt, uint64_t y, GhosttyRow *row) {
+    GhosttyPoint point = { .tag = GHOSTTY_POINT_TAG_SCREEN, .value = { .coordinate = { .x = 0, .y = (uint32_t)y } } };
+    GhosttyGridRef ref = GHOSTTY_INIT_SIZED(GhosttyGridRef);
+    return ghostty_terminal_grid_ref(vt->terminal, point, &ref) == GHOSTTY_SUCCESS && ghostty_grid_ref_row(&ref, row) == GHOSTTY_SUCCESS;
+}
+
+static GhosttyRowSemanticPrompt row_prompt(GhosttyRow row) {
+    GhosttyRowSemanticPrompt prompt = GHOSTTY_ROW_SEMANTIC_NONE;
+    ghostty_row_get(row, GHOSTTY_ROW_DATA_SEMANTIC_PROMPT, &prompt);
+    return prompt;
+}
+
+// Ghostty's jump_to_prompt (PageList.scrollPrompt): the viewport's top moves to the delta-th prompt above or below it,
+// skipping the prompt it shows; a prompt in the active area returns to the bottom. False when there is none.
+GAV_API bool gav_vt_jump_to_prompt(gav_vt *vt, int32_t delta) {
+    if (!delta) return false;
+    GhosttyTerminalScrollbar bar = { 0 };
+    if (ghostty_terminal_get(vt->terminal, GHOSTTY_TERMINAL_DATA_SCROLLBAR, &bar) != GHOSTTY_SUCCESS || !bar.total) return false;
+    int64_t y = (int64_t)bar.offset + (delta < 0 ? -1 : 1);
+    GhosttyRow row;
+    if (delta > 0 && screen_row(vt, bar.offset, &row) && row_prompt(row) != GHOSTTY_ROW_SEMANTIC_NONE)
+        while (y < (int64_t)bar.total && screen_row(vt, (uint64_t)y, &row) && row_prompt(row) == GHOSTTY_ROW_SEMANTIC_PROMPT_CONTINUATION) y++;
+    int32_t remaining = delta < 0 ? -delta : delta;
+    int64_t found = -1;
+    for (; y >= 0 && y < (int64_t)bar.total; y += delta < 0 ? -1 : 1) {
+        if (!screen_row(vt, (uint64_t)y, &row) || row_prompt(row) != GHOSTTY_ROW_SEMANTIC_PROMPT) continue;
+        found = y;
+        if (--remaining == 0) break;
+    }
+    if (found < 0) return false;
+    GhosttyTerminalScrollViewport scroll = { .tag = GHOSTTY_SCROLL_VIEWPORT_ROW };
+    if ((uint64_t)found + bar.len >= bar.total) scroll.tag = GHOSTTY_SCROLL_VIEWPORT_BOTTOM;
+    else scroll.value.row = (size_t)found;
+    ghostty_terminal_scroll_viewport(vt->terminal, scroll);
+    return true;
+}
+
 GAV_API void gav_vt_select_all(gav_vt *vt) {
     GhosttySelection selection = GHOSTTY_INIT_SIZED(GhosttySelection);
     if (ghostty_terminal_select_all(vt->terminal, &selection) == GHOSTTY_SUCCESS)

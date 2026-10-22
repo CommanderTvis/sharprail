@@ -95,6 +95,7 @@ internal sealed unsafe class Vt : IDisposable
     internal void Scroll(long rows) => gav_vt_scroll(handle, rows);
     internal void Select(int kind, double x, double y, ulong nanoseconds) => gav_vt_select(handle, kind, x, y, nanoseconds);
     internal void SelectAll() => gav_vt_select_all(handle);
+    internal bool JumpToPrompt(int delta) => gav_vt_jump_to_prompt(handle, delta);
     internal void ClearSelection() => gav_vt_clear_selection(handle);
 
     internal ReadOnlySpan<byte> Key(int action, int key, ushort mods, ushort consumed, string? text, uint unshifted)
@@ -189,6 +190,7 @@ internal sealed unsafe class Vt : IDisposable
     [DllImport(Library)] private static extern void gav_vt_scroll(nint vt, long delta);
     [DllImport(Library)] private static extern void gav_vt_select(nint vt, int kind, double x, double y, ulong nanoseconds);
     [DllImport(Library)] private static extern void gav_vt_select_all(nint vt);
+    [DllImport(Library)][return: MarshalAs(UnmanagedType.I1)] private static extern bool gav_vt_jump_to_prompt(nint vt, int delta);
     [DllImport(Library)] private static extern void gav_vt_clear_selection(nint vt);
     [DllImport(Library)] private static extern nuint gav_vt_selection_text(nint vt, byte* output, nuint capacity);
     [DllImport(Library)] private static extern nuint gav_vt_screen_text(nint vt, byte* output, nuint capacity);

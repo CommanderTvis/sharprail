@@ -39,6 +39,12 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     private bool active;
     private bool disposed;
 
+    /// <summary>Scrolls the previous (negative) or next prompt to the top of the view through Ghostty's jump_to_prompt.</summary>
+    public void JumpToPrompt(int delta)
+    {
+        if (!disposed) Native.Action(terminal.Handle, "jump_to_prompt:" + delta.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
     public GhosttyTextureView(GhosttyLaunch launch)
     {
         Focusable = true;
@@ -79,6 +85,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     public void WriteOutput(ReadOnlySpan<byte> data) => terminal.WriteOutput(data);
     public TerminalColors Colors { get => terminal.Colors; set => terminal.Colors = value; }
     public string ReadScreen() => terminal.ReadScreen();
+    public string ReadViewport() => terminal.ReadViewport();
     /// <summary>User input, excluding automatic terminal-query replies.</summary>
     public event EventHandler? UserInput;
     public void Type(string text) { if (text.Length > 0) UserInput?.Invoke(this, EventArgs.Empty); terminal.Type(text); }

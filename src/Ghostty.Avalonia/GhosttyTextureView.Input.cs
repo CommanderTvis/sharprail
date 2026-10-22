@@ -47,6 +47,12 @@ public sealed partial class GhosttyTextureView
             UserInput?.Invoke(this, EventArgs.Empty);
         RefreshLinkModifiers(e.KeyModifiers);
         pendingTextKey = null;
+        if (PromptNavigation.Delta(e, OperatingSystem.IsMacOS()) is not 0 and var jump)
+        {
+            JumpToPrompt(jump);
+            e.Handled = true;
+            return;
+        }
         if (e.KeyModifiers == KeyModifiers.Meta && e.Key is Key.C or Key.V)
         {
             Native.Action(terminal.Handle, e.Key == Key.C ? "copy_to_clipboard" : "paste_from_clipboard");

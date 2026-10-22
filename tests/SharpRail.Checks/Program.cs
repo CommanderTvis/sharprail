@@ -40,7 +40,7 @@ internal static class Program
             if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
             NativeTerminalChecks.Run(args); return;
         }
-        if (args.Contains("--native-terminal-links") || args.Contains("--native-scroll") || args.Contains("--native-file-links") || args.Contains("--native-direct") || args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52") || args.Contains("--native-frame-pump")) { NativeTextureChecks.Run(args); return; }
+        if (args.Contains("--native-terminal-links") || args.Contains("--native-scroll") || args.Contains("--native-file-links") || args.Contains("--native-direct") || args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52") || args.Contains("--native-frame-pump") || args.Contains("--native-prompts")) { NativeTextureChecks.Run(args); return; }
         if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
         var root = CheckRoot.Create("fixture");
         Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(root, "host-state"));
@@ -377,6 +377,9 @@ internal static class Program
         if (args.SequenceEqual(["--shell-integration"]))
         {
             ShellIntegrationChecks.RunHost(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ShellIntegrationChecks.RunSkia(root);
             return;
         }
         if (args.SequenceEqual(["--terminals"]))
@@ -388,6 +391,7 @@ internal static class Program
             E2E.TerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
             E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
             GhosttySkiaChecks.Run(root);
+            ShellIntegrationChecks.RunSkia(root);
             Console.WriteLine("PASS terminal checks");
             return;
         }

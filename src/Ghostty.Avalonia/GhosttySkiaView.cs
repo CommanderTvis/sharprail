@@ -161,6 +161,14 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     public string SelectedText => vt.SelectionText();
     public void SelectAll() { vt.SelectAll(); Redraw(); }
 
+    /// <summary>Scrolls the previous (negative) or next prompt to the top of the view, as Ghostty's jump_to_prompt does.</summary>
+    public bool JumpToPrompt(int delta)
+    {
+        if (disposed || !vt.JumpToPrompt(delta)) return false;
+        Redraw();
+        return true;
+    }
+
     public void FocusTerminal() => Focus();
 
     private void Reply(ReadOnlySpan<byte> data) => Input?.Invoke(this, data.ToArray());
