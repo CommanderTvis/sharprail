@@ -26,7 +26,7 @@ public static class RemoteServer
         var state = new HostStateStore(stateDirectory);
         builder.Services.AddSingleton<IHostStateService>(state);
         // Sessions belong to the host: they outlive client connections and end when the host stops.
-        var pty = terminals as PtyTerminalService ?? (terminals is null ? new PtyTerminalService(recordingsDirectory: stateDirectory is null ? null : Path.Combine(stateDirectory, "terminals"), replayBytes: () => state.Current.Settings.TerminalReplayKb * 1024) : null);
+        var pty = terminals as PtyTerminalService ?? (terminals is null ? new PtyTerminalService(recordingsDirectory: stateDirectory is null ? null : Path.Combine(stateDirectory, "terminals"), replayBytes: () => state.Current.Settings.TerminalReplayKb * 1024, keepAfterExit: () => state.Current.Settings.TerminalKeepAfterExit) : null);
         state.Terminals = pty;
         if (terminals is null) builder.Services.AddSingleton<ITerminalService>(_ => pty ?? new PtyTerminalService());
         else builder.Services.AddSingleton(terminals);

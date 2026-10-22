@@ -82,6 +82,7 @@ internal static partial class TerminalHostChecks
         await Catalog(root, workspace);
         await Signals(root, workspace);
         await ReplaySize(root, workspace);
+        await ExitClosesTab(root, workspace);
 
         await using var app = RemoteServer.Create(root, IPAddress.Loopback, 0, "terminal-token");
         await app.StartAsync();

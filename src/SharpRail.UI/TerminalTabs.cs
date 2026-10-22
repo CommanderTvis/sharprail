@@ -134,6 +134,8 @@ public sealed partial class WorkbenchWindow
     {
         if (workbench.TerminalCatalog is not { } catalog || lifetime.IsCancellationRequested) return;
         string? ready = null;
+        // A focused terminal the catalog removes (its shell exited, or another client closed it) hands focus on within its group.
+        var focusedGroup = FocusedTerminalGroup();
         applyingTerminalCatalog = true;
         try
         {
@@ -149,8 +151,20 @@ public sealed partial class WorkbenchWindow
         }
         finally { applyingTerminalCatalog = false; }
         if (ready is not null) RefreshTerminals(workspaceRoot);
+        if (focusedGroup is var (group, tab) && Layout.State.Workspaces.GetValueOrDefault(workspaceRoot)?.Documents.Values.SelectMany(tabs => tabs).Any(item => item.Id == tab) != true)
+            surface.FocusGroupContent(Layout.State.Groups.Any(item => item.Id == group) ? group : Layout.View.FocusedCenter);
         PlaceWorkspaceTabs();
         RevealAwaitedTerminal();
+    }
+
+    private (string Group, string Tab)? FocusedTerminalGroup()
+    {
+        if (!WorkspaceMounted || atHome || Layout.State.Workspaces.GetValueOrDefault(workspaceRoot) is not { } view) return null;
+        foreach (var (group, tabs) in view.Documents)
+            foreach (var tab in tabs)
+                if (tab.Kind == "terminal" && documentContent.GetValueOrDefault(workspaceRoot + ":" + tab.Id) is TerminalView { IsKeyboardFocusWithin: true })
+                    return (group, tab.Id);
+        return null;
     }
 
     private void RevealAwaitedTerminal()

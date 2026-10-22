@@ -143,14 +143,16 @@ internal static class TerminalSessionsE2E
     // One WebSocket RPC host that windows reach through their own connections.
     internal sealed class RemoteHost : IDisposable
     {
-        private readonly PtyTerminalService pty = new("/bin/sh");
+        private readonly PtyTerminalService pty;
         private readonly WebApplication server;
         private readonly List<IDisposable> clients = [];
         internal E2eTerminals Host { get; }
         internal Uri Address { get; }
 
-        internal RemoteHost(string root)
+        // Without keepAfterExit, exited shells keep their tabs, as a host that predates the setting does.
+        internal RemoteHost(string root, Func<bool>? keepAfterExit = null)
         {
+            pty = new("/bin/sh", keepAfterExit: keepAfterExit);
             Host = new E2eTerminals(pty);
             server = RemoteServer.Create(root, IPAddress.Loopback, 0, Token, terminals: Host);
             Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();

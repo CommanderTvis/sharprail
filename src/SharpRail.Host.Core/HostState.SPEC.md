@@ -139,7 +139,9 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   applied. A system pair with only one side is malformed and loads as no pair. The terminal replay size
   (`terminal-replay`) accepts whole numbers 0–1024 KiB and defaults to 64; a loaded value outside that
   range is clamped. Zero is a real value, so the wire always carries the field and a host that predates
-  it reads as the default. `settle-idle-days` is the Settled shelf's idle window: whole days 1–365, or
+  it reads as the default. `terminal-keep-after-exit` (`true`/`false`, default false) keeps an exited
+  shell's tab with its exit notice instead of closing it like Ghostty; a host that predates it reads as
+  closing. `settle-idle-days` is the Settled shelf's idle window: whole days 1–365, or
   `never` (null); it defaults to 7, a loaded value is clamped, and the wire carries zero for never with a
   host that predates it reading as the default. `window-decorations` (`auto`, `client` or `system`; stored as empty, `client` or `system`, default automatic) is how Linux
   clients frame their window; other clients ignore it, an unknown loaded value reads as automatic and a host that predates it reads as

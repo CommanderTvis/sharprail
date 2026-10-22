@@ -574,6 +574,7 @@ public sealed partial class HostStateStore : IHostStateService
                     "markdown-bounded" when bool.TryParse(value, out var bounded) => settings with { MarkdownLineWidthBounded = bounded },
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
+                    "terminal-keep-after-exit" when bool.TryParse(value, out var keep) => settings with { TerminalKeepAfterExit = keep },
                     "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
                     "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },
                     "java-kotlin-provider" when IsProviderChoice(value) => settings with { JavaKotlinProvider = value },

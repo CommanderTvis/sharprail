@@ -199,7 +199,10 @@ again. The window half is `TerminalTabs.cs`; placement is `LayoutSession.Reconci
 
 Workspaces start empty; explicit terminal and agent actions create terminal tabs in workspace groups.
 A body is created only when its tab is selected in a visible, unfolded group, so hidden tabs do not start shells. A shell that cannot start shows its reason and a Retry that restarts the
-same tab; an exited shell's tab says so with its exit code. A shell that exits while detached keeps its
+same tab. By default an exited shell's tab closes like Ghostty's: the host removes it from the catalog, so
+it leaves every client without the busy confirmation, its group shrinks, and a focused terminal hands
+focus to the tab its group selects next (`TerminalTabs.cs`). An abnormal exit (Host Core `Terminals.SPEC.md`,
+Exit) or Settings › Terminal › "When the shell exits" set to keep leaves the tab saying so with its exit code. A shell that exits while detached keeps its
 final output and status for the next attach. Removing a workspace's worktree ends every shell started in
 it: the composition root passes the host's removal signal to the terminal service, in the local app and
 in a remote host alike. Closing a tab whose shell runs a foreground process asks
@@ -232,6 +235,8 @@ and remote viewers agree without a native rebuild (`TerminalSignalBoard.cs`;
 Settings → Terminal also offers the host's replay size (Off, 16 KB, 64 KB, 256 KB, 1 MB): how much recent
 output a terminal keeps so a rebuilt view shows its screen again. It is host state shared by every client,
 applies to terminals opened afterwards, and the selection moves only when the host's broadcast arrives.
+"When the shell exits" offers Close the tab (like Ghostty, default) or Keep the tab with an exit notice:
+the host setting `terminal-keep-after-exit`, shared by every client and applied to the next exit.
 
 Settings chooses Metal texture (default) or Skia (fallback) and persists the choice in app preferences.
 Changing it reattaches existing views to their same host session; it must not end

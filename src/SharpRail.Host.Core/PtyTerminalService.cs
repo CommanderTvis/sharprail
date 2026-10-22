@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -36,7 +37,18 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     private readonly string? shell;
     private readonly TerminalRecordingStore? store;
     private readonly Func<int>? replayBytes;
+    private readonly Func<bool>? keepAfterExit;
     private bool disposed;
+
+    /// <summary>
+    /// Ghostty's default <c>abnormal-command-exit-runtime</c>: a shell that ends this soon after starting failed to launch,
+    /// so its tab stays to show why. On macOS any exit code counts, elsewhere only a non-zero one, as in Ghostty.
+    /// </summary>
+    public static readonly TimeSpan AbnormalExitRuntime = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>Whether a shell that exited after running this long with this code exited abnormally, by Ghostty's rule.</summary>
+    public static bool ExitedAbnormally(TimeSpan runtime, int code) =>
+        runtime <= AbnormalExitRuntime && (OperatingSystem.IsMacOS() || code != 0);
 
     /// <summary>The loopback base URL of the host MCP route.</summary>
     public string? McpEndpoint { get; set; }
@@ -51,13 +63,14 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     // A null shell runs the user's login shell. With a recordings directory, the catalog is kept there, the last
     // screen of every session is saved when the service is disposed, and a tab attached again after a restart
     // starts a new shell showing it. replayBytes is read when a shell starts and sizes its replay snapshot; none
-    // means the default 64 KiB.
+    // means the default 64 KiB. keepAfterExit is read when a catalogued shell exits: false closes its tab for every client,
+    // like Ghostty's default (wait-after-command = false), unless it exited abnormally; none keeps every tab.
     private readonly string clipboardDirectory;
 
-    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null)
+    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null, Func<bool>? keepAfterExit = null)
     {
         if (!OperatingSystem.IsWindows()) Posix.EnsureSupported();
-        this.shell = shell; this.replayBytes = replayBytes;
+        this.shell = shell; this.replayBytes = replayBytes; this.keepAfterExit = keepAfterExit;
         clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "sharprail-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
         catalog = new TerminalCatalogStore(recordingsDirectory);
         if (recordingsDirectory is null) return;
@@ -138,7 +151,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         TerminalGrid.Require(request.Columns, request.Rows);
         var directory = Path.GetFullPath(request.WorkspaceRoot);
         ITerminalProcess process;
+        HostedTerminal hosted;
         Attachment attachment;
+        var started = Stopwatch.GetTimestamp();
         TerminalRef? terminal;
         // A plugin resolves the shell's environment here, awaited and outside the lock, so the contributor only reads it.
         if (EnvironmentPreparer is { } preparer)
@@ -174,12 +189,13 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             process = Start(request, directory, mcp, contributed, program);
             pending.Remove(request.SessionId, out var restored);
             var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
-            var hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay) { InputAccepted = () => InputAccepted?.Invoke(directory), SessionId = request.SessionId, Signaled = signals.Publish };
+            hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay) { InputAccepted = () => InputAccepted?.Invoke(directory), SessionId = request.SessionId, Signaled = signals.Publish };
             sessions.Add(request.SessionId, hosted);
             directories[request.SessionId] = directory;
             roots[request.SessionId] = directory;
             attachment = hosted.Attach(request, created: true, prefill);
         }
+        if (terminal is not null && keepAfterExit is not null) _ = CloseAfterExitAsync(request.SessionId, hosted, started);
         if (terminal is not null && Lifecycle is { } lifecycle)
         {
             lifecycle(new TerminalSpawned(terminal, process.Pid));
@@ -188,6 +204,19 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         }
         if (revived && PrepareRevival is { } prepare) await prepare(directory, cancellationToken);
         return attachment;
+    }
+
+    // A tab whose shell exits closes for every client, as a user close would, unless the setting keeps it or the shell
+    // failed to launch; its recording goes with it.
+    private async Task CloseAfterExitAsync(string sessionId, HostedTerminal hosted, long started)
+    {
+        int code;
+        try { code = await hosted.Process.Exit; }
+        catch (Exception) { return; }
+        if (ExitedAbnormally(Stopwatch.GetElapsedTime(started), code) || keepAfterExit?.Invoke() != false) return;
+        lock (gate) if (disposed || sessions.GetValueOrDefault(sessionId) != hosted) return;
+        try { await CloseAsync(sessionId); }
+        catch (Exception) { }
     }
 
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default)

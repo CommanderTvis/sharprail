@@ -154,6 +154,20 @@ including draining output while closing the pseudoconsole.
   (pid null once exited) and `WorkspaceForProcess` walks a pid's ancestors (`/proc` on Linux, one `ps` on
   macOS) to a live shell's workspace.
 
+## Exit
+
+- Ghostty's default (`wait-after-command = false`, Surface.zig `childExited`) closes a surface when its
+  command exits, whatever the code, unless the run was abnormal: at most `abnormal-command-exit-runtime`
+  (250 ms), with any code on macOS and only a non-zero one elsewhere; Ghostty then keeps the surface to
+  show the failure. The host follows it: when a catalogued session's process exits, it closes the tab as
+  `CloseAsync` does (catalog, recording and session go, every client's tab follows the catalog) unless the
+  host setting `TerminalKeepAfterExit` is on or the exit was abnormal. Runtime counts from the attach that
+  started the shell. A shell that fails to start never had a session and keeps its tab with Retry.
+- The service takes the setting as a delegate from its composer (app and remote host); without one it
+  keeps every exited tab, as a host that predates the setting did.
+- `TerminalExitChecks.cs` covers the default close for code 0 and non-zero, keeping, persistence, the wire
+  and the abnormal rule; `SharedTerminalsE2E` covers the close across two clients, focus and Retry.
+
 ## Replay
 
 - The snapshot size is the host setting `TerminalReplayKb` (0–1024 KiB, default 64), read when a shell

@@ -100,8 +100,8 @@ Backpressure fixtures count exact payload bytes between output sentinels, exclud
 refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader and a silent connection
 (`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
 removed worktree's shells (`TerminalCatalogChecks.cs`), including opening an empty workspace without
-reserving an initial terminal on either transport; and the host replay size with its Settings control
-(`TerminalReplayChecks.cs`). Yielding attach is checked locally and through WebSocket RPC in `TerminalHostChecks.cs`: a
+reserving an initial terminal on either transport; and the host replay size and exit setting with their Settings
+controls (`TerminalReplayChecks.cs`), and closing an exited shell's tab (`TerminalExitChecks.cs`, `SharedTerminalsE2E.cs`). Yielding attach is checked locally and through WebSocket RPC in `TerminalHostChecks.cs`: a
 held session keeps its client and grid, a free one is joined, and a plain attach takes over at its own size.
 Watching is checked beside it on both paths: a watcher gets the screen, live output and the holder's grid, its
 input, resize and kill change nothing, a watcher nobody reads holds back neither the shell nor the others and

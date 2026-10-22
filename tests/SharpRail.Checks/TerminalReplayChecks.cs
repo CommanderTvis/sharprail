@@ -102,8 +102,15 @@ internal static partial class TerminalHostChecks
             // Another client's change moves the selection here too.
             app.State!.ChangeAsync([HostStateChange.Setting("terminal-replay", "0")]).AsTask().GetAwaiter().GetResult();
             E2E.E2eWorkspace.Until(() => Active(0) && !Active(256));
+            Button Exit(string name) => settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalExit_" + name);
+            bool Chosen(string name) => Exit(name).GetLogicalDescendants().OfType<Control>().Count(control => Grid.GetColumn(control) == 1) == 1;
+            Require(Chosen("Close") && !Chosen("Keep"), "The exit choices must show closing the tab, Ghostty's default.");
+            app.Click(Exit("Keep"));
+            E2E.E2eWorkspace.Until(() => app.State!.Current.Settings.TerminalKeepAfterExit && Chosen("Keep") && !Chosen("Close"));
+            app.State!.ChangeAsync([HostStateChange.Setting("terminal-keep-after-exit", "false")]).AsTask().GetAwaiter().GetResult();
+            E2E.E2eWorkspace.Until(() => Chosen("Close") && !Chosen("Keep"));
         }
         finally { settings.Close(); }
-        Console.WriteLine("PASS terminal replay Settings: the choices show the host's value, a click changes it through the host, and another client's change moves the selection");
+        Console.WriteLine("PASS terminal replay and exit Settings: the choices show the host's value, a click changes it through the host, and another client's change moves the selection");
     }
 }

@@ -62,6 +62,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             MarkdownLineWidth = state.Settings.MarkdownLineWidth,
             MarkdownLineWidthUnbounded = !state.Settings.MarkdownLineWidthBounded,
             TerminalReplayKb = state.Settings.TerminalReplayKb,
+            TerminalKeepAfterExit = state.Settings.TerminalKeepAfterExit,
             FileTypeIconsDisabled = !state.Settings.FileTypeIconsEnabled,
             NotificationsDisabled = !state.Settings.NotificationsEnabled,
             TerminalNotificationsDisabled = !state.Settings.TerminalNotificationsEnabled,

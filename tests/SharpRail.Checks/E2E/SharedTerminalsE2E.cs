@@ -22,6 +22,65 @@ internal static class SharedTerminalsE2E
         InProjects(root);
         PhoneToDesktop(root);
         Renderers(root);
+        ExitCloses(root);
+    }
+
+    // As in Ghostty, a shell that exits closes its tab like a user close, in every client; the host setting keeps it instead.
+    private static void ExitCloses(string root)
+    {
+        var project = IsolatedGit.Repository(Path.Combine(root, "terminals-exit-closes"));
+        var keep = false;
+        using var host = new RemoteHost(project, () => keep);
+        var desk = host.Client();
+        var a = Client(host, project, "desk", project, desk);
+        E2eWorkspace? b = null;
+        try
+        {
+            Until(() => a.Window.WorkspaceMounted);
+            var workspace = CreateTerminalWorkspace(a, "workspace-1");
+            var initial = TerminalTabs(a).Single();
+            Ready(a, initial);
+            var group = a.Window.Layout.State.Groups.Single(item => a.Window.Layout.Tabs(item.Id).Any(tab => tab.Kind == "terminal")).Id;
+            a.Click(a.Find<Button>("NewTerminal_" + group));
+            Until(() => TerminalTabs(a).Length == 2);
+            var second = TerminalTabs(a)[1];
+            var shell = Ready(a, second);
+            b = Client(host, project, "phone", workspace, host.Client());
+            Until(() => b.Window.WorkspaceMounted && b.Window.WorkspaceRoot == workspace && Ids(b).SequenceEqual(Ids(a)));
+            View(a, second).FocusTerminal();
+            Until(() => View(a, second).IsKeyboardFocusWithin);
+            Settle(300);
+            shell.Run("exit 0");
+            Until(() => TerminalTabs(a).Length == 1 && TerminalTabs(b).Length == 1);
+            Until(() => View(a, initial).IsKeyboardFocusWithin);
+            Require(!a.Window.OwnedWindows.Any() && a.Window.Layout.Tabs(group).Select(tab => tab.Id).SequenceEqual([initial.Id]) &&
+                a.Window.Layout.Selected(group)?.Id == initial.Id && Catalog(host, workspace).SequenceEqual([initial.Id]),
+                "An exited shell's tab must leave its group, the host's catalog and every client without asking, and hand focus to the tab beside it.");
+            Console.WriteLine("PASS terminal exit: a shell that exits closes its tab in every client by default, without confirmation, and focus moves on in its group");
+
+            keep = true;
+            var last = Ready(a, initial);
+            Settle(300);
+            last.Run("exit 0");
+            var kept = View(a, initial);
+            Until(() => kept.IsExited);
+            Settle(500);
+            Require(TerminalTabs(a).Length == 1 && TerminalTabs(b).Length == 1 && Catalog(host, workspace).SequenceEqual([initial.Id]) &&
+                kept.FindControl<TextBlock>("TerminalExited")!.Text == "[process exited with code 0]",
+                "Keeping exited tabs must leave the tab with its exit notice.");
+            Console.WriteLine("PASS terminal exit: with the setting to keep, an exited shell's tab stays with its exit notice");
+
+            keep = false;
+            desk.Fail("no shell here");
+            a.Click(a.Find<Button>("NewTerminal_" + group));
+            Until(() => TerminalTabs(a).Length == 2);
+            var failed = View(a, TerminalTabs(a)[1]);
+            Until(() => failed.IsFailed);
+            Settle(500);
+            Require(TerminalTabs(a).Length == 2 && failed.IsFailed, "A shell that fails to start must keep its tab and its Retry.");
+            Console.WriteLine("PASS terminal exit: a shell that fails to start keeps its tab and Retry");
+        }
+        finally { b?.Dispose(); a.Dispose(); }
     }
 
     // The Android phone client keeps Projects on its own page.

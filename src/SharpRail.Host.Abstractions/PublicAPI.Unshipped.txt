@@ -504,6 +504,8 @@ SharpRail.Host.Abstractions.HostSettings.SystemLight.get -> string!
 SharpRail.Host.Abstractions.HostSettings.SystemLight.init -> void
 SharpRail.Host.Abstractions.HostSettings.TerminalReplayKb.get -> int
 SharpRail.Host.Abstractions.HostSettings.TerminalReplayKb.init -> void
+SharpRail.Host.Abstractions.HostSettings.TerminalKeepAfterExit.get -> bool
+SharpRail.Host.Abstractions.HostSettings.TerminalKeepAfterExit.init -> void
 SharpRail.Host.Abstractions.HostSettings.Theme.get -> string!
 SharpRail.Host.Abstractions.HostSettings.Theme.init -> void
 SharpRail.Host.Abstractions.HostSettings.ThemeMode.get -> string!

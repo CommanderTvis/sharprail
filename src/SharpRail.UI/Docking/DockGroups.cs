@@ -803,6 +803,9 @@ public sealed partial class DockSurface
         if (Session.RequestClose() && fromTab) FocusGroup(id);
     }
 
+    /// <summary>Moves keyboard focus to a group's selected tab, into a terminal's surface, as a user close by keyboard does.</summary>
+    internal void FocusGroupContent(string id) => FocusGroup(id, focusContent: true);
+
     private void FocusGroup(string id, bool focusContent = false, int attempts = 20) => Dispatcher.UIThread.Post(() =>
     {
         if (!Session.State.Groups.Any(group => group.Id == id)) return;
