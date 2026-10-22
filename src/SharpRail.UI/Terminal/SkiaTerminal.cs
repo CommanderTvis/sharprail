@@ -270,6 +270,9 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
 
     private void UpdateColors() => terminal.Colors = TerminalTheme.Colors();
 
+    public ValueTask<TerminalShellStatus?> ShellStatusAsync() =>
+        session is null ? ValueTask.FromResult<TerminalShellStatus?>(null) : terminals.ShellStatusAsync(launch.SessionId);
+
     public ValueTask<bool> IsBusyAsync() =>
         exited.Task.IsCompleted || detached.Task.IsCompleted || session is null ? ValueTask.FromResult(false) : terminals.IsBusyAsync(launch.SessionId);
 

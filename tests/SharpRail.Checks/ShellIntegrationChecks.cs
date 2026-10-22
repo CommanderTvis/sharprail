@@ -60,7 +60,7 @@ internal static partial class ShellIntegrationChecks
             }
             finally { await app.StopAsync(); }
         });
-        Console.WriteLine("PASS shell integration: Ghostty's scripts ship with the app; zsh marks prompts (OSC 133 A/B/C/D) and reports its directory (OSC 7) locally and remotely, keeps the user's ZDOTDIR; bash, fish and elvish get Ghostty's injection; Apple's /bin/bash and the setting off inject nothing");
+        Console.WriteLine("PASS shell integration: Ghostty's scripts ship with the app; zsh marks prompts (OSC 133 A/B/C/D) and reports its directory (OSC 7) locally and remotely; the host's model gives every client the phase, each command's exit code and busy only while one runs; new terminals start in the reported directory and relative links resolve there; keeps the user's ZDOTDIR; bash, fish and elvish get Ghostty's injection; Apple's /bin/bash and the setting off inject nothing");
     }
 
     // The injection Ghostty's shell_integration.zig performs, for shells this machine may not have.
@@ -155,6 +155,7 @@ internal static partial class ShellIntegrationChecks
             await screen.WaitFor(OutputStart, mode + " output start");
             await screen.WaitFor("INTEGRATED_42", mode + " command output");
             await screen.WaitFor(CommandEnd + ";0", mode + " command end with status");
+            await Status(terminals, session, screen, mode);
             await screen.Run("cd 'nested dir'");
             await screen.WaitFor("nested dir\u0007", mode + " OSC 7 after cd");
             await Inherits(terminals, session.Id, workspace, mode);
@@ -163,6 +164,32 @@ internal static partial class ShellIntegrationChecks
             await screen.WaitFor("ZDOT_1", mode + " ZDOTDIR restored after startup");
         }
         finally { await session.KillAsync(); await terminals.CloseAsync(session.Id); }
+    }
+
+    // The host's model of the shell, as every client reads it: the phase, each command's exit code, busy only while one runs.
+    private static async Task Status(ITerminalService terminals, ITerminalSession session, Output screen, string mode)
+    {
+        async Task<TerminalShellStatus> Until(Func<TerminalShellStatus, bool> condition, string what)
+        {
+            var deadline = Awake.Now.AddSeconds(20);
+            while (true)
+            {
+                if (await terminals.ShellStatusAsync(session.Id) is { } status && condition(status)) return status;
+                if (Awake.Now > deadline) throw new InvalidOperationException($"Shell integration: {mode} shell status never showed {what}: {await terminals.ShellStatusAsync(session.Id)}");
+                await Task.Delay(50);
+            }
+        }
+        var idle = await Until(status => status is { Marked: true, Phase: TerminalShellPhase.Input, LastExitCode: 0 } && status.Commands.Count >= 1, "a finished command at the prompt");
+        Require(!await terminals.IsBusyAsync(session.Id), mode + " a shell at its prompt is not busy.");
+        var count = idle.Commands.Count;
+        await screen.Run("sleep 2; (exit 3)");
+        await Until(status => status.Phase == TerminalShellPhase.Running, "a running command");
+        Require(await terminals.IsBusyAsync(session.Id), mode + " a running command makes the terminal busy.");
+        var failed = await Until(status => status.Phase == TerminalShellPhase.Input && status.Commands.Count == count + 1, "the failed command");
+        Require(failed.LastExitCode == 3 && failed.Commands[^1].ExitCode == 3 && failed.Commands[^1].Start < failed.Commands[^1].End,
+            mode + " the failed command's exit code: " + failed);
+        Require(failed.Directory?.EndsWith("/workspace", StringComparison.Ordinal) == true, mode + " the reported directory: " + failed.Directory);
+        Require(await terminals.ShellStatusAsync("no-such-session") is null, mode + " an unknown session has no status.");
     }
 
     // A terminal opened from this one starts in the directory its shell reported; one from another workspace does not.

@@ -282,7 +282,15 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        lock (gate) return ValueTask.FromResult(sessions.TryGetValue(sessionId, out var terminal) && terminal.Process.IsBusy);
+        // At a prompt (OSC 133 A or B after the last D) nothing runs, as Ghostty skips its close confirmation there.
+        lock (gate) return ValueTask.FromResult(sessions.TryGetValue(sessionId, out var terminal) && terminal.Process.IsBusy &&
+            terminal.Shell is not { Marked: true, Phase: TerminalShellPhase.Prompt or TerminalShellPhase.Input });
+    }
+
+    public ValueTask<TerminalShellStatus?> ShellStatusAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (gate) return ValueTask.FromResult(sessions.GetValueOrDefault(sessionId)?.Shell);
     }
 
     public async ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)

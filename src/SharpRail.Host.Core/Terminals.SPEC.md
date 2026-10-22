@@ -115,6 +115,13 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   else in the workspace root, as Ghostty's window/tab/split-inherit-working-directory (default true) do; the session stays
   keyed to its workspace. Relative file links resolve in the reported directory first, then the shell process's, then the
   launch directory. Local and remote hosts alike: the attach field crosses the wire (`TerminalInput` member 13).
+- The same model gives every client the shell's state (`ITerminalService.ShellStatusAsync`, RPC `ShellStatusAsync`):
+  Prompt after OSC 133 A, Input after B, Running after C, Prompt again after D; the last exit code (`133;D;<code>`); the
+  last 256 finished commands as host output positions (C to D) with their exit codes; the directory; and whether any mark
+  arrived (`Marked`), so consumers fall back to their own signals without one. A D with no command since the last (zsh
+  closing an empty prompt) records nothing. Busy (close confirmation) is false while marks say the shell waits at its
+  prompt, as Ghostty skips confirmation there; otherwise the foreground process group decides as before. A client of a
+  host that predates the call reads no status.
 - Killing sends SIGHUP to the shell's process group, then SIGKILL if it does not exit.
 - Not tmux: no extra dependency, no competing tab model.
 

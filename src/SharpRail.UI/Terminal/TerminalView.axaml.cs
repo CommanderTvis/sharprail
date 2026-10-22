@@ -186,6 +186,10 @@ public sealed partial class TerminalView : UserControl, IDisposable
     /// <summary>Another client holds the terminal and its host cannot show it to this one.</summary>
     public bool IsDetached => detachedNotice.IsVisible && !IsWatching;
 
+    /// <summary>What the host read from the shell's integration; null without a running backend or a report.</summary>
+    public async ValueTask<SharpRail.Host.Abstractions.TerminalShellStatus?> ShellStatusAsync() =>
+        Backend is { } backend && !IsFailed && backend.Started.IsCompletedSuccessfully ? await backend.ShellStatusAsync() : null;
+
     public async ValueTask<bool> IsBusyAsync() =>
         Backend is { } backend && !IsExited && !IsFailed && !IsDetached && backend.Started.IsCompletedSuccessfully && await backend.IsBusyAsync();
 

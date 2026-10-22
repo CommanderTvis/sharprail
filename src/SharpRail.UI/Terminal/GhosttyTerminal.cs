@@ -137,6 +137,9 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
         if (texture is not null) texture.Colors = TerminalTheme.Colors();
     }
 
+    public ValueTask<SharpRail.Host.Abstractions.TerminalShellStatus?> ShellStatusAsync() =>
+        connection is null ? ValueTask.FromResult<SharpRail.Host.Abstractions.TerminalShellStatus?>(null) : connection.Terminals.ShellStatusAsync(launch.SessionId);
+
     public ValueTask<bool> IsBusyAsync()
     {
         if (exited.Task.IsCompleted || detached.Task.IsCompleted || connection is null) return ValueTask.FromResult(false);

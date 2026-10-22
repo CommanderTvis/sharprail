@@ -17,6 +17,7 @@ public sealed class LocalTerminalAdapter(ITerminalService host) : ITerminalServi
     public ValueTask<string> SaveClipboardImageAsync(string sessionId, ReadOnlyMemory<byte> png, CancellationToken cancellationToken = default) => host.SaveClipboardImageAsync(sessionId, png, cancellationToken);
     public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default) => host.AttachAsync(request, cancellationToken);
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default) => host.IsBusyAsync(sessionId, cancellationToken);
+    public ValueTask<TerminalShellStatus?> ShellStatusAsync(string sessionId, CancellationToken cancellationToken = default) => host.ShellStatusAsync(sessionId, cancellationToken);
     public ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
         => host.FindFileLinksAsync(sessionId, text, cancellationToken);
     public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => host.CloseAsync(sessionId, cancellationToken);
@@ -64,6 +65,20 @@ public sealed class RemoteTerminalAdapter : ITerminalService, IDisposable
 
     public async ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default)
         => (await Service.IsBusyAsync(new() { SessionId = sessionId }, Options(cancellationToken))).Busy;
+
+    // A host that predates shell status does not know the call; it then reads as one with no report.
+    public async ValueTask<TerminalShellStatus?> ShellStatusAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        TerminalShellReply reply;
+        try { reply = await Service.ShellStatusAsync(new() { SessionId = sessionId }, Options(cancellationToken)); }
+        catch (RpcException error) when (error.StatusCode is StatusCode.Unimplemented or StatusCode.NotFound) { return null; }
+        if (!reply.Known) return null;
+        return new((TerminalShellPhase)reply.Phase, reply.Directory.Length > 0 ? reply.Directory : null, reply.HasExitCode ? reply.LastExitCode : null)
+        {
+            Marked = reply.Marked,
+            Commands = [.. reply.Commands.Select(command => new TerminalCommand(command.Start, command.End, command.HasExitCode ? command.ExitCode : null))]
+        };
+    }
 
     public async ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
         => (await Service.FindFileLinksAsync(new() { SessionId = sessionId, Text = text }, Options(cancellationToken))).Links

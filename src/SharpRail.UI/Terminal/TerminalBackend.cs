@@ -41,6 +41,9 @@ public interface ITerminalBackend : IDisposable
     // Known once Started completes: the view shows a terminal another client holds, live and read-only.
     bool Watching { get; }
     ValueTask<bool> IsBusyAsync();
+    // The host's reading of the shell's integration: whether it waits at a prompt or runs a command, its directory, and the
+    // recent commands with their exit codes. Null without a report.
+    ValueTask<TerminalShellStatus?> ShellStatusAsync() => ValueTask.FromResult<TerminalShellStatus?>(null);
     // Ends the host session, as closing its tab does.
     ValueTask CloseAsync();
     void FocusTerminal();

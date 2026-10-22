@@ -62,6 +62,22 @@ public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLife
     public async ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default)
         => new() { Busy = await terminals.IsBusyAsync(request.SessionId, context.CancellationToken) };
 
+    public async ValueTask<TerminalShellReply> ShellStatusAsync(TerminalSessionRequest request, CallContext context = default)
+    {
+        if (await terminals.ShellStatusAsync(request.SessionId, context.CancellationToken) is not { } status) return new();
+        return new()
+        {
+            Known = true,
+            Phase = (int)status.Phase,
+            Directory = status.Directory ?? "",
+            HasExitCode = status.LastExitCode is not null,
+            LastExitCode = status.LastExitCode ?? 0,
+            Marked = status.Marked,
+            Commands = [.. status.Commands.Select(command => new TerminalCommandDto
+                { Start = command.Start, End = command.End, HasExitCode = command.ExitCode is not null, ExitCode = command.ExitCode ?? 0 })]
+        };
+    }
+
     public async ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default)
     {
         await terminals.CloseAsync(request.SessionId, context.CancellationToken);

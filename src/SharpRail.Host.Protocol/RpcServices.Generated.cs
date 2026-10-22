@@ -89,6 +89,7 @@ public static class RpcServices
         public ValueTask<DocumentReply> SaveClipboardImageAsync(TerminalClipboardRequest request, CallContext context = default) => client.Unary<TerminalClipboardRequest, DocumentReply>("ITerminalRpc/SaveClipboardImageAsync", request, context);
         public IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default) => client.Duplex<TerminalInput, TerminalOutput>("ITerminalRpc/RunAsync", input, context);
         public ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default) => client.Unary<TerminalSessionRequest, TerminalBusyReply>("ITerminalRpc/IsBusyAsync", request, context);
+        public ValueTask<TerminalShellReply> ShellStatusAsync(TerminalSessionRequest request, CallContext context = default) => client.Unary<TerminalSessionRequest, TerminalShellReply>("ITerminalRpc/ShellStatusAsync", request, context);
         public ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default) => client.Unary<TerminalSessionRequest, TerminalClosed>("ITerminalRpc/CloseAsync", request, context);
     }
     private sealed class WorkspaceRpcClient(IRpcClient client) : IWorkspaceRpc

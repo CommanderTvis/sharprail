@@ -443,6 +443,13 @@ internal static class RpcDispatch
                 await stream.Send(await service.IsBusyAsync(request, context));
                 break;
             }
+            case "ITerminalRpc/ShellStatusAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<TerminalRpc>(services);
+                var request = await ReadOne<TerminalSessionRequest>(stream);
+                await stream.Send(await service.ShellStatusAsync(request, context));
+                break;
+            }
             case "ITerminalRpc/CloseAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<TerminalRpc>(services);

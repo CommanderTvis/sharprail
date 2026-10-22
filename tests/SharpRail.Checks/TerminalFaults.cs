@@ -102,6 +102,7 @@ internal sealed class AttachFaults : SharpRail.Host.Client.ITerminalRpcIntercept
         public ValueTask<TerminalFileLinksReply> FindFileLinksAsync(TerminalFileLinksRequest request, CallContext context = default) => service.FindFileLinksAsync(request, context);
         public ValueTask<DocumentReply> SaveClipboardImageAsync(TerminalClipboardRequest request, CallContext context = default) => service.SaveClipboardImageAsync(request, context);
         public ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default) => service.IsBusyAsync(request, context);
+        public ValueTask<TerminalShellReply> ShellStatusAsync(TerminalSessionRequest request, CallContext context = default) => service.ShellStatusAsync(request, context);
         public ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default) => service.CloseAsync(request, context);
         public async IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default)
         {

@@ -57,6 +57,28 @@ public sealed class TerminalSessionRequest
 }
 
 [ProtoContract]
+public sealed class TerminalCommandDto
+{
+    [ProtoMember(1)] public long Start { get; set; }
+    [ProtoMember(2)] public long End { get; set; }
+    [ProtoMember(3)] public bool HasExitCode { get; set; }
+    [ProtoMember(4)] public int ExitCode { get; set; }
+}
+
+// Known is false for an unknown session; Phase is TerminalShellPhase's value.
+[ProtoContract]
+public sealed class TerminalShellReply
+{
+    [ProtoMember(1)] public bool Known { get; set; }
+    [ProtoMember(2)] public int Phase { get; set; }
+    [ProtoMember(3)] public string Directory { get; set; } = "";
+    [ProtoMember(4)] public bool HasExitCode { get; set; }
+    [ProtoMember(5)] public int LastExitCode { get; set; }
+    [ProtoMember(6)] public bool Marked { get; set; }
+    [ProtoMember(7)] public List<TerminalCommandDto> Commands { get; set; } = [];
+}
+
+[ProtoContract]
 public sealed class TerminalBusyReply
 {
     [ProtoMember(1)] public bool Busy { get; set; }
@@ -102,5 +124,6 @@ public interface ITerminalRpc
     ValueTask<DocumentReply> SaveClipboardImageAsync(TerminalClipboardRequest request, CallContext context = default);
     IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default);
     ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default);
+    ValueTask<TerminalShellReply> ShellStatusAsync(TerminalSessionRequest request, CallContext context = default);
     ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default);
 }

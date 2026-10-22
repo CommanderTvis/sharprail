@@ -64,6 +64,10 @@ public interface ITerminalService
     // Resolves one hovered logical line on the terminal host, using the current shell directory.
     ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
         => ValueTask.FromResult<IReadOnlyList<TerminalFileLink>>([]);
+    // What the session's shell integration reported (OSC 133 phase and commands, OSC 7 directory); null for an unknown
+    // session or a host that does not read it.
+    ValueTask<TerminalShellStatus?> ShellStatusAsync(string sessionId, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult<TerminalShellStatus?>(null);
     // Ends the session's shell and forgets the session; closing a tab or its project ends it.
     ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default);
 }

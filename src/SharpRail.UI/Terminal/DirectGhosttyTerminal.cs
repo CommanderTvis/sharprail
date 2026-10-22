@@ -221,6 +221,8 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
     }
 
     private void UpdateColors() { if (texture is not null) texture.Colors = TerminalTheme.Colors(); }
+    public ValueTask<TerminalShellStatus?> ShellStatusAsync() => terminals.ShellStatusAsync(launch.SessionId);
+
     public ValueTask<bool> IsBusyAsync() => exited.Task.IsCompleted || detached.Task.IsCompleted
         ? ValueTask.FromResult(false) : terminals.IsBusyAsync(launch.SessionId);
     public ValueTask CloseAsync() => terminals.CloseAsync(launch.SessionId);
