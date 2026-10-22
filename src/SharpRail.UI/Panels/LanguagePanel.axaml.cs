@@ -88,6 +88,8 @@ internal sealed partial class LanguagePanel : UserControl
     // A Start/Retry or Stop the user asked for while another request ran; it runs next instead of being dropped.
     private (string Operation, LanguageServerState? Target, bool AcceptanceReviewed)? pending;
     private IReadOnlyList<LanguageServerState> inventory = [];
+    // Each configuration view's save count when the inventory was requested, so an inventory read before a save cannot revert it.
+    private Dictionary<string, int> inventorySaves = [];
     private readonly Dictionary<string, LanguageConfigurationView> configurations = [];
     private readonly HashSet<string> added = [];
     private readonly HashSet<string> expanded = [];
@@ -265,7 +267,7 @@ internal sealed partial class LanguagePanel : UserControl
             {
                 if (!configurations.TryGetValue(server.Id, out var view))
                     configurations[server.Id] = view = new(host, workspace, server);
-                else view.Update(server);
+                else view.Update(server, inventorySaves.GetValueOrDefault(server.Id));
                 return new ServerRow(server, view, expanded.Contains(server.Id), exitOpen.Contains(server.Id), state is not null);
             }).ToArray();
         if (!(list.ItemsSource?.Cast<ServerRow>() ?? []).SequenceEqual(rows))
@@ -343,6 +345,7 @@ internal sealed partial class LanguagePanel : UserControl
                 }
             }
             var request = new LanguageRequest(workspace, Operation: operation, Server: operation is "retry" or "stop" ? (target ?? selected)!.Id : "");
+            var saves = configurations.ToDictionary(item => item.Key, item => item.Value.Saves);
             var result = await Task.Run(async () => await host.LanguageAsync(request, token), token);
             if (current != lifetime || token.IsCancellationRequested) return;
             SetStatus(result.State + ": " + result.Detail);
@@ -350,6 +353,7 @@ internal sealed partial class LanguagePanel : UserControl
             {
                 LanguageServerNameConverter.Remember(result.Servers);
                 inventory = result.Servers;
+                inventorySaves = saves;
                 RefreshRows(selected?.Id);
                 if (result.State == "ready") SetStatus("");
             }

@@ -18,6 +18,9 @@ internal sealed partial class LanguageConfigurationView : UserControl
     private bool loading;
     private bool dirty;
     private bool saving;
+    /// <summary>Counts saves, so a configuration read that a save overtook cannot load its older settings over the newer ones.</summary>
+    private int saves;
+    internal int Saves => saves;
     /// <summary>What the server's plugin declares (H21): terms to accept, servers it replaces, and compiler-flag options.</summary>
     private readonly bool hasTerms, replaces, compilerFlags;
     private readonly Dictionary<string, string?> loadedText = [];
@@ -156,14 +159,15 @@ internal sealed partial class LanguageConfigurationView : UserControl
     private async Task RefreshSavedAsync(bool discardDraft)
     {
         if (lifetime is not { } current) return;
+        var generation = saves;
         try
         {
             var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "configuration", Server: server.Id), current.Token), current.Token);
             if (lifetime != current) return;
             if (result.State != "ready") { Find<TextBlock>("ConfigurationMessage").Text = result.Detail; return; }
             var next = server with { Configuration = result.Configuration, ActiveConfiguration = result.ActiveConfiguration };
-            if (discardDraft) { server = next; Load(); }
-            else Update(next);
+            if (discardDraft && generation == saves && !saving) { server = next; Load(); }
+            else Update(next, generation);
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
         catch (Exception error) { if (lifetime == current) Find<TextBlock>("ConfigurationMessage").Text = error.Message; }
@@ -174,8 +178,10 @@ internal sealed partial class LanguageConfigurationView : UserControl
     internal void UpdateSavedConfiguration(string configuration) => Update(server with { Configuration = configuration });
 
     private T Find<T>(string name) where T : Control => this.FindControl<T>(name)!;
-    internal void Update(LanguageServerState next)
+    /// <param name="savesAtRead">The save count when <paramref name="next"/> was requested; a save since then keeps the newer saved configuration.</param>
+    internal void Update(LanguageServerState next, int? savesAtRead = null)
     {
+        if (savesAtRead is { } read && (read != saves || saving)) next = next with { Configuration = server.Configuration, ActiveConfiguration = server.ActiveConfiguration };
         if (next == server) { if (!dirty && !saving) ShowState(); return; }
         dirty = invalidFields.Count > 0 || loadedText.Any(item => Find<TextBox>(item.Key).Text != item.Value) ||
             Find<ComboBox>("BuildTool").SelectedItem?.ToString() != loadedBuildTool ||
@@ -239,6 +245,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
             return;
         }
         saving = true;
+        saves++;
         Find<TextBlock>("ConfigurationMessage").Text = restart ? "Starting language server…" : "Saving settings…";
         Find<Button>("ReviewTerms").IsEnabled = false;
         Find<Button>("SaveConfiguration").IsEnabled = Find<Button>("RestartConfiguration").IsEnabled = false;
