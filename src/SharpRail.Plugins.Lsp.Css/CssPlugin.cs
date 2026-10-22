@@ -30,6 +30,7 @@ public sealed class CssPlugin() : LanguageServerPlugin(Id)
         Website = "https://code.visualstudio.com/docs/languages/css",
         Repository = "https://github.com/microsoft/vscode-css-languageservice",
         Pinning = LanguageServerPinning.Lockfile,
+        Dependencies = [new("node", "Node.js", "Install Node.js 18 or newer from https://nodejs.org or your package manager."), new("npm", "npm", "npm ships with Node.js: install it from https://nodejs.org or your package manager.", InstallOnly: true)],
         HostsRuntime = true,
         NpmPackages = "vscode-langservers-extracted@4.10.0",
         LockFiles = Locks("package-lock.json", "package.json"),

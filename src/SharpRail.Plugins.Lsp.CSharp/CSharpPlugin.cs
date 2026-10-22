@@ -34,6 +34,7 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
         Website = "https://www.nuget.org/packages/roslyn-language-server",
         Repository = "https://github.com/dotnet/roslyn",
         Pinning = LanguageServerPinning.NuGet,
+        Dependencies = [new("dotnet", ".NET SDK", "Install a .NET SDK from https://dot.net, or set DOTNET_ROOT.", HomeVariable: "DOTNET_ROOT")],
         PinningDescription = "Managed and pinned: exact version and a SHA-512 per NuGet package (tool and runtime pack) verified before a local-feed install; NuGet signature verification also applies.",
         Settings = [Init("Automatic project loading limit", "autoLoadProjects", "integer", minimum: 0, help: "Maximum projects to load automatically; 0 disables automatic loading. SharpRail defaults to 500.")],
         IsProjectManifest = file =>
@@ -75,7 +76,7 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
 
     private static async Task InstallAsync(ILanguageServerInstallation installation, CancellationToken token)
     {
-        var dotnet = installation.FindDotnet() ?? throw new IOException("Install a .NET SDK on this host, or configure DOTNET_ROOT, then Retry.");
+        var dotnet = installation.RequireTool("dotnet");
         if (Packages.All(package => package.Platform != installation.Platform))
             throw new IOException($"csharp needs an installation: there is no verified NuGet runtime pack for {installation.Platform}. Allow PATH for this server in Settings > Code Intelligence, or configure an executable.");
         // Only packages whose SHA-512 matches the pinned value reach dotnet: it reads a local feed and a private package cache, never nuget.org.

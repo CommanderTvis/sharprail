@@ -42,6 +42,17 @@ public sealed record LanguageServerArtifact(string Platform, string Url, string 
 /// <param name="Sha512">The pinned SHA-512.</param>
 public sealed record LanguageServerNuGetPackage(string Id, string Version, string Platform, string Sha512);
 
+/// <summary>
+/// A host tool a server needs besides its own executable, such as Node for an npm server or Go to build gopls (H21). The host probes it
+/// before a start and in Settings, honours the user's host-wide path for it, and never downloads or installs it.
+/// </summary>
+/// <param name="Executable">The tool's file name, as <see cref="ILanguageServerInstallation.RequireTool"/> names it.</param>
+/// <param name="Name">What people call it, such as <c>Go</c> or <c>a JDK 21 or newer</c>.</param>
+/// <param name="InstallHint">One line on how to install it on the host.</param>
+/// <param name="InstallOnly">Whether only the managed installation needs it, so an installed server runs without it.</param>
+/// <param name="HomeVariable">An environment variable naming the tool's home (such as <c>JAVA_HOME</c>), searched as <c>home/bin</c> and <c>home</c> before PATH.</param>
+public sealed record LanguageServerDependency(string Executable, string Name, string InstallHint, bool InstallOnly = false, string HomeVariable = "");
+
 /// <summary>One named configuration control shown for the server in the language configuration view.</summary>
 /// <param name="Label">The control's label.</param>
 /// <param name="Section"><c>settings</c> (workspace/configuration) or <c>initializationOptions</c>.</param>
@@ -234,6 +245,9 @@ public sealed class LanguageServerSpec
 
     /// <summary>The pinned packages for <see cref="LanguageServerPinning.NuGet"/>: the tool for <c>any</c>, then each platform's runtime pack.</summary>
     public IReadOnlyList<LanguageServerNuGetPackage> NuGetPackages { get; init; } = [];
+
+    /// <summary>The host tools the managed launch or installation needs; an executable override or PATH launch needs none of them.</summary>
+    public IReadOnlyList<LanguageServerDependency> Dependencies { get; init; } = [];
 
     /// <summary>The configuration controls the server's pinned version understands.</summary>
     public IReadOnlyList<LanguageSettingField> Settings { get; init; } = [];

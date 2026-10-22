@@ -31,6 +31,7 @@ public sealed class PythonPlugin() : LanguageServerPlugin(Id)
         Website = "https://microsoft.github.io/pyright/",
         Repository = "https://github.com/microsoft/pyright",
         Pinning = LanguageServerPinning.Lockfile,
+        Dependencies = [new("node", "Node.js", "Install Node.js 18 or newer from https://nodejs.org or your package manager."), new("npm", "npm", "npm ships with Node.js: install it from https://nodejs.org or your package manager.", InstallOnly: true)],
         HostsRuntime = true,
         NpmPackages = "pyright@1.1.414",
         LockFiles = Locks("package-lock.json", "package.json"),

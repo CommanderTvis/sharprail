@@ -30,6 +30,7 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
         Website = "https://projects.eclipse.org/projects/eclipse.jdt.ls",
         Repository = "https://github.com/eclipse-jdtls/eclipse.jdt.ls",
         Pinning = LanguageServerPinning.Archive,
+        Dependencies = [new("java", "a JDK 21 or newer", "Install a JDK 21 or newer (sdkman on macOS) and set JAVA_HOME.", HomeVariable: "JAVA_HOME")],
         HostsRuntime = true,
         Settings = [Setting("Project JDK home", "java.home", pathKind: "folder"), Setting("Gradle importer JDK", "java.import.gradle.java.home", pathKind: "folder"), Setting("Additional library JARs", "java.project.referencedLibraries", "lines", pathKind: "file", help: "JAR paths and glob patterns. Advanced JSON also accepts an include/exclude/sources object."), Setting("Build configuration updates", "java.configuration.updateBuildConfiguration", choices: ["automatic", "interactive", "disabled"]), Setting("Import Maven projects", "java.import.maven.enabled", "boolean"), Setting("Import Gradle projects", "java.import.gradle.enabled", "boolean")],
         IsProjectManifest = file =>
@@ -62,8 +63,7 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
 
     private static Task<LanguageServerLaunch> LaunchAsync(ILanguageServerInstallation installation, CancellationToken token)
     {
-        var java = Environment.GetEnvironmentVariable("JAVA_HOME");
-        if (string.IsNullOrEmpty(java)) throw new IOException("Set JAVA_HOME to a JDK 21 or newer (sdkman on macOS), then Retry.");
+        var java = installation.RequireTool("java");
         var launcher = Directory.GetFiles(Path.Combine(installation.Root, "plugins"), "org.eclipse.equinox.launcher_*.jar").Single();
         var configOs = OperatingSystem.IsMacOS() ? "mac" : OperatingSystem.IsWindows() ? "win" : "linux";
         var configuration = Path.Combine(installation.WorkspaceState, "configuration");
@@ -75,7 +75,7 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             if (!File.Exists(destination)) File.Copy(file, destination);
         }
-        return Task.FromResult(new LanguageServerLaunch(Path.Combine(java, "bin", "java" + (OperatingSystem.IsWindows() ? ".exe" : "")),
+        return Task.FromResult(new LanguageServerLaunch(java,
             ["-Declipse.application=org.eclipse.jdt.ls.core.id1", "-Dosgi.bundles.defaultStartLevel=4", "-Declipse.product=org.eclipse.jdt.ls.core.product", "-Xmx1G", "--add-modules=ALL-SYSTEM", "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "-jar", launcher, "-configuration", configuration, "-data", installation.WorkspaceState]));
     }
 

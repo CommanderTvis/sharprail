@@ -70,6 +70,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             SettleIdleDays = state.Settings.SettleIdleDays ?? 0,
             WindowDecorations = state.Settings.WindowDecorations,
             LanguageServers = state.Settings.LanguageServers,
+            LanguageTools = state.Settings.LanguageTools,
             JavaKotlinProvider = state.Settings.JavaKotlinProvider,
             LspEnabled = state.Settings.LspEnabled
         },

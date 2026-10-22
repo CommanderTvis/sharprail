@@ -32,6 +32,7 @@ public sealed class RubyPlugin() : LanguageServerPlugin(Id)
         Website = "https://shopify.github.io/ruby-lsp/",
         Repository = "https://github.com/Shopify/ruby-lsp",
         Pinning = LanguageServerPinning.Partial,
+        Dependencies = [new("gem", "RubyGems", "Install Ruby, which includes gem, from https://www.ruby-lang.org or your package manager.", InstallOnly: true)],
         PinningDescription = "Managed, partially pinned: exact gem version; RubyGems does not verify a stored hash and dependencies are resolved at install.",
         Settings = [Init("Formatter", "formatter", choices: ["auto", "rubocop", "rubocop_internal", "syntax_tree", "none"], allowCustomChoices: true, help: "Formatter name; installed add-ons may supply additional formatters.")],
         IsProjectManifest = file =>

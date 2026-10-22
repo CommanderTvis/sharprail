@@ -123,6 +123,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
                 LanguageExecutables.Reject(found, workspace) is null) installed = found;
             return Start(installed ?? throw new IOException($"PATH is allowed for {server.Id} but no usable {server.Executable} was found on it." + (rejected.Count > 0 ? " " + rejected[0] : "")), server.Arguments);
         }
+        RequireDependencies(server, workspace);
         var gate = installations.GetOrAdd(root, _ => new(1));
         await gate.WaitAsync(token);
         try
@@ -147,7 +148,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
                         var lockfile = ManagedArtifacts.Lock(server) ?? throw new IOException($"{server.Id} has no embedded package-lock.json; it will not be installed.");
                         await File.WriteAllTextAsync(Path.Combine(root, "package.json"), ManagedArtifacts.Lock(server, "package.json") ?? throw new IOException($"{server.Id} has no embedded package.json; it will not be installed."), token);
                         await File.WriteAllTextAsync(Path.Combine(root, "package-lock.json"), lockfile, token);
-                        await RunAsync(Start(Require("npm", workspace), ["ci", "--prefix", root, "--no-audit", "--no-fund", "--ignore-scripts", "--registry", "https://registry.npmjs.org/"]), root, token);
+                        await RunAsync(Start(RequireTool(server, "npm", workspace), ["ci", "--prefix", root, "--no-audit", "--no-fund", "--ignore-scripts", "--registry", "https://registry.npmjs.org/"]), root, token);
                     }
                     else if (spec.InstallAsync is { } install) await install(installation, token);
                     await File.WriteAllTextAsync(Path.Combine(root, ".ready"), server.Version, token);
@@ -164,7 +165,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(packageRoot, package, "package.json"), token));
             var bin = manifest.RootElement.GetProperty("bin");
             var file = bin.ValueKind == JsonValueKind.String ? bin.GetString()! : bin.GetProperty(server.Executable).GetString()!;
-            return Start(Require("node", workspace), [Path.Combine(packageRoot, package, file), .. server.Arguments]);
+            return Start(RequireTool(server, "node", workspace), [Path.Combine(packageRoot, package, file), .. server.Arguments]);
         }
         return Start(installation.FindInstalled(InstalledName(server)), server.Arguments);
     }
@@ -192,9 +193,9 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         public string SharedCache { get; } = Path.Combine(owner.DirectoryPath, "cache");
         public string ServerCache { get; } = Path.Combine(owner.DirectoryPath, "cache", server.Id, server.Version);
         public string Platform { get; } = ManagedArtifacts.Platform();
-        public string? FindTool(string executable) => LanguageExecutables.FindOnPath(executable, workspace);
-        public string RequireTool(string executable) => Require(executable, workspace);
-        public string? FindDotnet() => LanguageServers.FindDotnet(workspace);
+        public string? FindTool(string executable) => owner.FindTool(server, executable, workspace);
+        public string RequireTool(string executable) => owner.RequireTool(server, executable, workspace);
+        public string? FindDotnet() => owner.FindTool(server, "dotnet", workspace);
 
         public string FindInstalled(string name)
         {
@@ -239,18 +240,6 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         var start = new ProcessStartInfo(executable);
         foreach (var argument in args) start.ArgumentList.Add(argument);
         return start;
-    }
-
-    /// <summary>A tool the installers need (npm, go, gem...). Found with the hardened PATH search, never inside the workspace.</summary>
-    private static string Require(string executable, string workspace) => LanguageExecutables.FindOnPath(executable, workspace)
-        ?? throw new IOException($"Install {executable} on the host (outside the workspace), then Retry.");
-    private static string? FindDotnet(string workspace)
-    {
-        var executable = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
-        return new[]
-        {
-            Path.Combine(Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? "", executable), LanguageExecutables.FindOnPath("dotnet", workspace)
-        }.FirstOrDefault(path => path is not null && Path.IsPathFullyQualified(path) && LanguageExecutables.Reject(path, workspace) is null);
     }
 
     /// <summary>The user's own executable override from host state: a bare name is searched on the hardened PATH, a path is used as given; both are refused inside the workspace.</summary>

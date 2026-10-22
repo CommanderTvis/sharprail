@@ -59,6 +59,9 @@ public sealed partial class LanguageService : IAsyncDisposable
         sampler = new Timer(_ => SampleMemory(), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
+    /// <summary>The user's host-wide tool paths from host state (JSON of executable name to path), honoured by probes and launches.</summary>
+    internal Func<string> ToolPaths { set => servers.ToolPaths = value; }
+
     public async ValueTask<LanguageResult> ExecuteAsync(LanguageRequest request, CancellationToken token = default)
     {
         token.ThrowIfCancellationRequested();
@@ -399,7 +402,13 @@ public sealed partial class LanguageService : IAsyncDisposable
             rows.Add(new(id, path, state, detail, servers.Servers.Single(server => server.Id == id).Version,
                 WorkspaceLanguageConfiguration.Serialize(WorkspaceLanguageConfiguration.Parse(configuration(workspace, id), id)),
                 entries.GetValueOrDefault(key)?.Configuration ?? "", configuration(workspace, id) != "{}")
-            { Exit = exit, Usage = usage.Get(workspace, id), StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "", Presentation = Present(catalogServer) });
+            {
+                Exit = exit,
+                Usage = usage.Get(workspace, id),
+                StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "",
+                Presentation = Present(catalogServer),
+                Dependencies = servers.ProbeDependencies(catalogServer, workspace)
+            });
         }
         return new(enabled() ? "ready" : "disabled", enabled() ? "Available language servers; detected languages are listed first." : "Language services are disabled. Workspace settings remain available.") { Servers = rows };
     }

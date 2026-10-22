@@ -93,7 +93,26 @@
             <TextBlock Name="ServerDisclosure" Text="{Binding Disclosure}" Margin="8,0,0,0" Foreground="{x:Static kit:Ui.Muted}" VerticalAlignment="Center" />
             </StackPanel>
             <StackPanel Name="ServerDetails" Spacing="4">
+              <TextBlock Name="ServerNeeds" IsVisible="{Binding HasMissing}" Text="{Binding Needs}" Foreground="{x:Static kit:Ui.Danger}" TextWrapping="Wrap" />
               <TextBlock Name="ServerDetail" IsVisible="{Binding ShowDetail}" Text="{Binding Server.Detail}" Foreground="{Binding DetailBrush}" TextWrapping="Wrap" />
+              <ItemsControl Name="ServerDependencies" IsVisible="{Binding ShowDependencies}" ItemsSource="{Binding DependencyRows}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="4" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:CompileBindings="False">
+                    <StackPanel Spacing="2">
+                      <TextBlock Name="DependencyState" Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="12" TextWrapping="Wrap" />
+                      <SelectableTextBlock Name="DependencyHint" IsVisible="{Binding Missing}" Text="{Binding Hint}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+                      <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Name="DependencyUsePath" Content="Use path…" Classes="link" Click="UseDependencyPathClicked" IsVisible="{Binding CanChange}"
+                                ToolTip.Tip="Choose an existing executable outside the workspace; it is used instead of PATH by every language server" />
+                        <Button Name="DependencyClearPath" Content="Clear path" Classes="link" Click="ClearDependencyPathClicked" IsVisible="{Binding CanClear}"
+                                ToolTip.Tip="Find it on PATH again" />
+                        <Button Name="DependencyCopyHint" Content="Copy install hint" Classes="link" Click="CopyDependencyHintClicked" IsVisible="{Binding Missing}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
               <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding ShowExit}">
                 <Button Name="ServerExitDetailsAction" Content="{Binding ExitToggle}" Classes="link" Click="ExitDetailsClicked" />
                 <Button Name="ServerExitCopyAction" Content="Copy details" Classes="link" Click="CopyExitClicked" />

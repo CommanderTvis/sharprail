@@ -26,7 +26,19 @@ public sealed record LanguageServerState(string Id, string Path, string State, s
 
     /// <summary>What the providing plugin says to show for this server.</summary>
     public LanguageServerPresentation? Presentation { get; init; }
+
+    /// <summary>The host tools the server declares, probed without starting it; null when the host did not probe them.</summary>
+    public IReadOnlyList<LanguageDependencyState>? Dependencies { get; init; }
 }
+
+/// <summary>
+/// One host tool a language server needs, as probed on the host: <paramref name="State"/> is <c>found</c>, <c>missing</c> or <c>rejected</c> (an
+/// override that cannot run), <paramref name="Source"/> is <c>override</c>, <c>home</c> (an environment variable such as <c>JAVA_HOME</c>),
+/// <c>path</c> or empty. <paramref name="Required"/> is false when the server's current launch does not need the tool, such as a build tool once
+/// the managed installation exists.
+/// </summary>
+public sealed record LanguageDependencyState(string Executable, string Name, string State, string Path, string Source, string InstallHint,
+    string Problem = "", bool Override = false, bool Required = true);
 
 /// <summary>
 /// How a provider asks the user interface to show its server: <paramref name="Name"/>, a mark (<paramref name="Icon"/> bytes in

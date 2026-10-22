@@ -268,3 +268,9 @@ shows itself as a tooltip. The shared pane header trims its title before its but
 runs under + or −. `--lsp-narrow` (also part of `--lsp-ui`) asserts at 160, 220, 320 and 480px that
 no row text is narrower than its longest word, names never break inside a word, row actions stay
 visible inside the row, and pane titles end before their buttons.
+
+A row whose server declares host tools lists them when expanded, and always while a required one is missing: the row
+then reads `Needs <tool>` before any start. Each tool shows where it was found, or its install hint (selectable, with
+Copy install hint), and offers Use path… (a file picker; the chosen path becomes the host-wide `language-tool:` setting,
+changed off the UI thread) and Clear path when a path is set. Rows re-read the servers when the setting's broadcast
+arrives, so Retry works without a restart. `--lsp-dependencies` asserts this.

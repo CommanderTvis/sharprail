@@ -22,6 +22,18 @@ public sealed partial class HostStateStore
         settings[id] = options;
         return JsonSerializer.Serialize(settings, JsonSerializerOptions.Web);
     }
+
+    /// <summary>Sets or, with an empty value, clears the host-wide path of a tool language servers need; the path must be absolute.</summary>
+    private static string SetLanguageTool(string current, string executable, string value)
+    {
+        if (executable.Length is 0 or > 64 || executable.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_' or '.')))
+            throw new ArgumentException("Invalid tool name.");
+        var path = value.Trim();
+        if (path.Length > 4096 || path.Contains('\0') || path.Length > 0 && !Path.IsPathFullyQualified(path)) throw new ArgumentException("Choose an absolute path to the executable.");
+        var tools = LanguageServers.ParseTools(current);
+        if (path.Length == 0) tools.Remove(executable); else tools[executable] = path;
+        return tools.Count == 0 ? "" : JsonSerializer.Serialize(new SortedDictionary<string, string>(tools, StringComparer.Ordinal));
+    }
 }
 public sealed partial class HostStateStore
 {

@@ -1844,3 +1844,35 @@ SharpRail.Host.Abstractions.LanguageServerPresentation.Deconstruct(out string! N
 SharpRail.Host.Abstractions.LanguageServerPresentation.LanguageServerPresentation(string! Name, byte[]? Icon = null, string! IconFormat = "", System.Collections.Generic.IReadOnlyList<string!>? OptionGroups = null, System.Collections.Generic.IReadOnlyList<string!>? Replaces = null, bool HasTerms = false, string! TermsNote = "", string! ReplacesLabel = "") -> void
 SharpRail.Host.Abstractions.LanguageServerPresentation.ReplacesLabel.get -> string!
 SharpRail.Host.Abstractions.LanguageServerPresentation.ReplacesLabel.init -> void
+SharpRail.Host.Abstractions.HostSettings.LanguageTools.get -> string!
+SharpRail.Host.Abstractions.HostSettings.LanguageTools.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.Dependencies.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageDependencyState!>?
+SharpRail.Host.Abstractions.LanguageServerState.Dependencies.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState
+SharpRail.Host.Abstractions.LanguageDependencyState.LanguageDependencyState(string! Executable, string! Name, string! State, string! Path, string! Source, string! InstallHint, string! Problem = "", bool Override = false, bool Required = true) -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.Executable.get -> string!
+SharpRail.Host.Abstractions.LanguageDependencyState.Executable.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.Name.get -> string!
+SharpRail.Host.Abstractions.LanguageDependencyState.Name.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.State.get -> string!
+SharpRail.Host.Abstractions.LanguageDependencyState.State.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.Path.get -> string!
+SharpRail.Host.Abstractions.LanguageDependencyState.Path.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.Source.get -> string!
+SharpRail.Host.Abstractions.LanguageDependencyState.Source.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.InstallHint.get -> string!
+SharpRail.Host.Abstractions.LanguageDependencyState.InstallHint.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.Problem.get -> string!
+SharpRail.Host.Abstractions.LanguageDependencyState.Problem.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.Override.get -> bool
+SharpRail.Host.Abstractions.LanguageDependencyState.Override.init -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.Required.get -> bool
+SharpRail.Host.Abstractions.LanguageDependencyState.Required.init -> void
+override SharpRail.Host.Abstractions.LanguageDependencyState.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageDependencyState.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageDependencyState.ToString() -> string!
+SharpRail.Host.Abstractions.LanguageDependencyState.<Clone>$() -> SharpRail.Host.Abstractions.LanguageDependencyState!
+SharpRail.Host.Abstractions.LanguageDependencyState.Deconstruct(out string! Executable, out string! Name, out string! State, out string! Path, out string! Source, out string! InstallHint, out string! Problem, out bool Override, out bool Required) -> void
+SharpRail.Host.Abstractions.LanguageDependencyState.Equals(SharpRail.Host.Abstractions.LanguageDependencyState? other) -> bool
+static SharpRail.Host.Abstractions.LanguageDependencyState.operator !=(SharpRail.Host.Abstractions.LanguageDependencyState? left, SharpRail.Host.Abstractions.LanguageDependencyState? right) -> bool
+static SharpRail.Host.Abstractions.LanguageDependencyState.operator ==(SharpRail.Host.Abstractions.LanguageDependencyState? left, SharpRail.Host.Abstractions.LanguageDependencyState? right) -> bool

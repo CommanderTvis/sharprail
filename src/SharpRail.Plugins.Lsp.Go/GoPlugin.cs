@@ -33,6 +33,7 @@ public sealed class GoPlugin() : LanguageServerPlugin(Id)
         Website = "https://go.dev/gopls/",
         Repository = "https://github.com/golang/tools/tree/master/gopls",
         Pinning = LanguageServerPinning.GoModule,
+        Dependencies = [new("go", "Go", "Install Go from https://go.dev/dl/ or your package manager.", InstallOnly: true)],
         PinningDescription = "Managed and pinned: exact gopls version with an embedded go.mod/go.sum (h1 hashes of the whole module graph), built read-only; Go's checksum database stays on.",
         LockFiles = Locks("go.mod", "go.sum"),
         Settings = [Setting("Build flags", "gopls.buildFlags", "lines", help: "One flag per line, for example -tags=integration."), Setting("Directory filters", "gopls.directoryFilters", "lines", help: "Ordered +include / -exclude directory patterns."), Setting("Staticcheck diagnostics", "gopls.staticcheck", "boolean"), Setting("Semantic tokens", "gopls.semanticTokens", "boolean")],

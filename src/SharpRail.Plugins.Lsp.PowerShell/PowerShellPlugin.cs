@@ -30,6 +30,7 @@ public sealed class PowerShellPlugin() : LanguageServerPlugin(Id)
         Website = "https://github.com/PowerShell/PowerShellEditorServices#readme",
         Repository = "https://github.com/PowerShell/PowerShellEditorServices",
         Pinning = LanguageServerPinning.Archive,
+        Dependencies = [new("pwsh", "PowerShell 7", "Install PowerShell 7 from https://aka.ms/powershell or your package manager.")],
         PathCapable = false,
         HostsRuntime = true,
         Settings = [Setting("Enable script analysis", "powershell.scriptAnalysis.enable", "boolean"), Setting("Script analyzer settings file", "powershell.scriptAnalysis.settingsPath", pathKind: "file")],

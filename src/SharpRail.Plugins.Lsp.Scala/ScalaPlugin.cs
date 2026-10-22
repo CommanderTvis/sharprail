@@ -32,6 +32,7 @@ public sealed class ScalaPlugin() : LanguageServerPlugin(Id)
         Website = "https://scalameta.org/metals/",
         Repository = "https://github.com/scalameta/metals",
         Pinning = LanguageServerPinning.Partial,
+        Dependencies = [new("cs", "Coursier", "Install Coursier (cs) from https://get-coursier.io.", InstallOnly: true)],
         PinningDescription = "Managed, partially pinned: exact Metals version; Coursier resolves dependencies at install without a stored hash.",
         Settings = [Setting("Build import", "metals.autoImportBuilds", choices: ["off", "initial", "all"]), Setting("Excluded symbol packages", "metals.excludedPackages", "lines")],
         IsProjectManifest = file =>

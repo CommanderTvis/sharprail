@@ -53,6 +53,22 @@ public sealed class LanguageServerDto
     [ProtoMember(8)] public bool Configured { get; set; }
     [ProtoMember(9)] public LanguageExitDto? Exit { get; set; }
     [ProtoMember(10)] public LanguageServerPresentationDto? Presentation { get; set; }
+    [ProtoMember(11)] public List<LanguageDependencyDto> Dependencies { get; set; } = [];
+    [ProtoMember(12)] public bool DependenciesProbed { get; set; }
+}
+
+[ProtoContract]
+public sealed class LanguageDependencyDto
+{
+    [ProtoMember(1)] public string Executable { get; set; } = "";
+    [ProtoMember(2)] public string Name { get; set; } = "";
+    [ProtoMember(3)] public string State { get; set; } = "";
+    [ProtoMember(4)] public string Path { get; set; } = "";
+    [ProtoMember(5)] public string Source { get; set; } = "";
+    [ProtoMember(6)] public string InstallHint { get; set; } = "";
+    [ProtoMember(7)] public string Problem { get; set; } = "";
+    [ProtoMember(8)] public bool Override { get; set; }
+    [ProtoMember(9)] public bool Required { get; set; }
 }
 
 [ProtoContract]

@@ -651,3 +651,25 @@ static SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.operator !=(Sha
 static SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions.operator ==(SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions? left, SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions? right) -> bool
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ReplacesLabel.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ReplacesLabel.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Dependencies.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.LanguageServerDependency!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.Dependencies.init -> void
+override SharpRail.Plugins.Api.Host.LanguageServerDependency.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.LanguageServerDependency.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.LanguageServerDependency.ToString() -> string!
+SharpRail.Plugins.Api.Host.LanguageServerDependency.<Clone>$() -> SharpRail.Plugins.Api.Host.LanguageServerDependency!
+SharpRail.Plugins.Api.Host.LanguageServerDependency.Deconstruct(out string! Executable, out string! Name, out string! InstallHint, out bool InstallOnly, out string! HomeVariable) -> void
+SharpRail.Plugins.Api.Host.LanguageServerDependency.Equals(SharpRail.Plugins.Api.Host.LanguageServerDependency? other) -> bool
+SharpRail.Plugins.Api.Host.LanguageServerDependency.Executable.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerDependency.Executable.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerDependency.HomeVariable.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerDependency.HomeVariable.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerDependency.InstallHint.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerDependency.InstallHint.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerDependency.InstallOnly.get -> bool
+SharpRail.Plugins.Api.Host.LanguageServerDependency.InstallOnly.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerDependency.LanguageServerDependency(string! Executable, string! Name, string! InstallHint, bool InstallOnly = false, string! HomeVariable = "") -> void
+SharpRail.Plugins.Api.Host.LanguageServerDependency.Name.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerDependency.Name.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerDependency
+static SharpRail.Plugins.Api.Host.LanguageServerDependency.operator !=(SharpRail.Plugins.Api.Host.LanguageServerDependency? left, SharpRail.Plugins.Api.Host.LanguageServerDependency? right) -> bool
+static SharpRail.Plugins.Api.Host.LanguageServerDependency.operator ==(SharpRail.Plugins.Api.Host.LanguageServerDependency? left, SharpRail.Plugins.Api.Host.LanguageServerDependency? right) -> bool

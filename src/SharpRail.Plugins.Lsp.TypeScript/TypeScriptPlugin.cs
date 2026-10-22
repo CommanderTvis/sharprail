@@ -31,6 +31,7 @@ public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
         Website = "https://github.com/typescript-language-server/typescript-language-server#readme",
         Repository = "https://github.com/typescript-language-server/typescript-language-server",
         Pinning = LanguageServerPinning.Lockfile,
+        Dependencies = [new("node", "Node.js", "Install Node.js 18 or newer from https://nodejs.org or your package manager."), new("npm", "npm", "npm ships with Node.js: install it from https://nodejs.org or your package manager.", InstallOnly: true)],
         HostsRuntime = true,
         NpmPackages = "typescript-language-server@6.0.2 typescript@5.9.3",
         LockFiles = Locks("package-lock.json", "package.json"),

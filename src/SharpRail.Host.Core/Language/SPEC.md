@@ -148,6 +148,33 @@ replace the default arguments of a server that is the program itself, but are ap
 launcher arguments of runtime-hosted servers (node packages, JDT, PowerShell, R) so that they can
 never name the script, jar or program to run.
 
+### System dependencies
+
+A provider declares the host tools its managed launch or installation needs (`LanguageServerSpec.Dependencies`,
+each with a name, a one-line install hint, whether only the installation needs it, and an optional home variable):
+
+| Server | Tools |
+| --- | --- |
+| typescript, css, python, php, shell | `node` (launch), `npm` (install only) |
+| go | `go` (install only) |
+| powershell | `pwsh` |
+| r | `Rscript` |
+| ruby | `gem` (install only) |
+| scala | `cs` (install only) |
+| csharp | `dotnet`, `DOTNET_ROOT` first |
+| java | `java`, `JAVA_HOME` first |
+
+A tool resolves from the user's host-wide path for it (host setting `LanguageTools`, JSON of executable to absolute
+path, changed through `language-tool:<executable>`; empty clears), then its home variable (`home/bin`, `home`), then the
+hardened PATH; the workspace rule above applies to all three. `RequireTool`, `FindTool`, `FindDotnet` and the host's npm
+and node lookups all use it, so a path is honoured by the probe and the launch alike. The `servers` operation probes
+every declared tool on the host (answers reused for two seconds) and returns them on each row: a tool is required
+only for the managed launch, and an install-only tool only until the managed installation exists. A start refuses
+before installing while a required tool is missing, with `Needs <tool> (<name>). <hint> Or choose an existing <tool>
+with Use path…`. SharpRail never downloads these tools or runs a package manager for them. `--lsp-dependencies`
+covers the probe with a fake PATH, the refusal, a tool appearing on PATH, and setting, persisting, launching with
+and clearing a path.
+
 ### Pinning
 
 Every managed installation is pinned by exact version. How completely differs, and the Settings page
