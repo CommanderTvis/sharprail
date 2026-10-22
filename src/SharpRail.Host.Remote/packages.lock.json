@@ -42,6 +42,24 @@
           "SharpRail.Plugins.Codex.Host": "[1.0.0, )",
           "SharpRail.Plugins.Discord.Host": "[1.0.0, )",
           "SharpRail.Plugins.Epub.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.CSharp": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Clangd": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Css": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Dart": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Go": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.IntelliJ": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Java": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Kotlin": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Php": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.PowerShell": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Python": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.R": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Ruby": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Rust": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Scala": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Shell": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.Swift": "[1.0.0, )",
+          "SharpRail.Plugins.Lsp.TypeScript": "[1.0.0, )",
           "SharpRail.Plugins.SpecDialect.Host": "[1.0.0, )",
           "SharpRail.Plugins.Tailscale.Host": "[1.0.0, )",
           "SharpRail.Plugins.Visualize.Host": "[1.0.0, )",
@@ -168,6 +186,114 @@
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
           "SharpRail.Plugins.Epub": "[1.0.0, )",
           "VersOne.Epub": "[3.3.6, )"
+        }
+      },
+      "sharprail.plugins.lsp.clangd": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.csharp": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.css": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.dart": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.go": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.intellij": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.java": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.kotlin": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.php": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.powershell": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.python": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.r": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.ruby": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.rust": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.scala": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.shell": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.swift": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.lsp.typescript": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
         }
       },
       "sharprail.plugins.specdialect": {

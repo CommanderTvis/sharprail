@@ -76,8 +76,7 @@ internal static class WorkspaceLanguageConfiguration
             foreach (var project in projects.OfType<JsonObject>())
                 if (project["type"]?.ToString() is "gradle" or "maven" && !project.ContainsKey("java-home")) project["java-home"] = jdk;
         }
-        if (server == "csharp" && !result.ContainsKey("autoLoadProjects")) result["autoLoadProjects"] = 500;
-        if (server == "go" && !result.ContainsKey("semanticTokens")) result["semanticTokens"] = true;
+        LanguageServers.Known(server)?.Spec.DefaultInitialization(result);
         if (server == "clangd")
         {
             var flags = (options.CompilerFlags ?? []).Select(flag => Expand(flag, workspace))
@@ -91,16 +90,7 @@ internal static class WorkspaceLanguageConfiguration
     internal static JsonObject Settings(WorkspaceLanguageOptions options, string workspace, string server)
     {
         var result = options.Settings is { } supplied ? ExpandObject(supplied, workspace) : new JsonObject();
-        if (server == "scala")
-        {
-            if (result["metals"] is not JsonObject metals) result["metals"] = metals = new JsonObject();
-            if (!metals.ContainsKey("autoImportBuilds")) metals["autoImportBuilds"] = "all";
-        }
-        if (server == "go")
-        {
-            if (result["gopls"] is not JsonObject gopls) result["gopls"] = gopls = new JsonObject();
-            if (!gopls.ContainsKey("semanticTokens")) gopls["semanticTokens"] = true;
-        }
+        LanguageServers.Known(server)?.Spec.DefaultSettings(result);
         return result;
     }
 }

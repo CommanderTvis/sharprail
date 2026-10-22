@@ -167,7 +167,7 @@ public sealed partial class HostStateStore
     /// </summary>
     internal LanguageResult SaveProjectLanguageFile(string workspace, string server, string configuration)
     {
-        if (LanguageServers.Catalog.All(item => item.Id != server)) throw new ArgumentException("Unknown language server.");
+        if (LanguageServers.Known(server) is null) throw new ArgumentException("Unknown language server.");
         var project = ProjectOfWorkspace(workspace) ?? throw new ArgumentException("Choose a registered project workspace.");
         var options = WorkspaceLanguageConfiguration.Parse(configuration, server);
         ProjectLanguageFile.Save(project, server, ProjectLanguageFile.PortableOf(options));

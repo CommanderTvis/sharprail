@@ -213,6 +213,15 @@ public interface IPluginHostContext
     void Prompt(PromptContribution contribution);
 
     /// <summary>
+    /// Provides a language server (H21). The server is in the host's catalog only while the plugin is enabled:
+    /// disabling the plugin stops its running sessions and removes it from listings, while the user's settings for it
+    /// are kept for when it returns.
+    /// </summary>
+    /// <param name="spec">The server.</param>
+    /// <exception cref="ArgumentException">The id is malformed or already provided by an active plugin.</exception>
+    void LanguageServer(LanguageServerSpec spec);
+
+    /// <summary>
     /// Lists the texts the host and every enabled plugin contribute for one agent and placement (H20): the host's own
     /// first, then the plugins' by order hint and activation order, leaving out those whose condition does not hold. An
     /// agent plugin reads it when it composes the instructions of a session.

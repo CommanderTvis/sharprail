@@ -1,6 +1,7 @@
 using System.Diagnostics;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core.Language;
 
@@ -12,9 +13,9 @@ internal sealed partial class LanguageServers
     internal async Task<ExecutableResolution> ResolveAsync(LanguageServer server, string workspace, CancellationToken token)
     {
         var custom = CustomOptions(server.Id);
-        var capable = LanguageExecutables.PathCapable(server.Id);
+        var capable = LanguageExecutables.PathCapable(server);
         var allow = custom?.AllowPath == true && capable;
-        var pinning = ManagedArtifacts.Describe(server.Id);
+        var pinning = ManagedArtifacts.Describe(server);
         ExecutableResolution Result(string state, string source, string path, string version, string warning, string message) =>
             new(state, source, path, version, pinning, warning, message, capable, custom?.AllowPath == true);
         if (!string.IsNullOrWhiteSpace(custom?.Command))
@@ -26,7 +27,8 @@ internal sealed partial class LanguageServers
             }
             catch (IOException error) { return Result("rejected", "override", custom.Command, "", "", error.Message); }
         }
-        if (server.Id is "swift" or "dart" || allow)
+        // IntelliJ declares no managed pin of its own: the host installs and launches it.
+        if (server.Spec.Pinning == LanguageServerPinning.None && server.Id != "intellij" || allow)
         {
             if (!allow)
                 return Result("needsInstallation", "none", "", "", "", $"{server.Id} needs an installation: SharpRail has no managed installation for it. Install the SDK and allow PATH for this server, then Retry.");
@@ -39,7 +41,7 @@ internal sealed partial class LanguageServers
         var platform = ManagedArtifacts.Platform();
         var root = Path.Combine(directory, "servers", server.Id, ManagedArtifacts.Directory(server, platform));
         var installed = Directory.Exists(root) && (File.Exists(Path.Combine(root, ".ready")) || File.Exists(Path.Combine(root, ".sharprail-artifact.json")));
-        if (ManagedArtifacts.ArchiveServers.Contains(server.Id) && ManagedArtifacts.Find(server.Id, platform) is null)
+        if (server.Spec.Pinning == LanguageServerPinning.Archive && ManagedArtifacts.Find(server, platform) is null)
             return Result("needsInstallation", "managed", "", server.Version, "", $"No verified managed artifact exists for {platform}. Allow PATH for this server or set an executable override.");
         var path2 = installed ? Executable(server, root) : root;
         return Result("ready", "managed", path2, server.Version, "",
@@ -49,7 +51,7 @@ internal sealed partial class LanguageServers
     private static string Executable(LanguageServer server, string root)
     {
         if (server.Package.Length > 0) return Path.Combine(root, "node_modules", ".bin", server.Executable);
-        var name = server.Id == "kotlin" ? "intellij-server" : server.Id == "rust" ? "rust-analyzer" : server.Executable;
+        var name = InstalledName(server);
         return Directory.EnumerateFiles(root, name + (OperatingSystem.IsWindows() ? ".exe" : ""), SearchOption.AllDirectories).FirstOrDefault() ?? root;
     }
 

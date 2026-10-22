@@ -35,13 +35,13 @@ internal static class ManagedLanguageChecks
     {
         var problems = ManagedArtifacts.Audit(LanguageServers.Catalog, out var table);
         foreach (var row in table) Console.WriteLine("MANAGED " + row);
-        foreach (var server in LanguageServers.Catalog.Where(server => ManagedArtifacts.PinningOf(server.Id) == Pinning.Partial))
-            Console.WriteLine($"MANAGED {server.Id,-11} {server.Version,-20} {ManagedArtifacts.Describe(server.Id)}");
+        foreach (var server in LanguageServers.Catalog.Where(server => ManagedArtifacts.PinningOf(server) == Pinning.Partial))
+            Console.WriteLine($"MANAGED {server.Id,-11} {server.Version,-20} {ManagedArtifacts.Describe(server)}");
         Require(problems.Count == 0, "Managed catalog is not fully pinned: " + string.Join("; ", problems));
-        Require(LanguageServers.Catalog.Where(server => server.Id is not ("swift" or "dart")).All(server => ManagedArtifacts.Describe(server.Id).Length > 0), "A provider lacks a pinning description.");
+        Require(LanguageServers.Catalog.Where(server => server.Id is not ("swift" or "dart")).All(server => ManagedArtifacts.Describe(server).Length > 0), "A provider lacks a pinning description.");
         var clangd = LanguageServers.Catalog.Single(server => server.Id == "clangd");
         Require(ManagedArtifacts.Directory(clangd, "linux-x86_64") == "23.1.0-e53b1a96", "Installation directory is not keyed by version and hash.");
-        Require(ManagedArtifacts.Artifacts.Count(item => item.Server == "kotlin") == 6, "Kotlin artifacts are missing.");
+        Require(ManagedArtifacts.Artifacts(LanguageServers.Catalog.Single(server => server.Id == "kotlin")).Count() == 6, "Kotlin artifacts are missing.");
         Require(JsonSerializer.Deserialize<LanguageServerOptions>("""{"managed":true,"command":""}""", JsonSerializerOptions.Web) is { AllowPath: false }, "The removed managed flag still has an effect.");
     }
 
@@ -224,7 +224,7 @@ internal static class ManagedLanguageChecks
             Require((await servers.ResolveAsync(swift, workspace, default)).State == "needsInstallation", "A PATH-only server resolved from a workspace directory.");
 
             // Servers whose executable is only a runtime cannot be redirected to PATH.
-            Require(!LanguageExecutables.PathCapable("r") && !LanguageExecutables.PathCapable("powershell") && LanguageExecutables.PathCapable("go"), "PATH capability is wrong.");
+            Require(!LanguageExecutables.PathCapable(Server("r")) && !LanguageExecutables.PathCapable(Server("powershell")) && LanguageExecutables.PathCapable(Server("go")), "PATH capability is wrong.");
         }
         finally
         {
@@ -232,4 +232,6 @@ internal static class ManagedLanguageChecks
             Directory.Delete(outside, true);
         }
     }
+
+    private static LanguageServer Server(string id) => LanguageServers.Catalog.Single(server => server.Id == id);
 }

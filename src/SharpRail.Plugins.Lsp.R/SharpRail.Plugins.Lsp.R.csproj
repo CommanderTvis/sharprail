@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The R (languageserver) language server plugin: its manifest and host half. -->
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+  </ItemGroup>
+</Project>

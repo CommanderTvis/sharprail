@@ -50,7 +50,7 @@ internal static class LanguageExitChecks
         var executable = Environment.ProcessPath!;
         string[] arguments = Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location, "--fake-lsp"] : ["--fake-lsp"];
         var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
-        await using var server = remote ? RemoteServer.Create(workspace, IPAddress.Loopback, 0, "exit-test", storage, plugins: seams => seams with { Builtins = [] }) : null;
+        await using var server = remote ? RemoteServer.Create(workspace, IPAddress.Loopback, 0, "exit-test", storage, plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(storage) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         var endpoint = server is null ? null : new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());

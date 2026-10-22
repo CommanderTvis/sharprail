@@ -50,7 +50,7 @@ internal static class GlobalJvmProviderChecks
         var left = Path.Combine(root, "left"); var right = Path.Combine(root, "right");
         Directory.CreateDirectory(left); Directory.CreateDirectory(right);
         var storage = Path.Combine(root, "state");
-        await using var server = remote ? RemoteServer.Create(left, IPAddress.Loopback, 0, "global-jvm-test", storage, plugins: seams => seams with { Builtins = [] }) : null;
+        await using var server = remote ? RemoteServer.Create(left, IPAddress.Loopback, 0, "global-jvm-test", storage, plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(storage) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         var endpoint = server is null ? null : new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());

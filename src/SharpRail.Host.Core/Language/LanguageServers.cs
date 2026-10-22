@@ -1,40 +1,29 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core.Language;
 
-internal sealed record LanguageServer(string Id, string Version, string Executable, string[] Arguments, string[] Extensions, string Package = "")
+/// <summary>The host's view of one provider's server (H21): the spec a plugin registered, with the shapes the host code reads.</summary>
+internal sealed record LanguageServer(LanguageServerSpec Spec)
 {
-    internal string Implementation => Id switch
-    {
-        "typescript" => "TypeScript Language Server · typescript-language-server project; Microsoft TypeScript engine",
-        "python" => "Pyright · Microsoft",
-        "php" => "Intelephense · Ben Mewburn",
-        "css" => "VS Code CSS Language Server · Microsoft; vscode-langservers-extracted packaging",
-        "shell" => "Bash Language Server · bash-lsp project",
-        "csharp" => "Roslyn Language Server · Microsoft",
-        "clangd" => "clangd · LLVM project",
-        "java" => "Eclipse JDT Language Server · Eclipse Foundation",
-        "kotlin" => "Kotlin Language Server · JetBrains",
-        "intellij" => "IntelliJ Java and Kotlin · JetBrains · optional evaluation provider",
-        "ruby" => "Ruby LSP · Shopify",
-        "go" => "gopls · Go project",
-        "rust" => "rust-analyzer · Rust project",
-        "scala" => "Metals · Scalameta",
-        "r" => "languageserver · REditorSupport",
-        "powershell" => "PowerShell Editor Services · Microsoft",
-        "swift" => "SourceKit-LSP · Swift project",
-        "dart" => "Dart Analysis Server · Dart SDK",
-        _ => Id
-    };
+    internal string Id => Spec.Id;
+    internal string Version => Spec.Version;
+    internal string Executable => Spec.Executable;
+    internal string[] Arguments { get; } = [.. Spec.Arguments];
+    internal IReadOnlyList<string> Extensions => Spec.Extensions;
+    internal string Package => Spec.NpmPackages;
+    internal string Implementation => Spec.Implementation;
 }
 
-internal sealed partial class LanguageServers(string directory, Func<string>? configuration = null, HttpClient? managedDownloads = null)
+internal sealed partial class LanguageServers(string directory, Func<string>? configuration = null, HttpClient? managedDownloads = null,
+    Func<IReadOnlyList<LanguageServerSpec>>? catalog = null)
 {
     internal string DirectoryPath => directory;
 
@@ -45,47 +34,39 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         return string.IsNullOrWhiteSpace(settings) ? null :
             JsonSerializer.Deserialize<Dictionary<string, LanguageServerOptions>>(settings, JsonSerializerOptions.Web)?.GetValueOrDefault(id);
     }
-    internal static readonly LanguageServer[] Catalog =
-    [
-        new("typescript", "6.0.2", "typescript-language-server", ["--stdio"], [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"], "typescript-language-server@6.0.2 typescript@5.9.3"),
-        new("python", "1.1.414", "pyright-langserver", ["--stdio"], [".py", ".pyi"], "pyright@1.1.414"),
-        new("php", "1.18.5", "intelephense", ["--stdio"], [".php"], "intelephense@1.18.5"),
-        new("css", "4.10.0", "vscode-css-language-server", ["--stdio"], [".css", ".scss", ".less"], "vscode-langservers-extracted@4.10.0"),
-        new("shell", "5.8.1", "bash-language-server", ["start"], [".sh", ".bash", ".zsh"], "bash-language-server@5.8.1"),
-        new("csharp", "5.13.0-1.26507.4", "roslyn-language-server", ["--stdio", "--autoLoadProjects"], [".cs"]),
-        new("clangd", "23.1.0", "clangd", ["--background-index"], [".c", ".h", ".cc", ".cpp", ".cxx", ".hpp", ".m", ".mm"]),
-        new("java", "1.61.0", "jdtls", [], [".java"]),
-        new("kotlin", "263.6379.0", "kotlin-lsp", ["--stdio"], [".kt", ".kts"]),
-        new("intellij", IntelliJDistribution.Version, "intellij-server", ["--stdio"], [".java", ".kt", ".kts"]),
-        new("ruby", "0.26.11", "ruby-lsp", [], [".rb", ".rake", ".gemspec"]),
-        new("go", "v0.23.0", "gopls", [], [".go"]),
-        new("rust", "2026-10-12", "rust-analyzer", [], [".rs"]),
-        new("scala", "1.6.9", "metals", [], [".scala", ".sc", ".sbt"]),
-        new("r", "0.3.17", "Rscript", ["--vanilla", "-e", "languageserver::run()"], [".r", ".R"]),
-        new("powershell", "4.7.0", "pwsh", [], [".ps1", ".psm1", ".psd1"]),
-        new("swift", "toolchain", "sourcekit-lsp", [], [".swift"]),
-        new("dart", "toolchain", "dart", ["language-server", "--protocol=lsp"], [".dart"])
-    ];
+
+    private static readonly ConditionalWeakTable<LanguageServerSpec, LanguageServer> Views = new();
+    private static readonly Lazy<IReadOnlyList<LanguageServer>> Builtin = new(() => Wrap(Plugins.BuiltinPlugins.LanguageServers.Select(plugin => plugin.Spec).ToArray()));
+
+    /// <summary>The servers the builtin plugins provide, whether or not they are enabled; a host without a plugin runtime serves these.</summary>
+    internal static IReadOnlyList<LanguageServer> Catalog => Builtin.Value;
+
+    private static readonly ConcurrentDictionary<string, LanguageServer> Seen = new(StringComparer.Ordinal);
+
+    internal static IReadOnlyList<LanguageServer> Wrap(IReadOnlyList<LanguageServerSpec> specs) => [.. specs.Select(spec => Seen[spec.Id] = Views.GetValue(spec, item => new LanguageServer(item)))];
+
+    /// <summary>
+    /// A server this process knows: a builtin one, or one any plugin has provided. Saved settings and project files name
+    /// servers this way, so they stay valid while the providing plugin is disabled.
+    /// </summary>
+    internal static LanguageServer? Known(string id) => Catalog.FirstOrDefault(server => server.Id == id) ?? Seen.GetValueOrDefault(id);
+
+    /// <summary>The servers enabled plugins provide now, in roster order.</summary>
+    internal IReadOnlyList<LanguageServer> Servers => catalog is null ? Catalog : Wrap(catalog());
+
+    internal LanguageServer? Find(string id) => Servers.FirstOrDefault(server => server.Id == id);
+
+    internal LanguageServer? Detect(string path) => Detect(Servers, path);
+
+    internal static LanguageServer? Detect(IReadOnlyList<LanguageServer> servers, string path) =>
+        servers.FirstOrDefault(server => server.Extensions.Contains(Path.GetExtension(path)))
+        ?? servers.FirstOrDefault(server => server.Spec.FileNames.Contains(Path.GetFileName(path)));
+
     internal static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
     private readonly ConcurrentDictionary<string, SemaphoreSlim> installations = new();
     private readonly HttpClient managedHttp = managedDownloads ?? ArtifactInstaller.CreateClient();
 
-    internal static LanguageServer? Detect(string path) => Catalog.FirstOrDefault(server => server.Extensions.Contains(Path.GetExtension(path)))
-        ?? (Path.GetFileName(path) is "Gemfile" or "Rakefile" ? Catalog.First(server => server.Id == "ruby")
-            : Path.GetFileName(path) is ".bashrc" or ".zshrc" ? Catalog.First(server => server.Id == "shell") : null);
-
-    internal static string LanguageId(string path, LanguageServer server) => Path.GetExtension(path) switch
-    {
-        ".js" or ".mjs" or ".cjs" => "javascript",
-        ".jsx" => "javascriptreact",
-        ".tsx" => "typescriptreact",
-        ".c" or ".h" => "c",
-        ".m" => "objective-c",
-        ".mm" => "objective-cpp",
-        ".scss" => "scss",
-        ".less" => "less",
-        _ => server.Id == "intellij" ? (Path.GetExtension(path) == ".java" ? "java" : "kotlin") : server.Id == "clangd" ? "cpp" : server.Id == "shell" ? "shellscript" : server.Id
-    };
+    internal static string LanguageId(string path, LanguageServer server) => server.Spec.LanguageId(path) ?? server.Id;
 
     internal async Task<ProcessStartInfo> ProvisionAsync(LanguageServer server, string workspace, CancellationToken token, WorkspaceLanguageOptions? options = null)
     {
@@ -105,41 +86,26 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             Directory.CreateDirectory(cache);
             return launch;
         }
-        var start = await ProvisionCoreAsync(server, workspace, token);
+        var start = await ProvisionCoreAsync(server, new(this, server, workspace), token);
         ConfigureCaches(start, server, workspace);
         return start;
     }
 
+    /// <summary>Lets the provider adjust any launch, managed, PATH or override: cache variables, a state directory argument.</summary>
     internal void ConfigureCaches(ProcessStartInfo start, LanguageServer server, string workspace)
     {
-        var shared = Path.Combine(directory, "cache", server.Id, server.Version);
-        Directory.CreateDirectory(shared);
-        if (server.Id == "go") start.Environment["GOPLSCACHE"] = shared;
-        if (server.Id == "scala") start.Environment["COURSIER_CACHE"] = shared;
-        if (server.Id == "csharp" && FindDotnet(workspace) is { } dotnet)
-        {
-            var sdk = Path.GetDirectoryName(dotnet)!;
-            start.Environment["DOTNET_ROOT"] = sdk;
-            start.Environment["PATH"] = sdk + Path.PathSeparator + (start.Environment.TryGetValue("PATH", out var path) ? path : "");
-        }
-        if (server.Id == "java")
-        {
-            if (!start.ArgumentList.Contains("-data"))
-            {
-                start.ArgumentList.Add("-data");
-                start.ArgumentList.Add(Path.Combine(directory, "workspaces", Key(workspace), "java"));
-            }
-        }
+        var installation = new Installation(this, server, workspace);
+        Directory.CreateDirectory(installation.ServerCache);
+        server.Spec.ConfigureLaunch(installation, new() { Arguments = start.ArgumentList, Environment = start.Environment });
     }
 
-    private async Task<ProcessStartInfo> ProvisionCoreAsync(LanguageServer server, string workspace, CancellationToken token)
+    private async Task<ProcessStartInfo> ProvisionCoreAsync(LanguageServer server, Installation installation, CancellationToken token)
     {
-        var platform = ManagedArtifacts.Platform();
-        var root = Path.Combine(directory, "servers", server.Id, ManagedArtifacts.Directory(server, platform));
-        var cache = Path.Combine(directory, "cache");
-        var local = Path.Combine(directory, "workspaces", Key(workspace), server.Id);
-        Directory.CreateDirectory(local);
-        Directory.CreateDirectory(cache);
+        var spec = server.Spec;
+        var workspace = installation.Workspace;
+        var root = installation.Root;
+        Directory.CreateDirectory(installation.WorkspaceState);
+        Directory.CreateDirectory(installation.SharedCache);
         var custom = CustomOptions(server.Id);
         if (custom?.Disabled == true) throw new IOException($"{server.Id} is disabled. Enable it in Settings > Code Intelligence, then Retry.");
         if (!string.IsNullOrWhiteSpace(custom?.Command))
@@ -147,18 +113,15 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             var explicitPath = ExplicitExecutable(custom.Command, workspace);
             return Start(explicitPath, custom.Arguments ?? server.Arguments);
         }
-        if (server.Id is "swift" or "dart" || custom?.AllowPath == true && LanguageExecutables.PathCapable(server.Id))
+        if (spec.Pinning == LanguageServerPinning.None || custom?.AllowPath == true && spec.PathCapable)
         {
             if (custom?.AllowPath != true)
                 throw new IOException($"{server.Id} needs an installation: SharpRail has no managed installation for it. Install the {server.Id} SDK and allow PATH for this server in Settings > Code Intelligence, then Retry.");
             var rejected = new List<string>();
             var installed = LanguageExecutables.FindOnPath(server.Executable, workspace, rejected);
-            if (installed is not null && server.Id == "typescript" && !HasTypeScript(installed, workspace)) installed = null;
-            if (installed is null && server.Id == "swift" && OperatingSystem.IsMacOS())
-            {
-                var found = (await RunAsync(Start("/usr/bin/xcrun", ["--find", "sourcekit-lsp"]), Path.GetTempPath(), token)).Trim();
-                if (LanguageExecutables.Reject(found, workspace) is null) installed = found;
-            }
+            if (installed is not null && !spec.AcceptsPathExecutable(installed, workspace)) installed = null;
+            if (installed is null && spec.FindFallbackAsync is { } fallback && await fallback(installation, token) is { Length: > 0 } found &&
+                LanguageExecutables.Reject(found, workspace) is null) installed = found;
             return Start(installed ?? throw new IOException($"PATH is allowed for {server.Id} but no usable {server.Executable} was found on it." + (rejected.Count > 0 ? " " + rejected[0] : "")), server.Arguments);
         }
         var gate = installations.GetOrAdd(root, _ => new(1));
@@ -168,82 +131,33 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             Directory.CreateDirectory(Path.GetDirectoryName(root)!);
             // File sharing also serializes provisioning by separate host processes.
             await using var lease = await InstallationLock(root + ".lock", token);
-            if (ManagedArtifacts.ArchiveServers.Contains(server.Id))
+            if (spec.Pinning == LanguageServerPinning.Archive)
             {
-                var artifact = ManagedArtifacts.Find(server.Id, platform)
-                    ?? throw new IOException($"{server.Id} needs an installation: there is no verified managed artifact for {platform}. Allow PATH for this server in Settings > Code Intelligence, or configure an executable.");
+                var artifact = ManagedArtifacts.Find(server, installation.Platform)
+                    ?? throw new IOException($"{server.Id} needs an installation: there is no verified managed artifact for {installation.Platform}. Allow PATH for this server in Settings > Code Intelligence, or configure an executable.");
                 await ArtifactInstaller.InstallAsync(artifact, root, managedHttp, token);
             }
             else
             {
                 Directory.CreateDirectory(root);
-                if (!File.Exists(Path.Combine(root, ".ready")) ||
-                    (server.Id == "r" && !File.Exists(Path.Combine(root, "languageserver", "DESCRIPTION"))))
+                if (!File.Exists(Path.Combine(root, ".ready")) || !spec.Installed(root))
                 {
-                    if (server.Package.Length > 0)
+                    if (spec.Pinning == LanguageServerPinning.Lockfile)
                     {
                         // The embedded lockfile pins every package by version and integrity hash; npm ci refuses anything else.
-                        var lockfile = ManagedArtifacts.Lock(server.Id) ?? throw new IOException($"{server.Id} has no embedded package-lock.json; it will not be installed.");
-                        await File.WriteAllTextAsync(Path.Combine(root, "package.json"), ManagedArtifacts.Lock(server.Id, "package.json")!, token);
+                        var lockfile = ManagedArtifacts.Lock(server) ?? throw new IOException($"{server.Id} has no embedded package-lock.json; it will not be installed.");
+                        await File.WriteAllTextAsync(Path.Combine(root, "package.json"), ManagedArtifacts.Lock(server, "package.json") ?? throw new IOException($"{server.Id} has no embedded package.json; it will not be installed."), token);
                         await File.WriteAllTextAsync(Path.Combine(root, "package-lock.json"), lockfile, token);
                         await RunAsync(Start(Require("npm", workspace), ["ci", "--prefix", root, "--no-audit", "--no-fund", "--ignore-scripts", "--registry", "https://registry.npmjs.org/"]), root, token);
                     }
-                    else switch (server.Id)
-                        {
-                            case "csharp":
-                                var dotnet = FindDotnet(workspace) ?? throw new IOException("Install a .NET SDK on this host, or configure DOTNET_ROOT, then Retry.");
-                                var packages = ManagedArtifacts.NuGetFor(platform)
-                                    ?? throw new IOException($"csharp needs an installation: there is no verified NuGet runtime pack for {platform}. Allow PATH for this server in Settings > Code Intelligence, or configure an executable.");
-                                // Only packages whose SHA-512 matches the pinned value reach dotnet: it reads a local feed and a private package cache, never nuget.org.
-                                var feed = root + ".feed";
-                                try
-                                {
-                                    if (Directory.Exists(feed)) Directory.Delete(feed, true);
-                                    Directory.CreateDirectory(feed);
-                                    foreach (var package in packages) await ArtifactInstaller.FetchNuGetAsync(managedHttp, package, feed, token);
-                                    var install = Start(dotnet, ["tool", "install", "roslyn-language-server", "--version", server.Version, "--tool-path", root, "--source", feed]);
-                                    install.Environment["NUGET_PACKAGES"] = Path.Combine(feed, "packages");
-                                    await RunAsync(install, root, token);
-                                }
-                                finally { if (Directory.Exists(feed)) Directory.Delete(feed, true); }
-                                break;
-                            case "go":
-                                // The embedded go.mod/go.sum pin gopls and its whole module graph by h1 hash; -mod=readonly refuses anything not in go.sum.
-                                var module = Path.Combine(root, "module");
-                                Directory.CreateDirectory(module);
-                                await File.WriteAllTextAsync(Path.Combine(module, "go.mod"), ManagedArtifacts.Lock("go", "go.mod") ?? throw new IOException("go has no embedded go.mod; it will not be installed."), token);
-                                await File.WriteAllTextAsync(Path.Combine(module, "go.sum"), ManagedArtifacts.Lock("go", "go.sum") ?? throw new IOException("go has no embedded go.sum; it will not be installed."), token);
-                                var go = Start(Require("go", workspace), ["install", "golang.org/x/tools/gopls"]);
-                                go.Environment["GOBIN"] = root;
-                                go.Environment["GOMODCACHE"] = Path.Combine(cache, "go-modules");
-                                go.Environment["GOFLAGS"] = "-mod=readonly";
-                                go.Environment["GOSUMDB"] = "sum.golang.org";
-                                go.Environment["GOPROXY"] = "https://proxy.golang.org";
-                                go.Environment["GOTOOLCHAIN"] = "local";
-                                // The user's own Go environment must not switch verification off (GONOSUMDB, GOPRIVATE, GOINSECURE, go.env files, workspaces).
-                                foreach (var variable in new[] { "GONOSUMDB", "GONOSUMCHECK", "GOPRIVATE", "GOINSECURE", "GONOPROXY" }) go.Environment[variable] = "";
-                                go.Environment["GOENV"] = "off";
-                                go.Environment["GOWORK"] = "off";
-                                await RunAsync(go, module, token);
-                                break;
-                            case "ruby":
-                                await RunAsync(Start(Require("gem", workspace), ["install", "ruby-lsp", "--version", server.Version, "--install-dir", root, "--bindir", Path.Combine(root, "bin"), "--no-document"]), root, token);
-                                break;
-                            case "scala":
-                                await RunAsync(Start(Require("cs", workspace), ["bootstrap", "org.scalameta:metals_2.13:" + server.Version, "--main", "scala.meta.metals.Main", "-o", Path.Combine(root, "metals"), "--force"]), root, token);
-                                break;
-                            case "r":
-                                var r = Start(Require("Rscript", workspace), ["--vanilla", "-e", $"install.packages('remotes', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER')); remotes::install_version('languageserver', version='{server.Version}', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER'), upgrade='never'); stopifnot(requireNamespace('languageserver', quietly=TRUE), as.character(packageVersion('languageserver')) == '{server.Version}')"]);
-                                r.Environment["R_LIBS_USER"] = root;
-                                await RunAsync(r, root, token);
-                                break;
-                        }
+                    else if (spec.InstallAsync is { } install) await install(installation, token);
                     await File.WriteAllTextAsync(Path.Combine(root, ".ready"), server.Version, token);
                 }
             }
         }
         finally { gate.Release(); }
 
+        if (spec.LaunchAsync is { } launch) return Start(await launch(installation, token));
         if (server.Package.Length > 0)
         {
             var packageRoot = Path.Combine(root, "node_modules");
@@ -253,41 +167,61 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             var file = bin.ValueKind == JsonValueKind.String ? bin.GetString()! : bin.GetProperty(server.Executable).GetString()!;
             return Start(Require("node", workspace), [Path.Combine(packageRoot, package, file), .. server.Arguments]);
         }
-        if (server.Id == "java")
+        return Start(installation.FindInstalled(InstalledName(server)), server.Arguments);
+    }
+
+    /// <summary>The executable's file name inside a managed installation.</summary>
+    internal static string InstalledName(LanguageServer server) => server.Spec.InstalledExecutable.Length > 0 ? server.Spec.InstalledExecutable : server.Executable;
+
+    /// <summary>What the host lends a provider for one server and workspace (H21).</summary>
+    private sealed class Installation(LanguageServers owner, LanguageServer server, string workspace) : ILanguageServerInstallation
+    {
+        public string Root { get; } = Path.Combine(owner.DirectoryPath, "servers", server.Id, ManagedArtifacts.Directory(server, ManagedArtifacts.Platform()));
+        public string Workspace => workspace;
+        public string WorkspaceState { get; } = Path.Combine(owner.DirectoryPath, "workspaces", Key(workspace), server.Id);
+        public string SharedCache { get; } = Path.Combine(owner.DirectoryPath, "cache");
+        public string ServerCache { get; } = Path.Combine(owner.DirectoryPath, "cache", server.Id, server.Version);
+        public string Platform { get; } = ManagedArtifacts.Platform();
+        public string? FindTool(string executable) => LanguageExecutables.FindOnPath(executable, workspace);
+        public string RequireTool(string executable) => Require(executable, workspace);
+        public string? FindDotnet() => LanguageServers.FindDotnet(workspace);
+
+        public string FindInstalled(string name)
         {
-            var java = Environment.GetEnvironmentVariable("JAVA_HOME");
-            if (string.IsNullOrEmpty(java)) throw new IOException("Set JAVA_HOME to a JDK 21 or newer (sdkman on macOS), then Retry.");
-            var launcher = Directory.GetFiles(Path.Combine(root, "plugins"), "org.eclipse.equinox.launcher_*.jar").Single();
-            var configOs = OperatingSystem.IsMacOS() ? "mac" : OperatingSystem.IsWindows() ? "win" : "linux";
-            var configuration = Path.Combine(local, "configuration");
-            Directory.CreateDirectory(configuration);
-            var template = Path.Combine(root, "config_" + configOs);
-            foreach (var file in Directory.EnumerateFiles(template, "*", SearchOption.AllDirectories))
-            {
-                var destination = Path.Combine(configuration, Path.GetRelativePath(template, file));
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                if (!File.Exists(destination)) File.Copy(file, destination);
-            }
-            return Start(Path.Combine(java, "bin", "java" + (OperatingSystem.IsWindows() ? ".exe" : "")),
-                ["-Declipse.application=org.eclipse.jdt.ls.core.id1", "-Dosgi.bundles.defaultStartLevel=4", "-Declipse.product=org.eclipse.jdt.ls.core.product", "-Xmx1G", "--add-modules=ALL-SYSTEM", "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "-jar", launcher, "-configuration", configuration, "-data", local]);
+            var executable = Directory.GetFiles(Root, name + (OperatingSystem.IsWindows() ? ".exe" : ""), SearchOption.AllDirectories).FirstOrDefault()
+                ?? throw new IOException($"{server.Id} installation has no {name}. Remove {Root} and Retry.");
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(executable, File.GetUnixFileMode(executable) | UnixFileMode.UserExecute);
+            return executable;
         }
-        if (server.Id == "powershell") return Start(Require("pwsh", workspace), ["-NoLogo", "-NoProfile", "-File",
-            Directory.GetFiles(root, "Start-EditorServices.ps1", SearchOption.AllDirectories).Single(), "-Stdio", "-HostName", "SharpRail", "-HostProfileId", "SharpRail", "-HostVersion", "1.0.0", "-LogLevel", "Normal", "-LogPath", Path.Combine(local, "server.log"), "-SessionDetailsPath", Path.Combine(local, "session.json")]);
-        if (server.Id == "r")
+
+        public Task<string> RunAsync(string executable, IReadOnlyList<string> arguments, string workingDirectory, IReadOnlyDictionary<string, string?>? environment = null,
+            CancellationToken cancellationToken = default)
         {
-            var r = Start(Require("Rscript", workspace), server.Arguments); r.Environment["R_LIBS_USER"] = root; return r;
+            var start = Start(executable, [.. arguments]);
+            Apply(start, environment);
+            return LanguageServers.RunAsync(start, workingDirectory, cancellationToken);
         }
-        var name = server.Id == "kotlin" ? "intellij-server" : server.Executable;
-        var executable = Directory.GetFiles(root, name + (OperatingSystem.IsWindows() ? ".exe" : ""), SearchOption.AllDirectories).FirstOrDefault()
-            ?? throw new IOException($"{server.Id} installation has no {name}. Remove {root} and Retry.");
-        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(executable, File.GetUnixFileMode(executable) | UnixFileMode.UserExecute);
-        var start = Start(executable, server.Arguments);
-        if (server.Id == "ruby") { start.Environment["GEM_HOME"] = root; start.Environment["GEM_PATH"] = root; }
+
+        public Task FetchNuGetAsync(LanguageServerNuGetPackage package, string feed, CancellationToken cancellationToken = default) =>
+            ArtifactInstaller.FetchNuGetAsync(owner.managedHttp, package, feed, cancellationToken);
+    }
+
+    private static ProcessStartInfo Start(LanguageServerLaunch launch)
+    {
+        var start = Start(launch.Executable, [.. launch.Arguments]);
+        Apply(start, launch.Environment);
         return start;
     }
 
+    private static void Apply(ProcessStartInfo start, IReadOnlyDictionary<string, string?>? environment)
+    {
+        foreach (var (name, value) in environment ?? new Dictionary<string, string?>())
+            if (value is null) start.Environment.Remove(name);
+            else start.Environment[name] = value;
+    }
+
     /// <summary>Whether the process is a general runtime whose first arguments choose the program, so configured arguments must never replace them.</summary>
-    internal static bool HostsRuntime(LanguageServer server) => server.Package.Length > 0 || server.Id is "java" or "powershell" or "r";
+    internal static bool HostsRuntime(LanguageServer server) => server.Spec.HostsRuntime;
 
     internal static string Key(string value) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..24];
     internal static ProcessStartInfo Start(string executable, string[] args)
@@ -295,19 +229,6 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         var start = new ProcessStartInfo(executable);
         foreach (var argument in args) start.ArgumentList.Add(argument);
         return start;
-    }
-
-    internal static bool HasTypeScript(string executable, string workspace)
-    {
-        var resolved = File.ResolveLinkTarget(executable, returnFinalTarget: true)?.FullName ?? executable;
-        foreach (var origin in new[] { workspace, Path.GetDirectoryName(resolved)! })
-            for (var parent = new DirectoryInfo(origin); parent is not null; parent = parent.Parent)
-            {
-                var library = Path.Combine(parent.FullName, "node_modules", "typescript", "lib");
-                if (File.Exists(Path.Combine(library, "tsserver.js")) && File.Exists(Path.Combine(library, "typescript.js")) &&
-                    File.Exists(Path.Combine(library, "..", "package.json"))) return true;
-            }
-        return false;
     }
 
     /// <summary>A tool the installers need (npm, go, gem...). Found with the hardened PATH search, never inside the workspace.</summary>

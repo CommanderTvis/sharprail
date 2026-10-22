@@ -9,7 +9,7 @@ public sealed partial class HostStateStore
 {
     private static string SetLanguageServer(string current, string id, string value)
     {
-        if (!LanguageServers.Catalog.Any(server => server.Id == id)) throw new ArgumentException("Unknown language server.");
+        if (LanguageServers.Known(id) is null) throw new ArgumentException("Unknown language server.");
         if (value.Length > 16 * 1024) throw new ArgumentException("Language server settings are too large.");
         var options = JsonSerializer.Deserialize<LanguageServerOptions>(value, JsonSerializerOptions.Web)
             ?? throw new ArgumentException("Language server settings are required.");
@@ -79,7 +79,7 @@ public sealed partial class HostStateStore
     {
         _ = Task.Run(async () =>
         {
-            foreach (var server in LanguageServers.Catalog)
+            foreach (var server in LanguageCatalog)
             {
                 if (!Current.Settings.LspEnabled || !Current.Workspaces.Any(item => item.Path == workspace) && !Current.Projects.Contains(workspace)) return;
                 var options = WorkspaceLanguageConfiguration.Parse(WorkspaceLanguage(workspace, server.Id), server.Id);
@@ -93,27 +93,6 @@ public sealed partial class HostStateStore
         });
     }
 
-    /// <summary>Names a workspace_create caller may use for a server, besides its catalog id.</summary>
-    private static readonly Dictionary<string, string> LanguageAliases = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["c#"] = "csharp",
-        ["cs"] = "csharp",
-        ["dotnet"] = "csharp",
-        ["c"] = "clangd",
-        ["c++"] = "clangd",
-        ["cpp"] = "clangd",
-        ["javascript"] = "typescript",
-        ["js"] = "typescript",
-        ["ts"] = "typescript",
-        ["py"] = "python",
-        ["golang"] = "go",
-        ["rs"] = "rust",
-        ["bash"] = "shell",
-        ["sh"] = "shell",
-        ["rb"] = "ruby",
-        ["kt"] = "kotlin"
-    };
-
     /// <summary>
     /// Starts language servers for a new workspace without waiting for them: "auto" means every server whose files are present, otherwise server ids or
     /// language names. Returns each requested server with its state right after the start was requested (starting, ready, needs-acceptance or failed).
@@ -125,8 +104,8 @@ public sealed partial class HostStateStore
         foreach (var name in requested.Select(item => item.Trim()).Where(item => item.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             if (name.Equals("auto", StringComparison.OrdinalIgnoreCase)) ids.AddRange(await Task.Run(() => Languages.DetectedServers(workspace), token));
-            else if (LanguageServers.Catalog.FirstOrDefault(server => server.Id.Equals(LanguageAliases.GetValueOrDefault(name, name), StringComparison.OrdinalIgnoreCase)) is { } known) ids.Add(known.Id);
-            else rows.Add((name, "failed", $"Unknown language server or language '{name}'. Use \"auto\" or one of: {string.Join(", ", LanguageServers.Catalog.Select(server => server.Id))}."));
+            else if (LanguageCatalog.FirstOrDefault(server => server.Id.Equals(name, StringComparison.OrdinalIgnoreCase) || server.Spec.Aliases.Contains(name, StringComparer.OrdinalIgnoreCase)) is { } known) ids.Add(known.Id);
+            else rows.Add((name, "failed", $"Unknown language server or language '{name}'. Use \"auto\" or one of: {string.Join(", ", LanguageCatalog.Select(server => server.Id))}."));
         }
         var started = await Task.WhenAll(ids.Distinct().Select(id => Task.Run(async () =>
         {

@@ -63,7 +63,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable
     internal static async Task<LanguageSession> StartAsync(ProcessStartInfo start, string workspace, LanguageServer server, CancellationToken token, WorkspaceLanguageOptions? options = null, LanguageLog? log = null, string? storage = null, Action<LanguageExit>? onExit = null)
     {
         options ??= new();
-        var model = LanguageProjectModel.Discover(workspace, server.Id, token, options.CompilationDatabasePath);
+        var model = LanguageProjectModel.Discover(workspace, server, token, options.CompilationDatabasePath);
         var initialization = WorkspaceLanguageConfiguration.Initialization(options, workspace, server.Id);
         model.ConfigureInitialization(initialization);
         if (server.Id == "php" && storage is not null)

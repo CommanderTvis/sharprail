@@ -101,7 +101,7 @@ internal static class ProjectLanguageFile
     private static string? Validate(string id, JsonNode? entry, out JsonObject? portable)
     {
         portable = null;
-        if (LanguageServers.Catalog.All(server => server.Id != id)) return "unknown language server; the entry is ignored.";
+        if (LanguageServers.Known(id) is null) return "unknown language server; the entry is ignored.";
         if (entry is not JsonObject supplied) return "the entry must be an object.";
         var picked = new JsonObject();
         foreach (var key in Portable)

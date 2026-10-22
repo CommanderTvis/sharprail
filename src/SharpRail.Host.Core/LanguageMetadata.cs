@@ -25,7 +25,7 @@ public sealed partial class HostStateStore
                     {
                         var entry = JsonSerializer.Deserialize<LanguageMetadata>(File.ReadAllText(file))
                             ?? throw new JsonException("Invalid workspace language metadata.");
-                        if (string.IsNullOrEmpty(entry.Workspace) || string.IsNullOrEmpty(entry.Server) || string.IsNullOrEmpty(entry.Configuration) || !Path.IsPathFullyQualified(entry.Workspace) || !Language.LanguageServers.Catalog.Any(server => server.Id == entry.Server) ||
+                        if (string.IsNullOrEmpty(entry.Workspace) || string.IsNullOrEmpty(entry.Server) || string.IsNullOrEmpty(entry.Configuration) || !Path.IsPathFullyQualified(entry.Workspace) || Language.LanguageServers.Known(entry.Server) is null ||
                             file != LanguageMetadataPath(entry.Workspace, entry.Server)) throw new JsonException("Invalid workspace language metadata identity.");
                         var servers = JsonNode.Parse(values.GetValueOrDefault(entry.Workspace) ?? "{}")!.AsObject();
                         servers[entry.Server] = JsonNode.Parse(entry.Configuration);

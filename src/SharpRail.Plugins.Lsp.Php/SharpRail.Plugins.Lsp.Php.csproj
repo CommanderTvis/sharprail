@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The PHP (Intelephense) language server plugin: its manifest and host half. -->
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <EmbeddedResource Include="Locks/**" LogicalName="Locks/%(Filename)%(Extension)" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+  </ItemGroup>
+</Project>

@@ -13,6 +13,24 @@
     <ProjectReference Include="../SharpRail.Plugins.Codex/Host/SharpRail.Plugins.Codex.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirGovernance/Host/SharpRail.Plugins.AirGovernance.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirContext/Host/SharpRail.Plugins.AirContext.Host.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.TypeScript/SharpRail.Plugins.Lsp.TypeScript.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Python/SharpRail.Plugins.Lsp.Python.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Php/SharpRail.Plugins.Lsp.Php.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Css/SharpRail.Plugins.Lsp.Css.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Shell/SharpRail.Plugins.Lsp.Shell.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.CSharp/SharpRail.Plugins.Lsp.CSharp.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Clangd/SharpRail.Plugins.Lsp.Clangd.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Java/SharpRail.Plugins.Lsp.Java.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Kotlin/SharpRail.Plugins.Lsp.Kotlin.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.IntelliJ/SharpRail.Plugins.Lsp.IntelliJ.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Ruby/SharpRail.Plugins.Lsp.Ruby.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Go/SharpRail.Plugins.Lsp.Go.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Rust/SharpRail.Plugins.Lsp.Rust.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Scala/SharpRail.Plugins.Lsp.Scala.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.R/SharpRail.Plugins.Lsp.R.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.PowerShell/SharpRail.Plugins.Lsp.PowerShell.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Swift/SharpRail.Plugins.Lsp.Swift.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Lsp.Dart/SharpRail.Plugins.Lsp.Dart.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Tomlyn" />
@@ -21,6 +39,5 @@
     <Content Include="../../licenses/intellij-lsp.nvim.LICENSE.txt" Link="licenses/intellij-lsp.nvim.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../licenses/intellij-lsp.nvim.NOTICE.md" Link="licenses/intellij-lsp.nvim.NOTICE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <ItemGroup><EmbeddedResource Include="Language/Locks/**" LogicalName="Locks/%(RecursiveDir)%(Filename)%(Extension)" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
 </Project>

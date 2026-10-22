@@ -11,7 +11,7 @@ public sealed partial class LanguageService
             scope == "workspace" && request.Paths is { Count: > 0 })
             throw new ArgumentException("Use scope files with paths, or scope workspace without paths.");
         var paths = scope == "workspace"
-            ? (await ProjectServices.SearchablePathsAsync(request.Workspace, token)).Where(path => LanguageServers.Detect(path) is not null)
+            ? (await ProjectServices.SearchablePathsAsync(request.Workspace, token)).Where(path => servers.Detect(path) is not null)
             : request.Paths!;
         // Validate the entire selection before sending any document to a server.
         var selection = paths.Select(path => scope == "files" ? Path.GetRelativePath(request.Workspace, ProjectServices.Contain(request.Workspace, path)) : path)

@@ -16,6 +16,24 @@ using SharpRail.Plugins.Discord;
 using SharpRail.Plugins.Discord.Host;
 using SharpRail.Plugins.Epub;
 using SharpRail.Plugins.Epub.Host;
+using SharpRail.Plugins.Lsp.CSharp;
+using SharpRail.Plugins.Lsp.Clangd;
+using SharpRail.Plugins.Lsp.Css;
+using SharpRail.Plugins.Lsp.Dart;
+using SharpRail.Plugins.Lsp.Go;
+using SharpRail.Plugins.Lsp.IntelliJ;
+using SharpRail.Plugins.Lsp.Java;
+using SharpRail.Plugins.Lsp.Kotlin;
+using SharpRail.Plugins.Lsp.Php;
+using SharpRail.Plugins.Lsp.PowerShell;
+using SharpRail.Plugins.Lsp.Python;
+using SharpRail.Plugins.Lsp.R;
+using SharpRail.Plugins.Lsp.Ruby;
+using SharpRail.Plugins.Lsp.Rust;
+using SharpRail.Plugins.Lsp.Scala;
+using SharpRail.Plugins.Lsp.Shell;
+using SharpRail.Plugins.Lsp.Swift;
+using SharpRail.Plugins.Lsp.TypeScript;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.Host;
@@ -29,6 +47,56 @@ public static class BuiltinPlugins
 {
     public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> All => Create(null);
 
+    /// <summary>The language server plugins (H21), one per server, in the order file ownership is decided: Java and Kotlin before IntelliJ.</summary>
+    public static IReadOnlyList<LanguageServerPlugin> LanguageServers =>
+    [
+        new TypeScriptPlugin(),
+        new PythonPlugin(),
+        new PhpPlugin(),
+        new CssPlugin(),
+        new ShellPlugin(),
+        new CSharpPlugin(),
+        new ClangdPlugin(),
+        new JavaPlugin(),
+        new KotlinPlugin(),
+        new IntelliJPlugin(),
+        new RubyPlugin(),
+        new GoPlugin(),
+        new RustPlugin(),
+        new ScalaPlugin(),
+        new RPlugin(),
+        new PowerShellPlugin(),
+        new SwiftPlugin(),
+        new DartPlugin()
+    ];
+
+    /// <summary>The language server plugins as roster entries, for a host that runs only these builtins.</summary>
+    public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> LanguageServerEntries =>
+        [.. LanguageServers.Select(plugin => (Manifest(plugin), (PluginHostModule?)plugin))];
+
+    private static PluginManifest Manifest(LanguageServerPlugin plugin) => plugin switch
+    {
+        TypeScriptPlugin => TypeScriptPlugin.Manifest,
+        PythonPlugin => PythonPlugin.Manifest,
+        PhpPlugin => PhpPlugin.Manifest,
+        CssPlugin => CssPlugin.Manifest,
+        ShellPlugin => ShellPlugin.Manifest,
+        CSharpPlugin => CSharpPlugin.Manifest,
+        ClangdPlugin => ClangdPlugin.Manifest,
+        JavaPlugin => JavaPlugin.Manifest,
+        KotlinPlugin => KotlinPlugin.Manifest,
+        IntelliJPlugin => IntelliJPlugin.Manifest,
+        RubyPlugin => RubyPlugin.Manifest,
+        GoPlugin => GoPlugin.Manifest,
+        RustPlugin => RustPlugin.Manifest,
+        ScalaPlugin => ScalaPlugin.Manifest,
+        RPlugin => RPlugin.Manifest,
+        PowerShellPlugin => PowerShellPlugin.Manifest,
+        SwiftPlugin => SwiftPlugin.Manifest,
+        DartPlugin => DartPlugin.Manifest,
+        _ => throw new ArgumentOutOfRangeException(nameof(plugin))
+    };
+
     public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Create(TailscaleServing? tailscale) =>
     [
         (SpecDialectManifest.Manifest, new SpecDialectHost()),
@@ -41,6 +109,7 @@ public static class BuiltinPlugins
         (AirGovernanceContract.Manifest, new AirGovernanceHost()),
         (AirContextContract.Manifest, new AirContextHost()),
         (TailscaleContract.Manifest, new TailscaleHost(tailscale)),
-        (EpubContract.Manifest, new EpubHost())
+        (EpubContract.Manifest, new EpubHost()),
+        .. LanguageServerEntries
     ];
 }

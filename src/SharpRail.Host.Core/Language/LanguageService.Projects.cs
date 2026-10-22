@@ -35,7 +35,7 @@ public sealed partial class LanguageService
     {
         if (!projectRoots.TryGetValue(request.Workspace, out var cached) || DateTime.UtcNow - cached.Time > TimeSpan.FromMinutes(1) || request.Query == "refresh")
         {
-            cached = (DateTime.UtcNow, LanguageProjectModel.DiscoverMany(request.Workspace, LanguageServers.Catalog.Select(server => server.Id).ToArray(), token));
+            cached = (DateTime.UtcNow, LanguageProjectModel.DiscoverMany(request.Workspace, servers.Servers, token));
             projectRoots[request.Workspace] = cached;
         }
         var intellij = UsesIntelliJ(request.Workspace);
@@ -57,25 +57,5 @@ public sealed partial class LanguageService
         };
     }
 
-    private static string? Kind(string server, string manifest)
-    {
-        var name = Path.GetFileName(manifest);
-        return server switch
-        {
-            "csharp" => Path.GetExtension(manifest) == ".csproj" ? "MSBuild project" : "MSBuild solution",
-            "java" or "kotlin" or "intellij" => name == "pom.xml" ? "Maven project" : name.StartsWith("settings.gradle", StringComparison.Ordinal) ? "Gradle build" : name.StartsWith("build.gradle", StringComparison.Ordinal) ? "Gradle project" : name == ".project" ? "Eclipse project" : null,
-            "rust" => "Rust project",
-            "go" => name == "go.work" ? "Go workspace" : "Go module",
-            "typescript" => name == "package.json" ? "Node package" : "TypeScript project",
-            "python" => "Python project",
-            "scala" => "Scala build",
-            "ruby" => "Ruby project",
-            "php" => "Composer package",
-            "swift" => "Swift project",
-            "dart" => "Dart package",
-            "r" => "R project",
-            "clangd" => name == "CMakeLists.txt" ? "CMake project" : name == "compile_commands.json" ? "Compilation database" : null,
-            _ => null
-        };
-    }
+    private string? Kind(string server, string manifest) => servers.Find(server)?.Spec.ProjectKind(manifest);
 }

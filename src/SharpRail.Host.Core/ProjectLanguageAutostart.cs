@@ -28,7 +28,7 @@ public sealed partial class HostStateStore
                 : shared;
             if (request.Operation == "setProjectAutostart")
             {
-                if (!LanguageServers.Catalog.Any(server => server.Id == request.Server)) throw new ArgumentException("Unknown language server.");
+                if (LanguageServers.Known(request.Server) is null) throw new ArgumentException("Unknown language server.");
                 if (!bool.TryParse(request.Configuration, out var enabled)) throw new ArgumentException("Choose true or false for project autostart.");
                 selected = (enabled ? selected.Append(request.Server) : selected.Where(id => id != request.Server))
                     .Distinct().Order(StringComparer.Ordinal).ToArray();

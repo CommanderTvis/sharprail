@@ -36,7 +36,7 @@ internal static class ProjectLanguageFileChecks
         foreach (var folder in new[] { project, child }) Directory.CreateDirectory(folder);
         var file = Path.Combine(project, ".sharprail", "language.toml");
         var storage = Path.Combine(root, "state");
-        await using var server = remote ? RemoteServer.Create(project, IPAddress.Loopback, 0, "language-file", storage, plugins: seams => seams with { Builtins = [] }) : null;
+        await using var server = remote ? RemoteServer.Create(project, IPAddress.Loopback, 0, "language-file", storage, plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(storage) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         using var remoteHost = server is null ? null : new RemoteProjectAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "language-file");

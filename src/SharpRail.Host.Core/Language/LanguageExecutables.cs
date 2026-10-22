@@ -9,7 +9,7 @@ namespace SharpRail.Host.Core.Language;
 internal static class LanguageExecutables
 {
     /// <summary>Servers whose executable is the language server itself, so allowing PATH for them is meaningful.</summary>
-    internal static bool PathCapable(string id) => id is not ("r" or "powershell" or "intellij");
+    internal static bool PathCapable(LanguageServer server) => server.Spec.PathCapable;
 
     /// <summary>Physical executables the executable checks themselves run as language servers (the checks binary lives in the repository). Empty in the product.</summary>
     internal static readonly HashSet<string> CheckExemptions = new(StringComparer.Ordinal);

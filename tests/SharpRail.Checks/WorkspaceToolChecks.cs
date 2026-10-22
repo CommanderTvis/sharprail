@@ -40,7 +40,7 @@ internal static class WorkspaceToolChecks
         var stateDirectory = root + "-state";
         await using var pty = new PtyTerminalService();
         await using var server = remote ? RemoteServer.Create(root, IPAddress.Loopback, 0, "workspace-tools", stateDirectory,
-            terminals: pty, plugins: seams => seams with { Builtins = [] }) : null;
+            terminals: pty, plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(stateDirectory) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         await using var loopback = server is null ? new LoopbackServer(pty, state) : null;

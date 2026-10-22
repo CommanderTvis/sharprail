@@ -51,6 +51,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     {
         Seams.State.PluginNamespaceValidator = ValidateNamespace;
         Seams.State.PluginDependents = id => { lock (gate) return registry.Dependents(id); };
+        Seams.State.LanguageServerSource = LanguageServerSpecs;
         if (Seams.Terminals is { } terminals)
         {
             terminals.EnvironmentContributor = Environment;
@@ -74,7 +75,11 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     public Task Started => started;
 
-    private void Publish() => Seams.State.PublishPlugins(Roster());
+    private void Publish()
+    {
+        Seams.State.PublishPlugins(Roster());
+        Seams.State.LanguageServersChanged();
+    }
 
     private IReadOnlyList<PluginRosterEntry> Roster()
     {
@@ -783,6 +788,20 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     /// activation order, without those whose condition is false. An empty <paramref name="agent"/> matches every agent
     /// contribution but none addressed to one agent.
     /// </summary>
+    /// <summary>The language servers active plugins provide (H21), in roster order.</summary>
+    internal IReadOnlyList<LanguageServerSpec> LanguageServerSpecs()
+    {
+        // Until the first reconcile settles, serve the builtin servers that are about to activate, so a request made at
+        // startup is not refused as naming an unknown server.
+        if (!started.IsCompleted)
+            lock (gate)
+                return [.. registry.All.Where(entry => entry.Origin == PluginOrigin.Builtin && Enabled(entry, Seams.State.Current.PluginSettings))
+                    .Select(entry => entry.Module).OfType<LanguageServerPlugin>().Select(plugin => plugin.Spec)];
+        return ActiveLanguageServerSpecs();
+    }
+
+    internal IReadOnlyList<LanguageServerSpec> ActiveLanguageServerSpecs() => [.. Active().SelectMany(active => active.Tables.LanguageServers)];
+
     internal IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement)
     {
         bool Applies(PromptContribution item, string owner)
@@ -793,7 +812,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             Guard(owner, () => holds = item.When());
             return holds;
         }
-        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.Current.Settings.LanguageServers).Where(item => Applies(item, "host"));
+        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.Current.Settings.LanguageServers, () => Seams.State.LanguageCatalog).Where(item => Applies(item, "host"));
         var plugins = Active().SelectMany(active => active.Tables.Prompts.Select(item => (active.Entry.Id, item)))
             .Where(pair => Applies(pair.item, pair.Id)).OrderBy(pair => pair.item.Order);
         return [.. core.Select(item => item.Text), .. plugins.Select(pair => pair.item.Text)];

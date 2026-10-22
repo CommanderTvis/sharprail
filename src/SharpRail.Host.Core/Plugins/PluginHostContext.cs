@@ -180,6 +180,18 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
         Register(table => table.Prompts = table.Prompts.Add(contribution));
     }
 
+    public void LanguageServer(LanguageServerSpec spec)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        if (spec.Id.Length is 0 or > 64 || !spec.Id.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-'))
+            throw new ArgumentException($"plugin {Id} provides a language server with the malformed id \"{spec.Id}\"", nameof(spec));
+        if (spec.Extensions.Any(extension => extension.Length < 2 || extension[0] != '.'))
+            throw new ArgumentException($"language server {spec.Id} lists an extension without a leading dot", nameof(spec));
+        if (runtime.ActiveLanguageServerSpecs().Any(existing => existing.Id == spec.Id))
+            throw new ArgumentException($"language server {spec.Id} is already provided by another plugin", nameof(spec));
+        Register(table => table.LanguageServers = table.LanguageServers.Add(spec));
+    }
+
     public IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement) => runtime.PromptTexts(agent, placement);
 
     public IReadOnlyList<string> ToolGuidanceSections() => runtime.ToolGuidanceSections();

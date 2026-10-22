@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core.Language;
 
@@ -45,9 +46,10 @@ public sealed partial class LanguageService : IAsyncDisposable
         internal Entry(CancellationToken token) { Stop = CancellationTokenSource.CreateLinkedTokenSource(token); Token = Stop.Token; }
     }
 
-    public LanguageService(string directory, Func<bool>? enabled = null, Func<string>? configuration = null, Func<string, string, string>? workspaceConfiguration = null, Action<string, string, string>? saveConfiguration = null)
+    public LanguageService(string directory, Func<bool>? enabled = null, Func<string>? configuration = null, Func<string, string, string>? workspaceConfiguration = null, Action<string, string, string>? saveConfiguration = null,
+        Func<IReadOnlyList<LanguageServerSpec>>? catalog = null)
     {
-        servers = new(directory, configuration);
+        servers = new(directory, configuration, catalog: catalog);
         exits = new(directory);
         usage = new(directory);
         this.configuration = workspaceConfiguration ?? ((_, _) => "{}");
@@ -62,11 +64,11 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (Volatile.Read(ref disposed) != 0) return new("stopped", "The host is shutting down.");
         if (request.Operation == "catalog") return new("ready", servers.Storage)
         {
-            Servers = LanguageServers.Catalog.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version)).ToArray()
+            Servers = servers.Servers.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version)).ToArray()
         };
         if (request.Operation == "resolution")
         {
-            var chosen = LanguageServers.Catalog.FirstOrDefault(server => server.Id == request.Server) ?? throw new ArgumentException("Unknown language server.");
+            var chosen = servers.Servers.FirstOrDefault(server => server.Id == request.Server) ?? throw new ArgumentException("Unknown language server.");
             if (!Path.IsPathFullyQualified(request.Workspace) || !Directory.Exists(request.Workspace)) throw new ArgumentException("Language requests require an existing absolute workspace directory.");
             var resolution = await servers.ResolveAsync(chosen, Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace)), token);
             return new(resolution.State, resolution.Message, chosen.Id) { Configuration = resolution.ToJson() };
@@ -119,11 +121,11 @@ public sealed partial class LanguageService : IAsyncDisposable
         {
             if (request.Operation is not ("retry" or "restart" or "stop" or "status" or "configurationSchema" or "configuration" or "configure" or "logs") || request.Path.Length > 0 || request.Text is not null)
                 throw new ArgumentException("Select a server only for path-free lifecycle operations.");
-            selectedServer = LanguageServers.Catalog.FirstOrDefault(server => server.Id == request.Server)
+            selectedServer = servers.Servers.FirstOrDefault(server => server.Id == request.Server)
                 ?? throw new ArgumentException("Unknown language server.");
         }
         if (request.Operation == "configurationSchema")
-            return selectedServer is null ? throw new ArgumentException("Select a server for its configuration schema.") : LanguageConfigurationCatalog.Read(selectedServer.Id);
+            return selectedServer is null ? throw new ArgumentException("Select a server for its configuration schema.") : LanguageConfigurationCatalog.Read(selectedServer);
         if (request.Operation == "logs")
         {
             if (selectedServer is null) throw new ArgumentException("Select a server to view its logs.");
@@ -355,7 +357,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         }
 
         var rows = new List<LanguageServerState>();
-        foreach (var catalogServer in LanguageServers.Catalog.OrderByDescending(server => paths.ContainsKey(server.Id)).ThenBy(server => server.Id, StringComparer.Ordinal))
+        foreach (var catalogServer in servers.Servers.OrderByDescending(server => paths.ContainsKey(server.Id)).ThenBy(server => server.Id, StringComparer.Ordinal))
         {
             var id = catalogServer.Id;
             var path = paths.GetValueOrDefault(id) ?? "";
@@ -388,7 +390,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             if (entries.TryGetValue(key, out var running) && running.Session.IsValueCreated && running.Session.Value is { IsCompletedSuccessfully: true } finished) exit = finished.Result.ExitRecord is { } live ? exit is not null && exit.Time == live.Time ? exit : live : exit;
             if (exit is not null && state is "idle" or "stopped")
                 detail = (exit.Unexpected ? "Stopped unexpectedly: " : "Last run: ") + exit.Reason + " " + detail;
-            rows.Add(new(id, path, state, detail, LanguageServers.Catalog.Single(server => server.Id == id).Version,
+            rows.Add(new(id, path, state, detail, servers.Servers.Single(server => server.Id == id).Version,
                 WorkspaceLanguageConfiguration.Serialize(WorkspaceLanguageConfiguration.Parse(configuration(workspace, id), id)),
                 entries.GetValueOrDefault(key)?.Configuration ?? "", configuration(workspace, id) != "{}")
             { Exit = exit, Usage = usage.Get(workspace, id), StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "" });
@@ -400,8 +402,8 @@ public sealed partial class LanguageService : IAsyncDisposable
 
     private LanguageServer? Detect(string workspace, string path)
     {
-        var server = LanguageServers.Detect(path);
-        return server?.Id is "java" or "kotlin" && UsesIntelliJ(workspace) ? LanguageServers.Catalog.Single(item => item.Id == "intellij") : server;
+        var server = servers.Detect(path);
+        return server?.Id is "java" or "kotlin" && UsesIntelliJ(workspace) ? servers.Servers.Single(item => item.Id == "intellij") : server;
     }
 
     internal async Task SwitchJvmProviderAsync(bool useIntelliJ, CancellationToken token)
@@ -423,17 +425,30 @@ public sealed partial class LanguageService : IAsyncDisposable
             if (!drafts.TryRemove(key, out var saved)) continue;
             foreach (var draft in saved)
             {
-                var target = workspace + "\0" + (useIntelliJ ? "intellij" : LanguageServers.Detect(draft.Path)!.Id);
+                var target = workspace + "\0" + (useIntelliJ ? "intellij" : servers.Detect(draft.Path)!.Id);
                 drafts.AddOrUpdate(target, [draft], (_, existing) => existing.Where(item => item.DocumentId != draft.DocumentId || item.Path != draft.Path).Append(draft).ToArray());
             }
         }
+    }
+
+    /// <summary>Stops the sessions of servers no enabled plugin provides any more (H21); their drafts and settings are kept.</summary>
+    internal async Task CatalogChangedAsync()
+    {
+        var provided = servers.Servers.Select(server => server.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var key in entries.Keys.Where(key => !provided.Contains(key[(key.IndexOf('\0') + 1)..])).ToArray())
+            if (entries.TryRemove(key, out var entry))
+            {
+                try { await PreserveDraftsAsync(key, entry, lifetime.Token); }
+                catch (OperationCanceledException) { }
+                finally { await StopAsync(entry, "its plugin was disabled"); }
+            }
     }
 
     /// <summary>The ids of the servers that own at least one file in the workspace; scans the tree, so call it off the UI thread.</summary>
     internal IReadOnlyList<string> DetectedServers(string workspace)
         => [.. Discover(workspace).Select(path => Detect(workspace, path)).OfType<LanguageServer>().Select(server => server.Id).Distinct()];
 
-    private static IEnumerable<string> Discover(string workspace)
+    private IEnumerable<string> Discover(string workspace)
     {
         var seen = new HashSet<string>();
         var queue = new Queue<string>(); queue.Enqueue(workspace);
@@ -442,7 +457,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         {
             var directory = queue.Dequeue();
             foreach (var file in Directory.EnumerateFiles(directory))
-                if (LanguageServers.Detect(file) is { } server && seen.Add(server.Id)) yield return Path.GetRelativePath(workspace, file);
+                if (servers.Detect(file) is { } server && seen.Add(server.Id)) yield return Path.GetRelativePath(workspace, file);
             foreach (var child in Directory.EnumerateDirectories(directory))
                 if (Path.GetFileName(child) is not (".git" or ".tools" or ".bench" or "node_modules" or "bin" or "obj" or "target" or ".venv" or "vendor" or ".gradle" or ".dart_tool")
                     && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0) queue.Enqueue(child);

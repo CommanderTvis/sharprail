@@ -82,6 +82,13 @@ internal static class BoundaryChecks
             rules[Browser] = [.. rules[Browser], contract, contract + ".UI"];
             rules[Checks] = [.. rules[Checks], contract, contract + ".Host", contract + ".UI"];
         }
+        // Language server plugins (H21) are one host-only project each, referenced by the host core only.
+        foreach (var plugin in projects.Select(project => Path.GetFileNameWithoutExtension(project)).Where(name => name.StartsWith("SharpRail.Plugins.Lsp.", StringComparison.Ordinal)))
+        {
+            rules[plugin] = [Api, ApiHost];
+            rules[Core] = [.. rules[Core], plugin];
+            rules[Checks] = [.. rules[Checks], plugin];
+        }
         var names = projects.Select(project => Path.GetFileNameWithoutExtension(project)).ToArray();
         var mention = new Regex(@"(?<![\w.])(" + string.Join('|', names.OrderByDescending(name => name.Length).Select(Regex.Escape)) + @")(?!\w)", RegexOptions.CultureInvariant);
         var shared = Directory.EnumerateFiles(root, "Directory.Build.*").Where(file => Path.GetExtension(file) is ".props" or ".targets").ToArray();

@@ -880,6 +880,7 @@ internal static class CodexChecks
         public void WriteState<T>(string name, T value) { }
         public string? StateDirectory => null;
         public void ToolGuidance(string text) { }
+        public void LanguageServer(LanguageServerSpec spec) { }
         public void Prompt(PromptContribution contribution) { }
         public IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement) => [];
         public IReadOnlyList<string> ToolGuidanceSections() => [];

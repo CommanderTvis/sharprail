@@ -8,6 +8,26 @@ parent: module-host-core
 
 # Workspace language services
 
+## Providers are plugins
+
+Every language server comes from a plugin (Plugin API H21): one builtin plugin per server,
+`src/SharpRail.Plugins.Lsp.<Name>` with id `lsp-<server id>`, all enabled by default. The catalog is the
+servers that active plugins provide, in roster order, which decides file ownership (Java and Kotlin before
+IntelliJ). Disabling a plugin removes its server from listings and agent instructions and stops its sessions;
+settings, `.sharprail/language.toml` entries and project files naming it stay valid. Until the plugin runtime's
+first reconcile settles, the host serves the builtin servers that are about to activate, so startup requests are
+not refused; a host without a plugin runtime (checks, a bare `HostStateStore`) serves the builtin servers.
+
+Each provider owns its identity, pinned version and pins (archives with SHA-256, NuGet packages with SHA-512,
+embedded npm or Go lock files), owned files, aliases, configuration controls, project manifests, project kinds
+and scope text, language ids, initialization and settings defaults, and its install and launch steps. The host
+keeps what is shared: sessions and the protocol, the installation lock and `.ready` marker, verified archive and
+npm installs, overrides and the PATH policy. Still keyed by server id in the host: the IntelliJ distribution,
+terms and launcher; the Java/Kotlin provider switch; clangd fallback flags and compilation database options;
+IntelliJ/Kotlin initialization; and per-server protocol adaptations in the session (C# project loading and
+restore, PHP storage, Rust and Dart status notifications, JDT directories, Go workspace folders, Rust linked
+projects). The UI's display names and icons are also keyed by id, with the id as fallback.
+
 The host owns language-server processes and installation storage. Editors and terminal agents
 query the same session for a workspace and server. Every call explicitly identifies its workspace;
 neither a client's current project nor an agent's shell directory can silently retarget it.

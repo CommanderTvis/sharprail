@@ -55,14 +55,14 @@ internal static class LanguageChecks
             var launcher = Path.Combine(root, "npm", "node_modules", "typescript-language-server", "lib", "cli.mjs");
             Directory.CreateDirectory(Path.GetDirectoryName(launcher)!);
             await File.WriteAllTextAsync(launcher, "");
-            Require(!LanguageServers.HasTypeScript(launcher, root), "A standalone TypeScript LSP must use managed provisioning.");
+            Require(!SharpRail.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(launcher, root), "A standalone TypeScript LSP must use managed provisioning.");
             var compiler = Path.Combine(root, "npm", "node_modules", "typescript", "lib");
             Directory.CreateDirectory(compiler);
             foreach (var file in new[] { "tsserver.js", "typescript.js", "../package.json" }) await File.WriteAllTextAsync(Path.Combine(compiler, file), "{}");
-            Require(LanguageServers.HasTypeScript(launcher, root), "A bundled TypeScript installation was not found.");
+            Require(SharpRail.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(launcher, root), "A bundled TypeScript installation was not found.");
             var link = Path.Combine(root, "typescript-language-server");
             File.CreateSymbolicLink(link, launcher);
-            Require(LanguageServers.HasTypeScript(link, root), "A symlinked launcher lost its bundled TypeScript installation.");
+            Require(SharpRail.Plugins.Lsp.TypeScript.TypeScriptPlugin.HasTypeScript(link, root), "A symlinked launcher lost its bundled TypeScript installation.");
             foreach (var remote in new[] { false, true }) await Exercise(Path.Combine(root, remote ? "remote" : "local"), remote);
             var large = new LanguageResult("ready")
             {
@@ -127,7 +127,7 @@ internal static class LanguageChecks
         Directory.CreateDirectory(unrelatedSession);
         await File.WriteAllTextAsync(Path.Combine(unrelatedSession, "session.json"), "{}");
         await using var server = remote ? RemoteServer.Create(root, IPAddress.Loopback, 0, "language-test", stateDirectory,
-            plugins: seams => seams with { Builtins = [] }, headlessLanguageMcp: true) : null;
+            plugins: seams => seams with { Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries }, headlessLanguageMcp: true) : null;
         if (server is not null) await server.StartAsync();
         var state = server is null ? new HostStateStore(stateDirectory) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
         using var remoteHost = server is null ? null : new RemoteProjectAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "language-test");
@@ -159,7 +159,7 @@ internal static class LanguageChecks
             await IntelliJTermsChecks.Run(host, root, remote);
             await IntelliJChecks.Provider(host, root);
             var catalog = await host.LanguageAsync(new(root, Operation: "servers"));
-            Require(catalog.Servers.Count == LanguageServers.Catalog.Length && catalog.Servers.All(item => item.State == "idle") &&
+            Require(catalog.Servers.Count == LanguageServers.Catalog.Count && catalog.Servers.All(item => item.State == "idle") &&
                 !File.Exists(Path.Combine(root, ".tools", "initialize.json")), "Listing servers started analysis or lost detected languages.");
             var implementations = await host.LanguageAsync(new(root, Operation: "catalog"));
             Require(implementations.Servers.All(item => item.Detail.Length > 0) && implementations.Servers.Single(item => item.Id == "java").Detail.Contains("Eclipse JDT", StringComparison.Ordinal),
@@ -292,7 +292,7 @@ internal static class LanguageChecks
                 "Disabling LSP failed to stop processes or block language requests.");
             Require((await host.LanguageAsync(new(root, Operation: "servers"))).Servers.Single(item => item.Id == "typescript") is { State: "disabled", Configuration.Length: > 0 }, "Disabling LSP hid saved workspace configuration.");
             Require((await host.LanguageAsync(new(root, Operation: "logs", Server: "typescript"))).Detail.Contains("fixture stderr", StringComparison.Ordinal), "Disabling LSP hid failure evidence.");
-            Require((await host.LanguageAsync(new("", Operation: "catalog"))).Servers.Count == LanguageServers.Catalog.Length,
+            Require((await host.LanguageAsync(new("", Operation: "catalog"))).Servers.Count == LanguageServers.Catalog.Count,
                 "Disabling LSP hid its settings catalog.");
             await settingsHost.ChangeAsync([HostStateChange.Setting("lsp-enabled", "true")]);
             var agent = await Ready(host, new(root, "code.ts", "diagnostics"));
@@ -444,7 +444,7 @@ internal static class LanguageChecks
                     return JsonSerializer.Deserialize<LanguageResult>(response["result"]!["content"]![0]!["text"]!.GetValue<string>(), JsonSerializerOptions.Web)!;
                 }
                 var available = await Language("lsp_status", new { operation = "catalog" });
-                Require(available.Servers.Count == LanguageServers.Catalog.Length && available.Servers.All(item => item.Detail.Length > 0), "Agent cannot discover language implementations.");
+                Require(available.Servers.Count == LanguageServers.Catalog.Count && available.Servers.All(item => item.Detail.Length > 0), "Agent cannot discover language implementations.");
                 var started = await Language("lsp_status", new { operation = "retry", server = "python" });
                 using var startupDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
                 while (started.State is "installing" or "initializing")
@@ -984,7 +984,7 @@ internal static class LanguageChecks
         T Find<T>(string name) where T : Avalonia.Controls.Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         try
         {
-            E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.ListBox>("LspServer").ItemCount == LanguageServers.Catalog.Length);
+            E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.ListBox>("LspServer").ItemCount == LanguageServers.Catalog.Count);
             Require(Find<ComboBox>("JvmProvider") is not null, "Settings omitted workspace provider selection.");
             Require(Find<TextBlock>("LspLifetimeNote").Text == SharpRail.UI.Panels.LanguageNotes.Lifetime && Find<TextBlock>("LspLifetimeNote").Text!.Contains("lifetime of their workspace", StringComparison.Ordinal),
                 "Settings did not tell the user that servers run for their workspace's lifetime and that agents start them.");
@@ -1151,7 +1151,7 @@ internal static class LanguageChecks
             void Click(string name) => Find<Avalonia.Controls.Button>(name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
             var servers = Find<Avalonia.Controls.ListBox>("Servers");
             string? RowStatus(int index) => Avalonia.Automation.AutomationProperties.GetName(((ListBoxItem)servers.ContainerFromIndex(index)!).GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "ServerStatusIcon"));
-            E2E.E2eWorkspace.Until(() => servers.ItemCount == 1 && Find<ComboBox>("AddServer").ItemCount == LanguageServers.Catalog.Length - 1);
+            E2E.E2eWorkspace.Until(() => servers.ItemCount == 1 && Find<ComboBox>("AddServer").ItemCount == LanguageServers.Catalog.Count - 1);
             var firstRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
             var compactHeight = firstRow.Bounds.Height;
             servers.SelectedIndex = 0;

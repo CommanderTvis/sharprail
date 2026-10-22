@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core.Language;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core;
 
@@ -18,12 +19,28 @@ public sealed partial class HostStateStore
             {
                 if (languages is not null) return languages;
                 languages = new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language"),
-                    () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage)
+                    () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage, LanguageServerSpecs)
                 { DeathObserved = PublishLanguageDeath, GlobalIntelliJProvider = () => Current.Settings.JavaKotlinProvider == "intellij" };
                 WorkspaceRemoved += workspace => _ = languages.CloseWorkspaceAsync(workspace);
                 return languages;
             }
         }
+    }
+
+    /// <summary>The language servers enabled plugins provide (H21), set by the plugin runtime when it starts.</summary>
+    internal Func<IReadOnlyList<LanguageServerSpec>>? LanguageServerSource { get; set; }
+
+    /// <summary>The servers in the catalog now: the plugin runtime's, or, for a host that runs none, the builtin plugins'.</summary>
+    internal IReadOnlyList<LanguageServerSpec> LanguageServerSpecs() => LanguageServerSource?.Invoke() ?? [.. LanguageServers.Catalog.Select(server => server.Spec)];
+
+    internal IReadOnlyList<LanguageServer> LanguageCatalog => LanguageServers.Wrap(LanguageServerSpecs());
+
+    /// <summary>Called when plugins activate or deactivate: stops sessions of servers that left the catalog.</summary>
+    internal void LanguageServersChanged()
+    {
+        LanguageService? service;
+        lock (gate) service = languages;
+        if (service is not null) _ = service.CatalogChangedAsync();
     }
 
     /// <summary>Ends this host's language processes on shutdown; listeners do not own them.</summary>
