@@ -5,11 +5,12 @@ using Avalonia.Svg.Skia;
 
 namespace SharpRail.Plugins.UI.Kit.Visualization;
 
-/// <summary>A Mermaid diagram rendered off the UI thread, with inline or pane pan and zoom and a render verdict.</summary>
+/// <summary>A Mermaid diagram, or hand-written SVG once sanitized and themed, rendered off the UI thread, with inline or pane pan and zoom and a render verdict.</summary>
 public sealed partial class MermaidView : ContentControl
 {
     private readonly string source;
     private readonly bool interactive;
+    private readonly bool handWritten;
     private readonly Action<string?>? onRender;
     private CancellationTokenSource? rendering;
     private SvgSource? shown;
@@ -21,8 +22,14 @@ public sealed partial class MermaidView : ContentControl
     public MermaidView() => throw new System.NotSupportedException("MermaidView needs its constructor arguments.");
 
     /// <summary>Creates a diagram from raw Mermaid source; the callback receives null on success or its parse error.</summary>
-    public MermaidView(string source, bool interactive = false, Action<string?>? onRender = null)
+    public MermaidView(string source, bool interactive = false, Action<string?>? onRender = null) : this(source, interactive, onRender, false) { }
+
+    /// <summary>Creates a drawing from hand-written SVG, refused with its reason when <see cref="SvgSanitizer"/> rejects it.</summary>
+    internal static MermaidView FromSvg(string svg, bool interactive = false, Action<string?>? onRender = null) => new(svg, interactive, onRender, true);
+
+    private MermaidView(string source, bool interactive, Action<string?>? onRender, bool handWritten)
     {
+        this.handWritten = handWritten;
         this.source = source;
         this.interactive = interactive;
         this.onRender = onRender;
@@ -54,19 +61,26 @@ public sealed partial class MermaidView : ContentControl
         rendering = new CancellationTokenSource();
         // Detaching disposes the source mid-render, so only the token, which outlives it, is read after an await.
         var token = rendering.Token;
-        var options = MermaidRenderer.Options();
+        var options = handWritten ? null : MermaidRenderer.Options();
+        var palette = handWritten ? SvgSanitizer.Current() : null;
         SvgSource? svg = null;
         DiagramText? text = null;
         MermaidRenderer.Result result;
         try
         {
-            result = await MermaidRenderer.RenderAsync(source, options, token);
+            result = handWritten
+                ? await Task.Run(() =>
+                {
+                    var sanitized = SvgSanitizer.Sanitize(source, palette!);
+                    return new MermaidRenderer.Result(sanitized.Svg, sanitized.Error);
+                }, token)
+                : await MermaidRenderer.RenderAsync(source, options!, token);
             if (result.Svg is { } sourceSvg)
             {
                 (svg, text) = await Task.Run(() =>
                 {
                     var loaded = SvgSource.LoadFromSvg(sourceSvg);
-                    return (loaded, DiagramText.From(loaded.Svg?.Model, MermaidRenderer.IsTreeView(sourceSvg)));
+                    return (loaded, DiagramText.From(loaded.Svg?.Model, !handWritten && MermaidRenderer.IsTreeView(sourceSvg)));
                 }, token);
             }
         }

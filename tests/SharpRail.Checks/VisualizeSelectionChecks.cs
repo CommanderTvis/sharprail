@@ -31,6 +31,57 @@ internal static class VisualizeSelectionChecks
         Selection();
         Flowchart();
         Comparison();
+        HandWritten();
+    }
+
+    // Hand-written SVG draws through the same pan/zoom view: its text selects, its verdict reports, currentColor follows
+    // the theme, and a refused document reports its reason instead of drawing.
+    private static void HandWritten()
+    {
+        const string Svg = """<svg width="200" height="60"><rect width="200" height="60" fill="var(--bg)" stroke="var(--accent)"/><text x="10" y="35" font-size="16" fill="currentColor">Hello SVG</text></svg>""";
+        var original = Ui.Theme;
+        try
+        {
+            foreach (var theme in new[] { "dark", "light" })
+            {
+                Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(theme));
+                string? verdict = "unreported";
+                using var document = System.Text.Json.JsonDocument.Parse(System.Text.Json.JsonSerializer.Serialize(new { type = "svg", title = "Hand", svg = Svg }));
+                var card = VisualizationCard.Create(document.RootElement, interactive: true, error => verdict = error);
+                var window = new Window { Width = 600, Height = 400, Content = card };
+                window.Show();
+                Until(() => verdict != "unreported");
+                Require(verdict is null, $"{theme}: a valid SVG reports an ok verdict, got '{verdict}'.");
+                Until(() => card.GetVisualDescendants().OfType<PanZoomView>().Any());
+                var pane = card.GetVisualDescendants().OfType<PanZoomView>().Single();
+                Require(pane.Text.Text(0, pane.Text.Length) == "Hello SVG", $"{theme}: the SVG's text is selectable, got '{pane.Text.Text(0, pane.Text.Length)}'.");
+                pane.SelectAll();
+                Require(VisualizationCard.SelectedText(card) == "Hello SVG", "The card reports the SVG selection.");
+                var themed = SvgSanitizer.Sanitize(Svg, SvgSanitizer.Current()).Svg!;
+                var foreground = $"#{Ui.TextBrush.Color.R:x2}{Ui.TextBrush.Color.G:x2}{Ui.TextBrush.Color.B:x2}";
+                Require(themed.Contains($"fill=\"{foreground}\"", StringComparison.Ordinal), $"{theme}: currentColor draws in the pane foreground {foreground}.");
+                window.Close();
+            }
+        }
+        finally { Ui.Apply(original); }
+
+        string? refusal = null;
+        using var bad = System.Text.Json.JsonDocument.Parse("""{"type":"svg","svg":"<svg xmlns='http://www.w3.org/2000/svg'><foreignObject/></svg>"}""");
+        var refused = VisualizationCard.Create(bad.RootElement, interactive: true, error => refusal = error);
+        var host = new Window { Width = 400, Height = 300, Content = refused };
+        host.Show();
+        Until(() => refusal is not null);
+        Require(refusal!.Contains("foreignObject", StringComparison.Ordinal) && !refused.GetVisualDescendants().OfType<PanZoomView>().Any(),
+            $"A refused SVG reports why and draws nothing, got '{refusal}'.");
+        host.Close();
+
+        using var options = System.Text.Json.JsonDocument.Parse(System.Text.Json.JsonSerializer.Serialize(new { type = "comparison", options = new[] { new { name = "Drawn", svg = Svg } } }));
+        var comparison = VisualizationCard.Create(options.RootElement, interactive: true);
+        var frame = new Window { Width = 600, Height = 400, Content = comparison };
+        frame.Show();
+        Until(() => comparison.GetVisualDescendants().OfType<PanZoomView>().Any());
+        frame.Close();
+        Console.WriteLine("PASS hand-written SVG renders with an ok verdict, selectable text and theme colours; refusals report; comparison options draw SVG");
     }
 
     private static void Flowchart()

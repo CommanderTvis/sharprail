@@ -15,7 +15,8 @@ Upstream: packages/plugin-visualize/SPEC.md @ 0304a543e (CommanderTvis fork)
 ## Responsibility
 
 Give an agent in a SharpRail terminal a place to draw. The `visualize` MCP tool takes the schema ThinkRail's pi
-visualize extension also uses (a diagram with raw Mermaid, or comparison cards), records the call per terminal,
+visualize extension also uses (a diagram with raw Mermaid, or comparison cards; SharpRail adds a
+`svg` type for hand-written SVG, which only widens the `type` enum), records the call per terminal,
 and publishes it, where it renders as a live companion pane beside that terminal. Calling again replaces that
 terminal's view in place: many agents can each hold their own view at once, which is the point.
 
@@ -30,13 +31,13 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   `visualize` tool registered through `Tool`. The runtime binds the tool to the terminal whose MCP token made the
   call and hands it as `PluginToolContext.Terminal`, so the tool never resolves its owner itself; a call from
   outside a terminal is refused. The tool validates the call's shape beyond what the parameters record captures
-  (`VisualizeParams.ShapeError`: a diagram needs non-blank Mermaid, a comparison a non-empty list of named
+  (`VisualizeParams.ShapeError`: a diagram needs non-blank Mermaid, an `svg` call a non-blank `svg`, a comparison a non-empty list of named
   options) and answers with the title, the revision, and the fact that calling again updates in place, the
   sentence that teaches the agent the iteration loop. The parameters record's `[Description]` attributes become
   the schema's field descriptions.
 - `visualize_read` (no arguments, bound to the calling terminal the same way, refused outside one) answers JSON
   for that terminal's view only: `shown`; when shown, `revision`, effective `title`, the stored arguments field for
-  field (`type`, `requestedTitle` when one was given, `mermaid` or `options`), `render` (`ok`, `error` with
+  field (`type`, `requestedTitle` when one was given, `mermaid`, `svg` as sent, or `options`), `render` (`ok`, `error` with
   `renderError`, or `pending` while no client has reported this revision), and `selection` (the text the user has
   selected in the pane for this revision, null when none); `rejected` (`revision`, `error`) when the latest call
   was refused and rolled back. It is a separate tool rather than an action on `visualize` because `visualize`'s
@@ -48,8 +49,20 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   it failed. A refused drawing is rolled back: the last one that rendered is restored and published again, so an
   iteration's typo does not cost the user the picture they had, and the next attempt reuses the revision number
   the pane never showed. No client watching is not a failure: the wait times out and the drawing stands. A
-  comparison has no Mermaid to fail on and settles the moment it is shown.
-- The title names the companion once: `title`, else "Diagram" or "Comparison". The arguments travel verbatim as
+  comparison has no Mermaid to fail on and settles the moment it is shown. Hand-written SVG gets the same verdict:
+  the kit's `SvgSanitizer` refuses it with a reason, which is the render error.
+- Hand-written SVG (`type: svg`, or an option's `svg` beside `mermaid`, which wins) is sanitized before it is
+  parsed and draws through the same Svg.Skia path and pan/zoom view as Mermaid output. Refused: over 2 MB (UTF-8)
+  or 10000 elements, malformed XML, DTDs and entities, processing instructions, a root other than `<svg>`,
+  elements outside the SVG namespace, `script`, `foreignObject`, `iframe`/`object`/`embed`/`audio`/`video`,
+  animation (`set`, `animate*`, `discard`), `handler`/`listener`, any `on*` attribute, `href`/`xlink:href`
+  other than `#fragment` (or, on `<image>`, a `data:` PNG/JPEG/GIF/WebP/BMP), CSS `url()` other than `#id`,
+  `@import`, `expression(` and `javascript:`. The XML reader has no resolver, so nothing is fetched from the
+  network or filesystem. Theme: the root gets the pane foreground as `color` unless it sets one, and
+  `currentColor`, `var(--fg)`, `var(--bg)`, `var(--accent)`, `var(--muted)` and `var(--border)` in attributes and
+  `<style>` become the pane's text, surface, accent, muted and border colours (an unknown variable takes its
+  fallback), re-applied on theme change. A missing `xmlns` is supplied.
+- The title names the companion once: `title`, else "Diagram", "SVG" or "Comparison". The arguments travel verbatim as
   JSON: the UI half renders them with the kit's `VisualizationCard`.
 - A drawing belongs to the conversation, not to the tab. The live view is keyed by terminal, but every drawing
   is also written under the agent session id the terminal's agent record carries. When `OnTerminal` delivers a

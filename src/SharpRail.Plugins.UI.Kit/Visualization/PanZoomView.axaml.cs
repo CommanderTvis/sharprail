@@ -132,7 +132,7 @@ internal sealed partial class PanZoomView : Grid
             menu.Items.Add(Ui.Menu("Copy", () => _ = CopyAsync(selected), selected.Length > 0));
             menu.Items.Add(Ui.Menu("Select All", SelectAll, text.Length > 0));
             menu.Items.Add(Ui.Menu("Copy All Text", () => _ = CopyAsync(text.Text(0, text.Length)), text.Length > 0));
-            if (source is { Length: > 0 } mermaid) menu.Items.Add(Ui.Menu("Copy Mermaid Source", () => _ = CopyAsync(mermaid)));
+            if (source is { Length: > 0 } mermaid) menu.Items.Add(Ui.Menu(mermaid.TrimStart().StartsWith('<') ? "Copy SVG Source" : "Copy Mermaid Source", () => _ = CopyAsync(mermaid)));
             viewer.ContextMenu = menu;
             menu.Open(viewer);
             e.Handled = true;

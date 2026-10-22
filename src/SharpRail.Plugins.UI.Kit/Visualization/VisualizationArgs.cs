@@ -3,7 +3,10 @@ using System.Text.Json;
 namespace SharpRail.Plugins.UI.Kit.Visualization;
 
 /// <summary>One comparison option as the card draws it, with every missing or mistyped field defaulted.</summary>
-public sealed record ComparisonOptionView(string Name, string? Description, IReadOnlyList<string> Pros, IReadOnlyList<string> Cons, bool Recommended, string? Mermaid);
+public sealed record ComparisonOptionView(string Name, string? Description, IReadOnlyList<string> Pros, IReadOnlyList<string> Cons, bool Recommended, string? Mermaid)
+{
+    public string? Svg { get; init; }
+}
 
 /// <summary>Tolerant reads of a visualize call's arguments, which arrive as the agent wrote them.</summary>
 public static class VisualizationArgs
@@ -22,7 +25,7 @@ public static class VisualizationArgs
                 ? [.. field.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.String).Select(item => item.GetString()!)]
                 : [];
             var recommended = entry.ValueKind == JsonValueKind.Object && entry.TryGetProperty("recommended", out var flag) && flag.ValueKind == JsonValueKind.True;
-            return new ComparisonOptionView(Text("name") ?? "", Text("description"), Strings("pros"), Strings("cons"), recommended, Text("mermaid"));
+            return new ComparisonOptionView(Text("name") ?? "", Text("description"), Strings("pros"), Strings("cons"), recommended, Text("mermaid")) { Svg = Text("svg") };
         })];
     }
 }

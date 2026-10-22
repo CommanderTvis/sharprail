@@ -43,6 +43,7 @@ internal static class VisualizeChecks
     {
         Shapes();
         ComparisonArgs();
+        SvgRules();
         var first = (VisualizeHost)BuiltinPlugins.All.Single(entry => entry.Manifest.Id == VisualizeContract.Id).Host!;
         var second = (VisualizeHost)BuiltinPlugins.All.Single(entry => entry.Manifest.Id == VisualizeContract.Id).Host!;
         first.Store.Record("isolation", "t1", Diagram("graph TD;A;"));
@@ -63,6 +64,8 @@ internal static class VisualizeChecks
         Require(Comparison("A", "B").ShapeError() is null, "A comparison with named options is accepted.");
         Require(Comparison().ShapeError()?.Contains("options", StringComparison.Ordinal) == true, "A comparison with no options is refused.");
         Require(Comparison("").ShapeError()?.Contains("options[0].name", StringComparison.Ordinal) == true, "A comparison option missing a name is refused.");
+        Require(new VisualizeParams(VisualizationType.Svg) { Svg = "<svg/>" }.ShapeError() is null, "An svg call with svg is accepted.");
+        Require(new VisualizeParams(VisualizationType.Svg) { Mermaid = "graph LR;A" }.ShapeError()?.Contains("`svg`", StringComparison.Ordinal) == true, "An svg call without svg is refused.");
     }
 
     // store.test.ts
@@ -207,9 +210,23 @@ internal static class VisualizeChecks
             comparison["options"]!.AsArray().Select(option => option!["name"]!.GetValue<string>()).SequenceEqual(["Fast", "Safe"]) &&
             comparison["mermaid"] is null && comparison["rejected"] is null && comparison["selection"] is null,
             "A comparison reads back its options; a new revision drops the old selection and refusal: " + comparison.ToJsonString());
+
+        const string Drawn = """<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><text x="2" y="14" fill="currentColor">Hi</text></svg>""";
+        var drawingSvg = store.RunTool(w1, new VisualizeParams(VisualizationType.Svg) { Svg = Drawn });
+        store.ReportRender("w1", "t1", 3, null);
+        Require(!(await drawingSvg).IsError, "A rendered SVG call succeeds.");
+        var svgRead = store.Read("w1", "t1");
+        Require(svgRead["type"]!.GetValue<string>() == "svg" && svgRead["title"]!.GetValue<string>() == "SVG" && svgRead["svg"]!.GetValue<string>() == Drawn &&
+            svgRead["render"]!.GetValue<string>() == "ok", "An SVG reads back exactly as sent with its verdict: " + svgRead.ToJsonString());
+        var badSvg = store.RunTool(w1, new VisualizeParams(VisualizationType.Svg) { Svg = "<svg><script/></svg>" });
+        store.ReportRender("w1", "t1", 4, "<script> is not allowed.");
+        var badResult = await badSvg;
+        Require(badResult.IsError && store.Read("w1", "t1")["rejected"]?["error"]?.GetValue<string>() == "<script> is not allowed." && store.Read("w1", "t1")["svg"]!.GetValue<string>() == Drawn,
+            "A refused SVG is an error, reads as rejected, and the last SVG stands.");
+
         Require(store.Read("w1", "t2").ToJsonString() == """{"shown":false}""" && store.Read("w2", "t1").ToJsonString() == """{"shown":false}""",
             "Another terminal's view is not what this terminal reads.");
-        Console.WriteLine("PASS visualize_read: nothing shown, diagram, comparison, failed parse, selection and per-terminal scope");
+        Console.WriteLine("PASS visualize_read: nothing shown, diagram, comparison, svg, failed parse, selection and per-terminal scope");
     }
 
     // index.test.ts, through the real host runtime: the tool on a terminal's MCP table, the report and get methods,
@@ -237,7 +254,9 @@ internal static class VisualizeChecks
 
         var w1 = Path.Combine(directory, "w1");
         var tool = runtime.McpTools(new TerminalRef(w1, "t1"), w1).Single(tool => tool.Name == "visualize");
-        Require(tool.InputSchema["properties"]?["type"]?["enum"]?.AsArray().Select(value => value!.GetValue<string>()).SequenceEqual(["diagram", "comparison"]) == true &&
+        Require(tool.InputSchema["properties"]?["type"]?["enum"]?.AsArray().Select(value => value!.GetValue<string>()).SequenceEqual(["diagram", "comparison", "svg"]) == true &&
+            tool.InputSchema["required"]?.AsArray().Select(value => value!.GetValue<string>()).SequenceEqual(["type"]) == true &&
+            tool.InputSchema["properties"]?["svg"]?["description"]?.GetValue<string>().Contains("currentColor", StringComparison.Ordinal) == true &&
             tool.InputSchema["properties"]?["mermaid"]?["description"]?.GetValue<string>().StartsWith("Required when type='diagram'", StringComparison.Ordinal) == true &&
             tool.Description.Contains("Calling again replaces this terminal's view in place", StringComparison.Ordinal),
             "The tool's schema carries the type enum and the field descriptions the agent reads: " + tool.InputSchema.ToJsonString());
@@ -431,5 +450,64 @@ internal static class VisualizeChecks
         Require(loose.Pros.SequenceEqual(["ok"]) && !loose.Recommended, "Non-string pros are dropped and recommended must be true itself.");
         var kept = VisualizationArgs.ComparisonOptions(Json("""[null,5,{"name":"D"}]"""));
         Require(kept.Count == 3 && kept[0].Name == "" && kept[2].Name == "D", "Non-object entries keep their positions as empty options.");
+        Require(VisualizationArgs.ComparisonOptions(Json("""[{"name":"E","svg":"<svg/>"}]""")).Single() is { Svg: "<svg/>", Mermaid: null }, "An option's svg is read.");
+    }
+
+    // Hand-written SVG: refusals never reach out, and theme placeholders become the palette given.
+    private static void SvgRules()
+    {
+        var dark = new SvgSanitizer.Palette("#eeeeee", "#111111", "#3388ff", "#999999", "#444444");
+        var light = new SvgSanitizer.Palette("#222222", "#ffffff", "#0055cc", "#666666", "#cccccc");
+        var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var origin = $"http://127.0.0.1:{((IPEndPoint)listener.LocalEndpoint).Port}";
+            var outside = Path.Combine(Path.GetTempPath(), "sharprail-svg-never-read.png");
+            var refused = new (string Svg, string Expect)[]
+            {
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>", "<script>"),
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\" onload=\"alert(1)\"/>", "onload"),
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\"><rect onclick=\"x()\"/></svg>", "onclick"),
+                ($"<svg xmlns=\"http://www.w3.org/2000/svg\"><image href=\"{origin}/a.png\"/></svg>", "href"),
+                ($"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><use xlink:href=\"{origin}/s.svg#a\"/></svg>", "href"),
+                ($"<svg xmlns=\"http://www.w3.org/2000/svg\"><image href=\"file://{outside}\"/></svg>", "href"),
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\"><image href=\"data:image/svg+xml;base64,PHN2Zy8+\"/></svg>", "href"),
+                ($"<svg xmlns=\"http://www.w3.org/2000/svg\"><rect fill=\"url({origin}/p#g)\"/></svg>", "url("),
+                ($"<svg xmlns=\"http://www.w3.org/2000/svg\"><style>@import url({origin}/x.css);</style></svg>", "@import"),
+                ($"<svg xmlns=\"http://www.w3.org/2000/svg\"><rect style=\"fill:url('{origin}/p')\"/></svg>", "url("),
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\"><foreignObject><div xmlns=\"http://www.w3.org/1999/xhtml\">x</div></foreignObject></svg>", "foreignObject"),
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\"><a href=\"javascript:alert(1)\"><text>x</text></a></svg>", "href"),
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\"><set attributeName=\"href\" to=\"javascript:x\"/></svg>", "<set>"),
+                ($"<!DOCTYPE svg [<!ENTITY x SYSTEM \"{origin}/e\">]><svg xmlns=\"http://www.w3.org/2000/svg\">&x;</svg>", "DTD"),
+                ($"<?xml-stylesheet href=\"{origin}/s.css\"?><svg xmlns=\"http://www.w3.org/2000/svg\"/>", "processing instructions"),
+                ("<html/>", "<svg>"),
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\"><desc>" + new string('x', SvgSanitizer.MaxBytes) + "</desc></svg>", "larger than 2 MB"),
+                ("<svg xmlns=\"http://www.w3.org/2000/svg\">" + string.Concat(Enumerable.Repeat("<g/>", SvgSanitizer.MaxElements + 1)) + "</svg>", "elements"),
+            };
+            foreach (var (svg, expect) in refused)
+            {
+                var result = SvgSanitizer.Sanitize(svg, dark);
+                Require(result.Svg is null && result.Error?.Contains(expect, StringComparison.Ordinal) == true,
+                    $"SVG refused with a reason naming '{expect}', got '{result.Error}' for {svg[..Math.Min(svg.Length, 120)]}");
+            }
+            Thread.Sleep(50);
+            Require(!listener.Pending(), "No refused SVG reached out to the network.");
+            Require(!File.Exists(outside), "No refused SVG touched the filesystem.");
+        }
+        finally { listener.Stop(); }
+
+        const string Themed = """<svg width="10" height="10"><style>.a{stroke:var(--accent)}</style><rect fill="currentColor" stroke="var(--border)"/><circle fill="var(--bg)" stroke="var(--nope, #123456)"/><path d="M0 0" fill="var(--muted)" stroke="var(--fg)"/><use href="#a"/><image href="data:image/png;base64,iVBORw0KGgo="/></svg>""";
+        foreach (var palette in new[] { dark, light })
+        {
+            var result = SvgSanitizer.Sanitize(Themed, palette);
+            Require(result.Error is null && result.Svg is { } themed &&
+                themed.Contains($"fill=\"{palette.Foreground}\"", StringComparison.Ordinal) && themed.Contains($"color=\"{palette.Foreground}\"", StringComparison.Ordinal) &&
+                themed.Contains($"stroke:{palette.Accent}", StringComparison.Ordinal) && themed.Contains($"stroke=\"{palette.Border}\"", StringComparison.Ordinal) &&
+                themed.Contains($"fill=\"{palette.Background}\"", StringComparison.Ordinal) && themed.Contains($"fill=\"{palette.Muted}\"", StringComparison.Ordinal) &&
+                themed.Contains("stroke=\"#123456\"", StringComparison.Ordinal) && themed.Contains("xmlns=\"http://www.w3.org/2000/svg\"", StringComparison.Ordinal) &&
+                !themed.Contains("currentColor", StringComparison.Ordinal) && !themed.Contains("var(", StringComparison.Ordinal),
+                "currentColor and the theme variables take the palette, unknown variables their fallback, and xmlns is supplied: " + result.Svg + result.Error);
+        }
     }
 }

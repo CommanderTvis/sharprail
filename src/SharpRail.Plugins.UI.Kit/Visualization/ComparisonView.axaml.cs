@@ -36,10 +36,11 @@ internal sealed partial class ComparisonOptionControl : Border
         description.IsVisible = option.Description is { Length: > 0 };
         this.FindControl<StackPanel>("Pros")!.IsVisible = option.Pros.Count > 0;
         this.FindControl<StackPanel>("Cons")!.IsVisible = option.Cons.Count > 0;
-        this.FindControl<ContentControl>("Diagram")!.IsVisible = option.Mermaid is { Length: > 0 };
+        this.FindControl<ContentControl>("Diagram")!.IsVisible = option.Mermaid is { Length: > 0 } || option.Svg is { Length: > 0 };
         foreach (var point in option.Pros) this.FindControl<StackPanel>("Pros")!.Children.Add(new ComparisonPoint(point, true));
         foreach (var point in option.Cons) this.FindControl<StackPanel>("Cons")!.Children.Add(new ComparisonPoint(point, false));
         if (option.Mermaid is { Length: > 0 } source) this.FindControl<ContentControl>("Diagram")!.Content = new MermaidView(source);
+        else if (option.Svg is { Length: > 0 } svg) this.FindControl<ContentControl>("Diagram")!.Content = MermaidView.FromSvg(svg);
     }
 }
 

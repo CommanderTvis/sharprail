@@ -299,7 +299,7 @@ observes half a palette. That makes the brush names, and the manifest colour key
 
 ## Agent visualizations
 
-`VisualizationCard` renders raw JSON diagram or comparison arguments, with tolerant comparison reads.
+`VisualizationCard` renders raw JSON diagram, SVG or comparison arguments, with tolerant comparison reads. Hand-written SVG goes through `SvgSanitizer` (refusals and theme placeholders: the Visualize spec) into `MermaidView.FromSvg`.
 Its frames, options, bullet rows, loading/error states and pan/zoom chrome are compiled XAML. Interactive
 diagrams fill a companion; inline diagrams are capped and offer a fullscreen button. The kit owns no
 terminal or plugin state. A consumer supplies a render-verdict callback. Comparisons settle immediately;

@@ -574,3 +574,5 @@ SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToLine(int line) -> bool
 SharpRail.Plugins.UI.Kit.MenuFill
 static SharpRail.Plugins.UI.Kit.MenuFill.FillBeforeOpening<T>(Avalonia.Controls.ContextMenu! menu, Avalonia.Controls.Control! owner, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! gather, System.Action<T>! apply, System.Action<System.Exception!>? failed = null, System.Threading.CancellationToken lifetime = default(System.Threading.CancellationToken)) -> void
 static SharpRail.Plugins.UI.Kit.MenuFill.Open(Avalonia.Controls.ContextMenu! menu, Avalonia.Controls.Control! target) -> void
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Svg.get -> string?
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Svg.init -> void

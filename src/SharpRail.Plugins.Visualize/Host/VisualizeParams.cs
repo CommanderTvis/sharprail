@@ -5,7 +5,8 @@ namespace SharpRail.Plugins.Visualize.Host;
 public enum VisualizationType
 {
     Diagram,
-    Comparison
+    Comparison,
+    Svg
 }
 
 public sealed record ComparisonOption([property: Description("Short label for this option.")] string Name)
@@ -24,17 +25,25 @@ public sealed record ComparisonOption([property: Description("Short label for th
 
     [Description("Optional raw mermaid diagram illustrating this option.")]
     public string? Mermaid { get; init; }
+
+    [Description("Optional hand-written SVG illustrating this option, under the same rules as type='svg'; ignored when `mermaid` is set.")]
+    public string? Svg { get; init; }
 }
 
 /// <summary>The visualize tool's arguments, the schema ThinkRail's pi visualize extension shares.</summary>
 public sealed record VisualizeParams(
-    [property: Description("Which visualization to render. 'diagram' needs `mermaid`; 'comparison' needs `options`.")] VisualizationType Type)
+    [property: Description("Which visualization to render. 'diagram' needs `mermaid`; 'comparison' needs `options`; 'svg' needs `svg`.")] VisualizationType Type)
 {
     [Description("Optional heading shown above the visualization.")]
     public string? Title { get; init; }
 
     [Description("Required when type='diagram'. Raw mermaid source of any kind (flowchart, sequenceDiagram, classDiagram, stateDiagram, erDiagram, gantt, …).")]
     public string? Mermaid { get; init; }
+
+    [Description("Required when type='svg'. A complete hand-written <svg> document (xmlns optional), at most 2 MB and 10000 elements. " +
+        "No <script>, on* handlers, <foreignObject>, animation, DTDs or external references: href/xlink:href only to #id or data: PNG/JPEG/GIF/WebP/BMP images, url() only to #id. " +
+        "Colours follow the pane's theme: currentColor and var(--fg) are the foreground, var(--bg) the background, var(--accent), var(--muted) and var(--border) the accent, muted text and border colours.")]
+    public string? Svg { get; init; }
 
     [Description("Required when type='comparison'. The alternatives being compared.")]
     public IReadOnlyList<ComparisonOption>? Options { get; init; }
@@ -44,6 +53,8 @@ public sealed record VisualizeParams(
     {
         VisualizationType.Diagram when string.IsNullOrWhiteSpace(Mermaid) =>
             "visualize: `mermaid` is required and must be a non-empty string when type is \"diagram\".",
+        VisualizationType.Svg when string.IsNullOrWhiteSpace(Svg) =>
+            "visualize: `svg` is required and must be a non-empty string when type is \"svg\".",
         VisualizationType.Comparison when Options is not { Count: > 0 } =>
             "visualize: `options` is required and must be a non-empty array when type is \"comparison\".",
         VisualizationType.Comparison => Options!.Select((option, index) => (option, index))

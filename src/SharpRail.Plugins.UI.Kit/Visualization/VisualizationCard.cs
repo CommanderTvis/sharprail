@@ -6,7 +6,7 @@ using Avalonia.VisualTree;
 
 namespace SharpRail.Plugins.UI.Kit.Visualization;
 
-/// <summary>Renders a visualize tool's diagram or comparison arguments and reports the renderer's verdict.</summary>
+/// <summary>Renders a visualize tool's diagram, SVG or comparison arguments and reports the renderer's verdict.</summary>
 public static class VisualizationCard
 {
     /// <summary>Creates a drawing; interactive diagrams fill their pane with pan and zoom controls.</summary>
@@ -40,10 +40,11 @@ internal sealed partial class DiagramView : DockPanel
         var heading = this.FindControl<TextBlock>("Heading")!;
         heading.Text = VisualizationArgs.String(args, "title");
         heading.IsVisible = !interactive && heading.Text.Length > 0;
-        var source = VisualizationArgs.String(args, "mermaid");
+        var svg = VisualizationArgs.String(args, "type") == "svg";
+        var source = VisualizationArgs.String(args, svg ? "svg" : "mermaid");
         this.FindControl<ContentControl>("Drawing")!.Content = source.Length == 0
             ? new VisualizationCardFrame(null, false, "(no diagram)")
-            : new MermaidView(source, interactive, onRender);
+            : svg ? MermaidView.FromSvg(source, interactive, onRender) : new MermaidView(source, interactive, onRender);
     }
 }
 

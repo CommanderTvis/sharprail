@@ -8,7 +8,7 @@ public sealed class VisualizeHost : PluginHostModule
     internal VisualizationStore Store { get; } = new();
 
     /// <summary>The list item about <c>visualize</c> in the instructions agent plugins give sessions (H20).</summary>
-    internal const string Guidance = "`visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view; `visualize_read` returns what it shows and what the user selected.";
+    internal const string Guidance = "`visualize`: Mermaid diagrams, hand-written SVG (theme colours via currentColor/var(--fg|--bg|--accent)) or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view; `visualize_read` returns what it shows and what the user selected.";
 
     public override PluginContract Contract => VisualizeContract.Contract;
 
