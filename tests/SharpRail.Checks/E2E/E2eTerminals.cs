@@ -95,8 +95,9 @@ internal sealed class E2eTerminals(ITerminalService? inner = null, ITerminalCata
     }
 }
 
-internal sealed partial class HostTerminal : ITerminalBackend
+internal sealed partial class HostTerminal : ITerminalBackend, SharpRail.UI.Terminal.ITerminalOutput
 {
+    public event Action? Output;
     private readonly ITerminalService service;
     private readonly TerminalLaunch launch;
     private readonly StringBuilder text = new();
@@ -151,7 +152,7 @@ internal sealed partial class HostTerminal : ITerminalBackend
     {
         if (chunk.IsEmpty) return;
         var decoded = Encoding.UTF8.GetString(chunk.Span);
-        Dispatcher.UIThread.Post(() => { text.Append(Plain(decoded)); screen.Text = text.ToString(); });
+        Dispatcher.UIThread.Post(() => { text.Append(Plain(decoded)); screen.Text = text.ToString(); Output?.Invoke(); });
     }
 
     // Removes control sequences so assertions read the screen's text.

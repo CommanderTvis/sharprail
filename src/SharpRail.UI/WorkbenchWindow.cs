@@ -486,6 +486,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         return text;
     }
 
+    /// <summary>Something new happened in a tab: a phone marks it on a tab group's chip while another member shows.</summary>
+    internal void NoteTabActivity(string workspace, string tabId)
+    {
+        if (workspace == workspaceRoot && WorkspaceMounted && !atHome) surface.NoteActivity(tabId);
+    }
+
     private Control RenderContent(DockTab? tab)
     {
         if (switchingWorkspace && tab is { IsTool: true } && toolContent.TryGetValue(tab.Id, out var retained)) return retained;
@@ -549,6 +555,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             if (!TerminalMayAttach(workspaceRoot, tab.Id)) return Ui.Text("Loading terminal…");
             var terminal = new Terminal.TerminalView(terminals, LaunchTerminal(workspaceRoot, tab.Id)) { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
             documentContent[key] = terminal;
+            var workspace = workspaceRoot;
+            terminal.Output += () => NoteTabActivity(workspace, tab.Id);
             AttachPluginTerminal(terminal);
             if (terminalCommands.Remove(key, out var command)) _ = TypeWhenStartedAsync(terminal, command);
             return terminal;

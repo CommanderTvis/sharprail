@@ -134,6 +134,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     }
 
     public ITerminalBackend? Backend { get; private set; }
+    /// <summary>Raised on the UI thread when the shell printed something, where the renderer tells.</summary>
+    internal event Action? Output;
     public string SessionId => launch.SessionId;
     public TerminalLaunch Launch => launch;
     /// <summary>Plugin accessory rows shown below the surface.</summary>
@@ -219,6 +221,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
         {
             backend = factory(takeOver ? launch with { Yield = false } : watch ? launch with { Yield = true, Watch = true } : launch);
             Backend = backend;
+            if (backend is ITerminalOutput printing) printing.Output += () => { if (ReferenceEquals(Backend, backend)) Output?.Invoke(); };
             Action? updateHint = null;
             if (backend is ITerminalResumeHint source)
             {

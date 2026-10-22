@@ -348,6 +348,7 @@ public sealed partial class WorkbenchWindow
         var key = companionHost.WorkspaceId + "\n" + companionHost.TabKey;
         slot.Companions[key] = pluginId + ":" + kind;
         SaveProfile();
+        NoteTabActivity(companionHost.WorkspaceId, companionHost.TabKey);
         if (documentContent.GetValueOrDefault(companionHost.WorkspaceId + ":" + companionHost.TabKey) is Terminal.TerminalView terminal)
         {
             AttachPluginTerminal(terminal);

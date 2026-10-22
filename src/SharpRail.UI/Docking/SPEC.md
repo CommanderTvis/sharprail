@@ -417,6 +417,17 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
   turns it round when it goes back, and otherwise starts from the page most on screen.
   Settings is the page after Tools but a window of its own, so nothing is dragged: a sweep past Tools opens it
   when the finger lifts, and a sweep back over it closes it.
+- A tab group (pane) on the current page shows one member over the whole centre under a strip of chips
+  (`PhonePaneView`), one per member by tab title, the shown one lit. Tapping a chip, or a finger travelling
+  sideways over the member, brings another member in with the pages' slide (`PageSlide`, held under the finger,
+  260 ms cubic ease-out on release, kept past a third or on a flick); a drag with no member that way is the
+  pages' drag as before. Which member shows is the phone's own (`DockPhonePanes.cs`): the shared members,
+  direction, weights and group selection are not changed or sent, the phone follows the group's selection only
+  when it changes, and only the shown member's content is in the tree, so a hidden terminal is neither attached
+  again nor resized by the phone and a watched one stays watched. `DockSurface.NoteActivity` marks a hidden
+  member's chip with a dot for new terminal output (renderers implementing `ITerminalOutput`; a member never shown
+  on this phone has no view to print), an agent's attention request or a Visualize revision for that tab; showing
+  the member clears it. Panes exist only in the centre, so the Tools page has no chips; ungrouped tabs are unchanged.
 - A touch workbench (`Workbench.Touch`) always draws a tab's close button, which a pointer's hover reveals
   elsewhere.
 - Settings in a compact workbench opens on a list of its sections with a line about each; choosing one
@@ -425,7 +436,9 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
   when another item is chosen.
 
 `DrawerChecks` (in `-- --shell`, and alone in `-- --drawers`) covers this headlessly, including control and
-focus persistence, finger-following, revert, interruption, Projects to Tools and hit-testing of hidden pages. Dragging tabs between regions is not offered here.
+focus persistence, finger-following, revert, interruption, Projects to Tools and hit-testing of hidden pages;
+`DrawerChecks.TabGroups` covers a three-member group's chips, chip and swipe switching, the untouched shared layout,
+hidden terminals and the activity dot. Dragging tabs between regions is not offered here.
 
 Core includes the Code Intelligence tool (`lsp`, right by default), restored and moved through the same tool catalog
 and persisted frame as Files and Review. Existing presets retain their current selected tools.

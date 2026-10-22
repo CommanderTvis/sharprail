@@ -19,9 +19,10 @@ public sealed partial class DockSurface
 
     private bool TryRefreshPane(Border body, DockGroup group, DockTab selected)
     {
-        if (group.Region != "center" || Session.PaneFor(group.Id, selected.Id) is not { } pane ||
-            body.Child is not Grid grid || !Equals(grid.Tag, (pane.Id, pane.Direction))) return false;
+        if (group.Region != "center" || Session.PaneFor(group.Id, selected.Id) is not { } pane) return false;
         var members = pane.TabIds.Select(id => Session.Tabs(group.Id).FirstOrDefault(tab => tab.Id == id)).OfType<DockTab>().ToArray();
+        if (Drawers) return members.Length >= DockPane.MinMembers && TryRefreshPhonePane(body, group, pane, members, selected);
+        if (body.Child is not Grid grid || !Equals(grid.Tag, (pane.Id, pane.Direction))) return false;
         var hosts = grid.Children.OfType<Border>().Where(host => host.Name == "PaneMember").ToArray();
         if (!hosts.Select(host => host.Tag).SequenceEqual(members.Select(member => (object?)member.Id))) return false;
         for (var index = 0; index < members.Length; index++)

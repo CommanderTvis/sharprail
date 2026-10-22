@@ -532,6 +532,8 @@ public sealed partial class DockSurface
         if (group.Region != "center" || Session.PaneFor(group.Id, selected.Id) is not { } pane) return Adopt(renderContent(selected));
         var members = pane.TabIds.Select(id => Session.Tabs(group.Id).FirstOrDefault(tab => tab.Id == id)).OfType<DockTab>().ToArray();
         if (members.Length < DockPane.MinMembers) return Adopt(renderContent(selected));
+        // A phone shows one member under chips naming them all; the columns or rows wait for a wider screen.
+        if (Drawers) return PhonePane(group, pane, members, selected);
         var columns = pane.Direction == "horizontal";
         var grid = new Grid { Name = "TabPane_" + group.Id, Tag = (pane.Id, pane.Direction) };
         var definitions = string.Join(",", members.Select((_, index) => $"{pane.Weights.ElementAtOrDefault(index) * 1000}*"));
@@ -580,7 +582,7 @@ public sealed partial class DockSurface
     }
 
     // Document controls are cached per tab, so one may still sit in a pane member it was last shown in.
-    private static Control Adopt(Control content)
+    internal static Control Adopt(Control content)
     {
         switch (content.Parent)
         {

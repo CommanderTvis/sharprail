@@ -2,6 +2,13 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.UI.Terminal;
 
+/// <summary>A renderer that tells when the shell printed something, so a hidden tab can show it has news.</summary>
+internal interface ITerminalOutput
+{
+    /// <summary>Raised on the UI thread after output reached the screen.</summary>
+    event Action? Output;
+}
+
 internal interface ITerminalResumeHint
 {
     TerminalResumeHint ResumeHint { get; }

@@ -16,8 +16,9 @@ namespace SharpRail.UI.Terminal;
 // The Skia renderer: libghostty-vt in the app, attached straight to the host session without a relay. It is
 // also every renderer's view of a terminal another client holds: the holder's grid at its real size, scrolled
 // from the top-left when the pane is smaller, taking no input and answering no terminal query.
-internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHint
+internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHint, ITerminalOutput
 {
+    public event Action? Output;
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource arranged = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -186,6 +187,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
                             bytes += item.Data.Length;
                             if (bytes >= 256 * 1024 || Stopwatch.GetElapsedTime(started).TotalMilliseconds >= 2) break;
                         }
+                        if (received) Output?.Invoke();
                     }, DispatcherPriority.Background);
                     if (prefill is not null && received && !Watching)
                     {

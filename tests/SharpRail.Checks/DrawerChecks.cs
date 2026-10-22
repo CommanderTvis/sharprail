@@ -326,6 +326,110 @@ internal static class DrawerChecks
         Console.WriteLine("PASS phone page hosts: pages keep their controls and focus, follow the finger, survive interruptions and hide off screen");
     }
 
+    // A tab group on a phone: one member over the centre, chips to choose it, a sideways drag between members. The
+    // choice is the phone's own: the shared layout and selection stay as they were, and hidden terminals stay put.
+    internal static void TabGroups(string root)
+    {
+        var directory = Path.Combine(root, "drawer-tab-groups");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
+        E2E.IsolatedGit.Run(directory, "init", "-q", "-b", "main");
+        var terminals = new E2E.E2eTerminals();
+        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), terminals.Factory, compact: true);
+        window.Width = 400; window.Height = 800;
+        window.Show();
+        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "review"), "The compact Git workspace did not mount.");
+        var layout = window.Layout;
+        var surface = Named<SharpRail.UI.Docking.DockSurface>(window, "WorkspaceWorkbench");
+        var group = layout.State.Center.Leaves().First();
+        layout.NewTerminal(group);
+        var first = layout.Selected(group)!.Id;
+        _ = window.OpenDocumentAsync("notes.txt", keep: true);
+        Pump(() => layout.Tabs(group).Any(tab => tab.Kind != "terminal"), "The document did not open.");
+        var notes = layout.Tabs(group).First(tab => tab.Kind != "terminal").Id;
+        layout.NewTerminal(group);
+        var second = layout.Selected(group)!.Id;
+        Require(layout.GroupTabs(group, notes, first, "horizontal") && layout.GroupTabs(group, second, notes, "horizontal") &&
+            layout.PaneFor(group, first) is { TabIds.Count: 3 }, "The three tabs must make one group.");
+        layout.Select(group, first);
+        Pump(() => surface.PhonePanes.ContainsKey(group) && surface.PhonePanes[group].Shown == first, "A phone must show the group as one member under chips.");
+        var pane = surface.PhonePanes[group];
+        var weights = layout.PaneFor(group, first)!.Weights.ToArray();
+        Button[] Chips() => [.. pane.GetLogicalDescendants().OfType<Button>().Where(chip => chip.Name == "PaneChip")];
+        Border[] Hosts() => [.. pane.GetLogicalDescendants().OfType<Border>().Where(host => host.Name == "PaneMemberHost")];
+        Control? Terminal(string id) => pane.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().FirstOrDefault(view => view.Name == "TerminalSurface_" + id.Replace(':', '_'));
+        bool Dot(string id) => Chips().Single(chip => Equals(chip.Tag, id)).Content is StackPanel { Children: [_, Avalonia.Controls.Shapes.Ellipse dot] } && dot.IsVisible;
+        void Frames(int count) { for (var frame = 0; frame < count; frame++) { AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); Thread.Sleep(16); } }
+        void Shows(string id, string message) => Pump(() => pane.Shown == id && Hosts().Length == 1 && Equals(Hosts()[0].Tag, id), message);
+        Require(Chips().Length == 3 && Chips().Select(chip => chip.Tag).SequenceEqual([first, notes, second]) && Hosts().Length == 1 &&
+            Chips().Single(chip => chip.Classes.Contains("selected")).Tag as string == first && Terminal(first) is not null,
+            "A group of three must show one member and three chips, the shown one lit.");
+        Pump(() => terminals.Views.Count == 1 && terminals.Views[0].Text.Length > 0, "The shown terminal did not start.");
+        var firstView = Terminal(first)!;
+
+        // What the host keeps for the group: its tabs, its selection and the group's members, direction and weights.
+        string Shared() => System.Text.Json.JsonSerializer.Serialize(new
+        {
+            Tabs = layout.Tabs(group).Select(tab => tab.Id),
+            Selected = layout.Selected(group)?.Id,
+            Panes = layout.View.Panes.GetValueOrDefault(group)
+        });
+        var shared = Shared();
+        Click(Chips().Single(chip => Equals(chip.Tag, second)));
+        Shows(second, "Tapping a chip must show that member alone.");
+        Require(Terminal(first) is null && Terminal(second) is not null, "Only the shown member's content may stay in the tree.");
+        Pump(() => terminals.Views.Count == 2, "The second terminal did not start once shown.");
+        var attaches = terminals.Attaches.Count;
+        var secondView = Terminal(second);
+
+        // A finger dragging sideways over the member moves to its neighbour, and a short drag goes back.
+        var width = window.Bounds.Width;
+        var y = window.Bounds.Height / 2;
+        void Drag(double from, double to)
+        {
+            var touch = window.TouchBegin(new(from, y), RawInputModifiers.None);
+            for (var step = 1; step <= 5; step++) { window.TouchMove(touch, new(from + (to - from) * step / 5, y), RawInputModifiers.None); Frames(1); }
+            using (var wait = new CancellationTokenSource(400)) Dispatcher.UIThread.MainLoop(wait.Token);
+            window.TouchEnd(touch, new(to, y), RawInputModifiers.None);
+        }
+        Drag(width * 0.4, width * 0.6);
+        Shows(second, "A member dragged a short way must go back.");
+        Drag(width * 0.2, width * 0.8);
+        Shows(notes, "A drag to the right must bring the previous member in.");
+        Require(!layout.State.LeftVisible && !layout.State.RightVisible, "A drag over the group must stay on the current page while a member lies that way.");
+        Drag(width * 0.8, width * 0.2);
+        Shows(second, "A drag to the left must bring the next member in.");
+        Require(Shared() == shared, "Chips and member drags must leave the shared layout alone.");
+        // Past the last member the drag is the page's again.
+        Drag(width * 0.8, width * 0.2);
+        Pump(() => layout.State.RightVisible, "A drag past the last member must go on to Tools.");
+        Click(Named<Button>(window, "PageCurrent"));
+        Pump(() => !layout.State.RightVisible && !surface.PageSliding, "The current page must come back.");
+        Require(Shared() == shared && layout.Selected(group)!.Id == first && layout.PaneFor(group, first) is { } kept &&
+            kept.TabIds.SequenceEqual([first, notes, second]) && kept.Weights.SequenceEqual(weights),
+            "Switching members on a phone must leave the shared layout and selection alone.");
+        Require(terminals.Attaches.Count == attaches && ReferenceEquals(Terminal(second), secondView) && Terminal(first) is null && terminals.Views.Count == 2,
+            "Hidden terminal members must not attach again or be replaced.");
+
+        // News in a hidden member lights its chip; showing it puts the light out.
+        Require(!Dot(first), "No member may start marked.");
+        ((SharpRail.UI.Terminal.TerminalView)firstView).Write("echo phone-chip-activity\r");
+        Pump(() => Dot(first), "Output in a hidden member must mark its chip.");
+        Require(!Dot(second) && !Dot(notes), "Only the member with news may be marked.");
+        surface.NoteActivity(second);
+        Require(!Dot(second), "The member on screen is never marked.");
+        Click(Chips().Single(chip => Equals(chip.Tag, first)));
+        Shows(first, "The marked member must show when chosen.");
+        Require(!Dot(first) && ReferenceEquals(Terminal(first), firstView), "Showing a member must clear its mark and keep its terminal.");
+        Require(Shared() == shared, "Chips must never change the shared layout.");
+
+        // A selection made elsewhere (Projects, another client) is followed.
+        layout.Select(group, notes);
+        Pump(() => surface.PhonePanes[group].Shown == notes, "A new selection in the group must show that member.");
+        window.Close();
+        Console.WriteLine("PASS phone tab groups: one member under chips, chip and swipe switching, local choice, activity marks");
+    }
+
     private static bool IsHitTestVisibleAt(this Border host, InputElement window, Point point) =>
         host.IsEffectivelyVisible && window.InputHitTest(point) is Visual hit && host.IsVisualAncestorOf(hit);
 }

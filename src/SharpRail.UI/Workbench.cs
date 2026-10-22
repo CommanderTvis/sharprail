@@ -165,6 +165,7 @@ public sealed class Workbench : IDisposable
     /// <summary>Queues a desktop notification for a terminal that needs the user; shown only while the app is away.</summary>
     internal void RequestAttention(AttentionNotification notification)
     {
+        foreach (var window in windows) window.NoteTabActivity(notification.WorkspaceId, notification.TabKey);
         // A result the user is not looking at leaves its workspace unread for every window and client (ThinkRail #770).
         if (!windows.Any(window => window.IsActive && window.ShowsWorkspace(notification.WorkspaceId)))
             _ = MarkUnreadAsync(notification.WorkspaceId, notification.Reason is "blocked" or "failed" ? notification.Reason : "done");

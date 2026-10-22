@@ -676,6 +676,7 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             DrawerChecks.Run(root);
             DrawerChecks.Pages(root);
+            DrawerChecks.TabGroups(root);
             return;
         }
         if (args.SequenceEqual(["--settings-touch"]))

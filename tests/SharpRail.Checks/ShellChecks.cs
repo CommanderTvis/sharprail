@@ -38,6 +38,7 @@ internal static class ShellChecks
         InertLinks(Path.Combine(root, "shell-inert-links"));
         DrawerChecks.Run(root);
         DrawerChecks.Pages(root);
+        DrawerChecks.TabGroups(root);
     }
 
     private static void ProjectPicker(string directory)

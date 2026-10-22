@@ -140,7 +140,7 @@ public sealed partial class DockSurface : Grid
         CancelDrag();
         foreach (var host in contentHosts) host.Child = null;
         contentHosts.Clear(); builtGroups.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear();
-        activeTabUpdates.Clear();
+        activeTabUpdates.Clear(); phonePanes.Clear();
         modifiedUpdates.Clear(); catalogUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
         renderedMode = CenterTabs?.Invoke();
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())

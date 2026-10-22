@@ -96,25 +96,44 @@ public sealed partial class WorkbenchWindow
     // A touch that started out vertical belongs to what is under it.
     private void WirePageSwipes()
     {
-        (IPointer Pointer, Point Start, long At)? touch = null;
+        (IPointer Pointer, Point Start, long At, Visual? Source)? touch = null;
         (int From, int Sign)? drag = null;
+        // On the current page a sideways drag over a tab group's member moves between its members first.
+        (Docking.PhonePaneView View, int Sign)? member = null;
         var pastTools = false;
         static string? Region(int page) => page < 0 ? "left" : page > 0 ? "right" : null;
         AddHandler(PointerPressedEvent, (_, e) =>
         {
             // A drag whose touch the system took away never lifted: it ends where it was going.
             if (drag is not null) { drag = null; surface.ReleasePage(true, () => { }); }
-            touch = e.Pointer.Type == PointerType.Touch && openSettings is null ? (e.Pointer, e.GetPosition(this), Environment.TickCount64) : null;
+            if (member is { } lost) { member = null; lost.View.Release(true); }
+            touch = e.Pointer.Type == PointerType.Touch && openSettings is null ? (e.Pointer, e.GetPosition(this), Environment.TickCount64, e.Source as Visual) : null;
             pastTools = false;
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerMovedEvent, (_, e) =>
         {
             if (touch is not { } start || start.Pointer != e.Pointer) return;
             var moved = e.GetPosition(this) - start.Start;
-            if (drag is null)
+            if (drag is null && member is null)
             {
                 if (Math.Abs(moved.Y) > 24 && Math.Abs(moved.Y) > Math.Abs(moved.X)) { touch = null; return; }
                 if (Math.Abs(moved.X) < 20 || Math.Abs(moved.X) < 2 * Math.Abs(moved.Y)) return;
+                var page = Layout.State.LeftVisible ? -1 : Layout.State.RightVisible ? 1 : 0;
+                if (page == 0 && surface.MemberSwipe(start.Source, -Math.Sign(moved.X)) is { } pane)
+                {
+                    member = (pane, Math.Sign(moved.X));
+                    pane.Hold(-Math.Sign(moved.X));
+                }
+            }
+            if (member is { } held)
+            {
+                held.View.Drag(moved.X);
+                e.PreventGestureRecognition();
+                e.Handled = true;
+                return;
+            }
+            if (drag is null)
+            {
                 var page = Layout.State.LeftVisible ? -1 : Layout.State.RightVisible ? 1 : 0;
                 var next = Math.Clamp(page - Math.Sign(moved.X), -1, 1);
                 // Settings lies past Tools, but in a window of its own: nothing to drag in, so the lift opens it.
@@ -131,6 +150,14 @@ public sealed partial class WorkbenchWindow
         {
             if (touch is not { } start || start.Pointer != e.Pointer) return;
             touch = null;
+            if (member is { } swiped)
+            {
+                member = null;
+                var across = (e.GetPosition(this).X - start.Start.X) * swiped.Sign;
+                swiped.View.Release(across > Bounds.Width / 3 || across > 48 && Environment.TickCount64 - start.At < 350);
+                e.Handled = true;
+                return;
+            }
             if (pastTools && drag is null)
             {
                 var swept = e.GetPosition(this) - start.Start;

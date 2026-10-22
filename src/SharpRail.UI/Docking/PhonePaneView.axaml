@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.UI.Docking.PhonePaneView"
+             Name="PhonePane" FontFamily="{x:Static rendering:Ui.InterfaceFont}">
+  <UserControl.Styles>
+    <Style Selector="Button.PaneChip">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.BorderBrush}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.Muted}" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.PaneChip.selected">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Selected}" />
+      <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.Accent}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
+    </Style>
+    <Style Selector="Ellipse.PaneChipDot">
+      <Setter Property="Width" Value="6" />
+      <Setter Property="Height" Value="6" />
+      <Setter Property="Fill" Value="{x:Static rendering:Ui.Accent}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,*">
+    <Border Name="PaneChipBar" Background="{x:Static rendering:Ui.Elevated}"
+            BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1">
+      <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+        <StackPanel Name="PaneChips" Orientation="Horizontal" Spacing="6" Margin="8,6" />
+      </ScrollViewer>
+    </Border>
+    <Panel Name="PaneMembers" Grid.Row="1" ClipToBounds="True" />
+  </Grid>
+</UserControl>
