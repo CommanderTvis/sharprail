@@ -9,3 +9,7 @@ export fn gav_ghostty_prompt_click(surface: *Surface, x: f64, y: f64) bool {
     const pixels = surface.cursorPosToPixels(.{ .x = @floatCast(x), .y = @floatCast(y) }) catch return false;
     return surface.core_surface.promptClickMove(pixels);
 }
+
+export fn gav_ghostty_failed_rows(surface: *Surface, rows: [*]u16, capacity: usize) usize {
+    return surface.core_surface.failedCommandRows(rows[0..capacity]);
+}

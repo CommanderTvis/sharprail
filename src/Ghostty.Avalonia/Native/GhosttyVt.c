@@ -69,6 +69,8 @@ typedef struct {
     const uint32_t *text;
 } gav_vt_frame;
 
+#define GAV_FAILED_COMMANDS 256
+
 typedef struct {
     GhosttyTerminal terminal;
     GhosttyRenderState render;
@@ -90,6 +92,10 @@ typedef struct {
     size_t text_capacity;
     bool option_as_alt;
     bool triple_output;
+    // OSC 133: the command line being typed, the command running, and the command lines of commands that failed.
+    GhosttyTrackedGridRef input_line, running_line;
+    GhosttyTrackedGridRef failed[GAV_FAILED_COMMANDS];
+    size_t failed_count;
 } gav_vt;
 
 static uint32_t argb(GhosttyColorRgb color) { return 0xFF000000u | (uint32_t)color.r << 16 | (uint32_t)color.g << 8 | color.b; }
@@ -108,8 +114,60 @@ static void write_pty(GhosttyTerminal terminal, void *userdata, const uint8_t *d
     if (vt->write && len) vt->write(vt->context, data, len);
 }
 
+static void untrack(GhosttyTrackedGridRef *ref) {
+    if (*ref) ghostty_tracked_grid_ref_free(*ref);
+    *ref = NULL;
+}
+
+// Failed commands are badged on their command line, which a tracked reference follows through scrolling and reflow.
+static void on_semantic_prompt(GhosttyTerminal terminal, void *userdata, const GhosttyTerminalSemanticPrompt *event) {
+    gav_vt *vt = userdata;
+    switch (event->kind) {
+        case GHOSTTY_SEMANTIC_PROMPT_INPUT_START: {
+            uint16_t row = 0;
+            untrack(&vt->input_line);
+            ghostty_terminal_get(terminal, GHOSTTY_TERMINAL_DATA_CURSOR_Y, &row);
+            GhosttyPoint point = { .tag = GHOSTTY_POINT_TAG_ACTIVE, .value = { .coordinate = { .x = 0, .y = row } } };
+            if (ghostty_terminal_grid_ref_track(terminal, point, &vt->input_line) != GHOSTTY_SUCCESS) vt->input_line = NULL;
+            break;
+        }
+        case GHOSTTY_SEMANTIC_PROMPT_OUTPUT_START:
+            untrack(&vt->running_line);
+            vt->running_line = vt->input_line;
+            vt->input_line = NULL;
+            break;
+        case GHOSTTY_SEMANTIC_PROMPT_COMMAND_END:
+            if (vt->running_line && event->has_exit_code && event->exit_code != 0) {
+                if (vt->failed_count == GAV_FAILED_COMMANDS) {
+                    untrack(&vt->failed[0]);
+                    memmove(vt->failed, vt->failed + 1, (GAV_FAILED_COMMANDS - 1) * sizeof *vt->failed);
+                    vt->failed_count--;
+                }
+                vt->failed[vt->failed_count++] = vt->running_line;
+                vt->running_line = NULL;
+            }
+            untrack(&vt->running_line);
+            break;
+        default:
+            break;
+    }
+}
+
+// The viewport rows that hold the command line of a command that exited non-zero.
+GAV_API size_t gav_vt_failed_rows(gav_vt *vt, uint16_t *rows, size_t capacity) {
+    size_t count = 0;
+    for (size_t i = 0; i < vt->failed_count && count < capacity; i++) {
+        GhosttyPointCoordinate point = { 0 };
+        if (ghostty_tracked_grid_ref_point(vt->failed[i], GHOSTTY_POINT_TAG_VIEWPORT, &point) == GHOSTTY_SUCCESS) rows[count++] = (uint16_t)point.y;
+    }
+    return count;
+}
+
 GAV_API void gav_vt_free(gav_vt *vt) {
     if (!vt) return;
+    untrack(&vt->input_line);
+    untrack(&vt->running_line);
+    for (size_t i = 0; i < vt->failed_count; i++) untrack(&vt->failed[i]);
     for (int i = 0; i < 3; i++) if (vt->gesture_events[i]) ghostty_selection_gesture_event_free(vt->gesture_events[i]);
     if (vt->gesture) ghostty_selection_gesture_free(vt->gesture, vt->terminal);
     if (vt->mouse_event) ghostty_mouse_event_free(vt->mouse_event);
@@ -146,6 +204,7 @@ GAV_API gav_vt *gav_vt_new(uint16_t columns, uint16_t rows, size_t scrollback_li
     if (!ok) { gav_vt_free(vt); return NULL; }
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_USERDATA, vt);
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_WRITE_PTY, (const void *)write_pty);
+    ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_SEMANTIC_PROMPT, (const void *)on_semantic_prompt);
 #ifdef __APPLE__
     gav_vt_install_clipboard(vt->terminal);
 #endif

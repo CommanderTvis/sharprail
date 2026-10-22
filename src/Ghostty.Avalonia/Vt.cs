@@ -102,6 +102,14 @@ internal sealed unsafe class Vt : IDisposable
         fixed (byte* output = scratch) return scratch.AsSpan(0, (int)gav_vt_prompt_click(handle, x, y, output, (nuint)scratch.Length));
     }
 
+    private readonly ushort[] failedRows = new ushort[256];
+
+    // Viewport rows whose command exited non-zero.
+    internal ReadOnlySpan<ushort> FailedRows()
+    {
+        fixed (ushort* rows = failedRows) return failedRows.AsSpan(0, (int)gav_vt_failed_rows(handle, rows, (nuint)failedRows.Length));
+    }
+
     internal bool TripleClickSelectsOutput { set => gav_vt_set_triple_output(handle, value); }
 
     // The command output at a grid pixel, or null when the point is in none.
@@ -208,6 +216,7 @@ internal sealed unsafe class Vt : IDisposable
     [DllImport(Library)] private static extern void gav_vt_select(nint vt, int kind, double x, double y, ulong nanoseconds);
     [DllImport(Library)] private static extern void gav_vt_select_all(nint vt);
     [DllImport(Library)][return: MarshalAs(UnmanagedType.I1)] private static extern bool gav_vt_jump_to_prompt(nint vt, int delta);
+    [DllImport(Library)] private static extern nuint gav_vt_failed_rows(nint vt, ushort* rows, nuint capacity);
     [DllImport(Library)] private static extern nuint gav_vt_prompt_click(nint vt, double x, double y, byte* output, nuint capacity);
     [DllImport(Library)] private static extern void gav_vt_set_triple_output(nint vt, [MarshalAs(UnmanagedType.I1)] bool value);
     [DllImport(Library)] private static extern long gav_vt_command_output(nint vt, double x, double y, byte* output, nuint capacity);

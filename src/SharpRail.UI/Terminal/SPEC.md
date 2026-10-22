@@ -510,6 +510,14 @@ own terminal state keeps, so local and remote terminals behave alike.
   stops). Both views expose `ClickToMoveCursor`. A Skia release now ends the selection gesture before releasing the
   pointer capture, which had reset it first.
 
+- Failed commands: a command whose OSC 133 D carries a non-zero exit code gets a small badge (the theme's ANSI red,
+  3 px) in the left gutter beside its command line, which follows it as it scrolls; successful and unreported exits get
+  none. Skia tracks the command line with a libghostty-vt tracked grid reference from B through D
+  (`gav_vt_failed_rows`); Metal's Ghostty 1.2.3 ignored D, so `CommandEnd.patch` marks the row (`Row.command_failed`)
+  and `gav_ghostty_failed_rows` reports the visible ones on each frame notification, drawn as an overlay in the gutter
+  (it can trail the text by a frame, never covering a glyph). There is no scrollbar mark yet. Both views expose
+  `FailedCommandRows`; the checks cover both.
+
 ## Working directory of new terminals
 
 A terminal opened from another (New terminal in its group, or a pane below) starts where that terminal's shell last

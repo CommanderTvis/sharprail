@@ -86,3 +86,21 @@ pub fn promptClickMove(self: *Surface, pos: apprt.CursorPos) bool {
     for (0..count) |_| self.io.queueMessage(.{ .write_stable = arrow }, .locked);
     return true;
 }
+
+// The viewport rows holding the command line of a command that exited non-zero (CommandEnd.patch), up to rows.len.
+pub fn failedCommandRows(self: *Surface, rows: []u16) usize {
+    self.renderer_state.mutex.lock();
+    defer self.renderer_state.mutex.unlock();
+    const t = &self.io.terminal;
+    if (t.active_screen != .primary) return 0;
+    var count: usize = 0;
+    var y: usize = 0;
+    while (y < t.rows and count < rows.len) : (y += 1) {
+        const pin = t.screen.pages.pin(.{ .viewport = .{ .x = 0, .y = @intCast(y) } }) orelse break;
+        if (pin.rowAndCell().row.command_failed) {
+            rows[count] = @intCast(y);
+            count += 1;
+        }
+    }
+    return count;
+}

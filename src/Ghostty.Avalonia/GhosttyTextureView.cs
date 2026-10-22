@@ -131,6 +131,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         // The flag stays set until the composition below samples the texture (DrawFrame clears it first).
         highlightDirty = true;
         RefreshFileLink();
+        RefreshFailedCommands();
         inputMethod?.NotifyCursor();
         InvalidateVisual();
     }
@@ -223,6 +224,25 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     {
         // Link underlines are part of Ghostty's frame (see PushUnderlines), never an overlay that could lag the text.
         context.Custom(new TextureOperation(this, new Rect(Bounds.Size)));
+        // Failed-command badges sit in the left gutter, outside the text, so a frame of lag after a scroll moves no glyph.
+        if (failedRows.Length == 0 || Size.Rows <= 0) return;
+        var height = Bounds.Height / Size.Rows;
+        var brush = new SolidColorBrush(Colors.Ansi.Count > 1 ? Colors.Ansi[1] : global::Avalonia.Media.Colors.IndianRed);
+        foreach (var row in failedRows) context.FillRectangle(brush, new Rect(0, row * height + height * 0.15, FailedBadgeWidth, height * 0.7), 1);
+    }
+
+    internal const double FailedBadgeWidth = 3;
+    private int[] failedRows = [];
+    private readonly ushort[] failedBuffer = new ushort[1024];
+
+    /// <summary>Viewport rows whose command exited non-zero (OSC 133 D), badged in the gutter.</summary>
+    public IReadOnlyList<int> FailedCommandRows => failedRows;
+
+    private void RefreshFailedCommands()
+    {
+        var count = (int)Native.FailedRows(terminal.Handle, failedBuffer, (nuint)failedBuffer.Length);
+        if (failedBuffer.AsSpan(0, count).ToArray().Select(row => (int)row).SequenceEqual(failedRows)) return;
+        failedRows = [.. failedBuffer.AsSpan(0, count).ToArray().Select(row => (int)row)];
     }
 
     private sealed class TextureOperation(GhosttyTextureView owner, Rect bounds) : ICustomDrawOperation

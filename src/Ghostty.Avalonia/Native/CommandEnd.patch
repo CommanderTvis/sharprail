@@ -1,0 +1,46 @@
+diff --git a/src/terminal/page.zig b/src/terminal/page.zig
+index ced6eb4..32a7ea8 100644
+--- a/src/terminal/page.zig
++++ b/src/terminal/page.zig
+@@ -1931,7 +1931,10 @@ pub const Row = packed struct(u64) {
+     /// graphics protocol. (U+10EEEE)
+     kitty_virtual_placeholder: bool = false,
+ 
+-    _padding: u23 = 0,
++    /// SharpRail: the command line of a command that exited non-zero (OSC 133 D), badged in the gutter.
++    command_failed: bool = false,
++
++    _padding: u22 = 0,
+ 
+     /// Semantic prompt type.
+     pub const SemanticPrompt = enum(u3) {
+diff --git a/src/termio/stream_handler.zig b/src/termio/stream_handler.zig
+index 25bf295..4e124cd 100644
+--- a/src/termio/stream_handler.zig
++++ b/src/termio/stream_handler.zig
+@@ -1056,6 +1056,25 @@ pub const StreamHandler = struct {
+         self.terminal.markSemanticPrompt(.command);
+     }
+ 
++    /// SharpRail: a command that exited non-zero marks its command line (the input row above its output).
++    pub fn endOfCommand(self: *StreamHandler, exit_code: ?u8) !void {
++        const code = exit_code orelse return;
++        if (code == 0) return;
++        var pin = self.terminal.screen.cursor.page_pin.*;
++        var steps: usize = 0;
++        while (steps < 10_000) : (steps += 1) {
++            pin = pin.up(1) orelse return;
++            const row = pin.rowAndCell().row;
++            switch (row.semantic_prompt) {
++                .input, .prompt => {
++                    row.command_failed = true;
++                    return;
++                },
++                else => {},
++            }
++        }
++    }
++
+     pub fn reportPwd(self: *StreamHandler, url: []const u8) !void {
+         // Special handling for the empty URL. We treat the empty URL
+         // as resetting the pwd as if we never saw a pwd. I can't find any

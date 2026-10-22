@@ -51,6 +51,7 @@ internal static partial class ShellIntegrationChecks
                 SkiaJumps(window, View);
                 SkiaOutput(window, View);
                 SkiaClickToMove(window, View);
+                SkiaBadges(window, View);
             }
             finally
             {
@@ -60,7 +61,7 @@ internal static partial class ShellIntegrationChecks
             }
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
-        Console.WriteLine("PASS shell integration (Skia): Command+Up/Down jumps between real zsh prompts; Command+triple-click and the menu's Copy Output of This Command take exactly one command's output; a click on the input line moves zsh's cursor, and a running command gets no arrows");
+        Console.WriteLine("PASS shell integration (Skia): Command+Up/Down jumps between real zsh prompts; Command+triple-click and the menu's Copy Output of This Command take exactly one command's output; a click on the input line moves zsh's cursor, and a running command gets no arrows; a command that exits non-zero is badged on its command line");
     }
 
     private static void Type(Window window, string command)
@@ -161,5 +162,18 @@ internal static partial class ShellIntegrationChecks
         Until(() => view().ReadViewport(false).TrimEnd().EndsWith('%'), "the prompt after cat");
         Require(!view().ReadScreen().Contains("^[[D", StringComparison.Ordinal) && view().ReadScreen().Contains("\nRUNNING_abc\n", StringComparison.Ordinal),
             "a click while a command runs must send it nothing: " + view().ReadViewport(false));
+    }
+
+    private static void SkiaBadges(Window window, Func<GhosttySkiaView> view)
+    {
+        Type(window, "echo BADGE_OK");
+        Type(window, "(exit 4) && echo BADGE_FAIL_X");
+        Until(() => view().ReadViewport(false).TrimEnd().EndsWith('%') && view().ReadViewport(false).Contains("BADGE_FAIL_X", StringComparison.Ordinal), "the failed command");
+        Until(() => view().FailedCommandRows.Count > 0, "a failed-command badge");
+        var rows = view().ReadViewport(false).Split('\n');
+        var failed = Array.FindLastIndex(rows, line => line.Contains("(exit 4)", StringComparison.Ordinal));
+        var passed = Array.FindLastIndex(rows, line => line.Contains("echo BADGE_OK", StringComparison.Ordinal));
+        Require(view().FailedCommandRows.Contains(failed) && !view().FailedCommandRows.Contains(passed),
+            $"the badge must mark the failed command's line {failed}, not {passed}: [{string.Join(",", view().FailedCommandRows)}]");
     }
 }

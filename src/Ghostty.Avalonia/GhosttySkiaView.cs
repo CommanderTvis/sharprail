@@ -161,6 +161,11 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     public string SelectedText => vt.SelectionText();
     public void SelectAll() { vt.SelectAll(); Redraw(); }
 
+    private int[] failedRows = [];
+
+    /// <summary>Viewport rows whose command exited non-zero (OSC 133 D), badged in the left padding.</summary>
+    public IReadOnlyList<int> FailedCommandRows => failedRows;
+
     /// <summary>Scrolls the previous (negative) or next prompt to the top of the view, as Ghostty's jump_to_prompt does.</summary>
     public bool JumpToPrompt(int delta)
     {
@@ -243,6 +248,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         {
             var frame = last;
             if (snapshotNeeded && !vt.Snapshot(out frame)) return;
+            if (snapshotNeeded) failedRows = [.. vt.FailedRows().ToArray().Select(row => (int)row)];
             UpdateBlink(frame);
             UpdateLinks(frame);
             var invalidate = rowLayout != (cells, colors, Bounds.Size, Padding);
@@ -273,6 +279,13 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
             Frames++;
         }
         context.Custom(new RowOperation(new Rect(Bounds.Size), rows, framebuffer, fontKey.Scale));
+        // Failed-command badges in the left padding, beside the command line of each command that exited non-zero.
+        if (failedRows.Length > 0)
+        {
+            var brush = new SolidColorBrush(colors.Ansi.Count > 1 ? colors.Ansi[1] : global::Avalonia.Media.Colors.IndianRed);
+            foreach (var row in failedRows)
+                context.FillRectangle(brush, new Rect(0, Padding.Top + (row + 0.15) * cells.CellHeight, Math.Min(3, Math.Max(1, Padding.Left - 1)), cells.CellHeight * 0.7), 1);
+        }
     }
 
     private void UpdateBlink(Frame frame)

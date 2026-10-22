@@ -20,6 +20,9 @@ page allocations when recycling them, fixing unbounded memory growth.
 without starting a Ghostty child or transport.
 It appends `src/Ghostty.Avalonia/Native/keyboard-mode.zig` to the embedding runtime, which
 implements the agent newline fallback while preserving negotiated keyboard protocols.
+`src/Ghostty.Avalonia/Native/CommandEnd.patch` marks the command line of a command that
+exited non-zero (OSC 133 D), and `prompt-surface.zig`/`prompts.zig` add prompt features
+(command output, click to move, failed-command rows) to the embedding runtime.
 Its native library is built from https://github.com/ghostty-org/ghostty with
 the Metal renderer; Ghostty's source dependency declarations retain their
 upstream licenses.
@@ -27,6 +30,8 @@ upstream licenses.
 The alternative Skia terminal uses libghostty-vt from the same repository, pinned
 to commit 59c2dc032aba42aa5064bf206cc27286add3e9d8 (MIT). Its C shim and Avalonia
 controls live in src/Ghostty.Avalonia; the Ghostty license is included there.
+Ghostty's shell-integration scripts from that commit ship with the app (ghostty-shell/); the
+zsh and bash scripts derive from Kitty's and are GPLv3, as their headers state, as in Ghostty.
 
 The Skia terminal adapts rendering and output-scheduling designs from
 [RoyalTerminal](https://github.com/royalapplications/RoyalTerminal/tree/b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f),

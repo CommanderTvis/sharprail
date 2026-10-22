@@ -56,7 +56,8 @@ internal static class NativePromptChecks
         await Jumps(terminal);
         await Output(terminal);
         await ClickToMove(window);
-        Console.WriteLine("PASS Metal prompts: Command+Up/Down jumps between OSC 133 prompts; Command+triple-click and Copy Output of This Command take exactly one command's output; a plain click on the input line sends the arrows to it only between OSC 133 B and C");
+        await Badges(window);
+        Console.WriteLine("PASS Metal prompts: Command+Up/Down jumps between OSC 133 prompts; Command+triple-click and Copy Output of This Command take exactly one command's output; a plain click on the input line sends the arrows to it only between OSC 133 B and C; a non-zero 133;D badges its command line");
     }
 
     private static string Top(GhosttyTextureView terminal) => terminal.ReadViewport().Split('\n')[0];
@@ -153,5 +154,18 @@ internal static class NativePromptChecks
         await Task.Delay(100);
         await Click(Cell(terminal, 3, 1));
         Require(!Sent().Contains("\u001b[D", StringComparison.Ordinal), "a full-screen program must get no arrows.");
+    }
+
+    private static async Task Badges(Window window)
+    {
+        using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), ExternalIo: new GhosttyExternalIo()));
+        window.Content = terminal;
+        await terminal.Ready;
+        terminal.FocusTerminal();
+        await Task.Delay(500);
+        terminal.WriteOutput(Encoding.UTF8.GetBytes("\u001b[2J\u001b[H" + Prompt + "true\r\n\u001b]133;C\u0007\u001b]133;D;0\u0007" +
+            Prompt + "false\r\n\u001b]133;C\u0007\u001b]133;D;1\u0007" + Prompt + "echo x\r\n\u001b]133;C\u0007x\r\n\u001b]133;D;0\u0007" + Prompt));
+        await Until(() => terminal.FailedCommandRows.Count > 0, "a failed-command badge");
+        Require(terminal.FailedCommandRows.SequenceEqual([1]), "only the failed command's line (row 1) is badged: [" + string.Join(",", terminal.FailedCommandRows) + "]");
     }
 }
