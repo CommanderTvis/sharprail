@@ -30,7 +30,7 @@
     <Border Name="PaneChipBar" Background="{x:Static rendering:Ui.Elevated}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1">
       <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
-        <StackPanel Name="PaneChips" Orientation="Horizontal" Spacing="6" Margin="8,6" />
+        <StackPanel Name="PaneChips" Orientation="Horizontal" Spacing="8" Margin="8,4" />
       </ScrollViewer>
     </Border>
     <Panel Name="PaneMembers" Grid.Row="1" ClipToBounds="True" />

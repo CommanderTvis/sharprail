@@ -132,7 +132,7 @@ public sealed partial class PhonePaneView : UserControl
                 Name = "PaneChip",
                 Tag = member.Id,
                 Classes = { "PaneChip" },
-                Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { label, dot } }
+                Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { label, dot } }
             };
             AutomationProperties.SetName(chip, member.Title);
             var id = member.Id;
