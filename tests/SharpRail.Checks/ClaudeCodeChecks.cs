@@ -103,6 +103,7 @@ internal static class ClaudeCodeChecks
         app.State!.ChangeAsync([HostStateChange.PluginSettings("claude-code", "{\"enabled\":true,\"command\":\"/usr/bin/false\"}")]).AsTask().GetAwaiter().GetResult();
         E2eWorkspace.Until(() => registry.Active.Contains("claude-code"));
         Spinner();
+        ClaudeContextChecks.Ui();
         var launcherIcon = registry.LauncherList.Single(launcher => launcher.Id == "claude").CreateIcon!;
         var firstIcon = (ContentControl)launcherIcon(14, SharpRail.Plugins.UI.Kit.Ui.Accent);
         var secondIcon = (ContentControl)launcherIcon(20, SharpRail.Plugins.UI.Kit.Ui.TextBrush);
@@ -386,6 +387,10 @@ internal static class ClaudeCodeChecks
         async Task<T> Call<P, T>(PluginMethod<P, T> method, P parameters) =>
             PluginJson.Convert<T>(await runtime.CallAsync(new("claude-code", method.Name, parameters, "claude-client")));
         var config = await Call(ClaudeCodeContract.ConfigGet, new WorkspaceParams(project));
+        Require((await Call(ClaudeCodeContract.ContextUsageGet, new ContextUsageParams(project))).Running, "The host measures a missing baseline in the background.");
+        ClaudeContextUsage measured;
+        do { await Task.Delay(50); measured = await Call(ClaudeCodeContract.ContextUsageGet, new ContextUsageParams(project)); } while (measured.Running);
+        Require(measured is { Breakdown: null, Error.Length: > 0 }, "A CLI that prints no report leaves an error to show, not a stuck measurement.");
         var prompt = await Call(ClaudeCodeContract.SystemPromptGet, new NoParams());
         var shipped = File.ReadAllText(prompt.Path);
         Require(!prompt.Edited && shipped.Length > 0 && runtime.AllowsExternalFile(project, prompt.Path),
@@ -465,6 +470,7 @@ internal static class ClaudeCodeChecks
         Require(Directory.GetFiles(Path.Combine(Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")!, "ide"), "*.lock").Length == 0 &&
             terminals.EnvironmentContributor!(terminal).Count == 0, "Disabling removes IDE discovery and terminal contributions.");
         Transcripts(directory);
+        await ClaudeContextChecks.Host(Path.Combine(directory, "context"));
         await Pickers();
         await ModelLists(directory);
         Console.WriteLine("PASS Claude Code host: disabled lifecycle, configuration provenance, reviewed writes, token status, spending and revive");
@@ -963,7 +969,7 @@ internal static class ClaudeCodeChecks
         { type = "assistant", message = new { id, usage = new { input_tokens = input, output_tokens = output } } }) + "\n";
         File.WriteAllText(path, Turn("one", 10, 1) + Turn("one", 10, 3));
         var usage = new TranscriptUsage();
-        Require(usage.Read(path) == new AgentTokenUsage(10, 3, 0, 0), "Streaming blocks count once per message at their last usage.");
+        Require(usage.Read(path) == new AgentTokenUsage(10, 3, 0, 0) { Context = 10 }, "Streaming blocks count once per message at their last usage.");
         var tail = Turn("two", 4, 2);
         File.AppendAllText(path, tail[..^1]);
         Require(usage.Read(path).Input == 10, "Incomplete transcript lines wait for completion.");
@@ -971,7 +977,7 @@ internal static class ClaudeCodeChecks
         var subagents = Path.Combine(path[..^6], "subagents");
         Directory.CreateDirectory(subagents);
         File.WriteAllText(Path.Combine(subagents, "agent-one.jsonl"), Turn("child", 7, 6));
-        Require(usage.Read(path) == new AgentTokenUsage(21, 11, 0, 0), "Appended turns and subagent spending are included without recounting prior messages.");
+        Require(usage.Read(path) == new AgentTokenUsage(21, 11, 0, 0) { Context = 4 }, "Appended turns and subagent spending are included without recounting prior messages.");
         var stamp = DateTimeOffset.UtcNow;
         File.WriteAllText(path, JsonSerializer.Serialize(new { type = "user", timestamp = stamp, message = new { content = "[Request interrupted by user]" } }) +
             "\n{\"type\":\"file-history-snapshot\"}\n");

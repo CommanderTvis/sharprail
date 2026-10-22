@@ -276,7 +276,44 @@ public sealed record AgentStatusReport(string Event)
     public IReadOnlyList<AgentTodoItem>? Todos { get; init; }
 }
 
-public sealed record AgentTokenUsage(long Input, long Output, long CacheRead, long CacheWrite);
+public sealed record AgentTokenUsage(long Input, long Output, long CacheRead, long CacheWrite)
+{
+    /// <summary>What the main transcript's latest assistant message sent as context (input plus cache read and write); null before the first reply.</summary>
+    public long? Context { get; init; }
+}
+
+/// <summary>One row of <c>/context</c>'s "Estimated usage by category" table, in the order Claude Code prints it.</summary>
+public sealed record ClaudeContextCategory(string Name, long Tokens, double Percent);
+
+/// <summary>A row of <c>/context</c>'s MCP tools, memory files or skills table: a name, where it comes from, and its token estimate.</summary>
+public sealed record ClaudeContextItem(string Name, string Source, long Tokens);
+
+/// <summary>What <c>claude -p /context</c> reported for a fresh session started the way a tab starts.</summary>
+public sealed record ClaudeContextBreakdown(string Model, long Used, long Window, IReadOnlyList<ClaudeContextCategory> Categories)
+{
+    public IReadOnlyList<ClaudeContextItem> McpTools { get; init; } = [];
+    public IReadOnlyList<ClaudeContextItem> MemoryFiles { get; init; } = [];
+    public IReadOnlyList<ClaudeContextItem> Skills { get; init; } = [];
+}
+
+/// <summary>The host's cached baseline for a tab's directory and launch flags, whether a run is under way, and why the last one failed.</summary>
+public sealed record ClaudeContextUsage(bool Running)
+{
+    public ClaudeContextBreakdown? Breakdown { get; init; }
+    public string? Error { get; init; }
+    /// <summary>When the breakdown was measured (UTC, ISO 8601).</summary>
+    public string? MeasuredAt { get; init; }
+}
+
+public sealed record ContextUsageParams(string WorkspaceId)
+{
+    public string? TabKey { get; init; }
+    /// <summary>Measure again even when nothing the baseline reads has changed.</summary>
+    public bool? Refresh { get; init; }
+}
+
+/// <summary>A baseline for this workspace finished measuring; clients showing it ask again.</summary>
+public sealed record ContextUsageChanged(string WorkspaceId);
 
 public sealed record ClaudeCodeStatusPush(string WorkspaceId, string TabKey, AgentStatusReport Report, ClaudeCodeStatus? Status = null)
 {
@@ -408,13 +445,16 @@ public static class ClaudeCodeContract
     public static readonly PluginMethod<IdeAtMention, IdeAtMentionResult> AtMention = new("atMention");
     public static readonly PluginMethod<IdeActionReply, Ack> ActionReply = new("actionReply");
     public static readonly PluginMethod<StatusSnapshotParams, IReadOnlyList<ClaudeCodeStatusPush>> StatusSnapshot = new("statusSnapshot");
+    /// <summary>The tab's context baseline from <c>claude -p /context</c>, measured in the background when missing or stale.</summary>
+    public static readonly PluginMethod<ContextUsageParams, ClaudeContextUsage> ContextUsageGet = new("contextUsageGet");
 
     public static readonly PluginChannel<ClaudeCodeStatusPush> Status = PluginChannel<ClaudeCodeStatusPush>.State("status", StatusSnapshot, "workspaceId");
     public static readonly PluginChannel<IdeActionRequest> IdeAction = PluginChannel<IdeActionRequest>.Event("ideAction");
+    public static readonly PluginChannel<ContextUsageChanged> ContextUsage = PluginChannel<ContextUsageChanged>.Event("contextUsage");
 
     public static readonly PluginContract Contract = PluginContract.Create<ClaudeCodeSettings>(Id, 2,
         [ConfigGet, Account, SystemPromptGet, SystemPromptReset, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
             MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, ModelListGet, ModelListPut, SelectionChanged, DocumentClosed,
-            AtMention, ActionReply, StatusSnapshot],
-        [Status, IdeAction]);
+            AtMention, ActionReply, StatusSnapshot, ContextUsageGet],
+        [Status, IdeAction, ContextUsage]);
 }

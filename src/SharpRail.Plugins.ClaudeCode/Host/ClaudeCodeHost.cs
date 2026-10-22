@@ -37,6 +37,8 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
     private readonly TranscriptUsage usage = new();
     private IdeBridge.IdeBridge? bridge;
     private AgentWatch? watch;
+    private ContextUsageRunner? contextUsage;
+    private FileSystemWatcher? claudeHomeWatch;
 
     internal IdeBridge.IdeBridge? Bridge => bridge;
 
@@ -127,6 +129,36 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             var entries = await McpList.ListAsync(Command(), scope.Root, new Dictionary<string, string> { ["THINKRAIL_MCP_URL"] = probe });
             return new McpListResult(McpList.Capabilities(entries, declared, scope.Root));
         });
+        contextUsage = new ContextUsageRunner(
+            (spec, timeout, cancellationToken) => Bounded.RunAsync(spec.Argv, timeout, spec.Cwd, spec.Environment, cancellationToken),
+            TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(2),
+            workspaceId => context.Publish(ClaudeCodeContract.ContextUsage, new ContextUsageChanged(workspaceId)));
+        context.Method(ClaudeCodeContract.ContextUsageGet, async (p, call, ct) =>
+        {
+            var scope = await KnownScopeAsync(p.WorkspaceId, p.TabKey, ct);
+            // Project files reach the baseline through the workspace watch; a failure to start it only loses that trigger.
+            _ = context.WatchWorkspaceAsync(p.WorkspaceId, CancellationToken.None).AsTask()
+                .ContinueWith(task => context.Log.Warn("could not watch the workspace for context changes: " + task.Exception?.GetBaseException().Message),
+                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+            return contextUsage.Get(ContextSpec(p.WorkspaceId, p.TabKey, scope), p.Refresh == true);
+        });
+        context.OnFilesChanged(change => contextUsage.Changed(
+            [.. change.Paths.Select(path => Path.GetFullPath(AbsoluteIn(change.WorkspaceId, path)))], change.WorkspaceId, change.Truncated));
+        // User-level settings and instructions live outside every workspace, so their directory is watched on its own.
+        try
+        {
+            claudeHomeWatch = new FileSystemWatcher(ClaudeEnvironment.ClaudeHome()) { IncludeSubdirectories = false, NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size };
+            FileSystemEventHandler changed = (_, change) => contextUsage.Changed([change.FullPath]);
+            claudeHomeWatch.Changed += changed;
+            claudeHomeWatch.Created += changed;
+            claudeHomeWatch.Deleted += changed;
+            claudeHomeWatch.Renamed += (_, change) => contextUsage.Changed([change.FullPath, change.OldFullPath]);
+            claudeHomeWatch.EnableRaisingEvents = true;
+        }
+        catch (Exception error) when (error is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            context.Log.Warn("could not watch Claude Code's configuration directory: " + error.Message);
+        }
         context.ExternalFiles(workspaceId =>
         {
             IEnumerable<ConfigScope> scopes = [ScopeOf(workspaceId), .. context.Terminals()
@@ -292,6 +324,49 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         });
     }
 
+    // A fresh session's baseline, measured where and how this tab's session started: its directory, its context-shaping
+    // flags (or, with no Claude in the tab, the flags SharpRail's launcher would pass), and the same SharpRail MCP address.
+    private ContextRunSpec ContextSpec(string workspaceId, string? tabKey, ConfigScope scope)
+    {
+        var settings = context.Settings<ClaudeCodeSettings>();
+        List<string> flags;
+        if (tabKey is not null && context.AgentRecord(new(workspaceId, tabKey)) is { Kind: "claude" } record)
+            flags = [.. ContextLaunch.Flags(record.Command, scope.Root)];
+        else
+        {
+            flags = [];
+            if (settings.AppendSystemPrompt)
+            {
+                var promptFile = SystemPrompt.FilePath();
+                try
+                {
+                    promptFile = SystemPrompt.WriteFor(workspaceId, context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList, workspaceId),
+                        context.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, workspaceId));
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+                flags.AddRange(["--append-system-prompt-file", promptFile]);
+            }
+            flags.AddRange(["--plugin-dir", HookPluginDirectory]);
+            if (settings.Model is { Length: > 0 } model) flags.AddRange(["--model", model]);
+            if (settings.Effort is { Length: > 0 } effort) flags.AddRange(["--effort", effort]);
+        }
+        var environment = new Dictionary<string, string>
+        {
+            ["THINKRAIL_MCP_URL"] = $"{LoopbackRoot()}/mcp/{context.TerminalToken(new(workspaceId, McpListProbeTabKey))}",
+            // The measuring run must not report status as if it were the tab's session.
+            [ClaudeCodeContract.StatusUrlVariable] = ""
+        };
+        if (settings.DisableAgentView) environment["CLAUDE_CODE_DISABLE_AGENT_VIEW"] = "true";
+        var home = ClaudeEnvironment.ClaudeHome();
+        var inputs = ClaudeResolver.FilePaths(workspaceId, scope.Root, scope.PromptFiles).ToList();
+        string[] flagFiles = ["--append-system-prompt-file", "--system-prompt-file", "--settings", "--mcp-config", "--plugin-dir"];
+        for (var index = 0; index + 1 < flags.Count; index++)
+            if (flagFiles.Contains(flags[index])) inputs.Add(Path.GetFullPath(flags[index + 1], scope.Root));
+        inputs.AddRange([Path.Combine(home, "settings.json"), Path.Combine(home, "settings.local.json"), Path.Combine(home, "CLAUDE.md"),
+            Path.Combine(scope.Root, ".mcp.json"), Path.Combine(scope.Root, ".claude", "settings.json"), Path.Combine(scope.Root, ".claude", "settings.local.json")]);
+        return new(workspaceId, ClaudeCommands.ClaudeBinary(Command()), scope.Root, flags, environment, [.. inputs.Distinct()]);
+    }
+
     private string HookPluginDirectory => Path.Combine(context.AssetsDirectory ??
         Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets"), "marketplace", "claude-plugin");
 
@@ -362,6 +437,8 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
     public ValueTask DisposeAsync()
     {
         watch?.Stop();
+        claudeHomeWatch?.Dispose();
+        contextUsage?.Dispose();
         interrupts.StopAll();
         bridge?.Stop();
         clientForWorkspace.Clear();

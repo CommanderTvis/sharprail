@@ -14,6 +14,8 @@ internal sealed class TranscriptUsage
     {
         public long Offset;
         public readonly Dictionary<string, AgentTokenUsage> ByMessage = [];
+        // The context the latest assistant line sent: what the window holds now.
+        public long? LastContext;
     }
 
     private readonly Lock gate = new();
@@ -60,8 +62,10 @@ internal sealed class TranscriptUsage
                 if (!entry.TryGetProperty("message", out var message) || message.ValueKind != JsonValueKind.Object) continue;
                 if (!message.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String) continue;
                 if (!message.TryGetProperty("usage", out var usage) || usage.ValueKind != JsonValueKind.Object) continue;
-                state.ByMessage[id.GetString()!] = new(Count(usage, "input_tokens"), Count(usage, "output_tokens"),
+                var counted = new AgentTokenUsage(Count(usage, "input_tokens"), Count(usage, "output_tokens"),
                     Count(usage, "cache_read_input_tokens"), Count(usage, "cache_creation_input_tokens"));
+                state.ByMessage[id.GetString()!] = counted;
+                state.LastContext = counted.Input + counted.CacheRead + counted.CacheWrite;
             }
             catch (JsonException) { }
         }
@@ -69,18 +73,19 @@ internal sealed class TranscriptUsage
         return state;
     }
 
-    /// <summary>The session's spending so far: its own transcript plus every subagent transcript beside it.</summary>
+    /// <summary>The session's spending so far: its own transcript plus every subagent transcript beside it; <see cref="AgentTokenUsage.Context"/> is the main transcript's latest message alone.</summary>
     public AgentTokenUsage Read(string transcript)
     {
         lock (gate)
         {
             long input = 0, output = 0, cacheRead = 0, cacheWrite = 0;
+            var context = Advance(transcript).LastContext;
             foreach (var path in SubagentTranscripts(transcript).Prepend(transcript))
                 foreach (var usage in Advance(path).ByMessage.Values)
                 {
                     input += usage.Input; output += usage.Output; cacheRead += usage.CacheRead; cacheWrite += usage.CacheWrite;
                 }
-            return new(input, output, cacheRead, cacheWrite);
+            return new(input, output, cacheRead, cacheWrite) { Context = context };
         }
     }
 

@@ -79,6 +79,34 @@ offers Reset to SharpRail's text while it is edited.
 Spec tools are suggested only when available and the project uses a spec graph; projects without
 specs require no spec workflow or unsolicited spec creation.
 
+### Context usage
+
+The Context surface opens with what `/context` reports, drawn like the TUI: a 10 × 20 map of the window (each cell
+half a percent) filled in Claude Code's category order with partial cells for remainders under a cell, free space as
+dashed cells and the autocompact reserve as crossed cells at the end; beside it (below when narrow) the model name and id,
+`used/window tokens (%)`, and one legend row per category with deferred tool rows muted and drawing no cells. Expandable
+MCP tools (grouped by server with subtotals, heaviest first) and Skills tables follow, then the persistent context list,
+where, once a baseline exists, each row shows `/context`'s token count with its size as muted secondary text, the
+header shows the token total, rows `/context` does not list say "not loaded", and files it lists that the resolver does
+not (nested instructions, rules, imports) are added with its source label. The host matches memory paths to the
+resolver's with `~` expanded, made absolute and through symbolic links. Category colours are defined once
+(`ContextPalette`) from the theme's terminal palette and roles, so they follow the theme.
+
+The baseline is `claude -p /context --output-format json --no-session-persistence`, whose JSON carries the Markdown
+report in `result`; the host parses its tables by section title. It runs on the host that runs Claude, in the tab's
+directory, with the tab process's context-shaping flags (`--append-system-prompt-file`, `--plugin-dir`, `--add-dir`,
+`--model`, `--effort`, `--mcp-config`, `--settings`, `--setting-sources`, `--system-prompt-file`, `--strict-mcp-config`;
+session and prompt arguments are dropped, so the tab's conversation is never touched) or, with no Claude in the tab,
+the flags the launcher would pass; with SharpRail's MCP probe address, the agent-view variable and an empty status
+URL. Results are cached in host memory per (binary, directory, flags), shared by tabs; a run is background,
+single-flight per key, killed after 90 s and cancelled on deactivation, and a failure keeps the previous breakdown
+and shows an inline error with Retry. A run starts when a request finds no entry, when the stat fingerprint of its
+inputs (the configuration files the resolver names, flag files, user and project settings, `.mcp.json`) differs, or
+on Refresh; changes reported by the workspace watch or a watch of Claude's configuration directory re-run an entry
+once per 2 s quiet burst, only if its fingerprint changed. A finished run publishes `contextUsage` for the workspace and
+clients ask again. The header's used count is live when known: the main transcript's latest assistant message
+(input plus cache read and write), read by the existing tail-reading transcript usage on each status report.
+
 Settings retain the winning source and shadowed values. Context includes user and ancestor
 instructions, `AGENTS.md` when a directory has no `CLAUDE.md`, local instructions, rules, imports,
 memory and appended prompt files. Capabilities include MCP servers, plugins, skills, agents, hooks

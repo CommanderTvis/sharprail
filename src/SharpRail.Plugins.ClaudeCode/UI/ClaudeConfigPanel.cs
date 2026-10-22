@@ -25,6 +25,12 @@ internal sealed class ClaudeConfigPanel : DockPanel
     private enum Surface { Context, Settings, Capabilities, Account }
 
     private readonly IPluginUIContext context;
+    private readonly ClaudeCodeStore store;
+    private readonly ClaudeContextUsageView usageView = new();
+    private ClaudeContextUsage? contextUsage;
+    private int usageGeneration;
+    private IDisposable? usageChannel;
+    private string memoryKey = "";
     private readonly ClaudeGlyph glyph;
     private readonly string workspaceId;
     private readonly StackPanel scopeBlock = new() { Name = "ClaudeConfigScope", Margin = new Thickness(8, 0, 8, 4) };
@@ -42,12 +48,13 @@ internal sealed class ClaudeConfigPanel : DockPanel
     private string settingsQuery = "";
     private IDisposable? watch;
     private string snapshotKey = "", reachedKey = "";
-    private (Surface, string, string, string?, string)? rendered;
+    private (Surface, string, string, string?, string, string)? rendered;
     private (Surface, string?, string?, string?, string?)? renderedScope;
 
-    public ClaudeConfigPanel(IPluginUIContext context, ClaudeGlyph glyph, string workspaceId)
+    public ClaudeConfigPanel(IPluginUIContext context, ClaudeCodeStore store, ClaudeGlyph glyph, string workspaceId)
     {
-        this.context = context; this.glyph = glyph; this.workspaceId = workspaceId;
+        this.context = context; this.store = store; this.glyph = glyph; this.workspaceId = workspaceId;
+        usageView.RetryRequested += () => LoadUsage(refresh: true);
         Name = "ClaudeConfigPanel";
         Background = Ui.Sidebar;
         var header = new DockPanel { Margin = new Thickness(8, 4) };
@@ -56,6 +63,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             // On the account surface a press is also the only thing that asks Claude Code for fresh usage numbers.
             if (surface == Surface.Account) account?.Read(refresh: true);
             Load();
+            if (surface == Surface.Context) LoadUsage(refresh: true);
         });
         refresh.Name = "ClaudeConfigRefresh";
         refresh.Width = refresh.Height = 24;
@@ -72,7 +80,13 @@ internal sealed class ClaudeConfigPanel : DockPanel
         Children.Add(new ScrollViewer { Name = "ClaudeConfigBody", Content = body, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         RenderSwitcher();
         AttachedToVisualTree += (_, _) => Start();
-        DetachedFromVisualTree += (_, _) => { watch?.Dispose(); watch = null; };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            watch?.Dispose(); watch = null;
+            usageChannel?.Dispose(); usageChannel = null;
+            store.Changed -= SessionChanged;
+            Ui.ThemeChanged -= ThemeChanged;
+        };
     }
 
     // The session this pane describes: among the terminals the workspace shows, the first running Claude.
@@ -85,6 +99,15 @@ internal sealed class ClaudeConfigPanel : DockPanel
 
     private void Start()
     {
+        // The host measures in the background and says when a baseline for this workspace is ready; live usage rides the status store.
+        usageChannel ??= context.Subscribe(ClaudeCodeContract.ContextUsage, change =>
+        {
+            if (change.WorkspaceId == workspaceId) LoadUsage(refresh: false);
+        });
+        store.Changed -= SessionChanged;
+        store.Changed += SessionChanged;
+        Ui.ThemeChanged -= ThemeChanged;
+        Ui.ThemeChanged += ThemeChanged;
         (session, activeTab) = Shown(context.Host());
         watch ??= context.WatchHost(host =>
         {
@@ -95,11 +118,53 @@ internal sealed class ClaudeConfigPanel : DockPanel
             var previousTab = previous.Item1;
             var previousCommand = previous.Item3;
             (session, activeTab) = Shown(context.Host());
-            if (session?.TabKey != previousTab || session?.Agent?.Command != previousCommand) Load();
+            if (session?.TabKey != previousTab || session?.Agent?.Command != previousCommand) { Load(); LoadUsage(refresh: false); }
             RenderScope();
         });
         RenderScope();
         Load();
+        LoadUsage(refresh: false);
+    }
+
+    private void SessionChanged(string workspace, string tabKey)
+    {
+        if (workspace == workspaceId && tabKey == session?.TabKey) ShowUsage();
+    }
+
+    private void ThemeChanged()
+    {
+        rendered = null;
+        Render();
+        ShowUsage();
+    }
+
+    private long? LiveContext() => session is null ? null : store.Session(workspaceId, session.TabKey)?.Usage?.Context;
+
+    private void ShowUsage() => usageView.Show(contextUsage, LiveContext());
+
+    // The host answers at once with what it has cached and measures in the background when that is missing or stale.
+    private void LoadUsage(bool refresh)
+    {
+        var mine = ++usageGeneration;
+        var tabKey = session?.TabKey;
+        _ = Task.Run(async () =>
+        {
+            ClaudeContextUsage result;
+            try { result = await context.RequestAsync(ClaudeCodeContract.ContextUsageGet, new ContextUsageParams(workspaceId) { TabKey = tabKey, Refresh = refresh }); }
+            catch (Exception failure) when (failure is not OperationCanceledException) { result = new(false) { Error = ClaudeParts.ErrorText(failure), Breakdown = contextUsage?.Breakdown }; }
+            var key = JsonSerializer.Serialize(result.Breakdown?.MemoryFiles ?? [], PluginJson.Options);
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (mine != usageGeneration) return;
+                contextUsage = result;
+                ShowUsage();
+                if (key != memoryKey)
+                {
+                    memoryKey = key;
+                    Render();
+                }
+            });
+        });
     }
 
     // Every read is issued; a reply is applied only if no later read was issued after it, which is ordering, not a gate.
@@ -209,7 +274,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
 
     private void Render()
     {
-        var key = (surface, snapshotKey, reachedKey, error, settingsQuery);
+        var key = (surface, snapshotKey, reachedKey, error, settingsQuery, memoryKey);
         if (rendered == key) return;
         rendered = key;
         notices.Children.Clear();
@@ -284,10 +349,40 @@ internal sealed class ClaudeConfigPanel : DockPanel
         return button;
     }
 
+    // Tokens first, as /context counts them; the size on disk stays as muted secondary text.
+    private static Control Measure(long tokens, string? size, IBrush color)
+    {
+        var row = new StackPanel { Name = "ClaudeContextTokens", Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+        row.Children.Add(ClaudeParts.Code(ClaudeContextUsageView.Tokens(tokens) + " tokens", color));
+        if (size is not null) row.Children.Add(ClaudeParts.Code("· " + size, Ui.Hint));
+        return row;
+    }
+
+    private static Control NotLoaded(string size)
+    {
+        var row = new StackPanel { Name = "ClaudeContextNotLoaded", Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+        row.Children.Add(Ui.Text("not loaded", Ui.Hint, 11));
+        row.Children.Add(ClaudeParts.Code("· " + size, Ui.Hint));
+        ToolTip.SetTip(row, "/context does not list this file for a fresh session here");
+        return row;
+    }
+
     private Control ContextSurface(IReadOnlyList<ClaudeContextLayer> layers)
     {
-        if (layers.Count == 0) return Padded(Ui.Text("No instruction files reach this workspace.", Ui.Muted, 13));
+        (usageView.Parent as Panel)?.Children.Remove(usageView);
+        ShowUsage();
+        if (layers.Count == 0)
+        {
+            var empty = new StackPanel();
+            empty.Children.Add(usageView);
+            empty.Children.Add(Padded(Ui.Text("No instruction files reach this workspace.", Ui.Muted, 13)));
+            return empty;
+        }
         var list = new StackPanel();
+        list.Children.Add(usageView);
+        // /context's memory table, keyed by the host-normalised path; null until a baseline exists, so nothing says "not loaded" early.
+        var measured = contextUsage?.Breakdown?.MemoryFiles;
+        var memoryTokens = (measured ?? []).GroupBy(file => file.Name).ToDictionary(group => group.Key, group => group.First().Tokens);
         var hasProjectInstructions = layers.Any(layer => layer.Kind == ClaudeContextKind.Instructions && layer.Origin.Scope == ClaudeConfigScope.Project &&
             !layer.Path.Contains("/.claude/", StringComparison.Ordinal) && !layer.Path.Contains("\\.claude\\", StringComparison.Ordinal));
         if (!hasProjectInstructions)
@@ -298,7 +393,8 @@ internal sealed class ClaudeConfigPanel : DockPanel
                 () => Edit(new(new FileEdit(ClaudeFileTemplate.ProjectLocalInstructions), "Create CLAUDE.local.md"))));
         // Size, not an estimated token count: bytes are what is actually known.
         var total = new DockPanel { Name = "ClaudeContextTotal", Margin = new Thickness(8, 4) };
-        var amount = ClaudeParts.Code(FormatSize(layers.Where(layer => layer.Lazy != true).Sum(layer => layer.Bytes)), Ui.TextBrush);
+        var bytes = FormatSize(layers.Where(layer => layer.Lazy != true).Sum(layer => layer.Bytes));
+        var amount = measured is null ? (Control)ClaudeParts.Code(bytes, Ui.TextBrush) : Measure(memoryTokens.Values.Sum(), bytes, Ui.TextBrush);
         SetDock(amount, Dock.Right);
         total.Children.Add(amount);
         total.Children.Add(Ui.Text("PERSISTENT CONTEXT", Ui.Muted, 11));
@@ -329,7 +425,9 @@ internal sealed class ClaudeConfigPanel : DockPanel
                 row.Children.Add(guide);
             }
             var line = new DockPanel { Margin = new Thickness(8, 4) };
-            var size = ClaudeParts.Code(FormatSize(layer.Bytes));
+            var size = measured is null ? ClaudeParts.Code(FormatSize(layer.Bytes))
+                : memoryTokens.TryGetValue(layer.Path, out var tokens) ? Measure(tokens, FormatSize(layer.Bytes), Ui.Muted)
+                : layer.Lazy == true ? ClaudeParts.Code(FormatSize(layer.Bytes)) : NotLoaded(FormatSize(layer.Bytes));
             SetDock(size, Dock.Right);
             line.Children.Add(size);
             var icon = Ui.Icon("fileText", Ui.Hint, 14);
@@ -364,6 +462,29 @@ internal sealed class ClaudeConfigPanel : DockPanel
             line.Children.Add(column);
             row.Children.Add(line);
             list.Children.Add(row);
+        }
+        // Files /context loaded that the resolver does not list (nested instructions, rules, imports) join with its label.
+        var listed = layers.Select(layer => layer.Path).ToHashSet(StringComparer.Ordinal);
+        foreach (var file in measured ?? [])
+        {
+            if (listed.Contains(file.Name)) continue;
+            var line = new DockPanel { Name = "ClaudeContextMeasuredFile", Tag = file.Name, Margin = new Thickness(8, 4) };
+            var size = Measure(file.Tokens, null, Ui.Muted);
+            SetDock(size, Dock.Right);
+            line.Children.Add(size);
+            var icon = Ui.Icon("fileText", Ui.Hint, 14);
+            icon.Margin = new Thickness(0, 0, 8, 0);
+            icon.VerticalAlignment = VerticalAlignment.Top;
+            SetDock(icon, Dock.Left);
+            line.Children.Add(icon);
+            var column = new StackPanel();
+            var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+            title.Children.Add(Ui.Text(System.IO.Path.GetFileName(file.Name), Ui.TextBrush, 13));
+            title.Children.Add(ClaudeParts.ScopeChip(file.Source));
+            column.Children.Add(title);
+            column.Children.Add(ClaudeParts.SourceButton(file.Name, null, OpenSource));
+            line.Children.Add(column);
+            list.Children.Add(line);
         }
         // Editable whether or not a session here was launched with it; SharpRail stops refreshing it once it is edited.
         if (context.Settings<ClaudeCodeSettings>().AppendSystemPrompt)
