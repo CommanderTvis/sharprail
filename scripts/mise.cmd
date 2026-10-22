@@ -1,6 +1,16 @@
 @echo off
-rem Counterpart of scripts/mise: the pinned mise against the tool store shared by all checkouts.
+rem Counterpart of scripts/mise: a mise already on the machine runs as is, with the user's own configuration and mise's
+rem default data directory; without one, the pinned mise runs against the tool store shared by all checkouts.
 setlocal DisableDelayedExpansion
+where mise >nul 2>nul
+if not errorlevel 1 (
+  set "DOTNET_ROOT="
+  set "DOTNET_ROOT_ARM64="
+  set "DOTNET_ROOT_X64="
+  set "MISE_TRUSTED_CONFIG_PATHS=%~dp0..;%MISE_TRUSTED_CONFIG_PATHS%"
+  mise %*
+  exit /b %errorlevel%
+)
 if not defined SHARPRAIL_TOOLS set "SHARPRAIL_TOOLS=%USERPROFILE%\.sharprail\tools"
 if not exist "%SHARPRAIL_TOOLS%" mkdir "%SHARPRAIL_TOOLS%"
 set "DOTNET_ROOT="

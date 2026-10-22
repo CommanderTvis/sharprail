@@ -85,7 +85,8 @@ The .NET SDK is an `http:dotnet` tool for the same reason: mise's core dotnet to
 `mise.toml` names Microsoft's per-platform archives (from the 10.0 `releases.json`, whose SHA-512 the pinned SHA-256s
 were checked against) and `global.json` pins the same version with `rollForward` disabled.
 
-Tools install into a store shared by every checkout, `~/.sharprail/tools` (`%USERPROFILE%\.sharprail\tools`;
+With a mise installed on the machine, `scripts/mise` runs it as is and tools install into its default data directory
+(set `MISE_DATA_DIR=~/.sharprail/tools` to reuse the store below). Without one, tools install into a store shared by every checkout, `~/.sharprail/tools` (`%USERPROFILE%\.sharprail\tools`;
 set `SHARPRAIL_TOOLS` to move it), one directory per version, so checkouts at the same pin share one copy and
 a version bump leaves older checkouts valid. mise installs into a temporary directory and renames it, under its
 own lock, so concurrent bootstraps are safe. `scripts/mise run bootstrap` (also `bootstrap:android` and

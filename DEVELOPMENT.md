@@ -5,9 +5,12 @@ What a source checkout provisions itself, and what you must install on the machi
 
 ## Provisioned by the repo
 
-`scripts/mise` downloads the pinned mise release, which installs the tools below from `mise*.toml` (versions and
-SHA-256 per platform in the matching `mise*.lock`) into the shared store `~/.sharprail/tools` (`SHARPRAIL_TOOLS`)
-and links them into `.tools`. The tasks that need a bootstrap run it themselves.
+`scripts/mise` runs a mise that is already on the machine (PATH, Homebrew or `~/.local/bin`) as is, with your own mise
+configuration and mise's default data directory. Without one it downloads the pinned mise release and uses the shared
+store `~/.sharprail/tools` (`SHARPRAIL_TOOLS`), as CI does. Either way mise installs the tools below from `mise*.toml`
+(versions and SHA-256 per platform in the matching `mise*.lock`) and `scripts/mise run bootstrap` links them into
+`.tools`. The tasks that need a bootstrap run it themselves. A system mise must be at least the `min_version` in
+`mise.toml`; to reuse an existing private store, point it at it with `MISE_DATA_DIR=~/.sharprail/tools`.
 
 | Command | Installs | Used by |
 | --- | --- | --- |
@@ -31,7 +34,7 @@ runtime, not by the build.
 
 ### macOS (desktop build, `build`, `dev`, `package:macos`, `check:terminal`)
 
-- `bash` and `curl` (system): `scripts/mise-pinned` downloads mise with them.
+- `bash` and `curl` (system): `scripts/mise-pinned` downloads mise with them when no mise is installed.
 - Xcode command-line tools (`xcode-select --install`): `xcrun clang` builds the Merman and notification libraries,
   and `xcrun --sdk macosx` supplies the SDK to Zig (`src/Ghostty.Avalonia/build-native.sh`). `codesign` and `hdiutil` (system) sign the bundle and make the
   `dmg`.

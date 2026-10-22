@@ -1,10 +1,24 @@
 #!/bin/sh
 # Entry point for every toolchain command: `scripts/mise run <task>`, `scripts/mise install`, `scripts/mise x -- <cmd>`.
-# It runs the mise release pinned (with checksums) in mise-pinned, against the tool store shared by all
-# checkouts: SHARPRAIL_TOOLS, default ~/.sharprail/tools. The checkout's mise.toml and mise.lock decide what is
-# installed there; the user's own mise configuration is ignored.
+# A mise already on the machine (PATH, Homebrew, ~/.local/bin) is used as is, with the user's own configuration and mise's
+# default data directory. Only without one does it run the mise release pinned (with checksums) in mise-pinned, against
+# a tool store shared by all checkouts: SHARPRAIL_TOOLS, default ~/.sharprail/tools, ignoring the user's mise
+# configuration. Either way the checkout's mise.toml and mise.lock decide what is installed.
 set -eu
 root="$(cd "$(dirname "$0")/.." && pwd)"
+system="$(command -v mise 2>/dev/null || true)"
+case "$system" in "$root"/*) system="" ;; esac
+if [ -z "$system" ]; then
+  for candidate in /opt/homebrew/bin/mise /usr/local/bin/mise "$HOME/.local/bin/mise" "$HOME/.local/share/mise/bin/mise" /home/linuxbrew/.linuxbrew/bin/mise; do
+    if [ -x "$candidate" ]; then system="$candidate"; break; fi
+  done
+fi
+if [ -n "$system" ]; then
+  # mise's dotnet tool would adopt an SDK that DOTNET_ROOT points at (another checkout's, say) instead of installing the pin.
+  unset DOTNET_ROOT DOTNET_ROOT_ARM64 DOTNET_ROOT_X64
+  export MISE_TRUSTED_CONFIG_PATHS="$root${MISE_TRUSTED_CONFIG_PATHS:+:$MISE_TRUSTED_CONFIG_PATHS}"
+  exec "$system" "$@"
+fi
 store="${SHARPRAIL_TOOLS:-$HOME/.sharprail/tools}"
 mkdir -p "$store"
 # mise's dotnet tool would adopt an SDK that DOTNET_ROOT points at (another checkout's, say) instead of installing the pin.

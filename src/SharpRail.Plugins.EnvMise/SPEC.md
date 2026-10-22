@@ -38,8 +38,8 @@ binary by absolute path. A workspace with mise configuration and no mise is logg
 (`brew install mise`); an untrusted configuration shows `mise untrusted`, and a failing `mise env` shows `mise failed`
 with its first error line. mise runs against the user's own configuration and data directory, so a repository's `mise.toml` must not depend on
 variables only its own wrapper sets (SharpRail's reads `SHARPRAIL_TOOLS` with a default of `~/.sharprail/tools`), and
-the tools only appear once installed in that data directory (`mise install`, or `MISE_DATA_DIR=~/.sharprail/tools` to share
-the checkouts' store).
+the tools only appear once installed in that data directory (`mise install`; SharpRail's `scripts/mise` uses a system mise
+and that default directory too).
 
 ## Trust in a new worktree
 
