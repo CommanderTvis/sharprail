@@ -449,6 +449,7 @@ public sealed partial class HostStateStore : IHostStateService
                 FileLineWidth = Width(value.Settings.FileLineWidth),
                 MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth),
                 TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb),
+                BellFeatures = HostSettings.NormalizeBellFeatures(value.Settings.BellFeatures ?? "") is { } bell && value.Settings.BellFeatures is { Length: > 0 } ? bell : HostSettings.DefaultBellFeatures,
                 CustomHighlighting = ValidHighlighting(value.Settings.CustomHighlighting) ? value.Settings.CustomHighlighting : "",
                 WindowDecorations = value.Settings.WindowDecorations is "client" or "system" ? value.Settings.WindowDecorations : "",
                 SettleIdleDays = value.Settings.SettleIdleDays is { } days ? Math.Clamp(days, 1, HostSettings.MaxSettleIdleDays) : null
@@ -570,6 +571,8 @@ public sealed partial class HostStateStore : IHostStateService
                     "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },
                     "java-kotlin-provider" when IsProviderChoice(value) => settings with { JavaKotlinProvider = value },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
+                    "terminal-notifications" when bool.TryParse(value, out var programs) => settings with { TerminalNotificationsEnabled = programs },
+                    "bell-features" when HostSettings.NormalizeBellFeatures(value) is { } bell => settings with { BellFeatures = bell },
                     _ when key.StartsWith("language-server:", StringComparison.Ordinal) => settings with { LanguageServers = SetLanguageServer(settings.LanguageServers, key[16..], value) },
                     _ when key.StartsWith("language-tool:", StringComparison.Ordinal) => settings with { LanguageTools = SetLanguageTool(settings.LanguageTools, key[14..], value) },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },

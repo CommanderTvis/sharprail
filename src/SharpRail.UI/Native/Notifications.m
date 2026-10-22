@@ -1,6 +1,7 @@
 // User Notifications bridge for SharpRail.UI's MacNotifier. The system attributes a notification to the
 // running bundle, so every entry point answers "unavailable" for a process without a bundle identifier
 // (an unbundled `dotnet run`), where UNUserNotificationCenter would raise instead.
+#import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
 #import <UserNotifications/UserNotifications.h>
 
@@ -79,4 +80,17 @@ void sharprail_notifications_show(const char *identifier, const char *title, con
             if (granted) [center addNotificationRequest:request withCompletionHandler:nil];
         }];
     }
+}
+
+// A terminal bell while the app is in the background: one dock bounce, as Ghostty's bell attention feature.
+// Works without a bundle; AppKit is driven on the main thread.
+void sharprail_request_attention(void) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!NSApp.isActive) [NSApp requestUserAttention:NSInformationalRequest];
+    });
+}
+
+// A terminal bell's system feature: the user's alert sound.
+void sharprail_beep(void) {
+    dispatch_async(dispatch_get_main_queue(), ^{ NSBeep(); });
 }

@@ -145,6 +145,10 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   clients frame their window; other clients ignore it, an unknown loaded value reads as automatic and a host that predates it reads as
   automatic. `notifications` (`true`/`false`, default on) is the master toggle for clients'
   away notifications; the wire carries its negation, so a host that predates it reads as on.
+  `terminal-notifications` (`true`/`false`, default on, Ghostty's `desktop-notifications`) lets programs in terminals raise
+  desktop notifications (OSC 9, OSC 777, OSC 99); the wire carries its negation. `bell-features` is a comma-separated subset of
+  `system`, `attention` and `title`, or `none`, stored in that canonical order; the default `attention,title` is Ghostty's
+  `bell-features` default. An empty wire value, from a host that predates it, and an unknown loaded value read as the default.
 - Setting updates accept a closed set of keys and validate their values before publishing the batch;
   unknown setting keys and change kinds are rejected. The typed change-list contract replaces upstream's
   object-shaped partial update, so arbitrary JSON payloads are not a separate mutation surface.

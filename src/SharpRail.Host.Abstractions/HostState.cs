@@ -21,6 +21,14 @@ public sealed record HostSettings
     public int TerminalReplayKb { get; init; } = DefaultTerminalReplayKb;
     /// <summary>Whether clients raise desktop notifications when a terminal's agent needs the user while they are away.</summary>
     public bool NotificationsEnabled { get; init; } = true;
+    /// <summary>Whether programs in terminals may raise desktop notifications (OSC 9, OSC 777), like Ghostty's desktop-notifications.</summary>
+    public bool TerminalNotificationsEnabled { get; init; } = true;
+    /// <summary>
+    /// What a terminal bell does, like Ghostty's bell-features: a comma-separated subset of <c>system</c> (the system alert
+    /// sound), <c>attention</c> (request attention while the app is unfocused) and <c>title</c> (a bell on the tab until it is
+    /// viewed), or <c>none</c>.
+    /// </summary>
+    public string BellFeatures { get; init; } = DefaultBellFeatures;
     /// <summary>Whether editor and agent language services are enabled on this host.</summary>
     public bool LspEnabled { get; init; } = true;
     /// <summary>Host-wide Java/Kotlin provider: standard or intellij; empty migrates legacy workspace choices.</summary>
@@ -44,6 +52,20 @@ public sealed record HostSettings
     public int? SettleIdleDays { get; init; } = DefaultSettleIdleDays;
 
     public const int DefaultSettleIdleDays = 7;
+    public const string DefaultBellFeatures = "attention,title";
+    public static readonly IReadOnlyList<string> BellFeatureNames = ["system", "attention", "title"];
+
+    /// <summary>A bell feature list in canonical order, or null when it names something else; empty and <c>none</c> enable nothing.</summary>
+    public static string? NormalizeBellFeatures(string value)
+    {
+        var named = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (named is ["none"] || named.Length == 0) return "none";
+        if (named.Any(name => !BellFeatureNames.Contains(name))) return null;
+        return string.Join(",", BellFeatureNames.Where(named.Contains));
+    }
+
+    /// <summary>Whether this bell feature is on.</summary>
+    public bool Bell(string feature) => BellFeatures.Split(',').Contains(feature);
     public const int MaxSettleIdleDays = 365;
     public const int DefaultTerminalReplayKb = 64;
     public const int MaxTerminalReplayKb = 1024;

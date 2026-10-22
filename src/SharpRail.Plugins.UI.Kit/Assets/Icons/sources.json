@@ -64,5 +64,6 @@
   "terminal": "TerminalBoxLine",
   "trash": "DeleteBinLine",
   "puzzle": "Puzzle2Line",
-  "server": "ServerLine"
+  "server": "ServerLine",
+  "bell": "Notification3Line"
 }

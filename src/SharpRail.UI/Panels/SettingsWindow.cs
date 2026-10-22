@@ -322,7 +322,7 @@ public sealed partial class SettingsWindow : Window
         // A project joining the recents list (the window's own open lands after it mounts) leaves the other pages alone.
         else if (section == "Appearance" && previous.Settings != next.Settings || section == "Layout" && (previous.Settings != next.Settings || !previous.Presets.SequenceEqual(next.Presets)) ||
             section == "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) RefreshSection();
-        else if (section == "Notifications") foreach (var refresh in refreshers) refresh();
+        else if (section is "Notifications" or "Terminal") foreach (var refresh in refreshers) refresh();
     }
 
     /// <summary>Saves this app's own preferences and window-local layout choices.</summary>
@@ -826,6 +826,27 @@ public sealed partial class SettingsWindow : Window
             {
                 if (state.Current.Settings.TerminalReplayKb != kb) Share(HostStateChange.Setting("terminal-replay", kb.ToString(CultureInfo.InvariantCulture)));
             }));
+        // Host state: the switch and boxes follow the host's broadcast, never the click.
+        var programs = PageControl<Switch>(panel, "TerminalNotificationsEnabled");
+        programs.IsChecked = state.Current.Settings.TerminalNotificationsEnabled;
+        programs.CheckedChange += on =>
+        {
+            Share(HostStateChange.Setting("terminal-notifications", on ? "true" : "false"));
+            if (on) window.Workbench.Notifier?.RequestPermission();
+        };
+        refreshers.Add(() => programs.IsChecked = state.Current.Settings.TerminalNotificationsEnabled);
+        foreach (var (feature, name) in new[] { ("title", "BellTitle"), ("attention", "BellAttention"), ("system", "BellSystem") })
+        {
+            var box = PageControl<CheckBox>(panel, name);
+            box.IsChecked = state.Current.Settings.Bell(feature);
+            box.IsCheckedChanged += (_, _) =>
+            {
+                var features = HostSettings.BellFeatureNames.Where(other => other == feature ? box.IsChecked == true : state.Current.Settings.Bell(other)).ToArray();
+                var value = features.Length == 0 ? "none" : string.Join(",", features);
+                if (value != state.Current.Settings.BellFeatures) Share(HostStateChange.Setting("bell-features", value));
+            };
+            refreshers.Add(() => box.IsChecked = state.Current.Settings.Bell(feature));
+        }
         return panel;
     }
 

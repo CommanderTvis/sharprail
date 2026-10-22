@@ -64,6 +64,8 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             TerminalReplayKb = state.Settings.TerminalReplayKb,
             FileTypeIconsDisabled = !state.Settings.FileTypeIconsEnabled,
             NotificationsDisabled = !state.Settings.NotificationsEnabled,
+            TerminalNotificationsDisabled = !state.Settings.TerminalNotificationsEnabled,
+            BellFeatures = state.Settings.BellFeatures,
             CustomHighlighting = state.Settings.CustomHighlighting,
             VerticalCenterTabs = state.Settings.VerticalCenterTabs,
             VerticalTabsInProjects = state.Settings.VerticalTabsInProjects,

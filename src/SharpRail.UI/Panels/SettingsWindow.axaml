@@ -239,6 +239,19 @@
         <TextBlock Text="Replayed output" Classes="settings-heading" />
         <TextBlock Text="A terminal keeps running when you leave it, but its view is rebuilt when you come back. This is how much of its recent output the host keeps so the screen is restored too. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
         <StackPanel x:Name="TerminalReplayChoices" Spacing="8" />
+        <TextBlock Text="Programs" Classes="settings-heading" Margin="0,16,0,0" />
+        <TextBlock Text="What programs in a terminal may ask for, as in Ghostty. A progress report (OSC 9;4) always shows as a bar on its tab. Agent terminals keep their own notifications. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
+        <Border Padding="12,8" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="Desktop notifications from programs" Classes="settings-label" ToolTip.Tip="OSC 9 and OSC 777 notifications, shown while their terminal is out of view" />
+            <rendering:Switch x:Name="TerminalNotificationsEnabled" Grid.Column="1" Label="Desktop notifications from programs" />
+          </Grid>
+        </Border>
+        <TextBlock Text="Bell" Classes="settings-heading" Margin="0,16,0,0" />
+        <TextBlock Text="What a terminal bell (BEL) does." Classes="settings-description" />
+        <CheckBox x:Name="BellTitle" Content="Mark the tab with a bell until you view it" />
+        <CheckBox x:Name="BellAttention" Content="Request attention while SharpRail is in the background (bounces the Dock icon on macOS)" />
+        <CheckBox x:Name="BellSystem" Content="Play the system alert sound" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="WorkspacesPage">

@@ -102,6 +102,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             TerminalReplayKb = reply.Settings.TerminalReplayKb,
             FileTypeIconsEnabled = !reply.Settings.FileTypeIconsDisabled,
             NotificationsEnabled = !reply.Settings.NotificationsDisabled,
+            TerminalNotificationsEnabled = !reply.Settings.TerminalNotificationsDisabled,
+            BellFeatures = HostSettings.NormalizeBellFeatures(reply.Settings.BellFeatures) is { } bell && reply.Settings.BellFeatures.Length > 0 ? bell : HostSettings.DefaultBellFeatures,
             CustomHighlighting = reply.Settings.CustomHighlighting,
             VerticalCenterTabs = reply.Settings.VerticalCenterTabs,
             VerticalTabsInProjects = reply.Settings.VerticalTabsInProjects,

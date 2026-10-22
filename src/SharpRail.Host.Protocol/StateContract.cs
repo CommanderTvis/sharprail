@@ -34,6 +34,9 @@ public sealed class SettingsMessage
     [ProtoMember(9, IsRequired = true)] public int TerminalReplayKb { get; set; } = 64;
     [ProtoMember(15)] public bool FileTypeIconsDisabled { get; set; }
     [ProtoMember(10)] public bool NotificationsDisabled { get; set; }
+    [ProtoMember(22)] public bool TerminalNotificationsDisabled { get; set; }
+    /// <summary>Empty, from a host that predates bell features, is the default.</summary>
+    [ProtoMember(23)] public string BellFeatures { get; set; } = "";
     [ProtoMember(16), System.ComponentModel.DefaultValue(true)] public bool LspEnabled { get; set; } = true;
     // Member 18 carried Air Context's visibility until it became a plugin (protocol 8); the number is retired.
     [ProtoMember(19)] public string JavaKotlinProvider { get; set; } = "";

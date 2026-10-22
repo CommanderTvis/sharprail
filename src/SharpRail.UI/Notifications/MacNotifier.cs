@@ -48,6 +48,16 @@ internal sealed unsafe class MacNotifier : IDesktopNotifier
         catch (Exception error) { Console.Error.WriteLine("Desktop notification failed: " + error.Message); }
     });
 
+    public void RequestAttention() => Native(RequestUserAttention);
+    public void Beep() => Native(SystemBeep);
+
+    // An app run without the bridge has neither; a terminal bell is never worth an error.
+    private static void Native(Action call)
+    {
+        try { call(); }
+        catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException) { }
+    }
+
     // The texts travel as arguments, never inside the script, so nothing in them is read as AppleScript.
     private static void Script(DesktopNotification notification)
     {
@@ -74,6 +84,12 @@ internal sealed unsafe class MacNotifier : IDesktopNotifier
 
     [DllImport(Library, EntryPoint = "sharprail_notifications_start")]
     private static extern int Start(delegate* unmanaged[Cdecl]<byte*, void> activated);
+
+    [DllImport(Library, EntryPoint = "sharprail_request_attention")]
+    private static extern void RequestUserAttention();
+
+    [DllImport(Library, EntryPoint = "sharprail_beep")]
+    private static extern void SystemBeep();
 
     [DllImport(Library, EntryPoint = "sharprail_notifications_authorize")]
     private static extern void Authorize();

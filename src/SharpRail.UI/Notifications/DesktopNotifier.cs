@@ -16,4 +16,10 @@ public interface IDesktopNotifier
 
     /// <summary>Raised, on any thread, with the id of a notification the user activated.</summary>
     event Action<string>? Activated;
+
+    /// <summary>Asks for the user's attention while the app is in the background, as a dock bounce on macOS; nothing elsewhere.</summary>
+    void RequestAttention() { }
+
+    /// <summary>Plays the system alert sound; nothing where there is none.</summary>
+    void Beep() { }
 }
