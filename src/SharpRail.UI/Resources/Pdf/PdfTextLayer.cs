@@ -143,10 +143,48 @@ internal sealed class PdfTextLayer : Control
         var scale = Scale;
         // The boxes cover the page's own glyphs, so the accent is laid over them as a 40% wash (the theme's selection is too translucent on white paper).
         var wash = Ui.PdfSelection;
-        for (var index = start; index <= end; index++)
+        foreach (var line in SelectionRects(page.Text, page.Boxes, start, end))
+            context.FillRectangle(wash, new Rect(line.X * scale, line.Y * scale, line.Width * scale, line.Height * scale));
+    }
+
+    /// <summary>
+    /// One highlight per text line, in points: consecutive glyph boxes on the same line are united, so the gaps between
+    /// letters and words are covered and the line takes its tallest glyph's extent. A line break in the text, a glyph
+    /// outside the line's band or one starting left of it begins the next line; a line overlapping the one above is
+    /// trimmed so the translucent wash never doubles.
+    /// </summary>
+    internal static List<Rect> SelectionRects(string text, IReadOnlyList<Rect> boxes, int start, int end)
+    {
+        var lines = new List<Rect>();
+        Rect? line = null;
+        for (var index = Math.Max(0, start); index <= end && index < boxes.Count; index++)
         {
-            var box = page.Boxes[index];
-            if (box.Width > 0 || box.Height > 0) context.FillRectangle(wash, new Rect(box.X * scale, box.Y * scale, box.Width * scale, box.Height * scale));
+            var box = boxes[index];
+            var breaks = index < text.Length && text[index] is '\n' or '\r';
+            if (breaks) { Close(); continue; }
+            if (box.Width <= 0 && box.Height <= 0) continue;
+            if (line is { } current)
+            {
+                var middle = box.Y + box.Height / 2;
+                if (middle >= current.Top && middle <= current.Bottom && box.X >= current.Left - current.Height / 2) { line = current.Union(box); continue; }
+                Close();
+            }
+            line = box;
+        }
+        Close();
+        return lines;
+
+        void Close()
+        {
+            if (line is not { } done) return;
+            line = null;
+            if (lines.Count > 0 && lines[^1] is var above && done.Top < above.Bottom && done.Bottom > above.Top
+                && done.Left < above.Right && done.Right > above.Left)
+            {
+                var top = Math.Min(above.Bottom, done.Bottom);
+                done = new Rect(done.X, top, done.Width, done.Bottom - top);
+            }
+            if (done.Height > 0) lines.Add(done);
         }
     }
 }

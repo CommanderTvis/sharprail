@@ -74,7 +74,9 @@ not shift the selection geometry.
   Encoding the backing density in both places crops the raster on high-DPI displays.
 - The text layer is a control rather than positioned spans: it keeps each character's box in points from the top
   left, scales them by its own width, selects by dragging (the character under the pointer, or the nearest one, so
-  a drag from the margin still selects), paints the selection as a 40% wash of the kit's `TextSelection`, and copies
+  a drag from the margin still selects), paints the selection as a 40% wash of the kit's `TextSelection` with one rectangle per text line (selected glyph
+  boxes on the line united across letter and word gaps at the tallest glyph's height, a line overlapping the one above
+  trimmed so the wash never doubles), and copies
   with Command or Control+C (Command or Control+A selects the document).
   Selection spans the document: a drag can cross pages in either direction, Copy includes the whole
   range, and Select All covers every page. UTF-16 boundaries expand to preserve a complete Unicode
@@ -114,6 +116,8 @@ minimal one-page fixture generated with correct offsets for each text:
 - PDF remains available independently of the plugin roster; the resource toggle offers the binary file card.
 - a tab switch away and back keeps the same page bitmap, render count and zoom with no loading state; an edit
   while hidden reloads on return; closing the tab releases bytes, rasters and the watch;
+- a selection across a multi-word line paints one rectangle spanning first to last glyph; two ragged lines paint
+  two non-overlapping rectangles;
 - a held file-watch subscription: render the original PDF, rewrite before watching starts, then
   release registration and show the fresh bytes without another edit or Reload gesture.
 

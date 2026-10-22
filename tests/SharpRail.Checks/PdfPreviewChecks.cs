@@ -75,6 +75,7 @@ internal static class PdfPreviewChecks
         PageGeometry(root, 1);
         PageGeometry(root, 2);
         UnicodeSelection();
+        LineHighlights();
         DragScrolling();
         EndToEnd(Path.Combine(root, "pdf-preview-local"), remote: false);
         EndToEnd(Path.Combine(root, "pdf-preview-remote"), remote: true);
@@ -169,6 +170,30 @@ internal static class PdfPreviewChecks
         ready.SetResult();
         E2eWorkspace.Until(() => FirstPageText(app.Window).Contains("Built before watch", StringComparison.Ordinal));
         Console.WriteLine("PASS PDF live preview catches a rewrite between initial read and file-watch readiness");
+    }
+
+    // A selection paints one continuous wash per line, spanning letter and word gaps at one height, never overlapping.
+    private static void LineHighlights()
+    {
+        var page = Task.Run(() => PdfEngine.ReadAsync(MinimalPdf(), CancellationToken.None)).GetAwaiter().GetResult().Single();
+        var glyphs = page.Boxes.Where(box => box.Width > 0).ToArray();
+        var rects = PdfTextLayer.SelectionRects(page.Text, page.Boxes, 0, page.Text.Length - 1);
+        Require(rects.Count == 1, $"A one-line multi-word selection paints one highlight, not one per glyph: {rects.Count}.");
+        var line = rects[0];
+        Require(Math.Abs(line.Left - glyphs.Min(box => box.Left)) < 0.01 && Math.Abs(line.Right - glyphs.Max(box => box.Right)) < 0.01
+            && line.Top <= glyphs.Min(box => box.Top) && line.Bottom >= glyphs.Max(box => box.Bottom),
+            "The line's highlight spans its first to last glyph, covering the gaps, at the tallest glyph's height.");
+        // Two lines of two words each, with ragged glyph heights and a slight overlap between the lines.
+        Rect[] boxes =
+        [
+            new(10, 10, 5, 8), new(16, 12, 5, 6), new(0, 0, 0, 0), new(26, 9, 5, 9), new(32, 11, 5, 7), new(0, 0, 0, 0),
+            new(10, 17, 5, 8), new(16, 19, 5, 6), new(0, 0, 0, 0), new(26, 17, 5, 8)
+        ];
+        var two = PdfTextLayer.SelectionRects("ab cd\nef g", boxes, 0, boxes.Length - 1);
+        Require(two.Count == 2, $"Two selected lines paint two highlights: {two.Count}.");
+        Require(two[0] == new Rect(10, 9, 27, 9), "The first line spans both words at one height: " + two[0]);
+        Require(two[1].Left == 10 && two[1].Right == 31 && two[1].Top >= two[0].Bottom && two[1].Bottom == 25, "The second line spans its words without overlapping the first: " + two[1]);
+        Console.WriteLine("PASS PDF selection paints one continuous, non-overlapping highlight per line");
     }
 
     private static void UnicodeSelection()
