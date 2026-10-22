@@ -189,21 +189,14 @@ public sealed partial class ProjectServices
         // and behind it that session's next open, would otherwise wait for the whole deletion. Only the record change is serialised.
         if (!reclaim)
         {
-            await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, force
-                ? ["worktree", "remove", "--force", "--", workspace.Path]
-                : ["worktree", "remove", "--", workspace.Path]);
+            await WorktreeRemoval.RemoveAsync(workspace.ProjectRoot, workspace.Path, force, cancellationToken);
             using (await registry.LockWorkspacesAsync(CancellationToken.None)) ForgetWorkspace(id);
             DropIndexes(workspace.Path);
             return workspace;
         }
         using (await registry.LockWorkspacesAsync(cancellationToken)) ForgetWorkspace(id);
         DropIndexes(workspace.Path);
-        try { await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, "worktree", "remove", "--force", "--", workspace.Path); }
-        catch (IOException)
-        {
-            if (Directory.Exists(workspace.Path)) Directory.Delete(workspace.Path, recursive: true);
-            await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, "worktree", "prune");
-        }
+        await WorktreeRemoval.ReclaimAsync(workspace.ProjectRoot, workspace.Path, cancellationToken);
         return workspace;
     }
 

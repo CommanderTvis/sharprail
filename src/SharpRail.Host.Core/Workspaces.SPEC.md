@@ -179,6 +179,14 @@ forgetting removes its row while leaving the checkout in place. The Default work
   only after ordinary removal reports modified/untracked files, with Cancel focused and an explicit
   Delete anyway action warning that uncommitted changes are permanently lost. The branch is retained.
   Remove, force removal and reclaim refuse both user-owned kinds and any record whose path is the project folder.
+- Removal deletes checkouts holding read-only directories (a cloned Go module cache), which Git and a
+  recursive delete cannot empty (`WorktreeRemoval`). Plain removal first asks Git for status and refuses
+  modified or untracked files before changing anything on disk. It then adds owner write to every real
+  directory in the tree, or clears read-only attributes on Windows. It never follows a symlink or reparse
+  point, because cloned `.tools` entries may link into a shared store outside the worktree. Then it runs
+  `worktree remove`. When Git fails only to delete files, the host deletes the rest bottom-up (unlinking
+  links) and prunes. Anything left is reported as a partial deletion naming the first entry. All of this
+  runs off the UI thread and outside the registry gate (`--workspace-clone`).
 - `remove-worktree` additionally refuses the main, the active and a locked worktree, and an external
   record. The UI asks for explicit confirmation first; removing the active workspace in a window returns
   it to the previously selected one.

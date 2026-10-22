@@ -86,5 +86,48 @@ internal static class WorkspaceCloneChecks
         // A second run finds everything present.
         Require((await WorkspaceClone.CloneConfiguredAsync(source, target, CancellationToken.None)).Count == 0, "A repeated clone adds nothing.");
         Directory.Delete(fixture, true);
+        await ReadOnlyRemoval(Path.Combine(root, "workspace-readonly-removal"));
+    }
+
+    /// <summary>A clean worktree holding read-only directories (a cloned Go module cache) deletes fully; a symlink out of it is never followed.</summary>
+    private static async Task ReadOnlyRemoval(string fixture)
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var main = IsolatedGit.Repository(Path.Combine(fixture, "main"), (".gitignore", ".tools/\n"));
+        var outside = Path.Combine(fixture, "store", "go");
+        Directory.CreateDirectory(outside);
+        File.WriteAllText(Path.Combine(outside, "tool"), "shared");
+        var tree = Path.Combine(fixture, "tree");
+        IsolatedGit.Run(main, "worktree", "add", "-q", "-b", "readonly", tree);
+        var module = Path.Combine(tree, ".tools/modules/example.com@v1/sub");
+        Directory.CreateDirectory(module);
+        File.WriteAllText(Path.Combine(module, "go.mod"), "module x\n");
+        Directory.CreateSymbolicLink(Path.Combine(tree, ".tools/store"), outside);
+        const UnixFileMode ReadOnly = UnixFileMode.UserRead | UnixFileMode.UserExecute;
+        File.SetUnixFileMode(Path.Combine(outside, "tool"), UnixFileMode.UserRead);
+        foreach (var dir in new[] { outside, module, Path.GetDirectoryName(module)!, Path.Combine(tree, ".tools/modules") }) File.SetUnixFileMode(dir, ReadOnly);
+        try
+        {
+            // Uncommitted work still refuses, and refusing changes nothing on disk.
+            File.WriteAllText(Path.Combine(tree, "dirty.txt"), "work");
+            var refused = false;
+            try { await WorktreeRemoval.RemoveAsync(main, tree, false, CancellationToken.None); }
+            catch (IOException) { refused = true; }
+            Require(refused && File.Exists(Path.Combine(tree, "dirty.txt")), "A dirty worktree refuses removal.");
+            Require(File.GetUnixFileMode(module) == ReadOnly, "A refused removal leaves permissions alone.");
+            File.Delete(Path.Combine(tree, "dirty.txt"));
+
+            await WorktreeRemoval.RemoveAsync(main, tree, false, CancellationToken.None);
+            Require(!Directory.Exists(tree), "The read-only tree is deleted.");
+            Require(!IsolatedGit.Run(main, "worktree", "list", "--porcelain").Contains(tree), "The registration is pruned.");
+            Require(File.ReadAllText(Path.Combine(outside, "tool")) == "shared" && File.GetUnixFileMode(outside) == ReadOnly
+                && File.GetUnixFileMode(Path.Combine(outside, "tool")) == UnixFileMode.UserRead, "A symlink's target outside the tree is untouched.");
+        }
+        finally
+        {
+            foreach (var dir in Directory.EnumerateDirectories(fixture, "*", SearchOption.AllDirectories).Append(fixture))
+                if (new DirectoryInfo(dir).LinkTarget is null) File.SetUnixFileMode(dir, File.GetUnixFileMode(dir) | UnixFileMode.UserWrite);
+            Directory.Delete(fixture, true);
+        }
     }
 }
