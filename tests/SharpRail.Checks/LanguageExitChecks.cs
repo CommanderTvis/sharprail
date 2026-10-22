@@ -130,9 +130,7 @@ internal static class LanguageExitChecks
             var clean = await Died(stopped.Time);
             Require(clean.Unexpected && clean.ExitCode == 0 && clean.Reason.Contains("Exited with code 0 on its own", StringComparison.Ordinal), "A clean exit nobody asked for was not reported: " + clean.Reason);
 
-            // Servers run for the lifetime of their workspace: nothing evicts one for being unused, and removing the workspace stops it and says so.
-            Require(typeof(LanguageService).GetMembers(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
-                .All(member => !member.Name.Contains("Idle", StringComparison.Ordinal)), "The language service still has idle eviction.");
+            // Sampling memory never stops a server by itself (the limits do, see --lsp-limits), and removing the workspace stops it and says so.
             await host.LanguageAsync(new(workspace, Operation: "restart", Server: "typescript", Configuration: "{}"));
             using (var ready = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                 while ((await host.LanguageAsync(new(workspace, Operation: "status", Server: "typescript"), ready.Token)).State != "ready") await Task.Delay(30, ready.Token);

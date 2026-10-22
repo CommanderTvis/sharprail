@@ -225,6 +225,14 @@ internal static class Program
             LanguageCatalogChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--lsp-limits"]))
+        {
+            LanguageLimitChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            LanguageLimitChecks.Ui(root);
+            return;
+        }
         if (args.SequenceEqual(["--lsp"]))
         {
             LanguageChecks.Run(root).GetAwaiter().GetResult();
@@ -1131,6 +1139,7 @@ internal static class Program
         Gate.Case("language-catalog", () => LanguageCatalogChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-on-demand", () => { LanguageOnDemandChecks.Run(root).GetAwaiter().GetResult(); LanguageOnDemandChecks.Lifetime(root).GetAwaiter().GetResult(); LanguageFreshnessChecks.Run(root).GetAwaiter().GetResult(); });
         Gate.Case("language-exit", () => LanguageExitChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("language-limits", () => LanguageLimitChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-commit-links", () => TerminalCommitLinkChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("terminal-links", () => TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult());
@@ -1185,6 +1194,7 @@ internal static class Program
         Gate.Case("tailscale-ui", () => TailscaleChecks.RunUi(root));
         Gate.Case("button-centering", ButtonCenteringChecks.RunUi);
         Gate.Case("air-governance-ui", () => AirGovernanceChecks.RunUi(root));
+        Gate.Case("language-limits-ui", () => LanguageLimitChecks.Ui(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));
         Gate.Case("file-drop-gestures", FileDropChecks.Gestures);

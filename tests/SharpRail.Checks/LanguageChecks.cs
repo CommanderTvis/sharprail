@@ -986,8 +986,8 @@ internal static class LanguageChecks
         {
             E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.ListBox>("LspServer").ItemCount == LanguageServers.Catalog.Count);
             Require(Find<ComboBox>("ProviderChoice") is not null, "Settings omitted workspace provider selection.");
-            Require(Find<TextBlock>("LspLifetimeNote").Text == SharpRail.UI.Panels.LanguageNotes.Lifetime && Find<TextBlock>("LspLifetimeNote").Text!.Contains("lifetime of their workspace", StringComparison.Ordinal),
-                "Settings did not tell the user that servers run for their workspace's lifetime and that agents start them.");
+            Require(Find<TextBlock>("LspLifetimeNote").Text == SharpRail.UI.Panels.LanguageNotes.Lifetime && Find<TextBlock>("LspLifetimeNote").Text!.Contains("within the limits", StringComparison.Ordinal),
+                "Settings did not tell the user that servers run within the limits and that agents start them.");
             Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Name == "ShowAirContext"),
                 "Code Intelligence still offers an Air Context switch; the plugin is turned off in Settings › Plugins.");
             var rail = Find<Avalonia.Controls.ListBox>("LspServer");
