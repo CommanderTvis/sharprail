@@ -133,6 +133,10 @@ internal static class SharedTerminalsE2E
                 "Ctrl+Z in a focused terminal must stay the shell's and reopen nothing.");
             Console.WriteLine("PASS undo close: Ctrl+Z in a focused terminal is left to the shell");
 
+            // Off macOS the command key is Ctrl, which the focused terminal keeps, so undo is pressed with focus on the group's chrome.
+            a.Find<Button>("NewTerminal_" + bottom).Focus();
+            Settle(100);
+            Require(a.Window.UndoCloseFocusAllows(control: true), "Focusing the group chrome must take focus out of the terminal.");
             a.Window.KeyPress(Avalonia.Input.Key.Z, Command, Avalonia.Input.PhysicalKey.Z, "z");
             Until(() => Ids(a).SequenceEqual(order));
             Until(() => Ids(b).Order().SequenceEqual(order.Order()));
@@ -145,6 +149,7 @@ internal static class SharedTerminalsE2E
             Require(host.Host.Started.Count(request => request.SessionId == session) == 1, "Undo must reattach the live session rather than start a shell.");
             Console.WriteLine("PASS undo close: Command-Z reopens a closed terminal in place for every client, with its shell and what it wrote while closed");
 
+            a.Find<Button>("NewTerminal_" + bottom).Focus();
             a.Window.KeyPress(Avalonia.Input.Key.Z, Command | Avalonia.Input.RawInputModifiers.Shift, Avalonia.Input.PhysicalKey.Z, "Z");
             Until(() => TerminalTabs(a).Length == 2 && TerminalTabs(b).Length == 2 && host.Pty.ClosingCount == 1);
             a.Window.UndoClose();
