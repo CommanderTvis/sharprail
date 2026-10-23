@@ -54,7 +54,8 @@ internal static class RpcTransportChecks
             {
                 timeout.Token.ThrowIfCancellationRequested();
                 try { await Handshake(routed); }
-                catch (RpcException error) when (error.StatusCode == StatusCode.Unavailable) { }
+                // A call in flight when the socket dropped ends as cancelled or past its deadline rather than unavailable.
+                catch (RpcException error) when (error.StatusCode is StatusCode.Unavailable or StatusCode.Cancelled or StatusCode.DeadlineExceeded) { }
                 await Task.Delay(20, timeout.Token);
             }
             await Handshake(routed);
