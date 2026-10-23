@@ -92,11 +92,17 @@ internal static class EnvironmentChecks
     }
 
     // The pipeline reads the process environment, so the fake tools and probes are set for the call and restored.
+    // Runners export real tool roots (GitHub's Linux image sets NVM_DIR): unset unless a case names them, so only the
+    // fixture home counts. An empty value would not do: the plugins read it as a set root.
+    private static readonly string[] ToolRoots = ["NVM_DIR", "FNM_DIR", "VOLTA_HOME", "BUN_INSTALL", "DENO_INSTALL", "PYENV_ROOT", "SDKMAN_DIR", "JENV_ROOT"];
+
     private static async Task<T> WithEnvironment<T>(Tools tools, (string Name, string Value)[] extra, Func<Task<T>> run)
     {
         var host = tools.Host(extra);
-        var saved = host.Keys.ToDictionary(name => name, Environment.GetEnvironmentVariable);
+        var unset = ToolRoots.Where(name => !host.ContainsKey(name)).ToArray();
+        var saved = host.Keys.Concat(unset).ToDictionary(name => name, Environment.GetEnvironmentVariable);
         foreach (var (name, value) in host) Environment.SetEnvironmentVariable(name, value);
+        foreach (var name in unset) Environment.SetEnvironmentVariable(name, null);
         try { return await run(); }
         finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
     }
@@ -139,6 +145,7 @@ internal static class EnvironmentChecks
             var host = Environment.GetEnvironmentVariables().Cast<System.Collections.DictionaryEntry>().ToDictionary(entry => (string)entry.Key, entry => (string?)entry.Value ?? "");
             host["PATH"] = Bin + Path.PathSeparator + (host.GetValueOrDefault("PATH") ?? "/usr/bin:/bin");
             host["FAKE_TOOLS_STATE"] = State;
+            foreach (var name in ToolRoots) host.Remove(name);
             foreach (var (name, value) in extra) host[name] = value;
             return host;
         }
