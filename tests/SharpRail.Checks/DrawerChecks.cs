@@ -63,6 +63,7 @@ internal static class DrawerChecks
         Require(!layout.State.LeftVisible && !layout.State.RightVisible, "A compact window must start on its current page.");
         Require(!window.GetLogicalDescendants().OfType<Border>().Any(border => border.Name is "leftRail" or "rightRail"),
             "A compact window must not keep the side edge rails.");
+        Require(!Named<ContentControl>(window, "BrandIcon").IsVisible, "The phone header must not show the app logo.");
         Require(!Named<Button>(window, "ConnectionButton").IsHitTestVisible, "A workbench with no host to change must keep its connection status inert.");
 
         Click(projects);
