@@ -284,5 +284,5 @@ tree killed on timeout or cancellation). A variable a step removes affects later
 the host's value.
 
 A step may also `ShellInit(shell, script)` and `Report(label, detail)`. Scripts (zsh and fish) reach the shell through
-`ShellIntegration` (`Terminals.SPEC.md`). Reports become `WorkspaceEnvironmentFact`s, each with the variables its step set,
+`ShellEnvironmentHooks` (`Terminals.SPEC.md`). Reports become `WorkspaceEnvironmentFact`s, each with the variables its step set,
 and every finished resolution is handed to the plugins' `OnWorkspaceEnvironment` observers: the environment chips are one.

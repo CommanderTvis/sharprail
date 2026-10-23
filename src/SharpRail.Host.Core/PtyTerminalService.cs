@@ -507,7 +507,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         // Plugin contributions come after core's own variables, and never re-expose the host's token.
         foreach (var (key, value) in contributed ?? new Dictionary<string, string>())
             if (key.Length > 0 && !key.Equals("SHARPRAIL_TOKEN", OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) && !key.Contains('=') && !key.Contains('\0') && !value.Contains('\0')) variables[key] = value;
-        ShellIntegration.Apply(variables, shell);
+        ShellEnvironmentHooks.Apply(variables, shell);
         return [.. variables.Select(pair => pair.Key + "=" + pair.Value), null];
     }
 }

@@ -141,7 +141,7 @@ including draining output while closing the pseudoconsole.
 - Before a shell starts for a known tab with none running, `EnvironmentPreparer` is awaited outside the service's
   lock; the plugin runtime resolves the workspace environment there (see `Plugins.SPEC.md`) and the synchronous
   `EnvironmentContributor` only reads the result.
-- Shell integration (`ShellIntegration.cs`): when the resolved environment carries a script for the shell being started
+- Shell environment hooks (`ShellEnvironmentHooks.cs`): when the resolved environment carries a script for the shell being started
   (`SHARPRAIL_SHELL_INIT_<SHELL>`, from mise's and direnv's steps), zsh is pointed at shim start-up files through
   `ZDOTDIR` that source the user's own `.zshenv`, `.zprofile` and `.zshrc` and then run the script (giving `ZDOTDIR` back,
   unset when the user had none), and fish gets a vendor snippet through `XDG_DATA_DIRS` that runs it before the user's

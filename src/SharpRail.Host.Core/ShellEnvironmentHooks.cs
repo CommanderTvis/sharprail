@@ -9,7 +9,7 @@ namespace SharpRail.Host.Core;
 /// source the user's own, and fish reads a vendor snippet through <c>XDG_DATA_DIRS</c>. Other shells get the resolved
 /// environment at start only.
 /// </summary>
-internal static class ShellIntegration
+internal static class ShellEnvironmentHooks
 {
     /// <summary>The variable naming the shim directory; the shell never sees it.</summary>
     internal const string DirectoryVariable = "SHARPRAIL_SHELL_INTEGRATION";

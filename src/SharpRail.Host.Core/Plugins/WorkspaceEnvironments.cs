@@ -154,8 +154,8 @@ internal sealed class WorkspaceEnvironmentEdit : IWorkspaceEnvironmentEdit
             if (!host.TryGetValue(name, out var original) || original != value) changed[name] = value;
         if (shellInit.Count > 0 && integration is not null)
         {
-            foreach (var (shell, scripts) in shellInit) changed[ShellIntegration.InitPrefix + shell.ToUpperInvariant()] = string.Join('\n', scripts);
-            changed[ShellIntegration.DirectoryVariable] = integration();
+            foreach (var (shell, scripts) in shellInit) changed[ShellEnvironmentHooks.InitPrefix + shell.ToUpperInvariant()] = string.Join('\n', scripts);
+            changed[ShellEnvironmentHooks.DirectoryVariable] = integration();
         }
         var facts = reports.Select(report =>
         {
@@ -272,7 +272,7 @@ public sealed partial class PluginRuntime
                 Log(plugin, "warn", $"its environment step was skipped for {directory}: {error.Message}", null);
             }
         }
-        return edit.Result(host, () => ShellIntegration.Ensure(Path.Combine(Seams.StateDirectory ?? Path.GetTempPath(), "shell-integration")));
+        return edit.Result(host, () => ShellEnvironmentHooks.Ensure(Path.Combine(Seams.StateDirectory ?? Path.GetTempPath(), "shell-integration")));
     }
 
     private void NotifyEnvironment(string directory, ResolvedEnvironment resolved)
