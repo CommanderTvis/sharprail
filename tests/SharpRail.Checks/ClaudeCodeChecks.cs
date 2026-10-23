@@ -306,8 +306,11 @@ internal static class ClaudeCodeChecks
         Console.WriteLine("PASS Claude launch: the tab's agent record names the preassigned session before any hook reports");
         var view = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().Single(candidate => candidate.Launch.TabKey == tab.TabKey);
         Require(view.Launch.Program is null, "The launch program runs once; restarting the tab opens a plain shell.");
-        using (var agent = System.Diagnostics.Process.GetProcessById(int.Parse(File.ReadAllText(pidFile).Trim(), System.Globalization.CultureInfo.InvariantCulture)))
-            agent.Kill(entireProcessTree: true);
+        // One SIGKILL to the agent's job (the interactive shell made it a process group). Process.Kill(entireProcessTree)
+        // stops the agent first, so the shell would take it for a suspended job, move on and exec its successor, which
+        // never reaps the agent: on Linux the dead "claude" stayed in the tab's process tree.
+        using (var kill = System.Diagnostics.Process.Start("kill", ["-KILL", "--", "-" + File.ReadAllText(pidFile).Trim()]))
+            kill.WaitForExit();
         E2eWorkspace.Until(() => app.State.Current.TerminalAgents.All(agent => agent.Terminal != tab));
         var marker = Path.Combine(directory, "after-agent");
         view.Write($"[ \"$PWD\" -ef '{app.Root}' ] && touch '{marker}'\r");
