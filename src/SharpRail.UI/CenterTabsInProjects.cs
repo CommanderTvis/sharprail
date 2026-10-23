@@ -194,7 +194,7 @@ public sealed partial class WorkbenchWindow
         if (workbench.Signals.Strip(workspace, tab) is { } strip)
         {
             Grid.SetColumnSpan(strip, 4);
-            strip.Margin = new Thickness(0, 0, 0, -6);
+            strip.Margin = new Thickness(0, 0, 0, -4);
             row.Children.Add(strip);
         }
         var button = new Button

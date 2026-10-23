@@ -90,7 +90,7 @@ internal sealed class TerminalProgressStrip : SignalObserver
 {
     private const double SegmentRatio = 0.25;
     private static readonly TimeSpan BounceTime = TimeSpan.FromSeconds(1.2);
-    private readonly Border track = new() { Opacity = 0.3 };
+    private readonly Border track = new();
     private readonly Border fill = new() { HorizontalAlignment = HorizontalAlignment.Left };
     private DispatcherTimer? animation;
     private DateTime started;
@@ -116,7 +116,8 @@ internal sealed class TerminalProgressStrip : SignalObserver
         (State, Percent) = Board.Progress(Session);
         IsVisible = State != TerminalProgressState.None;
         var brush = State switch { TerminalProgressState.Error => Ui.Danger, TerminalProgressState.Paused => Ui.Warning, _ => Ui.Accent };
-        fill.Background = brush; track.Background = brush;
+        fill.Background = brush;
+        track.Background = State switch { TerminalProgressState.Error => Ui.DangerWash, TerminalProgressState.Paused => Ui.WarningWash, _ => Ui.PrimaryMuted };
         AutomationProperties.SetName(this, State switch
         {
             TerminalProgressState.Error => "Terminal progress - Error",

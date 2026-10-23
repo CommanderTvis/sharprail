@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.UI.Panels.LanguageLimitsView">
-  <StackPanel Spacing="6" Margin="0,8">
+  <StackPanel Spacing="8" Margin="0,8">
     <TextBlock Text="Running servers and limits · all workspaces on this host" FontWeight="SemiBold" />
     <TextBlock Text="Servers stop when unused for the idle timeout, when all of them together pass the memory budget (least recently used first) or when the system is short of memory. A server with an open editor or a request in progress is never stopped; a stopped server starts again on its next request." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock x:Name="LimitsSummary" TextWrapping="Wrap" />
