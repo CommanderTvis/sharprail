@@ -293,6 +293,10 @@ public sealed partial class TerminalView : UserControl, IDisposable
     }
 
     internal bool FileDropWired { get; set; }
+    /// <summary>Whether this terminal's agent can take attachments now; set by the workbench's file-drop wiring.</summary>
+    internal Func<bool>? AcceptsAttachments { get; set; }
+    /// <summary>Uploads external bytes to the host and inserts their paths into the agent's prompt; false if nothing was attached.</summary>
+    internal Func<IReadOnlyList<SharpRail.Host.Abstractions.FileTransferEntry>, Task<bool>>? AttachEntries { get; set; }
     internal bool FileDropActive
     {
         set => this.FindControl<Border>("FileDropHighlight")!.IsVisible = value;

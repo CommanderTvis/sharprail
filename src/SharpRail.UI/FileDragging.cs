@@ -116,6 +116,12 @@ public sealed partial class WorkbenchWindow
         return !target.Equals(path, comparison) && !target.StartsWith(path + "/", comparison);
     }
 
+    /// <summary>Whether agent terminals show an Attach button (Android and the phone layout, where nothing can be dropped).</summary>
+    internal bool AttachButtons { get; set; }
+
+    /// <summary>Chooses files for the Attach button; replaceable so checks can supply a picker result.</summary>
+    internal Func<Task<IReadOnlyList<IStorageItem>>>? PickAttachments { get; set; }
+
     internal void WireTerminalFileDrop(TerminalView terminal)
     {
         var progress = new FileTransferProgress();
@@ -124,6 +130,65 @@ public sealed partial class WorkbenchWindow
         Control? Receiver() => terminal.Accessories.Children.FirstOrDefault(control =>
             control.GetValue(FileDrop.AcceptsProperty)?.Invoke() == true && control.GetValue(FileDrop.AttachProperty) is not null);
         bool Ready() => !terminal.IsExited && !terminal.IsFailed && !terminal.IsDetached && !terminal.IsWatching && terminal.Backend?.Started.IsCompletedSuccessfully == true;
+        // Inserts host paths into the receiver's prompt if the terminal, its workspace and its agent are still the ones that asked.
+        void Insert(Control receiver, string workspace, IReadOnlyList<string> paths)
+        {
+            if (workspace != workspaceRoot || switchingWorkspace || !Ready() || !ReferenceEquals(receiver, Receiver())) return;
+            receiver.GetValue(FileDrop.AttachProperty)!(paths);
+            terminal.FocusTerminal();
+        }
+        // Uploads external bytes to the host, then inserts the host paths. Returns false when nothing was attached.
+        async Task<bool> Upload(Control receiver, string workspace, Func<CancellationToken, Task<IReadOnlyList<FileTransferEntry>>> read)
+        {
+            IReadOnlyList<string>? uploaded = null;
+            await progress.RunAsync("Attaching files…", lifetime.Token, async token =>
+            {
+                var entries = await read(token);
+                if (entries.Count == 0 || workspace != workspaceRoot || switchingWorkspace || !Ready()) return;
+                uploaded = await Task.Run(async () => await host.ImportFilesAsync(new(workspace, null, entries), token), token);
+            });
+            if (uploaded is null) return false;
+            Insert(receiver, workspace, uploaded);
+            return true;
+        }
+        terminal.GotFocus += (_, _) => { if (Receiver() is not null) lastAgentTerminal = new(terminal); };
+        terminal.Output += DeliverSharedAttachments;
+        terminal.AcceptsAttachments = () => !progress.Busy && Ready() && Receiver() is not null;
+        terminal.AttachEntries = async entries =>
+        {
+            if (Receiver() is not { } receiver || progress.Busy || !Ready()) return false;
+            try { return await Upload(receiver, terminal.Launch.WorkspaceRoot, _ => Task.FromResult(entries)); }
+            catch (OperationCanceledException) { return false; }
+        };
+        if (AttachButtons)
+        {
+            Button attach = null!;
+            attach = Ui.Button("Attach", () => _ = AttachPickedAsync());
+            attach.Name = "TerminalAttach";
+            attach.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
+            attach.Margin = new Thickness(8, 2);
+            void Refresh() => attach.IsVisible = Ready() && Receiver() is not null;
+            terminal.Accessories.Children.Insert(0, attach);
+            terminal.Accessories.Children.CollectionChanged += (_, _) => Refresh();
+            terminal.Output += Refresh;
+            terminal.AttachedToVisualTree += (_, _) => Refresh();
+            Refresh();
+            async Task AttachPickedAsync()
+            {
+                Refresh();
+                if (Receiver() is not { } receiver || progress.Busy || !Ready()) return;
+                var workspace = terminal.Launch.WorkspaceRoot;
+                try
+                {
+                    var files = await (PickAttachments ?? PickFilesAsync)();
+                    if (files.Count == 0) return;
+                    await Upload(receiver, workspace, token => ReadDroppedFilesAsync(files, token));
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception error) { Report(error); }
+                finally { Refresh(); }
+            }
+        }
         terminal.AddHandler(DragDrop.DragOverEvent, (_, e) =>
         {
             var source = e.DataTransfer.TryGetValue(WorkspaceFileFormat);
@@ -144,40 +209,59 @@ public sealed partial class WorkbenchWindow
             e.Handled = true;
             try
             {
-                IReadOnlyList<string> paths;
                 if (source is not null)
                 {
                     if (!ReferenceEquals(source.Owner, workbench)) return;
-                    paths = [Path.Combine(source.Root, source.Path)];
+                    Insert(receiver, workspace, [Path.Combine(source.Root, source.Path)]);
+                    return;
                 }
-                else
-                {
-                    if (files.Length == 0) return;
-                    var local = files.Select(item => item.TryGetLocalPath()).ToArray();
-                    if (!remote && local.All(path => path is not null)) paths = local.Select(path => path!).ToArray();
-                    else
-                    {
-                        IReadOnlyList<string>? uploaded = null;
-                        await progress.RunAsync("Attaching files…", lifetime.Token, async token =>
-                        {
-                            var entries = await ReadDroppedFilesAsync(files, token);
-                            if (workspace != workspaceRoot || switchingWorkspace || !Ready()) return;
-                            uploaded = await Task.Run(async () => await host.ImportFilesAsync(new(workspace, null, entries), token), token);
-                        });
-                        if (uploaded is null) return;
-                        paths = uploaded;
-                    }
-                }
-                if (workspace == workspaceRoot && !switchingWorkspace && Ready() && ReferenceEquals(receiver, Receiver()))
-                {
-                    receiver.GetValue(FileDrop.AttachProperty)!(paths);
-                    terminal.FocusTerminal();
-                }
+                if (files.Length == 0) return;
+                var local = files.Select(item => item.TryGetLocalPath()).ToArray();
+                if (!remote && local.All(path => path is not null)) Insert(receiver, workspace, local.Select(path => path!).ToArray());
+                else await Upload(receiver, workspace, token => ReadDroppedFilesAsync(files, token));
             }
             catch (OperationCanceledException) { }
             catch (Exception error) { Report(error); }
         }, RoutingStrategies.Bubble);
     }
+
+    private WeakReference<TerminalView>? lastAgentTerminal;
+    private bool deliveringShares;
+
+    private void WireSharedAttachments()
+    {
+        SharedAttachments.Changed += DeliverSharedAttachments;
+        Closed += (_, _) => SharedAttachments.Changed -= DeliverSharedAttachments;
+    }
+
+    /// <summary>
+    /// Sends files shared into the app to the most recently focused agent terminal of the shown workspace, or the
+    /// only ready one. Items wait in the queue while no agent terminal can take them (not connected, no agent yet).
+    /// </summary>
+    private async void DeliverSharedAttachments()
+    {
+        if (!SharedAttachments.HasPending || deliveringShares || !WorkspaceMounted || switchingWorkspace) return;
+        var ready = documentContent.Values.OfType<TerminalView>()
+            .Where(terminal => terminal.Launch.WorkspaceRoot == workspaceRoot && terminal.AcceptsAttachments?.Invoke() == true).ToArray();
+        TerminalView? last = null;
+        lastAgentTerminal?.TryGetTarget(out last);
+        var target = ready.FirstOrDefault(terminal => ReferenceEquals(terminal, last)) ?? (ready.Length == 1 ? ready[0] : null);
+        if (target?.AttachEntries is not { } attach) return;
+        var entries = SharedAttachments.Take();
+        if (entries.Count == 0) return;
+        deliveringShares = true;
+        try { await attach(entries); }
+        catch (Exception error) { Report(error); }
+        finally { deliveringShares = false; }
+    }
+
+    // Images first; the picker still allows any file.
+    private async Task<IReadOnlyList<IStorageItem>> PickFilesAsync() => await StorageProvider.OpenFilePickerAsync(new()
+    {
+        Title = "Attach to the agent",
+        AllowMultiple = true,
+        FileTypeFilter = [FilePickerFileTypes.ImageAll, FilePickerFileTypes.All]
+    });
 
     internal static Task<IReadOnlyList<FileTransferEntry>> ReadDroppedFilesAsync(IReadOnlyList<IStorageItem> files, CancellationToken token)
     {

@@ -46,7 +46,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
                 Typeface = TerminalTheme.Typeface.Value,
                 Colors = TerminalTheme.Colors(),
                 ClipboardImageDirectory = launch.ClipboardDirectory,
-                SaveClipboardImage = OperatingSystem.IsBrowser() ? bytes => terminals.SaveClipboardImageAsync(launch.SessionId, bytes, lifetime.Token).AsTask() : null,
+                SaveClipboardImage = OperatingSystem.IsBrowser() || OperatingSystem.IsAndroid() ? bytes => terminals.SaveClipboardImageAsync(launch.SessionId, bytes, lifetime.Token).AsTask() : null,
                 Name = "TerminalSkiaView",
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
                 ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),

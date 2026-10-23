@@ -5,6 +5,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -166,7 +168,58 @@ internal static class FileDropChecks
             Require(attached.Count == 2, "A watching terminal cannot accept attachments or take over through a drop.");
         }
         finally { window.Close(); }
+        AttachButton(app);
         Console.WriteLine("PASS workbench file drops: routed tree move/copy, agent callbacks, highlight, inactive agent and watcher rejection");
+    }
+
+    // The phone's Attach button and share target: picked or shared bytes are uploaded, never shared by client path.
+    private static void AttachButton(E2eWorkspace app)
+    {
+        var backend = new RecordingTerminal();
+        using var terminal = new TerminalView(_ => backend, new(app.Root, "attach-probe", "", "attach-client"));
+        var receiver = new Border();
+        var attached = new List<string>();
+        receiver.SetValue(FileDrop.AcceptsProperty, () => true);
+        receiver.SetValue(FileDrop.AttachProperty, paths => attached.AddRange(paths));
+        terminal.Accessories.Children.Add(receiver);
+        // A real picker result: even with a client-local path, the button uploads rather than sharing that path.
+        var source = Path.Combine(Path.GetDirectoryName(app.Root)!, "picked", "screenshot.png");
+        Directory.CreateDirectory(Path.GetDirectoryName(source)!);
+        byte[] bytes = [0x89, 0x50, 0x4E, 0x47, 1, 2, 3];
+        File.WriteAllBytes(source, bytes);
+        var lookup = app.Window.StorageProvider.TryGetFileFromPathAsync(new Uri(source));
+        Until(() => lookup.IsCompleted);
+        var picked = lookup.GetAwaiter().GetResult()!;
+        var picks = 0;
+        app.Window.AttachButtons = true;
+        app.Window.PickAttachments = () => { picks++; return Task.FromResult<IReadOnlyList<IStorageItem>>([picked]); };
+        app.Window.WireTerminalFileDrop(terminal);
+        var window = new Window { Content = terminal, Width = 400, Height = 200 };
+        window.Show(); Dispatcher.UIThread.RunJobs();
+        try
+        {
+            var attach = terminal.Accessories.Children.OfType<Button>().Single(button => button.Name == "TerminalAttach");
+            Require(attach.IsVisible, "An agent terminal that accepts files shows Attach.");
+            attach.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Until(() => attached.Count == 1);
+            Require(picks == 1 && attached[0] != source && File.ReadAllBytes(attached[0]).SequenceEqual(bytes) && backend.Writes.Count == 0,
+                "A picked file is uploaded to the host and its host path inserted without submitting the prompt.");
+
+            SharpRail.UI.Terminal.SharedAttachments.Add([new("shared.png", false, [9, 8, 7])]);
+            Dispatcher.UIThread.RunJobs();
+            Require(attached.Count == 1 && SharpRail.UI.Terminal.SharedAttachments.HasPending, "A share waits while no agent terminal of the shown workspace is mounted.");
+            SharpRail.UI.Terminal.SharedAttachments.Take();
+
+            backend.Displace(); Dispatcher.UIThread.RunJobs();
+            Until(() => terminal.IsWatching);
+            terminal.Accessories.Children.Add(new Border()); Dispatcher.UIThread.RunJobs();
+            Require(!attach.IsVisible && terminal.AcceptsAttachments?.Invoke() == false, "A watching terminal hides Attach and refuses attachments.");
+            attach.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Require(picks == 1 && attached.Count == 1, "A watching terminal never opens the picker or attaches.");
+        }
+        finally { window.Close(); app.Window.AttachButtons = false; app.Window.PickAttachments = null; }
+        Console.WriteLine("PASS attach button: picked file uploaded and inserted unsubmitted, share queued without an agent, watcher rejected");
     }
 
     private sealed class RecordingTerminal : ITerminalBackend

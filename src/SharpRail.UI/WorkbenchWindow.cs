@@ -115,6 +115,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Layout.Focused += UpdateActiveChangeRows;
         surface = new DockSurface(Layout, RenderContent, build: false) { CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid() };
         if (workbench.Compact) WireDrawers();
+        AttachButtons = OperatingSystem.IsAndroid() || workbench.Compact;
+        WireSharedAttachments();
         WireCenterTabs();
         StartupPhases.Mark("window-dock-built");
         Ui.Place(root, surface, 1);
