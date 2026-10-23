@@ -198,6 +198,7 @@ internal sealed class Signaling(ITerminalCatalogService catalog, ITerminalCatalo
     public ValueTask<TerminalCatalog> OpenWorkspaceAsync(string workspaceRoot, IReadOnlyList<TerminalTab> tabs, CancellationToken cancellationToken = default) => catalog.OpenWorkspaceAsync(workspaceRoot, tabs, cancellationToken);
     public ValueTask<TerminalCatalog> ReserveAsync(string workspaceRoot, TerminalTab tab, CancellationToken cancellationToken = default) => catalog.ReserveAsync(workspaceRoot, tab, cancellationToken);
     public ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => catalog.CloseTabAsync(workspaceRoot, key, cancellationToken);
+    public ValueTask<TerminalCatalog> CloseTabForUndoAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => catalog.CloseTabForUndoAsync(workspaceRoot, key, cancellationToken);
     public ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default) => catalog.CloseWorkspaceAsync(workspaceRoot, cancellationToken);
     public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => catalog.WatchAsync(cancellationToken);
     public IAsyncEnumerable<TerminalSignal> WatchSignalsAsync(CancellationToken cancellationToken = default) => host.WatchSignalsAsync(cancellationToken);
