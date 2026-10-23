@@ -3,4 +3,4 @@
 version = 1
 
 [clone]
-include = [".tools", "**/obj", "**/bin"]
+include = ["**/obj", "**/bin"]

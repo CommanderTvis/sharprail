@@ -12,7 +12,7 @@ The optional `--profile` runs `term-bench --duration 15 --fps 120` and records b
 draw cadence separately from the benchmark's output FPS under `artifacts/terminal-profile`.
 
 Build with `scripts/mise run browser build`. The script installs the checkout-local .NET WebAssembly workload;
-native toolchains and source archives stay under `.tools`. Node, pnpm and uv come from `mise.browser.toml`; JavaScript dependencies are pinned by `pnpm-lock.yaml` and PDFium by checksum there, and both are inputs of the asset-staging target. The deployable
+native sources, caches and built libraries stay in the machine-wide `$SHARPRAIL_CACHE_DIR/wasm-native`, copied into `obj/wasm-native`. Node, pnpm and uv come from `mise.browser.toml`; JavaScript dependencies are pinned by `pnpm-lock.yaml` and PDFium by checksum there, and both are inputs of the asset-staging target. The deployable
 files are in `src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle`.
 
 To serve it with a standalone host:
@@ -47,7 +47,7 @@ storage; Disconnect clears the token. No token is put into a URL.
 
 `scripts/mise run browser publish` produces deployment assets under `artifacts/browser`.
 The native solution's `--browser` check exercises authentication, unary RPC, subscriptions and duplex PTYs.
-`scripts/mise run browser check` builds a test-only browser bundle, installs Chromium under `.tools/playwright`
+`scripts/mise run browser check` builds a test-only browser bundle, installs Chromium under `$SHARPRAIL_CACHE_DIR/playwright`
 and runs browser acceptance checks against an isolated host. Build or publish again for deployment;
 normal bundles exclude the acceptance hooks.
 
@@ -71,7 +71,7 @@ negotiates these at the original URLs using `Accept-Encoding`, retaining the ori
 COOP/COEP headers and conditional caching. Uncompressed bundles and clients remain supported.
 These historical measurements cover the runtime file, not the total bundle or startup latency.
 Compression runs after Release Build and Publish, including the `browser` task's `run`; unchanged sidecars
-are reused from a content-addressed cache under `.tools/browser-compression`, even when the SDK
+are reused from a content-addressed cache under `$SHARPRAIL_CACHE_DIR/browser-compression`, even when the SDK
 regenerates the bundle. Quality 11 Brotli adds initial bundling time and disk space, with no request-time
 compression work. Separate static servers must configure sidecar negotiation themselves.
 Run `node tests/SharpRail.Browser.Checks/compression.mjs` for the bundler regression checks.

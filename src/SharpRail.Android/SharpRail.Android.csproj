@@ -95,13 +95,13 @@
     <NativeAbi Include="arm64-v8a;x86_64" />
     <AndroidNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/build-android.sh;../../scripts/build-tailscale-android.sh;Tailscale.Native/*.go;Tailscale.Native/go.mod;Tailscale.Native/go.sum;../../mise.lock;../../mise.android.lock" />
     <!-- Outside a target, %(NativeAbi.Identity) is not batched: it stays literal text and the ABI cannot be read from the path (XA4301). -->
-    <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/../../.tools/tailscale-android/%(Identity)/libSharpRailTailscale.so')" />
+    <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/obj/tailscale/%(Identity)/libSharpRailTailscale.so')" />
     <AndroidNativeLibrary Include="@(NativeAbi->'$(GhosttyNativeCache)/android/%(Identity)/libGhosttyAvaloniaVt.so')" />
     <!-- Merman's .so (pinned in mise.android.lock) under the name MermaidRenderer's P/Invoke resolves; it has no SONAME. -->
     <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/obj/native/android/%(Identity)/libSharpRailMermaid.so')" />
-    <AndroidAsset Include="$(MSBuildProjectDirectory)/../../.tools/tailscale-android/arm64-v8a/THIRD-PARTY-NOTICES.txt" LogicalName="licenses/tailscale/THIRD-PARTY-NOTICES.txt" />
-    <AndroidAsset Include="$(MSBuildProjectDirectory)/../../.tools/tailscale-android/arm64-v8a/TAILSCALE-LICENSE" LogicalName="licenses/tailscale/TAILSCALE-LICENSE" />
-    <AndroidAsset Include="$(MSBuildProjectDirectory)/../../.tools/tailscale-android/arm64-v8a/GO-LICENSE" LogicalName="licenses/tailscale/GO-LICENSE" />
+    <AndroidAsset Include="$(MSBuildProjectDirectory)/obj/tailscale/arm64-v8a/THIRD-PARTY-NOTICES.txt" LogicalName="licenses/tailscale/THIRD-PARTY-NOTICES.txt" />
+    <AndroidAsset Include="$(MSBuildProjectDirectory)/obj/tailscale/arm64-v8a/TAILSCALE-LICENSE" LogicalName="licenses/tailscale/TAILSCALE-LICENSE" />
+    <AndroidAsset Include="$(MSBuildProjectDirectory)/obj/tailscale/arm64-v8a/GO-LICENSE" LogicalName="licenses/tailscale/GO-LICENSE" />
   </ItemGroup>
   <Target Name="BuildNativeLibraries" BeforeTargets="BeforeBuild"
           Inputs="@(AndroidNativeSource)" Outputs="@(AndroidNativeLibrary)">

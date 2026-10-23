@@ -13,8 +13,12 @@
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
     <ServerGarbageCollection>false</ServerGarbageCollection>
-    <!-- Ghostty.Avalonia keeps its pinned sources, toolchains and native builds with the checkout's other tools. -->
-    <GhosttyNativeCache>$(MSBuildThisFileDirectory).tools/ghostty-avalonia</GhosttyNativeCache>
+    <!--
+      Where this checkout's copies of the Ghostty.Avalonia native libraries go (the Android project reads them too). The
+      pinned sources, Zig caches and content-keyed builds they are copied from live in the machine-wide cache
+      ($SHARPRAIL_CACHE_DIR/ghostty-avalonia, see src/Ghostty.Avalonia/build-native.sh).
+    -->
+    <GhosttyNativeCache>$(MSBuildThisFileDirectory)src/Ghostty.Avalonia/obj/native</GhosttyNativeCache>
     <!--
       The Linux desktop runtime the native libraries are built for, from the publish's RuntimeIdentifier on any host (Zig
       cross-compiles them), or from a Linux x64 or arm64 host building without one. Empty everywhere else, which keeps the macOS and

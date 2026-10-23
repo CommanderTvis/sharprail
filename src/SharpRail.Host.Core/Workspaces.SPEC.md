@@ -158,7 +158,7 @@ forgetting removes its row while leaving the checkout in place. The Default work
   extents are shared on btrfs and XFS and the tree is copied elsewhere, still in the background). Existing target paths are never replaced and every
   refusal (non-APFS, another volume, other platforms, a failed `cp`, Git errors) is silent: creation never waits on or
   fails because of it. Savings exist only at creation; edits to the file affect later workspaces only.
-  The SharpRail repo lists `.tools`, `**/obj` and `**/bin`. Check mode `--workspace-clone`.
+  The SharpRail repo lists `**/obj` and `**/bin`; its build caches are machine-wide, not cloned. Check mode `--workspace-clone`.
   The clone starts before the workspace's language servers, and a server starting in that workspace
   waits for it (at most 30 s, `LanguageLimits.CloneWait`): Roslyn started before `obj` arrives restores
   and design-time builds the whole solution itself instead of reusing the Default checkout's outputs.

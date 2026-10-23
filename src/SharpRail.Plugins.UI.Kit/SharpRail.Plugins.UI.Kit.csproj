@@ -17,7 +17,7 @@
     <AvaloniaResource Include="Assets/**" />
   </ItemGroup>
   <PropertyGroup>
-    <FileIconsDirectory>$(MSBuildProjectDirectory)/../../.tools/file-icons/assets/file-icons</FileIconsDirectory>
+    <FileIconsDirectory>$(MSBuildProjectDirectory)/obj/file-icons</FileIconsDirectory>
   </PropertyGroup>
   <Target Name="BuildFileIcons" BeforeTargets="AssignTargetPaths" Condition="'$(DesignTimeBuild)' != 'true'"
           Inputs="$(MSBuildProjectDirectory)/../../scripts/generate-file-icons.cs;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.sh;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.ps1;$(MSBuildProjectDirectory)/FileIcons/FileIconTable.g.cs"

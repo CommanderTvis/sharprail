@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { access, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { root, delay, require, startHost, snapshot, interrupted } from './shared-cache-support.mjs';
+import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const args = process.argv.slice(2);
 const option = name => args.includes(name) ? args[args.indexOf(name) + 1] : undefined;
@@ -18,7 +19,7 @@ if (args.includes('--inventory')) {
 }
 if (!option('--server')) throw Error('Explicitly select --server go,dart or use --inventory. Real integration is opt-in.');
 const selected = option('--server').split(',');
-const base = path.resolve(option('--scratch') ?? path.join(root, '.tools/lsp-shared-cache/run'));
+const base = path.resolve(option('--scratch') ?? cacheDir('lsp-shared-cache', 'run'));
 const reportDirectory = path.join(root, 'artifacts/lsp-shared-cache');
 const dotnet = process.env.DOTNET ?? 'dotnet';
 const hostAssembly = path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll');

@@ -3,18 +3,20 @@
 set -eu
 cd "$(dirname "$0")/.."
 root="$PWD"
-cache="$root/.tools/tailscale-go"
 abi="${1:-arm64-v8a}"
 case "$abi" in
  arm64-v8a) goarch=arm64; compiler=aarch64-linux-android24-clang ;;
  x86_64) goarch=amd64; compiler=x86_64-linux-android24-clang ;;
  *) echo "Unsupported Android ABI: $abi" >&2; exit 1 ;;
 esac
-out="$root/.tools/tailscale-android/$abi"
-sh scripts/tailscale-go.sh
+# Output: this checkout's src/SharpRail.Android/obj/tailscale/<abi>, which the Android project packages. The Go toolchain,
+# build and module caches are the machine-wide ones scripts/tailscale-go.sh provisions; Go locks them itself.
+out="$root/src/SharpRail.Android/obj/tailscale/$abi"
+goroot="$(sh scripts/tailscale-go.sh)"
+cache="$(dirname "$goroot")"
 mkdir -p "$out"
-. "$root/scripts/lock.sh"
-acquire_lock "$cache/build.lock"
+lists="$(mktemp -d)"
+trap 'rm -rf "$lists"' EXIT
 ndk="${ANDROID_NDK_HOME:-$("$root/scripts/tool" android-ndk)}"
 [ -d "$ndk/toolchains" ] || { echo "No Android NDK at $ndk." >&2; exit 1; }
 case "$(uname -s)" in Darwin) ndk_host=darwin-x86_64 ;; Linux) ndk_host=linux-x86_64 ;; esac
@@ -24,7 +26,7 @@ export CC="$ndk/toolchains/llvm/prebuilt/$ndk_host/bin/$compiler"
 cd src/SharpRail.Android/Tailscale.Native
 # Library builds would report 1.x.y-devDATE-g<hash>-dirty to the admin console; stamp the pinned module version instead.
 tsversion="$(sed -n 's/^require tailscale\.com v\([0-9][0-9.]*\)$/\1/p' go.mod)-sharprail"
-"$cache/go/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -ldflags="-s -w -buildid= -X tailscale.com/version.shortStamp=$tsversion -X tailscale.com/version.longStamp=$tsversion -extldflags=-Wl,-z,max-page-size=16384" -o "$out/libSharpRailTailscale.so" .
+"$goroot/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -ldflags="-s -w -buildid= -X tailscale.com/version.shortStamp=$tsversion -X tailscale.com/version.longStamp=$tsversion -extldflags=-Wl,-z,max-page-size=16384" -o "$out/libSharpRailTailscale.so" .
 # Module cache licenses are read-only. Keep staged copies writable so repeated
 # builds replace them cleanly, and propagate all real copy/list failures.
 copy_license() {
@@ -35,8 +37,8 @@ copy_license() {
  chmod u+w "$target"
 }
 copy_license TAILSCALE-LICENSE "$out/TAILSCALE-LICENSE"
-copy_license "$cache/go/LICENSE" "$out/GO-LICENSE"
-"$cache/go/bin/go" list -m -f '{{if .Dir}}{{.Path}}|{{.Dir}}{{end}}' all > "$cache/license-modules.list"
+copy_license "$goroot/LICENSE" "$out/GO-LICENSE"
+"$goroot/bin/go" list -m -f '{{if .Dir}}{{.Path}}|{{.Dir}}{{end}}' all > "$lists/license-modules.list"
 while IFS='|' read -r module directory; do
  [ -n "$directory" ] || continue
  destination="$out/licenses/$module"
@@ -46,14 +48,14 @@ while IFS='|' read -r module directory; do
    copy_license "$license" "$destination/$(basename "$license")"
   fi
  done
-done < "$cache/license-modules.list"
+done < "$lists/license-modules.list"
 # A constant-name bundle avoids Android asset wildcard metadata differences.
 # License paths identify modules; bytewise sorting keeps the bundle deterministic.
-find "$out/licenses" -type f | LC_ALL=C sort > "$cache/license-files.list"
+find "$out/licenses" -type f | LC_ALL=C sort > "$lists/license-files.list"
 : > "$out/THIRD-PARTY-NOTICES.txt"
 while IFS= read -r license; do
  printf '\n===== %s =====\n\n' "${license#"$out/licenses/"}" >> "$out/THIRD-PARTY-NOTICES.txt"
  cat "$license" >> "$out/THIRD-PARTY-NOTICES.txt"
  printf '\n' >> "$out/THIRD-PARTY-NOTICES.txt"
-done < "$cache/license-files.list"
+done < "$lists/license-files.list"
 printf '%s\n' "$out/libSharpRailTailscale.so"

@@ -7,9 +7,10 @@ import http from 'node:http';
 import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(root, '.tools/playwright');
+process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
 const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
 const bundle = path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle');
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.wasm': 'application/wasm', '.css': 'text/css', '.svg': 'image/svg+xml', '.ttf': 'font/ttf', '.woff2': 'font/woff2' };

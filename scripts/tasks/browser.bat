@@ -24,7 +24,6 @@ if /i "%ACTION%"=="publish" (
 if /i "%ACTION%"=="check" (
   "%DOTNET%" build src\SharpRail.Host.Remote -c %CONFIG% -m:2 || exit /b 1
   "%DOTNET%" build src\SharpRail.Browser -c %CONFIG% -m:2 -p:BrowserChecks=true || exit /b 1
-  set "PLAYWRIGHT_BROWSERS_PATH=%ROOT%\.tools\playwright"
   pushd src\SharpRail.Browser
   call pnpm exec playwright install chromium
   set "INSTALLED=!errorlevel!"

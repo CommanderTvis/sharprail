@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(root, '.tools/playwright');
+process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
 const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
 const bundle = path.resolve(process.env.SHARPRAIL_BROWSER_BUNDLE ?? path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle'));
 const origin = 'http://127.0.0.1:54129';

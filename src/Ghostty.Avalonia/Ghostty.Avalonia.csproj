@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>Ghostty.Avalonia</RootNamespace>
-    <!-- Where build-native.sh keeps Ghostty sources, Zig toolchains and the built libraries. -->
+    <!-- Where the native build scripts put this checkout's libraries; their sources and keyed builds live in the machine-wide cache. -->
     <GhosttyNativeCache Condition="'$(GhosttyNativeCache)' == ''">$(MSBuildProjectDirectory)/obj/native</GhosttyNativeCache>
   </PropertyGroup>
   <ItemGroup>

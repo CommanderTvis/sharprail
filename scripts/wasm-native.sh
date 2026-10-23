@@ -1,11 +1,16 @@
 #!/bin/sh
-# Builds the WASM static library libghostty-vt. The browser project's BuildBrowserNative target decides when it runs:
-# when a source, this script or the lockfile is newer than the library.
+# Builds the WASM static library libghostty-vt into the browser project's obj/wasm-native. The browser project's
+# BuildBrowserNative target decides when it runs: when a source, this script or the lockfile is newer than the library.
+# The patched source, Zig cache and finished libraries (results/<key>, the key hashing everything the build reads) live in
+# the machine-wide cache every checkout shares; scripts/native-cache.sh describes the locking and atomic publishing.
 set -eu
 cd "$(dirname "$0")/.."
 root="$PWD"
-cache="$root/.tools/wasm-native"
-mkdir -p "$cache"
+. scripts/lock.sh
+. scripts/native-cache.sh
+out="$root/src/SharpRail.Browser/obj/wasm-native"
+cache="$(sharprail_cache_dir)/wasm-native"
+mkdir -p "$cache/results" "$out"
 case "$(uname -s)-$(uname -m)" in
     Darwin-arm64) runtime=osx-arm64; zig_host=aarch64-macos;;
     Darwin-x86_64) runtime=osx-x64; zig_host=x86_64-macos;;
@@ -31,15 +36,26 @@ vt_commit="${GHOSTTY_VT_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
 zig="$("$root/scripts/tool" "zig-$GHOSTTY_VT_ZIG")"
 [ -x "$zig/zig" ] || { echo "No Zig $GHOSTTY_VT_ZIG in $zig." >&2; exit 1; }
 patch_hash="$(shasum -a 256 src/Ghostty.Avalonia/Native/Wasm.patch | cut -c1-16)"
-source="$cache/ghostty-$vt_commit-$patch_hash"
-if [ ! -d "$source" ]; then
-    sh scripts/fetch-git.sh "$source.partial" https://github.com/ghostty-org/ghostty.git "$vt_commit"
-    patch -s -p1 -d "$source.partial" < src/Ghostty.Avalonia/Native/Wasm.patch
-    mv "$source.partial" "$source"
+fingerprint="$vt_commit $patch_hash $GHOSTTY_VT_ZIG $sdk $(cat src/Ghostty.Avalonia/Native/GhosttyVt.c scripts/wasm-native.sh | shasum -a 256)"
+acquire_lock "$cache/build.lock"
+result="$cache/results/$(cache_key "$fingerprint")"
+if [ ! -f "$result/GhosttyAvaloniaVt.a" ]; then
+    source="$cache/ghostty-$vt_commit-$patch_hash"
+    if [ ! -d "$source" ]; then
+        rm -rf "$source.partial"
+        sh scripts/fetch-git.sh "$source.partial" https://github.com/ghostty-org/ghostty.git "$vt_commit"
+        patch -s -p1 -d "$source.partial" < src/Ghostty.Avalonia/Native/Wasm.patch
+        mv "$source.partial" "$source"
+    fi
+    [ "$(git -C "$source" rev-parse HEAD)" = "$vt_commit" ] || { echo 'Unexpected Ghostty source revision.' >&2; exit 1; }
+    rm -rf "$result.partial"
+    mkdir -p "$result.partial"
+    sh scripts/zig-deps.sh tgz
+    (cd "$source" && "$zig/zig" build --cache-dir "$cache/zig-cache" --prefix "$cache/ghostty" -Demit-lib-vt -Dtarget=wasm32-freestanding -Dcpu=mvp+simd128+mutable_globals+sign_ext+nontrapping_fptoint+atomics+bulk_memory -Doptimize=ReleaseFast -Dstrip=true)
+    emcc -pthread -O2 -DGHOSTTY_STATIC -I "$source/include" -c src/Ghostty.Avalonia/Native/GhosttyVt.c -o "$result.partial/GhosttyVt.o"
+    cp "$cache/ghostty/lib/libghostty-vt.a" "$result.partial/GhosttyAvaloniaVt.a"
+    emar r "$result.partial/GhosttyAvaloniaVt.a" "$result.partial/GhosttyVt.o"
+    rm "$result.partial/GhosttyVt.o"
+    publish_result "$result"
 fi
-[ "$(git -C "$source" rev-parse HEAD)" = "$vt_commit" ] || { echo 'Unexpected Ghostty source revision.' >&2; exit 1; }
-sh scripts/zig-deps.sh tgz
-(cd "$source" && "$zig/zig" build --cache-dir "$cache/zig-cache" --prefix "$cache/ghostty" -Demit-lib-vt -Dtarget=wasm32-freestanding -Dcpu=mvp+simd128+mutable_globals+sign_ext+nontrapping_fptoint+atomics+bulk_memory -Doptimize=ReleaseFast -Dstrip=true)
-emcc -pthread -O2 -DGHOSTTY_STATIC -I "$source/include" -c src/Ghostty.Avalonia/Native/GhosttyVt.c -o "$cache/GhosttyVt.o"
-cp "$cache/ghostty/lib/libghostty-vt.a" "$cache/GhosttyAvaloniaVt.a"
-emar r "$cache/GhosttyAvaloniaVt.a" "$cache/GhosttyVt.o"
+install_output "$result" "$out" GhosttyAvaloniaVt.a

@@ -2,7 +2,7 @@
 
 Run `sh scripts/build-tailscale-android.sh` from the repository. It downloads
 checksum-pinned Go 1.27.2 and builds Tailscale v1.104.1 using `go.sum` and the pinned
-Android NDK. Output: `.tools/tailscale-android/arm64-v8a/libSharpRailTailscale.so`.
+Android NDK. Output: `src/SharpRail.Android/obj/tailscale/arm64-v8a/libSharpRailTailscale.so`.
 Pass `x86_64` as the optional first argument for the emulator ABI. The default is
 `arm64-v8a`; both target API24. `SHARPRAIL_ANDROID_NDK` may reference an existing pinned NDK. No VPN interface,
 external Tailscale application or root privileges are required.
@@ -56,11 +56,11 @@ After either native build has provisioned the pinned toolchain, run the isolated
 native checks from the repository root (macOS/Linux, no Tailscale account needed):
 
 ```sh
-task_root="$PWD"
+goroot="$(sh scripts/tailscale-go.sh)"
 cd src/SharpRail.Android/Tailscale.Native
-GOCACHE="$task_root/.tools/tailscale-go/build-cache" \
-GOMODCACHE="$task_root/.tools/tailscale-go/modules" GOTOOLCHAIN=local \
-"$task_root/.tools/tailscale-go/go/bin/go" test -race .
+GOCACHE="$(dirname "$goroot")/build-cache" \
+GOMODCACHE="$(dirname "$goroot")/modules" GOTOOLCHAIN=local \
+"$goroot/bin/go" test -race .
 ```
 
 These checks cover C ABI operations, unpredictable proxy credentials, rejection of

@@ -21,7 +21,8 @@ A system mise must be at least the `min_version` in `mise.toml`.
 | appimagetool and the AppImage runtime (`appimagetool`, `appimage-runtime`) | `mise.toml` | `package:linux` |
 
 Fetched by the build recipes, pinned by commit or checksum: Ghostty sources and the Zig dependency mirror
-(`scripts/zig-deps.sh`), Go for the Android Tailscale bridge (`scripts/tailscale-go.sh`, `.tools/tailscale-go`).
+(`scripts/zig-deps.sh`), Go for the Android Tailscale bridge (`scripts/tailscale-go.sh`). Build caches and those downloads live in the machine-wide `SHARPRAIL_CACHE_DIR`
+(`~/.cache/sharprail`), shared by every checkout; see [scripts/README.md](scripts/README.md).
 NuGet packages restore from nuget.org in locked mode. Managed language servers are downloaded by the app at
 runtime, not by the build.
 

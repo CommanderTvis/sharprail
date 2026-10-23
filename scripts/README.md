@@ -7,7 +7,7 @@ points. Builds use the pinned .NET SDK, which mise puts on PATH. The first task 
 
 ## File icon assets
 
-The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `build-file-icons.sh` or `build-file-icons.ps1` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. Outputs stay under `.tools/file-icons`.
+The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `build-file-icons.sh` or `build-file-icons.ps1` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. The generated SVGs go to the kit's `obj/file-icons`; the pinned archive is cached in `$SHARPRAIL_CACHE_DIR/file-icons`.
 
 ## Start the app or a server
 
@@ -96,10 +96,28 @@ directory (installing it first when missing): `dotnet`, `zig-0.14.1`, `zig-0.16.
 `binaryen`, `pdfium-wasm`. The SDK directory stays writable because `dotnet workload install` adds packs to it; those
 installs are serialised with a lock (`scripts/tasks/workload.sh`).
 
-Caches written during builds: Zig's global package cache is shared
-(`ZIG_GLOBAL_CACHE_DIR`, under `~/.cache/sharprail`; Zig locks it per entry, so concurrent builds are its designed use), while the
-per-build caches, patched sources, objects and libraries stay per checkout (`.tools/ghostty-avalonia`,
-`obj/native`, `.tools/wasm-native`) because they embed absolute paths. NuGet's cache is NuGet's own.
+Caches written during builds live in one machine-wide directory every checkout and worktree shares, never in the
+checkout (there is no `.tools`): `SHARPRAIL_CACHE_DIR` from `mise.toml`, `${XDG_CACHE_HOME:-~/.cache}/sharprail`
+(Windows: `%LOCALAPPDATA%\sharprail\cache`); scripts run outside mise fall back to the same path. The scripts that create the root exclude it from Time Machine on macOS
+(`tmutil addexclusion`). Entries:
+
+| Entry | Contents | Key and concurrency |
+| --- | --- | --- |
+| `zig` (`ZIG_GLOBAL_CACHE_DIR`) | Zig's global package cache | content-addressed; Zig locks per entry |
+| `ghostty-avalonia` | pinned Ghostty sources, Zig caches, the patched macOS SDK copy; `results/<platform>-<library>-<key>` | key: hash of the build's fingerprint (pinned commits, Zig, sources, script); one `build.lock` |
+| `wasm-native` | patched libghostty-vt source, Zig cache; `results/<key>` | key: commit, patch, Zig, Emscripten SDK, sources; `build.lock` |
+| `tailscale-go` | `go<version>-<platform>`, Go's build and module caches | per pinned version, installed by rename under `install.lock`; Go locks its caches |
+| `headscale-test` | what `--headscale` runs | version-stamped download, files renamed into place under `headscale-test.lock` |
+| `browser-compression` | Brotli/gzip of browser assets | content hash; files written beside and renamed |
+| `playwright` (`PLAYWRIGHT_BROWSERS_PATH`) | Chromium for the browser checks | Playwright's own install lock |
+| `file-icons` | the pinned Material Icon Theme archive | version and checksum; renamed into place |
+| `lsp-validation`, `lsp-shared-cache`, `language-check` | opt-in language integration runs | repositories and managed servers |
+
+A native result is built in `<result>.partial` and published by rename (`scripts/native-cache.sh`); the recipe then
+copies it into the checkout's `obj` (Ghostty: `src/Ghostty.Avalonia/obj/native`, WASM: `src/SharpRail.Browser/obj/wasm-native`,
+Tailscale: `src/SharpRail.Android/obj/tailscale`, icons: `src/SharpRail.Plugins.UI.Kit/obj/file-icons`), where MSBuild's
+incremental targets see it. Results are keyed, so branches never overwrite each other's and a new worktree reuses one
+instead of rebuilding; old results are not pruned (delete the directory to reclaim space). NuGet's cache is NuGet's own.
 
 Native libraries are MSBuild targets in the project that owns them, with their sources, recipe and
 lockfile as inputs: `scripts/mise run build` (or any `dotnet build`) rebuilds a library only when one
@@ -263,13 +281,13 @@ A real authenticated Context smoke test remains a separate, user-authorized acti
 
 `sh scripts/build-tailscale-android.sh [arm64-v8a|x86_64]` builds the app-private
 userspace node using checksum-pinned Go and the checkout's Android NDK. It stages
-`libSharpRailTailscale.so` and dependency licenses under `.tools/tailscale-android/<abi>`.
-The Android build invokes it for both packaged ABIs. The NDK is the one `scripts/mise run bootstrap:android` links as `.tools/android-ndk`. See the [bridge README](../src/SharpRail.Android/Tailscale.Native/README.md)
+`libSharpRailTailscale.so` and dependency licenses under `src/SharpRail.Android/obj/tailscale/<abi>`.
+The Android build invokes it for both packaged ABIs. The NDK is the one `scripts/tool android-ndk` prints. See the [bridge README](../src/SharpRail.Android/Tailscale.Native/README.md)
 for its ABI and native tests; no system Go installation or separate Android VPN app is required.
 
 ### Headscale connectivity check
 
-`sh scripts/build-headscale-test.sh` provisions what `--headscale` needs under `.tools/headscale-test`:
+`sh scripts/build-headscale-test.sh` provisions what `--headscale` needs under `$SHARPRAIL_CACHE_DIR/headscale-test`:
 the checksum-pinned Headscale v0.29.5 release for this platform (macOS or Linux, arm64 or x64), the
 `tsforward` userspace node and a desktop build of the embedded Tailscale library. The Go toolchain comes
 from `scripts/tailscale-go.sh`, which the Android build shares. Then

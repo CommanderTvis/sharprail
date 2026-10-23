@@ -6,9 +6,10 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
+import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(root, '.tools/playwright');
+process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
 const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
 const scratch = path.join(root, '.bench/browser-mermaid/checks');
 const fixture = path.join(scratch, 'fixture');

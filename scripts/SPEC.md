@@ -38,8 +38,8 @@ icons in the kit. The Ghostty recipes apply the checked-in texture export and sc
 the pinned Ghostty source. `android` needs the Android SDK (`ANDROID_HOME`, default `~/Library/Android/sdk`)
 and a JDK 17 or 21 (the pinned one `scripts/tool jdk` prints, or `JAVA_HOME` when set), fails with a message when either is missing, and installs the `android`
 workload into the SDK when absent. Recipes may depend on POSIX `sh`, Git, `shasum`, clang/Xcode tools and,
-for the benchmark only, Node. They read source trees and write only to `.tools`, `obj/native`, `.bench` and
-`artifacts`. Product logic, a second source of package versions, and editing sources are forbidden.
+for the benchmark only, Node. They read source trees and write only to the machine-wide cache (`SHARPRAIL_CACHE_DIR`), `obj`, `.bench` and
+`artifacts`; never to a repo-local `.tools`. Product logic, a second source of package versions, and editing sources are forbidden.
 
 ## Invariants
 

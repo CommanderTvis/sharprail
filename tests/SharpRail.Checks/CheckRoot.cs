@@ -28,6 +28,20 @@ internal static class CheckRoot
     /// <summary>The records of kept failed roots, in the checkout's disposable folder next to the last-run record.</summary>
     private static string FailedRecord => Path.Combine(Path.GetDirectoryName(Runner.LastRun)!, "checks-failed-fixtures.txt");
 
+    /// <summary>
+    /// An entry of the machine-wide build cache every checkout shares (<c>SHARPRAIL_CACHE_DIR</c> from mise.toml, else the
+    /// same default): downloads and provisioned tools that outlive a run, never fixtures.
+    /// </summary>
+    internal static string SharedCache(string name)
+    {
+        var configured = Environment.GetEnvironmentVariable("SHARPRAIL_CACHE_DIR");
+        var xdg = Environment.GetEnvironmentVariable("XDG_CACHE_HOME");
+        var root = !string.IsNullOrEmpty(configured) ? configured
+            : OperatingSystem.IsWindows() ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "sharprail", "cache")
+            : Path.Combine(string.IsNullOrEmpty(xdg) ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache") : xdg, "sharprail");
+        return Path.Combine(root, name);
+    }
+
     internal static string Parent
     {
         get

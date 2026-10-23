@@ -166,7 +166,7 @@ Other check facts:
 
 ## Outputs
 
-`artifacts/ui`, `artifacts/host`, `artifacts/checks`: published executables. `artifacts/SharpRail.app`: macOS bundle. Windows: `artifacts/windows/{client,host,checks}` and `artifacts/SharpRail-win-x64.zip` (ARM64: `artifacts/windows-arm64`, `artifacts/SharpRail-win-arm64.zip`). Browser: `artifacts/browser`. Android: `artifacts/android/SharpRail.apk`. Keep one latest canonical app package. `.tools`, `bin`, `obj` are local build output. `licenses/` and `THIRD-PARTY-NOTICES.md` document redistributed dependencies and assets.
+`artifacts/ui`, `artifacts/host`, `artifacts/checks`: published executables. `artifacts/SharpRail.app`: macOS bundle. Windows: `artifacts/windows/{client,host,checks}` and `artifacts/SharpRail-win-x64.zip` (ARM64: `artifacts/windows-arm64`, `artifacts/SharpRail-win-arm64.zip`). Browser: `artifacts/browser`. Android: `artifacts/android/SharpRail.apk`. Keep one latest canonical app package. `bin`, `obj` are local build output; build caches live in the machine-wide `SHARPRAIL_CACHE_DIR` (`scripts/README.md`), never in a repo-local `.tools`. `licenses/` and `THIRD-PARTY-NOTICES.md` document redistributed dependencies and assets.
 
 The nightly workflow builds the macOS DMG, Android APK and Windows x64/ARM64 ZIPs at 03:00 UTC or on manual dispatch; each Windows job (`windows-2025`, `windows-11-arm`) requires the packaged ReadyToRun `--windows` gate before the four assets publish together. Verify the actual workflow run and release assets before reporting a nightly deployed or runtime-verified.
 

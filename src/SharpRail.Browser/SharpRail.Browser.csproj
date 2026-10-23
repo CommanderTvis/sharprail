@@ -84,7 +84,7 @@
 
   <ItemGroup>
     <WasmOptConfigurationFlags Include="--enable-nontrapping-float-to-int" />
-    <NativeFileReference Include="../../.tools/wasm-native/GhosttyAvaloniaVt.a" />
+    <NativeFileReference Include="obj/wasm-native/GhosttyAvaloniaVt.a" />
   </ItemGroup>
   <Import Project="BrowserAot.targets" />
   <Target Name="CompressBrowserBundle" AfterTargets="_WasmBuildAppCore" Condition="'$(Configuration)' == 'Release' and '$(WasmGenerateAppBundle)' == 'true'">
@@ -94,7 +94,7 @@
     <WasmNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/Native/Wasm.patch;../../scripts/wasm-native.sh;../../mise.lock;../../mise.browser.lock" />
   </ItemGroup>
   <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild"
-          Inputs="@(WasmNativeSource)" Outputs="../../.tools/wasm-native/GhosttyAvaloniaVt.a">
+          Inputs="@(WasmNativeSource)" Outputs="obj/wasm-native/GhosttyAvaloniaVt.a">
     <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
   </Target>
   <!-- The vendored assets come from the pnpm lockfile, the PDFium pin and the licence files. -->

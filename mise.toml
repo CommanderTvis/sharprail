@@ -110,9 +110,15 @@ GHOSTTY_VIEW_COMMIT = "6d2dd585a5d87fa745d48188dd096ca6e63014d0" # v1.2.3
 GHOSTTY_VIEW_ZIG = "0.14.1"
 GHOSTTY_VT_COMMIT = "59c2dc032aba42aa5064bf206cc27286add3e9d8"
 GHOSTTY_VT_ZIG = "0.16.0"
+# The one root of SharpRail's machine-wide build caches, shared by every checkout and worktree (never a repo-local
+# `.tools`): pinned sources, intermediate builds and content-keyed results of the native recipes, Playwright's
+# browsers, downloaded archives. Writers lock (scripts/lock.sh) or publish atomically by rename; scripts/README.md
+# lists the entries. MSBuild and the scripts fall back to the same path when run outside mise.
+SHARPRAIL_CACHE_DIR = "{% if os() == 'windows' %}{{ get_env(name='LOCALAPPDATA') }}\\sharprail\\cache{% else %}{{ get_env(name='XDG_CACHE_HOME', default=env.HOME ~ '/.cache') }}/sharprail{% endif %}"
 # Zig's global cache (fetched package sources, compiled helpers) is content-addressed and locks per entry, so
-# checkouts share one; the per-build caches stay beside each checkout's outputs.
-ZIG_GLOBAL_CACHE_DIR = "{{ env.XDG_CACHE_HOME | default(value=env.HOME ~ '/.cache') }}/sharprail/zig"
+# checkouts share one.
+ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_CACHE_DIR }}/zig"
+PLAYWRIGHT_BROWSERS_PATH = "{{ env.SHARPRAIL_CACHE_DIR }}/playwright"
 
 # ARTIFACT MATRIX (printed by `scripts/mise run targets`; the one place that says what ships where)
 #

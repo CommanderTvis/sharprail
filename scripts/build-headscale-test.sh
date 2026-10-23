@@ -1,5 +1,5 @@
 #!/bin/sh
-# Provision what `--headscale` needs under .tools/headscale-test: the checksum-pinned Headscale
+# Provision what `--headscale` needs under $SHARPRAIL_CACHE_DIR/headscale-test (the machine-wide cache): the checksum-pinned Headscale
 # release binary, the userspace tailnet node used as the host side (cmd/tsforward) and the desktop
 # build of the embedded Tailscale library the client side loads. No account, root or system Go.
 set -eu
@@ -13,8 +13,12 @@ case "$(uname -s)-$(uname -m)" in
  Linux-x86_64) platform=linux_amd64; checksum=e979d27fe17d924d33bb6ab7504f6338d0635989a0cfdcfbc0ceb637dbcbe980 ;;
  *) echo 'The Headscale check requires macOS or Linux, arm64 or x64.' >&2; exit 1 ;;
 esac
-out="$root/.tools/headscale-test"
+. "$root/scripts/lock.sh"
+. "$root/scripts/native-cache.sh"
+out="$(sharprail_cache_dir)/headscale-test"
 mkdir -p "$out"
+# Checkouts share the directory; each file is written beside it and renamed into place.
+acquire_lock "$out.lock"
 if [ "$(cat "$out/headscale.version" 2>/dev/null || true)" != "$version-$platform" ]; then
  curl -fL --retry 3 "https://github.com/juanfont/headscale/releases/download/v$version/headscale_${version}_$platform" -o "$out/headscale.download"
  printf '%s  %s\n' "$checksum" "$out/headscale.download" | shasum -a 256 -c - >/dev/null
@@ -22,12 +26,14 @@ if [ "$(cat "$out/headscale.version" 2>/dev/null || true)" != "$version-$platfor
  mv "$out/headscale.download" "$out/headscale"
  printf '%s\n' "$version-$platform" > "$out/headscale.version"
 fi
-sh scripts/tailscale-go.sh
-cache="$root/.tools/tailscale-go"
+goroot="$(sh scripts/tailscale-go.sh)"
+cache="$(dirname "$goroot")"
 case "$(uname -s)" in Darwin) ext=dylib ;; *) ext=so ;; esac
 export CGO_ENABLED=1 GOTOOLCHAIN=local GOCACHE="$cache/build-cache" GOMODCACHE="$cache/modules"
 cd src/SharpRail.Android/Tailscale.Native
-"$cache/go/bin/go" build -mod=readonly -trimpath -o "$out/tsforward" ./cmd/tsforward
-"$cache/go/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -o "$out/libSharpRailTailscale.$ext" .
-rm -f "$out/libSharpRailTailscale.h"
+"$goroot/bin/go" build -mod=readonly -trimpath -o "$out/tsforward.partial" ./cmd/tsforward
+mv "$out/tsforward.partial" "$out/tsforward"
+"$goroot/bin/go" build -mod=readonly -trimpath -buildmode=c-shared -o "$out/libSharpRailTailscale.$ext.partial" .
+mv "$out/libSharpRailTailscale.$ext.partial" "$out/libSharpRailTailscale.$ext"
+rm -f "$out/libSharpRailTailscale.h" "$out/libSharpRailTailscale.$ext.h"
 printf '%s\n' "$out"

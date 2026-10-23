@@ -141,7 +141,7 @@ From a source checkout; [DEVELOPMENT.md](DEVELOPMENT.md) lists what to install p
 repo provisions itself. macOS builds need the Xcode command-line tools, LLVM at
 `/opt/homebrew/opt/llvm`, and its Metal Toolchain
 (`xcodebuild -downloadComponent MetalToolchain`). The first build downloads pinned
-Ghostty 1.2.3, Zig 0.14.1 and Merman into `.tools`. No installed
+Ghostty 1.2.3, Zig 0.14.1 and Merman into machine-wide caches shared by every checkout. No installed
 Ghostty application is required.
 
 ```sh
@@ -214,7 +214,7 @@ stops.
 
 The Android app is a client only: it shows the same workbench, while projects, settings, plugins and shells
 stay on a host it connects to. It needs the Android SDK (`ANDROID_HOME`);
-the tasks install the .NET `android` workload, the pinned NDK and the pinned JDK into `.tools`.
+the tasks install the .NET `android` workload, the pinned NDK and the pinned JDK into mise's shared data directory.
 
 ```sh
 scripts/mise run android run   # build, install on the connected device or emulator, and start

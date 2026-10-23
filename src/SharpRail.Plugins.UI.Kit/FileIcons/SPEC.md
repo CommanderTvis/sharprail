@@ -14,7 +14,7 @@ retain the generic file glyph.
 Material Icon Theme is pinned to 5.38.1 by a checksummed npm archive. The generator in
 `scripts/generate-file-icons.cs` recolours fills, strokes and stops to currentColor, preserves
 pale accents, flattens gradients and removes definitions. All 1,251 generated fork SVGs remain
-byte-identical. Generated assets belong in ignored `.tools/file-icons/assets/file-icons` and are
+byte-identical. Generated assets belong in ignored `src/SharpRail.Plugins.UI.Kit/obj/file-icons` and are
 embedded by the kit build, rather than copied into a plugin directory. The Unix and PowerShell
 build wrappers serialize generation and cache its source fingerprint. Run
 `dotnet run scripts/generate-file-icons.cs -- --check` to verify the table and assets.

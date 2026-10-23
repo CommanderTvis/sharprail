@@ -621,7 +621,7 @@ internal static class LanguageChecks
     internal static async Task Real(string fixture)
     {
         var root = Path.Combine(fixture, "real-languages"); Directory.CreateDirectory(root);
-        var storage = Path.Combine(Directory.GetCurrentDirectory(), ".tools", "language-check");
+        var storage = CheckRoot.SharedCache("language-check");
         Directory.CreateDirectory(storage);
         await File.WriteAllTextAsync(Path.Combine(storage, "servers.json"), """{}""");
         var configurations = new Dictionary<string, string>();

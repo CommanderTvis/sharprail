@@ -188,7 +188,7 @@ The `BuildNativeLibraries` target runs the native scripts (Tailscale, Ghostty) f
 copies Merman's `jni/<abi>/libmerman_ffi.so` to `obj/native/android/<abi>/libSharpRailMermaid.so` (the name `MermaidRenderer`'s
 P/Invoke loads; the library has no SONAME, depends only on libc, libm and libdl, and its release build already aligns
 segments to 16 KB), and adds their outputs as `AndroidNativeLibrary` items. All use the NDK r27d that mise installs on first use (`scripts/tool android-ndk`), target API 24 and align segments to 16 KB pages. The Ghostty library lands in the
-shared cache `.tools/ghostty-avalonia/android/<abi>`. PDF Preview's desktop PDFium packages are referenced with
+checkout's `src/Ghostty.Avalonia/obj/native/android/<abi>`, copied from the machine-wide cache. PDF Preview's desktop PDFium packages are referenced with
 their assets excluded.
 
 Terminals draw with `GhosttySkiaView` only: `TerminalBackends` returns the Skia terminal on Android whatever

@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2);
@@ -13,7 +14,7 @@ const corpus = JSON.parse(await readFile(new URL('./corpus.json', import.meta.ur
 validateCorpus(corpus);
 const cases = corpus.cases.filter(item => selected === null || selected.split(',').includes(item.server));
 if (!cases.length) throw Error('No matching scenario');
-const cache = path.join(root, '.tools/lsp-validation');
+const cache = cacheDir('lsp-validation');
 const reports = path.join(root, 'artifacts/lsp-validation');
 await mkdir(cache, { recursive: true });
 await mkdir(reports, { recursive: true });

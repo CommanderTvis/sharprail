@@ -6,7 +6,7 @@ and uses the production language provisioners. No AI process, graphical app or f
 
 Build Release first, then run `node tests/SharpRail.Language.Integration/run.mjs --all`.
 Use `--server typescript` to select one provider. Project revisions and scenarios live in corpus.json.
-Repositories and managed servers are cached under .tools/lsp-validation; reports are written under
+Repositories and managed servers are cached under $SHARPRAIL_CACHE_DIR/lsp-validation; reports are written under
 artifacts/lsp-validation. Dependencies may be downloaded by project package managers/build importers.
 The runner never accepts license agreements. Missing prerequisites or user acceptance are BLOCKED,
 not PASS. Nonzero exit status means at least one selected case failed or was blocked.

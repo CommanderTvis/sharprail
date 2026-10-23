@@ -3,10 +3,11 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cacheDir } from '../../scripts/cache-dir.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const assets = process.env.SHARPRAIL_BROWSER_ASSETS_ROOT ?? root;
-process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(assets, '.tools/playwright');
+process.env.PLAYWRIGHT_BROWSERS_PATH ??= cacheDir('playwright');
 const { chromium } = await import(path.join(assets, 'src/SharpRail.Browser/node_modules/playwright/index.mjs'));
 const vendor = path.join(assets, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle/vendor');
 const server = http.createServer(async (request, response) => {

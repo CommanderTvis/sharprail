@@ -21,7 +21,7 @@ content. Skia rendering uses Avalonia's chosen Skia backend.
 Windows invokes `build-windows.ps1` and produces `GhosttyAvaloniaVt.dll` from the
 same pinned VT source using Zig 0.16.0. Only `GhosttySkiaView` is supported there;
 clipboard writes use the Avalonia callback. The build needs Git, PowerShell and
-Windows' tar, and downloads its compiler into a checkout cache. When reusing the
+Windows' tar, and downloads its compiler and source into the machine-wide cache described below. When reusing the
 directory outside SharpRail on Windows, also copy `scripts/windows-native.ps1`
 to the matching relative location for its download and locking helpers.
 
@@ -37,9 +37,13 @@ SkiaSharp 4.148.0 and HarfBuzzSharp 14.2.1.301 to the application's package vers
 
 Build on macOS with Xcode command line tools, Git, curl and LLVM's Darwin archive
 writer at `/opt/homebrew/opt/llvm/bin/llvm-ar`. The script downloads pinned Ghostty
-sources and Zig toolchains, and caches native output under `obj/native` by default.
-`GhosttyNativeCache` can point to a persistent cache. Libraries and shell resources
-are copied to the consuming application's output and publish directory.
+sources and Zig toolchains into a machine-wide cache (`$SHARPRAIL_CACHE_DIR/ghostty-avalonia`, default
+`~/.cache/sharprail`; Windows `%LOCALAPPDATA%\sharprail\cache`) that every checkout and worktree shares. Each
+finished library is kept there under `results/<key>`, the key hashing the pinned commits, Zig version, native sources
+and script, and is built beside its final name and renamed into place under one lock, so concurrent builds and
+different branches never corrupt or overwrite each other's. The script copies the result into its output directory,
+`obj/native` by default (`GhosttyNativeCache`). Libraries and shell resources are copied from there to the consuming
+application's output and publish directory.
 
 Every native build (macOS, Linux, Windows, Android, WASM) first restores the Zig packages hosted outside
 github.com into Zig's global cache with `scripts/zig-deps.sh` (`Restore-ZigDeps` on Windows) from a mirror archive
@@ -48,10 +52,10 @@ It restores only absent packages and falls back to the upstream URLs; see `scrip
 The native view uses Ghostty 1.2.3; the VT library uses unreleased Ghostty commit
 `59c2dc032aba42aa5064bf206cc27286add3e9d8`. See `licenses/Ghostty-MIT.txt`.
 
-`build-android.sh <arm64-v8a|x86_64> [cache-directory]` cross-builds the same pinned
+`build-android.sh <arm64-v8a|x86_64> [output-directory]` cross-builds the same pinned
 VT source for Android API 24 with the NDK from `ANDROID_NDK_HOME` (in SharpRail,
 `scripts/tool android-ndk`), from macOS or Linux. It writes
-`android/<abi>/libGhosttyAvaloniaVt.so` into the cache, 16 KB page aligned and
+`android/<abi>/libGhosttyAvaloniaVt.so` into the output directory, 16 KB page aligned and
 depending only on bionic. Package it for its ABI, for example as an
 `AndroidNativeLibrary` item; the runtime loads it from the APK by name. Android has
 only the Skia control.

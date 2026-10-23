@@ -33,11 +33,11 @@ internal static class HeadscaleChecks
 
     internal static async Task Run(string root)
     {
-        var tools = Path.Combine(Directory.GetCurrentDirectory(), ".tools", "headscale-test");
+        var tools = CheckRoot.SharedCache("headscale-test");
         var library = Path.Combine(tools, OperatingSystem.IsMacOS() ? "libSharpRailTailscale.dylib" : "libSharpRailTailscale.so");
         var missing = new[] { "headscale", "tsforward" }.Select(name => Path.Combine(tools, name)).Append(library).Where(path => !File.Exists(path)).ToArray();
         var reason = !(OperatingSystem.IsMacOS() || OperatingSystem.IsLinux()) ? "Headscale checks run on macOS and Linux only."
-            : missing.Length > 0 ? "Run `sh scripts/build-headscale-test.sh` first; missing " + string.Join(", ", missing.Select(path => Path.GetRelativePath(Directory.GetCurrentDirectory(), path))) + "."
+            : missing.Length > 0 ? "Run `sh scripts/build-headscale-test.sh` first; missing " + string.Join(", ", missing) + "."
             : null;
         if (reason is not null)
         {

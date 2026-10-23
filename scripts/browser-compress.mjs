@@ -1,14 +1,14 @@
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { brotliCompress, gzip, constants } from 'node:zlib';
+import { cacheDir } from './cache-dir.mjs';
 
 const compressBr = promisify(brotliCompress);
 const compressGzip = promisify(gzip);
 const bundle = path.resolve(process.argv[2]);
-const cache = path.resolve(process.argv[3] ?? path.join(path.dirname(fileURLToPath(import.meta.url)), '../.tools/browser-compression'));
+const cache = path.resolve(process.argv[3] ?? cacheDir('browser-compression'));
 await fs.mkdir(cache, { recursive: true });
 const extensions = new Set(['.wasm', '.dll', '.js', '.mjs', '.json', '.html', '.css', '.svg', '.dat', '.blat', '.txt']);
 async function writeAtomic(file, bytes) {

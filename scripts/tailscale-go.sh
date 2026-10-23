@@ -1,5 +1,7 @@
 #!/bin/sh
-# Install the checksum-pinned Go toolchain shared by the Tailscale builds into .tools/tailscale-go.
+# Install the checksum-pinned Go toolchain shared by the Tailscale builds into the machine-wide cache
+# ($SHARPRAIL_CACHE_DIR/tailscale-go/go<version>-<platform>, one directory per pin so checkouts pinning different versions
+# never replace each other's) and print its GOROOT. Go's build and module caches beside it are safe for concurrent use.
 set -eu
 cd "$(dirname "$0")/.."
 root="$PWD"
@@ -11,14 +13,21 @@ case "$(uname -s)-$(uname -m)" in
  Linux-x86_64) platform=linux-amd64; checksum=ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5 ;;
  *) echo 'Tailscale builds require macOS or Linux, arm64 or x64.' >&2; exit 1 ;;
 esac
-cache="$root/.tools/tailscale-go"
-mkdir -p "$cache"
 . "$root/scripts/lock.sh"
-acquire_lock "$cache/build.lock"
-if [ ! -x "$cache/go/bin/go" ] || [ "$(cat "$cache/version" 2>/dev/null || true)" != "$version-$platform" ]; then
- curl -fL --retry 3 "https://go.dev/dl/go$version.$platform.tar.gz" -o "$cache/go.tar.gz"
- printf '%s  %s\n' "$checksum" "$cache/go.tar.gz" | shasum -a 256 -c - >/dev/null
- tar -xzf "$cache/go.tar.gz" -C "$cache"
- rm "$cache/go.tar.gz"
- printf '%s\n' "$version-$platform" > "$cache/version"
+. "$root/scripts/native-cache.sh"
+cache="$(sharprail_cache_dir)/tailscale-go"
+goroot="$cache/go$version-$platform"
+if [ ! -x "$goroot/bin/go" ]; then
+ mkdir -p "$cache"
+ acquire_lock "$cache/install.lock"
+ if [ ! -x "$goroot/bin/go" ]; then
+  rm -rf "$goroot.partial"
+  mkdir -p "$goroot.partial"
+  curl -fL --retry 3 "https://go.dev/dl/go$version.$platform.tar.gz" -o "$goroot.partial/go.tar.gz" >&2
+  printf '%s  %s\n' "$checksum" "$goroot.partial/go.tar.gz" | shasum -a 256 -c - >/dev/null
+  tar -xzf "$goroot.partial/go.tar.gz" -C "$goroot.partial"
+  mv "$goroot.partial/go" "$goroot"
+  rm -rf "$goroot.partial"
+ fi
 fi
+printf '%s\n' "$goroot"
