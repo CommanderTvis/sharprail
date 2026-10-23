@@ -312,7 +312,7 @@ internal static class ClaudeCodeChecks
         try { E2eWorkspace.Until(() => app.State.Current.TerminalAgents.All(agent => agent.Terminal != tab)); }
         catch (InvalidOperationException)
         {
-            // Linux CI keeps the record while macOS clears it: show what the agent watch still sees.
+            // Show what the agent watch still sees.
             using var ps = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ps", ["-Ao", "pid,ppid,pgid,stat,comm,args"]) { RedirectStandardOutput = true })!;
             var table = ps.StandardOutput.ReadToEnd();
             Console.WriteLine("Agent " + File.ReadAllText(pidFile).Trim() + " killed; processes:\n" +

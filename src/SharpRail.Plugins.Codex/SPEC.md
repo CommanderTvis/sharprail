@@ -59,7 +59,8 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   a request to commit and/or push alone does not trigger the skill.
 - POSIX UI launches carry the command-scoped `SHARPRAIL_UI_LAUNCH=codex` marker even when MCP and
   the prompt appendix are disabled. Process detection records the launch origin independently of those
-  settings and rechecks it when the process changes. Manual sessions show a persistent terminal notice:
+  settings and rechecks it when the process changes. It skips zombie processes (`ps` state Z), so an exited agent not
+  yet reaped clears its record. Manual sessions show a persistent terminal notice:
   SharpRail intentionally does not apply launcher settings, tools or the prompt appendix to typed CLI
   commands; the workspace launcher applies the user's settings. Existing hooks and separately configured
   MCP/IDE connections may still work. Unknown origins (including unavailable process inspection on Windows)

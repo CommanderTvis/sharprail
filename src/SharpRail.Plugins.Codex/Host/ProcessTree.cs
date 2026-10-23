@@ -54,11 +54,11 @@ public sealed partial class ProcessSnapshot
         if (OperatingSystem.IsWindows()) return null;
         try
         {
-            using var process = Process.Start(new ProcessStartInfo("ps", ["-Ao", "pid=,ppid=,comm="]) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false });
+            using var process = Process.Start(new ProcessStartInfo("ps", ["-Ao", "pid=,ppid=,stat=,comm="]) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false });
             if (process is null) return null;
             var output = process.StandardOutput.ReadToEndAsync();
             if (!process.WaitForExit(5000)) { process.Kill(); return null; }
-            return process.ExitCode == 0 ? new(ParseRows(output.GetAwaiter().GetResult())) : null;
+            return process.ExitCode == 0 ? new(ParseRows(Living(output.GetAwaiter().GetResult()))) : null;
         }
         catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException or IOException) { return null; }
     }
@@ -142,6 +142,16 @@ public sealed partial class ProcessSnapshot
 
     [GeneratedRegex(@"^\s*(\d+)\s+(\d+)\s+(.*\S)\s*$")]
     private static partial Regex Row();
+
+    // ps rows with their state: a zombie (Z) has exited and keeps its name only until its parent reaps it.
+    [GeneratedRegex(@"^\s*(\d+)\s+(\d+)\s+(\S+)\s+(.*\S)\s*$")]
+    private static partial Regex StatedRow();
+
+    /// <summary>The <c>pid ppid stat comm</c> rows of live processes, as <c>pid ppid comm</c> rows.</summary>
+    internal static string Living(string output) =>
+        string.Join('\n', output.Split('\n').Select(line => StatedRow().Match(line))
+            .Where(match => match.Success && !match.Groups[3].Value.StartsWith('Z'))
+            .Select(match => match.Groups[1].Value + " " + match.Groups[2].Value + " " + match.Groups[4].Value));
 }
 
 public sealed record AgentWatchTarget(string WorkspaceId, string TabKey, int Pid);

@@ -33,6 +33,16 @@ internal static partial class ProcessTree
     [GeneratedRegex(@"^\s*(\d+)\s+(\d+)\s+(.*\S)\s*$")]
     private static partial Regex Row();
 
+    // ps rows with their state: a zombie (Z) has exited and keeps its name only until its parent reaps it.
+    [GeneratedRegex(@"^\s*(\d+)\s+(\d+)\s+(\S+)\s+(.*\S)\s*$")]
+    private static partial Regex StatedRow();
+
+    /// <summary>The <c>pid ppid stat comm</c> rows of live processes, as <c>pid ppid comm</c> rows.</summary>
+    internal static string Living(string output) =>
+        string.Join('\n', output.Split('\n').Select(line => StatedRow().Match(line))
+            .Where(match => match.Success && !match.Groups[3].Value.StartsWith('Z'))
+            .Select(match => match.Groups[1].Value + " " + match.Groups[2].Value + " " + match.Groups[4].Value));
+
     public static IReadOnlyList<ProcessRow> ParseRows(string output)
     {
         var rows = new List<ProcessRow>();
@@ -86,7 +96,7 @@ internal static partial class ProcessTree
     {
         var output = OperatingSystem.IsWindows()
             ? Run("powershell.exe", "-NoProfile", "-Command", WindowsProcessList)
-            : Run("ps", "-Ao", "pid=,ppid=,comm=");
+            : Run("ps", "-Ao", "pid=,ppid=,stat=,comm=") is { } stated ? Living(stated) : null;
         return output is null ? null : FromRows(ParseRows(output));
     }
 

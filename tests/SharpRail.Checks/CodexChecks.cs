@@ -556,6 +556,8 @@ internal static class CodexChecks
             !Tab("bash", "claude").RunsInsideAgent(10, "codex", "claude"), "Codex is the tab's agent when nothing the record names sits above it");
         Require(ProcessSnapshot.ParseRows("  10     1 /bin/zsh\n  20 10 /usr/local/bin/codex\ngarbage\n").SequenceEqual([new ProcessRow(10, 1, "zsh"), new ProcessRow(20, 10, "codex")]),
             "ps rows parse to base names");
+        Require(ProcessSnapshot.ParseRows(ProcessSnapshot.Living("  10 1 Ss /bin/zsh\n  20 10 Z codex\n  21 10 S+ /usr/local/bin/codex\n")).SequenceEqual([new ProcessRow(10, 1, "zsh"), new ProcessRow(21, 10, "codex")]),
+            "A zombie agent is not a running one");
     }
 
     // The fixture executable's control: what each app-server method answers, and how it misbehaves.
