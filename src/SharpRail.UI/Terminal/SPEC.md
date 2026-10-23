@@ -80,8 +80,10 @@ sidecar never replaces a working terminal with an error.
 
 ## Android touch keys
 
-Android's Skia terminal includes a two-row key bar for Esc, Tab, one-shot Ctrl and Alt,
-arrows and Home/End/Page Up/Page Down. It preserves input focus and uses the terminal's
+Android's Skia terminal includes a single compact row of keys (32 dp, Termux-style) for Esc, Tab,
+one-shot Ctrl and Alt, grouped arrows and Home/End/Page Up/Page Down; keys are sized to content
+(at least 40 dp wide) and the row scrolls horizontally when it overflows. The row shows only while
+the soft keyboard is open and its terminal has focus. It preserves input focus and uses the terminal's
 negotiated key encoding. Watched and exited terminals do not offer the bar.
 Switching to watching detaches the surface from the key-bar panel before moving it
 into the read-only scroll viewer.

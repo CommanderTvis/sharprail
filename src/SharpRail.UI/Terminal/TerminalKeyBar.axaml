@@ -1,17 +1,34 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SharpRail.UI.Terminal.TerminalKeyBar">
-  <UniformGrid Columns="6" Rows="2">
-    <Button x:Name="EscapeKey" Content="Esc" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="TabKey" Content="Tab" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <ToggleButton x:Name="CtrlKey" Content="Ctrl" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <ToggleButton x:Name="AltKey" Content="Alt" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="PageUpKey" Content="PgUp" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="PageDownKey" Content="PgDn" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="HomeKey" Content="Home" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="LeftKey" Content="←" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="DownKey" Content="↓" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="UpKey" Content="↑" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="RightKey" Content="→" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-    <Button x:Name="EndKey" Content="End" Focusable="False" MinHeight="40" Padding="4,2" Margin="2" />
-  </UniformGrid>
+             x:Class="SharpRail.UI.Terminal.TerminalKeyBar" Height="32" IsVisible="False">
+  <UserControl.Styles>
+    <Style Selector="Button, ToggleButton">
+      <Setter Property="Height" Value="28" />
+      <Setter Property="MinWidth" Value="40" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Margin" Value="2" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="StackPanel.arrows > Button">
+      <Setter Property="Margin" Value="0,2" />
+    </Style>
+  </UserControl.Styles>
+  <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+    <StackPanel Orientation="Horizontal" Margin="2,0">
+      <Button x:Name="EscapeKey" Content="Esc" Focusable="False" />
+      <Button x:Name="TabKey" Content="Tab" Focusable="False" />
+      <ToggleButton x:Name="CtrlKey" Content="Ctrl" Focusable="False" />
+      <ToggleButton x:Name="AltKey" Content="Alt" Focusable="False" />
+      <StackPanel Classes="arrows" Orientation="Horizontal" Margin="2,0">
+        <Button x:Name="LeftKey" Content="←" Focusable="False" />
+        <Button x:Name="DownKey" Content="↓" Focusable="False" />
+        <Button x:Name="UpKey" Content="↑" Focusable="False" />
+        <Button x:Name="RightKey" Content="→" Focusable="False" />
+      </StackPanel>
+      <Button x:Name="HomeKey" Content="Home" Focusable="False" />
+      <Button x:Name="EndKey" Content="End" Focusable="False" />
+      <Button x:Name="PageUpKey" Content="PgUp" Focusable="False" />
+      <Button x:Name="PageDownKey" Content="PgDn" Focusable="False" />
+    </StackPanel>
+  </ScrollViewer>
 </UserControl>

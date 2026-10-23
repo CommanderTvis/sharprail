@@ -458,7 +458,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
             exitNotice.Text = $"[process exited with code {code}]";
             exitNotice.IsVisible = true;
             UpdateSecureInput();
-            if (backend is SkiaTerminal { KeyBar: { } keys }) keys.IsVisible = false;
+            if (backend is SkiaTerminal { KeyBar: { } keys }) keys.Retire();
         }
         catch (Exception error)
         {

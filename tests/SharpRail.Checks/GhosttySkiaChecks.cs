@@ -639,6 +639,14 @@ internal static class GhosttySkiaChecks
             var ctrl = bar.FindControl<Avalonia.Controls.Primitives.ToggleButton>("CtrlKey")!;
             Require(bar.GetLogicalDescendants().OfType<Button>().Count() == 12 && !up.Focusable && !ctrl.Focusable,
                 "the touch key bar did not offer twelve keys that preserve terminal focus.");
+            Require(!bar.IsVisible, "the touch key bar showed without an open soft keyboard.");
+            bar.KeyboardOpen = true;
+            Require(bar.IsVisible == view.IsFocused, "the touch key bar did not follow terminal focus while the keyboard was open.");
+            bar.Measure(new Size(2000, 2000));
+            Require(bar.DesiredSize.Height <= 36,
+                $"the touch key bar is {bar.DesiredSize.Height} tall, more than one compact row.");
+            bar.KeyboardOpen = false;
+            Require(!bar.IsVisible, "the touch key bar stayed after the soft keyboard closed.");
             up.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             ctrl.IsChecked = true;
             ctrl.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));

@@ -197,8 +197,11 @@ start buttons open their launch menus on a tap, each led by the plain start a cl
 includes Android. Mermaid fences and the Visualize pane render through the same Merman C ABI as macOS;
 `--android-package` checks that the built APK carries it for both ABIs, aligned to 16 KB.
 
-An Android terminal shows two rows of touch keys below its screen: Esc, Tab, Ctrl, Alt, the four arrows,
-Home, End, PgUp and PgDn. Ctrl and Alt toggle one-shot modifiers for the next key or committed text.
+While the soft keyboard is open and a terminal has focus, the terminal shows one compact row of touch
+keys (32 dp, like Termux's extra keys) below its screen: Esc, Tab, Ctrl, Alt, the four arrows grouped
+together, Home, End, PgUp and PgDn, scrolling horizontally when the screen is too narrow. It hides
+when the keyboard closes or the terminal loses focus. Ctrl and Alt toggle one-shot modifiers for the
+next key or committed text and show as checked while pending.
 The keys preserve terminal focus and use Ghostty's negotiated encoding. Read-only watched terminals
 show no key bar.
 
