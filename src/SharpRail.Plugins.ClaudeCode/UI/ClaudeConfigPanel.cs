@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 
 using Avalonia;
@@ -25,7 +24,6 @@ internal sealed class ClaudeConfigPanel : DockPanel
     private enum Surface { Context, Settings, Capabilities, Account }
 
     private readonly IPluginUIContext context;
-    private readonly ClaudeCodeStore store;
     private readonly ClaudeContextUsageView usageView = new();
     private ClaudeContextUsage? contextUsage;
     private int usageGeneration;
@@ -51,9 +49,9 @@ internal sealed class ClaudeConfigPanel : DockPanel
     private (Surface, string, string, string?, string, string)? rendered;
     private (Surface, string?, string?, string?, string?)? renderedScope;
 
-    public ClaudeConfigPanel(IPluginUIContext context, ClaudeCodeStore store, ClaudeGlyph glyph, string workspaceId)
+    public ClaudeConfigPanel(IPluginUIContext context, ClaudeGlyph glyph, string workspaceId)
     {
-        this.context = context; this.store = store; this.glyph = glyph; this.workspaceId = workspaceId;
+        this.context = context; this.glyph = glyph; this.workspaceId = workspaceId;
         usageView.RetryRequested += () => LoadUsage(refresh: true);
         Name = "ClaudeConfigPanel";
         Background = Ui.Sidebar;
@@ -84,7 +82,6 @@ internal sealed class ClaudeConfigPanel : DockPanel
         {
             watch?.Dispose(); watch = null;
             usageChannel?.Dispose(); usageChannel = null;
-            store.Changed -= SessionChanged;
             Ui.ThemeChanged -= ThemeChanged;
         };
     }
@@ -99,13 +96,11 @@ internal sealed class ClaudeConfigPanel : DockPanel
 
     private void Start()
     {
-        // The host measures in the background and says when a baseline for this workspace is ready; live usage rides the status store.
+        // The host measures in the background and says when a baseline for this workspace is ready.
         usageChannel ??= context.Subscribe(ClaudeCodeContract.ContextUsage, change =>
         {
             if (change.WorkspaceId == workspaceId) LoadUsage(refresh: false);
         });
-        store.Changed -= SessionChanged;
-        store.Changed += SessionChanged;
         Ui.ThemeChanged -= ThemeChanged;
         Ui.ThemeChanged += ThemeChanged;
         (session, activeTab) = Shown(context.Host());
@@ -126,11 +121,6 @@ internal sealed class ClaudeConfigPanel : DockPanel
         LoadUsage(refresh: false);
     }
 
-    private void SessionChanged(string workspace, string tabKey)
-    {
-        if (workspace == workspaceId && tabKey == session?.TabKey) ShowUsage();
-    }
-
     private void ThemeChanged()
     {
         rendered = null;
@@ -138,9 +128,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         ShowUsage();
     }
 
-    private long? LiveContext() => session is null ? null : store.Session(workspaceId, session.TabKey)?.Usage?.Context;
-
-    private void ShowUsage() => usageView.Show(contextUsage, LiveContext());
+    private void ShowUsage() => usageView.Show(contextUsage);
 
     // The host answers at once with what it has cached and measures in the background when that is missing or stale.
     private void LoadUsage(bool refresh)
@@ -152,7 +140,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             ClaudeContextUsage result;
             try { result = await context.RequestAsync(ClaudeCodeContract.ContextUsageGet, new ContextUsageParams(workspaceId) { TabKey = tabKey, Refresh = refresh }); }
             catch (Exception failure) when (failure is not OperationCanceledException) { result = new(false) { Error = ClaudeParts.ErrorText(failure), Breakdown = contextUsage?.Breakdown }; }
-            var key = JsonSerializer.Serialize(result.Breakdown?.MemoryFiles ?? [], PluginJson.Options);
+            var key = JsonSerializer.Serialize(result.Breakdown, PluginJson.Options);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (mine != usageGeneration) return;
@@ -325,9 +313,6 @@ internal sealed class ClaudeConfigPanel : DockPanel
         return child;
     }
 
-    private static string FormatSize(long bytes) =>
-        bytes < 1024 ? $"{bytes} B" : $"{Math.Round(bytes / 1024.0, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.CurrentCulture)} KB";
-
     private static Button Offer(string name, string title, string description, Action open)
     {
         var content = new StackPanel { Spacing = 2 };
@@ -366,22 +351,110 @@ internal sealed class ClaudeConfigPanel : DockPanel
         return new WrapPanel { Name = "ClaudeContextTitle", Orientation = Orientation.Horizontal, ItemSpacing = 4, LineSpacing = 2, Children = { name } };
     }
 
-    // Tokens first, as /context counts them; the size on disk stays as muted secondary text.
-    private static Control Measure(long tokens, string? size, IBrush color)
+    // Tokens as /context counts them; nothing else, since only tokens take up the window.
+    private static Control Measure(long tokens, IBrush color, string unit = " tokens")
     {
-        var row = new StackPanel { Name = "ClaudeContextTokens", Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-        row.Children.Add(ClaudeParts.Code(ClaudeContextUsageView.Tokens(tokens) + " tokens", color));
-        if (size is not null) row.Children.Add(ClaudeParts.Code("· " + size, Ui.Hint));
-        return row;
+        var amount = ClaudeParts.Code(ClaudeContextUsageView.Tokens(tokens) + unit, color);
+        amount.Name = "ClaudeContextTokens";
+        amount.VerticalAlignment = VerticalAlignment.Center;
+        return amount;
     }
 
-    private static Control NotLoaded(string size)
+    // Until a baseline exists there is no count to show.
+    private static Control Unmeasured()
     {
-        var row = new StackPanel { Name = "ClaudeContextNotLoaded", Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-        row.Children.Add(Ui.Text("not loaded", Ui.Hint, 11));
-        row.Children.Add(ClaudeParts.Code("· " + size, Ui.Hint));
-        ToolTip.SetTip(row, "/context does not list this file for a fresh session here");
-        return row;
+        var pending = ClaudeParts.Code("…", Ui.Hint);
+        ToolTip.SetTip(pending, "Measuring with claude -p /context");
+        return pending;
+    }
+
+    private static Control NotLoaded()
+    {
+        var text = Ui.Text("not loaded", Ui.Hint, 11);
+        text.Name = "ClaudeContextNotLoaded";
+        text.VerticalAlignment = VerticalAlignment.Center;
+        ToolTip.SetTip(text, "/context does not list this file for a fresh session here");
+        return text;
+    }
+
+    internal sealed record BaselineEntry(string Key, string Label, string Icon, long Tokens, IReadOnlyList<BaselineEntry> Children, string? Tip = null);
+
+    // Rows the user opened, by key, so a re-render keeps them open.
+    private readonly HashSet<string> expandedRows = [];
+
+    // /context's categories that a fresh session pays for, besides the memory files listed above: deferred tools load
+    // only when searched for, free space and the autocompact reserve are not content, and the one message is /context itself.
+    internal static List<BaselineEntry> BaselineRows(ClaudeContextBreakdown breakdown, long? claudePrompt)
+    {
+        var rows = new List<BaselineEntry>();
+        foreach (var category in breakdown.Categories)
+        {
+            var name = category.Name;
+            if (name is "Memory files" or "Messages" or "Free space" || name.EndsWith("(deferred)", StringComparison.Ordinal) ||
+                name.StartsWith("Autocompact", StringComparison.Ordinal)) continue;
+            rows.Add(name switch
+            {
+                "System prompt" => new("system-prompt", "Claude Code system prompt", "robot", Math.Max(0, claudePrompt ?? category.Tokens), [],
+                    "Claude Code's own prompt; SharpRail's appended instructions are counted on their own row"),
+                "System tools" => new("system-tools", "Built-in tools", "terminal", category.Tokens, []),
+                "MCP tools" => new("mcp-tools", "MCP tools", "server", category.Tokens,
+                    [.. breakdown.McpTools.GroupBy(tool => tool.Source).OrderByDescending(group => group.Sum(tool => tool.Tokens)).Select(server =>
+                        new BaselineEntry("mcp-tools/" + server.Key, server.Key, "server", server.Sum(tool => tool.Tokens),
+                            [.. server.OrderByDescending(tool => tool.Tokens).Select(tool => new BaselineEntry("mcp-tools/" + server.Key + "/" + tool.Name,
+                                tool.Name.StartsWith("mcp__" + server.Key + "__", StringComparison.Ordinal) ? tool.Name[(server.Key.Length + 7)..] : tool.Name,
+                                "code", tool.Tokens, [], tool.Name))]))]),
+                "MCP server instructions" => new("mcp-instructions", "MCP server instructions", "book", category.Tokens, []),
+                "Skills" => new("skills", "Skills", "sparkling", category.Tokens,
+                    [.. breakdown.Skills.OrderByDescending(skill => skill.Tokens).Select(skill => new BaselineEntry("skills/" + skill.Name, skill.Name, "sparkling", skill.Tokens, [], skill.Source))]),
+                _ => new(name, name, "box", category.Tokens, [])
+            });
+        }
+        return rows;
+    }
+
+    // The same row as a file's: tokens docked right, a glyph, the name. A row with parts has a chevron in place of its
+    // glyph and opens them below it, indented a step.
+    private void AddBaselineRow(Panel list, BaselineEntry entry, int depth)
+    {
+        var line = new DockPanel { Name = "ClaudeContextBaseline", Tag = entry.Key, Margin = new Thickness(8 + depth * 16, 4, 8, 4), Background = Brushes.Transparent };
+        line.Children.Add(SizeColumn(Measure(entry.Tokens, Ui.Muted)));
+        var open = expandedRows.Contains(entry.Key);
+        Control glyph;
+        if (entry.Children.Count > 0)
+        {
+            glyph = new Avalonia.Controls.Shapes.Path
+            {
+                Name = "ClaudeContextChevron",
+                Data = Geometry.Parse(open ? "M 3,5 L 7,9 L 11,5" : "M 5,3 L 9,7 L 5,11"),
+                Width = 14,
+                Height = 14,
+                Stroke = Ui.Muted,
+                StrokeThickness = 1.5
+            };
+            line.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
+        }
+        else glyph = Ui.Icon(entry.Icon, Ui.Hint, 14);
+        glyph.Margin = new Thickness(0, 0, 8, 0);
+        glyph.VerticalAlignment = VerticalAlignment.Center;
+        SetDock(glyph, Dock.Left);
+        line.Children.Add(glyph);
+        var title = Title(entry.Label);
+        line.Children.Add(title);
+        if (entry.Tip is not null) ToolTip.SetTip(line, entry.Tip);
+        list.Children.Add(line);
+        if (entry.Children.Count == 0) return;
+        var parts = new StackPanel { Name = "ClaudeContextBaselineParts", Tag = entry.Key, IsVisible = open };
+        foreach (var child in entry.Children) AddBaselineRow(parts, child, depth + 1);
+        list.Children.Add(parts);
+        line.PointerPressed += (_, args) =>
+        {
+            if (!args.GetCurrentPoint(line).Properties.IsLeftButtonPressed) return;
+            var nowOpen = !parts.IsVisible;
+            if (nowOpen) expandedRows.Add(entry.Key); else expandedRows.Remove(entry.Key);
+            parts.IsVisible = nowOpen;
+            ((Avalonia.Controls.Shapes.Path)glyph).Data = Geometry.Parse(nowOpen ? "M 3,5 L 7,9 L 11,5" : "M 5,3 L 9,7 L 5,11");
+            args.Handled = true;
+        };
     }
 
     private Control ContextSurface(IReadOnlyList<ClaudeContextLayer> layers)
@@ -408,10 +481,17 @@ internal sealed class ClaudeConfigPanel : DockPanel
         if (!layers.Any(layer => layer.Path.EndsWith("CLAUDE.local.md", StringComparison.Ordinal)))
             list.Children.Add(Offer("ClaudeOfferLocalMd", "Add CLAUDE.local.md", "Project instructions that stay on this machine, like which toolchain is installed here.",
                 () => Edit(new(new FileEdit(ClaudeFileTemplate.ProjectLocalInstructions), "Create CLAUDE.local.md"))));
-        // Size, not an estimated token count: bytes are what is actually known.
+        // The appended prompt is not a memory file: /context folds it into the system prompt, and the host measures it
+        // as the difference against a run without it. With several appended files the first row carries their sum.
+        var appended = contextUsage?.Breakdown?.AppendedPromptTokens;
+        var appendedRow = layers.FirstOrDefault(layer => layer.Kind == ClaudeContextKind.SystemPrompt);
+        var breakdown = contextUsage?.Breakdown;
+        var claudePrompt = breakdown?.Categories.FirstOrDefault(category => category.Name == "System prompt")?.Tokens is { } systemTokens
+            ? systemTokens - (appendedRow is not null ? appended ?? 0 : 0) : (long?)null;
+        var baseline = breakdown is null ? [] : BaselineRows(breakdown, claudePrompt);
         var total = new DockPanel { Name = "ClaudeContextTotal", Margin = new Thickness(8, 4) };
-        var bytes = FormatSize(layers.Where(layer => layer.Lazy != true).Sum(layer => layer.Bytes));
-        var amount = measured is null ? (Control)ClaudeParts.Code(bytes, Ui.TextBrush) : Measure(memoryTokens.Values.Sum(), bytes, Ui.TextBrush);
+        var sum = memoryTokens.Values.Sum() + (appendedRow is not null ? appended ?? 0 : 0) + baseline.Sum(row => row.Tokens);
+        var amount = measured is null ? Unmeasured() : Measure(sum, Ui.TextBrush, " tokens at session start");
         SetDock(amount, Dock.Right);
         total.Children.Add(amount);
         total.Children.Add(Ui.Text("PERSISTENT CONTEXT", Ui.Muted, 11));
@@ -442,9 +522,10 @@ internal sealed class ClaudeConfigPanel : DockPanel
                 row.Children.Add(guide);
             }
             var line = new DockPanel { Margin = new Thickness(8, 4) };
-            var size = measured is null ? ClaudeParts.Code(FormatSize(layer.Bytes))
-                : memoryTokens.TryGetValue(layer.Path, out var tokens) ? Measure(tokens, FormatSize(layer.Bytes), Ui.Muted)
-                : layer.Lazy == true ? ClaudeParts.Code(FormatSize(layer.Bytes)) : NotLoaded(FormatSize(layer.Bytes));
+            var size = measured is null ? Unmeasured()
+                : ReferenceEquals(layer, appendedRow) && appended is { } prompt ? Measure(prompt, Ui.Muted)
+                : memoryTokens.TryGetValue(layer.Path, out var tokens) ? Measure(tokens, Ui.Muted)
+                : layer.Lazy == true ? ClaudeParts.Code("—", Ui.Hint) : NotLoaded();
             line.Children.Add(SizeColumn(size));
             var icon = Ui.Icon("fileText", Ui.Hint, 14);
             icon.VerticalAlignment = VerticalAlignment.Center;
@@ -484,7 +565,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         {
             if (listed.Contains(file.Name)) continue;
             var line = new DockPanel { Name = "ClaudeContextMeasuredFile", Tag = file.Name, Margin = new Thickness(8, 4) };
-            var size = Measure(file.Tokens, null, Ui.Muted);
+            var size = Measure(file.Tokens, Ui.Muted);
             line.Children.Add(SizeColumn(size));
             var icon = Ui.Icon("fileText", Ui.Hint, 14);
             icon.Margin = new Thickness(0, 0, 8, 0);
@@ -499,6 +580,8 @@ internal sealed class ClaudeConfigPanel : DockPanel
             line.Children.Add(column);
             list.Children.Add(line);
         }
+        // What else a fresh session starts with, as /context counts it: Claude's own prompt and tools, MCP and skills.
+        foreach (var entry in baseline) AddBaselineRow(list, entry, depth: 0);
         // Sections can be turned off for the project; the instructions themselves are never edited here.
         if (context.Settings<ClaudeCodeSettings>().AppendSystemPrompt) list.Children.Add(InstructionSections(workspaceId));
         return list;

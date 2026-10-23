@@ -294,6 +294,11 @@ public sealed record ClaudeContextBreakdown(string Model, long Used, long Window
     public IReadOnlyList<ClaudeContextItem> McpTools { get; init; } = [];
     public IReadOnlyList<ClaudeContextItem> MemoryFiles { get; init; } = [];
     public IReadOnlyList<ClaudeContextItem> Skills { get; init; } = [];
+    /// <summary>
+    /// What the <c>--append-system-prompt-file</c> files cost: the "System prompt" difference against the same run without
+    /// them, since <c>/context</c> does not list them; null when the run appends none or the bare run failed.
+    /// </summary>
+    public long? AppendedPromptTokens { get; init; }
 }
 
 /// <summary>The host's cached baseline for a tab's directory and launch flags, whether a run is under way, and why the last one failed.</summary>

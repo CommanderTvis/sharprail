@@ -40,7 +40,7 @@ public sealed class ClaudeCodeUI : PluginUIModule
         context.SideTool(new("config", workspace =>
         {
             Hydrate(workspace);
-            return new ClaudeConfigPanel(context, store, glyph, workspace);
+            return new ClaudeConfigPanel(context, glyph, workspace);
         }));
         context.Launcher(new("claude", "Claude Code", "asset:claude.svg", options =>
         {

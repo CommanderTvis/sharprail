@@ -1,7 +1,6 @@
 using System.Text.Json;
 
 using Avalonia.Controls;
-using Avalonia.LogicalTree;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Plugins.ClaudeCode;
@@ -10,7 +9,7 @@ using SharpRail.Plugins.ClaudeCode.UI;
 
 namespace SharpRail.Checks;
 
-/// <summary>The Context surface's <c>/context</c> baseline: the report parser, the runner, its triggers, live usage and the drawn map.</summary>
+/// <summary>The Context surface's <c>/context</c> baseline: the report parser, the runner, the appended prompt difference, its triggers, live usage and the table rows.</summary>
 internal static class ClaudeContextChecks
 {
     // A trimmed capture of `claude -p /context --output-format json`'s result, with the paths made up.
@@ -106,7 +105,7 @@ internal static class ClaudeContextChecks
         // The fake CLI is a POSIX shell script.
         if (!OperatingSystem.IsWindows()) await Runner(directory, json);
         LiveUsage(directory);
-        Console.WriteLine("PASS Claude Code context: /context parsing, background runner, debounced triggers and live usage");
+        Console.WriteLine("PASS Claude Code context: /context parsing, background runner, appended prompt difference, debounced triggers and live usage");
     }
 
     [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
@@ -155,6 +154,28 @@ internal static class ClaudeContextChecks
         await runner.IdleAsync();
         Require(runner.Runs == 2, "A change notice whose file did not actually change starts no run.");
 
+        // An appended prompt is measured as the System prompt difference against the same run without it; editing the
+        // appended file re-runs only the run that reads it.
+        var appendix = Path.Combine(directory, "appendix.md");
+        File.WriteAllText(appendix, "appended\n");
+        File.WriteAllText(Path.Combine(directory, "appended.json"), json.Replace("| System prompt | 2.5k |", "| System prompt | 3.8k |", StringComparison.Ordinal));
+        File.WriteAllText(bin, $"#!/bin/sh\necho \"$(pwd -P)|$*|$FAKE_MARK\" >> '{log}'\n[ -n \"$FAKE_SLEEP\" ] && sleep \"$FAKE_SLEEP\"\n" +
+            $"case \"$*\" in *--append-system-prompt-file*) cat '{Path.Combine(directory, "appended.json")}' ;; *) cat '{answer}' ;; esac\n");
+        var withAppendix = Spec() with { Flags = ["--append-system-prompt-file", appendix, "--model", "appended"], Inputs = [input, appendix] };
+        var before = File.ReadAllLines(log).Length;
+        runner.Get(withAppendix, refresh: false);
+        await runner.IdleAsync();
+        var measuredAppendix = runner.Get(withAppendix, refresh: false).Breakdown;
+        var pair = File.ReadAllLines(log)[before..];
+        Require(measuredAppendix?.AppendedPromptTokens == 1_300 && pair.Length == 2 &&
+            pair.Count(line => line.Contains("--append-system-prompt-file", StringComparison.Ordinal)) == 1,
+            "The appended prompt costs the System prompt difference of two runs, one without the file. Got: " + measuredAppendix?.AppendedPromptTokens + "\n" + string.Join('\n', pair));
+        File.WriteAllText(appendix, "appended, and longer now\n");
+        runner.Changed([appendix]);
+        await Task.Delay(800);
+        await runner.IdleAsync();
+        Require(File.ReadAllLines(log).Length == before + 3, "Editing the appended file re-runs only the run with it; the bare run stays cached.");
+
         var slow = Spec("10") with { Flags = ["--model", "slow"] };
         runner.Get(slow, refresh: false);
         await runner.IdleAsync();
@@ -185,40 +206,36 @@ internal static class ClaudeContextChecks
 
     public static void Ui()
     {
+        // The baseline's rows: Claude's own prompt less the appendix, built-in tools, MCP tools by server, server
+        // instructions and skills; memory files, deferred tools, the message, free space and the reserve are not rows.
+        var rows = ClaudeConfigPanel.BaselineRows(Fixture(), claudePrompt: 1_300);
+        Require(rows.Select(row => row.Key).SequenceEqual(["system-prompt", "system-tools", "mcp-tools", "mcp-instructions", "skills"]) &&
+            rows[0].Tokens == 1_300 && rows.Sum(row => row.Tokens) == 1_300 + 4_300 + 671 + 717 + 6_200,
+            "The baseline rows are the categories a fresh session pays for, the system prompt without the appended file. Got: " +
+            string.Join(", ", rows.Select(row => row.Key + "=" + row.Tokens)));
+        var mcp = rows.Single(row => row.Key == "mcp-tools");
+        Require(mcp.Children.Select(server => server.Label).SequenceEqual(["docs", "notes"]) && mcp.Children[0].Tokens == 580 &&
+            mcp.Children[0].Children.Select(tool => tool.Label).SequenceEqual(["read", "create"]),
+            "MCP tools open into servers, heaviest first with subtotals, and each server into its tools without the prefix.");
+        Require(rows.Single(row => row.Key == "skills").Children.Select(skill => skill.Label).SequenceEqual(["dataviz", "example:review", "tidy"]),
+            "Skills open into each skill, heaviest first.");
+
         var view = new ClaudeContextUsageView();
-        var window = new Window { Width = 520, Height = 900, Content = new ScrollViewer { Content = view } };
+        var window = new Window { Width = 520, Height = 200, Content = view };
         window.Show();
         try
         {
-            view.Show(new(false) { Breakdown = Fixture(), MeasuredAt = DateTimeOffset.UtcNow.ToString("O") }, 320_300);
+            var at = new DateTimeOffset(2026, 1, 1, 8, 50, 0, TimeSpan.Zero);
+            view.Show(new(false) { Breakdown = Fixture(), MeasuredAt = at.ToString("O") });
             E2eWorkspace.Settle();
-            var named = view.GetLogicalDescendants().OfType<Control>().ToArray();
-            var grid = named.OfType<Avalonia.Controls.Primitives.UniformGrid>().Single(control => control.Name == "ClaudeContextGrid");
-            var cells = ClaudeContextUsageView.Cells(Fixture());
-            Require(grid.Children.Count == 200 && cells.Count == 200 && cells[0].Category == "System prompt" &&
-                cells.All(cell => !cell.Category.EndsWith("(deferred)", StringComparison.Ordinal)) &&
-                cells[^1].Kind == ContextCellKind.Reserved && cells.Count(cell => cell.Kind == ContextCellKind.Reserved) == 7 &&
-                cells.Any(cell => cell is { Category: "MCP server instructions", Kind: ContextCellKind.Partial }),
-                "The window map has 10 × 20 cells in category order, partial cells for small categories and the autocompact reserve at the end.");
-            Require(ToolTip.GetTip(grid.Children[0]) as string == "System prompt", "Each cell names its category.");
-            var rows = named.Where(control => control.Name == "ClaudeContextCategory").ToArray();
-            static string Text(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
-            Require(rows.Length == 11 && Text(rows[0]) == "System prompt: 2.5k tokens (0.3%)" && Text(rows[^2]) == "Free space: 950.4k (95%)" &&
-                rows.Single(row => Equals(row.Tag, "MCP tools (deferred)")).Opacity < 1,
-                "The legend lists every category in order, free space without the word tokens, deferred rows muted.");
-            Require(view.FindControl<TextBlock>("ClaudeContextModel")!.Text == "Opus 5.5" &&
-                view.FindControl<TextBlock>("ClaudeContextHeader")!.Text == "320.3k/1m tokens (32%)",
-                "The header names the model and combines the tab's live usage with the window.");
-            var servers = named.Where(control => control.Name == "ClaudeContextMcpServer").Select(control => control.Tag).ToArray();
-            var skills = named.Where(control => control.Name == "ClaudeContextSkill").Select(control => control.Tag).ToArray();
-            Require(servers.SequenceEqual(["docs", "notes"]) && skills.SequenceEqual(["dataviz", "example:review", "tidy"]),
-                "MCP tools group by server, heaviest first; skills sort by tokens.");
-            view.Show(new(false) { Error = "boom" }, null);
-            Require(view.FindControl<Button>("ClaudeContextRetry")!.IsVisible && !grid.IsVisible &&
+            Require(view.FindControl<TextBlock>("ClaudeContextMessage")!.Text == $"measured {at.ToLocalTime():HH:mm}" &&
+                !view.FindControl<Button>("ClaudeContextRetry")!.IsVisible, "A measured baseline says only when it was measured.");
+            view.Show(new(false) { Error = "boom" });
+            Require(view.FindControl<Button>("ClaudeContextRetry")!.IsVisible &&
                 view.FindControl<TextBlock>("ClaudeContextMessage")!.Text!.Contains("boom", StringComparison.Ordinal),
                 "A failed measurement shows a small inline error with a retry.");
         }
         finally { window.Close(); }
-        Console.WriteLine("PASS Claude Code context UI: window map, legend, live header, MCP and skill tables, inline error");
+        Console.WriteLine("PASS Claude Code context UI: baseline rows, MCP and skill parts, freshness note, inline error");
     }
 }

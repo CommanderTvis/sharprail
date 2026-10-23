@@ -114,6 +114,27 @@ internal sealed record ContextRunSpec(string WorkspaceId, string Binary, string 
     public string Key => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(Binary + "\0" + Cwd + "\0" + string.Join('\0', Flags))))[..16];
 
     public IReadOnlyList<string> Argv => [Binary, "-p", "/context", "--output-format", "json", "--no-session-persistence", .. Flags];
+
+    private const string AppendFlag = "--append-system-prompt-file";
+
+    /// <summary>
+    /// The same run without its appended prompt files, or null when it appends none. <c>/context</c> folds an appended
+    /// prompt into its "System prompt" category, so the difference between the two runs is what the files cost.
+    /// </summary>
+    public ContextRunSpec? WithoutAppendix
+    {
+        get
+        {
+            var flags = new List<string>();
+            var appended = new HashSet<string>(StringComparer.Ordinal);
+            for (var index = 0; index < Flags.Count; index++)
+            {
+                if (Flags[index] == AppendFlag && index + 1 < Flags.Count) appended.Add(Path.GetFullPath(Flags[++index], Cwd));
+                else flags.Add(Flags[index]);
+            }
+            return appended.Count == 0 ? null : this with { Flags = flags, Inputs = [.. Inputs.Where(input => !appended.Contains(input))] };
+        }
+    }
 }
 
 /// <summary>The launch flags of a running session that change what it starts with, read off its process command line.</summary>
@@ -162,6 +183,9 @@ internal sealed class ContextUsageRunner(Func<ContextRunSpec, TimeSpan, Cancella
         public string? Error;
         public string? MeasuredAt;
         public string? Fingerprint;
+        // The run without the appended prompt: its "System prompt" tokens and the fingerprint they were measured at.
+        public long? BareSystemPrompt;
+        public string? BareFingerprint;
         public Task? Running;
         public Timer? Pending;
     }
@@ -219,12 +243,27 @@ internal sealed class ContextUsageRunner(Func<ContextRunSpec, TimeSpan, Cancella
             string? error = null;
             try
             {
+                // The bare run goes alongside the real one, and only when its own inputs changed: editing the appended
+                // prompt re-runs the real one alone.
+                var bare = spec.WithoutAppendix;
+                var bareFingerprint = bare is null ? null : Fingerprint(bare.Inputs);
+                long? bareSystem;
+                lock (gate) bareSystem = bare is not null && entry.BareFingerprint == bareFingerprint ? entry.BareSystemPrompt : null;
+                var bareRun = bare is not null && bareSystem is null ? MeasureSystemPrompt(bare) : Task.FromResult(bareSystem);
                 var result = await run(spec, timeout, lifetime.Token);
+                bareSystem = await bareRun;
+                if (bare is not null)
+                    lock (gate) { entry.BareSystemPrompt = bareSystem; entry.BareFingerprint = bareSystem is null ? null : bareFingerprint; }
                 if (result.LaunchFailed) error = $"Could not run {spec.Binary}: {result.Err.Trim()}";
                 else if (result.TimedOut) error = $"claude -p /context did not finish within {timeout.TotalSeconds:0} s.";
                 else if ((breakdown = ContextReport.ParseJson(result.Out)) is null)
                     error = result.Err.Trim() is { Length: > 0 } stderr ? stderr : "Claude Code printed no context report.";
-                else breakdown = ContextReport.Normalise(breakdown, spec.Cwd, spec.Inputs);
+                else
+                {
+                    breakdown = ContextReport.Normalise(breakdown, spec.Cwd, spec.Inputs);
+                    if (bareSystem is { } without && SystemPrompt(breakdown) is { } with)
+                        breakdown = breakdown with { AppendedPromptTokens = Math.Max(0, with - without) };
+                }
             }
             catch (OperationCanceledException)
             {
@@ -245,6 +284,20 @@ internal sealed class ContextUsageRunner(Func<ContextRunSpec, TimeSpan, Cancella
             }
             finished(spec.WorkspaceId);
         });
+    }
+
+    private static long? SystemPrompt(ClaudeContextBreakdown breakdown) =>
+        breakdown.Categories.FirstOrDefault(category => category.Name == "System prompt")?.Tokens;
+
+    // A failed bare run only leaves the appended prompt unmeasured; the real run still reports.
+    private async Task<long?> MeasureSystemPrompt(ContextRunSpec spec)
+    {
+        try
+        {
+            var result = await run(spec, timeout, lifetime.Token);
+            return result is { LaunchFailed: false, TimedOut: false } && ContextReport.ParseJson(result.Out) is { } breakdown ? SystemPrompt(breakdown) : null;
+        }
+        catch (Exception failure) when (failure is not OperationCanceledException) { return null; }
     }
 
     /// <summary>

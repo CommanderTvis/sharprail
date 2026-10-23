@@ -118,16 +118,24 @@ specs require no spec workflow or unsolicited spec creation.
 
 ### Context usage
 
-The Context surface opens with what `/context` reports, drawn like the TUI: a 10 × 20 map of the window (each cell
-half a percent) filled in Claude Code's category order with partial cells for remainders under a cell, free space as
-dashed cells and the autocompact reserve as crossed cells at the end; beside it (below when narrow) the model name and id,
-`used/window tokens (%)`, and one legend row per category with deferred tool rows muted and drawing no cells. Expandable
-MCP tools (grouped by server with subtotals, heaviest first) and Skills tables follow, then the persistent context list,
-where, once a baseline exists, each row shows `/context`'s token count with its size as muted secondary text, the
-header shows the token total, rows `/context` does not list say "not loaded", and files it lists that the resolver does
-not (nested instructions, rules, imports) are added with its source label. The host matches memory paths to the
-resolver's with `~` expanded, made absolute and through symbolic links. Category colours are defined once
-(`ContextPalette`) from the theme's terminal palette and roles, so they follow the theme.
+The Context surface's persistent context table is the one place for baseline costs, in tokens only (no sizes on disk).
+Its rows are everything a fresh session started like the tab's pays for, as `/context` counts it: the memory and
+instruction files the resolver lists (a file `/context` does not list says "not loaded", an on-demand rule shows a
+dash), files `/context` lists that the resolver does not (nested instructions, rules, imports) with its source label,
+SharpRail's appended prompt file, then Claude Code's own system prompt (less the appended file), built-in tools, MCP
+tools, MCP server instructions and skills; deferred tools, the `/context` message itself, free space and the
+autocompact reserve are not rows. MCP tools open, in the table's own row style with a chevron, into servers (heaviest
+first, with subtotals) and each server into its tools; Skills open into each skill. The header totals the rows as
+"N tokens at session start"; a short line above the table says "measured HH:mm", that it is measuring, or why it
+failed, with Retry. Before a baseline exists rows show an ellipsis. The host matches memory paths to the resolver's
+with `~` expanded, made absolute and through symbolic links.
+
+`/context` (2.1.x, also `/context all` and the JSON reply) does not list an `--append-system-prompt-file` file; it
+folds the file into its "System prompt" category. So when the tab's flags append files, the host also runs the same
+baseline without them, concurrently, and reports the difference of the two "System prompt" counts
+(`AppendedPromptTokens`); with several appended files the first row carries their sum. The bare run is cached on the
+entry with the fingerprint of its own inputs (the entry's inputs less the appended files), so editing the appended
+file re-runs only the run that reads it; a failed bare run leaves the appended row unmeasured.
 
 The baseline is `claude -p /context --output-format json --no-session-persistence`, whose JSON carries the Markdown
 report in `result`; the host parses its tables by section title. It runs on the host that runs Claude, in the tab's
@@ -141,8 +149,7 @@ and shows an inline error with Retry. A run starts when a request finds no entry
 inputs (the configuration files the resolver names, flag files, user and project settings, `.mcp.json`) differs, or
 on Refresh; changes reported by the workspace watch or a watch of Claude's configuration directory re-run an entry
 once per 2 s quiet burst, only if its fingerprint changed. A finished run publishes `contextUsage` for the workspace and
-clients ask again. The header's used count is live when known: the main transcript's latest assistant message
-(input plus cache read and write), read by the existing tail-reading transcript usage on each status report.
+clients ask again.
 
 Settings retain the winning source and shadowed values. Context includes user and ancestor
 instructions, `AGENTS.md` when a directory has no `CLAUDE.md`, local instructions, rules, imports,

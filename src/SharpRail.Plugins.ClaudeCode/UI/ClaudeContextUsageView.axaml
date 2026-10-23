@@ -3,36 +3,9 @@
              xmlns:kit="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.Plugins.ClaudeCode.UI.ClaudeContextUsageView"
              x:Name="ClaudeContextUsage">
-  <UserControl.Styles>
-    <Style Selector="TextBlock"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
-    <Style Selector="TextBlock.heading"><Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" /><Setter Property="FontSize" Value="13" /></Style>
-    <Style Selector="TextBlock.hint"><Setter Property="Foreground" Value="{x:Static kit:Ui.Hint}" /></Style>
-    <Style Selector="Expander"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Padding" Value="8,4" /></Style>
-  </UserControl.Styles>
-  <StackPanel Spacing="8" Margin="8,4,8,8">
-    <!-- The TUI's /context: a 10 × 20 map of the window beside the model and the per-category legend; it wraps below when narrow. -->
-    <WrapPanel Orientation="Horizontal">
-      <Viewbox Stretch="Uniform" MaxWidth="220" Margin="0,2,16,8" HorizontalAlignment="Left" VerticalAlignment="Top">
-        <UniformGrid x:Name="ClaudeContextGrid" Rows="10" Columns="20" />
-      </Viewbox>
-      <StackPanel Spacing="2" MinWidth="200">
-        <TextBlock x:Name="ClaudeContextModel" Classes="heading" />
-        <TextBlock x:Name="ClaudeContextModelId" Classes="hint" FontFamily="{x:Static kit:Ui.CodeFont}" />
-        <TextBlock x:Name="ClaudeContextHeader" Classes="heading" FontFamily="{x:Static kit:Ui.CodeFont}" />
-        <TextBlock Text="Estimated usage by category" FontStyle="Italic" Margin="0,6,0,2" />
-        <StackPanel x:Name="ClaudeContextCategories" Spacing="2" />
-        <TextBlock x:Name="ClaudeContextAutocompact" Margin="0,6,0,0" />
-      </StackPanel>
-    </WrapPanel>
-    <DockPanel x:Name="ClaudeContextStatus">
-      <Button x:Name="ClaudeContextRetry" DockPanel.Dock="Right" Classes="link" Content="Retry" IsVisible="False" VerticalAlignment="Top" />
-      <TextBlock x:Name="ClaudeContextMessage" Classes="hint" />
-    </DockPanel>
-    <Expander x:Name="ClaudeContextMcpTools" Header="MCP tools" IsVisible="False">
-      <StackPanel x:Name="ClaudeContextMcpRows" Spacing="2" />
-    </Expander>
-    <Expander x:Name="ClaudeContextSkills" Header="Skills" IsVisible="False">
-      <StackPanel x:Name="ClaudeContextSkillRows" Spacing="2" />
-    </Expander>
-  </StackPanel>
+  <!-- The baseline's state in one short line: measuring, when it was measured, or why it failed with a retry. -->
+  <DockPanel x:Name="ClaudeContextStatus" Margin="8,4">
+    <Button x:Name="ClaudeContextRetry" DockPanel.Dock="Right" Classes="link" Content="Retry" IsVisible="False" VerticalAlignment="Top" />
+    <TextBlock x:Name="ClaudeContextMessage" FontSize="12" Foreground="{x:Static kit:Ui.Hint}" TextWrapping="Wrap" />
+  </DockPanel>
 </UserControl>
