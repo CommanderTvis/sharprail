@@ -27,6 +27,8 @@ internal static partial class ShellIntegrationChecks
             "the app must ship SharpRail's zsh and bash scripts in " + resources);
         Plans(resources);
         ShellModel();
+        // Linux runners ship bash only; the live sessions need zsh, which CI does not install.
+        if (!File.Exists("/bin/zsh")) { Console.WriteLine("SKIP shell integration sessions: /bin/zsh is not installed."); return; }
         var fixture = Fixture(root);
         await WithFixture(fixture, async () =>
         {
