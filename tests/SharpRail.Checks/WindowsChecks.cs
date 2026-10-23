@@ -238,6 +238,8 @@ internal static class WindowsChecks
         private readonly StringBuilder text = new();
         private readonly StringBuilder raw = new();
         private Exception? readerError;
+        private bool readerEnded;
+        private int chunks;
         private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal Task Ready => WaitForPrompt();
         private string Text { get { lock (text) return text.ToString(); } }
@@ -247,7 +249,7 @@ internal static class WindowsChecks
             try { await ready.Task.WaitAsync(TimeSpan.FromSeconds(30)); }
             catch (Exception error)
             {
-                lock (text) throw new InvalidOperationException("PowerShell prompt missing.\nScreen: " + text + "\nRaw output: " + raw, error);
+                lock (text) throw new InvalidOperationException("PowerShell prompt missing.\nScreen: " + text + "\nRaw output: " + raw + "\n" + State(), error);
             }
         }
 
@@ -268,6 +270,7 @@ internal static class WindowsChecks
                         vt.Write(chunk.Span);
                         await Update(chunk);
                     }
+                    lock (text) readerEnded = true;
                 }
                 catch (Exception error)
                 {
@@ -281,6 +284,7 @@ internal static class WindowsChecks
                     {
                         text.Clear(); text.Append(vt.ScreenText());
                         raw.Append(Encoding.UTF8.GetString(bytes.Span));
+                        chunks++;
                         if (raw.Length > 8192) raw.Remove(0, raw.Length - 8192);
                     }
                     foreach (var reply in replies) await session.WriteAsync(reply);
@@ -289,6 +293,11 @@ internal static class WindowsChecks
                 }
             });
         }
+
+        // Whether output stopped because the stream ended, the shell exited or another client took the session.
+        private string State() =>
+            $"Session: created={session.Created}, watching={session.Watching}, position={session.Position}, replay={session.Replay.Length} bytes, chunks={chunks}, " +
+            $"reader={(readerEnded ? "ended" : "reading")}, exit={session.Exit.Status}, detached={session.Detached.IsCompleted}";
 
         internal Task Command(string value) => session.WriteAsync(Encoding.UTF8.GetBytes(value + "\r")).AsTask();
         internal Task Contains(string value) => Wait(() => Text.Contains(value, StringComparison.Ordinal), "Terminal output missing: " + value);
@@ -311,7 +320,7 @@ internal static class WindowsChecks
             }
             catch (Exception error)
             {
-                lock (text) throw new InvalidOperationException(message + "\nScreen: " + text + "\nRaw output: " + raw, error);
+                lock (text) throw new InvalidOperationException(message + "\nScreen: " + text + "\nRaw output: " + raw + "\n" + State(), error);
             }
         }
     }
