@@ -288,7 +288,8 @@ internal static class ClaudeCodeChecks
         var log = Path.Combine(directory, "launched.log");
         var pidFile = Path.Combine(directory, "launched.pid");
         var fake = Path.Combine(bin, "launch-claude");
-        File.WriteAllText(fake, $"#!/bin/bash\nprintf '%s\\n' \"$@\" > '{log}.part' && mv '{log}.part' '{log}'\n" +
+        // The plugin also runs the command for its own queries (`mcp list` and others), which must not overwrite the launch's log and pid.
+        File.WriteAllText(fake, $"#!/bin/bash\ncase \" $* \" in *\" --session-id \"*) ;; *) exit 0 ;; esac\nprintf '%s\\n' \"$@\" > '{log}.part' && mv '{log}.part' '{log}'\n" +
             $"exec -a claude '{named}' -c 'echo $$ > \"$0\"; sleep 600; :' '{pidFile}' \"$@\"\n");
         File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         app.State!.ChangeAsync([HostStateChange.PluginSettings("claude-code", JsonSerializer.Serialize(new { enabled = true, command = fake, appendSystemPrompt = false }))]).AsTask().GetAwaiter().GetResult();
@@ -306,11 +307,8 @@ internal static class ClaudeCodeChecks
         Console.WriteLine("PASS Claude launch: the tab's agent record names the preassigned session before any hook reports");
         var view = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().Single(candidate => candidate.Launch.TabKey == tab.TabKey);
         Require(view.Launch.Program is null, "The launch program runs once; restarting the tab opens a plain shell.");
-        // One SIGKILL to the agent's job (the interactive shell made it a process group). Process.Kill(entireProcessTree)
-        // stops the agent first, so the shell would take it for a suspended job, move on and exec its successor, which
-        // never reaps the agent: on Linux the dead "claude" stayed in the tab's process tree.
-        using (var kill = System.Diagnostics.Process.Start("kill", ["-KILL", "--", "-" + File.ReadAllText(pidFile).Trim()]))
-            kill.WaitForExit();
+        using (var agent = System.Diagnostics.Process.GetProcessById(int.Parse(File.ReadAllText(pidFile).Trim(), System.Globalization.CultureInfo.InvariantCulture)))
+            agent.Kill(entireProcessTree: true);
         E2eWorkspace.Until(() => app.State.Current.TerminalAgents.All(agent => agent.Terminal != tab));
         var marker = Path.Combine(directory, "after-agent");
         view.Write($"[ \"$PWD\" -ef '{app.Root}' ] && touch '{marker}'\r");
