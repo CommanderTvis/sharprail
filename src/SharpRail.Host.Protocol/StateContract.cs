@@ -117,6 +117,8 @@ public sealed class StateReply
     [ProtoMember(17)] public List<TerminalTitleMessage> TerminalTitles { get; set; } = [];
     // Empty when the host does not report its platform.
     [ProtoMember(12)] public string Platform { get; set; } = "";
+    // Per connection, not shared state: whether the receiving client reached the host over Tailscale.
+    [ProtoMember(26)] public bool ConnectedThroughTailscale { get; set; }
 }
 
 [ProtoContract]

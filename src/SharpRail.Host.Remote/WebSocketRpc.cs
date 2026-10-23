@@ -26,8 +26,11 @@ public static class WebSocketRpc
                 var master = CryptographicOperations.FixedTimeEquals(expected, SHA256.HashData(Encoding.UTF8.GetBytes(authorization)));
                 var credential = authorization.StartsWith("Bearer ", StringComparison.Ordinal) ? authorization[7..] : "";
                 bool Approved() => authenticate?.Invoke(credential) == true || browsers?.Authenticate(credential, context) == true;
-                if (!master && !Approved())
+                var paired = !master && authenticate?.Invoke(credential) == true;
+                if (!master && !paired && browsers?.Authenticate(credential, context) != true)
                     throw new RpcException(new(StatusCode.Unauthenticated, "The host rejected the session token."));
+                // Tagged per call so the host, not the client, decides what this connection may turn off.
+                RpcConnection.ThroughTailscale = paired || RpcConnection.IsTailnetAddress(context.Connection.RemoteIpAddress);
                 using var watching = CancellationTokenSource.CreateLinkedTokenSource(stream.Token);
                 var revocation = master ? Task.CompletedTask : Watch();
                 try { await RpcDispatch.Run(app.Services, stream, open); }

@@ -14,11 +14,22 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
     public async ValueTask<StateReply> GetStateAsync(StateRequest request, CallContext context = default)
         => Map(await host.GetStateAsync(context.CancellationToken));
 
+    /// <summary>A client connected through Tailscale may not turn off the Tailscale plugin or what it depends on.</summary>
+    private async ValueTask Guard(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken)
+    {
+        if (!RpcConnection.ThroughTailscale || !changes.Any(change => change.Kind == "plugin-settings")) return;
+        var roster = (await host.GetStateAsync(cancellationToken)).Plugins;
+        if (changes.Any(change => TailscaleDependence.TurnsOff(change, roster)))
+            throw new RpcException(new Status(StatusCode.FailedPrecondition, TailscaleDependence.Refusal));
+    }
+
     public ValueTask<StateReply> ChangeAsync(StateChangeRequest request, CallContext context = default) => replay.RunAsync(context, request, async token =>
     {
         try
         {
-            return Map(await host.ChangeAsync(request.Changes.Select(change => new HostStateChange(change.Kind, change.Key, change.Value)).ToArray(), token));
+            var changes = request.Changes.Select(change => new HostStateChange(change.Kind, change.Key, change.Value)).ToArray();
+            await Guard(changes, token);
+            return Map(await host.ChangeAsync(changes, token));
         }
         catch (HostException error) { throw HostErrors.ToRpc(error); }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException)
@@ -112,6 +123,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         }).ToList(),
         TerminalTitles = state.TerminalTitles.Select(title => new TerminalTitleMessage
         { WorkspaceId = title.Terminal.WorkspaceId, TabKey = title.Terminal.TabKey, Title = title.Title, Source = (int)title.Source }).ToList(),
-        Platform = state.Platform is { } platform ? System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(platform.ToString()) : ""
+        Platform = state.Platform is { } platform ? System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(platform.ToString()) : "",
+        ConnectedThroughTailscale = RpcConnection.ThroughTailscale
     };
 }

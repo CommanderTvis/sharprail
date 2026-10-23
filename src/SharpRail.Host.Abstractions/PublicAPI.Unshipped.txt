@@ -1991,3 +1991,10 @@ static SharpRail.Host.Abstractions.TerminalShellStatus.operator !=(SharpRail.Hos
 static SharpRail.Host.Abstractions.TerminalShellStatus.operator ==(SharpRail.Host.Abstractions.TerminalShellStatus? left, SharpRail.Host.Abstractions.TerminalShellStatus? right) -> bool
 SharpRail.Host.Abstractions.ITerminalService.ShellStatusAsync(string! sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.TerminalShellStatus?>
 SharpRail.Host.Abstractions.ITerminalService.IsPasswordInputAsync(string! sessionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+SharpRail.Host.Abstractions.HostState.ConnectedThroughTailscale.get -> bool
+SharpRail.Host.Abstractions.HostState.ConnectedThroughTailscale.init -> void
+SharpRail.Host.Abstractions.TailscaleDependence
+const SharpRail.Host.Abstractions.TailscaleDependence.PluginId = "tailscale" -> string!
+const SharpRail.Host.Abstractions.TailscaleDependence.Refusal = "This client is connected through Tailscale; turning it off here would disconnect you. Do it from the host machine or a client connected another way." -> string!
+static SharpRail.Host.Abstractions.TailscaleDependence.Protected(System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>! roster) -> System.Collections.Generic.IReadOnlySet<string!>!
+static SharpRail.Host.Abstractions.TailscaleDependence.TurnsOff(SharpRail.Host.Abstractions.HostStateChange! change, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>! roster) -> bool

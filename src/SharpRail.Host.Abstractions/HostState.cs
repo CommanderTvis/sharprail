@@ -156,6 +156,8 @@ public sealed record HostState
     public IReadOnlyList<TerminalTitle> TerminalTitles { get; init; } = [];
     /// <summary>The host's operating system; null from a host that does not report it.</summary>
     public HostPlatform? Platform { get; init; }
+    /// <summary>Whether this client's own connection to the host runs over Tailscale, as the host saw it; false for embedded and other transports.</summary>
+    public bool ConnectedThroughTailscale { get; init; }
 }
 
 public sealed record TerminalAgent(TerminalRef Terminal, TerminalAgentRecord Record);

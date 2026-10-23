@@ -48,8 +48,12 @@ internal sealed class FakePluginHost : IHostStateService, IPluginService
         Revision = state.Revision + revision,
         PluginSettings = new Dictionary<string, JsonElement>(settings),
         PluginPaths = paths,
-        Plugins = Roster()
+        Plugins = Roster(),
+        ConnectedThroughTailscale = ThroughTailscale
     };
+
+    /// <summary>Reports this client as connected through Tailscale, as a host does per connection.</summary>
+    internal bool ThroughTailscale { get; set; }
 
     private void Publish()
     {

@@ -402,6 +402,19 @@ internal static class TailscaleChecks
         using var remotePlugins = new RemotePluginAdapter(new Uri(ready.Address!), listener.Token);
         Require(PluginJson.Convert<TailscaleStatus>(await remotePlugins.CallAsync(new("tailscale", "status", new TailscaleStatusParams(), "remote"), timeout.Token)).Approved.Single().Id == device.Id,
             "Approved devices have local/remote plugin parity.");
+        Require((await paired.GetStateAsync(timeout.Token)).ConnectedThroughTailscale && !(await ordinary.GetStateAsync(timeout.Token)).ConnectedThroughTailscale,
+            "The host tags a Tailscale-paired connection, and only that one, as depending on Tailscale.");
+        try { await paired.ChangeAsync([HostStateChange.PluginEnabled("tailscale", false)], timeout.Token); throw new Exception("A Tailscale client turned Tailscale off."); }
+        catch (RpcException error) when (error.StatusCode == StatusCode.FailedPrecondition && error.Message == TailscaleDependence.Refusal) { }
+        try { await paired.ChangeAsync([HostStateChange.PluginSettings("tailscale", null)], timeout.Token); throw new Exception("A Tailscale client reset Tailscale off."); }
+        catch (RpcException error) when (error.StatusCode == StatusCode.FailedPrecondition) { }
+        Require((await runtime.ListAsync(timeout.Token)).Single().Status == PluginStatus.Active, "A refused disable leaves Tailscale running.");
+        Require(TailscaleDependence.Protected([new PluginRosterEntry("tailscale", "Tailscale", "", "1", 1, PluginOrigin.Builtin, PluginStatus.Active) { DependsOn = ["net"] },
+            new PluginRosterEntry("net", "Net", "", "1", 1, PluginOrigin.Builtin, PluginStatus.Active) { DependsOn = ["base"] }]).SetEquals(["tailscale", "net", "base"])
+            && TailscaleDependence.TurnsOff(HostStateChange.PluginEnabled("base", false), [new PluginRosterEntry("tailscale", "Tailscale", "", "1", 1, PluginOrigin.Builtin, PluginStatus.Active) { DependsOn = ["base"] }])
+            && !TailscaleDependence.TurnsOff(HostStateChange.PluginEnabled("other", false), [])
+            && !TailscaleDependence.TurnsOff(HostStateChange.PluginEnabled("tailscale", true), []),
+            "Tailscale's dependencies, transitively, get the same guard; enabling and unrelated plugins are not guarded.");
         network.NodeId = "different-node";
         Require((await Pair()).State == "denied", "Another verified node cannot reuse a remembered pairing secret.");
         network.NodeId = "phone-node";
@@ -424,8 +437,11 @@ internal static class TailscaleChecks
         await runtime.CallAsync(new("tailscale", "revoke", new TailscaleRevoke(freshId), "fixture"), timeout.Token);
         try { await nextFrame.WaitAsync(TimeSpan.FromSeconds(5)); throw new Exception("Revoked stream remained open."); }
         catch (RpcException) { }
-        await state.ChangeAsync([HostStateChange.PluginEnabled("tailscale", false)], timeout.Token);
-        while ((await runtime.ListAsync(timeout.Token)).Single().Status != PluginStatus.Disabled) await Task.Delay(20, timeout.Token);
+        // A client connected another way may still turn Tailscale off.
+        await ordinary.ChangeAsync([HostStateChange.PluginEnabled("tailscale", false)], timeout.Token);
+        ordinary.Dispose();
+        // The listener drains the requesting client's own connection before it reports stopped.
+        while ((await runtime.ListAsync(timeout.Token)).Single().Status != PluginStatus.Disabled || listener.Endpoint is not null) await Task.Delay(20, timeout.Token);
         Require(bridge.Authenticate is null && listener.Endpoint is null, "Disabling pairing drops authentication and its owned listener.");
         var clientPath = Path.Combine(directory, "client.json");
         var remembered = new TailscaleRemembered("fixture", token);

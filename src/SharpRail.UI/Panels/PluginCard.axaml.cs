@@ -14,18 +14,20 @@ namespace SharpRail.UI.Panels;
 /// One roster entry on Settings › Plugins, kept per plugin id for the page's life: a roster change updates it in place
 /// and raises <see cref="Changed"/>, so the list never replaces an item and its realized card is redrawn where it is.
 /// </summary>
-internal sealed class PluginCardModel(PluginRosterEntry entry, IReadOnlyList<string> dependents, string signature, string? heading)
+internal sealed class PluginCardModel(PluginRosterEntry entry, IReadOnlyList<string> dependents, string signature, string? heading, string? locked = null)
 {
     /// <summary>The category this card opens in the list, or null when the card follows another of the same category.</summary>
     internal string? Heading { get; private set; } = heading;
     internal PluginRosterEntry Entry { get; private set; } = entry;
     internal IReadOnlyList<string> Dependents { get; private set; } = dependents;
     internal string Signature { get; private set; } = signature;
+    /// <summary>Why this client may not turn the plugin off, or null when it may.</summary>
+    internal string? Locked { get; private set; } = locked;
     internal event Action? Changed;
 
-    internal void Update(PluginRosterEntry next, IReadOnlyList<string> nextDependents, string nextSignature, string? nextHeading)
+    internal void Update(PluginRosterEntry next, IReadOnlyList<string> nextDependents, string nextSignature, string? nextHeading, string? nextLocked = null)
     {
-        Entry = next; Dependents = nextDependents; Heading = nextHeading;
+        Entry = next; Dependents = nextDependents; Heading = nextHeading; Locked = nextLocked;
         if (Signature == nextSignature) return;
         Signature = nextSignature;
         Changed?.Invoke();
@@ -102,11 +104,13 @@ internal sealed partial class PluginCard : Border
         status.Foreground = troubled ? Ui.Danger : Ui.Hint;
         Text(description, entry.Description);
         Text(contributions, Summary(entry));
-        Text(reason, troubled ? entry.Reason ?? entry.Status.ToString().ToLowerInvariant() : null);
+        Text(reason, troubled ? entry.Reason ?? entry.Status.ToString().ToLowerInvariant() : model.Locked);
         Text(dependents, model.Dependents.Count > 0 ? $"Also used by {string.Join(", ", model.Dependents)}. Disabling turns them off too." : null);
         retry.IsVisible = entry.Status == Status.Failed;
         AutomationProperties.SetName(toggle, entry.Label + " enabled");
         Set(toggle, entry.Status != Status.Disabled);
+        toggle.IsEnabled = model.Locked is null;
+        ToolTip.SetTip(toggle, model.Locked);
     }
 
     private void Set(ToggleSwitch target, bool value)

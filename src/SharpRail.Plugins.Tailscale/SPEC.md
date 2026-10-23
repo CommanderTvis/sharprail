@@ -105,6 +105,13 @@ All CLI, DNS, filesystem, identity and HTTP work runs off the dispatcher. Discov
 cancellable and bounded by timeouts. The plugin's disposer cancels requests, closes bootstrap, clears its
 authentication callback and stops any listener it owns before returning.
 
+A client whose own connection runs over Tailscale cannot turn the plugin off. The host refuses, with
+`FailedPrecondition` and the `TailscaleDependence.Refusal` text, any plugin-settings change from such a
+connection that disables or resets this plugin or a plugin it depends on, transitively. Settings › Plugins
+on that client shows those switches disabled with the same text as tooltip and note. Embedded, loopback and
+LAN clients are unaffected. Revoking a paired device stays allowed; this plugin has no separate serve or
+logout switch to guard.
+
 ## Verification
 
 `--tailscale` exercises registry expiry and limits, node binding, credential secrecy and persistence,

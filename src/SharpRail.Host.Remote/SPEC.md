@@ -74,6 +74,13 @@ the pinned QRCoder package through the checkout's .NET file-based app support.
 The handshake is a state-service method behind the same authentication as every other call, so an
 unauthenticated peer learns nothing about the host's version.
 
+Each RPC call carries its connection's transport for the host's own decisions (`RpcConnection`, an async-local
+set before dispatch): a call is through Tailscale when it authenticated with a Tailscale pairing credential or
+came from a tailnet address (100.64.0.0/10, fd7a:115c:a1e0::/48). Direct embedded calls are never tagged.
+State replies report it back per connection (`StateReply.ConnectedThroughTailscale`, member 26; older hosts
+send false), and `StateRpc.ChangeAsync` refuses changes that would turn off the Tailscale plugin or its
+dependencies from such a call.
+
 ## Composition and state
 
 - One `WorkspaceHost` for the startup root, one `HostStateStore` (persisted in

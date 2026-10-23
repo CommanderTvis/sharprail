@@ -121,6 +121,39 @@ internal static class PluginsSettingsScrollChecks
         state.Dispose();
         Console.WriteLine("PASS plugins settings: long roster virtualized and recycled, broadcasts update cards in place, toggles work");
         BuiltinIcons();
+        TailscaleLock(root, through: true);
+        TailscaleLock(root, through: false);
+    }
+
+    // On a client connected through Tailscale, the Tailscale card and those of plugins it depends on cannot be switched off.
+    private static void TailscaleLock(string root, bool through)
+    {
+        var profile = new ProfileStore(Path.Combine(root, "plugins-tailscale-" + through));
+        var store = profile.OpenState();
+        PluginRosterEntry Entry(string id, params string[] dependsOn) => new(id, id, "puzzle", "1", 1, PluginOrigin.Builtin, PluginStatus.Disabled) { DependsOn = dependsOn };
+        var host = new FakePluginHost(new LocalStateAdapter(store), store.Current, Entry("tailscale", "network"), Entry("network"), Entry("other")) { ThroughTailscale = through };
+        var state = new SharedState(host, profile.Data.Preferences);
+        state.Start();
+        var enable = state.ChangeAsync([.. new[] { "tailscale", "network", "other" }.Select(id => HostStateChange.PluginEnabled(id, true))]);
+        E2eWorkspace.Until(() => enable.IsCompleted && state.Current.Plugins.All(entry => entry.Status == PluginStatus.Active));
+        var page = new PluginsSettings(state, null, new Window());
+        var window = new Window { Width = 800, Height = 600, Content = new ScrollViewer { Content = page } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        ToggleSwitch Toggle(string id) => window.GetVisualDescendants().OfType<Border>().Single(row => row.Name == "PluginRow" && (string?)row.Tag == id)
+            .GetVisualDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle");
+        foreach (var id in new[] { "tailscale", "network" })
+            Require(Toggle(id).IsEnabled == !through && (ToolTip.GetTip(Toggle(id)) as string == (through ? TailscaleDependence.Refusal : null)),
+                $"{id}'s switch must be {(through ? "locked with the reason on a Tailscale client" : "free on a client connected another way")}.");
+        Require(Toggle("other").IsEnabled, "An unrelated plugin stays switchable.");
+        if (!through)
+        {
+            Toggle("tailscale").IsChecked = false;
+            E2eWorkspace.Until(() => state.Current.Plugins.Single(entry => entry.Id == "tailscale").Status == PluginStatus.Disabled);
+        }
+        window.Close();
+        state.Dispose();
+        Console.WriteLine($"PASS plugins settings: Tailscale and its dependencies {(through ? "locked on a Tailscale client" : "switchable on another transport")}");
     }
 
     // Every builtin plugin's card draws its own mark: a language server shows the icon Code Intelligence shows for it.

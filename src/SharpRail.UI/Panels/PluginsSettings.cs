@@ -73,7 +73,8 @@ public sealed class PluginsSettings : StackPanel
     private void Changed(HostState previous, HostState next)
     {
         // Terminal activity and other unrelated broadcasts leave the roster and the roots as they were.
-        if (previous.Plugins.SequenceEqual(next.Plugins) && previous.PluginPaths.SequenceEqual(next.PluginPaths)) return;
+        if (previous.Plugins.SequenceEqual(next.Plugins) && previous.PluginPaths.SequenceEqual(next.PluginPaths)
+            && previous.ConnectedThroughTailscale == next.ConnectedThroughTailscale) return;
         Refresh();
     }
 
@@ -88,6 +89,8 @@ public sealed class PluginsSettings : StackPanel
         var roster = state.Current.Plugins;
         var desired = new List<PluginCardModel>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
+        // The host refuses these too; the card only says so up front.
+        var pinned = state.Current.ConnectedThroughTailscale ? TailscaleDependence.Protected(roster) : new HashSet<string>();
         foreach (var group in roster.GroupBy(Category).OrderBy(group => CategoryRank(group.Key)).ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
         {
             var first = true;
@@ -97,9 +100,10 @@ public sealed class PluginsSettings : StackPanel
                 var heading = first ? group.Key : null;
                 first = false;
                 var dependents = entry.Status != PluginStatus.Disabled ? PluginRegistry.ActiveDependents(entry.Id, roster).Select(id => Label(id, roster)).ToArray() : [];
-                var signature = System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" + string.Join(",", dependents) + "\n" + heading;
-                if (models.TryGetValue(entry.Id, out var model)) model.Update(entry, dependents, signature, heading);
-                else models[entry.Id] = model = new PluginCardModel(entry, dependents, signature, heading);
+                var locked = entry.Status != PluginStatus.Disabled && pinned.Contains(entry.Id) ? TailscaleDependence.Refusal : null;
+                var signature = System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" + string.Join(",", dependents) + "\n" + heading + "\n" + locked;
+                if (models.TryGetValue(entry.Id, out var model)) model.Update(entry, dependents, signature, heading, locked);
+                else models[entry.Id] = model = new PluginCardModel(entry, dependents, signature, heading, locked);
                 desired.Add(model);
             }
         }
