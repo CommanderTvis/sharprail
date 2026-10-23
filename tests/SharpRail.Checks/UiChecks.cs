@@ -192,6 +192,7 @@ internal static class UiChecks
             ("hello.txt", File.ReadAllText(Path.Combine(root, "hello.txt"))));
         Directory.CreateDirectory(Path.Combine(root, "src"));
         var store = new ProfileStore(Path.Combine(root, ".profile"));
+        E2E.E2eWorkspace.EnableSpecPlugins(store.OpenState());
         var host = new LocalProjectAdapter(new ProjectServices(root));
         using (var frontmatterPreview = new MarkdownPreview("---\nid: private-metadata\ntitle: Internal title\n---\n\n# Visible heading\n\nVisible paragraph.",
             "metadata.md", MarkdownContexts.For(host, store.Data.Preferences, (_, _) => { })))

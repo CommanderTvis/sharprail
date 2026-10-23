@@ -19,7 +19,8 @@ parent hierarchy, while terminal tools can search, inspect and maintain their me
 remain ordinary files that can be read and edited without the plugin.
 
 The plugin owns the graph, seven MCP tools, the Specs side tool and `spec:<id>` document links.
-The plugin is builtin, enabled by default, has no plugin dependencies and uses wire version 1.
+The plugin is builtin, disabled by default (`EnabledByDefault = false`; a profile with no stored
+`enabled` flag gets it off, an explicit stored choice is kept), has no plugin dependencies and uses wire version 1.
 Settings › Plugins › Specs can disable it on local or remote hosts. Disabling withdraws all
 seven MCP tools from listings and rejects new calls; re-enabling restores them. Projects
 without specs do not need a spec workflow.

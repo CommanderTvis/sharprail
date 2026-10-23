@@ -25,6 +25,8 @@ file changes and `blueprint_check`. The UI owns the store, author opening, start
 dialog, file redirect and companion. Each half references only its plugin API entry,
 the UI kit where needed and Spec Dialect's contract. Neither half imports app or host
 implementation projects. The app and host register their respective builtin halves.
+The plugin is builtin and disabled by default, like its Specs dependency; enabling it in Settings ›
+Plugins asks to enable Specs with it, and a stored explicit choice is kept.
 
 ## Document format
 

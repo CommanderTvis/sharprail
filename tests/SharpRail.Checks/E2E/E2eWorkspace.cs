@@ -84,6 +84,8 @@ internal sealed class E2eWorkspace : IDisposable
         prepare?.Invoke(profile);
         var service = new RemoteStateAdapter(endpoint, token);
         remoteState = service;
+        // A check may start a client while its relay is cut on purpose; an earlier client of that host enabled them.
+        if (plugins) try { EnableSpecPlugins(service); } catch (SharpRail.Host.Protocol.RpcException) { }
         remotePlugins = plugins ? new RemotePluginAdapter(endpoint, token) : null;
         State = null;
         Host = new(new RemoteProjectAdapter(endpoint, token));
@@ -118,6 +120,7 @@ internal sealed class E2eWorkspace : IDisposable
         File.WriteAllBytes(Path.Combine(root, "logo.png"), Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII="));
         var profile = new ProfileStore(profileRoot ?? root + "-profile");
         State = profile.OpenState();
+        EnableSpecPlugins(State);
         // As in App.cs: the app's own host runs its plugins in process, from the profile directory's plugins/.
         var server = loopback = new LoopbackServer(null, State);
         // As in the app, plugins can see the host's terminals (process table, revive hooks) when a check asks for it.
@@ -150,6 +153,18 @@ internal sealed class E2eWorkspace : IDisposable
         Until(() => Window.WorkspaceMounted);
         if (openFiles) ShowTool("files");
     }
+
+    /// <summary>
+    /// Specs and Blueprint are off by default; fixture projects keep a spec graph, so a host without a stored choice
+    /// for them turns them on explicitly, and a stored choice (a check that disabled one first) is kept. Checks that
+    /// open a workbench window on their own profile call it for that profile's state.
+    /// </summary>
+    internal static void EnableSpecPlugins(IHostStateService state) => Task.Run(async () =>
+    {
+        var stored = (await state.GetStateAsync()).PluginSettings;
+        var changes = ((string[])["spec-dialect", "blueprint"]).Where(id => !stored.ContainsKey(id)).Select(id => HostStateChange.PluginEnabled(id, true)).ToList();
+        if (changes.Count > 0) await state.ChangeAsync(changes);
+    }).GetAwaiter().GetResult();
 
     internal static void Require(bool value, string message)
     {

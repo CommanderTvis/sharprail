@@ -6791,3 +6791,5 @@ view until the target resolves and shows loading bodies only after 100 ms. Measu
 `src/SharpRail.UI/SPEC.md`. Removing the frame before routing made `--startup` flaky at its fourth-Git-request wait; the frame is
 back when leaving a mounted workspace (still no loading bodies), and a worktree-list broadcast during the
 mount's Git load now queues a reload instead of cancelling it. `--startup` then passed 3 of 3.
+
+2026-10-22: Specs (`spec-dialect`) and Blueprint are builtins disabled by default (`EnabledByDefault = false`). No migration: a stored explicit `enabled` is kept, a profile without one follows the new default. Enabling Blueprint already asks to enable Specs. Check fixtures with a spec graph enable both explicitly (`E2eWorkspace.EnableSpecPlugins`, host-level `PluginEnabled`); `--plugins` asserts Specs is off with no `spec_*` tools on a fresh store. Verified: Release build, format, `--plugins`, `--plugins-settings`, `--specs`, `--specs-panel`, `--blueprint`, `--shell`, `--ui-smoke`, `--design`, `--scratch`, `--startup`.

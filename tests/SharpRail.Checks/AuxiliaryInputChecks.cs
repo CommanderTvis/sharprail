@@ -22,7 +22,9 @@ internal static class AuxiliaryInputChecks
     internal static void Run(string root)
     {
         var profilePath = root + "-auxiliary-input";
-        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(profilePath), E2E.E2eTerminals.Plain);
+        var profile = new ProfileStore(profilePath);
+        E2E.E2eWorkspace.EnableSpecPlugins(profile.OpenState());
+        var window = new WorkbenchWindow(new ProjectServices(root), root, profile, E2E.E2eTerminals.Plain);
         window.Show(); window.Width = 1600 + 2 * DockSurface.RailWidth; window.Height = 1000 + window.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height.Value;
         var deadline = Awake.Now.AddSeconds(15);
         while (!window.WorkspaceMounted && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }

@@ -42,7 +42,8 @@ internal static class WatcherHygieneChecks
         File.WriteAllText(Path.Combine(project, "SPEC.md"), "---\nid: hygiene\ntype: module-design\n---\n# Hygiene\n");
         File.WriteAllText(Path.Combine(project, "BLUEPRINT.md"), "# Blueprint\n");
         var state = new HostStateStore(Path.Combine(root, "watcher-hygiene-state"));
-        await state.ChangeAsync([HostStateChange.OpenProject(project)]);
+        // Specs and Blueprint are off by default; this check reads through both.
+        await state.ChangeAsync([HostStateChange.OpenProject(project), HostStateChange.PluginEnabled(SpecDialectContract.Id, true), HostStateChange.PluginEnabled("blueprint", true)]);
         await using (var runtime = new PluginRuntime(new()
         {
             State = state,
@@ -161,7 +162,8 @@ internal static class WatcherHygieneChecks
         var project = Path.Combine(root, "watcher-admission-" + deactivate);
         Directory.CreateDirectory(project);
         var state = new HostStateStore(Path.Combine(root, "watcher-admission-state-" + deactivate));
-        await state.ChangeAsync([HostStateChange.OpenProject(project)]);
+        // Specs and Blueprint are off by default; this check reads through both.
+        await state.ChangeAsync([HostStateChange.OpenProject(project), HostStateChange.PluginEnabled(SpecDialectContract.Id, true), HostStateChange.PluginEnabled("blueprint", true)]);
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var calls = 0;

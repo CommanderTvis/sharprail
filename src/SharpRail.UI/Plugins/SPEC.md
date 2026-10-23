@@ -274,9 +274,11 @@ The bundled file-type icon set is [core UI functionality](../../SharpRail.Plugin
 ## Builtins disabled by default
 
 Builtin plugins whose manifest sets `EnabledByDefault = false` (Claude Code, Codex, Discord, Air Governance, Air
-Context, Tailscale and the [EPUB Reader](../../SharpRail.Plugins.Epub/SPEC.md)) are listed in Settings › Plugins but
+Context, Tailscale, [Specs](../../SharpRail.Plugins.SpecDialect/SPEC.md), [Blueprint](../../SharpRail.Plugins.Blueprint/SPEC.md)
+and the [EPUB Reader](../../SharpRail.Plugins.Epub/SPEC.md)) are listed in Settings › Plugins but
 contribute nothing until enabled there. The EPUB Reader is the builtin file viewer for `.epub`: while it is
-disabled no viewer claims the extension and the open path is unchanged.
+disabled no viewer claims the extension and the open path is unchanged. Enabling Blueprint while Specs is off
+asks to turn Specs on with it (the dependency prompt above).
 
 ## Tailscale before connection
 

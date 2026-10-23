@@ -19,7 +19,8 @@ internal sealed class CutProxy : IDisposable
     {
         this.target = target; this.refusing = refusing;
         listener.Start();
-        _ = AcceptAsync();
+        // Off the caller's UI context: clients block that thread on synchronous host calls relayed through here.
+        _ = Task.Run(AcceptAsync);
     }
 
     internal Uri Endpoint => new($"http://127.0.0.1:{((IPEndPoint)listener.LocalEndpoint).Port}");

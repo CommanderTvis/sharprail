@@ -75,7 +75,9 @@ active entry with no module that the reconciler never touches again, answering `
 The reconciler computes, per plugin, `desired = explicit PluginSettings[id].enabled ?? (builtin ?
 manifest.EnabledByDefault : false)`, ANDed with every dependency being known, not failed or refused, at the
 declared wire version, and itself desired, computed dependency-first over the registry's topological order so a
-dependency's desiredness is resolved before its dependent reads it. External plugins never auto-enable. A
+dependency's desiredness is resolved before its dependent reads it. External plugins never auto-enable. Changing a builtin's
+`EnabledByDefault` needs no migration: profiles with an explicit stored `enabled` keep it, profiles without one
+follow the new default. A
 dependency cycle refuses every plugin the topological order could not place (those in the cycle and anything
 transitively depending on them). Activations walk the order forward; deactivations walk it in reverse. Desired
 state is a snapshot taken at the start of the pass, so the activation loop re-checks each candidate's

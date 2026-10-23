@@ -102,7 +102,10 @@ internal static class BlueprintChecks
         Directory.CreateDirectory(project);
         var state = new HostStateStore(Path.Combine(directory, "state"));
         var terminals = new CapturedTerminals();
-        await state.ChangeAsync([HostStateChange.OpenProject(project)]);
+        Require(!BlueprintContract.Manifest.EnabledByDefault && !SpecDialectManifest.Manifest.EnabledByDefault,
+            "Blueprint and its Specs dependency are builtins that stay off until enabled.");
+        await state.ChangeAsync([HostStateChange.OpenProject(project),
+            HostStateChange.PluginEnabled(SpecDialectContract.Id, true), HostStateChange.PluginEnabled(BlueprintContract.Id, true)]);
         PluginRuntime Create() => new(new()
         {
             StateDirectory = Path.Combine(directory, "state"),
@@ -187,7 +190,8 @@ internal static class BlueprintChecks
             var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
             using var state = new RemoteStateAdapter(address, "blueprint");
             using var plugins = new RemotePluginAdapter(address, "blueprint");
-            await state.ChangeAsync([HostStateChange.OpenProject(project)]);
+            await state.ChangeAsync([HostStateChange.OpenProject(project),
+                HostStateChange.PluginEnabled(SpecDialectContract.Id, true), HostStateChange.PluginEnabled(BlueprintContract.Id, true)]);
             var runtime = server.Services.GetRequiredService<PluginRuntime>();
             var deadline = DateTime.UtcNow.AddSeconds(10);
             while (!(await plugins.ListAsync()).Any(entry => entry is { Id: "blueprint", Status: PluginStatus.Active }) && DateTime.UtcNow < deadline)

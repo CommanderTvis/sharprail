@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
+using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Plugins.Api;
@@ -21,6 +22,7 @@ internal static class SpecToolChecks
         var project = Path.Combine(root, "spec-tools");
         Directory.CreateDirectory(project);
         var state = new HostStateStore(Path.Combine(root, "spec-tools-state"));
+        await state.ChangeAsync([HostStateChange.PluginEnabled(SpecDialectContract.Id, true)]);
         await using var runtime = new PluginRuntime(new() { StateDirectory = null, State = state, Builtins = [(SpecDialectManifest.Manifest, new SpecDialectHost())] });
         await runtime.Start();
         var tools = runtime.McpTools(null, project).ToDictionary(tool => tool.Name);

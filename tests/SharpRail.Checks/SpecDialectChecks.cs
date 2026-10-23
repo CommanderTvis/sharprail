@@ -84,6 +84,7 @@ internal static class SpecDialectChecks
             Builtins = [(SpecDialectManifest.Manifest, new SpecDialectHost())],
             Worktrees = (_, _) => Task.FromResult<IReadOnlyList<WorktreeInfo>>([new(project, "main", true, false)])
         });
+        await state.ChangeAsync([HostStateChange.PluginEnabled(SpecDialectContract.Id, true)]);
         await runtime.Start();
         await state.ChangeAsync([HostStateChange.OpenProject(project)]);
         var nodes = PluginJson.Convert<SpecGraphSnapshot>(await runtime.CallAsync(new(SpecDialectContract.Id, SpecDialectContract.Graph.Name, new SpecGraphParams(project), "client"))).Nodes;
@@ -112,8 +113,12 @@ internal static class SpecDialectChecks
             Worktrees = (path, _) => Task.FromResult(trees.GetValueOrDefault(path) ?? [])
         });
         await runtime.Start();
-        Require((await runtime.ListAsync()).Single() is { Id: "spec-dialect", Status: PluginStatus.Active, Origin: PluginOrigin.Builtin },
-            "The spec dialect is a builtin plugin, on by default.");
+        Require((await runtime.ListAsync()).Single() is { Id: "spec-dialect", Status: PluginStatus.Disabled, Origin: PluginOrigin.Builtin },
+            "The spec dialect is a builtin plugin, off by default.");
+        Require(!runtime.McpTools(null, project).Any(tool => tool.Name.StartsWith("spec_", StringComparison.Ordinal)),
+            "A profile with no stored choice lists no spec tools.");
+        await state.ChangeAsync([HostStateChange.PluginEnabled(SpecDialectContract.Id, true)]);
+        await Until(async () => (await runtime.ListAsync()).Single().Status == PluginStatus.Active, "an explicit enable turns the spec dialect on");
         await state.ChangeAsync([HostStateChange.OpenProject(project)]);
         async Task<SpecGraphSnapshot> Graph(string workspace) =>
             PluginJson.Convert<SpecGraphSnapshot>(await runtime.CallAsync(new(SpecDialectContract.Id, SpecDialectContract.Graph.Name, new SpecGraphParams(workspace), "client")));
@@ -180,7 +185,7 @@ internal static class SpecDialectChecks
             var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
             using var state = new RemoteStateAdapter(address, "spec-dialect");
             using var plugins = new RemotePluginAdapter(address, "spec-dialect");
-            await state.ChangeAsync([HostStateChange.OpenProject(project)]);
+            await state.ChangeAsync([HostStateChange.OpenProject(project), HostStateChange.PluginEnabled(SpecDialectContract.Id, true)]);
             await Until(async () => (await plugins.ListAsync()).Any(entry => entry is { Id: "spec-dialect", Status: PluginStatus.Active }), "the remote spec dialect");
             var remote = PluginJson.Convert<SpecGraphSnapshot>(await plugins.CallAsync(new(SpecDialectContract.Id, "graph", new SpecGraphParams(project), "client")));
             var local = PluginJson.Convert<SpecGraphSnapshot>(await server.Services.GetRequiredService<PluginRuntime>()

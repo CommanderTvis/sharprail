@@ -42,7 +42,7 @@ public static class SpecDialectManifest
     {
         Category = PluginCategories.Documents,
         Description = "Reads the project's spec graph and shows it in a Specs panel.",
-        EnabledByDefault = true,
+        EnabledByDefault = false,
         Host = "SharpRail.Plugins.SpecDialect.Host.dll",
         Ui = "SharpRail.Plugins.SpecDialect.UI.dll",
         Contributes = new() { SideTools = [new(Tool, "Specs", "book-open", PluginToolSide.Right)] }

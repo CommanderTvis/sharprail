@@ -123,7 +123,9 @@ internal static class DockInputChecks
             ("README.md", File.ReadAllText(Path.Combine(root, "README.md"))),
             ("SPEC.md", File.ReadAllText(Path.Combine(root, "SPEC.md"))),
             ("hello.txt", File.ReadAllText(Path.Combine(root, "hello.txt"))));
-        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-dock-input"), E2E.E2eTerminals.Plain);
+        var profile = new ProfileStore(root + "-dock-input");
+        E2E.E2eWorkspace.EnableSpecPlugins(profile.OpenState());
+        var window = new WorkbenchWindow(new ProjectServices(root), root, profile, E2E.E2eTerminals.Plain);
         window.Show();
         var deadline = Awake.Now.AddSeconds(15);
         while ((!window.WorkspaceMounted || !window.Layout.Tools.Any(tool => tool.Id == "review")) && Awake.Now < deadline)

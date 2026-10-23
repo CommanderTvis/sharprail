@@ -150,6 +150,8 @@ internal static class PluginUiChecks
             Entry("claude-code", PluginStatus.Disabled)]).SequenceEqual(["blueprint"]), "Enabled dependents are listed transitively.");
         Require(PluginRegistry.ActiveDependents("spec-dialect", [Entry("spec-dialect", PluginStatus.Active), Entry("blueprint", PluginStatus.Disabled, "spec-dialect")]).Count == 0,
             "A dependent that is itself disabled is not listed.");
+        Require(PluginRegistry.ToEnable("blueprint", [Entry("blueprint", PluginStatus.Disabled, "spec-dialect"), Entry("spec-dialect", PluginStatus.Disabled)]).SequenceEqual(["spec-dialect"]),
+            "Enabling Blueprint on a fresh profile, where Specs is off by default, brings Specs along.");
         Console.WriteLine("PASS Settings › Plugins dependency enable and disable walks");
     }
 

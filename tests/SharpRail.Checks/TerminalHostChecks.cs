@@ -106,6 +106,8 @@ internal static partial class TerminalHostChecks
                 await ProgramTitles(remote, state, (HostStateStore)app.Services.GetRequiredService<IHostStateService>(), workspace, "remote");
             }
             await Reconnects(address, workspace);
+            // The spec tools come from the Specs builtin, which is off by default.
+            E2E.E2eWorkspace.EnableSpecPlugins(app.Services.GetRequiredService<IHostStateService>());
             await Mcp(address, workspace);
             using var rejected = new RemoteTerminalAdapter(address, "wrong-token");
             try
