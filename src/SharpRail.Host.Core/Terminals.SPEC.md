@@ -184,6 +184,11 @@ including draining output while closing the pseudoconsole.
   unset when the user had none), and fish gets a vendor snippet through `XDG_DATA_DIRS` that runs it before the user's
   `config.fish`. No dotfile is edited and the shell is started as before. Other shells get the resolved variables at start
   only. The shim files live under the state directory's `shell-integration` and are rewritten when stale.
+- Both apply to one zsh: the hooks run first and the shell-integration injection last, so its `.zshenv` keeps the hooks'
+  shim `ZDOTDIR` in `SHARPRAIL_SHELL_ZDOTDIR`, restores it and sources the shim's `.zshenv`; zsh then reads the shim's
+  `.zprofile` and `.zshrc`, which run the user's files and the plugins' script. Inherited `SHARPRAIL_SHELL_*` variables are
+  dropped before plugin contributions are added, so the hooks' `SHARPRAIL_SHELL_INIT_*` and `SHARPRAIL_SHELL_INTEGRATION`
+  survive.
 - When a shell starts for a known tab, `EnvironmentContributor` adds variables after core's own (never
   `SHARPRAIL_TOKEN`), `RevivePrefill` may hand the creating attachment a `TerminalPrefill` (or a program, below), and `Lifecycle`
   hears `TerminalSpawned` with the shell's pid and later `TerminalExited`. Closing a session calls
