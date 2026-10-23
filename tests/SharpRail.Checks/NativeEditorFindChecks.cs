@@ -45,7 +45,11 @@ internal static class NativeEditorFindChecks
                     foreach (var mode in new MarkdownDocumentView.Mode?[] { null, MarkdownDocumentView.Mode.Source, MarkdownDocumentView.Mode.Split })
                     {
                         var markdown = mode is not null;
-                        using var code = new CodeDocumentView(new("find.txt", "🚆 **Needle** first\nneedle second"), "", null!, () => { }, _ => { }, () => { }, error => throw error, !markdown);
+                        // The view inspects its language through the host shortly after opening; a null host threw from that
+                        // inspection whenever it ran before the check finished.
+                        var root = CheckRoot.Create("editor-find");
+                        using var code = new CodeDocumentView(new("find.txt", "🚆 **Needle** first\nneedle second"), root,
+                            new SharpRail.Host.Client.LocalProjectAdapter(new SharpRail.Host.Core.ProjectServices(root)), () => { }, _ => { }, () => { }, error => throw error, !markdown);
                         Control body = code;
                         if (markdown)
                         {
