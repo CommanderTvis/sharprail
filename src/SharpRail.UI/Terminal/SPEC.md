@@ -483,7 +483,7 @@ In that fallback, pasted PNG images are uploaded to the host terminal service, a
 
 ## Prompts and command output
 
-These follow Ghostty and need its shell integration (the host injects it; see
+These follow Ghostty and need shell integration marks (the host injects SharpRail's scripts; see
 [Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#decisions)). Both renderers read the OSC 133 marks their
 own terminal state keeps, so local and remote terminals behave alike.
 

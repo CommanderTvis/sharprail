@@ -166,14 +166,5 @@ if ! fresh vt libGhosttyAvaloniaVt.dylib "$vt_fingerprint"; then
   install_output "$vt_result" "$cache" libGhosttyAvaloniaVt.dylib
   printf '%s\n' "$vt_fingerprint" > "$cache/vt.fingerprint"
 fi
-# The scripts come from the same pinned commit as the VT library, whose OSC 133 handling they are written for.
-if [ "$(cat "$cache/shell.commit" 2>/dev/null)" != "$vt_commit" ] || [ ! -d "$cache/shell/shell-integration" ]; then
-  checkout vt-source "$vt_commit"
-  rm -rf "$cache/shell"
-  mkdir -p "$cache/shell"
-  cp -R "$cache/vt-source/src/shell-integration" "$cache/shell/"
-  rm -f "$cache/shell/shell-integration/README.md"
-  printf '%s\n' "$vt_commit" > "$cache/shell.commit"
-fi
 # Whichever library was already current is not rebuilt; touching both tells MSBuild this run is done.
 touch "$cache/libGhosttyAvaloniaView.dylib" "$cache/libGhosttyAvaloniaVt.dylib"

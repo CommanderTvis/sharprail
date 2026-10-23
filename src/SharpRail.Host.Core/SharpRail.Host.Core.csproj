@@ -45,5 +45,10 @@
     <Content Include="../../licenses/intellij-lsp.nvim.LICENSE.txt" Link="licenses/intellij-lsp.nvim.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../licenses/intellij-lsp.nvim.NOTICE.md" Link="licenses/intellij-lsp.nvim.NOTICE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- SharpRail's shell-integration scripts, which the terminal host injects into the zsh and bash it starts. -->
+  <ItemGroup>
+    <Content Include="shell-integration/zsh/.zshenv" Link="shell-integration/zsh/.zshenv" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="shell-integration/bash/sharprail.bash" Link="shell-integration/bash/sharprail.bash" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
 </Project>

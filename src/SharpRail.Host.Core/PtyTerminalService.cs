@@ -537,8 +537,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         // An app launched from inside a Claude Code session inherits that session's identity; a Claude started in a
         // new terminal would take itself for its child and stop saving transcripts. Configuration variables stay.
         foreach (var marker in ClaudeSessionMarkers) variables.Remove(marker);
-        // An app started from a Ghostty terminal inherits its integration variables; only the host's own injection sets them.
-        foreach (var key in variables.Keys.Where(key => key.StartsWith("GHOSTTY_", StringComparison.Ordinal)).ToArray()) variables.Remove(key);
+        // An app started from a Ghostty or SharpRail terminal inherits integration variables; only the host's own injection sets them.
+        foreach (var key in variables.Keys.Where(key => key.StartsWith("GHOSTTY_", StringComparison.Ordinal) ||
+            key.StartsWith(ShellIntegration.VariablePrefix, StringComparison.Ordinal)).ToArray()) variables.Remove(key);
         variables["TERM"] = "xterm-256color";
         variables["COLORTERM"] = "truecolor";
         // The PTY registers no utmpx record, so a login shell without LOGNAME asks getlogin(), which reads

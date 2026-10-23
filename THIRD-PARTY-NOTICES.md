@@ -30,8 +30,8 @@ upstream licenses.
 The alternative Skia terminal uses libghostty-vt from the same repository, pinned
 to commit 59c2dc032aba42aa5064bf206cc27286add3e9d8 (MIT). Its C shim and Avalonia
 controls live in src/Ghostty.Avalonia; the Ghostty license is included there.
-Ghostty's shell-integration scripts from that commit ship with the app (ghostty-shell/); the
-zsh and bash scripts derive from Kitty's and are GPLv3, as their headers state, as in Ghostty.
+The zsh and bash shell-integration scripts the terminal host injects (shell-integration/) are
+SharpRail's own, written for SharpRail, and are not third-party code.
 
 The Skia terminal adapts rendering and output-scheduling designs from
 [RoyalTerminal](https://github.com/royalapplications/RoyalTerminal/tree/b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f),

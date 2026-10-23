@@ -98,16 +98,25 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   the shell is an executable file before spawning; otherwise an unusable shell would read as one that
   exited. A missing workspace folder keeps its own message.
 - Shell integration (host setting `ShellIntegrationEnabled`, Settings › Terminal, on by default, read when a POSIX shell
-  starts) loads Ghostty's own scripts the way Ghostty's `shell_integration.zig` does: zsh through `ZDOTDIR` (a user's
-  value kept in `GHOSTTY_ZSH_ZDOTDIR` and restored by Ghostty's `.zshenv`), bash with `--posix` before the login option and
-  `ENV` naming `ghostty.bash` (`GHOSTTY_BASH_INJECT`, `GHOSTTY_BASH_ENV`, `HISTFILE`), fish and elvish through
-  `XDG_DATA_DIRS`; plus `GHOSTTY_RESOURCES_DIR` and `GHOSTTY_SHELL_FEATURES=cursor:blink,title` (Ghostty's defaults
-  without `path`, whose binary SharpRail lacks). Apple's /bin/bash ignores `ENV` and is left alone, as in Ghostty. The
-  scripts are the pinned libghostty-vt commit's `src/shell-integration`, copied by the native builds to the app's
-  `ghostty-shell/` (macOS and Linux); a host without them injects nothing. Inherited `GHOSTTY_*` variables are always
+  starts) loads SharpRail's own scripts (`src/SharpRail.Host.Core/shell-integration`, written for SharpRail, shipped to
+  the app's `shell-integration/` by the Host.Core build on every platform): zsh through `ZDOTDIR` naming the script's
+  directory (a user's value kept in `SHARPRAIL_SHELL_ZDOTDIR`; its `.zshenv` restores or unsets `ZDOTDIR`, then sources
+  the user's `.zshenv`, so zsh reads the rest of the user's files as usual), bash with `--posix` before the login option
+  and `ENV` naming `sharprail.bash` (`SHARPRAIL_SHELL_INJECT`, `SHARPRAIL_SHELL_BASH_ENV`, and `HISTFILE` with
+  `SHARPRAIL_SHELL_HISTFILE_UNEXPORT` when unset; the script leaves POSIX mode, restores them and sources
+  `/etc/profile` and the first of `~/.bash_profile`, `~/.bash_login`, `~/.profile` for a login shell, else
+  `/etc/bash.bashrc` and `~/.bashrc`). Interactive shells only: OSC 133 `A` and `B` wrap `PS1` as non-printing text
+  and are re-applied at every prompt after the user's own hooks (prompt themes rebuild it), `C` before a command runs
+  (zsh `preexec`; bash a DEBUG trap from the first prompt, chained before a user's trap), `D;<status>` before the next
+  prompt only when a command ran (an empty Enter reports nothing), all terminated by BEL; OSC 7
+  `file://<host><percent-encoded cwd>` at startup and on every directory change. Sourcing a script twice is a no-op. fish
+  (4 and later marks its own prompts) and elvish get nothing; Apple's /bin/bash 3.2 ignores `ENV` in POSIX mode and is
+  left alone. In bash a command that is only a subshell, such as `(exit 3)`, runs no DEBUG trap and so is not marked.
+  A host without the scripts injects nothing. Inherited `GHOSTTY_*` and `SHARPRAIL_SHELL_*` variables are always
   removed, so with the setting off a shell gets none. `--shell-integration` checks real zsh in a fixture HOME locally and
-  remotely, the setting off, a user ZDOTDIR, Apple bash and the bash/fish plans; a non-Apple bash or fish was not
-  available to run live.
+  remotely, the setting off, a user ZDOTDIR whose `.zshrc` sets its own `precmd` and `PROMPT`, Apple bash and the bash
+  and fish plans; a bash 4 or later was not available to run the bash script live under injection (it was run under
+  Apple's bash 3.2 through `--rcfile`).
 - The host reads shell integration from the output it records (`TerminalShellState`, per session, under the output lock,
   sequences split anywhere): the working directory from OSC 7 (`file://` percent-decoded, `kitty-shell-cwd://` raw; a host
   name other than this machine's, as an ssh session reports, is ignored) or a `cwd=` option on an OSC 133 mark. A new
