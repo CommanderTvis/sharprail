@@ -74,6 +74,14 @@ is labelled dangerous in the danger colour in both places, and Settings turns it
 warning while it is the default; like Codex's full-access sandbox it needs no confirmation.
 Revival keeps the mode in the recorded command (`--resume` accepts the flag). The running terminal
 does not show the mode, as Codex's does not.
+Settings likewise holds a default advisor (`--advisor <model>`, a flag the CLI's help hides) and a
+"Claude in Chrome: always enable" switch (`--chrome`). The advisor choices are the launcher's model
+aliases less haiku (fable, opus, sonnet: the advisor candidates in the CLI bundle; the account may
+refuse one at start). None omits the flag, and its entry names `advisorModel` from the user's
+`~/.claude/settings.json` when set; Chrome off omits both flags. The right-click menu's Advisor
+submenu picks one for a run, and its Chrome toggle adds `--chrome` for a run, or `--no-chrome` while
+the setting is on. Arguments of the run's own win. Revival keeps both from the recorded command, and
+the terminal shows an advisor chip and a Chrome chip read from that command.
 Unset launch defaults persist as empty strings so a merged settings update can clear an earlier override.
 Wire version 2 covers these added settings: the strict settings schema would make older UI halves
 fall back to defaults, so mismatched host/UI halves stay dormant.

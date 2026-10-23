@@ -35,6 +35,17 @@
       <ComboBox x:Name="ClaudePermissionMode" HorizontalAlignment="Stretch" AutomationProperties.Name="Claude Code default permission mode" />
       <TextBlock x:Name="ClaudePermissionModeNote" Text="Passed as --permission-mode to sessions SharpRail starts. Claude Code's default leaves the flag off, so your own Claude settings decide. The launcher's right-click menu picks a mode for one run." />
     </StackPanel>
+    <StackPanel Spacing="4">
+      <TextBlock Classes="heading" Text="Default advisor" />
+      <ComboBox x:Name="ClaudeDefaultAdvisor" HorizontalAlignment="Stretch" AutomationProperties.Name="Claude Code default advisor" />
+      <TextBlock Text="Passed as --advisor to sessions SharpRail starts. None leaves the flag off, so Claude Code's own advisor setting applies. The launcher's right-click menu picks one for a single run." />
+    </StackPanel>
+    <CheckBox x:Name="ClaudeChrome">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="heading" Text="Claude in Chrome: always enable" />
+        <TextBlock Text="Starts sessions SharpRail launches with --chrome. Off leaves the flag out so Claude Code's own setting applies; the launcher's right-click menu turns it on, or off, for one run." />
+      </StackPanel>
+    </CheckBox>
     <CheckBox x:Name="ClaudeDisableAgentView">
       <StackPanel Spacing="2">
         <TextBlock Classes="heading" Text="Start Claude Code without its own agent view" />

@@ -21,7 +21,7 @@ internal sealed class PermissionModeProbe
         var modes = await probe.Value;
         // A CLI that could not be read (not installed yet, timed out) is asked again next time rather than remembered.
         if (modes.Count == 0) probes.TryRemove(new(binary, probe));
-        return new(modes.Count > 0 ? modes : ClaudePermissionModes.Fallback) { FromCli = modes.Count > 0, ConfiguredDefault = ConfiguredDefault() };
+        return new(modes.Count > 0 ? modes : ClaudePermissionModes.Fallback) { FromCli = modes.Count > 0, ConfiguredDefault = UserSetting("permissions", "defaultMode"), ConfiguredAdvisor = UserSetting(null, "advisorModel") };
     }
 
     private static async Task<IReadOnlyList<string>> ProbeAsync(string binary)
@@ -30,18 +30,19 @@ internal sealed class PermissionModeProbe
         return run.Ok ? ClaudePermissionModes.Parse(run.Out) : [];
     }
 
-    /// <summary><c>permissions.defaultMode</c> of the user's settings, the only file read: project files vary by directory.</summary>
-    public static string? ConfiguredDefault()
+    /// <summary>A string setting of the user's settings (in <paramref name="section"/> when given), the only file read: project files vary by directory.</summary>
+    public static string? UserSetting(string? section, string key)
     {
         try
         {
             var path = Path.Combine(ClaudeEnvironment.ClaudeHome(), "settings.json");
             if (!File.Exists(path)) return null;
             using var document = JsonDocument.Parse(File.ReadAllText(path), new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-            return document.RootElement.ValueKind == JsonValueKind.Object &&
-                document.RootElement.TryGetProperty("permissions", out var permissions) && permissions.ValueKind == JsonValueKind.Object &&
-                permissions.TryGetProperty("defaultMode", out var mode) && mode.ValueKind == JsonValueKind.String && mode.GetString() is { Length: > 0 } value
-                ? value : null;
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) return null;
+            var scope = root;
+            if (section is not null && (!root.TryGetProperty(section, out scope) || scope.ValueKind != JsonValueKind.Object)) return null;
+            return scope.TryGetProperty(key, out var setting) && setting.ValueKind == JsonValueKind.String && setting.GetString() is { Length: > 0 } value ? value : null;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { return null; }
     }

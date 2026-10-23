@@ -82,10 +82,15 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
     private ClaudeSessionState? State => store.Session(terminal.WorkspaceId, terminal.TabKey);
 
     // A model id is long and mostly prefix: the part that names it is what fits in a chip, the id itself on hover.
-    internal static IReadOnlyList<(string Kind, string Label, string Title)> Facts(ClaudeSessionState? state)
+    internal static IReadOnlyList<(string Kind, string Label, string Title)> Facts(ClaudeSessionState? state, string? command = null)
     {
         if (state is null) return [];
         var facts = new List<(string, string, string)>();
+        // The launch choices hooks do not report are read off the recorded command line.
+        var words = (command ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var advisorAt = Array.IndexOf(words, "--advisor");
+        if (advisorAt >= 0 && advisorAt + 1 < words.Length) facts.Add(("advisor", $"advisor {words[advisorAt + 1].Trim('\'')}", "Started with --advisor"));
+        if (words.Contains("--chrome")) facts.Add(("chrome", "Chrome", "Started with Claude in Chrome (--chrome)"));
         if (TerminalFacts.CwdLabel(state.Cwd) is { } directory) facts.Add(("cwd", directory, $"Claude started in {state.Cwd}"));
         if (state.Model is { } model) facts.Add(("model", System.Text.RegularExpressions.Regex.Replace(model.StartsWith("claude-", StringComparison.Ordinal) ? model[7..] : model, @"-\d{8}$", ""), model));
         if (state.Effort is { } effort) facts.Add(("effort", $"{effort} effort", "Reasoning effort"));
@@ -102,7 +107,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         if (claude && store.IdeContext(terminal.WorkspaceId, terminal.TabKey) is null) store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, true);
         var state = State;
         var ide = store.IdeContext(terminal.WorkspaceId, terminal.TabKey) ?? true;
-        var next = !claude ? "" : string.Join("\n", Facts(state).Select(fact => $"{fact.Kind}\t{fact.Label}\t{fact.Title}"))
+        var next = !claude ? "" : string.Join("\n", Facts(state, Agent(context.Host())?.Command).Select(fact => $"{fact.Kind}\t{fact.Label}\t{fact.Title}"))
             + $"\nusage:{state?.Usage}\nplan:{string.Join("|", state?.Todos?.Select(todo => $"{todo.Status}:{todo.Content}:{todo.ActiveForm}") ?? [])}\nide:{ide}";
         driving.IsVisible = drivingWhat is not null;
         driving.Text = drivingWhat is null ? "" : $"Driving Claude Code's {drivingWhat} picker…";
@@ -111,7 +116,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         facts.Children.Clear();
         facts.IsVisible = claude;
         if (!claude) return;
-        foreach (var (kind, label, title) in Facts(state))
+        foreach (var (kind, label, title) in Facts(state, Agent(context.Host())?.Command))
         {
             var chip = kind switch
             {

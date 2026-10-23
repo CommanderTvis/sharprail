@@ -17,6 +17,12 @@ internal static partial class ClaudeLaunch
     /// <summary>The model aliases the claude CLI accepts, one list for the launcher and the running session's chip.</summary>
     public static readonly IReadOnlyList<ClaudeModel> Models = [new("opus", "Opus"), new("fable", "Fable"), new("sonnet", "Sonnet"), new("haiku", "Haiku")];
 
+    /// <summary>
+    /// The models <c>--advisor</c> accepts. The CLI's help hides the flag; its bundle lists fable, opus and sonnet as advisor
+    /// candidates (each still subject to the account), so the launcher's model aliases less haiku are offered.
+    /// </summary>
+    public static readonly IReadOnlyList<ClaudeModel> Advisors = [.. Models.Where(model => model.Id != "haiku")];
+
     /// <summary>The launcher's context menu, in groups shown separated; each entry is the tail of a claude command line.</summary>
     public static readonly IReadOnlyList<IReadOnlyList<ClaudeLaunchPreset>> Menu =
     [
@@ -79,7 +85,7 @@ internal static partial class ClaudeLaunch
     public static string SessionCommand(string command, string args, bool disableAgentView = true, bool appendSystemPrompt = true,
         HostPlatform? platform = null, string? windowsShell = null, string? model = null, string? effort = null,
         IReadOnlyList<AgentLaunchContribution>? contributions = null, string? sessionId = null,
-        string? permissionMode = null)
+        string? permissionMode = null, string? advisor = null, bool? chrome = null)
     {
         var promptFile = appendSystemPrompt ? $"--append-system-prompt-file {EnvironmentReference(ClaudeCodeContract.PromptFileVariable, platform, windowsShell)}" : "";
         var defaults = string.Join(' ', new[]
@@ -88,7 +94,9 @@ internal static partial class ClaudeLaunch
             effort is { Length: > 0 } && !HasOption(args, "--effort") ? "--effort " + ShellQuotePath(effort) : "",
             sessionId is { Length: > 0 } ? "--session-id " + ShellQuotePath(sessionId) : "",
             permissionMode is { Length: > 0 } && !HasOption(args, "--permission-mode") && !HasOption(args, "--dangerously-skip-permissions")
-                ? "--permission-mode " + ShellQuotePath(permissionMode) : ""
+                ? "--permission-mode " + ShellQuotePath(permissionMode) : "",
+            advisor is { Length: > 0 } && !HasOption(args, "--advisor") ? "--advisor " + ShellQuotePath(advisor) : "",
+            chrome is { } withChrome && !HasOption(args, "--chrome") && !HasOption(args, "--no-chrome") ? withChrome ? "--chrome" : "--no-chrome" : ""
         }.Where(part => part.Length > 0));
         var line = LaunchCommand(Contribute(command, contributions, platform), string.Join(' ', new[] { promptFile, "--plugin-dir " + EnvironmentReference(ClaudeCodeContract.PluginDirectoryVariable, platform, windowsShell), "--add-dir " + EnvironmentReference(ClaudeCodeContract.ScratchVariable, platform, windowsShell), defaults, args }.Where(part => part.Length > 0)));
         if (disableAgentView) line = WithLaunchEnvironment(line, platform, windowsShell);

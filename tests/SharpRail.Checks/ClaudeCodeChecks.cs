@@ -360,9 +360,9 @@ internal static class ClaudeCodeChecks
             var items = menu.Items.OfType<MenuItem>().ToDictionary(item => item.Name!);
             Require((string)items["ClaudeLaunch_continue"].Header! == "Continue the last conversation" && items.ContainsKey("ClaudeLaunch_model-opus") &&
                 ((string)items["ClaudeLaunch_teleport"].Header!).StartsWith("Teleport", StringComparison.Ordinal), "The menu offers continue, teleport and the models.");
-            if (preset.StartsWith("permission-", StringComparison.Ordinal))
+            if (preset.StartsWith("permission-", StringComparison.Ordinal) || preset.StartsWith("advisor-", StringComparison.Ordinal))
             {
-                var submenu = items["ClaudeLaunch_permission"];
+                var submenu = items["ClaudeLaunch_" + preset.Split('-')[0]];
                 submenu.IsSubMenuOpen = true;
                 E2eWorkspace.Until(() => submenu.Items.OfType<MenuItem>().Any(item => item.Name == "ClaudeLaunch_" + preset));
                 app.Click(submenu.Items.OfType<MenuItem>().Single(item => item.Name == "ClaudeLaunch_" + preset), freshGesture: false);
@@ -428,6 +428,17 @@ internal static class ClaudeCodeChecks
             Require(ReferenceEquals(bypass.Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger) && ((string)bypass.Header!).Contains("dangerous", StringComparison.Ordinal),
                 "Bypass permissions is marked dangerous in the launcher.");
         }
+        Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, permissionMode = "" });
+        Require(Launch("advisor-opus")[^2..].SequenceEqual(["--advisor", "opus"]), "A per-launch advisor passes --advisor.");
+        Require(Launch("chrome")[^1] == "--chrome", "The Chrome toggle turns it on for one run.");
+        var plainRun = Launch("continue");
+        Require(!plainRun.Contains("--advisor") && !plainRun.Contains("--chrome") && !plainRun.Contains("--no-chrome"), "No advisor and Chrome off add no flags.");
+        Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, advisor = "sonnet", chrome = true });
+        var always = Launch("continue");
+        Require(always[^4..].SequenceEqual(["--advisor", "sonnet", "--chrome", "--continue"]), "Saved advisor and Chrome reach every launch: " + string.Join(" ", always));
+        var withoutChrome = Launch("chrome");
+        Require(withoutChrome.Contains("--no-chrome") && !withoutChrome.Contains("--chrome"), "With Chrome always on, the toggle turns it off for one run.");
+        Require(!Launch("advisor-none").Contains("--advisor"), "None omits the advisor for one run.");
         Console.WriteLine("PASS fork plugins/claude-code/claude-launcher.spec.ts: the launcher starts Claude Code in its own group, and offers per-run flags on right-click");
 
         Settings(new { enabled = true, command = "claude" });
@@ -450,6 +461,17 @@ internal static class ClaudeCodeChecks
             "Settings warns while the default skips permission checks.");
         Require(app.Workbench.PluginLoader!.Registry.LauncherList.Single(item => item.Id == "claude").TerminalCommand(new()).Contains("--permission-mode bypassPermissions", StringComparison.Ordinal),
             "The saved default applies to the generic launcher too.");
+        var advisorPicker = window.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "ClaudeDefaultAdvisor");
+        advisorPicker.SelectedItem = advisorPicker.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, "opus"));
+        E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].TryGetProperty("advisor", out var value) && value.GetString() == "opus");
+        window.GetLogicalDescendants().OfType<CheckBox>().Single(control => control.Name == "ClaudeChrome").IsChecked = true;
+        E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].TryGetProperty("chrome", out var value) && value.GetBoolean());
+        Require(app.Workbench.PluginLoader!.Registry.LauncherList.Single(item => item.Id == "claude").TerminalCommand(new()).Contains("--advisor opus --chrome", StringComparison.Ordinal),
+            "The saved advisor and Chrome persist and reach the generic launcher.");
+        advisorPicker.SelectedItem = advisorPicker.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, ""));
+        E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].GetProperty("advisor").GetString() == "");
+        window.GetLogicalDescendants().OfType<CheckBox>().Single(control => control.Name == "ClaudeChrome").IsChecked = false;
+        E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].GetProperty("advisor").GetString() == "" && !app.State!.Current.PluginSettings["claude-code"].GetProperty("chrome").GetBoolean());
         permission.SelectedItem = permission.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, ""));
         E2eWorkspace.Until(() => app.State!.Current.PluginSettings["claude-code"].GetProperty("permissionMode").GetString() == "");
         Require(!app.Workbench.PluginLoader!.Registry.LauncherList.Single(item => item.Id == "claude").TerminalCommand(new()).Contains("--permission-mode", StringComparison.Ordinal),
@@ -621,6 +643,8 @@ internal static class ClaudeCodeChecks
             ClaudePermissionModes.Parse("no such option").Count == 0, "Permission modes are read from the help's choices, wrapped or not.");
         Require(AgentResume.ResumeCommand("claude --permission-mode plan --model opus", "11111111-2222-3333-4444-555555555555")!.Contains("--permission-mode plan --model opus --resume", StringComparison.Ordinal),
             "A revived session keeps the permission mode it was started with.");
+        Require(AgentResume.ResumeCommand("claude --advisor opus --no-chrome", "11111111-2222-3333-4444-555555555555") == "claude --advisor opus --no-chrome --resume 11111111-2222-3333-4444-555555555555",
+            "A revived session keeps its advisor and Chrome choice.");
         Require((await Call(ClaudeCodeContract.PermissionModesGet, new NoParams())) is { FromCli: false } fallback && fallback.Modes.SequenceEqual(ClaudePermissionModes.Fallback),
             "A CLI whose help cannot be read gets the fallback modes.");
         await IdeProtocol(runtime, project);

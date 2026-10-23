@@ -10,7 +10,7 @@ internal static partial class AgentResume
     private const string SessionIdFlag = "--session-id";
     // Flags of the claude CLI that take no value, so the word after them is not theirs.
     private static readonly HashSet<string> BooleanFlags =
-        ["--chrome", "--dangerously-skip-permissions", "--debug", "--fork-session", "--ide", "--print", "-p", "--verbose", "--version", "-v", "--help", "-h"];
+        ["--chrome", "--no-chrome", "--dangerously-skip-permissions", "--debug", "--fork-session", "--ide", "--print", "-p", "--verbose", "--version", "-v", "--help", "-h"];
 
     [GeneratedRegex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", RegexOptions.IgnoreCase)]
     private static partial Regex Uuid();

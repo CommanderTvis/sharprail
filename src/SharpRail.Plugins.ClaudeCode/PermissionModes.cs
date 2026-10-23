@@ -16,6 +16,8 @@ public sealed record PermissionModesResult(IReadOnlyList<string> Modes)
     public bool FromCli { get; init; }
     /// <summary><c>permissions.defaultMode</c> from the user's <c>~/.claude/settings.json</c>; null when it names none.</summary>
     public string? ConfiguredDefault { get; init; }
+    /// <summary><c>advisorModel</c> from the same file; null when it names none.</summary>
+    public string? ConfiguredAdvisor { get; init; }
 }
 
 /// <summary>Parses the CLI's mode list and labels each mode; an unknown mode keeps its own id as its label.</summary>

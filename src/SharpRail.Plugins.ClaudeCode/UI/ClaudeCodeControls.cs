@@ -19,6 +19,8 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
     private readonly ComboBox effort;
     private readonly ComboBox permissionMode;
     private readonly TextBlock permissionNote;
+    private readonly ComboBox advisor;
+    private readonly CheckBox chrome;
     private readonly CheckBox agentView;
     private readonly CheckBox systemPrompt;
     private bool applying;
@@ -54,6 +56,15 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
             if (permissionMode.SelectedItem is ComboBoxItem { Tag: string value } && value != context.Settings<ClaudeCodeSettings>().PermissionMode)
                 Update(settings => settings with { PermissionMode = value }, "Couldn't change the default permission mode");
         };
+        advisor = this.FindControl<ComboBox>("ClaudeDefaultAdvisor")!;
+        FillAdvisors(PermissionModeSource.Current);
+        advisor.SelectionChanged += (_, _) =>
+        {
+            if (advisor.SelectedItem is ComboBoxItem { Tag: string value } && value != context.Settings<ClaudeCodeSettings>().Advisor)
+                Update(settings => settings with { Advisor = value }, "Couldn't change the default advisor");
+        };
+        chrome = this.FindControl<CheckBox>("ClaudeChrome")!;
+        chrome.IsCheckedChanged += (_, _) => Update(settings => settings with { Chrome = chrome.IsChecked == true }, "Couldn't change the Claude in Chrome setting");
         agentView = this.FindControl<CheckBox>("ClaudeDisableAgentView")!;
         systemPrompt = this.FindControl<CheckBox>("ClaudeAppendSystemPrompt")!;
         this.FindControl<Button>("ClaudeCommandBrowse")!.Click += (_, _) => _ = Browse();
@@ -68,6 +79,8 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
             var modes = await PermissionModeSource.RefreshAsync(context);
             applying = true;
             FillPermissionModes(modes, context.Settings<ClaudeCodeSettings>().PermissionMode);
+            FillAdvisors(modes);
+            advisor.SelectedItem = advisor.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, context.Settings<ClaudeCodeSettings>().Advisor));
             applying = false;
         };
         AttachedToVisualTree += (_, _) => watch ??= context.OnSettings<ClaudeCodeSettings>(Show);
@@ -84,6 +97,8 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
             FillPermissionModes(PermissionModeSource.Current, settings.PermissionMode);
         permissionMode.SelectedItem = permissionMode.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.PermissionMode));
         ShowPermissionNote(settings.PermissionMode);
+        advisor.SelectedItem = advisor.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.Advisor ?? "")) ?? advisor.Items.OfType<ComboBoxItem>().First();
+        chrome.IsChecked = settings.Chrome;
         agentView.IsChecked = settings.DisableAgentView;
         systemPrompt.IsChecked = settings.AppendSystemPrompt;
         applying = false;
@@ -101,6 +116,19 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
             permissionMode.Items.Add(item);
         }
         permissionMode.SelectedItem = permissionMode.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, saved));
+    }
+
+    // "None" names the advisor the user's own Claude settings choose, since it leaves the flag off and that one applies.
+    private void FillAdvisors(PermissionModesResult modes)
+    {
+        advisor.Items.Clear();
+        advisor.Items.Add(new ComboBoxItem
+        {
+            Name = "ClaudeAdvisor_none",
+            Content = modes.ConfiguredAdvisor is { } configured ? $"None (Claude Code's default: {configured}, from ~/.claude/settings.json)" : "None",
+            Tag = ""
+        });
+        foreach (var model in ClaudeLaunch.Advisors) advisor.Items.Add(new ComboBoxItem { Name = "ClaudeAdvisor_" + model.Id, Content = model.Label, Tag = model.Id });
     }
 
     private void ShowPermissionNote(string saved)
@@ -155,12 +183,13 @@ internal static class ClaudeLauncherAction
     public static Control Create(IPluginUIContext context, ClaudeGlyph glyph, string workspaceId, string groupId)
     {
         // A null mode is the saved default; an empty one is Claude Code's own, so the flag is left off for this run.
-        void Launch(string args = "", string? mode = null)
+        // Advisor: null is the saved one, empty none. Chrome: null follows the setting, a value overrides it for this run.
+        void Launch(string args = "", string? mode = null, string? advisor = null, bool? chrome = null)
         {
             var settings = context.Settings<ClaudeCodeSettings>();
             var started = ClaudeLaunch.SessionCommand(settings.Command, args, settings.DisableAgentView, settings.AppendSystemPrompt,
                 context.Host().HostPlatform, model: settings.Model, effort: settings.Effort, contributions: context.AgentLaunchContributions("claude"),
-                sessionId: ClaudeLaunch.NewSessionId(args), permissionMode: mode ?? settings.PermissionMode);
+                sessionId: ClaudeLaunch.NewSessionId(args), permissionMode: mode ?? settings.PermissionMode, advisor: advisor ?? settings.Advisor, chrome: chrome ?? (settings.Chrome ? true : null));
             if (started.Length == 0) return;
             _ = context.OpenTerminalAsync(workspaceId, new TerminalOpenOptions { Command = started, GroupId = groupId }).AsTask();
         }
@@ -221,6 +250,24 @@ internal static class ClaudeLauncherAction
         FillPermissions(PermissionModeSource.Current);
         menu.Opening += async (_, _) => FillPermissions(await PermissionModeSource.RefreshAsync(context));
         menu.Items.Add(permissions);
+        var advisors = new MenuItem { Name = "ClaudeLaunch_advisor", Header = "Advisor" };
+        var noAdvisor = new MenuItem { Name = "ClaudeLaunch_advisor-none", Header = "None" };
+        noAdvisor.Click += (_, _) => Launch(advisor: "");
+        advisors.Items.Add(noAdvisor);
+        foreach (var model in ClaudeLaunch.Advisors)
+        {
+            var item = new MenuItem { Name = "ClaudeLaunch_advisor-" + model.Id, Header = model.Label };
+            item.Click += (_, _) => Launch(advisor: model.Id);
+            advisors.Items.Add(item);
+        }
+        menu.Items.Add(advisors);
+        // One toggle: it turns Chrome on for this run, or off for this run when Settings always enables it.
+        var chromeRun = new MenuItem { Name = "ClaudeLaunch_chrome" };
+        void ShowChrome() => chromeRun.Header = context.Settings<ClaudeCodeSettings>().Chrome ? "Without Claude in Chrome" : "With Claude in Chrome";
+        ShowChrome();
+        menu.Opening += (_, _) => ShowChrome();
+        chromeRun.Click += (_, _) => Launch(chrome: !context.Settings<ClaudeCodeSettings>().Chrome);
+        menu.Items.Add(chromeRun);
         // Any flags the presets do not cover, typed per run; the last ones typed come back prefilled.
         menu.Items.Add(new Separator());
         var custom = new MenuItem { Name = "ClaudeLaunch_custom", Header = "With custom arguments…" };

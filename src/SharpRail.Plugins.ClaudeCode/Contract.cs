@@ -331,6 +331,10 @@ public sealed record ClaudeCodeSettings
     public bool AppendSystemPrompt { get; init; } = true;
     /// <summary>The <c>--permission-mode</c> SharpRail launches with; empty adds no flag, so Claude's own default applies.</summary>
     public string PermissionMode { get; init; } = "";
+    /// <summary>The <c>--advisor</c> model SharpRail launches with; empty adds no flag, so Claude's own <c>advisorModel</c> applies.</summary>
+    public string Advisor { get; init; } = "";
+    /// <summary>Adds <c>--chrome</c> to every SharpRail launch; off adds nothing, so the CLI's own Chrome setting applies.</summary>
+    public bool Chrome { get; init; }
 }
 
 public sealed record WorkspaceParams(string WorkspaceId)
