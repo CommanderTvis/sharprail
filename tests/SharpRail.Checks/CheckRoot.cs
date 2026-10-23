@@ -110,6 +110,7 @@ internal static class CheckRoot
             {
                 File.WriteAllText(Path.Combine(path, FailedMarker), "");
                 Directory.CreateDirectory(Path.GetDirectoryName(FailedRecord)!);
+                LogFiles.Rotate(FailedRecord, 256 * 1024);
                 File.AppendAllText(FailedRecord, path + "\n");
             }
             catch (IOException) { }

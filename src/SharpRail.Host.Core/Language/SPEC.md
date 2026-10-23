@@ -411,7 +411,9 @@ also published once as `HostState.LanguageDeaths` (never persisted, `workspace N
 `time|reason`); each client window raises one error toast per new value. Requested stops raise none.
 The LSP pane shows red detail text with Details (inline copyable report), Copy details and View logs.
 The log keeps an `exit:` line with the same reason. The server's own log files are not read: SharpRail
-passes no log directory, and Roslyn's `window/logMessage` output already reaches the logs.
+passes no log directory, and Roslyn's `window/logMessage` output already reaches the logs. A server that writes its own `*.log` into its
+per-workspace state directory (PowerShell's `server.log`) has it capped at launch: over 4 MiB it moves to `.1`, replacing
+the previous one.
 
 ## Agents
 

@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Globalization;
 
+using SharpRail.Host.Core;
+
 namespace SharpRail.Checks;
 
 /// <summary>Checks of <see cref="CheckRoot"/>: where fixtures live and that every way a run can end leaves nothing behind.</summary>
@@ -36,7 +38,21 @@ internal static class CheckRootChecks
 
         Reclaiming(sandbox);
         Lifecycle(sandbox);
-        Console.WriteLine("PASS check root: temporary location, deletion on success, failure kept until the next success, crash and kill recovery, read-only files and links");
+        LogRotation(sandbox);
+        Console.WriteLine("PASS check root: temporary location, deletion on success, failure kept until the next success, crash and kill recovery, read-only files and links, log rotation");
+    }
+
+    private static void LogRotation(string sandbox)
+    {
+        var log = Path.Combine(sandbox, "rotate", "server.log");
+        Directory.CreateDirectory(Path.GetDirectoryName(log)!);
+        File.WriteAllText(log, "small");
+        LogFiles.RotateAll(Path.GetDirectoryName(log)!, 10);
+        Require(File.Exists(log) && !File.Exists(log + ".1"), "A log under the cap stays.");
+        File.WriteAllText(log + ".1", "older");
+        File.WriteAllText(log, "over the ten byte cap");
+        LogFiles.RotateAll(Path.GetDirectoryName(log)!, 10);
+        Require(!File.Exists(log) && File.ReadAllText(log + ".1") == "over the ten byte cap", "An oversized log replaces the single kept rotation.");
     }
 
     private static string Fake(string parent, string pid, TimeSpan age, out string sentinelFolder, bool failed = false)

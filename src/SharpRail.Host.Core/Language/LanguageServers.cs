@@ -168,6 +168,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         var workspace = installation.Workspace;
         var root = installation.Root;
         Directory.CreateDirectory(installation.WorkspaceState);
+        LogFiles.RotateAll(installation.WorkspaceState);
         Directory.CreateDirectory(installation.SharedCache);
         var custom = CustomOptions(server.Id);
         if (spec.TermsAsync is not null && spec.LaunchAsync is { } own) return Start(await own(installation, token));
