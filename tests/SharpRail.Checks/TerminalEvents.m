@@ -140,6 +140,11 @@ void sr_check_keep_active(void) {
     [target makeKeyAndOrderFront:nil];
 }
 
+bool sr_check_occluded(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    return !(view.window.occlusionState & NSWindowOcclusionStateVisible);
+}
+
 bool sr_check_ready(void *pointer) {
     NSView *view = (__bridge NSView *)pointer;
     return NSApp.active && view.window.keyWindow && view.bounds.size.width > 0;

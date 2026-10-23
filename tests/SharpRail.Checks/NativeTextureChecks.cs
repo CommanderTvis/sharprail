@@ -116,6 +116,8 @@ internal static class NativeTextureChecks
         while (!condition())
         {
             if (DateTime.UtcNow > deadline) throw new InvalidOperationException(message);
+            // Concurrent UI checks take activation; take it back so focus and keys stay with this window.
+            Native.KeepActive();
             await Task.Delay(20);
         }
     }
@@ -545,6 +547,14 @@ internal static class NativeTextureChecks
         var native = Native.Content(Title);
         async Task<SKColor[]> Capture()
         {
+            // Concurrent UI checks cover this window, and a covered window's capture is its last presented frame, not
+            // the current one. Bring it to the front and compose one frame there before capturing.
+            Native.Activate(native);
+            await Until(() => Native.Ready(native) && !Native.Occluded(native), "The scroll window stayed covered.");
+            var composed = terminal.Frames;
+            terminal.InvalidateVisual();
+            await Until(() => terminal.Frames > composed, "The uncovered scroll window did not compose.");
+            await Task.Delay(50);
             var directory = CheckRoot.Create("native-scroll");
             var capturePath = Path.Combine(directory, "frame.png");
             try
@@ -587,8 +597,11 @@ internal static class NativeTextureChecks
 
     private static void Type(nint view, string text)
     {
-        Native.Activate(view);
-        foreach (var c in text) Native.Key(view, c.ToString(), c == '\r' ? (ushort)36 : (ushort)0, false);
+        foreach (var c in text)
+        {
+            if (!Native.Ready(view)) Native.Activate(view);
+            Native.Key(view, c.ToString(), c == '\r' ? (ushort)36 : (ushort)0, false);
+        }
     }
 
     private static async Task Command(nint native, Control target, string command)
@@ -681,6 +694,7 @@ internal static class NativeTextureChecks
             while (!await tab.IsBusyAsync())
             {
                 Require(DateTime.UtcNow < deadline, "The shell never reported a foreground process.");
+                Native.KeepActive();
                 await Task.Delay(20);
             }
             Native.Key(native, "\x03", 8, true);
@@ -773,6 +787,8 @@ internal static class NativeTextureChecks
         [DllImport("TerminalEvents", EntryPoint = "sr_texture_window_number")] internal static extern int WindowNumber(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_texture_has_native_terminal")][return: MarshalAs(UnmanagedType.I1)] internal static extern bool HasNativeTerminal(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_activate")] internal static extern void Activate(nint view);
+        [DllImport("TerminalEvents", EntryPoint = "sr_check_keep_active")] internal static extern void KeepActive();
+        [DllImport("TerminalEvents", EntryPoint = "sr_check_occluded")][return: MarshalAs(UnmanagedType.I1)] internal static extern bool Occluded(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_ready")][return: MarshalAs(UnmanagedType.I1)] internal static extern bool Ready(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_click")] internal static extern void Click(nint view, double x, double y);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_key")] internal static extern void Key(nint view, [MarshalAs(UnmanagedType.LPUTF8Str)] string text, ushort code, [MarshalAs(UnmanagedType.I1)] bool control);
