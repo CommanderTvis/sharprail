@@ -78,7 +78,10 @@ public sealed class RemoteTerminalCatalogAdapter : ITerminalCatalogService, IDis
             if (reply.Kind is < 0 or > 2 || reply.State is < 0 or > 4) continue;
             yield return new(reply.SessionId, (TerminalSignalKind)reply.Kind)
             {
-                Progress = (TerminalProgressState)reply.State, Percent = Math.Clamp(reply.Percent, -1, 100), Title = reply.Title, Body = reply.Body
+                Progress = (TerminalProgressState)reply.State,
+                Percent = Math.Clamp(reply.Percent, -1, 100),
+                Title = reply.Title,
+                Body = reply.Body
             };
         }
     }

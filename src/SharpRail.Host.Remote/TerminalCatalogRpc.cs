@@ -43,8 +43,12 @@ public sealed class TerminalCatalogRpc(ITerminalCatalogService catalog, IHostApp
                 var signal = signals.Current;
                 yield return new()
                 {
-                    SessionId = signal.SessionId, Kind = (int)signal.Kind, State = (int)signal.Progress, Percent = signal.Percent,
-                    Title = signal.Title, Body = signal.Body
+                    SessionId = signal.SessionId,
+                    Kind = (int)signal.Kind,
+                    State = (int)signal.Progress,
+                    Percent = signal.Percent,
+                    Title = signal.Title,
+                    Body = signal.Body
                 };
             }
     }

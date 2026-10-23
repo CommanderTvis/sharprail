@@ -114,7 +114,11 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         // The project's disable-list is the only way to shape the instructions; the generated files are never edited.
         InstructionSectionList WithEdits(InstructionSectionList list) => new()
         {
-            Path = list.Path, Sections = list.Sections, UnknownDisabled = list.UnknownDisabled, Diagnostics = list.Diagnostics, IgnoredEditsPath = SystemPrompt.IgnoredEdits()
+            Path = list.Path,
+            Sections = list.Sections,
+            UnknownDisabled = list.UnknownDisabled,
+            Diagnostics = list.Diagnostics,
+            IgnoredEditsPath = SystemPrompt.IgnoredEdits()
         };
         context.Method(ClaudeCodeContract.InstructionsList, async (p, _, ct) => WithEdits(await context.InstructionSectionsAsync(ClaudeCodeContract.Id, p.WorkspaceId, ct)));
         context.Method(ClaudeCodeContract.InstructionsSet, async (p, _, ct) => WithEdits(await context.SetInstructionSectionAsync(ClaudeCodeContract.Id, p.WorkspaceId, p.Id, p.Enabled, ct)));

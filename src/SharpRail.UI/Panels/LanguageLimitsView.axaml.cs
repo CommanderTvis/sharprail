@@ -87,7 +87,8 @@ internal sealed partial class LanguageLimitsView : UserControl
             var text = new TextBlock
             {
                 Text = $"{LanguageServerNameConverter.Display(server.Id)} · {Path.GetFileName(server.Workspace)} · {server.Detail} · {idle}",
-                TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center
+                TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
             };
             ToolTip.SetTip(text, server.Workspace);
             Ui.Place(row, text, 0, 0);

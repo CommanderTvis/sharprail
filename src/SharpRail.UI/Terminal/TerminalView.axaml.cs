@@ -5,9 +5,8 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 
-using SharpRail.Plugins.UI.Kit.Visualization;
-
 using SharpRail.Plugins.UI.Kit;
+using SharpRail.Plugins.UI.Kit.Visualization;
 
 namespace SharpRail.UI.Terminal;
 

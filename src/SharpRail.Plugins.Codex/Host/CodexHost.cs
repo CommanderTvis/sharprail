@@ -118,7 +118,11 @@ public sealed class CodexHost : PluginHostModule
         // The project's disable-list is the only way to shape the instructions; the generated text is never edited.
         InstructionSectionList WithEdits(InstructionSectionList list) => new()
         {
-            Path = list.Path, Sections = list.Sections, UnknownDisabled = list.UnknownDisabled, Diagnostics = list.Diagnostics, IgnoredEditsPath = CodexSystemPrompt.IgnoredEdits()
+            Path = list.Path,
+            Sections = list.Sections,
+            UnknownDisabled = list.UnknownDisabled,
+            Diagnostics = list.Diagnostics,
+            IgnoredEditsPath = CodexSystemPrompt.IgnoredEdits()
         };
         context.Method(CodexContract.InstructionsList, async (p, _, ct) => WithEdits(await context.InstructionSectionsAsync(CodexManifest.Id, p.WorkspaceId, ct)));
         context.Method(CodexContract.InstructionsSet, async (p, _, ct) => WithEdits(await context.SetInstructionSectionAsync(CodexManifest.Id, p.WorkspaceId, p.Id, p.Enabled, ct)));

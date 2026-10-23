@@ -17,7 +17,10 @@ internal sealed record LanguageServerLimits(int IdleMinutes, int MemoryBudgetMb,
     /// <summary>Count caps of the heavy servers: Roslyn per loaded solution, and the JVM servers.</summary>
     internal static readonly IReadOnlyDictionary<string, int> DefaultCaps = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        ["csharp"] = 4, ["intellij"] = 2, ["kotlin"] = 2, ["scala"] = 2
+        ["csharp"] = 4,
+        ["intellij"] = 2,
+        ["kotlin"] = 2,
+        ["scala"] = 2
     };
     internal static readonly LanguageServerLimits Default = new(DefaultIdleMinutes, 0, new Dictionary<string, int>(StringComparer.Ordinal));
 
