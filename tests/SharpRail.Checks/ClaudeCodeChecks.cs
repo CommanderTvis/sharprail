@@ -309,7 +309,16 @@ internal static class ClaudeCodeChecks
         Require(view.Launch.Program is null, "The launch program runs once; restarting the tab opens a plain shell.");
         using (var agent = System.Diagnostics.Process.GetProcessById(int.Parse(File.ReadAllText(pidFile).Trim(), System.Globalization.CultureInfo.InvariantCulture)))
             agent.Kill(entireProcessTree: true);
-        E2eWorkspace.Until(() => app.State.Current.TerminalAgents.All(agent => agent.Terminal != tab));
+        try { E2eWorkspace.Until(() => app.State.Current.TerminalAgents.All(agent => agent.Terminal != tab)); }
+        catch (InvalidOperationException)
+        {
+            // Linux CI keeps the record while macOS clears it: show what the agent watch still sees.
+            using var ps = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ps", ["-Ao", "pid,ppid,pgid,stat,comm,args"]) { RedirectStandardOutput = true })!;
+            var table = ps.StandardOutput.ReadToEnd();
+            Console.WriteLine("Agent " + File.ReadAllText(pidFile).Trim() + " killed; processes:\n" +
+                string.Join('\n', table.Split('\n').Where(line => line.Contains("claude", StringComparison.Ordinal) || line.Contains("bash", StringComparison.Ordinal) || line.Contains("sleep", StringComparison.Ordinal))));
+            throw;
+        }
         var marker = Path.Combine(directory, "after-agent");
         view.Write($"[ \"$PWD\" -ef '{app.Root}' ] && touch '{marker}'\r");
         E2eWorkspace.Until(() => File.Exists(marker));
