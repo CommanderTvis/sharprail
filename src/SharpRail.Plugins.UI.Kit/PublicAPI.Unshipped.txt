@@ -385,7 +385,9 @@ SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.ExpandedChanged.init -> void
 SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Items.get -> System.Collections.Generic.IReadOnlyDictionary<int, bool[]!>!
 SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Items.init -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownDiff
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(Markdig.Syntax.MarkdownDocument! document, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context, bool renderDiagrams = true, SharpRail.Plugins.UI.Kit.Markdown.DiffFocus? focus = null, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? frontmatter = null, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? previousFrontmatter = null) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(Markdig.Syntax.MarkdownDocument! document, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context, bool renderDiagrams = true, SharpRail.Plugins.UI.Kit.Markdown.DiffFocus? focus = null, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? frontmatter = null, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? previousFrontmatter = null, bool progressive = false) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.RenderComplete.get -> bool
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Rendered -> System.Action?
 const SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Context = 2 -> int
 override SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Equals(object? obj) -> bool
 override SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.GetHashCode() -> int

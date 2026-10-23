@@ -12,6 +12,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Svg.Skia;
+using Avalonia.Threading;
 
 using Markdig;
 using Markdig.Extensions.Alerts;
@@ -52,7 +53,8 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
     /// so changed properties carry the same marks as the prose.
     /// </summary>
     public MarkdownPreview(MarkdownDocument document, string path, MarkdownContext context,
-        bool renderDiagrams = true, DiffFocus? focus = null, FrontmatterBlock? frontmatter = null, FrontmatterBlock? previousFrontmatter = null)
+        bool renderDiagrams = true, DiffFocus? focus = null, FrontmatterBlock? frontmatter = null, FrontmatterBlock? previousFrontmatter = null,
+        bool progressive = false)
     {
         this.context = context; this.path = path; this.renderDiagrams = renderDiagrams;
         Name = "MarkdownPreview";
@@ -81,13 +83,65 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             if (Document.OfType<YamlFrontMatterBlock>().FirstOrDefault() is { } yaml) Sourced(properties, yaml, selection: false);
             body.Children.Add(properties);
         }
-        if (focus is null) body.Children.AddRange(RenderBlocks(Document, chunk: true));
-        else RenderFocused(body, focus);
+        IEnumerator<Control>? rest = null;
+        if (focus is not null) RenderFocused(body, focus);
+        else if (!progressive) body.Children.AddRange(RenderBlocks(Document, chunk: true));
+        else
+        {
+            rest = RenderBlocks(Document, chunk: true).GetEnumerator();
+            if (!RenderSlice(rest, body.Children)) { rest.Dispose(); rest = null; }
+        }
         RefreshSpecLinks();
+        var lastBottom = body.Children.Count > 0 ? body.Children[^1].Margin.Bottom : 0;
         CollapseMargins(body);
-        Content = body.Children.Count > VirtualizeAbove || chunked ? new MarkdownBlockList(body) : body;
+        Content = body.Children.Count > VirtualizeAbove || chunked || rest is not null ? new MarkdownBlockList(body, lastBottom) : body;
         WireSelection();
         Selectable();
+        if (rest is not null) Dispatcher.UIThread.Post(() => RenderMore(rest), DispatcherPriority.Background);
+        else RenderComplete = true;
+    }
+
+    // One slice of progressive rendering: long enough to make progress, short enough not to hold the UI thread.
+    private static readonly TimeSpan RenderBudget = TimeSpan.FromMilliseconds(8);
+
+    /// <summary>
+    /// False until a progressive preview has built every block; <see cref="Rendered"/> fires when it has. Until then
+    /// only the blocks rendered so far answer <see cref="LineOffset"/>, anchors and selection.
+    /// </summary>
+    public bool RenderComplete { get; private set; }
+
+    /// <summary>Raised once a progressive preview has built its last block.</summary>
+    public event Action? Rendered;
+
+    private static bool RenderSlice(IEnumerator<Control> blocks, ICollection<Control> into)
+    {
+        var started = Stopwatch.GetTimestamp();
+        while (Stopwatch.GetElapsedTime(started) < RenderBudget)
+        {
+            if (!blocks.MoveNext()) return false;
+            into.Add(blocks.Current);
+        }
+        return true;
+    }
+
+    // Builds the next slice of a progressive preview's blocks and appends them below those already in the list.
+    private void RenderMore(IEnumerator<Control> blocks)
+    {
+        if (lifetime.IsCancellationRequested || Content is not MarkdownBlockList list) { blocks.Dispose(); return; }
+        var added = new List<Control>();
+        var more = RenderSlice(blocks, added);
+        if (added.Count > 0)
+        {
+            list.Append(added);
+            RefreshSpecLinks();
+            selectionCatalog = null;
+            foreach (var text in added.SelectMany(control => control.GetLogicalDescendants().Prepend(control)).OfType<SelectableTextBlock>())
+                if (observedSelection.Add(text)) text.PropertyChanged += SelectionMoved;
+        }
+        if (more) { Dispatcher.UIThread.Post(() => RenderMore(blocks), DispatcherPriority.Background); return; }
+        blocks.Dispose();
+        RenderComplete = true;
+        Rendered?.Invoke();
     }
 
     /// <summary>Raised with the selected text whenever a selection in the rendered document changes; empty when cleared.</summary>

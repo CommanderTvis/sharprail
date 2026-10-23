@@ -21,6 +21,10 @@ internal sealed class MarkdownBlockList : Panel
 
     private readonly List<Control> blocks;
     private readonly List<double> tops = [];
+    private readonly List<double> heights = [];
+    private readonly Dictionary<Control, double> estimates = [];
+    private readonly HashSet<Control> visible = [];
+    private readonly Dictionary<Control, int> positions = [];
     private Rect viewport;
     private readonly Dictionary<Control, Size> sizes = [];
     private readonly Dictionary<Control, List<(DocumentText Text, int Characters)>> texts = [];
@@ -29,9 +33,13 @@ internal sealed class MarkdownBlockList : Panel
     private ScrollViewer? anchors;
     internal IEnumerable<Control> Blocks => blocks;
 
-    internal MarkdownBlockList(StackPanel source)
+    // The uncollapsed bottom margin of the last block, which Append gives back once a block follows it.
+    private double bottom;
+
+    internal MarkdownBlockList(StackPanel source, double lastBottom = 0)
     {
         blocks = source.Children.ToList();
+        bottom = lastBottom;
         source.Children.Clear();
         Margin = source.Margin;
         MaxWidth = source.MaxWidth;
@@ -58,6 +66,7 @@ internal sealed class MarkdownBlockList : Panel
         {
             // Heights at the old width stay as estimates until each block is realized again.
             stale.UnionWith(sizes.Keys);
+            estimates.Clear();
             measuredWidth = availableSize.Width;
         }
         anchors ??= this.GetLogicalAncestors().OfType<ScrollViewer>().FirstOrDefault();
@@ -66,18 +75,23 @@ internal sealed class MarkdownBlockList : Panel
         for (var pass = 0; pass < RealizePasses; pass++)
         {
             var changed = false;
-            for (var index = 0; index < blocks.Count; index++)
+            // Only the blocks the viewport overlaps are visited, so a pass costs the viewport, not the document.
+            visible.Clear();
+            var first = tops.BinarySearch(viewport.Top);
+            first = Math.Max(0, first >= 0 ? first : ~first - 1);
+            for (var index = first; index < blocks.Count && tops[index] <= viewport.Bottom; index++)
+                if (tops[index] + heights[index] >= viewport.Top) visible.Add(blocks[index]);
+            for (var index = Children.Count - 1; index >= 0; index--)
+            {
+                if (visible.Contains(Children[index])) continue;
+                anchors?.UnregisterAnchorCandidate(Children[index]);
+                Children.RemoveAt(index);
+            }
+            for (var index = first; index < blocks.Count && tops[index] <= viewport.Bottom; index++)
             {
                 var block = blocks[index];
-                var mounted = Children.Contains(block);
-                if (tops[index] + BlockHeight(block, availableSize.Width) < viewport.Top || tops[index] > viewport.Bottom)
-                {
-                    if (!mounted) continue;
-                    anchors?.UnregisterAnchorCandidate(block);
-                    Children.Remove(block);
-                    continue;
-                }
-                if (!mounted)
+                if (!visible.Contains(block)) continue;
+                if (!Children.Contains(block))
                 {
                     Children.Add(block);
                     anchors?.RegisterAnchorCandidate(block);
@@ -99,11 +113,16 @@ internal sealed class MarkdownBlockList : Panel
     private double Layout(double width)
     {
         tops.Clear();
+        heights.Clear();
+        positions.Clear();
         var height = 0d;
         foreach (var block in blocks)
         {
+            positions[block] = tops.Count;
             tops.Add(height);
-            height += BlockHeight(block, width);
+            var blockHeight = BlockHeight(block, width);
+            heights.Add(blockHeight);
+            height += blockHeight;
         }
         return height;
     }
@@ -111,6 +130,13 @@ internal sealed class MarkdownBlockList : Panel
     private double BlockHeight(Control block, double width)
     {
         if (sizes.TryGetValue(block, out var size)) return size.Height;
+        if (estimates.TryGetValue(block, out var known)) return known;
+        return estimates[block] = Estimate(block, width);
+    }
+
+    // An unrealized block's height at this width, kept until the width changes so a layout pass reads it back.
+    private double Estimate(Control block, double width)
+    {
         var margin = block.Margin.Top + block.Margin.Bottom;
         if (block.GetValue(EstimateProperty) is var hint && !double.IsNaN(hint)) return hint + margin;
         if (!texts.TryGetValue(block, out var parts))
@@ -130,9 +156,9 @@ internal sealed class MarkdownBlockList : Panel
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        for (var index = 0; index < blocks.Count; index++)
-            if (Children.Contains(blocks[index]))
-                blocks[index].Arrange(new Rect(0, tops[index], finalSize.Width, blocks[index].DesiredSize.Height));
+        foreach (var child in Children)
+            if (positions.TryGetValue(child, out var index))
+                child.Arrange(new Rect(0, tops[index], finalSize.Width, child.DesiredSize.Height));
         return finalSize;
     }
 
@@ -140,6 +166,34 @@ internal sealed class MarkdownBlockList : Panel
     {
         // Images and diagrams change heights; mounted blocks are measured again, the rest keep their estimates.
         stale.UnionWith(sizes.Keys);
+        InvalidateMeasure();
+    }
+
+    /// <summary>
+    /// Adds blocks below the last one, collapsing the margin between them the way the source panel's were, for a
+    /// preview that renders its document in slices.
+    /// </summary>
+    internal void Append(IReadOnlyList<Control> added)
+    {
+        if (added.Count == 0) return;
+        var previousBottom = bottom;
+        if (blocks.Count > 0)
+        {
+            var last = blocks[^1];
+            last.Margin = new Thickness(last.Margin.Left, last.Margin.Top, last.Margin.Right, bottom);
+            stale.Add(last);
+            estimates.Remove(last);
+        }
+        for (var index = 0; index < added.Count; index++)
+        {
+            var margin = added[index].Margin;
+            var first = blocks.Count == 0 && index == 0;
+            added[index].Margin = new(margin.Left, first ? 0 : Math.Max(0, margin.Top - previousBottom), margin.Right,
+                index == added.Count - 1 ? 0 : margin.Bottom);
+            previousBottom = margin.Bottom;
+        }
+        bottom = previousBottom;
+        blocks.AddRange(added);
         InvalidateMeasure();
     }
 
@@ -152,6 +206,7 @@ internal sealed class MarkdownBlockList : Panel
         blocks.RemoveAt(index);
         blocks.InsertRange(index, replacements);
         sizes.Remove(previous);
+        estimates.Remove(previous);
         texts.Remove(previous);
         stale.Remove(previous);
         InvalidateMeasure();

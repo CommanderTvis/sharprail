@@ -43,6 +43,8 @@ internal sealed partial class EpubViewer : UserControl
     private MarkdownPreview? preview;
     private EpubPages? pages;
     private int loads;
+    // A TOC jump or link followed before the book finished rendering, taken once it has.
+    private int? waiting;
     private int page;
     // The content offset the reader is at in paged mode; pagination snaps it to the page that holds it.
     private double location;
@@ -165,9 +167,11 @@ internal sealed partial class EpubViewer : UserControl
         var keep = preview is null ? (double?)null : Paged ? location : preview.Offset.Y;
         preview?.Dispose();
         book = opened;
-        preview = new MarkdownPreview(parsed, Document, new(ReadImage, _ => null, Navigate, Ui.FontSize, settings.MarkdownLineWidth, settings.MarkdownLineWidthBounded), renderDiagrams: false)
+        preview = new MarkdownPreview(parsed, Document, new(ReadImage, _ => null, Navigate, Ui.FontSize, settings.MarkdownLineWidth, settings.MarkdownLineWidthBounded), renderDiagrams: false, progressive: true)
         { Name = "EpubPreview" };
         preview.ScrollChanged += Scrolled;
+        var shown = preview;
+        preview.Rendered += () => { if (preview == shown) Rendered(keep); };
         host.Child = preview;
         status.IsVisible = false;
         this.FindControl<TextBlock>("EpubTitle")!.Text = opened.Authors.Length > 0 ? opened.Title + " — " + opened.Authors : opened.Title;
@@ -192,8 +196,15 @@ internal sealed partial class EpubViewer : UserControl
         }
         pages = null;
         location = keep ?? 0;
+        if (preview.RenderComplete) Rendered(keep);
+    }
+
+    // The preview builds a large book's blocks in slices; offsets, TOC jumps and pages wait for the whole book.
+    private void Rendered(double? keep)
+    {
         if (keep is { } offset) Dispatcher.UIThread.Post(() => { if (preview is not null && !Paged) preview.Offset = new Vector(0, offset); }, DispatcherPriority.Loaded);
         if (Paged) Repaginate(force: true);
+        if (waiting is { } line) { waiting = null; GoToLine(line); }
     }
 
     private async ValueTask<byte[]?> ReadImage(string relative, CancellationToken token)
@@ -215,6 +226,7 @@ internal sealed partial class EpubViewer : UserControl
     internal void GoToLine(int line)
     {
         if (preview is null) return;
+        if (!preview.RenderComplete) { waiting = line; return; }
         steering = true;
         try
         {
@@ -260,7 +272,7 @@ internal sealed partial class EpubViewer : UserControl
     /// <summary>Starts the page sweep again, keeping the reader on the page that holds their current location.</summary>
     internal void Repaginate(bool force = false)
     {
-        if (!Paged || preview is null) return;
+        if (!Paged || preview is null || !preview.RenderComplete) return;
         var size = preview.Bounds.Size;
         if (!force && size == paginatedFor && pages is not null) return;
         paginatedFor = size;

@@ -189,10 +189,12 @@ internal static class EpubChecks
         Settle();
         Require(TopText(preview).Contains("Chapter Three", StringComparison.Ordinal), "A TOC jump in paged mode shows the chapter's page: " + TopText(preview));
         window.Width -= 360; window.Height -= 120;
-        E2eWorkspace.Until(() => viewer.PaginationComplete && viewer.PageCount != pages);
-        Settle();
-        Require(TopText(preview).Contains("Chapter Three", StringComparison.Ordinal), "A resize keeps the reading location: " + TopText(preview));
-        Require(Named<TextBlock>(viewer, "EpubPage").Text == $"Page {viewer.Page + 1} of {viewer.PageCount}", "The label follows the new pagination.");
+        // The resize, and any re-layout it causes, re-runs the sweep; the assertions wait for a finished pagination
+        // rather than assume one has settled after a fixed time.
+        Eventually(() => viewer.PaginationComplete && viewer.PageCount != pages && TopText(preview).Contains("Chapter Three", StringComparison.Ordinal),
+            () => "A resize keeps the reading location: " + TopText(preview));
+        Eventually(() => viewer.PaginationComplete && Named<TextBlock>(viewer, "EpubPage").Text == $"Page {viewer.Page + 1} of {viewer.PageCount}",
+            () => $"The label follows the new pagination: {Named<TextBlock>(viewer, "EpubPage").Text} (page {viewer.Page + 1} of {viewer.PageCount}).");
 
         // Find in paged mode turns to the page holding the match.
         find = FindAll(viewer);
@@ -404,6 +406,14 @@ internal static class EpubChecks
     }
 
     private static void Settle() => E2eWorkspace.Settle(250);
+
+    // Waits for a state the reader reaches asynchronously, failing with the message when it never arrives.
+    private static void Eventually(Func<bool> condition, Func<string> message)
+    {
+        var deadline = Stopwatch.StartNew();
+        while (!condition() && deadline.Elapsed < TimeSpan.FromSeconds(30)) E2eWorkspace.Settle(20);
+        Require(condition(), message());
+    }
 
     private static double Contrast(Color a, Color b)
     {

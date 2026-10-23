@@ -171,7 +171,16 @@ one Copy, on its first chunk, that copies the whole block, and every chunk is as
 line. Chunks of one table or code block share their horizontal offset; only the last shows the
 horizontal scroll bar. Nested blocks never split.
 
-Opening and width changes measure nothing offscreen. Unrealized blocks use estimates: a chunk's
+A preview constructed with `progressive: true` builds its top-level blocks in 8 ms dispatcher slices at
+background priority instead of all at once: the first slice is built in the constructor and the rest are
+appended below it, with the same margin collapsing, into the virtualizing panel. `RenderComplete` turns
+true and `Rendered` fires after the last block; until then line offsets, anchors, selection and Find see
+only the blocks built so far. Constructing every block of a book-sized document (thousands of
+paragraphs) took 100–150 ms on the UI thread locally, which the default constructor still does.
+
+Opening and width changes measure nothing offscreen. A layout pass visits only the blocks the viewport overlaps (found by binary search over the block
+tops) and keeps each unrealized block's estimate until the width changes, so a scroll or page turn in a
+6,000-block book costs the viewport, not the document. Unrealized blocks use estimates: a chunk's
 row or line count times its line height, otherwise the block's text length at the current width,
 or the height measured at the previous width. Realized blocks are measured and replace their
 estimates, so scrolling may revise heights and the document extent. Realized blocks are scroll-anchor
