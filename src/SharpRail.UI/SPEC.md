@@ -103,7 +103,8 @@ and do not hold the project-switch gate. Blocking work runs off the UI thread.
 
 A switch away from a mounted workspace awaits exactly one host call before it mounts: opening the target,
 which a local checkout answers from its `.git` files without starting Git. The outgoing view stays in
-place, inert, while that call runs; the target's tab strips and "Loading workspace…" bodies replace it only
+place, inert, for one presented frame (so late events of the workspace being left land while nothing is
+mounted) and while that call runs; the target's tab strips and "Loading workspace…" bodies replace it only
 if the call takes longer than 100 ms, or at once when nothing is mounted yet. A fast switch therefore goes
 straight from one workspace to the next without a loading frame. Documents and terminals return with the
 bodies retained under their workspace key; file listing, Git, watchers, language-server requests and the

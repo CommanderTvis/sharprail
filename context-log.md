@@ -6788,5 +6788,6 @@ Profiled switching between workspaces of one project with the new `--workspace-s
 before mounting; Git, files, watchers, language and document revalidation already ran after it. The visible
 cost was a forced "Loading workspace…" frame on every switch. Leaving a mounted workspace now keeps its inert
 view until the target resolves and shows loading bodies only after 100 ms. Measurements are in
-`src/SharpRail.UI/SPEC.md`. `--startup` failed 2 of 5 runs with the change at its Git-failure step (baseline
-4 of 4 passed); not resolved.
+`src/SharpRail.UI/SPEC.md`. Removing the frame before routing made `--startup` flaky at its fourth-Git-request wait; the frame is
+back when leaving a mounted workspace (still no loading bodies), and a worktree-list broadcast during the
+mount's Git load now queues a reload instead of cancelling it. `--startup` then passed 3 of 3.

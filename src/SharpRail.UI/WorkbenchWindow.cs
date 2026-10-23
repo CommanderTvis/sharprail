@@ -387,6 +387,14 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         {
             if (request != projectRequest) return;
             timeline?.Mark("gate");
+            // One presented frame before routing, as before the deferred placeholder: late events of the switch being left land
+            // while nothing is mounted. The outgoing view stays on screen through it.
+            if (previous is not null)
+            {
+                await RenderSwitchAsync();
+                if (request != projectRequest || lifetime.IsCancellationRequested) return;
+                timeline?.Mark("frame");
+            }
             var workspace = await host.OpenProjectAsync(path, lifetime.Token);
             timeline?.Mark("host-open");
             if (request != projectRequest) return;
