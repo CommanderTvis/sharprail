@@ -248,13 +248,16 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     }
 
     // A tab whose shell exits closes for every client, as a user close would, unless the setting keeps it or the shell
-    // failed to launch; its recording goes with it.
+    // failed to launch; its recording goes with it. A session closed for undo has no tab left to keep: its exit ends
+    // it at once, so undo never brings back a finished program, and an exit close is never itself undoable.
     private async Task CloseAfterExitAsync(string sessionId, HostedTerminal hosted, long started)
     {
         int code;
         try { code = await hosted.Process.Exit; }
         catch (Exception) { return; }
-        if (ExitedAbnormally(Stopwatch.GetElapsedTime(started), code) || keepAfterExit?.Invoke() != false) return;
+        bool closedForUndo;
+        lock (gate) closedForUndo = closing.ContainsKey(sessionId);
+        if (!closedForUndo && (ExitedAbnormally(Stopwatch.GetElapsedTime(started), code) || keepAfterExit?.Invoke() != false)) return;
         lock (gate) if (disposed || sessions.GetValueOrDefault(sessionId) != hosted) return;
         try { await CloseAsync(sessionId); }
         catch (Exception) { }

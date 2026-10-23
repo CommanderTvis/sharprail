@@ -233,6 +233,9 @@ including draining output while closing the pseudoconsole.
   the shell ends as `CloseTabAsync` ends it. An exited shell, a timeout of zero, an implementation without
   undo (the interface default, a memory catalog) or a host that predates the flag close outright. A tab still
   waiting for undo is ended, not saved for revival, when the host stops; a workspace removal ends it too.
+  With close-on-exit wired (`keepAfterExit`), a shell that exits while its tab waits for undo ends at once,
+  whatever the setting or the abnormal rule, so undo never returns a finished program; a tab closed by its
+  shell's exit leaves the catalog through `CloseAsync`, never `CloseTabForUndoAsync`, so it is not undoable.
   `TerminalUndoCloseChecks.cs` covers restore with output written meanwhile, expiry, zero and host stop,
   locally and through a real WebSocket RPC host.
 - `CloseTabAsync` removes the tab and ends its shell; `CloseAsync` by session id does the same for the tab
