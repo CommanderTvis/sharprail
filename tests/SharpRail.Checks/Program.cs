@@ -1270,6 +1270,7 @@ internal static class Program
         Gate.Case("file-drop-gestures", FileDropChecks.Gestures);
         Gate.Case("file-manager", FileManagerChecks.Run);
         Gate.Case("file-reveal-ui", () => E2E.FileRevealE2E.Run(root));
+        Gate.Case("listing-git-stall", () => Task.Run(() => ListingGitStallChecks.Run(root)).GetAwaiter().GetResult());
         Gate.Case("files-modes-ui", () => E2E.FilesModesE2E.Run(root));
         Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));

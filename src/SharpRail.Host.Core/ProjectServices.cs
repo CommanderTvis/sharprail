@@ -84,7 +84,8 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         }
         if (files.Count > 0)
         {
-            var result = await GitRepository.RunBoundedAsync(currentRoot, ["check-ignore", "-z", "--stdin"], null,
+            // Listing is interactive: a stalled Git costs the ignore marks, never the listing.
+            var result = await GitRepository.RunBoundedAsync(currentRoot, ["check-ignore", "-z", "--stdin"], new(ListingGitTimeout),
                 cancellationToken, string.Join('\0', files.Select(file => file.Path)) + "\0");
             if (result.Ok)
             {
@@ -95,6 +96,9 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         return files.OrderByDescending(file => file.IsDirectory)
             .ThenBy(file => file.Name, StringComparer.OrdinalIgnoreCase).ToArray();
     }
+
+    /// <summary>The bound on a listing's ignore check; past it the entries are listed without ignore marks.</summary>
+    internal static TimeSpan ListingGitTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     private static bool Hidden(string name) => name is ".git" or ".tools" || name.StartsWith(FileTransferPrefix, StringComparison.Ordinal);
 

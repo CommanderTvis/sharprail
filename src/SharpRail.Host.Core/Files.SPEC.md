@@ -36,7 +36,7 @@ File removal on Windows uses the system Recycle Bin with recycle-on-delete and
 early-failure flags; an unavailable recycle operation fails instead of falling
 back to a permanent delete. Shell recycling runs on a background STA thread.
 
-Listings mark Git-ignored entries without hiding them, using a NUL-delimited `git check-ignore` batch for each listed directory. Git decides nested patterns, negation, repository and global excludes, and tracked-file exceptions. Non-Git folders or Git failures remain readable without ignore marks; local and remote listings carry the same flag.
+Listings mark Git-ignored entries without hiding them, using a NUL-delimited `git check-ignore` batch for each listed directory. Git decides nested patterns, negation, repository and global excludes, and tracked-file exceptions. Non-Git folders or Git failures remain readable without ignore marks; local and remote listings carry the same flag. The ignore check is bounded at 5 s because listing is interactive; a check that times out, or whose killed Git does not release its pipes within a 2 s grace, is abandoned and the entries are listed unmarked. A listing or bounded Git run slower than 5 s writes one stderr `Trace` line with its phase times and Git arguments (never file contents).
 
 - Every path goes through one containment rule (`ProjectServices.Contain`), shared by listings, reads,
   saves, diffs and the change write path: resolved against the workspace root and rejected when it escapes

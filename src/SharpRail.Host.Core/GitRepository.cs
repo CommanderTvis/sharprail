@@ -109,6 +109,7 @@ internal static class GitRepository
         foreach (var arg in args) start.ArgumentList.Add(arg);
         using var bounded = CancellationTokenSource.CreateLinkedTokenSource(ct);
         bounded.CancelAfter(options?.Timeout ?? TimeSpan.FromSeconds(30));
+        var trace = new GitRunTrace(args);
         Process process;
         try { process = Process.Start(start) ?? throw new IOException("Could not start git."); }
         catch (Exception error) when (error is IOException or System.ComponentModel.Win32Exception)
@@ -119,8 +120,10 @@ internal static class GitRepository
         {
             var output = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
             var error = process.StandardError.ReadToEndAsync(CancellationToken.None);
+            trace.Mark("spawn");
             using var registration = bounded.Token.Register(() =>
             {
+                trace.Mark("kill");
                 try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
                 catch (InvalidOperationException) { }
             });
@@ -135,11 +138,46 @@ internal static class GitRepository
                 try { process.StandardInput.Close(); }
                 catch (IOException) { }
             }
-            await process.WaitForExitAsync(CancellationToken.None);
+            var exit = process.WaitForExitAsync(CancellationToken.None).ContinueWith(_ => trace.Mark("exit"), TaskScheduler.Default);
+            var finished = Task.WhenAll(exit, output, error);
+            try
+            {
+                try { await finished.WaitAsync(bounded.Token); }
+                // Killed: the tree gets a short grace, since an orphan that inherited the pipes can keep them open indefinitely.
+                catch (OperationCanceledException) when (bounded.IsCancellationRequested) { await finished.WaitAsync(KillGrace, CancellationToken.None); }
+            }
+            catch (TimeoutException)
+            {
+                trace.Report("abandoned");
+                ct.ThrowIfCancellationRequested();
+                return new(false, "", "git did not exit after it was stopped.", GitRunFailure.Timeout);
+            }
+            trace.Mark("read");
+            trace.Report(bounded.IsCancellationRequested ? "killed" : "done");
             var (text, detail) = (await output, await error);
             ct.ThrowIfCancellationRequested();
             if (bounded.IsCancellationRequested) return new(false, text, detail, GitRunFailure.Timeout);
             return new(process.ExitCode == 0, text, detail);
+        }
+    }
+
+    /// <summary>How long a killed Git run may take to release its pipes before the run is abandoned.</summary>
+    internal static readonly TimeSpan KillGrace = TimeSpan.FromSeconds(2);
+
+    /// <summary>Runs slower than this write one stderr line of their phase times, so a stalled child is visible in logs.</summary>
+    internal static readonly TimeSpan SlowRun = TimeSpan.FromSeconds(5);
+
+    // Phase offsets of one bounded run; silent unless the run was slow. Arguments only, never stdin or output.
+    private sealed class GitRunTrace(IReadOnlyList<string> args)
+    {
+        private readonly Stopwatch clock = Stopwatch.StartNew();
+        private readonly DateTime started = DateTime.UtcNow;
+        private readonly System.Collections.Concurrent.ConcurrentQueue<string> marks = new();
+        internal void Mark(string phase) => marks.Enqueue($"{phase}=+{clock.ElapsedMilliseconds}ms");
+        internal void Report(string outcome)
+        {
+            if (clock.Elapsed < SlowRun) return;
+            Console.Error.WriteLine($"Trace slow git run ({outcome}): start={started:O} {string.Join(' ', marks)} total={clock.ElapsedMilliseconds}ms args=[{string.Join(' ', args)}]");
         }
     }
 
