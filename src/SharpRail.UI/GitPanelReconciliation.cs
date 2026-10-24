@@ -1,3 +1,4 @@
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
@@ -58,7 +59,8 @@ public sealed partial class WorkbenchWindow
         }
         var oldBody = panel.Children[1];
         var nextBody = next.Children[1];
-        if (oldBody is ScrollViewer { Content: StackPanel oldRows } && nextBody is ScrollViewer { Content: StackPanel nextRows })
+        if (oldBody is ScrollViewer { Content: ItemsControl { ItemsSource: AvaloniaList<object> oldRows } } &&
+            nextBody is ScrollViewer { Content: ItemsControl { ItemsSource: AvaloniaList<object> nextRows } })
             ReconcileChangeRows(oldRows, nextRows);
         else if (oldBody is TreeView oldTree && nextBody is TreeView nextTree) ReconcileChangeNodes(oldTree.Items, nextTree.Items);
         else
@@ -82,19 +84,23 @@ public sealed partial class WorkbenchWindow
         { texts[index].Text = incoming[index].Text; texts[index].Foreground = incoming[index].Foreground; }
     }
 
-    private static void ReconcileChangeRows(StackPanel target, StackPanel source)
+    // Linear in the rows: a target switch replaces thousands of them, and per-row removes and inserts would be quadratic.
+    private static void ReconcileChangeRows(AvaloniaList<object> target, AvaloniaList<object> source)
     {
-        var retained = target.Children.Where(control => control.Tag is ChangeFrameKey).ToDictionary(control => (ChangeFrameKey)control.Tag!);
-        var desired = source.Children.Select(fresh => fresh.Tag is ChangeFrameKey key ? retained.GetValueOrDefault(key) ?? fresh
-            : fresh is TextBlock text ? target.Children.OfType<TextBlock>().FirstOrDefault(old => old.Text == text.Text) ?? (Control)fresh : fresh).ToArray();
-        foreach (var old in target.Children.Where(old => !desired.Contains(old)).ToArray()) target.Children.Remove(old);
-        for (var index = 0; index < desired.Length; index++)
+        if (target.SequenceEqual(source)) return;
+        var kept = source.ToHashSet();
+        var removed = target.Count(item => !kept.Contains(item));
+        var added = source.Count - (target.Count - removed);
+        // A refresh that adds or removes a few rows leaves the others realized, keeping focus and pointer targets.
+        if (removed + added <= 64)
         {
-            var control = desired[index];
-            var current = target.Children.IndexOf(control);
-            if (current >= 0) { if (current != index) target.Children.Move(current, index); }
-            else { source.Children.Remove(control); target.Children.Insert(index, control); }
+            for (var index = target.Count - 1; index >= 0; index--) if (!kept.Contains(target[index])) target.RemoveAt(index);
+            for (var index = 0; index < source.Count; index++)
+                if (index >= target.Count || !Equals(target[index], source[index])) target.Insert(index, source[index]);
+            if (target.SequenceEqual(source)) return;
         }
+        target.Clear();
+        target.AddRange(source);
     }
 
     private static void ReconcileChangeNodes(ItemCollection target, ItemCollection source)

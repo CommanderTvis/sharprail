@@ -1,7 +1,9 @@
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
@@ -134,9 +136,18 @@ public sealed partial class WorkbenchWindow
         }
         else
         {
-            var rows = new StackPanel { Margin = new Thickness(12, 12), Spacing = 2 };
-            foreach (var change in changes) rows.Children.Add(ChangeRow(change, change.Path));
-            if (changes.Length == 0) rows.Children.Add(Ui.Text("Working tree clean", Ui.Hint, 12));
+            // A branch target can differ by thousands of files: rows are built, styled and measured only near the viewport.
+            var canStage = selectedCommit is null && (comparison.Length == 0 || changeScope is "Uncommitted" or "Staged");
+            var items = new AvaloniaList<object>(changes.Select(change => new ChangeFrameKey(change, change.Path, canStage, FileIconAnswer(change.Path))));
+            if (changes.Length == 0) items.Add("Working tree clean");
+            var rows = new ItemsControl
+            {
+                Name = "ChangesRows",
+                Margin = new Thickness(12, 12),
+                ItemsPanel = new FuncTemplate<Panel?>(() => new VirtualizingStackPanel()),
+                ItemsSource = items,
+                ItemTemplate = new FuncDataTemplate<object>((item, _) => item is ChangeFrameKey key ? ListRow(key) : Ui.Text((string)item, Ui.Hint, 12))
+            };
             Ui.Place(panel, new ScrollViewer { Content = rows }, 1);
         }
         return panel;
@@ -367,6 +378,15 @@ public sealed partial class WorkbenchWindow
         button.ContextMenu.Opened += (_, _) => frame.Classes.Add("menu-open");
         button.ContextMenu.Closed += (_, _) => frame.Classes.Remove("menu-open");
         return frame;
+    }
+
+    private Border ListRow(ChangeFrameKey key)
+    {
+        var row = (Border)ChangeRow(key.Change, key.Label);
+        row.Margin = new Thickness(0, 0, 0, 2);
+        // A row scrolled out of the list is dropped, so the active-row pass does not keep visiting it.
+        row.DetachedFromLogicalTree += (_, _) => changeFrames.RemoveAll(entry => ReferenceEquals(entry.Frame, row));
+        return row;
     }
 
     private async Task CopyChangePathAsync(string path)

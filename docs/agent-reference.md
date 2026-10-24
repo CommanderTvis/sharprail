@@ -141,6 +141,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--terminal-replay` | Filtering of terminal queries in recorded screens. |
 | `--workspace-tools` | Host MCP workspace tools and UI integration. |
 | `--workspace-create-stall` | Agent `workspace_create` with a cloned ignored tree while the window runs: longest dispatcher wait under 50 ms (`SHARPRAIL_CREATE_STALL_BUDGET_MS`; `_OTHERS`, `_LSP` add workspaces and language servers). |
+| `--changes-branch-switch` | Changes target switch from no changes to 4000 files: longest dispatcher wait under 250 ms (`SHARPRAIL_BRANCH_SWITCH_STALL_BUDGET_MS`); a later pick supersedes an earlier one. |
 | `--serving`, `--project-close` | Embedded-host serving; teardown. |
 | `--pane-retention`, `--startup`, `--live-diffs` | Retained controls; progressive startup; refreshing open diffs. |
 | `--workspace-switch` | Workspace-switch profile on a realistic project: click to mounted, first frame and usable content, cold and switching back; fails if a switch issues more than one host call before mounting. |

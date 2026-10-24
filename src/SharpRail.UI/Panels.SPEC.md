@@ -31,6 +31,9 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   what they show changed (scope, target, commit, view, loading or error state, branch, change rows, branch
   and commit catalogues; for Review the branch, change count and pull request), so a watcher refresh that
   changes nothing leaves an open menu and the control under the pointer in place.
+- The Changes list virtualizes its rows: a target switch to a branch thousands of files apart builds and
+  measures only the rows near the viewport, and a reconcile that adds or removes many rows replaces the list
+  in one step rather than row by row (`--changes-branch-switch`).
 - Forbidden: reaching into another window, writing host state directly, or drawing docking chrome.
 
 ## Projects

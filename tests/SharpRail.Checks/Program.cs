@@ -152,6 +152,13 @@ internal static class Program
             WorkspaceCreateStallChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--changes-branch-switch"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ChangesBranchSwitchChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--context-ui"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

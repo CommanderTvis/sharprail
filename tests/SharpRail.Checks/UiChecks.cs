@@ -179,6 +179,7 @@ internal static class UiChecks
         Gate.Case("AboutChecks", AboutChecks.Run);
         Gate.Case("AuxiliaryInputChecks", () => AuxiliaryInputChecks.Run(root));
         Gate.Case("GitUiChecks", () => GitUiChecks.Run(root + "-git"));
+        Gate.Case("ChangesBranchSwitchChecks", () => ChangesBranchSwitchChecks.Run(root + "-branch-switch"));
         Gate.Case("TerminalResumeHintChecks", TerminalResumeHintChecks.Run);
         Gate.Case("ChangesReviewChecks", () => ChangesReviewChecks.Run(root));
         Gate.Case("DiffVirtualizationChecks", DiffVirtualizationChecks.Run);

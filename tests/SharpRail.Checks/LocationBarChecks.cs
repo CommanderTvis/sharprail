@@ -41,7 +41,7 @@ internal static class LocationBarChecks
         return border.IsVisible && border.Bounds.Width > 0;
     }
 
-    private static void Switch(E2eWorkspace app, string workspace)
+    internal static void Switch(E2eWorkspace app, string workspace)
     {
         var menu = OpenMenu(app, "ScopeWorkspace");
         app.Click(menu.Items.OfType<MenuItem>().Single(item => item.Name == "ScopeWorkspaceOption" && Equals(item.Tag, workspace)), freshGesture: false);

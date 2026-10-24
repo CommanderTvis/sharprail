@@ -91,7 +91,10 @@ internal static class PaneRetentionChecks
         scroll.Offset = new Vector(0, 100);
         var offset = scroll.Offset;
         Require(offset.Y > 0, "The Changes fixture must have a nonzero scroll offset.");
-        var row = changesPanel.GetLogicalDescendants().OfType<Border>().First(frame => frame.Classes.Contains("change-row"));
+        // The list realizes only rows near its viewport: watch one the scrolled viewport still shows.
+        window.UpdateLayout();
+        var row = changesPanel.GetLogicalDescendants().OfType<Border>().First(frame => frame.Classes.Contains("change-row") &&
+            frame.TranslatePoint(default, scroll) is { Y: >= 0 } top && top.Y < scroll.Viewport.Height);
         var rowDetaches = 0;
         row.DetachedFromVisualTree += (_, _) => rowDetaches++;
         Await(window.RefreshAsync());
