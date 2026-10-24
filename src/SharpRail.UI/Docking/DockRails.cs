@@ -422,12 +422,6 @@ public sealed partial class DockSurface
             caption.ContextMenu = TabMenu(Session.Group(group.Id), current, panel);
             AutomationProperties.SetName(header, Session.ToolTitle(current) + " pane");
         });
-        var menu = AddMenu(group);
-        var add = Ui.IconButton("add", "Add to this pane", () => { });
-        add.Name = "AddToGroup_" + group.Id;
-        add.ContextMenu = menu;
-        add.Click += (_, _) => menu.Open(add);
-        actions.Children.Add(add);
         actions.Children.Add(HideButton("HidePane_" + group.Id, () => HidePane(group.Id)));
         return frame;
     }

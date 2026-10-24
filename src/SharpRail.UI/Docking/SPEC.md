@@ -152,8 +152,8 @@ on the same control or its equivalent named tab. A real layout mutation still ca
 active gesture.
 
 Adding or removing entries in the tool catalogue leaves existing tabs and their focus intact when
-their displayed metadata is unchanged. Side groups update the availability of Show a hidden tool
-in place; opening its menu reads the current catalogue and excludes tools already placed anywhere
+their displayed metadata is unchanged. Side group header menus (right-click) lead with Show <tool> entries for hidden tools and, on a tool pane,
+New terminal pane below; opening the menu reads the current catalogue and excludes tools already placed anywhere
 in the frame. A change to metadata of a displayed tool refreshes its chrome.
 
 Pointer is never the only path. Tab, group and header menus cover keep, close/hide, reorder, move to
@@ -162,7 +162,7 @@ closes, separators resize from the keyboard and Escape restores their origin. Ct
 groups. Tab strips are 32px with an accent underline on the active tab, bounded widths, hidden scrollbars
 active reveal and edge fades only where clipped; a folded group's restore control is its focus endpoint; overflow search appears only while the strip is clipped, as a 288px dropdown under its
 button with path-aware filtering and keyboard selection (`TabSearch.axaml`). Singleton tools have no inline
-close glyph. An unfolded strip shows a terminal button (tooltip "New terminal in this group") when empty or when a resource tab is selected. A side strip also shows an add menu of its hidden tools when any exist; side tool panes use the plain header of [Edge rails](#edge-rails).
+close glyph. An unfolded strip shows a terminal button (tooltip "New terminal in this group") when empty or when a resource tab is selected. Pane headers have no add button; side tool panes use the plain header of [Edge rails](#edge-rails).
 
 ## Tool and terminal panes
 

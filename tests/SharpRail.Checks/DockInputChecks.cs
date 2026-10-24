@@ -172,17 +172,17 @@ internal static class DockInputChecks
         Require(window.Layout.RemoveGroup(terminalPane), "The emptied terminal pane must merge back.");
         foreach (var group in window.Layout.State.Groups.Where(group => !group.Folded && group.Region is "left" or "right"))
         {
-            var add = Find<Button>("AddToGroup_" + group.Id);
+            Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddToGroup_" + group.Id),
+                "Pane headers must not show an add button; adding lives in the header menu.");
+            var add = Find<Grid>("GroupHeader_" + group.Id);
             IEnumerable<DockToolInfo> Hidden() => window.Layout.Tools.Where(tool => tool.Region == group.Region &&
                 !window.Layout.State.Groups.Any(pane => pane.Tools.Any(tab => tab.Id == tool.Id)));
-            Require(add.IsVisible == (group.Tools.Count > 0 || Hidden().Any()), "Add is visible when it has a tool to show or a terminal pane to create.");
-            if (!add.IsVisible) continue;
             add.ContextMenu!.Open(add);
             Dispatcher.UIThread.RunJobs();
             Require(add.ContextMenu.Items.OfType<MenuItem>().Select(item => item.Name).Where(name => name?.StartsWith("ShowTool_", StringComparison.Ordinal) == true)
                 .SequenceEqual(Hidden().Select(tool => "ShowTool_" + tool.Id.Replace(':', '_'))) &&
                 add.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Name == "NewTerminalBelow_" + group.Id) == group.Tools.Count > 0,
-                "Add offers the current catalogue without duplicating already-placed singleton tools, and a tool pane a terminal pane below.");
+                "The header menu offers the current catalogue without duplicating already-placed singleton tools, and a tool pane a terminal pane below.");
             add.ContextMenu.Close();
         }
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
@@ -197,13 +197,14 @@ internal static class DockInputChecks
         Require(!window.Layout.State.Groups.SelectMany(group => group.Tools).Any(tab => tab.Id == "projects"),
             "The pane tab's Close action did not hide the tool.");
         var revealGroup = window.Layout.State.Groups.First(group => group.Region != "center");
-        var reveal = Find<Button>("AddToGroup_" + revealGroup.Id);
-        reveal.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var reveal = Find<Grid>("GroupHeader_" + revealGroup.Id);
+        reveal.ContextMenu!.Open(reveal);
+        Dispatcher.UIThread.RunJobs();
         reveal.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Show Projects"))
             .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         reveal.ContextMenu.Close(); Dispatcher.UIThread.RunJobs();
         Require(window.Layout.Group(revealGroup.Id).Tools.Any(tab => tab.Id == "projects"),
-            "Add to this group did not restore the hidden singleton to that group.");
+            "The header menu did not restore the hidden singleton to that group.");
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var initialCenterGroup = window.Layout.State.Center.Leaves().Single();
         window.Width = 1680; window.Height = 1000;

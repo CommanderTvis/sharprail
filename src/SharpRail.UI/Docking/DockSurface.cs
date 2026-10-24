@@ -78,7 +78,7 @@ public sealed partial class DockSurface : Grid
     private readonly Dictionary<string, BuiltGroup> builtGroups = [];
 
     private sealed record BuiltGroup(Control Control, string Signature, Border[] Hosts, (Control, string, bool)[] Sites,
-        Action[] Modified, Action[] Catalog, Action[] CenterActions);
+        Action[] Modified, Action[] CenterActions);
     private long previewGesture;
     internal void InvalidatePreviewKeep() => previewGesture++;
     public DockSurface(LayoutSession session, Func<DockTab?, Control> renderContent, bool build = true)
@@ -125,11 +125,7 @@ public sealed partial class DockSurface : Grid
     {
         renderedTools = Session.Tools;
         if (!Retarget()) Rebuild();
-        else
-        {
-            foreach (var update in catalogUpdates) update();
-            RebuildRails(force: true);
-        }
+        else RebuildRails(force: true);
     }
 
     public void Rebuild()
@@ -143,7 +139,7 @@ public sealed partial class DockSurface : Grid
         foreach (var host in contentHosts) host.Child = null;
         contentHosts.Clear(); builtGroups.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear();
         activeTabUpdates.Clear(); phonePanes.Clear();
-        modifiedUpdates.Clear(); catalogUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
+        modifiedUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
         renderedMode = CenterTabs?.Invoke();
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
             shell.Children.Remove(control);
@@ -231,10 +227,10 @@ public sealed partial class DockSurface : Grid
     private Control BuildTrackedGroup(DockGroup group)
     {
         activeTabUpdates.Remove(group.Id);
-        int hosts = contentHosts.Count, placed = sites.Count, modified = modifiedUpdates.Count, catalog = catalogUpdates.Count, actions = centerActionUpdates.Count;
+        int hosts = contentHosts.Count, placed = sites.Count, modified = modifiedUpdates.Count, actions = centerActionUpdates.Count;
         var control = BuildGroup(group);
         builtGroups[group.Id] = new(control, GroupSignature(group.Id), [.. contentHosts.Skip(hosts)], [.. sites.Skip(placed)],
-            [.. modifiedUpdates.Skip(modified)], [.. catalogUpdates.Skip(catalog)], [.. centerActionUpdates.Skip(actions)]);
+            [.. modifiedUpdates.Skip(modified)], [.. centerActionUpdates.Skip(actions)]);
         return control;
     }
 
@@ -243,7 +239,6 @@ public sealed partial class DockSurface : Grid
         foreach (var host in built.Hosts) { host.Child = null; contentHosts.Remove(host); }
         foreach (var site in built.Sites) sites.Remove(site);
         foreach (var update in built.Modified) modifiedUpdates.Remove(update);
-        foreach (var update in built.Catalog) catalogUpdates.Remove(update);
         foreach (var update in built.CenterActions) centerActionUpdates.Remove(update);
         var old = built.Control;
         var parent = old.Parent;

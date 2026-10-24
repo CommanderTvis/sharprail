@@ -133,9 +133,11 @@ internal static class LayoutFrameE2E
     private static void ShowTool(E2eWorkspace app, string tool)
     {
         var right = app.Window.Layout.State.Groups.First(group => group.Region == "right").Id;
-        var add = app.Find<Button>("AddToGroup_" + right);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        Choose(app, add.ContextMenu!, "Show " + DockState.Tool(tool).Title);
+        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddToGroup_" + right),
+            "Pane headers must not show an add button.");
+        var header = app.Find<Grid>("GroupHeader_" + right);
+        RightClickAt(app, header, new Point(header.Bounds.Width - 100, header.Bounds.Height / 2), header.ContextMenu!);
+        Choose(app, header.ContextMenu!, "Show " + DockState.Tool(tool).Title);
         Until(() => app.Window.Layout.State.Groups.Any(group => group.Tools.Any(tab => tab.Id == tool)));
     }
 

@@ -233,8 +233,10 @@ internal static class TerminalChromeChecks
         Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + side.Id),
             "The Specs view must not show a terminal opener.");
         // Tools and terminals use separate panes: New terminal from a tool pane opens a terminal pane directly below it.
-        var add = app.Find<Button>("AddToGroup_" + side.Id);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
+        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddToGroup_" + side.Id),
+            "Pane headers must not show an add button.");
+        var add = app.Find<Grid>("GroupHeader_" + side.Id);
+        add.ContextMenu!.Open(add); Until(() => add.ContextMenu!.IsOpen);
         add.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "NewTerminalBelow_" + side.Id).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
         add.ContextMenu.Close();
         var right = app.Window.Layout.State.Groups.Where(group => group.Region == "right").ToList();
@@ -247,8 +249,8 @@ internal static class TerminalChromeChecks
             "The side menu must create terminals in a terminal pane of its own side.");
         app.ContextAction(app.Find<Button>("Tab_projects"), "Close");
         app.ContextAction(app.Find<Button>("Tab_review"), "Close");
-        add = app.Find<Button>("AddToGroup_" + side.Id);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
+        add = app.Find<Grid>("GroupHeader_" + side.Id);
+        add.ContextMenu!.Open(add); Until(() => add.ContextMenu!.IsOpen);
         var entries = add.ContextMenu!.Items.OfType<MenuItem>().ToArray();
         Require(entries.Any(item => Equals(item.Header, "Show Review")) && !entries.Any(item => Equals(item.Header, "Show Projects")),
             "A side menu must offer only its own side's hidden tools.");

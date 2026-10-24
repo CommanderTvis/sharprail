@@ -22,7 +22,6 @@ public sealed partial class DockSurface
     private readonly Dictionary<string, Control> groupHeaders = [];
     private readonly Dictionary<string, Action> selectionUpdates = [];
     private readonly List<Action> modifiedUpdates = [];
-    private readonly List<Action> catalogUpdates = [];
     private readonly List<Action> centerActionUpdates = [];
     // Per group, how its strip was drawn and the scroller holding its tabs, for drop geometry.
     private readonly Dictionary<string, (StripStyle Style, ScrollViewer Scroller)> stripLayouts = [];
@@ -466,18 +465,6 @@ public sealed partial class DockSurface
                 centerActionUpdates.Add(Fill);
                 Fill();
             }
-            if (group.Region is "left" or "right")
-            {
-                var menu = AddMenu(group);
-                var add = Ui.IconButton("add", "Show a hidden tool in this group", () => { });
-                add.Name = "AddToGroup_" + group.Id;
-                add.ContextMenu = menu;
-                add.Click += (_, _) => menu.Open(add);
-                actions.Children.Add(add);
-                void Available() => add.IsVisible = HiddenTools(group).Any();
-                catalogUpdates.Add(Available);
-                Available();
-            }
         }
         // A side pane hides onto its rail.
         if (group.Region is "left" or "right") actions.Children.Add(HideButton("HidePane_" + group.Id, () => HidePane(group.Id)));
@@ -610,28 +597,21 @@ public sealed partial class DockSurface
     private IEnumerable<DockToolInfo> HiddenTools(DockGroup group) => (Session.View.Documents.GetValueOrDefault(group.Id)?.Count ?? 0) > 0 ? [] :
         Session.Tools.Where(tool => tool.Region == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == tool.Id)));
 
-    private ContextMenu AddMenu(DockGroup group)
+    // The header menu's add entries: hidden tools of the group's region and, for a tool pane, a terminal pane below.
+    private IEnumerable<MenuItem> AddItems(DockGroup group)
     {
-        var menu = new ContextMenu();
-        void Fill()
+        foreach (var tool in HiddenTools(group))
         {
-            menu.Items.Clear();
-            foreach (var tool in HiddenTools(group))
-            {
-                var item = Ui.Menu("Show " + tool.Title, () => Session.RestoreTool(tool.Id, group.Id));
-                item.Name = "ShowTool_" + tool.Id.Replace(':', '_');
-                menu.Items.Add(item);
-            }
-            if (Session.State.Groups.FirstOrDefault(item => item.Id == group.Id) is { Tools.Count: > 0 } tools)
-            {
-                var below = Ui.Menu("New terminal pane below", () => { Session.NewTerminal(tools.Id); FocusGroup(Session.View.FocusedGroup, focusContent: true); }, CanCreate(tools));
-                below.Name = "NewTerminalBelow_" + group.Id;
-                menu.Items.Add(below);
-            }
+            var item = Ui.Menu("Show " + tool.Title, () => Session.RestoreTool(tool.Id, group.Id));
+            item.Name = "ShowTool_" + tool.Id.Replace(':', '_');
+            yield return item;
         }
-        Fill();
-        menu.Opening += (_, _) => Fill();
-        return menu;
+        if (Session.State.Groups.FirstOrDefault(item => item.Id == group.Id) is { Tools.Count: > 0 } tools)
+        {
+            var below = Ui.Menu("New terminal pane below", () => { Session.NewTerminal(tools.Id); FocusGroup(Session.View.FocusedGroup, focusContent: true); }, CanCreate(tools));
+            below.Name = "NewTerminalBelow_" + group.Id;
+            yield return below;
+        }
     }
 
     private static async Task CopyTextAsync(Control owner, string text)
@@ -776,6 +756,20 @@ public sealed partial class DockSurface
             menu.Items.Add(Ui.Menu("Hide " + group.Region + " region", () => Session.Visible(group.Region, false)));
         }
         menu.Items.Add(RemoveGroupMenuItem(group));
+        if (group.Region != "center" && !group.Folded)
+        {
+            // Add entries lead the menu and are read from the current catalogue each time it opens.
+            var fixedCount = menu.Items.Count;
+            void Fill()
+            {
+                while (menu.Items.Count > fixedCount) menu.Items.RemoveAt(0);
+                var added = AddItems(group).ToArray();
+                for (var index = 0; index < added.Length; index++) menu.Items.Insert(index, added[index]);
+                if (added.Length > 0) menu.Items.Insert(added.Length, new Separator());
+            }
+            Fill();
+            menu.Opening += (_, _) => Fill();
+        }
         return menu;
     }
 
