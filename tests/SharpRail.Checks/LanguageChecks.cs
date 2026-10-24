@@ -1150,7 +1150,10 @@ internal static class LanguageChecks
             T Find<T>(string name) where T : Avalonia.Controls.Control => Avalonia.Controls.ControlExtensions.FindControl<T>(pane, name)!;
             void Click(string name) => Find<Avalonia.Controls.Button>(name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
             var servers = Find<Avalonia.Controls.ListBox>("Servers");
-            string? RowStatus(int index) => Avalonia.Automation.AutomationProperties.GetName(((ListBoxItem)servers.ContainerFromIndex(index)!).GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "ServerStatusIcon"));
+            // Refresh rebuilds rows, so a container can briefly lack its status icon; that reads as no status yet.
+            string? RowStatus(int index) => servers.ContainerFromIndex(index) is ListBoxItem row &&
+                row.GetLogicalDescendants().OfType<ContentControl>().SingleOrDefault(control => control.Name == "ServerStatusIcon") is { } icon
+                ? Avalonia.Automation.AutomationProperties.GetName(icon) : null;
             E2E.E2eWorkspace.Until(() => servers.ItemCount == 1 && Find<ComboBox>("AddServer").ItemCount == LanguageServers.Catalog.Count - 1);
             var firstRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
             var compactHeight = firstRow.Bounds.Height;
