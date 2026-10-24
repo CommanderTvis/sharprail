@@ -137,6 +137,7 @@ internal static class ClaudeCodeChecks
             Mentions(new(app.Root, "README.md", false) { StartLine = 7, EndLine = 7 }) is ["Mention line 7 in Claude Code"] &&
             Mentions(new(app.Root, "styles", true)) is ["Mention folder in Claude Code"] && Mentions(new(app.Root + "-other", "README.md", false)).Length == 0,
             "A workspace running Claude offers to reference a file, a folder or the selected lines in its prompt.");
+        SubmittedPromptKeepsChanges(app);
         Require(ReferenceEquals(accessory, terminalView.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeTerminalAccessory")),
             "An agent-record update retains the accessory and its active picker state.");
         app.State.SetTerminalAgent(terminalRef, null);
@@ -291,6 +292,28 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => !registry.Active.Contains("claude-code") && registry.LauncherList.All(candidate => candidate.Id != "claude"));
         Require(registry.SideTool(ClaudeCodeManifest.ConfigTool) is null, "Disabling removes Claude controls and launcher together.");
         Console.WriteLine("PASS Claude Code UI: enable, configuration pane, model launcher, compiled settings and disable");
+    }
+
+    /// <summary>
+    /// A submitted prompt makes the CLI send closeAllDiffTabs over the IDE bridge: a Changes tab grouped with the Claude
+    /// terminal is the user's own and stays open, with no undo-close toast.
+    /// </summary>
+    private static void SubmittedPromptKeepsChanges(E2eWorkspace app)
+    {
+        var changes = new SharpRail.UI.Docking.DockTab("changes:all:", "Changes · All changes", "changes", Scope: "all");
+        app.Window.Layout.Open(changes, true, app.Center);
+        E2eWorkspace.Until(() => app.Window.Layout.Tabs(app.Center).Any(tab => tab.Id == changes.Id));
+        var loader = app.Workbench.PluginLoader!;
+        var entry = loader.Registry.Entry("claude-code")!;
+        var actions = new IdeActions(new SharpRail.UI.Plugins.PluginUIContext(loader, entry, new SharpRail.UI.Plugins.PluginActivation(entry)));
+        var toasts = app.Window.Toasts.Items.Count;
+        var handled = actions.HandleAsync(new("submitted-prompt", app.Root, IdeActionKind.CloseAllDiffTabs, new()));
+        E2eWorkspace.Until(() => handled.IsCompleted);
+        Require(app.Window.Layout.Tabs(app.Center).Any(tab => tab.Id == changes.Id) &&
+            app.Window.Layout.Tabs(app.Center).Any(tab => tab.Id == "claude-keyboard-check") &&
+            app.Window.Toasts.Items.Count == toasts && !app.Window.Toasts.Items.Any(toast => toast.Message.StartsWith("Closed ", StringComparison.Ordinal)),
+            "A prompt submitted to Claude must not close the Changes tab beside its terminal or offer to undo a close.");
+        app.Window.Layout.Close(app.Center, changes.Id);
     }
 
     /// <summary>

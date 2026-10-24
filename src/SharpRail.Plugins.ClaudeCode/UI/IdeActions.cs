@@ -87,9 +87,9 @@ internal sealed class IdeActions(IPluginUIContext context)
                 if (named is not null) context.Editors.Close(named.Id);
                 return new { closed = named is null ? 0 : 1 };
             case IdeActionKind.CloseAllDiffTabs:
-                var diffs = context.Editors.List(workspaceId).Where(editor => editor.Kind == EditorKind.Diff).ToArray();
-                foreach (var editor in diffs) context.Editors.Close(editor.Id);
-                return new { closed = diffs.Length };
+                // The CLI sends this whenever a prompt is submitted, meaning the diff tabs its openDiff opened. openDiff opens
+                // none here, so every diff or Changes tab is the user's own and stays open.
+                return new { closed = 0 };
             default:
                 throw new InvalidOperationException($"Unsupported IDE action: {request.Kind}");
         }

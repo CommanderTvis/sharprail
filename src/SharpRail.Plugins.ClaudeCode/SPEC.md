@@ -254,7 +254,8 @@ compares for the rest: `TAB_CLOSED` or `Tab not found`, `CLOSED_<n>_DIFF_TABS`, 
 line where `startText` first occurs. `openDiff` still opens the target file and answers
 `diffShown: false`, which the CLI treats as a failed diff and answers by asking in its own terminal:
 Git diff tabs do not represent unsaved proposed content, so `FILE_SAVED` and `DIFF_REJECTED` have
-nothing to stand on yet. `getDiagnostics` and `executeCode` are not offered.
+nothing to stand on yet. `closeAllDiffTabs`, which the CLI sends on every submitted prompt, closes
+nothing: every open diff or Changes tab is the user's own, since `openDiff` opens none. `getDiagnostics` and `executeCode` are not offered.
 
 UI contributions are the Context/Settings/Capabilities/Account pane, compiled settings section,
 workspace launcher, generic `claude` launcher, status tab decorations and one terminal accessory
