@@ -29,7 +29,7 @@
 - Toolchains come from mise (`scripts/mise`), installed on first use into mise's own data directory, which all worktrees share; there is no bootstrap step. `dotnet` below is the pinned SDK on PATH: a SharpRail terminal gets it from the mise plugin, elsewhere prefix `scripts/mise x --`. `scripts/tool <name>` prints where a pinned tool lives. `global.json` must name the version `mise.toml` pins.
 - Build (compiler and warnings-as-errors gate; also builds native libraries whose inputs changed): `scripts/mise run build`.
 - Packages: nuget.org only, locked restore; each project's `packages.lock.json` is committed (Android and Browser are not locked). Change packages with `scripts/mise run restore:update`; versions are pinned in `Directory.Packages.props`.
-- Format touched files: `dotnet format SharpRail.slnx --no-restore --include <files>`. CI verifies with `--verify-no-changes --no-restore`. Style comes from the checked-in `.editorconfig`.
+- Format touched files: `dotnet format SharpRail.slnx --no-restore --include <files>`, then verify the whole solution with `scripts/mise run format` before committing: a scoped `--include` verify misses whitespace and final-newline errors that CI (whole-solution `--verify-no-changes`) reports. Style comes from the checked-in `.editorconfig`.
 - Checks: `dotnet run --project tests/SharpRail.Checks -c Release [-- <mode>]`. Mode list: `docs/agent-reference.md`; add a mode in `tests/SharpRail.Checks/Program.cs` when a change has none.
 - Browser WASM and Android build separately from `SharpRail.slnx` (`scripts/mise run browser`, `scripts/mise run android`).
 - Documentation-only edits need whitespace and path verification, not a build or the gate.

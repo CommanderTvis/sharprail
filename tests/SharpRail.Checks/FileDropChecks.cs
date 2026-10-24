@@ -271,7 +271,9 @@ internal static class FileDropChecks
             Dispatcher.UIThread.RunJobs();
             Require(picks == 1 && attached.Count == 1, "A watching terminal never opens the picker or attaches.");
         }
-        finally { window.Close(); app.Window.AttachButtons = false; app.Window.PickAttachments = null; app.Window.PickWorkspaceFile = null;
+        finally
+        {
+            window.Close(); app.Window.AttachButtons = false; app.Window.PickAttachments = null; app.Window.PickWorkspaceFile = null;
             if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(locked, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         }
         Console.WriteLine("PASS attach button: hidden without a running agent, three-option menu, upload, host browse (up/home/error/pick) and workspace file inserted unsubmitted, share queued without an agent, watcher rejected");

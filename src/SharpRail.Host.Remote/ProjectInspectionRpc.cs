@@ -19,7 +19,9 @@ public sealed partial class ProjectRpc
         catch (Exception error) when (error is IOException or ArgumentException) { throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message)); }
         return new HostDirectoryReply
         {
-            Path = listing.Path, Parent = listing.Parent ?? "", Home = listing.Home,
+            Path = listing.Path,
+            Parent = listing.Parent ?? "",
+            Home = listing.Home,
             Entries = listing.Entries.Select(entry => new HostDirectoryEntryReply { Name = entry.Name, IsDirectory = entry.IsDirectory, Size = entry.Size }).ToList()
         };
     }
