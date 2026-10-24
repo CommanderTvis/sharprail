@@ -176,7 +176,7 @@ public sealed partial class WorkbenchWindow
             void Refresh() => attach.IsVisible = Ready() && Receiver() is not null;
             var upload = Ui.Menu(OperatingSystem.IsAndroid() ? "Upload file from phone" : "Upload file from this device", () => _ = AttachPickedAsync());
             upload.Name = "TerminalAttachUpload";
-            hostPath = Ui.Menu("Choose path from host", () => _ = AttachPathAsync(ChooseHostPathAsync));
+            hostPath = Ui.Menu("Choose path from host", () => _ = AttachPathAsync(workspace => ChooseHostPathAsync(workspace)));
             hostPath.Name = "TerminalAttachHostPath";
             var workspaceFile = Ui.Menu("Choose file from workspace", () => _ = AttachPathAsync(async workspace =>
                 await (PickWorkspaceFile ?? ChooseWorkspaceFileAsync)() is { Length: > 0 } relative ? Path.Combine(workspace, relative) : null));
@@ -291,11 +291,12 @@ public sealed partial class WorkbenchWindow
         finally { deliveringShares = false; }
     }
 
-    // Browses the host from the workspace root; folders are listed off the UI thread, cancelled with the dialog or the window.
-    private async Task<string?> ChooseHostPathAsync(string workspace)
+    // Browses the host from a folder (the workspace root unless given); folders are listed off the UI thread, cancelled with
+    // the dialog or the window.
+    private async Task<string?> ChooseHostPathAsync(string start, string title = "Choose path from host")
     {
         var request = projectRequest;
-        var dialog = new PathBrowserDialog("Choose path from host", workspace, async (path, token) =>
+        var dialog = new PathBrowserDialog(title, start, async (path, token) =>
         {
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
             var listing = await Task.Run(async () => await host.ListHostDirectoryAsync(path, linked.Token), linked.Token);

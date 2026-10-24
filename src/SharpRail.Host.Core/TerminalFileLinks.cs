@@ -8,6 +8,9 @@ internal static class TerminalFileLinks
     internal const int MaxLineLength = 16384;
     private static bool Boundary(char c) => char.IsWhiteSpace(c) || "()[]<>{}\"'`:;,=|^!?*".Contains(c);
     private static bool Separator(char c) => c is '/' or '\\';
+    // Absolute directories printed earlier in the same text (the visible viewport) are where its bare names live, as when
+    // an agent names a folder and then lists the files in it; the most recent few are searched before the shell's directory.
+    private const int MentionedDirectories = 4;
 
     internal static IReadOnlyList<TerminalFileLink> Find(string text, string? directory, string? home, CancellationToken ct = default)
     {
@@ -22,6 +25,8 @@ internal static class TerminalFileLinks
             kinds[path] = result;
             return result;
         }
+        var mentioned = new List<string>();
+        string? baseDirectory = directory;
         string? Resolve(string candidate)
         {
             try
@@ -34,8 +39,8 @@ internal static class TerminalFileLinks
                 }
                 if (!Path.IsPathFullyQualified(candidate))
                 {
-                    if (directory is null || candidate.Length > 1 && candidate[1] == ':') return null;
-                    candidate = Path.Combine(directory, candidate);
+                    if (baseDirectory is null || candidate.Length > 1 && candidate[1] == ':') return null;
+                    candidate = Path.Combine(baseDirectory, candidate);
                 }
                 return Path.GetFullPath(candidate);
             }
@@ -60,11 +65,48 @@ internal static class TerminalFileLinks
                 while (end > start && (Boundary(text[end - 1]) || text[end - 1] == '.')) end--;
                 if (Uri.TryCreate(text[start..end], UriKind.Absolute, out var uri) && uri.IsFile && (uri.Host.Length == 0 || uri.IsLoopback) &&
                     Resolve(uri.LocalPath) is { } path && Lookup(path) is { } isDirectory)
+                {
                     links.Add(new(start, end - start, path, 1, 1, isDirectory));
+                    if (isDirectory) Mention(path);
+                }
                 start = tokenEnd - 1;
                 continue;
             }
-            if (!absolute && (directory is null || first is '~' or '\\')) continue;
+            if (!absolute && (directory is null && mentioned.Count == 0 || first is '~' or '\\')) continue;
+            TerminalFileLink? best = null;
+            if (absolute) best = Scan(start, true);
+            else
+            {
+                // The nearest mentioned directory first, since the text refers to it; then the shell's directory.
+                // Only files count there: a bare word naming a subfolder of a mentioned directory is rarely a reference to it.
+                for (var i = mentioned.Count - 1; best is null && i >= 0; i--)
+                {
+                    baseDirectory = mentioned[i];
+                    if (Scan(start, false) is { IsDirectory: false } found) best = found;
+                }
+                if (best is null && directory is not null) { baseDirectory = directory; best = Scan(start, false); }
+                baseDirectory = directory;
+            }
+            if (best is not null)
+            {
+                links.Add(best);
+                if (absolute && best.IsDirectory) Mention(best.Path);
+                start += best.Length - 1;
+            }
+            else { while (start + 1 < text.Length && !Boundary(text[start + 1])) start++; }
+        }
+        return links;
+
+        void Mention(string path)
+        {
+            mentioned.Remove(path);
+            mentioned.Add(path);
+            if (mentioned.Count > MentionedDirectories) mentioned.RemoveAt(0);
+        }
+
+        TerminalFileLink? Scan(int start, bool absolute)
+        {
+            var first = text[start];
             TerminalFileLink? best = null;
             var segment = start;
             var scan = start;
@@ -96,10 +138,8 @@ internal static class TerminalFileLinks
                 }
                 if (!absolute || scan == text.Length || c is ':' or '\r' or '\n') break;
             }
-            if (best is not null) { links.Add(best); start += best.Length - 1; }
-            else { while (start + 1 < text.Length && !Boundary(text[start + 1])) start++; }
+            return best;
         }
-        return links;
     }
 
     private static (int Line, int Column, int End)? Position(string text, int offset)

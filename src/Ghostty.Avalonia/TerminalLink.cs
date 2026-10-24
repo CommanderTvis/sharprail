@@ -25,7 +25,7 @@ internal static class TerminalLinkLauncher
         // OSC 8 file links name the program's host (file://host/path); the terminal's host resolves the path.
         var local = new UriBuilder(uri) { Host = "" }.Uri.AbsoluteUri;
         var links = await Task.Run(() => resolve(local, CancellationToken.None));
-        if (links.FirstOrDefault(link => link.Start == 0 && !link.IsDirectory) is { } target) await open(target);
+        if (links.FirstOrDefault(link => link.Start == 0) is { } target) await open(target);
     }
 }
 

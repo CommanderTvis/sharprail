@@ -66,6 +66,7 @@ internal static class TerminalFileLinkChecks
             Require(TerminalFileLinks.Find(file, null, directory).Count == 1, "Unknown cwd prevented an absolute link.");
             Require(TerminalFileLinks.Find("src/Main.cs README.md", directory, directory).Count == 2, "Multiple references merged.");
             Require(TerminalFileLinks.Find(new string('x', 16385), directory, directory).Count == 0, "Overlong line accepted.");
+            await Mentioned(root, directory);
             await using var host = new PtyTerminalService(shell: "/bin/sh");
             var state = new HostStateStore(null) { Terminals = host };
             await Exercise(new LocalTerminalAdapter(host), directory, "local", new LocalProjectAdapter(new ProjectServices(directory, state)));
@@ -82,6 +83,42 @@ internal static class TerminalFileLinkChecks
         }
         finally { Directory.Delete(directory, true); }
         Console.WriteLine("PASS terminal file parsing, existence, source positions, shell cwd and local/remote resolution");
+    }
+
+    // Absolute paths anywhere on the host link, directories included, and bare names resolve in the absolute directory
+    // printed most recently before them (an agent naming a folder, then listing its files) before the shell's directory.
+    private static async Task Mentioned(string root, string directory)
+    {
+        var outside = Path.Combine(root, "file-links-outside", "apps", "web", "src", "chat");
+        Directory.CreateDirectory(Path.Combine(outside, "parts"));
+        try
+        {
+            var composer = Path.Combine(outside, "Composer.tsx");
+            await File.WriteAllTextAsync(composer, "composer");
+            await File.WriteAllTextAsync(Path.Combine(outside, "ModelEffortPicker.tsx"), "picker");
+            await File.WriteAllTextAsync(Path.Combine(outside, "README.md"), "outside readme");
+            var file = TerminalFileLinks.Find(composer + ":3", directory, directory);
+            Require(file is [{ IsDirectory: false, Line: 3 }] && file[0].Path == composer, "An absolute file outside the workspace did not link.");
+            var folder = TerminalFileLinks.Find("in " + outside + ".", directory, directory);
+            Require(folder is [{ IsDirectory: true }] && folder[0].Path == outside && folder[0].Length == outside.Length,
+                "An absolute directory outside the workspace did not link exactly.");
+            Require(TerminalFileLinks.Find("~/src", directory, directory) is [{ IsDirectory: true }], "A ~/ directory did not link.");
+            Require(TerminalFileLinks.Find(Path.Combine(outside, "Missing.tsx") + " " + outside + "-missing", directory, directory).Count == 0,
+                "A nonexistent absolute path linked.");
+            Require(TerminalFileLinks.Find("Composer.tsx", directory, directory).Count == 0, "A bare name linked without a mentioned directory.");
+            var text = $"The chat UI lives in {outside}\n- Composer.tsx\n- ModelEffortPicker.tsx and README.md, parts and src/Main.cs";
+            var links = TerminalFileLinks.Find(text, directory, directory);
+            string[] visible = [.. links.Select(link => text.Substring(link.Start, link.Length))];
+            Require(visible.SequenceEqual([outside, "Composer.tsx", "ModelEffortPicker.tsx", "README.md", "src/Main.cs"]),
+                "Bare names after a mentioned directory linked wrongly: " + string.Join(", ", visible));
+            Require(links[1].Path == composer && links[2].Path == Path.Combine(outside, "ModelEffortPicker.tsx"), "A bare name missed the mentioned directory.");
+            Require(links[3].Path == Path.Combine(outside, "README.md"), "The shell's directory took priority over the mentioned one.");
+            Require(links[4].Path == Path.Combine(directory, "src", "Main.cs"), "A name absent from the mentioned directory missed the shell's.");
+            Require(TerminalFileLinks.Find("Composer.tsx " + outside, directory, directory).Count == 1, "A directory mentioned later resolved an earlier name.");
+            Require(TerminalFileLinks.Find(outside + "\nComposer.tsx", null, directory) is [_, { IsDirectory: false }],
+                "A mentioned directory did not resolve without a known shell directory.");
+        }
+        finally { Directory.Delete(Path.Combine(root, "file-links-outside"), true); }
     }
 
     // The renderer's always-on underline layer must cover validated files, not only commit ids.
@@ -109,6 +146,10 @@ internal static class TerminalFileLinkChecks
             var links = Underlined();
             Require(links.Select(link => text.Substring(link.Start, link.Length)).SequenceEqual(["DEVELOPMENT.md", "./DEVELOPMENT.md"]) &&
                 links.All(link => link.Path == development), "Visible root files were not underlined exactly: " + string.Join(", ", links));
+            var folderText = $"Folders: {directory} and sub";
+            var folders = Wait(Task.Run(() => view.ResolveHighlightedLinks!(folderText, timeout.Token)));
+            Require(folders is [{ IsDirectory: true }] && folders[0].Path == directory && folderText.Substring(folders[0].Start, folders[0].Length) == directory,
+                "Only an absolutely named directory should be underlined: " + string.Join(", ", folders));
             Wait(view.OpenFileLink!(links[0]));
             Require(opened.SingleOrDefault()?.Path == development, "Activating an underlined bare file did not open it.");
             Wait(session.WriteAsync(Encoding.UTF8.GetBytes("cd sub\n"), timeout.Token).AsTask());

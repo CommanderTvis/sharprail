@@ -72,6 +72,13 @@ public sealed partial class WorkbenchWindow
             {
                 if (workspaceRoot != workspace || !WorkspaceMounted || atHome) return;
                 if (TerminalCommitLinks.Commit(link) is { } sha) { OpenCommitChanges(workspace, sha); return; }
+                // A folder opens in the host folder browser (it lists only files to pick); the picked file opens like any other link.
+                if (link.IsDirectory)
+                {
+                    if (await ChooseHostPathAsync(link.Path, "Open file from folder") is not { } picked || workspaceRoot != workspace) return;
+                    await OpenDocumentAsync(HostPaths.Relative(workspace, picked), true, raw: true);
+                    return;
+                }
                 var path = HostPaths.Relative(workspace, link.Path);
                 await OpenDocumentAsync(path, true, line: link.Line, raw: true, column: link.Column);
             }
