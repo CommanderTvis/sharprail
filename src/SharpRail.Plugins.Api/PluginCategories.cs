@@ -73,3 +73,10 @@ public static class PluginCategories
     public static IReadOnlyList<string> Order { get; } =
         [Cpp, CSharp, Css, Dart, Go, JavaScript, Jvm, Php, PowerShell, Python, R, Ruby, Rust, Shell, Swift, Environment, Agents, VersionControl, Documents, Integrations];
 }
+
+/// <summary>The support levels a manifest's <see cref="PluginManifest.Support"/> names; Settings › Plugins badges them.</summary>
+public static class PluginSupportLevels
+{
+    /// <summary>Basic support: the core flows work, deeper integration is still to come.</summary>
+    public const string Early = "early";
+}

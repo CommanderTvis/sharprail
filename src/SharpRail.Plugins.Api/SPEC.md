@@ -231,6 +231,7 @@ names and enum values, unknown members refused).
 | `description` | optional one sentence, shown under the label in Settings |
 | `icon` | a Remix Icon name, or `asset:<path>` naming an SVG or PNG under `assets` (builtin language server plugins name the mark Code Intelligence shows); an unknown name falls back to a generic glyph, which keeps the icons-only invariant without admitting arbitrary drawing |
 | `category` | optional group Settings › Plugins lists the plugin under. The builtin names are `PluginCategories`: one per language (`Python`, `JavaScript & TypeScript`, `JVM`, `C & C++`, `C#`, `CSS`, `Dart`, `Go`, `PHP`, `PowerShell`, `R`, `Ruby`, `Rust`, `Shell`, `Swift`), then `Environment`, `Agents`, `Version Control`, `Specs & Documents` and `Integrations`; any other name is its own group and none means `Other`. All the plugins of one language share its category, so a language server and the plugin that activates that language's environments sit together |
+| `support` | optional support level; `early` (`PluginSupportLevels.Early`) marks basic support, shown as an "Early support" badge on the plugin's Settings › Plugins card. Absent means fully supported. It travels in the roster (`PluginRosterEntry.Support`, wire field 17) |
 | `icon` | a Remix Icon name, or `asset:<path>` naming an SVG under `assets`; an unknown name falls back to a generic glyph, which keeps the icons-only invariant without admitting arbitrary drawing |
 | `version` | the plugin's own version, informational |
 | `apiGeneration` | refused before load if it does not match `PluginApi.Generation` |
@@ -443,7 +444,7 @@ flowchart TB
 Teardown runs in reverse: plugins dispose first, and dependents before the plugins they depend on.
 
 Settings › Plugins is a single section in core. It lists every roster row, builtin and external alike, with
-label, description, icon, version, origin, toggle, declared contributions, and the reason for a failed or
+label, description, icon, version, origin, support badge, toggle, declared contributions, and the reason for a failed or
 refused row. It is the only place a plugin is turned on, and the only place a generation mismatch is
 explained.
 

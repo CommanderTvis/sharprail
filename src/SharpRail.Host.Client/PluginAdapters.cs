@@ -138,6 +138,7 @@ internal static class PluginWire
         {
             Description = Optional(entry.Description),
             Category = Optional(entry.Category),
+            Support = Optional(entry.Support),
             Reason = Optional(entry.Reason),
             DependsOn = entry.DependsOn.ToArray(),
             Contributes = new()

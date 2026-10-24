@@ -29,6 +29,12 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
     /// </summary>
     public string? Category { get; init; }
 
+    /// <summary>
+    /// How complete the plugin's support is, such as <see cref="PluginSupportLevels.Early"/>; Settings › Plugins shows it
+    /// as a badge on the card. Absent for fully supported plugins.
+    /// </summary>
+    public string? Support { get; init; }
+
     /// <summary>Honoured for a builtin plugin; an external plugin always arrives disabled regardless of this value.</summary>
     public bool EnabledByDefault { get; init; }
 

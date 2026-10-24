@@ -495,3 +495,9 @@ SharpRail.Plugins.Api.InstructionSectionsChanged
 SharpRail.Plugins.Api.InstructionSectionsChanged.InstructionSectionsChanged() -> void
 SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.get -> string!
 SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.init -> void
+SharpRail.Plugins.Api.PluginManifest.Support.get -> string?
+SharpRail.Plugins.Api.PluginManifest.Support.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Support.get -> string?
+SharpRail.Plugins.Api.PluginRosterEntry.Support.init -> void
+SharpRail.Plugins.Api.PluginSupportLevels
+const SharpRail.Plugins.Api.PluginSupportLevels.Early = "early" -> string!

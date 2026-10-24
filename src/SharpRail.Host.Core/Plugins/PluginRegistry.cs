@@ -85,6 +85,7 @@ internal sealed class PluginEntry(PluginManifest manifest, PluginOrigin origin)
     {
         Description = Manifest.Description,
         Category = Manifest.Category,
+        Support = Manifest.Support,
         Reason = Reason,
         DependsOn = Manifest.DependsOn.Select(dependency => dependency.Id).ToArray(),
         Contributes = Manifest.Contributes,

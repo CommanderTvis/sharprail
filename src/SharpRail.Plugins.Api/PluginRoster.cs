@@ -52,6 +52,9 @@ public sealed record PluginRosterEntry(string Id, string Label, string Icon, str
     /// <summary>The manifest category, or null for "Other".</summary>
     public string? Category { get; init; }
 
+    /// <summary>The manifest's support level, or null when fully supported.</summary>
+    public string? Support { get; init; }
+
     /// <summary>Why the plugin is failed or refused; absent otherwise.</summary>
     public string? Reason { get; init; }
 

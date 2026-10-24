@@ -24,6 +24,9 @@
             <Border x:Name="PluginOrigin" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8,0">
               <TextBlock x:Name="PluginOriginText" Foreground="{x:Static kit:Ui.Hint}" FontSize="11" TextTrimming="CharacterEllipsis" />
             </Border>
+            <Border x:Name="PluginSupport" Background="{x:Static kit:Ui.WarningWash}" CornerRadius="8" Padding="8,0" IsVisible="False">
+              <TextBlock x:Name="PluginSupportText" Foreground="{x:Static kit:Ui.Warning}" FontSize="11" TextTrimming="CharacterEllipsis" />
+            </Border>
             <TextBlock x:Name="PluginStatus" FontSize="11" TextTrimming="CharacterEllipsis" />
           </StackPanel>
           <TextBlock x:Name="PluginDescription" Classes="wrapped" Foreground="{x:Static kit:Ui.TextBrush}" />

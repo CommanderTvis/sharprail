@@ -40,7 +40,8 @@ internal sealed class PluginCardModel(PluginRosterEntry entry, IReadOnlyList<str
 /// </summary>
 internal sealed partial class PluginCard : Border
 {
-    private readonly TextBlock label, version, originText, status, description, contributions, reason, dependents, category;
+    private readonly TextBlock label, version, originText, supportText, status, description, contributions, reason, dependents, category;
+    private readonly Border support;
     private readonly ContentControl icon;
     private readonly Button retry;
     private readonly ToggleSwitch toggle;
@@ -55,6 +56,7 @@ internal sealed partial class PluginCard : Border
         status = Part<TextBlock>("PluginStatus"); description = Part<TextBlock>("PluginDescription"); contributions = Part<TextBlock>("PluginContributions");
         reason = Part<TextBlock>("PluginReason"); dependents = Part<TextBlock>("PluginDependents");
         category = Part<TextBlock>("PluginCategory");
+        support = Part<Border>("PluginSupport"); supportText = Part<TextBlock>("PluginSupportText");
         icon = Part<ContentControl>("PluginIcon"); toggle = Part<ToggleSwitch>("PluginToggle");
         label.FontSize = Ui.FontSize;
         retry = Ui.Button("Retry", () => { if (Model is { } model) retryPlugin(model.Entry); });
@@ -99,6 +101,10 @@ internal sealed partial class PluginCard : Border
         version.Text = "v" + entry.Version;
         version.IsVisible = entry.Origin == Origin.External;
         originText.Text = entry.Origin == Origin.External ? "external" : "builtin";
+        // An early plugin says so beside its origin, so its basic support is visible before it is enabled.
+        supportText.Text = entry.Support is { Length: > 0 } level ? level == PluginSupportLevels.Early ? "Early support" : level : null;
+        support.IsVisible = supportText.Text is not null;
+        ToolTip.SetTip(support, entry.Support == PluginSupportLevels.Early ? "Basic support: the core flows work; deeper integration is still to come." : null);
         var troubled = entry.Status is Status.Failed or Status.Refused;
         status.Text = entry.Status.ToString().ToLowerInvariant();
         status.Foreground = troubled ? Ui.Danger : Ui.Hint;
