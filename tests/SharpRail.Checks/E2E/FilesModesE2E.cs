@@ -69,7 +69,8 @@ internal static class FilesModesE2E
             var changes = app.Find<Grid>("ChangesPanel");
             Until(() => changes.IsEffectivelyVisible && changes.GetLogicalDescendants().OfType<Border>().Any(frame => frame.Classes.Contains("change-row")));
             Require(!Tree(app).IsEffectivelyVisible && app.Find<ToggleButton>("ChangesList").IsChecked == true, "Changed must show the Changes view in place of the tree.");
-            var count = changes.GetLogicalDescendants().OfType<Border>().Count(frame => frame.Classes.Contains("change-row"));
+            // The list realizes only rows near its viewport; its items are every listed change.
+            var count = changes.GetLogicalDescendants().OfType<ItemsControl>().Single(list => list.Name == "ChangesRows").Items.Count(item => item is not string);
             Require(Label(app, "FilesModeChanged") == $"Changed {count}", $"The Changed switch must count the listed changes: {Label(app, "FilesModeChanged")} vs {count}.");
             app.Click(app.Find<ToggleButton>("ChangesTree"));
             Until(() => app.Window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "ChangesTree"));
