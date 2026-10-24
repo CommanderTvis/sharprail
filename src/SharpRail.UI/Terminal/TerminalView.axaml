@@ -11,7 +11,7 @@
     <Border x:Name="TerminalResumeOffer" Grid.Row="0" Grid.ColumnSpan="3" IsVisible="False" Padding="12,4,8,4"
             BorderThickness="0,0,0,1" BorderBrush="{x:Static rendering:Ui.BorderBrush}" Background="{x:Static rendering:Ui.Elevated}">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
           <Button x:Name="TerminalResumeOfferResume" Content="_Resume" Padding="8,2" FontSize="12" />
           <Button x:Name="TerminalResumeOfferFresh" Content="Start _fresh" Padding="8,2" FontSize="12" />
         </StackPanel>
