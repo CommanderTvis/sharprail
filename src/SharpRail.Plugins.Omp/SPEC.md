@@ -65,9 +65,11 @@ No real omp run backs them; the checks use a fixture `omp`.
   as an `omp` agent record and clears it when the process leaves; zombie (`Z`) rows are skipped. A record of another
   agent kind is left alone. If an omp build runs under another process name (for example its runtime's), it is not
   detected; this is not verified against a real install.
-- Air Governance does not govern omp: Central's `central run` (1.13.0) offers junie, claude-code, codex, gemini-cli,
-  pi and copilot, and no way to name another binary, so omp launches are never wrapped. Adding omp needs Central
-  support first.
+- Air Governance can govern omp (its `omp` switch, with Central chosen): Central's `central run` (1.13.0) has no omp
+  agent, so Air Governance contributes Central's Pi wire as `ANTHROPIC_BASE_URL`/`ANTHROPIC_API_KEY` and a proxy start
+  before omp, read from Central's Pi integration (`central add pi`); without it the launch fails in the shell. Only
+  Anthropic models are governed. Details and the real-run evidence are in Air Governance's SPEC; the launch line
+  applies the contribution like any other.
 
 ## Not yet
 
@@ -79,7 +81,8 @@ context, and a settings editor for omp's `config.yml` are out of this basic inte
 `--omp` (gate cases `omp-host`, `omp-ui`): launch argv for profile, session folder, model, approval mode, advisor and
 `--no-lsp` (and its omission), resume lines and Windows; context resolution with nested, cycle-safe, depth-limited
 imports, shadowing, ignored code/e-mail tokens and offers; the profile MCP file; the version probe against a fixture
-`omp` and a missing one; zombie-safe detection; newest-session lookup; Air Governance's stance; and end to end the
+`omp` and a missing one; zombie-safe detection; newest-session lookup; a governed launch run by a real shell against fake `omp` and `central` (proxy started, wire
+in omp's environment, arguments unchanged; none when direct; blocked without Central's Pi integration, which is only read); and end to end the
 Early badge, version, notes, nested rows, an Add offer, the start action's argv, the sign-in import against a fixture
 `omp` (data lands in the fixture profile, nothing else persisted, a failure shows a masked message) and the
 missing-binary state. The

@@ -15,6 +15,7 @@ using SharpRail.Host.Client;
 using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 using SharpRail.Plugins.AirGovernance;
+using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Omp;
 using SharpRail.Plugins.Omp.Host;
 
@@ -55,9 +56,62 @@ internal static class OmpChecks
         await Version(Path.Combine(root, "omp-version"));
         Processes();
         Sessions(Path.Combine(root, "omp-sessions"));
-        Require(AirLaunch.Contribution(new() { Source = AirSources.Central, ClaudeCode = true, Codex = true }, OmpManifest.Id, "/bin/central") is null,
-            "Air Governance does not wrap omp: Central's run command has no omp agent");
-        Console.WriteLine("PASS omp host: launch line, context files and imports, profile MCP file, version and missing binary, detection, sessions, Air stance");
+        await Governed(Path.Combine(root, "omp-air"));
+        Console.WriteLine("PASS omp host: launch line, context files and imports, profile MCP file, version and missing binary, detection, sessions, Air Governance through Central's Pi wire");
+    }
+
+    // Air Governance: a governed omp launch, run by a real shell against a fake omp and central, starts Central's proxy
+    // and reaches omp with Central's Pi wire in its environment; a missing Pi integration fails closed; direct adds nothing.
+    private static async Task Governed(string root)
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var bin = Path.Combine(root, "bin");
+        var home = Path.Combine(root, "home");
+        Directory.CreateDirectory(bin);
+        Directory.CreateDirectory(home);
+        var record = Path.Combine(root, "record.txt");
+        File.WriteAllText(Path.Combine(bin, "omp"), "#!/bin/sh\n{ echo \"BASE=$ANTHROPIC_BASE_URL\"; echo \"KEY=$ANTHROPIC_API_KEY\"; printf 'ARG=%s\\n' \"$@\"; } >> \"" + record + "\"\n");
+        File.WriteAllText(Path.Combine(bin, "central"), "#!/bin/sh\necho \"CENTRAL=$*\" >> \"" + record + "\"\n");
+        foreach (var name in new[] { "omp", "central" }) File.SetUnixFileMode(Path.Combine(bin, name), UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        var settings = new AirSettings { Source = AirSources.Central };
+        using var missing = new SharpRail.Plugins.AirGovernance.Host.AirGovernanceRuntime(new(home, bin), () => settings, _ => { });
+        Require(missing.PiWire() is null && missing.Contribution(OmpManifest.Id) is { Wrapper: [AirLaunch.PiMissingCommand], ReplacesExecutable: true },
+            "governed omp without Central's Pi integration is blocked");
+        Require((await missing.StatusAsync(false, default)).Agents.Single(agent => agent.Id == OmpManifest.Id).Launch!.Contains("run `central add pi`", StringComparison.Ordinal),
+            "the pane names `central add pi`");
+        const string Wire = "http://127.0.0.1:19516/wire/0123abcd/pi";
+        var extension = AirLaunch.PiExtensionPath(home);
+        Directory.CreateDirectory(Path.GetDirectoryName(extension)!);
+        File.WriteAllText(extension, "export default function (pi) {\n  pi.registerProvider(\"anthropic\", { baseUrl: \"" + Wire + "/anthropic\", apiKey: \"wire-proxy\" });\n}\n");
+        var before = File.ReadAllText(extension);
+        Require(missing.PiWire() == Wire, "the wire is read from Central's Pi integration");
+        Require(AirLaunch.PiWire("registerProvider(\"anthropic\", { baseUrl: \"https://example.test/wire/x/pi/anthropic\" })") is null, "only a loopback wire is accepted");
+        Require(AirLaunch.Contribution(settings, OmpManifest.Id, "/c", Wire, windows: true) is { Wrapper: [AirLaunch.WindowsUnsupportedCommand] }, "Windows, which gets no contributed environment, is blocked");
+        Require(AirLaunch.Contribution(settings with { Omp = false }, OmpManifest.Id, "/c", Wire) is null && AirLaunch.Contribution(new(), OmpManifest.Id, "/c", Wire) is null,
+            "direct or switched off contributes nothing");
+
+        async Task<string[]> Run(AgentLaunchContribution? contribution)
+        {
+            File.Delete(record);
+            var line = OmpLaunch.Line("omp", new() { Mcp = false, Model = "anthropic/x", Contributions = contribution is null ? [] : [contribution] });
+            var start = new System.Diagnostics.ProcessStartInfo("/bin/sh", ["-c", line]) { RedirectStandardError = true };
+            start.Environment["PATH"] = bin + ":/usr/bin:/bin";
+            start.Environment.Remove("ANTHROPIC_BASE_URL");
+            start.Environment.Remove("ANTHROPIC_API_KEY");
+            using var process = System.Diagnostics.Process.Start(start)!;
+            await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            return File.Exists(record) ? File.ReadAllLines(record) : [];
+        }
+
+        var governed = await Run(missing.Contribution(OmpManifest.Id));
+        Require(governed.SequenceEqual(["CENTRAL=proxy start --ensure-updated --caller agent", "BASE=" + Wire + "/anthropic", "KEY=wire-proxy", "ARG=--model", "ARG=anthropic/x", "ARG=--no-lsp"]),
+            "governed omp starts the proxy and gets the wire, its arguments unchanged: " + string.Join(" | ", governed));
+        var direct = await Run(AirLaunch.Contribution(new(), OmpManifest.Id, null, Wire));
+        Require(direct.SequenceEqual(["BASE=", "KEY=", "ARG=--model", "ARG=anthropic/x", "ARG=--no-lsp"]), "a direct omp gets no wire: " + string.Join(" | ", direct));
+        File.Delete(extension);
+        Require(await Run(missing.Contribution(OmpManifest.Id)) is [], "without the integration the launch fails in the shell and omp never starts");
+        Require(!File.Exists(extension) && before.Length > 0, "the integration is only read");
     }
 
     private static void Launch()

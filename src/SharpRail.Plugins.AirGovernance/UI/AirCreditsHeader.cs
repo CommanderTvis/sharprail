@@ -107,7 +107,8 @@ internal sealed class AirCreditsFeed : IDisposable
     internal static AirCreditsShown Present(AirSettings settings, AirStatus? status, bool read, string? failure)
     {
         if (!AirLaunch.Wired(settings)) return new(false);
-        var governs = string.Join(" and ", AirLaunch.CentralNames.Keys.Where(id => AirLaunch.Enabled(settings, id)).Select(id => id == "claude" ? "Claude Code" : "Codex"));
+        var governs = string.Join(" and ", AirLaunch.CentralNames.Keys.Append(AirLaunch.OmpLauncher).Where(id => AirLaunch.Enabled(settings, id))
+            .Select(id => id switch { "claude" => "Claude Code", "codex" => "Codex", _ => "omp" }));
         const string Open = "Click to open Settings › Air Governance.";
         if (failure is null && status is { Source: AirSources.Central, Credits: { } credits })
         {

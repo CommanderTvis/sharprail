@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 
@@ -21,10 +22,10 @@ internal sealed partial class AirSettingsView : UserControl
 {
     private readonly IPluginUIContext context;
     private readonly TextBlock centralLine, credits, launches, launchNote, result, accessNote;
-    private readonly StackPanel install, access;
+    private readonly StackPanel install, access, piInstall;
     private readonly TextBox installCommand;
     private readonly RadioButton direct, central;
-    private readonly CheckBox claudeCode, codex;
+    private readonly CheckBox claudeCode, codex, omp;
     private readonly Button signIn, signOut, startProxy, update;
     private readonly List<IDisposable> observers = [];
     private AirStatus? status;
@@ -57,13 +58,19 @@ internal sealed partial class AirSettingsView : UserControl
         install = Get<StackPanel>("AirInstall"); access = Get<StackPanel>("AirAccessSources");
         installCommand = Get<TextBox>("AirInstallCommand");
         direct = Get<RadioButton>("AirSourceDirect"); central = Get<RadioButton>("AirSourceCentral");
-        claudeCode = Get<CheckBox>("AirAgentClaudeCode"); codex = Get<CheckBox>("AirAgentCodex");
+        claudeCode = Get<CheckBox>("AirAgentClaudeCode"); codex = Get<CheckBox>("AirAgentCodex"); omp = Get<CheckBox>("AirAgentOmp");
+        piInstall = Get<StackPanel>("AirPiInstall");
         signIn = Get<Button>("AirSignIn"); signOut = Get<Button>("AirSignOut");
         startProxy = Get<Button>("AirStartProxy"); update = Get<Button>("AirUpdate");
         direct.IsCheckedChanged += (_, _) => { if (!applying && direct.IsChecked == true) Save(Settings with { Source = AirSources.Direct }); };
         central.IsCheckedChanged += (_, _) => { if (!applying && central.IsChecked == true) Save(Settings with { Source = AirSources.Central }); };
         claudeCode.IsCheckedChanged += (_, _) => { if (!applying) Save(Settings with { ClaudeCode = claudeCode.IsChecked == true }); };
         codex.IsCheckedChanged += (_, _) => { if (!applying) Save(Settings with { Codex = codex.IsChecked == true }); };
+        omp.IsCheckedChanged += (_, _) => { if (!applying) Save(Settings with { Omp = omp.IsChecked == true }); };
+        Get<Button>("AirPiInstallCopy").Click += async (_, _) =>
+        {
+            if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(AirLaunch.PiInstallCommand);
+        };
         signIn.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignIn);
         signOut.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignOut);
         startProxy.Click += (_, _) => _ = RunAsync(AirGovernanceContract.StartProxy);
@@ -105,6 +112,7 @@ internal sealed partial class AirSettingsView : UserControl
             central.IsChecked = settings.Source == AirSources.Central;
             claudeCode.IsChecked = settings.ClaudeCode;
             codex.IsChecked = settings.Codex;
+            omp.IsChecked = settings.Omp;
             lastSource = settings.Source;
         }
         finally { applying = false; }
@@ -300,6 +308,7 @@ internal sealed partial class AirSettingsView : UserControl
         installCommand.Text = current.Central.InstallCommand;
         startProxy.IsVisible = current.Central.Proxy == "stopped";
         update.IsVisible = current.Central.State == "outdated";
+        piInstall.IsVisible = current.Source == AirSources.Central && current.PiWire is null && current.Agents.Any(agent => agent is { Id: AirLaunch.OmpLauncher, Enabled: true });
         launches.Text = string.Join("\n", current.Agents.Select(agent =>
             $"{agent.Label}: {agent.Launch ?? (current.Source == AirSources.Central && !agent.Enabled ? "unchanged (switched off above)" : "unchanged (its own account)")}"));
         launchNote.Text = current.Source != AirSources.Central ? "" :

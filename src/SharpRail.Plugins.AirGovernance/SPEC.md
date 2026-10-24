@@ -15,18 +15,18 @@ Upstream: central-integration.md, packages/shared/src/jbcentral.ts (adapter), pa
 (lifecycle), apps/web/src/panels/JetBrainsAiCard.tsx (card) and e2e/fixtures/bin/central (fixture) @ the fork's
 `central-access-api` line. The fork routes Central into `pi` through one extension file; pi is out of scope here, so
 this plugin keeps the fork's detection, sign-in, proxy, update and access-source behaviour and replaces the pi
-extension with Central's `central run <agent>`, one launch at a time, for Codex and Claude Code. The omp plugin's
-launches are not wrapped: `central run` (1.13.0) has no omp agent and cannot name another binary.
+extension with Central's `central run <agent>`, one launch at a time, for Codex and Claude Code. omp, which
+`central run` (1.13.0) cannot start, gets Central's Pi wire through its environment (see Mechanism).
 
 ## Responsibility
 
 Lets the user choose where Codex and Claude Code get their AI, from Settings › Air Governance:
 
 - Direct (default): each agent keeps its own account. The plugin contributes nothing.
-- JetBrains AI through Central: each enabled agent (Claude Code, Codex; both on by default) is started through
+- JetBrains AI through Central: each enabled agent (Claude Code, Codex, omp; all on by default) is started through
   JetBrains Air governance by the user's own `central` CLI.
 
-The chosen source and the per-agent switches are the plugin's settings namespace (`source`, `claudeCode`, `codex`),
+The chosen source and the per-agent switches are the plugin's settings namespace (`source`, `claudeCode`, `codex`, `omp`),
 persisted by the host and effective at once for the next launch. The plugin ships disabled, since governing agents is
 the user's choice.
 
@@ -46,6 +46,27 @@ environment prefixes stay outermost. A custom command in the agent's settings (n
 is never rewritten and so is not governed; the pane says so. Running terminals keep the command they started with.
 `<central>` is the path the host found, else the bare name: if Central is missing the launch fails in the shell
 rather than silently starting an ungoverned agent. The pane shows the exact command shape each agent will get.
+
+omp is governed without `central run`, which (Central 1.13.0) has no omp agent and no way to name another binary.
+Central's own Pi integration (`central add pi`, installed at `~/.pi/agent/extensions/jetbrains-central.ts`) routes
+Pi's built-in providers to the proxy's Pi wire `http://127.0.0.1:<port>/wire/<id>/pi/...` with the key `wire-proxy`
+and runs `central proxy start --ensure-updated --caller agent` at session start. Loading that file into omp with `-e`
+does not work: in a real run (Central 1.13.0, omp 18.12.6) omp applied the key but not the base URL and the request
+went straight to Anthropic (401). Setting `ANTHROPIC_BASE_URL=<wire>/anthropic` and `ANTHROPIC_API_KEY=wire-proxy`
+answered through Central's proxy. So with omp governed, the host reads (never writes) the wire from that file's
+Anthropic `registerProvider` line (loopback only, at most 64 KiB) and publishes it in the status; the contribution to
+launcher id `omp` sets those two variables and a non-replacing wrapper
+`sh -c '"$0" proxy start --ensure-updated --caller agent >/dev/null 2>&1; exec "$@"' <central>` that starts the
+proxy best effort, as the integration does, and execs omp with its usual arguments. Only Anthropic models are
+governed: omp documents `ANTHROPIC_BASE_URL` but no base-URL variable for OpenAI or Vertex, so the integration's
+OpenAI and Vertex routes are not mirrored, and an omp model from another provider runs on omp's own account; an
+`ANTHROPIC_OAUTH_TOKEN` in the environment takes precedence in omp over the key. Nothing under `~/.pi` or `~/.omp` is
+written and `-e` is not passed. When the integration is missing, its wire cannot be read, or the UI has not yet
+received the status, the governed omp launch runs a command that cannot exist
+(`air-governance-needs-central-pi-integration--run-central-add-pi`), failing in the shell like a missing Central; on
+Windows, whose shells get no contributed environment, it runs `air-governance-cannot-govern-omp-on-windows`. The pane
+then says "Air Governance needs Central's Pi integration: run `central add pi`" with the command and a Copy button;
+the plugin never runs `central add`.
 
 Central chooses its own AI access source and proxy; `central access <id>` (switch, then `central proxy restart`)
 stays the way to change it, as in the fork. The pane states persistently that switching affects every app using the
@@ -152,7 +173,8 @@ replies. Mutating calls are serialised and publish a busy status on the `status`
 
 `--air-governance` runs the host and pane checks against a fake `central` modelled on the fork's fixture (version,
 status rows, `login export`, access switching, proxy, login, update) plus a `run` that records its argv, under a throwaway home: detection,
-the contributions per source and toggle, the Claude and Codex launch lines executed by a real shell so prompts with
+the contributions per source and toggle (omp's wire, proxy start and missing-integration block included; `--omp`
+runs the governed omp line through a real shell), the Claude and Codex launch lines executed by a real shell so prompts with
 quotes and `$(...)` arrive as single arguments, a fake HOME whose `.claude`, `.codex`, `CLAUDE_CONFIG_DIR` and
 `CODEX_HOME` stay byte- and time-identical across every action and source switch, failures, access switching, the
 host seam over plugin RPC (including disable), the pane and real launchers through headless input, and the header

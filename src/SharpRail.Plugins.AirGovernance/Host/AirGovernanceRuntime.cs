@@ -90,15 +90,27 @@ internal sealed class AirGovernanceRuntime : IDisposable
 
     /// <summary>The host-side contribution: <see cref="AirLaunch.Contribution"/> plus the account the governed launcher runs under.</summary>
     public AgentLaunchContribution? Contribution(string launcherId) =>
-        AirLaunch.Contribution(settings(), launcherId, cli.Locate()) is { } contribution
+        AirLaunch.Contribution(settings(), launcherId, cli.Locate(), PiWire(), OperatingSystem.IsWindows()) is { } contribution
             ? contribution with { Account = new("Central", AccountAsync) } : null;
+
+    /// <summary>Central's Pi wire, read (never written) from the Pi integration <c>central add pi</c> installed on this host, or <see langword="null"/> when it is missing or names none.</summary>
+    public string? PiWire()
+    {
+        try
+        {
+            var file = new FileInfo(AirLaunch.PiExtensionPath(cli.Environment.Home));
+            return file is { Exists: true, Length: <= 64 * 1024 } ? AirLaunch.PiWire(File.ReadAllText(file.FullName)) : null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
+    }
 
     private AirStatus Build(AirCentral central)
     {
         var current = settings();
-        var agents = new[] { ("claude", "Claude Code", current.ClaudeCode), ("codex", "Codex", current.Codex) }
-            .Select(agent => new AirAgent(agent.Item1, agent.Item2, agent.Item3, AirLaunch.Shape(current, agent.Item1, central.Path))).ToArray();
-        return new(central with { Auth = observed.Auth, Proxy = observed.Proxy }, current.Source, agents, Volatile.Read(ref busy) > 0, detail, settings().Source == AirSources.Central && observed.Auth == "connected" ? credits : null);
+        var pi = PiWire();
+        var agents = new[] { ("claude", "Claude Code", current.ClaudeCode), ("codex", "Codex", current.Codex), (AirLaunch.OmpLauncher, "omp", current.Omp) }
+            .Select(agent => new AirAgent(agent.Item1, agent.Item2, agent.Item3, AirLaunch.Shape(current, agent.Item1, central.Path, pi, OperatingSystem.IsWindows()))).ToArray();
+        return new(central with { Auth = observed.Auth, Proxy = observed.Proxy }, current.Source, agents, Volatile.Read(ref busy) > 0, detail, settings().Source == AirSources.Central && observed.Auth == "connected" ? credits : null, pi);
     }
 
     private async Task<AirOutcome> ExclusiveAsync(Func<CancellationToken, Task<(bool Ok, string Message)>> work)

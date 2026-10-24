@@ -197,6 +197,11 @@ internal static class AirGovernanceChecks
             AirLaunch.Contribution(central with { ClaudeCode = false }, "claude", "/c") is null, "Each agent has its own switch.");
         Require(AirLaunch.Contribution(central, "gemini", "/c") is null && AirLaunch.Contribution(central, "codex", null)!.Wrapper[0] == "central", "Unknown launchers are untouched and a missing path fails closed with the bare name.");
         Require(AirLaunch.Shape(central, "claude", "/c") == "/c run claude-code -- <claude arguments>" && AirLaunch.Shape(new(), "claude", "/c") is null, "The pane shows the exact command shape.");
+        Require(AirLaunch.Contribution(central, "omp", "/c", "http://127.0.0.1:1/wire/a/pi") is { ReplacesExecutable: false, Wrapper: ["sh", "-c", AirLaunch.ProxyStartScript, "/c"] } omp &&
+            omp.Environment["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:1/wire/a/pi/anthropic" && omp.Environment["ANTHROPIC_API_KEY"] == AirLaunch.WireApiKey,
+            "omp starts Central's proxy and gets its Pi wire through the environment.");
+        Require(AirLaunch.Contribution(central, "omp", "/c") is { Wrapper: [AirLaunch.PiMissingCommand] } && AirLaunch.Contribution(central with { Omp = false }, "omp", "/c") is null &&
+            AirLaunch.Shape(central, "omp", "/c") == "blocked: Air Governance needs Central's Pi integration: run `central add pi`", "Without Central's Pi integration omp is blocked, and it has its own switch.");
     }
 
     private static string[] Snapshot(Fixture fixture) => [.. Directory.EnumerateFiles(fixture.Home, "*", SearchOption.AllDirectories)
@@ -798,7 +803,7 @@ internal static class AirGovernanceChecks
             Settle();
             Require(!Item()!.IsVisible && Probes() == 0, "With the direct source the item shows nothing and reads nothing.");
 
-            Settings(new { enabled = true, source = AirSources.Central, claudeCode = false, codex = false });
+            Settings(new { enabled = true, source = AirSources.Central, claudeCode = false, codex = false, omp = false });
             Settle();
             Require(!Item()!.IsVisible && Probes() == 0, "Central chosen but no agent governed: nothing is shown and Central is not read.");
 
