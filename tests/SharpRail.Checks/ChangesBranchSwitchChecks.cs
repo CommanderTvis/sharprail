@@ -6,6 +6,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
 using SharpRail.Checks.E2E;
+using SharpRail.UI;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
@@ -39,6 +40,7 @@ internal static class ChangesBranchSwitchChecks
         Pick(app, "near");
         Until(() => Rows(app) == 0 && Label(app) == "vs near");
         Settle(1000);
+        ToolbarWraps(app);
 
         var stalls = new List<double>();
         using var stop = new CancellationTokenSource();
@@ -77,6 +79,28 @@ internal static class ChangesBranchSwitchChecks
         Settle(1500);
         Require(Rows(app) == 0 && Label(app) == "vs near", $"A superseded target's changes must not land: {Rows(app)} rows under {Label(app)}.");
         Console.WriteLine($"PASS a Changes target switch to {Files} files keeps the dispatcher under {budget:F0} ms (max {max:F1}) and the last pick wins");
+    }
+
+    // A narrow pane moves the comparison target to its own row instead of clipping it; a wide one keeps one row.
+    private static void ToolbarWraps(E2eWorkspace app)
+    {
+        var toolbar = app.Window.GetLogicalDescendants().OfType<ChangesToolbarLayout>().Single();
+        var compare = Picker(app)!;
+        var scope = toolbar.Children[0];
+        var natural = toolbar.Children.Sum(child => child.DesiredSize.Width) + 4 * (toolbar.Children.Count - 1);
+        foreach (var width in new[] { Math.Min(300, natural - 1), 700 })
+        {
+            toolbar.Width = width;
+            app.Window.UpdateLayout();
+            var wrapped = width < natural;
+            Require(toolbar.Wrapped == wrapped && toolbar.Bounds.Height == (wrapped ? 64 : 32) && (compare.Bounds.Top >= scope.Bounds.Bottom) == wrapped,
+                $"The Changes toolbar at {width} px must use {(wrapped ? "two rows" : "one row")}: height {toolbar.Bounds.Height}, scope {scope.Bounds}, compare {compare.Bounds}.");
+            Require(compare.Bounds.Width >= compare.DesiredSize.Width - 0.5,
+                $"The comparison target must not be clipped at {width} px: {compare.Bounds.Width} of {compare.DesiredSize.Width}.");
+        }
+        toolbar.Width = double.NaN;
+        app.Window.UpdateLayout();
+        Console.WriteLine($"PASS the Changes toolbar wraps the comparison target to a second row below {natural:F0} px and keeps one row at 700 px");
     }
 
     private static Button? Picker(E2eWorkspace app) =>

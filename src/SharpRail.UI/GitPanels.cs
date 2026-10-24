@@ -28,14 +28,8 @@ public sealed partial class WorkbenchWindow
         changesProjection = CurrentGitProjection();
         changeFrames.Clear();
         changesSignature = ChangesSignature();
-        var panel = new Grid { Name = "ChangesPanel", RowDefinitions = new RowDefinitions("32,*") };
-        var toolbar = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("*,4,Auto,4,Auto"),
-            Margin = new Thickness(12, 0),
-            ClipToBounds = true
-        };
-        var selectors = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, ClipToBounds = true };
+        var panel = new Grid { Name = "ChangesPanel", RowDefinitions = new RowDefinitions("Auto,*") };
+        var toolbar = new ChangesToolbarLayout { Name = "ChangesToolbar", Margin = new Thickness(12, 0), ClipToBounds = true };
         var scope = ChangesDropdown("ChangesScope", "Diff scope", selectedCommit?.ShortSha ?? changeScope, "fileDiff");
         if (selectedCommit is not null) ToolTip.SetTip(scope, selectedCommit.Subject);
         foreach (var label in new[] { "All changes", "Uncommitted", "Staged", "Branch" })
@@ -96,16 +90,14 @@ public sealed partial class WorkbenchWindow
         // The rows of the last open stay while this open's read runs, so a reopened menu does not flash empty.
         if (scopeCommits is null) Note("ChangesCommitsLoading", "Loading commits…"); else ShowCommits(scopeCommits);
         LoadScopeMenu(scope, scopeMenu, uncommitted, ShowCommits);
-        selectors.Children.Add(scope);
-        if (git.IsRepository)
+        toolbar.Children.Add(scope);
+        toolbar.Children.Add(new StackPanel
         {
-            var branches = ComparisonPicker("ChangesBranch", "vs ");
-            branches.MaxWidth = 200;
-            selectors.Children.Add(branches);
-        }
-        Ui.Place(toolbar, selectors);
-        Ui.Place(toolbar, ChangesViewToggle("List", false), 0, 2);
-        Ui.Place(toolbar, ChangesViewToggle("Tree", true), 0, 4);
+            Orientation = Orientation.Horizontal,
+            Spacing = 4,
+            Children = { ChangesViewToggle("List", false), ChangesViewToggle("Tree", true) }
+        });
+        if (git.IsRepository) toolbar.Children.Add(ComparisonPicker("ChangesBranch", "vs "));
         Ui.Place(panel, Ui.Frame(toolbar));
         var changes = ScopedChanges();
         if (gitLoading || gitError is not null)
@@ -488,4 +480,48 @@ public sealed partial class WorkbenchWindow
     }
 
     private string ReviewSummary() => git.IsRepository ? $"{git.Changes.Count} changed files on {git.Branch}" : "No repository selected";
+}
+
+/// <summary>
+/// The Changes toolbar: scope picker, comparison target, then the List | Tree toggle at the right, on one 32 px row
+/// when everything fits at its natural width; otherwise the comparison target moves to a second row of its own,
+/// so it is never clipped while a full row could show it. Children: scope, toggle, then the optional comparison.
+/// </summary>
+internal sealed class ChangesToolbarLayout : Panel
+{
+    private const double Row = 32, Gap = 4;
+
+    /// <summary>Whether the last measure put the comparison target on its own row.</summary>
+    internal bool Wrapped { get; private set; }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        foreach (var child in Children) child.Measure(Size.Infinity);
+        var width = Children.Sum(child => child.DesiredSize.Width) + Gap * Math.Max(0, Children.Count - 1);
+        Wrapped = Children.Count > 2 && width > availableSize.Width;
+        return new Size(double.IsInfinity(availableSize.Width) ? width : Math.Min(width, availableSize.Width), Wrapped ? Row * 2 : Row);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        if (Children.Count < 2) return finalSize;
+        var scope = Children[0];
+        var toggle = Children[1];
+        Control? compare = Children.Count > 2 ? Children[2] : null;
+        static Rect Centered(Control child, double x, double top, double width) =>
+            new(x, top + Math.Max(0, (Row - child.DesiredSize.Height) / 2), Math.Max(0, width), child.DesiredSize.Height);
+        var toggleWidth = Math.Min(toggle.DesiredSize.Width, finalSize.Width);
+        var toggleLeft = finalSize.Width - toggleWidth;
+        toggle.Arrange(Centered(toggle, toggleLeft, 0, toggleWidth));
+        var scopeWidth = Math.Min(scope.DesiredSize.Width, toggleLeft - Gap);
+        scope.Arrange(Centered(scope, 0, 0, scopeWidth));
+        if (compare is null) return finalSize;
+        if (Wrapped) compare.Arrange(Centered(compare, 0, Row, Math.Min(compare.DesiredSize.Width, finalSize.Width)));
+        else
+        {
+            var left = scopeWidth + Gap;
+            compare.Arrange(Centered(compare, left, 0, Math.Min(compare.DesiredSize.Width, toggleLeft - Gap - left)));
+        }
+        return finalSize;
+    }
 }

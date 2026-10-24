@@ -311,9 +311,11 @@ The pane, toolbar and scroller survive refreshes and same-project workspace swit
 leave controls untouched; changed results reconcile unchanged file rows and tree folders, preserving
 scroll position and expansion. A loaded snapshot stays visible while its replacement is loading.
 
-- A fixed 32px toolbar says what is being diffed: the scope pill (All changes, Uncommitted, Staged, Branch,
+- A 32px toolbar says what is being diffed: the scope pill (All changes, Uncommitted, Staged, Branch,
   or one commit from the branch), the comparison-branch pill (`vs <branch>`, with Refresh git), and the
-  List | Tree toggle. A commit scope is labelled by its short SHA with the full subject as tooltip, so the
+  List | Tree toggle at the right. When the three do not fit at their natural widths, the comparison pill
+  moves to a second 32px row instead of being clipped; it ellipsizes (full label as tooltip) only when even
+  that row is too narrow. A commit scope is labelled by its short SHA with the full subject as tooltip, so the
   branch pill is not squeezed. The scope, comparison and selected commit belong to the workspace and persist
   in the profile; the commit catalogue is reloaded from Git, capped at 200.
 - The scope menu's contents load on each open, never when the panel mounts: `ListCommitsAsync` for the

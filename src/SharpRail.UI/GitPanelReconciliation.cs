@@ -34,14 +34,12 @@ public sealed partial class WorkbenchWindow
         if (gitLoading && changesProjection is { Loading: false, Error: null }) return;
         if (changesProjection?.Matches(nextProjection) == true) return;
         var next = (Grid)ChangesPanel();
-        var oldToolbar = panel.Children[0].GetLogicalDescendants().OfType<Grid>().First();
-        var nextToolbar = next.Children[0].GetLogicalDescendants().OfType<Grid>().First();
-        var oldSelectors = oldToolbar.Children.OfType<StackPanel>().Single();
-        var nextSelectors = nextToolbar.Children.OfType<StackPanel>().Single();
-        foreach (var fresh in nextSelectors.Children.OfType<Button>().ToArray())
+        var oldToolbar = panel.Children[0].GetLogicalDescendants().OfType<ChangesToolbarLayout>().First();
+        var nextToolbar = next.Children[0].GetLogicalDescendants().OfType<ChangesToolbarLayout>().First();
+        foreach (var fresh in nextToolbar.Children.OfType<Button>().ToArray())
         {
-            var existing = oldSelectors.Children.OfType<Button>().FirstOrDefault(button => button.Name == fresh.Name);
-            if (existing is null) { nextSelectors.Children.Remove(fresh); oldSelectors.Children.Add(fresh); }
+            var existing = oldToolbar.Children.OfType<Button>().FirstOrDefault(button => button.Name == fresh.Name);
+            if (existing is null) { nextToolbar.Children.Remove(fresh); oldToolbar.Children.Add(fresh); }
             else
             {
                 CopyTexts(existing, fresh);
@@ -49,11 +47,12 @@ public sealed partial class WorkbenchWindow
                 ToolTip.SetTip(existing, ToolTip.GetTip(fresh));
             }
         }
-        foreach (var existing in oldSelectors.Children.OfType<Button>().Where(button => !nextSelectors.Children.OfType<Button>()
-            .Any(fresh => fresh.Name == button.Name) && button.Name == "ChangesBranch" && !git.IsRepository).ToArray()) oldSelectors.Children.Remove(existing);
-        foreach (var toggle in oldToolbar.Children.OfType<ToggleButton>())
+        foreach (var existing in oldToolbar.Children.OfType<Button>().Where(button => !nextToolbar.Children.OfType<Button>()
+            .Any(fresh => fresh.Name == button.Name) && button.Name == "ChangesBranch" && !git.IsRepository).ToArray()) oldToolbar.Children.Remove(existing);
+        var nextToggles = nextToolbar.Children.OfType<StackPanel>().Single().Children.OfType<ToggleButton>().ToArray();
+        foreach (var toggle in oldToolbar.Children.OfType<StackPanel>().Single().Children.OfType<ToggleButton>())
         {
-            var fresh = nextToolbar.Children.OfType<ToggleButton>().Single(button => button.Name == toggle.Name);
+            var fresh = nextToggles.Single(button => button.Name == toggle.Name);
             toggle.IsChecked = fresh.IsChecked; toggle.Background = fresh.Background;
             CopyTexts(toggle, fresh);
         }
