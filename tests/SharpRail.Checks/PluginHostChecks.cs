@@ -915,7 +915,8 @@ internal static class PluginHostChecks
         var attached = await pty.AttachAsync(new(session, workspace, "client", 100, 30) { TabKey = tab.TabKey });
         try
         {
-            Require(attached.Prefill == new TerminalPrefill("probe --resume", true), "Revive hooks compose the first text with a separate submit-only offer.");
+            Require(attached.Prefill is null && composed.State.Current.ResumeOffers.Single() == new TerminalResumeOffer(tab, "probe-agent", "s-1"),
+                "A revived agent tab's shell starts alone and its session is offered on host state rather than typed.");
             var text = new StringBuilder(Encoding.UTF8.GetString(attached.Replay.Span));
             var reading = Task.Run(async () =>
             {
@@ -968,7 +969,7 @@ internal static class PluginHostChecks
         Require(composed.State.Current.TerminalAgents.Count == 0, "Closing the tab drops its agent record.");
         await Until(() => { lock (events) return Task.FromResult(events.OfType<SharpRail.Plugins.Api.Host.TerminalClosed>().Any(closed => closed.Terminal == tab)); }, "the close event");
 
-        // Over WebSocket RPC the tab key and the prefill ride the attach.
+        // Over WebSocket RPC the tab key rides the attach and the resume offer rides host state.
         var remoteDirectory = Path.Combine(directory, "remote");
         await using var server = RemoteServer.Create(workspace, IPAddress.Loopback, 0, "terminal-plugins", remoteDirectory,
             plugins: seams => seams with { Builtins = [(Manifest("reviver", true), Reviver())] });
@@ -988,12 +989,13 @@ internal static class PluginHostChecks
             }
             using var terminals = new RemoteTerminalAdapter(address, "terminal-plugins");
             var remote = await terminals.AttachAsync(new(session, workspace, "client") { TabKey = tab.TabKey });
-            Require(remote.Prefill == new TerminalPrefill("probe --resume", true), "The prefill rides the remote attachment.");
+            Require(remote.Prefill is null && (await remoteState.GetStateAsync()).ResumeOffers.Single() == new TerminalResumeOffer(tab, "probe-agent", "s-1"),
+                "A remote revived tab's resume offer travels on the remote snapshot instead of the attachment.");
             await remote.DisposeAsync();
             await terminals.CloseAsync(session);
             Require((await remoteState.GetStateAsync()).TerminalAgents.Count == 0, "Closing a remote tab drops its agent record.");
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS plugin terminals: environment contributors, revive prefill locally and over WebSocket RPC, host-side write, tokens, MCP plugin tools, process table, lifecycle, agent records");
+        Console.WriteLine("PASS plugin terminals: environment contributors, resume offers locally and over WebSocket RPC, host-side write, tokens, MCP plugin tools, process table, lifecycle, agent records");
     }
 }
