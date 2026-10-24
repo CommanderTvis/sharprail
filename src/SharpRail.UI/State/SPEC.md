@@ -187,9 +187,12 @@ app preference shared across windows; historical scopes remain read-only.
 ## Toasts
 
 Each window has its own queue of transient notifications, displayed oldest first. A toast
-has a variant (info, success, error), a message, an optional title, its own duration and at most one action
-(an Undo receipt), or a pair of choices on their own row (the `.sharprail` exclusion offer). Without a duration, info and success end after five seconds and an error stays until
-dismissed. Pushing a notification identical to a visible actionless one returns that one instead of adding
+has a variant (info, success, error), a message, an optional title, an optional code-font value, its own duration and
+a list of actions. One link action (an Undo receipt) sits beside the message; several, or any button-styled one (primary or
+plain), share a row under it (the `.sharprail` exclusion offer, a plugin prompt). An asynchronous action disables the
+toast's buttons while it runs, shows its failure inline under them, and dismisses the toast on success unless it is
+marked as not closing. Without a duration, info and success end after five seconds and an error stays until
+dismissed; a sticky toast (a plugin prompt) stays until dismissed or taken down by its owner. Pushing a notification identical to a visible actionless one returns that one instead of adding
 another. Actionable toasts are never coalesced, since their actions name different inverses, and the cap of
 five evicts only the oldest actionless ones, so a receipt stays until its duration ends or the user dismisses
 it. The queue is never persisted or shared between windows.

@@ -745,3 +745,46 @@ override SharpRail.Plugins.Api.UI.HeaderItemRegistration.ToString() -> string!
 static SharpRail.Plugins.Api.UI.HeaderItemRegistration.operator !=(SharpRail.Plugins.Api.UI.HeaderItemRegistration? left, SharpRail.Plugins.Api.UI.HeaderItemRegistration? right) -> bool
 static SharpRail.Plugins.Api.UI.HeaderItemRegistration.operator ==(SharpRail.Plugins.Api.UI.HeaderItemRegistration? left, SharpRail.Plugins.Api.UI.HeaderItemRegistration? right) -> bool
 static SharpRail.Plugins.Api.UI.UiPages.PluginSection(string! pluginId, string? sectionId = null) -> string!
+SharpRail.Plugins.Api.UI.IPluginUIContext.Prompt(SharpRail.Plugins.Api.UI.PluginPrompt! prompt) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.PluginNotificationActionStyle
+SharpRail.Plugins.Api.UI.PluginNotificationActionStyle.Link = 0 -> SharpRail.Plugins.Api.UI.PluginNotificationActionStyle
+SharpRail.Plugins.Api.UI.PluginNotificationActionStyle.Primary = 1 -> SharpRail.Plugins.Api.UI.PluginNotificationActionStyle
+SharpRail.Plugins.Api.UI.PluginNotificationActionStyle.Plain = 2 -> SharpRail.Plugins.Api.UI.PluginNotificationActionStyle
+SharpRail.Plugins.Api.UI.PluginNotificationAction
+SharpRail.Plugins.Api.UI.PluginNotificationAction.PluginNotificationAction(string! Label, System.Func<System.Threading.Tasks.ValueTask>! RunAsync, SharpRail.Plugins.Api.UI.PluginNotificationActionStyle Style = SharpRail.Plugins.Api.UI.PluginNotificationActionStyle.Link, bool Closes = true) -> void
+SharpRail.Plugins.Api.UI.PluginNotificationAction.Label.get -> string!
+SharpRail.Plugins.Api.UI.PluginNotificationAction.Label.init -> void
+SharpRail.Plugins.Api.UI.PluginNotificationAction.RunAsync.get -> System.Func<System.Threading.Tasks.ValueTask>!
+SharpRail.Plugins.Api.UI.PluginNotificationAction.RunAsync.init -> void
+SharpRail.Plugins.Api.UI.PluginNotificationAction.Style.get -> SharpRail.Plugins.Api.UI.PluginNotificationActionStyle
+SharpRail.Plugins.Api.UI.PluginNotificationAction.Style.init -> void
+SharpRail.Plugins.Api.UI.PluginNotificationAction.Closes.get -> bool
+SharpRail.Plugins.Api.UI.PluginNotificationAction.Closes.init -> void
+SharpRail.Plugins.Api.UI.PluginPrompt
+SharpRail.Plugins.Api.UI.PluginPrompt.PluginPrompt(SharpRail.Plugins.Api.UI.PluginNotificationKind Kind, string! Message, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.PluginNotificationAction!>! Actions, string? Title = null, string? Code = null) -> void
+SharpRail.Plugins.Api.UI.PluginPrompt.Kind.get -> SharpRail.Plugins.Api.UI.PluginNotificationKind
+SharpRail.Plugins.Api.UI.PluginPrompt.Kind.init -> void
+SharpRail.Plugins.Api.UI.PluginPrompt.Message.get -> string!
+SharpRail.Plugins.Api.UI.PluginPrompt.Message.init -> void
+SharpRail.Plugins.Api.UI.PluginPrompt.Actions.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.PluginNotificationAction!>!
+SharpRail.Plugins.Api.UI.PluginPrompt.Actions.init -> void
+SharpRail.Plugins.Api.UI.PluginPrompt.Title.get -> string?
+SharpRail.Plugins.Api.UI.PluginPrompt.Title.init -> void
+SharpRail.Plugins.Api.UI.PluginPrompt.Code.get -> string?
+SharpRail.Plugins.Api.UI.PluginPrompt.Code.init -> void
+override SharpRail.Plugins.Api.UI.PluginNotificationAction.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.PluginNotificationAction.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.PluginNotificationAction.ToString() -> string!
+override SharpRail.Plugins.Api.UI.PluginPrompt.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.PluginPrompt.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.PluginPrompt.ToString() -> string!
+SharpRail.Plugins.Api.UI.PluginNotificationAction.<Clone>$() -> SharpRail.Plugins.Api.UI.PluginNotificationAction!
+SharpRail.Plugins.Api.UI.PluginNotificationAction.Deconstruct(out string! Label, out System.Func<System.Threading.Tasks.ValueTask>! RunAsync, out SharpRail.Plugins.Api.UI.PluginNotificationActionStyle Style, out bool Closes) -> void
+SharpRail.Plugins.Api.UI.PluginNotificationAction.Equals(SharpRail.Plugins.Api.UI.PluginNotificationAction? other) -> bool
+SharpRail.Plugins.Api.UI.PluginPrompt.<Clone>$() -> SharpRail.Plugins.Api.UI.PluginPrompt!
+SharpRail.Plugins.Api.UI.PluginPrompt.Deconstruct(out SharpRail.Plugins.Api.UI.PluginNotificationKind Kind, out string! Message, out System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.PluginNotificationAction!>! Actions, out string? Title, out string? Code) -> void
+SharpRail.Plugins.Api.UI.PluginPrompt.Equals(SharpRail.Plugins.Api.UI.PluginPrompt? other) -> bool
+static SharpRail.Plugins.Api.UI.PluginNotificationAction.operator !=(SharpRail.Plugins.Api.UI.PluginNotificationAction? left, SharpRail.Plugins.Api.UI.PluginNotificationAction? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginNotificationAction.operator ==(SharpRail.Plugins.Api.UI.PluginNotificationAction? left, SharpRail.Plugins.Api.UI.PluginNotificationAction? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginPrompt.operator !=(SharpRail.Plugins.Api.UI.PluginPrompt? left, SharpRail.Plugins.Api.UI.PluginPrompt? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginPrompt.operator ==(SharpRail.Plugins.Api.UI.PluginPrompt? left, SharpRail.Plugins.Api.UI.PluginPrompt? right) -> bool

@@ -41,15 +41,11 @@
       <StackPanel Spacing="4">
         <TextBlock x:Name="ToastTitle" Text="{Binding Title}" IsVisible="{Binding Title, Converter={x:Static ObjectConverters.IsNotNull}}" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
         <TextBlock x:Name="ToastMessage" Text="{Binding Message}" TextWrapping="Wrap" />
-        <!-- Two long labels do not fit beside the message, so they share a row beneath it. -->
-        <StackPanel x:Name="ActionRow" Orientation="Horizontal" Spacing="4" Margin="-8,0,0,0" IsVisible="False">
-          <Button x:Name="RowAction" Classes="toast-action">
-            <TextBlock Text="{Binding Action.Label}" Foreground="{x:Static kit:Ui.Accent}" />
-          </Button>
-          <Button x:Name="RowSecondary" Classes="toast-action">
-            <TextBlock Text="{Binding Secondary.Label}" Foreground="{x:Static kit:Ui.Accent}" />
-          </Button>
-        </StackPanel>
+        <SelectableTextBlock x:Name="ToastCode" Text="{Binding Code}" IsVisible="{Binding Code, Converter={x:Static ObjectConverters.IsNotNull}}"
+                             FontFamily="{x:Static kit:Ui.CodeFont}" Foreground="{x:Static kit:Ui.TextBrush}" />
+        <!-- Several labels do not fit beside the message, so they share a row beneath it; the card adds their buttons. -->
+        <WrapPanel x:Name="ActionRow" Orientation="Horizontal" ItemSpacing="4" LineSpacing="4" Margin="-8,0,0,0" IsVisible="False" />
+        <TextBlock x:Name="ToastError" Foreground="{x:Static kit:Ui.Danger}" TextWrapping="Wrap" IsVisible="False" />
       </StackPanel>
       <Button x:Name="SingleAction" Grid.Column="1" Classes="toast-action" Margin="8,-2,0,0" IsVisible="False">
         <TextBlock Text="{Binding Action.Label}" Foreground="{x:Static kit:Ui.Accent}" />

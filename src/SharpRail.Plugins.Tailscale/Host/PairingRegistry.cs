@@ -77,6 +77,17 @@ internal sealed class PairingRegistry(IReadOnlyList<ApprovedDevice> restored, Ac
     }
 
     private static TailscaleDevice Display(ApprovedDevice device) => new(device.Hash, device.Name, device.User, device.Hash[..8].ToUpperInvariant());
+    /// <summary>Drops expired requests; reports whether one the user could still answer went, so the host republishes.</summary>
+    internal bool Sweep()
+    {
+        lock (gate)
+        {
+            var answerable = pending.Values.Count(entry => !entry.Rejected);
+            Expire();
+            return pending.Values.Count(entry => !entry.Rejected) != answerable;
+        }
+    }
+
     private void Expire()
     {
         foreach (var key in pending.Where(entry => entry.Value.Expires <= Now).Select(entry => entry.Key).ToArray()) pending.Remove(key);

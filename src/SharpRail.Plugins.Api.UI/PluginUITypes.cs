@@ -292,6 +292,34 @@ public enum PluginNotificationKind
     Error
 }
 
+/// <summary>How a prompt's choice looks: an accent text link, the filled primary button or a plain button.</summary>
+public enum PluginNotificationActionStyle
+{
+    /// <summary>An accent text link.</summary>
+    Link,
+
+    /// <summary>The filled primary button.</summary>
+    Primary,
+
+    /// <summary>A plain button.</summary>
+    Plain
+}
+
+/// <summary>One choice of a <see cref="PluginPrompt"/>.</summary>
+/// <param name="Label">The button's label.</param>
+/// <param name="RunAsync">Runs the choice; an exception's message is shown inline on the prompt.</param>
+/// <param name="Style">How the button looks.</param>
+/// <param name="Closes">Whether success takes the prompt down in every window.</param>
+public sealed record PluginNotificationAction(string Label, Func<ValueTask> RunAsync, PluginNotificationActionStyle Style = PluginNotificationActionStyle.Link, bool Closes = true);
+
+/// <summary>A notification the user answers, for <see cref="IPluginUIContext.Prompt"/>.</summary>
+/// <param name="Kind">Information or failure.</param>
+/// <param name="Message">The text.</param>
+/// <param name="Actions">The choices, in order.</param>
+/// <param name="Title">The headline.</param>
+/// <param name="Code">A value the user compares or copies, shown in the code font.</param>
+public sealed record PluginPrompt(PluginNotificationKind Kind, string Message, IReadOnlyList<PluginNotificationAction> Actions, string? Title = null, string? Code = null);
+
 /// <summary>
 /// A terminal asking for the user while the app is away (W20): an agent that is blocked on an answer, has finished,
 /// or has failed.

@@ -48,9 +48,14 @@ loopback SOCKS5 proxy, whose dialer is the embedded Tailscale node. Tailscale su
 
 A new secret creates a request bound to the verified Tailscale node, with its device name and user identity.
 The host shows that identity and an eight-digit hexadecimal fingerprint; the client shows the same code.
-An activation-lifetime subscription shows a popup with the device identity, comparison code and
-instructions to open Settings › Tailscale even while Settings is closed. Repeated polls do not repeat
-the popup for the same pending request. The user approves or declines it in Settings › Tailscale. Requests expire after two minutes, declined
+An activation-lifetime subscription shows a prompt in every window for each pending request: the device identity,
+the comparison code in the code font, and Approve (primary), Decline and an Open Tailscale settings link, even while
+Settings is closed. Approve and Decline answer through the same host method as the Settings buttons; while one runs the
+prompt's buttons are disabled, a failure is shown on the prompt, and success takes the prompt down in every window.
+The prompt does not expire on its own: it comes down in every window when the host's status no longer lists the
+request, whether another window or client answered it or it expired. Opening settings keeps it. Repeated polls do not
+repeat the prompt for the same pending request. Any client that shows Settings › Tailscale can answer, so every client
+shows the choices. Requests expire after two minutes, and the host sweeps them every five seconds and republishes its status when an answerable one expires; declined
 requests cannot be recreated by polling, and pending requests and approved grants are bounded to 32 and
 128 respectively. Pairing never releases the host's master session token.
 

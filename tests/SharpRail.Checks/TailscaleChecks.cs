@@ -59,17 +59,40 @@ internal static class TailscaleChecks
         using var workbench = new Workbench(profile, new SharedState(fake, profile.Data.Preferences), E2eTerminals.Plain, false, () => new LocalProjectAdapter(new ProjectServices(directory, store)), fake);
         var window = workbench.Open(profile.Data.Windows[0], "");
         window.Width = 1200; window.Height = 800; window.Show();
+        var peer = workbench.Open(new WindowProfile(), "");
+        peer.Show();
+        static Border? Prompt(WorkbenchWindow owner, TailscaleDevice device) => owner.GetLogicalDescendants().OfType<Border>()
+            .FirstOrDefault(card => card.Name == "Toast" && card.Tag is Toast { Code: var code } && code == device.Code);
+        static Button Choice(Border card, string label) => card.GetLogicalDescendants().OfType<Button>()
+            .Single(button => button.IsVisible && (button.Content as string ?? (button.Content as TextBlock)?.Text) == label);
+        static void Press(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         try
         {
             _ = workbench.State.ChangeAsync(HostStateChange.PluginEnabled("tailscale", true));
             E2eWorkspace.Until(() => workbench.PluginRegistry.Active.Contains("tailscale"));
-            E2eWorkspace.Until(() => window.FindControl<TextBlock>("GestureToastMessage")!.Text?.Contains("Tailscale pairing approval requested", StringComparison.Ordinal) == true);
-            Require(!window.OwnedWindows.OfType<SettingsWindow>().Any() &&
-                window.FindControl<TextBlock>("GestureToastMessage")!.Text!.Contains(device.Code, StringComparison.Ordinal),
-                "An incoming pairing shows its identity and comparison code even when Settings is closed.");
-            window.ShowSettings("plugin:tailscale:tailscale");
-            E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-            var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+            E2eWorkspace.Until(() => Prompt(window, device) is not null && Prompt(peer, device) is not null);
+            var card = Prompt(window, device)!;
+            var shown = (Toast)card.Tag!;
+            Require(!window.OwnedWindows.OfType<SettingsWindow>().Any() && shown.Message.Contains(device.Name, StringComparison.Ordinal) &&
+                shown.Message.Contains(device.User, StringComparison.Ordinal) &&
+                card.GetLogicalDescendants().OfType<SelectableTextBlock>().Single(text => text.Name == "ToastCode").FontFamily == Ui.CodeFont,
+                "An incoming pairing shows its identity and its comparison code in the code font in every window, even when Settings is closed.");
+            Require(shown.Lifetime is null && Choice(card, "Approve").Classes.Contains("primary") && Choice(card, "Decline").IsVisible &&
+                Choice(card, "Open Tailscale settings").Classes.Contains("toast-action"),
+                "The prompt does not expire and offers Approve (primary), Decline and a link to Tailscale settings.");
+            E2eWorkspace.Settle((int)ToastQueue.DefaultDuration.TotalMilliseconds + 500);
+            Require(Prompt(window, device) is not null, "The prompt stays past the default toast lifetime while the request is pending.");
+            // No decide reply yet, so the host refuses the call.
+            Press(Choice(card, "Decline"));
+            E2eWorkspace.Until(() => card.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ToastError" && text.IsVisible &&
+                text.Text?.Contains("no method decide", StringComparison.Ordinal) == true));
+            Require(fake.Calls.Last(call => call.Method == "decide").Params is TailscaleDecision { Allow: false } && Prompt(window, device) is not null &&
+                Choice(card, "Approve").IsEnabled, "Decline answers through the host, and a failure stays inline with the choices usable again.");
+            Press(Choice(card, "Open Tailscale settings"));
+            // Settings opens in the active window, which may be either.
+            E2eWorkspace.Until(() => workbench.Windows.Any(owner => owner.OwnedWindows.OfType<SettingsWindow>().Any()));
+            Require(Prompt(window, device) is not null, "Opening settings from the prompt keeps it until the request is answered.");
+            var settings = workbench.Windows.SelectMany(owner => owner.OwnedWindows.OfType<SettingsWindow>()).Single();
             T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
             E2eWorkspace.Until(() => Find<TextBlock>("PairingName").Text?.Contains("host.tailnet.ts.net", StringComparison.Ordinal) == true);
             E2eWorkspace.Until(() => fake.Subscriptions > 0 && settings.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Content, "Approve")));
@@ -79,14 +102,16 @@ internal static class TailscaleChecks
             fake.Push("tailscale", "status", pending);
             E2eWorkspace.Settle(50);
             Require(ReferenceEquals(rows, Find<ItemsControl>("PairingPending").ItemsSource), "Unchanged polling retains approval controls and pointer targets.");
-            Require(window.FindControl<TextBlock>("GestureToastMessage")!.Text == "Unrelated notification", "Repeated status polls do not repeat an approval popup.");
+            Require(window.GetLogicalDescendants().OfType<Border>().Count(other => other.Name == "Toast" && other.Tag is Toast { Code: not null }) == 1,
+                "Repeated status polls do not repeat an approval prompt.");
             var approved = pending with { Pending = [], Approved = [device] };
             fake.Replies["decide"] = approved;
-            var approve = settings.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Approve"));
-            approve.Command!.Execute(null);
-            E2eWorkspace.Until(() => fake.Calls.Any(call => call.Method == "decide"));
+            Press(Choice(card, "Approve"));
+            E2eWorkspace.Until(() => fake.Calls.Count(call => call.Method == "decide") == 2);
             Require(fake.Calls.Last(call => call.Method == "decide").Params is TailscaleDecision { Id: var id, Allow: true } && id == device.Id,
-                "Approval uses the matching pending request through plugin RPC.");
+                "Approve on the prompt answers the matching pending request through the same plugin RPC as Settings.");
+            E2eWorkspace.Until(() => Prompt(window, device) is null && Prompt(peer, device) is null);
+            fake.Push("tailscale", "status", approved);
             E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Content, "Revoke access")));
             fake.Replies["revoke"] = pending with { Pending = [], Approved = [] };
             settings.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Revoke access")).Command!.Execute(null);
@@ -96,7 +121,10 @@ internal static class TailscaleChecks
             Require(fake.Subscriptions == 1, "The activation subscription continues to surface approvals with Settings closed.");
             var another = device with { Id = new string('b', 64), Code = "B2C3D4E5" };
             fake.Push("tailscale", "status", pending with { Pending = [another], Approved = [] });
-            E2eWorkspace.Until(() => window.FindControl<TextBlock>("GestureToastMessage")!.Text?.Contains(another.Code, StringComparison.Ordinal) == true);
+            E2eWorkspace.Until(() => Prompt(window, another) is not null && Prompt(peer, another) is not null);
+            fake.Push("tailscale", "status", pending with { Pending = [], Approved = [] });
+            E2eWorkspace.Until(() => Prompt(window, another) is null && Prompt(peer, another) is null);
+            Require(fake.Calls.Count(call => call.Method == "decide") == 2, "A request answered elsewhere or expired on the host takes its prompt down in every window.");
             var picker = new TailscaleConnectView(Path.Combine(directory, "client.json"));
             var pickerWindow = new Window { Content = picker, Width = 460, Height = 540 };
             try
@@ -155,8 +183,8 @@ internal static class TailscaleChecks
                 finally { defaultedWindow.Close(); }
             }
         }
-        finally { window.Close(); }
-        Console.WriteLine("PASS Tailscale UI: bootstrap picker, approval identity/code, RPC commands, retained rows and subscription teardown");
+        finally { peer.Close(); window.Close(); }
+        Console.WriteLine("PASS Tailscale UI: bootstrap picker, actionable pairing prompt in every window, approval identity/code, RPC commands, retained rows and subscription teardown");
     }
 
     private static void Registry()

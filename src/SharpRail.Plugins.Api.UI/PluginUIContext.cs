@@ -313,6 +313,15 @@ public interface IPluginUIContext
     void Notify(PluginNotificationKind kind, string title, string? description = null);
 
     /// <summary>
+    /// Shows a notification with choices in every window. It does not expire: it stays until the user dismisses it in a
+    /// window, a choice that closes succeeds, or the returned handle is disposed. While a choice runs the prompt's
+    /// buttons are disabled, and a failure is shown on the prompt.
+    /// </summary>
+    /// <param name="prompt">The text and choices.</param>
+    /// <returns>Disposing it takes the prompt down in every window.</returns>
+    IDisposable Prompt(PluginPrompt prompt);
+
+    /// <summary>
     /// Asks for a desktop notification about a terminal that needs the user (W20). Core decides whether it is shown:
     /// only while no window of the app is focused and the host's notification setting is on, with requests arriving
     /// together folded into one. Activating it brings the app forward on the terminal's workspace and tab. Nothing

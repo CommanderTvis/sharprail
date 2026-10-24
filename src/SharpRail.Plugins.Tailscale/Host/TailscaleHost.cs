@@ -41,6 +41,13 @@ public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHost
                 Publish();
             }
         });
+        // Requests expire without a call, so a sweep republishes and every client's prompt for an expired request comes down.
+        var sweep = Task.Run(async () =>
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+            try { while (await timer.WaitForNextTickAsync(lifetime.Token)) if (registry.Sweep()) Publish(); }
+            catch (OperationCanceledException) { }
+        });
         async Task<bool> ServeAsync()
         {
             try
@@ -89,6 +96,7 @@ public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHost
             if (serving is not null) serving.Authenticate = null;
             await lifetime.CancelAsync();
             await run;
+            await sweep;
             if (serving?.StopListening is { } stop) await stop();
             lifetime.Dispose();
         });

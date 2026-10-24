@@ -95,9 +95,13 @@ internal sealed partial class TailscaleSettingsView : UserControl
 
     private async Task DecideAsync(string id, bool allow)
     {
-        try { Apply(await context.RequestAsync(TailscaleContract.Decide, new(id, allow))); if (TailscaleContract.IsUnavailable(previous!)) Refresh(); }
+        try { Apply(await DecideAsync(context, id, allow)); if (TailscaleContract.IsUnavailable(previous!)) Refresh(); }
         catch (PluginCallException error) { status.Text = error.Message; }
     }
+
+    /// <summary>Answers a pending pairing request on the host; Settings and the incoming-request prompt both answer through it.</summary>
+    internal static ValueTask<TailscaleStatus> DecideAsync(IPluginUIContext context, string id, bool allow) =>
+        context.RequestAsync(TailscaleContract.Decide, new TailscaleDecision(id, allow));
 
     private async Task RevokeAsync(string id)
     {

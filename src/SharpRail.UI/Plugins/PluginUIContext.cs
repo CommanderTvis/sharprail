@@ -333,6 +333,26 @@ internal sealed class PluginUIContext : IPluginUIContext
     public void Notify(PluginNotificationKind kind, string title, string? description = null) =>
         Workbench.ActiveWindow?.Notify(kind == PluginNotificationKind.Error, description is null ? title : title + " — " + description);
 
+    public IDisposable Prompt(PluginPrompt prompt)
+    {
+        var shown = new List<(WorkbenchWindow Window, long Toast)>();
+        var handle = Disposable(() => { foreach (var (window, toast) in shown) window.Toasts.Dismiss(toast); shown.Clear(); });
+        var choices = prompt.Actions.Select(choice => State.ToastAction.Async(choice.Label, async () =>
+        {
+            await choice.RunAsync();
+            if (choice.Closes) handle.Dispose();
+        }, choice.Style switch
+        {
+            PluginNotificationActionStyle.Primary => State.ToastActionStyle.Primary,
+            PluginNotificationActionStyle.Plain => State.ToastActionStyle.Plain,
+            _ => State.ToastActionStyle.Link
+        }, choice.Closes)).ToArray();
+        var variant = prompt.Kind == PluginNotificationKind.Error ? State.ToastVariant.Error : State.ToastVariant.Info;
+        foreach (var window in Workbench.Windows)
+            shown.Add((window, window.Toasts.Push(variant, prompt.Message, prompt.Title, actions: choices, code: prompt.Code, sticky: true)));
+        return Track(handle);
+    }
+
     public void NotifyAttention(AttentionNotification notification) => Workbench.RequestAttention(notification);
 
     public void Invalidate() => Registry.Invalidate(Id);
