@@ -43,6 +43,8 @@ public sealed class Workbench : IDisposable
         WorkspaceWatches = new(this, sessions);
         state.Changed += (_, _) => ProjectionChanged?.Invoke();
         state.Changed += HighlightingChanged;
+        state.Changed += AgentsChanged;
+        AgentsChanged(state.Current, state.Current);
         LoadHighlighting(state.Current.Settings.CustomHighlighting);
         state.Start();
         PluginLoader.Start();
@@ -354,10 +356,18 @@ public sealed class Workbench : IDisposable
         disposed = true;
         highlightingVersion++;
         State.Changed -= HighlightingChanged;
+        State.Changed -= AgentsChanged;
         PluginLoader.Stop();
         attention?.Stop();
         State.Dispose();
         if (OwnedHost is { } host) _ = Task.Run(async () => await host.DisposeAsync());
+    }
+
+    // An agent terminal shows its agent's status instead of the agent CLI's own OSC 9;4 progress (TerminalSignalBoard.Progress).
+    private void AgentsChanged(HostState previous, HostState next)
+    {
+        if (!ReferenceEquals(previous, next) && previous.TerminalAgents.SequenceEqual(next.TerminalAgents)) return;
+        Signals.SetAgents(next.TerminalAgents.Select(agent => TerminalTab.SessionFor(agent.Terminal.WorkspaceId, agent.Terminal.TabKey)));
     }
 
     private void HighlightingChanged(HostState previous, HostState next)

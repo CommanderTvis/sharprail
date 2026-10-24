@@ -16,11 +16,18 @@ internal sealed class TerminalSignalBoard
 {
     private readonly Dictionary<string, (TerminalProgressState State, int Percent)> progress = [];
     private readonly HashSet<string> bells = [];
+    private HashSet<string> agents = [];
 
     /// <summary>Raised with the session whose progress or bell changed.</summary>
     public event Action<string>? Changed;
 
-    public (TerminalProgressState State, int Percent) Progress(string session) => progress.GetValueOrDefault(session);
+    /// <summary>
+    /// The progress a session's tab, chip and Projects row show. A terminal with an agent record already wears its agent's
+    /// own status (spinner, blocked, done, failed), so the agent CLI's OSC 9;4 working, indeterminate and paused reports are
+    /// dropped there; an OSC 9;4 error still shows, since the agent's status may not report that failure.
+    /// </summary>
+    public (TerminalProgressState State, int Percent) Progress(string session) =>
+        progress.GetValueOrDefault(session) is var shown && agents.Contains(session) && shown.State != TerminalProgressState.Error ? default : shown;
     public bool Bell(string session) => bells.Contains(session);
 
     public void SetProgress(string session, TerminalProgressState state, int percent)
@@ -28,6 +35,16 @@ internal sealed class TerminalSignalBoard
         if (state == TerminalProgressState.None ? !progress.Remove(session) : progress.GetValueOrDefault(session) == (state, percent)) return;
         if (state != TerminalProgressState.None) progress[session] = (state, percent);
         Changed?.Invoke(session);
+    }
+
+    /// <summary>The sessions whose terminals carry an agent record, as host state reports them.</summary>
+    public void SetAgents(IEnumerable<string> sessions)
+    {
+        var next = sessions.ToHashSet();
+        var changed = new HashSet<string>(agents);
+        changed.SymmetricExceptWith(next);
+        agents = next;
+        foreach (var session in changed) Changed?.Invoke(session);
     }
 
     public void RingBell(string session) { if (bells.Add(session)) Changed?.Invoke(session); }

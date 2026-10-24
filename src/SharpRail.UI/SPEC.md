@@ -451,6 +451,11 @@ leaves tabs plain.
   without rebuilding the strip. As in Ghostty's `SurfaceProgressBar`: a percent fills that fraction; a report without
   one bounces a quarter-width segment over a 30% track (1.2 s ease each way), except paused, which is full. Normal
   and indeterminate use the accent role, error danger, paused warning. A new subscription resets the board.
+- One indicator per agent tab: a terminal with an agent record in host state (Claude Code, Codex, omp) already wears
+  its agent's status beside the title, so `TerminalSignalBoard.Progress` drops that session's OSC 9;4 normal,
+  indeterminate and paused reports (agent CLIs such as Claude Code emit them while working) for the tab, chip and
+  Projects row alike. An OSC 9;4 error still shows, since the agent's own status reports only hook-known failures.
+  Terminals without an agent record keep every report.
 - Bell: `bell-features` as in Ghostty. `title` shows a bell icon beside the tab title until the terminal gains
   focus or is on screen when its window activates (Ghostty prepends 🔔 to the title until focus); `attention`
   bounces the Dock once (`NSInformationalRequest`) while no SharpRail window is active; `system` plays the alert

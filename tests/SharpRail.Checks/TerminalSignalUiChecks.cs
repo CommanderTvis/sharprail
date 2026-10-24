@@ -68,6 +68,24 @@ internal static class TerminalSignalUiChecks
         Require(!Strip(a).Animating, "A paused bar without a percent is full, not animated.");
         Progress(a, "\\033]9;4;0\\007", TerminalProgressState.None, 0, "progress removed by state 0");
 
+        // An agent's terminal wears its agent's status, not the agent CLI's OSC 9;4 working bar, on every surface;
+        // a plain shell beside it keeps its bar, and an error still shows.
+        TerminalProgressStrip[] Strips() => [.. app.Window.GetLogicalDescendants().OfType<TerminalProgressStrip>()];
+        var agentRef = new SharpRail.Plugins.Api.TerminalRef(workspace, a);
+        app.State!.SetTerminalAgent(agentRef, new("claude", "/usr/bin/false"));
+        Until(() => app.Workbench.State.Current.TerminalAgents.Any(agent => agent.Terminal == agentRef));
+        View(a).Run("printf '\\033]9;4;3\\007'");
+        Progress(b, "\\033]9;4;1;30\\007", TerminalProgressState.Normal, 30, "a plain shell's progress beside an agent");
+        Settle(300);
+        Require(Strip(a) is { IsVisible: false, Animating: false }, "An agent tab shows no OSC 9;4 working bar.");
+        Require(Strips().Where(strip => strip.IsVisible).All(strip => strip.Percent == 30),
+            "No tab, chip or Projects row shows the agent terminal's working bar; only the plain shell's.");
+        Progress(a, "\\033]9;4;2;70\\007", TerminalProgressState.Error, 70, "an agent terminal's OSC 9;4 error still shows");
+        Progress(a, "\\033]9;4;0\\007", TerminalProgressState.None, 0, "agent error removed");
+        Progress(b, "\\033]9;4;0\\007", TerminalProgressState.None, 0, "plain progress removed");
+        app.State.SetTerminalAgent(agentRef, null);
+        Until(() => app.Workbench.State.Current.TerminalAgents.All(agent => agent.Terminal != agentRef));
+
         // Notifications: only while their terminal is out of view.
         Require(app.Workbench.Focused, "The fixture's window is focused.");
         View(a).Run("printf '\\033]9;Visible\\007'");
