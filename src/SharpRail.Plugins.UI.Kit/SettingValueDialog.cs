@@ -26,6 +26,9 @@ public sealed record SettingValueDialogOptions(string NamePrefix, string Setting
     /// <summary>The closed set of values a key accepts, offered as segments instead of a free field.</summary>
     public Func<string, IReadOnlyList<string>?>? Choices { get; init; }
 
+    /// <summary>Known values for a text key, offered as chips that fill the field, which still accepts any text.</summary>
+    public Func<string, IReadOnlyList<string>?>? Suggestions { get; init; }
+
     /// <summary>The shape a key is declared with, which hides the shape switch.</summary>
     public Func<string, ValueShape?>? ShapeFor { get; init; }
 
@@ -144,7 +147,14 @@ public static class SettingValueDialog
                     FontFamily = Ui.CodeFont
                 };
                 AutomationProperties.SetName(input, "Setting key");
-                input.TextChanged += (_, _) => { key = input.Text ?? ""; if (options.ShapeFor?.Invoke(key.Trim()) is { } declared && declared != shape) { shape = declared; RenderValue(); } else Validate(); };
+                input.TextChanged += (_, _) =>
+                {
+                    var before = options.Suggestions?.Invoke(key.Trim());
+                    key = input.Text ?? "";
+                    if (options.ShapeFor?.Invoke(key.Trim()) is { } declared && declared != shape) { shape = declared; RenderValue(); }
+                    else if (!ReferenceEquals(before, options.Suggestions?.Invoke(key.Trim()))) RenderValue();
+                    else Validate();
+                };
                 fields.Children.Add(input);
                 focusFirst = input;
             }
@@ -203,6 +213,19 @@ public static class SettingValueDialog
                     var field = new TextBox { Name = prefix + "ValueText", Text = text, FontFamily = Ui.CodeFont };
                     AutomationProperties.SetName(field, "Value");
                     field.TextChanged += (_, _) => { text = field.Text ?? ""; Validate(); };
+                    if (shape == ValueShape.Text && options.Suggestions?.Invoke(key.Trim()) is { Count: > 0 } suggested)
+                    {
+                        var chips = new WrapPanel { Name = prefix + "ValueSuggestions" };
+                        foreach (var option in suggested)
+                        {
+                            var chip = Ui.Segment(prefix + "ValueSuggestion_" + option, option);
+                            chip.IsChecked = text == option;
+                            chip.Margin = new Thickness(0, 0, 8, 4);
+                            chip.Click += (_, _) => { text = option; RenderValue(); };
+                            chips.Children.Add(chip);
+                        }
+                        valueArea.Children.Add(chips);
+                    }
                     valueArea.Children.Add(field);
                     break;
             }

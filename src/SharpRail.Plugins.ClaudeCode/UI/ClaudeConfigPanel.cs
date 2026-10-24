@@ -623,7 +623,12 @@ internal sealed class ClaudeConfigPanel : DockPanel
     {
         if (ClaudeParts.Owner(this) is not { } owner) return;
         var composed = await SettingValueDialog.ShowAsync(owner,
-            new("Claude", key, value, knownKeys, "Review the change") { KeyPlaceholder = "permissions.defaultMode" });
+            new("Claude", key, value, knownKeys, "Review the change")
+            {
+                KeyPlaceholder = "permissions.defaultMode",
+                Suggestions = ClaudeSettingSuggestions.For,
+                ShapeFor = ClaudeSettingSuggestions.ShapeFor
+            });
         if (composed is not { } result) return;
         Edit(new(new SettingEdit(result.Key, result.Value), key.Length == 0 ? $"Add \"{result.Key}\"" : $"Change \"{result.Key}\""));
     }

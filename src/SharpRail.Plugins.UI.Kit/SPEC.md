@@ -87,7 +87,8 @@ publish toggle automation changes without requesting another update.
   - `Visualization.ZoomGesture` shares the fork's zoom bounds, toolbar step, Control/Command detection
     and bounded wheel delta math; Avalonia's upward-positive line delta is converted to pixels.
   - `ScopedSetting` provides configuration scope/source rows and their filter toolbar;
-    `SettingValueDialog` composes typed setting values. Agent account and terminal components
+    `SettingValueDialog` composes typed setting values, with either a closed set of choices or open
+    suggestions shown as chips over a text field that accepts any value. Agent account and terminal components
     live in `SharpRail.Plugins.Agent.UI`, which depends on this kit.
   - `SvgAsset` can tint `currentColor` from a shared solid brush and reloads on theme changes while
     attached. Mounted icons with identical byte-array assets and tint share a parsed SVG; the last

@@ -4,6 +4,7 @@ using System.Text.Json;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
@@ -266,11 +267,88 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => compose.IsCompleted);
         Require(compose.GetAwaiter().GetResult() is { Key: "model", Value: var composed } && composed.GetString() == "opus",
             "The value composer opens as an owned dialog and returns the edited value for review.");
+        SuggestedSettingValues(app);
+        ScopeChoices(app);
         if (!OperatingSystem.IsWindows()) LaunchedSession(app, directory, launcher);
         app.State.ChangeAsync([HostStateChange.PluginEnabled("claude-code", false)]).AsTask().GetAwaiter().GetResult();
         E2eWorkspace.Until(() => !registry.Active.Contains("claude-code") && registry.LauncherList.All(candidate => candidate.Id != "claude"));
         Require(registry.SideTool(ClaudeCodeManifest.ConfigTool) is null, "Disabling removes Claude controls and launcher together.");
         Console.WriteLine("PASS Claude Code UI: enable, configuration pane, model launcher, compiled settings and disable");
+    }
+
+    /// <summary>
+    /// Keys with a documented closed value set offer those values as chips, while the field still saves any string;
+    /// a wildcard pattern matches one key segment, and a documented boolean is composed as on/off and written unquoted.
+    /// </summary>
+    private static void SuggestedSettingValues(E2eWorkspace app)
+    {
+        Window Composer() => app.Window.OwnedWindows.Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
+        T Named<T>(string name) where T : Control => Composer().GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
+        (string Key, JsonElement Value)? Compose(string key, JsonElement? value, Action fill)
+        {
+            var shown = SettingValueDialog.ShowAsync(app.Window, new("ClaudeCheck", key, value, ["permissions.defaultMode", "alwaysThinkingEnabled"], "Review change")
+            {
+                Suggestions = ClaudeSettingSuggestions.For,
+                ShapeFor = ClaudeSettingSuggestions.ShapeFor
+            });
+            E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
+            fill();
+            E2eWorkspace.Settle();
+            app.Click(Named<Button>("ClaudeCheckValueContinue"), freshGesture: false);
+            E2eWorkspace.Until(() => shown.IsCompleted);
+            return shown.GetAwaiter().GetResult();
+        }
+
+        string[] offered = [];
+        var picked = Compose("permissions.defaultMode", JsonSerializer.SerializeToElement("default"), () =>
+        {
+            offered = [.. Named<WrapPanel>("ClaudeCheckValueSuggestions").Children.OfType<Control>().Select(chip => chip.Name!["ClaudeCheckValueSuggestion_".Length..])];
+            app.Click(Named<ToggleButton>("ClaudeCheckValueSuggestion_acceptEdits"), freshGesture: false);
+        });
+        Require(new[] { "default", "acceptEdits", "plan", "auto", "dontAsk", "bypassPermissions" }.All(offered.Contains)
+            && picked is { Value: { ValueKind: JsonValueKind.String } chosen } && chosen.GetString() == "acceptEdits",
+            "The permission mode composer offers the documented modes and a tapped one is saved as a string.");
+        var custom = Compose("permissions.defaultMode", JsonSerializer.SerializeToElement("plan"), () => Named<TextBox>("ClaudeCheckValueText").Text = "someFutureMode");
+        Require(custom is { Value: { ValueKind: JsonValueKind.String } typed } && typed.GetString() == "someFutureMode",
+            "A value outside the suggestions still saves as typed.");
+        Require(ClaudeSettingSuggestions.For("modelSettings.claude-opus-4-8.effortLevel") is { } levels && levels.Contains("xhigh")
+            && ClaudeSettingSuggestions.For("modelSettings.effortLevel") is null && ClaudeSettingSuggestions.For("someUnknownKey") is null,
+            "A wildcard pattern matches exactly one key segment; unknown keys get no suggestions.");
+        var flag = Compose("", null, () =>
+        {
+            Named<AutoCompleteBox>("ClaudeCheckValueKey").Text = "alwaysThinkingEnabled";
+            E2eWorkspace.Settle();
+            app.Click(Named<Button>("ClaudeCheckValueSwitch"), freshGesture: false);
+        });
+        Require(flag is { Key: "alwaysThinkingEnabled", Value.ValueKind: JsonValueKind.True },
+            "A documented boolean key is composed as on/off and returned as a JSON boolean.");
+        Console.WriteLine("PASS Claude setting suggestions: documented values offered, custom text kept, wildcard keys, typed booleans");
+    }
+
+    /// <summary>
+    /// The edit dialog names the third scope "local", marks each option with the same scope chip the pane uses, and
+    /// shows each option's description whole inside its option.
+    /// </summary>
+    private static void ScopeChoices(E2eWorkspace app)
+    {
+        // Choosing a scope would ask the host for a plan; this only inspects the options, so no context is needed.
+        _ = ReviewDialogs.EditAsync(null!, app.Window, "check", null, new(new SettingEdit("model", JsonSerializer.SerializeToElement("opus")), "Change \"model\""));
+        E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(dialog => Equals(dialog.Tag, "ClaudeEditDialog")));
+        var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "ClaudeEditDialog"));
+        E2eWorkspace.Settle();
+        var options = dialog.GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("ClaudeEditScope_", StringComparison.Ordinal) == true).ToArray();
+        Require(options.Length == 3 && options.All(option =>
+            {
+                var scope = option.Name!["ClaudeEditScope_".Length..];
+                var chip = option.GetLogicalDescendants().OfType<Border>().SingleOrDefault(border => border.Name == "ClaudeScopeChip");
+                var description = option.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "ClaudeEditScopeDescription");
+                var at = description.TranslatePoint(new(0, 0), option)!.Value;
+                return chip is not null && Equals(chip.Tag, scope) && at.Y >= 0 && at.Y + description.Bounds.Height <= option.Bounds.Height + 0.5;
+            }) && options.Any(option => option.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Local project settings")),
+            "Each scope option carries its scope chip, the third is called local, and its description fits inside the option.");
+        dialog.Close();
+        E2eWorkspace.Until(() => !app.Window.OwnedWindows.Any(window => Equals(window.Tag, "ClaudeEditDialog")));
+        Console.WriteLine("PASS Claude edit scopes: local wording, scope chips, descriptions unclipped");
     }
 
     /// <summary>

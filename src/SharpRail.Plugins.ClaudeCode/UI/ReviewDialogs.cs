@@ -24,7 +24,7 @@ internal static class ReviewDialogs
     {
         ClaudeWritableScope.User => "Your settings",
         ClaudeWritableScope.Project => "Project settings",
-        _ => "Project settings, private"
+        _ => "Local project settings"
     };
 
     /// <summary>
@@ -69,8 +69,14 @@ internal static class ReviewDialogs
             foreach (var candidate in ClaudeValues.EditScopes(pending.Edit))
             {
                 var content = new StackPanel { Spacing = 2 };
-                content.Children.Add(Ui.Text(ScopeLabel(candidate), scope == candidate ? Ui.TextBrush : Ui.Muted, 13));
-                content.Children.Add(Ui.Text("Affects " + ClaudeValues.ScopeWording(candidate), Ui.Hint, 12));
+                var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+                title.Children.Add(Ui.Text(ScopeLabel(candidate), scope == candidate ? Ui.TextBrush : Ui.Muted, 13));
+                title.Children.Add(ClaudeParts.ScopeChip(candidate.Name()));
+                content.Children.Add(title);
+                var description = Ui.Text("Affects " + ClaudeValues.ScopeWording(candidate), Ui.Hint, 12);
+                description.Name = "ClaudeEditScopeDescription";
+                description.TextWrapping = TextWrapping.Wrap;
+                content.Children.Add(description);
                 var button = new Button
                 {
                     Name = "ClaudeEditScope_" + candidate.Name(),
@@ -78,7 +84,10 @@ internal static class ReviewDialogs
                     Content = content,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     HorizontalContentAlignment = HorizontalAlignment.Left,
-                    Padding = new Thickness(12, 8),
+                    Padding = new Thickness(12, 6),
+                    // The theme's fixed button height would clip the description line.
+                    Height = double.NaN,
+                    MinHeight = 0,
                     Background = scope == candidate ? Ui.PrimarySubtle : Brushes.Transparent,
                     BorderBrush = scope == candidate ? Ui.PrimaryMuted : Ui.BorderBrush,
                     BorderThickness = new Thickness(1),

@@ -280,6 +280,8 @@ SharpRail.Plugins.UI.Kit.SettingValueDialogOptions
 SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.<Clone>$() -> SharpRail.Plugins.UI.Kit.SettingValueDialogOptions!
 SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Choices.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>?>?
 SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Choices.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Suggestions.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>?>?
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Suggestions.init -> void
 SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.CurrentValue.get -> System.Text.Json.JsonElement?
 SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.CurrentValue.init -> void
 SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Deconstruct(out string! NamePrefix, out string! SettingKey, out System.Text.Json.JsonElement? CurrentValue, out System.Collections.Generic.IReadOnlyList<string!>! KnownKeys, out string! SubmitLabel) -> void

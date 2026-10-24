@@ -156,6 +156,17 @@ instructions, `AGENTS.md` when a directory has no `CLAUDE.md`, local instruction
 memory and appended prompt files. Capabilities include MCP servers, plugins, skills, agents, hooks
 and marketplaces with provenance, disabled sources and discovery problems.
 
+The Settings value composer suggests documented values for keys whose value set is closed
+(`UI/ClaudeSettingSuggestions.cs`: `permissions.defaultMode`, `model` aliases, `effortLevel` and
+`modelSettings.*.effortLevel`, `theme`, `tui`, `outputStyle`, `forceLoginMethod`,
+`autoUpdatesChannel` and similar) as chips that fill the text field; the field still saves any
+string, since a newer Claude Code may accept values the table lacks. A `*` segment matches one key
+segment. Keys the schema types as boolean are composed as on/off and written unquoted; unknown keys
+keep the free shape switch. Sources, cited per row: the settings JSON schema at
+https://json.schemastore.org/claude-code-settings.json, https://code.claude.com/docs/en/model-config
+and `claude --help` (`--permission-mode` choices). The edit review names its scopes "Your settings",
+"Project settings" and "Local project settings", each with the pane's scope chip.
+
 Every mutation is composed, scoped to user/project/local, planned as a diff, reviewed and then
 applied with the plan's content hash. Changing scope invalidates its preview; stale files require a
 new review. Source links expose only discovered files and reveal JSON key paths in current editor
