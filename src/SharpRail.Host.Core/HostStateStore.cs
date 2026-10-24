@@ -164,7 +164,9 @@ public sealed partial class HostStateStore : IHostStateService
                     // Sessions end with the app, so a record whose workspace folder is gone can never resume; plugins
                     // that follow every recorded workspace would otherwise read and watch folders that no longer exist.
                     TerminalAgents = (stored.TerminalAgents ?? []).Where(agent => agent?.Terminal?.WorkspaceId is { } workspace && Directory.Exists(workspace)).ToList(),
-                    TerminalTitles = (stored.TerminalTitles ?? []).Where(title => title?.Terminal?.WorkspaceId is { } workspace && Directory.Exists(workspace)).ToList()
+                    TerminalTitles = (stored.TerminalTitles ?? []).Where(title => title?.Terminal?.WorkspaceId is { } workspace && Directory.Exists(workspace))
+                        // Program titles stored before the scanner dropped status glyphs keep their "✳ " until the program speaks again.
+                        .Select(title => title.Source == TerminalTitleSource.Program ? title with { Title = TerminalTitleScanner.Clean(TerminalTitleScanner.StripStatus(title.Title ?? "")) ?? title.Title! } : title).ToList()
                 };
             }
             else initial = seed?.Invoke() ?? new();

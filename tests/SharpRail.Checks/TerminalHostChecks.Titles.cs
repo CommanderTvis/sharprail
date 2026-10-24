@@ -26,6 +26,23 @@ internal static partial class TerminalHostChecks
             spinner == "Foo ✳ bar" && scanner.Scan("\e]0;✳Foo\a"u8, out var glued) && glued == "✳Foo",
             "Only a leading status glyph and its space leave a program title.");
         Require(scanner.Scan("\e]2;cancelled\x18\e]2;kept\a"u8, out var kept) && kept == "kept", "CAN abandons a sequence.");
+        var stored = Path.Combine(Path.GetTempPath(), "sharprail-stored-titles-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(stored);
+        try
+        {
+            File.WriteAllText(Path.Combine(stored, HostStateStore.FileName), System.Text.Json.JsonSerializer.Serialize(new
+            {
+                TerminalTitles = new object[]
+                {
+                    new { Terminal = new { WorkspaceId = stored, TabKey = "p" }, Title = "✳ Foo", Source = (int)TerminalTitleSource.Program },
+                    new { Terminal = new { WorkspaceId = stored, TabKey = "u" }, Title = "✳ Bar", Source = (int)TerminalTitleSource.User }
+                }
+            }));
+            var titles = new HostStateStore(stored).Current.TerminalTitles;
+            Require(titles.Single(title => title.Terminal.TabKey == "p").Title == "Foo" && titles.Single(title => title.Terminal.TabKey == "u").Title == "✳ Bar",
+                "A stored program title loses its status glyph on load; a stored user rename is kept verbatim.");
+        }
+        finally { Directory.Delete(stored, recursive: true); }
     }
 
     private static async Task ProgramTitles(ITerminalService terminals, IHostStateService client, HostStateStore store, string workspace, string mode)

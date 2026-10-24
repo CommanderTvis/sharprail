@@ -175,7 +175,7 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   its source. A user rename (`terminal-title`) outranks an agent's `set_title`, which outranks the program's OSC 0/2
   title; a weaker source never replaces a stronger one, so `set_title` after a rename keeps the user's name and says so.
   Program titles ride snapshots and broadcasts but are never persisted. Titles stored before sources existed load as
-  user renames. All are sent to remote clients (protocol field 4; an older host's titles read as user renames) and
+  user renames; a stored program title loses a leading status glyph on load, as the scanner does. All are sent to remote clients (protocol field 4; an older host's titles read as user renames) and
   dropped with the terminal or its project.
   A window writes each title onto the tab that shows the terminal, on a broadcast and when a workspace mounts.
 - `PendingEmigrations` holds each `workspace_emigrate` request awaiting the user (`RequestEmigrationAsync`); it rides
