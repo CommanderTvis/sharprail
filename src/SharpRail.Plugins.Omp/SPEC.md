@@ -72,6 +72,10 @@ No real omp run backs them; the checks use a fixture `omp`.
   before omp, read from Central's Pi integration (`central add pi`); without it the launch fails in the shell. Only
   Anthropic models are governed. Details and the real-run evidence are in Air Governance's SPEC; the launch line
   applies the contribution like any other.
+- Mark: the manifest icon is `asset:omp.svg`, omp's π mark from the omp.sh site header redrawn as one `currentColor`
+  path, so Settings › omp, the plugin card, the side tool, its pane tab and omp terminal tabs (workbench and Projects)
+  wear it. The launcher's icons and the start action draw it in a theme brush and follow theme changes; the kit's
+  terminal glyph stands in until the asset is read.
 
 ## Not yet
 
@@ -86,7 +90,7 @@ context, and a settings editor for omp's `config.yml` are out of this basic inte
 imports, shadowing, ignored code/e-mail tokens and offers; the profile MCP file; the version probe against a fixture
 `omp` and a missing one; zombie-safe detection; newest-session lookup; a governed launch run by a real shell against fake `omp` and `central` (proxy started, wire
 in omp's environment, arguments unchanged; none when direct; blocked without Central's Pi integration, which is only read); and end to end the
-Early badge, version, notes, nested rows, an Add offer, the start action's argv, the sign-in import against a fixture
+Early badge, version, notes, nested rows, an Add offer, the start action's argv, the omp mark (not the terminal glyph) on the start action and an omp terminal tab, the sign-in import against a fixture
 `omp` (data lands in the fixture profile, nothing else persisted, a failure shows a masked message) and the
 missing-binary state. The
 Settings › Plugins card badge is covered in `--plugins`.

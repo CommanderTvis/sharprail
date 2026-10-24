@@ -18,6 +18,7 @@ using SharpRail.Plugins.AirGovernance;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Omp;
 using SharpRail.Plugins.Omp.Host;
+using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Checks;
 
@@ -313,6 +314,8 @@ internal static class OmpChecks
 
             // The start action launches the fixture with the configured flags in its own session folder.
             E2eWorkspace.Until(() => Find<Button>(app.Window, "NewOmp").Any());
+            // The start action wears omp's own mark (the asset drawn), not the terminal glyph that stands in until it is read.
+            E2eWorkspace.Until(() => Find<Button>(app.Window, "NewOmp").First().Content is ContentControl { Tag: OmpManifest.Icon, Content: SvgAsset });
             var argv = Path.Combine(root, "fixture", "argv.txt");
             app.Click(Find<Button>(app.Window, "NewOmp").First());
             E2eWorkspace.Until(() => File.Exists(argv) && File.ReadAllText(argv).Contains("--no-lsp", StringComparison.Ordinal));
@@ -320,6 +323,8 @@ internal static class OmpChecks
             Require(args.Take(2).SequenceEqual(["--profile", "sharprail"]) && args[2] == "--session-dir" &&
                 OmpLaunch.SessionIdOf("--session-dir " + args[3]) is not null && args.Skip(4).SequenceEqual(["--model", "@smol", "--approval-mode", "write", "--advisor", "--no-lsp"]),
                 "the launch argv: " + string.Join(" ", args));
+            E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true &&
+                button.GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, OmpManifest.Icon))));
 
             // A missing binary: the pane says so with the install link, and the launcher is unavailable.
             Settings(new { command = Path.Combine(root, "nowhere", "omp"), model = "@smol", approvalMode = "write", advisor = true });
@@ -327,7 +332,7 @@ internal static class OmpChecks
             E2eWorkspace.Until(() => Find<StackPanel>(panel, "OmpMissing").Single().IsVisible);
             Require(Find<Button>(panel, "OmpInstall").Single().IsEffectivelyVisible && Find<TextBlock>(panel, "OmpMissingText").Single().Text!.Contains("not installed", StringComparison.Ordinal),
                 "the missing state offers the install link");
-            Console.WriteLine("PASS omp UI: Early badge, version, code intelligence and profile notes, nested context rows, add offer, sign-in import, launch argv, missing binary");
+            Console.WriteLine("PASS omp UI: Early badge, version, code intelligence and profile notes, nested context rows, add offer, sign-in import, launch argv, omp mark on the start action and tab, missing binary");
         }
         finally
         {

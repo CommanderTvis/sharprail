@@ -6,7 +6,6 @@ using Avalonia.Threading;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
-using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.Omp.UI;
 
@@ -42,12 +41,13 @@ public sealed class OmpUI : PluginUIModule
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
         OmpStatus? status = null;
+        OmpGlyph.Reset();
         context.SettingsSection(new("omp", OmpManifest.Icon, () => new OmpSettingsView(context)));
         context.SideTool(new("context", workspace => OmpPanel.Create(context, workspace)));
         context.Launcher(new AgentLauncher(OmpManifest.Id, "omp", OmpManifest.Icon, options => LaunchLine(context, options),
             () => status is { Installed: false } ? new(false, "omp is not installed; see " + OmpLaunch.InstallUrl) : new(true))
         {
-            CreateIcon = (size, color) => Ui.Icon(OmpManifest.Icon, color ?? Ui.Muted, size),
+            CreateIcon = (size, color) => new OmpGlyph(context, size, color as ISolidColorBrush),
             Models = () => [.. OmpLaunch.ModelSuggestions.Select(model => new LauncherModel(model, model))]
         });
         context.WorkspaceAction(new WorkspaceScopedActionRegistration("omp-launch", (workspace, group) =>
@@ -55,7 +55,7 @@ public sealed class OmpUI : PluginUIModule
             var button = new Button
             {
                 Name = "NewOmp",
-                Content = Ui.Icon(OmpManifest.Icon, Ui.Muted, 16),
+                Content = new OmpGlyph(context, 16),
                 Width = 32,
                 Height = 32,
                 Padding = new Thickness(8),
