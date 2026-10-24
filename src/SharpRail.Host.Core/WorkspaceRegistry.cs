@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Core.Language;
 
 namespace SharpRail.Host.Core;
 
@@ -113,7 +114,7 @@ public sealed partial class ProjectServices
         // Off the create's critical path: the workspace is usable now, and the clone only ever adds paths that are still absent.
         // It starts before the workspace's language servers, which wait for it (bounded) instead of restoring what it brings.
         if (path != project) _ = WorkspaceClone.StartConfigured(project, path, message => System.Diagnostics.Trace.TraceWarning(message),
-            [.. registry.LanguageCatalog.Select(server => server.Spec.PrimeWorkspaceAsync).OfType<Func<string, string, CancellationToken, Task>>()]);
+            [.. registry.LanguageCatalog.Where(server => server.Spec.PrimeWorkspaceAsync is not null).Select(server => LanguagePrime.For(server, registry.LanguageDirectory))]);
         registry.StartWorkspaceLanguages(path);
         return workspace;
     }

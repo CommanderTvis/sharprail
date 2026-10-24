@@ -11,6 +11,9 @@ public sealed partial class HostStateStore
 {
     private LanguageService? languages;
     internal bool AllowsLanguageFile(string workspace, string path) => languages?.AllowsRead(workspace, path) == true;
+    /// <summary>Where language servers keep installations, caches and per-workspace state.</summary>
+    internal string LanguageDirectory => Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language");
+
     internal LanguageService Languages
     {
         get
@@ -18,7 +21,7 @@ public sealed partial class HostStateStore
             lock (gate)
             {
                 if (languages is not null) return languages;
-                languages = new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language"),
+                languages = new(LanguageDirectory,
                     () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage, LanguageServerSpecs)
                 { DeathObserved = PublishLanguageDeath, GlobalProvider = () => Current.Settings.JavaKotlinProvider, ToolPaths = () => Current.Settings.LanguageTools, Limits = CurrentLanguageLimits };
                 WorkspaceRemoved += workspace => _ = languages.CloseWorkspaceAsync(workspace);

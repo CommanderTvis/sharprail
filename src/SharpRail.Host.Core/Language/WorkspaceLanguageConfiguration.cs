@@ -51,23 +51,24 @@ internal static class WorkspaceLanguageConfiguration
         return (JsonObject)Visit(JsonNode.Parse(supplied.GetRawText()))!;
     }
 
-    internal static JsonObject Initialization(WorkspaceLanguageOptions options, string workspace, string server, IReadOnlyList<string>? manifests = null, string storage = "", LanguageLog? log = null)
+    internal static JsonObject Initialization(WorkspaceLanguageOptions options, string workspace, string server, IReadOnlyList<string>? manifests = null, string storage = "", LanguageLog? log = null, string sessionDirectory = "")
     {
         var result = options.InitializationOptions is { } supplied ? ExpandObject(supplied, workspace) : new JsonObject();
         if (LanguageServers.Known(server) is not { } known) return result;
         known.Spec.DefaultInitialization(result);
-        known.Spec.ConfigureInitialization(new Start(options, workspace, known, manifests ?? [], storage, log), result);
+        known.Spec.ConfigureInitialization(new Start(options, workspace, known, manifests ?? [], storage, log, sessionDirectory), result);
         return result;
     }
 
     /// <summary>What a provider's initialization hook reads (H21).</summary>
-    private sealed class Start(WorkspaceLanguageOptions options, string workspace, LanguageServer server, IReadOnlyList<string> manifests, string storage, LanguageLog? log) : ILanguageServerStart
+    private sealed class Start(WorkspaceLanguageOptions options, string workspace, LanguageServer server, IReadOnlyList<string> manifests, string storage, LanguageLog? log, string sessionDirectory) : ILanguageServerStart
     {
         public string Workspace => workspace;
         public LanguageServerWorkspaceOptions Options { get; } = Typed(options);
         public IReadOnlyList<string> Manifests => manifests;
         public string WorkspaceState { get; } = storage.Length == 0 ? "" : Path.Combine(storage, "workspaces", LanguageServers.Key(workspace), server.Id);
         public string ServerCache { get; } = storage.Length == 0 ? "" : Path.Combine(storage, "cache", server.Id, server.Version);
+        public string SessionDirectory => sessionDirectory;
         public string FullPath(string value) => WorkspaceLanguageConfiguration.FullPath(value, workspace);
         public string Expand(string value) => WorkspaceLanguageConfiguration.Expand(value, workspace);
         public (string Path, string Source) ResolveProjectJdk(string configured) => ProjectJava.Resolve(workspace, configured);

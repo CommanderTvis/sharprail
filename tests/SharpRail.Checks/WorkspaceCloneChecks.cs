@@ -17,6 +17,7 @@ internal static class WorkspaceCloneChecks
     {
         IsolatedGit.ForProcess();
         await ClangdIndex(root);
+        await IntelliJIndex(root);
         var fixture = Path.Combine(root, "workspace-clone");
         var source = IsolatedGit.Repository(Path.Combine(fixture, "main"), (".gitignore", "obj/\nbin/\n.tools/\nnode_modules/\n.venv/\n"));
         foreach (var (path, text) in new[] { ("src/App/App.cs", "class App {}\n"), ("tracked/bin/keep.txt", "tracked\n") })
@@ -146,6 +147,48 @@ internal static class WorkspaceCloneChecks
     }
 
     // A new workspace gets the source checkout's clangd shards renamed and rewritten for its own paths, through the primer the host runs after the clone.
+    // The IntelliJ primer copies the source's session index only when it is idle, and a launch claims it as its own index.
+    private static async Task IntelliJIndex(string root)
+    {
+        var fixture = Path.Combine(root, "intellij-prime");
+        try
+        {
+            var storage = Path.Combine(fixture, "language");
+            var source = Path.Combine(fixture, "main");
+            var target = Path.Combine(fixture, "work");
+            Directory.CreateDirectory(target);
+            var spec = new SharpRail.Plugins.Lsp.IntelliJ.IntelliJPlugin().Spec;
+            var primer = SharpRail.Host.Core.Language.LanguagePrime.For(SharpRail.Host.Core.Language.LanguageServers.Wrap([spec]).Single(), storage);
+            var sourceState = Path.Combine(storage, "workspaces", SharpRail.Host.Core.Language.LanguageServers.Key(source), "intellij");
+            var targetState = Path.Combine(storage, "workspaces", SharpRail.Host.Core.Language.LanguageServers.Key(target), "intellij");
+            var index = Path.Combine(sourceState, "session", "index");
+            var files = new[] { "rocks/v1/CURRENT", "rocks/v1/000001.sst", "workspace-model-v2.cache" };
+            foreach (var file in files)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(index, file))!);
+                File.WriteAllText(Path.Combine(index, file), file);
+            }
+            await primer(source, target, default);
+            Require(!Directory.Exists(Path.Combine(targetState, "primed-index")), "An index written moments ago may be mid-write and is not copied.");
+            foreach (var file in files) File.SetLastWriteTimeUtc(Path.Combine(index, file), DateTime.UtcNow.AddMinutes(-1));
+            await primer(source, target, default);
+            var primed = Path.Combine(targetState, "primed-index");
+            Require(files.All(file => File.ReadAllText(Path.Combine(primed, file)) == file), "The idle session index is copied whole into the target's state.");
+            Require(Directory.GetDirectories(targetState).SequenceEqual([primed]), "No partial copy is left behind.");
+            File.WriteAllText(Path.Combine(primed, "rocks/v1/CURRENT"), "kept");
+            await primer(source, target, default);
+            Require(File.ReadAllText(Path.Combine(primed, "rocks/v1/CURRENT")) == "kept", "An existing primed index is never replaced.");
+            var session = Path.Combine(targetState, "launch");
+            var options = SharpRail.Host.Core.Language.WorkspaceLanguageConfiguration.Initialization(new(), target, "intellij", storage: storage, sessionDirectory: session);
+            Require(options["indexDir"]!.ToString() == Path.Combine(session, "index") && File.ReadAllText(Path.Combine(session, "index", "rocks/v1/CURRENT")) == "kept" && !Directory.Exists(primed),
+                "The first launch claims the primed index as its own indexDir.");
+            var next = Path.Combine(targetState, "relaunch");
+            options = SharpRail.Host.Core.Language.WorkspaceLanguageConfiguration.Initialization(new(), target, "intellij", storage: storage, sessionDirectory: next);
+            Require(options["indexDir"]!.ToString() == Path.Combine(next, "index") && !Directory.Exists(Path.Combine(next, "index")), "A later launch without a primed index starts its own.");
+        }
+        finally { if (Directory.Exists(fixture)) Directory.Delete(fixture, true); }
+    }
+
     private static async Task ClangdIndex(string root)
     {
         var fixture = Path.Combine(root, "clangd-prime");
@@ -162,7 +205,8 @@ internal static class WorkspaceCloneChecks
             File.WriteAllBytes(Path.Combine(index, own), Shard("file://" + file, "-I" + source + "/include", "/usr/include/stdio.h", source + "-other/x.c"));
             File.WriteAllBytes(Path.Combine(index, "stray.c.0000000000000000.idx"), Shard("file://" + Path.Combine(source, "native", "stray.c")));
             File.WriteAllBytes(Path.Combine(index, "broken.c.0000000000000000.idx"), [1, 2, 3]);
-            var primed = new SharpRail.Plugins.Lsp.Clangd.ClangdPlugin().Spec.PrimeWorkspaceAsync!;
+            var prime = new SharpRail.Plugins.Lsp.Clangd.ClangdPlugin().Spec.PrimeWorkspaceAsync!;
+            Func<string, string, CancellationToken, Task> primed = (from, to, token) => prime(new SharpRail.Host.Core.Language.LanguagePrime(from, to, "", ""), token);
             await WorkspaceClone.StartConfigured(source, target, primers: [primed]);
             var written = Directory.GetFiles(Path.Combine(target, "native", ".cache/clangd/index"));
             var expected = Path.Combine(target, "native", ".cache/clangd/index", SharpRail.Plugins.Lsp.Clangd.ClangdIndexPrimer.ShardName(Path.Combine(target, "native", "a.c")));

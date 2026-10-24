@@ -4,7 +4,7 @@ using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Plugins.Lsp;
 
-/// <summary>The initialization the JetBrains JVM servers share; the Kotlin plugin keeps the same copy, since plugins never reference each other.</summary>
+/// <summary>The initialization the JetBrains JVM servers share; the Kotlin plugin keeps its own copy, without the index directory, since plugins never reference each other.</summary>
 internal static class JvmInitialization
 {
     internal static void Configure(ILanguageServerStart start, JsonObject result)
@@ -16,6 +16,9 @@ internal static class JvmInitialization
         result["runMainCodeLens"] = false;
         if (!result.ContainsKey("projects") || result["projects"] is JsonObject { Count: 0 }) result["projects"] = new JsonArray();
         if (result["projects"] is not JsonArray) throw new ArgumentException("IntelliJ initialization projects must be an array.");
+        // The launch's own index, seeded by a primed copy when the workspace was created from a checkout with a running session.
+        if (!result.ContainsKey("indexDir") && start.SessionDirectory.Length > 0 && start.WorkspaceState.Length > 0)
+            result["indexDir"] = IntelliJ.IntelliJIndexPrimer.Claim(start.WorkspaceState, start.SessionDirectory);
         if (options.BuildTool.Length > 0) result["buildTools"] = new JsonObject { [new Uri(workspace + Path.DirectorySeparatorChar).AbsoluteUri.TrimEnd('/')] = options.BuildTool };
         if (options.ProjectJdk.Length > 0 || !result.ContainsKey("defaultSdk"))
         {

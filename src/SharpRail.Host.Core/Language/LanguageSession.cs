@@ -71,7 +71,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         options ??= new();
         log ??= new();
         var model = LanguageProjectModel.Discover(workspace, server, token, options);
-        var initialization = WorkspaceLanguageConfiguration.Initialization(options, workspace, server.Id, model.Manifests, storage ?? "", log);
+        var initialization = WorkspaceLanguageConfiguration.Initialization(options, workspace, server.Id, model.Manifests, storage ?? "", log, sessionDirectory ?? "");
         var session = new LanguageSession(start, workspace, server, options, log, onExit) { ownedCache = sessionDirectory };
         session.projectModel = model;
         session.projectLoading = server.Spec.ProjectLoadedNotification.Length > 0 && server.Spec.LoadsProjects(initialization) && session.projectModel.Manifests.Length > 0;

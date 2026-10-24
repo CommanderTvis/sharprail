@@ -411,7 +411,7 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.Artifacts.get -> System.Collection
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Artifacts.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ConfigureLaunch.get -> System.Action<SharpRail.Plugins.Api.Host.ILanguageServerInstallation!, SharpRail.Plugins.Api.Host.LanguageServerLaunchEdit!>!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ConfigureLaunch.init -> void
-SharpRail.Plugins.Api.Host.LanguageServerSpec.PrimeWorkspaceAsync.get -> System.Func<string!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.PrimeWorkspaceAsync.get -> System.Func<SharpRail.Plugins.Api.Host.ILanguageServerPrime!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
 SharpRail.Plugins.Api.Host.LanguageServerSpec.PrimeWorkspaceAsync.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Executable.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Executable.init -> void
@@ -517,6 +517,11 @@ SharpRail.Plugins.Api.Host.ILanguageServerSession.SupportsCommand(string! comman
 SharpRail.Plugins.Api.Host.ILanguageServerSession.Track(string! key, string! describe, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! work) -> void
 SharpRail.Plugins.Api.Host.ILanguageServerSession.Workspace.get -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart
+SharpRail.Plugins.Api.Host.ILanguageServerPrime
+SharpRail.Plugins.Api.Host.ILanguageServerPrime.Source.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerPrime.SourceState.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerPrime.Target.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerPrime.TargetState.get -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.Expand(string! value) -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.FullPath(string! value) -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.Log(string! category, string! text) -> void
@@ -524,6 +529,7 @@ SharpRail.Plugins.Api.Host.ILanguageServerStart.Manifests.get -> System.Collecti
 SharpRail.Plugins.Api.Host.ILanguageServerStart.Options.get -> SharpRail.Plugins.Api.Host.LanguageServerWorkspaceOptions!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.ResolveProjectJdk(string! configured) -> (string! Path, string! Source)
 SharpRail.Plugins.Api.Host.ILanguageServerStart.ServerCache.get -> string!
+SharpRail.Plugins.Api.Host.ILanguageServerStart.SessionDirectory.get -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.Workspace.get -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.WorkspaceState.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerExpiredException

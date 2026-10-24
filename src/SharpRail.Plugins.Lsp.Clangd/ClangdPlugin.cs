@@ -63,7 +63,7 @@ public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
             if (start.Options.CompilationDatabasePath.Length > 0) options["compilationDatabasePath"] = start.FullPath(start.Options.CompilationDatabasePath);
         },
         // Reuses the source checkout's background index; see ClangdIndexPrimer.
-        PrimeWorkspaceAsync = (source, target, cancellationToken) => Task.Run(() => ClangdIndexPrimer.Prime(source, target, cancellationToken), cancellationToken),
+        PrimeWorkspaceAsync = (prime, cancellationToken) => Task.Run(() => ClangdIndexPrimer.Prime(prime.Source, prime.Target, cancellationToken), cancellationToken),
         ProjectKind = manifest => Path.GetFileName(manifest) switch { "CMakeLists.txt" => "CMake project", "compile_commands.json" => "Compilation database", _ => null }
     };
 

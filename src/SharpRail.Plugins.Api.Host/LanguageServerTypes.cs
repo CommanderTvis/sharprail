@@ -293,11 +293,12 @@ public sealed class LanguageServerSpec
     public Action<ILanguageServerInstallation, LanguageServerLaunchEdit> ConfigureLaunch { get; init; } = (_, _) => { };
 
     /// <summary>
-    /// Seeds a newly created workspace (second argument) with the server's per-checkout state, such as an index, from the
-    /// checkout it was created from (first argument). The host runs it in the background before the workspace's servers
-    /// start, which wait for it (bounded); it must never replace what the workspace already has, and failures are ignored.
+    /// Seeds a newly created workspace (<see cref="ILanguageServerPrime.Target"/>) with the server's per-checkout state, such
+    /// as an index, from the checkout it was created from (<see cref="ILanguageServerPrime.Source"/>). The host runs it in the
+    /// background before the workspace's servers start, which wait for it (bounded); it must never replace what the
+    /// workspace already has, and failures are ignored.
     /// </summary>
-    public Func<string, string, CancellationToken, Task>? PrimeWorkspaceAsync { get; init; }
+    public Func<ILanguageServerPrime, CancellationToken, Task>? PrimeWorkspaceAsync { get; init; }
 
     /// <summary>A PATH executable to try when none is found, such as one located by a toolchain driver.</summary>
     public Func<ILanguageServerInstallation, CancellationToken, Task<string?>>? FindFallbackAsync { get; init; }
@@ -446,6 +447,22 @@ public sealed record LanguageServerIcon(byte[] Data, string Format)
 public sealed record LanguageServerWorkspaceOptions(IReadOnlyList<string> IncludePaths, IReadOnlyList<string> CompilerFlags, string CompilationDatabasePath,
     string InstallationPath, string ProjectJdk, string BuildTool, IReadOnlyCollection<string> InitializationSupplied);
 
+/// <summary>The checkouts and this server's per-workspace state directories that <see cref="LanguageServerSpec.PrimeWorkspaceAsync"/> works with.</summary>
+public interface ILanguageServerPrime
+{
+    /// <summary>The absolute checkout the workspace was created from.</summary>
+    string Source { get; }
+
+    /// <summary>The absolute new workspace.</summary>
+    string Target { get; }
+
+    /// <summary>The server's per-workspace state directory for <see cref="Source"/> (<see cref="ILanguageServerStart.WorkspaceState"/>); it may not exist.</summary>
+    string SourceState { get; }
+
+    /// <summary>The server's per-workspace state directory for <see cref="Target"/>; it may not exist.</summary>
+    string TargetState { get; }
+}
+
 /// <summary>What the host lends <see cref="LanguageServerSpec.ConfigureInitialization"/> while it builds a session's initialization options.</summary>
 public interface ILanguageServerStart
 {
@@ -463,6 +480,9 @@ public interface ILanguageServerStart
 
     /// <summary>This server version's own cache directory, shared across workspaces; empty outside a session start.</summary>
     string ServerCache { get; }
+
+    /// <summary>The launch's own directory (<see cref="ILanguageServerInstallation.SessionDirectory"/>), removed when the session ends; empty outside a session start.</summary>
+    string SessionDirectory { get; }
 
     /// <summary>Expands <c>${workspaceFolder}</c> and makes a path absolute against the workspace.</summary>
     /// <param name="value">The saved path.</param>

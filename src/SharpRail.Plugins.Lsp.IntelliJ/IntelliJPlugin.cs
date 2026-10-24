@@ -50,6 +50,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         ExpiredDetail = IntelliJDistribution.Expired,
         OnExpired = IntelliJDistribution.RecordExpiry,
         ConfigureInitialization = JvmInitialization.Configure,
+        PrimeWorkspaceAsync = (prime, cancellationToken) => Task.Run(() => IntelliJIndexPrimer.Prime(prime.SourceState, prime.TargetState, cancellationToken), cancellationToken),
         InitializeTimeout = TimeSpan.FromMinutes(15),
         InitializeProgressToken = "sharprail-intellij-init",
         SourceSchemes = ["jar:", "jrt:"],
