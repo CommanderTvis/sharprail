@@ -26,7 +26,42 @@ internal sealed class TerminalLinkHighlights(Action changed) : IDisposable
     /// without links has none; otherwise the result only carries lines resolved earlier.</summary>
     internal bool Settled { get; private set; }
 
-    internal IReadOnlyList<TerminalLink> Update(string value)
+    /// <summary>
+    /// Whether a non-blank line of <paramref name="value"/>, other than line <paramref name="skip"/>, has never been
+    /// resolved, so presenting it now would show it without underlines that may follow. Reads in-memory state only.
+    /// </summary>
+    internal bool Unknown(string value, int skip)
+    {
+        if (disposed || Resolve is null || value.Length > 16384) return false;
+        var index = 0;
+        foreach (var line in value.Split('\n'))
+        {
+            var key = line.TrimEnd(' ');
+            if (index != skip && key.Length > 0 && Known(key, index == 0) is null) return true;
+            index++;
+        }
+        return false;
+    }
+
+    // A line's links by its text. The first visible row may be the tail of a line whose start scrolled away: it keeps
+    // the visible part of that line's links instead of losing them until the tail itself resolves.
+    private TerminalLink[]? Known(string key, bool first)
+    {
+        if (lines.TryGetValue(key, out var links)) return links;
+        // A short tail could end an unrelated line.
+        if (!first || key.Length < 8) return null;
+        foreach (var (whole, found) in lines)
+        {
+            if (whole.Length <= key.Length || !whole.EndsWith(key, StringComparison.Ordinal)) continue;
+            var cut = whole.Length - key.Length;
+            return [.. found.Where(link => link.Start + link.Length > cut)
+                .Select(link => link.Start >= cut ? link with { Start = link.Start - cut }
+                    : link with { Start = 0, Length = link.Start + link.Length - cut })];
+        }
+        return null;
+    }
+
+    internal IReadOnlyList<TerminalLink> Update(string value, bool immediate = false)
     {
         Settled = false;
         if (disposed || Resolve is null || value.Length > 16384) return [];
@@ -42,7 +77,7 @@ internal sealed class TerminalLinkHighlights(Action changed) : IDisposable
         if (pending is null)
         {
             var call = pending = new CancellationTokenSource();
-            _ = Find(value, call);
+            _ = Find(value, call, immediate ? 0 : 100);
         }
         return Retained(value);
     }
@@ -56,8 +91,8 @@ internal sealed class TerminalLinkHighlights(Action changed) : IDisposable
             var found = links.Where(link => link.Start >= start && link.Start + link.Length <= start + line.Length)
                 .Select(link => link with { Start = link.Start - start }).ToArray();
             // Trailing blanks are the grid's width, not the line's text: a resize keeps the line's links.
-            if (found.Length > 0) lines[line.TrimEnd(' ')] = found;
-            else lines.Remove(line.TrimEnd(' '));
+            // A line without links is remembered too, so it is known and need not wait for a resolution again.
+            lines[line.TrimEnd(' ')] = found;
             start += line.Length + 1;
         }
     }
@@ -66,20 +101,22 @@ internal sealed class TerminalLinkHighlights(Action changed) : IDisposable
     {
         var retained = new List<TerminalLink>();
         var start = 0;
+        var first = true;
         foreach (var line in value.Split('\n'))
         {
-            if (lines.TryGetValue(line.TrimEnd(' '), out var links))
+            if (Known(line.TrimEnd(' '), first) is { } links)
                 retained.AddRange(links.Select(link => link with { Start = start + link.Start }));
             start += line.Length + 1;
+            first = false;
         }
         return retained;
     }
 
-    private async Task Find(string value, CancellationTokenSource call)
+    private async Task Find(string value, CancellationTokenSource call, int delay)
     {
         try
         {
-            await Task.Delay(100, call.Token).ConfigureAwait(false);
+            if (delay > 0) await Task.Delay(delay, call.Token).ConfigureAwait(false);
             var links = await Task.Run(() => Resolve!(value, call.Token), call.Token).ConfigureAwait(false);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {

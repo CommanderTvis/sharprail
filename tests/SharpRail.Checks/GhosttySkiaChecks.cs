@@ -285,6 +285,50 @@ internal static class GhosttySkiaChecks
         finally { window.Close(); Pump(); }
     }
 
+    // A frame never shows a line without the underlines a later frame adds: new lines wait for their first
+    // resolution before they are presented, and output elsewhere keeps the underlines already shown.
+    internal static void CheckUnderlinesBeforeFrame()
+    {
+        const string url = "https://example.test/x", path = "src/Main.cs";
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var limit = GhosttySkiaView.HoldLimit;
+        GhosttySkiaView.HoldLimit = TimeSpan.FromSeconds(10);
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        view.ResolveHighlightedLinks = async (text, token) =>
+        {
+            if (text.Contains(path, StringComparison.Ordinal)) await gate.Task;
+            var links = new List<TerminalLink>();
+            foreach (var target in new[] { url, path })
+                for (var at = text.IndexOf(target, StringComparison.Ordinal); at >= 0; at = text.IndexOf(target, at + 1, StringComparison.Ordinal))
+                    links.Add(new(at, target.Length, "/project/" + target, 1, 1, false));
+            return links;
+        };
+        var window = new Window { Width = 640, Height = 320, Content = view };
+        window.Show(); Pump();
+        try
+        {
+            const string line = "see " + url + " and " + path;
+            int[] expected = [.. Enumerable.Range(4, url.Length), .. Enumerable.Range(line.Length - path.Length, path.Length)];
+            Until(() => view.Frames > 0, "first frame");
+            Pump(); Pump();
+            var frames = view.Frames;
+            view.Write(Encoding.UTF8.GetBytes("\e[?25l" + line + "\r\n")); Pump(); Pump();
+            Require(view.Frames == frames && view.HeldFrames > 0, $"a frame showed a new link line before its underlines resolved (frames {frames} to {view.Frames}, held {view.HeldFrames}).");
+            gate.SetResult();
+            Until(() => view.Frames > frames, "the link line presented once resolved");
+            Require(view.LinkCells.SequenceEqual(expected), "the first frame showing the link line lacked its underlines: [" + string.Join(", ", view.LinkCells) + "].");
+            foreach (var (output, row) in new[] { ("\e[5;1Htyped", "the cursor row"), ("\e[6;1Hother\e[8;1H", "an unrelated row") })
+            {
+                frames = view.Frames;
+                view.Write(Encoding.UTF8.GetBytes(output));
+                Until(() => view.Frames > frames, "output on " + row);
+                Require(view.LinkCells.SequenceEqual(expected), "output on " + row + " cleared the shown underlines.");
+            }
+        }
+        finally { GhosttySkiaView.HoldLimit = limit; window.Close(); Pump(); }
+        Console.WriteLine("PASS Skia terminal underlines resolve before the frame showing their line, and survive output on other rows");
+    }
+
     internal static void CheckFileLinks()
     {
         using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };

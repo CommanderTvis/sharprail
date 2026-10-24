@@ -504,7 +504,12 @@ URL to the view, which opens `file:` URLs through the terminal host's resolver a
 sends only web and other schemes to the system launcher. No explicit "Reveal in Finder" action exists.
 
 Underlines are part of the rendered frame on every renderer, so they stay on their text while output
-streams, the view scrolls or resizes. Skia marks cells of the snapshot it paints. Metal (local and
+streams, the view scrolls or resizes. Skia marks cells of the snapshot it paints, and does not present a
+snapshot while a non-blank line other than the visible cursor's has never been resolved: it keeps the previous
+rows until that resolution lands (requested without debounce) or 150 ms pass, so text never appears first and
+gains its underline a frame later. One expired wait stops waiting until a resolution lands, so streaming output is
+not throttled. Lines resolved without links are remembered as known, and a first row that is the tail of a line
+whose start scrolled away keeps the visible part of that line's links. Metal (local and
 remote) passes the underlined cells to Ghostty's renderer, which tracks them in screen coordinates and
 draws them with the cell's style in the same frame, dropping a cell whose text changed until the next
 resolution. The earlier Avalonia overlay was positioned on a 200 ms timer from whatever cell state was

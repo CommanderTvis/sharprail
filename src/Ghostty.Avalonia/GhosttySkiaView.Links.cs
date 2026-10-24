@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Threading;
 
 namespace Ghostty.Avalonia;
 
@@ -12,7 +13,12 @@ public sealed partial class GhosttySkiaView
     private TerminalLinkHover? fileHover;
     private TerminalLinkHover FileHover => fileHover ??= new(() => Redraw(false));
     private TerminalLinkHighlights? highlights;
-    private TerminalLinkHighlights Highlights => highlights ??= new(() => Redraw(false));
+    private TerminalLinkHighlights Highlights => highlights ??= new(() => { holdSpent = false; Redraw(false); });
+    // Output whose lines have never been resolved waits up to this long for their underlines before it is shown, so
+    // a frame never shows text that a later frame underlines. One expired wait stops waiting until a resolution lands.
+    internal static TimeSpan HoldLimit { get; set; } = TimeSpan.FromMilliseconds(150);
+    private DateTime? holdSince;
+    private bool holdSpent;
     internal IReadOnlyList<(string Visible, TerminalLink Link)> HighlightedLinks => highlights?.Underlined ?? [];
     /// <summary>Resolves references to underline throughout the visible terminal, without requiring hover.</summary>
     public Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? ResolveHighlightedLinks
@@ -116,14 +122,19 @@ public sealed partial class GhosttySkiaView
         return result;
     }
 
-    private unsafe void UpdateLinks(Frame frame)
+    /// <summary>Updates link cells for <paramref name="frame"/>; true when it should not be shown yet because lines
+    /// besides the cursor's await their first resolution (see <see cref="HoldLimit"/>).</summary>
+    private unsafe bool UpdateLinks(Frame frame)
     {
         var hadLinks = linkCells.Count != 0;
         var visibleText = new StringBuilder();
         var visiblePositions = new List<int>();
+        var cursorLine = -1;
         if (highlights?.Resolve is not null)
             for (var row = 0; row < frame.Rows && visibleText.Length < 16000; row++)
             {
+                // The line being typed changes every keystroke: echo never waits for it.
+                if (frame.CursorVisible != 0 && row == frame.CursorY) cursorLine = visibleText.ToString().Count(c => c == '\n');
                 for (var column = 0; column < frame.Columns; column++)
                 {
                     var index = row * frame.Columns + column;
@@ -189,17 +200,31 @@ public sealed partial class GhosttySkiaView
                 linkCells.Add(index);
                 if (frame.Cells[index].Wide == 1 && index + 1 < frame.Columns * frame.Rows) linkCells.Add(index + 1);
             }
+        var hold = false;
         if (highlights?.Resolve is not null)
-            foreach (var link in Highlights.Update(visibleText.ToString()))
+        {
+            var value = visibleText.ToString();
+            hold = !holdSpent && Highlights.Unknown(value, cursorLine);
+            if (hold && holdSince is { } since && DateTime.UtcNow - since > HoldLimit) { hold = false; holdSpent = true; }
+            if (hold && holdSince is null)
+            {
+                holdSince = DateTime.UtcNow;
+                DispatcherTimer.RunOnce(() => { if (!disposed) Redraw(false); }, HoldLimit + TimeSpan.FromMilliseconds(10));
+            }
+            if (!hold) holdSince = null;
+            foreach (var link in Highlights.Update(value, hold))
                 foreach (var index in visiblePositions.Skip(link.Start).Take(link.Length).Where(index => index >= 0))
                 {
                     linkCells.Add(index);
                     highlightCells.TryAdd(index, link);
                 }
+        }
+        else holdSince = null;
         if (hadLinks || linkCells.Count != 0)
             for (var i = 0; i < frame.Columns * frame.Rows; i++)
                 frame.Cells[i].Flags = (frame.Cells[i].Flags & ~CellFlags.LinkHover) | (linkCells.Contains(i) ? CellFlags.LinkHover : 0);
         UpdatePointer();
+        return hold;
     }
 
     // A hovered link shows a hand and its target; otherwise the pointer takes the shape the program asked for with OSC 22.

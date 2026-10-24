@@ -34,6 +34,8 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     private TerminalRowPicture[] rows = [];
     private (CellFonts? Fonts, TerminalColors Colors, Size Size, Thickness Padding) rowLayout;
     internal int RowsRecorded { get; private set; }
+    /// <summary>Renders that kept the previous rows while new lines' underlines resolved, for checks.</summary>
+    internal int HeldFrames { get; private set; }
     internal bool IsGpuBacked => framebuffer.IsGpuBacked;
     private bool stale = true, snapshotNeeded = true, cursorOn = true, disposed;
     private Frame last;
@@ -250,8 +252,15 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
             if (snapshotNeeded && !vt.Snapshot(out frame)) return;
             if (snapshotNeeded) failedRows = [.. vt.FailedRows().ToArray().Select(row => (int)row)];
             UpdateBlink(frame);
-            UpdateLinks(frame);
             var invalidate = rowLayout != (cells, colors, Bounds.Size, Padding);
+            // Keep presenting the previous rows while new lines' underlines resolve; the next render snapshots again.
+            if (UpdateLinks(frame) && !invalidate && rows.Length == frame.Rows && rows.All(row => row is not null))
+            {
+                last = frame;
+                HeldFrames++;
+                context.Custom(new RowOperation(new Rect(Bounds.Size), rows, framebuffer, fontKey.Scale));
+                return;
+            }
             rowLayout = (cells, colors, Bounds.Size, Padding);
             if (rows.Length != frame.Rows)
             {

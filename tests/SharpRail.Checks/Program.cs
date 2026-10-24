@@ -350,6 +350,7 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             GhosttySkiaChecks.CheckFileLinks();
             GhosttySkiaChecks.CheckHyperlinks();
+            GhosttySkiaChecks.CheckUnderlinesBeforeFrame();
             TerminalFileLinkChecks.RunUi(root);
             EditorWorkbenchChecks.FileLinkPosition(root);
             if (OperatingSystem.IsMacOS()) TerminalFileLinkChecks.RunNativeRenderers();
