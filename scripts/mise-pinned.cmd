@@ -20,7 +20,7 @@ rem delete something it never created.
 set "download_path="
 set "sums="
 
-set "pinned_version=2026.10.13"
+set "pinned_version=2026.10.19"
 set "sum_x64=f36344847831b37b56d681fcac6d61cb3cc02eba4cec11cfd39960e5dca2c143"
 set "sum_arm64=ee36fc8592f6917c4e55729f905a64304d6786e8c241e5399fcc7cf7f86fb193"
 
