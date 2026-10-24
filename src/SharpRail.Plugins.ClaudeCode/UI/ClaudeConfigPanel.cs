@@ -241,7 +241,13 @@ internal sealed class ClaudeConfigPanel : DockPanel
             var cwd = ClaudeParts.Code(TerminalFacts.CwdLabel(snapshot?.Root) ?? "…");
             cwd.Name = "ClaudeConfigScopeCwd";
             ToolTip.SetTip(cwd, snapshot?.Root ?? "Reading the directory…");
-            scopeBlock.Children.Add(cwd);
+            var folder = Ui.Icon("folder", Ui.Muted, 12);
+            folder.Margin = new Thickness(0, 0, 4, 0);
+            folder.VerticalAlignment = VerticalAlignment.Center;
+            var cwdLine = new StackPanel { Orientation = Orientation.Horizontal };
+            cwdLine.Children.Add(folder);
+            cwdLine.Children.Add(cwd);
+            scopeBlock.Children.Add(cwdLine);
         }
         else
         {
@@ -352,13 +358,9 @@ internal sealed class ClaudeConfigPanel : DockPanel
     }
 
     // Tokens as /context counts them; nothing else, since only tokens take up the window.
-    private static Control Measure(long tokens, IBrush color, string unit = " tokens")
-    {
-        var amount = ClaudeParts.Code(ClaudeContextUsageView.Tokens(tokens) + unit, color);
-        amount.Name = "ClaudeContextTokens";
-        amount.VerticalAlignment = VerticalAlignment.Center;
-        return amount;
-    }
+    // "1 token", "23.2k tokens", or "tok"/"toks" when the row is narrow.
+    private static Control Measure(long tokens, IBrush color, string suffix = "") =>
+        new TokenAmount(ClaudeContextUsageView.Tokens(tokens), tokens, color, suffix) { Name = "ClaudeContextTokens", VerticalAlignment = VerticalAlignment.Center };
 
     // Until a baseline exists there is no count to show.
     private static Control Unmeasured()
@@ -412,34 +414,38 @@ internal sealed class ClaudeConfigPanel : DockPanel
         return rows;
     }
 
-    // The same row as a file's: tokens docked right, a glyph, the name. A row with parts has a chevron in place of its
-    // glyph and opens them below it, indented a step.
+    // The same row as a file's: tokens docked right, a glyph, the name. A row with parts keeps its glyph, adds a
+    // chevron after its name and opens them below it, indented a step.
     private void AddBaselineRow(Panel list, BaselineEntry entry, int depth)
     {
         var line = new DockPanel { Name = "ClaudeContextBaseline", Tag = entry.Key, Margin = new Thickness(8 + depth * 16, 4, 8, 4), Background = Brushes.Transparent };
         line.Children.Add(SizeColumn(Measure(entry.Tokens, Ui.Muted)));
         var open = expandedRows.Contains(entry.Key);
-        Control glyph;
+        var glyph = Ui.Icon(entry.Icon, Ui.Hint, 14);
+        glyph.Margin = new Thickness(0, 0, 8, 0);
+        glyph.VerticalAlignment = VerticalAlignment.Center;
+        SetDock(glyph, Dock.Left);
+        line.Children.Add(glyph);
         if (entry.Children.Count > 0)
         {
-            glyph = new Avalonia.Controls.Shapes.Path
+            var chevron = new Avalonia.Controls.Shapes.Path
             {
                 Name = "ClaudeContextChevron",
                 Data = Geometry.Parse(open ? "M 3,5 L 7,9 L 11,5" : "M 5,3 L 9,7 L 5,11"),
                 Width = 14,
                 Height = 14,
                 Stroke = Ui.Muted,
-                StrokeThickness = 1.5
+                StrokeThickness = 1.5,
+                Margin = new Thickness(4, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
             };
             line.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand);
+            var named = new StackPanel { Orientation = Orientation.Horizontal };
+            named.Children.Add(Title(entry.Label));
+            named.Children.Add(chevron);
+            line.Children.Add(named);
         }
-        else glyph = Ui.Icon(entry.Icon, Ui.Hint, 14);
-        glyph.Margin = new Thickness(0, 0, 8, 0);
-        glyph.VerticalAlignment = VerticalAlignment.Center;
-        SetDock(glyph, Dock.Left);
-        line.Children.Add(glyph);
-        var title = Title(entry.Label);
-        line.Children.Add(title);
+        else line.Children.Add(Title(entry.Label));
         if (entry.Tip is not null) ToolTip.SetTip(line, entry.Tip);
         list.Children.Add(line);
         if (entry.Children.Count == 0) return;
@@ -452,7 +458,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             var nowOpen = !parts.IsVisible;
             if (nowOpen) expandedRows.Add(entry.Key); else expandedRows.Remove(entry.Key);
             parts.IsVisible = nowOpen;
-            ((Avalonia.Controls.Shapes.Path)glyph).Data = Geometry.Parse(nowOpen ? "M 3,5 L 7,9 L 11,5" : "M 5,3 L 9,7 L 5,11");
+            ((Avalonia.Controls.Shapes.Path)((Panel)line.Children[^1]).Children[^1]).Data = Geometry.Parse(nowOpen ? "M 3,5 L 7,9 L 11,5" : "M 5,3 L 9,7 L 5,11");
             args.Handled = true;
         };
     }
@@ -479,7 +485,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             list.Children.Add(Offer("ClaudeOfferProjectMd", "Add CLAUDE.md", "Shared instructions for everyone on this project. Commit it and it stays with the repo.",
                 () => Edit(new(new FileEdit(ClaudeFileTemplate.ProjectInstructions), "Create CLAUDE.md"))));
         if (!layers.Any(layer => layer.Path.EndsWith("CLAUDE.local.md", StringComparison.Ordinal)))
-            list.Children.Add(Offer("ClaudeOfferLocalMd", "Add CLAUDE.local.md", "Project instructions that stay on this machine, like which toolchain is installed here.",
+            list.Children.Add(Offer("ClaudeOfferLocalMd", "Add CLAUDE.local.md", "Local instructions, like which toolchain to use on this machine.",
                 () => Edit(new(new FileEdit(ClaudeFileTemplate.ProjectLocalInstructions), "Create CLAUDE.local.md"))));
         // The appended prompt is not a memory file: /context folds it into the system prompt, and the host measures it
         // as the difference against a run without it. With several appended files the first row carries their sum.
@@ -491,11 +497,14 @@ internal sealed class ClaudeConfigPanel : DockPanel
         var baseline = breakdown is null ? [] : BaselineRows(breakdown, claudePrompt);
         var total = new DockPanel { Name = "ClaudeContextTotal", Margin = new Thickness(8, 4) };
         var sum = memoryTokens.Values.Sum() + (appendedRow is not null ? appended ?? 0 : 0) + baseline.Sum(row => row.Tokens);
-        var amount = measured is null ? Unmeasured() : Measure(sum, Ui.TextBrush, " tokens at session start");
+        var amount = measured is null ? Unmeasured() : Measure(sum, Ui.TextBrush, " in new session");
         SetDock(amount, Dock.Right);
         total.Children.Add(amount);
-        total.Children.Add(Ui.Text("PERSISTENT CONTEXT", Ui.Muted, 11));
+        total.Children.Add(Ui.Text("CONTEXT", Ui.Muted, 11));
         list.Children.Add(new Border { BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 0, 1), Child = total });
+        // The appended prompt is drawn as SharpRail's instructions entry below, not as a file row.
+        var files = layers.Where(layer => !ReferenceEquals(layer, appendedRow)).ToList();
+        layers = files;
         // An @-import hangs under the file that pulled it in: a rule per ancestor level, then a tee or an elbow into the row.
         for (var index = 0; index < layers.Count; index++)
         {
@@ -523,7 +532,6 @@ internal sealed class ClaudeConfigPanel : DockPanel
             }
             var line = new DockPanel { Margin = new Thickness(8, 4) };
             var size = measured is null ? Unmeasured()
-                : ReferenceEquals(layer, appendedRow) && appended is { } prompt ? Measure(prompt, Ui.Muted)
                 : memoryTokens.TryGetValue(layer.Path, out var tokens) ? Measure(tokens, Ui.Muted)
                 : layer.Lazy == true ? ClaudeParts.Code("—", Ui.Hint) : NotLoaded();
             line.Children.Add(SizeColumn(size));
@@ -546,7 +554,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             line.Children.Add(glyph);
             var column = new StackPanel();
             var title = Title(layer.Label);
-            title.Children.Add(layer.Kind == ClaudeContextKind.SystemPrompt ? ClaudeParts.LaunchFlagChip() : ClaudeParts.ScopeChip(layer.Origin.Scope.Name()));
+            title.Children.Add(ClaudeParts.ScopeChip(layer.Origin.Scope.Name()));
             if (layer.Lazy == true)
             {
                 var lazy = Ui.Text("ON DEMAND", Ui.Hint, 10);
@@ -580,12 +588,22 @@ internal sealed class ClaudeConfigPanel : DockPanel
             line.Children.Add(column);
             list.Children.Add(line);
         }
+        // SharpRail's instructions: one entry sized by the appended file, expanding to the sections the project can turn off.
+        if (appendedRow is not null || context.Settings<ClaudeCodeSettings>().AppendSystemPrompt)
+        {
+            var instructions = InstructionSections(workspaceId);
+            instructions.SetEntry(appendedRow is null ? null : measured is null ? Unmeasured() : appended is { } prompt ? Measure(prompt, Ui.Muted) : NotLoaded(),
+                appendedRow is null ? null : ClaudeParts.SourceButton(appendedRow.Path, null, OpenSource));
+            instructions.IsExpanded = expandedRows.Contains(InstructionsKey);
+            instructions.ExpandedChanged += open => { if (open) expandedRows.Add(InstructionsKey); else expandedRows.Remove(InstructionsKey); };
+            list.Children.Add(instructions);
+        }
         // What else a fresh session starts with, as /context counts it: Claude's own prompt and tools, MCP and skills.
         foreach (var entry in baseline) AddBaselineRow(list, entry, depth: 0);
-        // Sections can be turned off for the project; the instructions themselves are never edited here.
-        if (context.Settings<ClaudeCodeSettings>().AppendSystemPrompt) list.Children.Add(InstructionSections(workspaceId));
         return list;
     }
+
+    private const string InstructionsKey = "sharprail-instructions";
 
     private InstructionSectionsView InstructionSections(string workspace)
     {

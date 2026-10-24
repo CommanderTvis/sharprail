@@ -51,21 +51,6 @@ internal static class ClaudeParts
 
     public static Border ScopeChip(string scope) => ScopedSetting.ScopeChip(scope, "ClaudeScopeChip");
 
-    public static Control LaunchFlagChip()
-    {
-        var chip = new Border
-        {
-            Name = "ClaudeLaunchFlagChip",
-            Background = Ui.SuccessWash,
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(4, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = Ui.Text("LAUNCH FLAG", Ui.Success, 10)
-        };
-        ToolTip.SetTip(chip, "Passed to this session with --append-system-prompt-file");
-        return chip;
-    }
-
     public static Button SourceButton(string path, IReadOnlyList<string>? keyPath, Action<string, IReadOnlyList<string>?> open) =>
         ScopedSetting.SourcePath(path, opened => open(opened, keyPath), "ClaudeOpenSource");
 

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Avalonia.Controls;
 
 using SharpRail.Checks.E2E;
+using SharpRail.Plugins.Agent.UI;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host;
 using SharpRail.Plugins.ClaudeCode.UI;
@@ -236,6 +237,18 @@ internal static class ClaudeContextChecks
                 "A failed measurement shows a small inline error with a retry.");
         }
         finally { window.Close(); }
-        Console.WriteLine("PASS Claude Code context UI: baseline rows, MCP and skill parts, freshness note, inline error");
+        // Units: singular for one, and abbreviated where the row is narrower than the threshold.
+        static string Drawn(long tokens, string amount, double width)
+        {
+            var token = new TokenAmount(amount, tokens, Avalonia.Media.Brushes.Gray, " in new session");
+            var host = new Window { Width = width, Height = 60, Content = token };
+            host.Show();
+            try { E2eWorkspace.Settle(); return token.Text; }
+            finally { host.Close(); }
+        }
+        Require(Drawn(1, "1", 480) == "1 token in new session" && Drawn(2_500, "2.5k", 480) == "2.5k tokens in new session" &&
+            Drawn(1, "1", 200) == "1 tok in new session" && Drawn(2_500, "2.5k", 200) == "2.5k toks in new session",
+            "Token amounts say 1 token, never 1 tokens, and abbreviate to tok/toks when narrow.");
+        Console.WriteLine("PASS Claude Code context UI: baseline rows, MCP and skill parts, freshness note, inline error, token units");
     }
 }

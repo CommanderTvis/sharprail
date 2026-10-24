@@ -196,6 +196,15 @@ internal static class ClaudeCodeChecks
         // SharpRail's own instructions are chosen section by section, never edited: ticking writes the project's disable-list.
         Control? Sections() => app.Window.GetLogicalDescendants().OfType<Control>().SingleOrDefault(control => control.Name == "InstructionSections");
         CheckBox? SectionBox(string id) => Sections()?.GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
+        // They are one context entry with the PROJECT chip, not a launch-flag file row beside a separate card.
+        E2eWorkspace.Until(() => Sections() is not null);
+        Require(!app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "ClaudeLaunchFlagChip" ||
+                control.Name == "ClaudeContextLayer" && control.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("thinkrail-prompt", StringComparison.Ordinal) == true)) &&
+            Sections()!.GetLogicalDescendants().OfType<Border>().Any(chip => chip.Name == "InstructionSectionsScopeChip" && Equals(chip.Tag, "project")) &&
+            !Sections()!.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "SHARED WITH THE TEAM"),
+            "SharpRail's instructions are a single context entry with the PROJECT chip.");
+        Require(SectionBox("core.workspaces") is null, "The entry starts collapsed.");
+        app.Click(Sections()!.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "InstructionSectionsToggle"));
         E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: true, IsEnabled: true });
         Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ClaudeSystemPromptEditPane") &&
             !Sections()!.GetLogicalDescendants().OfType<TextBox>().Any() &&
@@ -206,17 +215,23 @@ internal static class ClaudeCodeChecks
         SectionBox("core.workspaces")!.IsChecked = false;
         E2eWorkspace.Until(() => File.Exists(instructionsFile) && File.ReadAllText(instructionsFile).Contains("\"core.workspaces\"", StringComparison.Ordinal));
         E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: false, IsEnabled: true });
-        var preview = Sections()!.GetLogicalDescendants().OfType<Expander>().Single(expander => expander.Name == "InstructionSectionPreview" && Equals(expander.Tag, "core.workspaces"));
-        preview.IsExpanded = true;
+        // Each section is compact: no preview box and no visible identifier, only a summary that discloses the text.
+        Require(!Sections()!.GetLogicalDescendants().OfType<Expander>().Any() &&
+            !Sections()!.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.IsEffectivelyVisible && text.Text is "core.workspaces" or "Preview") &&
+            Equals(ToolTip.GetTip(SectionBox("core.workspaces")!), "core.workspaces"),
+            "A section shows no Preview control and keeps its identifier to the tooltip.");
+        SelectableTextBlock SectionText() => Sections()!.GetLogicalDescendants().OfType<SelectableTextBlock>().Single(text => text.Name == "InstructionSectionText" && Equals(text.Tag, "core.workspaces"));
+        Require(!SectionText().IsVisible, "A section's text starts hidden behind its summary.");
+        app.Click(Sections()!.GetLogicalDescendants().OfType<ToggleButton>().Single(toggle => toggle.Name == "InstructionSectionDisclosure" && Equals(toggle.Tag, "core.workspaces")));
         E2eWorkspace.Settle();
-        Require(preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Name == "InstructionSectionText" && text.Text?.Contains("`workspace_create`", StringComparison.Ordinal) == true),
-            "A section's preview shows its text read-only.");
+        Require(SectionText().IsVisible && SectionText().Text?.Contains("`workspace_create`", StringComparison.Ordinal) == true,
+            "A section's summary discloses its text read-only.");
         // A change made elsewhere (another view, or the file on disk read by the host) reaches the view through the broadcast.
         SectionBox("core.workspaces")!.IsChecked = true;
         E2eWorkspace.Until(() => File.ReadAllText(instructionsFile).Contains("disabled = []", StringComparison.Ordinal));
         E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: true });
         File.Delete(instructionsFile);
-        Console.WriteLine("PASS instruction sections view: checkboxes per section, read-only preview, toggles write .sharprail/instructions.toml");
+        Console.WriteLine("PASS instruction sections view: one PROJECT entry, compact checkboxes with disclosed text, toggles write .sharprail/instructions.toml");
         var pane = app.Window.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeConfigPanel");
         foreach (var width in new[] { 260, 280, 360, 480 })
         {
@@ -231,7 +246,7 @@ internal static class ClaudeCodeChecks
                 var titleBounds = title.GetVisualDescendants().OfType<Control>().Where(part => part.IsVisible && part.Bounds.Width > 0)
                     .Select(part => new Rect(part.TranslatePoint(new(0, 0), row)!.Value, part.Bounds.Size)).Append(Bounds(title));
                 return titleBounds.All(part => !part.Intersects(Bounds(size))) && Bounds(title).Right <= Bounds(size).X;
-            }), $"At {width} px the size column of every persistent context row is clear of its name and badge.");
+            }), $"At {width} px the size column of every context row is clear of its name and badge.");
         }
         pane.ClearValue(Control.WidthProperty);
         E2eWorkspace.Settle();

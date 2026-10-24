@@ -77,9 +77,10 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   workspace-scoped.
 - **Tell Codex it is running in SharpRail** defaults on for POSIX launches. Activation refreshes
   `<stateDir>/codex/thinkrail-prompt-codex.md` with the running build's text; it is generated, never the
-  user's. The Context pane ends with the shared instructions view (Agent UI `InstructionSectionsView`): the
-  sections Codex sessions in the workspace get, by source, each with a checkbox, description, size estimate
-  and read-only preview; ticking writes the project's `.sharprail/instructions.toml` disable-list through the
+  user's. The Context pane ends with the shared instructions view (Agent UI `InstructionSectionsView`): one
+  entry with the PROJECT chip (and, while a prompted session is shown, the launch file's size and path) that
+  expands to the sections Codex sessions in the workspace get, by source, each a compact checkbox with size and
+  a summary disclosing its read-only text; ticking writes the project's `.sharprail/instructions.toml` disable-list through the
   host (`instructionsList`, `instructionsSet`, `instructionsChanged`; schema in
   [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Nothing offers free-text
   editing. A file edited under an earlier version is copied once to `thinkrail-prompt-codex.custom.md`
@@ -93,8 +94,8 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   into Codex's additional `developer_instructions`; a launcher-supplied prompt continues the same
   string rather than adding a second override. Only these launches tag their inherited status URL with
   `thinkrail_prompt=1`, so the first hook records the fact in the agent's command; process detection
-  also recognizes the injected header before hooks report. The Context pane lists the file with a
-  **launch flag** chip. Revival strips the generated override and reapplies the current setting once;
+  also recognizes the injected header before hooks report. The Context pane shows the file as that entry,
+  never as a separate file row. Revival strips the generated override and reapplies the current setting once;
   changing the setting never affects a running session. Windows keeps the launcher prompt alone.
 - Workflow skills: activation copies `choosing-a-workflow`, `brainstorming`, `asking-user-questions`, `spec-graph`,
   `writing-specs`, `setting-up-a-project`, `importing-a-codebase`, `starting-a-new-project`, `shipping-a-pr`

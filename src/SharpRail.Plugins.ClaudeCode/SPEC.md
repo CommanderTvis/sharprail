@@ -104,12 +104,13 @@ the workspace root. Appended system prompt files are additional instruction laye
 
 SharpRail's own appended prompt lives at `<stateDir>/claude-code/thinkrail-prompt-claude.md`, with each
 workspace's composition under `workspaces/`. They are generated, never the user's: activation and every started
-terminal regenerate them. Their content is shaped only by turning sections off for a project: the Context tab ends with
-the shared instructions view (Agent UI `InstructionSectionsView`) listing the sections Claude's sessions in that
-workspace get, grouped by source (SharpRail, then each enabled plugin), each with a checkbox, title, description,
-size estimate and a read-only preview. Ticking writes the project's `.sharprail/instructions.toml` disable-list through
+terminal regenerate them. Their content is shaped only by turning sections off for a project: the context table shows
+them as one entry, the shared instructions view (Agent UI `InstructionSectionsView`) with the PROJECT chip, the
+appended file's tokens and its path, which expands to the sections Claude's sessions in that workspace get, grouped by
+source (SharpRail, then each enabled plugin), each a compact checkbox with title and size and a one-line summary that
+discloses the section's read-only text. Ticking writes the project's `.sharprail/instructions.toml` disable-list through
 the host (`instructionsList`, `instructionsSet`; schema in [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections));
-the view shows that file's path, that it is shared with the team, and that running sessions keep their prompt until
+the view shows that file's path and that running sessions keep their prompt until
 restarted, and it re-reads on `instructionsChanged`. Nothing offers free-text editing. A shared file the user edited
 under an earlier version (its SHA-256 stamp no longer matches) is copied once to `thinkrail-prompt-claude.custom.md`
 before it is regenerated; that copy is never used or deleted, and the view notes it while it exists.
@@ -118,15 +119,16 @@ specs require no spec workflow or unsolicited spec creation.
 
 ### Context usage
 
-The Context surface's persistent context table is the one place for baseline costs, in tokens only (no sizes on disk).
+The Context surface's context table is the one place for baseline costs, in tokens only (no sizes on disk).
 Its rows are everything a fresh session started like the tab's pays for, as `/context` counts it: the memory and
 instruction files the resolver lists (a file `/context` does not list says "not loaded", an on-demand rule shows a
 dash), files `/context` lists that the resolver does not (nested instructions, rules, imports) with its source label,
-SharpRail's appended prompt file, then Claude Code's own system prompt (less the appended file), built-in tools, MCP
+SharpRail's instructions entry (the appended prompt file; never a separate file row), then Claude Code's own system prompt (less the appended file), built-in tools, MCP
 tools, MCP server instructions and skills; deferred tools, the `/context` message itself, free space and the
 autocompact reserve are not rows. MCP tools open, in the table's own row style with a chevron, into servers (heaviest
 first, with subtotals) and each server into its tools; Skills open into each skill. The header totals the rows as
-"N tokens at session start"; a short line above the table says "measured HH:mm", that it is measuring, or why it
+"N tokens in new session". Every amount says "1 token" for one and abbreviates to "tok"/"toks" where the row is
+narrower than the Agent UI `TokenAmount` threshold; a short line above the table says "measured HH:mm", that it is measuring, or why it
 failed, with Retry. Before a baseline exists rows show an ellipsis. The host matches memory paths to the resolver's
 with `~` expanded, made absolute and through symbolic links.
 

@@ -51,6 +51,7 @@ public static class CodexPanel
         string? error = null;
         var surface = Surface.Context;
         var root = new CodexPanelFrame();
+        var instructionsOpen = false;
         var segmentButtons = new Dictionary<Surface, ToggleButton>();
         var refresh = root.FindControl<Button>("CodexConfigRefresh")!;
         refresh.Content = Ui.Icon("refresh");
@@ -60,6 +61,8 @@ public static class CodexPanel
         var scope = root.FindControl<StackPanel>("CodexConfigScope")!;
         var scopeHeading = root.FindControl<TextBlock>("CodexConfigScopeHeading")!;
         var scopeDetail = root.FindControl<TextBlock>("CodexConfigScopeDetail")!;
+        var scopeFolder = root.FindControl<ContentControl>("CodexConfigScopeFolder")!;
+        scopeFolder.Content = Ui.Icon("folder", Ui.Muted, 12);
         var (session, activeTab) = Shown(context.Host(), workspaceId);
         var generation = 0;
         var snapshotKey = "";
@@ -137,6 +140,7 @@ public static class CodexPanel
             {
                 scopeHeading.Text = $"Context of Codex in tab “{session.Title}”";
                 scopeDetail.Text = TerminalFacts.CwdLabel(snapshot?.Root) ?? "…";
+                scopeFolder.IsVisible = true;
                 scopeDetail.FontFamily = Ui.CodeFont;
                 scopeDetail.Foreground = Ui.Muted;
                 ToolTip.SetTip(scopeDetail, snapshot?.Root ?? "Reading the directory…");
@@ -145,6 +149,7 @@ public static class CodexPanel
             {
                 scopeHeading.Text = activeTab is not null ? $"No Codex in tab “{activeTab.Title}”" : "No terminal open";
                 scopeDetail.Text = "Showing what a new session here would load";
+                scopeFolder.IsVisible = false;
                 scopeDetail.ClearValue(TextBlock.FontFamilyProperty);
                 scopeDetail.Foreground = Ui.Hint;
                 ToolTip.SetTip(scopeDetail, null);
@@ -199,19 +204,20 @@ public static class CodexPanel
             }
             frame.FindControl<TextBlock>("ContextSize")!.Text = FormatSize(current.Instructions.Sum(file => file.Bytes));
             var rows = frame.FindControl<StackPanel>("Instructions")!;
-            foreach (var file in current.Instructions)
+            // The launch file is SharpRail's instructions: drawn as their entry below, not as a file row.
+            var launch = current.Instructions.FirstOrDefault(file => file.Scope == CodexInstructionsScope.Launch);
+            foreach (var file in current.Instructions.Where(file => file.Scope != CodexInstructionsScope.Launch))
             {
                 var row = new CodexInstructionsRow { Tag = file.Path };
                 row.FindControl<ContentControl>("FileIcon")!.Content = Ui.Icon("fileText", Ui.Hint, 14);
                 row.FindControl<TextBlock>("FileName")!.Text = Path.GetFileName(file.Path);
-                row.FindControl<ContentControl>("Scope")!.Content = file.Scope == CodexInstructionsScope.Launch ? LaunchFlagChip()
-                    : ScopedSetting.ScopeChip(file.Scope == CodexInstructionsScope.Global ? "user" : "project", "CodexInstructionsScope");
+                row.FindControl<ContentControl>("Scope")!.Content = ScopedSetting.ScopeChip(file.Scope == CodexInstructionsScope.Global ? "user" : "project", "CodexInstructionsScope");
                 row.FindControl<ContentControl>("Source")!.Content = ScopedSetting.SourcePath(file.Path, _ => Open(file.RelativePath ?? file.Path), "CodexInstructionsSource");
                 row.FindControl<TextBlock>("CodexInstructionsSize")!.Text = FormatSize(file.Bytes);
                 rows.Children.Add(row);
             }
-            // Sections can be turned off for the project; the instructions themselves are never edited here.
-            if (context.Settings<CodexSettings>().AppendSystemPrompt)
+            // SharpRail's instructions: one entry sized by the launch file, expanding to the sections the project can turn off.
+            if (launch is not null || context.Settings<CodexSettings>().AppendSystemPrompt)
             {
                 var view = new InstructionSectionsView("Codex",
                     () => context.RequestAsync(CodexContract.InstructionsList, new InstructionSectionQuery { WorkspaceId = workspaceId }).AsTask(),
@@ -220,6 +226,11 @@ public static class CodexPanel
                 IDisposable? subscription = null;
                 view.AttachedToVisualTree += (_, _) => subscription ??= context.Subscribe(CodexContract.InstructionsChanged, _ => view.Refresh());
                 view.DetachedFromVisualTree += (_, _) => { subscription?.Dispose(); subscription = null; };
+                Control? size = null;
+                if (launch is not null) size = new TextBlock { Name = "CodexLaunchSize", Text = FormatSize(launch.Bytes), FontFamily = Ui.CodeFont, FontSize = 12, Foreground = Ui.Muted };
+                view.SetEntry(size, launch is null ? null : ScopedSetting.SourcePath(launch.Path, _ => Open(launch.RelativePath ?? launch.Path), "CodexLaunchSource"));
+                view.IsExpanded = instructionsOpen;
+                view.ExpandedChanged += open => instructionsOpen = open;
                 rows.Children.Add(view);
             }
             return frame;
@@ -286,21 +297,6 @@ public static class CodexPanel
         var shown = (host.ShownTerminalTabKeys.GetValueOrDefault(workspaceId) ?? []).Select(key => tabs.FirstOrDefault(tab => tab.TabKey == key))
             .OfType<TerminalTabInfo>().ToArray();
         return (shown.FirstOrDefault(tab => tab.Agent?.Kind == CodexManifest.Id), shown.FirstOrDefault());
-    }
-
-    private static Control LaunchFlagChip()
-    {
-        var chip = new Border
-        {
-            Name = "CodexLaunchFlagChip",
-            Background = Ui.SuccessWash,
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(4, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = Ui.Text("LAUNCH FLAG", Ui.Success, 10)
-        };
-        ToolTip.SetTip(chip, "Added to this session with developer_instructions");
-        return chip;
     }
 
     private static Control Padded(Control child)

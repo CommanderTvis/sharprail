@@ -28,7 +28,10 @@
   </DockPanel>
   <StackPanel x:Name="CodexConfigScope" DockPanel.Dock="Top" Margin="8,0,8,4" IsVisible="False">
     <TextBlock x:Name="CodexConfigScopeHeading" FontSize="13" Foreground="{x:Static kit:Ui.Muted}" TextTrimming="CharacterEllipsis" />
-    <TextBlock x:Name="CodexConfigScopeDetail" FontSize="12" Foreground="{x:Static kit:Ui.Hint}" TextTrimming="CharacterEllipsis" />
+    <DockPanel x:Name="CodexConfigScopeLine">
+      <ContentControl x:Name="CodexConfigScopeFolder" DockPanel.Dock="Left" Margin="0,0,4,0" VerticalAlignment="Center" IsVisible="False" />
+      <TextBlock x:Name="CodexConfigScopeDetail" FontSize="12" Foreground="{x:Static kit:Ui.Hint}" TextTrimming="CharacterEllipsis" />
+    </DockPanel>
   </StackPanel>
   <TextBlock x:Name="CodexConfigError" DockPanel.Dock="Top" IsVisible="False" FontSize="13" Foreground="{x:Static kit:Ui.Danger}" TextWrapping="Wrap" />
   <StackPanel x:Name="Notices" DockPanel.Dock="Top" />

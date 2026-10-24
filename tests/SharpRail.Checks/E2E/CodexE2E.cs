@@ -446,9 +446,12 @@ internal static class CodexE2E
         var source = One<Button>(row, "CodexInstructionsSource");
         Require(Equals(ToolTip.GetTip(source), agents) && Texts(source) == ScopedSetting.AbbreviateHomePath(agents), "the source path, full in its tooltip");
         var size = One<TextBlock>(row, "CodexInstructionsSize").Text;
-        Require(Texts(One<Control>(panel, "CodexContextTotal")).Contains(size!, StringComparison.Ordinal), "the summed persistent context");
+        Require(Texts(One<Control>(panel, "CodexContextTotal")).Contains(size!, StringComparison.Ordinal), "the summed context");
         // SharpRail's instructions are chosen section by section for the project, never edited.
         CheckBox? SectionBox(string id) => panel.GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
+        Require(One<Border>(panel, "InstructionSectionsScopeChip").Tag as string == "project" && SectionBox("core.push-and-signing") is null,
+            "SharpRail's instructions are one collapsed entry with the PROJECT chip");
+        codex.App.Click(One<Button>(panel, "InstructionSectionsToggle"));
         E2eWorkspace.Until(() => SectionBox("core.push-and-signing") is { IsChecked: true, IsEnabled: true });
         Require(!Has(panel, "CodexSystemPromptEditPane") && !One<Control>(panel, "InstructionSections").GetLogicalDescendants().OfType<TextBox>().Any(),
             "the instructions view offers no way to edit text");
@@ -662,7 +665,7 @@ internal static class CodexE2E
         codex.Settings(new { command = executable, appendSystemPrompt = true });
         codex.Enable(true);
         var panel = codex.Panel();
-        Require(!Has(panel, "CodexLaunchFlagChip"), "no launch source before a session");
+        Require(!Has(panel, "CodexLaunchSource"), "no launch source before a session");
         E2eWorkspace.Until(() => Has(codex.App.Window, "NewCodex"));
         codex.App.Click(One<Button>(codex.App.Window, "NewCodex"));
         E2eWorkspace.Until(() => Args(argsLog).Length > 0);
@@ -683,24 +686,24 @@ internal static class CodexE2E
         Require(content.Contains("`set_title`", StringComparison.Ordinal) && content.Contains("`title`", StringComparison.Ordinal) && !content.Contains("workspace_name", StringComparison.Ordinal),
             "The launch instructions ask the agent to title its terminal, not to name its workspace.");
         Require(content.Contains("`workspace_delete`", StringComparison.Ordinal), "The launch instructions direct workspace cleanup through the tool.");
-        E2eWorkspace.Until(() => Has(panel, "CodexLaunchFlagChip"));
-        var row = panel.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "CodexInstructions" &&
-            control.GetLogicalDescendants().OfType<Control>().Any(child => child.Name == "CodexLaunchFlagChip"));
-        Require(row.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "thinkrail-prompt-codex.md"), "the chip marks the instructions file");
+        E2eWorkspace.Until(() => Has(panel, "CodexLaunchSource"));
+        Require(Equals(ToolTip.GetTip(One<Button>(panel, "CodexLaunchSource")), CodexSystemPrompt.FilePath()) &&
+            !All<Control>(panel, "CodexInstructions").Any(row => Texts(row).Contains("thinkrail-prompt-codex.md", StringComparison.Ordinal)),
+            "the launch file is SharpRail's instructions entry, not a separate file row");
         var app = codex.App;
         var terminal = app.Window.Layout.Tabs(app.Center).Single(tab => tab.Kind == "terminal");
         app.Window.Layout.Open(new("file:notes.txt", "notes.txt", "file", "notes.txt"), true, app.Center);
-        E2eWorkspace.Until(() => !Has(panel, "CodexLaunchFlagChip"));
+        E2eWorkspace.Until(() => !Has(panel, "CodexLaunchSource"));
         app.Window.Layout.GroupTabs(app.Center, terminal.Id, "file:notes.txt", "horizontal");
         app.Window.Layout.Select(app.Center, "file:notes.txt");
-        E2eWorkspace.Until(() => Has(panel, "CodexLaunchFlagChip") &&
+        E2eWorkspace.Until(() => Has(panel, "CodexLaunchSource") &&
             One<TextBlock>(panel, "CodexConfigScopeHeading").Text == "Context of Codex in tab “" + terminal.Title + "”");
         Require(app.Window.Layout.Selected(app.Center)?.Id == "file:notes.txt", "Codex context follows a visible terminal beside the selected editor.");
         File.WriteAllText(Path.Combine(app.Root, "other.txt"), "another editor");
         app.Window.Layout.Open(new("file:other.txt", "other.txt", "file", "other.txt"), true, app.Center);
-        E2eWorkspace.Until(() => !Has(panel, "CodexLaunchFlagChip"));
+        E2eWorkspace.Until(() => !Has(panel, "CodexLaunchSource"));
         app.Window.Layout.Select(app.Center, "file:notes.txt");
-        E2eWorkspace.Until(() => Has(panel, "CodexLaunchFlagChip"));
+        E2eWorkspace.Until(() => Has(panel, "CodexLaunchSource"));
     }
 
     private static string[] Args(string log) => File.Exists(log) && File.ReadAllText(log) is { Length: > 0 } text ? JsonSerializer.Deserialize<string[]>(text)! : [];

@@ -46,7 +46,7 @@
     <DockPanel x:Name="CodexContextTotal">
       <TextBlock x:Name="ContextSize" DockPanel.Dock="Right" FontFamily="{x:Static kit:Ui.CodeFont}"
                  FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" />
-      <TextBlock Text="PERSISTENT CONTEXT" FontSize="11" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.Muted}" />
+      <TextBlock Text="CONTEXT" FontSize="11" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.Muted}" />
     </DockPanel>
   </Border>
   <StackPanel x:Name="Instructions" />

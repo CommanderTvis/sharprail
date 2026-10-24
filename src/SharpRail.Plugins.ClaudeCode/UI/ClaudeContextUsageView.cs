@@ -9,7 +9,7 @@ namespace SharpRail.Plugins.ClaudeCode.UI;
 
 /// <summary>
 /// The state of the Context surface's baseline (<c>claude -p /context</c> for a fresh session started like the tab's):
-/// measuring, when it was measured, or a failure with Retry. The costs themselves are rows of the persistent context
+/// measuring, when it was measured, or a failure with Retry. The costs themselves are rows of the context
 /// table. Static layout lives in the compiled AXAML.
 /// </summary>
 internal sealed partial class ClaudeContextUsageView : UserControl
