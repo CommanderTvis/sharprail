@@ -524,7 +524,10 @@ internal static class ClaudeCodeChecks
     {
         var bin = Path.Combine(directory, "resume-bin");
         Directory.CreateDirectory(bin);
-        var named = Path.Combine(bin, "claude-process");
+        // Linux ps reports the executed file's name, not argv[0]: the bash link itself must be named claude to be detected.
+        var agentBin = Path.Combine(directory, "resume-agent-bin");
+        Directory.CreateDirectory(agentBin);
+        var named = Path.Combine(agentBin, "claude");
         if (!File.Exists(named)) File.CreateSymbolicLink(named, "/bin/bash");
         var log = Path.Combine(directory, "resume.log");
         var pids = Path.Combine(directory, "resume.pids");
