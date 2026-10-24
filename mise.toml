@@ -191,6 +191,11 @@ run = "sh scripts/tasks/package-macos.sh"
 description = "Rebuild scripts/zig-deps.lock and the Zig dependency mirror archive after a Ghostty pin change (uploads nothing)"
 run = "sh scripts/tasks/zig-deps-mirror.sh"
 
+[tasks."tailscale:wasm"]
+description = "Build the browser client's lazily downloaded Tailscale node (Go to WASM, cached in SHARPRAIL_CACHE_DIR); the browser build runs it when its inputs change"
+env = { MISE_ENV = "browser" }
+run = "sh scripts/build-tailscale-wasm.sh"
+
 [tasks.dmg]
 description = "Pack artifacts/SharpRail.app into a disk image (path argument optional)"
 run = "sh scripts/tasks/dmg.sh"

@@ -199,4 +199,8 @@ The Android client embeds Tailscale v1.104.1 (`tsnet`, BSD-3-Clause) and its Go
 runtime. Source, pinned module checksums and the Tailscale license are under
 `src/SharpRail.Android/Tailscale.Native`. The native build stages the Go license
 and module license notices into the APK's `assets/licenses/tailscale` directory.
+The browser client downloads, on request, a WebAssembly build of Tailscale v1.104.1 (BSD-3-Clause) adapted from
+upstream `cmd/tsconnect`, with its Go runtime and Go's `wasm_exec.js`. Source, pinned module checksums and the
+Tailscale license are under `src/SharpRail.Browser/Tailscale.Wasm`; the build serves the Go license and the
+module license notices beside the module under `tailscale/licenses`.
 Tailscale is a trademark of Tailscale Inc.; this integration does not imply endorsement.

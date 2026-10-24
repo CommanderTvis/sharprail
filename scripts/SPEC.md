@@ -119,3 +119,8 @@ The Android native build also stages a pinned Tailscale userspace node through
 `build-tailscale-android.sh` for both packaged ABIs, with checksum-verified local Go,
 the checkout NDK and module checksums. The resulting native library and dependency
 license notices are included in the APK; no global Go installation is modified.
+
+The browser build runs `build-tailscale-wasm.sh` (also `scripts/mise run tailscale:wasm`) when its inputs change.
+It builds the browser's lazily downloaded Tailscale node for js/wasm with the same pinned Go and omitted-feature
+tags, writes its Brotli sidecar, Go's `wasm_exec.js`, licence notices and `manifest.json`, and caches the result
+under `$SHARPRAIL_CACHE_DIR/tailscale-wasm/<key>` before copying it to `src/SharpRail.Browser/obj/tailscale-wasm`.

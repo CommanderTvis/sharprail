@@ -107,6 +107,7 @@ checkout (there is no `.tools`): `SHARPRAIL_CACHE_DIR` from `mise.toml`, `${XDG_
 | `ghostty-avalonia` | pinned Ghostty sources, Zig caches, the patched macOS SDK copy; `results/<platform>-<library>-<key>` | key: hash of the build's fingerprint (pinned commits, Zig, sources, script); one `build.lock` |
 | `wasm-native` | patched libghostty-vt source, Zig cache; `results/<key>` | key: commit, patch, Zig, Emscripten SDK, sources; `build.lock` |
 | `tailscale-go` | `go<version>-<platform>`, Go's build and module caches | per pinned version, installed by rename under `install.lock`; Go locks its caches |
+| `tailscale-wasm` | the browser's Tailscale node, its sidecar, `wasm_exec.js`, licences and manifest; `<key>` | key: hash of go.mod, go.sum, the bridge and both scripts; `<key>.lock` |
 | `headscale-test` | what `--headscale` runs | version-stamped download, files renamed into place under `headscale-test.lock` |
 | `browser-compression` | Brotli/gzip of browser assets | content hash; files written beside and renamed |
 | `playwright` (`PLAYWRIGHT_BROWSERS_PATH`) | Chromium for the browser checks | Playwright's own install lock |
@@ -284,6 +285,13 @@ userspace node using checksum-pinned Go and the checkout's Android NDK. It stage
 `libSharpRailTailscale.so` and dependency licenses under `src/SharpRail.Android/obj/tailscale/<abi>`.
 The Android build invokes it for both packaged ABIs. The NDK is the one `scripts/tool android-ndk` prints. See the [bridge README](../src/SharpRail.Android/Tailscale.Native/README.md)
 for its ABI and native tests; no system Go installation or separate Android VPN app is required.
+
+### Browser Tailscale node
+
+`sh scripts/build-tailscale-wasm.sh` (`scripts/mise run tailscale:wasm`) builds `src/SharpRail.Browser/Tailscale.Wasm` for
+js/wasm with the shared pinned Go and stages it under `src/SharpRail.Browser/obj/tailscale-wasm`; the browser build
+runs it and deploys the result under `tailscale/` in the AppBundle. It needs `node` (the browser toolchain) for the
+Brotli sidecar. See the [bridge README](../src/SharpRail.Browser/Tailscale.Wasm/README.md).
 
 ### Headscale connectivity check
 
