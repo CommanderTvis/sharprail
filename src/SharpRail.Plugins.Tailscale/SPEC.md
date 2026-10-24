@@ -28,6 +28,10 @@ browser, retains its identity in app-private storage, enumerates online IPv4 pee
 probes the same bootstrap endpoints. No separate Tailscale Android application, system VPN or OS MagicDNS
 configuration is required. The Android adapter supplies ConnectivityManager snapshots through Tailscale's supported interface hook,
 avoiding restricted raw netlink enumeration and updating the same node on network changes.
+The browser client likewise owns a userspace node, a WebAssembly build downloaded only on request and cached per
+build, with its identity in IndexedDB; it dials discovery, pairing and RPC through the node as numeric tailnet
+streams (see the [Browser spec](../SharpRail.Browser/SPEC.md#tailscale)). Peer resolution and sign-in URL
+filtering for such nodes are shared in `TailscalePeers`; the download state machine is `TailscaleWasmModule`.
 The shared picker accepts an injected client network for HTTP, name resolution
 and peer enumeration; desktop keeps its installed-CLI implementation. Embedded discovery returns numeric
 peer addresses so choosing a host never depends on system DNS. Pairing and settings buttons use consistent 40-pixel minimum
@@ -122,6 +126,8 @@ user's Tailscale daemon. `--android` also checks embedded state reuse, netmap va
 authenticated SOCKS5 HTTP probing against a local fake proxy; `--transport` checks endpoint-scoped
 WebSocket handler routing, reconnect and disposal. The native bridge has isolated Go tests for its
 operation and proxy lifetimes. Desktop and Android device-to-device operation requires manual verification.
+`--tailscale` also checks the browser node's manifest, cache versioning, download state machine and stream-dialed
+pairing and RPC; real browser sign-in and pairing over a tailnet require manual verification.
 
 `--headscale` (opt-in, slow; see the checks module spec) joins a real host and a real embedded-library
 client to a throwaway Headscale tailnet as distinct nodes and verifies discovery, pairing, authenticated
