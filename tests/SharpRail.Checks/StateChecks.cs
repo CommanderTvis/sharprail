@@ -152,7 +152,15 @@ internal static class StateChecks
             await using var stream = service.WatchAsync(watch.Token).GetAsyncEnumerator(watch.Token);
             Require(await stream.MoveNextAsync() && stream.Current.Projects.Count == 0, $"A {name} watcher first receives the current snapshot.");
             var changed = await service.ChangeAsync(changes);
-            Require(await stream.MoveNextAsync() && Describe(stream.Current) == Describe(changed) && stream.Current.Revision == changed.Revision,
+            // Other host publishers (the plugin runtime's roster) are atomic changes of their own and may land on either side of this one;
+            // a slow watcher gets only the latest snapshot, which then still carries this whole change.
+            HostState? seen = null;
+            while (seen is null || seen.Revision < changed.Revision)
+            {
+                Require(await stream.MoveNextAsync(), $"A {name} watcher stopped before the change arrived.");
+                seen = stream.Current;
+            }
+            Require(seen.Revision == changed.Revision ? Describe(seen) == Describe(changed) : seen.Settings.Theme == changed.Settings.Theme && seen.PluginPaths.SequenceEqual(changed.PluginPaths) && seen.Projects.SequenceEqual(changed.Projects),
                 $"A {name} watcher receives one snapshot per atomic change.");
             try
             {
