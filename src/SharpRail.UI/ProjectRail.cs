@@ -249,7 +249,12 @@ public sealed partial class WorkbenchWindow
         {
             // A revealed project shows expanded, so its toggle collapses it and ends the reveal.
             if (revealedProject == project) { revealedProject = null; profile.Data.CollapsedProjects.Add(project); }
-            else if (!profile.Data.CollapsedProjects.Add(project)) { profile.Data.CollapsedProjects.Remove(project); _ = SyncWorkspacesAsync(project); }
+            else if (!profile.Data.CollapsedProjects.Add(project))
+            {
+                profile.Data.CollapsedProjects.Remove(project); _ = SyncWorkspacesAsync(project);
+                // A project without workspace rows has only its folder to reveal, so expanding it opens it as its name does.
+                if (RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees)) _ = OpenProjectAsync(project);
+            }
             SaveProfile(); UpdateRailSelection();
         });
         toggle.Name = "ProjectExpand"; toggle.Tag = project;

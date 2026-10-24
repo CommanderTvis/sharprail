@@ -102,7 +102,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   confirmation promises the checkout and its branch stay untouched. The Default workspace gets neither
   mutation. A locked worktree's Remove is disabled.
 - A plain folder has no workspace row: its tabs and terminal/agent actions sit directly beneath the
-  directory, one indentation level down. Clicking its name enters the directory, and the directory
+  directory, one indentation level down. Clicking its name, or expanding it with its chevron, enters the directory, and the directory
   itself is highlighted while active. Its tab host keeps the mounted path identity, including a trailing
   separator from the folder picker. Folding hides its tabs; inactive directories retain their tab lists.
 - Rename replaces the row with an in-place single-line input, prefilled, focused and selected. Enter or

@@ -66,6 +66,27 @@ internal static class GitlessPaneChecks
             var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tab => tab.Id == tool));
             Require(app.Window.Layout.Selected(group.Id)?.Id == tool, "An initialized repository without commits must allow Git panes.");
         }
+        // Expanding a gitless project with its chevron opens it as its name does, so its terminal palette shows under it;
+        // a repository's chevron only reveals its workspace rows.
+        Button Control(string name, string project) => app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == name && Equals(button.Tag, project));
+        bool Palette(string project) => app.Window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "ProjectWorkspaces" && Equals(panel.Tag, project) &&
+            panel.IsEffectivelyVisible && panel.GetLogicalDescendants().OfType<StackPanel>().Any(strips => strips.Name == "CenterTabsInProjects" && strips.IsEffectivelyVisible));
+        void Expand(string project)
+        {
+            if (Equals(ToolTip.GetTip(Control("ProjectExpand", project)), "Collapse project")) app.Click(Control("ProjectExpand", project));
+            Until(() => Equals(ToolTip.GetTip(Control("ProjectExpand", project)), "Expand project"));
+            app.Click(Control("ProjectExpand", project));
+        }
+        Expand(app.Root);
+        Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == app.Root && Palette(app.Root));
+        Expand(unborn);
+        Until(() => app.Window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "ProjectWorkspaces" && Equals(panel.Tag, unborn) && panel.IsEffectivelyVisible));
+        Require(app.Window.WorkspaceRoot == app.Root && !app.Window.AtProjectHome && Palette(app.Root), "A repository's chevron must only reveal its workspaces.");
+        app.Click(Control("ProjectName", unborn));
+        Until(() => app.Window.WorkspaceMounted && app.Window.ProjectRoot == unborn);
+        app.Click(Control("ProjectName", app.Root));
+        Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == app.Root && Palette(app.Root));
+        Console.WriteLine("PASS gitless project chevron: expanding opens the project and shows its terminal palette; name click and repository chevrons unchanged");
         opening = app.Window.OpenProjectAsync(app.Root);
         Until(() => opening.IsCompleted && app.Window.WorkspaceRoot == app.Root && !app.Window.Layout.Tools.Any(tool => GitTools.Contains(tool.Id)));
         opening.GetAwaiter().GetResult();
