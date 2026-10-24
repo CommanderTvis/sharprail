@@ -57,9 +57,10 @@ platform services are set up and calls `SetupWithoutStarting()`. `MainActivity` 
 windowing platform, routes the system Back gesture to it and starts a `ClientSession` on the app's private
 files directory. The activity is single-task, resizes for the soft keyboard and handles every configuration
 change itself, so a rotation or a keyboard resizes the workbench instead of recreating it. It is also a share target (`SEND`/`SEND_MULTIPLE`, any type):
-a shared item's streams are read off the UI thread (64 MB total) and queued for an agent terminal, see
+a shared item's streams are read off the UI thread (64 MB total) and queued for a running Claude Code or Codex terminal, see
 [Terminal/SPEC.md](../SharpRail.UI/Terminal/SPEC.md#dropped-attachments); the queue survives the connect
-screen, so an item shared before connecting is attached once an agent terminal is ready. Destroying the
+screen, so an item shared before connecting is attached once an agent terminal is ready. An agent terminal's
+Attach button offers uploading a phone file, browsing the host for a file or picking a workspace file (same section). Destroying the
 activity disposes the session and closes every window.
 
 ## Windowing

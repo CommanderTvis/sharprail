@@ -5,7 +5,7 @@ const SharpRail.Host.Abstractions.FileLimits.ReadMessageBytes = 83886080 -> int
 const SharpRail.Host.Abstractions.FileLimits.SaveMessageBytes = 150994944 -> int
 const SharpRail.Host.Abstractions.HostProtocol.ChangeWritePath = 2 -> int
 const SharpRail.Host.Abstractions.HostProtocol.AirContextPlugin = 8 -> int
-const SharpRail.Host.Abstractions.HostProtocol.Current = 10 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 11 -> int
 const SharpRail.Host.Abstractions.HostProtocol.RequestReplay = 3 -> int
 const SharpRail.Host.Abstractions.HostProtocol.SharprailExclude = 9 -> int
 const SharpRail.Host.Abstractions.HostProtocol.WebSocketTransport = 5 -> int
@@ -1364,7 +1364,6 @@ const SharpRail.Host.Abstractions.SettledOverrides.Active = "active" -> string!
 const SharpRail.Host.Abstractions.SettledOverrides.Settled = "settled" -> string!
 static SharpRail.Host.Abstractions.WorkspaceAction.Settle(string! id) -> SharpRail.Host.Abstractions.WorkspaceAction!
 static SharpRail.Host.Abstractions.WorkspaceAction.Unsettle(string! id) -> SharpRail.Host.Abstractions.WorkspaceAction!
-
 const SharpRail.Host.Abstractions.HostProtocol.FileTypeIcons = 7 -> int
 SharpRail.Host.Abstractions.HostSettings.FileTypeIconsEnabled.get -> bool
 SharpRail.Host.Abstractions.HostSettings.FileTypeIconsEnabled.init -> void
@@ -1998,3 +1997,40 @@ const SharpRail.Host.Abstractions.TailscaleDependence.PluginId = "tailscale" -> 
 const SharpRail.Host.Abstractions.TailscaleDependence.Refusal = "This client is connected through Tailscale; turning it off here would disconnect you. Do it from the host machine or a client connected another way." -> string!
 static SharpRail.Host.Abstractions.TailscaleDependence.Protected(System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>! roster) -> System.Collections.Generic.IReadOnlySet<string!>!
 static SharpRail.Host.Abstractions.TailscaleDependence.TurnsOff(SharpRail.Host.Abstractions.HostStateChange! change, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>! roster) -> bool
+
+const SharpRail.Host.Abstractions.HostProtocol.HostDirectoryBrowse = 11 -> int
+override SharpRail.Host.Abstractions.HostDirectoryEntry.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.HostDirectoryEntry.GetHashCode() -> int
+override SharpRail.Host.Abstractions.HostDirectoryEntry.ToString() -> string!
+override SharpRail.Host.Abstractions.HostDirectoryListing.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.HostDirectoryListing.GetHashCode() -> int
+override SharpRail.Host.Abstractions.HostDirectoryListing.ToString() -> string!
+SharpRail.Host.Abstractions.HostDirectoryEntry
+SharpRail.Host.Abstractions.HostDirectoryEntry.<Clone>$() -> SharpRail.Host.Abstractions.HostDirectoryEntry!
+SharpRail.Host.Abstractions.HostDirectoryEntry.Deconstruct(out string! Name, out bool IsDirectory, out long Size) -> void
+SharpRail.Host.Abstractions.HostDirectoryEntry.Equals(SharpRail.Host.Abstractions.HostDirectoryEntry? other) -> bool
+SharpRail.Host.Abstractions.HostDirectoryEntry.HostDirectoryEntry(string! Name, bool IsDirectory, long Size) -> void
+SharpRail.Host.Abstractions.HostDirectoryEntry.IsDirectory.get -> bool
+SharpRail.Host.Abstractions.HostDirectoryEntry.IsDirectory.init -> void
+SharpRail.Host.Abstractions.HostDirectoryEntry.Name.get -> string!
+SharpRail.Host.Abstractions.HostDirectoryEntry.Name.init -> void
+SharpRail.Host.Abstractions.HostDirectoryEntry.Size.get -> long
+SharpRail.Host.Abstractions.HostDirectoryEntry.Size.init -> void
+SharpRail.Host.Abstractions.HostDirectoryListing
+SharpRail.Host.Abstractions.HostDirectoryListing.<Clone>$() -> SharpRail.Host.Abstractions.HostDirectoryListing!
+SharpRail.Host.Abstractions.HostDirectoryListing.Deconstruct(out string! Path, out string? Parent, out string! Home, out System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.HostDirectoryEntry!>! Entries) -> void
+SharpRail.Host.Abstractions.HostDirectoryListing.Entries.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.HostDirectoryEntry!>!
+SharpRail.Host.Abstractions.HostDirectoryListing.Entries.init -> void
+SharpRail.Host.Abstractions.HostDirectoryListing.Equals(SharpRail.Host.Abstractions.HostDirectoryListing? other) -> bool
+SharpRail.Host.Abstractions.HostDirectoryListing.Home.get -> string!
+SharpRail.Host.Abstractions.HostDirectoryListing.Home.init -> void
+SharpRail.Host.Abstractions.HostDirectoryListing.HostDirectoryListing(string! Path, string? Parent, string! Home, System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.HostDirectoryEntry!>! Entries) -> void
+SharpRail.Host.Abstractions.HostDirectoryListing.Parent.get -> string?
+SharpRail.Host.Abstractions.HostDirectoryListing.Parent.init -> void
+SharpRail.Host.Abstractions.HostDirectoryListing.Path.get -> string!
+SharpRail.Host.Abstractions.HostDirectoryListing.Path.init -> void
+SharpRail.Host.Abstractions.IProjectServices.ListHostDirectoryAsync(string! path, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.HostDirectoryListing!>
+static SharpRail.Host.Abstractions.HostDirectoryEntry.operator !=(SharpRail.Host.Abstractions.HostDirectoryEntry? left, SharpRail.Host.Abstractions.HostDirectoryEntry? right) -> bool
+static SharpRail.Host.Abstractions.HostDirectoryEntry.operator ==(SharpRail.Host.Abstractions.HostDirectoryEntry? left, SharpRail.Host.Abstractions.HostDirectoryEntry? right) -> bool
+static SharpRail.Host.Abstractions.HostDirectoryListing.operator !=(SharpRail.Host.Abstractions.HostDirectoryListing? left, SharpRail.Host.Abstractions.HostDirectoryListing? right) -> bool
+static SharpRail.Host.Abstractions.HostDirectoryListing.operator ==(SharpRail.Host.Abstractions.HostDirectoryListing? left, SharpRail.Host.Abstractions.HostDirectoryListing? right) -> bool

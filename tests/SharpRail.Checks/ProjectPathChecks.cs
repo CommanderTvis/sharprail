@@ -78,6 +78,9 @@ internal static class ProjectPathChecks
         var untracked = (await new ProjectServices(repository).GetGitAsync()).Changes.ToDictionary(change => change.Path, change => change.Added);
         Require(untracked["plain.txt"] == 2 && untracked["ascii.pdf"] == 0 && untracked["invalid.txt"] == 0, "Untracked line counts are for content the shared classification calls text.");
         foreach (var name in new[] { "plain.txt", "ascii.pdf", "invalid.txt" }) File.Delete(Path.Combine(repository, name));
+        var locked = Path.Combine(plain, "locked");
+        Directory.CreateDirectory(locked);
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(locked, UnixFileMode.None);
         IProjectServices local = new LocalProjectAdapter(new ProjectServices(root));
         await using var server = RemoteServer.Create(root, IPAddress.Loopback, 0, "path-test");
         await server.StartAsync();
@@ -90,6 +93,19 @@ internal static class ProjectPathChecks
                 foreach (var (path, kind) in expected)
                     Require(await host.InspectProjectPathAsync(path) == kind, $"The {name} host must classify {Path.GetFileName(path)} as {kind}.");
                 Require(await host.InspectProjectPathAsync("~") is ProjectPathKind.Repository or ProjectPathKind.Initable, $"The {name} host must resolve ~ to its home.");
+                var hostHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                var browsed = await host.ListHostDirectoryAsync(plain);
+                Require(browsed.Path == plain && browsed.Parent == root && browsed.Home == hostHome &&
+                    browsed.Entries.Select(entry => (entry.Name, entry.IsDirectory, entry.Size)).SequenceEqual([("inner", true, 0L), ("locked", true, 0L), ("file.txt", false, 4L)]),
+                    $"The {name} host lists a host folder with its parent and home, folders first, files with their size.");
+                Require((await host.ListHostDirectoryAsync("~")).Path == hostHome && (await host.ListHostDirectoryAsync("")).Path == hostHome, $"The {name} host lists ~ and an empty path as its home.");
+                try { await host.ListHostDirectoryAsync(Path.Combine(plain, "absent")); throw new InvalidOperationException($"The {name} host listed a missing folder."); }
+                catch (DirectoryNotFoundException) { }
+                if (!OperatingSystem.IsWindows() && Environment.UserName != "root")
+                    try { await host.ListHostDirectoryAsync(locked); throw new InvalidOperationException($"The {name} host listed an unreadable folder."); }
+                    catch (UnauthorizedAccessException) { }
+                try { await host.ListHostDirectoryAsync("relative/path"); throw new InvalidOperationException($"The {name} host listed a relative path."); }
+                catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
                 foreach (var act in new Func<Task>[] { async () => await host.InspectProjectPathAsync("relative/path"), async () => await host.OpenProjectAsync("relative/path") })
                     try { await act(); throw new InvalidOperationException($"The {name} host accepted a relative project path."); }
                     catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException && error.Message.Contains("must be absolute or start with ~/", StringComparison.Ordinal)) { }
@@ -99,7 +115,12 @@ internal static class ProjectPathChecks
                 { }
             }
         }
-        finally { await server.StopAsync(); }
+        finally
+        {
+            await server.StopAsync();
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(locked, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        Console.WriteLine("PASS host folder listing: parent, home, folders first, sizes, missing and unreadable folders, locally and over WebSocket RPC");
         Console.WriteLine("PASS project paths resolve ~, refuse relative input and are classified identically locally and over WebSocket RPC");
     }
 }

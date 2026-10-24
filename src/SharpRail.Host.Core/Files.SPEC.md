@@ -116,6 +116,18 @@ are preserved. A transfer is bounded to 4096 entries and 64 MB in total. Cancell
 installation removes staged and newly installed entries. The same operation serves local and remote clients.
 File actions may also pin their expected workspace to reject a switch before the mutation acquires its gate.
 
+## Host folder listing
+
+`ListHostDirectoryAsync` (since `HostProtocol.HostDirectoryBrowse`, protocol 11) is the one read outside a
+workspace: it lists any host directory by absolute path, `~` or an empty path meaning the host user's home,
+and refuses relative input like project paths (`ProjectPaths.ListDirectory`). It returns the resolved path,
+its parent (none at a root), the home and every entry (nothing hidden; a link is listed as what it points
+to), folders first and then by name ignoring case, files with their byte size. It never writes. A missing
+folder fails as not found and an unreadable one as permission denied, kept distinct over RPC (`NotFound`,
+`PermissionDenied`) so clients show which inline. Every caller is an authenticated (master or paired)
+connection; the host has no watch-only client role, so holding a terminal is enforced by the client, which
+offers it only from the Attach menu of a terminal it holds (see `src/SharpRail.UI/Terminal/SPEC.md`).
+
 ## External configuration files
 
 `ProjectServices` takes an `allowsExternalFile(workspaceRoot, path)` delegate from its composer (the plugin

@@ -199,6 +199,7 @@ internal static class PluginWatchChecks
         public ValueTask<SpecGraph> GetSpecGraphAsync(CancellationToken ct = default) => inner.GetSpecGraphAsync(ct);
         public ValueTask<bool> HasDurableSpecsAsync(CancellationToken ct = default) => inner.HasDurableSpecsAsync(ct);
         public ValueTask<ProjectPathKind> InspectProjectPathAsync(string path, CancellationToken ct = default) => inner.InspectProjectPathAsync(path, ct);
+        public ValueTask<HostDirectoryListing> ListHostDirectoryAsync(string path, CancellationToken ct = default) => inner.ListHostDirectoryAsync(path, ct);
         public ValueTask PrewarmWorkspaceAsync(string path, CancellationToken ct = default) => inner.PrewarmWorkspaceAsync(path, ct);
         public ValueTask<WorkspaceRecord?> ApplyWorkspaceActionAsync(WorkspaceAction action, CancellationToken ct = default) => inner.ApplyWorkspaceActionAsync(action, ct);
         public ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default) => inner.ListWorkspacesAsync(projectRoot, cancellationToken);

@@ -179,7 +179,8 @@ internal static class FileDropChecks
         using var terminal = new TerminalView(_ => backend, new(app.Root, "attach-probe", "", "attach-client"));
         var receiver = new Border();
         var attached = new List<string>();
-        receiver.SetValue(FileDrop.AcceptsProperty, () => true);
+        var runsAgent = false;
+        receiver.SetValue(FileDrop.AcceptsProperty, () => runsAgent);
         receiver.SetValue(FileDrop.AttachProperty, paths => attached.AddRange(paths));
         terminal.Accessories.Children.Add(receiver);
         // A real picker result: even with a client-local path, the button uploads rather than sharing that path.
@@ -193,17 +194,69 @@ internal static class FileDropChecks
         var picks = 0;
         app.Window.AttachButtons = true;
         app.Window.PickAttachments = () => { picks++; return Task.FromResult<IReadOnlyList<IStorageItem>>([picked]); };
+        // Host browsing: a sibling folder the client cannot read, and a file beside the workspace.
+        var outside = Path.GetDirectoryName(app.Root)!;
+        var locked = Path.Combine(outside, "locked-folder");
+        Directory.CreateDirectory(locked);
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(locked, UnixFileMode.None);
+        app.Window.PickWorkspaceFile = () => Task.FromResult<string?>("styles/notes.txt");
         app.Window.WireTerminalFileDrop(terminal);
         var window = new Window { Content = terminal, Width = 400, Height = 200 };
         window.Show(); Dispatcher.UIThread.RunJobs();
         try
         {
             var attach = terminal.Accessories.Children.OfType<Button>().Single(button => button.Name == "TerminalAttach");
-            Require(attach.IsVisible, "An agent terminal that accepts files shows Attach.");
-            attach.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Require(!attach.IsVisible && terminal.AcceptsAttachments?.Invoke() == false, "A plain shell (no running agent) hides Attach and refuses shares.");
+            runsAgent = true;
+            terminal.Accessories.Children.Add(new Border()); Dispatcher.UIThread.RunJobs();
+            Require(attach.IsVisible, "A running agent session that accepts files shows Attach.");
+            var menu = attach.ContextMenu!;
+            Require(menu.Name == "TerminalAttachMenu" && menu.Items.OfType<MenuItem>().Select(item => item.Name).SequenceEqual(["TerminalAttachUpload", "TerminalAttachHostPath", "TerminalAttachWorkspace"]),
+                "The Attach menu offers exactly upload, host path and workspace file.");
+            MenuItem Item(string name) => menu.Items.OfType<MenuItem>().Single(item => item.Name == name);
+            Item("TerminalAttachUpload").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             Until(() => attached.Count == 1);
             Require(picks == 1 && attached[0] != source && File.ReadAllBytes(attached[0]).SequenceEqual(bytes) && backend.Writes.Count == 0,
                 "A picked file is uploaded to the host and its host path inserted without submitting the prompt.");
+            Item("TerminalAttachHostPath").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            var browser = WorkspaceFixture.Dialog(app, "PathBrowserDialog");
+            TextBlock Location() => browser.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "PathBrowserLocation");
+            TextBlock Status() => browser.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "PathBrowserStatus");
+            Button Find(string name, string? tag = null)
+            {
+                Until(() => browser.GetVisualDescendants().OfType<Button>().Any(button => button.Name == name && (tag is null || Equals(button.Tag, tag))));
+                return browser.GetVisualDescendants().OfType<Button>().First(button => button.Name == name && (tag is null || Equals(button.Tag, tag)));
+            }
+            void Press(Button button) { button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs(); }
+            Until(() => Location().Text == app.Root);
+            Require(Find("PathBrowserHome").IsVisible && Find("PathBrowserUp").IsEnabled, "The host browser starts at the workspace root with Up and Home.");
+            Press(Find("PathBrowserUp"));
+            Until(() => Location().Text == outside);
+            Press(Find("PathBrowserFolder", locked));
+            Until(() => Status().Text?.StartsWith("Couldn't open this folder", StringComparison.Ordinal) == true || OperatingSystem.IsWindows() || Environment.UserName == "root");
+            Require(Location().Text == locked && Find("PathBrowserUp").IsEnabled, "An unreadable host folder shows its error inline and Up still leads out.");
+            Press(Find("PathBrowserHome"));
+            Until(() => Location().Text == Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            Press(Find("PathBrowserUp"));
+            Until(() => Location().Text != Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            Press(Find("PathBrowserHome"));
+            Until(() => Location().Text == Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            // Navigate back to the workspace by folders, then pick a file inside it.
+            browser.Close(null); Dispatcher.UIThread.RunJobs();
+            Item("TerminalAttachHostPath").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            browser = WorkspaceFixture.Dialog(app, "PathBrowserDialog");
+            Until(() => Location().Text == app.Root);
+            Press(Find("PathBrowserFolder", WorkbenchWindow.HostChild(app.Root, "styles")));
+            Until(() => Location().Text == WorkbenchWindow.HostChild(app.Root, "styles"));
+            Press(Find("PathBrowserFile", WorkbenchWindow.HostChild(WorkbenchWindow.HostChild(app.Root, "styles"), "notes.txt")));
+            Until(() => attached.Count == 2);
+            Require(attached[1] == Path.Combine(app.Root, "styles", "notes.txt") && backend.Writes.Count == 0 && File.Exists(attached[1]),
+                "A browsed host file's absolute path is inserted unsent and without uploading.");
+            Item("TerminalAttachWorkspace").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Until(() => attached.Count == 3);
+            Require(attached[2] == Path.Combine(app.Root, "styles/notes.txt") && backend.Writes.Count == 0,
+                "A workspace file is inserted like a dragged workspace file, unsent.");
+            attached.RemoveRange(1, 2);
 
             SharpRail.UI.Terminal.SharedAttachments.Add([new("shared.png", false, [9, 8, 7])]);
             Dispatcher.UIThread.RunJobs();
@@ -218,8 +271,10 @@ internal static class FileDropChecks
             Dispatcher.UIThread.RunJobs();
             Require(picks == 1 && attached.Count == 1, "A watching terminal never opens the picker or attaches.");
         }
-        finally { window.Close(); app.Window.AttachButtons = false; app.Window.PickAttachments = null; }
-        Console.WriteLine("PASS attach button: picked file uploaded and inserted unsubmitted, share queued without an agent, watcher rejected");
+        finally { window.Close(); app.Window.AttachButtons = false; app.Window.PickAttachments = null; app.Window.PickWorkspaceFile = null;
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(locked, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        Console.WriteLine("PASS attach button: hidden without a running agent, three-option menu, upload, host browse (up/home/error/pick) and workspace file inserted unsubmitted, share queued without an agent, watcher rejected");
     }
 
     private sealed class RecordingTerminal : ITerminalBackend

@@ -122,6 +122,9 @@ public sealed partial class WorkbenchWindow
     /// <summary>Chooses files for the Attach button; replaceable so checks can supply a picker result.</summary>
     internal Func<Task<IReadOnlyList<IStorageItem>>>? PickAttachments { get; set; }
 
+    /// <summary>Asks for a workspace-relative file for the Attach menu's workspace choice; replaceable for checks.</summary>
+    internal Func<Task<string?>>? PickWorkspaceFile { get; set; }
+
     internal void WireTerminalFileDrop(TerminalView terminal)
     {
         var progress = new FileTransferProgress();
@@ -163,16 +166,35 @@ public sealed partial class WorkbenchWindow
         if (AttachButtons)
         {
             Button attach = null!;
-            attach = Ui.Button("Attach", () => _ = AttachPickedAsync());
+            ContextMenu menu = null!;
+            MenuItem hostPath = null!;
+            attach = Ui.Button("Attach", () => OpenAttachMenu());
             attach.Name = "TerminalAttach";
             attach.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
             attach.Margin = new Thickness(8, 2);
+            // Only a running Claude Code or Codex session that this client holds takes attachments.
             void Refresh() => attach.IsVisible = Ready() && Receiver() is not null;
+            var upload = Ui.Menu(OperatingSystem.IsAndroid() ? "Upload file from phone" : "Upload file from this device", () => _ = AttachPickedAsync());
+            upload.Name = "TerminalAttachUpload";
+            hostPath = Ui.Menu("Choose path from host", () => _ = AttachPathAsync(ChooseHostPathAsync));
+            hostPath.Name = "TerminalAttachHostPath";
+            var workspaceFile = Ui.Menu("Choose file from workspace", () => _ = AttachPathAsync(async workspace =>
+                await (PickWorkspaceFile ?? ChooseWorkspaceFileAsync)() is { Length: > 0 } relative ? Path.Combine(workspace, relative) : null));
+            workspaceFile.Name = "TerminalAttachWorkspace";
+            menu = new ContextMenu { Name = "TerminalAttachMenu", Placement = PlacementMode.BottomEdgeAlignedLeft, PlacementTarget = attach, Items = { upload, hostPath, workspaceFile } };
+            attach.ContextMenu = menu;
             terminal.Accessories.Children.Insert(0, attach);
             terminal.Accessories.Children.CollectionChanged += (_, _) => Refresh();
             terminal.Output += Refresh;
             terminal.AttachedToVisualTree += (_, _) => Refresh();
             Refresh();
+            void OpenAttachMenu()
+            {
+                Refresh();
+                if (Receiver() is null || progress.Busy || !Ready()) return;
+                hostPath.IsVisible = state.Supports(HostProtocol.HostDirectoryBrowse);
+                menu.Open(attach);
+            }
             async Task AttachPickedAsync()
             {
                 Refresh();
@@ -183,6 +205,20 @@ public sealed partial class WorkbenchWindow
                     var files = await (PickAttachments ?? PickFilesAsync)();
                     if (files.Count == 0) return;
                     await Upload(receiver, workspace, token => ReadDroppedFilesAsync(files, token));
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception error) { Report(error); }
+                finally { Refresh(); }
+            }
+            // A path that already exists on the host is inserted as is; nothing is uploaded.
+            async Task AttachPathAsync(Func<string, Task<string?>> choose)
+            {
+                Refresh();
+                if (Receiver() is not { } receiver || progress.Busy || !Ready()) return;
+                var workspace = terminal.Launch.WorkspaceRoot;
+                try
+                {
+                    if (await choose(workspace) is { Length: > 0 } path) Insert(receiver, workspace, [path]);
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception error) { Report(error); }
@@ -253,6 +289,51 @@ public sealed partial class WorkbenchWindow
         try { await attach(entries); }
         catch (Exception error) { Report(error); }
         finally { deliveringShares = false; }
+    }
+
+    // Browses the host from the workspace root; folders are listed off the UI thread, cancelled with the dialog or the window.
+    private async Task<string?> ChooseHostPathAsync(string workspace)
+    {
+        var request = projectRequest;
+        var dialog = new PathBrowserDialog("Choose path from host", workspace, async (path, token) =>
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
+            var listing = await Task.Run(async () => await host.ListHostDirectoryAsync(path, linked.Token), linked.Token);
+            return new PathBrowserFolder(listing.Path, listing.Path, listing.Parent, listing.Home,
+                listing.Entries.Select(entry => new PathBrowserEntry(entry.Name, HostChild(listing.Path, entry.Name), entry.IsDirectory)).ToArray());
+        });
+        return await ShowPathBrowserAsync(dialog, request);
+    }
+
+    // Lists the shown workspace one folder at a time from its root, as the Files tree does; returns a relative path.
+    private async Task<string?> ChooseWorkspaceFileAsync()
+    {
+        var request = projectRequest;
+        var dialog = new PathBrowserDialog("Choose file from workspace", "", async (path, token) =>
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
+            var files = await Task.Run(async () => await host.ListFilesAsync(path, linked.Token), linked.Token);
+            var parent = path.Length == 0 ? null : path.Contains('/') ? path[..path.LastIndexOf('/')] : "";
+            return new PathBrowserFolder(path, path.Length == 0 ? "Workspace root" : path, parent, null,
+                files.Select(file => new PathBrowserEntry(file.Name, file.Path, file.IsDirectory, file.GitIgnored)).ToArray());
+        });
+        return await ShowPathBrowserAsync(dialog, request);
+    }
+
+    // Joins with the host's separator, not this client's: an Android client may browse a Windows host.
+    internal static string HostChild(string directory, string name)
+    {
+        var separator = directory.Contains('\\') && !directory.Contains('/') ? '\\' : '/';
+        return directory.TrimEnd('/', '\\') + separator + name;
+    }
+
+    private async Task<string?> ShowPathBrowserAsync(PathBrowserDialog dialog, long request)
+    {
+        var undim = Dim();
+        string? picked;
+        try { picked = await dialog.ShowAsync(this); }
+        finally { undim(); }
+        return request == projectRequest ? picked : null;
     }
 
     // Images first; the picker still allows any file.

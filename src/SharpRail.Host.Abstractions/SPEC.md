@@ -49,6 +49,9 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 - `ImportFilesAsync` carries a pinned workspace, a destination folder (null for private prompt attachments)
   and relative file/directory entries; it returns absolute host paths. See [host files](../SharpRail.Host.Core/Files.SPEC.md).
   `FileAction.WorkspaceRoot` optionally pins a move/copy to its originating workspace.
+- `ListHostDirectoryAsync` is the read-only exception to workspace-relative paths: it lists any absolute
+  host directory (or `~`) with its parent and the host home, since protocol 11
+  (`HostProtocol.HostDirectoryBrowse`). See [host files](../SharpRail.Host.Core/Files.SPEC.md#host-folder-listing).
 - `ListWorkspacesAsync` and `ApplyWorkspaceActionAsync` name their project or workspace explicitly rather
   than using the session's root, so a client can list and change any open project's workspaces. Kinds are
   `default`, `managed` and `external`; a record's id never changes. Results also reach every client

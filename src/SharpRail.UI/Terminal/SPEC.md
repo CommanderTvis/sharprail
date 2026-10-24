@@ -614,13 +614,25 @@ be dropped together; the plugin owns their syntax. The surface highlights accept
 progress with Cancel. Completion checks the current workspace, accessory and terminal ownership again;
 a failed, exited, detached or watching terminal never accepts a drop or takes over implicitly.
 
-Where nothing can be dropped (Android and the phone layout), an agent terminal whose accessory accepts
-files shows an Attach button above its accessories. It opens the platform file picker (images first,
-any file allowed), reads the choice off the UI thread within the 64 MB drop limit and always uploads the
-bytes to the host, then inserts the host paths through the same callback without submitting. The button
-hides while the terminal is not ready or no agent accepts (refreshed on output and accessory changes) and
-rechecks before picking. Files shared into the app (Android's share sheet) queue in `SharedAttachments`
-until the shown workspace has an attach-ready agent terminal: the most recently focused one, or the only
+Where nothing can be dropped (Android and the phone layout), a terminal running a Claude Code or Codex
+session (its accessory accepts files, which the plugins derive from the host's agent record) shows an
+Attach button above its accessories. Plain shells, exited, failed, detached and watching terminals hide
+it (refreshed on output and accessory changes, rechecked before every choice). It opens a compact menu
+with exactly three choices, each inserting through the same callback without submitting:
+
+- Upload file from phone (from this device off Android): the platform file picker (images first, any
+  file allowed); the choice is read off the UI thread within the 64 MB drop limit, always uploaded to the
+  host with progress and Cancel, and the host paths are inserted. Uploading into a chosen host folder is
+  out of scope (issue #46).
+- Choose path from host: a folder browser over the host's folder listing
+  ([Files.SPEC.md](../../SharpRail.Host.Core/Files.SPEC.md#host-folder-listing)), starting at the workspace
+  root, with Up, Home and the current path shown. Folders load off the UI thread and a pending load is
+  cancelled by opening another folder or closing; a missing or unreadable folder shows its error inline
+  and Up and Home still lead out. The picked file's absolute host path (joined with the host's separator)
+  is inserted; nothing is uploaded. Hidden against hosts below protocol 11.
+- Choose file from workspace: the same browser over the workspace's file listing from its root (no Home);
+  the file is inserted as `<workspace root>/<relative path>`, as a dragged workspace file is. Files shared into the app (Android's share sheet) queue in `SharedAttachments`
+until the shown workspace has an attach-ready (running, held) agent terminal: the most recently focused one, or the only
 one; with several and none focused they wait. On Android a pasted clipboard image is saved through the
 host terminal service, as in the browser client, so the pasted path exists where the agent runs.
 

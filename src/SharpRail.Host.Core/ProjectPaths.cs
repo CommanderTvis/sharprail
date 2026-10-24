@@ -16,6 +16,26 @@ internal static class ProjectPaths
         return DirectoryIdentity(expanded);
     }
 
+    /// <summary>Lists one host directory for browsing: every entry, folders first, then by name ignoring case.</summary>
+    internal static HostDirectoryListing ListDirectory(string path, CancellationToken cancellationToken)
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var directory = Resolve(path.Length == 0 ? "~" : path, home);
+        if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"No folder at {directory}");
+        var entries = new List<HostDirectoryEntry>();
+        foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            // A link is listed as what it points to, so a linked folder can be entered.
+            var isDirectory = entry is DirectoryInfo || entry.LinkTarget is not null && Directory.Exists(entry.FullName);
+            long size = 0;
+            if (!isDirectory) { try { size = new FileInfo(entry.FullName).Length; } catch (IOException) { } catch (UnauthorizedAccessException) { } }
+            entries.Add(new(entry.Name, isDirectory, size));
+        }
+        var sorted = entries.OrderByDescending(entry => entry.IsDirectory).ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+        return new(directory, Path.GetDirectoryName(directory), home, sorted);
+    }
+
     /// <summary>
     /// The one stored spelling of a directory identity (ThinkRail #775): the host's resolved full path, with the
     /// platform's separators and no trailing separator except at a root such as <c>/</c> or <c>C:\</c>. Case is kept.

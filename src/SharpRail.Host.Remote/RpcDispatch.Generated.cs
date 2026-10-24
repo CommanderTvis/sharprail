@@ -269,6 +269,13 @@ internal static class RpcDispatch
                 await stream.Send(await service.ApplyWorkspaceActionAsync(request, context));
                 break;
             }
+            case "IProjectRpc/ListHostDirectoryAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<ProjectRequest>(stream);
+                await stream.Send(await service.ListHostDirectoryAsync(request, context));
+                break;
+            }
             case "IProjectRpc/InspectProjectPathAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
