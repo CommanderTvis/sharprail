@@ -144,7 +144,12 @@ corners. Illegal domains, limits and no-op positions paint nothing and commit no
 target shows a subtle accent hint and the hovered one the real destination; decoration never alters
 hit-testing. Escape, lost capture, an outside drop or a replacing transition cancels; a cancellation
 caused by a layout change mid-gesture is announced once (`GestureNotification.cs`). A drag moves one
-resource or one tool and never copies or crosses workspaces.
+resource or one tool and never copies or crosses workspaces. A terminal tab moves only within its own
+workspace: over another workspace's tab list or row, or a project row, in Projects a terminal drag offers no
+destination (not even the Projects pane's own before/after targets), shows the not-allowed pointer and,
+released there, leaves the tab in place (`DockSurface.ForeignWorkspace`); the pointer also says not-allowed
+anywhere else a terminal has no destination. The only way a terminal changes workspace is the
+user-approved `workspace_emigrate` ([Terminal/SPEC.md](../Terminal/SPEC.md#tab-lifecycle)).
 
 Visual refreshes caused by a plugin catalog or decoration change keep the pressed tab alive until
 its pointer release; after the click selects it, apply the latest chrome and retain keyboard focus

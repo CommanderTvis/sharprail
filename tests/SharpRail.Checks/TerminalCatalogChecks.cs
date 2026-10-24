@@ -74,6 +74,17 @@ internal static partial class TerminalHostChecks
         Require(again.Revision == reserved.Revision && Tabs(again)[1].Title == "Reserved", $"{mode}: reserving an existing tab must change nothing.");
         await Everyone(tabs => tabs.Count == 2, "reservation");
 
+        // A terminal belongs to its workspace for life: naming its key in another workspace reserves a separate tab
+        // there, with its own session, and leaves the original where it was. Nothing in the catalog re-parents a shell.
+        var elsewhere = area + "-elsewhere";
+        Directory.CreateDirectory(elsewhere);
+        var crossed = await catalog.ReserveAsync(elsewhere, new("tab-a", "Elsewhere"));
+        Require(Tabs(crossed).Any(tab => tab.Key == "tab-a" && tab.Title == "Reserved") && crossed.Workspaces[elsewhere] is [{ Key: "tab-a" }] &&
+            TerminalTab.SessionFor(elsewhere, "tab-a") != TerminalTab.SessionFor(area, "tab-a"),
+            $"{mode}: a client naming a tab in another workspace must not move it there.");
+        await catalog.CloseWorkspaceAsync(elsewhere);
+        Require(Tabs(await catalog.ReserveAsync(area, new("tab-a", "Reserved"))).Count == 2, $"{mode}: ending the other workspace's tab must leave the original.");
+
         foreach (var invalid in new TerminalTab[] { new("", "Terminal"), new(new string('x', TerminalTab.MaxKeyLength + 1), "Terminal"), new("tab-b", ""), new("tab-b", new string('x', TerminalTab.MaxTitleLength + 1)) })
             try { await catalog.ReserveAsync(area, invalid); throw new InvalidOperationException($"{mode}: an invalid terminal tab was reserved."); }
             catch (ArgumentException) { }

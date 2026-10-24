@@ -27,6 +27,8 @@ public sealed partial class DockSurface : Grid
     public Action<string, DockTab>? RenameTerminal { get; set; }
     /// <summary>The active workspace's root on the host, which the tab menu's path copies resolve against.</summary>
     public Func<string>? WorkspaceRoot { get; set; }
+    /// <summary>Whether a control under a dragged terminal belongs to another workspace or project, where it is never dropped.</summary>
+    public Func<Control, bool>? ForeignWorkspace { get; set; }
     public Func<DockTab, bool>? IsModified { get; set; }
     /// <summary>Whether a document tab's file was deleted on disk; refreshed with <see cref="RefreshModified"/>.</summary>
     public Func<DockTab, bool>? IsDeleted { get; set; }

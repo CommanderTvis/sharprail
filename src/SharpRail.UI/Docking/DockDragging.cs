@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 
 
 namespace SharpRail.UI.Docking;
@@ -83,7 +84,7 @@ public sealed partial class DockSurface
 
     private void CancelDrag()
     {
-        draft = null; drop = null; dragging = false; overlay.Children.Clear(); dropValidity.Clear();
+        draft = null; drop = null; dragging = false; overlay.Children.Clear(); dropValidity.Clear(); Cursor = null;
         var pointer = capturedPointer; capturedPointer = null;
         pointer?.Capture(null);
         FlushRefresh();
@@ -127,6 +128,14 @@ public sealed partial class DockSurface
         if (draft is null) return;
         var tab = Session.Tabs(draft.Source).FirstOrDefault(item => item.Id == draft.Tab);
         if (tab is null) return;
+        // A terminal moves only within its own workspace: over another workspace's or project's row nothing is offered,
+        // not even the destinations of the pane that lists them.
+        if (tab.Kind == "terminal" && ForeignWorkspace is { } foreign && this.GetVisualAt(point, visual => visual is not InputElement { IsHitTestVisible: false }) is { } hit &&
+            hit.GetSelfAndVisualAncestors().OfType<Control>().Any(foreign))
+        {
+            Cursor = NotAllowed;
+            return;
+        }
         var candidates = new List<DropSite>();
         bool Legal(string group, int index, string edge = "")
         {
@@ -274,7 +283,12 @@ public sealed partial class DockSurface
             .ThenBy(candidate => CornerDistance(candidate.Target.Bounds, point)).FirstOrDefault();
         drop = winner?.Target;
         foreach (var candidate in candidates) candidate.Paint(ReferenceEquals(candidate, winner));
+        // A terminal stays in its workspace: over anything that is not one of its own workspace's destinations,
+        // such as another workspace's row in Projects, the pointer says the drop is refused.
+        Cursor = tab.Kind == "terminal" && drop is null ? NotAllowed : null;
     }
+
+    private static readonly Cursor NotAllowed = new(StandardCursorType.No);
 
     // A column's rows: the top and bottom quarters insert before and after, and the band between them shows the dragged
     // tab together with that one, in the setting's arrangement or, over a pane member, the arrangement it joins.

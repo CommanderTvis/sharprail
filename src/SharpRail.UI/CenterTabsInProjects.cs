@@ -26,6 +26,13 @@ public sealed partial class WorkbenchWindow
     {
         surface.CenterTabs = CenterTabsModeNow;
         surface.WorkspaceRoot = () => workspaceRoot;
+        // Terminal tabs stay in their workspace, so the rail's other workspaces and projects are no drop destination for them.
+        surface.ForeignWorkspace = control => control.Name switch
+        {
+            "WorkspaceTabs" or "WorkspaceItem" => !Equals(control.Tag, Layout.State.ActiveWorkspace),
+            "ProjectRow" => true,
+            _ => false
+        };
         surface.NestedStripsChanged += strips => { centerStripsInProjects = new Dictionary<string, Control>(strips); PlaceWorkspaceTabs(); };
         tabLayoutSignature = TabLayoutSignature();
         surface.Rebuild();

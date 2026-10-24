@@ -268,6 +268,11 @@ it: the composition root passes the host's removal signal to the terminal servic
 in a remote host alike. Closing a tab whose shell runs a foreground process asks
 first through the docking removal veto (`TerminalTabs.cs`); an idle or exited tab closes immediately.
 Removing a group or applying a preset moves terminal tabs but preserves their session identity.
+A terminal tab belongs to its workspace for life: layout moves act on the active workspace's view only, and the
+host catalog has no move, since a session is named by workspace and tab key, so a client (remote ones too)
+naming a tab key in another workspace reserves a separate tab with its own shell and leaves the original in
+place. The one exception is `workspace_emigrate`, which the user approves per call
+(Host Core `WorkspaceMcpTools.cs`).
 Appearance changes keep live terminal views (`DocumentCache.cs`); Ghostty receives the new background,
 foreground, ANSI palette, cursor and selection colours and its contrast floor without restarting the
 shell. Ordinary themes preserve terminal foreground colours without minimum-contrast adjustment
