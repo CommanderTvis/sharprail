@@ -1,7 +1,7 @@
 # Development machine setup
 
 What a checkout provisions itself, and what you install. Run every task through `scripts/mise run <task>`
-(`scripts\mise.cmd` on Windows); see [scripts/README.md](scripts/README.md).
+(`scripts\mise.cmd` on Windows); see [scripts/README.md](../../scripts/README.md).
 
 ## Provisioned by the repo
 
@@ -27,7 +27,7 @@ missing; tasks run under `scripts/mise` find `dotnet` and the others on PATH.
 The build recipes also fetch, pinned by commit or checksum, the Ghostty sources and Zig dependency mirror
 (`scripts/zig-deps.sh`) and Go for the Android Tailscale bridge (`scripts/tailscale-go.sh`). Build caches and those
 downloads live in the machine-wide `SHARPRAIL_CACHE_DIR` (`~/.cache/sharprail`), shared by every checkout; see
-[scripts/README.md](scripts/README.md). NuGet packages restore from nuget.org in locked mode. The app downloads
+[scripts/README.md](../../scripts/README.md). NuGet packages restore from nuget.org in locked mode. The app downloads
 managed language servers at runtime, not the build.
 
 ## Install yourself
@@ -35,7 +35,7 @@ managed language servers at runtime, not the build.
 ### All platforms
 
 - Git 2.36 or newer on `PATH`: the build fetches pinned sources with it, and the app needs `git worktree list -z`
-  (see [LINUX.md](LINUX.md)).
+  (see [LINUX.md](../../LINUX.md)).
 
 ### macOS (`build`, `dev`, `package:macos`, `check:terminal`)
 
@@ -51,13 +51,13 @@ managed language servers at runtime, not the build.
 
 - `bash`, `curl`, `tar`, POSIX `sh`, `patch` and `shasum`: the mise download and the native recipes.
 - To run the app: glibc 2.31 or newer, an X11 or XWayland session, `libX11`, `libXcursor`, `libXrandr`, `libXi`,
-  `fontconfig` and a GL or software Skia stack ([LINUX.md](LINUX.md)).
+  `fontconfig` and a GL or software Skia stack ([LINUX.md](../../LINUX.md)).
 - Pack the AppImage on a host of the target architecture (`SHARPRAIL_APPDIR_ONLY=1` assembles the AppDir anywhere).
 
 ### Windows (`build`, `package:windows`)
 
 - Windows 10 1809 or later or Windows 11, x64 or ARM64; Git for Windows, Windows PowerShell and `tar.exe`
-  ([WINDOWS.md](WINDOWS.md)). No Visual Studio C++ needed: Zig compiles the native libraries
+  ([WINDOWS.md](../../WINDOWS.md)). No Visual Studio C++ needed: Zig compiles the native libraries
   (`scripts/windows-native.ps1`).
 - Android builds need macOS or Linux (the NDK pin has no Windows archives).
 

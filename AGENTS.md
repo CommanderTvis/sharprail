@@ -1,6 +1,6 @@
 # SharpRail instructions
 
-.NET 10 C# solution (`SharpRail.slnx`): Avalonia workbench over a transport-independent host, with builtin plugins. Detail on demand: `DEVELOPMENT.md` (what the repo provisions versus what the machine needs), `docs/agent-reference.md` (project map, host-change layers, workbench partials, state and terminal details, check modes, artifact paths), `scripts/README.md`, module `SPEC.md` files, `SPEC.md`, `STATUS.md`, `context-log.md` (latest entries for continuation state), `gotchas.md` if present.
+.NET 10 C# solution (`SharpRail.slnx`): Avalonia workbench over a transport-independent host, with builtin plugins. Detail on demand: `docs/develop/setup.md` (what the repo provisions versus what the machine needs), `docs/develop/agent-reference.md` (project map, host-change layers, workbench partials, state and terminal details, check modes, artifact paths), `scripts/README.md`, module `SPEC.md` files, `SPEC.md`, `STATUS.md`, `context-log.md` (latest entries for continuation state), `gotchas.md` if present.
 
 ## Hard rules
 
@@ -21,7 +21,7 @@
 - Keep user state in `~/.sharprail`, not project directories. Shareable project config is the exception: the project's `.sharprail/` as TOML (`language.toml`: `src/SharpRail.Host.Core/Language/SPEC.md`; `instructions.toml`: `src/SharpRail.Host.Core/Plugins.SPEC.md`).
 - Keep settings, presets, workspace labels, project list/recents and workspace lifecycle in host state (`IHostStateService`): change them through the host and update the UI on broadcast (`HostSync.cs`), never by writing a local copy.
 - Static UI layouts, styles and templates go in compiled `.axaml`; dynamic docking and host/interaction wiring go in C#. Edit authored design sources (`src/SharpRail.UI/Rendering/Design`), not generated C#.
-- Shared UI sources must compile for Android and Browser: desktop-only code goes under `#if !ANDROID && !BROWSER` or in files those projects exclude (see `docs/agent-reference.md`).
+- Shared UI sources must compile for Android and Browser: desktop-only code goes under `#if !ANDROID && !BROWSER` or in files those projects exclude (see `docs/develop/agent-reference.md`).
 - pi and an embedded AI chat UI are out of scope; Codex and Claude Code terminal integrations are in scope, and omp has basic (early) support.
 
 ## Build, format, check
@@ -30,7 +30,7 @@
 - Build (compiler and warnings-as-errors gate; also builds native libraries whose inputs changed): `scripts/mise run build`.
 - Packages: nuget.org only, locked restore; each project's `packages.lock.json` is committed (Android and Browser are not locked). Change packages with `scripts/mise run restore:update`; versions are pinned in `Directory.Packages.props`.
 - Format touched files: `dotnet format SharpRail.slnx --no-restore --include <files>`, then verify the whole solution with `scripts/mise run format` before committing: a scoped `--include` verify misses whitespace and final-newline errors that CI (whole-solution `--verify-no-changes`) reports. Style comes from the checked-in `.editorconfig`.
-- Checks: `dotnet run --project tests/SharpRail.Checks -c Release [-- <mode>]`. Mode list: `docs/agent-reference.md`; add a mode in `tests/SharpRail.Checks/Program.cs` when a change has none.
+- Checks: `dotnet run --project tests/SharpRail.Checks -c Release [-- <mode>]`. Mode list: `docs/develop/agent-reference.md`; add a mode in `tests/SharpRail.Checks/Program.cs` when a change has none.
 - Browser WASM and Android build separately from `SharpRail.slnx` (`scripts/mise run browser`, `scripts/mise run android`).
 - Documentation-only edits need whitespace and path verification, not a build or the gate.
 - Report only checks actually run; name anything blocked.
