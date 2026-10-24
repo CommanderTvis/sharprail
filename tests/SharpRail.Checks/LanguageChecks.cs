@@ -98,7 +98,15 @@ internal static class LanguageChecks
         finally
         {
             Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", previous);
-            Directory.Delete(root, true);
+            try { Directory.Delete(root, true); }
+            catch (IOException)
+            {
+                // Diagnostic only: name what is still being written when the fixture cannot be removed.
+                Console.WriteLine($"Leftover entries in {root}:");
+                foreach (var entry in new DirectoryInfo(root).EnumerateFileSystemInfos("*", SearchOption.AllDirectories).Take(30))
+                    Console.WriteLine($"  {Path.GetRelativePath(root, entry.FullName)} {(entry is FileInfo file ? file.Length + " B" : "dir")} {entry.LastWriteTimeUtc:O}");
+                throw;
+            }
         }
     }
 
