@@ -271,14 +271,15 @@ idle timeout, memory budget, C#, JVM and other count caps, saved as the `languag
 re-shown from its broadcast. The list polls the host's `running` operation every 5 s off the UI thread while
 the page is shown. `--lsp-limits` checks it headless.
 
-Server rows adapt to the pane width with a container query on the row (static, in
-`LanguagePanel.axaml`). Above 300px the name sits between the marks and the actions (settings and
-Start/Retry); at 300px and below the marks keep the first line, then the name, the actions and the
-details each take the full row width. The name wraps only between words, trims with an ellipsis and
-shows itself as a tooltip. The shared pane header trims its title before its buttons, so no pane title
-runs under + or −. `--lsp-narrow` (also part of `--lsp-ui`) asserts at 160, 220, 320 and 480px that
-no row text is narrower than its longest word, names never break inside a word, row actions stay
-visible inside the row, and pane titles end before their buttons.
+Server rows are a grid at every width (static, in `LanguagePanel.axaml`): one header line holds the
+status mark, the language icon, the name, settings and Start/Retry, with the status, icon and action
+columns sized alike across rows through shared size groups. The name fills the remaining width on one
+line, trims with an ellipsis and shows itself as a tooltip; suggestion, status and exit details sit
+below it, aligned to the name column, and only long free text wraps. The shared pane header trims its
+title before its buttons, so no pane title runs under + or −. `--lsp-narrow` (also part of
+`--lsp-ui`) asserts at 160, 220, 320 and 480px that status, icon, name and actions share one line,
+action columns align across rows, the name stays on one line, detail text is no narrower than its
+longest word, row actions stay visible inside the row, and pane titles end before their buttons.
 
 A row whose server declares host tools lists them when expanded, and always while a required one is missing: the row
 then reads `Needs <tool>` before any start. Each tool shows where it was found, or its install hint (selectable, with

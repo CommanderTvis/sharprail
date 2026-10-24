@@ -45,12 +45,26 @@ internal static class LanguagePaneNarrowChecks
             {
                 window.Width = width;
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+                double? settingsLeft = null, disclosureLeft = null;
                 for (var index = 0; index < servers.ItemCount; index++)
                 {
                     var row = (ListBoxItem)servers.ContainerFromIndex(index)!;
                     var name = row.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "ServerTitle");
-                    Require(!BreaksInsideWord(name), $"At {width}px the server name '{name.Text}' broke inside a word.");
-                    foreach (var text in row.GetLogicalDescendants().OfType<TextBlock>().Where(text => text.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(text.Text)))
+                    Require(name.TextLayout.TextLines.Count == 1, $"At {width}px the server name '{name.Text}' wrapped instead of trimming.");
+                    var settings = row.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerSettingsAction");
+                    var disclosure = row.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "ServerDisclosure");
+                    var icon = row.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "ServerLanguageIcon");
+                    var status = row.GetLogicalDescendants().OfType<Control>().First(control => control.Name is "ServerStatusIcon" or "ServerBootSpinner" && control.IsEffectivelyVisible);
+                    var nameCenter = CenterY(name, row);
+                    foreach (var part in new Control[] { status, icon, settings, disclosure })
+                        Require(Math.Abs(CenterY(part, row) - nameCenter) <= 3, $"At {width}px {part.Name} left the header line of '{name.Text}' ({CenterY(part, row):0} vs {nameCenter:0}).");
+                    var left = settings.TranslatePoint(default, row)!.Value.X;
+                    var actionLeft = disclosure.TranslatePoint(default, row)!.Value.X;
+                    settingsLeft ??= left;
+                    disclosureLeft ??= actionLeft;
+                    Require(Math.Abs(left - settingsLeft.Value) <= 0.5 && Math.Abs(actionLeft - disclosureLeft.Value) <= 0.5,
+                        $"At {width}px the action columns of '{name.Text}' did not align with the first row (settings at {left:0} vs {settingsLeft:0}).");
+                    foreach (var text in row.GetLogicalDescendants().OfType<TextBlock>().Where(text => text.TextWrapping != Avalonia.Media.TextWrapping.NoWrap && text.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(text.Text)))
                     {
                         var longest = text.Text!.Split(' ', StringSplitOptions.RemoveEmptyEntries).Max(word => Measure(text, word));
                         Require(text.Bounds.Width + 1 >= Math.Min(longest, row.Bounds.Width * 0.6),
@@ -67,7 +81,7 @@ internal static class LanguagePaneNarrowChecks
                 }
                 LanguageChecks.CaptureLsp(window, $"narrow-{width}");
             }
-            Console.WriteLine("PASS Code Intelligence rows at 160-480 px keep names whole, details full-width and actions reachable");
+            Console.WriteLine("PASS Code Intelligence rows at 160-480 px keep one aligned header line, trimmed names and reachable actions");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }
@@ -98,23 +112,12 @@ internal static class LanguagePaneNarrowChecks
         Console.WriteLine("PASS pane headers trim titles before their buttons at 160-480 px");
     }
 
+    private static double CenterY(Control control, Visual row) => control.TranslatePoint(new Point(0, control.Bounds.Height / 2), row)!.Value.Y;
+
     private static double Measure(TextBlock source, string text)
     {
         var probe = new TextBlock { Text = text, FontSize = source.FontSize, FontFamily = source.FontFamily, FontWeight = source.FontWeight };
         probe.Measure(Size.Infinity);
         return probe.DesiredSize.Width;
-    }
-
-    // A wrapped line that ends mid-word (neither side of the break is a space) means the name was broken inside a word.
-    private static bool BreaksInsideWord(TextBlock text)
-    {
-        var value = text.Text ?? "";
-        var lines = text.TextLayout.TextLines;
-        for (var line = 0; line < lines.Count - 1; line++)
-        {
-            var end = lines[line].FirstTextSourceIndex + lines[line].Length;
-            if (end > 0 && end < value.Length && !char.IsWhiteSpace(value[end - 1]) && !char.IsWhiteSpace(value[end])) return true;
-        }
-        return false;
     }
 }
