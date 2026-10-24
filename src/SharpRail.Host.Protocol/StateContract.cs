@@ -122,6 +122,7 @@ public sealed class StateReply
     [ProtoMember(27)] public List<TerminalEmigrationMessage> PendingEmigrations { get; set; } = [];
     [ProtoMember(28)] public List<TerminalEmigrationMessage> FailedEmigrations { get; set; } = [];
     [ProtoMember(29)] public List<TerminalResumeOfferMessage> ResumeOffers { get; set; } = [];
+    [ProtoMember(30)] public List<WorkspaceRefMessage> ProjectLanguageHidden { get; set; } = [];
 }
 
 [ProtoContract]

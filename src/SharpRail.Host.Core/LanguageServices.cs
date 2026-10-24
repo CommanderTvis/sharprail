@@ -91,6 +91,8 @@ public sealed partial class ProjectServices
                 ? state.ProjectLanguageFileAsync(request, cancellationToken)
             : request.Operation is "projectAutostart" or "setProjectAutostart" or "prepareAgent"
                 ? state.ProjectLanguageAutostartAsync(request, cancellationToken)
+            : request.Operation is "projectHidden" or "setProjectHidden"
+                ? state.ProjectLanguageHiddenAsync(request, cancellationToken)
                 : state.Languages.ExecuteAsync(request, cancellationToken);
 }
 

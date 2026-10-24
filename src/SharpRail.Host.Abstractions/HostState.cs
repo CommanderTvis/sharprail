@@ -107,6 +107,11 @@ public sealed record HostState
     public IReadOnlyDictionary<string, string> WorkspaceLanguages { get; init; } = new Dictionary<string, string>();
     /// <summary>Project root to JSON server-id array started before managed agent launches.</summary>
     public IReadOnlyDictionary<string, string> ProjectLanguageAutostart { get; init; } = new Dictionary<string, string>();
+    /// <summary>
+    /// Project root to the JSON server-id array the user hid from the Code Intelligence pane: a personal choice, never written to the
+    /// shared <c>language.toml</c>. Hidden servers are not suggested and not started before agent launches.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> ProjectLanguageHidden { get; init; } = new Dictionary<string, string>();
     /// <summary>Unexpected language-server deaths this host saw, keyed by workspace, NUL and server id, valued "time|reason". Never persisted; clients toast each new value.</summary>
     public IReadOnlyDictionary<string, string> LanguageDeaths { get; init; } = new Dictionary<string, string>();
     /// <summary>

@@ -7,7 +7,7 @@
     <ItemsControl.ItemTemplate>
       <DataTemplate x:CompileBindings="False">
         <StackPanel Spacing="2">
-          <TextBlock Name="DependencyState" Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="12" TextWrapping="Wrap" />
+          <TextBlock Name="DependencyState" IsVisible="{Binding ShowText}" Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="12" TextWrapping="Wrap" />
           <SelectableTextBlock Name="DependencyHint" IsVisible="{Binding Missing}" Text="{Binding Hint}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
           <StackPanel Orientation="Horizontal" Spacing="12">
             <Button Name="DependencyUsePath" Content="Use path…" Classes="link" Click="UseDependencyPathClicked" IsVisible="{Binding CanChange}"

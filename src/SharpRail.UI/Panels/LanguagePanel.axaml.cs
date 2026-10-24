@@ -13,12 +13,16 @@ namespace SharpRail.UI.Panels;
 
 internal sealed partial class LanguagePanel : UserControl
 {
-    private sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false, bool ExitOpen = false)
+    private sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false, bool ExitOpen = false, bool Hidden = false)
     {
         private IEnumerable<LanguageDependencyState> MissingDependencies => (Server.Dependencies ?? []).Where(item => item.Required && item.State != "found");
         public bool HasMissing => LanguageDependencyList.HasMissing(Server.Dependencies);
         /// <summary>The tools the next start needs and cannot find, shown before any start fails.</summary>
-        public string Needs => "Needs " + string.Join(", ", MissingDependencies.Select(item => item.Executable));
+        public string Needs => string.Join(", ", MissingDependencies.Select(LanguageDependencyList.NeedsText));
+        public bool IsRunning => Server.State is "ready" or "initializing" or "installing" or "actionRequired";
+        /// <summary>Suggested or unavailable rows offer an inline Hide; running servers hide from the context menu, which stops them first.</summary>
+        public bool ShowHide => !Hidden && !IsRunning;
+        public bool ShowHideActions => ShowHide || Hidden;
         public bool ShowDependencies => Server.Dependencies is { Count: > 0 } && (Expanded || HasMissing);
         public bool HasExit => Server.Exit is not null && Server.State is not ("ready" or "initializing" or "installing");
         public bool ShowExit => HasExit && Server.Exit!.Unexpected;
@@ -75,6 +79,9 @@ internal sealed partial class LanguagePanel : UserControl
     private readonly HashSet<string> added = [];
     private readonly HashSet<string> expanded = [];
     private readonly HashSet<string> exitOpen = [];
+    // Servers hidden in this project (host state, per project); shown again only while showHidden is on.
+    private IReadOnlySet<string> hidden = new HashSet<string>();
+    private bool showHidden;
 
     internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, SharpRail.UI.State.SharedState? state = null, SharpRail.UI.Plugins.PluginRegistry? plugins = null)
     {
@@ -110,12 +117,15 @@ internal sealed partial class LanguagePanel : UserControl
             add.SelectedIndex = -1;
         };
         this.FindControl<Button>("Refresh")!.Click += async (_, _) => await RunAsync("servers");
+        this.FindControl<Button>("HiddenToggle")!.Click += (_, _) => { showHidden = !showHidden; RefreshRows(); };
         timer.Tick += async (_, _) => { if (IsEffectivelyVisible) { await RunAsync("servers"); } };
         void ConfigurationChanged(HostState previous, HostState next)
         {
             if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => ConfigurationChanged(previous, next)); return; }
             // A tool path the user chose or cleared changes what every row's probe finds.
             if (next.Settings.LanguageTools != previous.Settings.LanguageTools) _ = RunAsync("servers");
+            if (next.ProjectLanguageHidden.GetValueOrDefault(ProjectOf(next)) != previous.ProjectLanguageHidden.GetValueOrDefault(ProjectOf(previous)))
+            { hidden = HiddenIn(next); RefreshRows(); }
             var saved = next.WorkspaceLanguages.GetValueOrDefault(workspace) ?? "{}";
             var project = next.Workspaces.FirstOrDefault(item => item.Path == workspace)?.ProjectRoot ?? workspace;
             var fileChanged = next.ProjectLanguageFiles.GetValueOrDefault(project) != previous.ProjectLanguageFiles.GetValueOrDefault(project);
@@ -124,8 +134,45 @@ internal sealed partial class LanguagePanel : UserControl
             foreach (var view in configurations.Values) _ = view.ReloadAsync();
             _ = RunAsync("servers");
         }
-        AttachedToVisualTree += (_, _) => { lifetime = new(); if (state is not null) state.Changed += ConfigurationChanged; timer.Start(); _ = RunAsync("servers"); };
+        AttachedToVisualTree += (_, _) => { lifetime = new(); if (state is not null) { hidden = HiddenIn(state.Current); state.Changed += ConfigurationChanged; } timer.Start(); _ = RunAsync("servers"); };
         DetachedFromVisualTree += (_, _) => { if (state is not null) state.Changed -= ConfigurationChanged; foreach (var view in configurations.Values) view.SettingsWindow?.Close(); timer.Stop(); lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
+    }
+
+    private string ProjectOf(HostState current) => current.Workspaces.FirstOrDefault(item => item.Path == workspace)?.ProjectRoot ?? workspace;
+
+    private IReadOnlySet<string> HiddenIn(HostState current) => current.ProjectLanguageHidden.TryGetValue(ProjectOf(current), out var json)
+        ? (System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? []).ToHashSet() : new HashSet<string>();
+
+    private async void HideClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is Button { DataContext: ServerRow row }) await SetHiddenAsync(row, !row.Hidden);
+    }
+
+    /// <summary>
+    /// Hides or unhides a server in this project through the host; the rows follow the broadcast (or the reply, without shared state).
+    /// Hiding a running server stops it first, since a hidden server is not shown, suggested or started for agents.
+    /// </summary>
+    private async Task SetHiddenAsync(ServerRow row, bool hide)
+    {
+        if (lifetime is not { } current) return;
+        try
+        {
+            if (hide && row.IsRunning) await RunAsync("stop", row.Server);
+            var request = new LanguageRequest(workspace, Operation: "setProjectHidden", Server: row.Server.Id, Configuration: hide ? "true" : "false");
+            var result = await Task.Run(async () => await host.LanguageAsync(request, current.Token), current.Token);
+            // Apply on the UI thread even when the caller had no dispatcher context.
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (current != lifetime) return;
+                hidden = (System.Text.Json.JsonSerializer.Deserialize<string[]>(result.Configuration) ?? []).ToHashSet();
+                if (hidden.Count == 0) showHidden = false;
+                RefreshRows();
+                SetStatus(hide ? $"{row} is hidden in this project." : "");
+            });
+        }
+        catch (OperationCanceledException) when (current != lifetime || current.IsCancellationRequested) { }
+        catch (Exception error) { Dispatcher.UIThread.Post(() => { if (current == lifetime) SetStatus("Couldn't change hidden servers: " + error.Message); }); }
     }
 
     private void SetStatus(string text)
@@ -202,21 +249,26 @@ internal sealed partial class LanguagePanel : UserControl
     {
         var list = this.FindControl<ListBox>("Servers")!;
         selectedId ??= (list.SelectedItem as ServerRow)?.Server.Id;
-        var rows = inventory.Where(server => server.Path.Length > 0 || added.Contains(server.Id) || server.Presentation?.HasTerms != true && server.State is not ("idle" or "disabled") || server.Configured)
+        var rows = inventory.Where(server => !hidden.Contains(server.Id) || showHidden)
+            .Where(server => hidden.Contains(server.Id) || server.Path.Length > 0 || added.Contains(server.Id) || server.Presentation?.HasTerms != true && server.State is not ("idle" or "disabled") || server.Configured)
             .Select(server =>
             {
                 if (!configurations.TryGetValue(server.Id, out var view))
                     configurations[server.Id] = view = new(host, workspace, server);
                 else view.Update(server, inventorySaves.GetValueOrDefault(server.Id));
-                return new ServerRow(server, view, expanded.Contains(server.Id), exitOpen.Contains(server.Id));
+                return new ServerRow(server, view, expanded.Contains(server.Id), exitOpen.Contains(server.Id), hidden.Contains(server.Id));
             }).ToArray();
+        var count = inventory.Count(server => hidden.Contains(server.Id));
+        var toggle = this.FindControl<Button>("HiddenToggle")!;
+        toggle.IsVisible = count > 0;
+        toggle.Content = $"{count} hidden · {(showHidden ? "Collapse" : "Show")}";
         if (!(list.ItemsSource?.Cast<ServerRow>() ?? []).SequenceEqual(rows))
         {
             list.ItemsSource = rows;
             list.SelectedItem = rows.FirstOrDefault(row => row.Server.Id == selectedId);
         }
         var add = this.FindControl<ComboBox>("AddServer")!;
-        var choices = inventory.Where(server => !rows.Any(row => row.Server.Id == server.Id)).Select(server => server.Id).ToArray();
+        var choices = inventory.Where(server => !hidden.Contains(server.Id) && !rows.Any(row => row.Server.Id == server.Id)).Select(server => server.Id).ToArray();
         if (!(add.ItemsSource?.Cast<string>() ?? []).SequenceEqual(choices)) add.ItemsSource = choices;
         add.IsEnabled = choices.Length > 0;
     }
@@ -236,7 +288,9 @@ internal sealed partial class LanguagePanel : UserControl
         stop.Click += async (_, _) => await RunAsync("stop", row.Server);
         var logs = new MenuItem { Header = "View logs" };
         logs.Click += (_, _) => ShowLogs(row);
-        var menu = new ContextMenu { ItemsSource = new[] { start, stop, logs } };
+        var hide = new MenuItem { Header = row.Hidden ? "Unhide" : row.IsRunning ? "Stop and hide" : "Hide" };
+        hide.Click += async (_, _) => await SetHiddenAsync(row, !row.Hidden);
+        var menu = new ContextMenu { ItemsSource = new[] { start, stop, logs, hide } };
         menu.Closed += (_, _) => container.ContextMenu = null;
         container.ContextMenu = menu;
         menu.Open(container);

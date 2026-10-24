@@ -109,7 +109,9 @@ internal static class LanguageDependencyChecks
             E2E.E2eWorkspace.Until(() => GoRow() is not null && Shows("ServerNeeds", "Needs go"), "The Go row did not show Needs go before any start.");
             Require(GoRow().GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DependencyUsePath" && button.IsEffectivelyVisible), "The Go row offered no Use path….");
             Require(GoRow().GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DependencyCopyHint" && button.IsEffectivelyVisible), "The Go row offered no install hint.");
-            Console.WriteLine("PASS the Go row shows Needs go with Use path… and the install hint before any start");
+            Require(Needs().Text == "Needs go (Go)" && GoRow().GetLogicalDescendants().OfType<TextBlock>().Count(text => text.IsEffectivelyVisible && (text.Text ?? "").StartsWith("Needs ", StringComparison.Ordinal)) == 1,
+                "The Go row did not show Needs go (Go) exactly once.");
+            Console.WriteLine("PASS the Go row shows Needs go (Go) once, with Use path… and the install hint before any start");
             var mine = Tool(Path.Combine(root, "ui-mine"), "go");
             shared.ChangeAsync(HostStateChange.Setting("language-tool:go", mine)).GetAwaiter().GetResult();
             E2E.E2eWorkspace.Until(() => GoRow() is not null && !Needs().IsEffectivelyVisible, "The Go row kept Needs go after its path was set.");

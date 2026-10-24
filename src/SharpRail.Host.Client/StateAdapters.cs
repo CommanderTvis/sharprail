@@ -128,6 +128,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         SharprailExcludeDeclined = reply.SharprailExcludeDeclined.ToArray(),
         WorkspaceLanguages = reply.WorkspaceLanguages.ToDictionary(entry => entry.Path, entry => entry.Reference),
         ProjectLanguageAutostart = reply.ProjectLanguageAutostart.ToDictionary(entry => entry.Path, entry => entry.Reference),
+        ProjectLanguageHidden = reply.ProjectLanguageHidden.ToDictionary(entry => entry.Path, entry => entry.Reference),
         LanguageDeaths = reply.LanguageDeaths.ToDictionary(entry => entry.Path, entry => entry.Reference),
         ProjectLanguageFiles = reply.ProjectLanguageFiles.ToDictionary(entry => entry.Path, entry => entry.Reference),
         WorkspaceBases = reply.Bases.ToDictionary(entry => entry.Path, entry => entry.Reference),

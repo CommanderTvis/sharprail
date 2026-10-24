@@ -24,13 +24,19 @@ internal sealed partial class LanguageDependencyList : UserControl
             "found" => $"{Dependency.Executable}: {Dependency.Path} ({Dependency.Source switch { "override" => "your path", "home" => "from its home variable", _ => "PATH" }})"
                 + (Dependency.Required ? "" : " · not needed for the current launch"),
             "rejected" => $"{Dependency.Executable}: your path cannot run. {Dependency.Problem}",
-            _ => $"Needs {Dependency.Executable} ({Dependency.Name})" + (Dependency.Required ? "" : " · not needed for the current launch") + (Dependency.Problem.Length > 0 ? " " + Dependency.Problem : "")
+            _ => NeedsText(Dependency) + (Dependency.Required ? "" : " · not needed for the current launch") + (Dependency.Problem.Length > 0 ? " " + Dependency.Problem : "")
         };
+        /// <summary>Whether the state line shows; a missing required tool's line is left to the hosting row's own status when it shows one.</summary>
+        public bool ShowText => !(OmitMissing && Missing && Dependency.Required);
+        public bool OmitMissing { get; init; }
         public string Hint => Dependency.InstallHint;
         public Avalonia.Media.IBrush Brush => Missing && Dependency.Required ? Ui.Danger : Ui.Muted;
         public bool CanChange => CanChangePaths;
         public bool CanClear => CanChangePaths && Dependency.Override;
     }
+
+    /// <summary>The one wording of a missing tool: <c>Needs pwsh (PowerShell 7)</c>.</summary>
+    internal static string NeedsText(LanguageDependencyState dependency) => $"Needs {dependency.Executable} ({dependency.Name})";
 
     /// <summary>Whether any tool the next managed start needs cannot be found.</summary>
     internal static bool HasMissing(IReadOnlyList<LanguageDependencyState>? dependencies) => (dependencies ?? []).Any(item => item.Required && item.State != "found");
@@ -52,6 +58,11 @@ internal sealed partial class LanguageDependencyList : UserControl
     public SharpRail.UI.State.SharedState? HostState { get => GetValue(HostStateProperty); set => SetValue(HostStateProperty, value); }
     public event EventHandler<StatusEventArgs>? Status { add => AddHandler(StatusEvent, value); remove => RemoveHandler(StatusEvent, value); }
 
+    /// <summary>Leaves out missing required tools' state lines, for a row that already shows them as its status.</summary>
+    public static readonly StyledProperty<bool> OmitMissingTextProperty =
+        AvaloniaProperty.Register<LanguageDependencyList, bool>(nameof(OmitMissingText));
+    public bool OmitMissingText { get => GetValue(OmitMissingTextProperty); set => SetValue(OmitMissingTextProperty, value); }
+
     public static void SetHostState(AvaloniaObject target, SharpRail.UI.State.SharedState? value) => target.SetValue(HostStateProperty, value);
 
     public LanguageDependencyList()
@@ -62,9 +73,9 @@ internal sealed partial class LanguageDependencyList : UserControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property != DependenciesProperty && change.Property != HostStateProperty) return;
+        if (change.Property != DependenciesProperty && change.Property != HostStateProperty && change.Property != OmitMissingTextProperty) return;
         var rows = this.FindControl<ItemsControl>("DependencyRows")!;
-        var next = (Dependencies ?? []).Select(item => new DependencyRow(item, HostState is not null)).ToArray();
+        var next = (Dependencies ?? []).Select(item => new DependencyRow(item, HostState is not null) { OmitMissing = OmitMissingText }).ToArray();
         if (!(rows.ItemsSource?.Cast<DependencyRow>() ?? []).SequenceEqual(next)) rows.ItemsSource = next;
     }
 

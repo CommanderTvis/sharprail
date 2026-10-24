@@ -35,6 +35,7 @@ public sealed partial class HostStateStore : IHostStateService
         public List<string> SharprailExcludeDeclined { get; set; } = [];
         public Dictionary<string, string> WorkspaceLanguages { get; set; } = [];
         public Dictionary<string, string> ProjectLanguageAutostart { get; set; } = [];
+        public Dictionary<string, string> ProjectLanguageHidden { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
         public Dictionary<string, string> ProjectLabels { get; set; } = [];
         public Dictionary<string, string> UnreadWorkspaces { get; set; } = [];
@@ -150,6 +151,7 @@ public sealed partial class HostStateStore : IHostStateService
                     ProjectRecords = stored.ProjectRecords ?? [],
                     WorkspaceLanguages = stored.WorkspaceLanguages ?? [],
                     ProjectLanguageAutostart = stored.ProjectLanguageAutostart ?? [],
+                    ProjectLanguageHidden = stored.ProjectLanguageHidden ?? [],
                     SharprailExcludeDeclined = stored.SharprailExcludeDeclined ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
                     ProjectLabels = stored.ProjectLabels ?? [],
@@ -501,6 +503,7 @@ public sealed partial class HostStateStore : IHostStateService
                 ProjectRecords = snapshot.ProjectRecords.ToList(),
                 WorkspaceLanguages = snapshot.WorkspaceLanguages.ToDictionary(),
                 ProjectLanguageAutostart = snapshot.ProjectLanguageAutostart.ToDictionary(),
+                ProjectLanguageHidden = snapshot.ProjectLanguageHidden.ToDictionary(),
                 SharprailExcludeDeclined = snapshot.SharprailExcludeDeclined.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
                 ProjectLabels = snapshot.ProjectLabels.ToDictionary(),

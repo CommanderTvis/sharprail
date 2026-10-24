@@ -38,6 +38,9 @@ public sealed partial class HostStateStore
             }
         }
         if (request.Operation != "prepareAgent") return new("ready") { Configuration = JsonSerializer.Serialize(selected) };
+        // A server the user hid in this project is never started for agents.
+        var hidden = HiddenLanguageServers(project);
+        selected = [.. selected.Where(id => !hidden.Contains(id))];
         if (!Current.Settings.LspEnabled) return new("disabled", "Code Intelligence is disabled.");
         var starts = agentLanguageStarts;
         await starts.WaitAsync(token);
@@ -59,5 +62,37 @@ public sealed partial class HostStateStore
         }
         finally { starts.Release(); }
         return new("ready", "Selected server startup requested; installation and indexing may continue after the agent starts.");
+    }
+
+    /// <summary>The server ids the user hid in <paramref name="project"/>'s Code Intelligence pane.</summary>
+    internal IReadOnlySet<string> HiddenLanguageServers(string project) =>
+        Current.ProjectLanguageHidden.TryGetValue(project, out var json) ? (JsonSerializer.Deserialize<string[]>(json) ?? []).ToHashSet(StringComparer.Ordinal) : new HashSet<string>();
+
+    /// <summary>
+    /// Reads (<c>projectHidden</c>) or changes (<c>setProjectHidden</c>, <c>Configuration</c> "true" or "false") the servers the user
+    /// hid in a project's pane. A personal preference kept in host state, never in the shared <c>language.toml</c>.
+    /// </summary>
+    internal ValueTask<LanguageResult> ProjectLanguageHiddenAsync(LanguageRequest request, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
+        string[] hidden;
+        lock (gate)
+        {
+            // An unregistered folder is its own project, as the pane treats it.
+            var project = state.Workspaces.FirstOrDefault(item => item.Path == workspace)?.ProjectRoot ?? workspace;
+            hidden = state.ProjectLanguageHidden.TryGetValue(project, out var json) ? JsonSerializer.Deserialize<string[]>(json) ?? [] : [];
+            if (request.Operation == "setProjectHidden")
+            {
+                if (LanguageServers.Known(request.Server) is null) throw new ArgumentException("Unknown language server.");
+                if (!bool.TryParse(request.Configuration, out var hide)) throw new ArgumentException("Choose true or false for hiding.");
+                hidden = (hide ? hidden.Append(request.Server) : hidden.Where(id => id != request.Server)).Distinct().Order(StringComparer.Ordinal).ToArray();
+                var projects = state.ProjectLanguageHidden.ToDictionary();
+                if (hidden.Length > 0) projects[project] = JsonSerializer.Serialize(hidden);
+                else projects.Remove(project);
+                Publish(state with { ProjectLanguageHidden = projects }, persist: true);
+            }
+        }
+        return ValueTask.FromResult(new LanguageResult("ready") { Configuration = JsonSerializer.Serialize(hidden) });
     }
 }

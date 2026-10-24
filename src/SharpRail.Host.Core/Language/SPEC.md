@@ -853,6 +853,12 @@ of that project. The per-server configuration view saves its project checkbox im
 independently of workspace configuration and manual Start/Stop. Existing workspace autostart
 inheritance remains separate; a project selection never changes that workspace setting.
 
+Servers the user hides in a project's Code Intelligence pane are host state too (`ProjectLanguageHidden`: project root
+to a JSON array of server ids, persisted with the rest of host state and carried in remote snapshots), read and changed
+through the `projectHidden` and `setProjectHidden` language operations (`Configuration` "true" or "false"; an
+unregistered folder is its own project). Hiding is personal, so it is never written to `language.toml`. A hidden server
+is never started by agent-launch preparation, even when the project's autostart list selects it.
+
 Managed command launches and restored agent prefills request selected server startup in the
 launching workspace before delivering the agent command. Warm language sessions are reused,
 concurrent requests cannot duplicate a start, and failed or stopped sessions are retried on the

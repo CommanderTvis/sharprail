@@ -78,7 +78,7 @@
             <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" Name="ServerDetails" Spacing="4">
               <TextBlock Name="ServerNeeds" IsVisible="{Binding HasMissing}" Text="{Binding Needs}" Foreground="{x:Static kit:Ui.Danger}" TextWrapping="Wrap" />
               <TextBlock Name="ServerDetail" IsVisible="{Binding ShowDetail}" Text="{Binding Server.Detail}" Foreground="{Binding DetailBrush}" TextWrapping="Wrap" />
-              <local:LanguageDependencyList Name="ServerDependencies" IsVisible="{Binding ShowDependencies}" Dependencies="{Binding Server.Dependencies}" />
+              <local:LanguageDependencyList Name="ServerDependencies" OmitMissingText="True" IsVisible="{Binding ShowDependencies}" Dependencies="{Binding Server.Dependencies}" />
               <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding ShowExit}">
                 <Button Name="ServerExitDetailsAction" Content="{Binding ExitToggle}" Classes="link" Click="ExitDetailsClicked" />
                 <Button Name="ServerExitCopyAction" Content="Copy details" Classes="link" Click="CopyExitClicked" />
@@ -91,6 +91,11 @@
                       HorizontalAlignment="Left" HorizontalContentAlignment="Left" >
                 <TextBlock Text="{Binding Detection}" ToolTip.Tip="{Binding Detection}" FontSize="12" TextTrimming="CharacterEllipsis" />
               </Button>
+              <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding ShowHideActions}">
+                <Button Name="ServerHideAction" Content="Hide" Classes="link" Click="HideClicked" IsVisible="{Binding ShowHide}"
+                        ToolTip.Tip="Hide this server in this project: it is no longer suggested or started for agents" />
+                <Button Name="ServerUnhideAction" Content="Unhide" Classes="link" Click="HideClicked" IsVisible="{Binding Hidden}" />
+              </StackPanel>
               <TextBlock Name="ServerProvenance" IsVisible="{Binding HasProvenance}" Text="{Binding Provenance}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
               <TextBlock Name="ServerVersion" IsVisible="{Binding Expanded}" Text="{Binding Version}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
             </StackPanel>
@@ -109,6 +114,7 @@
         </DataTemplate>
       </ComboBox.ItemTemplate>
     </ComboBox>
+    <Button x:Name="HiddenToggle" Classes="link" IsVisible="False" HorizontalAlignment="Left" />
     <WrapPanel Margin="0,8,0,0">
       <Button x:Name="Refresh" Content="Refresh" Margin="0,0,8,8" />
     </WrapPanel>

@@ -1639,6 +1639,8 @@ SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.init -> void
 
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.init -> void
+SharpRail.Host.Abstractions.HostState.ProjectLanguageHidden.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Host.Abstractions.HostState.ProjectLanguageHidden.init -> void
 SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.init -> void
 SharpRail.Host.Abstractions.HostSettings.WindowDecorations.get -> string!

@@ -20,6 +20,55 @@ internal static class LanguagePaneNarrowChecks
     {
         Header(fixture);
         Rows(fixture);
+        Hidden(fixture);
+    }
+
+    /// <summary>Hide removes a suggested row behind "1 hidden · Show", persists per project in host state, stops suggesting it, and Show/Unhide bring it back.</summary>
+    private static void Hidden(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-hidden"); Directory.CreateDirectory(Path.Combine(root, "scripts"));
+        var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
+        File.WriteAllText(Path.Combine(root, "scripts", "window-probe.m"), "int main(void) { return 0; }");
+        File.WriteAllText(Path.Combine(root, "Program.cs"), "class Program {}");
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(statePath);
+        using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
+        shared.Start();
+        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var window = new Window { Width = 480, Height = 900, Content = pane };
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        window.Show();
+        try
+        {
+            const string clangd = "C / C++ (clangd)";
+            var servers = pane.FindControl<ListBox>("Servers")!;
+            var toggle = pane.FindControl<Button>("HiddenToggle")!;
+            ListBoxItem? Row(string name) => Enumerable.Range(0, servers.ItemCount).Where(index => servers.Items[index]?.ToString() == name)
+                .Select(index => servers.ContainerFromIndex(index) as ListBoxItem).FirstOrDefault();
+            void Click(ListBoxItem row, string name) => row.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == name && button.IsEffectivelyVisible)
+                .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => Row(clangd) is not null && !toggle.IsVisible, "The hidden-servers fixture did not suggest clangd.");
+            for (var index = 0; index < servers.ItemCount; index++)
+            {
+                var needs = ((ListBoxItem)servers.ContainerFromIndex(index)!).GetLogicalDescendants().OfType<TextBlock>()
+                    .Count(text => text.IsEffectivelyVisible && (text.Text ?? "").StartsWith("Needs ", StringComparison.Ordinal));
+                Require(needs <= 1, $"'{servers.Items[index]}' showed Needs {needs} times.");
+            }
+            Click(Row(clangd)!, "ServerHideAction");
+            E2E.E2eWorkspace.Until(() => Row(clangd) is null && toggle.IsVisible && toggle.Content as string == "1 hidden · Show", "Hide did not remove clangd behind 1 hidden · Show.");
+            Require(state.Current.ProjectLanguageHidden.GetValueOrDefault(root) == "[\"clangd\"]", "Hide did not reach host state for the project.");
+            Require(new HostStateStore(statePath).Current.ProjectLanguageHidden.GetValueOrDefault(root) == "[\"clangd\"]", "The hidden server did not survive reload.");
+            Require(!(pane.FindControl<ComboBox>("AddServer")!.ItemsSource?.Cast<string>() ?? []).Contains("clangd"), "A hidden server was still offered.");
+            Require(Row("C# (Roslyn)") is not null, "Hiding clangd hid another server.");
+            Console.WriteLine("PASS Hide removes a suggested server behind 1 hidden · Show, persisted per project, and stops suggesting it");
+            toggle.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => Row(clangd) is { } row && row.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ServerUnhideAction" && button.IsEffectivelyVisible),
+                "Show did not reveal the hidden server with Unhide.");
+            Click(Row(clangd)!, "ServerUnhideAction");
+            E2E.E2eWorkspace.Until(() => Row(clangd) is not null && !toggle.IsVisible && !state.Current.ProjectLanguageHidden.ContainsKey(root), "Unhide did not bring clangd back.");
+            Console.WriteLine("PASS Show reveals hidden servers and Unhide restores them");
+        }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }
 
     private static void Rows(string fixture)

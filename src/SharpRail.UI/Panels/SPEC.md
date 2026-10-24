@@ -282,11 +282,21 @@ action columns align across rows, the name stays on one line, detail text is no 
 longest word, row actions stay visible inside the row, and pane titles end before their buttons.
 
 A row whose server declares host tools lists them when expanded, and always while a required one is missing: the row
-then reads `Needs <tool>` before any start. Each tool shows where it was found, or its install hint (selectable, with
+then reads `Needs <tool> (<name>)` once, in red, before any start: the tool list leaves out that line in the pane
+(Settings, which has no row status, keeps it), and both build it with one helper. Each tool shows where it was found, or its install hint (selectable, with
 Copy install hint), and offers Use path… (a file picker; the chosen path becomes the host-wide `language-tool:` setting,
 changed off the UI thread) and Clear path when a path is set. Rows re-read the servers when the setting's broadcast
 arrives, so Retry works without a restart. The rows are one shared control (`LanguageDependencyList`), which inherits
 the host state from its pane and reports status through a bubbling event.
+
+Rows can be hidden per project. Suggested, idle or unavailable rows show an inline Hide link; every row's context menu
+offers Hide, or Stop and hide for a running server (it is stopped first, since a hidden server is not shown, suggested
+or started for agents). Hidden rows leave the list and the Add dropdown, and a footer link reads `N hidden · Show`;
+Show lists them again with Unhide, and the link then reads `N hidden · Collapse`. Hiding is a personal preference, so it
+is host state (`ProjectLanguageHidden`, project root to server ids, changed through the `setProjectHidden` language
+operation off the UI thread), never the shared `language.toml`; panes follow its broadcast. `--lsp-narrow` (also run by
+`--lsp-ui`) asserts Hide, the footer, persistence across a reload, that a hidden server is not offered, Show and
+Unhide, and that no row reads `Needs` twice.
 
 Settings › Code Intelligence shows the selected server's tools in a System dependencies section under its details, with
 the same control and actions; servers without declared tools show no section, and a server whose required tool is
