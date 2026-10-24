@@ -251,9 +251,7 @@ public sealed partial class WorkbenchWindow
             if (revealedProject == project) { revealedProject = null; profile.Data.CollapsedProjects.Add(project); }
             else if (!profile.Data.CollapsedProjects.Add(project))
             {
-                profile.Data.CollapsedProjects.Remove(project); _ = SyncWorkspacesAsync(project);
-                // A project without workspace rows has only its folder to reveal, so expanding it opens it as its name does.
-                if (RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees)) _ = OpenProjectAsync(project);
+                profile.Data.CollapsedProjects.Remove(project); _ = ExpandProjectAsync(project);
             }
             SaveProfile(); UpdateRailSelection();
         });
@@ -305,6 +303,19 @@ public sealed partial class WorkbenchWindow
 
     private bool HasWorkspaceRows(string project, IReadOnlyList<WorkspaceRecord> trees) =>
         trees is not [{ Kind: WorkspaceKinds.Default, Branch: "" }] || project == projectRoot && (git.IsRepository || gitError is not null);
+
+    /// <summary>
+    /// Lists an expanded project's workspaces; one without workspace rows has only its folder to reveal, so expanding it opens it
+    /// as its name does. Rows are judged on the listing itself: the rail's copy of another project's workspaces may still be empty.
+    /// </summary>
+    private async Task ExpandProjectAsync(string project)
+    {
+        WorkspaceCatalog catalog;
+        try { catalog = await Task.Run(async () => await host.ListWorkspacesAsync(project, lifetime.Token), lifetime.Token); }
+        catch (OperationCanceledException) { return; }
+        catch (Exception error) { Console.Error.WriteLine("Workspaces could not be listed: " + error.Message); return; }
+        if (!Collapsed(project) && !HasWorkspaceRows(project, project == projectRoot ? RailWorkspaces(project) : catalog.Workspaces)) await OpenProjectAsync(project);
+    }
 
     private void RefreshProjectWorkspaces()
     {
