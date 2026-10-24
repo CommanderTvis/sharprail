@@ -42,6 +42,35 @@ The standalone host serves a built bundle from `SHARPRAIL_BROWSER_ROOT` on `SHAR
 cross-origin isolation headers required by the threaded runtime. macOS browser platform detection accepts
 both `MacIntel` and `macOS`, so standard fields, editors and terminal shortcuts use Command consistently.
 
+## Tailscale
+
+The connect screen offers "Connect over Tailscale" beside the address form. The tab then joins the tailnet as
+its own device, like the Android embedded node, and reaches hosts only through it. The node is a Go-to-WASM build
+of Tailscale v1.104.1 (`Tailscale.Wasm`, adapted from upstream `cmd/tsconnect`), roughly 29 MB raw and 4.7 MB
+Brotli. It is never in the initial bundle: the host serves it under `tailscale/` beside the app, and
+`tailscale/manifest.json` names the build, its files and sizes. `tailscale.js` is imported only when the option
+opens. The option reads the manifest and Cache Storage, then shows "Download Tailscale (~N MB)"; nothing is
+fetched until it is pressed. The download shows progress and can be cancelled; only a complete, size-checked
+download is cached, under `sharprail-tailscale-<version>-<build>` (a new pin or bridge change gets a new cache and
+older builds' caches are deleted). Later visits start from the cache. A server without the module, a failed
+download and a node that cannot start show the reason with retry.
+
+The node's identity (machine key, prefs) is kept in IndexedDB (`sharprail-tailscale`), read into a synchronous
+map before start and written through in order, so a browser signs in once and rejoins as the same device
+(non-ephemeral). One tab owns the node through a Web Lock; a second tab says Tailscale is already running.
+Sign-in opens Tailscale's HTTPS login page in a new tab after an explicit click; if the browser blocks it, the
+button reopens it from a fresh click. Administrator approval and connection states show as on Android. Once
+running, the shared Tailscale picker lists online netmap peers that answer SharpRail bootstrap and runs the
+host-approved comparison-code pairing. Discovery, pairing HTTP and every RPC channel dial numeric tailnet
+addresses through the node (`StreamHttpHandler` and `RpcTransports.RegisterStreamTransport`, registered
+before the adapters and removed after them); names never reach system DNS and CORS does not apply, since the
+traffic never uses the browser's fetch. Bytes cross the JavaScript bridge as base64 on the dispatcher. The
+pairing secret is mirrored from the in-memory file system to local storage; the endpoint is remembered with a
+tailnet flag, so a reload re-pairs through the node instead of connecting directly. Sign-out logs the node out,
+wipes its IndexedDB state and forgets the pairing secret; Disconnect also forgets the secret. The module runs
+without log uploads, SSH or exit-node support. Real tailnet sign-in, pairing and RPC from a browser need a
+manual check with a Tailscale account.
+
 ## Native components and platform services
 
 Pinned libghostty-vt and its existing bridge compile into a static WASM library

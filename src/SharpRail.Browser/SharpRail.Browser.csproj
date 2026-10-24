@@ -97,6 +97,20 @@
           Inputs="@(WasmNativeSource)" Outputs="obj/wasm-native/GhosttyAvaloniaVt.a">
     <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
   </Target>
+  <!-- The browser's own Tailscale node: deployed under tailscale/ but never loaded until the user downloads it. -->
+  <ItemGroup>
+    <TailscaleWasmSource Include="Tailscale.Wasm/go.mod;Tailscale.Wasm/go.sum;Tailscale.Wasm/main.go;../../scripts/build-tailscale-wasm.sh;../../scripts/tailscale-go.sh" />
+  </ItemGroup>
+  <Target Name="BuildTailscaleWasm" BeforeTargets="PrepareForBuild"
+          Inputs="@(TailscaleWasmSource)" Outputs="obj/tailscale-wasm/manifest.json">
+    <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-tailscale-wasm.sh&quot;" />
+  </Target>
+  <Target Name="IncludeTailscaleWasm" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildTailscaleWasm">
+    <ItemGroup>
+      <TailscaleWasmAsset Include="obj/tailscale-wasm/**/*" />
+      <WasmExtraFilesToDeploy Include="@(TailscaleWasmAsset)" TargetPath="tailscale/%(TailscaleWasmAsset.RecursiveDir)%(TailscaleWasmAsset.Filename)%(TailscaleWasmAsset.Extension)" />
+    </ItemGroup>
+  </Target>
   <!-- The vendored assets come from the pnpm lockfile, the PDFium pin and the licence files. -->
   <ItemGroup>
     <BrowserAssetSource Include="pnpm-lock.yaml;package.json;../../scripts/browser-assets.mjs;../../mise.browser.lock;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/Licenses/**;../SharpRail.Scintilla/Licenses/**;../*/NOTICE.md" />

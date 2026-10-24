@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.UI.Browser.BrowserTailscaleView">
+  <StackPanel Spacing="12">
+    <TextBlock Text="Tailscale" FontSize="20" />
+    <TextBlock Text="This browser joins your tailnet as its own device, then pairs with a host running SharpRail's Tailscale plugin." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+    <StackPanel x:Name="TailscaleDownloadPanel" Spacing="12" IsVisible="False">
+      <TextBlock Text="Tailscale is downloaded from this server once and kept by this browser." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+      <Button x:Name="TailscaleDownload" Classes="primary" MinHeight="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+      <ProgressBar x:Name="TailscaleDownloadProgress" Minimum="0" Maximum="1" IsVisible="False" />
+      <Button x:Name="TailscaleDownloadCancel" Content="Cancel download" MinHeight="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsVisible="False" />
+    </StackPanel>
+    <TextBlock x:Name="TailscaleStatus" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" IsVisible="False" />
+    <Button x:Name="TailscaleLogin" Content="Sign in to Tailscale" MinHeight="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsVisible="False" />
+    <Button x:Name="TailscaleRetry" Content="Retry" MinHeight="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsVisible="False" />
+    <ContentControl x:Name="TailscalePicker" />
+    <Button x:Name="TailscaleLogout" Content="Sign out of Tailscale" MinHeight="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsVisible="False" />
+  </StackPanel>
+</UserControl>

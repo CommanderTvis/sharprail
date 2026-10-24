@@ -210,6 +210,8 @@ Vary: Accept-Encoding and representation-specific static-file ETags preserve cac
 Missing/stale sidecars fall back to identity, or 406 when identity is explicitly forbidden.
 Default documents retain negotiation; direct sidecar URLs return 404. Compression applies only
 to public static assets, never RPC. No request-time compression is performed.
+The bundle's `tailscale/` directory (the browser's lazily downloaded Tailscale node, its manifest and licences)
+is served the same way; nothing requests it until the user downloads Tailscale in the browser.
 
 File-transfer RPC maps entry names, directory flags and bytes to the host import operation, preserving
 the expected workspace and optional destination. The reply contains host paths. File actions preserve

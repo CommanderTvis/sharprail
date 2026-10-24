@@ -22,6 +22,8 @@ public sealed partial class ConnectWindow : Window
     private readonly Button scan;
     private CancellationTokenSource? attempt;
     private bool abandoned;
+    private bool closed;
+    private bool completed;
     private string? approvedToken;
     private readonly bool localPage = HostEndpoint.IsLocal(HostEndpoint.Parse(BrowserInterop.Origin()));
 
@@ -52,12 +54,44 @@ public sealed partial class ConnectWindow : Window
         scan.Content = Ui.Row("qrScan", "Scan QR code", Ui.TextBrush);
         scan.IsVisible = false;
         submit.Click += (_, _) => { if (attempt is null) _ = ConnectAsync(); else Abandon(); };
-        Closed += (_, _) => Abandon();
+        Closed += (_, _) => { closed = true; Abandon(); };
+        var tailscale = this.FindControl<Button>("ConnectTailscale")!;
+        tailscale.Click += (_, _) => ShowTailscale(autoConnect: false);
+        this.FindControl<Button>("ConnectManualBack")!.Click += (_, _) =>
+        {
+            this.FindControl<ContentControl>("ConnectTailscaleBody")!.Content = null;
+            this.FindControl<StackPanel>("ConnectManual")!.IsVisible = true;
+            tailscale.IsVisible = true;
+            this.FindControl<Button>("ConnectManualBack")!.IsVisible = false;
+        };
         Refresh();
     }
 
-    /// <summary>Tries the remembered host without waiting for a tap.</summary>
-    public void ConnectNow() => _ = ConnectAsync();
+    /// <summary>Tries the remembered host without waiting for a tap; a tailnet host re-pairs through the browser's node.</summary>
+    public void ConnectNow(bool tailnet = false)
+    {
+        if (tailnet) ShowTailscale(autoConnect: true);
+        else _ = ConnectAsync();
+    }
+
+    // The node and its download live in tailscale.js, imported only from here on.
+    private void ShowTailscale(bool autoConnect)
+    {
+        if (closed) return;
+        Abandon();
+        var view = new BrowserTailscaleView(autoConnect);
+        view.SignedOut += () => { token.Text = ""; approvedToken = null; };
+        view.Connected += next =>
+        {
+            if (closed || completed || !IsVisible) return;
+            completed = true;
+            Connected?.Invoke(new HostEndpoint(next.Address, next.Token, Tailnet: true));
+        };
+        this.FindControl<StackPanel>("ConnectManual")!.IsVisible = false;
+        this.FindControl<Button>("ConnectTailscale")!.IsVisible = false;
+        this.FindControl<ContentControl>("ConnectTailscaleBody")!.Content = view;
+        this.FindControl<Button>("ConnectManualBack")!.IsVisible = true;
+    }
 
     private void Refresh()
     {

@@ -4,8 +4,11 @@ using SharpRail.Host.Client;
 
 namespace SharpRail.UI.Browser;
 
-/// <summary>The host this client connects to: what the connect screen asks for and the app remembers.</summary>
-public sealed record HostEndpoint(string Address, string Token, bool LocalApproval = false)
+/// <summary>
+/// The host this client connects to: what the connect screen asks for and the app remembers. A tailnet endpoint is
+/// reached only through the browser's own Tailscale node.
+/// </summary>
+public sealed record HostEndpoint(string Address, string Token, bool LocalApproval = false, bool Tailnet = false)
 {
     /// <summary>The host's browser endpoint.</summary>
     public Uri? Uri => Parse(Address);

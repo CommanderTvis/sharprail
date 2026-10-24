@@ -12,6 +12,7 @@ public sealed class BrowserSession() : IDisposable
 {
     private readonly string directory = "/sharprail";
     private readonly List<IDisposable> adapters = [];
+    private IDisposable? route;
     private Workbench? workbench;
     internal Workbench? Workbench => workbench;
     private DispatcherTimer? watch;
@@ -31,7 +32,7 @@ public sealed class BrowserSession() : IDisposable
         Current = this;
         var remembered = HostEndpoint.Load(directory) ?? new HostEndpoint(BrowserInterop.Origin(), "");
         var connect = ShowConnect(remembered);
-        if (remembered is { Token.Length: > 0, Uri: not null }) connect.ConnectNow();
+        if (remembered is { Token.Length: > 0, Uri: not null }) connect.ConnectNow(remembered.Tailnet);
     }
 
     /// <summary>Leaves the host and forgets its token, keeping the address for the connect screen.</summary>
@@ -40,6 +41,8 @@ public sealed class BrowserSession() : IDisposable
         if (Endpoint is not { } endpoint) return;
         var forgotten = endpoint with { Token = "" };
         forgotten.Save(directory);
+        // As on Android, disconnecting from a tailnet host also forgets that pairing secret.
+        if (endpoint.Tailnet) _ = BrowserTailscaleView.ForgetPairingAsync();
         ReturnToConnect(forgotten);
     }
 
@@ -84,6 +87,8 @@ public sealed class BrowserSession() : IDisposable
         if (disposed) return;
         var address = endpoint.Uri!;
         var token = endpoint.Token;
+        // Registered before any adapter creates a channel and removed after they close.
+        if (endpoint.Tailnet) route = RpcTransports.RegisterStreamTransport(address, cancellation => BrowserTailscaleNetwork.DialAsync(address, cancellation));
         var profile = new ProfileStore(directory, () => BrowserInterop.Load("profile"), json => BrowserInterop.Save("profile", json));
         // Every adapter is the same client of the host as the state subscription.
         var connection = new HostConnection();
@@ -137,6 +142,8 @@ public sealed class BrowserSession() : IDisposable
         workbench = null;
         foreach (var adapter in adapters) adapter.Dispose();
         adapters.Clear();
+        route?.Dispose();
+        route = null;
     }
 
     public void Dispose()
