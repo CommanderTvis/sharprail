@@ -112,7 +112,8 @@ public sealed partial class ProjectServices
         registry.ChangeWorkspaces(current => current.Where(known => known.Path != path).Append(workspace));
         // Off the create's critical path: the workspace is usable now, and the clone only ever adds paths that are still absent.
         // It starts before the workspace's language servers, which wait for it (bounded) instead of restoring what it brings.
-        if (path != project) _ = WorkspaceClone.StartConfigured(project, path, message => System.Diagnostics.Trace.TraceWarning(message));
+        if (path != project) _ = WorkspaceClone.StartConfigured(project, path, message => System.Diagnostics.Trace.TraceWarning(message),
+            [.. registry.LanguageCatalog.Select(server => server.Spec.PrimeWorkspaceAsync).OfType<Func<string, string, CancellationToken, Task>>()]);
         registry.StartWorkspaceLanguages(path);
         return workspace;
     }

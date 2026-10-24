@@ -16,6 +16,7 @@ internal static class WorkspaceCloneChecks
     internal static async Task Run(string root)
     {
         IsolatedGit.ForProcess();
+        await ClangdIndex(root);
         var fixture = Path.Combine(root, "workspace-clone");
         var source = IsolatedGit.Repository(Path.Combine(fixture, "main"), (".gitignore", "obj/\nbin/\n.tools/\nnode_modules/\n.venv/\n"));
         foreach (var (path, text) in new[] { ("src/App/App.cs", "class App {}\n"), ("tracked/bin/keep.txt", "tracked\n") })
@@ -129,5 +130,56 @@ internal static class WorkspaceCloneChecks
                 if (new DirectoryInfo(dir).LinkTarget is null) File.SetUnixFileMode(dir, File.GetUnixFileMode(dir) | UnixFileMode.UserWrite);
             Directory.Delete(fixture, true);
         }
+    }
+
+    // A shard as clangd writes it: RIFF "CdIx", a zlib string table, and other chunks (one of odd length) left byte for byte.
+    private static byte[] Shard(params string[] strings)
+    {
+        var raw = System.Text.Encoding.UTF8.GetBytes(string.Concat(strings.Select(value => value + "\0")));
+        using var packed = new MemoryStream();
+        using (var zlib = new System.IO.Compression.ZLibStream(packed, System.IO.Compression.CompressionLevel.Fastest, leaveOpen: true)) zlib.Write(raw);
+        var table = BitConverter.GetBytes((uint)raw.Length).Concat(packed.ToArray()).ToArray();
+        var chunks = new (string Id, byte[] Data)[] { ("meta", [20, 0, 0, 0]), ("stri", table), ("srcs", [1, 2, 3]) };
+        var body = chunks.SelectMany(chunk => System.Text.Encoding.ASCII.GetBytes(chunk.Id).Concat(BitConverter.GetBytes((uint)chunk.Data.Length)).Concat(chunk.Data)
+            .Concat(chunk.Data.Length % 2 == 1 ? new byte[1] : [])).ToArray();
+        return [.. "RIFF"u8.ToArray(), .. BitConverter.GetBytes((uint)(4 + body.Length)), .. "CdIx"u8.ToArray(), .. body];
+    }
+
+    // A new workspace gets the source checkout's clangd shards renamed and rewritten for its own paths, through the primer the host runs after the clone.
+    private static async Task ClangdIndex(string root)
+    {
+        var fixture = Path.Combine(root, "clangd-prime");
+        var source = Path.Combine(fixture, "main");
+        var target = Path.Combine(fixture, "work space");
+        try
+        {
+            var index = Path.Combine(source, "native", ".cache/clangd/index");
+            Directory.CreateDirectory(index);
+            Directory.CreateDirectory(Path.Combine(target, "native"));
+            var file = Path.Combine(source, "native", "a.c");
+            var own = SharpRail.Plugins.Lsp.Clangd.ClangdIndexPrimer.ShardName(file);
+            Require(own.StartsWith("a.c.", StringComparison.Ordinal) && own.Length == "a.c.".Length + 16 + ".idx".Length, "Shard names are the file name, a 64-bit hex digest and .idx: " + own);
+            File.WriteAllBytes(Path.Combine(index, own), Shard("file://" + file, "-I" + source + "/include", "/usr/include/stdio.h", source + "-other/x.c"));
+            File.WriteAllBytes(Path.Combine(index, "stray.c.0000000000000000.idx"), Shard("file://" + Path.Combine(source, "native", "stray.c")));
+            File.WriteAllBytes(Path.Combine(index, "broken.c.0000000000000000.idx"), [1, 2, 3]);
+            var primed = new SharpRail.Plugins.Lsp.Clangd.ClangdPlugin().Spec.PrimeWorkspaceAsync!;
+            await WorkspaceClone.StartConfigured(source, target, primers: [primed]);
+            var written = Directory.GetFiles(Path.Combine(target, "native", ".cache/clangd/index"));
+            var expected = Path.Combine(target, "native", ".cache/clangd/index", SharpRail.Plugins.Lsp.Clangd.ClangdIndexPrimer.ShardName(Path.Combine(target, "native", "a.c")));
+            Require(written.SequenceEqual([expected]), "Only the shard whose name matches its own path is primed, under the target's name: " + string.Join(", ", written));
+            var bytes = File.ReadAllBytes(expected);
+            Require(BitConverter.ToUInt32(bytes, 4) == bytes.Length - 8, "The RIFF size covers the rewritten chunks.");
+            var text = System.Text.Encoding.UTF8.GetString(bytes);
+            Require(text.Contains("srcs\u0003\0\0\0\u0001\u0002\u0003\0", StringComparison.Ordinal), "Other chunks are kept with their padding.");
+            var start = text.IndexOf("stri", StringComparison.Ordinal) + 12;
+            using var zlib = new System.IO.Compression.ZLibStream(new MemoryStream(bytes, start, bytes.Length - start), System.IO.Compression.CompressionMode.Decompress);
+            var strings = new StreamReader(zlib).ReadToEnd().TrimEnd('\0').Split('\0');
+            Require(strings.SequenceEqual(["file://" + target.Replace(" ", "%20") + "/native/a.c", "-I" + target + "/include", "/usr/include/stdio.h", source + "-other/x.c"]),
+                "Paths under the source root, as paths and as URIs, move to the target; others stay: " + string.Join(" | ", strings));
+            var before = File.GetLastWriteTimeUtc(expected);
+            await WorkspaceClone.StartConfigured(source, target, primers: [primed]);
+            Require(File.GetLastWriteTimeUtc(expected) == before, "An existing shard is never replaced.");
+        }
+        finally { if (Directory.Exists(fixture)) Directory.Delete(fixture, true); }
     }
 }

@@ -62,6 +62,8 @@ public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
             if (flags.Length > 0) options["fallbackFlags"] = new JsonArray([.. flags.Select(flag => (JsonNode?)JsonValue.Create(flag))]);
             if (start.Options.CompilationDatabasePath.Length > 0) options["compilationDatabasePath"] = start.FullPath(start.Options.CompilationDatabasePath);
         },
+        // Reuses the source checkout's background index; see ClangdIndexPrimer.
+        PrimeWorkspaceAsync = (source, target, cancellationToken) => Task.Run(() => ClangdIndexPrimer.Prime(source, target, cancellationToken), cancellationToken),
         ProjectKind = manifest => Path.GetFileName(manifest) switch { "CMakeLists.txt" => "CMake project", "compile_commands.json" => "Compilation database", _ => null }
     };
 

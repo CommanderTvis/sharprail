@@ -182,6 +182,10 @@ forgetting removes its row while leaving the checkout in place. The Default work
   The clone starts before the workspace's language servers, and a server starting in that workspace
   waits for it (at most 30 s, `LanguageLimits.CloneWait`): Roslyn started before `obj` arrives restores
   and design-time builds the whole solution itself instead of reusing the Default checkout's outputs.
+  After the clone, the same background task runs every catalog server's `PrimeWorkspaceAsync(source, target)`
+  (Plugin API `LanguageServerSpec`), so that wait also covers priming; a failing primer is a trace warning.
+  clangd uses it to carry the Default checkout's background index over (see its plugin SPEC); its index
+  cannot be listed in `workspace.toml` instead, because a copied shard is never read under another path.
 
 ## Initial terminal
 

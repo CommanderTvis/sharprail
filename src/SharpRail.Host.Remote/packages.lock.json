@@ -276,7 +276,8 @@
       "sharprail.plugins.lsp.clangd": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "System.IO.Hashing": "[10.0.12, )"
         }
       },
       "sharprail.plugins.lsp.csharp": {
@@ -442,6 +443,12 @@
         "dependencies": {
           "System.ServiceModel.Primitives": "4.5.3"
         }
+      },
+      "System.IO.Hashing": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "jDix4bBMYnpZdSPcnY+KDV6ik3SRMzpMKby/bZl/XUwIiflwRNAFZ0oOl61R/pSaveIJ8t1gs2BUlrGsPs/bcg=="
       },
       "Tomlyn": {
         "type": "CentralTransitive",

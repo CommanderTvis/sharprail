@@ -2,6 +2,7 @@
   <!-- The C / C++ (clangd) language server plugin: its manifest and host half. -->
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <PackageReference Include="System.IO.Hashing" />
     <EmbeddedResource Include="Icon.svg" LogicalName="Icon.svg" />
     <None Include="Icon.svg" Link="plugins/lsp-clangd/assets/Icon.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <InternalsVisibleTo Include="SharpRail.Checks" />

@@ -672,7 +672,8 @@
       "sharprail.plugins.lsp.clangd": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "System.IO.Hashing": "[10.0.12, )"
         }
       },
       "sharprail.plugins.lsp.csharp": {
@@ -933,6 +934,12 @@
         "requested": "[4.148.0, )",
         "resolved": "3.119.4",
         "contentHash": "S1HOxtBbD4bYDtA2e9WH5TX+lxqRrTPvKjrjttRhxnHNNu7YY8VFo/LeCP7tNqoTA6PV+8vsvNbmRUEC2ip8RQ=="
+      },
+      "System.IO.Hashing": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "jDix4bBMYnpZdSPcnY+KDV6ik3SRMzpMKby/bZl/XUwIiflwRNAFZ0oOl61R/pSaveIJ8t1gs2BUlrGsPs/bcg=="
       },
       "TextMateSharp": {
         "type": "CentralTransitive",

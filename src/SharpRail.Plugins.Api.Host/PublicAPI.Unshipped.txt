@@ -411,6 +411,8 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.Artifacts.get -> System.Collection
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Artifacts.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ConfigureLaunch.get -> System.Action<SharpRail.Plugins.Api.Host.ILanguageServerInstallation!, SharpRail.Plugins.Api.Host.LanguageServerLaunchEdit!>!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ConfigureLaunch.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.PrimeWorkspaceAsync.get -> System.Func<string!, string!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.PrimeWorkspaceAsync.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Executable.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Executable.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!

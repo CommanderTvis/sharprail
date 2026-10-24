@@ -292,6 +292,13 @@ public sealed class LanguageServerSpec
     /// <summary>Adjusts every launch, managed, PATH or override, such as cache variables or a state directory argument.</summary>
     public Action<ILanguageServerInstallation, LanguageServerLaunchEdit> ConfigureLaunch { get; init; } = (_, _) => { };
 
+    /// <summary>
+    /// Seeds a newly created workspace (second argument) with the server's per-checkout state, such as an index, from the
+    /// checkout it was created from (first argument). The host runs it in the background before the workspace's servers
+    /// start, which wait for it (bounded); it must never replace what the workspace already has, and failures are ignored.
+    /// </summary>
+    public Func<string, string, CancellationToken, Task>? PrimeWorkspaceAsync { get; init; }
+
     /// <summary>A PATH executable to try when none is found, such as one located by a toolchain driver.</summary>
     public Func<ILanguageServerInstallation, CancellationToken, Task<string?>>? FindFallbackAsync { get; init; }
 

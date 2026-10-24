@@ -55,10 +55,18 @@ internal static class WorkspaceClone
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task> Running = new(StringComparer.Ordinal);
 
     /// <summary>Runs <see cref="CloneConfiguredAsync"/> in the background and remembers it until it ends, so <see cref="WhenClonedAsync"/> can wait for it.</summary>
-    internal static Task StartConfigured(string source, string target, Action<string>? report = null)
+    /// <param name="primers">Language servers' <c>PrimeWorkspaceAsync</c>, run after the clone; a failing one is reported and skipped.</param>
+    internal static Task StartConfigured(string source, string target, Action<string>? report = null,
+        IReadOnlyList<Func<string, string, CancellationToken, Task>>? primers = null)
     {
         target = Path.TrimEndingDirectorySeparator(Path.GetFullPath(target));
-        var clone = Task.Run(() => CloneConfiguredAsync(source, target, CancellationToken.None, report: report));
+        var clone = Task.Run(async () =>
+        {
+            await CloneConfiguredAsync(source, target, CancellationToken.None, report: report);
+            foreach (var prime in primers ?? [])
+                try { await prime(source, target, CancellationToken.None); }
+                catch (Exception error) { report?.Invoke("Priming a language server index failed: " + error.Message); }
+        });
         Running[target] = clone;
         _ = clone.ContinueWith(_ => Running.TryRemove(new(target, clone)), TaskScheduler.Default);
         return clone;
