@@ -105,10 +105,10 @@ public static class TerminalFacts
         return row;
     }
 
-    /// <summary>A read-only fact chip; <paramref name="kind"/> is <c>cwd</c>, <c>model</c>, <c>effort</c> or the caller's own.</summary>
+    /// <summary>A read-only fact chip; <paramref name="kind"/> is <c>cwd</c>, <c>model</c>, <c>effort</c>, <c>env</c> or the caller's own.</summary>
     public static Control FactChip(string kind, string label, string title)
     {
-        var chip = Chip(Content(kind == "cwd" ? "folder" : null, label), title);
+        var chip = Chip(Content(kind switch { "cwd" => "folder", "env" => "stack", _ => null }, label), title);
         chip.Name = "TerminalAgentFact_" + kind;
         return chip;
     }
