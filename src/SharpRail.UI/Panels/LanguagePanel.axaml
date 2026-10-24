@@ -22,13 +22,13 @@
     <TextBlock x:Name="Workspace" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <StackPanel x:Name="LanguageServersSection" Spacing="8">
       <TextBlock Text="Language servers" FontSize="16" FontWeight="SemiBold" />
-      <TextBlock Text="Diagnostics, navigation and refactoring for your project." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+      <TextBlock Text="Diagnostics, navigation and refactoring." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       <TextBlock x:Name="LifetimeNote" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock x:Name="Status" Text="Reading language servers…" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" Margin="0,4" />
     <Border x:Name="AgentLspGuidance" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.Accent}" BorderThickness="2,0,0,0" Padding="8">
       <StackPanel Spacing="4">
-        <TextBlock Text="Let your AI agent configure language servers" FontWeight="SemiBold" TextWrapping="Wrap" />
-        <TextBlock Text="Missing libraries or include paths? Ask your agent to configure this workspace and restart its language server."
+        <TextBlock Text="Ask your agent to configure servers" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Text="Missing libraries or include paths? Your agent can fix the workspace and restart the server."
                    FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       </StackPanel>
     </Border>

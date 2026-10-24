@@ -5,7 +5,7 @@ namespace SharpRail.UI.Panels;
 /// <summary>Wording the Code Intelligence pane and Settings share, so the two always say the same thing.</summary>
 internal static class LanguageNotes
 {
-    internal const string Lifetime = "Language servers run while their workspace uses them, within the limits below. Orchestrators start the ones agents need when they create a workspace, and agent tools start any other on demand. Start one here for language features in the editor.";
+    internal const string Lifetime = "Servers start on demand, within the limits below; start one here for editor features.";
 
     /// <summary>"12 min ago" style age of a round-trip UTC time, or empty when it cannot be read.</summary>
     internal static string Ago(string time, DateTime now)

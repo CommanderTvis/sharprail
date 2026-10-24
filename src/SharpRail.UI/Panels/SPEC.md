@@ -257,9 +257,8 @@ The 2026-10-18 regression reproduced Appearance page replacement on a terminal-t
 ## Code Intelligence notes
 
 The Code Intelligence pane and the Settings › Code Intelligence page both state, in one muted line
-(`LanguageNotes.Lifetime`), that language servers run while their workspace uses them within the limits, that
-orchestrators start the ones agents need when they create a workspace, that agent tools start any other
-on demand, and that starting one by hand is for editor features. A headless check (`--lsp-ui`,
+(`LanguageNotes.Lifetime`), that servers start on demand within the limits and that starting one by hand is for
+editor features. A headless check (`--lsp-ui`,
 `--lsp-settings`) asserts the text in both places. Rows of running servers show who started them and the
 agent call count with the time of the latest call.
 
