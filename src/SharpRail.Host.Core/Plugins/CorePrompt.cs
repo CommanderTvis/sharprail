@@ -32,6 +32,11 @@ internal static class CorePrompt
             Supply `branch` when a specific new branch is needed and `baseBranch` for the requested base; otherwise the base is the calling terminal's workspace HEAD.
             Work in the returned `path`; the tool does not switch your terminal. NEVER use `git worktree add`; use this tool so the workspace is placed and described in SharpRail.
             """),
+        ("workspace-emigrate", "Workspace emigration", "Move this terminal into a workspace you created only on the user's instruction, with workspace_emigrate.", """
+            `workspace_emigrate` moves this terminal tab into a workspace this same terminal created (through workspace_create) and relaunches you there, resumed with this conversation.
+            Call it ONLY when the user explicitly instructed you to work in a new workspace AND you are 100% certain you will never again touch the workspace you started in; otherwise keep working in the new `path` from here.
+            The user approves each move; after an approved call, end your turn at once without further tool calls. It moves only your own tab, never another terminal.
+            """),
         ("parallel-tasks", "Parallel tasks", "Suggest a subagent and workspace per unrelated task.", """
             When the user gives you several unrelated tasks or bug reports, suggest parallelizing them with a subagent and a separate SharpRail workspace per independent task, even if this session did not start as an orchestrator.
             Explain that this keeps each task's context focused and lets the user follow and review the work separately in SharpRail. Make the suggestion before processing the backlog sequentially; delegate only when authorized and subagent tools are available.

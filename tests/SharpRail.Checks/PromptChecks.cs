@@ -147,7 +147,7 @@ internal static class PromptChecks
         string[] ids =
         [
             visualize, "plugin." + SpecDialectManifest.Manifest.Id + ".spec-tools", "plugin." + BlueprintContract.Manifest.Id + ".blueprint-check",
-            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.code-intelligence",
+            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.workspace-emigrate", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.code-intelligence",
         ];
         var listed = runtime.InstructionSections(ClaudeCodeContract.Id, project);
         Require(listed.Sections.Select(section => section.Id).SequenceEqual(ids), "The sections are not the expected ids in composition order: " + string.Join(", ", listed.Sections.Select(section => section.Id)));

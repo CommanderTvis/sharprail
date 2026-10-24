@@ -124,6 +124,10 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         TerminalTitles = state.TerminalTitles.Select(title => new TerminalTitleMessage
         { WorkspaceId = title.Terminal.WorkspaceId, TabKey = title.Terminal.TabKey, Title = title.Title, Source = (int)title.Source }).ToList(),
         Platform = state.Platform is { } platform ? System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(platform.ToString()) : "",
-        ConnectedThroughTailscale = RpcConnection.ThroughTailscale
+        ConnectedThroughTailscale = RpcConnection.ThroughTailscale,
+        PendingEmigrations = state.PendingEmigrations.Select(request => new TerminalEmigrationMessage
+        { Id = request.Id, WorkspaceId = request.Terminal.WorkspaceId, TabKey = request.Terminal.TabKey, Target = request.Target, Reason = request.Reason }).ToList(),
+        FailedEmigrations = state.FailedEmigrations.Select(request => new TerminalEmigrationMessage
+        { Id = request.Id, WorkspaceId = request.Terminal.WorkspaceId, TabKey = request.Terminal.TabKey, Target = request.Target, Reason = request.Reason }).ToList()
     };
 }

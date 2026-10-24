@@ -207,6 +207,12 @@ internal static class StateChecks
         var localShake = await local.GetHandshakeAsync();
         var remoteShake = await remote.GetHandshakeAsync();
         Require(localShake == remoteShake && localShake.ProtocolVersion == HostProtocol.Current, "Local and remote handshakes must match.");
+        var hosted = (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
+        var asking = hosted.RequestEmigrationAsync(new("emigrate-check", new(project, "terminal:agent"), other, "Asked for a new workspace"), CancellationToken.None);
+        Require((await remote.GetStateAsync()).PendingEmigrations.SingleOrDefault() == new TerminalEmigrationRequest("emigrate-check", new(project, "terminal:agent"), other, "Asked for a new workspace"),
+            "A pending emigration reaches a remote client whole.");
+        await remote.ChangeAsync([HostStateChange.AnswerEmigration("emigrate-check", false)]);
+        Require(!await asking && (await remote.GetStateAsync()).PendingEmigrations.Count == 0, "A remote client's denial settles the request and clears it.");
         using var wrong = new RemoteStateAdapter(new Uri(address), "wrong-token");
         try { await wrong.GetHandshakeAsync(); throw new InvalidOperationException("A wrong token must not learn the protocol version."); }
         catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode is SharpRail.Host.Protocol.StatusCode.Unauthenticated or SharpRail.Host.Protocol.StatusCode.PermissionDenied) { }

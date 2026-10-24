@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Avalonia;
 using Avalonia.Controls;
@@ -22,6 +23,7 @@ using SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
 using SharpRail.Plugins.ClaudeCode.UI;
 using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Panels;
+using SharpRail.UI.State;
 
 namespace SharpRail.Checks;
 
@@ -417,6 +419,131 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => File.Exists(marker));
         Require(view.Backend is { } backend && !backend.Exited.IsCompleted, "The terminal outlives its agent.");
         Console.WriteLine("PASS Claude launch: when the agent exits the tab is an interactive shell in the same directory");
+    }
+
+    /// <summary>
+    /// <c>workspace_emigrate</c>: a launched Claude tab may move only into a workspace it created, and only with the user's
+    /// approval from the window's prompt. Refusals and a denial change nothing; an approval moves the tab into the target and
+    /// relaunches the fake claude there resumed under the preassigned session id.
+    /// </summary>
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    public static void Emigrate(string root)
+    {
+        var directory = Path.Combine(root, "claude-emigrate");
+        using var environment = new IsolatedEnvironment(directory);
+        using var app = new E2eWorkspace(Path.Combine(directory, "project"), openFiles: false, pluginTerminals: true);
+        IsolatedGit.Run(app.Root, "init", "-b", "main");
+        IsolatedGit.Run(app.Root, "add", ".");
+        IsolatedGit.Run(app.Root, "commit", "-m", "Initial");
+        E2eWorkspace.Until(() => app.Window.WorkspaceMounted && app.Workbench.PluginLoader!.Registry.Entry("claude-code") is not null);
+        var registry = app.Workbench.PluginLoader!.Registry;
+        var bin = Path.Combine(directory, "fake-bin");
+        var agentBin = Path.Combine(directory, "agent-bin");
+        Directory.CreateDirectory(bin);
+        Directory.CreateDirectory(agentBin);
+        var named = Path.Combine(agentBin, "claude");
+        if (!File.Exists(named)) File.CreateSymbolicLink(named, "/bin/bash");
+        var log = Path.Combine(directory, "launched.log");
+        var pidFile = Path.Combine(directory, "launched.pid");
+        var fake = Path.Combine(bin, "claude");
+        // Logs the directory and arguments of a session launch (a preassigned id or a resume), then runs as a process named claude.
+        File.WriteAllText(fake, "#!/bin/bash\ncase \" $* \" in *\" --session-id \"*|*\" --resume \"*) ;; *) exit 0 ;; esac\n" +
+            $"{{ pwd -P; printf '%s\\n' \"$@\"; }} > '{log}.part' && mv '{log}.part' '{log}'\n" +
+            $"exec -a claude '{named}' -c 'echo $$ > \"$0\"; sleep 600; :' '{pidFile}' \"$@\"\n");
+        File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        app.State!.ChangeAsync([HostStateChange.PluginSettings("claude-code", JsonSerializer.Serialize(new { enabled = true, command = fake, appendSystemPrompt = false }))]).AsTask().GetAwaiter().GetResult();
+        E2eWorkspace.Until(() => registry.LauncherList.FirstOrDefault(candidate => candidate.Id == "claude")?.TerminalCommand(new()).Contains(fake, StringComparison.Ordinal) == true);
+        var opened = app.Window.OpenPluginTerminalAsync(app.Root, new() { Command = registry.LauncherList.Single(candidate => candidate.Id == "claude").TerminalCommand(new()) });
+        E2eWorkspace.Until(() => opened.IsCompleted);
+        var tab = new TerminalRef(app.Root, opened.GetAwaiter().GetResult());
+        E2eWorkspace.Until(() => File.Exists(log) && File.Exists(pidFile) && File.ReadAllText(pidFile).Trim().Length > 0);
+        var launched = File.ReadAllLines(log);
+        var at = Array.IndexOf(launched, "--session-id");
+        Require(at >= 0 && AgentResume.IsSessionId(launched[at + 1]), "The launch preassigns a session id: " + string.Join(" ", launched));
+        var id = launched[at + 1];
+        E2eWorkspace.Until(() => app.State.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == tab)?.Record.SessionId == id);
+        // The fake's process table shows bash's arguments; a real claude shows its own command, which the revival rebuilds from.
+        app.State.SetTerminalAgent(tab, app.State.Current.TerminalAgents.Single(agent => agent.Terminal == tab).Record with { Command = fake + " --session-id " + id });
+        // A saved conversation makes the relaunch a resume rather than a fresh start under the same id.
+        Directory.CreateDirectory(Path.Combine(directory, "claude-home", "projects", "elsewhere"));
+        File.WriteAllText(Path.Combine(directory, "claude-home", "projects", "elsewhere", id + ".jsonl"), "{}\n");
+
+        var tools = new WorkspaceMcpTools(app.State) { EmigrationGrace = TimeSpan.FromMilliseconds(200) };
+        (string Text, bool Error) Call(McpServer.McpTool tool, JsonObject arguments)
+        {
+            var call = Task.Run(async () => await tool.Call(arguments, default));
+            E2eWorkspace.Until(() => call.IsCompleted);
+            return call.GetAwaiter().GetResult();
+        }
+        string Created(JsonObject arguments, TerminalRef creator)
+        {
+            var created = Call(tools.Create(app.Root, creator), arguments);
+            Require(!created.Error, "workspace_create must succeed: " + created.Text);
+            return JsonNode.Parse(created.Text)!["path"]!.GetValue<string>();
+        }
+        var target = Created(new JsonObject { ["description"] = "Emigration target" }, tab);
+        var foreign = Created(new JsonObject { ["description"] = "Another terminal's workspace" }, new TerminalRef(app.Root, "another-terminal"));
+        Require(app.State.WorkspaceCreator(target) == tab && app.State.WorkspaceCreator(foreign) != tab, "workspace_create records the calling terminal as the creator.");
+        bool Unchanged() => app.State.Current.PendingEmigrations.Count == 0 && app.State.Current.TerminalAgents.Any(agent => agent.Terminal == tab) &&
+            app.State.Terminals!.Catalog.Workspaces.GetValueOrDefault(app.Root)?.Any(known => known.Key == tab.TabKey) == true &&
+            app.State.Terminals.Catalog.Workspaces.GetValueOrDefault(target)?.Any(known => known.Key == tab.TabKey) != true;
+        foreach (var (caller, path, expected) in new[]
+        {
+            (tab, foreign, "created with workspace_create"),
+            (tab, app.Root, "Default workspace"),
+            (tab, Path.Combine(directory, "nowhere"), "not a SharpRail workspace"),
+            (new TerminalRef(app.Root, "plain-shell"), target, "only a Claude Code or Codex terminal")
+        })
+        {
+            var refused = Call(tools.Emigrate(caller), new JsonObject { ["path"] = path });
+            Require(refused.Error && refused.Text.Contains(expected, StringComparison.Ordinal) && Unchanged(), $"The tool refuses ({expected}) and changes nothing: {refused.Text}");
+        }
+        Console.WriteLine("PASS Workspace emigrate: refuses another terminal's workspace, Default, unknown paths and non-agent terminals");
+
+        Toast Prompt() => app.Window.Toasts.Items.Single(toast => toast.Title == "Move agent terminal?");
+        Task<(string Text, bool Error)> Ask() => Task.Run(async () => await tools.Emigrate(tab).Call(new JsonObject { ["path"] = target, ["reason"] = "The user asked for a new workspace" }, default));
+        var denied = Ask();
+        E2eWorkspace.Until(() => app.State.Current.PendingEmigrations.Count == 1 && app.Window.Toasts.Items.Any(toast => toast.Title == "Move agent terminal?"));
+        Require(Prompt().Message.Contains(target, StringComparison.Ordinal) && Prompt().Message.Contains(app.Root, StringComparison.Ordinal) &&
+            Prompt().Message.Contains("The user asked for a new workspace", StringComparison.Ordinal), "The prompt names both workspaces and the agent's reason: " + Prompt().Message);
+        Prompt().Secondary!.Invoke();
+        E2eWorkspace.Until(() => denied.IsCompleted);
+        Require(denied.GetAwaiter().GetResult() is { Error: true } refusal && refusal.Text.Contains("denied", StringComparison.Ordinal) && Unchanged() && tools.LastEmigration is null,
+            "A denial returns refused and changes nothing.");
+        E2eWorkspace.Until(() => app.Window.Toasts.Items.All(toast => toast.Title != "Move agent terminal?"));
+        Console.WriteLine("PASS Workspace emigrate: a denied prompt leaves the tab and its agent where they were");
+
+        File.Delete(log);
+        File.Delete(pidFile);
+        var approved = Ask();
+        E2eWorkspace.Until(() => app.Window.Toasts.Items.Any(toast => toast.Title == "Move agent terminal?"));
+        Prompt().Action!.Invoke();
+        E2eWorkspace.Until(() => approved.IsCompleted);
+        Require(approved.GetAwaiter().GetResult() is { Error: false } reply && reply.Text.Contains("relaunched", StringComparison.Ordinal), "An approval tells the agent it will be relaunched.");
+        E2eWorkspace.Until(() => tools.LastEmigration is { IsCompleted: true });
+        Require(tools.LastEmigration!.IsCompletedSuccessfully, "The move completes.");
+        var moved = new TerminalRef(target, tab.TabKey);
+        var catalog = app.State.Terminals!.Catalog;
+        Require(catalog.Workspaces.GetValueOrDefault(target)?.Any(known => known.Key == tab.TabKey) == true &&
+            catalog.Workspaces.GetValueOrDefault(app.Root)?.Any(known => known.Key == tab.TabKey) != true, "The tab now belongs to the target workspace.");
+        E2eWorkspace.Until(() => File.Exists(log) && File.Exists(pidFile) && File.ReadAllText(pidFile).Trim().Length > 0);
+        var relaunched = File.ReadAllLines(log);
+        var resume = Array.IndexOf(relaunched, "--resume");
+        Require(resume > 0 && relaunched[resume + 1] == id, "The relaunch resumes the preassigned session: " + string.Join(" ", relaunched));
+        Require(relaunched[0] == Real(target), $"The relaunch runs in the target workspace: {relaunched[0]} is not {Real(target)}");
+        E2eWorkspace.Until(() => app.State.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == moved)?.Record.SessionId == id &&
+            app.State.Current.TerminalAgents.All(agent => agent.Terminal != tab));
+        Console.WriteLine("PASS Workspace emigrate: an approved move relaunches the agent resumed in the target workspace's tab");
+        var closed = Task.Run(async () => await app.State.Terminals.CloseTabAsync(target, tab.TabKey));
+        E2eWorkspace.Until(() => closed.IsCompleted);
+
+        static string Real(string path)
+        {
+            using var shell = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("/bin/sh", ["-c", "cd \"$0\" && pwd -P", path]) { RedirectStandardOutput = true })!;
+            var output = shell.StandardOutput.ReadToEnd().Trim();
+            shell.WaitForExit();
+            return output;
+        }
     }
 
     private static List<Control> Named(Control scope, string name) =>

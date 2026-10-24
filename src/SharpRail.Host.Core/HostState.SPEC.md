@@ -178,6 +178,11 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   user renames. All are sent to remote clients (protocol field 4; an older host's titles read as user renames) and
   dropped with the terminal or its project.
   A window writes each title onto the tab that shows the terminal, on a broadcast and when a workspace mounts.
+- `PendingEmigrations` holds each `workspace_emigrate` request awaiting the user (`RequestEmigrationAsync`); it rides
+  snapshots and remote clients (protocol 12) and is never persisted. `terminal-emigration-answer` (`approve` or
+  `deny`) removes a pending request and settles its waiting call; an unknown id changes nothing. The creator of each
+  workspace made through `workspace_create` persists host-side only (`WorkspaceCreators`). See the
+  [Workspaces SPEC](Workspaces.SPEC.md).
 - `TerminalAgents` persist (`SetTerminalAgent`, `RemoveTerminalAgents`); the roster (`PublishPlugins`) and
   `Platform` ride every snapshot and are never persisted. Publishing an unchanged roster publishes nothing.
 - Namespaces are kept as compact JSON objects, so a reloaded file and a fresh change compare equal; a

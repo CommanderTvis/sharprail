@@ -147,7 +147,9 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         TerminalTitles = reply.TerminalTitles.Select(title => new TerminalTitle(new(title.WorkspaceId, title.TabKey), title.Title,
             Enum.IsDefined((TerminalTitleSource)title.Source) ? (TerminalTitleSource)title.Source : TerminalTitleSource.User)).ToArray(),
         Platform = Enum.TryParse<HostPlatform>(reply.Platform, ignoreCase: true, out var platform) ? platform : null,
-        ConnectedThroughTailscale = reply.ConnectedThroughTailscale
+        ConnectedThroughTailscale = reply.ConnectedThroughTailscale,
+        PendingEmigrations = reply.PendingEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray(),
+        FailedEmigrations = reply.FailedEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray()
     };
 
     public void Dispose() => channel.Dispose();

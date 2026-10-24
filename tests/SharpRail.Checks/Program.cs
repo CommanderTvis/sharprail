@@ -840,6 +840,14 @@ internal static class Program
             Console.WriteLine("PASS Discord checks");
             return;
         }
+        if (args.SequenceEqual(["--workspace-emigrate"]))
+        {
+            if (OperatingSystem.IsWindows()) { Console.WriteLine("SKIP workspace emigrate: the fake claude needs a POSIX shell"); return; }
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ClaudeCodeChecks.Emigrate(root);
+            return;
+        }
         if (args.SequenceEqual(["--claude-code"]))
         {
             ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
@@ -1258,6 +1266,7 @@ internal static class Program
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));
         Gate.Case("claude-code-ui", () => ClaudeCodeChecks.RunUi(root));
+        Gate.Case("workspace-emigrate", () => { if (!OperatingSystem.IsWindows()) ClaudeCodeChecks.Emigrate(root); });
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
         Gate.Case("epub-reader", () => EpubChecks.Run(root));

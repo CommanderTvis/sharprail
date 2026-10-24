@@ -154,6 +154,16 @@ public sealed record HostState
     /// titles are live only. All are dropped when the terminal closes.
     /// </summary>
     public IReadOnlyList<TerminalTitle> TerminalTitles { get; init; } = [];
+    /// <summary>
+    /// Agents asking to move their terminal tab into a workspace they created (<c>workspace_emigrate</c>), each waiting for
+    /// the user's answer from any client. Never persisted: an unanswered request ends with its tool call.
+    /// </summary>
+    public IReadOnlyList<TerminalEmigrationRequest> PendingEmigrations { get; init; } = [];
+    /// <summary>
+    /// Approved emigrations whose relaunch failed, newest last, with the error as <see cref="TerminalEmigrationRequest.Reason"/>;
+    /// the tab went back to its workspace. Never persisted; clients notify once per id.
+    /// </summary>
+    public IReadOnlyList<TerminalEmigrationRequest> FailedEmigrations { get; init; } = [];
     /// <summary>The host's operating system; null from a host that does not report it.</summary>
     public HostPlatform? Platform { get; init; }
     /// <summary>Whether this client's own connection to the host runs over Tailscale, as the host saw it; false for embedded and other transports.</summary>
@@ -161,6 +171,10 @@ public sealed record HostState
 }
 
 public sealed record TerminalAgent(TerminalRef Terminal, TerminalAgentRecord Record);
+
+/// <summary>An agent's request to move its tab from <paramref name="Terminal"/>'s workspace into <paramref name="Target"/>, awaiting the user.</summary>
+/// <param name="Reason">The agent's own explanation, shown in the prompt; may be empty.</param>
+public sealed record TerminalEmigrationRequest(string Id, TerminalRef Terminal, string Target, string Reason = "");
 
 /// <param name="Source">Who chose the title; a stronger source's title is never replaced by a weaker one's.</param>
 public sealed record TerminalTitle(TerminalRef Terminal, string Title, TerminalTitleSource Source = TerminalTitleSource.User);
@@ -205,6 +219,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     /// <summary>Merges a JSON object into one plugin's settings namespace; null resets the namespace.</summary>
     public static HostStateChange PluginSettings(string id, string? json) => new("plugin-settings", id, json ?? "");
     public static HostStateChange PluginEnabled(string id, bool enabled) => PluginSettings(id, enabled ? """{"enabled":true}""" : """{"enabled":false}""");
+    /// <summary>Answers a pending <see cref="HostState.PendingEmigrations"/> request; an unknown or answered id changes nothing.</summary>
+    public static HostStateChange AnswerEmigration(string id, bool approved) => new("terminal-emigration-answer", id, approved ? "approve" : "deny");
     public static HostStateChange PluginPaths(IReadOnlyList<string> paths) => new("plugin-paths", Value: JsonSerializer.Serialize(paths));
 }
 

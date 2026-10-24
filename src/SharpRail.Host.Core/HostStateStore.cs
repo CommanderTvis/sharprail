@@ -45,6 +45,8 @@ public sealed partial class HostStateStore : IHostStateService
         public List<string> PluginPaths { get; set; } = [];
         public List<TerminalAgent> TerminalAgents { get; set; } = [];
         public List<TerminalTitle> TerminalTitles { get; set; } = [];
+        // The terminal whose workspace_create made each workspace; only that terminal may emigrate into it.
+        public Dictionary<string, TerminalRef> WorkspaceCreators { get; set; } = [];
     }
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
@@ -57,6 +59,8 @@ public sealed partial class HostStateStore : IHostStateService
     private static readonly HashSet<string> KnownSettings = typeof(HostSettings).GetProperties().Select(property => property.Name).ToHashSet();
     private HostState state;
     private readonly SemaphoreSlim changesGate = new(1, 1);
+    private readonly Dictionary<string, TerminalRef> workspaceCreators = [];
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, TaskCompletionSource<bool>> emigrationAnswers = new(StringComparer.Ordinal);
 
     /// <summary>The host's terminals, ended when their project closes; input they accept is activity in their workspace.</summary>
     public PtyTerminalService? Terminals
@@ -125,6 +129,8 @@ public sealed partial class HostStateStore : IHostStateService
                 var text = File.ReadAllText(path);
                 var stored = JsonSerializer.Deserialize<Stored>(text, Json) ?? new();
                 legacyContextWorkspaces = stored.ContextWorkspaces;
+                foreach (var (workspace, creator) in stored.WorkspaceCreators ?? [])
+                    if (creator?.WorkspaceId is { Length: > 0 } && creator.TabKey is { Length: > 0 } && Directory.Exists(workspace)) workspaceCreators[workspace] = creator;
                 if (JsonNode.Parse(text)?[nameof(Stored.Settings)] is JsonObject settings)
                 {
                     fileIconsConfigured = settings.ContainsKey(nameof(HostSettings.FileTypeIconsEnabled));
@@ -279,6 +285,8 @@ public sealed partial class HostStateStore : IHostStateService
                     next = next with { Settings = next.Settings with { ThemeMode = "fixed" } };
                 next = Visible(Publish(next, persist: true));
             }
+            foreach (var answer in changes.Where(change => change.Kind == "terminal-emigration-answer"))
+                if (emigrationAnswers.TryRemove(answer.Key ?? "", out var waiting)) waiting.TrySetResult(answer.Value == "approve");
             if (previous.Settings.LspEnabled && !next.Settings.LspEnabled && languages is { } languageService)
                 await languageService.SuspendAsync();
             if (previous.Settings.LanguageLimits != next.Settings.LanguageLimits && languages is { } limited)
@@ -358,6 +366,47 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
 
+    /// <summary>Records the terminal whose <c>workspace_create</c> made a workspace, so only it may emigrate there.</summary>
+    public void RecordWorkspaceCreator(string workspace, TerminalRef creator)
+    {
+        lock (gate)
+        {
+            workspaceCreators[workspace] = creator;
+            Save(state);
+        }
+    }
+
+    /// <summary>The terminal that created a workspace through <c>workspace_create</c>, or null for any other workspace.</summary>
+    public TerminalRef? WorkspaceCreator(string workspace)
+    {
+        lock (gate) return workspaceCreators.GetValueOrDefault(workspace);
+    }
+
+    /// <summary>
+    /// Publishes an emigration request for every client and waits for the user's answer through
+    /// <see cref="HostStateChange.AnswerEmigration"/>. Cancelling withdraws the request; either way it leaves the state.
+    /// </summary>
+    public async Task<bool> RequestEmigrationAsync(TerminalEmigrationRequest request, CancellationToken cancellationToken)
+    {
+        var answer = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (!emigrationAnswers.TryAdd(request.Id, answer)) throw new InvalidOperationException("An emigration request with this id is already pending.");
+        lock (gate) Publish(state with { PendingEmigrations = [.. state.PendingEmigrations, request] }, persist: false);
+        try { return await answer.Task.WaitAsync(cancellationToken); }
+        finally
+        {
+            emigrationAnswers.TryRemove(request.Id, out _);
+            lock (gate)
+                if (state.PendingEmigrations.Any(pending => pending.Id == request.Id))
+                    Publish(state with { PendingEmigrations = state.PendingEmigrations.Where(pending => pending.Id != request.Id).ToArray() }, persist: false);
+        }
+    }
+
+    /// <summary>Publishes an approved emigration whose relaunch failed so every client can notify; kept for the last 16, never persisted.</summary>
+    public void PublishEmigrationFailure(TerminalEmigrationRequest failure)
+    {
+        lock (gate) Publish(state with { FailedEmigrations = [.. state.FailedEmigrations.TakeLast(15), failure] }, persist: false);
+    }
+
     /// <summary>Drops the titles of terminals that closed.</summary>
     public void RemoveTerminalTitles(Func<TerminalRef, bool> closed)
     {
@@ -434,7 +483,8 @@ public sealed partial class HostStateStore : IHostStateService
                 PluginPaths = snapshot.PluginPaths.ToList(),
                 TerminalAgents = snapshot.TerminalAgents.ToList(),
                 // A program's OSC title lives only as long as its shell.
-                TerminalTitles = snapshot.TerminalTitles.Where(title => title.Source != TerminalTitleSource.Program).ToList()
+                TerminalTitles = snapshot.TerminalTitles.Where(title => title.Source != TerminalTitleSource.Program).ToList(),
+                WorkspaceCreators = workspaceCreators.Where(entry => snapshot.Workspaces.Any(workspace => workspace.Path == entry.Key)).ToDictionary()
             };
             var temporary = path + ".tmp";
             var document = JsonSerializer.SerializeToNode(stored, Json)!;
@@ -566,6 +616,10 @@ public sealed partial class HostStateStore : IHostStateService
         var key = change.Key ?? ""; var value = change.Value ?? "";
         switch (change.Kind)
         {
+            case "terminal-emigration-answer":
+                if (value is not ("approve" or "deny")) throw new ArgumentException("An emigration answer is approve or deny.");
+                return current.PendingEmigrations.Any(pending => pending.Id == key)
+                    ? current with { PendingEmigrations = current.PendingEmigrations.Where(pending => pending.Id != key).ToArray() } : current;
             case "terminal-title":
                 var terminal = JsonSerializer.Deserialize<TerminalRef>(key) ?? throw new ArgumentException("A terminal is required.");
                 if (string.IsNullOrWhiteSpace(terminal.WorkspaceId) || string.IsNullOrWhiteSpace(terminal.TabKey) ||

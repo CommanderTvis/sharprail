@@ -51,6 +51,10 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   independent task before processing the backlog sequentially, even in a session not started as an
   orchestrator. Explain the focused context and separate review benefits; delegation requires
   authorization and available subagent tools.
+  Through the host's `core.workspace-emigrate` section it also describes `workspace_emigrate`: only on the user's
+  explicit request for a new workspace and with certainty of never touching the original one, the agent may move its
+  own tab into a workspace it created; the host relaunches it there through this plugin's revive hook (Codex's resume).
+  See the [Workspaces SPEC](../SharpRail.Host.Core/Workspaces.SPEC.md).
   It also asks the agent to title its terminal's tab through the host's `set_title` when the task is clear;
   the first title also names an untouched generated managed workspace; manual names are preserved. Cleanup goes through the host's `workspace_delete`
   rather than `git worktree remove`, so Projects follows immediately.

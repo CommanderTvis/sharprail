@@ -244,7 +244,7 @@ fixture plugin under `tests/` is the external plugin these load from disk.
 ## Agent instruction sections
 
 The instructions agent plugins give sessions (Plugin API H20) are composed of sections, each with a stable id: the
-host's own `core.<id>` (`core.terminal-title`, `core.pull-requests`, `core.workspaces`, `core.parallel-tasks`,
+host's own `core.<id>` (`core.terminal-title`, `core.pull-requests`, `core.workspaces`, `core.workspace-emigrate`, `core.parallel-tasks`,
 `core.workspace-cleanup`, `core.push-and-signing`, `core.warm-workspaces`, and `core.code-intelligence` while language
 services are enabled; `CorePrompt.cs`), then every active plugin's `plugin.<plugin id>.<contribution id>` (for example
 `plugin.visualize.visualize`, `plugin.spec-dialect.spec-tools`, `plugin.blueprint.blueprint-check`,

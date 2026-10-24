@@ -11,7 +11,7 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
 {
     private readonly SemaphoreSlim creation = new(1, 1);
 
-    public McpServer.McpTool Create(string workspace) => new(
+    public McpServer.McpTool Create(string workspace, TerminalRef? terminal = null) => new(
         "workspace_create", "Create a workspace",
         "Create a Git worktree for this terminal's project in SharpRail's managed directory. The description is displayed in Projects. Returns the path and branch; does not switch your terminal. Example: workspace_create({description, languageServers:[\"csharp\"]}) also starts the C# server, which keeps running for the life of the workspace.",
         JsonNode.Parse("""
@@ -49,6 +49,7 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
                 branch ??= catalog.SuggestedBranch;
                 await project.ApplyGitActionAsync(new("create-worktree", catalog.SuggestedPath, branch, baseBranch), token);
                 await state.ChangeAsync([HostStateChange.Label(catalog.SuggestedPath, description)], CancellationToken.None);
+                if (terminal is not null) state.RecordWorkspaceCreator(catalog.SuggestedPath, terminal);
                 var started = languages.Length == 0 ? [] : await state.StartRequestedLanguagesAsync(catalog.SuggestedPath, languages, token);
                 return (JsonSerializer.Serialize(new { path = catalog.SuggestedPath, branch, description, languageServers = started.Count == 0 ? null : started.Select(row => new { server = row.Server, state = row.State, detail = row.Detail }).ToArray() },
                     new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull }), false);
@@ -117,6 +118,120 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
             if (string.IsNullOrWhiteSpace(path) || path.Contains('\0')) throw new ArgumentException("Pass the path of the workspace to delete.");
             return (await new ProjectServices(workspace, state).DeleteWorkspaceAsync(workspace, path, token), false);
         });
+
+    /// <summary>The agents whose plugins resume a session in a revived tab, so an emigrated tab continues its conversation.</summary>
+    private static readonly string[] ResumableAgents = ["claude", "codex"];
+
+    /// <summary>How long an approved emigration waits for the tool's reply to reach the agent before its process ends.</summary>
+    public TimeSpan EmigrationGrace { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>How long an emigration request waits for the user before it is refused.</summary>
+    public TimeSpan EmigrationTimeout { get; set; } = TimeSpan.FromMinutes(10);
+
+    /// <summary>The move an approved emigration started, for checks to await; null before the first.</summary>
+    public Task? LastEmigration { get; private set; }
+
+    public McpServer.McpTool Emigrate(TerminalRef? terminal) => new(
+        "workspace_emigrate", "Move this terminal into a workspace you created",
+        "Move ONLY the calling terminal tab into a workspace this same terminal created with workspace_create, and relaunch this agent there resumed (same tab, same conversation). " +
+        "Use it ONLY when BOTH hold: (1) the user explicitly instructed you to work in a new workspace, and (2) you are 100% certain you will never again read, edit, build or run anything in the workspace you were started in. " +
+        "If either is in doubt, do NOT call it; keep working in the new workspace's path from here instead. The user must approve each move in SharpRail; a refusal changes nothing. " +
+        "On approval this session ends within seconds and resumes with its working directory, language servers and SharpRail tools in the target: end your turn immediately after the reply, without further tool calls.",
+        JsonNode.Parse("""
+            {"type":"object","properties":{
+              "path":{"type":"string","minLength":1,"description":"The target workspace's path, as workspace_create returned it to this terminal."},
+              "reason":{"type":"string","description":"One sentence for the user's approval prompt: why this terminal should move."}
+            },"required":["path"],"additionalProperties":false}
+            """)!.AsObject(),
+        async (arguments, token) =>
+        {
+            if (arguments.Any(argument => argument.Key is not ("path" or "reason"))) throw new ArgumentException("Only path and reason are accepted.");
+            var target = Text(arguments, "path")?.Trim();
+            if (string.IsNullOrEmpty(target) || target.Contains('\0')) throw new ArgumentException("Pass the path of the workspace to move into.");
+            var reason = (Text(arguments, "reason") ?? "").Trim();
+            if (reason.Contains('\0') || reason.Length > 500) throw new ArgumentException("The reason is one sentence of at most 500 characters.");
+            if (EmigrationRefusal(terminal, ref target) is { } refusal) return ("Refused: " + refusal + " Nothing changed.", true);
+            var record = state.Current.TerminalAgents.First(agent => agent.Terminal == terminal).Record;
+            bool approved;
+            var request = new TerminalEmigrationRequest(Guid.NewGuid().ToString("N"), terminal!, target, reason);
+            using (var waiting = CancellationTokenSource.CreateLinkedTokenSource(token))
+            {
+                waiting.CancelAfter(EmigrationTimeout);
+                try { approved = await state.RequestEmigrationAsync(request, waiting.Token); }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested) { return ("Refused: the user did not answer the approval prompt in time. Nothing changed.", true); }
+            }
+            if (!approved) return ("Refused: the user denied moving this terminal. Nothing changed; keep working where you are or in the target's path.", true);
+            // The reply must reach the agent before its process ends, so the move starts after it is sent.
+            LastEmigration = Task.Run(() => MoveAsync(request, record), CancellationToken.None);
+            return (JsonSerializer.Serialize(new
+            {
+                status = "approved",
+                from = terminal!.WorkspaceId,
+                to = target,
+                next = $"This session ends in about {Math.Ceiling(EmigrationGrace.TotalSeconds)} seconds and is relaunched, resumed under the same session id, in this same tab with {target} as its working directory and SharpRail workspace. End your turn now without further tool calls; the resumed session continues the work there."
+            }), false);
+        });
+
+    // Why a terminal may not move into a target, or null when every guard holds; the target becomes its registry path.
+    private string? EmigrationRefusal(TerminalRef? terminal, ref string target)
+    {
+        if (terminal is null) return "this session has no terminal tab to move.";
+        if (state.Terminals is null) return "this host runs no terminals.";
+        var current = state.Current;
+        if (current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == terminal)?.Record is not { } record || !ResumableAgents.Contains(record.Kind))
+            return "only a Claude Code or Codex terminal can be moved, because only those agents resume in a relaunched tab.";
+        if (string.IsNullOrEmpty(record.SessionId)) return "this agent's session id is not known yet, so it could not be resumed.";
+        var wanted = target;
+        string full;
+        try { full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(wanted)); }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) { return "the path is not valid."; }
+        var destination = current.Workspaces.FirstOrDefault(workspace => workspace.Path == wanted || workspace.Path == full);
+        if (destination is null) return "the path is not a SharpRail workspace.";
+        target = destination.Path;
+        var source = current.Workspaces.FirstOrDefault(workspace => workspace.Path == terminal.WorkspaceId);
+        if (source is null || source.ProjectRoot != destination.ProjectRoot) return "the target belongs to another project.";
+        if (destination.Kind == WorkspaceKinds.Default) return "the Default workspace is never a target.";
+        if (destination.Path == terminal.WorkspaceId) return "this terminal already runs in that workspace.";
+        if (!Directory.Exists(destination.Path)) return "the target's checkout no longer exists.";
+        if (state.WorkspaceCreator(destination.Path) != terminal) return "only a workspace this terminal created with workspace_create can be the target.";
+        if (state.Terminals.RevivePrefill?.Invoke(terminal) is not { Text.Length: > 0 }) return "the agent's plugin cannot relaunch this session (is the plugin enabled?).";
+        return null;
+    }
+
+    // Moves the tab's records and catalog entry to the target, ends the old shell, and starts the target's shell, whose
+    // revive hook resumes the agent. A start that fails puts the tab back where it was, to be resumed there.
+    private async Task MoveAsync(TerminalEmigrationRequest request, TerminalAgentRecord record)
+    {
+        var (terminal, target) = (request.Terminal, request.Target);
+        var terminals = state.Terminals!;
+        await Task.Delay(EmigrationGrace);
+        var moved = new TerminalRef(target, terminal.TabKey);
+        var titles = state.Current.TerminalTitles.Where(title => title.Terminal == terminal && title.Source != TerminalTitleSource.Program).ToArray();
+        var tab = terminals.Catalog.Workspaces.GetValueOrDefault(terminal.WorkspaceId)?.FirstOrDefault(known => known.Key == terminal.TabKey)
+            ?? new TerminalTab(terminal.TabKey, titles.FirstOrDefault()?.Title ?? TerminalTab.InitialTitle);
+        void Carry(TerminalRef to)
+        {
+            state.SetTerminalAgent(to, record with { Cwd = to.WorkspaceId });
+            foreach (var title in titles) state.SetTerminalTitle(to, title.Title, title.Source);
+        }
+        Carry(moved);
+        await terminals.ReserveAsync(target, tab);
+        await terminals.CloseTabAsync(terminal.WorkspaceId, terminal.TabKey);
+        try
+        {
+            var session = await terminals.AttachAsync(new TerminalAttachRequest(TerminalTab.SessionFor(target, terminal.TabKey), target, "sharprail-emigration")
+            { TabKey = terminal.TabKey, Yield = true });
+            await session.DisposeAsync();
+        }
+        catch (Exception error)
+        {
+            System.Diagnostics.Trace.WriteLine($"Emigrating {terminal.TabKey} to {target} failed; the tab returns to {terminal.WorkspaceId}: {error.Message}");
+            await terminals.CloseTabAsync(target, terminal.TabKey);
+            Carry(terminal);
+            await terminals.ReserveAsync(terminal.WorkspaceId, tab);
+            state.PublishEmigrationFailure(request with { Reason = error.Message });
+        }
+    }
 
     private static string? Text(JsonObject arguments, string key) => arguments[key] is null ? null
         : arguments[key] is JsonValue value && value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>()

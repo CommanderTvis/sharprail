@@ -119,6 +119,18 @@ public sealed class StateReply
     [ProtoMember(12)] public string Platform { get; set; } = "";
     // Per connection, not shared state: whether the receiving client reached the host over Tailscale.
     [ProtoMember(26)] public bool ConnectedThroughTailscale { get; set; }
+    [ProtoMember(27)] public List<TerminalEmigrationMessage> PendingEmigrations { get; set; } = [];
+    [ProtoMember(28)] public List<TerminalEmigrationMessage> FailedEmigrations { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class TerminalEmigrationMessage
+{
+    [ProtoMember(1)] public string Id { get; set; } = "";
+    [ProtoMember(2)] public string WorkspaceId { get; set; } = "";
+    [ProtoMember(3)] public string TabKey { get; set; } = "";
+    [ProtoMember(4)] public string Target { get; set; } = "";
+    [ProtoMember(5)] public string Reason { get; set; } = "";
 }
 
 [ProtoContract]
