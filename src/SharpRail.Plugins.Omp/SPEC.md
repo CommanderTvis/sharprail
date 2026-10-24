@@ -18,16 +18,25 @@ No real omp run backs them; the checks use a fixture `omp`.
   Other plugins' launch contributions wrap the executable word as for the other agents.
 - Settings: command (default `omp`), model, approval mode, advisor, "Give sessions SharpRail's tools" (default on) and
   "Use omp's own code intelligence" (default off). Model and approval mode are free text with suggestions: the
-  documented `--approval-mode` values `always-ask`, `write`, `yolo`, and for `--model` the built-in roles as `@role`
+  `--approval-mode` values `omp --help` lists (omp 18.12.6: `always-ask`, `always-ask-cached`, `write`, `yolo`), and
+  for `--model` the built-in roles as `@role`
   plus the example selectors from the roles page. Blank values pass no flag, leaving omp's configuration in charge.
 - MCP: omp has no per-launch MCP flag or config-file variable. Launches with MCP on use the omp profile `sharprail`,
   whose `~/.omp/profiles/sharprail/agent/mcp.json` SharpRail owns and rewrites whole (atomically, only when it
   differs) on activation, on settings changes and for each terminal: one `sharprail` HTTP server whose URL is
   `${THINKRAIL_MCP_URL}`. omp expands `${VAR}` when it loads the file, so one static file serves every terminal's own
   MCP endpoint. The profile replaces omp's global scope: it has its own sign-in, settings, sessions, caches and
-  user-level context files (the docs document no way to share auth between profiles). The pane says so; users run
-  `/login` once in a SharpRail omp tab or use provider API key variables, or turn MCP off to launch with their default
-  profile and no SharpRail tools.
+  user-level context files. The pane says so; users run `/login` once in a SharpRail omp tab, use provider API key
+  variables, turn MCP off to launch with their default profile and no SharpRail tools, or press "Use my omp sign-in in
+  SharpRail" (Settings › omp points to it).
+- Sign-in import: the button shows only while omp is installed and MCP is on, and runs only when pressed, never
+  automatically. The host (off the UI thread, one run at a time, 60 s bound) pipes `omp auth export` (default profile;
+  an inherited `OMP_PROFILE` is removed) into `omp --profile sharprail auth import -` (syntax from `omp auth --help`,
+  omp 18.12.6: export writes JSON to stdout, `-` reads stdin). The credentials stream process to process: SharpRail
+  never writes them to disk or logs and never sends them to clients; the result carries only success or the first
+  error line, at most 160 characters with token-like runs masked. The button is disabled while running and the pane
+  shows progress, then the result. Any authenticated client may trigger it; it changes the host's own omp profile.
+  `SHARPRAIL_OMP_HOME` also becomes omp's `HOME` for these runs, so checks never touch the real `~/.omp`.
 - Code intelligence: by default launches pass `--no-lsp`, so sessions use SharpRail's shared language servers through
   the `lsp_*` MCP tools instead of starting omp's own; the setting keeps omp's servers. The pane says which applies.
   A possible follow-up is bridging omp's `lsp.json` to SharpRail's servers with a proxy command, so omp's built-in
@@ -71,5 +80,7 @@ context, and a settings editor for omp's `config.yml` are out of this basic inte
 `--no-lsp` (and its omission), resume lines and Windows; context resolution with nested, cycle-safe, depth-limited
 imports, shadowing, ignored code/e-mail tokens and offers; the profile MCP file; the version probe against a fixture
 `omp` and a missing one; zombie-safe detection; newest-session lookup; Air Governance's stance; and end to end the
-Early badge, version, notes, nested rows, an Add offer, the start action's argv and the missing-binary state. The
+Early badge, version, notes, nested rows, an Add offer, the start action's argv, the sign-in import against a fixture
+`omp` (data lands in the fixture profile, nothing else persisted, a failure shows a masked message) and the
+missing-binary state. The
 Settings › Plugins card badge is covered in `--plugins`.

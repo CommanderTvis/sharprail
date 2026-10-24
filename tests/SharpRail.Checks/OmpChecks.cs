@@ -30,11 +30,17 @@ internal static class OmpChecks
         if (!condition) throw new InvalidOperationException("omp: " + message);
     }
 
+    private const string SignInSecret = "{\"anthropic\":{\"key\":\"fixture-signin-7f3a\"}}";
+
     private static string FakeOmp(string directory)
     {
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, "omp");
+        // auth export prints fixture credentials (or fails when $HOME/fail-export exists); the profile's import reads stdin into the fixture profile.
         File.WriteAllText(path, "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo \"omp 9.8.7\"; exit 0; fi\n" +
+            "if [ \"$1\" = auth ] && [ \"$2\" = export ] && [ -z \"$OMP_PROFILE\" ]; then if [ -f \"$HOME/fail-export\" ]; then echo \"error: rejected sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345\" >&2; exit 3; fi; " +
+            "printf '%s\\n' '" + SignInSecret + "'; exit 0; fi\n" +
+            "if [ \"$1\" = --profile ] && [ \"$3\" = auth ] && [ \"$4\" = import ] && [ \"$5\" = - ]; then mkdir -p \"$HOME/.omp/profiles/$2\" && cat > \"$HOME/.omp/profiles/$2/imported.json\"; exit $?; fi\n" +
             "printf '%s\\n' \"$@\" > \"" + Path.Combine(directory, "argv.txt") + "\"\nsleep 30\n");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return path;
@@ -79,7 +85,7 @@ internal static class OmpChecks
         Require(resume == "omp --session-dir /s/abc -r /s/abc/x.jsonl --no-lsp", "a resume names the session file and drops the opening prompt: " + resume);
         Require(OmpLaunch.Line("omp", new() { Windows = true, SessionId = "0123456789abcdef0123456789abcdef", UiLaunch = true }) == "omp --profile sharprail --no-lsp",
             "Windows launches keep omp's own session store and no POSIX marker");
-        Require(OmpLaunch.ApprovalModes.SequenceEqual(["always-ask", "write", "yolo"]) && OmpLaunch.ModelSuggestions.Contains("@smol"), "the documented values are suggested");
+        Require(OmpLaunch.ApprovalModes.SequenceEqual(["always-ask", "always-ask-cached", "write", "yolo"]) && OmpLaunch.ModelSuggestions.Contains("@smol"), "the documented values are suggested");
     }
 
     private static void Context(string root)
@@ -228,6 +234,29 @@ internal static class OmpChecks
             E2eWorkspace.Until(() => File.Exists(Path.Combine(workspace, ".omp", "RULES.md")) && !Find<Button>(panel, "OmpOffer_rules").Any());
             Require(File.Exists(OmpHost.ProfileMcpPath(home)), "enabling writes the profile's MCP file under omp's home");
 
+            // The sign-in import pipes the fixture's export into the profile's import on the host, only when pressed.
+            var imported = Path.Combine(home, ".omp", "profiles", "sharprail", "imported.json");
+            Require(!File.Exists(imported), "the sign-in import never runs by itself");
+            E2eWorkspace.Until(() => Find<StackPanel>(panel, "OmpSignIn").Single().IsEffectivelyVisible);
+            var signIn = Find<Button>(panel, "OmpImportSignIn").Single();
+            var signInResult = Find<TextBlock>(panel, "OmpSignInResult").Single();
+            app.Click(signIn);
+            E2eWorkspace.Until(() => signInResult.Text?.Contains("now works", StringComparison.Ordinal) == true && signIn.IsEnabled);
+            Require(File.ReadAllText(imported).Trim() == SignInSecret, "the default profile's export lands in the SharpRail profile");
+            var leaks = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+                .Where(file => file != imported && !file.StartsWith(Path.Combine(root, "fixture"), StringComparison.Ordinal) && new FileInfo(file).Length < 4 << 20)
+                .Where(file => { try { return File.ReadAllText(file).Contains("fixture-signin-7f3a", StringComparison.Ordinal); } catch (IOException) { return false; } }).ToList();
+            Require(leaks.Count == 0, "SharpRail persists no credentials: " + string.Join(", ", leaks));
+            File.WriteAllText(Path.Combine(home, "fail-export"), "");
+            app.Click(signIn);
+            E2eWorkspace.Until(() => signInResult.Text?.Contains("exit 3", StringComparison.Ordinal) == true && signIn.IsEnabled);
+            Require(!signInResult.Text!.Contains("sk-ABCDEFGHIJ", StringComparison.Ordinal) && signInResult.Text.Contains("***", StringComparison.Ordinal),
+                "a failure is reported with token-like text masked: " + signInResult.Text);
+            Settings(new { command = fake, model = "@smol", approvalMode = "write", advisor = true, mcp = false });
+            E2eWorkspace.Until(() => !Find<StackPanel>(panel, "OmpSignIn").Single().IsVisible);
+            Settings(new { command = fake, model = "@smol", approvalMode = "write", advisor = true, mcp = true });
+            E2eWorkspace.Until(() => Find<StackPanel>(panel, "OmpSignIn").Single().IsVisible);
+
             // The start action launches the fixture with the configured flags in its own session folder.
             E2eWorkspace.Until(() => Find<Button>(app.Window, "NewOmp").Any());
             var argv = Path.Combine(root, "fixture", "argv.txt");
@@ -244,7 +273,7 @@ internal static class OmpChecks
             E2eWorkspace.Until(() => Find<StackPanel>(panel, "OmpMissing").Single().IsVisible);
             Require(Find<Button>(panel, "OmpInstall").Single().IsEffectivelyVisible && Find<TextBlock>(panel, "OmpMissingText").Single().Text!.Contains("not installed", StringComparison.Ordinal),
                 "the missing state offers the install link");
-            Console.WriteLine("PASS omp UI: Early badge, version, code intelligence and profile notes, nested context rows, add offer, launch argv, missing binary");
+            Console.WriteLine("PASS omp UI: Early badge, version, code intelligence and profile notes, nested context rows, add offer, sign-in import, launch argv, missing binary");
         }
         finally
         {

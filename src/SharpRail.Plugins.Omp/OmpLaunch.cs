@@ -39,8 +39,8 @@ public static partial class OmpLaunch
     public const string UiLaunchPrefix = "SHARPRAIL_UI_LAUNCH=omp";
     public const string InstallUrl = "https://omp.sh/";
 
-    /// <summary>The documented <c>--approval-mode</c> values.</summary>
-    public static readonly IReadOnlyList<string> ApprovalModes = ["always-ask", "write", "yolo"];
+    /// <summary>The <c>--approval-mode</c> values <c>omp --help</c> lists (omp 18.12.6).</summary>
+    public static readonly IReadOnlyList<string> ApprovalModes = ["always-ask", "always-ask-cached", "write", "yolo"];
 
     /// <summary>
     /// Suggested <c>--model</c> values: the built-in roles as <c>@role</c> (https://omp.sh/docs/roles) and the example

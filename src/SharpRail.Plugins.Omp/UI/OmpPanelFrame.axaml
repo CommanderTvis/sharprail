@@ -28,6 +28,12 @@
   <StackPanel x:Name="OmpNotes" DockPanel.Dock="Top" Margin="8,4" Spacing="4">
     <TextBlock x:Name="OmpCodeIntelligence" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
     <TextBlock x:Name="OmpProfileNote" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
+    <StackPanel x:Name="OmpSignIn" Spacing="4" IsVisible="False">
+      <Button x:Name="OmpImportSignIn" HorizontalAlignment="Left" Content="Use my omp sign-in in SharpRail"
+              ToolTip.Tip="Runs omp auth export into omp --profile sharprail auth import on the host; SharpRail never stores the credentials."
+              AutomationProperties.Name="Use my omp sign-in in SharpRail" />
+      <TextBlock x:Name="OmpSignInResult" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" IsVisible="False" />
+    </StackPanel>
   </StackPanel>
   <TextBlock x:Name="OmpError" DockPanel.Dock="Top" Margin="8,4" IsVisible="False" FontSize="13" Foreground="{x:Static kit:Ui.Danger}" />
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">

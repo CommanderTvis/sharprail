@@ -21,7 +21,7 @@ public static class OmpPanel
 
     public static string? ProfileNote(OmpSettings settings) => settings.Mcp
         ? $"Launches use the \"{OmpLaunch.Profile}\" omp profile so SharpRail's MCP server is configured. A profile keeps its own sign-in, settings, " +
-          "sessions and user context files: run /login once in a SharpRail omp tab, or use provider API key variables."
+          "sessions and user context files: copy your default omp sign-in below, run /login once in a SharpRail omp tab, or use provider API key variables."
         : null;
 
     public static Control Create(IPluginUIContext context, string workspaceId)
@@ -36,6 +36,11 @@ public static class OmpPanel
         var codeIntelligence = root.FindControl<TextBlock>("OmpCodeIntelligence")!;
         var profileNote = root.FindControl<TextBlock>("OmpProfileNote")!;
         var error = root.FindControl<TextBlock>("OmpError")!;
+        var signIn = root.FindControl<StackPanel>("OmpSignIn")!;
+        var importSignIn = root.FindControl<Button>("OmpImportSignIn")!;
+        var signInResult = root.FindControl<TextBlock>("OmpSignInResult")!;
+        var installed = false;
+        var importing = false;
         var rows = root.FindControl<StackPanel>("OmpContextRows")!;
         var offers = root.FindControl<WrapPanel>("OmpOffers")!;
         var link = Ui.Button("Install from omp.sh", () => TopLevel.GetTopLevel(root)?.Launcher.LaunchUriAsync(new Uri(OmpLaunch.InstallUrl)));
@@ -48,6 +53,28 @@ public static class OmpPanel
             codeIntelligence.Text = CodeIntelligenceNote(settings);
             profileNote.Text = ProfileNote(settings);
             profileNote.IsVisible = profileNote.Text is not null;
+            signIn.IsVisible = installed && settings.Mcp;
+        }
+
+        // Runs only on this click: the host pipes omp auth export into the SharpRail profile's import.
+        async Task ImportSignInAsync()
+        {
+            if (importing) return;
+            importing = true;
+            importSignIn.IsEnabled = false;
+            signInResult.Foreground = Ui.Muted;
+            signInResult.Text = "Copying your omp sign-in…";
+            signInResult.IsVisible = true;
+            OmpSignInResult result;
+            try { result = await context.RequestAsync(OmpContract.ImportSignIn, new OmpNoParams()); }
+            catch (Exception) { result = new(false, "The host could not run the import."); }
+            Dispatcher.UIThread.Post(() =>
+            {
+                importing = false;
+                importSignIn.IsEnabled = true;
+                signInResult.Foreground = result.Success ? Ui.Muted : Ui.Danger;
+                signInResult.Text = result.Message;
+            });
         }
 
         void Open(string path) => _ = OpenAsync(path);
@@ -115,6 +142,8 @@ public static class OmpPanel
                     Dispatcher.UIThread.Post(() =>
                     {
                         if (current != generation) return;
+                        installed = status.Installed;
+                        Notes(context.Settings<OmpSettings>());
                         version.Text = status.Installed ? "v" + status.Version : null;
                         missing.IsVisible = !status.Installed;
                         missingText.Text = status.Installed ? null : "omp is not installed. " + status.Detail;
@@ -144,6 +173,7 @@ public static class OmpPanel
         }
 
         refresh.Click += (_, _) => Refresh();
+        importSignIn.Click += (_, _) => _ = ImportSignInAsync();
         IDisposable? subscription = null;
         root.AttachedToVisualTree += (_, _) =>
         {

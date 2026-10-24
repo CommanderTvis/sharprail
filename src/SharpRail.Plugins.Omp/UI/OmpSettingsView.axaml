@@ -34,7 +34,7 @@
   <StackPanel Spacing="4">
     <TextBlock Text="Approval mode (--approval-mode)" />
     <AutoCompleteBox x:Name="OmpApprovalMode" Watermark="Use omp's configuration" MinimumPrefixLength="0" FilterMode="Contains" AutomationProperties.Name="omp approval mode" />
-    <TextBlock Classes="detail" Text="always-ask, write or yolo; any value is passed through." />
+    <TextBlock Classes="detail" Text="always-ask, always-ask-cached, write or yolo; any value is passed through." />
   </StackPanel>
   <CheckBox x:Name="OmpAdvisor" AutomationProperties.Name="Run with the advisor">
     <StackPanel Spacing="2">
@@ -45,7 +45,7 @@
   <CheckBox x:Name="OmpMcp" AutomationProperties.Name="Give sessions SharpRail's tools">
     <StackPanel Spacing="2">
       <TextBlock Text="Give sessions SharpRail's tools" />
-      <TextBlock Classes="detail" Text="Launches with the sharprail omp profile, whose mcp.json SharpRail owns. The profile has its own sign-in, settings and sessions." />
+      <TextBlock Classes="detail" Text="Launches with the sharprail omp profile, whose mcp.json SharpRail owns. The profile has its own sign-in, settings and sessions; the omp side tool can copy your default omp sign-in into it." />
     </StackPanel>
   </CheckBox>
   <CheckBox x:Name="OmpOwnLsp" AutomationProperties.Name="Use omp's own code intelligence">

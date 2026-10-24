@@ -60,13 +60,16 @@ public sealed record OmpWorkspaceParams(string WorkspaceId);
 
 public sealed record OmpCreateParams(string WorkspaceId, OmpContextTarget Target);
 
+/// <summary>The outcome of copying the default omp profile's sign-in into SharpRail's profile; the message carries no credentials.</summary>
+public sealed record OmpSignInResult(bool Success, string Message);
+
 public sealed record OmpSettings
 {
     /// <summary>The executable; the system installation on PATH by default.</summary>
     public string Command { get; init; } = "omp";
     /// <summary><c>--model</c>: a model id, <c>provider/model</c> or <c>@role</c>; blank uses omp's default.</summary>
     public string Model { get; init; } = "";
-    /// <summary><c>--approval-mode</c>: <c>always-ask</c>, <c>write</c> or <c>yolo</c>; blank uses omp's configuration.</summary>
+    /// <summary><c>--approval-mode</c>: <c>always-ask</c>, <c>always-ask-cached</c>, <c>write</c> or <c>yolo</c>; blank uses omp's configuration.</summary>
     public string ApprovalMode { get; init; } = "";
     /// <summary><c>--advisor</c>.</summary>
     public bool Advisor { get; init; }
@@ -83,7 +86,9 @@ public static class OmpContract
     public static readonly PluginMethod<OmpNoParams, OmpStatus> Status = new("status");
     public static readonly PluginMethod<OmpWorkspaceParams, OmpContextSnapshot> Context = new("context");
     public static readonly PluginMethod<OmpCreateParams, OmpContextSnapshot> CreateContextFile = new("createContextFile");
+    /// <summary>Pipes <c>omp auth export</c> (default profile) into <c>omp --profile sharprail auth import -</c> on the host.</summary>
+    public static readonly PluginMethod<OmpNoParams, OmpSignInResult> ImportSignIn = new("importSignIn");
 
     public static readonly PluginContract Contract = PluginContract.Create<OmpSettings>(OmpManifest.Id, WireVersion,
-        [Status, Context, CreateContextFile], []);
+        [Status, Context, CreateContextFile, ImportSignIn], []);
 }

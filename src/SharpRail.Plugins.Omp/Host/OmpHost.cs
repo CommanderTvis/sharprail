@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -10,7 +11,7 @@ namespace SharpRail.Plugins.Omp.Host;
 /// The omp plugin's host half: the version probe, the SharpRail profile's MCP file, the per-launch session folders,
 /// the context-file resolution, the process poll that writes the agent record, and the revive prefill.
 /// </summary>
-public sealed class OmpHost : PluginHostModule
+public sealed partial class OmpHost : PluginHostModule
 {
     public override PluginContract Contract => OmpContract.Contract;
 
@@ -78,6 +79,89 @@ public sealed class OmpHost : PluginHostModule
         catch (OperationCanceledException) { return status with { Detail = "omp --version timed out." }; }
     }
 
+    private static ProcessStartInfo OmpProcess(string executable, IEnumerable<string> arguments, string? home)
+    {
+        var start = new ProcessStartInfo(executable, arguments) { RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
+        // The profile is chosen by the arguments alone; an inherited OMP_PROFILE would redirect the export.
+        start.Environment.Remove("OMP_PROFILE");
+        if (home is not null)
+        {
+            start.Environment["HOME"] = home;
+            start.Environment["USERPROFILE"] = home;
+        }
+        return start;
+    }
+
+    /// <summary>
+    /// Copies the default profile's stored credentials into SharpRail's profile: <c>omp auth export</c> piped straight
+    /// into <c>omp --profile sharprail auth import -</c> (syntax from <c>omp auth --help</c>, omp 18.12.6). The
+    /// credentials stream process to process: SharpRail never writes, logs or returns them. Error output is reduced to
+    /// a short line with long tokens masked. <paramref name="home"/> overrides omp's home directory (checks only).
+    /// </summary>
+    internal static async Task<OmpSignInResult> ImportSignInAsync(string command, string? home, CancellationToken cancellationToken)
+    {
+        var executable = OmpLaunch.Executable(command);
+        Process? export = null, import = null;
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(60));
+        try
+        {
+            var exportStart = OmpProcess(executable, ["auth", "export"], home);
+            exportStart.RedirectStandardOutput = true;
+            var importStart = OmpProcess(executable, ["--profile", OmpLaunch.Profile, "auth", "import", "-"], home);
+            importStart.RedirectStandardInput = true;
+            importStart.RedirectStandardOutput = true;
+            export = Process.Start(exportStart);
+            if (export is null) return new(false, "omp could not be started.");
+            import = Process.Start(importStart);
+            if (import is null) return new(false, "omp could not be started.");
+            var exportErrors = export.StandardError.ReadToEndAsync(timeout.Token);
+            var importErrors = import.StandardError.ReadToEndAsync(timeout.Token);
+            var importOutput = import.StandardOutput.ReadToEndAsync(timeout.Token);
+            try
+            {
+                await export.StandardOutput.BaseStream.CopyToAsync(import.StandardInput.BaseStream, timeout.Token);
+            }
+            catch (IOException) { } // The import exited early; its exit code says why.
+            finally
+            {
+                try { import.StandardInput.Close(); } catch (IOException) { }
+            }
+            await export.WaitForExitAsync(timeout.Token);
+            await import.WaitForExitAsync(timeout.Token);
+            await importOutput;
+            if (export.ExitCode != 0) return new(false, $"omp auth export failed (exit {export.ExitCode}){Sanitize(await exportErrors)}");
+            if (import.ExitCode != 0) return new(false, $"omp auth import failed (exit {import.ExitCode}){Sanitize(await importErrors)}");
+            return new(true, $"Your omp sign-in now works in SharpRail's \"{OmpLaunch.Profile}\" profile.");
+        }
+        catch (OperationCanceledException) { return new(false, cancellationToken.IsCancellationRequested ? "Cancelled." : "omp auth timed out."); }
+        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
+        {
+            return new(false, $"{executable} could not be run.");
+        }
+        finally
+        {
+            foreach (var process in new[] { export, import })
+            {
+                if (process is null) continue;
+                try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
+                process.Dispose();
+            }
+        }
+    }
+
+    /// <summary>The first non-empty error line, at most 160 characters, with anything token-like masked.</summary>
+    internal static string Sanitize(string errors)
+    {
+        var line = errors.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+        if (line is null) return ".";
+        line = TokenLike().Replace(line, "***");
+        return ": " + (line.Length > 160 ? line[..160] + "…" : line);
+    }
+
+    [GeneratedRegex(@"[A-Za-z0-9_\-.+/=]{20,}")]
+    private static partial Regex TokenLike();
+
     public override async ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
         var settings = () => context.Settings<OmpSettings>();
@@ -111,6 +195,20 @@ public sealed class OmpHost : PluginHostModule
                 OmpContext.Create(root, p.Target);
                 return OmpContext.Resolve(root, HomeDirectory, settings().Mcp);
             }, ct);
+        });
+
+        var importing = new SemaphoreSlim(1, 1);
+        // Only ever on an explicit request; host calls come from authenticated clients only.
+        context.Method(OmpContract.ImportSignIn, async (_, _, ct) =>
+        {
+            if (!await importing.WaitAsync(0, ct)) return new OmpSignInResult(false, "An import is already running.");
+            try
+            {
+                var command = settings().Command;
+                var home = Environment.GetEnvironmentVariable(HomeVariable) is { Length: > 0 } overridden ? overridden : null;
+                return await Task.Run(() => ImportSignInAsync(command, home, ct), ct);
+            }
+            finally { importing.Release(); }
         });
 
         context.TerminalEnvironment(_ =>
