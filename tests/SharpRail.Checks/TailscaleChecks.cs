@@ -32,6 +32,7 @@ internal static class TailscaleChecks
 
     internal static async Task Run(string root)
     {
+        await BrowserTailscaleChecks.Run();
         Registry();
         Addresses();
         await BootstrapValidation();
@@ -397,6 +398,7 @@ internal static class TailscaleChecks
         previousPort.Stop();
         using var paired = new RemoteStateAdapter(new Uri(ready.Address!), token);
         await paired.GetHandshakeAsync(timeout.Token);
+        await BrowserTailscaleChecks.StreamRoutes(bootstrapPort, token, new Uri(ready.Address!), timeout.Token);
         using var ordinary = new RemoteStateAdapter(new Uri(ready.Address!), listener.Token);
         await ordinary.GetHandshakeAsync(timeout.Token);
         using var remotePlugins = new RemotePluginAdapter(new Uri(ready.Address!), listener.Token);

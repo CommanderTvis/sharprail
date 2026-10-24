@@ -11,6 +11,7 @@ case "${1:-build}" in
     publish) "$dotnet" publish src/SharpRail.Browser -c "$configuration" -m:2 -p:WasmAppDir="$root/artifacts/browser";;
     check)
         node tests/SharpRail.Browser.Checks/compression.mjs
+        node tests/SharpRail.Browser.Checks/tailscale.mjs
         "$dotnet" build tests/SharpRail.Checks -c "$configuration" -m:2
         "$dotnet" build src/SharpRail.Browser -c "$configuration" -m:2 -p:BrowserChecks=true
         (cd src/SharpRail.Browser && pnpm exec playwright install chromium)

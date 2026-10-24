@@ -641,6 +641,14 @@ back and forward buttons are not asserted.
 
 `--tailscale` covers builtin Tailscale bootstrap, approved-token authentication and revocation using fake
 peer identities over real HTTP/WebSocket RPC. It never reaches the developer's Tailscale installation or tailnet.
+It also covers the browser client's headless parts: manifest validation and per-build cache names with stale-cache
+pruning, the lazy-download state machine over a fake store (check without download, progress, cancel caching nothing,
+failure and retry, cached revisit, missing module), peer resolution and login-URL filtering, and discovery, pairing and
+authenticated WebSocket RPC carried over dialed streams (the browser's tailnet route) against the real listeners,
+including that a failed registered dial never falls back to ordinary sockets. `scripts/mise run browser check` adds
+`tests/SharpRail.Browser.Checks/tailscale.mjs`: the IndexedDB-backed node state through a fake backend (ordered
+write-through, reload, sign-out wipe) and the Cache Storage download with fake fetch (progress, cancel, truncation,
+versioning).
 
 `--headscale` is an opt-in slow mode (budget 170 seconds) and is never a gate case. It needs
 `sh scripts/build-headscale-test.sh`, which provisions under `.tools/headscale-test` the checksum-pinned

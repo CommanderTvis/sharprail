@@ -6793,3 +6793,8 @@ back when leaving a mounted workspace (still no loading bodies), and a worktree-
 mount's Git load now queues a reload instead of cancelling it. `--startup` then passed 3 of 3.
 
 2026-10-22: Specs (`spec-dialect`) and Blueprint are builtins disabled by default (`EnabledByDefault = false`). No migration: a stored explicit `enabled` is kept, a profile without one follows the new default. Enabling Blueprint already asks to enable Specs. Check fixtures with a spec graph enable both explicitly (`E2eWorkspace.EnableSpecPlugins`, host-level `PluginEnabled`); `--plugins` asserts Specs is off with no `spec_*` tools on a fresh store. Verified: Release build, format, `--plugins`, `--plugins-settings`, `--specs`, `--specs-panel`, `--blueprint`, `--shell`, `--ui-smoke`, `--design`, `--scratch`, `--startup`.
+
+
+## 2026-10-24 — Browser Tailscale node
+
+The browser connect screen gains "Connect over Tailscale": a Go-to-WASM Tailscale v1.104.1 node (`src/SharpRail.Browser/Tailscale.Wasm`, `scripts/build-tailscale-wasm.sh`, 28.8 MB raw, 4.70 MB Brotli) served under `tailscale/` and fetched only after "Download Tailscale (~4.7 MB)", cached per build in Cache Storage, identity in IndexedDB. Pairing HTTP and WebSocket RPC dial through it (`StreamHttpHandler`, `RpcTransports.RegisterStreamTransport`). Verified: Release, browser and Android builds, format, `--tailscale`, `--transport`, `tailscale.mjs`, and headless Chromium against the real host (offer, download, cached reload with no second fetch, node reaching NeedsLogin with a real login URL, identity persisted). Unverified: real sign-in, pairing and RPC over a tailnet from a browser.
