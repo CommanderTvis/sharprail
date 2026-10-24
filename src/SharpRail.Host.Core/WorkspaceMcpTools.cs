@@ -195,6 +195,11 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
         if (!Directory.Exists(destination.Path)) return "the target's checkout no longer exists.";
         if (state.WorkspaceCreator(destination.Path) != terminal) return "only a workspace this terminal created with workspace_create can be the target.";
         if (state.Terminals.RevivePrefill?.Invoke(terminal) is not { Text.Length: > 0 }) return "the agent's plugin cannot relaunch this session (is the plugin enabled?).";
+        // The move resumes the session without a further question, so nobody else may have it open: this tab's own
+        // agent is the one process allowed to name it.
+        var own = state.Terminals.List().Where(process => process.Terminal == terminal && process.Pid is not null).Select(process => process.Pid!.Value).ToArray();
+        if (state.AgentSessions.OwnedElsewhere(record.Kind, record.SessionId, own) is { } why)
+            return $"this session is also open elsewhere ({why}), so resuming it in the target would run it twice.";
         return null;
     }
 
@@ -219,14 +224,23 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
         await terminals.CloseTabAsync(terminal.WorkspaceId, terminal.TabKey);
         try
         {
+            // The user approved this resume: it runs as the new shell's program instead of waiting on a resume offer, and the
+            // moved tab takes the session's lock from the closed one.
+            var resume = terminals.RevivePrefill?.Invoke(moved) is { Text.Length: > 0 } prefill ? prefill.Text
+                : throw new InvalidOperationException("the agent's plugin cannot relaunch this session.");
+            var agents = state.AgentSessions;
+            await Task.Run(() => agents.Release(terminal));
+            if (record.SessionId is { Length: > 0 } id && !await Task.Run(() => agents.Hold(moved, record.Kind, id)))
+                throw new InvalidOperationException("another SharpRail process opened this session meanwhile.");
             var session = await terminals.AttachAsync(new TerminalAttachRequest(TerminalTab.SessionFor(target, terminal.TabKey), target, "sharprail-emigration")
-            { TabKey = terminal.TabKey, Yield = true });
+            { TabKey = terminal.TabKey, Yield = true, Program = resume });
             await session.DisposeAsync();
         }
         catch (Exception error)
         {
             System.Diagnostics.Trace.WriteLine($"Emigrating {terminal.TabKey} to {target} failed; the tab returns to {terminal.WorkspaceId}: {error.Message}");
             await terminals.CloseTabAsync(target, terminal.TabKey);
+            await Task.Run(() => state.AgentSessions.Release(moved));
             Carry(terminal);
             await terminals.ReserveAsync(terminal.WorkspaceId, tab);
             state.PublishEmigrationFailure(request with { Reason = error.Message });

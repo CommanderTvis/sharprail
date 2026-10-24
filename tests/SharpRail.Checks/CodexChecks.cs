@@ -961,10 +961,12 @@ internal static class CodexChecks
         var revive = new FakeHostContext(root);
         var dispose = await new CodexHost().ActivateAsync(revive);
         Require(revive.Revive!(revive.Terminal, new("claude", "claude")) is null, "another agent's record is not revived");
-        Equal(revive.Revive!(revive.Terminal, new("codex", "codex resume stale old-prompt -m model") { SessionId = "unsaved" }), new RevivePrefill(CodexLaunch.UiLaunchPrefix + " codex -m model resume --last") { Program = true }, "a normalized UI fallback run as the terminal's program");
+        Equal(revive.Revive!(revive.Terminal, new("codex", "codex resume stale old-prompt -m model") { SessionId = "unsaved" }), new RevivePrefill(CodexLaunch.UiLaunchPrefix + " codex -m model resume --last") { Program = true, Fresh = CodexLaunch.UiLaunchPrefix + " codex -m model" },
+            "a normalized UI fallback run as the terminal's program, with a fresh start that resumes nothing");
         Require(revive.Revive!(revive.Terminal, new("codex", "codex --model")) is null, "an incomplete command offers nothing");
         Equal(revive.Revive!(revive.Terminal, new("codex", "codex --model old -c 'model_reasoning_effort=\"low\"'") { Model = "latest", Effort = "high" }),
-            new RevivePrefill(CodexLaunch.UiLaunchPrefix + " codex resume --last --model latest -c 'model_reasoning_effort=\"high\"'") { Program = true },
+            new RevivePrefill(CodexLaunch.UiLaunchPrefix + " codex resume --last --model latest -c 'model_reasoning_effort=\"high\"'")
+            { Program = true, Fresh = CodexLaunch.UiLaunchPrefix + " codex --model latest -c 'model_reasoning_effort=\"high\"'" },
             "the host revives the session choices rather than the old command flags");
         await dispose!();
 

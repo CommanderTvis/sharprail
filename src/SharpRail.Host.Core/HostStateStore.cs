@@ -62,6 +62,9 @@ public sealed partial class HostStateStore : IHostStateService
     private readonly Dictionary<string, TerminalRef> workspaceCreators = [];
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, TaskCompletionSource<bool>> emigrationAnswers = new(StringComparer.Ordinal);
 
+    /// <summary>Which agent sessions this host and every other SharpRail process on the machine have open.</summary>
+    public SharpRail.Host.Core.Plugins.AgentSessionOwnership AgentSessions { get; init; } = new();
+
     /// <summary>The host's terminals, ended when their project closes; input they accept is activity in their workspace.</summary>
     public PtyTerminalService? Terminals
     {
@@ -285,6 +288,8 @@ public sealed partial class HostStateStore : IHostStateService
                     next = next with { Settings = next.Settings with { ThemeMode = "fixed" } };
                 next = Visible(Publish(next, persist: true));
             }
+            foreach (var answer in changes.Where(change => change.Kind == "terminal-resume-answer"))
+                if (JsonSerializer.Deserialize<TerminalRef>(answer.Key ?? "") is { } answered) ResumeAnswered?.Invoke(answered, answer.Value == "resume");
             foreach (var answer in changes.Where(change => change.Kind == "terminal-emigration-answer"))
                 if (emigrationAnswers.TryRemove(answer.Key ?? "", out var waiting)) waiting.TrySetResult(answer.Value == "approve");
             if (previous.Settings.LspEnabled && !next.Settings.LspEnabled && languages is { } languageService)
@@ -398,6 +403,30 @@ public sealed partial class HostStateStore : IHostStateService
             lock (gate)
                 if (state.PendingEmigrations.Any(pending => pending.Id == request.Id))
                     Publish(state with { PendingEmigrations = state.PendingEmigrations.Where(pending => pending.Id != request.Id).ToArray() }, persist: false);
+        }
+    }
+
+    /// <summary>A client answered a revived tab's resume offer: true to resume its session, false to start fresh. Raised after the change applied.</summary>
+    public event Action<TerminalRef, bool>? ResumeAnswered;
+
+    /// <summary>Publishes or replaces a revived tab's resume offer; never persisted.</summary>
+    public void OfferResume(TerminalResumeOffer offer)
+    {
+        lock (gate)
+        {
+            var offers = state.ResumeOffers.Where(known => known.Terminal != offer.Terminal).Append(offer).ToArray();
+            if (!offers.SequenceEqual(state.ResumeOffers)) Publish(state with { ResumeOffers = offers }, persist: false);
+        }
+    }
+
+    /// <summary>Withdraws a tab's resume offer, returning it; null when it had none.</summary>
+    public TerminalResumeOffer? WithdrawResume(Func<TerminalRef, bool> terminal)
+    {
+        lock (gate)
+        {
+            var found = state.ResumeOffers.FirstOrDefault(offer => terminal(offer.Terminal));
+            if (found is not null) Publish(state with { ResumeOffers = state.ResumeOffers.Where(offer => !terminal(offer.Terminal)).ToArray() }, persist: false);
+            return found;
         }
     }
 
@@ -616,6 +645,10 @@ public sealed partial class HostStateStore : IHostStateService
         var key = change.Key ?? ""; var value = change.Value ?? "";
         switch (change.Kind)
         {
+            case "terminal-resume-answer":
+                if (value is not ("resume" or "fresh") || JsonSerializer.Deserialize<TerminalRef>(key) is null)
+                    throw new ArgumentException("A resume answer names a terminal and is resume or fresh.");
+                return current;
             case "terminal-emigration-answer":
                 if (value is not ("approve" or "deny")) throw new ArgumentException("An emigration answer is approve or deny.");
                 return current.PendingEmigrations.Any(pending => pending.Id == key)

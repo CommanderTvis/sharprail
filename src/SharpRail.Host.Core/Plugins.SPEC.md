@@ -217,7 +217,36 @@ agent record is set offers that record to every active revive hook. The first su
 submit flags are combined; a submit-only hook leaves another plugin's text intact. The prefill rides
 the attachment to the client, which types it once the shell's first output has arrived. A hook that
 marks its prefill `Program` (the winning text's hook decides) has the host run it as the new shell's
-program instead (Terminals.SPEC, Terminal programs), so nothing is typed; Windows hosts type it as before. Agent records persist in
+program instead (Terminals.SPEC, Terminal programs), so nothing is typed; Windows hosts type it as before.
+
+A revival is never started on its own. When a shell starts for a tab with an agent record and the attach names no
+program, the runtime's revive gate holds the prefill back: the shell starts alone and the tab's
+`TerminalResumeOffer` (agent, session id) rides `HostState.ResumeOffers` (not persisted; protocol 13). Any client
+answers it with `terminal-resume-answer` (`resume` or `fresh`), and the host settles it off the UI thread. Resume first
+asks `AgentSessionOwnership` whether the session is open elsewhere, then takes its lock and types the composed prefill
+followed by Return; a session open elsewhere stays offered with `OpenElsewhere` set and is not launched. Start fresh
+withdraws the offer, clears the record and types the first hook's `RevivePrefill.Fresh` command (a new session of the
+same agent). Only an attach that names its program (an approved `workspace_emigrate`) resumes directly.
+
+Why: two SharpRail processes on one machine (another instance, a dev build from a worktree, another
+`SHARPRAIL_STATE_DIR` profile, a second host) restore the same persisted tabs, and resuming automatically ran one
+agent session in two processes writing one transcript.
+
+`AgentSessionOwnership` (one per `HostStateStore`) decides "open elsewhere" from two signals. A live, non-zombie
+process whose arguments name the session id (a whole argument, `--flag=id`, or a path segment or file stem, which
+covers Claude's `--resume`/`--session-id`, Codex's `resume <id>` and omp's session folder) counts, except inside the
+asking tab's own shell tree. A lock file counts when another live process holds it. Locks live in
+`<LocalApplicationData>/SharpRail/agent-sessions/<agent>-<id>.lock` (`~/Library/Application Support` on macOS,
+`~/.local/share` on Linux; `SHARPRAIL_AGENT_SESSIONS_DIR` overrides), deliberately outside `~/.sharprail`, which
+`SHARPRAIL_STATE_DIR` makes per profile while the agents' own homes stay shared, and outside the agents' homes, which
+SharpRail does not write. A lock holds the host's pid, its start time and the terminal; it is created with
+`CreateNew`, and one whose process is gone or whose start time differs (pid reuse) is stale, deleted and retaken. The
+host takes the lock whenever an agent record with a session id is set (a fresh launch's preassigned id, a hook
+report, a resume) and releases it when the record clears or changes id, when the tab closes and when the runtime
+stops. A tab whose agent exited keeps its lock while the record stays, since the session still belongs to that tab.
+Lock and process work runs in order on the thread pool.
+
+Agent records persist in
 the host state file, travel on `HostState.TerminalAgents`, and are dropped when the tab closes. Lifecycle events
 fire on spawn (with the shell's pid), exit and close, and on every agent record change. `TerminalPromptChanged` fires
 when a known terminal's OSC 133 state changes (at a prompt or running, the last exit code), with `Foreground` true when

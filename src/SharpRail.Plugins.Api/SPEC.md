@@ -661,7 +661,7 @@ set is closed.
 | H6 | mint and resolve a per-terminal identity token (`TerminalToken`, `TerminalForToken`) | the MCP token is private to `PtyTerminalService` |
 | H7 | read and write a typed agent record per terminal, persisted, broadcast, dropped on close (`AgentRecord`, `SetAgentRecord`) | a terminal session carries no agent field |
 | H8 | observe terminal lifecycle: spawned with pid, exited, closed, agent changed; list terminals; map a process to its workspace (`OnTerminal`, `Terminals`, `WorkspaceForProcess`) | none |
-| H9 | offer optional text and a submit flag when a shell starts again for a tab with an agent record; compose the first text and all submit flags, delivered with the attachment (`RevivePrefill`) | none; restored tabs start fresh shells |
+| H9 | offer optional text and a submit flag when a shell starts again for a tab with an agent record; compose the first text and all submit flags, delivered with the attachment (`RevivePrefill`); the host offers it for the user to Resume rather than running it, and `Fresh` names the command for Start fresh | none; restored tabs start fresh shells |
 | H10 | write into a terminal host-side, bypassing client attachment (`WriteTerminal`) | `ITerminalSession.WriteAsync` ignores a detached client |
 | H12 | read projects and workspaces, watch a workspace, observe lifecycle and filesystem-change batches (`Projects`, `WorkspacesAsync`, `WorkspaceAsync`, `WatchWorkspaceAsync`, `OnWorkspace`, `OnFilesChanged`) | `HostState.Projects`/`Workspaces`; the only watcher is a window's local `WorkspaceWatcher` |
 | H13 | read its own settings namespace and observe changes (`Settings<T>`, `OnSettings<T>`) | `HostSettings` is closed |

@@ -59,8 +59,10 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             terminals.EnvironmentPreparer = PrepareEnvironment;
             terminals.Lifecycle = OnTerminal;
             terminals.RevivePrefill = Prefill;
+            terminals.ReviveGate = OfferResume;
             terminals.SessionClosed = OnSessionClosed;
         }
+        Seams.State.ResumeAnswered += OnResumeAnswered;
         // Register and consume the initial state synchronously before activation can admit watches.
         // Starting this on the pool can miss a close/disable that becomes its first snapshot.
         Seams.State.WorkspaceRemoved += ReleaseWorkspaceWatch;
@@ -996,6 +998,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     private void OnSessionClosed(string session, TerminalRef? terminal)
     {
         var dropped = Seams.State.RemoveTerminalAgents(known => known == terminal || PtyTerminalService.SessionFor(known) == session);
+        Seams.State.WithdrawResume(known => known == terminal || PtyTerminalService.SessionFor(known) == session);
+        foreach (var released in dropped.Append(terminal).OfType<TerminalRef>().Distinct()) _ = Ownership(() => Seams.State.AgentSessions.Release(released));
         Seams.State.RemoveTerminalTitles(known => known == terminal || PtyTerminalService.SessionFor(known) == session);
         foreach (var closed in dropped.Append(terminal).OfType<TerminalRef>().Distinct()) OnTerminal(new TerminalClosed(closed));
     }
@@ -1006,7 +1010,87 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     internal void SetAgentRecord(TerminalRef terminal, TerminalAgentRecord? record)
     {
         Seams.State.SetTerminalAgent(terminal, record);
+        // A running agent's reported session is this host's: its lock tells every other SharpRail not to resume it.
+        var agents = Seams.State.AgentSessions;
+        _ = Ownership(() =>
+        {
+            if (record is not { SessionId: { Length: > 0 } id }) agents.Release(terminal);
+            else if (!agents.Hold(terminal, record.Kind, id))
+                Seams.Log("plugins", "warning", $"The {record.Kind} session {id} in {terminal.TabKey} is also open in another SharpRail process.");
+        });
         OnTerminal(new TerminalAgentChanged(terminal, record));
+    }
+
+    // Lock files change in order, off the caller's thread.
+    private Task ownership = Task.CompletedTask;
+    private readonly Lock ownershipGate = new();
+    private Task Ownership(Action work)
+    {
+        lock (ownershipGate)
+            return ownership = ownership.ContinueWith(_ =>
+            {
+                try { work(); }
+                catch (Exception error) { Seams.Log("plugins", "warning", "Agent session lock: " + error.Message); }
+            }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+    }
+
+    // A revived tab never resumes its agent on its own: another SharpRail process may have the same session open. The
+    // tab's shell starts alone and every client shows the offer until the user answers it.
+    private bool OfferResume(TerminalRef terminal, TerminalPrefill prefill)
+    {
+        if (AgentRecord(terminal) is not { } record) return false;
+        Seams.State.OfferResume(new(terminal, record.Kind, record.SessionId ?? ""));
+        return true;
+    }
+
+    private void OnResumeAnswered(TerminalRef terminal, bool resume) => _ = Task.Run(() => AnswerResume(terminal, resume));
+
+    /// <summary>
+    /// Settles a resume offer: resuming checks machine-wide that nobody has the session open and takes its lock before the
+    /// resume command is typed; one open elsewhere stays offered as such. A fresh start forgets the record and types the
+    /// agent's fresh launch. Runs off the UI thread.
+    /// </summary>
+    internal void AnswerResume(TerminalRef terminal, bool resume)
+    {
+        if (Seams.State.Current.ResumeOffers.FirstOrDefault(offer => offer.Terminal == terminal) is not { } offer || Seams.Terminals is not { } terminals) return;
+        var record = AgentRecord(terminal);
+        if (resume)
+        {
+            if (offer.OpenElsewhere || record is null) return;
+            if (record.SessionId is { Length: > 0 } id)
+            {
+                var own = terminals.List().Where(process => process.Terminal == terminal && process.Pid is not null).Select(process => process.Pid!.Value).ToArray();
+                var agents = Seams.State.AgentSessions;
+                var why = agents.OwnedElsewhere(record.Kind, id, own);
+                if (why is not null || !agents.Hold(terminal, record.Kind, id))
+                {
+                    Seams.Log("plugins", "info", $"Not resuming the {record.Kind} session {id} in {terminal.TabKey}: {why ?? "another process took its lock"}.");
+                    Seams.State.OfferResume(offer with { OpenElsewhere = true });
+                    return;
+                }
+            }
+            var prefill = Prefill(terminal);
+            if (Seams.State.WithdrawResume(known => known == terminal) is null) return;
+            if (prefill is { Text.Length: > 0 }) terminals.Write(terminal, prefill.Text + "\r");
+            return;
+        }
+        var fresh = record is null ? null : FreshLaunch(terminal, record);
+        if (Seams.State.WithdrawResume(known => known == terminal) is null) return;
+        if (record is not null) SetAgentRecord(terminal, null);
+        if (fresh is { Length: > 0 }) terminals.Write(terminal, fresh + "\r");
+    }
+
+    private string? FreshLaunch(TerminalRef terminal, TerminalAgentRecord record)
+    {
+        string? fresh = null;
+        foreach (var (entry, tables) in Active())
+            foreach (var hook in tables.ReviveHooks)
+            {
+                RevivePrefill? offered = null;
+                Guard(entry.Id, () => offered = hook(terminal, record));
+                fresh ??= offered?.Fresh;
+            }
+        return fresh;
     }
 
     public async ValueTask DisposeAsync()
@@ -1034,8 +1118,11 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             terminals.EnvironmentPreparer = null;
             terminals.Lifecycle = null;
             terminals.RevivePrefill = null;
+            terminals.ReviveGate = null;
             terminals.SessionClosed = null;
         }
+        Seams.State.ResumeAnswered -= OnResumeAnswered;
+        await Ownership(() => Seams.State.AgentSessions.ReleaseAll());
         Seams.State.PluginNamespaceValidator = null;
         Seams.State.PluginDependents = null;
         Publish();

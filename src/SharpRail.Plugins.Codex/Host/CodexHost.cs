@@ -272,10 +272,10 @@ public sealed class CodexHost : PluginHostModule
         {
             if (record.Kind != CodexManifest.Id) return null;
             var settings = context.Settings<CodexSettings>();
-            return CodexResume.Command(record.Command, record.SessionId, settings.Mcp, OperatingSystem.IsWindows(), settings.PermissionMode,
-                    appendSystemPrompt: settings.AppendSystemPrompt, uiLaunch: true, model: record.Model, effort: record.Effort,
-                    contributions: context.AgentLaunchContributions(CodexManifest.Id)) is { } text
-                ? new RevivePrefill(text) { Program = true } : null;
+            string? Line(bool fresh) => CodexResume.Command(record.Command, record.SessionId, settings.Mcp, OperatingSystem.IsWindows(), settings.PermissionMode,
+                appendSystemPrompt: settings.AppendSystemPrompt, uiLaunch: true, model: record.Model, effort: record.Effort,
+                contributions: context.AgentLaunchContributions(CodexManifest.Id), fresh: fresh);
+            return Line(false) is { } text ? new RevivePrefill(text) { Program = true, Fresh = Line(true) } : null;
         });
 
         await Task.CompletedTask;

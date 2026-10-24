@@ -121,6 +121,17 @@ public sealed class StateReply
     [ProtoMember(26)] public bool ConnectedThroughTailscale { get; set; }
     [ProtoMember(27)] public List<TerminalEmigrationMessage> PendingEmigrations { get; set; } = [];
     [ProtoMember(28)] public List<TerminalEmigrationMessage> FailedEmigrations { get; set; } = [];
+    [ProtoMember(29)] public List<TerminalResumeOfferMessage> ResumeOffers { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class TerminalResumeOfferMessage
+{
+    [ProtoMember(1)] public string WorkspaceId { get; set; } = "";
+    [ProtoMember(2)] public string TabKey { get; set; } = "";
+    [ProtoMember(3)] public string Agent { get; set; } = "";
+    [ProtoMember(4)] public string SessionId { get; set; } = "";
+    [ProtoMember(5)] public bool OpenElsewhere { get; set; }
 }
 
 [ProtoContract]

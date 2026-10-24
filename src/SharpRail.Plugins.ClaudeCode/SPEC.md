@@ -225,7 +225,10 @@ shell. A record with an id always revives that id: `--resume <id>` when its tran
 `--session-id <id>` to start it again under the same id (claude refuses `--session-id` for an id whose
 transcript exists, and `--resume` of an unsaved id). Two tabs in one directory therefore each resume
 their own session. Only a legacy record without an id keeps the fork's `--continue` fallback. When the
-agent exits the tab is an interactive shell in the same directory. Blueprint's independent revive
+agent exits the tab is an interactive shell in the same directory. The host never runs that revival on
+its own: the tab offers it and runs it only when the user chooses Resume and no other process has the
+session open (Host Plugins.SPEC, Terminals). The hook's `Fresh` command is the same invocation with
+`--session-id` of a new id, for Start fresh. Blueprint's independent revive
 hook contributes submit without consuming this plugin's text.
 
 ## IDE and UI

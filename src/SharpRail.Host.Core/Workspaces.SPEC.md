@@ -87,7 +87,9 @@ forgetting removes its row while leaving the checkout in place. The Default work
   its agent there, resumed. workspace_create records the calling terminal as the new workspace's creator (persisted in
   `state.json`, never sent to clients). The tool refuses, changing nothing, unless the caller is a Claude Code or Codex
   terminal whose agent record names a session id and whose plugin offers a revival, and the target is a registered,
-  existing, non-Default workspace of the same project, other than the caller's, that this same terminal created. Its
+  existing, non-Default workspace of the same project, other than the caller's, that this same terminal created, and no
+  other process has the session open (a live lock of another SharpRail, or a process outside the caller's own tab that
+  names the id; Plugins.SPEC, Terminals). Its
   description and the `core.workspace-emigrate` prompt section allow it only when the user explicitly asked for a new
   workspace and the agent is certain it will not touch the original one again.
   Every call then asks the user: the request rides `HostState.PendingEmigrations` (not persisted; protocol 12) and each
@@ -95,10 +97,11 @@ forgetting removes its row while leaving the checkout in place. The Default work
   `terminal-emigration-answer` settles it for all. A denial, a 10-minute timeout or a cancelled call returns a refusal
   and changes nothing. On approval the tool replies at once that the session will be relaunched; after a short grace the
   host copies the agent record (and non-program titles) to the target's tab, reserves the same tab key and title in
-  the target, closes the original tab (ending its shell) and starts the target tab's shell itself, whose revive hook runs
-  the agent's resume (`--resume <id>` for Claude Code, Codex's resume) with the target as working directory, MCP
+  the target, closes the original tab (ending its shell), moves the session's lock to the target's tab and starts the
+  target tab's shell itself with the revive hook's command as its program, the one revival that skips the resume offer
+  because the user already approved it: the agent's resume (`--resume <id>` for Claude Code, Codex's resume) with the target as working directory, MCP
   workspace and language-server root. The new tab is a new session, so the old scrollback does not follow. If that start
-  fails, the tab, record and titles return to the original workspace, where the next attach resumes the agent, and the
+  fails, the tab, record and titles return to the original workspace, where the next attach offers the resume again, and the
   failure rides `HostState.FailedEmigrations` (last 16, not persisted) so every window shows an error toast once.
 - Codex and Claude Code prompt appendixes direct agents to these tools and encourage non-forced removal
   of their own completed workspaces once work is preserved; other users' workspaces, dirty checkouts

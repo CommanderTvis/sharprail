@@ -45,6 +45,7 @@ internal static class ClaudeCodeChecks
             {
                 ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
                 ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+                [AgentSessionOwnership.DirectoryVariable] = Path.Combine(directory, "agent-sessions"),
                 [ClaudeCodeContract.ScratchVariable] = ScratchProbe,
                 [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
             })
@@ -69,6 +70,7 @@ internal static class ClaudeCodeChecks
         public Func<TerminalRef, CancellationToken, ValueTask>? EnvironmentPreparer { get; set; }
         public Action<TerminalEvent>? Lifecycle { get; set; }
         public Func<TerminalRef, TerminalPrefill?>? RevivePrefill { get; set; }
+        public Func<TerminalRef, TerminalPrefill, bool>? ReviveGate { get; set; }
         public Action<string, TerminalRef?>? SessionClosed { get; set; }
         public string Token(TerminalRef owner) => "claude-fixture-token";
         public TerminalRef? ForToken(string token) => token == "claude-fixture-token" ? terminal : null;
@@ -289,6 +291,7 @@ internal static class ClaudeCodeChecks
         SuggestedSettingValues(app);
         ScopeChoices(app);
         if (!OperatingSystem.IsWindows()) LaunchedSession(app, directory, launcher);
+        if (!OperatingSystem.IsWindows()) ResumeOffers(app, directory);
         app.State.ChangeAsync([HostStateChange.PluginEnabled("claude-code", false)]).AsTask().GetAwaiter().GetResult();
         E2eWorkspace.Until(() => !registry.Active.Contains("claude-code") && registry.LauncherList.All(candidate => candidate.Id != "claude"));
         Require(registry.SideTool(ClaudeCodeManifest.ConfigTool) is null, "Disabling removes Claude controls and launcher together.");
@@ -480,6 +483,112 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => File.Exists(marker));
         Require(view.Backend is { } backend && !backend.Exited.IsCompleted, "The terminal outlives its agent.");
         Console.WriteLine("PASS Claude launch: when the agent exits the tab is an interactive shell in the same directory");
+    }
+
+    /// <summary>
+    /// A revived Claude tab never resumes on its own: its shell starts alone and the tab offers Resume and Start fresh. Resume
+    /// launches <c>--resume</c> past a stale lock (dead pid); a session another SharpRail holds the lock of, or a running
+    /// process names, is refused as open elsewhere with only Start fresh left, which launches a new session id.
+    /// </summary>
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    private static void ResumeOffers(E2eWorkspace app, string directory)
+    {
+        var bin = Path.Combine(directory, "resume-bin");
+        Directory.CreateDirectory(bin);
+        var named = Path.Combine(bin, "claude-process");
+        if (!File.Exists(named)) File.CreateSymbolicLink(named, "/bin/bash");
+        var log = Path.Combine(directory, "resume.log");
+        var pids = Path.Combine(directory, "resume.pids");
+        var fake = Path.Combine(bin, "claude");
+        File.WriteAllText(fake, "#!/bin/bash\ncase \" $* \" in *\" --session-id \"*|*\" --resume \"*) ;; *) exit 0 ;; esac\n" +
+            $"echo \"$*\" >> '{log}'\nexec -a claude '{named}' -c 'echo $$ >> \"$0\"; sleep 600; :' '{pids}' \"$@\"\n");
+        File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        string[] Launches() => File.Exists(log) ? File.ReadAllLines(log) : [];
+        var agents = app.State!.AgentSessions;
+        var others = new List<System.Diagnostics.Process>();
+        try
+        {
+            (TerminalRef Tab, SharpRail.UI.Terminal.TerminalView View) Revive(string key, string id)
+            {
+                var tab = new TerminalRef(app.Root, key);
+                var transcript = Path.Combine(directory, "claude-home", "projects", "resume-offers", id + ".jsonl");
+                Directory.CreateDirectory(Path.GetDirectoryName(transcript)!);
+                File.WriteAllText(transcript, "{}\n");
+                app.State.SetTerminalAgent(tab, new("claude", fake + " --session-id " + id) { SessionId = id });
+                var opened = app.Window.OpenPluginTerminalAsync(app.Root, new() { TabKey = key });
+                E2eWorkspace.Until(() => opened.IsCompleted);
+                E2eWorkspace.Until(() => app.State.Current.ResumeOffers.Any(offer => offer.Terminal == tab && offer.SessionId == id));
+                var view = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().Single(candidate => candidate.Launch.TabKey == key);
+                E2eWorkspace.Until(() => view.ResumeOffer is { Visible: true, Resume: true, Fresh: true });
+                Require(view.ResumeOffer.Text?.Contains("Claude session " + id[..8], StringComparison.Ordinal) == true, "The offer names the session: " + view.ResumeOffer.Text);
+                return (tab, view);
+            }
+
+            // A stale lock (its process is gone) does not block Resume, which launches the recorded session.
+            const string stale = "7d1c2b3a-1111-4c5d-8e9f-000000000001";
+            var (first, firstView) = Revive("terminal:resume-offer-stale", stale);
+            E2eWorkspace.Settle(1500);
+            Require(Launches().Length == 0, "A revived tab does not launch its agent until asked: " + string.Join(" | ", Launches()));
+            Console.WriteLine("PASS Claude revival: the revived tab offers its session and launches nothing on its own");
+            using (var gone = System.Diagnostics.Process.Start("/bin/sh", ["-c", "exit 0"])!)
+            {
+                gone.WaitForExit();
+                Directory.CreateDirectory(agents.Directory);
+                File.WriteAllText(agents.PathFor("claude", stale), AgentSessionOwnership.Content(gone.Id, 1, new("/elsewhere", "terminal:other")));
+            }
+            firstView.AnswerResumeOffer(true);
+            E2eWorkspace.Until(() => Launches().Any(line => line.Contains("--resume " + stale, StringComparison.Ordinal)));
+            E2eWorkspace.Until(() => app.State.Current.ResumeOffers.All(offer => offer.Terminal != first) && !firstView.ResumeOffer.Visible);
+            Require(AgentSessionOwnership.Holder(agents.PathFor("claude", stale)) == Environment.ProcessId, "Resuming takes the session's lock over the stale one.");
+            Console.WriteLine("PASS Claude revival: Resume launches --resume past a stale lock and takes the lock");
+
+            // Another SharpRail (a live process) holds the lock: the offer turns into "open elsewhere" with Start fresh only.
+            const string held = "7d1c2b3a-2222-4c5d-8e9f-000000000002";
+            var holder = System.Diagnostics.Process.Start("/bin/sleep", ["600"])!;
+            others.Add(holder);
+            File.WriteAllText(agents.PathFor("claude", held), AgentSessionOwnership.Content(holder.Id, AgentSessionOwnership.StartTicks(holder), new("/elsewhere", "terminal:other")));
+            var (second, secondView) = Revive("terminal:resume-offer-held", held);
+            var before = Launches().Length;
+            secondView.AnswerResumeOffer(true);
+            E2eWorkspace.Until(() => app.State.Current.ResumeOffers.Any(offer => offer.Terminal == second && offer.OpenElsewhere) &&
+                secondView.ResumeOffer is { Visible: true, Resume: false, Fresh: true });
+            Require(secondView.ResumeOffer.Text!.Contains("already open", StringComparison.Ordinal) && Launches().Length == before,
+                "A session another SharpRail holds is not resumed: " + secondView.ResumeOffer.Text);
+            Console.WriteLine("PASS Claude revival: a session locked by another live SharpRail is refused as open elsewhere");
+            secondView.AnswerResumeOffer(false);
+            E2eWorkspace.Until(() => Launches().Length > before);
+            var fresh = Launches()[before];
+            Require(fresh.Contains("--session-id ", StringComparison.Ordinal) && !fresh.Contains(held, StringComparison.Ordinal) && !fresh.Contains("--resume", StringComparison.Ordinal),
+                "Start fresh launches a new session: " + fresh);
+            E2eWorkspace.Until(() => !secondView.ResumeOffer.Visible && app.State.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == second)?.Record.SessionId is { } next && next != held);
+            Console.WriteLine("PASS Claude revival: Start fresh launches a new session id in the tab");
+
+            // A process that names the session (a Claude started by hand, or by a SharpRail without locks) also blocks it.
+            const string running = "7d1c2b3a-3333-4c5d-8e9f-000000000003";
+            others.Add(System.Diagnostics.Process.Start("/bin/bash", ["-c", "sleep 600; :", "claude", "--resume", running])!);
+            var (third, thirdView) = Revive("terminal:resume-offer-running", running);
+            before = Launches().Length;
+            thirdView.AnswerResumeOffer(true);
+            E2eWorkspace.Until(() => app.State.Current.ResumeOffers.Any(offer => offer.Terminal == third && offer.OpenElsewhere) && thirdView.ResumeOffer is { Resume: false });
+            Require(Launches().Length == before, "A session a running process names is not resumed.");
+            Console.WriteLine("PASS Claude revival: a session a running process names is refused as open elsewhere");
+            foreach (var tab in new[] { first, second, third })
+            {
+                var closed = Task.Run(async () => await app.State.Terminals!.CloseTabAsync(tab.WorkspaceId, tab.TabKey));
+                E2eWorkspace.Until(() => closed.IsCompleted);
+            }
+            E2eWorkspace.Until(() => AgentSessionOwnership.Holder(agents.PathFor("claude", stale)) is null);
+            Console.WriteLine("PASS Claude revival: closing the tab releases its session lock");
+        }
+        finally
+        {
+            foreach (var other in others) { try { other.Kill(true); } catch (InvalidOperationException) { } other.Dispose(); }
+            if (File.Exists(pids))
+                foreach (var line in File.ReadAllLines(pids))
+                    try { using var agent = System.Diagnostics.Process.GetProcessById(int.Parse(line, System.Globalization.CultureInfo.InvariantCulture)); agent.Kill(true); }
+                    catch (ArgumentException) { }
+                    catch (InvalidOperationException) { }
+        }
     }
 
     /// <summary>

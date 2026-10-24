@@ -5,15 +5,26 @@
              Background="Transparent"
              FontFamily="{x:Static rendering:Ui.InterfaceFont}" Foreground="{x:Static rendering:Ui.TextBrush}">
   <!-- Plugin accessory rows sit below the surface; a plugin companion pane opens in an embedded split beside it. -->
-  <Grid RowDefinitions="*,Auto,Auto" ColumnDefinitions="*,Auto,0">
-    <Border x:Name="FileDropHighlight" Grid.RowSpan="3" Grid.ColumnSpan="3" BorderBrush="{x:Static rendering:Ui.Accent}" BorderThickness="2" IsVisible="False" IsHitTestVisible="False" ZIndex="10" />
-    <StackPanel x:Name="TerminalAccessories" Grid.Row="2" Grid.ColumnSpan="3" />
-    <ContentControl x:Name="TerminalBody" Grid.Row="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-    <GridSplitter x:Name="TerminalCompanionSplitter" Grid.Row="0" Grid.Column="1" Width="1" IsVisible="False"
+  <Grid RowDefinitions="Auto,*,Auto,Auto" ColumnDefinitions="*,Auto,0">
+    <Border x:Name="FileDropHighlight" Grid.RowSpan="4" Grid.ColumnSpan="3" BorderBrush="{x:Static rendering:Ui.Accent}" BorderThickness="2" IsVisible="False" IsHitTestVisible="False" ZIndex="10" />
+    <!-- A revived agent tab's session, offered rather than resumed: another SharpRail may have it open. -->
+    <Border x:Name="TerminalResumeOffer" Grid.Row="0" Grid.ColumnSpan="3" IsVisible="False" Padding="12,4,8,4"
+            BorderThickness="0,0,0,1" BorderBrush="{x:Static rendering:Ui.BorderBrush}" Background="{x:Static rendering:Ui.Elevated}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+          <Button x:Name="TerminalResumeOfferResume" Content="_Resume" Padding="8,2" FontSize="12" />
+          <Button x:Name="TerminalResumeOfferFresh" Content="Start _fresh" Padding="8,2" FontSize="12" />
+        </StackPanel>
+        <TextBlock x:Name="TerminalResumeOfferText" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12" />
+      </DockPanel>
+    </Border>
+    <StackPanel x:Name="TerminalAccessories" Grid.Row="3" Grid.ColumnSpan="3" />
+    <ContentControl x:Name="TerminalBody" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+    <GridSplitter x:Name="TerminalCompanionSplitter" Grid.Row="1" Grid.Column="1" Width="1" IsVisible="False"
                   Background="{x:Static rendering:Ui.BorderBrush}" ResizeDirection="Columns" />
-    <ContentControl x:Name="TerminalCompanion" Grid.Row="0" Grid.Column="2" IsVisible="False"
+    <ContentControl x:Name="TerminalCompanion" Grid.Row="1" Grid.Column="2" IsVisible="False"
                     HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-    <StackPanel x:Name="TerminalStartFailure" Grid.Row="0" IsVisible="False" Spacing="12" MaxWidth="520" Margin="24"
+    <StackPanel x:Name="TerminalStartFailure" Grid.Row="1" IsVisible="False" Spacing="12" MaxWidth="520" Margin="24"
                 HorizontalAlignment="Center" VerticalAlignment="Center">
       <TextBlock Text="The terminal couldn’t start" Classes="tr-heading-sm" />
       <SelectableTextBlock x:Name="TerminalStartFailureText" TextWrapping="Wrap" />
@@ -22,7 +33,7 @@
       <Button x:Name="TerminalStartRetry" Content="Retry" HorizontalAlignment="Left" />
     </StackPanel>
     <!-- Under the live screen of a terminal another client holds. -->
-    <Border x:Name="TerminalDetached" Grid.Row="1" Grid.ColumnSpan="3" IsVisible="False" Padding="12,4,8,4"
+    <Border x:Name="TerminalDetached" Grid.Row="2" Grid.ColumnSpan="3" IsVisible="False" Padding="12,4,8,4"
             BorderThickness="0,1,0,0" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
       <DockPanel>
         <Button x:Name="TerminalTakeBack" DockPanel.Dock="Right" Content="Take over" Padding="8,2" FontSize="12" />
@@ -30,20 +41,20 @@
                    Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" />
       </DockPanel>
     </Border>
-    <TextBlock x:Name="TerminalExited" Grid.Row="1" Grid.ColumnSpan="3" IsVisible="False" Margin="12,4"
+    <TextBlock x:Name="TerminalExited" Grid.Row="2" Grid.ColumnSpan="3" IsVisible="False" Margin="12,4"
                Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" />
-    <Border x:Name="TerminalResumeHint" Grid.Row="0" IsVisible="False" Margin="12" Padding="8,4"
+    <Border x:Name="TerminalResumeHint" Grid.Row="1" IsVisible="False" Margin="12" Padding="8,4"
             HorizontalAlignment="Right" VerticalAlignment="Top" MaxWidth="400" CornerRadius="4"
             Background="{x:Static rendering:Ui.Elevated}" IsHitTestVisible="False">
       <TextBlock Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" TextWrapping="Wrap"
                  Text="Press Enter to resume this tab’s previous session." />
     </Border>
     <!-- Ghostty's secure input indication: the keyboard this terminal reads is hidden from other apps. -->
-    <Border x:Name="TerminalSecureInput" Grid.Row="0" Grid.Column="0" IsVisible="False" Margin="0,8,8,0" Padding="4"
+    <Border x:Name="TerminalSecureInput" Grid.Row="1" Grid.Column="0" IsVisible="False" Margin="0,8,8,0" Padding="4"
             HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4" Background="{x:Static rendering:Ui.Elevated}"
             ToolTip.Tip="Secure keyboard entry is on: other apps cannot read what you type." />
     <!-- While a plugin types a command into the agent, the user's keys are held back. -->
-    <Border x:Name="TerminalInputHeld" Grid.Row="0" IsVisible="False" Margin="12" Padding="8,4"
+    <Border x:Name="TerminalInputHeld" Grid.Row="1" IsVisible="False" Margin="12" Padding="8,4"
             HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"
             Background="{x:Static rendering:Ui.Elevated}" IsHitTestVisible="False">
       <TextBlock Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" Text="Input paused while SharpRail types…" />

@@ -79,6 +79,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
         companion = this.FindControl<ContentControl>("TerminalCompanion")!;
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
         retry.Click += (_, _) => Start(retrying: true);
+        this.FindControl<Button>("TerminalResumeOfferResume")!.Click += (_, _) => resumeOffered?.Invoke();
+        this.FindControl<Button>("TerminalResumeOfferFresh")!.Click += (_, _) => freshOffered?.Invoke();
         takeBack.Click += (_, _) => Start(retrying: true, takeOver: true);
         Focusable = true;
         // Held input never reaches a renderer: keys, composed text and the pointer's paste and menu buttons are
@@ -309,6 +311,33 @@ public sealed partial class TerminalView : UserControl, IDisposable
     public TerminalLaunch Launch => launch;
     /// <summary>Plugin accessory rows shown below the surface.</summary>
     public StackPanel Accessories { get; }
+
+    private Action? resumeOffered, freshOffered;
+
+    /// <summary>
+    /// Shows the host's resume offer for this tab above the surface, or hides it when <paramref name="text"/> is null. A null
+    /// <paramref name="resume"/> leaves only Start fresh, for a session open elsewhere. Both buttons take keyboard focus and
+    /// carry access keys (Alt+R, Alt+F).
+    /// </summary>
+    internal void ShowResumeOffer(string? text, Action? resume, Action? fresh)
+    {
+        var offer = this.FindControl<Control>("TerminalResumeOffer")!;
+        resumeOffered = resume; freshOffered = fresh;
+        offer.IsVisible = text is not null;
+        if (text is null) return;
+        this.FindControl<TextBlock>("TerminalResumeOfferText")!.Text = text;
+        var resumeButton = this.FindControl<Button>("TerminalResumeOfferResume")!;
+        resumeButton.IsVisible = resume is not null;
+        this.FindControl<Button>("TerminalResumeOfferFresh")!.IsVisible = fresh is not null;
+    }
+
+    /// <summary>Whether the resume offer is shown, and the text and buttons it shows.</summary>
+    internal (bool Visible, string? Text, bool Resume, bool Fresh) ResumeOffer =>
+        (this.FindControl<Control>("TerminalResumeOffer")!.IsVisible, this.FindControl<TextBlock>("TerminalResumeOfferText")!.Text,
+            this.FindControl<Button>("TerminalResumeOfferResume")!.IsVisible, this.FindControl<Button>("TerminalResumeOfferFresh")!.IsVisible);
+
+    /// <summary>Presses the offer's Resume (true) or Start fresh (false) button, as a click would.</summary>
+    internal void AnswerResumeOffer(bool resume) => (resume ? resumeOffered : freshOffered)?.Invoke();
 
     /// <summary>The embedded companion pane beside the surface; null closes it.</summary>
     public Control? Companion

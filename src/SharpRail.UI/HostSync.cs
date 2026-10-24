@@ -111,6 +111,7 @@ public sealed partial class WorkbenchWindow
         NotifyLanguageDeaths(previous, next);
         if (!ReferenceEquals(next.PendingEmigrations, previous.PendingEmigrations)) PromptEmigrations(next);
         if (!ReferenceEquals(next.FailedEmigrations, previous.FailedEmigrations)) NotifyEmigrationFailures(previous, next);
+        if (!next.ResumeOffers.SequenceEqual(previous.ResumeOffers)) ApplyResumeOffers(next);
         ObserveSettlingChange(previous, next);
         foreach (var project in previous.Projects.Except(next.Projects)) ReleaseProjectDocuments(project);
         foreach (var removed in previous.Workspaces.Where(workspace => !next.Workspaces.Any(current => current.Path == workspace.Path)))

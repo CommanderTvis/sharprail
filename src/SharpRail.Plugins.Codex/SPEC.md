@@ -34,7 +34,8 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   and apply permission defaults. Both run as the terminal's program through the login shell, so nothing
   is typed (Host Terminals.SPEC, Terminal programs); Windows types the revival offer as before. The
   codex CLI (0.163.0) has no way to preassign a session id, so Codex keeps discovering its id from hooks
-  and the rollout, and revival without one keeps `resume --last`. IDE slash commands submit Enter separately after 250ms.
+  and the rollout, and revival without one keeps `resume --last`. The host offers the revival and runs it only on
+  Resume (Host Plugins.SPEC, Terminals); the hook's `Fresh` command is the same launch without `resume`. IDE slash commands submit Enter separately after 250ms.
   The embedded MCP server is registered as `sharprail`, matching Claude Code and the protocol identity.
   Revival replaces launcher-owned overrides under both the current name and legacy `thinkrail`;
   the existing `THINKRAIL_MCP_URL` environment contract remains compatible with running shells.

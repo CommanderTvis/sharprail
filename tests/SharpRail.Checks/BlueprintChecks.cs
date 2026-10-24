@@ -219,6 +219,7 @@ internal static class BlueprintChecks
         public Func<TerminalRef, CancellationToken, ValueTask>? EnvironmentPreparer { get; set; }
         public Action<TerminalEvent>? Lifecycle { get; set; }
         public Func<TerminalRef, TerminalPrefill?>? RevivePrefill { get; set; }
+        public Func<TerminalRef, TerminalPrefill, bool>? ReviveGate { get; set; }
         public Action<string, TerminalRef?>? SessionClosed { get; set; }
         public string Token(TerminalRef terminal) => "fixture-token";
         public TerminalRef? ForToken(string token) => null;

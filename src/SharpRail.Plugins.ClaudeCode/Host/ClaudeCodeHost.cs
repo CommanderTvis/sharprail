@@ -344,14 +344,20 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
                     ? AgentResume.ResumeCommand(record.Command, id, record.Model, record.Effort, HookPluginDirectory)
                     : AgentResume.StartCommand(record.Command, id, record.Model, record.Effort, HookPluginDirectory)
                 : AgentResume.ContinueCommand(record.Command, record.Model, record.Effort, HookPluginDirectory);
-            if (offer is not null && context.AgentLaunchContributions("claude") is { Count: > 0 } contributions)
-                offer = AgentLaunchComposition.Apply(offer, "claude", contributions, OperatingSystem.IsWindows());
+            // Start fresh on the resume offer: the same invocation under a new id, so the new session takes its own lock.
+            var fresh = AgentResume.StartCommand(record.Command, Guid.NewGuid().ToString(), record.Model, record.Effort, HookPluginDirectory);
+            if (context.AgentLaunchContributions("claude") is { Count: > 0 } contributions)
+            {
+                if (offer is not null) offer = AgentLaunchComposition.Apply(offer, "claude", contributions, OperatingSystem.IsWindows());
+                if (fresh is not null) fresh = AgentLaunchComposition.Apply(fresh, "claude", contributions, OperatingSystem.IsWindows());
+            }
             // The revived terminal runs the agent as its program; a Windows host types it as an offer instead.
-            if (offer is null || OperatingSystem.IsWindows()) return offer is null ? null : new RevivePrefill(offer) { Program = true };
+            if (offer is null || OperatingSystem.IsWindows()) return offer is null ? null : new RevivePrefill(offer) { Program = true, Fresh = fresh };
             // A revival is SharpRail's own launch, whatever started the session it resumes. The command comes from the
             // process table, which holds no environment, so the agent-view setting is applied again rather than carried.
             var agentView = context.Settings<ClaudeCodeSettings>().DisableAgentView ? "CLAUDE_CODE_DISABLE_AGENT_VIEW=true " : "";
-            return new RevivePrefill("SHARPRAIL_UI_LAUNCH=claude " + agentView + offer) { Program = true };
+            return new RevivePrefill("SHARPRAIL_UI_LAUNCH=claude " + agentView + offer)
+            { Program = true, Fresh = fresh is null ? null : "SHARPRAIL_UI_LAUNCH=claude " + agentView + fresh };
         });
     }
 

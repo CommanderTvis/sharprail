@@ -20,6 +20,11 @@ public interface IPluginTerminalSeams
     Action<TerminalEvent>? Lifecycle { get; set; }
     /// <summary>Offered when a fresh shell starts for a tab; the prefill rides the creating attachment.</summary>
     Func<TerminalRef, TerminalPrefill?>? RevivePrefill { get; set; }
+    /// <summary>
+    /// Asked about a revival's prefill when the attach named no program; true holds it back, so the shell starts alone and
+    /// the session waits for the user (an agent session is never resumed without being asked). Called under the service's lock.
+    /// </summary>
+    Func<TerminalRef, TerminalPrefill, bool>? ReviveGate { get; set; }
     /// <summary>A session was closed: its id, and its tab when an attach named it.</summary>
     Action<string, TerminalRef?>? SessionClosed { get; set; }
 }

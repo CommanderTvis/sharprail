@@ -91,6 +91,12 @@ public sealed record RevivePrefill(string? Text = null, bool Submit = false)
     /// instead, as a non-submitted offer.
     /// </summary>
     public bool Program { get; init; }
+
+    /// <summary>
+    /// A command line that starts a new session of the same agent instead, typed and submitted when the user chooses
+    /// Start fresh on the revived tab's resume offer; null leaves another plugin's command, or none.
+    /// </summary>
+    public string? Fresh { get; init; }
 }
 
 /// <summary>A workspace lifecycle event, delivered to <see cref="IPluginHostContext.OnWorkspace"/> observers.</summary>

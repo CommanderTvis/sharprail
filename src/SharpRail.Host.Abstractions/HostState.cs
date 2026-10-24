@@ -164,6 +164,11 @@ public sealed record HostState
     /// the tab went back to its workspace. Never persisted; clients notify once per id.
     /// </summary>
     public IReadOnlyList<TerminalEmigrationRequest> FailedEmigrations { get; init; } = [];
+    /// <summary>
+    /// Revived agent tabs whose session SharpRail did not resume on its own: each waits for the user to resume it or start
+    /// fresh, from any client, through <see cref="HostStateChange.AnswerResume"/>. Never persisted: the next revival offers again.
+    /// </summary>
+    public IReadOnlyList<TerminalResumeOffer> ResumeOffers { get; init; } = [];
     /// <summary>The host's operating system; null from a host that does not report it.</summary>
     public HostPlatform? Platform { get; init; }
     /// <summary>Whether this client's own connection to the host runs over Tailscale, as the host saw it; false for embedded and other transports.</summary>
@@ -175,6 +180,12 @@ public sealed record TerminalAgent(TerminalRef Terminal, TerminalAgentRecord Rec
 /// <summary>An agent's request to move its tab from <paramref name="Terminal"/>'s workspace into <paramref name="Target"/>, awaiting the user.</summary>
 /// <param name="Reason">The agent's own explanation, shown in the prompt; may be empty.</param>
 public sealed record TerminalEmigrationRequest(string Id, TerminalRef Terminal, string Target, string Reason = "");
+
+/// <summary>A revived agent tab's session, offered for resuming instead of resumed automatically.</summary>
+/// <param name="Agent">The agent record's kind (<c>claude</c>, <c>codex</c>, <c>omp</c>, ...).</param>
+/// <param name="SessionId">The recorded session id; empty for a legacy record that has none.</param>
+/// <param name="OpenElsewhere">The session is already open in another process (another tab, window or SharpRail instance), so only a fresh start is offered.</param>
+public sealed record TerminalResumeOffer(TerminalRef Terminal, string Agent, string SessionId, bool OpenElsewhere = false);
 
 /// <param name="Source">Who chose the title; a stronger source's title is never replaced by a weaker one's.</param>
 public sealed record TerminalTitle(TerminalRef Terminal, string Title, TerminalTitleSource Source = TerminalTitleSource.User);
@@ -221,6 +232,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange PluginEnabled(string id, bool enabled) => PluginSettings(id, enabled ? """{"enabled":true}""" : """{"enabled":false}""");
     /// <summary>Answers a pending <see cref="HostState.PendingEmigrations"/> request; an unknown or answered id changes nothing.</summary>
     public static HostStateChange AnswerEmigration(string id, bool approved) => new("terminal-emigration-answer", id, approved ? "approve" : "deny");
+    /// <summary>Answers a revived tab's <see cref="HostState.ResumeOffers"/> entry: resume its session, or start a fresh one.</summary>
+    public static HostStateChange AnswerResume(TerminalRef terminal, bool resume) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal), resume ? "resume" : "fresh");
     public static HostStateChange PluginPaths(IReadOnlyList<string> paths) => new("plugin-paths", Value: JsonSerializer.Serialize(paths));
 }
 

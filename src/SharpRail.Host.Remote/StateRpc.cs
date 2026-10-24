@@ -128,6 +128,8 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         PendingEmigrations = state.PendingEmigrations.Select(request => new TerminalEmigrationMessage
         { Id = request.Id, WorkspaceId = request.Terminal.WorkspaceId, TabKey = request.Terminal.TabKey, Target = request.Target, Reason = request.Reason }).ToList(),
         FailedEmigrations = state.FailedEmigrations.Select(request => new TerminalEmigrationMessage
-        { Id = request.Id, WorkspaceId = request.Terminal.WorkspaceId, TabKey = request.Terminal.TabKey, Target = request.Target, Reason = request.Reason }).ToList()
+        { Id = request.Id, WorkspaceId = request.Terminal.WorkspaceId, TabKey = request.Terminal.TabKey, Target = request.Target, Reason = request.Reason }).ToList(),
+        ResumeOffers = state.ResumeOffers.Select(offer => new TerminalResumeOfferMessage
+        { WorkspaceId = offer.Terminal.WorkspaceId, TabKey = offer.Terminal.TabKey, Agent = offer.Agent, SessionId = offer.SessionId, OpenElsewhere = offer.OpenElsewhere }).ToList()
     };
 }

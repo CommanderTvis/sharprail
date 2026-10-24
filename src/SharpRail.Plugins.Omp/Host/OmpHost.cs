@@ -255,7 +255,8 @@ public sealed partial class OmpHost : PluginHostModule
             var current = settings();
             var directory = record.SessionId is { Length: > 0 } id ? Path.Combine(sessions, id) : null;
             var newest = directory is null ? null : NewestSession(directory);
-            return new RevivePrefill(OmpLaunch.Line(current.Command, new()
+            // Start fresh keeps the tab's session directory but resumes nothing in it.
+            string Line(bool fresh) => OmpLaunch.Line(current.Command, new()
             {
                 Mcp = current.Mcp,
                 Windows = OperatingSystem.IsWindows(),
@@ -265,11 +266,11 @@ public sealed partial class OmpHost : PluginHostModule
                 Advisor = current.Advisor,
                 OwnCodeIntelligence = current.OwnCodeIntelligence,
                 SessionDirectory = directory,
-                ResumePath = newest,
-                Continue = newest is null && directory is null,
+                ResumePath = fresh ? null : newest,
+                Continue = !fresh && newest is null && directory is null,
                 Contributions = context.AgentLaunchContributions(OmpManifest.Id)
-            }))
-            { Program = true };
+            });
+            return new RevivePrefill(Line(false)) { Program = true, Fresh = Line(true) };
         });
 
         return () =>

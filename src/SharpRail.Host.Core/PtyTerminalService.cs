@@ -64,6 +64,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     public Func<TerminalRef, CancellationToken, ValueTask>? EnvironmentPreparer { get; set; }
     public Action<TerminalEvent>? Lifecycle { get; set; }
     public Func<TerminalRef, TerminalPrefill?>? RevivePrefill { get; set; }
+    public Func<TerminalRef, TerminalPrefill, bool>? ReviveGate { get; set; }
     internal Func<string, CancellationToken, ValueTask>? PrepareRevival { get; set; }
     public Action<string, TerminalRef?>? SessionClosed { get; set; }
 
@@ -226,6 +227,8 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             // typed into the shell instead, as before.
             var prefill = terminal is not null ? RevivePrefill?.Invoke(terminal) : null;
             revived = prefill is not null;
+            // A revival nobody asked for waits for the user: the gate offers it and the shell starts alone.
+            if (prefill is not null && request.Program is not { Length: > 0 } && ReviveGate?.Invoke(terminal!, prefill) == true) prefill = null;
             var program = request.Program is { Length: > 0 } asked ? asked : prefill is { Program: true } ? prefill.Text : null;
             if (program is not null && OperatingSystem.IsWindows())
             {

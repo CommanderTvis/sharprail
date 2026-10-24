@@ -5,7 +5,7 @@ const SharpRail.Host.Abstractions.FileLimits.ReadMessageBytes = 83886080 -> int
 const SharpRail.Host.Abstractions.FileLimits.SaveMessageBytes = 150994944 -> int
 const SharpRail.Host.Abstractions.HostProtocol.ChangeWritePath = 2 -> int
 const SharpRail.Host.Abstractions.HostProtocol.AirContextPlugin = 8 -> int
-const SharpRail.Host.Abstractions.HostProtocol.Current = 12 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 13 -> int
 const SharpRail.Host.Abstractions.HostProtocol.RequestReplay = 3 -> int
 const SharpRail.Host.Abstractions.HostProtocol.SharprailExclude = 9 -> int
 const SharpRail.Host.Abstractions.HostProtocol.WebSocketTransport = 5 -> int
@@ -2058,3 +2058,25 @@ SharpRail.Host.Abstractions.TerminalEmigrationRequest.Terminal.init -> void
 SharpRail.Host.Abstractions.TerminalEmigrationRequest.TerminalEmigrationRequest(string! Id, SharpRail.Plugins.Api.TerminalRef! Terminal, string! Target, string! Reason = "") -> void
 SharpRail.Host.Abstractions.HostState.FailedEmigrations.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.TerminalEmigrationRequest!>!
 SharpRail.Host.Abstractions.HostState.FailedEmigrations.init -> void
+const SharpRail.Host.Abstractions.HostProtocol.TerminalResumeOffers = 13 -> int
+override SharpRail.Host.Abstractions.TerminalResumeOffer.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.TerminalResumeOffer.GetHashCode() -> int
+override SharpRail.Host.Abstractions.TerminalResumeOffer.ToString() -> string!
+static SharpRail.Host.Abstractions.TerminalResumeOffer.operator !=(SharpRail.Host.Abstractions.TerminalResumeOffer? left, SharpRail.Host.Abstractions.TerminalResumeOffer? right) -> bool
+static SharpRail.Host.Abstractions.TerminalResumeOffer.operator ==(SharpRail.Host.Abstractions.TerminalResumeOffer? left, SharpRail.Host.Abstractions.TerminalResumeOffer? right) -> bool
+static SharpRail.Host.Abstractions.HostStateChange.AnswerResume(SharpRail.Plugins.Api.TerminalRef! terminal, bool resume) -> SharpRail.Host.Abstractions.HostStateChange!
+SharpRail.Host.Abstractions.HostState.ResumeOffers.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.TerminalResumeOffer!>!
+SharpRail.Host.Abstractions.HostState.ResumeOffers.init -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer
+SharpRail.Host.Abstractions.TerminalResumeOffer.<Clone>$() -> SharpRail.Host.Abstractions.TerminalResumeOffer!
+SharpRail.Host.Abstractions.TerminalResumeOffer.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out string! Agent, out string! SessionId, out bool OpenElsewhere) -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.Equals(SharpRail.Host.Abstractions.TerminalResumeOffer? other) -> bool
+SharpRail.Host.Abstractions.TerminalResumeOffer.Agent.get -> string!
+SharpRail.Host.Abstractions.TerminalResumeOffer.Agent.init -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.OpenElsewhere.get -> bool
+SharpRail.Host.Abstractions.TerminalResumeOffer.OpenElsewhere.init -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.SessionId.get -> string!
+SharpRail.Host.Abstractions.TerminalResumeOffer.SessionId.init -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.Terminal.get -> SharpRail.Plugins.Api.TerminalRef!
+SharpRail.Host.Abstractions.TerminalResumeOffer.Terminal.init -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.TerminalResumeOffer(SharpRail.Plugins.Api.TerminalRef! Terminal, string! Agent, string! SessionId, bool OpenElsewhere = false) -> void

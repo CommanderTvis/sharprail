@@ -62,6 +62,15 @@ Saved host agent titles take precedence over catalog titles in these lists too.
 Choosing one reveals its tab and watches another client's live shell without taking
 it over. Centre file-tab previews still follow the client's tabs-in-Projects setting.
 
+## Resume offer
+
+A revived agent tab shows its host `TerminalResumeOffer` in a row above the surface: “Claude session <first 8 of
+the id> was running here.” with Resume (Alt+R) and Start fresh (Alt+F) buttons, which take keyboard focus like any
+button. Either answer goes to the host as `HostStateChange.AnswerResume`, so every window and remote client shows
+and settles the same offer. When the host finds the session open in another tab, window or SharpRail instance the
+row says so and offers only Start fresh. The row is applied when a terminal view is created and on every state
+broadcast that changes `ResumeOffers`; it reads state only (Plugins.SPEC, Terminals).
+
 ## Session revival hint
 
 A backend that acknowledges writing an offered, non-submitted revival prefill shows “Press Enter to

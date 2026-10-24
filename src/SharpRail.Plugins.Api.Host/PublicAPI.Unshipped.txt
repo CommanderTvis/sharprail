@@ -710,6 +710,8 @@ SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.PluginId.get -> string!
 SharpRail.Plugins.Api.Host.WorkspaceEnvironmentFact.WorkspaceEnvironmentFact(string! pluginId, string! label, string? detail) -> void
 SharpRail.Plugins.Api.Host.RevivePrefill.Program.get -> bool
 SharpRail.Plugins.Api.Host.RevivePrefill.Program.init -> void
+SharpRail.Plugins.Api.Host.RevivePrefill.Fresh.get -> string?
+SharpRail.Plugins.Api.Host.RevivePrefill.Fresh.init -> void
 SharpRail.Plugins.Api.Host.TerminalPromptChanged
 SharpRail.Plugins.Api.Host.TerminalPromptChanged.AtPrompt.get -> bool
 SharpRail.Plugins.Api.Host.TerminalPromptChanged.AtPrompt.init -> void

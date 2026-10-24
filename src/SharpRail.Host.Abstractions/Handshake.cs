@@ -9,12 +9,14 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 12;
+    public const int Current = 13;
 
     /// <summary>Listing any host directory by absolute path, for choosing a host file to attach to an agent.</summary>
     public const int HostDirectoryBrowse = 11;
     /// <summary>Pending <c>workspace_emigrate</c> requests in the shared state, answered with a state change.</summary>
     public const int TerminalEmigration = 12;
+    /// <summary>Revived agent tabs offer their session in the shared state instead of resuming it, answered with a state change.</summary>
+    public const int TerminalResumeOffers = 13;
 
     /// <summary>The host setting that turns Ghostty's shell integration off for shells started afterwards.</summary>
     public const int ShellIntegration = 10;

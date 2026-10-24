@@ -45,7 +45,9 @@ No real omp run backs them; the checks use a fixture `omp`.
   `--session-dir "$SHARPRAIL_OMP_SESSIONS/<32-hex id>"`, where the host sets `SHARPRAIL_OMP_SESSIONS` in every
   terminal to `<plugin state>/sessions` under `~/.sharprail`. The agent record's session id is that folder name, read
   from the process arguments. Revival resumes the folder's newest `*.jsonl` with `-r <file>`, or starts again in the
-  folder when none was saved; the generic launcher's resume continues with `-c` in the folder. Sessions in these
+  folder when none was saved; the generic launcher's resume continues with `-c` in the folder. The host offers the
+  revival and runs it only on Resume (Host Plugins.SPEC, Terminals); the hook's `Fresh` command starts in the same
+  folder without `-r`. Sessions in these
   folders do not appear in omp's own session picker. Windows launches keep omp's default store.
 - Context files (host, off the UI thread): per scope and directory depth the highest-priority provider with a file
   wins (native `.omp/AGENTS.md`/`AGENTS.md`, claude `.claude/CLAUDE.md`, agents `.agent(s)/AGENTS.md`, gemini

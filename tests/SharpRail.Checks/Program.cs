@@ -46,6 +46,8 @@ internal static class Program
         if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
         var root = CheckRoot.Create("fixture");
         Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(root, "host-state"));
+        // Agent session locks are machine-wide; the checks keep theirs in the run's root.
+        Environment.SetEnvironmentVariable(SharpRail.Host.Core.Plugins.AgentSessionOwnership.DirectoryVariable, Path.Combine(root, "agent-sessions"));
         // Enabling Codex installs its skills under CODEX_HOME; no check may reach the developer's own.
         Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(root, "codex-home"));
         Directory.CreateDirectory(root);
