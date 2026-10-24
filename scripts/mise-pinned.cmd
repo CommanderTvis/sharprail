@@ -21,8 +21,8 @@ set "download_path="
 set "sums="
 
 set "pinned_version=2026.10.19"
-set "sum_x64=f36344847831b37b56d681fcac6d61cb3cc02eba4cec11cfd39960e5dca2c143"
-set "sum_arm64=ee36fc8592f6917c4e55729f905a64304d6786e8c241e5399fcc7cf7f86fb193"
+set "sum_x64=8268d9bdfcc5f55c209e300a8454294ebf470a6fd0cf995cf2ce96f2b627979a"
+set "sum_arm64=5059645075ef762be24d584178aafe6c586fd8647de61d276aa48b6ca94e7240"
 
 rem MISE_VERSION itself is never written to. Everything here runs inside `setlocal`, so assigning
 rem a fallback to it would hand the launched mise an env var the bash branch does not set.
