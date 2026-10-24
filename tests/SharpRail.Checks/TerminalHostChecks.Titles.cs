@@ -22,6 +22,9 @@ internal static partial class TerminalHostChecks
         Require(scanner.Scan("\e]2;tab\tname\u0085!\a"u8, out var clean) && clean == "tab name !", "Control characters never reach a tab label.");
         Require(!scanner.Scan(Encoding.UTF8.GetBytes("\e]2;" + new string('x', TerminalTitleScanner.MaxBytes + 1) + "\a"), out _) &&
             scanner.Scan("\e]2;after\a"u8, out var after) && after == "after", "An over-long sequence is dropped and scanning recovers.");
+        Require(scanner.Scan("\e]0;✳ Foo\a"u8, out var status) && status == "Foo" && scanner.Scan("\e]0;⠂ Foo ✳ bar\a"u8, out var spinner) &&
+            spinner == "Foo ✳ bar" && scanner.Scan("\e]0;✳Foo\a"u8, out var glued) && glued == "✳Foo",
+            "Only a leading status glyph and its space leave a program title.");
         Require(scanner.Scan("\e]2;cancelled\x18\e]2;kept\a"u8, out var kept) && kept == "kept", "CAN abandons a sequence.");
     }
 
@@ -35,6 +38,8 @@ internal static partial class TerminalHostChecks
         await screen.Run("printf '\\033]2;Building\\007'; printf '\\033]0;Build logs\\007'; printf 'TITLED_%s\\n' DONE");
         await screen.WaitFor("TITLED_DONE", mode);
         await Until(async () => await Title() is { Title: "Build logs", Source: TerminalTitleSource.Program }, $"{mode}: the program's OSC title must reach the client");
+        await screen.Run("printf '\\033]0;\\342\\234\\263 Foo\\007'");
+        await Until(async () => await Title() is { Title: "Foo", Source: TerminalTitleSource.Program }, $"{mode}: Claude Code's status glyph must leave its OSC title");
         await screen.Run("printf '\\033]2;\\007'");
         await Until(async () => await Title() is null, $"{mode}: an empty OSC title must clear the program's title");
 
@@ -44,6 +49,8 @@ internal static partial class TerminalHostChecks
         await Task.Delay(HostedTerminal.TitleMilliseconds * 2);
         Require(await Title() is { Title: "Agent task", Source: TerminalTitleSource.Agent }, $"{mode}: an OSC title replaced the agent's set_title.");
 
+        await client.ChangeAsync([HostStateChange.TitleTerminal(terminal, "✳ Bar")]);
+        Require(await Title() is { Title: "✳ Bar", Source: TerminalTitleSource.User }, $"{mode}: a user rename must be kept verbatim.");
         await client.ChangeAsync([HostStateChange.TitleTerminal(terminal, "Mine")]);
         Require(!store.SetTerminalTitle(terminal, "Agent again", TerminalTitleSource.Agent) && await Title() is { Title: "Mine", Source: TerminalTitleSource.User },
             $"{mode}: an agent's set_title replaced the user's rename.");

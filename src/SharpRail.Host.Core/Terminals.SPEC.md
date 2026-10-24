@@ -316,14 +316,16 @@ signals. `MemoryTerminalCatalog` has no shells and reports `NotSupportedExceptio
 
 - The host follows OSC 0 and OSC 2 (BEL or ST terminated) in each tab's output as it records it, with a bounded
   scanner that survives chunk boundaries; OSC 1, an over-long (4 KiB) or cancelled sequence and every other OSC are
-  ignored. Control characters become spaces and the title is cut to the catalog's 1000-character bound.
+  ignored. A leading status glyph followed by whitespace (Claude Code's `✳`, its spinner frames `✻ ✽ ✶ ✢ ·` and
+  braille U+2800–U+28FF) is dropped so every client shows the bare title; a glyph elsewhere, or one not followed by
+  whitespace, stays, and user renames and `set_title` are never touched. Control characters become spaces and the title is cut to the catalog's 1000-character bound.
 - Programs retitle often (Claude Code animates its title while it works), so a tab's latest title is published at most
   once a second and only when it changed. Publishing is `SetTerminalTitle` with the program source: it is the weakest
   title (user rename > `set_title` > program, [HostState.SPEC.md](HostState.SPEC.md)), lives only in memory and reaches
   every client through the ordinary state broadcast. An empty title clears the program's title; a title that arrives
   after its session closed is dropped. Sessions without a tab key (relay, checks) are not followed.
 - `--terminals` checks the scanner and, through local and remote adapters, that a shell's title reaches the client,
-  that clearing works, and the precedence over agent and user titles.
+  that clearing works, that a status glyph leaves a program title but not a user rename, and the precedence over agent and user titles.
 
 ## Backpressure
 

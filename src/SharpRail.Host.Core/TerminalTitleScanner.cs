@@ -55,8 +55,17 @@ internal sealed class TerminalTitleScanner
         var text = buffer.AsSpan(0, length);
         var separator = text.IndexOf((byte)';');
         if (separator < 0 || !(text[..separator] is [(byte)'0'] or [(byte)'2'])) return false;
-        title = Clean(Encoding.UTF8.GetString(text[(separator + 1)..]));
+        title = Clean(StripStatus(Encoding.UTF8.GetString(text[(separator + 1)..])));
         return true;
+    }
+
+    // Claude Code prefixes its title with a status glyph ("✳ ", a spinner frame such as "✻ " or a braille "⠂ ") and
+    // animates it while working; only a leading glyph followed by whitespace goes, so every client shows the bare title.
+    internal static string StripStatus(string value)
+    {
+        var text = value.TrimStart();
+        if (text.Length < 2 || !(text[0] is '✳' or '✻' or '✽' or '✶' or '✢' or '·' || text[0] is >= '\u2800' and <= '\u28ff')) return value;
+        return char.IsWhiteSpace(text[1]) ? text[1..] : value;
     }
 
     // Control characters never reach a tab label; an over-long title is cut to the catalog's bound.
