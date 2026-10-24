@@ -42,7 +42,7 @@ internal sealed partial class Runner(string root, string dotnet)
             """);
         var resources = Path.Combine(BuildDirectory, "SharpRail.app/Contents/Resources");
         Directory.CreateDirectory(resources);
-        foreach (var name in new[] { "plugins", "ghostty", "terminfo" })
+        foreach (var name in new[] { "plugins", "terminfo" })
         {
             var source = Path.Combine(Path.GetDirectoryName(Ui)!, name);
             if (!Directory.Exists(source)) continue;

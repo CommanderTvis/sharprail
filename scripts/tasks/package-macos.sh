@@ -28,7 +28,7 @@ if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
   for item in artifacts/ui/*; do
     name="$(basename "$item")"
     case "$name" in
-      ghostty|terminfo|plugins)
+      terminfo|plugins)
         mkdir -p "$bundle/Contents/Resources/$name"
         cp -R "$item/." "$bundle/Contents/Resources/$name/"
         if [ "$name" = plugins ]; then

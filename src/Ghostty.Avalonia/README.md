@@ -42,8 +42,10 @@ sources and Zig toolchains into a machine-wide cache (`$SHARPRAIL_CACHE_DIR/ghos
 finished library is kept there under `results/<key>`, the key hashing the pinned commits, Zig version, native sources
 and script, and is built beside its final name and renamed into place under one lock, so concurrent builds and
 different branches never corrupt or overwrite each other's. The script copies the result into its output directory,
-`obj/native` by default (`GhosttyNativeCache`). Libraries and shell resources are copied from there to the consuming
-application's output and publish directory.
+`obj/native` by default (`GhosttyNativeCache`). Libraries and Ghostty's terminfo are copied from there to the consuming
+application's output and publish directory. Ghostty's own shell-integration scripts (`share/ghostty`, partly GPL-3.0
+as derived from kitty) are not shipped: `ExternalIo.patch` starts Ghostty's children with `shell-integration = none`,
+and SharpRail's host injects its own scripts.
 
 Every native build (macOS, Linux, Windows, Android, WASM) first restores the Zig packages hosted outside
 github.com into Zig's global cache with `scripts/zig-deps.sh` (`Restore-ZigDeps` on Windows) from a mirror archive

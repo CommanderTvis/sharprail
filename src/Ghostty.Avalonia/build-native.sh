@@ -3,7 +3,8 @@ set -eu
 # Builds this project's native libraries into an output directory (MSBuild's GhosttyNativeCache, under the checkout's obj):
 #   libGhosttyAvaloniaView.dylib  embedded libghostty 1.2.3: AppKit view with Ghostty's Metal renderer
 #   libGhosttyAvaloniaVt.dylib    libghostty-vt terminal state behind the Skia renderer's C ABI
-#   resources/                    Ghostty's shell integration and terminfo, used by the embedded view
+#   resources/                    Ghostty's terminfo, used by the embedded view (its GPL-3.0 shell integration is not shipped;
+#                                 SharpRail injects its own)
 # The pinned sources, Zig caches and finished builds live in the machine-wide cache ($SHARPRAIL_CACHE_DIR/ghostty-avalonia,
 # shared with build-linux.sh and build-android.sh): each finished build is kept under results/<key>, the key hashing
 # everything the build reads, so checkouts on different branches never overwrite each other's libraries and a new worktree
@@ -139,8 +140,7 @@ ARCHIVER
     -framework AppKit -framework Metal -framework QuartzCore -framework IOSurface \
     -framework CoreText -framework CoreGraphics -framework Carbon -framework Foundation -framework CoreVideo \
     -lc++ -install_name @rpath/libGhosttyAvaloniaView.dylib -o "$view_result.partial/libGhosttyAvaloniaView.dylib"
-  mkdir -p "$view_result.partial/resources/ghostty"
-  cp -R "$work/view-source/zig-out/share/ghostty/." "$view_result.partial/resources/ghostty/"
+  mkdir -p "$view_result.partial/resources"
   cp -R "$work/view-source/zig-out/share/terminfo" "$view_result.partial/resources/"
   publish_result "$view_result"
 fi

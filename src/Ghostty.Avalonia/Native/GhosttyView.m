@@ -122,10 +122,13 @@ static void closeSurface(void *data, bool alive) {
 static bool initialize(void) {
     if (app) return true;
     if (!MTLCreateSystemDefaultDevice()) return false;
-    NSString *resources = [[[NSBundle mainBundle] executablePath].stringByDeletingLastPathComponent stringByAppendingPathComponent:@"ghostty"];
-    NSString *bundled = [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"ghostty"];
-    if ([[NSFileManager defaultManager] fileExistsAtPath:bundled]) resources = bundled;
-    if ([[NSFileManager defaultManager] fileExistsAtPath:resources]) setenv("GHOSTTY_RESOURCES_DIR", resources.UTF8String, 1);
+    // Only Ghostty's terminfo ships (SharpRail injects its own shell integration); Ghostty finds it as the sibling of
+    // its resources directory, so name that directory beside it even though it does not exist.
+    NSString *resources = [[NSBundle mainBundle] executablePath].stringByDeletingLastPathComponent;
+    NSString *bundled = [NSBundle mainBundle].resourcePath;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:[bundled stringByAppendingPathComponent:@"terminfo"]]) resources = bundled;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:[resources stringByAppendingPathComponent:@"terminfo"]])
+        setenv("GHOSTTY_RESOURCES_DIR", [resources stringByAppendingPathComponent:@"ghostty"].UTF8String, 1);
     char *args[] = {(char *)NSProcessInfo.processInfo.processName.UTF8String, NULL};
     if (ghostty_init(1, args) != GHOSTTY_SUCCESS) return false;
     ghostty_config_t config = ghostty_config_new();
