@@ -27,13 +27,17 @@ the module owns no session, account or terminal state.
 - `TerminalFacts` presents directory and model facts, token usage, plan progress,
   pickers, file attachment and the session IDE-context toggle. File-reference quoting escapes control
   characters so a dropped filename cannot submit or split the prompt.
-- `InstructionSectionsView` lists SharpRail's instruction sections for one agent and workspace, grouped by
-  source like Blueprint's checkbox controls: a checkbox per section with its title, description, id and a
-  token estimate (characters / 4), and a collapsed read-only preview. The provider supplies the list and toggle
+- `InstructionSectionsView` is SharpRail's instructions as one context-table entry: a row with the PROJECT
+  scope chip, a size and source line the provider fills (`SetEntry`), collapsed until clicked, that expands to
+  the instruction sections for one agent and workspace, grouped by source. Each section is compact: a checkbox
+  with its title and token estimate (characters / 4), the id only as the checkbox tooltip, and its description as
+  a one-line disclosure that opens the read-only text inline; no preview box. Sections load on first expansion.
+  The provider supplies the list and toggle
   calls (run off the UI thread) and refreshes it on its change channel; stale results are dropped, a refused
-  toggle re-reads the file, and a file with diagnostics disables the checkboxes. It shows the project file's path,
-  that it is shared with the team, that running sessions keep their instructions, and a note while earlier hand
+  toggle re-reads the file, and a file with diagnostics disables the checkboxes. It shows the project file's path, that running sessions keep their instructions, and a note while earlier hand
   edits are kept aside. It has no text editing.
+- `TokenAmount` draws a token count as "1 token"/"N tokens", or "tok"/"toks" when offered less than its
+  narrow width; it measures both and draws the one that fits, changing no property during layout.
 - `ManualLaunchNotice` is a compiled terminal notice explaining intentionally absent launcher
   additions and the workspace launcher alternative. Providers show it only for a known manual origin;
   independently configured hooks and MCP/IDE connections remain available.
