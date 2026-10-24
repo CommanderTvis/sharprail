@@ -213,7 +213,8 @@ internal sealed class IdeBridge(IdeBridgeDeps deps)
                 {
                     OldPath = Text(arguments, "old_file_path"),
                     NewPath = Text(arguments, "new_file_path"),
-                    NewContent = Text(arguments, "new_file_contents")
+                    NewContent = Text(arguments, "new_file_contents"),
+                    TabName = Text(arguments, "tab_name")
                 }));
             case "getOpenEditors": return Raw(await Action(IdeActionKind.GetOpenEditors, new IdeActionParams()));
             case "checkDocumentDirty": return Raw(await Action(IdeActionKind.CheckDocumentDirty, new IdeActionParams { Path = Plain(arguments, "filePath") }));

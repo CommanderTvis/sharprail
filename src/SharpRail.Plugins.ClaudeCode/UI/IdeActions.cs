@@ -9,8 +9,36 @@ namespace SharpRail.Plugins.ClaudeCode.UI;
 /// Answers the IDE actions the host relays from a Claude CLI, with the app's editors. Always replies: a thrown error
 /// becomes the CLI's tool error.
 /// </summary>
-internal sealed class IdeActions(IPluginUIContext context)
+internal sealed class IdeActions(IPluginUIContext context) : IDisposable
 {
+    // The tabs Claude itself opened, per workspace (a session's), keyed by the names close_tab may give them: the
+    // file's absolute path, and the tab name openDiff was given. A tab the user already had open is never recorded.
+    private readonly Dictionary<string, Dictionary<string, string>> opened = [];
+    private IDisposable? watch;
+
+    private void Track(string workspaceId, EditorRef? editor, bool wasOpen, params string?[] names)
+    {
+        if (editor is null || wasOpen) return;
+        watch ??= context.Editors.OnEvent(change =>
+        {
+            if (change is EditorLifecycleEvent { Lifecycle: EditorLifecycle.Closed } closed) Forget(closed.Editor.Id);
+        });
+        if (!opened.TryGetValue(workspaceId, out var tabs)) opened[workspaceId] = tabs = [];
+        tabs[Absolute(workspaceId, editor.Path)] = editor.Id;
+        foreach (var name in names) if (!string.IsNullOrEmpty(name)) tabs[name] = editor.Id;
+    }
+
+    private void Forget(string editorId)
+    {
+        foreach (var tabs in opened.Values)
+            foreach (var key in tabs.Where(tab => tab.Value == editorId).Select(tab => tab.Key).ToArray()) tabs.Remove(key);
+    }
+
+    /// <summary>Forgets the tabs Claude opened in a workspace whose sessions ended.</summary>
+    public void ForgetWorkspace(string workspaceId) => opened.Remove(workspaceId);
+
+    public void Dispose() => watch?.Dispose();
+
     // The IDE protocol sends absolute paths and the editors take worktree-relative ones (a plain POSIX prefix strip).
     private static string Relative(string workspaceId, string path)
     {
@@ -48,16 +76,19 @@ internal sealed class IdeActions(IPluginUIContext context)
         {
             case IdeActionKind.OpenFile:
                 var path = Relative(workspaceId, parameters.Path ?? "");
+                var wasOpen = Find(workspaceId, path) is not null;
                 // The protocol selects from startText to endText; revealing where the range starts is what the editors offer.
                 if (await context.Editors.OpenAsync(workspaceId, path, new()
-                { Preview = parameters.Preview == true, Line = await LineOfAsync(workspaceId, path, parameters.StartText) }) is null)
+                { Preview = parameters.Preview == true, Line = await LineOfAsync(workspaceId, path, parameters.StartText) }) is not { } file)
                     throw new InvalidOperationException("The session's workspace is not open in a SharpRail window");
+                Track(workspaceId, file, wasOpen);
                 return new { success = true };
             case IdeActionKind.OpenDiff:
                 // Claude Code's openDiff proposes unsaved content for review, which diff tabs cannot show: they read both
                 // sides from Git. Opening the file is the honest subset; the CLI then asks in its own terminal.
                 var target = parameters.NewPath ?? parameters.OldPath ?? throw new InvalidOperationException("openDiff needs a file path");
-                await context.Editors.OpenAsync(workspaceId, Relative(workspaceId, target));
+                var targetOpen = Find(workspaceId, target) is not null;
+                Track(workspaceId, await context.Editors.OpenAsync(workspaceId, Relative(workspaceId, target)), targetOpen, parameters.TabName);
                 return new { success = true, diffShown = false };
             case IdeActionKind.GetOpenEditors:
                 var active = context.Editors.Active?.Id;
@@ -80,12 +111,14 @@ internal sealed class IdeActions(IPluginUIContext context)
                 if (saved.Dirty) await context.Editors.SaveAsync(saved.Id);
                 return new { success = true, filePath = parameters.Path, saved = saved.Dirty && !context.Editors.IsDirty(saved.Id) };
             case IdeActionKind.CloseTab:
-                // The CLI names the tab it asked openDiff for, or a file by its absolute path; a file name alone also closes its tab.
+                // The CLI names the tab it asked openDiff for, or a file by its absolute path. Only a tab Claude itself opened
+                // closes, by that exact name: a tab the user had open, or a same-named file elsewhere, stays.
                 var name = parameters.TabName ?? "";
-                var named = context.Editors.List(workspaceId).FirstOrDefault(editor =>
-                    Absolute(workspaceId, editor.Path) == name || editor.Path.Split('/')[^1] == name);
-                if (named is not null) context.Editors.Close(named.Id);
-                return new { closed = named is null ? 0 : 1 };
+                if (!opened.TryGetValue(workspaceId, out var ours) || !ours.TryGetValue(name, out var id)) return new { closed = 0 };
+                Forget(id);
+                if (!context.Editors.List(workspaceId).Any(editor => editor.Id == id)) return new { closed = 0 };
+                context.Editors.Close(id);
+                return new { closed = 1 };
             case IdeActionKind.CloseAllDiffTabs:
                 // The CLI sends this whenever a prompt is submitted, meaning the diff tabs its openDiff opened. openDiff opens
                 // none here, so every diff or Changes tab is the user's own and stays open.

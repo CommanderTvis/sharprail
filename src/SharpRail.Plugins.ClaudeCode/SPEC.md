@@ -250,7 +250,10 @@ notification exists for a closed tab, so a close only forgets the selection the 
 Tool replies are JSON for the tools that describe state (`tabs` with `uri`, `isActive`, `label` and
 `isDirty`; folders with `uri` and a `rootPath`; `Document not open: <path>`) and the words the CLI
 compares for the rest: `TAB_CLOSED` or `Tab not found`, `CLOSED_<n>_DIFF_TABS`, `Opened file: <path>`.
-`close_tab` takes the name the CLI gave `openDiff` or a file's absolute path. `openFile` reveals the
+`close_tab` takes the name the CLI gave `openDiff` or a file's absolute path, and closes only a tab
+`openFile` or `openDiff` newly opened for that workspace's Claude, matched exactly by that name; a tab the user
+already had open, or a file sharing only its bare name, stays (`Tab not found`). The record forgets a tab once it
+closes by any means, and a whole workspace when it is removed. `openFile` reveals the
 line where `startText` first occurs. `openDiff` still opens the target file and answers
 `diffShown: false`, which the CLI treats as a failed diff and answers by asking in its own terminal:
 Git diff tabs do not represent unsaved proposed content, so `FILE_SAVED` and `DIFF_REJECTED` have

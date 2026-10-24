@@ -138,6 +138,7 @@ internal static class ClaudeCodeChecks
             Mentions(new(app.Root, "styles", true)) is ["Mention folder in Claude Code"] && Mentions(new(app.Root + "-other", "README.md", false)).Length == 0,
             "A workspace running Claude offers to reference a file, a folder or the selected lines in its prompt.");
         SubmittedPromptKeepsChanges(app);
+        CloseTabClosesOnlyClaudesTabs(app);
         Require(ReferenceEquals(accessory, terminalView.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeTerminalAccessory")),
             "An agent-record update retains the accessory and its active picker state.");
         app.State.SetTerminalAgent(terminalRef, null);
@@ -298,6 +299,43 @@ internal static class ClaudeCodeChecks
     /// A submitted prompt makes the CLI send closeAllDiffTabs over the IDE bridge: a Changes tab grouped with the Claude
     /// terminal is the user's own and stays open, with no undo-close toast.
     /// </summary>
+    /// <summary>
+    /// close_tab closes only a tab Claude's own openFile newly opened, by its exact path: never the user's tab of the
+    /// same file, nor a file elsewhere sharing its bare name.
+    /// </summary>
+    private static void CloseTabClosesOnlyClaudesTabs(E2eWorkspace app)
+    {
+        Directory.CreateDirectory(Path.Combine(app.Root, "close-tab", "other"));
+        foreach (var file in new[] { "close-tab/foo.cs", "close-tab/bar.cs", "close-tab/other/bar.cs" }) File.WriteAllText(Path.Combine(app.Root, file), "class C {}\n");
+        var loader = app.Workbench.PluginLoader!;
+        var entry = loader.Registry.Entry("claude-code")!;
+        var context = new SharpRail.UI.Plugins.PluginUIContext(loader, entry, new SharpRail.UI.Plugins.PluginActivation(entry));
+        using var actions = new IdeActions(context);
+        bool Open(string path) => context.Editors.List(app.Root).Any(editor => editor.Path == path);
+        void Run(IdeActionKind kind, IdeActionParams parameters)
+        {
+            var handled = actions.HandleAsync(new("close-tab-" + kind, app.Root, kind, parameters));
+            E2eWorkspace.Until(() => handled.IsCompleted);
+        }
+        var users = context.Editors.OpenAsync(app.Root, "close-tab/foo.cs").AsTask();
+        E2eWorkspace.Until(() => users.IsCompleted && Open("close-tab/foo.cs"));
+        var otherBar = context.Editors.OpenAsync(app.Root, "close-tab/other/bar.cs").AsTask();
+        E2eWorkspace.Until(() => otherBar.IsCompleted && Open("close-tab/other/bar.cs"));
+        Run(IdeActionKind.OpenFile, new() { Path = Path.Combine(app.Root, "close-tab/foo.cs") });
+        Run(IdeActionKind.CloseTab, new() { TabName = Path.Combine(app.Root, "close-tab/foo.cs") });
+        Run(IdeActionKind.CloseTab, new() { TabName = "foo.cs" });
+        Require(Open("close-tab/foo.cs"), "close_tab must not close a tab the user had open before Claude's openFile.");
+        Run(IdeActionKind.OpenFile, new() { Path = Path.Combine(app.Root, "close-tab/bar.cs") });
+        E2eWorkspace.Until(() => Open("close-tab/bar.cs"));
+        Run(IdeActionKind.CloseTab, new() { TabName = "bar.cs" });
+        Require(Open("close-tab/bar.cs") && Open("close-tab/other/bar.cs"), "close_tab must not close a tab by its bare file name.");
+        Run(IdeActionKind.CloseTab, new() { TabName = Path.Combine(app.Root, "close-tab/bar.cs") });
+        E2eWorkspace.Until(() => !Open("close-tab/bar.cs"));
+        Require(Open("close-tab/other/bar.cs") && Open("close-tab/foo.cs"), "close_tab must close only the tab Claude opened, by its exact path.");
+        foreach (var editor in context.Editors.List(app.Root).Where(editor => editor.Path.StartsWith("close-tab/", StringComparison.Ordinal)).ToArray()) context.Editors.Close(editor.Id);
+        foreach (var toast in app.Window.Toasts.Items.ToArray()) app.Window.Toasts.Dismiss(toast.Id);
+    }
+
     private static void SubmittedPromptKeepsChanges(E2eWorkspace app)
     {
         var changes = new SharpRail.UI.Docking.DockTab("changes:all:", "Changes · All changes", "changes", Scope: "all");

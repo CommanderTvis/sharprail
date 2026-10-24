@@ -34,6 +34,7 @@ public sealed class ClaudeCodeUI : PluginUIModule
         context.OnWorkspaceRemoved(workspace =>
         {
             hydrated.Remove(workspace);
+            actions.ForgetWorkspace(workspace);
             store.EvictWorkspace(workspace);
         });
         context.SettingsSection(new("Claude Code", "asset:claude.svg", () => new ClaudeCodeSettingsSection(context)));
@@ -102,7 +103,7 @@ public sealed class ClaudeCodeUI : PluginUIModule
             catch (Exception error) when (error is not OperationCanceledException) { }
         }
         var ide = context.Subscribe(ClaudeCodeContract.IdeAction, request => _ = actions.HandleAsync(request));
-        return () => { disposed = true; status.Dispose(); editors.Dispose(); ide.Dispose(); };
+        return () => { disposed = true; status.Dispose(); editors.Dispose(); ide.Dispose(); actions.Dispose(); };
     }
 
     // Only live pushes ask: a hydrated snapshot row is where a session already stood, not something that just happened.
