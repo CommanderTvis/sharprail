@@ -746,6 +746,8 @@ internal static class ClaudeCodeChecks
             "Workspace actions follow New terminal under their workspace in Projects.");
 
         int Terminals() => app.Window.Layout.State.Groups.Sum(group => app.Window.Layout.Tabs(group.Id).Count(tab => tab.Kind == "terminal"));
+        Button? CloseConfirmation() => app.Window.OwnedWindows.SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
+            .FirstOrDefault(button => button.Name == "TerminalCloseBusyConfirm");
         // The preassigned id of the last launch, taken out of the arguments the assertions below compare.
         string? launchedId = null;
         string[] Launch(string preset, Action? choose = null)
@@ -780,6 +782,11 @@ internal static class ClaudeCodeChecks
             foreach (var group in app.Window.Layout.State.Groups.ToArray())
                 foreach (var tab in app.Window.Layout.Tabs(group.Id).Where(tab => tab.Kind == "terminal").ToArray())
                     app.Window.Layout.Close(group.Id, tab.Id);
+            // The fake may still be running when its log appears, so the close can rightly ask first: confirm it, or the
+            // dialog stays open over the next launch's button.
+            E2eWorkspace.Until(() => Terminals() == 0 || CloseConfirmation() is not null);
+            if (CloseConfirmation() is { } confirm) app.Click(confirm, freshGesture: false);
+            E2eWorkspace.Until(() => Terminals() == 0 && CloseConfirmation() is null);
             E2eWorkspace.Until(() => Named(app.Window, "NewClaude").Count > 0);
             return lines;
         }
