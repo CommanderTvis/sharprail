@@ -183,4 +183,12 @@ settings. Pool identity includes the registration, preventing ordinary or replac
 a private connection. Every reconnect creates a new handler; failed attempts and final connection teardown
 dispose it. Registration disposal affects new channels; existing channels retain their selected route
 until disposed. Duplicate active registrations are rejected. Unix sockets and browser-default sockets
-retain their existing path; custom registrations are unavailable in browser builds.
+retain their existing path; handler registrations are unavailable in browser builds.
+
+`RpcTransports.RegisterStreamTransport` registers a stream dialer instead, for networks that offer TCP streams
+but no sockets or custom handlers (the browser's own Tailscale node). Each connection dials a fresh stream, runs
+the client WebSocket upgrade over it (`StreamHttpHandler.ConnectWebSocketAsync`: random key, accept-hash and
+subprotocol verification, bounded response head) and wraps it with `WebSocket.CreateFromStream`. A registered
+route is exclusive: a failed dial never falls back to ordinary sockets. `StreamHttpHandler` carries plain HTTP/1.1
+over the same dialer for pairing (one request per connection, no redirects, Content-Length, chunked or
+close-delimited bodies); it refuses HTTPS because the private network encrypts the transport.

@@ -131,6 +131,12 @@ public sealed class RpcChannel : IRpcClient, IDisposable
                 if (peer?.IsAlive == true) return peer;
                 if (peer is not null) await peer.DisposeAsync();
                 http?.Dispose(); http = null;
+                if (transport?.Dial is { } dial)
+                {
+                    var target = new UriBuilder(address) { Path = "/rpc", Query = "", Fragment = "" }.Uri;
+                    var stream = await dial(linked.Token);
+                    return peer = new(await StreamHttpHandler.ConnectWebSocketAsync(stream, target, RpcWire.Subprotocol, linked.Token), heartbeat: keepAlive);
+                }
                 var socket = new ClientWebSocket();
                 socket.Options.AddSubProtocol(RpcWire.Subprotocol);
                 try

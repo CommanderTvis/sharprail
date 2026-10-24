@@ -19,7 +19,25 @@ public static class RpcTransports
         lock (registrations)
         {
             if (registrations.ContainsKey(key)) throw new InvalidOperationException("A transport is already registered for this endpoint.");
-            var registration = new Registration(key, factory);
+            var registration = new Registration(key, factory, null);
+            registrations.Add(key, registration);
+            return registration;
+        }
+    }
+
+    /// <summary>
+    /// Registers a stream dialer for channels subsequently created for this endpoint: each connection opens a fresh
+    /// stream and runs the WebSocket handshake over it itself. A browser uses this form for a userspace network, where
+    /// neither sockets nor a custom handler can carry the browser's own WebSocket.
+    /// </summary>
+    public static IDisposable RegisterStreamTransport(Uri endpoint, Func<CancellationToken, ValueTask<Stream>> dial)
+    {
+        ArgumentNullException.ThrowIfNull(dial);
+        var key = Key(endpoint);
+        lock (registrations)
+        {
+            if (registrations.ContainsKey(key)) throw new InvalidOperationException("A transport is already registered for this endpoint.");
+            var registration = new Registration(key, null, dial);
             registrations.Add(key, registration);
             return registration;
         }
@@ -40,9 +58,10 @@ public static class RpcTransports
         return new UriBuilder(endpoint) { Scheme = endpoint.Scheme is "https" or "wss" ? "https" : "http", Port = endpoint.Port }.Uri.AbsoluteUri;
     }
 
-    internal sealed class Registration(string key, Func<HttpMessageHandler> factory) : IDisposable
+    internal sealed class Registration(string key, Func<HttpMessageHandler>? factory, Func<CancellationToken, ValueTask<Stream>>? dial) : IDisposable
     {
-        internal HttpMessageHandler CreateHandler() => factory();
+        internal Func<CancellationToken, ValueTask<Stream>>? Dial => dial;
+        internal HttpMessageHandler CreateHandler() => factory?.Invoke() ?? throw new InvalidOperationException("This transport dials streams.");
         public void Dispose()
         {
             lock (registrations)
