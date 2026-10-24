@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- What both halves share: the manifest, the wire contract and the launch line. -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Host/**;UI/**</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+  </ItemGroup>
+</Project>

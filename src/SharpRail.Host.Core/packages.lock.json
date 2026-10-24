@@ -316,6 +316,19 @@
           "SharpRail.Plugins.Api.Host": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.omp": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.omp.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Omp": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.specdialect": {
         "type": "Project",
         "dependencies": {

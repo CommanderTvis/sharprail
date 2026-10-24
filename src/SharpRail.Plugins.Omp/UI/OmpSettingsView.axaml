@@ -1,0 +1,57 @@
+<StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+            x:Class="SharpRail.Plugins.Omp.UI.OmpSettingsView" x:ClassModifier="internal"
+            Name="SettingsOmp" Spacing="16">
+  <StackPanel.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.detail">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+  </StackPanel.Styles>
+  <StackPanel Spacing="4">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="omp" FontSize="15" FontWeight="SemiBold" />
+      <Border Background="{x:Static kit:Ui.WarningWash}" CornerRadius="8" Padding="8,0" VerticalAlignment="Center">
+        <TextBlock Text="Early support" FontSize="11" Foreground="{x:Static kit:Ui.Warning}" />
+      </Border>
+    </StackPanel>
+    <TextBlock Classes="detail" Text="Launch flags for omp sessions SharpRail starts. omp itself comes from your system installation (https://omp.sh)." />
+  </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Launch command" />
+    <TextBox x:Name="OmpCommandInput" PlaceholderText="omp" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="omp launch command" />
+  </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Model (--model)" />
+    <AutoCompleteBox x:Name="OmpModel" Watermark="Use omp's default" MinimumPrefixLength="0" FilterMode="Contains" AutomationProperties.Name="omp model" />
+    <TextBlock Classes="detail" Text="A model id, provider/model, or a role such as @smol. Suggestions come from omp's docs; any value is accepted." />
+  </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Approval mode (--approval-mode)" />
+    <AutoCompleteBox x:Name="OmpApprovalMode" Watermark="Use omp's configuration" MinimumPrefixLength="0" FilterMode="Contains" AutomationProperties.Name="omp approval mode" />
+    <TextBlock Classes="detail" Text="always-ask, write or yolo; any value is passed through." />
+  </StackPanel>
+  <CheckBox x:Name="OmpAdvisor" AutomationProperties.Name="Run with the advisor">
+    <StackPanel Spacing="2">
+      <TextBlock Text="Run with the advisor (--advisor)" />
+      <TextBlock Classes="detail" Text="Passive per-turn review with injected advice." />
+    </StackPanel>
+  </CheckBox>
+  <CheckBox x:Name="OmpMcp" AutomationProperties.Name="Give sessions SharpRail's tools">
+    <StackPanel Spacing="2">
+      <TextBlock Text="Give sessions SharpRail's tools" />
+      <TextBlock Classes="detail" Text="Launches with the sharprail omp profile, whose mcp.json SharpRail owns. The profile has its own sign-in, settings and sessions." />
+    </StackPanel>
+  </CheckBox>
+  <CheckBox x:Name="OmpOwnLsp" AutomationProperties.Name="Use omp's own code intelligence">
+    <StackPanel Spacing="2">
+      <TextBlock Text="Use omp's own code intelligence" />
+      <TextBlock Classes="detail" Text="Off: sessions start with --no-lsp and use SharpRail's shared language servers through the lsp_* tools." />
+    </StackPanel>
+  </CheckBox>
+</StackPanel>

@@ -17,6 +17,7 @@
     <ProjectReference Include="../SharpRail.Plugins.BranchGraph/Host/SharpRail.Plugins.BranchGraph.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Visualize/Host/SharpRail.Plugins.Visualize.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Codex/Host/SharpRail.Plugins.Codex.Host.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Omp/Host/SharpRail.Plugins.Omp.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirGovernance/Host/SharpRail.Plugins.AirGovernance.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirContext/Host/SharpRail.Plugins.AirContext.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Lsp.TypeScript/SharpRail.Plugins.Lsp.TypeScript.csproj" />

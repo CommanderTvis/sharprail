@@ -1142,6 +1142,14 @@ internal static class Program
             Console.WriteLine("PASS Changes checks");
             return;
         }
+        if (args.SequenceEqual(["--omp"]))
+        {
+            OmpChecks.RunHost(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            OmpChecks.RunUi(Path.Combine(root, "omp-ui"));
+            return;
+        }
         if (args.SequenceEqual(["--air-governance"]))
         {
             AirGovernanceChecks.Run(root).GetAwaiter().GetResult();
@@ -1243,6 +1251,7 @@ internal static class Program
         Gate.Case("VisualizeChecks-Host", () => VisualizeChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("FileIconsChecks-Host", () => FileIconsChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("codex-host", () => CodexChecks.RunHost(root).GetAwaiter().GetResult());
+        Gate.Case("omp-host", () => OmpChecks.RunHost(Path.Combine(root, "omp")).GetAwaiter().GetResult());
         Gate.Case("workspace-watch", () => WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult());
         UiChecks.Run(root);
         Gate.Case("resources", () => ResourceChecks.Run(root));
@@ -1274,6 +1283,7 @@ internal static class Program
         Gate.Case("BranchGraphChecks-RunUi", () => BranchGraphChecks.RunUi(root));
         Gate.Case("FileIconsChecks-UiChecks", () => FileIconsChecks.UiChecks(root));
         Gate.Case("codex-ui", () => E2E.CodexE2E.Run(root));
+        Gate.Case("omp-ui", () => OmpChecks.RunUi(Path.Combine(root, "omp-ui")));
         Gate.Case("away-notifications", () => AwayNotificationChecks.Run(root));
         Gate.Case("terminal-signals-ui", () => TerminalSignalUiChecks.Run(root));
         Gate.Case("plugin-watch", () => PluginWatchChecks.Run(root));

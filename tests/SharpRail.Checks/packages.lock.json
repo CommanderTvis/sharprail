@@ -294,6 +294,7 @@
           "SharpRail.Plugins.Lsp.Shell": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.Swift": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.TypeScript": "[1.0.0, )",
+          "SharpRail.Plugins.Omp.Host": "[1.0.0, )",
           "SharpRail.Plugins.SpecDialect.Host": "[1.0.0, )",
           "SharpRail.Plugins.Tailscale.Host": "[1.0.0, )",
           "SharpRail.Plugins.Visualize.Host": "[1.0.0, )",
@@ -713,6 +714,28 @@
           "SharpRail.Plugins.Api.Host": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.omp": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.omp.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Omp": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.omp.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Omp": "[1.0.0, )",
+          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.specdialect": {
         "type": "Project",
         "dependencies": {
@@ -824,6 +847,7 @@
           "SharpRail.Plugins.Discord.UI": "[1.0.0, )",
           "SharpRail.Plugins.EnvChips.UI": "[1.0.0, )",
           "SharpRail.Plugins.Epub.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Omp.UI": "[1.0.0, )",
           "SharpRail.Plugins.SpecDialect.UI": "[1.0.0, )",
           "SharpRail.Plugins.Tailscale.UI": "[1.0.0, )",
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )",

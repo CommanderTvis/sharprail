@@ -46,6 +46,8 @@ using SharpRail.Plugins.Lsp.Scala;
 using SharpRail.Plugins.Lsp.Shell;
 using SharpRail.Plugins.Lsp.Swift;
 using SharpRail.Plugins.Lsp.TypeScript;
+using SharpRail.Plugins.Omp;
+using SharpRail.Plugins.Omp.Host;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.Host;
@@ -118,6 +120,7 @@ public static class BuiltinPlugins
         (BranchGraphPlugin.Manifest, new BranchGraphHost()),
         (VisualizeContract.Manifest, new VisualizeHost()),
         (CodexManifest.Manifest, new CodexHost()),
+        (OmpManifest.Manifest, new OmpHost()),
         (AirGovernanceContract.Manifest, new AirGovernanceHost()),
         (AirContextContract.Manifest, new AirContextHost()),
         (TailscaleContract.Manifest, new TailscaleHost(tailscale)),

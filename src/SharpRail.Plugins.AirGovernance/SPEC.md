@@ -15,7 +15,8 @@ Upstream: central-integration.md, packages/shared/src/jbcentral.ts (adapter), pa
 (lifecycle), apps/web/src/panels/JetBrainsAiCard.tsx (card) and e2e/fixtures/bin/central (fixture) @ the fork's
 `central-access-api` line. The fork routes Central into `pi` through one extension file; pi is out of scope here, so
 this plugin keeps the fork's detection, sign-in, proxy, update and access-source behaviour and replaces the pi
-extension with Central's `central run <agent>`, one launch at a time, for Codex and Claude Code.
+extension with Central's `central run <agent>`, one launch at a time, for Codex and Claude Code. The omp plugin's
+launches are not wrapped: `central run` (1.13.0) has no omp agent and cannot name another binary.
 
 ## Responsibility
 

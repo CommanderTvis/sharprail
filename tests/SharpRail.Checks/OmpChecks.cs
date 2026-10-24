@@ -1,0 +1,264 @@
+using System.Net;
+using System.Text.Json;
+
+using Avalonia.Controls;
+using Avalonia.LogicalTree;
+using Avalonia.Threading;
+
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.Extensions.DependencyInjection;
+
+using SharpRail.Checks.E2E;
+using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
+using SharpRail.Host.Protocol;
+using SharpRail.Host.Remote;
+using SharpRail.Plugins.AirGovernance;
+using SharpRail.Plugins.Omp;
+using SharpRail.Plugins.Omp.Host;
+
+namespace SharpRail.Checks;
+
+// The omp plugin: the launch line (profile, session folder, model, approval mode, advisor, --no-lsp), the context-file
+// resolution with nested, cycle-safe @-imports and the offers, the profile's MCP file, the version probe against a
+// fixture omp and a missing one, process detection, revival, Air Governance's stance, and the UI end to end.
+internal static class OmpChecks
+{
+    private static void Require(bool condition, string message)
+    {
+        if (!condition) throw new InvalidOperationException("omp: " + message);
+    }
+
+    private static string FakeOmp(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "omp");
+        File.WriteAllText(path, "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo \"omp 9.8.7\"; exit 0; fi\n" +
+            "printf '%s\\n' \"$@\" > \"" + Path.Combine(directory, "argv.txt") + "\"\nsleep 30\n");
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        return path;
+    }
+
+    internal static async Task RunHost(string root)
+    {
+        Directory.CreateDirectory(root);
+        Launch();
+        Context(Path.Combine(root, "omp-context"));
+        Profile(Path.Combine(root, "omp-profile"));
+        await Version(Path.Combine(root, "omp-version"));
+        Processes();
+        Sessions(Path.Combine(root, "omp-sessions"));
+        Require(AirLaunch.Contribution(new() { Source = AirSources.Central, ClaudeCode = true, Codex = true }, OmpManifest.Id, "/bin/central") is null,
+            "Air Governance does not wrap omp: Central's run command has no omp agent");
+        Console.WriteLine("PASS omp host: launch line, context files and imports, profile MCP file, version and missing binary, detection, sessions, Air stance");
+    }
+
+    private static void Launch()
+    {
+        var plain = OmpLaunch.Line("", new() { Mcp = false });
+        Require(plain == "omp --no-lsp", "a bare launch defaults to SharpRail's code intelligence: " + plain);
+        var full = OmpLaunch.Line("omp", new()
+        {
+            UiLaunch = true,
+            Model = "anthropic/claude-opus-4-6:high",
+            ApprovalMode = "write",
+            Advisor = true,
+            SessionId = "0123456789abcdef0123456789abcdef",
+            SystemPrompt = "be brief",
+            InitialPrompt = "fix it",
+            Images = ["/tmp/a.png"]
+        });
+        Require(full == "SHARPRAIL_UI_LAUNCH=omp omp --profile sharprail --session-dir \"$SHARPRAIL_OMP_SESSIONS/0123456789abcdef0123456789abcdef\" " +
+            "--model anthropic/claude-opus-4-6:high --approval-mode write --advisor --no-lsp --append-system-prompt 'be brief' @/tmp/a.png 'fix it'",
+            "the launch carries the profile, session folder, model, approval mode, advisor and --no-lsp: " + full);
+        Require(OmpLaunch.SessionIdOf(full) == "0123456789abcdef0123456789abcdef", "the session folder is read back from the arguments");
+        var own = OmpLaunch.Line("omp", new() { Mcp = false, OwnCodeIntelligence = true });
+        Require(own == "omp", "omp's own code intelligence drops --no-lsp: " + own);
+        var resume = OmpLaunch.Line("omp", new() { Mcp = false, SessionDirectory = "/s/abc", ResumePath = "/s/abc/x.jsonl", InitialPrompt = "ignored" });
+        Require(resume == "omp --session-dir /s/abc -r /s/abc/x.jsonl --no-lsp", "a resume names the session file and drops the opening prompt: " + resume);
+        Require(OmpLaunch.Line("omp", new() { Windows = true, SessionId = "0123456789abcdef0123456789abcdef", UiLaunch = true }) == "omp --profile sharprail --no-lsp",
+            "Windows launches keep omp's own session store and no POSIX marker");
+        Require(OmpLaunch.ApprovalModes.SequenceEqual(["always-ask", "write", "yolo"]) && OmpLaunch.ModelSuggestions.Contains("@smol"), "the documented values are suggested");
+    }
+
+    private static void Context(string root)
+    {
+        var home = Path.Combine(root, "home");
+        var project = Path.Combine(root, "work", "project");
+        Directory.CreateDirectory(Path.Combine(project, "docs"));
+        Directory.CreateDirectory(Path.Combine(project, ".claude"));
+        Directory.CreateDirectory(Path.Combine(home, ".omp", "profiles", "sharprail", "agent"));
+        File.WriteAllText(Path.Combine(project, "AGENTS.md"), "# Project\n\n@docs/a.md\nmail me at someone@example.test\n```\n@docs/fenced.md\n```\nsee `@docs/inline.md`\n");
+        File.WriteAllText(Path.Combine(project, "docs", "a.md"), "A\n@b.md\n");
+        File.WriteAllText(Path.Combine(project, "docs", "b.md"), "B\n@a.md\n@missing.md\n");
+        File.WriteAllText(Path.Combine(project, "docs", "fenced.md"), "never\n");
+        File.WriteAllText(Path.Combine(project, "docs", "inline.md"), "never\n");
+        File.WriteAllText(Path.Combine(project, ".claude", "CLAUDE.md"), "shadowed by AGENTS.md\n");
+        File.WriteAllText(Path.Combine(root, "work", "AGENTS.md"), "ancestor\n");
+        File.WriteAllText(Path.Combine(home, ".omp", "profiles", "sharprail", "agent", "AGENTS.md"), "user\n");
+
+        var snapshot = OmpContext.Resolve(project, home, profile: true);
+        string Rows() => string.Join(" | ", snapshot.Files.Select(file => $"{file.Label}:{file.Scope}:{file.Provider}:{file.Depth}{(file.Shadowed ? ":shadowed" : "")}{(file.Cycle ? ":cycle" : "")}"));
+        var labels = snapshot.Files.Select(file => file.Label).ToList();
+        Require(labels.IndexOf("~/.omp/profiles/sharprail/agent/AGENTS.md") == 0, "the profile's user file comes first: " + Rows());
+        Require(labels.IndexOf(Path.Combine(root, "work", "AGENTS.md")) < labels.IndexOf("AGENTS.md"), "an ancestor comes before the launch directory: " + Rows());
+        var agents = snapshot.Files.Single(file => file.Label == "AGENTS.md");
+        Require(agents is { Provider: "native", Depth: 0, Shadowed: false, Scope: OmpContextScope.Project } && agents.Tokens == (agents.Bytes + 3) / 4, "the project AGENTS.md wins natively: " + Rows());
+        Require(snapshot.Files.Single(file => file.Label == Path.Combine(".claude", "CLAUDE.md")).Shadowed, "the Claude file at the same depth is shadowed: " + Rows());
+        var a = labels.IndexOf(Path.Combine("docs", "a.md"));
+        Require(a == labels.IndexOf("AGENTS.md") + 1 && snapshot.Files[a].Depth == 1, "an import follows its importer at depth one: " + Rows());
+        Require(snapshot.Files[a + 1] is { Depth: 2, Cycle: false } && snapshot.Files[a + 1].Label == Path.Combine("docs", "b.md"), "a nested import is depth two: " + Rows());
+        Require(snapshot.Files[a + 2] is { Depth: 3, Cycle: true } && snapshot.Files[a + 2].Label == Path.Combine("docs", "a.md"), "a cycle is marked and not followed: " + Rows());
+        Require(!labels.Any(label => label.Contains("fenced", StringComparison.Ordinal) || label.Contains("inline", StringComparison.Ordinal) || label.Contains("missing", StringComparison.Ordinal) || label.Contains("example", StringComparison.Ordinal)),
+            "code, e-mail addresses and unreadable imports are not imports: " + Rows());
+        // A chain longer than five hops stops at the fifth.
+        for (var hop = 0; hop < 8; hop++) File.WriteAllText(Path.Combine(project, "docs", $"chain{hop}.md"), $"@chain{hop + 1}.md\n");
+        File.WriteAllText(Path.Combine(project, "docs", "chain8.md"), "end\n");
+        Directory.CreateDirectory(Path.Combine(project, ".omp"));
+        File.WriteAllText(Path.Combine(project, ".omp", "RULES.md"), "@../docs/chain0.md\n");
+        snapshot = OmpContext.Resolve(project, home, profile: true);
+        Require(snapshot.Files.Where(file => file.Label.Contains("chain", StringComparison.Ordinal)).Max(file => file.Depth) == OmpContext.MaxImportDepth, "imports stop after five hops: " + Rows());
+
+        Require(snapshot.Offers.All(offer => offer.Target != OmpContextTarget.Agents) && snapshot.Offers.All(offer => offer.Target != OmpContextTarget.Rules) &&
+            snapshot.Offers.Any(offer => offer is { Target: OmpContextTarget.AppendSystem, Label: "Add .omp/APPEND_SYSTEM.md" }), "only missing files are offered");
+        var created = OmpContext.Create(project, OmpContextTarget.AppendSystem);
+        Require(File.Exists(created) && OmpContext.Resolve(project, home, true).Offers.Count == 0, "adding a file fulfils its offer");
+        File.WriteAllText(created, "mine\n");
+        OmpContext.Create(project, OmpContextTarget.AppendSystem);
+        Require(File.ReadAllText(created) == "mine\n", "adding never overwrites an existing file");
+        Require(OmpContext.Resolve(project, home, profile: false).UserDirectory == Path.Combine(home, ".omp", "agent"), "without the profile, user files come from omp's own directory");
+    }
+
+    private static void Profile(string root)
+    {
+        OmpHost.WriteProfileMcp(root);
+        var path = OmpHost.ProfileMcpPath(root);
+        Require(path == Path.Combine(root, ".omp", "profiles", "sharprail", "agent", "mcp.json"), "the profile's MCP file path: " + path);
+        var server = JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("mcpServers").GetProperty("sharprail");
+        Require(server.GetProperty("type").GetString() == "http" && server.GetProperty("url").GetString() == "${THINKRAIL_MCP_URL}",
+            "the server's URL is each terminal's own, expanded by omp");
+        File.WriteAllText(path, "{}");
+        OmpHost.WriteProfileMcp(root);
+        Require(File.ReadAllText(path).Contains("THINKRAIL_MCP_URL", StringComparison.Ordinal) && Directory.GetFiles(Path.GetDirectoryName(path)!).Length == 1,
+            "a rewrite replaces the file whole and leaves no temporary file");
+    }
+
+    private static async Task Version(string root)
+    {
+        var fake = FakeOmp(root);
+        var status = await OmpHost.ReadStatusAsync(fake, root, true);
+        Require(status is { Installed: true, Version: "9.8.7" } && status.ProfileMcpPath == OmpHost.ProfileMcpPath(root), "the version comes from omp --version: " + status);
+        var missing = await OmpHost.ReadStatusAsync(Path.Combine(root, "nowhere", "omp"), root, false);
+        Require(missing is { Installed: false, Version: null } && missing.Detail!.Contains("not found", StringComparison.Ordinal), "a missing binary is reported: " + missing);
+    }
+
+    private static void Processes()
+    {
+        var rows = ProcessSnapshot.ParseRows(ProcessSnapshot.Living("  10     1 Ss   zsh\n  11    10 Z    omp\n  12    10 S+   /usr/local/bin/omp\n"));
+        var snapshot = new ProcessSnapshot(rows);
+        Require(snapshot.FindDescendant(10, ["omp"]) is { Pid: 12 }, "a live omp under the shell is found and a zombie one skipped");
+        var zombie = new ProcessSnapshot(ProcessSnapshot.ParseRows(ProcessSnapshot.Living("  10     1 Ss   zsh\n  11    10 Z    omp\n")));
+        Require(zombie.FindDescendant(10, ["omp"]) is null, "an exited, unreaped omp keeps no agent");
+    }
+
+    private static void Sessions(string root)
+    {
+        var folder = Path.Combine(root, "abc");
+        Require(OmpHost.NewestSession(folder) is null, "a session folder that was never written has no session");
+        Directory.CreateDirectory(Path.Combine(folder, "nested"));
+        File.WriteAllText(Path.Combine(folder, "old.jsonl"), "{}\n");
+        File.SetLastWriteTimeUtc(Path.Combine(folder, "old.jsonl"), DateTime.UtcNow.AddMinutes(-5));
+        File.WriteAllText(Path.Combine(folder, "nested", "new.jsonl"), "{}\n");
+        Require(OmpHost.NewestSession(folder) == Path.Combine(folder, "nested", "new.jsonl"), "the newest session in the folder is resumed");
+    }
+
+    // The UI half against the real host over the remote adapter: the Early badges, version, missing state, context rows and offer, and a launch.
+    internal static void RunUi(string root)
+    {
+        Directory.CreateDirectory(root);
+        var home = Path.Combine(root, "home");
+        Directory.CreateDirectory(home);
+        var previousHome = Environment.GetEnvironmentVariable(OmpHost.HomeVariable);
+        Environment.SetEnvironmentVariable(OmpHost.HomeVariable, home);
+        var workspace = Path.Combine(root, "workspace");
+        Directory.CreateDirectory(Path.Combine(workspace, ".git"));
+        File.WriteAllText(Path.Combine(workspace, "AGENTS.md"), "# Rules\n@docs/more.md\n");
+        Directory.CreateDirectory(Path.Combine(workspace, "docs"));
+        File.WriteAllText(Path.Combine(workspace, "docs", "more.md"), "@../AGENTS.md\n");
+        var fake = FakeOmp(Path.Combine(root, "fixture"));
+        const string token = "omp-fixture";
+        var server = RemoteServer.Create(workspace, IPAddress.Loopback, 0, token, workspace + "-host");
+        Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();
+        var endpoint = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+        var terminals = new RemoteTerminalAdapter(endpoint, token);
+        var app = new E2eWorkspace(endpoint, token, workspace, workspace + "-profile", workspace, terminals: new E2eTerminals(terminals));
+        try
+        {
+            E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
+            void Settings(object settings)
+            {
+                var json = JsonSerializer.Serialize(settings, SharpRail.Plugins.Api.PluginJson.Options);
+                _ = app.Workbench.State.ChangeAsync(HostStateChange.PluginSettings(OmpManifest.Id, json));
+                E2eWorkspace.Until(() => app.Workbench.State.Current.PluginSettings.GetValueOrDefault(OmpManifest.Id) is { ValueKind: JsonValueKind.Object } stored &&
+                    JsonSerializer.SerializeToElement(settings, SharpRail.Plugins.Api.PluginJson.Options).EnumerateObject().All(member => stored.TryGetProperty(member.Name, out var value) && value.GetRawText() == member.Value.GetRawText()));
+            }
+            Settings(new { command = fake, model = "@smol", approvalMode = "write", advisor = true });
+            _ = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled(OmpManifest.Id, true));
+            E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(OmpManifest.Id));
+            Require(app.Workbench.PluginLoader.Registry.Roster.Single(entry => entry.Id == OmpManifest.Id).Support == SharpRail.Plugins.Api.PluginSupportLevels.Early,
+                "the roster carries the Early support level over the wire");
+
+            app.Window.Layout.RestoreTool(OmpManifest.ContextTool);
+            E2eWorkspace.Until(() => Find<Control>(app.Window, "OmpPanel").Any());
+            var panel = Find<Control>(app.Window, "OmpPanel").Single();
+            E2eWorkspace.Until(() => Find<TextBlock>(panel, "OmpVersion").Single().Text == "v9.8.7");
+            Require(Find<Border>(panel, "OmpEarlyBadge").Single().IsEffectivelyVisible, "the pane wears the Early badge");
+            Require(Find<TextBlock>(panel, "OmpCodeIntelligence").Single().Text!.Contains("SharpRail", StringComparison.Ordinal), "the pane says sessions use SharpRail's code intelligence");
+            Require(Find<TextBlock>(panel, "OmpProfileNote").Single().IsEffectivelyVisible, "the pane notes what the profile keeps apart");
+            E2eWorkspace.Until(() => Find<Control>(panel, "OmpContextRow").Count >= 3);
+            var rows = Find<Control>(panel, "OmpContextRow");
+            Require(rows.Any(row => row.Margin.Left == 16 && Equals(row.Tag, Path.Combine(workspace, "docs", "more.md"))) &&
+                rows.Any(row => row.Margin.Left == 32 && Find<TextBlock>(row, "OmpContextTokens").Single().Text == "cycle"), "imports are nested rows and the cycle is marked");
+            Require(rows.First(row => Equals(row.Tag, Path.Combine(workspace, "AGENTS.md"))) is var agents && Find<TextBlock>(agents, "OmpContextTokens").Single().Text!.EndsWith("tok", StringComparison.Ordinal),
+                "a file shows its token estimate");
+            E2eWorkspace.Until(() => Find<Button>(panel, "OmpOffer_rules").Any());
+            Require(!Find<Button>(panel, "OmpOffer_agents").Any(), "an existing AGENTS.md is not offered");
+            app.Click(Find<Button>(panel, "OmpOffer_rules").Single());
+            E2eWorkspace.Until(() => File.Exists(Path.Combine(workspace, ".omp", "RULES.md")) && !Find<Button>(panel, "OmpOffer_rules").Any());
+            Require(File.Exists(OmpHost.ProfileMcpPath(home)), "enabling writes the profile's MCP file under omp's home");
+
+            // The start action launches the fixture with the configured flags in its own session folder.
+            E2eWorkspace.Until(() => Find<Button>(app.Window, "NewOmp").Any());
+            var argv = Path.Combine(root, "fixture", "argv.txt");
+            app.Click(Find<Button>(app.Window, "NewOmp").First());
+            E2eWorkspace.Until(() => File.Exists(argv) && File.ReadAllText(argv).Contains("--no-lsp", StringComparison.Ordinal));
+            var args = File.ReadAllLines(argv);
+            Require(args.Take(2).SequenceEqual(["--profile", "sharprail"]) && args[2] == "--session-dir" &&
+                OmpLaunch.SessionIdOf("--session-dir " + args[3]) is not null && args.Skip(4).SequenceEqual(["--model", "@smol", "--approval-mode", "write", "--advisor", "--no-lsp"]),
+                "the launch argv: " + string.Join(" ", args));
+
+            // A missing binary: the pane says so with the install link, and the launcher is unavailable.
+            Settings(new { command = Path.Combine(root, "nowhere", "omp"), model = "@smol", approvalMode = "write", advisor = true });
+            app.Click(Find<Button>(panel, "OmpRefresh").Single());
+            E2eWorkspace.Until(() => Find<StackPanel>(panel, "OmpMissing").Single().IsVisible);
+            Require(Find<Button>(panel, "OmpInstall").Single().IsEffectivelyVisible && Find<TextBlock>(panel, "OmpMissingText").Single().Text!.Contains("not installed", StringComparison.Ordinal),
+                "the missing state offers the install link");
+            Console.WriteLine("PASS omp UI: Early badge, version, code intelligence and profile notes, nested context rows, add offer, launch argv, missing binary");
+        }
+        finally
+        {
+            app.Dispose();
+            terminals.Dispose();
+            Task.Run(async () => { await server.StopAsync(); await server.DisposeAsync(); }).GetAwaiter().GetResult();
+            Environment.SetEnvironmentVariable(OmpHost.HomeVariable, previousHome);
+        }
+    }
+
+    private static List<T> Find<T>(Control scope, string name) where T : Control
+    {
+        Dispatcher.UIThread.RunJobs();
+        (TopLevel.GetTopLevel(scope) ?? scope).UpdateLayout();
+        return [.. new[] { scope }.Concat(scope.GetLogicalDescendants()).OfType<T>().Where(item => item.Name == name)];
+    }
+}

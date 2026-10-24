@@ -18,6 +18,8 @@ using SharpRail.Plugins.EnvChips;
 using SharpRail.Plugins.EnvChips.UI;
 using SharpRail.Plugins.Epub;
 using SharpRail.Plugins.Epub.UI;
+using SharpRail.Plugins.Omp;
+using SharpRail.Plugins.Omp.UI;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.UI;
@@ -38,6 +40,7 @@ public static class BuiltinPlugins
         (BranchGraphPlugin.Manifest, () => new BranchGraphUI()),
         (VisualizeContract.Manifest, () => new VisualizeUI()),
         (CodexManifest.Manifest, () => new CodexUI()),
+        (OmpManifest.Manifest, () => new OmpUI()),
         (AirGovernanceContract.Manifest, () => new AirGovernanceUI()),
         (AirContextContract.Manifest, () => new AirContextUI()),
         (TailscaleContract.Manifest, () => new TailscaleUI()),

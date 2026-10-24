@@ -360,6 +360,12 @@ internal static class PluginUiChecks
         static string Texts(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
         Require(Texts(row).Contains("external", StringComparison.Ordinal) && Texts(row).Contains("v1.0.0", StringComparison.Ordinal) &&
             Texts(row).Contains("disabled", StringComparison.Ordinal), "The fixture's row must show external, its version and disabled: " + Texts(row));
+        // An early plugin wears its support badge on the card; a fully supported one does not.
+        var ompRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("omp")!;
+        Require(ompRow.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "PluginSupport").IsVisible && Texts(ompRow).Contains("Early support", StringComparison.Ordinal),
+            "The omp card shows its Early support badge: " + Texts(ompRow));
+        var codexRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("codex")!;
+        Require(!codexRow.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "PluginSupport").IsVisible, "A fully supported plugin wears no support badge.");
         var refusedRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("__refused:broken")!;
         Require(Texts(refusedRow).Contains("999", StringComparison.Ordinal) && Texts(refusedRow).Contains("expects 1", StringComparison.Ordinal),
             "A refused row names the plugin's generation and the host's: " + Texts(refusedRow));

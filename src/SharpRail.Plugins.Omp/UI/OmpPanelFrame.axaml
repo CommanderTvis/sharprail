@@ -1,0 +1,40 @@
+<DockPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+           xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+           x:Class="SharpRail.Plugins.Omp.UI.OmpPanelFrame" x:ClassModifier="internal"
+           Name="OmpPanel" Background="{x:Static kit:Ui.Sidebar}">
+  <DockPanel.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </DockPanel.Styles>
+  <DockPanel DockPanel.Dock="Top" Margin="8,4">
+    <Button x:Name="OmpRefresh" DockPanel.Dock="Right" Width="24" Height="24" Padding="5"
+            Background="Transparent" BorderThickness="0" CornerRadius="0"
+            ToolTip.Tip="Re-read omp" AutomationProperties.Name="Re-read omp" />
+    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+      <TextBlock Text="omp" FontSize="13" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <Border x:Name="OmpEarlyBadge" Background="{x:Static kit:Ui.WarningWash}" CornerRadius="8" Padding="8,0"
+              ToolTip.Tip="Basic support: launch, MCP and context files work; deeper integration is still to come.">
+        <TextBlock Text="Early support" FontSize="11" Foreground="{x:Static kit:Ui.Warning}" />
+      </Border>
+      <TextBlock x:Name="OmpVersion" FontSize="12" Foreground="{x:Static kit:Ui.Hint}" />
+    </StackPanel>
+  </DockPanel>
+  <StackPanel x:Name="OmpMissing" DockPanel.Dock="Top" Margin="8,4" Spacing="4" IsVisible="False">
+    <TextBlock x:Name="OmpMissingText" FontSize="13" Foreground="{x:Static kit:Ui.Danger}" />
+    <TextBlock FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="SharpRail uses the omp on your PATH and does not install it." />
+    <ContentControl x:Name="OmpInstallLink" />
+  </StackPanel>
+  <StackPanel x:Name="OmpNotes" DockPanel.Dock="Top" Margin="8,4" Spacing="4">
+    <TextBlock x:Name="OmpCodeIntelligence" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
+    <TextBlock x:Name="OmpProfileNote" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
+  </StackPanel>
+  <TextBlock x:Name="OmpError" DockPanel.Dock="Top" Margin="8,4" IsVisible="False" FontSize="13" Foreground="{x:Static kit:Ui.Danger}" />
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="8,4" Spacing="8">
+      <TextBlock Text="Context files" FontSize="13" Foreground="{x:Static kit:Ui.Muted}" />
+      <StackPanel x:Name="OmpContextRows" Spacing="2" />
+      <WrapPanel x:Name="OmpOffers" Orientation="Horizontal" />
+    </StackPanel>
+  </ScrollViewer>
+</DockPanel>
