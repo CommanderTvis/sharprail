@@ -1,3 +1,5 @@
+using SharpRail.Plugins.Api.Host;
+
 namespace SharpRail.Plugins.ClaudeCode.Host;
 
 /// <summary>
@@ -60,9 +62,7 @@ internal static class SystemPrompt
         var key = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(workspace)))[..16];
         var path = Path.Combine(Path.GetDirectoryName(FilePath())!, "workspaces", key + ".md");
         var text = Compose(tools, sections);
-        if (File.Exists(path) && File.ReadAllText(path) == text) return path;
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, text);
+        GeneratedInstructions.Write(path, text);
         return path;
     }
 
@@ -85,9 +85,9 @@ internal static class SystemPrompt
         var text = Compose(tools, sections);
         if (File.Exists(path) && File.Exists(StampPath()) && Hash(File.ReadAllText(path)) != File.ReadAllText(StampPath()).Trim() && !File.Exists(IgnoredEditsPath()))
             File.Copy(path, IgnoredEditsPath());
-        if (File.Exists(path) && File.ReadAllText(path) == text && File.Exists(StampPath()) && File.ReadAllText(StampPath()).Trim() == Hash(text)) return path;
-        File.WriteAllText(path, text);
-        File.WriteAllText(StampPath(), Hash(text));
+        // Always the composed text: a hand edit is overwritten, atomically, and the file stays read-only.
+        GeneratedInstructions.Write(path, text);
+        if (!File.Exists(StampPath()) || File.ReadAllText(StampPath()).Trim() != Hash(text)) File.WriteAllText(StampPath(), Hash(text));
         return path;
     }
 }

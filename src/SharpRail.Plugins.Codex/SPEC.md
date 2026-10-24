@@ -84,11 +84,12 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   `<stateDir>/codex/thinkrail-prompt-codex.md` with the running build's text; it is generated, never the
   user's. The Context pane ends with the shared instructions view (Agent UI `InstructionSectionsView`): one
   entry with the PROJECT chip (and, while a prompted session is shown, the launch file's size and path) that
-  expands to the sections Codex sessions in the workspace get, by source, each a compact checkbox with size and
+  and a muted count (`N sections · M off · Choose…`) opens a popup (flyout) of the sections Codex sessions in the workspace get, by source, each a compact checkbox with size and
   a summary disclosing its read-only text; ticking writes the project's `.sharprail/instructions.toml` disable-list through the
   host (`instructionsList`, `instructionsSet`, `instructionsChanged`; schema in
   [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Nothing offers free-text
-  editing. A file edited under an earlier version is copied once to `thinkrail-prompt-codex.custom.md`
+  editing: the file is rewritten on activation and before every terminal, overwriting hand edits, and opens read-only
+  under SharpRail's notice. A file edited under an earlier version is copied once to `thinkrail-prompt-codex.custom.md`
   before it is regenerated; the copy is never used or deleted, and the view notes it while it exists. Spec tools are suggested only when available and the project uses a spec graph;
   projects without specs require no spec workflow or unsolicited spec creation.
   The file describes SharpRail's tools and the project's

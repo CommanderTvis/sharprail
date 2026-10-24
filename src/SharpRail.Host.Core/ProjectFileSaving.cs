@@ -1,6 +1,7 @@
 using System.Text;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core;
 
@@ -16,6 +17,7 @@ public sealed partial class ProjectServices
                 throw new IOException("The workspace changed. Return to the file's workspace before saving.");
             var external = External(root, request.Path);
             var path = external ?? Resolve(root, request.Path);
+            if (GeneratedInstructions.Owns(path)) throw new UnauthorizedAccessException(GeneratedInstructions.Notice);
             var utf8 = new UTF8Encoding(false, true);
             if (utf8.GetByteCount(request.Text) > FileLimits.EditableBytes)
                 throw new IOException($"Editing is limited to files under {FileLimits.EditableBytes >> 20} MiB.");

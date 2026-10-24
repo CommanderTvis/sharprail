@@ -31,11 +31,11 @@ internal sealed class ResourcePane : Grid, IDisposable
     private bool disposed;
 
     internal ResourcePane(IReadOnlyList<ResourceRenderer> candidates, ResourceDescriptor resource, string tabId, ResourceContent content,
-        Func<TabView> read, Action<TabView> write)
+        Func<TabView> read, Action<TabView> write, string? readOnlyNotice = null)
     {
         this.candidates = candidates; this.resource = resource; this.tabId = tabId; this.content = content; this.read = read; this.write = write;
         Name = "ResourcePane";
-        RowDefinitions = new RowDefinitions("Auto,*");
+        RowDefinitions = new RowDefinitions("Auto,Auto,*");
         if (candidates.Count >= 2)
         {
             var segments = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
@@ -57,7 +57,18 @@ internal sealed class ResourcePane : Grid, IDisposable
                 Child = segments
             });
         }
-        Ui.Place(this, host, 1);
+        // A file the host serves read-only for a stated reason (SharpRail's generated instructions) says so over every view.
+        if (readOnlyNotice is not null)
+            Ui.Place(this, new Border
+            {
+                Name = "ReadOnlyNotice",
+                Background = Ui.Elevated,
+                BorderBrush = Ui.BorderBrush,
+                BorderThickness = new Thickness(0, 0, 0, 1),
+                Padding = new Thickness(12, 4),
+                Child = new TextBlock { Text = readOnlyNotice, FontSize = 12, TextWrapping = TextWrapping.Wrap }
+            }, 1);
+        Ui.Place(this, host, 2);
         Show(ResourceRegistry.Select(candidates, read().RendererId));
     }
 

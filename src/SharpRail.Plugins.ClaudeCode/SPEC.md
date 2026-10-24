@@ -108,9 +108,10 @@ the workspace root. Appended system prompt files are additional instruction laye
 
 SharpRail's own appended prompt lives at `<stateDir>/claude-code/thinkrail-prompt-claude.md`, with each
 workspace's composition under `workspaces/`. They are generated, never the user's: activation and every started
-terminal regenerate them. Their content is shaped only by turning sections off for a project: the context table shows
+terminal regenerate them, overwriting any hand edit, and they open read-only under SharpRail's notice
+([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Their content is shaped only by turning sections off for a project: the context table shows
 them as one entry, the shared instructions view (Agent UI `InstructionSectionsView`) with the PROJECT chip, the
-appended file's tokens and its path, which expands to the sections Claude's sessions in that workspace get, grouped by
+appended file's tokens, its path and a muted count (`8 sections · 1 off · Choose…`); the whole row is a button opening a popup (a flyout, so it works on every platform) of the sections Claude's sessions in that workspace get, grouped by
 source (SharpRail, then each enabled plugin), each a compact checkbox with title and size and a one-line summary that
 discloses the section's read-only text. Ticking writes the project's `.sharprail/instructions.toml` disable-list through
 the host (`instructionsList`, `instructionsSet`; schema in [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections));

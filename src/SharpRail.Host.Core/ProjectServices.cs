@@ -129,7 +129,9 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         var info = ContentClassifier.Classify(bytes, relativePath);
         if (!info.IsText)
             return new(relativePath, "", RasterMedia.Contains(info.MediaType ?? "") && bytes.Length <= FileLimits.PreviewBytes ? bytes : null) { Info = info };
-        return new(relativePath, ContentInfo.Decode(bytes)) { Info = info, ReadOnly = dependency };
+        // SharpRail's generated agent instructions are shaped by section toggles only, never by editing the file.
+        var generated = GeneratedInstructions.Owns(path);
+        return new(relativePath, ContentInfo.Decode(bytes)) { Info = info, ReadOnly = dependency || generated, ReadOnlyNotice = generated ? GeneratedInstructions.Notice : null };
     }
 
     public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")

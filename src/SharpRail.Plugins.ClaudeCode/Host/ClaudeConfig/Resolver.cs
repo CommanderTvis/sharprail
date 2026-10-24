@@ -2,6 +2,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
+using SharpRail.Plugins.Api.Host;
+
 namespace SharpRail.Plugins.ClaudeCode.Host.ClaudeConfig;
 
 /// <summary>Resolves the configuration a Claude session started in a directory loads, with the provenance of every part.</summary>
@@ -270,7 +272,8 @@ internal static partial class ClaudeResolver
         TextFile.Read(AllowedPath(workspaceId, root, path, promptFiles));
 
     public static FileWriteResult WriteFile(string workspaceId, string root, string path, string content, string baseHash, IReadOnlyList<string>? promptFiles = null) =>
-        TextFile.Write(AllowedPath(workspaceId, root, path, promptFiles), content, baseHash);
+        GeneratedInstructions.Owns(path) ? throw new UnauthorizedAccessException(GeneratedInstructions.Notice)
+            : TextFile.Write(AllowedPath(workspaceId, root, path, promptFiles), content, baseHash);
 
     public static ClaudeConfigSnapshot Resolve(string workspaceId, string root, IReadOnlyList<string>? promptFiles = null)
     {

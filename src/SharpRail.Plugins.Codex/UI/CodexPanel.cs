@@ -51,7 +51,6 @@ public static class CodexPanel
         string? error = null;
         var surface = Surface.Context;
         var root = new CodexPanelFrame();
-        var instructionsOpen = false;
         var segmentButtons = new Dictionary<Surface, ToggleButton>();
         var refresh = root.FindControl<Button>("CodexConfigRefresh")!;
         refresh.Content = Ui.Icon("refresh");
@@ -229,8 +228,6 @@ public static class CodexPanel
                 Control? size = null;
                 if (launch is not null) size = new TextBlock { Name = "CodexLaunchSize", Text = FormatSize(launch.Bytes), FontFamily = Ui.CodeFont, FontSize = 12, Foreground = Ui.Muted };
                 view.SetEntry(size, launch is null ? null : ScopedSetting.SourcePath(launch.Path, _ => Open(launch.RelativePath ?? launch.Path), "CodexLaunchSource"));
-                view.IsExpanded = instructionsOpen;
-                view.ExpandedChanged += open => instructionsOpen = open;
                 rows.Children.Add(view);
             }
             return frame;

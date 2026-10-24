@@ -588,22 +588,18 @@ internal sealed class ClaudeConfigPanel : DockPanel
             line.Children.Add(column);
             list.Children.Add(line);
         }
-        // SharpRail's instructions: one entry sized by the appended file, expanding to the sections the project can turn off.
+        // SharpRail's instructions: one entry sized by the appended file, opening a popup of the sections the project can turn off.
         if (appendedRow is not null || context.Settings<ClaudeCodeSettings>().AppendSystemPrompt)
         {
             var instructions = InstructionSections(workspaceId);
             instructions.SetEntry(appendedRow is null ? null : measured is null ? Unmeasured() : appended is { } prompt ? Measure(prompt, Ui.Muted) : NotLoaded(),
                 appendedRow is null ? null : ClaudeParts.SourceButton(appendedRow.Path, null, OpenSource));
-            instructions.IsExpanded = expandedRows.Contains(InstructionsKey);
-            instructions.ExpandedChanged += open => { if (open) expandedRows.Add(InstructionsKey); else expandedRows.Remove(InstructionsKey); };
             list.Children.Add(instructions);
         }
         // What else a fresh session starts with, as /context counts it: Claude's own prompt and tools, MCP and skills.
         foreach (var entry in baseline) AddBaselineRow(list, entry, depth: 0);
         return list;
     }
-
-    private const string InstructionsKey = "sharprail-instructions";
 
     private InstructionSectionsView InstructionSections(string workspace)
     {

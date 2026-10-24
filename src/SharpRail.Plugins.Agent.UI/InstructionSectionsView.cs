@@ -16,7 +16,7 @@ namespace SharpRail.Plugins.Agent.UI;
 
 /// <summary>
 /// SharpRail's instructions as one context entry: a row with the PROJECT chip, the size the host measured and the
-/// appended file's path, that expands to the sections an agent's sessions in a workspace get, grouped by source
+/// appended file's path and a count of the sections, that opens a popup of the sections an agent's sessions get, grouped by source
 /// (SharpRail, then each enabled plugin). Each section is a checkbox with its title and size, and a one-line summary that
 /// discloses its text. A checkbox only turns a section on or off in the project's <c>.sharprail/instructions.toml</c>;
 /// no text is editable here.
@@ -32,10 +32,9 @@ public sealed partial class InstructionSectionsView : Border
     private readonly string agentName;
     private readonly HashSet<string> expanded = new(StringComparer.Ordinal);
     private readonly StackPanel body;
-    private bool loaded;
     private int generation;
 
-    /// <summary>Creates the entry, collapsed; it loads its sections when first expanded and again on <see cref="Refresh"/>.</summary>
+    /// <summary>Creates the entry, collapsed; it loads its sections at once, for the count, and again on <see cref="Refresh"/>.</summary>
     /// <param name="agentName">The agent's name as the text shows it, such as <c>Claude Code</c>.</param>
     /// <param name="load">Lists the sections. It runs off the UI thread.</param>
     /// <param name="toggle">Turns a section on or off and returns the new listing. It runs off the UI thread.</param>
@@ -52,26 +51,36 @@ public sealed partial class InstructionSectionsView : Border
         this.FindControl<ContentControl>("InstructionSectionsIcon")!.Content = Ui.Icon("fileText", Ui.Hint, 14);
         this.FindControl<ContentControl>("InstructionSectionsScope")!.Content = ScopedSetting.ScopeChip("project", "InstructionSectionsScopeChip");
         ToolTip.SetTip(this.FindControl<ContentControl>("InstructionSectionsScope")!, "The choices live in the project and apply to everyone who commits and pulls them.");
-        Chevron();
-        this.FindControl<Button>("InstructionSectionsToggle")!.Click += (_, _) => IsExpanded = !IsExpanded;
-    }
-
-    /// <summary>Whether the sections are shown; expanding loads them the first time.</summary>
-    public bool IsExpanded
-    {
-        get => body.IsVisible;
-        set
+        // The sections are chosen in a popup over the panel (a flyout, so it works on every platform), never inline in the table.
+        var row = this.FindControl<Button>("InstructionSectionsToggle")!;
+        ((Panel)body.Parent!).Children.Remove(body);
+        var flyout = new Flyout
         {
-            if (body.IsVisible == value) return;
-            body.IsVisible = value;
-            Chevron();
-            if (value && !loaded) Refresh();
-            ExpandedChanged?.Invoke(value);
-        }
+            Placement = PlacementMode.BottomEdgeAlignedLeft,
+            Content = new Border
+            {
+                Background = Ui.Elevated,
+                BorderBrush = Ui.BorderBrush,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                MaxHeight = 520,
+                Child = new ScrollViewer { Content = body }
+            }
+        };
+        flyout.FlyoutPresenterClasses.Add("chip-card");
+        flyout.Opened += (_, _) => { IsOpen = true; _ = Run(load); };
+        flyout.Closed += (_, _) => IsOpen = false;
+        row.Flyout = flyout;
+        ToolTip.SetTip(row, "Choose which of SharpRail's sections new sessions get");
+        // The collapsed row counts its sections, so it reads as a list to open; the listing is read off the UI thread.
+        _ = Run(load);
     }
 
-    /// <summary>Raised when the user expands or collapses the entry, so a host can keep it open across re-renders.</summary>
-    public event Action<bool>? ExpandedChanged;
+    /// <summary>Whether the sections popup is open.</summary>
+    public bool IsOpen { get; private set; }
+
+    /// <summary>The popup's content: the grouped section checkboxes and the notes about the project's file.</summary>
+    public Control SectionsPanel => body;
 
     /// <summary>Fills the entry's size column and the line under its name, typically the appended file's path.</summary>
     public void SetEntry(Control? size, Control? source)
@@ -82,15 +91,11 @@ public sealed partial class InstructionSectionsView : Border
         line.IsVisible = source is not null;
     }
 
-    /// <summary>Reads the sections again, for example after the project's file changed; callable from any thread. Does nothing until first expanded.</summary>
+    /// <summary>Reads the sections again, for example after the project's file changed; callable from any thread.</summary>
     public void Refresh() => Dispatcher.UIThread.Post(() =>
     {
-        if (!loaded && !IsExpanded) return;
-        loaded = true;
         _ = Run(load);
     });
-
-    private void Chevron() => this.FindControl<Path>("InstructionSectionsChevron")!.Data = Geometry.Parse(IsExpanded ? Open : Closed);
 
     private TextBlock Text(string name) => this.FindControl<TextBlock>(name)!;
 
@@ -125,6 +130,9 @@ public sealed partial class InstructionSectionsView : Border
         var unknown = Text("InstructionSectionsUnknown");
         unknown.IsVisible = list.UnknownDisabled.Count > 0;
         unknown.Text = "Also turned off, but not offered here (a plugin that is off or gone): " + string.Join(", ", list.UnknownDisabled);
+        var count = Text("InstructionSectionsCount");
+        var off = list.Sections.Count(section => !section.Enabled);
+        count.Text = $"{list.Sections.Count} section{(list.Sections.Count == 1 ? "" : "s")}" + (off > 0 ? $" · {off} off" : "") + " · Choose…";
         var groups = this.FindControl<StackPanel>("InstructionSectionsGroups")!;
         groups.Children.Clear();
         var writable = list.Diagnostics.Count == 0;

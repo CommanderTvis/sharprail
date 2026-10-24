@@ -2,6 +2,8 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
+using SharpRail.Plugins.Api.Host;
+
 namespace SharpRail.Plugins.Codex.Host;
 
 /// <summary>
@@ -71,9 +73,9 @@ public static class CodexSystemPrompt
         var text = Compose(tools, sections);
         if (File.Exists(path) && File.Exists(StampPath()) && Hash(File.ReadAllText(path)) != File.ReadAllText(StampPath()).Trim() && !File.Exists(IgnoredEditsPath()))
             File.Copy(path, IgnoredEditsPath());
-        if (File.Exists(path) && File.ReadAllText(path) == text && File.Exists(StampPath()) && File.ReadAllText(StampPath()).Trim() == Hash(text)) return path;
-        File.WriteAllText(path, text);
-        File.WriteAllText(StampPath(), Hash(text));
+        // Always the composed text: a hand edit is overwritten, atomically, and the file stays read-only.
+        GeneratedInstructions.Write(path, text);
+        if (!File.Exists(StampPath()) || File.ReadAllText(StampPath()).Trim() != Hash(text)) File.WriteAllText(StampPath(), Hash(text));
         return path;
     }
 

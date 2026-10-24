@@ -75,7 +75,8 @@ No real omp run backs them; the checks use a fixture `omp`.
 
 ## Not yet
 
-Hook-based status (running/blocked/done), account and usage, SharpRail's appended instructions and skills, IDE
+Hook-based status (running/blocked/done), account and usage, SharpRail's appended instructions (so no generated
+instructions file) and skills, IDE
 context, and a settings editor for omp's `config.yml` are out of this basic integration.
 
 ## Checks

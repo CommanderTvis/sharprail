@@ -19,7 +19,10 @@
       <Setter Property="Padding" Value="0" />
       <Setter Property="HorizontalContentAlignment" Value="Left" />
     </Style>
-    <Style Selector="Button.entry:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.entry:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.disclosure:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.disclosure:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.disclosure:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.entry:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.entry:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
+    </Style>
+    <Style Selector="ToggleButton.disclosure:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.disclosure:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.disclosure:checked /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="CheckBox.section">
@@ -35,12 +38,13 @@
         <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="2">
           <TextBlock Text="SharpRail's instructions" FontSize="13" Foreground="{x:Static kit:Ui.TextBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
           <ContentControl x:Name="InstructionSectionsScope" VerticalAlignment="Center" />
-          <Path x:Name="InstructionSectionsChevron" Width="14" Height="14" StrokeThickness="1.5" Stroke="{x:Static kit:Ui.Muted}" VerticalAlignment="Center" />
+          <TextBlock x:Name="InstructionSectionsCount" FontSize="11" Foreground="{x:Static kit:Ui.Muted}" VerticalAlignment="Center" />
         </WrapPanel>
       </DockPanel>
     </Button>
     <ContentControl x:Name="InstructionSectionsSource" Margin="30,-4,8,4" HorizontalAlignment="Left" />
-    <StackPanel x:Name="InstructionSectionsBody" Margin="30,0,8,8" Spacing="2" IsVisible="False">
+    <StackPanel x:Name="InstructionSectionsBody" Margin="12" Spacing="2" Width="420">
+      <TextBlock Text="SharpRail's instructions" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
       <TextBlock x:Name="InstructionSectionsIntro" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       <TextBlock FontSize="11" Foreground="{x:Static kit:Ui.Hint}" TextWrapping="Wrap"
                  Text="Changes apply to new sessions; running sessions keep their instructions until restarted." />

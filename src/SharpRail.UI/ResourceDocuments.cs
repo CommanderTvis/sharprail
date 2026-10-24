@@ -105,7 +105,7 @@ public sealed partial class WorkbenchWindow
         if (document.Text.Length > ViewerLimits.Scintilla) return ViewerLimits.TooLarge("file", document.Text.Length);
         var resource = ResourceRegistry.Describe(workspaceRoot, tab.Path, Described(document));
         return new ResourcePane(ViewCandidates(resource, document), resource, tab.Id, FileContent(document),
-            () => tabViews.GetValueOrDefault(key) ?? new(), view => WriteTabView(key, view));
+            () => tabViews.GetValueOrDefault(key) ?? new(), view => WriteTabView(key, view), document.ReadOnlyNotice);
     }
 
     private Control CodeBody(ResourceView view)

@@ -929,15 +929,19 @@ internal static class CodexChecks
         var skill = Path.Combine(CodexSkills.Root(), "writing-specs", "SKILL.md");
         Require(File.Exists(skill), "activation installs the workflow skills");
         var instructions = Path.Combine(home, "codex", "thinkrail-prompt-codex.md");
+        Require(OperatingSystem.IsWindows() || File.GetAttributes(instructions).HasFlag(FileAttributes.ReadOnly), "the instructions file is read-only on disk");
+        File.SetAttributes(instructions, File.GetAttributes(instructions) & ~FileAttributes.ReadOnly);
         File.WriteAllText(instructions, "my own instructions\n");
         var again = await new CodexHost().ActivateAsync(new FakeHostContext(root));
         Equal(File.ReadAllText(instructions), CodexSystemPrompt.Text, "reactivating regenerates the instructions over earlier hand edits");
+        Require(OperatingSystem.IsWindows() || File.GetAttributes(instructions).HasFlag(FileAttributes.ReadOnly), "the regenerated instructions file is read-only again");
         Equal(File.ReadAllText(CodexSystemPrompt.IgnoredEdits() ?? ""), "my own instructions\n", "the earlier hand edits are kept aside, unused");
         await again!();
         Require(!File.Exists(skill), "disabling removes the workflow skills");
         // An edited file from before the agent-named file moves over; its edits are kept aside once, never over an earlier copy.
         var legacy = Path.Combine(home, "codex", "developer-instructions.md");
         File.Move(instructions, legacy); File.Move(instructions + ".sharprail-default", legacy + ".sharprail-default");
+        File.SetAttributes(legacy, File.GetAttributes(legacy) & ~FileAttributes.ReadOnly);
         File.WriteAllText(legacy, "older edits\n");
         CodexSystemPrompt.Write([], []);
         Require(!File.Exists(legacy) && File.ReadAllText(instructions) == CodexSystemPrompt.Text && File.ReadAllText(CodexSystemPrompt.IgnoredEditsPath()) == "my own instructions\n",

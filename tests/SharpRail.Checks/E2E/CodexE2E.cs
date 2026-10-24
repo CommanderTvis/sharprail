@@ -448,17 +448,20 @@ internal static class CodexE2E
         var size = One<TextBlock>(row, "CodexInstructionsSize").Text;
         Require(Texts(One<Control>(panel, "CodexContextTotal")).Contains(size!, StringComparison.Ordinal), "the summed context");
         // SharpRail's instructions are chosen section by section for the project, never edited.
-        CheckBox? SectionBox(string id) => panel.GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
-        Require(One<Border>(panel, "InstructionSectionsScopeChip").Tag as string == "project" && SectionBox("core.push-and-signing") is null,
-            "SharpRail's instructions are one collapsed entry with the PROJECT chip");
+        var sections = (SharpRail.Plugins.Agent.UI.InstructionSectionsView)One<Control>(panel, "InstructionSections");
+        CheckBox? SectionBox(string id) => sections.SectionsPanel.GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
+        Require(One<Border>(panel, "InstructionSectionsScopeChip").Tag as string == "project" && !panel.GetLogicalDescendants().OfType<CheckBox>().Any(box => box.Name == "InstructionSectionCheckbox"),
+            "SharpRail's instructions are one compact entry with the PROJECT chip, its sections in a popup");
         codex.App.Click(One<Button>(panel, "InstructionSectionsToggle"));
-        E2eWorkspace.Until(() => SectionBox("core.push-and-signing") is { IsChecked: true, IsEnabled: true });
-        Require(!Has(panel, "CodexSystemPromptEditPane") && !One<Control>(panel, "InstructionSections").GetLogicalDescendants().OfType<TextBox>().Any(),
-            "the instructions view offers no way to edit text");
+        E2eWorkspace.Until(() => sections.IsOpen && SectionBox("core.push-and-signing") is { IsChecked: true, IsEnabled: true, IsEffectivelyVisible: true });
+        Require(!Has(panel, "CodexSystemPromptEditPane") && !sections.SectionsPanel.GetLogicalDescendants().OfType<TextBox>().Any(),
+            "the instructions popup offers no way to edit text");
         var instructionsFile = Path.Combine(codex.App.Window.WorkspaceRoot, ".sharprail", "instructions.toml");
         SectionBox("core.push-and-signing")!.IsChecked = false;
         E2eWorkspace.Until(() => File.Exists(instructionsFile) && File.ReadAllText(instructionsFile).Contains("\"core.push-and-signing\"", StringComparison.Ordinal));
         E2eWorkspace.Until(() => SectionBox("core.push-and-signing") is { IsChecked: false, IsEnabled: true });
+        One<Button>(panel, "InstructionSectionsToggle").Flyout!.Hide();
+        E2eWorkspace.Until(() => !sections.IsOpen && One<TextBlock>(panel, "InstructionSectionsCount").Text?.Contains(" · 1 off", StringComparison.Ordinal) == true);
         File.Delete(instructionsFile);
         var body = One<ScrollViewer>(panel, "Body");
         var contextBody = body.Content;

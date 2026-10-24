@@ -110,7 +110,7 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
         try
         {
             var reply = await service.ReadFileAsync(new() { Path = relativePath }, Context(cancellationToken));
-            return new(reply.Path, reply.Text, reply.ImageData) { Info = Info(reply.Info), ReadOnly = reply.ReadOnly };
+            return new(reply.Path, reply.Text, reply.ImageData) { Info = Info(reply.Info), ReadOnly = reply.ReadOnly, ReadOnlyNotice = reply.ReadOnlyNotice };
         }
         catch (RpcException error) when (error.StatusCode == StatusCode.NotFound) { throw new FileNotFoundException(error.Status.Detail, relativePath); }
     }

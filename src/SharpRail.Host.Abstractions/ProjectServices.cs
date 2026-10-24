@@ -37,6 +37,8 @@ public record FileDocument(string Path, string Text, byte[]? ImageData = null)
 {
     public ContentMetadata? Info { get; init; }
     public bool ReadOnly { get; init; }
+    /// <summary>Why the file is read-only, for an editor to show over it; null for no notice.</summary>
+    public string? ReadOnlyNotice { get; init; }
 }
 /// <summary>Changed workspace-relative paths, Git metadata changes and a request to refresh after lost filesystem events.</summary>
 public record WorkspaceFileChanges(IReadOnlyList<string> Paths, bool GitChanged = false, bool Rescan = false);

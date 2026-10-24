@@ -50,7 +50,7 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
         {
             throw new RpcException(new Status(StatusCode.NotFound, error.Message));
         }
-        return new DocumentReply { Path = result.Path, Text = result.Text, ImageData = result.ImageData, Info = Info(result.Info), ReadOnly = result.ReadOnly };
+        return new DocumentReply { Path = result.Path, Text = result.Text, ImageData = result.ImageData, Info = Info(result.Info), ReadOnly = result.ReadOnly, ReadOnlyNotice = result.ReadOnlyNotice };
     });
 
     public ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default)

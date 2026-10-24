@@ -1387,6 +1387,8 @@ override SharpRail.Host.Abstractions.LanguageServerState.GetHashCode() -> int
 override SharpRail.Host.Abstractions.LanguageServerState.ToString() -> string!
 SharpRail.Host.Abstractions.FileDocument.ReadOnly.get -> bool
 SharpRail.Host.Abstractions.FileDocument.ReadOnly.init -> void
+SharpRail.Host.Abstractions.FileDocument.ReadOnlyNotice.get -> string?
+SharpRail.Host.Abstractions.FileDocument.ReadOnlyNotice.init -> void
 SharpRail.Host.Abstractions.HostSettings.LanguageServers.get -> string!
 SharpRail.Host.Abstractions.HostSettings.LanguageServers.init -> void
 SharpRail.Host.Abstractions.HostSettings.LspEnabled.get -> bool

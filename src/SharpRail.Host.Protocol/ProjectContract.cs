@@ -86,6 +86,7 @@ public sealed class DocumentReply
     [ProtoMember(3)] public byte[]? ImageData { get; set; }
     [ProtoMember(4)] public ContentMetadataDto? Info { get; set; }
     [ProtoMember(5)] public bool ReadOnly { get; set; }
+    [ProtoMember(6)] public string? ReadOnlyNotice { get; set; }
 }
 
 [ProtoContract]

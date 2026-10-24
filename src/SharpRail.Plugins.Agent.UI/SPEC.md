@@ -28,10 +28,12 @@ the module owns no session, account or terminal state.
   pickers, file attachment and the session IDE-context toggle. File-reference quoting escapes control
   characters so a dropped filename cannot submit or split the prompt.
 - `InstructionSectionsView` is SharpRail's instructions as one context-table entry: a row with the PROJECT
-  scope chip, a size and source line the provider fills (`SetEntry`), collapsed until clicked, that expands to
-  the instruction sections for one agent and workspace, grouped by source. Each section is compact: a checkbox
-  with its title and token estimate (characters / 4), the id only as the checkbox tooltip, and its description as
-  a one-line disclosure that opens the read-only text inline; no preview box. Sections load on first expansion.
+  scope chip, a muted count (`8 sections · 1 off · Choose…`) and a size and source line the provider fills
+  (`SetEntry`). The row is a button (hand cursor, hover fill, keyboard-activatable) whose flyout popup holds the
+  instruction sections for one agent and workspace, grouped by source; nothing expands inline in the table. Each
+  section is compact: a checkbox with its title and token estimate (characters / 4), the id only as the checkbox
+  tooltip, and its description as a one-line disclosure that opens the read-only text inline; no preview box.
+  Sections load when the view is created (for the count) and again whenever the popup opens.
   The provider supplies the list and toggle
   calls (run off the UI thread) and refreshes it on its change channel; stale results are dropped, a refused
   toggle re-reads the file, and a file with diagnostics disables the checkboxes. It shows the project file's path, that running sessions keep their instructions, and a note while earlier hand
