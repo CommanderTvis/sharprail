@@ -6,7 +6,6 @@ using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
@@ -66,9 +65,23 @@ internal static class LayoutFrameE2E
             "The document list must offer its close button.");
         app.ShowTool("changes");
         var panel = app.Find<Grid>("ChangesPanel");
-        var toolbar = panel.Children.OfType<Control>().Single(child => Grid.GetRow(child) == 0);
-        Require(Math.Abs(toolbar.Bounds.Height - 32) < .1 && toolbar.GetLogicalDescendants().OfType<ToggleButton>().All(toggle => toggle.Bounds.Height <= 32) &&
-            toolbar.GetLogicalDescendants().OfType<Grid>().First().ClipToBounds, "The Changes toolbar must remain one clipped 32-pixel row.");
+        var header = panel.Children.OfType<Control>().Single(child => Grid.GetRow(child) == 0);
+        var toolbar = app.Find<ChangesToolbarLayout>("ChangesToolbar");
+        // One 32-pixel row when everything fits; otherwise the compare picker takes a second row. Either way nothing is cut off or overlaps the list.
+        bool ToolbarFits(bool wrapped)
+        {
+            app.Window.UpdateLayout();
+            var bounds = new Rect(toolbar.Bounds.Size);
+            return toolbar.Children.Count == 3 && toolbar.Wrapped == wrapped && Math.Abs(toolbar.Bounds.Height - (wrapped ? 64 : 32)) < .1 &&
+                panel.Children.OfType<Control>().Where(child => Grid.GetRow(child) == 1).All(child => child.Bounds.Top >= header.Bounds.Bottom - .1) &&
+                toolbar.Children.All(child => child.Bounds.Height <= 32 && bounds.Contains(child.Bounds) && child.Bounds.Width >= child.DesiredSize.Width - .5);
+        }
+        Require(ToolbarFits(false), "A Changes toolbar that fits must remain one 32-pixel row above the list with nothing cut off.");
+        var previousWidth = panel.Width;
+        // Room for the scope and view toggle, not the compare picker as well.
+        panel.Width = toolbar.Children[0].DesiredSize.Width + toolbar.Children[1].DesiredSize.Width + toolbar.Margin.Left + toolbar.Margin.Right + 8;
+        Require(ToolbarFits(true), "A narrow Changes toolbar must wrap the compare picker to a second 32-pixel row above the list with nothing cut off.");
+        panel.Width = previousWidth;
         Console.WriteLine("PASS upstream layout.spec.ts: workbench strips and feature toolbars keep one-row geometry with ARIA tabs");
     }
 
