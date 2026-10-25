@@ -81,7 +81,8 @@ No real omp run backs them; the checks use a fixture `omp`.
 - Mark: the manifest icon is `asset:omp.svg`, omp's π mark from the omp.sh site header redrawn as one `currentColor`
   path, so Settings › omp, the plugin card, the side tool, its pane tab and omp terminal tabs (workbench and Projects)
   wear it. The launcher's icons and the start action draw it in a theme brush and follow theme changes; the kit's
-  terminal glyph stands in until the asset is read.
+  terminal glyph stands in until the asset is read, and a failed read is never remembered: it is retried (six
+  attempts, a growing delay) and on the next glyph built, so no launcher icon keeps the stand-in permanently.
 
 ## Not yet
 

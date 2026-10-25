@@ -350,6 +350,14 @@ internal static class OmpChecks
             E2eWorkspace.Until(() => Find<Button>(app.Window, "NewOmp").Any());
             // The start action wears omp's own mark (the asset drawn), not the terminal glyph that stands in until it is read.
             E2eWorkspace.Until(() => Find<Button>(app.Window, "NewOmp").First().Content is ContentControl { Tag: OmpManifest.Icon, Content: SvgAsset });
+            // The launcher's own icon factory (new-agent menu, Start work, phone strip) draws the mark in whichever theme brush it is given.
+            var launcherIcon = app.Workbench.PluginLoader!.Registry.LauncherList.Single(launcher => launcher.Id == OmpManifest.Id).CreateIcon!;
+            foreach (var brush in new[] { Ui.Accent, Ui.TextBrush })
+            {
+                var icon = (ContentControl)launcherIcon(14, brush);
+                E2eWorkspace.Until(() => icon.Content is SvgAsset { Width: 14 });
+                Require(Equals(icon.Tag, OmpManifest.Icon), "the launcher icon carries omp's mark, not the terminal glyph");
+            }
             var argv = Path.Combine(root, "fixture", "argv.txt");
             app.Click(Find<Button>(app.Window, "NewOmp").First());
             E2eWorkspace.Until(() => File.Exists(argv) && File.ReadAllText(argv).Contains("--no-lsp", StringComparison.Ordinal));

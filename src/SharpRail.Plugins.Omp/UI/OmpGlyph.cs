@@ -16,26 +16,42 @@ namespace SharpRail.Plugins.Omp.UI;
 /// </summary>
 public sealed class OmpGlyph : ContentControl
 {
+    private const int Attempts = 6;
     private static Task<byte[]?>? asset;
+    private readonly IPluginUIContext context;
     private readonly double size;
     private readonly ISolidColorBrush brush;
 
     public OmpGlyph(IPluginUIContext context, double size = 16, ISolidColorBrush? brush = null)
     {
+        this.context = context;
         this.size = size;
         this.brush = brush ?? Ui.Muted;
         Width = Height = size;
         Tag = OmpManifest.Icon;
         VerticalAlignment = VerticalAlignment.Center;
-        asset ??= Read(context);
         Content = Ui.Icon("terminal", this.brush, size);
         _ = Draw();
     }
 
+    // A failed read is not kept: the host half may not be serving assets yet when the first glyph is built, and a
+    // remembered failure would leave the terminal glyph on every launcher icon until restart.
     private static async Task<byte[]?> Read(IPluginUIContext context)
     {
         try { return await context.ReadAssetAsync("omp.svg"); }
         catch (Exception) { return null; }
+    }
+
+    private static async Task<byte[]?> Load(IPluginUIContext context)
+    {
+        for (var attempt = 0; attempt < Attempts; attempt++)
+        {
+            var read = asset ??= Read(context);
+            if (await read is { } svg) return svg;
+            if (ReferenceEquals(asset, read)) asset = null;
+            await Task.Delay(TimeSpan.FromSeconds(attempt + 1));
+        }
+        return null;
     }
 
     /// <summary>Forgets the cached asset, for a new activation.</summary>
@@ -43,7 +59,7 @@ public sealed class OmpGlyph : ContentControl
 
     private async Task Draw()
     {
-        if (await asset! is not { } svg) return;
+        if (await Load(context) is not { } svg) return;
         Dispatcher.UIThread.Post(() => Content = new SvgAsset(svg, size, brush));
     }
 
