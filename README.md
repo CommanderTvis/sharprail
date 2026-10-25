@@ -9,37 +9,48 @@ A workbench for running [Claude Code](https://code.claude.com/docs/en/overview) 
 
 ## Highlights
 
-#### A pane for each agent
-
-Claude Code and Codex get their own side panes. For Claude Code, the Context tab lists everything a new session starts with and the token cost of each item. Account shows your usage windows, and Settings edits settings through a diff you review first.
-
-[Docs →](docs/agents.md#panes)
-
-<img src="docs/screenshots/claude-code-context.png" alt="The Claude Code pane's Context tab with instruction files, system prompt, tools and skills, each with its token count" width="600">
-
-#### Worktrees that are ready to work
-
-Create a [Git worktree](https://git-scm.com/docs/git-worktree) for a task yourself, or hand an agent several tasks at once and it creates a separate worktree for each through [MCP](https://modelcontextprotocol.io) tools. Agents work in the workspace you prepared when a task needs no isolation, and they remove the worktrees they made once the work is preserved. New worktrees start with your [mise](https://mise.jdx.dev), [direnv](https://direnv.net) and Python environments applied, and chips under each terminal show what was applied.
-
-[Docs →](docs/agents.md#worktrees)
-
-<img src="docs/screenshots/start-work.png" alt="The Start work dialog with New worktree selected, a project picker, a base branch of origin/main and a workspace name" width="740">
-
-#### Agents draw beside the terminal
-
-An agent can show a Mermaid diagram or compare options in a companion pane and update it as the discussion develops.
-
-[Docs →](docs/agents.md#visualize)
-
-<img src="docs/screenshots/visualize-diagram.png" alt="A diagram of SharpRail's layers drawn by Claude Code in the companion pane" width="760">
-
-#### Your PC from your phone
-
-The Android app is a workbench for the host running on your PC. You can browse and edit files, read Markdown and diffs, and use the host's terminals and agents while the work keeps running there. The phone needs only a free Tailscale account, because the app carries its own Tailscale node and there is no VPN app to install.
-
-[Docs →](docs/android.md)
-
-<img src="docs/screenshots/android-pair.png" alt="Two Android screens, the Tailscale connect screen with a host found and a Claude Code terminal on the host" width="860">
+<table>
+<tr>
+<td width="38%" valign="top">
+<b>A pane for each agent</b><br><br>
+Claude Code and Codex get their own side panes. For Claude Code, the Context tab lists everything a new session starts with and the token cost of each item. Account shows your usage windows, and Settings edits settings through a diff you review first.<br><br>
+<a href="docs/agents.md#panes">Docs →</a>
+</td>
+<td width="62%">
+<img src="docs/screenshots/claude-code-context.png" alt="The Claude Code pane's Context tab with instruction files, system prompt, tools and skills, each with its token count" width="100%">
+</td>
+</tr>
+<tr>
+<td width="38%" valign="top">
+<b>Worktrees that are ready to work</b><br><br>
+Create a <a href="https://git-scm.com/docs/git-worktree">Git worktree</a> for a task yourself, or hand an agent several tasks at once and it creates a separate worktree for each through <a href="https://modelcontextprotocol.io">MCP</a> tools. Agents work in the workspace you prepared when a task needs no isolation, and they remove the worktrees they made once the work is preserved. New worktrees start with your <a href="https://mise.jdx.dev">mise</a>, <a href="https://direnv.net">direnv</a> and Python environments applied, and chips under each terminal show what was applied.<br><br>
+<a href="docs/agents.md#worktrees">Docs →</a>
+</td>
+<td width="62%">
+<img src="docs/screenshots/start-work.png" alt="The Start work dialog with New worktree selected, a project picker, a base branch of origin/main and a workspace name" width="100%">
+</td>
+</tr>
+<tr>
+<td width="38%" valign="top">
+<b>Agents draw beside the terminal</b><br><br>
+An agent can show a Mermaid diagram or compare options in a companion pane and update it as the discussion develops.<br><br>
+<a href="docs/agents.md#visualize">Docs →</a>
+</td>
+<td width="62%">
+<img src="docs/screenshots/visualize-diagram.png" alt="A diagram of SharpRail's layers drawn by Claude Code in the companion pane" width="100%">
+</td>
+</tr>
+<tr>
+<td width="38%" valign="top">
+<b>Your PC from your phone</b><br><br>
+The Android app is a workbench for the host running on your PC. You can browse and edit files, read Markdown and diffs, and use the host's terminals and agents while the work keeps running there. The phone needs only a free Tailscale account, because the app carries its own Tailscale node and there is no VPN app to install.<br><br>
+<a href="docs/android.md">Docs →</a>
+</td>
+<td width="62%">
+<img src="docs/screenshots/android-pair.png" alt="Two Android screens, the Tailscale connect screen with a host found and a Claude Code terminal on the host" width="100%">
+</td>
+</tr>
+</table>
 
 ### Agents
 
