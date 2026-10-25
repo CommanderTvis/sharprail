@@ -376,6 +376,11 @@ immutability; supported platforms retain the full editing, undo and save checks.
 and a styled (custom properties, class rules, text) document through the app's image reader, asserting painted pixels, and
 asserts that malformed or missing images show a visible `MarkdownImageError` naming the path.
 
+`MarkdownHtmlTableChecks.cs` (in `-- --markdown` and the default gate) renders HTML tables in Markdown and asserts GitHub parity:
+grid size, `colspan`/`rowspan`/`align`, a 400-pixel cell picture beside wrapped text keeping its width, Markdown rendered
+after a blank line in a cell and literal without one, dropped `style`/`script`/`iframe` with unknown-tag text kept, and
+the nesting, row and column limits.
+
 `MarkdownTableDiffChecks.cs` (`-- --markdown-tables`, also in the default gate) checks added and removed
 Markdown tables, cell/header edits, row changes and differing column counts. It asserts both parsed table
 structure and native preview grids with marked cell text, including quoted tables, escaped pipes, empty

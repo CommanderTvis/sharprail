@@ -151,6 +151,14 @@ public sealed partial class MarkdownPreview
                     if (paragraph is null) controls.Add(image);
                     else Inlines().Add(new InlineUIContainer(image));
                     break;
+                case "table" when !token.Closing && htmlTableDepth < HtmlTableNesting:
+                    var close = MatchingTableClose(tokens, index);
+                    var span = tokens.Skip(index).Take(close < 0 ? tokens.Count - index : close - index + 1).Cast<object>().ToList();
+                    htmlTableDepth++;
+                    try { controls.Add(HtmlTable(span)); }
+                    finally { htmlTableDepth--; }
+                    index += span.Count - 1;
+                    break;
                 case "br": Inlines().Add(new Run("\n")); break;
                 case "hr" when !token.Closing: controls.Add(new Border { Height = 1, Background = Ui.BorderBrush, Margin = new Thickness(0, 24) }); break;
                 case "p" or "div" or "center" or "figure":
@@ -188,6 +196,31 @@ public sealed partial class MarkdownPreview
         for (var index = 0; index < blocks.Count; index++)
         {
             if (blocks[index] is YamlFrontMatterBlock) continue;
+            if (blocks[index] is HtmlBlock tableHtml && HtmlTokens(tableHtml.Lines.ToString()) is var started && started.Count > 0 && started[0] is not { Tag: "details" } && UnmatchedTable(started) is >= 0 and var tableStart)
+            {
+                // A table whose cells hold Markdown after a blank line spans several blocks: gather them up to its close.
+                foreach (var control in HtmlControls(started.Take(tableStart).ToList())) yield return control;
+                var items = new List<object>(started.Skip(tableStart));
+                var unclosed = items.Count(item => item is HtmlToken { Tag: "table", Closing: false }) - items.Count(item => item is HtmlToken { Tag: "table", Closing: true });
+                var rest = new List<HtmlToken>();
+                while (unclosed > 0 && index + 1 < blocks.Count)
+                {
+                    var next = blocks[++index];
+                    if (next is not HtmlBlock nextHtml) { items.Add(next); continue; }
+                    var more = HtmlTokens(nextHtml.Lines.ToString());
+                    for (var at = 0; at < more.Count; at++)
+                    {
+                        items.Add(more[at]);
+                        unclosed += TableDelta(more[at]);
+                        if (unclosed > 0) continue;
+                        rest.AddRange(more.Skip(at + 1));
+                        break;
+                    }
+                }
+                yield return Sourced(HtmlTable(items), tableHtml, selection: false, end: blocks[index]);
+                foreach (var control in HtmlControls(rest)) yield return control;
+                continue;
+            }
             if (blocks[index] is not HtmlBlock html || HtmlTokens(html.Lines.ToString()) is not [{ Tag: "details", Closing: false } open, ..] tokens)
             {
                 if (chunk && Chunks(blocks[index]) is { } parts) foreach (var part in parts) yield return part;

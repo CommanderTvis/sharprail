@@ -1083,6 +1083,7 @@ internal static class Program
             E2E.MarkdownLinksE2E.Run(e2e);
             E2E.MarkdownAlertsE2E.Run(e2e);
             E2E.MarkdownDocumentE2E.Run(e2e);
+            MarkdownHtmlTableChecks.Run();
             return;
         }
         if (args.SequenceEqual(["--plugins-settings"]))
@@ -1260,6 +1261,7 @@ internal static class Program
         Gate.Case("markdown-table-diffs", MarkdownTableDiffChecks.Run);
         Gate.Case("markdown-mermaid-diffs", MarkdownMermaidDiffChecks.Run);
         Gate.Case("markdown-images", MarkdownImageChecks.Run);
+        Gate.Case("markdown-html-tables", MarkdownHtmlTableChecks.Run);
         Gate.Case("drawn-rendering", DrawnRenderingChecks.Run);
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);

@@ -465,6 +465,20 @@ whose diffs load and unload editors. These are synthetic results, not native pre
   between the opening and closing tags; headings, emphasis, code, links, line breaks and rules map to
   their native forms. Script, style, embedded documents and scripted or `data:` sources are dropped with
   their content, and text inside any other tag shows as text.
+- HTML tables in rendered Markdown (`MarkdownPreview.HtmlTable.cs`) follow GitHub's sanitiser and reuse the
+  Markdown table look and the `<img>`, link and `<br>` rendering. Read: `table`, `thead`, `tbody`, `tfoot`, `tr`,
+  `th`, `td`, `caption`, `col`; `align`, `valign`, `colspan`, `rowspan` on cells, `width` (pixels or percent) on
+  `td`, `th`, `col`, `table` and `img`. Everything else (`style`, `class`, `id`, event handlers, `border`,
+  `bgcolor`) is ignored, script, style and frames are dropped, and text of unknown tags is kept. A cell is raw
+  HTML, so Markdown in it stays literal until a blank line ends the HTML block, as in CommonMark and on GitHub;
+  blocks after a blank line render as Markdown inside the cell and the table continues to its `</table>` across
+  blocks. A pixel width on a cell or picture is honoured and lifts the 360-pixel text wrap, so a picture beside
+  text keeps its stated width; a percentage width shares the remaining width and turns off horizontal
+  scrolling. Limits: nesting 20 tables (deeper ones show their text), 2,000 rows, 200 columns, 20,000 cells;
+  spans are clamped to them. Known deviations: cells are vertically centred by default and `th` is left
+  aligned; `<picture>` shows its `<img>` (no light/dark `<source>` choice); `align`/`valign` on `tr`,
+  `thead` and `colgroup` are ignored; text and picture selection inside a table is per block, as for
+  `<details>`; a table split by blank lines is not regrouped in a rendered diff focus.
 - A rendered Markdown diff focuses on its changes (`DiffFocus`). A top-level block changed when the
   positional alignment of the two documents' blocks by source text finds it no counterpart, so an identical
   block elsewhere cannot vouch for it and a change that earns no mark (a ticked checkbox, a list's start,
@@ -609,7 +623,7 @@ disappearance shows.
 - Moved array elements in a JSON diff (they show as removed and added), free picture zoom and panning by
   gesture, and review anchors on any format view.
 - Text wrapping around a floated picture in rendered Markdown (a floated picture is placed at its side
-  on its own line), and raw HTML tables, lists and inline styles, which show as their text.
+  on its own line), and raw HTML lists and inline styles, which show as their text.
 - In a rendered Markdown diff, a `<details>` whose body Markdown splits across blocks is not regrouped
   into one disclosure, and a list is compared item by item only when both documents have the same number
   of top-level lists (otherwise an item counts as changed when it carries a mark).
