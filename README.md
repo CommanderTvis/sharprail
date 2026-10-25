@@ -78,7 +78,7 @@ Nightly builds are on the [releases page](https://github.com/CommanderTvis/sharp
   winget install --id CommanderTvis.SharpRail --exact --source thinkrail --scope user
   ```
 
-- On Linux, download the AppImage for x64 or ARM64 (glibc 2.31 or newer).
+- On Linux, download the AppImage for x64 or ARM64 (glibc 2.31+).
 - On Android, install the APK, a client for a SharpRail host on another machine ([Remote hosts and clients](docs/android.md)).
 
 To build from source, run:
