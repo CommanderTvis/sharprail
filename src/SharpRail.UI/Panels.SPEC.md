@@ -143,6 +143,14 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   hand-marked result, warning for an agent waiting for input, danger for a failure, with the reason as tooltip.
   The workspace menu (rail row and header) offers Mark as unread or Mark as read for the current mark; see
   HostState.SPEC.md "Unread workspaces".
+- The unread dot sits in its own right-hand column of the workspace row, centred on the whole row and clear of the
+  settle and actions buttons. A failure names its agents: the row tooltip reads "Claude Code in “Orchestrator” hit an
+  error" (up to three agent/tab pairs, then "and N more"; "An agent hit an error" when only the host mark is known),
+  and each failing agent terminal's own tab row (Projects tab list and tab strip) carries a danger dot in the tab's
+  adornment slot with the same wording for that agent. Both come from in-memory state: the terminal signal board's
+  failed set (tab) plus the host's agent records and tab titles (name). A failed mark clears when the agent reports
+  another result for that tab, when the agent record goes (closed or reset terminal), and when the workspace is read
+  (seen in a focused window, or Mark as read).
 
 ## Welcome and Project Home
 

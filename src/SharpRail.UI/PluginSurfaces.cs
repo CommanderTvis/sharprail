@@ -185,8 +185,15 @@ public sealed partial class WorkbenchWindow
     private Control? TabAdornment(DockTab tab, string? workspace = null)
     {
         var plugin = Decoration(tab, workspace) is { Decoration.Adornment: { } adornment } decoration ? Mount(decoration.PluginId, adornment) : null;
-        if (workbench.Signals.BellMark(workspace ?? Layout.State.ActiveWorkspace, tab) is { } bell)
-            return plugin is null ? bell : new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 4, Children = { plugin, bell } };
+        var owner = workspace ?? Layout.State.ActiveWorkspace;
+        if (workbench.Signals.BellMark(owner, tab) is { } bell)
+        {
+            var marks = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 4 };
+            if (plugin is not null) marks.Children.Add(plugin);
+            marks.Children.Add(bell);
+            if (workbench.Signals.FailedMark(owner, tab, () => FailedAgentTip(owner, tab.Id)) is { } failedMark) marks.Children.Add(failedMark);
+            return plugin is null && marks.Children.Count == 1 ? bell : marks;
+        }
         if (tab.Kind != "file" || !ExternalSource(tab.Path, workspace ?? workspaceRoot)) return plugin;
         var mark = Ui.Text("↗", Ui.Muted, 12);
         mark.Name = "ExternalSourceMark";

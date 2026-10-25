@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api;
 
 namespace SharpRail.UI;
 
@@ -21,6 +22,7 @@ public sealed partial class WorkbenchWindow
     {
         if (!IsActive || !WorkspaceMounted || atHome || heldUnread == workspaceRoot) return;
         if (!state.Current.UnreadWorkspaces.ContainsKey(workspaceRoot)) return;
+        workbench.Signals.ClearFailed(workspaceRoot);
         _ = ShareAsync(HostStateChange.MarkRead(workspaceRoot, seen: true));
     }
 
@@ -30,7 +32,7 @@ public sealed partial class WorkbenchWindow
         bool Unread() => state.Current.UnreadWorkspaces.ContainsKey(worktree.Path);
         var item = Ui.Menu("", () =>
         {
-            if (Unread()) { if (heldUnread == worktree.Path) heldUnread = ""; _ = ShareAsync(HostStateChange.MarkRead(worktree.Path)); }
+            if (Unread()) { if (heldUnread == worktree.Path) heldUnread = ""; workbench.Signals.ClearFailed(worktree.Path); _ = ShareAsync(HostStateChange.MarkRead(worktree.Path)); }
             else
             {
                 if (ShowsWorkspace(worktree.Path)) heldUnread = worktree.Path;
@@ -44,6 +46,26 @@ public sealed partial class WorkbenchWindow
         menu.Opening += (_, _) => Label();
         menu.Opened += (_, _) => Label();
         return item;
+    }
+
+    private static string AgentName(string kind) => kind switch { "claude" => "Claude Code", "codex" => "Codex", "omp" => "omp", var other => other };
+
+    private string TabTitle(string workspace, string tab) =>
+        state.Current.TerminalTitles.FirstOrDefault(title => title.Terminal.WorkspaceId == workspace && title.Terminal.TabKey == tab)?.Title is { Length: > 0 } title ? title
+        : Layout.State.Workspaces.GetValueOrDefault(workspace)?.Documents.Values.SelectMany(tabs => tabs).FirstOrDefault(open => open.Id == tab)?.Title ?? tab;
+
+    private string FailedPhrase(string workspace, string tab) =>
+        $"{AgentName(state.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == new TerminalRef(workspace, tab))?.Record.Kind ?? "agent")} in “{TabTitle(workspace, tab)}”";
+
+    /// <summary>The tooltip of one failed agent terminal's mark, read from in-memory state when it opens.</summary>
+    internal string FailedAgentTip(string workspace, string tab) => FailedPhrase(workspace, tab) + " hit an error";
+
+    /// <summary>The workspace row's tooltip for a mark: a failure names up to three agents and their tabs, then how many more.</summary>
+    internal string UnreadTip(string workspace, string reason)
+    {
+        if (reason != "failed" || workbench.Signals.FailedTabs(workspace) is not { Count: > 0 } tabs) return UnreadLook(reason).Tip;
+        var named = string.Join(", ", tabs.Take(3).Select(tab => FailedPhrase(workspace, tab)));
+        return named + (tabs.Count > 3 ? $" and {tabs.Count - 3} more" : "") + " hit an error";
     }
 
     /// <summary>The rail's dot colour and tooltip for a mark: waiting input warns, a failure is danger, any other result is success.</summary>

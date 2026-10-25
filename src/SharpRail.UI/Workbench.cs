@@ -176,8 +176,12 @@ public sealed class Workbench : IDisposable
         agentAttention[(notification.WorkspaceId, notification.TabKey)] = DateTime.UtcNow;
         foreach (var window in windows) window.NoteTabActivity(notification.WorkspaceId, notification.TabKey);
         // A result the user is not looking at leaves its workspace unread for every window and client (ThinkRail #770).
+        if (notification.Reason != "failed") Signals.ClearFailed(notification.WorkspaceId, notification.TabKey);
         if (!windows.Any(window => window.IsActive && window.ShowsWorkspace(notification.WorkspaceId)))
+        {
+            if (notification.Reason == "failed") Signals.SetFailed(notification.WorkspaceId, notification.TabKey);
             _ = MarkUnreadAsync(notification.WorkspaceId, notification.Reason is "blocked" or "failed" ? notification.Reason : "done");
+        }
         if (Notifier is null) return;
         (attention ??= new(this, Notifier, NotificationWindow)).Request(notification);
     }

@@ -17,6 +17,7 @@ internal sealed class TerminalSignalBoard
     private readonly Dictionary<string, (TerminalProgressState State, int Percent)> progress = [];
     private readonly HashSet<string> bells = [];
     private HashSet<string> agents = [];
+    private readonly Dictionary<string, (string Workspace, string Tab)> failed = [];
 
     /// <summary>Raised with the session whose progress or bell changed.</summary>
     public event Action<string>? Changed;
@@ -44,7 +45,31 @@ internal sealed class TerminalSignalBoard
         var changed = new HashSet<string>(agents);
         changed.SymmetricExceptWith(next);
         agents = next;
+        // A closed or reset agent terminal no longer carries its failure.
+        foreach (var session in failed.Keys.Where(session => !next.Contains(session)).ToArray()) failed.Remove(session);
         foreach (var session in changed) Changed?.Invoke(session);
+    }
+
+    /// <summary>Whether an agent in this session hit an error the user has not seen (cleared by a later result, reading the workspace, or the agent record going).</summary>
+    public bool Failed(string session) => failed.ContainsKey(session);
+
+    /// <summary>The terminals of a workspace whose agent failed unseen.</summary>
+    public IReadOnlyList<string> FailedTabs(string workspace) => [.. failed.Values.Where(entry => entry.Workspace == workspace).Select(entry => entry.Tab)];
+
+    public void SetFailed(string workspace, string tab)
+    {
+        var session = TerminalLaunch.SessionFor(workspace, tab);
+        if (failed.TryAdd(session, (workspace, tab))) Changed?.Invoke(session);
+    }
+
+    public void ClearFailed(string workspace, string? tab = null)
+    {
+        foreach (var (session, entry) in failed.ToArray())
+        {
+            if (entry.Workspace != workspace || tab is not null && entry.Tab != tab) continue;
+            failed.Remove(session);
+            Changed?.Invoke(session);
+        }
     }
 
     public void RingBell(string session) { if (bells.Add(session)) Changed?.Invoke(session); }
@@ -63,6 +88,9 @@ internal sealed class TerminalSignalBoard
 
     /// <summary>A bell beside the title until the terminal is viewed (Ghostty's bell title feature).</summary>
     public Control? BellMark(string workspace, Docking.DockTab tab) => tab.Kind == "terminal" ? new TerminalBellMark(this, TerminalLaunch.SessionFor(workspace, tab.Id)) : null;
+
+    /// <summary>A danger dot beside an agent terminal's title while its agent's failure is unread; <paramref name="tip"/> names the agent.</summary>
+    public Control? FailedMark(string workspace, Docking.DockTab tab, Func<string> tip) => tab.Kind == "terminal" ? new TerminalFailedMark(this, TerminalLaunch.SessionFor(workspace, tab.Id), tip) : null;
 }
 
 internal abstract class SignalObserver : Panel
@@ -96,6 +124,31 @@ internal sealed class TerminalBellMark : SignalObserver
     }
 
     protected override void Update() => IsVisible = Board.Bell(Session);
+}
+
+internal sealed class TerminalFailedMark : SignalObserver
+{
+    private readonly Func<string> tip;
+
+    public TerminalFailedMark(TerminalSignalBoard board, string session, Func<string> tip) : base(board, session)
+    {
+        this.tip = tip;
+        Name = "TerminalFailedMark";
+        VerticalAlignment = VerticalAlignment.Center;
+        Margin = new Thickness(4, 0, 0, 0);
+        Width = 8; Height = 8;
+        IsHitTestVisible = true;
+        Children.Add(new Border { Background = Ui.Danger, CornerRadius = new(4) });
+        IsVisible = false;
+    }
+
+    protected override void Update()
+    {
+        IsVisible = Board.Failed(Session);
+        if (!IsVisible) return;
+        var text = tip();
+        ToolTip.SetTip(this, text); AutomationProperties.SetName(this, text);
+    }
 }
 
 /// <summary>

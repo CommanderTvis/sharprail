@@ -1,7 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -65,5 +67,31 @@ internal static class WorkspaceUnreadE2E
         app.Window.Activate();
         Until(() => Mark(other) is null);
         Console.WriteLine("PASS upstream #770: Mark as unread holds while shown and clears on return; Mark as read keeps a waiting agent's mark");
+
+        // A failed agent is named on its workspace row and marked on its own tab row, both inside their rows.
+        const string failedTab = "failed-agent";
+        app.Window.Layout.NewTerminal(app.Center, failedTab);
+        var agent = new TerminalRef(other, failedTab);
+        app.State!.SetTerminalAgent(agent, new("claude", "/usr/bin/false"));
+        Until(() => app.Workbench.State.Current.TerminalAgents.Any(record => record.Terminal == agent));
+        WorkspaceTabsE2E.Switch(app, project);
+        app.Window.Activate();
+        app.Workbench.RequestAttention(new(other, failedTab, "Claude hit an error", "") { Reason = "failed" });
+        Until(() => Mark(other) == "failed" && Dot(app, other).IsVisible);
+        var tip = ToolTip.GetTip(Dot(app, other)) as string ?? "";
+        Require(tip.Contains("Claude Code") && tip.Contains("in “Terminal") && tip.EndsWith("hit an error"), "The workspace dot must name the failed agent and tab: " + tip);
+        var row = Item(app, other);
+        var rowBounds = new Rect(row.TranslatePoint(default, app.Window) ?? default, row.Bounds.Size);
+        Rect Within(Control control) => new(control.TranslatePoint(default, app.Window) ?? default, control.Bounds.Size);
+        Require(rowBounds.Contains(Within(Dot(app, other))), "The workspace dot must sit inside its row.");
+        Require(!Within(Dot(app, other)).Intersects(Within(row.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceMenu"))), "The workspace dot must not overlap the actions menu.");
+        var tabRow = app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceTabPreview" && Equals(button.Tag, failedTab));
+        var tabDot = tabRow.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "TerminalFailedMark");
+        Require(tabDot.IsVisible && (ToolTip.GetTip(tabDot) as string ?? "").Contains("Claude Code"), "The failed agent's tab row must carry a named dot.");
+        Require(Within(tabRow).Contains(Within(tabDot)), "The tab dot must sit inside its tab row.");
+        WorkspaceTabsE2E.Switch(app, other);
+        app.Window.Activate();
+        Until(() => Mark(other) is null && !app.Workbench.Signals.Failed(SharpRail.UI.Terminal.TerminalLaunch.SessionFor(other, failedTab)));
+        Console.WriteLine("PASS a failed agent is named on its workspace row and tab row, inside their rows; seeing the workspace clears both");
     }
 }

@@ -263,7 +263,7 @@ public sealed partial class WorkbenchWindow
         select.Click += (_, _) => _ = RailWorkspaces(project) is { } trees && !HasWorkspaceRows(project, trees)
             ? OpenProjectAsync(project) : OpenProjectHomeAsync(project);
         AutomationProperties.SetName(select, state.Current.ProjectName(project));
-        var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
+        var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
         var folder = Ui.Icon("folderFill", Ui.Muted, 14);
         var name = Ui.Text(state.Current.ProjectName(project), Ui.Muted);
         var countText = Ui.Text("", Ui.Hint, 12);
@@ -390,17 +390,22 @@ public sealed partial class WorkbenchWindow
             IsVisible = false
         };
         var unreadDot = new Border { Name = "WorkspaceUnread", Width = 8, Height = 8, CornerRadius = new(4), Margin = new(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, IsVisible = false };
-        labels.Children.Add(new DockPanel { Children = { chip, unreadDot, label } });
-        DockPanel.SetDock(chip, Dock.Right); DockPanel.SetDock(unreadDot, Dock.Right);
+        labels.Children.Add(new DockPanel { Children = { chip, label } });
+        DockPanel.SetDock(chip, Dock.Right);
         void ShowUnread()
         {
             var reason = state.Current.UnreadWorkspaces.GetValueOrDefault(worktree.Path);
             unreadDot.IsVisible = reason is not null;
             if (reason is null) return;
-            var (brush, tip) = UnreadLook(reason);
+            var (brush, _) = UnreadLook(reason);
+            var tip = UnreadTip(worktree.Path, reason);
             unreadDot.Background = brush; ToolTip.SetTip(unreadDot, tip); AutomationProperties.SetName(unreadDot, tip);
         }
         ShowUnread();
+        // A further agent failing in this workspace changes the tooltip without changing the host mark.
+        void FailedChanged(string session) { if (workbench.Signals.FailedTabs(worktree.Path).Count > 0) ShowUnread(); }
+        unreadDot.AttachedToVisualTree += (_, _) => workbench.Signals.Changed += FailedChanged;
+        unreadDot.DetachedFromVisualTree += (_, _) => workbench.Signals.Changed -= FailedChanged;
         var added = Ui.Text("", Ui.Success, 12);
         var removed = Ui.Text("", Ui.Danger, 12);
         var totals = new StackPanel { Name = "WorkspaceDiffStats", Orientation = Orientation.Horizontal, Spacing = 4, Children = { added, removed } };
@@ -442,6 +447,8 @@ public sealed partial class WorkbenchWindow
         }
         ShowBranch();
         Ui.Place(contents, labels, 0, 2);
+        // The dot sits in its own column, centred on the whole row and clear of the kebab's padding.
+        Ui.Place(contents, unreadDot, 0, 3);
         var button = new Button
         {
             Name = "WorkspaceSelect",
