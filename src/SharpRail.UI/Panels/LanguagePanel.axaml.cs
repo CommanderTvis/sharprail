@@ -76,6 +76,7 @@ internal sealed partial class LanguagePanel : UserControl
     // Each configuration view's save count when the inventory was requested, so an inventory read before a save cannot revert it.
     private Dictionary<string, int> inventorySaves = [];
     private readonly Dictionary<string, LanguageConfigurationView> configurations = [];
+    private readonly System.Collections.ObjectModel.ObservableCollection<ServerRow> items = [];
     private readonly HashSet<string> added = [];
     private readonly HashSet<string> expanded = [];
     private readonly HashSet<string> exitOpen = [];
@@ -94,6 +95,7 @@ internal sealed partial class LanguagePanel : UserControl
         this.FindControl<TextBlock>("LifetimeNote")!.Text = LanguageNotes.Lifetime;
         if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
         var servers = this.FindControl<ListBox>("Servers")!;
+        servers.ItemsSource = items;
         servers.ContextRequested += ServerContextRequested;
         servers.Tapped += async (_, e) =>
         {
@@ -245,6 +247,9 @@ internal sealed partial class LanguagePanel : UserControl
         RefreshRows(row.Server.Id);
     }
 
+    /// <summary>Check hook: shows <paramref name="servers"/> as the host's inventory without a host request.</summary>
+    internal void ShowInventory(IReadOnlyList<LanguageServerState> servers) { inventory = servers; RefreshRows(); }
+
     private void RefreshRows(string? selectedId = null)
     {
         var list = this.FindControl<ListBox>("Servers")!;
@@ -262,11 +267,26 @@ internal sealed partial class LanguagePanel : UserControl
         var toggle = this.FindControl<Button>("HiddenToggle")!;
         toggle.IsVisible = count > 0;
         toggle.Content = $"{count} hidden · {(showHidden ? "Collapse" : "Show")}";
-        if (!(list.ItemsSource?.Cast<ServerRow>() ?? []).SequenceEqual(rows))
+        // Reconcile by server id: unchanged rows keep their container, only changed ones are replaced, new ones inserted and gone ones removed.
+        for (var index = items.Count - 1; index >= 0; index--)
+            if (rows.All(row => row.Server.Id != items[index].Server.Id)) items.RemoveAt(index);
+        for (var index = 0; index < rows.Length; index++)
         {
-            list.ItemsSource = rows;
-            list.SelectedItem = rows.FirstOrDefault(row => row.Server.Id == selectedId);
+            if (index < items.Count && items[index].Server.Id == rows[index].Server.Id)
+            {
+                if (!items[index].Equals(rows[index])) items[index] = rows[index];
+                continue;
+            }
+            var at = items.ToList().FindIndex(item => item.Server.Id == rows[index].Server.Id);
+            if (at < 0) items.Insert(index, rows[index]);
+            else
+            {
+                items.Move(at, index);
+                if (!items[index].Equals(rows[index])) items[index] = rows[index];
+            }
         }
+        var current = items.FirstOrDefault(row => row.Server.Id == selectedId);
+        if (!ReferenceEquals(list.SelectedItem, current)) list.SelectedItem = current;
         var add = this.FindControl<ComboBox>("AddServer")!;
         var choices = inventory.Where(server => !hidden.Contains(server.Id) && !rows.Any(row => row.Server.Id == server.Id)).Select(server => server.Id).ToArray();
         if (!(add.ItemsSource?.Cast<string>() ?? []).SequenceEqual(choices)) add.ItemsSource = choices;

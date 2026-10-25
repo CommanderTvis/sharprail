@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
+using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.UI.State;
@@ -20,6 +21,7 @@ internal static class LanguagePaneNarrowChecks
     {
         Header(fixture);
         Rows(fixture);
+        Churn(fixture);
         Hidden(fixture);
     }
 
@@ -67,6 +69,39 @@ internal static class LanguagePaneNarrowChecks
             Click(Row(clangd)!, "ServerUnhideAction");
             E2E.E2eWorkspace.Until(() => Row(clangd) is not null && !toggle.IsVisible && !state.Current.ProjectLanguageHidden.ContainsKey(root), "Unhide did not bring clangd back.");
             Console.WriteLine("PASS Show reveals hidden servers and Unhide restores them");
+        }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+    }
+
+    /// <summary>Refreshing ~20 servers 50 times keeps one row per server: rows from the first refreshes are collected, so no scope or subscription retains them.</summary>
+    private static void Churn(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-churn"); Directory.CreateDirectory(root);
+        var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(statePath);
+        using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
+        shared.Start();
+        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var window = new Window { Width = 320, Height = 900, Content = pane };
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        window.Show();
+        try
+        {
+            var servers = pane.FindControl<ListBox>("Servers")!;
+            const int count = 20;
+            var early = new List<WeakReference>();
+            for (var round = 0; round < 50; round++)
+            {
+                pane.ShowInventory(Enumerable.Range(0, count).Select(index => new LanguageServerState($"fake-{index}", "file.x", round % 2 == 0 ? "ready" : "error", $"round {round}", "1")).ToArray());
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+                if (round < 3) early.AddRange(servers.Items.Cast<object>().Select(item => new WeakReference(item)));
+            }
+            Require(servers.ItemCount == count, $"The pane showed {servers.ItemCount} rows for {count} servers.");
+            for (var pass = 0; pass < 2; pass++) { GC.Collect(); GC.WaitForPendingFinalizers(); }
+            var alive = early.Count(reference => reference.IsAlive);
+            Require(alive == 0, $"{alive} of {early.Count} server rows from early refreshes were still reachable after 50 refreshes.");
+            Console.WriteLine("PASS 50 refreshes of 20 servers leave one row per server and release replaced rows");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }

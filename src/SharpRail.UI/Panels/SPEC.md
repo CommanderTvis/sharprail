@@ -272,7 +272,7 @@ the page is shown. `--lsp-limits` checks it headless.
 
 Server rows are a grid at every width (static, in `LanguagePanel.axaml`): one header line holds the
 status mark, the language icon, the name, settings and Start/Retry, with the status, icon and action
-columns sized alike across rows through shared size groups. The name fills the remaining width on one
+columns fixed-width (20, 28, 28 and 56 px) so they line up across rows; shared-size scopes are not used, because Avalonia's scope retains the column definitions, and through their bindings every row ever shown. `RefreshRows` reconciles the list by server id, replacing only rows whose state changed, and `--lsp-narrow` asserts that 50 refreshes of 20 servers release replaced rows. The name fills the remaining width on one
 line, trims with an ellipsis and shows itself as a tooltip; suggestion, status and exit details sit
 below it, aligned to the name column, and only long free text wraps. The shared pane header trims its
 title before its buttons, so no pane title runs under + or −. `--lsp-narrow` (also part of

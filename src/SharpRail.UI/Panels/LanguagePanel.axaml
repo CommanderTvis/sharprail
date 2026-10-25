@@ -32,7 +32,7 @@
                    FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       </StackPanel>
     </Border>
-    <ListBox x:Name="Servers" Grid.IsSharedSizeScope="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+    <ListBox x:Name="Servers" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
       <ListBox.Styles>
         <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
         <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
@@ -43,35 +43,28 @@
         <Style Selector="ListBoxItem:selected Border#ServerRowSurface">
           <Setter Property="BorderBrush" Value="{x:Static kit:Ui.Accent}" />
         </Style>
-        <Style Selector="Path#ServerBootSpinner, ContentControl#ServerStatusIcon, ContentControl#ServerLanguageIcon"><Setter Property="Margin" Value="0,0,8,0" /></Style>
-        <Style Selector="Button#ServerSettingsAction, TextBlock#ServerDisclosure"><Setter Property="Margin" Value="8,0,0,0" /></Style>
-        <!-- In a very narrow pane the header line keeps every column and tightens only its gaps. -->
-        <ContainerQuery Name="ServerRow" Query="max-width:200">
-          <Style Selector="Path#ServerBootSpinner, ContentControl#ServerStatusIcon, ContentControl#ServerLanguageIcon"><Setter Property="Margin" Value="0,0,2,0" /></Style>
-          <Style Selector="Button#ServerSettingsAction, TextBlock#ServerDisclosure"><Setter Property="Margin" Value="2,0,0,0" /></Style>
-        </ContainerQuery>
       </ListBox.Styles>
       <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemTemplate>
         <DataTemplate x:CompileBindings="False">
-          <Border Name="ServerRowSurface" BorderBrush="Transparent" BorderThickness="2,0,0,0" Padding="8,0,0,0" Container.Name="ServerRow" Container.Sizing="Width">
-          <!-- One header line at every width: [status][icon][name][settings][Start/Retry], status, icon and action columns shared across rows; details sit under the name. -->
+          <Border Name="ServerRowSurface" BorderBrush="Transparent" BorderThickness="2,0,0,0" Padding="8,0,0,0">
+          <!-- One header line at every width: [status][icon][name][settings][Start/Retry] on fixed-width columns, so status, icon, settings and action line up across rows without a shared-size scope (which would retain every row ever shown); details sit under the name. -->
           <Grid RowDefinitions="Auto,Auto">
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="Auto" SharedSizeGroup="ServerStatus" />
-              <ColumnDefinition Width="Auto" SharedSizeGroup="ServerIcon" />
+              <ColumnDefinition Width="20" />
+              <ColumnDefinition Width="28" />
               <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="Auto" SharedSizeGroup="ServerSettings" />
-              <ColumnDefinition Width="Auto" SharedSizeGroup="ServerAction" />
+              <ColumnDefinition Width="28" />
+              <ColumnDefinition Width="56" />
             </Grid.ColumnDefinitions>
-            <Path Name="ServerBootSpinner" Classes.booting="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+            <Path Name="ServerBootSpinner" HorizontalAlignment="Left" Classes.booting="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
                   Width="16" Height="16" VerticalAlignment="Center"
                   Data="M 8,1 A 7,7 0 1 1 1,8" Stroke="{x:Static kit:Ui.Muted}" StrokeThickness="1.5"
                   RenderTransformOrigin="50%,50%" AutomationProperties.Name="{Binding StatusDescription}" ToolTip.Tip="{Binding StatusDescription}" />
-            <ContentControl Name="ServerStatusIcon" AutomationProperties.Name="{Binding StatusDescription}" ToolTip.Tip="{Binding StatusDescription}" IsVisible="{Binding ShowStatusIcon}" Content="{Binding Icon}" VerticalAlignment="Center" />
-            <ContentControl Grid.Column="1" Name="ServerLanguageIcon" Content="{Binding Server.Id, Converter={StaticResource LanguageMark}}" VerticalAlignment="Center" />
+            <ContentControl Name="ServerStatusIcon" HorizontalAlignment="Left" AutomationProperties.Name="{Binding StatusDescription}" ToolTip.Tip="{Binding StatusDescription}" IsVisible="{Binding ShowStatusIcon}" Content="{Binding Icon}" VerticalAlignment="Center" />
+            <ContentControl Grid.Column="1" Name="ServerLanguageIcon" HorizontalAlignment="Left" Content="{Binding Server.Id, Converter={StaticResource LanguageMark}}" VerticalAlignment="Center" />
             <TextBlock Grid.Column="2" Name="ServerTitle" Text="{Binding}" ToolTip.Tip="{Binding}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-            <Button Grid.Column="3" Name="ServerSettingsAction" VerticalAlignment="Center" Content="{Binding SettingsIcon}" Click="SettingsClicked"
+            <Button Grid.Column="3" Name="ServerSettingsAction" HorizontalAlignment="Left" VerticalAlignment="Center" Content="{Binding SettingsIcon}" Click="SettingsClicked"
                     ToolTip.Tip="{Binding SettingsTooltip}" AutomationProperties.Name="Workspace settings"
                     Classes="quiet" Background="Transparent" BorderThickness="0" Padding="4" MinHeight="0" />
             <TextBlock Grid.Column="4" Name="ServerDisclosure" Text="{Binding Disclosure}" Foreground="{x:Static kit:Ui.Muted}" VerticalAlignment="Center" />
