@@ -731,6 +731,11 @@ internal static class Program
             Console.WriteLine("PASS plugin checks");
             return;
         }
+        if (args.SequenceEqual(["--workspace-views"]))
+        {
+            WorkspaceViewChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--gitless-panes"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

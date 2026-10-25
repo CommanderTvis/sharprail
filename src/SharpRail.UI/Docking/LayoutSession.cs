@@ -142,6 +142,21 @@ public sealed partial class LayoutSession
         Changed?.Invoke();
     }
 
+    /// <summary>
+    /// Drops the views of workspaces missing from the host's registry (removed by another client or while the app was closed, which
+    /// <see cref="DropWorkspace"/> never saw). The active workspace stays, as does everything while the registry is still empty.
+    /// </summary>
+    public void PruneWorkspaces(IReadOnlySet<string> live)
+    {
+        if (live.Count == 0) return;
+        var stale = State.Workspaces.Keys.Where(path => path != State.ActiveWorkspace && !live.Contains(path)).ToArray();
+        if (stale.Length == 0) return;
+        var next = State.Copy();
+        foreach (var path in stale) next.Workspaces.Remove(path);
+        State = next; Epoch++;
+        Changed?.Invoke();
+    }
+
     public void SwitchWorkspace(string path, string? project = null) => Change(state =>
     {
         var previous = Active(state);

@@ -173,6 +173,7 @@ public sealed partial class WorkbenchWindow
         var shown = WorkspaceMounted && !atHome && gone.Any(workspace => workspace.Path == workspaceRoot);
         var name = shown ? previous.WorkspaceLabels.GetValueOrDefault(workspaceRoot) ?? DirectoryName(workspaceRoot) : "";
         foreach (var workspace in gone) DropWorkspaceState(workspace.Path);
+        Layout.PruneWorkspaces(paths);
         if (shown)
         {
             _ = OpenProjectHomeAsync(projectRoot);

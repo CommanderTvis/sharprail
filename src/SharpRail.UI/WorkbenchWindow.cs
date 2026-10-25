@@ -461,6 +461,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             ApplyTerminalTitles(state.Current);
             if (!atHome) ShareTerminals(workspaceRoot);
             foreach (var removed in removedWorkspaces) Layout.DropWorkspace(removed);
+            Layout.PruneWorkspaces(state.Current.Workspaces.Select(workspace => workspace.Path).ToHashSet());
             ShowReady();
             // Leaving a workspace releases a hand-set unread hold; arriving at one in a focused window reads it.
             if (heldUnread != workspaceRoot) heldUnread = "";

@@ -149,6 +149,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--files-modes` | Files All \| Changed: Git marks, ignored dimming, remembered expanded folders across switches and reloads (local Git fixture). |
 | `--dock-input` | Dock pointer and keyboard input, tab menus including file-path copies. |
 | `--change-actions`, `--review` | Toast and diff revert/undo; Review panel. |
+| `--workspace-views` | Layout keeps a workspace view only for workspaces the host lists (create/remove loop), never dropping the active one. |
 | `--drawers` | Phone pages: the compact page bar, Settings as a page, and the persistent page hosts and their slide. |
 | `--shell` | Window shell: location bar, application menu and the macOS workbench menu bar, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
 | `--ui` | Headless UI checks and upstream translations without host suites. |

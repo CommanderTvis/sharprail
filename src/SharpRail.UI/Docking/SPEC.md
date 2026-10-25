@@ -76,6 +76,12 @@ a retry, which is how closing a busy terminal asks first.
 `DropWorkspace` removes the view of a workspace that no longer exists. It asks nothing, since the
 workspace's documents went with it, and it never drops the active view: the window leaves a removed
 workspace first and the view goes once another is active.
+`PruneWorkspaces` does the same for every view whose workspace the host's registry no longer lists (removed by
+another client or while the app was closed, which `DropWorkspace` never saw). The window calls it on each
+registry broadcast and after mounting a workspace; it keeps the active view, and does nothing while the
+registry is empty (not yet synced). A `WorkspaceView` holds only layout models (tab and pane records and
+ids), no live controls, so a stale entry costs memory and profile size rather than UI trees. `ProjectPanes`
+(keyed by project, a few strings each) is not pruned. `--workspace-views` checks a create/remove loop.
 
 ## Layout grammar
 
