@@ -14,7 +14,7 @@ public sealed partial class LanguageService
 {
     private readonly object limitGate = new();
     private TaskCompletionSource slotFreed = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private int enforcing;
+    private readonly SemaphoreSlim enforcement = new(1, 1);
 
     /// <summary>The current limits, read from host settings on every decision.</summary>
     internal Func<LanguageServerLimits> Limits { get; init; } = () => LanguageServerLimits.Default;
@@ -104,9 +104,15 @@ public sealed partial class LanguageService
     /// One enforcement pass, run every <see cref="EnforcementPeriod"/> off any UI thread: samples memory, stops servers idle past the
     /// timeout, shrinks to recently used servers under memory pressure and stops least recently used idle servers while over budget.
     /// </summary>
-    internal async Task EnforceAsync()
+    internal Task EnforceAsync() => EnforceAsync(skipWhenBusy: false);
+
+    /// <summary>
+    /// The periodic tick skips a pass when one is running; an explicit call waits for it and then runs its own, so it always sees the
+    /// limits and sizes current at its call (a pass in flight may have read them before a settings change).
+    /// </summary>
+    private async Task EnforceAsync(bool skipWhenBusy)
     {
-        if (Interlocked.Exchange(ref enforcing, 1) != 0) return;
+        if (!await enforcement.WaitAsync(skipWhenBusy ? TimeSpan.Zero : Timeout.InfiniteTimeSpan)) return;
         try
         {
             SampleMemory();
@@ -132,7 +138,7 @@ public sealed partial class LanguageService
         catch (Exception error) when (error is not OutOfMemoryException) { }
         finally
         {
-            Volatile.Write(ref enforcing, 0);
+            enforcement.Release();
             Pulse();
         }
     }

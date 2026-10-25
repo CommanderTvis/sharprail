@@ -68,7 +68,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         processes = Path.Combine(directory, "processes");
         // Servers a crashed or killed host left behind are found by their recorded id, name and start time, off the caller's thread.
         _ = Task.Run(() => LanguageProcesses.Sweep(processes));
-        sampler = new Timer(_ => _ = EnforceAsync(), null, EnforcementPeriod, EnforcementPeriod);
+        sampler = new Timer(_ => _ = EnforceAsync(skipWhenBusy: true), null, EnforcementPeriod, EnforcementPeriod);
     }
 
     /// <summary>The user's host-wide tool paths from host state (JSON of executable name to path), honoured by probes and launches.</summary>

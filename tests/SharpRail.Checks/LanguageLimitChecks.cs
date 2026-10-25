@@ -123,9 +123,17 @@ internal static class LanguageLimitChecks
             Console.WriteLine("PASS language limits: cap evicts the least recently used idle server, never one with an open editor, and queues when all are busy");
 
             // Memory budget: over budget, idle servers stop least recently used first; servers with an editor stay.
-            languages.MemoryOf = (_, _, _) => 1L << 30;
+            // A pass already in flight (the periodic tick) read the old limits; an explicit pass after a settings change must wait for it and
+            // run on its own, not return early and leave the over-budget servers running.
+            using var inFlight = new ManualResetEventSlim();
+            using var release = new ManualResetEventSlim();
+            languages.MemoryOf = (_, _, _) => { inFlight.Set(); release.Wait(); return 1L << 30; };
+            var stale = Task.Run(languages.EnforceAsync);
+            Require(inFlight.Wait(TimeSpan.FromSeconds(30)), "The enforcement pass did not start.");
             await state.ChangeAsync([HostStateChange.Setting("language-limits", """{"idleMinutes":0,"memoryBudgetMb":1024,"caps":{"typescript":8}}""")]);
-            await languages.EnforceAsync();
+            var explicitPass = Task.Run(languages.EnforceAsync);
+            release.Set();
+            await Task.WhenAll(stale, explicitPass);
             Require(Runs(b) && !Runs(e), "Over budget, the idle server was not stopped (or the editor's was).");
             var f = Workspace(root, "f");
             await Status(f);
