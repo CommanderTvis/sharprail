@@ -298,11 +298,14 @@ internal sealed class LanguageConnection : IAsyncDisposable
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
         Terminate("the connection was disposed without a stated reason");
         lifetime.Cancel();
+        // Helpers the server spawned (tsserver, indexers) outlive it and may still write into the workspace; wait for the whole tree.
+        var tree = process.HasExited ? [] : await LanguageProcesses.DescendantsAsync(process.Id);
         try { if (!process.HasExited) process.Kill(true); }
         catch (InvalidOperationException) { }
         await Task.WhenAll(reader, errors);
         await process.WaitForExitAsync();
         await exitWatcher;
+        await LanguageProcesses.WaitGoneAsync(tree, TimeSpan.FromSeconds(10));
         process.Dispose(); lifetime.Dispose(); writing.Dispose();
     }
 }

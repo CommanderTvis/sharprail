@@ -45,6 +45,59 @@ internal static class LanguageProcesses
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
     }
 
+    /// <summary>
+    /// The live descendants of <paramref name="pid"/> (a language server's own helpers, such as tsserver), read before the server is
+    /// killed because they are re-parented and untraceable afterwards. Unix only; empty when the process table cannot be read.
+    /// </summary>
+    internal static async Task<int[]> DescendantsAsync(int pid)
+    {
+        var table = await ProcessTableAsync();
+        var found = new List<int>();
+        for (var frontier = new List<int> { pid }; frontier.Count > 0;)
+        {
+            frontier = [.. table.Where(row => frontier.Contains(row.Parent)).Select(row => row.Pid)];
+            found.AddRange(frontier);
+        }
+        return [.. found];
+    }
+
+    /// <summary>Waits until none of <paramref name="pids"/> is running any more (a zombie counts as gone), for at most <paramref name="limit"/>.</summary>
+    internal static async Task WaitGoneAsync(int[] pids, TimeSpan limit)
+    {
+        if (pids.Length == 0) return;
+        var deadline = Stopwatch.StartNew();
+        while (deadline.Elapsed < limit)
+        {
+            var table = await ProcessTableAsync();
+            if (!table.Any(row => pids.Contains(row.Pid) && !row.Zombie)) return;
+            await Task.Delay(20);
+        }
+    }
+
+    private static async Task<List<(int Pid, int Parent, bool Zombie)>> ProcessTableAsync()
+    {
+        var rows = new List<(int, int, bool)>();
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser()) return rows;
+        var start = new ProcessStartInfo("ps") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true };
+        start.ArgumentList.Add("-axo");
+        start.ArgumentList.Add("pid=,ppid=,stat=");
+        try
+        {
+            using var ps = Process.Start(start);
+            if (ps is null) return rows;
+            var output = await ps.StandardOutput.ReadToEndAsync();
+            await ps.WaitForExitAsync();
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var fields = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (fields.Length >= 3 && int.TryParse(fields[0], CultureInfo.InvariantCulture, out var pid) && int.TryParse(fields[1], CultureInfo.InvariantCulture, out var parent))
+                    rows.Add((pid, parent, fields[2].StartsWith('Z')));
+            }
+        }
+        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException or IOException) { }
+        return rows;
+    }
+
     /// <summary>Forgets a server process that exited.</summary>
     internal static void Exited(int pid)
     {
