@@ -14,8 +14,8 @@ Keeps your CLI. Adds what's missing.
 <table>
 <tr>
 <td width="38%" valign="top">
-<b>A pane for each agent</b><br><br>
-Claude Code and Codex get their own side panes. For Claude Code, the Context tab lists everything a new session starts with and the token cost of each item. Account shows your usage windows, and Settings edits settings through a diff you review first.<br><br>
+<b>Claude Code without the configuration chaos</b><br><br>
+Instructions, skills, tools and settings are scattered across files and layers. The Claude Code pane’s Context tab lists everything a new session starts with and what each item costs in tokens, and Settings edits go through a diff you review first.<br><br>
 <a href="docs/agents.md#panes">Docs →</a>
 </td>
 <td width="62%">
@@ -34,22 +34,22 @@ Create a <a href="https://git-scm.com/docs/git-worktree">Git worktree</a> for a 
 </tr>
 <tr>
 <td width="38%" valign="top">
-<b>Agents draw beside the terminal</b><br><br>
-An agent can show a Mermaid diagram or compare options in a companion pane and update it as the discussion develops.<br><br>
-<a href="docs/agents.md#visualize">Docs →</a>
-</td>
-<td width="62%">
-<img src="docs/screenshots/visualize-diagram.png" alt="A diagram of SharpRail's layers drawn by Claude Code in the companion pane" width="100%">
-</td>
-</tr>
-<tr>
-<td width="38%" valign="top">
 <b>Your PC from your phone</b><br><br>
 The Android app is a workbench for the host running on your PC. You can browse and edit files, read Markdown and diffs, and use the host's terminals and agents while the work keeps running there. The phone needs only a free Tailscale account, because the app carries its own Tailscale node and there is no VPN app to install.<br><br>
 <a href="docs/android.md">Docs →</a>
 </td>
 <td width="62%">
 <img src="docs/screenshots/android-pair.png" alt="Two Android screens, the Tailscale connect screen with a host found and a Claude Code terminal on the host" width="100%">
+</td>
+</tr>
+<tr>
+<td width="38%" valign="top">
+<b>Agents draw beside the terminal</b><br><br>
+Diagrams and option comparisons.<br><br>
+<a href="docs/agents.md#visualize">Docs →</a>
+</td>
+<td width="62%">
+<img src="docs/screenshots/visualize-diagram.png" alt="A diagram of SharpRail's layers drawn by Claude Code in the companion pane" width="100%">
 </td>
 </tr>
 </table>
