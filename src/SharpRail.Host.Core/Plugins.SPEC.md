@@ -222,7 +222,7 @@ program instead (Terminals.SPEC, Terminal programs), so nothing is typed; Window
 A revival is never started on its own. When a shell starts for a tab with an agent record and the attach names no
 program, the runtime's revive gate holds the prefill back: the shell starts alone and the tab's
 `TerminalResumeOffer` (agent, session id) rides `HostState.ResumeOffers` (not persisted; protocol 13). Any client
-answers it with `terminal-resume-answer` (`resume` or `fresh`), and the host settles it off the UI thread. Resume first
+answers it with `terminal-resume-answer` (`resume`, `fresh` or `quit`), and the host settles it off the UI thread. Resume first
 asks `AgentSessionOwnership` whether the session is open elsewhere, then takes its lock and types the composed prefill
 followed by Return; a session open elsewhere stays offered with `OpenElsewhere` set and is not launched. Start fresh
 withdraws the offer, clears the record and types the first hook's `RevivePrefill.Fresh` command (a new session of the
@@ -245,6 +245,22 @@ host takes the lock whenever an agent record with a session id is set (a fresh l
 report, a resume) and releases it when the record clears or changes id, when the tab closes and when the runtime
 stops. A tab whose agent exited keeps its lock while the record stays, since the session still belongs to that tab.
 Lock and process work runs in order on the thread pool.
+
+`Inspect` names the owner instead of a bare refusal: a `SessionOwner` with pid, age, tty, command and a kind.
+`Instance` is a live lock holder, or a process with a live SharpRail (this host, a lock holder, or a `SharpRail*`
+executable) among its ancestors; `Stray` has none and either a dead holder's lock is left behind or its topmost
+ancestor below init is a shell with a tty (the instance that started it stopped, e.g. an agent that ignored the
+hang-up); `Foreign` is any other process. The offer then carries `OwnerText`, and only a `Stray` that is neither an
+ancestor of the asking tab's shell (or of the host) nor holds such an ancestor in its tree gets a `QuitConfirmation`,
+which clients show as "Quit that process and resume". The `quit` answer re-inspects (the pid must still be that stray
+for that session), shows `Progress` on the offer, and `QuitAsync` signals the process and its descendants: SIGTERM, then
+SIGHUP, then SIGKILL, each after `QuitGrace` (3 s), until none is left (matched by pid and command line, so a reused pid is
+never signalled), drops the stale lock and resumes. A failure stays on the offer as `Progress`. Windows has no
+signals: the tree is ended with `taskkill /T /F` and, without tty or elapsed-time data, only a stale lock marks a stray
+(untested there). There is no separate process registry: the lock file is it, since the agent's pid is unknown when
+the lock is taken and the process scan finds it. At start the runtime only logs processes still naming the session of a
+stale lock; nothing is ended without a confirmed `quit`. A stray whose lock was already released (a graceful quit
+before this change, a crash) is found only by the orphaned-shell test, and a stray that is neither is `Foreign`.
 
 Agent records persist in
 the host state file, travel on `HostState.TerminalAgents`, and are dropped when the tab closes. Lifecycle events

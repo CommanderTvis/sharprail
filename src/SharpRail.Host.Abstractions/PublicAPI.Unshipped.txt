@@ -2073,7 +2073,7 @@ SharpRail.Host.Abstractions.HostState.ResumeOffers.get -> System.Collections.Gen
 SharpRail.Host.Abstractions.HostState.ResumeOffers.init -> void
 SharpRail.Host.Abstractions.TerminalResumeOffer
 SharpRail.Host.Abstractions.TerminalResumeOffer.<Clone>$() -> SharpRail.Host.Abstractions.TerminalResumeOffer!
-SharpRail.Host.Abstractions.TerminalResumeOffer.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out string! Agent, out string! SessionId, out bool OpenElsewhere) -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out string! Agent, out string! SessionId, out bool OpenElsewhere, out string! OwnerText, out string! QuitConfirmation, out string! Progress) -> void
 SharpRail.Host.Abstractions.TerminalResumeOffer.Equals(SharpRail.Host.Abstractions.TerminalResumeOffer? other) -> bool
 SharpRail.Host.Abstractions.TerminalResumeOffer.Agent.get -> string!
 SharpRail.Host.Abstractions.TerminalResumeOffer.Agent.init -> void
@@ -2083,4 +2083,11 @@ SharpRail.Host.Abstractions.TerminalResumeOffer.SessionId.get -> string!
 SharpRail.Host.Abstractions.TerminalResumeOffer.SessionId.init -> void
 SharpRail.Host.Abstractions.TerminalResumeOffer.Terminal.get -> SharpRail.Plugins.Api.TerminalRef!
 SharpRail.Host.Abstractions.TerminalResumeOffer.Terminal.init -> void
-SharpRail.Host.Abstractions.TerminalResumeOffer.TerminalResumeOffer(SharpRail.Plugins.Api.TerminalRef! Terminal, string! Agent, string! SessionId, bool OpenElsewhere = false) -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.OwnerText.get -> string!
+SharpRail.Host.Abstractions.TerminalResumeOffer.OwnerText.init -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.QuitConfirmation.get -> string!
+SharpRail.Host.Abstractions.TerminalResumeOffer.QuitConfirmation.init -> void
+SharpRail.Host.Abstractions.TerminalResumeOffer.Progress.get -> string!
+SharpRail.Host.Abstractions.TerminalResumeOffer.Progress.init -> void
+static SharpRail.Host.Abstractions.HostStateChange.QuitOwnerAndResume(SharpRail.Plugins.Api.TerminalRef! terminal) -> SharpRail.Host.Abstractions.HostStateChange!
+SharpRail.Host.Abstractions.TerminalResumeOffer.TerminalResumeOffer(SharpRail.Plugins.Api.TerminalRef! Terminal, string! Agent, string! SessionId, bool OpenElsewhere = false, string! OwnerText = "", string! QuitConfirmation = "", string! Progress = "") -> void

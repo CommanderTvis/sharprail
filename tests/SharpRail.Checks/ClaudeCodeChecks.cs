@@ -538,6 +538,7 @@ internal static class ClaudeCodeChecks
         string[] Launches() => File.Exists(log) ? File.ReadAllLines(log) : [];
         var agents = app.State!.AgentSessions;
         var others = new List<System.Diagnostics.Process>();
+        var spawned = new List<int>();
         try
         {
             (TerminalRef Tab, SharpRail.UI.Terminal.TerminalView View) Revive(string key, string id)
@@ -584,8 +585,10 @@ internal static class ClaudeCodeChecks
             secondView.AnswerResumeOffer(true);
             E2eWorkspace.Until(() => app.State.Current.ResumeOffers.Any(offer => offer.Terminal == second && offer.OpenElsewhere) &&
                 secondView.ResumeOffer is { Visible: true, Resume: false, Fresh: true });
-            Require(secondView.ResumeOffer.Text!.Contains("already open", StringComparison.Ordinal) && Launches().Length == before,
+            Require(secondView.ResumeOffer.Text!.Contains("is open in another SharpRail", StringComparison.Ordinal) && Launches().Length == before,
                 "A session another SharpRail holds is not resumed: " + secondView.ResumeOffer.Text);
+            Require(!secondView.ResumeOffer.Quit && secondView.ResumeOffer.Text.Contains($"SharpRail window/instance (pid {holder.Id}), tab terminal:other", StringComparison.Ordinal),
+                "A live SharpRail owner is named and never offered a quit: " + secondView.ResumeOffer.Text);
             Console.WriteLine("PASS Claude revival: a session locked by another live SharpRail is refused as open elsewhere");
             secondView.AnswerResumeOffer(false);
             E2eWorkspace.Until(() => Launches().Length > before);
@@ -603,7 +606,63 @@ internal static class ClaudeCodeChecks
             thirdView.AnswerResumeOffer(true);
             E2eWorkspace.Until(() => app.State.Current.ResumeOffers.Any(offer => offer.Terminal == third && offer.OpenElsewhere) && thirdView.ResumeOffer is { Resume: false });
             Require(Launches().Length == before, "A session a running process names is not resumed.");
+            Require(!thirdView.ResumeOffer.Quit && thirdView.ResumeOffer.Text!.Contains("pid ", StringComparison.Ordinal), "A process under a live SharpRail (this check run) is named and never offered a quit: " + thirdView.ResumeOffer.Text);
             Console.WriteLine("PASS Claude revival: a session a running process names is refused as open elsewhere");
+            // A stray: nothing of a live SharpRail above it, a dead holder's lock left behind, and it ignores TERM and HUP.
+            // Only processes this check spawned are ever signalled.
+            agents.QuitGrace = TimeSpan.FromMilliseconds(400);
+            (int Pid, int Child) Stray(string id)
+            {
+                var pidFile = Path.Combine(directory, "stray-" + id + ".pid");
+                File.Delete(pidFile);
+                const string body = "trap '' TERM HUP; echo $$ > \"$0\"; sleep 600 & echo $! >> \"$0\"; while :; do sleep 1; done";
+                using (var launcher = System.Diagnostics.Process.Start("/bin/sh", ["-c", "\"$@\" </dev/null >/dev/null 2>&1 & exit 0", "x", "/bin/sh", "-c", body, pidFile, "claude", "--resume", id])!)
+                    launcher.WaitForExit();
+                E2eWorkspace.Until(() => File.Exists(pidFile) && File.ReadAllLines(pidFile).Length >= 2);
+                var pids = File.ReadAllLines(pidFile).Select(line => int.Parse(line, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                spawned.AddRange(pids);
+                using (var gone = System.Diagnostics.Process.Start("/bin/sh", ["-c", "exit 0"])!)
+                {
+                    gone.WaitForExit();
+                    File.WriteAllText(agents.PathFor("claude", id), AgentSessionOwnership.Content(gone.Id, 1, new("/elsewhere", "terminal:gone")));
+                }
+                return (pids[0], pids[1]);
+            }
+            bool Alive(int pid) { try { using var process = System.Diagnostics.Process.GetProcessById(pid); return !process.HasExited; } catch (ArgumentException) { return false; } }
+
+            // The owner of a tab's own shell tree is never quittable: here the stray is an ancestor of the asking shell.
+            const string ancestor = "7d1c2b3a-5555-4c5d-8e9f-000000000005";
+            var (ancestorPid, ancestorChild) = Stray(ancestor);
+            var protectedOwner = agents.Inspect("claude", ancestor, [ancestorChild]);
+            Require(protectedOwner is { Kind: SessionOwnerKind.Stray, CanQuit: false } && protectedOwner.Pid == ancestorPid, "A process that is an ancestor of the asking tab's shell is never quittable: " + protectedOwner);
+            Console.WriteLine("PASS Claude revival: an ancestor of the asking tab's shell is not offered for quitting");
+
+            const string stray = "7d1c2b3a-4444-4c5d-8e9f-000000000004";
+            var (strayPid, strayChild) = Stray(stray);
+            var (fourth, fourthView) = Revive("terminal:resume-offer-stray", stray);
+            before = Launches().Length;
+            fourthView.AnswerResumeOffer(true);
+            E2eWorkspace.Until(() => fourthView.ResumeOffer is { Visible: true, Resume: false, Quit: true });
+            Require(fourthView.ResumeOffer.Text!.Contains($"is open in pid {strayPid} (", StringComparison.Ordinal) &&
+                fourthView.ResumeOffer.Text.Contains("SharpRail instance that started it is no longer running", StringComparison.Ordinal) && Launches().Length == before,
+                "A stray owner is named by pid and offered a quit: " + fourthView.ResumeOffer.Text);
+            Console.WriteLine("PASS Claude revival: a stray owner is named and offers Quit that process and resume");
+            Require(fourthView.QuitResumeOffer(), "The quit button is pressable.");
+            Button? quitConfirm = null;
+            E2eWorkspace.Until(() => (quitConfirm = app.Window.OwnedWindows.SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
+                .FirstOrDefault(button => button.Name == "QuitSessionOwnerConfirm")) is not null);
+            Require(Alive(strayPid) && Alive(strayChild), "Nothing is signalled before the user confirms.");
+            app.Click(quitConfirm!);
+            E2eWorkspace.Until(() => Launches().Skip(before).Any(line => line.Contains("--resume " + stray, StringComparison.Ordinal)));
+            E2eWorkspace.Until(() => !Alive(strayPid) && !Alive(strayChild));
+            Require(AgentSessionOwnership.Holder(agents.PathFor("claude", stray)) == Environment.ProcessId, "The stale lock is replaced by this host's before resuming.");
+            Console.WriteLine("PASS Claude revival: a confirmed quit ends a TERM- and HUP-ignoring tree by SIGKILL and resumes");
+            foreach (var tab in new[] { fourth })
+            {
+                var closedStray = Task.Run(async () => await app.State.Terminals!.CloseTabAsync(tab.WorkspaceId, tab.TabKey));
+                E2eWorkspace.Until(() => closedStray.IsCompleted);
+            }
+
             foreach (var tab in new[] { first, second, third })
             {
                 var closed = Task.Run(async () => await app.State.Terminals!.CloseTabAsync(tab.WorkspaceId, tab.TabKey));
@@ -615,6 +674,9 @@ internal static class ClaudeCodeChecks
         finally
         {
             foreach (var other in others) { try { other.Kill(true); } catch (InvalidOperationException) { } other.Dispose(); }
+            foreach (var pid in spawned)
+                try { using var left = System.Diagnostics.Process.GetProcessById(pid); left.Kill(true); }
+                catch (Exception error) when (error is ArgumentException or InvalidOperationException) { }
             if (File.Exists(pids))
                 foreach (var line in File.ReadAllLines(pids))
                     try { using var agent = System.Diagnostics.Process.GetProcessById(int.Parse(line, System.Globalization.CultureInfo.InvariantCulture)); agent.Kill(true); }

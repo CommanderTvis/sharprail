@@ -81,6 +81,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
         retry.Click += (_, _) => Start(retrying: true);
         this.FindControl<Button>("TerminalResumeOfferResume")!.Click += (_, _) => resumeOffered?.Invoke();
         this.FindControl<Button>("TerminalResumeOfferFresh")!.Click += (_, _) => freshOffered?.Invoke();
+        this.FindControl<Button>("TerminalResumeOfferQuit")!.Click += (_, _) => quitOffered?.Invoke();
         takeBack.Click += (_, _) => Start(retrying: true, takeOver: true);
         Focusable = true;
         // Held input never reaches a renderer: keys, composed text and the pointer's paste and menu buttons are
@@ -312,17 +313,19 @@ public sealed partial class TerminalView : UserControl, IDisposable
     /// <summary>Plugin accessory rows shown below the surface.</summary>
     public StackPanel Accessories { get; }
 
-    private Action? resumeOffered, freshOffered;
+    private Action? resumeOffered, freshOffered, quitOffered;
 
     /// <summary>
     /// Shows the host's resume offer for this tab above the surface, or hides it when <paramref name="text"/> is null. A null
     /// <paramref name="resume"/> leaves only Start fresh, for a session open elsewhere. Both buttons take keyboard focus and
-    /// carry access keys (Alt+R, Alt+F).
+    /// carry access keys (Alt+R, Alt+F). A <paramref name="quit"/> adds "Quit that process and resume" (Alt+Q), offered only for a stray
+    /// owner the host may end.
     /// </summary>
-    internal void ShowResumeOffer(string? text, Action? resume, Action? fresh)
+    internal void ShowResumeOffer(string? text, Action? resume, Action? fresh, Action? quit = null)
     {
         var offer = this.FindControl<Control>("TerminalResumeOffer")!;
-        resumeOffered = resume; freshOffered = fresh;
+        resumeOffered = resume; freshOffered = fresh; quitOffered = quit;
+        this.FindControl<Button>("TerminalResumeOfferQuit")!.IsVisible = text is not null && quit is not null;
         offer.IsVisible = text is not null;
         if (text is null) return;
         this.FindControl<TextBlock>("TerminalResumeOfferText")!.Text = text;
@@ -332,12 +335,16 @@ public sealed partial class TerminalView : UserControl, IDisposable
     }
 
     /// <summary>Whether the resume offer is shown, and the text and buttons it shows.</summary>
-    internal (bool Visible, string? Text, bool Resume, bool Fresh) ResumeOffer =>
+    internal (bool Visible, string? Text, bool Resume, bool Fresh, bool Quit) ResumeOffer =>
         (this.FindControl<Control>("TerminalResumeOffer")!.IsVisible, this.FindControl<TextBlock>("TerminalResumeOfferText")!.Text,
-            this.FindControl<Button>("TerminalResumeOfferResume")!.IsVisible, this.FindControl<Button>("TerminalResumeOfferFresh")!.IsVisible);
+            this.FindControl<Button>("TerminalResumeOfferResume")!.IsVisible, this.FindControl<Button>("TerminalResumeOfferFresh")!.IsVisible,
+            this.FindControl<Button>("TerminalResumeOfferQuit")!.IsVisible);
 
     /// <summary>Presses the offer's Resume (true) or Start fresh (false) button, as a click would.</summary>
     internal void AnswerResumeOffer(bool resume) => (resume ? resumeOffered : freshOffered)?.Invoke();
+
+    /// <summary>Presses the offer's "Quit that process and resume" button, as a click would; false when it is not shown.</summary>
+    internal bool QuitResumeOffer() { if (quitOffered is not { } quit) return false; quit(); return true; }
 
     /// <summary>The embedded companion pane beside the surface; null closes it.</summary>
     public Control? Companion

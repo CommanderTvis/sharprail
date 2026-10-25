@@ -293,7 +293,7 @@ public sealed partial class HostStateStore : IHostStateService
                 next = Visible(Publish(next, persist: true));
             }
             foreach (var answer in changes.Where(change => change.Kind == "terminal-resume-answer"))
-                if (JsonSerializer.Deserialize<TerminalRef>(answer.Key ?? "") is { } answered) ResumeAnswered?.Invoke(answered, answer.Value == "resume");
+                if (JsonSerializer.Deserialize<TerminalRef>(answer.Key ?? "") is { } answered) ResumeAnswered?.Invoke(answered, answer.Value);
             foreach (var answer in changes.Where(change => change.Kind == "terminal-emigration-answer"))
                 if (emigrationAnswers.TryRemove(answer.Key ?? "", out var waiting)) waiting.TrySetResult(answer.Value == "approve");
             if (previous.Settings.LspEnabled && !next.Settings.LspEnabled && languages is { } languageService)
@@ -410,8 +410,8 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
 
-    /// <summary>A client answered a revived tab's resume offer: true to resume its session, false to start fresh. Raised after the change applied.</summary>
-    public event Action<TerminalRef, bool>? ResumeAnswered;
+    /// <summary>A client answered a revived tab's resume offer: "resume", "fresh" or "quit" (end the stray owner, then resume). Raised after the change applied.</summary>
+    public event Action<TerminalRef, string>? ResumeAnswered;
 
     /// <summary>Publishes or replaces a revived tab's resume offer; never persisted.</summary>
     public void OfferResume(TerminalResumeOffer offer)
@@ -651,8 +651,8 @@ public sealed partial class HostStateStore : IHostStateService
         switch (change.Kind)
         {
             case "terminal-resume-answer":
-                if (value is not ("resume" or "fresh") || JsonSerializer.Deserialize<TerminalRef>(key) is null)
-                    throw new ArgumentException("A resume answer names a terminal and is resume or fresh.");
+                if (value is not ("resume" or "fresh" or "quit") || JsonSerializer.Deserialize<TerminalRef>(key) is null)
+                    throw new ArgumentException("A resume answer names a terminal and is resume, fresh or quit.");
                 return current;
             case "terminal-emigration-answer":
                 if (value is not ("approve" or "deny")) throw new ArgumentException("An emigration answer is approve or deny.");

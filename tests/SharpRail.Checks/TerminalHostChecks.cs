@@ -62,6 +62,7 @@ internal static partial class TerminalHostChecks
             return;
         }
         TerminalReplayChecks.Run();
+        await ShutdownEndsTrees(root, workspace);
         await using (var local = new PtyTerminalService())
         {
             await Exercise(new LocalTerminalAdapter(local), workspace, "local");
@@ -744,5 +745,37 @@ internal static partial class TerminalHostChecks
             await Until(() => Task.FromResult(System.Text.RegularExpressions.Regex.IsMatch(Text, pattern)), $"{mode} output {pattern}");
             return System.Text.RegularExpressions.Regex.Match(Text, pattern).Groups[1].Value;
         }
+    }
+
+    // Stopping the host ends every terminal's process tree: a job in its own process group that ignores HUP and TERM (as
+    // the agent that outlived a SharpRail instance did) is killed with its shell. Only the pid this check started is signalled.
+    private static async Task ShutdownEndsTrees(string root, string workspace)
+    {
+        var pidFile = Path.Combine(root, "shutdown-tree.pid");
+        File.Delete(pidFile);
+        int pid;
+        try
+        {
+            var local = new PtyTerminalService("/bin/sh");
+            var session = await new LocalTerminalAdapter(local).AttachAsync(new("shutdown-tree", workspace, "client", 100, 30));
+            await session.WriteAsync(Encoding.UTF8.GetBytes($"set -m; /bin/sh -c 'trap \"\" HUP TERM; echo $$ > \"$0\"; while :; do sleep 1; done' '{pidFile}' &\n"));
+            await Until(() => Task.FromResult(File.Exists(pidFile) && File.ReadAllText(pidFile).Trim().Length > 0), "the stubborn job started");
+            pid = int.Parse(File.ReadAllText(pidFile).Trim(), System.Globalization.CultureInfo.InvariantCulture);
+            Require(Posix_Alive(pid), "The job runs before shutdown.");
+            await local.DisposeAsync();
+            await Until(() => Task.FromResult(!Posix_Alive(pid)), "the job ending with the host");
+        }
+        finally
+        {
+            if (File.Exists(pidFile) && int.TryParse(File.ReadAllText(pidFile).Trim(), out var left))
+                try { using var process = System.Diagnostics.Process.GetProcessById(left); process.Kill(true); } catch (Exception error) when (error is ArgumentException or InvalidOperationException) { }
+        }
+        Console.WriteLine("PASS terminal shutdown: a job in its own process group that ignores HUP and TERM ends with the host");
+    }
+
+    private static bool Posix_Alive(int pid)
+    {
+        try { using var process = System.Diagnostics.Process.GetProcessById(pid); return !process.HasExited; }
+        catch (ArgumentException) { return false; }
     }
 }

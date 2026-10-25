@@ -787,9 +787,15 @@ internal sealed class PtySession : ITerminalProcess
     public async ValueTask KillAsync(CancellationToken cancellationToken = default)
     {
         if (exited.Task.IsCompleted) return;
+        // Job control puts an agent in a process group of its own, so the shell's group misses it: the descendants and the
+        // terminal's foreground group are captured first, hung up with the shell, and killed if they outlast it.
+        var foreground = Posix.ForegroundGroup(master);
+        var rest = await Task.Run(() => ProcessTable.Capture(pid, foreground), cancellationToken);
+        rest.Remove(pid);
         // The shell leads its own session and process group.
         Posix.Kill(-pid, Posix.Sighup);
         Posix.Kill(pid, Posix.Sighup);
+        ProcessTable.Signal(rest.Keys, Posix.Sighup);
         try { await exited.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken); }
         catch (TimeoutException)
         {
@@ -797,6 +803,10 @@ internal sealed class PtySession : ITerminalProcess
             Posix.Kill(pid, Posix.Sigkill);
             await exited.Task.WaitAsync(cancellationToken);
         }
+        // Stragglers get the hang-up's grace, then SIGKILL.
+        var until = Environment.TickCount64 + 2000;
+        while (Environment.TickCount64 < until && await Task.Run(() => ProcessTable.Alive(rest).Count, cancellationToken) > 0) await Task.Delay(100, cancellationToken);
+        await ProcessTable.EndAsync(rest, TimeSpan.FromSeconds(1));
     }
 
     public async ValueTask DisposeAsync()

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 
 using SharpRail.Plugins.Api;
 
@@ -31,14 +30,84 @@ public sealed partial class AgentSessionOwnership(string? directory = null)
     public string PathFor(string agent, string sessionId) => Path.Combine(Directory, $"{Safe(agent)}-{Safe(sessionId)}.lock");
 
     /// <summary>
-    /// Why the session may not be resumed here, or null when nobody else has it open: a live lock held by another
-    /// process, or a running process that names the id, outside the process trees of <paramref name="ownShells"/>.
+    /// Who else has the session open, or null when nobody does: a live lock held by another process, or a running process
+    /// that names the id, outside the process trees of <paramref name="ownShells"/>.
     /// </summary>
-    public string? OwnedElsewhere(string agent, string sessionId, IReadOnlyCollection<int> ownShells)
+    public SessionOwner? Inspect(string agent, string sessionId, IReadOnlyCollection<int> ownShells)
     {
         if (sessionId.Length == 0) return null;
-        if (Holder(PathFor(agent, sessionId)) is { } holder && holder != Environment.ProcessId) return $"another SharpRail process ({holder}) holds it";
-        return Running(sessionId, ownShells) is { } pid ? $"process {pid} has it open" : null;
+        var path = PathFor(agent, sessionId);
+        var rows = ProcessTable.Read();
+        var byPid = rows.ToDictionary(row => row.Pid);
+        if (Holder(path) is { } holder && holder != Environment.ProcessId)
+        {
+            byPid.TryGetValue(holder, out var held);
+            return new(SessionOwnerKind.Instance, holder, Started(held), held?.Tty ?? "", Command(held), LockTab(path), false);
+        }
+        var running = Running(rows, sessionId, ownShells);
+        if (running is null) return null;
+        var parents = rows.ToDictionary(row => row.Pid, row => row.Ppid);
+        var chain = Ancestry(parents, running.Pid);
+        var instances = LiveHolders();
+        instances.Add(Environment.ProcessId);
+        var viaInstance = chain.FirstOrDefault(pid => instances.Contains(pid) || byPid.TryGetValue(pid, out var row) && IsSharpRail(row.Arguments));
+        if (viaInstance != 0) return new(SessionOwnerKind.Instance, running.Pid, Started(running), running.Tty, Command(running), LockTab(path), false);
+        // No live SharpRail above it: left behind when its instance stopped if a dead holder's lock remains, or the topmost
+        // ancestor is a shell that was orphaned to init with a terminal.
+        var top = byPid.GetValueOrDefault(chain[^1]);
+        var orphanedShell = top is not null && top.Ppid <= 1 && top.Tty is not ("" or "?" or "??") && IsShell(top.Arguments);
+        var leftBehind = File.Exists(path) || orphanedShell;
+        var protectedPids = new HashSet<int>(Ancestry(parents, Environment.ProcessId));
+        foreach (var shell in ownShells) protectedPids.UnionWith(Ancestry(parents, shell));
+        var tree = ProcessTable.Subtree(rows, running.Pid);
+        var quittable = leftBehind && !tree.Overlaps(protectedPids);
+        return new(leftBehind ? SessionOwnerKind.Stray : SessionOwnerKind.Foreign, running.Pid, Started(running), running.Tty, Command(running), "", quittable);
+    }
+
+    /// <summary>
+    /// Ends a stray owner found by <see cref="Inspect"/>: its process tree gets SIGTERM, then SIGHUP, then SIGKILL, each after
+    /// <see cref="QuitGrace"/>, and the stale lock is dropped once nothing is left. Re-inspects first, so a process that is
+    /// no longer a stray owner of that session (it exited, its pid was reused) is never signalled. Returns null on success, else why not.
+    /// </summary>
+    public async Task<string?> QuitAsync(string agent, string sessionId, int pid, IReadOnlyCollection<int> ownShells)
+    {
+        var owner = await Task.Run(() => Inspect(agent, sessionId, ownShells));
+        if (owner is null) return null;
+        if (owner is not { Kind: SessionOwnerKind.Stray, CanQuit: true } || owner.Pid != pid) return $"process {pid} is no longer a stray owner of the session; refresh the offer.";
+        var captured = await Task.Run(() =>
+        {
+            var rows = ProcessTable.Read();
+            var tree = ProcessTable.Subtree(rows, pid);
+            return rows.Where(row => tree.Contains(row.Pid)).ToDictionary(row => row.Pid, row => row.Arguments);
+        });
+        if (!await ProcessTable.EndAsync(captured, QuitGrace, Posix.Sigterm, Posix.Sighup))
+            return $"process {pid} survived SIGKILL.";
+        var path = PathFor(agent, sessionId);
+        if (Holder(path) is null) Delete(path);
+        return null;
+    }
+
+    /// <summary>How long each signal of <see cref="QuitAsync"/> waits before the next, three seconds unless a check shortens it.</summary>
+    public TimeSpan QuitGrace { get; set; } = TimeSpan.FromSeconds(3);
+
+    /// <summary>Session ids that a lock file of a process that no longer runs still names, for the start-up sweep (log only).</summary>
+    public IReadOnlyList<(string File, int Pid)> StrayCandidates()
+    {
+        var found = new List<(string, int)>();
+        try
+        {
+            if (!System.IO.Directory.Exists(Directory)) return found;
+            var rows = ProcessTable.Read();
+            foreach (var file in System.IO.Directory.EnumerateFiles(Directory, "*.lock"))
+            {
+                if (Holder(file) is not null) continue;
+                var id = Path.GetFileNameWithoutExtension(file);
+                id = id[(id.IndexOf('-') + 1)..];
+                if (Running(rows, id, []) is { } row) found.Add((file, row.Pid));
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        return found;
     }
 
     /// <summary>
@@ -124,10 +193,53 @@ public sealed partial class AgentSessionOwnership(string? directory = null)
         catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException) { return 0; }
     }
 
-    // A live (non-zombie) process naming the session in its arguments, outside the given shells' trees.
-    private static int? Running(string sessionId, IReadOnlyCollection<int> ownShells)
+    private static string Started(ProcessRow? row) => row?.Elapsed is { } elapsed ? Ago(elapsed) : "";
+
+    private static string Ago(TimeSpan span) => span.TotalDays >= 1 ? Plural((int)span.TotalDays, "day") : span.TotalHours >= 1 ? Plural((int)span.TotalHours, "hour")
+        : span.TotalMinutes >= 1 ? Plural((int)span.TotalMinutes, "minute") : "moments";
+
+    private static string Plural(int count, string unit) => $"{count} {unit}{(count == 1 ? "" : "s")}";
+
+    private static string Command(ProcessRow? row) => row is null ? "" : row.Arguments.Length > 120 ? row.Arguments[..120] + "..." : row.Arguments;
+
+    // The holder's tab as the lock file names it (workspace and tab key), or empty.
+    private static string LockTab(string path)
     {
-        var rows = Rows();
+        try { var lines = File.ReadAllLines(path); return lines.Length >= 4 ? lines[3] : ""; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return ""; }
+    }
+
+    // The pid, then each parent up to the top (the last entry is the topmost ancestor below init).
+    private static List<int> Ancestry(Dictionary<int, int> parents, int pid)
+    {
+        var chain = new List<int> { pid };
+        while (chain.Count < 64 && parents.TryGetValue(chain[^1], out var parent) && parent > 1 && parent != chain[^1] && !chain.Contains(parent)) chain.Add(parent);
+        return chain;
+    }
+
+    private HashSet<int> LiveHolders()
+    {
+        var pids = new HashSet<int>();
+        try
+        {
+            if (System.IO.Directory.Exists(Directory))
+                foreach (var file in System.IO.Directory.EnumerateFiles(Directory, "*.lock"))
+                    if (Holder(file) is { } holder) pids.Add(holder);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        return pids;
+    }
+
+    // A SharpRail host or UI process: its executable (or the dll it runs under dotnet) is named SharpRail*.
+    private static bool IsSharpRail(string arguments) =>
+        arguments.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Take(2).Any(word => Path.GetFileName(word).StartsWith("SharpRail", StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsShell(string arguments) =>
+        Path.GetFileName(arguments.Split((char[]?)null, 2)[0]).TrimStart('-') is "sh" or "bash" or "zsh" or "fish" or "dash" or "ksh" or "nu" or "pwsh";
+
+    // A live (non-zombie) process naming the session in its arguments, outside the given shells' trees.
+    private static ProcessRow? Running(List<ProcessRow> rows, string sessionId, IReadOnlyCollection<int> ownShells)
+    {
         if (rows.Count == 0) return null;
         var parents = rows.ToDictionary(row => row.Pid, row => row.Ppid);
         foreach (var row in rows)
@@ -136,7 +248,7 @@ public sealed partial class AgentSessionOwnership(string? directory = null)
             var inside = false;
             for (int? pid = row.Pid, depth = 0; pid is { } current && depth < 64 && !inside; pid = parents.TryGetValue(current, out var parent) && parent != current ? parent : null, depth++)
                 inside = ownShells.Contains(current);
-            if (!inside) return row.Pid;
+            if (!inside) return row;
         }
         return null;
     }
@@ -146,49 +258,6 @@ public sealed partial class AgentSessionOwnership(string? directory = null)
         arguments.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Any(argument =>
             argument == sessionId || argument.EndsWith("=" + sessionId, StringComparison.Ordinal) ||
             argument.Split('/', '\\').Any(segment => segment == sessionId || segment.StartsWith(sessionId + ".", StringComparison.Ordinal)));
-
-    private sealed record Row(int Pid, int Ppid, string Arguments);
-
-    // ps rows with their state: a zombie (Z) has exited and keeps its arguments only until its parent reaps it.
-    [GeneratedRegex(@"^\s*(\d+)\s+(\d+)\s+(\S+)\s+(.*\S)\s*$")]
-    private static partial Regex StatedRow();
-
-    [GeneratedRegex(@"^\s*(\d+)\s+(\d+)\s+(.*\S)\s*$")]
-    private static partial Regex WindowsRow();
-
-    private static List<Row> Rows()
-    {
-        var windows = OperatingSystem.IsWindows();
-        var output = windows
-            ? Run("powershell.exe", "-NoProfile", "-Command",
-                "$ErrorActionPreference = 'Stop'; Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId) $($_.ParentProcessId) $($_.CommandLine)\" }")
-            : Run("ps", "-Aww", "-o", "pid=,ppid=,stat=,args=");
-        var rows = new List<Row>();
-        foreach (var line in (output ?? "").Split('\n'))
-        {
-            var match = windows ? WindowsRow().Match(line) : StatedRow().Match(line);
-            if (!match.Success || !windows && match.Groups[3].Value.StartsWith('Z')) continue;
-            if (int.TryParse(match.Groups[1].Value, CultureInfo.InvariantCulture, out var pid) && int.TryParse(match.Groups[2].Value, CultureInfo.InvariantCulture, out var ppid))
-                rows.Add(new(pid, ppid, match.Groups[windows ? 3 : 4].Value));
-        }
-        return rows;
-    }
-
-    private static string? Run(string program, params string[] arguments)
-    {
-        try
-        {
-            var start = new ProcessStartInfo(program) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
-            foreach (var argument in arguments) start.ArgumentList.Add(argument);
-            using var process = Process.Start(start);
-            if (process is null) return null;
-            var output = process.StandardOutput.ReadToEndAsync();
-            _ = process.StandardError.ReadToEndAsync();
-            if (!process.WaitForExit(10_000)) { process.Kill(true); return null; }
-            return process.ExitCode == 0 ? output.GetAwaiter().GetResult() : null;
-        }
-        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException or IOException) { return null; }
-    }
 
     private static void Delete(string path)
     {
@@ -202,4 +271,36 @@ public sealed partial class AgentSessionOwnership(string? directory = null)
         foreach (var c in value) builder.Append(char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '_');
         return builder.Length is 0 or > 128 ? Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(value))) : builder.ToString();
     }
+}
+
+/// <summary>How the process holding an agent session relates to SharpRail.</summary>
+public enum SessionOwnerKind
+{
+    /// <summary>A live SharpRail instance holds the session (its lock, or an ancestor of the process).</summary>
+    Instance,
+    /// <summary>Left running by a SharpRail instance that is no longer running.</summary>
+    Stray,
+    /// <summary>A process with no SharpRail link, such as an agent started by hand.</summary>
+    Foreign
+}
+
+/// <summary>The process that has an agent session open; <paramref name="CanQuit"/> only for a stray that is safe to end.</summary>
+public sealed record SessionOwner(SessionOwnerKind Kind, int Pid, string Started, string Tty, string Command, string Tab, bool CanQuit)
+{
+    /// <summary>The refusal shown in the resume offer, after the "Claude session xxxx" lead.</summary>
+    public string Describe()
+    {
+        var detail = string.Join(", ", new[] { Started.Length > 0 ? "started " + Started + " ago" : "", Tty is "" or "?" or "??" ? "" : Tty }.Where(part => part.Length > 0));
+        var process = $"pid {Pid}" + (detail.Length > 0 ? $" ({detail})" : "");
+        return Kind switch
+        {
+            SessionOwnerKind.Instance => $"is open in another SharpRail window/instance (pid {Pid})" + (Tab.Length > 0 ? $", tab {Tab}" : "") + ".",
+            SessionOwnerKind.Stray => $"is open in {process}. The SharpRail instance that started it is no longer running.",
+            _ => $"is open in {process}, which SharpRail did not start."
+        };
+    }
+
+    /// <summary>The confirmation text for ending the process; names its pid, command and start time.</summary>
+    public string QuitConfirmation() =>
+        $"End pid {Pid}{(Started.Length > 0 ? $" (started {Started} ago)" : "")} and everything it started?\n\n{Command}\n\nIt gets SIGTERM, then SIGHUP, then SIGKILL until it is gone, and the session resumes in this tab.";
 }

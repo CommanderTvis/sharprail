@@ -151,7 +151,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         ConnectedThroughTailscale = reply.ConnectedThroughTailscale,
         PendingEmigrations = reply.PendingEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray(),
         FailedEmigrations = reply.FailedEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray(),
-        ResumeOffers = reply.ResumeOffers.Select(offer => new TerminalResumeOffer(new(offer.WorkspaceId, offer.TabKey), offer.Agent, offer.SessionId, offer.OpenElsewhere)).ToArray()
+        ResumeOffers = reply.ResumeOffers.Select(offer => new TerminalResumeOffer(new(offer.WorkspaceId, offer.TabKey), offer.Agent, offer.SessionId, offer.OpenElsewhere, offer.OwnerText, offer.QuitConfirmation, offer.Progress)).ToArray()
     };
 
     public void Dispose() => channel.Dispose();

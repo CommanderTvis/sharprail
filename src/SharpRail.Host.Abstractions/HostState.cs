@@ -190,7 +190,11 @@ public sealed record TerminalEmigrationRequest(string Id, TerminalRef Terminal, 
 /// <param name="Agent">The agent record's kind (<c>claude</c>, <c>codex</c>, <c>omp</c>, ...).</param>
 /// <param name="SessionId">The recorded session id; empty for a legacy record that has none.</param>
 /// <param name="OpenElsewhere">The session is already open in another process (another tab, window or SharpRail instance), so only a fresh start is offered.</param>
-public sealed record TerminalResumeOffer(TerminalRef Terminal, string Agent, string SessionId, bool OpenElsewhere = false);
+/// <param name="OwnerText">Who has the session open (pid, age, tty, whether a live SharpRail owns it), shown instead of a generic refusal; empty when unknown.</param>
+/// <param name="QuitConfirmation">Set only when the owner is a stray process left by a SharpRail instance that is gone: the text a client confirms before asking the host to end it. Empty offers no quit.</param>
+/// <param name="Progress">The host's inline status while it ends the stray owner, or why that failed; empty otherwise.</param>
+public sealed record TerminalResumeOffer(TerminalRef Terminal, string Agent, string SessionId, bool OpenElsewhere = false,
+    string OwnerText = "", string QuitConfirmation = "", string Progress = "");
 
 /// <param name="Source">Who chose the title; a stronger source's title is never replaced by a weaker one's.</param>
 public sealed record TerminalTitle(TerminalRef Terminal, string Title, TerminalTitleSource Source = TerminalTitleSource.User);
@@ -239,6 +243,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange AnswerEmigration(string id, bool approved) => new("terminal-emigration-answer", id, approved ? "approve" : "deny");
     /// <summary>Answers a revived tab's <see cref="HostState.ResumeOffers"/> entry: resume its session, or start a fresh one.</summary>
     public static HostStateChange AnswerResume(TerminalRef terminal, bool resume) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal), resume ? "resume" : "fresh");
+    /// <summary>Answers a resume offer by ending its stray owner process, then resuming; the host re-checks that the process is still a stray owner.</summary>
+    public static HostStateChange QuitOwnerAndResume(TerminalRef terminal) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal), "quit");
     public static HostStateChange PluginPaths(IReadOnlyList<string> paths) => new("plugin-paths", Value: JsonSerializer.Serialize(paths));
 }
 

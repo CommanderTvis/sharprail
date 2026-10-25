@@ -63,6 +63,16 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             terminals.SessionClosed = OnSessionClosed;
         }
         Seams.State.ResumeAnswered += OnResumeAnswered;
+        // Nothing is ended at start-up: strays an earlier instance left are only logged, and offered when their session is resumed.
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                foreach (var (file, pid) in Seams.State.AgentSessions.StrayCandidates())
+                    Seams.Log("plugins", "warning", $"Process {pid} still has the agent session of the stale lock {Path.GetFileName(file)} open; resuming that session offers to end it.");
+            }
+            catch (Exception error) { Seams.Log("plugins", "warning", "Agent session sweep: " + error.Message); }
+        });
         // Register and consume the initial state synchronously before activation can admit watches.
         // Starting this on the pool can miss a close/disable that becomes its first snapshot.
         Seams.State.WorkspaceRemoved += ReleaseWorkspaceWatch;
@@ -1043,29 +1053,50 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         return true;
     }
 
-    private void OnResumeAnswered(TerminalRef terminal, bool resume) => _ = Task.Run(() => AnswerResume(terminal, resume));
+    private void OnResumeAnswered(TerminalRef terminal, string answer) => _ = Task.Run(() => AnswerResume(terminal, answer));
 
     /// <summary>
-    /// Settles a resume offer: resuming checks machine-wide that nobody has the session open and takes its lock before the
-    /// resume command is typed; one open elsewhere stays offered as such. A fresh start forgets the record and types the
-    /// agent's fresh launch. Runs off the UI thread.
+    /// Settles a resume offer. Resuming checks machine-wide that nobody has the session open and takes its lock before the
+    /// resume command is typed; one open elsewhere stays offered as such, naming the owner. "quit" first ends an owner that is
+    /// a stray left by a SharpRail instance that no longer runs (never a live instance's, never an ancestor of this tab's
+    /// shell), then resumes. A fresh start forgets the record and types the agent's fresh launch. Runs off the UI thread.
     /// </summary>
-    internal void AnswerResume(TerminalRef terminal, bool resume)
+    internal async Task AnswerResume(TerminalRef terminal, string answer)
     {
         if (Seams.State.Current.ResumeOffers.FirstOrDefault(offer => offer.Terminal == terminal) is not { } offer || Seams.Terminals is not { } terminals) return;
         var record = AgentRecord(terminal);
-        if (resume)
+        if (answer is "resume" or "quit")
         {
-            if (offer.OpenElsewhere || record is null) return;
+            if (record is null || answer == "resume" && offer.OpenElsewhere || answer == "quit" && offer.QuitConfirmation.Length == 0) return;
             if (record.SessionId is { Length: > 0 } id)
             {
                 var own = terminals.List().Where(process => process.Terminal == terminal && process.Pid is not null).Select(process => process.Pid!.Value).ToArray();
                 var agents = Seams.State.AgentSessions;
-                var why = agents.OwnedElsewhere(record.Kind, id, own);
-                if (why is not null || !agents.Hold(terminal, record.Kind, id))
+                if (answer == "quit")
                 {
-                    Seams.Log("plugins", "info", $"Not resuming the {record.Kind} session {id} in {terminal.TabKey}: {why ?? "another process took its lock"}.");
-                    Seams.State.OfferResume(offer with { OpenElsewhere = true });
+                    var stray = await Task.Run(() => agents.Inspect(record.Kind, id, own));
+                    if (stray is { Kind: SessionOwnerKind.Stray, CanQuit: true } && offer.QuitConfirmation.StartsWith($"End pid {stray.Pid} ", StringComparison.Ordinal))
+                    {
+                        Seams.State.OfferResume(offer with { Progress = $"Ending pid {stray.Pid}..." });
+                        Seams.Log("plugins", "info", $"Ending pid {stray.Pid}, a stray owner of the {record.Kind} session {id}, on the user's confirmation.");
+                        if (await agents.QuitAsync(record.Kind, id, stray.Pid, own) is { } failure)
+                        {
+                            Seams.State.OfferResume(offer with { Progress = $"Could not end pid {stray.Pid}: {failure}" });
+                            return;
+                        }
+                    }
+                }
+                var (owner, held) = await Task.Run(() => { var found = agents.Inspect(record.Kind, id, own); return (found, found is null && agents.Hold(terminal, record.Kind, id)); });
+                if (!held)
+                {
+                    Seams.Log("plugins", "info", $"Not resuming the {record.Kind} session {id} in {terminal.TabKey}: {owner?.Describe() ?? "another process took its lock"}");
+                    Seams.State.OfferResume(offer with
+                    {
+                        OpenElsewhere = true,
+                        OwnerText = owner?.Describe() ?? "",
+                        QuitConfirmation = owner is { CanQuit: true } ? owner.QuitConfirmation() : "",
+                        Progress = answer == "quit" ? "The session is still open elsewhere." : ""
+                    });
                     return;
                 }
             }

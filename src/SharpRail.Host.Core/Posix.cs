@@ -30,7 +30,7 @@ internal static class Posix
     internal const int ORdwr = 2;
     internal const short PollIn = 1;
     internal const int Eintr = 4, Eagain = 35, EagainLinux = 11;
-    internal const int Sighup = 1, Sigkill = 9, Sigwinch = 28;
+    internal const int Sighup = 1, Sigkill = 9, Sigterm = 15, Sigwinch = 28;
     internal const int Wnohang = 1;
 
     internal static readonly bool Mac = OperatingSystem.IsMacOS();

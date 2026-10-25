@@ -133,6 +133,9 @@ public sealed class TerminalResumeOfferMessage
     [ProtoMember(3)] public string Agent { get; set; } = "";
     [ProtoMember(4)] public string SessionId { get; set; } = "";
     [ProtoMember(5)] public bool OpenElsewhere { get; set; }
+    [ProtoMember(6)] public string OwnerText { get; set; } = "";
+    [ProtoMember(7)] public string QuitConfirmation { get; set; } = "";
+    [ProtoMember(8)] public string Progress { get; set; } = "";
 }
 
 [ProtoContract]

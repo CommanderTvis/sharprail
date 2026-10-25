@@ -198,8 +198,8 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
         // The move resumes the session without a further question, so nobody else may have it open: this tab's own
         // agent is the one process allowed to name it.
         var own = state.Terminals.List().Where(process => process.Terminal == terminal && process.Pid is not null).Select(process => process.Pid!.Value).ToArray();
-        if (state.AgentSessions.OwnedElsewhere(record.Kind, record.SessionId, own) is { } why)
-            return $"this session is also open elsewhere ({why}), so resuming it in the target would run it twice.";
+        if (state.AgentSessions.Inspect(record.Kind, record.SessionId, own) is { } why)
+            return $"this session is also open elsewhere (pid {why.Pid}), so resuming it in the target would run it twice.";
         return null;
     }
 
