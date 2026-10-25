@@ -81,6 +81,15 @@
     <PackageReference Include="bblanchon.PDFium.Linux" ExcludeAssets="all" />
     <PackageReference Include="bblanchon.PDFium.macOS" ExcludeAssets="all" />
   </ItemGroup>
+  <!--
+    With RuntimeIdentifiers set, the SDK already packs the package's runtimes/android-*/native/libpdfium.so; the package's own
+    AndroidNativeLibrary items add the same files again (XA4301: APK already contains the item).
+  -->
+  <Target Name="DropDuplicatePdfium" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <AndroidNativeLibrary Remove="@(AndroidNativeLibrary)" Condition="'%(Filename)%(Extension)' == 'libpdfium.so' And $([System.String]::Copy('%(FullPath)').Contains('bblanchon.pdfium.android'))" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <!-- Avalonia's Android backend has no windows; Windowing/ supplies them over its view and top level, which are internal. -->
     <Publicize Include="Avalonia.Android:Avalonia.Android.Platform.SkiaPlatform.TopLevelImpl" />
