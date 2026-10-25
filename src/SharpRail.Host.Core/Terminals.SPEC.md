@@ -281,7 +281,8 @@ including draining output while closing the pseudoconsole.
 - `CloseTabForUndoAsync` (the remote request's `Undoable` flag) is a user's close of a live tab: the tab
   leaves the catalog and every client sees it gone, but its live shell keeps running, detached, for the
   host setting `TerminalUndoCloseSeconds` (default 5, Ghostty's `undo-timeout`; 0–600, zero disables). Each
-  close has its own timer. Reserving the same tab within it restores it with the same session; afterwards
+  close has its own timer, started before the tab leaves the catalog, so no watcher sees the tab gone while its
+  session is not yet waiting for undo. Reserving the same tab within it restores it with the same session; afterwards
   the shell ends as `CloseTabAsync` ends it. An exited shell, a timeout of zero, an implementation without
   undo (the interface default, a memory catalog) or a host that predates the flag close outright. A tab still
   waiting for undo is ended, not saved for revival, when the host stops; a workspace removal ends it too.

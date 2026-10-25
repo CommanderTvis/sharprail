@@ -144,12 +144,20 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         lock (gate) live = !disposed && sessions.TryGetValue(session, out var terminal) && !terminal.Process.Exit.IsCompleted;
         // An exited shell has nothing to keep; zero turns undo off.
         if (keep == 0 || !live) return await CloseTabAsync(workspaceRoot, key, cancellationToken);
-        var result = catalog.Remove(workspaceRoot, key);
         var expiry = new CancellationTokenSource();
+        // Marked before the tab leaves the catalog, which publishes: a watcher that sees the tab gone must find its session already waiting for undo.
         lock (gate)
         {
             if (closing.Remove(session, out var previous)) previous.Cancel();
             closing[session] = expiry;
+        }
+        TerminalCatalog result;
+        try { result = catalog.Remove(workspaceRoot, key); }
+        catch
+        {
+            lock (gate) if (closing.TryGetValue(session, out var current) && current == expiry) closing.Remove(session);
+            expiry.Cancel();
+            throw;
         }
         _ = ExpireAsync(session, expiry, TimeSpan.FromSeconds(keep));
         return result;

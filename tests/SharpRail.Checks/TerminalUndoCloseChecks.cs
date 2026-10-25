@@ -52,9 +52,19 @@ internal static partial class TerminalHostChecks
         Directory.CreateDirectory(area);
         using var watching = new CancellationTokenSource();
         var seen = TerminalCatalog.Empty;
+        var closingTab = 0;
+        var unmarked = 0;
         var watcher = Task.Run(async () =>
         {
-            try { await foreach (var snapshot in catalog.WatchAsync(watching.Token)) Volatile.Write(ref seen, snapshot); }
+            try
+            {
+                await foreach (var snapshot in catalog.WatchAsync(watching.Token))
+                {
+                    Volatile.Write(ref seen, snapshot);
+                    // A published snapshot without the tab means its close is already waiting for undo.
+                    if (Volatile.Read(ref closingTab) == 1 && !Listed(snapshot, "undo-a") && host.ClosingCount == 0) Interlocked.Exchange(ref unmarked, 1);
+                }
+            }
             catch (Exception) when (watching.IsCancellationRequested) { }
         });
         bool Listed(TerminalCatalog snapshot, string key) => snapshot.Workspaces.GetValueOrDefault(area)?.Any(tab => tab.Key == key) == true;
@@ -72,8 +82,11 @@ internal static partial class TerminalHostChecks
         // the tab again brings back the same session with what it wrote while closed.
         var (first, firstScreen, pid) = await Start("undo-a", "client-a");
         await firstScreen.Run("sleep 1; printf 'WHILE_%s_CLOSED\\n' undone");
+        Volatile.Write(ref closingTab, 1);
         Require(!Listed(await catalog.CloseTabForUndoAsync(area, "undo-a"), "undo-a"), $"{mode}: an undoable close must remove the tab from the catalog.");
         await Until(() => Task.FromResult(!Listed(Volatile.Read(ref seen), "undo-a")), $"{mode}: watchers see the closed tab gone");
+        Volatile.Write(ref closingTab, 0);
+        Require(Volatile.Read(ref unmarked) == 0, $"{mode}: a watcher saw the tab gone before its session was marked as waiting for undo.");
         await first.DisposeAsync();
         Require(Running(pid), $"{mode}: a tab closed for undo must keep its shell running.");
         Require(Listed(await catalog.ReserveAsync(area, new("undo-a", "Terminal")), "undo-a"), $"{mode}: reserving the closed tab must restore it.");
