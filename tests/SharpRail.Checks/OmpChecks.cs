@@ -43,6 +43,11 @@ internal static class OmpChecks
             "if [ \"$1\" = auth ] && [ \"$2\" = export ] && [ -z \"$OMP_PROFILE\" ]; then if [ -f \"$HOME/fail-export\" ]; then echo \"error: rejected sk-ABCDEFGHIJKLMNOPQRSTUVWXYZ012345\" >&2; exit 3; fi; " +
             "printf '%s\\n' '" + SignInSecret + "'; exit 0; fi\n" +
             "if [ \"$1\" = --profile ] && [ \"$3\" = auth ] && [ \"$4\" = import ] && [ \"$5\" = - ]; then mkdir -p \"$HOME/.omp/profiles/$2\" && cat > \"$HOME/.omp/profiles/$2/imported.json\"; exit $?; fi\n" +
+            "if [ \"$1\" = --profile ] && [ \"$3\" = config ]; then d=\"$HOME/.omp/profiles/$2\"; mkdir -p \"$d\"; echo \"$4 $5 $6\" >> \"$HOME/config-calls.txt\"; " +
+            "if [ -f \"$HOME/hang-config\" ]; then sleep 60; fi; if [ -f \"$HOME/fail-config\" ]; then echo broken >&2; exit 4; fi; " +
+            "if [ \"$4\" = get ] && [ \"$5\" = startup.setupWizard ]; then cat \"$d/wizard\" 2>/dev/null || echo true; exit 0; fi; " +
+            "if [ \"$4\" = get ] && [ \"$5\" = setupVersion ]; then cat \"$d/version\" 2>/dev/null || echo 0; exit 0; fi; " +
+            "if [ \"$4\" = set ] && [ \"$5\" = startup.setupWizard ]; then echo \"$6\" > \"$d/wizard\"; exit 0; fi; exit 2; fi\n" +
             "printf '%s\\n' \"$@\" > \"" + Path.Combine(directory, "argv.txt") + "\"\nsleep 30\n");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         return path;
@@ -54,11 +59,12 @@ internal static class OmpChecks
         Launch();
         Context(Path.Combine(root, "omp-context"));
         Profile(Path.Combine(root, "omp-profile"));
+        await SetupWizard(Path.Combine(root, "omp-wizard"));
         await Version(Path.Combine(root, "omp-version"));
         Processes();
         Sessions(Path.Combine(root, "omp-sessions"));
         await Governed(Path.Combine(root, "omp-air"));
-        Console.WriteLine("PASS omp host: launch line, context files and imports, profile MCP file, version and missing binary, detection, sessions, Air Governance through Central's Pi wire");
+        Console.WriteLine("PASS omp host: launch line, context files and imports, profile MCP file, setup wizard switch, version and missing binary, detection, sessions, Air Governance through Central's Pi wire");
     }
 
     // Air Governance: a governed omp launch, run by a real shell against a fake omp and central, starts Central's proxy
@@ -203,6 +209,34 @@ internal static class OmpChecks
         OmpHost.WriteProfileMcp(root);
         Require(File.ReadAllText(path).Contains("THINKRAIL_MCP_URL", StringComparison.Ordinal) && Directory.GetFiles(Path.GetDirectoryName(path)!).Length == 1,
             "a rewrite replaces the file whole and leaves no temporary file");
+    }
+
+    // The profile's first-run setup wizard is switched off once, only while it never completed, and never blocks on failures.
+    private static async Task SetupWizard(string root)
+    {
+        var fake = FakeOmp(root);
+        string Home(string name) { var h = Path.Combine(root, name); Directory.CreateDirectory(h); return h; }
+        string Calls(string h) => File.Exists(Path.Combine(h, "config-calls.txt")) ? File.ReadAllText(Path.Combine(h, "config-calls.txt")) : "";
+        string Wizard(string h) => File.ReadAllText(Path.Combine(h, ".omp", "profiles", "sharprail", "wizard")).Trim();
+
+        var fresh = Home("fresh");
+        Require(await OmpHost.SkipSetupWizardAsync(fake, fresh) == "set" && Wizard(fresh) == "false", "a never-completed wizard is turned off");
+        var calls = Calls(fresh);
+        Require(await OmpHost.SkipSetupWizardAsync(fake, fresh) != "set" && !Calls(fresh)[calls.Length..].Contains("set startup", StringComparison.Ordinal), "a second preparation does not set it again");
+
+        var done = Home("done");
+        Directory.CreateDirectory(Path.Combine(done, ".omp", "profiles", "sharprail"));
+        File.WriteAllText(Path.Combine(done, ".omp", "profiles", "sharprail", "version"), "3\n");
+        Require(await OmpHost.SkipSetupWizardAsync(fake, done) != "set" && !Calls(done).Contains("set startup", StringComparison.Ordinal), "a completed wizard (setupVersion > 0) is left alone");
+
+        var failing = Home("failing");
+        File.WriteAllText(Path.Combine(failing, "fail-config"), "");
+        Require((await OmpHost.SkipSetupWizardAsync(fake, failing)).StartsWith("unchanged", StringComparison.Ordinal), "a failing config get changes nothing and does not throw");
+        var hanging = Home("hanging");
+        File.WriteAllText(Path.Combine(hanging, "hang-config"), "");
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        Require((await OmpHost.SkipSetupWizardAsync(fake, hanging)).StartsWith("failed", StringComparison.Ordinal) && watch.Elapsed < TimeSpan.FromSeconds(25), "a hanging omp is cut off by the timeout");
+        Require((await OmpHost.SkipSetupWizardAsync(Path.Combine(root, "nowhere", "omp"), fresh)).StartsWith("failed", StringComparison.Ordinal), "a missing omp is tolerated");
     }
 
     private static async Task Version(string root)

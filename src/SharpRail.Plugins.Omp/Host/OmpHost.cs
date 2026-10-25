@@ -150,6 +150,42 @@ public sealed partial class OmpHost : PluginHostModule
         }
     }
 
+    /// <summary>
+    /// A fresh profile shows omp's first-run setup wizard even with provider keys exported. When the profile's
+    /// <c>startup.setupWizard</c> is still the default <c>true</c> and <c>setupVersion</c> is 0 (the wizard never
+    /// completed), sets it to <c>false</c> through <c>omp --profile sharprail config get|set</c>. Anything else, including
+    /// a user who re-enabled it or finished the wizard, is left alone. One 10 s bound covers all calls; never throws.
+    /// Returns a short trace line: "set", "unchanged: ..." or "failed: ...". <paramref name="home"/> overrides omp's home (checks only).
+    /// </summary>
+    internal static async Task<string> SkipSetupWizardAsync(string command, string? home)
+    {
+        var executable = OmpLaunch.Executable(command);
+        using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        async Task<string?> Config(params string[] arguments)
+        {
+            var start = OmpProcess(executable, ["--profile", OmpLaunch.Profile, "config", .. arguments], home);
+            start.RedirectStandardOutput = true;
+            using var process = Process.Start(start) ?? throw new InvalidOperationException("omp could not be started.");
+            try
+            {
+                var output = process.StandardOutput.ReadToEndAsync(cancel.Token);
+                var errors = process.StandardError.ReadToEndAsync(cancel.Token);
+                await process.WaitForExitAsync(cancel.Token);
+                await errors;
+                return process.ExitCode == 0 ? (await output).Trim() : null;
+            }
+            finally { try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } }
+        }
+        try
+        {
+            if (await Config("get", "startup.setupWizard") != "true") return "unchanged: setup wizard is not at its default";
+            if (await Config("get", "setupVersion") != "0") return "unchanged: setup wizard already completed or unreadable";
+            return await Config("set", "startup.setupWizard", "false") is null ? "failed: omp config set exited non-zero" : "set";
+        }
+        catch (OperationCanceledException) { return "failed: omp config timed out"; }
+        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException or IOException) { return "failed: " + error.Message; }
+    }
+
     /// <summary>The first non-empty error line, at most 160 characters, with anything token-like masked.</summary>
     internal static string Sanitize(string errors)
     {
@@ -170,11 +206,17 @@ public sealed partial class OmpHost : PluginHostModule
         async ValueTask<string> RootOf(string workspaceId, CancellationToken cancellationToken) =>
             (await context.WorkspaceAsync(workspaceId, cancellationToken))?.Path ?? throw new InvalidOperationException($"Unknown workspace: {workspaceId}");
 
+        string? wizardPrepared = null;
         void EnsureProfile()
         {
-            if (!settings().Mcp) return;
+            var current = settings();
+            if (!current.Mcp) return;
             try { WriteProfileMcp(HomeDirectory); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { context.Log.Warn("omp profile MCP file was not written: " + error.Message); }
+            // Once per command per host run, in the background so a launch never waits on it.
+            if (Interlocked.Exchange(ref wizardPrepared, current.Command) == current.Command) return;
+            var home = Environment.GetEnvironmentVariable(HomeVariable) is { Length: > 0 } overridden ? overridden : null;
+            _ = Task.Run(async () => context.Log.Info("omp setup wizard: " + await SkipSetupWizardAsync(current.Command, home)));
         }
 
         context.Method(OmpContract.Status, async (_, _, _) =>

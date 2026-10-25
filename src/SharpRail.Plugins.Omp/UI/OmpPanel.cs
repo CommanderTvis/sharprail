@@ -21,7 +21,8 @@ public static class OmpPanel
 
     public static string? ProfileNote(OmpSettings settings) => settings.Mcp
         ? $"Launches use the \"{OmpLaunch.Profile}\" omp profile so SharpRail's MCP server is configured. A profile keeps its own sign-in, settings, " +
-          "sessions and user context files: copy your default omp sign-in below, run /login once in a SharpRail omp tab, or use provider API key variables."
+          "sessions and user context files; SharpRail turns off its first-run setup wizard. Governed launches use Central's proxy key; otherwise copy your default omp sign-in below, " +
+          "run /login once in a SharpRail omp tab, or use provider API key variables."
         : null;
 
     public static Control Create(IPluginUIContext context, string workspaceId)

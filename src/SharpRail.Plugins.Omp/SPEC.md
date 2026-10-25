@@ -29,6 +29,12 @@ No real omp run backs them; the checks use a fixture `omp`.
   user-level context files. The pane says so; users run `/login` once in a SharpRail omp tab, use provider API key
   variables, turn MCP off to launch with their default profile and no SharpRail tools, or press "Use my omp sign-in in
   SharpRail" (Settings › omp points to it).
+- Setup wizard: a fresh profile would show omp's first-run setup wizard even with provider keys exported. When MCP is
+  on, the host (once per command per host run, in the background, never blocking a launch; one 10 s bound; honoring
+  `SHARPRAIL_OMP_HOME` and the plugin's command) runs `omp --profile sharprail config get startup.setupWizard` and, only
+  when it is `true` and `config get setupVersion` is `0` (never completed), `config set startup.setupWizard false`.
+  A completed wizard, a user who re-enabled it, a missing omp or any failure leaves the profile alone (a log line only).
+  Governed launches use Central's proxy key; ungoverned ones need `/login` or the sign-in import button.
 - Sign-in import: the button shows only while omp is installed and MCP is on, and runs only when pressed, never
   automatically. The host (off the UI thread, one run at a time, 60 s bound) pipes `omp auth export` (default profile;
   an inherited `OMP_PROFILE` is removed) into `omp --profile sharprail auth import -` (syntax from `omp auth --help`,
@@ -87,7 +93,7 @@ context, and a settings editor for omp's `config.yml` are out of this basic inte
 
 `--omp` (gate cases `omp-host`, `omp-ui`): launch argv for profile, session folder, model, approval mode, advisor and
 `--no-lsp` (and its omission), resume lines and Windows; context resolution with nested, cycle-safe, depth-limited
-imports, shadowing, ignored code/e-mail tokens and offers; the profile MCP file; the version probe against a fixture
+imports, shadowing, ignored code/e-mail tokens and offers; the profile MCP file; the setup wizard switch (set once, not again, skipped when setupVersion > 0, failures and hangs tolerated); the version probe against a fixture
 `omp` and a missing one; zombie-safe detection; newest-session lookup; a governed launch run by a real shell against fake `omp` and `central` (proxy started, wire
 in omp's environment, arguments unchanged; none when direct; blocked without Central's Pi integration, which is only read); and end to end the
 Early badge, version, notes, nested rows, an Add offer, the start action's argv, the omp mark (not the terminal glyph) on the start action and an omp terminal tab, the sign-in import against a fixture
