@@ -1,6 +1,7 @@
 # SharpRail
 
-A workbench for running [Claude Code](https://code.claude.com/docs/en/overview) and [Codex](https://github.com/openai/codex) on your projects.
+**Like an IDE, but for terminal coding agents.**
+Keep your CLI. SharpRail adds only what's missing.
 
 <img src="docs/screenshots/desktop-workbench.png" alt="The SharpRail workbench: projects and worktrees on the left, an orchestrating Claude Code terminal and task board in the centre, the Git Graph and Claude Code pane on the right" width="900">
 
