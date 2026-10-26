@@ -368,6 +368,11 @@
     <Style Selector="TextBox.invalid:focus /template/ Border#PART_BorderElement, TextBox.invalid:pointerover /template/ Border#PART_BorderElement">
       <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.Danger}" />
     </Style>
+    <Style Selector="TextBlock.settings-group">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.Muted}" />
+    </Style>
     <Style Selector="Button.settings-navigation">
       <Setter Property="Height" Value="36" />
       <Setter Property="Padding" Value="12,8" />
@@ -398,19 +403,21 @@
                 BorderThickness="0,0,1,0">
           <ScrollViewer>
             <StackPanel x:Name="SettingsNavigation" Spacing="2" Margin="12">
+              <TextBlock x:Name="SettingsGroup_Interface" Text="INTERFACE" Classes="settings-group" Margin="12,4,0,4" />
               <Button x:Name="Settings_Appearance" Classes="settings-navigation" />
               <Button x:Name="Settings_Highlighting" Classes="settings-navigation" />
-              <Button x:Name="Settings_Code_Intelligence" Classes="settings-navigation" />
               <Button x:Name="Settings_Line_width" Classes="settings-navigation" />
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
+              <Button x:Name="Settings_Terminal" Classes="settings-navigation" />
+              <TextBlock x:Name="SettingsGroup_System" Text="SYSTEM" Classes="settings-group" Margin="12,16,0,4" />
               <Button x:Name="Settings_Projects" Classes="settings-navigation" />
               <Button x:Name="Settings_Workspaces" Classes="settings-navigation" />
-              <Button x:Name="Settings_Terminal" Classes="settings-navigation" />
+              <Button x:Name="Settings_Code_Intelligence" Classes="settings-navigation" />
               <Button x:Name="Settings_Notifications" Classes="settings-navigation" />
               <Button x:Name="Settings_Host" Classes="settings-navigation" />
               <Button x:Name="Settings_GitHub" Classes="settings-navigation" />
-              <Button x:Name="Settings_About" Classes="settings-navigation" />
               <Button x:Name="Settings_Plugins" Classes="settings-navigation" />
+              <Button x:Name="Settings_About" Classes="settings-navigation" />
             </StackPanel>
           </ScrollViewer>
         </Border>
