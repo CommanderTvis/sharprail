@@ -204,7 +204,7 @@ internal sealed class AirCreditsHeader : Button
         if (icon.Content is null || warning != shown.Warning)
         {
             warning = shown.Warning;
-            icon.Content = Ui.Icon(shown.Warning ? "alertWarning" : "sparkling", shown.Warning ? Ui.Warning : Ui.Muted, 14);
+            icon.Content = Ui.Icon(shown.Warning ? "alertWarning" : "coins", shown.Warning ? Ui.Warning : Ui.Muted, 14);
         }
         ToolTip.SetTip(this, shown.Tip.Length > 0 ? shown.Tip : null);
         AutomationProperties.SetName(this, shown.Text.Length > 0 ? "JetBrains AI " + shown.Text : "JetBrains AI credits");

@@ -21,6 +21,7 @@
   "close": "CloseLine",
   "code": "CodeLine",
   "collapseVertical": "CollapseVerticalLine",
+  "coins": "MoneyDollarCircleLine",
   "discord": "DiscordLine",
   "discuss": "DiscussLine",
   "expandVertical": "ExpandVerticalLine",
