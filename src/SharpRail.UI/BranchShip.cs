@@ -96,7 +96,7 @@ public sealed partial class WorkbenchWindow
         {
             case "publish": remoteRow.Children.Add(ShipButton("RemotePublish", "Publish", () => _ = PushBranchAsync(status))); break;
             case "push": remoteRow.Children.Add(ShipButton("RemotePush", $"Push {status.Ahead}", () => _ = PushBranchAsync(status))); break;
-            case "sync": remoteRow.Children.Add(ShipButton("RemoteSync", "Sync…", () => _ = SyncBranchAsync(status))); break;
+            case "sync": remoteRow.Children.Add(ShipButton("RemoteSync", "Sync", () => _ = SyncBranchAsync(status))); break;
         }
         // Pull request: the review chip or its absence, then the next step.
         var details = status.Details;

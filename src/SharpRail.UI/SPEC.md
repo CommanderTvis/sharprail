@@ -257,7 +257,7 @@ host state: it shows what the window already knows and calls the same methods as
   writing the same per-workspace selection and the same host review target, so the two can never disagree.
 - REMOTE and PULL REQUEST (ThinkRail #771 and #776, `BranchShip.cs`) are present for a mounted workspace's branch
   whenever the host reports a branch status, and turn it into the branch's next step through one rule
-  (`ShipActions`). Remote reads No remote, Not published, In sync, or ↑N / ↓N, with Publish, Push N or Sync… (the
+  (`ShipActions`). Remote reads No remote, Not published, In sync, or ↑N / ↓N, with Publish, Push N or Sync (a button whose dialog offers the
   shell-inert `git pull --rebase origin <branch>` to copy; never a force push). Pushing a branch that is its own
   base asks first and names it. Pull request shows `PR #N`, `Draft #N`, `Merged #N` or `Closed #N` (opening the
   pull request) with a checks glyph, or No PR / — ; its next step is Open PR and Draft (the Review panel's compose
