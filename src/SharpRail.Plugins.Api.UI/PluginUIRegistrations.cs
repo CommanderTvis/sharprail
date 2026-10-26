@@ -45,7 +45,14 @@ public sealed record SideToolRegistration(string Tool, Func<string, Control> Cre
     /// <summary>Decides per workspace whether the tool is the rail's default selection; consulted off the UI thread.</summary>
     public Func<string, CancellationToken, ValueTask<bool>>? RailDefault { get; init; }
 
-    /// <summary>Reuses an existing control for another workspace when it shares the same data scope. Return false without changing the control to require a separate instance.</summary>
+    /// <summary>
+    /// Reuses an existing control for another workspace, so one instance serves every workspace of the tool. On true the control shows the new
+    /// workspace's state and none of the old one's: work still in flight for the old workspace is cancelled or its results rejected by a
+    /// generation or workspace check, unsaved drafts of the old workspace are dropped and never written into the new one, and
+    /// subscriptions stay registered once (a retarget re-registers only what depends on the workspace). Return false without changing the
+    /// control to require a separate instance, for example when the new workspace has another data scope the control cannot swap to.
+    /// Called on the UI thread: read in-memory state and start background loads, never wait.
+    /// </summary>
     public Func<Control, string, bool>? Retarget { get; init; }
 }
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 using Avalonia;
@@ -44,6 +45,16 @@ public static class CodexPanel
 
     private static string FormatSize(long bytes) =>
         bytes < 1024 ? $"{bytes} B" : Math.Round(bytes / 1024.0, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.CurrentCulture) + " KB";
+
+    // Each pane's way to move to another workspace, found from the control the host hands back to Retarget.
+    private static readonly ConditionalWeakTable<Control, Func<string, bool>> Retargets = new();
+
+    /// <summary>
+    /// Points an existing pane at another workspace (the side tool's <c>Retarget</c>): the shown snapshot, error, surface (back to
+    /// Context), unsaved setting edits and expanded rows are dropped, reads still in flight for the old workspace are
+    /// rejected, and the new workspace's configuration is read. The account surface is not workspace data and stays.
+    /// </summary>
+    public static bool Retarget(Control pane, string workspaceId) => Retargets.TryGetValue(pane, out var retarget) && retarget(workspaceId);
 
     public static Control Create(IPluginUIContext context, string workspaceId)
     {
@@ -100,28 +111,31 @@ public static class CodexPanel
         void Open(string path) => _ = OpenAsync(path);
         async Task OpenAsync(string path)
         {
+            var owner = workspaceId;
             try
             {
-                if (await context.Editors.OpenAsync(workspaceId, path) is null) throw new IOException();
+                if (await context.Editors.OpenAsync(owner, path) is null) throw new IOException();
             }
             catch (Exception) { context.Notify(PluginNotificationKind.Error, $"Couldn't open {ScopedSetting.AbbreviateHomePath(path)}"); }
         }
 
         async Task OfferAsync(CodexInstructionsTarget target)
         {
+            var owner = workspaceId;
             try
             {
-                var created = await context.RequestAsync(CodexContract.CreateInstructions, new CodexCreateInstructionsParams(workspaceId, target));
-                if (created.RelativePath is { } relative) await context.Editors.OpenAsync(workspaceId, relative);
+                var created = await context.RequestAsync(CodexContract.CreateInstructions, new CodexCreateInstructionsParams(owner, target));
+                if (created.RelativePath is { } relative) await context.Editors.OpenAsync(owner, relative);
                 else context.Notify(PluginNotificationKind.Info, $"Created {created.Path}");
-                Refresh();
+                if (owner == workspaceId) Refresh();
             }
-            catch (Exception failure) { Dispatcher.UIThread.Post(() => { error = failure.Message; Render(); }); }
+            catch (Exception failure) { Dispatcher.UIThread.Post(() => { if (owner != workspaceId) return; error = failure.Message; Render(); }); }
         }
 
         void Save(CodexWritableScope scope, IReadOnlyList<string> keyPath, JsonElement? value) =>
             Run(async () =>
             {
+                // Evaluated when the click runs, so an edit made in one workspace is never written into another.
                 await context.RequestAsync(CodexContract.SetValue, new CodexSetValueParams(workspaceId, scope, keyPath) { Value = value });
                 return await context.RequestAsync(CodexContract.ConfigGet, Scope());
             });
@@ -265,7 +279,7 @@ public static class CodexPanel
 
         // The pane describes the first shown Codex terminal; another tab or a relaunch rereads its configuration.
         IDisposable? watch = null;
-        root.AttachedToVisualTree += (_, _) =>
+        void Start()
         {
             (session, activeTab) = Shown(context.Host(), workspaceId);
             Render();
@@ -280,8 +294,23 @@ public static class CodexPanel
                 if (next.Item1 != previous.Item1 || next.Item3 != previous.Item3) Refresh();
                 else Render();
             });
-        };
+        }
+        root.AttachedToVisualTree += (_, _) => Start();
         root.DetachedFromVisualTree += (_, _) => { watch?.Dispose(); watch = null; };
+        Retargets.Add(root, next =>
+        {
+            if (next == workspaceId) return true;
+            workspaceId = next;
+            // Rejects the old workspace's reads; the key comparison below would otherwise keep a stale body on screen.
+            generation++;
+            snapshot = null; snapshotKey = ""; error = null; surface = Surface.Context; rendered = null;
+            (session, activeTab) = Shown(context.Host(), workspaceId);
+            Render();
+            // The host watch compares against the old workspace's tab, so it is registered again for the new one.
+            watch?.Dispose(); watch = null;
+            if (TopLevel.GetTopLevel(root) is not null) Start();
+            return true;
+        });
 
         Render();
         Refresh();

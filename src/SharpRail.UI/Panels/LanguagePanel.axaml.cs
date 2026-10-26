@@ -65,17 +65,20 @@ internal sealed partial class LanguagePanel : UserControl
     }
     private readonly IProjectServices host;
     private readonly SharpRail.UI.State.SharedState? state;
-    private readonly string workspace;
+    private string workspace;
+    private readonly SharpRail.UI.Plugins.PluginSlot? slot;
     private readonly Func<LanguageItem, Task> navigate;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(3) };
     private CancellationTokenSource? lifetime;
-    private bool busy;
+    // The lifetime a request is running under; a retarget replaces the lifetime, so a request of the old workspace cannot block the new one.
+    private CancellationTokenSource? busyOn;
     // A Start/Retry or Stop the user asked for while another request ran; it runs next instead of being dropped.
     private (string Operation, LanguageServerState? Target, bool AcceptanceReviewed)? pending;
     private IReadOnlyList<LanguageServerState> inventory = [];
     // Each configuration view's save count when the inventory was requested, so an inventory read before a save cannot revert it.
     private Dictionary<string, int> inventorySaves = [];
-    private readonly Dictionary<string, LanguageConfigurationView> configurations = [];
+    // Views are kept per workspace and server, so a retarget swaps the views shown and a workspace's unsaved draft stays in its own view.
+    private readonly Dictionary<(string Workspace, string Server), LanguageConfigurationView> configurations = [];
     private readonly System.Collections.ObjectModel.ObservableCollection<ServerRow> items = [];
     private readonly HashSet<string> added = [];
     private readonly HashSet<string> expanded = [];
@@ -93,7 +96,7 @@ internal sealed partial class LanguagePanel : UserControl
         AddHandler(LanguageDependencyList.StatusEvent, (_, e) => SetStatus(e.Text));
         this.FindControl<TextBlock>("Workspace")!.Text = workspace;
         this.FindControl<TextBlock>("LifetimeNote")!.Text = LanguageNotes.Lifetime;
-        if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
+        if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(slot = new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
         var servers = this.FindControl<ListBox>("Servers")!;
         servers.ItemsSource = items;
         servers.ContextRequested += ServerContextRequested;
@@ -133,11 +136,44 @@ internal sealed partial class LanguagePanel : UserControl
             var fileChanged = next.ProjectLanguageFiles.GetValueOrDefault(project) != previous.ProjectLanguageFiles.GetValueOrDefault(project);
             if (saved == (previous.WorkspaceLanguages.GetValueOrDefault(workspace) ?? "{}") && !fileChanged) return;
             // Effective values merge host state with the project file, so ask the host rather than reading the local copy.
-            foreach (var view in configurations.Values) _ = view.ReloadAsync();
+            foreach (var view in CurrentViews()) _ = view.ReloadAsync();
             _ = RunAsync("servers");
         }
         AttachedToVisualTree += (_, _) => { lifetime = new(); if (state is not null) { hidden = HiddenIn(state.Current); state.Changed += ConfigurationChanged; } timer.Start(); _ = RunAsync("servers"); };
-        DetachedFromVisualTree += (_, _) => { if (state is not null) state.Changed -= ConfigurationChanged; foreach (var view in configurations.Values) view.SettingsWindow?.Close(); timer.Stop(); lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
+        DetachedFromVisualTree += (_, _) => { if (state is not null) state.Changed -= ConfigurationChanged; foreach (var view in configurations.Values) view.SettingsWindow?.Close(); busyOn = null; timer.Stop(); lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
+    }
+
+    /// <summary>The workspace the pane describes.</summary>
+    internal string WorkspaceRoot => workspace;
+
+    private IEnumerable<LanguageConfigurationView> CurrentViews() => configurations.Where(item => item.Key.Workspace == workspace).Select(item => item.Value);
+
+    /// <summary>
+    /// Points this pane at another workspace instead of building a new one. Everything of the old workspace goes: the inventory and rows,
+    /// the rows the user added, expanded or opened, the status line and the plugin slot's sections; its requests in flight are cancelled
+    /// (the lifetime is replaced, so their replies are rejected) and its settings windows close. Each workspace keeps its own configuration
+    /// views, so an unsaved draft stays with its workspace and returns with it, never written into the new one. The new inventory is read at once.
+    /// </summary>
+    internal void Retarget(string next)
+    {
+        if (next == workspace) return;
+        foreach (var view in configurations.Values) view.SettingsWindow?.Close();
+        workspace = next;
+        if (state is not null)
+            foreach (var gone in configurations.Keys.Where(key => key.Workspace != next && state.Current.Workspaces.All(item => item.Path != key.Workspace)).ToArray())
+                configurations.Remove(gone);
+        if (lifetime is not null) { lifetime.Cancel(); lifetime.Dispose(); lifetime = new(); }
+        busyOn = null; pending = null;
+        inventory = []; inventorySaves = [];
+        added.Clear(); expanded.Clear(); exitOpen.Clear(); showHidden = false;
+        hidden = state is null ? new HashSet<string>() : HiddenIn(state.Current);
+        items.Clear();
+        this.FindControl<Button>("Refresh")!.IsEnabled = true;
+        this.FindControl<TextBlock>("Workspace")!.Text = next;
+        SetStatus("Reading language servers…");
+        RefreshRows();
+        slot?.Retarget(next);
+        if (lifetime is not null) _ = RunAsync("servers");
     }
 
     private string ProjectOf(HostState current) => current.Workspaces.FirstOrDefault(item => item.Path == workspace)?.ProjectRoot ?? workspace;
@@ -258,8 +294,8 @@ internal sealed partial class LanguagePanel : UserControl
             .Where(server => hidden.Contains(server.Id) || server.Path.Length > 0 || added.Contains(server.Id) || server.Presentation?.HasTerms != true && server.State is not ("idle" or "disabled") || server.Configured)
             .Select(server =>
             {
-                if (!configurations.TryGetValue(server.Id, out var view))
-                    configurations[server.Id] = view = new(host, workspace, server);
+                if (!configurations.TryGetValue((workspace, server.Id), out var view))
+                    configurations[(workspace, server.Id)] = view = new(host, workspace, server);
                 else view.Update(server, inventorySaves.GetValueOrDefault(server.Id));
                 return new ServerRow(server, view, expanded.Contains(server.Id), exitOpen.Contains(server.Id), hidden.Contains(server.Id));
             }).ToArray();
@@ -322,13 +358,13 @@ internal sealed partial class LanguagePanel : UserControl
         if (lifetime is not { } current) return;
         var selected = (this.FindControl<ListBox>("Servers")!.SelectedItem as ServerRow)?.Server;
         if (operation is "retry" or "stop" && (target ?? selected) is null) return;
-        if (busy)
+        if (busyOn is not null && busyOn == current)
         {
             // A background refresh must not swallow the user's Start or Stop: remember it for when the running request ends.
             if (operation != "servers") pending = (operation, target ?? selected, acceptanceReviewed);
             return;
         }
-        busy = true;
+        busyOn = current;
         this.FindControl<Button>("Refresh")!.IsEnabled = false;
         try
         {
@@ -359,7 +395,7 @@ internal sealed partial class LanguagePanel : UserControl
                 }
             }
             var request = new LanguageRequest(workspace, Operation: operation, Server: operation is "retry" or "stop" ? (target ?? selected)!.Id : "");
-            var saves = configurations.ToDictionary(item => item.Key, item => item.Value.Saves);
+            var saves = configurations.Where(item => item.Key.Workspace == workspace).ToDictionary(item => item.Key.Server, item => item.Value.Saves);
             var result = await Task.Run(async () => await host.LanguageAsync(request, token), token);
             if (current != lifetime || token.IsCancellationRequested) return;
             SetStatus(result.State + ": " + result.Detail);
@@ -379,8 +415,9 @@ internal sealed partial class LanguagePanel : UserControl
         }
         finally
         {
-            busy = false;
-            this.FindControl<Button>("Refresh")!.IsEnabled = true;
+            // After a retarget the new lifetime owns the button and the queue; this request only lets go of what is still its own.
+            if (busyOn == current) busyOn = null;
+            if (current == lifetime) this.FindControl<Button>("Refresh")!.IsEnabled = true;
             if (pending is { } next && current == lifetime)
             {
                 pending = null;

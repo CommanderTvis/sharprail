@@ -30,7 +30,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
     private IDisposable? usageChannel;
     private string memoryKey = "";
     private readonly ClaudeGlyph glyph;
-    private readonly string workspaceId;
+    private string workspaceId;
     private readonly StackPanel scopeBlock = new() { Name = "ClaudeConfigScope", Margin = new Thickness(8, 0, 8, 4) };
     private readonly StackPanel notices = new();
     private readonly ContentControl body = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
@@ -84,6 +84,30 @@ internal sealed class ClaudeConfigPanel : DockPanel
             usageChannel?.Dispose(); usageChannel = null;
             Ui.ThemeChanged -= ThemeChanged;
         };
+    }
+
+    /// <summary>
+    /// Points this pane at another workspace (the side tool's <c>Retarget</c>): the snapshot, usage, error, search text, expanded
+    /// rows and the surface (back to Context) of the old workspace are dropped, reads and usage replies still in flight for it
+    /// are rejected, and the new workspace is read. The account surface is not workspace data and stays.
+    /// </summary>
+    internal bool Retarget(string next)
+    {
+        if (next == workspaceId) return true;
+        workspaceId = next;
+        generation++; usageGeneration++;
+        snapshot = null; reached = []; error = null; contextUsage = null; session = activeTab = null;
+        snapshotKey = reachedKey = memoryKey = ""; settingsQuery = ""; surface = Surface.Context;
+        expandedRows.Clear();
+        rendered = null; renderedScope = null;
+        RenderSwitcher();
+        ShowUsage();
+        RenderScope();
+        Render();
+        // The host watch compares against the old workspace's tab, so it is registered again for the new one.
+        watch?.Dispose(); watch = null;
+        if (TopLevel.GetTopLevel(this) is not null) Start();
+        return true;
     }
 
     // The session this pane describes: among the terminals the workspace shows, the first running Claude.

@@ -15,7 +15,7 @@ internal sealed class PluginSlot : StackPanel
 {
     private readonly PluginRegistry registry;
     private readonly string slot;
-    private readonly string? workspace;
+    private string? workspace;
     private IReadOnlyList<PluginRow<SlotSectionRegistration>> shown = [];
 
     internal PluginSlot(PluginRegistry registry, string slot, string? workspace)
@@ -24,6 +24,16 @@ internal sealed class PluginSlot : StackPanel
         Name = "PluginSlot";
         AttachedToVisualTree += (_, _) => { registry.Changed += Changed; Sync(); };
         DetachedFromVisualTree += (_, _) => { registry.Changed -= Changed; Children.Clear(); shown = []; };
+    }
+
+    /// <summary>Moves the slot to another workspace: the sections of the old one are dropped and built again for the new one.</summary>
+    internal void Retarget(string? next)
+    {
+        if (next == workspace) return;
+        workspace = next;
+        shown = [];
+        Children.Clear();
+        if (TopLevel.GetTopLevel(this) is not null) Sync();
     }
 
     private void Changed(PluginTables tables)

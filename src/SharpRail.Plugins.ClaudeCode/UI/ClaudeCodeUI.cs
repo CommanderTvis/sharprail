@@ -42,7 +42,15 @@ public sealed class ClaudeCodeUI : PluginUIModule
         {
             Hydrate(workspace);
             return new ClaudeConfigPanel(context, glyph, workspace);
-        }));
+        })
+        {
+            Retarget = (pane, workspace) =>
+            {
+                if (pane is not ClaudeConfigPanel panel) return false;
+                Hydrate(workspace);
+                return panel.Retarget(workspace);
+            }
+        });
         context.Launcher(new("claude", "Claude Code", "asset:claude.svg", options =>
         {
             var settings = context.Settings<ClaudeCodeSettings>();

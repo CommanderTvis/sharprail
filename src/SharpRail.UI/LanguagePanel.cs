@@ -6,10 +6,10 @@ public sealed partial class WorkbenchWindow
 {
     private Control LanguagePanel()
     {
-        var workspace = workspaceRoot;
-        return new Panels.LanguagePanel(host, workspace, async location =>
+        Panels.LanguagePanel? panel = null;
+        return panel = new Panels.LanguagePanel(host, workspaceRoot, async location =>
         {
-            if (workspaceRoot == workspace && WorkspaceMounted)
+            if (workspaceRoot == panel!.WorkspaceRoot && WorkspaceMounted)
                 await OpenLanguageDocumentAsync(location, true);
         }, Workbench.State, Workbench.PluginRegistry);
     }

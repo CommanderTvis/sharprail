@@ -772,7 +772,9 @@ and preset restore, and built by the workbench from core's tools plus the roster
 it a `plugin:` id validates, renders an empty name, and never appears in a reveal menu.
 
 Tool controls and workspace actions are retained per window and workspace. An optional W5 `Retarget`
-callback can reuse a control across workspaces sharing its data scope; returning false leaves it unchanged.
+callback reuses one control for another workspace: on true the control shows the new workspace's state and none of the old
+one's (in-flight work cancelled or rejected by a generation or workspace check, unsaved drafts dropped, subscriptions still
+registered once); returning false leaves it unchanged and the host builds a separate instance.
 Plugin removal, project/workspace closure, appearance changes and window closure release retained controls.
 
 Editor events come from one emitter in the app's plugin runtime, fed by the Scintilla editor and the Markdown

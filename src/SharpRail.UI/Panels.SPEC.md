@@ -663,6 +663,8 @@ Plugins settings preserves colored plugin assets. Claude and Discord use their b
 
 The Java/Kotlin provider selector applies to every project on the connected host, and open Settings follows shared changes without replacing its page. Provider-specific project JDK, installation and importer configuration remain workspace-scoped.
 
+The Language pane is one control for every workspace and project of a window: a switch calls its `Retarget`, which drops the old workspace's inventory, rows, added or expanded servers, status line and plugin-slot sections, cancels its requests (the pane's lifetime is replaced, so replies are rejected), closes its settings windows and reads the new inventory at once. Configuration views are kept per workspace and server, so an unsaved draft stays with its workspace and returns with it, and is never saved into another; views of workspaces that no longer exist are dropped.
+
 Each language-server configuration view also offers a project-wide start-before-agent checkbox. It saves immediately and does not alter workspace settings; see [language services](../SharpRail.Host.Core/Language/SPEC.md).
 
 Settings names its language-service category “Code Intelligence”. Server rows abbreviate “Language Server” and “LSP” to “LS” in display names and convey runtime status only with the left-hand vector mark or spinner, with a status tooltip and accessible name. Error and configuration details and actions remain visible. Protocol names, server identifiers and acquisition metadata retain their original spelling.

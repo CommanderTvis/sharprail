@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 
 using Avalonia;
 using Avalonia.Controls;
@@ -24,6 +25,16 @@ public static class OmpPanel
           "sessions and user context files; SharpRail turns off its first-run setup wizard. Governed launches use Central's proxy key; otherwise copy your default omp sign-in below, " +
           "run /login once in a SharpRail omp tab, or use provider API key variables."
         : null;
+
+    // Each pane's way to move to another workspace, found from the control the host hands back to Retarget.
+    private static readonly ConditionalWeakTable<Control, Func<string, bool>> Retargets = new();
+
+    /// <summary>
+    /// Points an existing pane at another workspace (the side tool's <c>Retarget</c>): its context rows, offers and error are the
+    /// new workspace's, reads still in flight for the old one are dropped, and the sign-in result and install status
+    /// (host-wide, not workspace data) stay.
+    /// </summary>
+    public static bool Retarget(Control pane, string workspaceId) => Retargets.TryGetValue(pane, out var retarget) && retarget(workspaceId);
 
     public static Control Create(IPluginUIContext context, string workspaceId)
     {
@@ -81,9 +92,10 @@ public static class OmpPanel
         void Open(string path) => _ = OpenAsync(path);
         async Task OpenAsync(string path)
         {
+            var owner = workspaceId;
             try
             {
-                if (await context.Editors.OpenAsync(workspaceId, path) is null) throw new IOException();
+                if (await context.Editors.OpenAsync(owner, path) is null) throw new IOException();
             }
             catch (Exception) { context.Notify(PluginNotificationKind.Error, $"Couldn't open {ScopedSetting.AbbreviateHomePath(path)}"); }
         }
@@ -121,10 +133,11 @@ public static class OmpPanel
 
         async Task CreateAsync(OmpContextTarget target)
         {
+            var owner = workspaceId;
             try
             {
-                var snapshot = await context.RequestAsync(OmpContract.CreateContextFile, new OmpCreateParams(workspaceId, target));
-                Dispatcher.UIThread.Post(() => ShowContext(snapshot));
+                var snapshot = await context.RequestAsync(OmpContract.CreateContextFile, new OmpCreateParams(owner, target));
+                Dispatcher.UIThread.Post(() => { if (owner == workspaceId) ShowContext(snapshot); });
             }
             catch (Exception) { context.Notify(PluginNotificationKind.Error, "Couldn't create the omp context file"); }
         }
@@ -132,6 +145,7 @@ public static class OmpPanel
         void Refresh()
         {
             var current = ++generation;
+            var owner = workspaceId;
             Notes(context.Settings<OmpSettings>());
             _ = Load();
 
@@ -153,7 +167,7 @@ public static class OmpPanel
                 catch (Exception) { }
                 try
                 {
-                    var snapshot = await context.RequestAsync(OmpContract.Context, new OmpWorkspaceParams(workspaceId));
+                    var snapshot = await context.RequestAsync(OmpContract.Context, new OmpWorkspaceParams(owner));
                     Dispatcher.UIThread.Post(() =>
                     {
                         if (current != generation) return;
@@ -176,6 +190,18 @@ public static class OmpPanel
         refresh.Click += (_, _) => Refresh();
         importSignIn.Click += (_, _) => _ = ImportSignInAsync();
         IDisposable? subscription = null;
+        Retargets.Add(root, next =>
+        {
+            if (next == workspaceId) return true;
+            workspaceId = next;
+            // Invalidates the old workspace's pending reads, whose replies check this number before touching the pane.
+            generation++;
+            rows.Children.Clear();
+            offers.Children.Clear();
+            error.IsVisible = false;
+            if (TopLevel.GetTopLevel(root) is not null) Refresh();
+            return true;
+        });
         root.AttachedToVisualTree += (_, _) =>
         {
             subscription ??= context.OnSettings<OmpSettings>(_ => Refresh());

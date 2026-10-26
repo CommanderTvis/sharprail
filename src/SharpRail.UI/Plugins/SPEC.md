@@ -178,8 +178,12 @@ and roster registration still precede reconciliation, preserving dormant tools a
 - Workspace-scoped actions (W10) render in the workspace's start-actions row beside New terminal; project-scoped
   ones on Project Home.
 - Side-tool bodies and workspace actions are retained per window/workspace rather than recreated on
-  navigation or unchanged host updates. Tools may opt into `Retarget` for a shared data scope, such as
-  repository history across worktrees. Pending routing retains the previous tool body; unregistering a
+  navigation or unchanged host updates. Tools may opt into `Retarget` to serve every workspace with
+  one control: repository history across worktrees of a project (Git Graph), and the Claude Code, Codex and omp panes across
+  projects too. A retargeted control shows only the new workspace's data: work in flight for the old one is rejected by a
+  generation check, drafts, search text, expanded rows and the surface selection are dropped (never written into the new
+  workspace), the account surface (not workspace data) stays, and host watches are registered once, re-registered only for
+  the new workspace. Pending routing retains the previous tool body; unregistering a
   contribution or closing its workspace/project releases its cache, as do appearance and window changes.
 - Terminal accessories (W11) render as rows below the terminal surface, inside `TerminalView`; `Write` types
   into the Ghostty surface, `BufferTail` reads its screen and scrollback, and the headless terminal backend

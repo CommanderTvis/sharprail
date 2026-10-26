@@ -89,7 +89,7 @@ public sealed class CodexUI : PluginUIModule
         });
 
         context.SettingsSection(new("Codex", CodexManifest.Icon, () => CodexSettingsSection.Create(context)));
-        context.SideTool(new("config", workspace => CodexPanel.Create(context, workspace)));
+        context.SideTool(new("config", workspace => CodexPanel.Create(context, workspace)) { Retarget = CodexPanel.Retarget });
 
         context.Launcher(new AgentLauncher(CodexManifest.Id, "Codex", CodexManifest.Icon,
             options => LaunchLine(context, new(true, false)

@@ -435,7 +435,10 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             var changesPanel = sameProject ? toolContent.GetValueOrDefault("changes") : null;
             if (!sameProject && toolContent.GetValueOrDefault("changes") is { } leaving) (leaving.Parent as Panel)?.Children.Remove(leaving);
             var reviewPanel = toolContent.GetValueOrDefault("review");
+            // The Language panel is workspace-keyed only inside itself, so one instance serves every workspace and project.
+            var languagePanel = toolContent.GetValueOrDefault("lsp") as Panels.LanguagePanel;
             toolContent.Clear();
+            if (languagePanel is not null) { languagePanel.Retarget(workspaceRoot); toolContent["lsp"] = languagePanel; }
             if (filesPanel is not null) toolContent["files"] = filesPanel;
             if (changesPanel is not null) toolContent["changes"] = changesPanel;
             if (reviewPanel is not null) { toolContent["review"] = reviewPanel; reviewPanel.IsHitTestVisible = true; }

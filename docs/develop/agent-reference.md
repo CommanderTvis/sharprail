@@ -145,6 +145,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--changes-branch-switch` | Changes target switch from no changes to 4000 files: longest dispatcher wait under 250 ms (`SHARPRAIL_BRANCH_SWITCH_STALL_BUDGET_MS`); a later pick supersedes an earlier one. |
 | `--serving`, `--project-close` | Embedded-host serving; teardown. |
 | `--pane-retention`, `--startup`, `--live-diffs` | Retained controls; progressive startup; refreshing open diffs. |
+| `--pane-retarget` | The omp, Claude Code, Codex and Language panes stay one instance over 21 switches across worktrees and projects, show only the current workspace's content (equal to their first visit on return) and add no handlers to the shared events. |
 | `--workspace-switch` | Workspace-switch profile on a realistic project: click to mounted, first frame and usable content, cold and switching back; fails if a switch issues more than one host call before mounting. |
 | `--files-modes` | Files All \| Changed: Git marks, ignored dimming, remembered expanded folders across switches and reloads (local Git fixture). |
 | `--dock-input` | Dock pointer and keyboard input, tab menus including file-path copies. |

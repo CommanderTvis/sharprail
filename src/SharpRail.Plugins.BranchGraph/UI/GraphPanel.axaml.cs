@@ -75,6 +75,7 @@ internal sealed partial class GraphPanel : UserControl
     private int ProjectRevision(PluginHostProjection host) => host.Workspaces.Values.SelectMany(workspaces => workspaces)
         .Where(workspace => workspace.ProjectId == projectId).Sum(workspace => host.WorkspaceRevisions.GetValueOrDefault(workspace.Id));
 
+    // The history is read per project, so a workspace of the same project has nothing in flight to cancel or drop; another project is refused.
     internal bool Retarget(string workspace)
     {
         var host = context.Host();
