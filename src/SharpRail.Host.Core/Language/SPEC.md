@@ -920,3 +920,5 @@ re-read and compared with the intended content before an atomic replace. Format 
 (new optional keys, tolerated and preserved). An incompatible change would ship as `language_v2.toml`,
 created only by an explicit write; the older file stays untouched, readers prefer the highest version
 they understand and this version reports newer files it does not read.
+
+Disposing the language service returns only after every stop already under way (workspace removal, restart, catalog change, idle eviction) has finished, including its exit record and the exit and usage files it rewrites, so nothing writes under the state directory once disposal returns.

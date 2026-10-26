@@ -24,8 +24,40 @@ internal static class LanguageExitChecks
     internal static async Task Run(string fixture)
     {
         Records();
+        await DisposeWaitsForStops(fixture);
         foreach (var remote in new[] { false, true }) await Exercise(Path.Combine(fixture, "language-exit", remote ? "remote" : "local"), remote);
         Console.WriteLine("PASS language server exit records: exit code and signal, bounded stderr, stop reasons, workspace removal, persistence, transport and notifications");
+    }
+
+    /// <summary>A workspace removal still stopping its server (entry already out of the map) must finish before DisposeAsync returns, so nothing recreates files under a state directory being deleted.</summary>
+    private static async Task DisposeWaitsForStops(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-exit", "dispose-race"); Directory.CreateDirectory(root);
+        await File.WriteAllTextAsync(Path.Combine(root, "Fixture.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        var executable = Environment.ProcessPath!;
+        string[] arguments = Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location, "--fake-lsp"] : ["--fake-lsp"];
+        var settings = JsonSerializer.Serialize(new { csharp = new { command = executable, arguments } });
+        var state = Path.Combine(root, ".tools", "state");
+        var service = new LanguageService(state, () => true, () => settings);
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            LanguageResult status;
+            do
+            {
+                status = await service.ExecuteAsync(new(root, Operation: "status", Server: "csharp"), timeout.Token);
+                if (status.State is "installing" or "initializing") await Task.Delay(30, timeout.Token);
+            } while (status.State is "installing" or "initializing");
+            Require(status.State == "ready", "The fixture server did not start: " + status.Detail);
+            var removal = service.CloseWorkspaceAsync(root).AsTask();
+            await service.DisposeAsync();
+            Directory.Delete(state, true);
+            // The exit watcher's grace period is two seconds; a late record would recreate files within it.
+            await Task.Delay(3000);
+            await removal;
+            Require(!Directory.Exists(state), "A language service wrote to its state directory after DisposeAsync returned.");
+        }
+        finally { await service.DisposeAsync(); Directory.Delete(root, true); }
     }
 
     private static void Records()

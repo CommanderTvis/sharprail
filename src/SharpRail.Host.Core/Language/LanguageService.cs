@@ -27,6 +27,8 @@ public sealed partial class LanguageService : IAsyncDisposable
     private readonly Func<string, string, string> configuration;
     private readonly Action<string, string, string>? saveConfiguration;
     private int disposed;
+    private readonly ConcurrentDictionary<Entry, byte> stopping = new();
+    private readonly ConcurrentDictionary<Task, byte> closing = new();
     private readonly LanguageExitStore exits;
     private readonly LanguageUsageStore usage;
     /// <summary>Called with workspace, server id and each exit record the host writes, for requested stops as well as deaths.</summary>
@@ -45,6 +47,8 @@ public sealed partial class LanguageService : IAsyncDisposable
         internal readonly CancellationTokenSource Stop;
         internal readonly CancellationToken Token;
         internal int Stopped;
+        /// <summary>Completes when the stop that won <see cref="Stopped"/> has finished: the process is gone and its exit record written.</summary>
+        internal readonly TaskCompletionSource StopDone = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal string Workspace = "";
         internal string ServerId = "";
         /// <summary>When a request last used this server, in <see cref="Ticks"/> milliseconds.</summary>
@@ -573,6 +577,15 @@ public sealed partial class LanguageService : IAsyncDisposable
 
     public async ValueTask CloseWorkspaceAsync(string workspace)
     {
+        // Disposal waits for this removal, tail included: it rewrites the exit and usage files after the servers stop.
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        closing[done.Task] = 0;
+        try { await CloseCoreAsync(workspace); }
+        finally { done.SetResult(); closing.TryRemove(done.Task, out _); }
+    }
+
+    private async ValueTask CloseCoreAsync(string workspace)
+    {
         projectRoots.TryRemove(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)), out _);
         foreach (var key in logs.Keys) if (key.StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace)) + "\0", StringComparison.Ordinal)) logs.TryRemove(key, out _);
         foreach (var key in exposed.Keys) if (key.Workspace == workspace) exposed.TryRemove(key, out _);
@@ -592,21 +605,27 @@ public sealed partial class LanguageService : IAsyncDisposable
 
     private async Task StopAsync(Entry entry, string reason)
     {
-        if (Interlocked.Exchange(ref entry.Stopped, 1) != 0) return;
-        Volatile.Write(ref entry.HoldsSlot, false);
-        Pulse();
-        entry.Stop.Cancel();
+        // A second stop waits for the first: an entry already removed from the map is still stopping, and callers must not return before its exit record is written.
+        stopping[entry] = 0;
+        if (Interlocked.Exchange(ref entry.Stopped, 1) != 0) { await entry.StopDone.Task; stopping.TryRemove(entry, out _); return; }
         try
         {
-            if (entry.Session.IsValueCreated)
+            Volatile.Write(ref entry.HoldsSlot, false);
+            Pulse();
+            entry.Stop.Cancel();
+            try
             {
-                var session = await entry.Session.Value;
-                session.Terminate(reason);
-                await session.DisposeAsync();
+                if (entry.Session.IsValueCreated)
+                {
+                    var session = await entry.Session.Value;
+                    session.Terminate(reason);
+                    await session.DisposeAsync();
+                }
             }
+            catch (Exception) { }
+            entry.Stop.Dispose();
         }
-        catch (Exception) { }
-        entry.Stop.Dispose();
+        finally { stopping.TryRemove(entry, out _); entry.StopDone.TrySetResult(); }
     }
 
     public async ValueTask DisposeAsync()
@@ -614,6 +633,8 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
         lifetime.Cancel(); await sampler.DisposeAsync();
         foreach (var entry in entries.Values) await StopAsync(entry, "the host is shutting down");
+        // Stops started earlier (workspace removal, restarts, catalog changes) removed their entries first and may still be writing exit records.
+        while (!stopping.IsEmpty || !closing.IsEmpty) await Task.WhenAll(stopping.Keys.Select(entry => entry.StopDone.Task).Concat(closing.Keys));
         entries.Clear(); logs.Clear(); lifetime.Dispose();
     }
 }
