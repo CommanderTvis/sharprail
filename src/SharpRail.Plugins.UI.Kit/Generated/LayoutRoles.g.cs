@@ -21,6 +21,8 @@ public static class LayoutRoles
     public const double LocationIconSlot = 16;
     /// <summary>One tree nesting level.</summary>
     public const double TreeIndent = 8;
+    /// <summary>The content padding of a list row, equal on its left and right so the leading icon and the trailing counts sit the same distance from the pane edges.</summary>
+    public const double RowInset = 4;
     /// <summary>The space after a terminal chip and below its row, so chip rows share one grid.</summary>
     public const double ChipGap = 4;
 }

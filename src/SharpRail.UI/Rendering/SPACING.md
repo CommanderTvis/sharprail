@@ -26,7 +26,7 @@ them under `layout`, each a `size` or a rhythm `step` (a step must be on the sca
 `LayoutRoles` in the kit from it: `TopbarRow` 40 (the header's location strip), `PanelHeaderRow` 28 (pane
 header strips and the width of their full-height actions), `PanelHeaderControl` 24 (a control inside a panel
 header), `PanelRow` 22 (side-pane tree and list rows), `PanelInset` 8 (tool-pane padding) and `TreeIndent` 8
-(one nesting level). XAML binds them with `{x:Static kit:LayoutRoles.PanelRow}`. Tree and drawn-tree rows
+(one nesting level) and `RowInset` 4 (a list row's content padding, equal on both sides; the Changes row's actions button overlays its right edge instead of reserving a column). XAML binds them with `{x:Static kit:LayoutRoles.PanelRow}`. Tree and drawn-tree rows
 take `PanelRow` as their minimum height; the remaining fixed 28/32px rows and headers move to the roles as
 their owners adopt them.
 

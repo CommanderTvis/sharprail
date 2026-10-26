@@ -318,7 +318,7 @@ public sealed partial class WorkbenchWindow
         var button = new Button
         {
             Content = row,
-            Padding = new Thickness(4, 0),
+            Padding = new Thickness(LayoutRoles.RowInset, 0),
             Background = Avalonia.Media.Brushes.Transparent,
             BorderThickness = new(0),
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -343,9 +343,9 @@ public sealed partial class WorkbenchWindow
             Width = 20,
             Height = 20,
             Padding = new(0),
-            Margin = new(0, 0, 4, 0),
-            Background = Avalonia.Media.Brushes.Transparent,
+            Margin = new(0, 0, LayoutRoles.RowInset, 0),
             BorderThickness = new(0),
+            HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center
         };
         actions.Classes.Add("change-actions");
@@ -363,8 +363,9 @@ public sealed partial class WorkbenchWindow
             button.ContextMenu.Items.Add(new Separator());
             button.ContextMenu.Items.Add(Ui.Menu("Exclude locally (.git/info/exclude)", () => _ = ExcludeSharprailAsync(projectRequest)));
         }
-        var wrapper = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        Ui.Place(wrapper, button); Ui.Place(wrapper, actions, 0, 1);
+        // The actions button overlays the row's right edge, so the counts end as far from it as the icon starts from the left.
+        var wrapper = new Grid();
+        wrapper.Children.Add(button); wrapper.Children.Add(actions);
         var frame = new Border { Child = wrapper, Tag = new ChangeFrameKey(change, label, canStage, FileIconAnswer(change.Path)) };
         frame.Classes.Add("change-row");
         changeFrames.Add((frame, change));

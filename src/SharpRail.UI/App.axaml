@@ -90,6 +90,9 @@
     <Style Selector="Border.change-row:pointerover Button.change-actions, Border.change-row.menu-open Button.change-actions, Button.change-actions:focus">
       <Setter Property="Opacity" Value="1" />
     </Style>
+    <Style Selector="Border.change-row:pointerover Button.change-actions /template/ ContentPresenter#PART_ContentPresenter, Border.change-row.menu-open Button.change-actions /template/ ContentPresenter#PART_ContentPresenter, Button.change-actions:focus /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+    </Style>
     <Style Selector="SelectableTextBlock">
       <Setter Property="SelectionBrush" Value="{x:Static rendering:Ui.TextSelection}" />
       <Setter Property="SelectionForegroundBrush" Value="{DynamicResource ThemeSelectionForeground}" />

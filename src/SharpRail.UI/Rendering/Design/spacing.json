@@ -10,6 +10,7 @@
     "PanelInset": { "value": 8, "kind": "step", "reason": "tool-pane padding" },
     "LocationIconSlot": { "value": 16, "kind": "size", "reason": "the leading icon column of every header location field, so each caption and its first value element share one left edge" },
     "TreeIndent": { "value": 8, "kind": "step", "reason": "one tree nesting level" },
+    "RowInset": { "value": 4, "kind": "step", "reason": "the content padding of a list row, equal on its left and right so the leading icon and the trailing counts sit the same distance from the pane edges" },
     "ChipGap": { "value": 4, "kind": "step", "reason": "the space after a terminal chip and below its row, so chip rows share one grid" }
   },
   "exceptions": [

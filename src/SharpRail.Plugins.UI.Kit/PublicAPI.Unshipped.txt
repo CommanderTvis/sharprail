@@ -585,6 +585,7 @@ static SharpRail.Plugins.UI.Kit.ZoomChords.GetOwns(Avalonia.Controls.Control! co
 static SharpRail.Plugins.UI.Kit.ZoomChords.SetOwns(Avalonia.Controls.Control! control, bool value) -> void
 static readonly SharpRail.Plugins.UI.Kit.ZoomChords.OwnsProperty -> Avalonia.AttachedProperty<bool>!
 const SharpRail.Plugins.UI.Kit.LayoutRoles.ChipGap = 4 -> double
+const SharpRail.Plugins.UI.Kit.LayoutRoles.RowInset = 4 -> double
 SharpRail.Plugins.UI.Kit.Chips
 static SharpRail.Plugins.UI.Kit.Chips.Button(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!
 static SharpRail.Plugins.UI.Kit.Chips.Gap.get -> Avalonia.Thickness
