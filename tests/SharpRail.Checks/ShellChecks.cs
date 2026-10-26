@@ -473,6 +473,8 @@ internal static class ShellChecks
         window.WindowState = WindowState.Normal; Dispatcher.UIThread.RunJobs();
         Require(header.Margin.Left == inset, "Leaving full screen restores the inset.");
 
+        Require(!MacWindowChrome.WantsToolbar(new Version(15, 6)) && MacWindowChrome.WantsToolbar(new Version(26, 0)),
+            "Only macOS 26 and later gives the window the toolbar that selects the larger system corner radius.");
         Require(WorkbenchWindow.TitleBarActionFor(null) == TitleBarAction.Zoom && WorkbenchWindow.TitleBarActionFor("Maximize") == TitleBarAction.Zoom &&
             WorkbenchWindow.TitleBarActionFor("Fill") == TitleBarAction.Zoom && WorkbenchWindow.TitleBarActionFor("Minimize") == TitleBarAction.Minimize &&
             WorkbenchWindow.TitleBarActionFor("None") == TitleBarAction.None, "The double-click preference maps to zoom, minimize or nothing.");

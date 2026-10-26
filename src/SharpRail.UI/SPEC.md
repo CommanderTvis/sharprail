@@ -159,6 +159,7 @@ host's, so every client of a host shares it; non-Linux clients ignore it.
 The 40px header (`LayoutRoles.TopbarRow`) is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
 decorations so the native controls stay while the header provides the colour; on macOS the header leaves
 80px for the traffic lights. On macOS the header row grows to 40/zoom below 100% so it never renders shorter than the fixed-size traffic lights. The Error status can be clicked for the actual operation failure and Retry (the pending restore or
+On macOS 26 and later `MacWindowChrome` gives the window an empty compact unified toolbar when it opens, because Tahoe rounds a titled window with a toolbar like system windows and a bare one with a smaller radius. The native window owns all corner clipping; the app draws no radius of its own. Earlier macOS and other platforms are untouched. The effect on traffic-light placement is not verified by a check.
 mounted workspace refresh). Subscription failures use the same surface while reconnecting automatically;
 a successful retry clears it. Healthy local status remains inert and remote Change host remains available.
 The header shows the brand mark, the location bar, the connection state and
