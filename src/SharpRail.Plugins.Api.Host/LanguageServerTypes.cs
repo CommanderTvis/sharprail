@@ -340,6 +340,9 @@ public sealed class LanguageServerSpec
     /// <summary>What the user should know before reviewing the terms, such as an evaluation-only licence and how the vendor ends it.</summary>
     public string TermsNote { get; init; } = "";
 
+    /// <summary>The <c>yyyy-MM-dd</c> date on which the vendor ends this build (the UI shows it prominently), or empty when unknown.</summary>
+    public string TermsDeadline { get; init; } = "";
+
     /// <summary>The process exit code with which the vendor refuses this build, or <see langword="null"/>.</summary>
     public int? ExpiredExitCode { get; init; }
 

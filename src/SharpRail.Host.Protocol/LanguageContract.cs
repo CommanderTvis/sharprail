@@ -86,6 +86,7 @@ public sealed class LanguageServerPresentationDto
     [ProtoMember(6)] public bool HasTerms { get; set; }
     [ProtoMember(7)] public string TermsNote { get; set; } = "";
     [ProtoMember(8)] public string ReplacesLabel { get; set; } = "";
+    [ProtoMember(9)] public string TermsDeadline { get; set; } = "";
 }
 
 [ProtoContract]

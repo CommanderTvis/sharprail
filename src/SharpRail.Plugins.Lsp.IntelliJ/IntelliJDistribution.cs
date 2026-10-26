@@ -12,6 +12,12 @@ internal sealed record IntelliJBundle(string Version, string Platform, Uri Url, 
 internal static class IntelliJDistribution
 {
     internal const string Version = "263.6379.0";
+
+    /// <summary>The pinned build's release day, from its product-info.json majorVersionReleaseDate (20260930).</summary>
+    internal static readonly DateOnly Released = new(2026, 9, 30);
+
+    /// <summary>The EAP agreement ends 30 days after the build's release day (the vendor may end it sooner).</summary>
+    internal static readonly DateOnly Deadline = Released.AddDays(30);
     internal const string Expired = "JetBrains refused this build (exit 7). Install an authorized newer build and review its terms. Existing Java and Kotlin providers remain available.";
     internal const string CatalogSource = "https://github.com/JetBrains/intellij-lsp.nvim/blob/main/lua/intellij-lsp/server_bundles.lua";
 

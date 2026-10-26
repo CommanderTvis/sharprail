@@ -447,7 +447,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     internal static LanguageServerPresentation Present(LanguageServer server) => new(Name(server), server.Spec.Icon?.Data, server.Spec.Icon?.Format ?? "",
         [.. Enum.GetValues<LanguageServerOptionGroups>().Where(group => group != LanguageServerOptionGroups.None && server.Spec.OptionGroups.HasFlag(group))
             .Select(group => JsonNamingPolicy.CamelCase.ConvertName(group.ToString()))],
-        server.Spec.Replaces, server.Spec.TermsAsync is not null, server.Spec.TermsNote, server.Spec.ReplacesLabel);
+        server.Spec.Replaces, server.Spec.TermsAsync is not null, server.Spec.TermsNote, server.Spec.ReplacesLabel, server.Spec.TermsDeadline);
 
     private static string Name(LanguageServer server) => server.Spec.Name.Length > 0 ? server.Spec.Name : server.Id;
 

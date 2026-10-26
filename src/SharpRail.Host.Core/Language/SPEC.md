@@ -611,6 +611,7 @@ not extend an expired EAP. No local clock or invented grace period substitutes f
 The server's actual release date and current eligibility are not independently established by
 SharpRail; an accessible archive is not proof of authorization. The user reviews the actual artifact's
 terms. No production support, paid activation or independent live revocation guarantee is advertised.
+The provider also publishes `TermsDeadline` (`yyyy-MM-dd`): the pinned build's release day (`product-info.json` `majorVersionReleaseDate`, 2026-09-30) plus the agreement's 30 days, 2026-10-30. Settings show it as "Stops working on <date>" (warning colour within 14 days, "Stopped working on <date>" after). It is derived from the pinned build, not read from a user-selected installation.
 
 Downloads go directly from JetBrains to the workspace host; no server binaries or proprietary
 terms are bundled, mirrored or committed. Apache client attribution and notices remain separate in

@@ -1840,6 +1840,8 @@ SharpRail.Host.Abstractions.LanguageServerPresentation.Replaces.get -> System.Co
 SharpRail.Host.Abstractions.LanguageServerPresentation.Replaces.init -> void
 SharpRail.Host.Abstractions.LanguageServerPresentation.TermsNote.get -> string!
 SharpRail.Host.Abstractions.LanguageServerPresentation.TermsNote.init -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.TermsDeadline.get -> string!
+SharpRail.Host.Abstractions.LanguageServerPresentation.TermsDeadline.init -> void
 SharpRail.Host.Abstractions.LanguageServerState.Presentation.get -> SharpRail.Host.Abstractions.LanguageServerPresentation?
 SharpRail.Host.Abstractions.LanguageServerState.Presentation.init -> void
 SharpRail.Host.Abstractions.LanguageTermsRequest.Deconstruct(out string! Workspace, out string! Server, out bool Accept, out string! ArtifactId, out string! EulaSha256) -> void
@@ -1851,8 +1853,8 @@ override SharpRail.Host.Abstractions.LanguageServerPresentation.GetHashCode() ->
 override SharpRail.Host.Abstractions.LanguageServerPresentation.ToString() -> string!
 static SharpRail.Host.Abstractions.LanguageServerPresentation.operator !=(SharpRail.Host.Abstractions.LanguageServerPresentation? left, SharpRail.Host.Abstractions.LanguageServerPresentation? right) -> bool
 static SharpRail.Host.Abstractions.LanguageServerPresentation.operator ==(SharpRail.Host.Abstractions.LanguageServerPresentation? left, SharpRail.Host.Abstractions.LanguageServerPresentation? right) -> bool
-SharpRail.Host.Abstractions.LanguageServerPresentation.Deconstruct(out string! Name, out byte[]? Icon, out string! IconFormat, out System.Collections.Generic.IReadOnlyList<string!>? OptionGroups, out System.Collections.Generic.IReadOnlyList<string!>? Replaces, out bool HasTerms, out string! TermsNote, out string! ReplacesLabel) -> void
-SharpRail.Host.Abstractions.LanguageServerPresentation.LanguageServerPresentation(string! Name, byte[]? Icon = null, string! IconFormat = "", System.Collections.Generic.IReadOnlyList<string!>? OptionGroups = null, System.Collections.Generic.IReadOnlyList<string!>? Replaces = null, bool HasTerms = false, string! TermsNote = "", string! ReplacesLabel = "") -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.Deconstruct(out string! Name, out byte[]? Icon, out string! IconFormat, out System.Collections.Generic.IReadOnlyList<string!>? OptionGroups, out System.Collections.Generic.IReadOnlyList<string!>? Replaces, out bool HasTerms, out string! TermsNote, out string! ReplacesLabel, out string! TermsDeadline) -> void
+SharpRail.Host.Abstractions.LanguageServerPresentation.LanguageServerPresentation(string! Name, byte[]? Icon = null, string! IconFormat = "", System.Collections.Generic.IReadOnlyList<string!>? OptionGroups = null, System.Collections.Generic.IReadOnlyList<string!>? Replaces = null, bool HasTerms = false, string! TermsNote = "", string! ReplacesLabel = "", string! TermsDeadline = "") -> void
 SharpRail.Host.Abstractions.LanguageServerPresentation.ReplacesLabel.get -> string!
 SharpRail.Host.Abstractions.LanguageServerPresentation.ReplacesLabel.init -> void
 SharpRail.Host.Abstractions.HostSettings.LanguageTools.get -> string!

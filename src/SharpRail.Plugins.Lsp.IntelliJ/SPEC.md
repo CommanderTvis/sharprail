@@ -13,7 +13,7 @@ tags: [plugins, language]
 
 The plugin id is `lsp-intellij`; it ships enabled. Its host half is a `LanguageServerPlugin` whose activation provides the
 `intellij` server (Plugin API H21); it has no UI half, methods, channels or settings of its own. Disabled, the server leaves
-the catalog, its sessions stop and its saved settings are kept. Implementation: IntelliJ Java and Kotlin · JetBrains · optional evaluation provider.
+the catalog, its sessions stop and its saved settings are kept. Implementation: IntelliJ Java and Kotlin · JetBrains · optional evaluation provider. The Code Intelligence settings show, in plain short sentences, "Stops working on <date>" (warning colour within 14 days; "Stopped working on <date>" once passed). The date is the pinned build's release day (product-info.json `majorVersionReleaseDate`, 2026-09-30) plus the 30-day EAP term of its agreement: 2026-10-30. It is derived from the pinned build, not read from a user-selected installation, and JetBrains may end the build sooner.
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
 and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).

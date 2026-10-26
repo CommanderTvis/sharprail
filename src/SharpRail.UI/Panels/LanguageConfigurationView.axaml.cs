@@ -44,6 +44,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         Find<TextBlock>("ProviderNote").Text = presentation?.TermsNote ?? "";
         Find<TextBlock>("ProviderNote").IsVisible = presentation?.TermsNote is { Length: > 0 };
         Find<Button>("ReviewTerms").IsVisible = Find<TextBlock>("TermsStatus").IsVisible = hasTerms;
+        ShowDeadline(presentation?.TermsDeadline ?? "");
         Find<Button>("ReviewTerms").Content = "Review agreement and start " + LanguageServerNameConverter.Display(server.Id) + "…";
         Find<StackPanel>("InstallationOptions").IsVisible = groups.Contains("installation");
         Find<StackPanel>("JvmProjectOptions").IsVisible = groups.Contains("jvmProject");
@@ -194,6 +195,17 @@ internal sealed partial class LanguageConfigurationView : UserControl
         else if (changed) Find<TextBlock>("ConfigurationMessage").Text = "Saved settings changed elsewhere. Reload saved to discard your edits, or Save to replace them.";
     }
 
+    private void ShowDeadline(string deadline)
+    {
+        var text = Find<TextBlock>("TermsDeadline");
+        if (!DateOnly.TryParseExact(deadline, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date)) { text.IsVisible = false; return; }
+        var left = date.DayNumber - DateOnly.FromDateTime(DateTime.Now).DayNumber;
+        text.Text = (left < 0 ? "Stopped working on " : "Stops working on ") + date.ToString("d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        if (left <= 14) text.Foreground = SharpRail.Plugins.UI.Kit.Ui.Warning;
+        else text.ClearValue(TextBlock.ForegroundProperty);
+        text.IsVisible = true;
+    }
+
     private void Load()
     {
         loading = true;
@@ -201,7 +213,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         {
             var options = JsonNode.Parse(server.Configuration.Length == 0 ? "{}" : server.Configuration)!;
             string ReadLines(string name) => string.Join('\n', options[name]?.AsArray().Select(value => value!.GetValue<string>()) ?? []);
-            Find<TextBlock>("TermsStatus").Text = "Setup checks the selected installation’s agreement. Existing acceptance is reused; changed terms require acknowledgement.";
+            Find<TextBlock>("TermsStatus").Text = "Setup checks the agreement. If it changed, you must accept it again.";
             Find<TextBox>("InstallationPath").Text = options["installationPath"]?.GetValue<string>() ?? "";
             Find<TextBox>("ProjectJdk").Text = options["projectJdk"]?.GetValue<string>() ?? "";
             Find<ComboBox>("BuildTool").SelectedItem = options["buildTool"]?.GetValue<string>() is { Length: > 0 } importer ? importer : "Automatic";

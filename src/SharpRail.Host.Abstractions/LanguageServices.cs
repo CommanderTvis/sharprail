@@ -56,10 +56,10 @@ public sealed record LanguageDependencyState(string Executable, string Name, str
 /// How a provider asks the user interface to show its server: <paramref name="Name"/>, a mark (<paramref name="Icon"/> bytes in
 /// <paramref name="IconFormat"/> <c>svg</c> or <c>png</c>, or none), the typed option groups it accepts (<c>compilerFlags</c>,
 /// <c>installation</c>, <c>jvmProject</c>), the servers it <paramref name="Replaces"/> when chosen, and whether it has terms to accept,
-/// with <paramref name="TermsNote"/> to read first; <paramref name="ReplacesLabel"/> names the replaced servers' languages.
+/// with <paramref name="TermsNote"/> to read first; <paramref name="ReplacesLabel"/> names the replaced servers' languages; <paramref name="TermsDeadline"/> is the <c>yyyy-MM-dd</c> date the vendor ends the build, or empty.
 /// </summary>
 public sealed record LanguageServerPresentation(string Name, byte[]? Icon = null, string IconFormat = "", IReadOnlyList<string>? OptionGroups = null,
-    IReadOnlyList<string>? Replaces = null, bool HasTerms = false, string TermsNote = "", string ReplacesLabel = "");
+    IReadOnlyList<string>? Replaces = null, bool HasTerms = false, string TermsNote = "", string ReplacesLabel = "", string TermsDeadline = "");
 
 /// <summary>Counts of agent tool calls that used one language server in one workspace, with the time of the latest (UTC, round-trip format).</summary>
 public sealed record LanguageUsageSummary(int Calls, int Successes, int Failures, string LastUsed);

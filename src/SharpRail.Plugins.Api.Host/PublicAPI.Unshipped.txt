@@ -607,6 +607,8 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsAsync.get -> System.Func<Shar
 SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsAsync.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsNote.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsNote.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsDeadline.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsDeadline.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.WorkspaceFolders.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>!, System.Collections.Generic.IReadOnlyList<string!>!>!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.WorkspaceFolders.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerTerms

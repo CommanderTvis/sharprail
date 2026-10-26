@@ -46,6 +46,7 @@
         <TextBlock x:Name="ProviderHeading" FontWeight="SemiBold" TextWrapping="Wrap" />
         <TextBlock x:Name="ProviderNote" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
         <Button x:Name="ReviewTerms" Content="Review agreement and start…" HorizontalAlignment="Left" ToolTip.Tip="Saves settings and reviews the agreement before starting." />
+        <TextBlock x:Name="TermsDeadline" FontWeight="SemiBold" FontSize="15" TextWrapping="Wrap" IsVisible="False" />
         <TextBlock x:Name="TermsStatus" Text="Setup checks existing acceptance; changed terms require your acknowledgement." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
         <StackPanel x:Name="InstallationOptions" Spacing="8">
           <TextBlock Text="Installation directory on the workspace host" />

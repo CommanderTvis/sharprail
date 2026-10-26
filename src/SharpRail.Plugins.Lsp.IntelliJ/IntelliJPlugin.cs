@@ -43,9 +43,9 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         TermsAsync = async (installation, prepare, token) => await IntelliJTerms.ReadAsync(
             prepare ? await IntelliJDistribution.PrepareAsync(installation, token) : IntelliJDistribution.Existing(installation), token),
         LaunchAsync = (installation, _) => Task.FromResult(IntelliJDistribution.Launch(installation)),
-        TermsNote = "Uses JetBrains’ standalone server for Java and Kotlin. Download or select an installation, then review and accept its EULA before starting. " +
-            "The current build is evaluation-only EAP; JetBrains enforces its validity. Terms: JetBrains LSP Extension Public EAP Agreement, version 1.0 (July 31, 2026). " +
-            "Internal evaluation only; ends at the earliest vendor-defined EAP termination. Terms acceptance is not an activation credential and cannot extend a build’s lifetime.",
+        TermsNote = "Uses JetBrains’ standalone server for Java and Kotlin. Download or select an installation, then accept its agreement before starting. " +
+            "This is an early preview build for evaluation only. JetBrains decides when it stops working. Accepting the agreement does not extend that date.",
+        TermsDeadline = IntelliJDistribution.Deadline.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
         ExpiredExitCode = 7,
         ExpiredDetail = IntelliJDistribution.Expired,
         OnExpired = IntelliJDistribution.RecordExpiry,
