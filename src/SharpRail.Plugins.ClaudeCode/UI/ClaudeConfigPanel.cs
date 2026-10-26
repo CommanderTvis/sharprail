@@ -524,7 +524,10 @@ internal sealed class ClaudeConfigPanel : DockPanel
         var amount = measured is null ? Unmeasured() : Measure(sum, Ui.TextBrush, " in new session");
         SetDock(amount, Dock.Right);
         total.Children.Add(amount);
-        total.Children.Add(Ui.Text("CONTEXT", Ui.Muted, 11));
+        var totalLabel = Ui.Text("CTX", Ui.Muted, 11);
+        ToolTip.SetTip(totalLabel, "Context");
+        Avalonia.Automation.AutomationProperties.SetName(totalLabel, "Context");
+        total.Children.Add(totalLabel);
         list.Children.Add(new Border { BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 0, 1), Child = total });
         // The appended prompt is drawn as SharpRail's instructions entry below, not as a file row.
         var files = layers.Where(layer => !ReferenceEquals(layer, appendedRow)).ToList();
