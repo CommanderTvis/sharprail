@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 
 using SharpRail.Checks.E2E;
+using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -213,6 +214,23 @@ internal static class LocationBarChecks
         var settings = app.Find<Button>("SettingsButton");
         Require(bar.TranslatePoint(new Point(bar.Bounds.Width, 0), app.Window)!.Value.X <= settings.TranslatePoint(default, app.Window)!.Value.X,
             "The location bar never runs under the header's actions.");
+        app.Window.Width = 1200; Settle(60);
+        double Left(Control control) => control.TranslatePoint(default, app.Window)!.Value.X;
+        var fields = new List<(string Segment, Control Icon)>
+        {
+            ("ProjectSegment", app.Window.GetLogicalDescendants().OfType<Border>().First(border => border.Classes.Contains("location-initial"))),
+            ("WorkspaceSegment", app.Find<ContentControl>("WorkspaceIcon")),
+            ("BranchSegment", app.Find<ContentControl>("BranchIcon"))
+        };
+        foreach (var name in new[] { "RemoteIcon", "PullRequestIcon" })
+            if (app.Window.GetLogicalDescendants().OfType<ContentControl>().FirstOrDefault(control => control.Name == name) is { } icon)
+                fields.Add((name == "RemoteIcon" ? "RemoteSegment" : "PullRequestSegment", icon));
+        foreach (var (segmentName, icon) in fields)
+        {
+            var caption = app.Find<Border>(segmentName).GetLogicalDescendants().OfType<TextBlock>().First(text => text.Classes.Contains("location-caption"));
+            Require(Math.Abs(Left(caption) - Left(icon)) < 0.5 && Math.Abs(icon.Bounds.Width - LayoutRoles.LocationIconSlot) < 0.5,
+                $"{segmentName}'s caption and its value's icon slot share one left edge and one width.");
+        }
         Console.WriteLine("PASS location bar: pills opt out of window dragging and segments drop in order as the header narrows");
     }
 }

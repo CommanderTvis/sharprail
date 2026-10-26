@@ -272,6 +272,9 @@ host state: it shows what the window already knows and calls the same methods as
   button) and the branch card's Checks and Review rows.
 - Pills and the rename input never start a window drag; captions and the space between remain part of the
   title bar.
+- Every field is a muted caption over a value whose first element is a `LayoutRoles.LocationIconSlot` icon column
+  (project badge, workspace, branch, remote and pull-request icons; an empty state keeps its icon, muted, beside muted
+  text), so the caption and the value's first element share one left edge in every field.
 - `LocationStrip` lays the segments out. As width shrinks Remote yields first, then the provider items, the branch and the project; a
   segment that would fall under 72px is dropped whole, and the workspace keeps what is left, so workspace
   identity stays visible at the minimum window width.

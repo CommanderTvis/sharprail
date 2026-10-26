@@ -78,6 +78,13 @@
     <Style Selector="Button.location-pill:pointerover ContentControl.location-chevron, Button.location-pill:focus-visible ContentControl.location-chevron, Button.location-pill.open ContentControl.location-chevron">
       <Setter Property="Opacity" Value="1" />
     </Style>
+    <!-- One icon column for every field's value: the project badge, the workspace and branch icons, Remote's and Pull request's. -->
+    <Style Selector="ContentControl.location-icon">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
     <Style Selector="Border.location-initial">
       <Setter Property="Width" Value="16" />
       <Setter Property="Height" Value="16" />
@@ -115,9 +122,10 @@
                 <TextBlock x:Name="ScopeSettled" Classes="location-caption tr-text-metadata" Text="· settled" Foreground="{x:Static rendering:Ui.Warning}" IsVisible="False" />
               </StackPanel>
               <Button x:Name="ScopeWorkspace" Grid.Row="1" Classes="location-pill tr-title-section">
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock x:Name="WorkspaceLabel" Text="" Classes="header-label tr-title-section" />
-                  <ContentControl x:Name="WorkspaceChevron" Grid.Column="1" Classes="location-chevron" Margin="4,0,0,0" />
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <ContentControl x:Name="WorkspaceIcon" Classes="location-icon" />
+                  <TextBlock x:Name="WorkspaceLabel" Grid.Column="1" Text="" Classes="header-label tr-title-section" />
+                  <ContentControl x:Name="WorkspaceChevron" Grid.Column="2" Classes="location-chevron" Margin="4,0,0,0" />
                 </Grid>
               </Button>
               <ContentControl x:Name="ScopeRename" Grid.Row="1" IsVisible="False" />
@@ -131,7 +139,7 @@
               </StackPanel>
               <Button x:Name="ScopeBranch" Grid.Row="1" Classes="location-pill tr-title-section">
                 <Grid ColumnDefinitions="Auto,*,Auto">
-                  <ContentControl x:Name="BranchIcon" Margin="0,0,4,0" />
+                  <ContentControl x:Name="BranchIcon" Classes="location-icon" />
                   <TextBlock x:Name="BranchLabel" Grid.Column="1" Classes="header-label tr-title-section" />
                   <ContentControl x:Name="BranchChevron" Grid.Column="2" Classes="location-chevron" Margin="4,0,0,0" />
                 </Grid>
@@ -141,13 +149,13 @@
           <Border x:Name="RemoteSegment" Classes="location-segment" IsVisible="False">
             <Grid RowDefinitions="14,20" VerticalAlignment="Center">
               <TextBlock Classes="location-caption tr-text-metadata" Text="Remote" />
-              <StackPanel x:Name="RemoteRow" Grid.Row="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" />
+              <StackPanel x:Name="RemoteRow" Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="8,0,0,0" VerticalAlignment="Center" />
             </Grid>
           </Border>
           <Border x:Name="PullRequestSegment" Classes="location-segment" IsVisible="False">
             <Grid RowDefinitions="14,20" VerticalAlignment="Center">
               <TextBlock Classes="location-caption tr-text-metadata" Text="Pull request" />
-              <StackPanel x:Name="PullRequestRow" Grid.Row="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" />
+              <StackPanel x:Name="PullRequestRow" Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="8,0,0,0" VerticalAlignment="Center" />
             </Grid>
           </Border>
         </local:LocationStrip>

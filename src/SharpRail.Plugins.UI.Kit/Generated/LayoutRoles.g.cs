@@ -17,6 +17,8 @@ public static class LayoutRoles
     public const double PanelRow = 22;
     /// <summary>Tool-pane padding.</summary>
     public const double PanelInset = 8;
+    /// <summary>The leading icon column of every header location field, so each caption and its first value element share one left edge.</summary>
+    public const double LocationIconSlot = 16;
     /// <summary>One tree nesting level.</summary>
     public const double TreeIndent = 8;
     /// <summary>The space after a terminal chip and below its row, so chip rows share one grid.</summary>

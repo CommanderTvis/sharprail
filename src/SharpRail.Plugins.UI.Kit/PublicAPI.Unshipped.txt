@@ -481,6 +481,7 @@ static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.RenderAsync(string
 SharpRail.Plugins.UI.Kit.FileDrop
 static readonly SharpRail.Plugins.UI.Kit.FileDrop.AcceptsProperty -> Avalonia.AttachedProperty<System.Func<bool>?>!
 static readonly SharpRail.Plugins.UI.Kit.FileDrop.AttachProperty -> Avalonia.AttachedProperty<System.Action<System.Collections.Generic.IReadOnlyList<string!>!>?>!
+const SharpRail.Plugins.UI.Kit.LayoutRoles.LocationIconSlot = 16 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderControl = 24 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow = 28 -> double
 const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelInset = 8 -> double

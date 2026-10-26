@@ -83,7 +83,8 @@ public sealed partial class WorkbenchWindow
         UpdateChecksPoll(status);
         if (status is null) return;
         var (remoteAction, prAction) = ShipActions(status);
-        // Remote: its state, then its one action.
+        // Remote: its icon slot, its state, then its one action.
+        remoteRow.Children.Add(ShipIcon("RemoteIcon", "network", status.HasOrigin ? Ui.Muted : Ui.Hint));
         if (!status.HasOrigin) remoteRow.Children.Add(ShipText("RemoteState", "No remote", Ui.Hint));
         else if (!status.Published) remoteRow.Children.Add(ShipText("RemoteState", "Not published", Ui.Muted));
         else if (status.Ahead <= 0 && status.Behind <= 0) remoteRow.Children.Add(ShipText("RemoteState", "In sync", Ui.Muted));
@@ -100,6 +101,8 @@ public sealed partial class WorkbenchWindow
         }
         // Pull request: the review chip or its absence, then the next step.
         var details = status.Details;
+        var prEmpty = status.Provider != "github" || details is null && status.Review is null;
+        prRow.Children.Add(ShipIcon("PullRequestIcon", "fileDiff", prEmpty ? Ui.Hint : Ui.Muted));
         if (status.Provider != "github") prRow.Children.Add(ShipText("PullRequestState", status.Provider == "gitlab" ? "Open on GitLab" : "—", Ui.Hint));
         else if (details is null && status.Review is null) prRow.Children.Add(ShipText("PullRequestState", status.OnBase ? "—" : "No PR", Ui.Hint));
         else
@@ -141,6 +144,17 @@ public sealed partial class WorkbenchWindow
             case "delete-remote": prRow.Children.Add(ShipButton("PullRequestDeleteBranch", "Delete remote branch", () => _ = DeleteRemoteBranchAsync(status))); break;
         }
     }
+
+    // The field's leading icon, in the same column as the other location fields' icons.
+    private static ContentControl ShipIcon(string name, string icon, IBrush brush) => new()
+    {
+        Name = name,
+        Width = LayoutRoles.LocationIconSlot,
+        Margin = new Thickness(0, 0, 4, 0),
+        HorizontalContentAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+        Content = Ui.Icon(icon, brush, 14)
+    };
 
     private static TextBlock ShipText(string name, string text, IBrush brush)
     {

@@ -103,6 +103,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         errorText = this.FindControl<TextBlock>("WorkspaceError")!;
         branchIcon = Ui.Icon("gitBranch", Ui.Muted, 14);
         this.FindControl<ContentControl>("BranchIcon")!.Content = branchIcon;
+        this.FindControl<ContentControl>("WorkspaceIcon")!.Content = Ui.Icon("layout", Ui.Muted, 14);
         WireBranchList();
         WireHeader();
         Layout = new(slot.Layout);
