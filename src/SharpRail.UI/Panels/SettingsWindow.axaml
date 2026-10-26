@@ -153,8 +153,12 @@
       <StackPanel Spacing="8">
         <TextBlock Text="Theme" Classes="settings-heading" />
         <TextBlock Text="Your mode and pair are shared by every window and client of this host. Match system follows each device’s light or dark setting." Classes="settings-description" />
-        <StackPanel x:Name="ThemeModeChoices" Spacing="4" AutomationProperties.Name="Theme mode" />
-        <StackPanel x:Name="ThemeChoices" Spacing="4" />
+        <Border Classes="settings-row">
+          <StackPanel x:Name="ThemeModeChoices" Spacing="4" AutomationProperties.Name="Theme mode" />
+        </Border>
+        <Border Classes="settings-row">
+          <StackPanel x:Name="ThemeChoices" Spacing="4" />
+        </Border>
         <StackPanel x:Name="SystemThemes" Spacing="8">
           <Grid x:Name="SystemThemeCurrent" ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <TextBlock Text="Current on this device" Classes="settings-description" VerticalAlignment="Center" />
@@ -182,9 +186,15 @@
           <StackPanel x:Name="WindowDecorationChoices" Spacing="4" AutomationProperties.Name="Window decorations" />
           <TextBlock x:Name="WindowDecorationsOverride" Classes="settings-description" Foreground="{x:Static rendering:Ui.Warning}" IsVisible="False" />
         </StackPanel>
-        <TextBlock Text="Interface font size" Classes="settings-label" />
-        <NumericUpDown x:Name="InterfaceSize" Minimum="10" Maximum="24" Increment="1" Width="150" HorizontalAlignment="Left" />
-        <TextBlock Text="Geist for the interface · JetBrains Mono for code" FontSize="12" Foreground="{x:Static rendering:Ui.Hint}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Interface font size" Classes="settings-label" />
+              <TextBlock Text="Geist for the interface · JetBrains Mono for code" Classes="settings-description" />
+            </StackPanel>
+            <NumericUpDown x:Name="InterfaceSize" Grid.Column="1" Minimum="10" Maximum="24" Increment="1" Width="150" />
+          </Grid>
+        </Border>
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="LineWidthPage">
@@ -248,11 +258,15 @@
         <StackPanel x:Name="TerminalRendererSection" Spacing="8" Margin="0,0,0,16">
           <TextBlock Text="Terminal renderer" Classes="settings-heading" />
           <TextBlock Text="A preference of this app. Changing it redraws open terminals; their shells keep running." Classes="settings-description" />
-          <StackPanel x:Name="TerminalRendererChoices" Spacing="8" />
+          <Border Classes="settings-row">
+            <StackPanel x:Name="TerminalRendererChoices" Spacing="8" />
+          </Border>
         </StackPanel>
         <TextBlock Text="Replayed output" Classes="settings-heading" />
         <TextBlock Text="A terminal keeps running when you leave it, but its view is rebuilt when you come back. This is how much of its recent output the host keeps so the screen is restored too. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
-        <StackPanel x:Name="TerminalReplayChoices" Spacing="8" />
+        <Border Classes="settings-row">
+          <StackPanel x:Name="TerminalReplayChoices" Spacing="8" />
+        </Border>
         <TextBlock Text="Programs" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="What programs in a terminal may ask for, as in Ghostty. A progress report (OSC 9;4) always shows as a bar on its tab. Agent terminals keep their own notifications. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
         <Border Classes="settings-row">
@@ -268,10 +282,14 @@
         <CheckBox x:Name="BellSystem" Content="Play the system alert sound" />
         <TextBlock Text="When the shell exits" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="What a terminal tab does when its shell ends, by exit, Ctrl-D or otherwise. A shell that fails to start, or exits abnormally within moments of starting, always keeps its tab to show why. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
-        <StackPanel x:Name="TerminalExitChoices" Spacing="8" />
+        <Border Classes="settings-row">
+          <StackPanel x:Name="TerminalExitChoices" Spacing="8" />
+        </Border>
         <TextBlock Text="Undo close" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="How long a closed tab can be reopened in place with Undo (Command-Z on macOS). A closed terminal keeps its process running, detached, for this time. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
-        <StackPanel x:Name="TerminalUndoCloseChoices" Spacing="8" />
+        <Border Classes="settings-row">
+          <StackPanel x:Name="TerminalUndoCloseChoices" Spacing="8" />
+        </Border>
         <TextBlock Text="Shell integration" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="Load SharpRail's shell integration into zsh and bash (fish 4 marks its own prompts). It marks each prompt and command output, so you can jump between prompts, select or copy a command's output and click in the command line to move the cursor, and it reports the shell's directory, which new terminals opened from this one start in. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
         <Border Classes="settings-row">
