@@ -31,13 +31,13 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   `visualize` tool registered through `Tool`. The runtime binds the tool to the terminal whose MCP token made the
   call and hands it as `PluginToolContext.Terminal`, so the tool never resolves its owner itself; a call from
   outside a terminal is refused. The tool validates the call's shape beyond what the parameters record captures
-  (`VisualizeParams.ShapeError`: a diagram needs non-blank Mermaid, an `svg` call a non-blank `svg`, a comparison a non-empty list of named
+  (`VisualizeParams.ShapeError`: a diagram needs non-blank Mermaid, an `svg` call a non-blank `svg`, a `markdown` call a non-blank `markdown`, a comparison a non-empty list of named
   options) and answers with the title, the revision, and the fact that calling again updates in place, the
   sentence that teaches the agent the iteration loop. The parameters record's `[Description]` attributes become
   the schema's field descriptions.
 - `visualize_read` (no arguments, bound to the calling terminal the same way, refused outside one) answers JSON
   for that terminal's view only: `shown`; when shown, `revision`, effective `title`, the stored arguments field for
-  field (`type`, `requestedTitle` when one was given, `mermaid`, `svg` as sent, or `options`), `render` (`ok`, `error` with
+  field (`type`, `requestedTitle` when one was given, `mermaid`, `svg` or `markdown` as sent, or `options`), `render` (`ok`, `error` with
   `renderError`, or `pending` while no client has reported this revision), and `selection` (the text the user has
   selected in the pane for this revision, null when none); `rejected` (`revision`, `error`) when the latest call
   was refused and rolled back. It is a separate tool rather than an action on `visualize` because `visualize`'s
@@ -62,7 +62,10 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   `currentColor`, `var(--fg)`, `var(--bg)`, `var(--accent)`, `var(--muted)` and `var(--border)` in attributes and
   `<style>` become the pane's text, surface, accent, muted and border colours (an unknown variable takes its
   fallback), re-applied on theme change. A missing `xmlns` is supplied.
-- The title names the companion once: `title`, else "Diagram", "SVG" or "Comparison". The arguments travel verbatim as
+- Markdown (`type: markdown`) draws `markdown` with the kit's `MarkdownPreview`, the same renderer as the Markdown
+  preview (tables, HTML tables, code, fenced Mermaid, theme colours), with no workspace: images and links resolve to
+  nothing. It cannot fail to render, so it settles when shown. It is a top-level type only, not a comparison field.
+- The title names the companion once: `title`, else "Diagram", "SVG", "Markdown" or "Comparison". The arguments travel verbatim as
   JSON: the UI half renders them with the kit's `VisualizationCard`.
 - A drawing belongs to the conversation, not to the tab. The live view is keyed by terminal, but every drawing
   is also written under the agent session id the terminal's agent record carries. When `OnTerminal` delivers a

@@ -16,12 +16,12 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
 
     internal const string ToolDescription =
         "Render a rich visualization in the SharpRail workbench, in a live view beside this terminal — " +
-        "instead of ASCII art or a plain markdown table. Three kinds, chosen by `type`: 'diagram' renders a " +
+        "instead of ASCII art or a plain markdown table. Four kinds, chosen by `type`: 'diagram' renders a " +
         "mermaid diagram (set `mermaid` to raw mermaid source of any kind — flowchart, sequenceDiagram, " +
         "classDiagram, stateDiagram, erDiagram, gantt); 'svg' renders hand-written SVG (set `svg` to a " +
         "complete <svg> document; scripts, event handlers, foreignObject, animation and any reference other than #id or " +
         "a data: raster image are refused, as is anything over 2 MB or 10000 elements; use currentColor or var(--fg), " +
-        "var(--bg), var(--accent), var(--muted), var(--border) for colours so it reads in light and dark); 'comparison' renders side-by-side option cards " +
+        "var(--bg), var(--accent), var(--muted), var(--border) for colours so it reads in light and dark); 'markdown' renders Markdown text (set `markdown`) with the app's Markdown preview, including tables and code; 'comparison' renders side-by-side option cards " +
         "(set `options` to the alternatives, each with pros/cons, an optional `recommended` flag, and an " +
         "optional inline `mermaid` or `svg`). Calling again replaces this terminal's view in place, so you can " +
         "iterate on a diagram and the user watches it evolve. visualize_read returns what this view shows now and " +
@@ -29,7 +29,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
 
     internal const string ReadDescription =
         "Read this terminal's live visualize view as JSON: whether something is shown, its revision, type and title, " +
-        "the `mermaid` or `svg` source or comparison `options` exactly as last drawn, the render verdict (render: ok, error " +
+        "the `mermaid`, `svg` or `markdown` source or comparison `options` exactly as last drawn, the render verdict (render: ok, error " +
         "with renderError, or pending when no pane has reported), the last refused attempt (rejected) if the latest " +
         "call did not render, and the text the user has selected in the pane (selection, null when none). Use it " +
         "before editing a drawing you no longer have verbatim, or when the user refers to \"this node\" or " +
@@ -217,7 +217,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
         lock (gate)
         {
             var revision = (byTerminal.GetValueOrDefault((workspaceId, tabKey))?.Revision ?? 0) + 1;
-            var title = string.IsNullOrEmpty(parameters.Title) ? parameters.Type switch { VisualizationType.Comparison => "Comparison", VisualizationType.Svg => "SVG", _ => "Diagram" } : parameters.Title;
+            var title = string.IsNullOrEmpty(parameters.Title) ? parameters.Type switch { VisualizationType.Comparison => "Comparison", VisualizationType.Svg => "SVG", VisualizationType.Markdown => "Markdown", _ => "Diagram" } : parameters.Title;
             var visualization = new TerminalVisualization(title, JsonSerializer.SerializeToElement(parameters, PluginJson.Options), revision);
             byTerminal[(workspaceId, tabKey)] = visualization;
             if (sessionOf(workspaceId, tabKey) is { } sessionId) RememberForSession(workspaceId, sessionId, visualization);

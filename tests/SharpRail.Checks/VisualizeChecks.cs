@@ -66,6 +66,12 @@ internal static class VisualizeChecks
         Require(Comparison("").ShapeError()?.Contains("options[0].name", StringComparison.Ordinal) == true, "A comparison option missing a name is refused.");
         Require(new VisualizeParams(VisualizationType.Svg) { Svg = "<svg/>" }.ShapeError() is null, "An svg call with svg is accepted.");
         Require(new VisualizeParams(VisualizationType.Svg) { Mermaid = "graph LR;A" }.ShapeError()?.Contains("`svg`", StringComparison.Ordinal) == true, "An svg call without svg is refused.");
+        Require(new VisualizeParams(VisualizationType.Markdown) { Markdown = "# Hi\n\n<table><tr><td>x</td></tr></table>" }.ShapeError() is null, "A markdown call with markdown is accepted.");
+        Require(new VisualizeParams(VisualizationType.Markdown) { Mermaid = "graph LR;A" }.ShapeError()?.Contains("`markdown`", StringComparison.Ordinal) == true, "A markdown call without markdown is refused.");
+        var markdownStore = new VisualizationStore();
+        var markdownShown = markdownStore.Record("w", "t", new VisualizeParams(VisualizationType.Markdown) { Markdown = "**bold**" });
+        Require(markdownShown.Title == "Markdown" && markdownStore.Read("w", "t")["markdown"]?.GetValue<string>() == "**bold**" && markdownStore.Read("w", "t")["type"]?.GetValue<string>() == "markdown",
+            "A markdown call is titled Markdown and visualize_read returns its source.");
     }
 
     // store.test.ts
@@ -254,7 +260,7 @@ internal static class VisualizeChecks
 
         var w1 = Path.Combine(directory, "w1");
         var tool = runtime.McpTools(new TerminalRef(w1, "t1"), w1).Single(tool => tool.Name == "visualize");
-        Require(tool.InputSchema["properties"]?["type"]?["enum"]?.AsArray().Select(value => value!.GetValue<string>()).SequenceEqual(["diagram", "comparison", "svg"]) == true &&
+        Require(tool.InputSchema["properties"]?["type"]?["enum"]?.AsArray().Select(value => value!.GetValue<string>()).SequenceEqual(["diagram", "comparison", "svg", "markdown"]) == true &&
             tool.InputSchema["required"]?.AsArray().Select(value => value!.GetValue<string>()).SequenceEqual(["type"]) == true &&
             tool.InputSchema["properties"]?["svg"]?["description"]?.GetValue<string>().Contains("currentColor", StringComparison.Ordinal) == true &&
             tool.InputSchema["properties"]?["mermaid"]?["description"]?.GetValue<string>().StartsWith("Required when type='diagram'", StringComparison.Ordinal) == true &&

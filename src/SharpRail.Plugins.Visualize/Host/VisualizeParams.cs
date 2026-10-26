@@ -6,7 +6,8 @@ public enum VisualizationType
 {
     Diagram,
     Comparison,
-    Svg
+    Svg,
+    Markdown
 }
 
 public sealed record ComparisonOption([property: Description("Short label for this option.")] string Name)
@@ -32,7 +33,7 @@ public sealed record ComparisonOption([property: Description("Short label for th
 
 /// <summary>The visualize tool's arguments, the schema ThinkRail's pi visualize extension shares.</summary>
 public sealed record VisualizeParams(
-    [property: Description("Which visualization to render. 'diagram' needs `mermaid`; 'comparison' needs `options`; 'svg' needs `svg`.")] VisualizationType Type)
+    [property: Description("Which visualization to render. 'diagram' needs `mermaid`; 'comparison' needs `options`; 'svg' needs `svg`; 'markdown' needs `markdown`.")] VisualizationType Type)
 {
     [Description("Optional heading shown above the visualization.")]
     public string? Title { get; init; }
@@ -45,6 +46,9 @@ public sealed record VisualizeParams(
         "Colours follow the pane's theme: currentColor and var(--fg) are the foreground, var(--bg) the background, var(--accent), var(--muted) and var(--border) the accent, muted text and border colours.")]
     public string? Svg { get; init; }
 
+    [Description("Required when type='markdown'. Markdown text rendered like the app's Markdown preview: headings, lists, tables (including HTML tables), code, links and fenced mermaid blocks.")]
+    public string? Markdown { get; init; }
+
     [Description("Required when type='comparison'. The alternatives being compared.")]
     public IReadOnlyList<ComparisonOption>? Options { get; init; }
 
@@ -55,6 +59,8 @@ public sealed record VisualizeParams(
             "visualize: `mermaid` is required and must be a non-empty string when type is \"diagram\".",
         VisualizationType.Svg when string.IsNullOrWhiteSpace(Svg) =>
             "visualize: `svg` is required and must be a non-empty string when type is \"svg\".",
+        VisualizationType.Markdown when string.IsNullOrWhiteSpace(Markdown) =>
+            "visualize: `markdown` is required and must be a non-empty string when type is \"markdown\".",
         VisualizationType.Comparison when Options is not { Count: > 0 } =>
             "visualize: `options` is required and must be a non-empty array when type is \"comparison\".",
         VisualizationType.Comparison => Options!.Select((option, index) => (option, index))

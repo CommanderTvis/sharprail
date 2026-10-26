@@ -4,9 +4,11 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 
+using SharpRail.Plugins.UI.Kit.Markdown;
+
 namespace SharpRail.Plugins.UI.Kit.Visualization;
 
-/// <summary>Renders a visualize tool's diagram, SVG or comparison arguments and reports the renderer's verdict.</summary>
+/// <summary>Renders a visualize tool's diagram, SVG, Markdown or comparison arguments and reports the renderer's verdict.</summary>
 public static class VisualizationCard
 {
     /// <summary>Creates a drawing; interactive diagrams fill their pane with pan and zoom controls.</summary>
@@ -19,6 +21,16 @@ public static class VisualizationCard
             onRender?.Invoke(null);
             return comparison;
         }
+        if (VisualizationArgs.String(args, "type") == "markdown")
+        {
+            var text = VisualizationArgs.String(args, "markdown");
+            var title = VisualizationArgs.String(args, "title");
+            if (title.Length > 0 && !interactive) text = "# " + title + "\n\n" + text;
+            var markdown = new VisualizationCardFrame(text.Length == 0 ? null : new MarkdownPreview(text, "visualize.md",
+                new(static (_, _) => ValueTask.FromResult<byte[]?>(null), static _ => null, static (_, _) => { }, Ui.FontSize, 100, false)), false, text.Length == 0 ? "(no markdown)" : null);
+            onRender?.Invoke(null);
+            return markdown;
+        }
         return new VisualizationCardFrame(new DiagramView(args, interactive, onRender), false);
     }
 
@@ -26,6 +38,7 @@ public static class VisualizationCard
     public static string SelectedText(Control card) =>
         card.GetVisualDescendants().Select(control => control switch
         {
+            MarkdownPreview preview => preview.SelectedText,
             PanZoomView diagram => diagram.SelectedText,
             SelectableTextBlock block => block.SelectedText,
             _ => ""
