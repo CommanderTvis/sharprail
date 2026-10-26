@@ -229,7 +229,7 @@ internal static class ClaudeContextChecks
             var at = new DateTimeOffset(2026, 1, 1, 8, 50, 0, TimeSpan.Zero);
             view.Show(new(false) { Breakdown = Fixture(), MeasuredAt = at.ToString("O") });
             E2eWorkspace.Settle();
-            Require(view.FindControl<TextBlock>("ClaudeContextMessage")!.Text == $"measured {at.ToLocalTime():HH:mm}" &&
+            Require(view.FindControl<TextBlock>("ClaudeContextMessage")!.Text == "Measured " + ClaudeParts.Ago(at) &&
                 !view.FindControl<Button>("ClaudeContextRetry")!.IsVisible, "A measured baseline says only when it was measured.");
             view.Show(new(false) { Error = "boom" });
             Require(view.FindControl<Button>("ClaudeContextRetry")!.IsVisible &&
