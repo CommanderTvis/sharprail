@@ -42,7 +42,7 @@
         </WrapPanel>
       </DockPanel>
     </Button>
-    <ContentControl x:Name="InstructionSectionsSource" Margin="30,-4,8,4" HorizontalAlignment="Left" />
+    <ContentControl x:Name="InstructionSectionsSource" Margin="30,0,8,4" HorizontalAlignment="Left" />
     <StackPanel x:Name="InstructionSectionsBody" Margin="12" Spacing="2" Width="420">
       <TextBlock Text="SharpRail's instructions" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
       <TextBlock x:Name="InstructionSectionsIntro" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
