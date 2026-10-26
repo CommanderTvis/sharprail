@@ -45,6 +45,19 @@ internal sealed class ClaudeGlyph(IPluginUIContext context)
 /// <summary>The small shared pieces of the configuration pane and its dialogs.</summary>
 internal static class ClaudeParts
 {
+    /// <summary>The one phrasing of a past time across the Claude panes: "just now", "5m ago", "3h ago" or "2d ago".</summary>
+    public static string Ago(DateTimeOffset at)
+    {
+        var minutes = Math.Max(0, (int)Math.Round((DateTimeOffset.UtcNow - at).TotalMinutes, MidpointRounding.AwayFromZero));
+        if (minutes < 1) return "just now";
+        if (minutes < 60) return $"{minutes}m ago";
+        var hours = (int)Math.Round(minutes / 60.0, MidpointRounding.AwayFromZero);
+        return hours < 48 ? $"{hours}h ago" : $"{(int)Math.Round(hours / 24.0, MidpointRounding.AwayFromZero)}d ago";
+    }
+
+    /// <summary>The absolute local time shown in the tooltip of an <see cref="Ago"/> label.</summary>
+    public static string Absolute(DateTimeOffset at) => at.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
+
     public static string ErrorText(Exception error, string fallback = "The request failed.") => error.Message is { Length: > 0 } message ? message : fallback;
 
     public static Window? Owner(Control control) => TopLevel.GetTopLevel(control) as Window;

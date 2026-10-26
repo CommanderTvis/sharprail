@@ -44,15 +44,6 @@ internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPane
         });
     }
 
-    private static string Ago(TimeSpan elapsed)
-    {
-        var minutes = Math.Max(0, (int)Math.Round(elapsed.TotalMinutes, MidpointRounding.AwayFromZero));
-        if (minutes < 1) return "just now";
-        if (minutes < 60) return $"{minutes}m ago";
-        var hours = (int)Math.Round(minutes / 60.0, MidpointRounding.AwayFromZero);
-        return hours < 48 ? $"{hours}h ago" : $"{(int)Math.Round(hours / 24.0, MidpointRounding.AwayFromZero)}d ago";
-    }
-
     // A window whose reset has already passed says so: the reading is old, not the window empty.
     private static string? ResetLabel(string resetsAt)
     {
@@ -149,8 +140,9 @@ internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPane
         if (account.UsageFetchedAt is { } fetched && DateTimeOffset.TryParse(fetched, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var at))
         {
             var age = ClaudeParts.Wrapped(busy ? "Asking Claude Code for the current numbers…"
-                : $"Claude Code read this {Ago(DateTimeOffset.UtcNow - at)}, on {at.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)}.", Ui.Hint);
+                : $"Claude Code read this {ClaudeParts.Ago(at)}.", Ui.Hint);
             age.Name = "ClaudeUsageAge";
+            ToolTip.SetTip(age, ClaudeParts.Absolute(at));
             usage.Children.Add(age);
         }
         Children.Add(usage);

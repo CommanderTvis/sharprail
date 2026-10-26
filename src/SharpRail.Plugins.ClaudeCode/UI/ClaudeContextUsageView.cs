@@ -43,13 +43,15 @@ internal sealed partial class ClaudeContextUsageView : UserControl
         if (Equals(shown, key)) return;
         shown = key;
         message.Foreground = usage?.Error is not null ? Ui.Danger : Ui.Hint;
+        ToolTip.SetTip(message, usage is { Running: false, Error: null, MeasuredAt: { } stamp } && DateTimeOffset.TryParse(stamp, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var when)
+            ? ClaudeParts.Absolute(when) : null);
         message.Text = usage switch
         {
             null or { Running: true, Breakdown: null } => "Measuring with claude -p /context…",
             { Error: { } error } => "Could not measure the context: " + error,
             { Running: true } => "Measuring again…",
-            { MeasuredAt: { } at } when DateTimeOffset.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.None, out var measured) =>
-                $"measured {measured.ToLocalTime():HH:mm}",
+            { MeasuredAt: { } at } when DateTimeOffset.TryParse(at, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var measured) =>
+                "Measured " + ClaudeParts.Ago(measured),
             _ => ""
         };
         retry.IsVisible = usage is { Error: not null, Running: false };

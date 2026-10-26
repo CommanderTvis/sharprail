@@ -267,7 +267,7 @@ tools, MCP server instructions and skills; deferred tools, the `/context` messag
 autocompact reserve are not rows. MCP tools open, in the table's own row style with a chevron, into servers (heaviest
 first, with subtotals) and each server into its tools; Skills open into each skill. The header totals the rows as
 "N tokens in new session". Every amount says "1 token" for one and abbreviates to "tok"/"toks" where the row is
-narrower than the Agent UI `TokenAmount` threshold; a short line above the table says "measured HH:mm", that it is measuring, or why it
+narrower than the Agent UI `TokenAmount` threshold; a short line above the table says "Measured 5m ago" (the same `ClaudeParts.Ago` phrasing as the account usage reading, the absolute time in the tooltip), that it is measuring, or why it
 failed, with Retry. Before a baseline exists rows show an ellipsis. The host matches memory paths to the resolver's
 with `~` expanded, made absolute and through symbolic links.
 
