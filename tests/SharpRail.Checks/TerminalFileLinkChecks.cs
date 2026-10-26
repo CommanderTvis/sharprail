@@ -172,6 +172,21 @@ internal static class TerminalFileLinkChecks
     }
 
 
+    /// <summary>A terminal link to a folder inside the workspace selects it in Files; a link to a file still opens it.</summary>
+    internal static void RunWorkbench(string root)
+    {
+        using var app = new E2E.E2eWorkspace(Path.Combine(root, "terminal-folder-links"));
+        E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
+        var workspace = app.Window.WorkspaceRoot;
+        app.FileRow("notes.txt");
+        Wait(app.Window.OpenTerminalLinkAsync(workspace, new(0, 1, Path.Combine(workspace, "styles"), 0, 0, true)));
+        var tree = app.Find<SharpRail.Plugins.UI.Kit.DrawnTree>("FilesTree");
+        E2E.E2eWorkspace.Until(() => tree.SelectedItem is SharpRail.Plugins.UI.Kit.DrawnTreeEntry { Id: "styles" });
+        Wait(app.Window.OpenTerminalLinkAsync(workspace, new(0, 1, Path.Combine(workspace, "notes.txt"), 0, 0, false)));
+        E2E.E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Path == "notes.txt"));
+        Console.WriteLine("PASS terminal folder link: a folder in the workspace is selected in Files and a file still opens");
+    }
+
     // The user's agent transcript: a full-screen TUI on the alternate screen, positioned and styled, launched without a shell.
     internal static (string Directory, string Script, string Home, (string Visible, string Path, int Line, int Column)[] Expected, string[] Plain, string[] Lines) AgentScenario(string root)
     {

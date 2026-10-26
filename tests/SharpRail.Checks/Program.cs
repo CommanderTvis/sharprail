@@ -362,6 +362,7 @@ internal static class Program
             GhosttySkiaChecks.CheckHyperlinks();
             GhosttySkiaChecks.CheckUnderlinesBeforeFrame();
             TerminalFileLinkChecks.RunUi(root);
+            TerminalFileLinkChecks.RunWorkbench(root);
             EditorWorkbenchChecks.FileLinkPosition(root);
             if (OperatingSystem.IsMacOS()) TerminalFileLinkChecks.RunNativeRenderers();
             return;

@@ -1,3 +1,5 @@
+using Avalonia.LogicalTree;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
 using SharpRail.UI.Panels;
@@ -68,21 +70,47 @@ public sealed partial class WorkbenchWindow
             Program = terminalCommands.Remove(workspace + ":" + tabId, out var program) ? program : null,
             DirectoryFrom = terminalSources.Remove(workspace + ":" + tabId, out var source) ? source : null,
             ResolveCommitLinks = (text, token) => ResolveTerminalCommits(workspace, text, token),
-            OpenFileLink = async link =>
-            {
-                if (workspaceRoot != workspace || !WorkspaceMounted || atHome) return;
-                if (TerminalCommitLinks.Commit(link) is { } sha) { OpenCommitChanges(workspace, sha); return; }
-                // A folder opens in the host folder browser (it lists only files to pick); the picked file opens like any other link.
-                if (link.IsDirectory)
-                {
-                    if (await ChooseHostPathAsync(link.Path, "Open file from folder") is not { } picked || workspaceRoot != workspace) return;
-                    await OpenDocumentAsync(HostPaths.Relative(workspace, picked), true, raw: true);
-                    return;
-                }
-                var path = HostPaths.Relative(workspace, link.Path);
-                await OpenDocumentAsync(path, true, line: link.Line, raw: true, column: link.Column);
-            }
+            OpenFileLink = link => OpenTerminalLinkAsync(workspace, link)
         };
+
+    internal async Task OpenTerminalLinkAsync(string workspace, Ghostty.Avalonia.TerminalLink link)
+    {
+        if (workspaceRoot != workspace || !WorkspaceMounted || atHome) return;
+        if (TerminalCommitLinks.Commit(link) is { } sha) { OpenCommitChanges(workspace, sha); return; }
+        if (link.IsDirectory)
+        {
+            // The host already said it is a folder. One inside the workspace is focused in Files; any other opens the
+            // host folder browser (it lists only files to pick), and the picked file opens like any other link.
+            var folder = link.Path.TrimEnd('/', '\\');
+            var inside = folder == workspace.TrimEnd('/', '\\') ? "" : HostPaths.Relative(workspace, folder).Replace('\\', '/');
+            if (inside.Length == 0 || inside != folder.Replace('\\', '/'))
+            {
+                await RevealFolderAsync(workspace, inside);
+                return;
+            }
+            if (await ChooseHostPathAsync(link.Path, "Open file from folder") is not { } picked || workspaceRoot != workspace) return;
+            await OpenDocumentAsync(HostPaths.Relative(workspace, picked), true, raw: true);
+            return;
+        }
+        var path = HostPaths.Relative(workspace, link.Path);
+        await OpenDocumentAsync(path, true, line: link.Line, raw: true, column: link.Column);
+    }
+
+    /// <summary>Shows the Files pane and selects a workspace-relative folder in it ("" is the workspace root), listing its ancestors in the background first.</summary>
+    private async Task RevealFolderAsync(string workspace, string folder)
+    {
+        var request = projectRequest;
+        RevealFiles();
+        List<string> parents = [];
+        for (var parent = HostPaths.Parent(folder); folder.Length > 0 && parent.Length > 0; parent = HostPaths.Parent(parent)) parents.Add(parent);
+        foreach (var parent in parents) expandedFolders.Add(parent);
+        if (parents.Count > 0) await RefreshFilesAsync(request, parents);
+        if (workspace != workspaceRoot || request != projectRequest || !WorkspaceMounted) return;
+        if (toolContent.GetValueOrDefault("files")?.GetLogicalDescendants().OfType<DrawnTree>().FirstOrDefault() is not { } tree) return;
+        foreach (var parent in parents.AsEnumerable().Reverse())
+            if (tree.Rows.FirstOrDefault(entry => entry.Tag is ProjectFile { IsDirectory: true } item && item.Path == parent) is { } row) tree.Expand(row, true);
+        if (folder.Length > 0 && tree.Rows.FirstOrDefault(entry => entry.Tag is ProjectFile { IsDirectory: true } item && item.Path == folder) is { } target) tree.Reveal(target);
+    }
 
     private Task<IReadOnlyList<Ghostty.Avalonia.TerminalLink>> ResolveTerminalCommits(string workspace, string text, CancellationToken token)
         => Task.Run(async () =>

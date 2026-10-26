@@ -507,8 +507,10 @@ unchanged. Relative paths and bare filenames resolve against the shell's current
 there is no recursive filename search. Absolute paths, home-relative paths, local `file://` URLs,
 `:line`, `:line:column`, `:start-end` and `: (line, column)` positions are accepted. The start of a
 range is the navigation target. A directory links only where the text names it absolutely (an absolute
-or `~/` path, or a `file://` URL), anywhere on the host; bare folder names stay plain. Clicking one opens
-the host folder browser at it, and a file picked there opens in a document tab like any other link.
+or `~/` path, or a `file://` URL), anywhere on the host; bare folder names stay plain. Clicking one inside
+the workspace shows the Files pane and selects the folder there (its ancestors are listed in the background
+first; the workspace root only shows the pane). Clicking one outside the workspace, which Files cannot
+show, opens the host folder browser at it, and a file picked there opens in a document tab like any other link.
 Bare and relative names also resolve against the absolute directories named earlier in the same
 resolved text (the visible viewport, so the window is what is on screen), as when an agent prints
 `/…/apps/web/src/chat` and then lists `Composer.tsx`: the most recently named of the last four is tried
