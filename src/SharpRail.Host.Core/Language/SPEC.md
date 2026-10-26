@@ -121,7 +121,11 @@ index is workspace-local. Kotlin's native RocksDB index and Metals' `SqlSharedIn
 immutable imported/library data, but require their real Gradle/Maven or BSP prerequisites before a
 probe can assert that behavior. Metals' `COURSIER_CACHE` is dependency artifacts, never semantic-index
 evidence. JDT's `-data`, IntelliJ's system path and the remaining provider state are workspace or
-process scoped. LSP itself supplies no portable index-sharing API, and sharing mutable databases or
+process scoped. Roslyn's persistent storage (`storage.ide`, SQLite) is not primed: it lives under the OS
+user-data `Microsoft/VisualStudio/Roslyn/Cache/<server-hash>/<solution-name>-<opaque hash>/`, has no launch
+argument or supported variable to relocate it (`ROSLYN_CACHE_PATH` belongs to the compiler), and the folder
+name hashes private inputs including the server install, so a primer would have to reproduce a private hash.
+Measured on SharpRail.slnx at a fresh path, a warm store saved about 2 s of 17 s (queries 4.8 s to 3.8 s). LSP itself supplies no portable index-sharing API, and sharing mutable databases or
 rewriting branch paths would give incorrect results. The opt-in integration inventory classifies every
 catalog provider and records the exact native probes; package downloads and compiler artifacts never
 count as semantic reuse.
