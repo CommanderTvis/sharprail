@@ -71,6 +71,16 @@ internal static class DockInputChecks
             clusters[0].GetLogicalDescendants().OfType<Button>().Select(button => button.Name).SequenceEqual(new[] { "Tab_plugin_spec-dialect_specs", "Tab_files" }) &&
             rail.GetLogicalDescendants().OfType<Button>().Count(button => Equals(button.Tag, "pressed")) == right.Length,
             "The rail must mirror its panes as separated clusters, with exactly one pressed entry per expanded pane.");
+        // Every entry's accent bar shares its icon's vertical centre, and every separator the icon column's horizontal centre.
+        double CentreY(Control control) => control.TranslatePoint(new Point(0, control.Bounds.Height / 2), rail)!.Value.Y;
+        double CentreX(Control control) => control.TranslatePoint(new Point(control.Bounds.Width / 2, 0), rail)!.Value.X;
+        var frames = rail.GetLogicalDescendants().OfType<Border>().Where(border => border.Name == "RailEntryFrame").ToArray();
+        var accents = rail.GetLogicalDescendants().OfType<Border>().Where(border => border.Name == "RailAccent" && border.IsVisible).ToArray();
+        Require(accents.Length > 0 && accents.All(accent => Math.Abs(CentreY(accent) - CentreY(frames.Single(frame => ReferenceEquals(frame.Parent, accent.Parent)))) < .5),
+            "A rail entry's accent bar must share the vertical centre of its icon frame.");
+        Require(frames.Length > 0 && rail.GetLogicalDescendants().OfType<Border>().Where(border => border.Height == 1 && border.Bounds.Width > 0)
+                .All(line => Math.Abs(CentreX(line) - CentreX(frames[0])) < .5),
+            "Rail separators must share the horizontal centre of the icons.");
         window.Layout.Close(right[1].Id, "review");
         var unplaced = Find<Button>("RailUnplaced_review");
         Require(unplaced.Content is Border { Background: var dimmed } && ReferenceEquals(dimmed, Ui.Hint) && Find<StackPanel>("rightRailEntries").Children.IndexOf(unplaced.GetLogicalAncestors().OfType<Grid>().First()) >
