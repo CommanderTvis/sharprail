@@ -10,7 +10,9 @@
   <StackPanel Spacing="16">
     <StackPanel Spacing="4">
       <TextBlock Classes="heading" FontSize="15" Text="Claude Code" />
-      <TextBlock Text="The Claude Code pane, terminal status and the plugin offer — turn the plugin itself on or off from Settings › Plugins." />
+      <TextBlock Text="The Claude Code pane, terminal status and the plugin offer. Turn the plugin on or off from Settings › Plugins." />
+      <TextBlock Text="When it is on, the pane reads the Claude Code configuration for a workspace. Terminals are watched for a running agent. SharpRail offers to install its Claude Code plugin. Configuration is written only after you approve the exact change." />
+      <TextBlock Text="When it is off, no file under ~/.claude is read and the process table is not polled. The host refuses these requests even if a client asks." />
     </StackPanel>
     <StackPanel Spacing="4">
       <TextBlock Classes="heading" Text="Launch command" />
@@ -64,7 +66,5 @@
       </StackPanel>
     </CheckBox>
     <TextBlock Margin="28,-10,0,0" Text="Choose which sections it includes for a project in the Claude Code pane's Context tab; the text itself is not editable." />
-    <TextBlock Text="While on: the Claude Code pane resolves the configuration that applies to a workspace, terminals are watched for a running agent, and SharpRail offers to install its Claude Code plugin. Configuration is only ever written after you approve the exact change." />
-    <TextBlock Text="While off: no file under ~/.claude is read, the process table is not polled, and the host refuses these requests even if a client asks." />
   </StackPanel>
 </UserControl>
