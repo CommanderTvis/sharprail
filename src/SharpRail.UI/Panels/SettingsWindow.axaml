@@ -130,15 +130,33 @@
             <TextBlock x:Name="HostShareHeading" Text="Share this app as a host" Classes="settings-heading" />
             <TextBlock x:Name="HostDescription" Text="Let other SharpRail clients connect to this running app. They share its projects, settings, plugins and terminals." Classes="settings-description" />
             <StackPanel x:Name="HostControls" Spacing="8">
-              <TextBlock Text="Bind address" Classes="settings-label" />
-              <TextBox x:Name="HostAddress" MaxWidth="360" HorizontalAlignment="Left" />
-              <TextBlock Text="127.0.0.1 accepts connections from this computer. Use a network address to accept other computers." Classes="settings-description" />
-              <TextBlock Text="Port" Classes="settings-label" />
-              <TextBox x:Name="HostPort" Width="120" HorizontalAlignment="Left" />
-              <TextBlock Text="Use 0 to choose an available port." Classes="settings-description" />
-              <TextBlock Text="Session token" Classes="settings-label" />
-              <TextBox x:Name="HostToken" PasswordChar="●" MaxWidth="360" HorizontalAlignment="Left" />
-              <TextBlock Text="Clients use this token to connect. Serving stays off until you start it, and stops when the app quits." Classes="settings-description" />
+              <Border Classes="settings-row">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Bind address" Classes="settings-label" />
+                    <TextBlock Text="127.0.0.1 accepts connections from this computer. Use a network address to accept other computers." Classes="settings-description" />
+                  </StackPanel>
+                  <TextBox x:Name="HostAddress" Grid.Column="1" Width="240" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+              <Border Classes="settings-row">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Port" Classes="settings-label" />
+                    <TextBlock Text="Use 0 to choose an available port." Classes="settings-description" />
+                  </StackPanel>
+                  <TextBox x:Name="HostPort" Grid.Column="1" Width="120" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
+              <Border Classes="settings-row">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Session token" Classes="settings-label" />
+                    <TextBlock Text="Clients use this token to connect. Serving stays off until you start it, and stops when the app quits." Classes="settings-description" />
+                  </StackPanel>
+                  <TextBox x:Name="HostToken" Grid.Column="1" PasswordChar="●" Width="240" VerticalAlignment="Center" />
+                </Grid>
+              </Border>
               <TextBlock x:Name="HostStatus" TextWrapping="Wrap" />
               <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button x:Name="HostToggle" Content="Start listening" />

@@ -4,18 +4,36 @@
     <TextBlock Text="Servers stop when unused for the idle timeout, when all of them together pass the memory budget (least recently used first) or when the system is short of memory. A server with an open editor or a request in progress is never stopped; a stopped server starts again on its next request." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock x:Name="LimitsSummary" TextWrapping="Wrap" />
     <StackPanel x:Name="RunningServers" Spacing="2" AutomationProperties.Name="Running language servers" />
-    <Grid ColumnDefinitions="Auto,96" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,4,0,0">
-      <TextBlock Text="Idle timeout, minutes (0 never)" VerticalAlignment="Center" Margin="0,0,12,4" />
-      <TextBox x:Name="LimitsIdle" Grid.Column="1" Margin="0,0,0,4" AutomationProperties.Name="Idle timeout in minutes" />
-      <TextBlock Grid.Row="1" Text="Memory budget, MiB (0 automatic)" VerticalAlignment="Center" Margin="0,0,12,4" />
-      <TextBox x:Name="LimitsBudget" Grid.Row="1" Grid.Column="1" Margin="0,0,0,4" AutomationProperties.Name="Memory budget in MiB" />
-      <TextBlock Grid.Row="2" Text="Maximum running C# language servers" VerticalAlignment="Center" Margin="0,0,12,4" />
-      <TextBox x:Name="LimitsCSharp" Grid.Row="2" Grid.Column="1" Margin="0,0,0,4" AutomationProperties.Name="Maximum running C# language servers" />
-      <TextBlock Grid.Row="3" Text="Maximum running JVM servers of one kind" VerticalAlignment="Center" Margin="0,0,12,4" />
-      <TextBox x:Name="LimitsJvm" Grid.Row="3" Grid.Column="1" Margin="0,0,0,4" AutomationProperties.Name="Maximum running JVM language servers of one kind" />
-      <TextBlock Grid.Row="4" Text="Maximum running servers of any other kind" VerticalAlignment="Center" Margin="0,0,12,4" />
-      <TextBox x:Name="LimitsOther" Grid.Row="4" Grid.Column="1" Margin="0,0,0,4" AutomationProperties.Name="Maximum running language servers of any other kind" />
-    </Grid>
+    <Border Classes="settings-row">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock Text="Idle timeout, minutes (0 never)" VerticalAlignment="Center" />
+        <TextBox Grid.Column="1" Width="96" x:Name="LimitsIdle" AutomationProperties.Name="Idle timeout in minutes" />
+      </Grid>
+    </Border>
+    <Border Classes="settings-row">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock Text="Memory budget, MiB (0 automatic)" VerticalAlignment="Center" />
+        <TextBox Grid.Column="1" Width="96" x:Name="LimitsBudget" AutomationProperties.Name="Memory budget in MiB" />
+      </Grid>
+    </Border>
+    <Border Classes="settings-row">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock Text="Maximum running C# language servers" VerticalAlignment="Center" />
+        <TextBox Grid.Column="1" Width="96" x:Name="LimitsCSharp" AutomationProperties.Name="Maximum running C# language servers" />
+      </Grid>
+    </Border>
+    <Border Classes="settings-row">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock Text="Maximum running JVM servers of one kind" VerticalAlignment="Center" />
+        <TextBox Grid.Column="1" Width="96" x:Name="LimitsJvm" AutomationProperties.Name="Maximum running JVM language servers of one kind" />
+      </Grid>
+    </Border>
+    <Border Classes="settings-row">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+        <TextBlock Text="Maximum running servers of any other kind" VerticalAlignment="Center" />
+        <TextBox Grid.Column="1" Width="96" x:Name="LimitsOther" AutomationProperties.Name="Maximum running language servers of any other kind" />
+      </Grid>
+    </Border>
     <Button x:Name="LimitsSave" Content="Save limits" HorizontalAlignment="Left" Click="SaveClicked" />
     <TextBlock x:Name="LimitsMessage" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
   </StackPanel>
