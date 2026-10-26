@@ -234,11 +234,14 @@ public sealed partial class WorkbenchWindow
     {
         var content = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,4,16") };
         Ui.Place(content, Ui.Icon(icon, size: 14));
-        Ui.Place(content, Ui.Text(label, size: 12), 0, 2);
+        var text = Ui.Text(label, size: 12);
+        text.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+        Ui.Place(content, text, 0, 2);
         Ui.Place(content, Ui.Icon("arrowDown"), 0, 4);
         var button = new Button
         {
             Name = name,
+            ClipToBounds = true,
             Content = content,
             Height = 24,
             Padding = new Thickness(4, 0),
