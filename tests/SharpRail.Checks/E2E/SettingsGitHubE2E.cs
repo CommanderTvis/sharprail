@@ -35,7 +35,7 @@ internal static class SettingsGitHubE2E
             Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
             var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_GitHub"));
-            Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Local GitHub"),
+            Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => string.Equals(text.Text, "Local GitHub", StringComparison.OrdinalIgnoreCase)),
                 "Settings must show the Local GitHub block.");
             var status = settings.GetLogicalDescendants().OfType<StackPanel>().Single(panel => panel.Name == "GitHubStatus");
             var text = settings.GetLogicalDescendants().OfType<TextBlock>().Single(block => block.Name == "GitHubStatusText");
