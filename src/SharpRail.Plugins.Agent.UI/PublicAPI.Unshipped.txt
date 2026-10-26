@@ -47,10 +47,10 @@ static SharpRail.Plugins.Agent.UI.TerminalFacts.AttachButton(string! title, Syst
 static SharpRail.Plugins.Agent.UI.TerminalFacts.AttachPath(string! path, string? worktreePath, string? cwd) -> string!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.ChipButton(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.CwdLabel(string? cwd) -> string?
-static SharpRail.Plugins.Agent.UI.TerminalFacts.FactChip(string! kind, string! label, string! title) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.FactChip(string! kind, string! label, string! title, Avalonia.Controls.Control? leading = null) -> Avalonia.Controls.Control!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.FormatTokens(long count) -> string!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.IdeContextChip(bool enabled, System.Action! onToggle) -> Avalonia.Controls.Button!
-static SharpRail.Plugins.Agent.UI.TerminalFacts.PickerChip(string! kind, string! label, string! title, System.Func<System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!>! items) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.PickerChip(string! kind, string! label, string! title, System.Func<System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!>! items, Avalonia.Controls.Control? leading = null) -> Avalonia.Controls.Button!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.Plan(string! agent, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Agent.UI.TerminalTodo!>! todos) -> Avalonia.Controls.Control!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.TokenUsageParts(SharpRail.Plugins.Agent.UI.TokenUsage! usage) -> System.Collections.Generic.IReadOnlyList<string!>!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.UsageChip(string! agent, SharpRail.Plugins.Agent.UI.TokenUsage! usage) -> Avalonia.Controls.Control?

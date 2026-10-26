@@ -97,18 +97,19 @@ public static class TerminalFacts
 
     private static TextBlock Label(string text) => Ui.Text(text, Ui.Muted, 11);
 
-    private static StackPanel Content(string? icon, string text)
+    private static StackPanel Content(string? icon, string text, Control? leading = null)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-        if (icon is not null) row.Children.Add(Ui.Icon(icon, Ui.Muted, 12));
+        if (leading is not null) row.Children.Add(leading);
+        else if (icon is not null) row.Children.Add(Ui.Icon(icon, Ui.Muted, 12));
         row.Children.Add(Label(text));
         return row;
     }
 
     /// <summary>A read-only fact chip; <paramref name="kind"/> is <c>cwd</c>, <c>model</c>, <c>effort</c>, <c>env</c> or the caller's own.</summary>
-    public static Control FactChip(string kind, string label, string title)
+    public static Control FactChip(string kind, string label, string title, Control? leading = null)
     {
-        var chip = Chip(Content(kind switch { "cwd" => "folder", "env" => "stack", _ => null }, label), title);
+        var chip = Chip(Content(kind switch { "cwd" => "folder", "env" => "stack", _ => null }, label, leading), title);
         chip.Name = "TerminalAgentFact_" + kind;
         return chip;
     }
@@ -132,9 +133,9 @@ public static class TerminalFacts
     }
 
     /// <summary>A fact chip that opens a menu, such as a model or effort picker; the caller supplies the items when it opens.</summary>
-    public static Button PickerChip(string kind, string label, string title, Func<IReadOnlyList<Control>> items)
+    public static Button PickerChip(string kind, string label, string title, Func<IReadOnlyList<Control>> items, Control? leading = null)
     {
-        var content = Content(null, label);
+        var content = Content(null, label, leading);
         content.Children.Add(Ui.Icon("arrowDown", Ui.Muted, 12));
         Button? button = null;
         button = ChipButton("TerminalAgentFact_" + kind, content, title, () =>

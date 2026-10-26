@@ -120,8 +120,9 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         {
             var chip = kind switch
             {
-                "model" => TerminalFacts.PickerChip("model", label, $"{title} — click to switch", ModelItems),
+                "model" => TerminalFacts.PickerChip("model", label, $"{title} — click to switch", ModelItems, glyph.Create(12)),
                 "effort" => TerminalFacts.PickerChip("effort", label, $"{title} — click to change", EffortItems),
+                "advisor" => TerminalFacts.FactChip(kind, label, title, glyph.Create(12)),
                 _ => TerminalFacts.FactChip(kind, label, title)
             };
             chip.Margin = new Thickness(0, 0, 4, 0);
