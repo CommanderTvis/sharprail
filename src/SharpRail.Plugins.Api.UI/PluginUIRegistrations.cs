@@ -141,6 +141,20 @@ public sealed record FileActionRegistration(string Id, Func<FileActionTarget, st
     public string? Icon { get; init; }
 }
 
+/// <summary>
+/// An item a plugin adds to a terminal tab's context menu wherever core shows one (W26): the tab strip, the rail and
+/// the Projects list, but not a phone's chips. Core reads <paramref name="Label"/> each time the menu opens, from
+/// in-memory facts only.
+/// </summary>
+/// <param name="Id">The item's id within the plugin.</param>
+/// <param name="Label">Returns the item's text for a terminal, or <see langword="null"/> to hide it for that one.</param>
+/// <param name="Run">Runs the item on the UI thread.</param>
+public sealed record TerminalTabActionRegistration(string Id, Func<TerminalTabRef, string?> Label, Action<TerminalTabRef> Run)
+{
+    /// <summary>A Remix Icon name or <c>asset:&lt;path&gt;</c>.</summary>
+    public string? Icon { get; init; }
+}
+
 /// <summary>Registers a row shown alongside every terminal (W11).</summary>
 /// <param name="Create">Creates the row for one terminal's accessory handle.</param>
 public sealed record TerminalAccessoryRegistration(Func<ITerminalAccessoryApi, Control> Create);

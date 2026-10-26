@@ -201,6 +201,9 @@ Account and terminal fact, usage, plan, picker, attachment and IDE-toggle compon
 come from `SharpRail.Plugins.Agent.UI`. The plugin adapts its own contract values and
 retains all provider state and commands; generic settings controls remain kit-owned.
 
+A Codex terminal tab's menu offers Copy session ID (Plugin API W26) while the host's agent record carries the session id
+Codex reported; it copies that bare id and is hidden otherwise.
+
 Start work passes host image paths through the launcher options to `--image`, shell-quoted separately from the prompt. The first agent task title names an untouched generated managed workspace through `set_title`.
 
 IDE snapshots include selected diff files as read-only editor context. Continuous Changes uses the selected file within its owner tab; source-side paths, ranges and selected text are retained while the terminal has focus, and closing the owner forgets them. An empty Changes review does not invent a file context.

@@ -320,6 +320,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.AgentTabMarksE2E.Run(root);
+            E2E.TerminalSessionIdE2E.Run(root);
             return;
         }
         if (args.SequenceEqual(["--agent-launches"]))

@@ -158,6 +158,11 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   failed set (tab) plus the host's agent records and tab titles (name). A failed mark clears when the agent reports
   another result for that tab, when the agent record goes (closed or reset terminal), and when the workspace is read
   (seen in a focused window, or Mark as read).
+- A terminal tab's context menu (the Projects tab list, including terminals of other workspaces, and the tab strip) lists Rename,
+  then the items enabled plugins contribute (Plugin API W26), then Close. An agent terminal whose host record has a session
+  id offers Copy session ID (Claude Code and Codex): it copies the bare id with the window clipboard and shows a
+  "Copied session ID" toast. It is hidden, not disabled, while no id is known. The items come from the host's published
+  agent records, so opening the menu does no work off memory. A phone has no tab menu.
 
 ## Welcome and Project Home
 

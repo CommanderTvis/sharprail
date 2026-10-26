@@ -129,6 +129,12 @@ public sealed class CodexUI : PluginUIModule
             }
         });
 
+        // The id `codex resume` takes: the host's agent record carries it once Codex reports its session.
+        string? SessionOf(TerminalTabRef terminal) => context.Host().Terminals.GetValueOrDefault(terminal.WorkspaceId)?
+            .FirstOrDefault(item => item.TabKey == terminal.TabKey)?.Agent is { SessionId: { Length: > 0 } id } agent && agent.Kind == CodexManifest.Id ? id : null;
+        context.TerminalTabAction(new("copy-session-id", terminal => SessionOf(terminal) is null ? null : "Copy session ID",
+            terminal => { if (SessionOf(terminal) is { } id) context.CopyText(id, "Copied session ID"); }));
+
         context.TerminalAccessory(new(terminal => new CodexTerminalFacts(context, store, terminal,
             accessory => launcherIdeContext.Contains((accessory.WorkspaceId, accessory.TabKey)))));
         return null;

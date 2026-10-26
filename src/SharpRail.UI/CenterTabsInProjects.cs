@@ -222,7 +222,9 @@ public sealed partial class WorkbenchWindow
         {
             var rename = Ui.Menu("Rename", () => RenameTerminal(workspace, tab));
             rename.Name = "TerminalRename";
-            button.ContextMenu = new ContextMenu { Items = { rename } };
+            var menu = new ContextMenu { Items = { rename } };
+            DockSurface.AddLazyItems(menu, () => TabMenuItems(tab, workspace));
+            button.ContextMenu = menu;
         }
         void OpenTab()
         {

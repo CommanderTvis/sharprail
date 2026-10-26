@@ -788,3 +788,23 @@ static SharpRail.Plugins.Api.UI.PluginNotificationAction.operator !=(SharpRail.P
 static SharpRail.Plugins.Api.UI.PluginNotificationAction.operator ==(SharpRail.Plugins.Api.UI.PluginNotificationAction? left, SharpRail.Plugins.Api.UI.PluginNotificationAction? right) -> bool
 static SharpRail.Plugins.Api.UI.PluginPrompt.operator !=(SharpRail.Plugins.Api.UI.PluginPrompt? left, SharpRail.Plugins.Api.UI.PluginPrompt? right) -> bool
 static SharpRail.Plugins.Api.UI.PluginPrompt.operator ==(SharpRail.Plugins.Api.UI.PluginPrompt? left, SharpRail.Plugins.Api.UI.PluginPrompt? right) -> bool
+override SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.ToString() -> string!
+SharpRail.Plugins.Api.UI.IPluginUIContext.CopyText(string! text, string? confirmation = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.TerminalTabAction(SharpRail.Plugins.Api.UI.TerminalTabActionRegistration! action) -> void
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.TerminalTabActionRegistration!
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Deconstruct(out string! Id, out System.Func<SharpRail.Plugins.Api.UI.TerminalTabRef!, string?>! Label, out System.Action<SharpRail.Plugins.Api.UI.TerminalTabRef!>! Run) -> void
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Equals(SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Icon.get -> string?
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Icon.init -> void
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Id.get -> string!
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Id.init -> void
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Label.get -> System.Func<SharpRail.Plugins.Api.UI.TerminalTabRef!, string?>!
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Label.init -> void
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Run.get -> System.Action<SharpRail.Plugins.Api.UI.TerminalTabRef!>!
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Run.init -> void
+SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.TerminalTabActionRegistration(string! Id, System.Func<SharpRail.Plugins.Api.UI.TerminalTabRef!, string?>! Label, System.Action<SharpRail.Plugins.Api.UI.TerminalTabRef!>! Run) -> void
+static SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.operator !=(SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? left, SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.operator ==(SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? left, SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? right) -> bool

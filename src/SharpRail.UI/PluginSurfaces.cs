@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
@@ -35,6 +36,7 @@ public sealed partial class WorkbenchWindow
         surface.TabIcon = TabIcon;
         surface.CenterActions = CenterActions;
         surface.TabAdornment = tab => TabAdornment(tab);
+        surface.TabMenuItems = tab => TabMenuItems(tab);
         surface.TabOverlay = tab => workbench.Signals.Strip(Layout.State.ActiveWorkspace, tab);
         Plugins.Changed += PluginsChanged;
         state.Changed += HostStateChanged;
@@ -598,6 +600,36 @@ public sealed partial class WorkbenchWindow
     {
         if (failure) Console.Error.WriteLine(message);
         ShowNotification(message);
+    }
+
+    // Plugins' items for a terminal tab's menu, read as the menu opens so their labels and availability are current.
+    internal List<Control> TabMenuItems(DockTab tab, string? workspace = null)
+    {
+        if (tab.Kind != "terminal" || Plugins.TerminalTabActions.Count == 0) return [];
+        var terminal = (TerminalTabRef)TabRef(tab, workspace);
+        return [.. Plugins.TerminalTabActionsFor(terminal).Select(offer =>
+        {
+            var item = Ui.Menu(offer.Label, () =>
+            {
+                try { offer.Action.Run(terminal); }
+                catch (Exception error) { Console.Error.WriteLine($"Plugin {offer.PluginId} terminal tab action failed: {error.Message}"); }
+            });
+            item.Name = $"TerminalTabAction_{offer.PluginId}_{offer.Action.Id}";
+            if (offer.Action.Icon is { } icon) item.Icon = PluginIcons.Resolve(icon, Plugins.Entry(offer.PluginId), null, 14);
+            return (Control)item;
+        })];
+    }
+
+    /// <summary>Copies text to this window's clipboard (the platform's own on desktop, Android and Browser) and confirms with a notification.</summary>
+    internal async void CopyText(string text, string? confirmation)
+    {
+        try
+        {
+            if (Clipboard is null) throw new InvalidOperationException("No clipboard.");
+            await Clipboard.SetTextAsync(text);
+            if (confirmation is not null) ShowNotification(confirmation);
+        }
+        catch (Exception) { Toasts.Push(State.ToastVariant.Error, "Couldn't write to the clipboard.", "Copy failed"); }
     }
 
     // Plugins' file actions for a target, read as a menu opens so their labels and availability are current.

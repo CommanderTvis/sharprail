@@ -734,6 +734,7 @@ to pi.
 | W24 | contribute an item to the trailing end of every window's header, before the connection status and Settings (`HeaderItem` with a `HeaderItemRegistration`), and open a plugin's own Settings section (`OpenSettings(UiPages.PluginSection(id))`) | the header's trailing group is fixed |
 | W22 | the UI-side twin of H18: contribute to and read agent launch contributions, so every launcher, start action and resume of an agent applies them (`AgentLaunch`, `AgentLaunchContributions`) | the agent plugins build their launch lines from their own settings alone |
 | W25 | prompt the user in every window with a notification carrying choices and an optional code-font value; it does not expire and comes down when disposed, dismissed or answered by a closing choice, disables its choices while one runs and shows a failure inline (`Prompt` with a `PluginPrompt`) | `Notify` is a one-line notice with no choices |
+| W26 | contribute an item to the context menu of a terminal tab (`TerminalTabAction` with a `TerminalTabActionRegistration`; the label callback names the terminal's item or `null` to hide it), and put text on the active window's clipboard with a notification (`CopyText`) | the tab menu is fixed; a plugin has no clipboard |
 
 W24 has no counterpart in the fork. Core's `PluginHeaderItems` follows the registry like a slot, so a disabled plugin leaves
 no item; the item hides itself while it has nothing to show and reads its data from the plugin's channels. A compact
@@ -742,6 +743,11 @@ no item; the item hides itself while it has nothing to show and reads its data f
 W23 has no counterpart in the fork. A slot section exists only while its plugin is enabled: core's `PluginSlot` follows the
 registry, so a disabled plugin leaves no section and no placeholder, and enabling adds it without reopening the page. Core
 rebuilds a section only when the set of contributing registrations changes.
+
+W26 has no counterpart in the fork. Core reads the label callback, from in-memory facts only, each time a terminal tab's
+menu opens (tab strips, rails and the Projects list; a phone has no tab menu), so an item appears and vanishes with the
+fact it depends on; a terminal that gets no label shows no item and no gap. `CopyText` uses the window's clipboard, which
+is the platform's own on desktop, Android and Browser, and reports a failed write as a toast.
 
 W21 has no counterpart in the fork either: its panels' menus are closed. The label callback is the predicate, so
 an action can be withheld per target and worded for what it would act on; core reads it as each menu opens.

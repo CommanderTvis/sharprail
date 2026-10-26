@@ -619,6 +619,19 @@ public sealed partial class DockSurface
         if (TopLevel.GetTopLevel(owner)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(text);
     }
 
+    // Items that depend on live state take the place they were added at and are rebuilt as the menu opens.
+    internal static void AddLazyItems(ContextMenu menu, Func<IEnumerable<Control>> items)
+    {
+        var anchor = menu.Items.Count;
+        var added = new List<Control>();
+        menu.Opening += (_, _) =>
+        {
+            foreach (var old in added) menu.Items.Remove(old);
+            added.Clear();
+            foreach (var item in items()) { menu.Items.Insert(anchor + added.Count, item); added.Add(item); }
+        };
+    }
+
     private ContextMenu TabMenu(DockGroup group, DockTab tab, Control geometry)
     {
         var menu = new ContextMenu();
@@ -630,6 +643,7 @@ public sealed partial class DockSurface
             rename.Name = "TerminalRename";
             menu.Items.Add(rename);
         }
+        if (tab.Kind == "terminal") AddLazyItems(menu, () => TabMenuItems?.Invoke(tab) ?? []);
         if (!tab.IsTool && tab.Kind != "terminal" && tab.Path.Length > 0 && WorkspaceRoot?.Invoke() is { Length: > 0 } root
             && !(Uri.TryCreate(tab.Path, UriKind.Absolute, out var uri) && !uri.IsFile))
         {

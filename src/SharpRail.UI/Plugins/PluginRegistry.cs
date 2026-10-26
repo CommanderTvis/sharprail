@@ -34,8 +34,9 @@ public enum PluginTables
     FileActions = 1 << 14,
     SlotSections = 1 << 15,
     HeaderItems = 1 << 16,
+    TerminalTabActions = 1 << 17,
     Contributions = SideTools | SettingsSections | Companions | FileViewers | TabDecorators | Launchers | WorkspaceActions |
-        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections | HeaderItems,
+        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections | HeaderItems | TerminalTabActions,
     // Registrations whose result a predicate decides; Invalidate re-evaluates them.
     Predicates = Companions | TabDecorators | Launchers | FileIconSlots | DocumentLinkSlots
 }
@@ -67,6 +68,7 @@ public sealed class PluginRegistry
     public IReadOnlyList<PluginRow<Func<string, FileIconKind, string?>>> FileIconSlots { get; private set; } = [];
     public IReadOnlyList<PluginRow<Func<string, string, string?>>> DocumentLinkSlots { get; private set; } = [];
     public IReadOnlyList<PluginRow<FileActionRegistration>> FileActions { get; private set; } = [];
+    public IReadOnlyList<PluginRow<TerminalTabActionRegistration>> TerminalTabActions { get; private set; } = [];
     public IReadOnlyList<PluginRow<SlotSectionRegistration>> SlotSections { get; private set; } = [];
     public IReadOnlyList<PluginRow<HeaderItemRegistration>> HeaderItems { get; private set; } = [];
 
@@ -111,6 +113,7 @@ public sealed class PluginRegistry
     public void AddDocumentLinkSlot(string pluginId, Func<string, string, string?> value) { DocumentLinkSlots = [.. DocumentLinkSlots, new(pluginId, value)]; Raise(PluginTables.DocumentLinkSlots); }
     public void AddSlotSection(string pluginId, SlotSectionRegistration value) { SlotSections = [.. SlotSections, new(pluginId, value)]; Raise(PluginTables.SlotSections); }
     public void AddHeaderItem(string pluginId, HeaderItemRegistration value) { HeaderItems = [.. HeaderItems, new(pluginId, value)]; Raise(PluginTables.HeaderItems); }
+    public void AddTerminalTabAction(string pluginId, TerminalTabActionRegistration value) { TerminalTabActions = [.. TerminalTabActions, new(pluginId, value)]; Raise(PluginTables.TerminalTabActions); }
     public void AddFileAction(string pluginId, FileActionRegistration value) { FileActions = [.. FileActions, new(pluginId, value)]; Raise(PluginTables.FileActions); }
 
     public void AddLaunchContributor(string pluginId, Func<string, AgentLaunchContribution?> value) { LaunchContributors = [.. LaunchContributors, new(pluginId, value)]; Raise(PluginTables.Predicates); }
@@ -159,6 +162,7 @@ public sealed class PluginRegistry
         FileIconSlots = Drop(FileIconSlots, row => row.PluginId, PluginTables.FileIconSlots);
         DocumentLinkSlots = Drop(DocumentLinkSlots, row => row.PluginId, PluginTables.DocumentLinkSlots);
         FileActions = Drop(FileActions, row => row.PluginId, PluginTables.FileActions);
+        TerminalTabActions = Drop(TerminalTabActions, row => row.PluginId, PluginTables.TerminalTabActions);
         SlotSections = Drop(SlotSections, row => row.PluginId, PluginTables.SlotSections);
         HeaderItems = Drop(HeaderItems, row => row.PluginId, PluginTables.HeaderItems);
         if (touched == PluginTables.None) return;
@@ -228,6 +232,15 @@ public sealed class PluginRegistry
         var offered = new List<(string, FileActionRegistration, string)>();
         foreach (var row in FileActions)
             if (Safely(() => row.Value.Label(target)) is { } label) offered.Add((row.PluginId, row.Value, label));
+        return offered;
+    }
+
+    /// <summary>The terminal tab actions of active plugins offered for a terminal, in registration order, each with the label it gave.</summary>
+    public IReadOnlyList<(string PluginId, TerminalTabActionRegistration Action, string Label)> TerminalTabActionsFor(TerminalTabRef tab)
+    {
+        var offered = new List<(string, TerminalTabActionRegistration, string)>();
+        foreach (var row in TerminalTabActions)
+            if (Safely(() => row.Value.Label(tab)) is { } label) offered.Add((row.PluginId, row.Value, label));
         return offered;
     }
 

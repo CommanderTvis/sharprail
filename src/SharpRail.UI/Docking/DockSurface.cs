@@ -36,6 +36,8 @@ public sealed partial class DockSurface : Grid
     public Func<DockTab, IBrush, Control?>? TabIcon { get; set; }
     /// <summary>Extra content after a tab's title, such as a badge.</summary>
     public Func<DockTab, Control?>? TabAdornment { get; set; }
+    /// <summary>Plugins' items for a terminal tab's context menu, read each time the menu opens.</summary>
+    public Func<DockTab, IEnumerable<Control>>? TabMenuItems { get; set; }
     /// <summary>A live layer over the bottom edge of a tab or phone chip, such as a terminal's progress; it updates itself.</summary>
     public Func<DockTab, Control?>? TabOverlay { get; set; }
     /// <summary>The default arrangement for tabs shown together in Projects.</summary>

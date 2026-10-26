@@ -292,6 +292,8 @@ the Files tree; terminal and tool tabs offer neither. They copy the host-side pa
 Terminal tab context menus include Rename in Projects and side tool strips. The name prompt
 starts with the current title; cancellation, blank and unchanged names leave it alone. Accepted names
 persist in host state and broadcast to other windows, surviving terminal-catalog reconciliation.
+Enabled plugins add items after Rename, in the tab strips, rails and Projects (Plugin API W26): the items are rebuilt as
+the menu opens, and a plugin that names none for a terminal leaves nothing. A phone has no tab menu.
 
 Terminal membership is the host's catalog, not a window's ([Terminal/SPEC.md](../Terminal/SPEC.md#shared-terminals)).
 Explicit terminals have unique tab keys shared through the host catalog; the legacy key

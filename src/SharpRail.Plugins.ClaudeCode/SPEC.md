@@ -266,7 +266,9 @@ nothing: every open diff or Changes tab is the user's own, since `openDiff` open
 
 UI contributions are the Context/Settings/Capabilities/Account pane, compiled settings section,
 workspace launcher, generic `claude` launcher, status tab decorations and one terminal accessory
-combining facts, model/effort pickers, plan, tokens, attach and session `/ide` switch.
+combining facts, model/effort pickers, plan, tokens, attach and session `/ide` switch, and a terminal tab menu
+item, Copy session ID (Plugin API W26), offered while the tab's agent record is Claude's and has a session id and copying
+that bare id, the one `claude --resume` takes; it is hidden, not disabled, otherwise.
 Tab marks refresh as soon as the host identifies or clears Claude in a terminal, without switching
 tabs or reopening a pane. The host agent record remains the source of truth for terminal identity.
 The surface selector scrolls horizontally when narrow without a visible scrollbar or extra header height.

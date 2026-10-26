@@ -180,6 +180,15 @@ public interface IPluginUIContext
     /// <param name="action">The action.</param>
     void FileAction(FileActionRegistration action);
 
+    /// <summary>Contributes an item to the context menu of terminal tabs (W26).</summary>
+    /// <param name="action">The item.</param>
+    void TerminalTabAction(TerminalTabActionRegistration action);
+
+    /// <summary>Puts text on the clipboard of the active window and confirms with a transient notification (W26).</summary>
+    /// <param name="text">The text to copy.</param>
+    /// <param name="confirmation">The notification's text; <see langword="null"/> for none.</param>
+    void CopyText(string text, string? confirmation = null);
+
     /// <summary>Opens Settings on one of core's pages, or on a plugin's own section, in the active window (W23).</summary>
     /// <param name="page">The page, one of the <see cref="UiPages"/> ids or <see cref="UiPages.PluginSection"/>.</param>
     void OpenSettings(string page);
