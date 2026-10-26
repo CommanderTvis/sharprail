@@ -12,8 +12,14 @@ internal sealed class SideGeometry
     /// <summary>The narrowest a side tool pane may be, in pixels: wide enough for its header, toolbar and list rows.</summary>
     public const double MinPaneWidth = 220;
 
-    /// <summary>The smallest fraction of <paramref name="width"/> a side pane may take: <see cref="MinPaneWidth"/>, never under 8% nor over 35%.</summary>
-    public static double SideMinimum(double width) => width > 0 ? Math.Clamp(MinPaneWidth / width, .08, .35) : .08;
+    /// <summary>
+    /// The smallest fraction of <paramref name="width"/> a side pane may take: <see cref="MinPaneWidth"/>, at most 35%. A frame too
+    /// narrow to hold two such sides and the 320px centre keeps the old 8% floor instead, so a narrow window never squeezes its sides.
+    /// </summary>
+    public static double SideMinimum(double width) =>
+        width > 0 && 2 * MinPaneWidth + CenterMinimumPixels <= width ? Math.Min(.35, MinPaneWidth / width) : .08;
+
+    private const double CenterMinimumPixels = 320;
 
     public SideGeometry(DockState state, double width)
     {
@@ -22,7 +28,7 @@ internal sealed class SideGeometry
         right = Shown(state, "right");
         var leftTarget = left ? state.LeftWidth : 0;
         var rightTarget = right ? state.RightWidth : 0;
-        var centerMinimum = Math.Min(1 - (left ? sideMinimum : 0) - (right ? sideMinimum : 0), width > 0 ? 320 / width : .1);
+        var centerMinimum = Math.Min(1 - (left ? sideMinimum : 0) - (right ? sideMinimum : 0), width > 0 ? CenterMinimumPixels / width : .1);
         centerIndex = left ? 1 : 0;
         constraints = [.. left ? new[] { new PanelConstraint(sideMinimum, Collapsible: true) } : [],
             new(centerMinimum), .. right ? new[] { new PanelConstraint(sideMinimum, Collapsible: true) } : []];
