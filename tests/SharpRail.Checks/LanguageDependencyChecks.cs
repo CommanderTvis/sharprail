@@ -112,6 +112,9 @@ internal static class LanguageDependencyChecks
             Require(Needs().Text == "Needs go (Go)" && GoRow().GetLogicalDescendants().OfType<TextBlock>().Count(text => text.IsEffectivelyVisible && (text.Text ?? "").StartsWith("Needs ", StringComparison.Ordinal)) == 1,
                 "The Go row did not show Needs go (Go) exactly once.");
             Console.WriteLine("PASS the Go row shows Needs go (Go) once, with Use path… and the install hint before any start");
+            Require(SharpRail.UI.Panels.LanguageDependencyList.RepeatsNeeds("Needs go (Go). Install Go from https://go.dev/dl/ or your package manager.", "Needs go (Go)")
+                && !SharpRail.UI.Panels.LanguageDependencyList.RepeatsNeeds("", "Needs go (Go)"), "A failed start's detail repeating Needs go (Go) was not recognised, so the row would show it twice.");
+            Console.WriteLine("PASS a failed row whose detail opens with Needs go (Go) drops the short line");
             var mine = Tool(Path.Combine(root, "ui-mine"), "go");
             shared.ChangeAsync(HostStateChange.Setting("language-tool:go", mine)).GetAwaiter().GetResult();
             E2E.E2eWorkspace.Until(() => GoRow() is not null && !Needs().IsEffectivelyVisible, "The Go row kept Needs go after its path was set.");

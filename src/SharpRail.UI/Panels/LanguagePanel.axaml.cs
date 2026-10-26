@@ -19,6 +19,8 @@ internal sealed partial class LanguagePanel : UserControl
         public bool HasMissing => LanguageDependencyList.HasMissing(Server.Dependencies);
         /// <summary>The tools the next start needs and cannot find, shown before any start fails.</summary>
         public string Needs => string.Join(", ", MissingDependencies.Select(LanguageDependencyList.NeedsText));
+        /// <summary>The short Needs line, unless a failed start's detail already says it.</summary>
+        public bool ShowNeeds => HasMissing && !LanguageDependencyList.RepeatsNeeds(Server.Detail, Needs);
         public bool IsRunning => Server.State is "ready" or "initializing" or "installing" or "actionRequired";
         /// <summary>Suggested or unavailable rows offer an inline Hide; running servers hide from the context menu, which stops them first.</summary>
         public bool ShowHide => !Hidden && !IsRunning;

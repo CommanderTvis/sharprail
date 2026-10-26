@@ -35,6 +35,9 @@ internal sealed partial class LanguageDependencyList : UserControl
         public bool CanClear => CanChangePaths && Dependency.Override;
     }
 
+    /// <summary>Whether a server's detail already opens with the short Needs line, so the row shows the message once.</summary>
+    internal static bool RepeatsNeeds(string? detail, string needs) => needs.Length > 0 && (detail ?? "").StartsWith(needs, StringComparison.Ordinal);
+
     /// <summary>The one wording of a missing tool: <c>Needs pwsh (PowerShell 7)</c>.</summary>
     internal static string NeedsText(LanguageDependencyState dependency) => $"Needs {dependency.Executable} ({dependency.Name})";
 
