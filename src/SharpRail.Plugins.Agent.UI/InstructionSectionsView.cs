@@ -38,6 +38,11 @@ public sealed partial class InstructionSectionsView : Border
     private readonly Dictionary<string, string> latest = new(StringComparer.Ordinal);
     private string shownLayout = "";
 
+    /// <summary>Lets the Avalonia runtime loader create the view; it shows no sections.</summary>
+    public InstructionSectionsView() : this("Agent", static () => Task.FromResult(new InstructionSectionList()), static (_, _) => Task.FromResult(new InstructionSectionList()), static _ => { })
+    {
+    }
+
     /// <summary>Creates the entry, collapsed; it loads its sections at once, for the count, and again on <see cref="Refresh"/>.</summary>
     /// <param name="agentName">The agent's name as the text shows it, such as <c>Claude Code</c>.</param>
     /// <param name="load">Lists the sections. It runs off the UI thread.</param>

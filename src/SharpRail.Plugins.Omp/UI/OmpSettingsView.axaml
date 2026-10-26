@@ -28,12 +28,12 @@
   </StackPanel>
   <StackPanel Spacing="4">
     <TextBlock Text="Model (--model)" />
-    <AutoCompleteBox x:Name="OmpModel" Watermark="Use omp's default" MinimumPrefixLength="0" FilterMode="Contains" AutomationProperties.Name="omp model" />
+    <AutoCompleteBox x:Name="OmpModel" PlaceholderText="Use omp's default" MinimumPrefixLength="0" FilterMode="Contains" AutomationProperties.Name="omp model" />
     <TextBlock Classes="detail" Text="A model id, provider/model, or a role such as @smol. Suggestions come from omp's docs; any value is accepted." />
   </StackPanel>
   <StackPanel Spacing="4">
     <TextBlock Text="Approval mode (--approval-mode)" />
-    <AutoCompleteBox x:Name="OmpApprovalMode" Watermark="Use omp's configuration" MinimumPrefixLength="0" FilterMode="Contains" AutomationProperties.Name="omp approval mode" />
+    <AutoCompleteBox x:Name="OmpApprovalMode" PlaceholderText="Use omp's configuration" MinimumPrefixLength="0" FilterMode="Contains" AutomationProperties.Name="omp approval mode" />
     <TextBlock Classes="detail" Text="always-ask, always-ask-cached, write or yolo; any value is passed through." />
   </StackPanel>
   <CheckBox x:Name="OmpAdvisor" AutomationProperties.Name="Run with the advisor">
