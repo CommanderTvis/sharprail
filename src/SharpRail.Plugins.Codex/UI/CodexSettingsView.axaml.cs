@@ -41,16 +41,10 @@ internal sealed partial class CodexSettingsView : StackPanel
                 Update(current => current with { Effort = value });
         };
         var picker = this.FindControl<ComboBox>("CodexPermissionMode")!;
-        var ide = this.FindControl<ToggleButton>("CodexIdeContextToggle")!;
-        var mcp = this.FindControl<ToggleButton>("CodexMcpToggle")!;
-        var daemon = this.FindControl<ToggleButton>("CodexSharedDaemonToggle")!;
-        var daemonCheck = this.FindControl<ContentControl>("DaemonCheck")!;
-        daemonCheck.Content = Ui.Icon("check", Ui.Accent, 16);
+        var ide = this.FindControl<CheckBox>("CodexIdeContextToggle")!;
+        var mcp = this.FindControl<CheckBox>("CodexMcpToggle")!;
+        var daemon = this.FindControl<CheckBox>("CodexSharedDaemonToggle")!;
         var prompt = this.FindControl<CheckBox>("CodexAppendSystemPrompt")!;
-        var ideCheck = this.FindControl<ContentControl>("IdeCheck")!;
-        var mcpCheck = this.FindControl<ContentControl>("McpCheck")!;
-        ideCheck.Content = Ui.Icon("check", Ui.Accent, 16);
-        mcpCheck.Content = Ui.Icon("check", Ui.Accent, 16);
         void SaveCommand()
         {
             var normalized = input.Text?.Trim() is { Length: > 0 } typed ? typed : "codex";
@@ -66,9 +60,9 @@ internal sealed partial class CodexSettingsView : StackPanel
             if (picker.SelectedItem is ComboBoxItem { Tag: string id } && id != context.Settings<CodexSettings>().PermissionMode)
                 Update(current => current with { PermissionMode = id });
         };
-        ide.Click += (_, _) => Update(current => current with { IdeContext = !current.IdeContext });
-        mcp.Click += (_, _) => Update(current => current with { Mcp = !current.Mcp });
-        daemon.Click += (_, _) => Update(current => current with { SharedDaemon = !current.SharedDaemon });
+        ide.Click += (_, _) => Update(current => current with { IdeContext = ide.IsChecked == true });
+        mcp.Click += (_, _) => Update(current => current with { Mcp = mcp.IsChecked == true });
+        daemon.Click += (_, _) => Update(current => current with { SharedDaemon = daemon.IsChecked == true });
         prompt.Click += (_, _) => Update(current => current with { AppendSystemPrompt = prompt.IsChecked == true });
 
         // Settings arrive with the host's snapshot; the controls update in place so typing and focus survive.
@@ -79,9 +73,9 @@ internal sealed partial class CodexSettingsView : StackPanel
             if (!model.IsFocused) model.Text = settings.Model;
             effort.SelectedItem = effort.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.Effort ?? ""));
             picker.SelectedIndex = Math.Max(0, CodexLaunch.PermissionModes.ToList().FindIndex(mode => mode.Id == settings.PermissionMode));
-            ide.IsChecked = ideCheck.IsVisible = settings.IdeContext;
-            mcp.IsChecked = mcpCheck.IsVisible = settings.Mcp;
-            daemon.IsChecked = daemonCheck.IsVisible = settings.SharedDaemon;
+            ide.IsChecked = settings.IdeContext;
+            mcp.IsChecked = settings.Mcp;
+            daemon.IsChecked = settings.SharedDaemon;
             prompt.IsChecked = settings.AppendSystemPrompt;
             applying = false;
         }

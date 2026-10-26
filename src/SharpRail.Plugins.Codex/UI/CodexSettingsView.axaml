@@ -45,31 +45,22 @@
     </StackPanel>
   </CheckBox>
   <TextBlock Classes="detail" Margin="28,-10,0,0" Text="Choose which sections it includes for a project in the Codex pane's Context tab; the text itself is not editable." />
-  <ToggleButton Classes="setting-toggle" x:Name="CodexIdeContextToggle" AutomationProperties.Name="Start with IDE context">
-    <DockPanel>
-      <ContentControl x:Name="IdeCheck" DockPanel.Dock="Right" />
-      <StackPanel Spacing="2">
-        <TextBlock Text="Start with IDE context" />
-        <TextBlock Classes="detail" Text="Runs /ide on when the Codex Launcher starts a session." />
-      </StackPanel>
-    </DockPanel>
-  </ToggleButton>
-  <ToggleButton Classes="setting-toggle" x:Name="CodexMcpToggle" AutomationProperties.Name="Give sessions SharpRail's tools">
-    <DockPanel>
-      <ContentControl x:Name="McpCheck" DockPanel.Dock="Right" />
-      <StackPanel Spacing="2">
-        <TextBlock Text="Give sessions SharpRail's tools" />
-        <TextBlock Classes="detail" Text="Adds SharpRail's MCP server to every Codex session the launcher starts." />
-      </StackPanel>
-    </DockPanel>
-  </ToggleButton>
-  <ToggleButton Classes="setting-toggle" x:Name="CodexSharedDaemonToggle" AutomationProperties.Name="Use the shared Codex daemon">
-    <DockPanel>
-      <ContentControl x:Name="DaemonCheck" DockPanel.Dock="Right" />
-      <StackPanel Spacing="2">
-        <TextBlock Text="Use the shared Codex daemon" />
-        <TextBlock Classes="detail" Text="Attaches new sessions to the Codex daemon that is already running (codex --remote unix://) instead of each starting an embedded server. SharpRail never starts the daemon: if it is missing, stopped or a different version, the session starts standalone. Off launches codex --no-daemon." />
-      </StackPanel>
-    </DockPanel>
-  </ToggleButton>
+  <CheckBox x:Name="CodexIdeContextToggle" AutomationProperties.Name="Start with IDE context">
+    <StackPanel Spacing="2">
+      <TextBlock Text="Start with IDE context" />
+      <TextBlock Classes="detail" Text="Runs /ide on when the Codex Launcher starts a session." />
+    </StackPanel>
+  </CheckBox>
+  <CheckBox x:Name="CodexMcpToggle" AutomationProperties.Name="Give sessions SharpRail's tools">
+    <StackPanel Spacing="2">
+      <TextBlock Text="Give sessions SharpRail's tools" />
+      <TextBlock Classes="detail" Text="Adds SharpRail's MCP server to every Codex session the launcher starts." />
+    </StackPanel>
+  </CheckBox>
+  <CheckBox x:Name="CodexSharedDaemonToggle" AutomationProperties.Name="Use the shared Codex daemon">
+    <StackPanel Spacing="2">
+      <TextBlock Text="Use the shared Codex daemon" />
+      <TextBlock Classes="detail" Text="Attaches new sessions to the Codex daemon that is already running (codex --remote unix://) instead of each starting an embedded server. SharpRail never starts the daemon: if it is missing, stopped or a different version, the session starts standalone. Off launches codex --no-daemon." />
+    </StackPanel>
+  </CheckBox>
 </StackPanel>

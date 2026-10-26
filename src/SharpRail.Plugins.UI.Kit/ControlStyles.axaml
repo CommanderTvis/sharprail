@@ -87,22 +87,6 @@
     <Setter Property="BorderBrush" Value="{x:Static kit:Ui.Accent}" />
     <Setter Property="BorderThickness" Value="1" />
   </Style>
-  <Style Selector="ToggleButton.setting-toggle">
-    <Setter Property="Padding" Value="12,8" />
-    <Setter Property="BorderBrush" Value="{x:Static kit:Ui.BorderBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Background" Value="{x:Static kit:Ui.Elevated}" />
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-  </Style>
-  <Style Selector="ToggleButton.setting-toggle:checked /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{x:Static kit:Ui.Elevated}" />
-    <Setter Property="BorderBrush" Value="{x:Static kit:Ui.BorderBrush}" />
-  </Style>
-  <Style Selector="ToggleButton.setting-toggle:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.setting-toggle:pressed /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
-    <Setter Property="BorderBrush" Value="{x:Static kit:Ui.BorderBrush}" />
-  </Style>
   <Style Selector="Button.quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.quiet:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
   </Style>

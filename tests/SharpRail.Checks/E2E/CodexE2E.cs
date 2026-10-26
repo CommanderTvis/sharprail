@@ -831,7 +831,7 @@ internal static class CodexE2E
         var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
         E2eWorkspace.Until(() => Has(settings, "Settings_plugin_codex_codex"));
         settings.ShowSection("plugin:codex:codex");
-        var ide = One<ToggleButton>(settings, "CodexIdeContextToggle");
+        var ide = One<CheckBox>(settings, "CodexIdeContextToggle");
         Require(ide.IsChecked == false, "IDE context starts off");
         app.Click(ide, freshGesture: false);
         E2eWorkspace.Until(() => codex.App.Workbench.State.Current.PluginSettings[CodexManifest.Id].TryGetProperty("ideContext", out var value) && value.GetBoolean());
@@ -843,12 +843,6 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => ide.IsChecked == false);
         codex.Settings(new { ideContext = true });
         E2eWorkspace.Until(() => ide.IsChecked == true);
-        // An enabled row keeps the quiet control fill; Fluent's accent fill would wash out its text.
-        var presenter = ide.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(item => item.Name == "PART_ContentPresenter");
-        // The click left the pointer on the row; the resting fill is measured away from it, not the hover fill.
-        Avalonia.Headless.HeadlessWindowExtensions.MouseMove(settings, new Avalonia.Point(1, 1));
-        E2eWorkspace.Until(() => !ide.IsPointerOver);
-        Require(presenter.Background is ISolidColorBrush { Color: var fill } && fill == Ui.Elevated.Color, $"an enabled setting row keeps its fill, not {presenter.Background}");
         var picker = One<ComboBox>(settings, "CodexPermissionMode");
         var defaultModel = One<TextBox>(settings, "CodexDefaultModel");
         defaultModel.Text = "gpt-5.6-sol";
