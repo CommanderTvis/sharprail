@@ -4,6 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
@@ -118,9 +120,34 @@ public sealed partial class WorkbenchWindow
             children.Add(pendingWorkspaceTabs!);
         }
         else pendingWorkspaceTabs = null;
+        var anchor = RailAnchor();
         ReconcileRailChildren(projectsTree, children);
+        KeepRailAnchor(anchor);
         foreach (var update in railSelection.Values) update();
         placeProjectTrailing?.Invoke();
+    }
+
+    private ScrollViewer? railScroller;
+
+    /// <summary>The topmost rail row reaching into the viewport and where it sits, so a reconcile can keep it still.</summary>
+    private (Control Row, double Top)? RailAnchor()
+    {
+        if (railScroller is not { Offset.Y: > 0 } scroller || projectsTree is null) return null;
+        foreach (var row in projectsTree.GetVisualDescendants().OfType<Control>().Where(control => control.Name is "ProjectRow" or "WorkspaceItem" or "WorkspaceTabs"))
+            if (row.TranslatePoint(new Point(0, 0), scroller) is { } at && at.Y + row.Bounds.Height > 0) return (row, at.Y);
+        return null;
+    }
+
+    private void KeepRailAnchor((Control Row, double Top)? anchor)
+    {
+        if (anchor is not var (row, top) || railScroller is not { } scroller) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!ReferenceEquals(TopLevel.GetTopLevel(row), TopLevel.GetTopLevel(scroller)) || row.TranslatePoint(new Point(0, 0), scroller) is not { } at) return;
+            var delta = at.Y - top;
+            if (Math.Abs(delta) > .01)
+                scroller.Offset = new Vector(scroller.Offset.X, Math.Clamp(scroller.Offset.Y + delta, 0, Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height)));
+        }, DispatcherPriority.Loaded);
     }
 
     private Button ShelfHeader(string project)
@@ -235,7 +262,7 @@ public sealed partial class WorkbenchWindow
             add.IsEnabled = WorkspaceMounted;
         };
         UpdateRailSelection();
-        Ui.Place(panel, new ScrollViewer { Content = projectsTree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, 2);
+        Ui.Place(panel, railScroller = new ScrollViewer { Content = projectsTree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, 2);
         return panel;
     }
 

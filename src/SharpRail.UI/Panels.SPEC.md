@@ -99,7 +99,9 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   it mounts a project it has not listed yet, on Refresh, and when the user expands a project row. The rail
   redraws from the broadcast, never from that call's result. The rail is rebuilt only when a row is added,
   removed or changes kind or lock; selection, branch text and what Git allows are restyled in place, so
-  rows, focus and pointer targets survive a mount, a Git refresh and a checkout.
+  rows, focus and pointer targets survive a mount, a Git refresh and a checkout. A reconcile keeps the topmost
+  visible row where it was: removing or adding rows above the viewport shifts the scroll offset by their height
+  instead of moving the visible content (clamped to the new extent).
 - Workspace rows carry no `+N −M` change badge: the rail is for navigation and identity; change detail
   belongs to Changes.
 - A hover- and focus-revealed kebab and right-click open the same workspace menu: “Open in” (editors from

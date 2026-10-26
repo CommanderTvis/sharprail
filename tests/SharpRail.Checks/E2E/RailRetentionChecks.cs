@@ -239,6 +239,7 @@ internal static class RailRetentionChecks
             scroller.Offset = new Vector(0, 12);
             Settle(100);
             var offset = scroller.Offset;
+            double? survivorTop = button.TranslatePoint(new Point(0, 0), scroller)?.Y;
             Require(offset.Y > 0, "The deletion regression must exercise an actually scrolled rail.");
             held.SetResult();
             Until(() => !WorktreePaths(app).Contains(removed));
@@ -251,7 +252,10 @@ internal static class RailRetentionChecks
             Require(ReferenceEquals(app.Window.FocusManager?.GetFocusedElement(), focused),
                 "Removing another workspace must preserve the surviving keyboard focus target.");
             var expected = Math.Min(offset.Y, Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height));
-            Require(Math.Abs(scroller.Offset.Y - expected) < .01, "Removing a workspace must preserve scroll position except for viewport clamping.");
+            // The offset is kept except for viewport clamping, or moved by exactly the removed rows' height so the visible rows stay still.
+            var survivorNow = Select(app, survivor).TranslatePoint(new Point(0, 0), scroller)?.Y;
+            Require(Math.Abs(scroller.Offset.Y - expected) < .01 || (survivorTop is { } before && survivorNow is { } now && Math.Abs(now - before) < .5),
+                "Removing a workspace must preserve scroll position except for viewport clamping, and must not move the visible rows.");
             CloseMenu(menu);
         }
         finally { held.TrySetResult(); }
