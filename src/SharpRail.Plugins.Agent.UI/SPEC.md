@@ -37,7 +37,8 @@ the module owns no session, account or terminal state.
   The provider supplies the list and toggle
   calls (run off the UI thread) and refreshes it on its change channel; stale results are dropped, a refused
   toggle re-reads the file, and a file with diagnostics disables the checkboxes. It shows the project file's path, that running sessions keep their instructions, and a note while earlier hand
-  edits are kept aside. It has no text editing.
+  edits are kept aside. It has no text editing. A re-read updates each section's row in place, keyed by section id (checkbox, title, size, text), so an open
+  disclosure and the reader's place survive a settings change; the list is laid out again only when the set or grouping of sections changes.
 - `TokenAmount` draws a token count as "1 token"/"N tokens", or "tok"/"toks" when offered less than its
   narrow width; it measures both and draws the one that fits, changing no property during layout.
 - `ManualLaunchNotice` is a compiled terminal notice explaining intentionally absent launcher

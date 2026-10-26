@@ -49,6 +49,42 @@ internal static class PaneRetargetChecks
             Count(null, typeof(Ui), "ThemeChanged");
     }
 
+    /// <summary>The instruction sections update their rows in place: same controls, open disclosures and text kept, only the changed part differs.</summary>
+    internal static void InstructionSections()
+    {
+        SharpRail.Plugins.Api.InstructionSection Section(string id, string title, bool enabled, string text) =>
+            new() { Id = id, Source = "core", SourceName = "SharpRail", Title = title, Description = "about " + id, Text = text, Enabled = enabled };
+        var current = new SharpRail.Plugins.Api.InstructionSectionList { Path = "/p/instructions.toml", Sections = [Section("core.a", "A", true, "text a"), Section("core.b", "B", true, "text b")] };
+        var loads = 0;
+        var view = new SharpRail.Plugins.Agent.UI.InstructionSectionsView("Fake", () => { loads++; return Task.FromResult(current); },
+            (_, _) => Task.FromResult(current), _ => { });
+        var window = new Window { Content = view, Width = 600, Height = 600 };
+        window.Show();
+        List<Control> Named(string name) { Dispatcher.UIThread.RunJobs(); return [.. view.SectionsPanel.GetLogicalDescendants().OfType<Control>().Where(item => item.Name == name)]; }
+        Until(() => Named("InstructionSectionRow").Count == 2);
+        var rows = Named("InstructionSectionRow");
+        var disclosure = Named("InstructionSectionDisclosure").Cast<ToggleButton>().First();
+        disclosure.IsChecked = true;
+        var text = Named("InstructionSectionText").Cast<TextBlock>().First();
+        Require(text.Text == "text a", "An opened section shows its text.");
+        current = new() { Path = current.Path, Sections = [Section("core.a", "A", false, "text a"), Section("core.b", "B", true, "text b2")] };
+        var seen = loads;
+        view.Refresh();
+        Until(() => loads > seen && Named("InstructionSectionCheckbox").Cast<CheckBox>().First().IsChecked == false);
+        Until(() => Named("InstructionSectionText").Cast<TextBlock>().Last().Tag is "core.b" && !string.IsNullOrEmpty(Named("InstructionSectionRow").Count.ToString()));
+        Require(Named("InstructionSectionRow").SequenceEqual(rows), "A settings change must update the section rows in place.");
+        Require(Named("InstructionSectionDisclosure").Cast<ToggleButton>().First().IsChecked == true && Named("InstructionSectionText").Cast<TextBlock>().First().Text == "text a",
+            "An open disclosure and its text must survive a refresh.");
+        // A change of the listing itself lays the rows out again, keeping the rows of sections that stay.
+        current = new() { Path = current.Path, Sections = [Section("core.b", "B", true, "text b2"), Section("core.c", "C", true, "text c")] };
+        seen = loads;
+        view.Refresh();
+        Until(() => loads > seen && Named("InstructionSectionRow").Count == 2 && Named("InstructionSectionRow").Any(row => Equals(row.Tag, "core.c")));
+        Require(Named("InstructionSectionRow").Any(row => ReferenceEquals(row, rows[1])), "A section that stays must keep its row when the listing changes.");
+        window.Close();
+        Console.WriteLine("PASS instruction sections: rows updated in place by section id, open disclosure kept, relayout only on a changed listing");
+    }
+
     internal static void Run(string root)
     {
         // The host reports macOS temp paths through /private.
@@ -98,6 +134,14 @@ internal static class PaneRetargetChecks
             Settle(300);
             firstVisit[tool] = Signature(pane);
         }
+        // An identical re-read leaves the omp pane's rows alone instead of rebuilding them.
+        var omp = Show(tools[0].Tool, tools[0].Name);
+        Until(() => Loaded(Signature(omp)));
+        var ompRows = omp.GetLogicalDescendants().OfType<Control>().Where(item => item.Name == "OmpContextRow").ToArray();
+        Require(ompRows.Length > 0, "The omp pane must list the workspace's context files.");
+        app.Click(omp.GetLogicalDescendants().OfType<Button>().Single(item => item.Name == "OmpRefresh"));
+        Settle(600);
+        Require(omp.GetLogicalDescendants().OfType<Control>().Where(item => item.Name == "OmpContextRow").SequenceEqual(ompRows), "An identical omp context read must keep its rows.");
         var before = Handlers(app);
 
         var others = new[] { b, c, a };

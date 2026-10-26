@@ -100,8 +100,22 @@ public static class OmpPanel
             catch (Exception) { context.Notify(PluginNotificationKind.Error, $"Couldn't open {ScopedSetting.AbbreviateHomePath(path)}"); }
         }
 
+        // What the rows and offers last drawn were built from: an identical snapshot (every refresh, settings change and
+        // re-attach asks again) leaves the controls, and the reader's place among them, alone.
+        string? rowsKey = null;
+        string? offersKey = null;
+
         void ShowContext(OmpContextSnapshot snapshot)
         {
+            var nextRows = string.Join('\n', snapshot.Files.Select(file => $"{file.Path}|{file.Depth}|{file.Scope}|{file.Provider}|{file.Tokens}|{file.Shadowed}|{file.Cycle}"));
+            var nextOffers = string.Join('\n', snapshot.Offers.Select(offer => $"{offer.Target}|{offer.Label}"));
+            if (nextRows != rowsKey) ShowRows(snapshot, nextRows);
+            if (nextOffers != offersKey) ShowOffers(snapshot, nextOffers);
+        }
+
+        void ShowRows(OmpContextSnapshot snapshot, string key)
+        {
+            rowsKey = key;
             rows.Children.Clear();
             if (snapshot.Files.Count == 0) rows.Children.Add(Ui.Text("omp reads no context files here yet.", Ui.Hint, 12));
             foreach (var file in snapshot.Files)
@@ -121,6 +135,11 @@ public static class OmpPanel
                 row.Children.Add(source);
                 rows.Children.Add(row);
             }
+        }
+
+        void ShowOffers(OmpContextSnapshot snapshot, string key)
+        {
+            offersKey = key;
             offers.Children.Clear();
             foreach (var offer in snapshot.Offers)
             {
@@ -198,6 +217,7 @@ public static class OmpPanel
             generation++;
             rows.Children.Clear();
             offers.Children.Clear();
+            rowsKey = offersKey = null;
             error.IsVisible = false;
             if (TopLevel.GetTopLevel(root) is not null) Refresh();
             return true;

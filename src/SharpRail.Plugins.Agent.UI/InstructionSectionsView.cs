@@ -33,6 +33,10 @@ public sealed partial class InstructionSectionsView : Border
     private readonly HashSet<string> expanded = new(StringComparer.Ordinal);
     private readonly StackPanel body;
     private int generation;
+    private readonly Dictionary<string, RowParts> rowParts = new(StringComparer.Ordinal);
+    // The text of each section as last listed, for a disclosure that opens after the listing arrived.
+    private readonly Dictionary<string, string> latest = new(StringComparer.Ordinal);
+    private string shownLayout = "";
 
     /// <summary>Creates the entry, collapsed; it loads its sections at once, for the count, and again on <see cref="Refresh"/>.</summary>
     /// <param name="agentName">The agent's name as the text shows it, such as <c>Claude Code</c>.</param>
@@ -134,42 +138,91 @@ public sealed partial class InstructionSectionsView : Border
         var off = list.Sections.Count(section => !section.Enabled);
         count.Text = $"{list.Sections.Count} section{(list.Sections.Count == 1 ? "" : "s")}" + (off > 0 ? $" · {off} off" : "") + " · Choose…";
         var groups = this.FindControl<StackPanel>("InstructionSectionsGroups")!;
-        groups.Children.Clear();
         var writable = list.Diagnostics.Count == 0;
-        foreach (var group in list.Sections.GroupBy(section => section.Source))
+        // Each section keeps its row, keyed by id, and a refresh updates it in place: an open disclosure, its text and a
+        // reader mid-scroll stay put while a settings change only flips the checkbox or size that changed. Only a change
+        // of the grouping (a section added or removed, a source heading) lays the list out again.
+        var layout = string.Join('\n', list.Sections.GroupBy(section => section.Source).Select(group => group.First().SourceName + ":" + string.Join(',', group.Select(section => section.Id))));
+        var live = list.Sections.Select(section => section.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var gone in rowParts.Keys.Where(id => !live.Contains(id)).ToArray()) rowParts.Remove(gone);
+        if (layout != shownLayout)
         {
-            var header = Ui.Text(group.First().SourceName, Ui.Hint, 11);
-            header.Margin = new Thickness(0, 4, 0, 0);
-            groups.Children.Add(header);
-            foreach (var section in group) groups.Children.Add(Row(section, writable));
+            shownLayout = layout;
+            groups.Children.Clear();
+            foreach (var group in list.Sections.GroupBy(section => section.Source))
+            {
+                var header = Ui.Text(group.First().SourceName, Ui.Hint, 11);
+                header.Margin = new Thickness(0, 4, 0, 0);
+                groups.Children.Add(header);
+                foreach (var section in group)
+                {
+                    if (!rowParts.TryGetValue(section.Id, out var parts)) rowParts[section.Id] = parts = Row(section);
+                    groups.Children.Add(parts.Root);
+                }
+            }
+            if (list.Sections.Count == 0) groups.Children.Add(Ui.Text("No sections: SharpRail adds no instructions here.", Ui.Muted, 12));
         }
-        if (list.Sections.Count == 0) groups.Children.Add(Ui.Text("No sections: SharpRail adds no instructions here.", Ui.Muted, 12));
+        latest.Clear();
+        foreach (var section in list.Sections) { latest[section.Id] = section.Text; rowParts[section.Id].Update(section, writable); }
+    }
+
+    // A section's row: its controls and what they last showed, so a refresh changes only what differs.
+    private sealed class RowParts(StackPanel root, CheckBox check, TextBlock title, TextBlock size, Run description, SelectableTextBlock text, ToggleButton disclosure)
+    {
+        private string shown = "";
+        private string shownText = "";
+        public StackPanel Root => root;
+        public bool Updating { get; private set; }
+        public bool Enabled { get; private set; }
+
+        public void Update(InstructionSection section, bool writable)
+        {
+            Updating = true;
+            try
+            {
+                var key = section.Title + "\0" + section.Description + "\0" + section.Enabled;
+                if (key != shown)
+                {
+                    shown = key;
+                    title.Text = section.Title;
+                    description.Text = section.Description.Length > 0 ? section.Description : "Show text";
+                    text.Foreground = section.Enabled ? Ui.TextBrush : Ui.Muted;
+                }
+                if (section.Text != shownText)
+                {
+                    shownText = section.Text;
+                    var tokens = Math.Max(1, (section.Text.Length + 3) / 4);
+                    size.Text = "~" + tokens + " " + TokenAmount.Unit(tokens, false);
+                    ToolTip.SetTip(size, section.Text.Length + " characters, about four to a token");
+                    // An open section shows its text at once; a closed one fills it on opening.
+                    text.Text = disclosure.IsChecked == true ? section.Text : null;
+                }
+                Enabled = section.Enabled;
+                // Also after a refused change: the box goes back to what is on disk, and is usable again.
+                if (check.IsChecked != section.Enabled) check.IsChecked = section.Enabled;
+                check.IsEnabled = writable;
+                ToolTip.SetTip(check, writable ? section.Id : "Fix the project's instructions.toml first.");
+            }
+            finally { Updating = false; }
+        }
     }
 
     // A checkbox with the title and size, then the summary as a disclosure that opens the section's text below it.
-    private Control Row(InstructionSection section, bool writable)
+    private RowParts Row(InstructionSection section)
     {
         var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        label.Children.Add(Ui.Text(section.Title, Ui.TextBrush, 13));
-        var tokens = Math.Max(1, (section.Text.Length + 3) / 4);
-        var size = Ui.Text("~" + tokens + " " + TokenAmount.Unit(tokens, false), Ui.Hint, 11);
+        var title = Ui.Text(section.Title, Ui.TextBrush, 13);
+        label.Children.Add(title);
+        var size = Ui.Text("", Ui.Hint, 11);
         size.VerticalAlignment = VerticalAlignment.Center;
-        ToolTip.SetTip(size, section.Text.Length + " characters, about four to a token");
         label.Children.Add(size);
-        var check = new CheckBox { Name = "InstructionSectionCheckbox", Tag = section.Id, IsChecked = section.Enabled, Content = label, IsEnabled = writable };
+        var check = new CheckBox { Name = "InstructionSectionCheckbox", Tag = section.Id, IsChecked = section.Enabled, Content = label };
         check.Classes.Add("section");
-        ToolTip.SetTip(check, writable ? section.Id : "Fix the project's instructions.toml first.");
-        check.IsCheckedChanged += (_, _) =>
-        {
-            if (check.IsChecked == section.Enabled) return;
-            check.IsEnabled = false;
-            var enabled = check.IsChecked == true;
-            _ = Run(() => toggle(section.Id, enabled));
-        };
         var open = expanded.Contains(section.Id);
         var chevron = new Path { Width = 10, Height = 10, Stretch = Stretch.Uniform, Stroke = Ui.Muted, StrokeThickness = 1.5, Data = Geometry.Parse(open ? Open : Closed) };
         var summary = new TextBlock { FontSize = 12, Foreground = Ui.Muted, TextWrapping = TextWrapping.Wrap };
-        summary.Inlines!.Add(new Run(section.Description.Length > 0 ? section.Description : "Show text"));
+        var description = new Run();
+        summary.Inlines!.Add(description);
         summary.Inlines.Add(new Run(" "));
         summary.Inlines.Add(new InlineUIContainer(chevron) { BaselineAlignment = BaselineAlignment.Center });
         var disclosure = new ToggleButton { Name = "InstructionSectionDisclosure", Tag = section.Id, Content = summary, IsChecked = open, Margin = new Thickness(28, 0, 0, 0) };
@@ -180,25 +233,30 @@ public sealed partial class InstructionSectionsView : Border
             Tag = section.Id,
             FontFamily = Ui.CodeFont,
             FontSize = 11,
-            Foreground = section.Enabled ? Ui.TextBrush : Ui.Muted,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(28, 2, 0, 4),
             IsVisible = open,
-        };
-        // The text is filled on first opening, so a closed section costs no layout of its body.
-        if (open) text.Text = section.Text;
-        disclosure.IsCheckedChanged += (_, _) =>
-        {
-            var nowOpen = disclosure.IsChecked == true;
-            if (nowOpen) { expanded.Add(section.Id); text.Text ??= section.Text; }
-            else expanded.Remove(section.Id);
-            text.IsVisible = nowOpen;
-            chevron.Data = Geometry.Parse(nowOpen ? Open : Closed);
         };
         var row = new StackPanel { Name = "InstructionSectionRow", Tag = section.Id };
         row.Children.Add(check);
         row.Children.Add(disclosure);
         row.Children.Add(text);
-        return row;
+        var parts = new RowParts(row, check, title, size, description, text, disclosure);
+        check.IsCheckedChanged += (_, _) =>
+        {
+            if (parts.Updating || check.IsChecked == parts.Enabled) return;
+            check.IsEnabled = false;
+            var enabled = check.IsChecked == true;
+            _ = Run(() => toggle(section.Id, enabled));
+        };
+        disclosure.IsCheckedChanged += (_, _) =>
+        {
+            var nowOpen = disclosure.IsChecked == true;
+            if (nowOpen) { expanded.Add(section.Id); text.Text ??= latest.GetValueOrDefault(section.Id); }
+            else expanded.Remove(section.Id);
+            text.IsVisible = nowOpen;
+            chevron.Data = Geometry.Parse(nowOpen ? Open : Closed);
+        };
+        return parts;
     }
 }
