@@ -246,7 +246,7 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 ## Menus and time
 
 Every context menu is bounded to 480px high and 420px wide (an application style): a long list, such as a
-branch's commits, scrolls inside it and rows trim rather than widen it. `Ui.RelativeTime` words an instant
+branch's commits, scrolls inside it and rows trim rather than widen it. Menus pad 4px inside and every row pads 12px by 4px with a 28px minimum height (application styles), whichever way the menu is built. `Ui.RelativeTime` words an instant
 against a given now, never the clock — `just now` under a minute, then `5m ago`, `3h ago`, `2d ago` — and
 commit rows in the scope menu append it to the short SHA and author.
 

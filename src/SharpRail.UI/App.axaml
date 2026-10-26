@@ -129,6 +129,14 @@
       <Setter Property="MaxWidth" Value="420" />
       <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
     </Style>
+    <!-- Every menu row, built in XAML or code, gets the same inner padding; the chevron keeps Fluent's own column. -->
+    <Style Selector="ContextMenu">
+      <Setter Property="Padding" Value="4" />
+    </Style>
+    <Style Selector="MenuItem">
+      <Setter Property="Padding" Value="12,4" />
+      <Setter Property="MinHeight" Value="{x:Static rendering:LayoutRoles.PanelHeaderRow}" />
+    </Style>
     <Style Selector="Button#BranchDelete:disabled /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
     </Style>
