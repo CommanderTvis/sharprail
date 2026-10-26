@@ -552,12 +552,15 @@ whose diffs load and unload editors. These are synthetic results, not native pre
 ## Review
 
 The tool summarises the changed-file count on the current branch, offers Show Changes (which reveals or
-restores Files and selects Changed) and owns the branch's pull request, a deterministic host flow of push plus `gh`
-(see Git.SPEC.md). Upstream hangs this flow on its plan pane; SharpRail has no plan, so it lives here and the
+restores Files and selects Changed) and, through the `core:review-pull-request` slot (W23), hosts the branch's pull
+request section contributed by the repo hosting provider that owns the remote ([GitHub](../SharpRail.Plugins.GitHub/SPEC.md)
+today): a deterministic host flow of push plus the provider's calls (see Git.SPEC.md). The slot is empty, and only
+Show Changes remains, while no provider is enabled or recognizes the remote. The bullets below describe that
+section, whose code lives in the plugin's UI half. Upstream hangs this flow on its plan pane; SharpRail has no plan, so it lives here and the
 description comes from the host's draft (branch name and commit subjects).
 
 - The open pull request is one state per workspace and branch, first looked up when the panel is drawn for
-  that branch (the host's 60-second cache allowed), so startup never waits on `gh`. Window activation with
+  that branch (the host's 60-second cache allowed), so startup never waits on the provider. Window activation with
   the panel built and every submit re-read it fresh. A lookup superseded by a newer one, by a submit's answer
   or by a branch switch is dropped; a failed lookup reads as no pull request.
 - A `PR #N` chip links out to the pull request's URL through the system browser.
@@ -576,10 +579,10 @@ description comes from the host's draft (branch name and commit subjects).
   drop the remote's commits, and the action copies `git pull --rebase origin <branch>`. The command is offered
   only for a branch name that is inert in every shell (`[A-Za-z0-9][A-Za-z0-9._/-]*`); any other name gets the
   instruction as text and a disabled action.
-- Every outcome toasts: PR opened, PR updated, Branch pushed (a non-GitHub origin, or the compare page, which
+- Every outcome toasts: PR opened, PR updated, Branch pushed (an origin no provider owns, or the compare page, which
   opens in the browser), and separately how many uncommitted files stayed local.
 - A fixable setup gap opens guidance instead of a toast: a push that could not authenticate, or a compare
-  result naming a missing or unauthenticated GitHub CLI, with copyable commands for the host's platform
+  result naming a provider tool that is missing or unauthenticated (GitHub CLI for GitHub), with copyable commands for the host's platform
   (generic ones for a remote host, whose platform the client does not know), the compare page as an action
   and Try again, which resubmits the last edited title and description rather than a regenerated draft.
   Taking the compare page ends the flow.

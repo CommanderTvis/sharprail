@@ -34,7 +34,7 @@ project: local adapters call Core directly, with no serialization.
   read files, save a file with its original text for conflict detection, list
   specs, the spec graph (`SpecGraphReply`: specs, edges, dangling links, duplicate
   ids, parent cycles) and whether the workspace has durable specs, Git snapshot, commit list, per-file diff and diff sides, Git actions,
-  open pull request lookup, pull request draft and opening, branch catalog (optional default-base fetch; local, per-remote rows, the
+  open pull request lookup (neutral `PullRequest`, no GitHub RPC), pull request draft and opening, branch catalog (optional default-base fetch; local, per-remote rows, the
   default base and suggested new worktree path/branch), editor listing and
   open-in-editor. Git scope travels as a string (`all` when empty); the comparison
   branch is the review target. Commit listing is its own operation so the commit

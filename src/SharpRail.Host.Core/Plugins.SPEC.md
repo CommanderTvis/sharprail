@@ -395,3 +395,30 @@ and every finished resolution is handed to the `OnWorkspaceEnvironment` observer
 Providers declare `dependsOn` `Env` in their manifest (the cascade above): switching `Env` off switches every provider
 off, and a provider enabled while `Env` is off is `Refused` (`depends on env, which is off`). Switching them back on
 is per plugin, as for any dependency.
+
+## Repo hosting providers (H24, W28)
+
+Git stays in the host; what a forge adds on top of a remote is contributed by plugins. A provider registers with
+`RepoHost(id, provider)` (H24), and `GitHub` ([GitHub](../SharpRail.Plugins.GitHub/SPEC.md)) is the first; GitLab,
+Gitea or anything else is another plugin, with no host change.
+
+- Routing. For a workspace the host reads `origin`'s URL (git, never the string's shape for remote-ness) and asks the
+  active providers `Recognizes(url)` in plugin id order; the first yes owns the branch. None means a plain remote:
+  no pull request segment, no lookup, push and sync unchanged. `BranchStatus.Provider` is the owner's id or empty.
+- The provider supplies: `Recognizes`, sign-in status, `Find` (the neutral `PullRequest`: open one first, else the
+  newest in any state, else none), `Create`/`Update`, the actions ready, merge and reopen, and a compare URL for
+  the fallback. It runs its tools through a host-bounded runner (no console, prompts off, deadline, process tree
+  killed on timeout). The host does the rest: guards, the push and its auth failure (`authFailed`), the draft
+  proposal, dirty-file count and delete-remote-branch (allowed only once the provider reports `merged`).
+- Budgets and cache. Queries 8 seconds, mutations 5 minutes; successful lookups (empty ones too) are cached 60
+  seconds per worktree and branch by the host, shared between concurrent callers, dropped after a push, a mutation, a
+  provider leaving, or `fresh`; failures are never cached. A provider that throws or times out reads as no
+  review and is logged against its plugin. Nothing runs on the UI thread.
+- Observer. `OnBranchStatus` hands each finished status (git facts plus the owner's `PullRequest`) to the plugins that
+  asked, which publish it on their own state channel for their UI half.
+- Disabling a provider is the ordinary disable ([roster](#the-roster-state-machine)): its registration is
+  removed on teardown, the cache for its branches is dropped, and workspaces re-route (another provider may now
+  recognize the remote). Nothing else cascades.
+
+W28 is the UI side: a provider's UI half contributes items to the location strip and its Review panel section
+(Plugin API W28, W23, W4).

@@ -258,7 +258,7 @@ or New/Close window toolbar. Each canvas has one active renderer: the temporary 
 its renderer directly, so that method would leave a competing empty renderer on the canvas.
 Browser focus drives the shared
 notification gates; notification clicks return to the target terminal. Permission is requested from the
-existing Settings gesture. GitHub authentication is probed by the host, never by a browser-side process.
+existing Settings gesture. Repo hosting sign-in (GitHub today) is probed by the host, never by a browser-side process.
 
 ## Acceptance
 

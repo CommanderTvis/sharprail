@@ -56,7 +56,7 @@ of a workspace, not one shell: a shell that started earlier keeps the environmen
   `WorkspaceEnvironment(policy)` and `OnWorkspaceEnvironment` (H22) move to `Env`; no active policy means no steps run.
 - Each of the five step plugins: drop the order, register one step, add `dependsOn: env` (exact wire version).
 - Builtin registration in `BuiltinPlugins.cs` and the Android csproj: add `Env`, remove `EnvChips`.
-- Settings: `env-chips` keys under `plugins` migrate to `env` (it had none besides `enabled`); a profile that had
-  `env-chips` off gets `env` off, which turns the dependents off, so migrate only that case.
+- Settings: the chips have no switch of their own, so the `env-chips` entry under `plugins` is dropped without
+  migrating it. A profile that had `env-chips` off keeps `env` on.
 - `--environment` and `--plugins` checks: cover the cascade and the plain environment while `Env` is off; update
   `docs/develop/agent-reference.md`.

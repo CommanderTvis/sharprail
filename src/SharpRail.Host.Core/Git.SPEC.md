@@ -143,40 +143,42 @@ clients re-read Git although no file in the workspace changed.
   one currently checked out, and every other worktree is a workspace. The refusal does not depend on which
   client asked. The `fetch` action brings every remote up to date (`fetch --all --no-prune`) and moves no
   local branch.
-- `GetOpenReviewAsync` answers the open GitHub pull request of the workspace branch (number, https URL, unpushed
-  and behind counts; -1 when unknown) from `gh pr list --head`, run with prompts disabled and an 8 s budget whose
-  expiry kills the child's process group. Only a github.com `origin` is looked up; a missing or unauthenticated
-  `gh`, a timeout or a non-https link degrade to no review. Successful answers, empty ones included, are cached
-  for 60 s per worktree and branch; failures never are. Concurrent lookups share one `gh` call, and `fresh`
-  skips the cache (joining a call already running) and fetches the branch so the behind count can be trusted.
+- `GetOpenReviewAsync` answers the open pull request of the workspace branch (neutral `PullRequest`; unpushed and behind
+  counts, -1 when unknown) through the repo hosting provider that recognizes `origin` (Plugin API H24, routing in
+  [Plugins](Plugins.SPEC.md#repo-hosting-providers-h24-w27)); without one, or when the provider's tool is missing,
+  unauthenticated or late, the answer is no review. The host runs it with the 8 s query budget, caches successful answers (empty
+  ones included) for 60 s per worktree and branch, never failures, shares concurrent lookups, and `fresh` skips the
+  cache (joining a call already running) and fetches the branch so the behind count can be trusted. The `gh`
+  specifics are [GitHub](../SharpRail.Plugins.GitHub/SPEC.md).
 - `PreviewPrAsync` proposes the branch name as title and the commit subjects since the base as body.
   `OpenPrAsync` guards in order: a branch shaped like an option or failing the ref-shape check, a missing `origin`,
   a base that is not on `origin`, and the base branch itself (nothing is pushed in these cases). It counts dirty
   files without blocking, re-reads the live branch, pushes `--set-upstream origin <branch>` with prompts
   disabled (`GIT_TERMINAL_PROMPT=0`, `LC_MESSAGES=C` with `LC_ALL` demoted to `LC_CTYPE`, a batch-mode SSH
-  command only when the user configured none) and reports `authFailed` for rejected credentials. A non-GitHub
-  origin ends as `pushed`. On GitHub an existing pull request is edited by number (the title only when edited),
-  else one is created with an explicit base; a create that failed is re-checked first. Any `gh` failure ends as
-  `compare`, a pre-filled compare link with the body capped at 4000 characters and a `ghProblem` of `missing` or
-  `unauthenticated`. `SHARPRAIL_GH_OFFLINE=1` skips `gh`. The lookup cache is dropped after a push and a mutation.
+  command only when the user configured none) and reports `authFailed` for rejected credentials. With no provider
+  for the origin it ends as `pushed`. Otherwise the provider edits an existing pull request by number (the title only
+  when edited), else creates one with an explicit base; a create that failed is re-checked first. Any provider
+  failure ends as `compare`, a pre-filled compare link from the provider with the body capped at 4000 characters
+  and a `Problem` (GitHub: `missing` or `unauthenticated`). The lookup cache is dropped after a push and a mutation.
 - Remote-ness is decided against `git remote`, never against the string's shape.
 
 ## Branch status and actions
 
 Ported from ThinkRail #771 and #776. `GetBranchStatusAsync(fresh)` reports the current branch's remote facts: whether
-origin exists and its forge (github, gitlab, other), whether `origin/<branch>` exists (published), commits ahead and
-behind it (a fresh read fetches that branch first), commits ahead of the review base, whether the branch is its
-own base, and HEAD. On GitHub it adds the open pull request (the cached open-review lookup) and the newest pull
-request heading the branch in any state with its draft flag, checks (failing, pending, passing from the status
-rollup), review decision, merge state, whether its head is origin's own repository, and the merge methods the
-repository allows (`gh repo view`, cached per origin for ten minutes). An unborn branch has no status.
+origin exists and which repo hosting provider owns it (its plugin id, empty when none or when it is switched off),
+whether `origin/<branch>` exists (published), commits ahead and behind it (a fresh read fetches that branch first),
+commits ahead of the review base, whether the branch is its own base, and HEAD. These are git and are always
+reported. With a provider it adds the cached open-review lookup and the newest pull request heading the branch in any
+state (`state`, `draft`, `checks`, `review`, `mergeability`, `sameRepository`, `mergeMethods`; Plugin API H24, the model is in
+[GitHub](../SharpRail.Plugins.GitHub/SPEC.md#data-contract)). An unborn branch has no status.
 
 `ApplyBranchActionAsync` runs push, ready, merge, reopen or delete-remote only when the workspace is still on the
-branch and commit the caller saw. Push never forces and asks for confirmation (`confirmBase`) on the base branch.
-Pull request actions refuse a pull request from another repository with the same branch name. Merge passes the
-method and `--match-head-commit`; deleting the remote branch runs `git push origin --delete` leased to the last
-fetched tip, never `gh --delete-branch`, and only after GitHub reports the merge, so a queued merge keeps its
-branch. Both operations travel over WebSocket RPC; a host that predates them reports no status.
+branch and commit the caller saw. Push and delete-remote are git and stay here; ready, merge and reopen go to the
+provider. Push never forces and asks for confirmation (`confirmBase`) on the base branch. Pull request actions refuse a
+pull request from another repository with the same branch name. Merge passes the method and a head match;
+deleting the remote branch runs `git push origin --delete` leased to the last fetched tip, never the provider's
+own branch deletion, and only after the provider reports `merged`, so a queued merge keeps its branch. Both
+operations travel over WebSocket RPC; a host that predates them reports no status.
 
 ## Get right
 

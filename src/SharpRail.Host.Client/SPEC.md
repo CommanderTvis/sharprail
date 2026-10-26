@@ -35,7 +35,7 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   for project, Git and state calls. The host's own network Git budget must stay
   under that ceiling so its error, naming the ref, wins the race against a bare
   deadline. Opening a pull request pushes and
-  runs `gh`, so that call alone carries a 5 minute deadline. Long-lived streams (state watch, file watch, terminal) carry no deadline.
+  runs the repo hosting provider's tool, so that call alone carries a 5 minute deadline. Long-lived streams (state watch, file watch, terminal) carry no deadline.
 - `HostRequest.WithTimeout(value)` replaces that deadline for the project and state calls the current
   async flow starts until the scope is disposed; scopes nest and restore the enclosing one. It is for a
   call the host answers only after a person acts. Raising it is safe; lowering it below the host's own

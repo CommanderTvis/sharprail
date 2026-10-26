@@ -42,7 +42,7 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 - `IProjectServices` is one client's project session: open a project root, list and read files, save
   with a conflict check, list specs, search the workspace, Git snapshot/commits/diffs/diff sides, Git actions
-  (stage, unstage, init, create and remove worktree, delete branch, fetch), branch catalog, open pull request lookup, pull request draft and opening
+  (stage, unstage, init, create and remove worktree, delete branch, fetch), branch catalog, open pull request lookup (the neutral `PullRequest`, routed to the repo hosting provider), pull request draft and opening
   (`PrResult.Action` is `created`, `updated`, `pushed`, `compare` or `authFailed`), and editor
   detection/launch. Every call is
   cancellable. Paths are workspace-relative.
@@ -145,7 +145,7 @@ Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under
 clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
 carry the bytes and return the same host path, never a client-local file path.
 
-Project services expose host-side GitHub authentication status. Terminal services accept a bounded PNG
+Sign-in status of a repo hosting service is not a project service: its plugin reports it (GitHub: `module-plugin-github`). Terminal services accept a bounded PNG
 clipboard upload for a session and return its host-visible path; unsupported hosts report unavailability.
 
 ## Language queries
