@@ -844,12 +844,15 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     /// <summary>
     /// The native title bar and traffic lights do not zoom: the strip grows with the header while its inset stays
-    /// physical. Full screen hides the traffic lights, so the inset goes with them.
+    /// physical. Full screen hides the traffic lights, so the inset goes with them. On macOS the strip never renders
+    /// shorter than the native 40 px title bar, so below 100% the row grows to compensate for the zoom.
     /// </summary>
     private void ApplyChromeZoom()
     {
         var zoom = InterfaceZoom.Current;
-        ExtendClientAreaTitleBarHeightHint = this.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height.Value * zoom;
+        var row = this.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0];
+        row.Height = new GridLength(OperatingSystem.IsMacOS() ? Math.Max(LayoutRoles.TopbarRow, LayoutRoles.TopbarRow / zoom) : LayoutRoles.TopbarRow);
+        ExtendClientAreaTitleBarHeightHint = row.Height.Value * zoom;
         var lights = OperatingSystem.IsMacOS() && WindowState != WindowState.FullScreen;
         this.FindControl<Grid>("MainHeader")!.Margin = new Thickness(lights ? 80 / zoom : 12, 0, OperatingSystem.IsWindows() ? 0 : 12, 0);
     }

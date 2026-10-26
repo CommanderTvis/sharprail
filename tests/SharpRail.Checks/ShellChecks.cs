@@ -494,6 +494,8 @@ internal static class ShellChecks
         Require(Zoomed(2), "A pinch stops at 200%.");
         window.PinchZoom(-5.9);
         Require(Zoomed(0.5), "A pinch stops at 50%.");
+        if (OperatingSystem.IsMacOS())
+            Require(window.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height.Value * 0.5 >= LayoutRoles.TopbarRow - 1e-9, "The macOS top rail stays as tall as the traffic lights at 50%.");
         window.PinchZoom(0.9);
         Require(Zoomed(1.2), "Within one gesture every scale is taken against the same baseline.");
         Settle(400);
