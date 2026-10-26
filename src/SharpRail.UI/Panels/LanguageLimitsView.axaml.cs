@@ -147,7 +147,7 @@ internal sealed partial class LanguageLimitsView : UserControl
         try
         {
             await Task.Run(() => save(json));
-            message.Foreground = Ui.Muted; message.Text = "Saved; applies to running servers now.";
+            message.Foreground = Ui.Muted; message.Text = "Saved. It applies to running servers now.";
         }
         catch (Exception error) { message.Foreground = Ui.Danger; message.Text = error.Message; }
         finally { button.IsEnabled = true; }

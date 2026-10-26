@@ -11,7 +11,7 @@
           <SelectableTextBlock Name="DependencyHint" IsVisible="{Binding Missing}" Text="{Binding Hint}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
           <StackPanel Orientation="Horizontal" Spacing="12" TextElement.FontSize="12">
             <Button Name="DependencyUsePath" Content="Use path…" Classes="link" Click="UseDependencyPathClicked" IsVisible="{Binding CanChange}"
-                    ToolTip.Tip="Choose an existing executable outside the workspace; it is used instead of PATH by every language server" />
+                    ToolTip.Tip="Choose an existing executable outside the workspace. Every language server uses it instead of PATH" />
             <Button Name="DependencyClearPath" Content="Clear path" Classes="link" Click="ClearDependencyPathClicked" IsVisible="{Binding CanClear}"
                     ToolTip.Tip="Find it on PATH again" />
             <Button Name="DependencyCopyHint" Content="Copy install hint" Classes="link" Click="CopyDependencyHintClicked" IsVisible="{Binding Missing}" />

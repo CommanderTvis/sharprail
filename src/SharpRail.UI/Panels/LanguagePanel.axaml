@@ -25,13 +25,6 @@
       <TextBlock Text="Diagnostics, navigation and refactoring." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       <TextBlock x:Name="LifetimeNote" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock x:Name="Status" Text="Reading language servers…" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" Margin="0,4" />
-    <Border x:Name="AgentLspGuidance" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.Accent}" BorderThickness="2,0,0,0" Padding="8">
-      <StackPanel Spacing="4">
-        <TextBlock Text="Ask your agent to configure servers" FontWeight="SemiBold" TextWrapping="Wrap" />
-        <TextBlock Text="Missing libraries or include paths? Your agent can fix the workspace and restart the server."
-                   FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
-      </StackPanel>
-    </Border>
     <ListBox x:Name="Servers" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
       <ListBox.Styles>
         <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>

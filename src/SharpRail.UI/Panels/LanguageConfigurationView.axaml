@@ -47,18 +47,18 @@
         <TextBlock x:Name="ProviderNote" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
         <Button x:Name="ReviewTerms" Content="Review agreement and start…" HorizontalAlignment="Left" ToolTip.Tip="Saves settings and reviews the agreement before starting." />
         <TextBlock x:Name="TermsDeadline" FontWeight="SemiBold" TextWrapping="Wrap" IsVisible="False" />
-        <TextBlock x:Name="TermsStatus" Text="Setup checks existing acceptance; changed terms require your acknowledgement." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+        <TextBlock x:Name="TermsStatus" Text="Setup checks the agreement. If it changed, you must accept it again." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
         <StackPanel x:Name="InstallationOptions" Spacing="8">
           <TextBlock Text="Installation directory on the workspace host" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-          <TextBox x:Name="InstallationPath" PlaceholderText="Optional absolute path; blank downloads the managed server" />
+          <TextBox x:Name="InstallationPath" PlaceholderText="Optional absolute path. Leave blank to download the managed server" />
             <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="InstallationPath" Click="BrowseFieldClicked" VerticalAlignment="Top" />
           </Grid>
         </StackPanel>
         <StackPanel x:Name="JvmProjectOptions" Spacing="8">
           <TextBlock Text="Project JDK on the workspace host" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-          <TextBox x:Name="ProjectJdk" PlaceholderText="Absolute JDK path; separate from the server’s bundled runtime" />
+          <TextBox x:Name="ProjectJdk" PlaceholderText="Absolute JDK path. This is not the server’s bundled runtime" />
             <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="ProjectJdk" Click="BrowseFieldClicked" VerticalAlignment="Top" />
           </Grid>
           <TextBlock Text="Build importer" />
@@ -72,14 +72,14 @@
       <StackPanel x:Name="CompilerOptions" Spacing="8">
         <TextBlock Text="Include directories on workspace host" />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBox x:Name="IncludePaths" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One host folder per line; relative to workspace or absolute" ToolTip.Tip="Paths may be relative to this workspace or absolute." />
+        <TextBox x:Name="IncludePaths" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One host folder per line, relative to the workspace or absolute" ToolTip.Tip="Paths may be relative to this workspace or absolute." />
           <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="IncludePaths" Click="BrowseFieldClicked" VerticalAlignment="Top" />
         </Grid>
         <TextBlock Text="Fallback compiler flags" />
         <TextBox x:Name="CompilerFlags" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One flag per line" ToolTip.Tip="For example: -fobjc-arc. Used only when a file has no compile command; use a compilation database for per-file flags." />
         <TextBlock Text="Compilation database directory on workspace host" />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBox x:Name="CompilationDatabase" PlaceholderText="Folder containing compile_commands.json; blank discovers automatically" />
+        <TextBox x:Name="CompilationDatabase" PlaceholderText="Folder containing compile_commands.json. Leave blank to find it automatically" />
           <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="CompilationDatabase" Click="BrowseFieldClicked" VerticalAlignment="Top" />
         </Grid>
       </StackPanel>
@@ -102,7 +102,7 @@
           <DataTemplate x:CompileBindings="False">
             <StackPanel Spacing="8" Margin="0,0,0,12">
               <TextBlock Text="{Binding Label}" TextWrapping="Wrap" ToolTip.Tip="{Binding Help}" />
-              <TextBlock IsVisible="{Binding Multiline}" Text="One item per line. Clear the input for an empty list; use the button below for server defaults." FontSize="11" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+              <TextBlock IsVisible="{Binding Multiline}" Text="One item per line. Clear the input for an empty list. Use the button below for server defaults." FontSize="11" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
               <TextBlock IsVisible="{Binding HasPath}" Text="Path on the workspace host" FontSize="11" Foreground="{x:Static kit:Ui.Muted}" />
               <TextBlock IsVisible="{Binding CustomJson}" Text="Custom JSON value — edit in Arguments and JSON, or reset to use this control." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
               <TextBox IsVisible="{Binding IsText}" Text="{Binding Value, Mode=TwoWay}" AcceptsReturn="{Binding Multiline}" TextWrapping="Wrap" PlaceholderText="Server default" />
