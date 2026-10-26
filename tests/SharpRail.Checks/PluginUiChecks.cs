@@ -2,6 +2,7 @@ using System.Net;
 using System.Runtime.Loader;
 using System.Text.Json;
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
@@ -399,11 +400,21 @@ internal static class PluginUiChecks
         toggle.IsChecked = true;
         E2eWorkspace.Until(() => loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => Has(settings, "Settings_plugin_fixture_fixture"));
-        var nested = Find<Border>(settings, "PluginSettingsNavigation");
+        var nested = Find<Grid>(settings, "PluginSettingsNavigation");
         var navigationList = (Panel)nested.Parent!;
         Require(nested.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Settings_plugin_fixture_fixture") &&
             navigationList.Children.IndexOf(nested) == navigationList.Children.IndexOf(Find<Button>(settings, "Settings_Plugins")) + 1,
             "A plugin's settings page is listed under Plugins, as the fork groups them.");
+        settings.UpdateLayout();
+        var guide = Find<Border>(settings, "PluginSettingsGuide");
+        var parentIcon = ((StackPanel)Find<Button>(settings, "Settings_Plugins").Content!).Children[0];
+        var childButton = Find<Button>(settings, "Settings_plugin_fixture_fixture");
+        Require(Math.Abs(guide.TranslatePoint(new Point(guide.Bounds.Width / 2, 0), navigationList)!.Value.X -
+            parentIcon.TranslatePoint(new Point(parentIcon.Bounds.Width / 2, 0), navigationList)!.Value.X) <= .5,
+            $"The plugin pages' guide line runs straight down from the centre of the Plugins icon ({guide.TranslatePoint(new Point(guide.Bounds.Width / 2, 0), navigationList)} against {parentIcon.TranslatePoint(new Point(parentIcon.Bounds.Width / 2, 0), navigationList)}).");
+        Require(Math.Abs(guide.TranslatePoint(new Point(0, guide.Bounds.Height), navigationList)!.Value.Y -
+            childButton.TranslatePoint(new Point(0, childButton.Bounds.Height / 2), navigationList)!.Value.Y) < .01,
+            $"The guide ends at the last plugin page's vertical centre (guide {guide.Bounds}, group {nested.Bounds}, page {childButton.Bounds}, pages {nested.GetLogicalDescendants().OfType<Button>().Count()}).");
         settings.ShowSection("plugin:fixture:fixture");
         Require(Find<TextBlock>(settings, "FixtureGreeting").Text == "hello", "The fixture's Settings section reads its settings namespace.");
         // UpdateSettingsAsync completes once the host's snapshot carries the value; the host half then answers with it.

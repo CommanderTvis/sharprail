@@ -156,6 +156,10 @@ public sealed partial class SettingsWindow : Window
 
     private static string SectionKey(PluginRow<SettingsSectionRegistration> row) => "plugin:" + row.PluginId + ":" + (row.Value.Id ?? row.PluginId);
 
+    // Navigation buttons pad 12 px; the icon is Ui.Icon's default 16 px and the label follows at the content spacing of 8.
+    private const double PluginsIconCentre = 12 + 16 / 2.0;
+    private const double PluginsLabelColumn = 12 + 16 + 8;
+
     // Plugin sections follow core's; a section whose plugin leaves takes its page with it.
     private void SyncPluginSections()
     {
@@ -167,21 +171,24 @@ public sealed partial class SettingsWindow : Window
         foreach (var key in navigation.Keys.Where(key => key.StartsWith("plugin:", StringComparison.Ordinal)).ToArray())
             navigation.Remove(key);
         // Plugin pages are grouped under Plugins, indented behind a rule, as the fork's settings navigation does.
-        var group = navigationList.Children.OfType<Border>().FirstOrDefault(child => child.Name == "PluginSettingsNavigation");
+        var group = navigationList.Children.OfType<Grid>().FirstOrDefault(child => child.Name == "PluginSettingsNavigation");
         if (group is null)
         {
-            group = new Border
+            // The rule drops from the centre of the Plugins icon (button padding plus half the 16 px icon, less half the 1 px line)
+            // and stops at the last page's vertical centre (half the 36 px button); the pages' icons sit in the Plugins label column.
+            group = new Grid { Name = "PluginSettingsNavigation" };
+            group.Children.Add(new Border
             {
-                Name = "PluginSettingsNavigation",
-                Margin = new Thickness(16, 0, 0, 0),
-                Padding = new Thickness(4, 0, 0, 0),
-                BorderThickness = new Thickness(1, 0, 0, 0),
-                BorderBrush = Ui.BorderBrush,
-                Child = new StackPanel { Spacing = 2 }
-            };
+                Name = "PluginSettingsGuide",
+                Width = 1,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(PluginsIconCentre - .5, 0, 0, 18),
+                Background = Ui.BorderBrush
+            });
+            group.Children.Add(new StackPanel { Name = "PluginSettingsList", Spacing = 2, Margin = new Thickness(PluginsLabelColumn - 12, 0, 0, 0) });
             navigationList.Children.Insert(navigationList.Children.IndexOf(navigation["Plugins"]) + 1, group);
         }
-        var groupList = (StackPanel)group.Child!;
+        var groupList = (StackPanel)group.Children[1];
         groupList.Children.Clear();
         group.IsVisible = sections.Count > 0;
         foreach (var row in sections)
