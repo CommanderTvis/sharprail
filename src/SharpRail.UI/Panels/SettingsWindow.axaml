@@ -75,12 +75,18 @@
       <StackPanel Spacing="8">
         <TextBlock Text="Syntax highlighting" Classes="settings-heading" />
         <TextBlock Text="Custom highlighting applies to file editors, Markdown source and diffs. Grammars and filename patterns are shared by every client of this host." Classes="settings-description" />
-        <TextBlock Text="Want some highlighting?" Classes="settings-label" />
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <Button x:Name="HighlightingAskClaude" Content="Ask Claude to add it" />
-          <Button x:Name="HighlightingAskCodex" Content="Ask Codex to add it" />
-        </StackPanel>
-        <TextBlock Text="Opens an agent in your current workspace using the builtin add-highlighting skill." Classes="settings-description" />
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Want some highlighting?" Classes="settings-label" />
+              <TextBlock Text="Opens an agent in your current workspace using the builtin add-highlighting skill." Classes="settings-description" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+              <Button x:Name="HighlightingAskClaude" Content="Ask Claude to add it" />
+              <Button x:Name="HighlightingAskCodex" Content="Ask Codex to add it" />
+            </StackPanel>
+          </Grid>
+        </Border>
         <TextBlock Text="Filename patterns" Classes="settings-label" Margin="0,16,0,0" />
         <TextBox x:Name="HighlightingPatterns" PlaceholderText="*.foo, Foofile" />
         <TextBlock Text="TextMate grammar (JSON)" Classes="settings-label" />
@@ -95,16 +101,20 @@
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="HighlightingGrammarRow">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBlock x:Name="HighlightingGrammarLabel" TextWrapping="Wrap" VerticalAlignment="Center" />
-        <Button x:Name="HighlightingRemove" Grid.Column="1" Content="Remove" VerticalAlignment="Center" />
-      </Grid>
+      <Border Classes="settings-row">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock x:Name="HighlightingGrammarLabel" TextWrapping="Wrap" VerticalAlignment="Center" />
+          <Button x:Name="HighlightingRemove" Grid.Column="1" Content="Remove" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
     </DataTemplate>
     <DataTemplate x:Key="LocalBrowserConnectionRow">
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-        <TextBlock x:Name="LocalBrowserConnectionOrigin" VerticalAlignment="Center" TextWrapping="Wrap" />
-        <Button x:Name="LocalBrowserRevoke" Grid.Column="1" Content="Revoke access" />
-      </Grid>
+      <Border Classes="settings-row">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock x:Name="LocalBrowserConnectionOrigin" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Button x:Name="LocalBrowserRevoke" Grid.Column="1" Content="Revoke access" />
+        </Grid>
+      </Border>
     </DataTemplate>
     <DataTemplate x:Key="HostPage">
       <StackPanel Spacing="24">
@@ -226,30 +236,42 @@
         </StackPanel>
         <TextBlock x:Name="LineWidthError" Text="Enter a whole number from 40 to 240." FontSize="12"
                    Foreground="{x:Static rendering:Ui.Danger}" IsVisible="False" />
-        <StackPanel Orientation="Horizontal" Spacing="12">
-          <rendering:Switch x:Name="LineWidthBounded" Label="Limit lines to this width" HorizontalAlignment="Left" VerticalAlignment="Center" />
-          <TextBlock Text="Limit lines to this width" Classes="settings-description" VerticalAlignment="Center" />
-        </StackPanel>
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="Limit lines to this width" Classes="settings-label" />
+            <rendering:Switch x:Name="LineWidthBounded" Grid.Column="1" Label="Limit lines to this width" VerticalAlignment="Center" />
+          </Grid>
+        </Border>
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="LayoutPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Layout" Classes="settings-heading" />
         <TextBlock Text="The frame, default preset and group limits belong to this window; custom presets are shared by every window and client of this host. Each workspace retains its own open documents." Classes="settings-description" />
-        <StackPanel x:Name="PresetChoices" Spacing="8" />
+        <Border Classes="settings-row">
+          <StackPanel x:Name="PresetChoices" Spacing="8" />
+        </Border>
         <StackPanel x:Name="PresetSaveRow" Orientation="Horizontal" Spacing="8" MaxWidth="512" HorizontalAlignment="Left">
           <TextBox x:Name="PresetName" PlaceholderText="Preset name" Width="260" MaxLength="200" />
           <ContentControl x:Name="SavePreset" />
         </StackPanel>
         <TextBlock Text="Group limits" Classes="settings-label" />
         <TextBlock Text="Applies to new groups. Existing over-limit arrangements remain usable and reducible." Classes="settings-description" />
-        <StackPanel x:Name="GroupLimits" MaxWidth="384" HorizontalAlignment="Left" Spacing="8" />
+        <Border Classes="settings-row">
+          <StackPanel x:Name="GroupLimits" MaxWidth="384" HorizontalAlignment="Left" Spacing="8" />
+        </Border>
         <TextBlock Text="Tabs live under their workspace in Projects. Use tab groups to show content side by side or in rows." Classes="settings-description" />
         <TextBlock x:Name="PaneDirectionLabel" Text="Tabs shown together open as" />
-        <StackPanel x:Name="PaneDirections" Orientation="Horizontal" Spacing="4" />
+        <Border Classes="settings-row">
+          <StackPanel x:Name="PaneDirections" Orientation="Horizontal" Spacing="4" />
+        </Border>
         <TextBlock x:Name="PaneDirectionDetail" Classes="settings-description" />
-        <CheckBox x:Name="PreviewTabs" Content="Preview files before keeping them" />
-        <TextBlock Text="A single click opens a file in the group's reusable preview tab and a double click keeps it. Off, every open keeps its own tab. This preference belongs to this app." Classes="settings-description" />
+        <Border Classes="settings-row">
+          <StackPanel Spacing="4">
+            <CheckBox x:Name="PreviewTabs" Content="Preview files before keeping them" />
+            <TextBlock Text="A single click opens a file in the group's reusable preview tab and a double click keeps it. Off, every open keeps its own tab. This preference belongs to this app." Classes="settings-description" />
+          </StackPanel>
+        </Border>
         <ContentControl x:Name="ResetFrame" />
       </StackPanel>
     </DataTemplate>
