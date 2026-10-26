@@ -5,6 +5,7 @@ using Avalonia.Threading;
 using SharpRail.Plugins.Agent.UI;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
+using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.EnvChips.UI;
 
@@ -27,7 +28,7 @@ internal sealed class EnvChipsRow : WrapPanel
         Name = "TerminalEnvironmentChips";
         Orientation = Orientation.Horizontal;
         // The inset the agent plugins give their fact rows, so the chips do not sit against the terminal edge.
-        Margin = new Avalonia.Thickness(8, 2);
+        Margin = new Avalonia.Thickness(8, 0);
         IsVisible = false;
         // The first snapshot arrives on the subscription; later resolutions replace the chips.
         subscription = context.Subscribe(EnvChipsContract.Changed, payload => Dispatcher.UIThread.Post(() => Apply(payload)), new EnvChipsQuery(workspaceId));
@@ -45,7 +46,7 @@ internal sealed class EnvChipsRow : WrapPanel
         foreach (var chip in payload.Chips)
         {
             var control = TerminalFacts.FactChip("env", chip.Label, string.IsNullOrEmpty(chip.Detail) ? chip.Label : chip.Detail);
-            control.Margin = new Avalonia.Thickness(0, 0, 4, 0);
+            control.Margin = Chips.Gap;
             Children.Add(control);
         }
         IsVisible = Children.Count > 0;

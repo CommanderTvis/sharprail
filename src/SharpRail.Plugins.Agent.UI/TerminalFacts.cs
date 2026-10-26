@@ -1,7 +1,6 @@
 using System.Globalization;
 
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
@@ -30,13 +29,12 @@ public static class TerminalFacts
     private const int CwdLabelMax = 40;
     private static readonly System.Text.Json.JsonSerializerOptions AttachJson = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    /// <summary>A home-abbreviated directory whose middle, not its identifying end, is what a long path loses.</summary>
+    /// <summary>A directory, written in full as the terminal shows it, whose middle, not its identifying end, is what a long path loses.</summary>
     public static string? CwdLabel(string? cwd)
     {
         if (string.IsNullOrEmpty(cwd)) return null;
-        var abbreviated = ScopedSetting.AbbreviateHomePath(cwd);
-        if (abbreviated.Length <= CwdLabelMax) return abbreviated;
-        var segments = abbreviated.Split('/');
+        if (cwd.Length <= CwdLabelMax) return cwd;
+        var segments = cwd.Split('/');
         var head = segments[0];
         return $"{head}/…/{string.Join('/', segments[^2..])}";
     }
@@ -78,24 +76,17 @@ public static class TerminalFacts
         return parts;
     }
 
-    private static Border Chip(Control content, string tooltip) => Tip(new Border
+    private static Border Chip(Control content, string tooltip) => Chips.Tip(new Border
     {
         Background = Ui.Elevated,
         CornerRadius = new CornerRadius(4),
-        Padding = new Thickness(4, 1),
+        Padding = new Thickness(4, 2),
         MaxWidth = 256,
         VerticalAlignment = VerticalAlignment.Center,
         Child = content
     }, tooltip);
 
-    private static T Tip<T>(T control, string tooltip) where T : Control
-    {
-        ToolTip.SetTip(control, tooltip);
-        AutomationProperties.SetName(control, tooltip);
-        return control;
-    }
-
-    private static TextBlock Label(string text) => Ui.Text(text, Ui.Muted, 11);
+    private static TextBlock Label(string text) => Chips.Label(text);
 
     private static StackPanel Content(string? icon, string text, Control? leading = null)
     {
@@ -117,19 +108,7 @@ public static class TerminalFacts
     /// <summary>A chip-shaped button, the trigger every interactive chip (pickers, toggles, attach) uses.</summary>
     public static Button ChipButton(string name, Control content, string tooltip, Action onClick)
     {
-        var button = Tip(new Button
-        {
-            Name = name,
-            Content = content,
-            Padding = new Thickness(4, 1),
-            MinHeight = 0,
-            Background = Ui.Elevated,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(4),
-            VerticalAlignment = VerticalAlignment.Center
-        }, tooltip);
-        button.Click += (_, _) => onClick();
-        return button;
+        return Chips.Button(name, content, tooltip, onClick);
     }
 
     /// <summary>A fact chip that opens a menu, such as a model or effort picker; the caller supplies the items when it opens.</summary>

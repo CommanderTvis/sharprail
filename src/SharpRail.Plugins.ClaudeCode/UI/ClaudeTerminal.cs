@@ -42,8 +42,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         SetValue(FileDrop.AcceptsProperty, () => RunsClaude);
         SetValue(FileDrop.AttachProperty, paths => terminal.Write(string.Join(" ", paths.Select(path => "@" + TerminalFacts.QuoteAttachPath(TerminalFacts.AttachPath(path, terminal.WorkspaceId, State?.Cwd)))) + " "));
         Name = "ClaudeTerminalAccessory";
-        Margin = new Thickness(8, 2);
-        Spacing = 2;
+        Margin = new Thickness(8, 0);
         Children.Add(launchNotice);
         var line = new DockPanel();
         driving.Foreground = Ui.Muted;
@@ -125,12 +124,12 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
                 "advisor" => TerminalFacts.FactChip(kind, label, title, glyph.Create(12)),
                 _ => TerminalFacts.FactChip(kind, label, title)
             };
-            chip.Margin = new Thickness(0, 0, 4, 0);
+            chip.Margin = Chips.Gap;
             facts.Children.Add(chip);
         }
         if (state?.Usage is { } usage && TerminalFacts.UsageChip("Claude", new(usage.Input, usage.Output, usage.CacheRead, usage.CacheWrite)) is { } spent)
         {
-            spent.Margin = new Thickness(0, 0, 4, 0);
+            spent.Margin = Chips.Gap;
             facts.Children.Add(spent);
         }
         if (state?.Todos is { Count: > 0 } todos)
@@ -141,7 +140,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
                 AgentTodoStatus.InProgress => TerminalTodoStatus.InProgress,
                 _ => TerminalTodoStatus.Pending
             }, todo.ActiveForm))]);
-            plan.Margin = new Thickness(0, 0, 4, 0);
+            plan.Margin = Chips.Gap;
             facts.Children.Add(plan);
         }
         var ideChip = TerminalFacts.IdeContextChip(ide, () =>
@@ -151,12 +150,14 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
             terminal.Write($"/ide {(enabled ? "on" : "off")}\r");
             store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, enabled);
         });
-        ideChip.Margin = new Thickness(0, 0, 4, 0);
+        ideChip.Margin = Chips.Gap;
         facts.Children.Add(ideChip);
-        facts.Children.Add(TerminalFacts.AttachButton("Put a file or folder in front of Claude, as @path",
+        var attach = TerminalFacts.AttachButton("Put a file or folder in front of Claude, as @path",
             async () => await context.PickFileAsync(new FilePickOptions(terminal.WorkspaceId)),
             path => terminal.Write($"@{TerminalFacts.AttachPath(path, terminal.WorkspaceId, State?.Cwd)} "),
-            error => context.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", ClaudeParts.ErrorText(error))));
+            error => context.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", ClaudeParts.ErrorText(error)));
+        attach.Margin = Chips.Gap;
+        facts.Children.Add(attach);
     }
 
     // A half-typed prompt would swallow the slash command, so the menu says so instead of driving.

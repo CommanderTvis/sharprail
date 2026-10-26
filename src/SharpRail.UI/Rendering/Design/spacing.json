@@ -8,7 +8,8 @@
     "PanelHeaderControl": { "value": 24, "kind": "size", "reason": "a control inside a panel header: the header row less 4" },
     "PanelRow": { "value": 22, "kind": "size", "reason": "side-pane tree and list rows" },
     "PanelInset": { "value": 8, "kind": "step", "reason": "tool-pane padding" },
-    "TreeIndent": { "value": 8, "kind": "step", "reason": "one tree nesting level" }
+    "TreeIndent": { "value": 8, "kind": "step", "reason": "one tree nesting level" },
+    "ChipGap": { "value": 4, "kind": "step", "reason": "the space after a terminal chip and below its row, so chip rows share one grid" }
   },
   "exceptions": [
     { "file": "Docking/DockGroups.cs", "value": "0, 0, 3, 0", "reason": "room for an italic preview title's glyph overhang inside the measured label box" },

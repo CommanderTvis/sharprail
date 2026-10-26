@@ -19,4 +19,6 @@ public static class LayoutRoles
     public const double PanelInset = 8;
     /// <summary>One tree nesting level.</summary>
     public const double TreeIndent = 8;
+    /// <summary>The space after a terminal chip and below its row, so chip rows share one grid.</summary>
+    public const double ChipGap = 4;
 }

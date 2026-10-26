@@ -26,7 +26,10 @@ the module owns no session, account or terminal state.
   line, or one actionable problem message) from plain values; the provider maps the plugin API's governed account onto it.
 - `TerminalFacts` presents directory and model facts, token usage, plan progress,
   pickers, file attachment and the session IDE-context toggle. File-reference quoting escapes control
-  characters so a dropped filename cannot submit or split the prompt.
+  characters so a dropped filename cannot submit or split the prompt. The directory chip shows the path in full, as
+  the terminal does (a long one loses its middle), with no home abbreviation. Every chip, the companion buttons above
+  the rows included, is the kit's `Chips` family and takes its gap from the `ChipGap` layout role: rows share one left
+  edge and one row gap.
 - `InstructionSectionsView` is SharpRail's instructions as one context-table entry: a row with the PROJECT
   scope chip, a muted count (`8 sections · 1 off · Choose…`) and a size and source line the provider fills
   (`SetEntry`). The row is a button (hand cursor, hover fill, keyboard-activatable) whose flyout popup holds the

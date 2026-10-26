@@ -374,12 +374,13 @@ public sealed partial class WorkbenchWindow
         var available = Plugins.Companions.Where(row => Safely(() => row.Value.IsAvailable(hostRef))).ToArray();
         if (available.Length > 0)
         {
-            var bar = new StackPanel { Name = "TerminalCompanions", Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(8, 2) };
+            var bar = new StackPanel { Name = "TerminalCompanions", Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0) };
             foreach (var companion in available)
             {
                 var title = (companion.Value.InstanceTitle is { } instance ? Safely(() => instance(hostRef)) : null) ?? companion.Value.Title;
-                var button = Ui.Button(title, () => ToggleCompanion(terminal, companion.PluginId, companion.Value.Kind));
-                button.Name = "TerminalCompanion_" + companion.PluginId + "_" + companion.Value.Kind;
+                var button = Chips.Button("TerminalCompanion_" + companion.PluginId + "_" + companion.Value.Kind, Chips.Label(title), title,
+                    () => ToggleCompanion(terminal, companion.PluginId, companion.Value.Kind));
+                button.Margin = Chips.Gap;
                 bar.Children.Add(button);
             }
             terminal.Accessories.Children.Insert(0, bar);
