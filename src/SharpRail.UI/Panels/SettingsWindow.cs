@@ -39,6 +39,17 @@ public sealed partial class SettingsWindow : Window
     private readonly List<Action> refreshers = [];
     private readonly TextBlock error = new() { Name = "SettingsError", IsVisible = false, TextWrapping = TextWrapping.Wrap, Foreground = Ui.Danger };
 
+    // Section headings read as uppercase muted labels; Avalonia has no text transform, so the text itself is uppercased
+    // (static XAML, plugin pages and headings set later alike) wherever the shared settings-heading class is on.
+    static SettingsWindow() => TextBlock.TextProperty.Changed.AddClassHandler<TextBlock>((block, _) => UppercaseHeading(block));
+
+    private static void UppercaseHeading(TextBlock block)
+    {
+        if (!block.Classes.Contains("settings-heading") || block.Classes.Contains("verbatim") || block.Text is not { Length: > 0 } text) return;
+        var upper = text.ToUpperInvariant();
+        if (upper != text) block.Text = upper;
+    }
+
     // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     [System.Obsolete("Construct SettingsWindow with its arguments.", true)]
@@ -276,6 +287,7 @@ public sealed partial class SettingsWindow : Window
         (error.Parent as Panel)?.Children.Remove(error);
         if (page is Panel content) content.Children.Add(error);
         body.Content = page;
+        foreach (var heading in page.GetLogicalDescendants().OfType<TextBlock>()) UppercaseHeading(heading);
         showSectionList?.Invoke(false);
     }
 

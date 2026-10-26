@@ -146,7 +146,7 @@ Appearance includes a shared File type icons switch, enabled by default. It cont
 
 A modal two-pane window laid out as upstream ThinkRail's: a section rail under uppercase muted group headers, INTERFACE (Appearance, Highlighting, Line width, Layout, Terminal) then SYSTEM (Projects, Workspaces, Code Intelligence, Notifications, Host, GitHub, Plugins, About, then each
 active plugin's own sections in registration order), with the selected section tinted. No AGENT group: SharpRail has no such pages and a scrolling
-content pane. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
+content pane. Page section headings share one `settings-heading` style: small, muted and uppercase (the text is uppercased wherever the class is applied, plugin pages included), under a short muted intro line. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
 Preferences window returns where it was left; it is sized to 80% of the owner's height before opening.
 Desktop Settings centers that final size on its owner and stays within the owner's display work area,
 including at larger interface sizes or when the owner extends off-screen. Android keeps its full-screen page.

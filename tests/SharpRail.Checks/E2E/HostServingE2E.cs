@@ -31,8 +31,8 @@ internal static class HostServingE2E
                 share.GetLogicalDescendants().Contains(Field<StackPanel>(view, "HostControls")) &&
                 !connect.GetLogicalDescendants().Contains(Field<StackPanel>(view, "HostControls")),
                 "Connect and listener actions must belong to separate Host cards.");
-            Require(Field<TextBlock>(view, "HostShareHeading").Text == "Share this app as a host" &&
-                connect.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Connect to another host"),
+            Require(string.Equals(Field<TextBlock>(view, "HostShareHeading").Text, "Share this app as a host", StringComparison.OrdinalIgnoreCase) &&
+                connect.GetLogicalDescendants().OfType<TextBlock>().Any(text => string.Equals(text.Text, "Connect to another host", StringComparison.OrdinalIgnoreCase)),
                 "Host cards must distinguish using another computer from sharing this app.");
             var connectPoint = connect.TranslatePoint(default, view)!.Value;
             var sharePoint = share.TranslatePoint(default, view)!.Value;
