@@ -167,8 +167,15 @@
           <Button x:Name="SystemTheme_dark_trigger" Classes="theme-trigger" />
           <TextBlock x:Name="SystemTheme_dark_fallback" Classes="theme-fallback" />
         </StackPanel>
-        <rendering:Switch x:Name="FileTypeIconsEnabled" Label="File type icons" HorizontalAlignment="Left" />
-        <TextBlock Text="Show file-type icons in Files, tabs and Changes. Shared by every client of this host." Classes="settings-description" />
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="File type icons" Classes="settings-label" />
+              <TextBlock Text="Show file-type icons in Files, tabs and Changes. Shared by every client of this host." Classes="settings-description" />
+            </StackPanel>
+            <rendering:Switch x:Name="FileTypeIconsEnabled" Grid.Column="1" Label="File type icons" />
+          </Grid>
+        </Border>
         <StackPanel x:Name="WindowDecorationsSection" Spacing="8" IsVisible="False">
           <TextBlock Text="Window decorations" Classes="settings-label" />
           <TextBlock Text="Linux only. Integrated header puts the window controls in the workbench header and saves the system title bar’s row. Shared by every client of this host; other platforms ignore it. Applies to open windows now; if your window manager keeps the old frame, open a new window." Classes="settings-description" />
@@ -248,7 +255,7 @@
         <StackPanel x:Name="TerminalReplayChoices" Spacing="8" />
         <TextBlock Text="Programs" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="What programs in a terminal may ask for, as in Ghostty. A progress report (OSC 9;4) always shows as a bar on its tab. Agent terminals keep their own notifications. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
-        <Border Padding="12,8" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+        <Border Classes="settings-row">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <TextBlock Text="Desktop notifications from programs" Classes="settings-label" ToolTip.Tip="OSC 9 and OSC 777 notifications, shown while their terminal is out of view" />
             <rendering:Switch x:Name="TerminalNotificationsEnabled" Grid.Column="1" Label="Desktop notifications from programs" />
@@ -267,7 +274,7 @@
         <StackPanel x:Name="TerminalUndoCloseChoices" Spacing="8" />
         <TextBlock Text="Shell integration" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="Load SharpRail's shell integration into zsh and bash (fish 4 marks its own prompts). It marks each prompt and command output, so you can jump between prompts, select or copy a command's output and click in the command line to move the cursor, and it reports the shell's directory, which new terminals opened from this one start in. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
-        <Border Padding="12,8" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+        <Border Classes="settings-row">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <TextBlock Text="Shell integration" Classes="settings-label" />
             <rendering:Switch x:Name="ShellIntegrationEnabled" Grid.Column="1" Label="Shell integration" />
@@ -276,7 +283,7 @@
         <StackPanel x:Name="TerminalSecureInputSection" Spacing="8" Margin="0,16,0,0">
           <TextBlock Text="Secure keyboard entry" Classes="settings-heading" />
           <TextBlock Text="While a focused terminal asks for a password (sudo, ssh, gpg), macOS keeps other apps from reading your keystrokes, and a lock shows in the terminal. It turns off when the prompt ends, the terminal loses focus or SharpRail is in the background. Global hotkeys of other apps do not work meanwhile. A preference of this app." Classes="settings-description" TextWrapping="Wrap" />
-          <Border Padding="12,8" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+          <Border Classes="settings-row">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
               <TextBlock Text="Secure input for password prompts (macOS)" Classes="settings-label" />
               <rendering:Switch x:Name="TerminalSecureInput" Grid.Column="1" Label="Secure input for password prompts (macOS)" />
@@ -296,7 +303,7 @@
       <StackPanel Spacing="8">
         <TextBlock Text="Notifications" Classes="settings-heading" />
         <TextBlock Text="Get a desktop notification when a terminal needs you: an agent asks a question, finishes, or fails. Notifications only appear while no SharpRail window is focused. Shared by every client of this host." Classes="settings-description" />
-        <Border Padding="12,8" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+        <Border Classes="settings-row">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
             <TextBlock Text="Enable notifications" Classes="settings-label" />
             <rendering:Switch x:Name="NotificationsEnabled" Grid.Column="1" Label="Enable notifications" />
@@ -309,10 +316,12 @@
       <StackPanel Spacing="8">
         <TextBlock Text="Local GitHub" Classes="settings-heading" />
         <TextBlock Text="SharpRail uses the GitHub CLI on this computer; it stores no credentials." Classes="settings-description" />
-        <StackPanel x:Name="GitHubStatus" Spacing="4">
-          <TextBlock x:Name="GitHubStatusText" Text="Checking…" Classes="settings-label" />
-          <TextBlock x:Name="GitHubStatusDetail" Classes="settings-description" />
-        </StackPanel>
+        <Border Classes="settings-row">
+          <StackPanel x:Name="GitHubStatus" Spacing="4">
+            <TextBlock x:Name="GitHubStatusText" Text="Checking…" Classes="settings-label" />
+            <TextBlock x:Name="GitHubStatusDetail" Classes="settings-description" />
+          </StackPanel>
+        </Border>
         <ContentControl x:Name="GitHubRefreshHost" />
       </StackPanel>
     </DataTemplate>
@@ -344,6 +353,12 @@
       <Setter Property="FontWeight" Value="SemiBold" />
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.Muted}" />
       <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+    <!-- One settings row: name and description on the left, control or status on the right, a hairline below. -->
+    <Style Selector="Border.settings-row">
+      <Setter Property="Padding" Value="0,12" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.BorderBrush}" />
     </Style>
     <Style Selector="TextBlock.settings-description">
       <Setter Property="FontSize" Value="12" />
