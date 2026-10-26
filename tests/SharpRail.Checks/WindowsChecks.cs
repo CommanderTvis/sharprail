@@ -18,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 using SharpRail.Scintilla;
 using SharpRail.UI;
@@ -28,6 +29,21 @@ namespace SharpRail.Checks;
 
 internal static class WindowsChecks
 {
+    // Recent events of the runtime check, appended to a failure so a flake names what the connections and sessions did.
+    private static readonly List<string> timeline = [];
+    private static readonly Stopwatch clock = Stopwatch.StartNew();
+
+    private static void Note(string message)
+    {
+        lock (timeline)
+        {
+            timeline.Add($"+{clock.ElapsedMilliseconds}ms {message}");
+            if (timeline.Count > 60) timeline.RemoveAt(0);
+        }
+    }
+
+    private static string Timeline() { lock (timeline) return "Timeline:\n" + string.Join('\n', timeline); }
+
     private static void Require(bool value, string message)
     { if (!value) throw new InvalidOperationException("Windows support: " + message); }
 
@@ -63,6 +79,7 @@ internal static class WindowsChecks
             try { ProjectServices.Contain(workspace, path); throw new InvalidOperationException("Windows containment accepted " + path); }
             catch (UnauthorizedAccessException) { }
         }
+        RpcPeer.Ended += Note;
         await using (var local = new PtyTerminalService(shell: WindowsProcesses.DefaultShell()))
         {
             local.McpEndpoint = "http://127.0.0.1:1";
@@ -110,11 +127,14 @@ internal static class WindowsChecks
         await screen.Command("Write-Output ('WATCH_' + 'LIVE')");
         await watching.Contains("WATCH_LIVE");
         var offset = first.Position;
+        Note($"{mode}: disposing the first session at {offset}");
         await first.DisposeAsync();
         await using var resumed = await terminals.AttachAsync(new(id, workspace, "holder", 113, 37, offset));
+        Note($"{mode}: resumed from {offset}, now at {resumed.Position}, replay {resumed.Replay.Length} bytes, created={resumed.Created}");
         Require(!resumed.Created, "Reconnecting started another shell.");
         var after = new Screen(resumed);
         await after.Command("Write-Output ('RESUMED_' + $PID)");
+        Note($"{mode}: RESUMED command written");
         await after.Contains("RESUMED_" + pid);
         await after.Command("$child = Start-Process -FilePath $env:ComSpec -ArgumentList '/c ping -n 60 127.0.0.1 >nul' -NoNewWindow -PassThru; Write-Output ('CHILD_' + $child.Id)");
         var child = int.Parse(await after.Match("CHILD_([0-9]+)"));
@@ -240,6 +260,7 @@ internal static class WindowsChecks
         private Exception? readerError;
         private bool readerEnded;
         private int chunks;
+        private long received;
         private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal Task Ready => WaitForPrompt();
         private string Text { get { lock (text) return text.ToString(); } }
@@ -284,7 +305,7 @@ internal static class WindowsChecks
                     {
                         text.Clear(); text.Append(vt.ScreenText());
                         raw.Append(Encoding.UTF8.GetString(bytes.Span));
-                        chunks++;
+                        chunks++; received += bytes.Length;
                         if (raw.Length > 8192) raw.Remove(0, raw.Length - 8192);
                     }
                     foreach (var reply in replies) await session.WriteAsync(reply);
@@ -297,7 +318,7 @@ internal static class WindowsChecks
         // Whether output stopped because the stream ended, the shell exited or another client took the session.
         private string State() =>
             $"Session: created={session.Created}, watching={session.Watching}, position={session.Position}, replay={session.Replay.Length} bytes, chunks={chunks}, " +
-            $"reader={(readerEnded ? "ended" : "reading")}, exit={session.Exit.Status}, detached={session.Detached.IsCompleted}";
+            $"bytes={received}, reader={(readerEnded ? "ended" : "reading")}, exit={session.Exit.Status}, detached={session.Detached.IsCompleted}\n" + Timeline();
 
         internal Task Command(string value) => session.WriteAsync(Encoding.UTF8.GetBytes(value + "\r")).AsTask();
         internal Task Contains(string value) => Wait(() => Text.Contains(value, StringComparison.Ordinal), "Terminal output missing: " + value);

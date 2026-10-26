@@ -18,6 +18,11 @@ public sealed class RpcPeer : IAsyncDisposable
     private readonly Task run;
     private long nextId, buffered, pong;
     private int disposed;
+    private static long peers;
+    /// <summary>Identifies this connection in <see cref="Ended"/> reports.</summary>
+    public long Id { get; } = Interlocked.Increment(ref peers);
+    /// <summary>Raised with a timestamped reason when a connection ends other than by being disposed locally; silent otherwise.</summary>
+    public static event Action<string>? Ended;
     public RpcPeer(WebSocket socket, Func<RpcStream, RpcFrame, Task>? dispatch = null, TimeSpan? heartbeat = null)
     {
         this.socket = socket; this.dispatch = dispatch; this.heartbeat = heartbeat ?? TimeSpan.FromSeconds(15);
@@ -104,7 +109,13 @@ public sealed class RpcPeer : IAsyncDisposable
                 // Frames already in flight may arrive after local cancellation removed the call.
             }
         }
-        catch (Exception error) { failure = error is RpcException ? error : new RpcException(new(StatusCode.Unavailable, error.Message)); }
+        catch (Exception error)
+        {
+            failure = error is RpcException ? error : new RpcException(new(StatusCode.Unavailable, error.Message));
+            if (!lifetime.IsCancellationRequested)
+                try { Ended?.Invoke($"{DateTime.UtcNow:HH:mm:ss.fff} RPC peer {Id} ({(dispatch is null ? "client" : "host")}, {calls.Count} calls) ended: {error.GetType().Name}: {error.Message}{(error.InnerException is { } inner ? " <- " + inner.GetType().Name + ": " + inner.Message : "")}"); }
+                catch (Exception) { }
+        }
         finally
         {
             foreach (var call in calls.Values) call.Fail(failure);

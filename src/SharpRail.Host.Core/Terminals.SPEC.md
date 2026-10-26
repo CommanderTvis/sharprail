@@ -465,3 +465,8 @@ fixtures. It did not execute ConPTY, Recycle Bin or native Windows UI branches. 
 packaged --windows run is required for those branches; it remains distinct from manual clipboard,
 IME, editor and desktop-client acceptance. Cross-compilation is not runtime proof. Current platform
 acceptance tasks are tracked in [STATUS.md](../../STATUS.md#outstanding-acceptance-work).
+
+The Windows runtime check's intermittent `RESUMED_<pid>` miss has no proven cause. Both passing and failing CI
+runs show the shared RPC connection ending when the first session is disposed, so the drop alone is not the
+fault. On failure the check appends a timeline (session events plus `RpcPeer.Ended` reports naming each abnormally
+ended connection and why) and the resumed session's byte count to its message; success stays quiet.
