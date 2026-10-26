@@ -42,7 +42,7 @@ internal sealed partial class AirContextPane : UserControl
         this.FindControl<StackPanel>("WorkspacePart")!.IsVisible = !account;
         this.FindControl<TextBlock>("ContextBlurb")!.Text = account
             ? "Semantic code discovery through the JetBrains Context CLI. The CLI and its JetBrains login are shared by every workspace."
-            : "Semantic code discovery for this project. Cloud indexing requires explicit enablement, which covers every workspace of the project; unchecking it here disables the whole project.";
+            : "Semantic code discovery for this project. Indexing happens in the cloud and covers every workspace of the project.";
         BrandIcon();
         timer.Tick += async (_, _) => { if (IsEffectivelyVisible) await RefreshAsync(false); };
         AttachedToVisualTree += (_, _) =>
