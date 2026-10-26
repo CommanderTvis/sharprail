@@ -162,15 +162,22 @@ public sealed record CodexSettings
     public bool IdeContext { get; init; }
     /// <summary>Hands every launched session SharpRail's MCP server.</summary>
     public bool Mcp { get; init; } = true;
+    /// <summary>Attaches launched sessions to the already-running Codex daemon; off launches <c>--no-daemon</c>. SharpRail never starts the daemon.</summary>
+    public bool SharedDaemon { get; init; }
 }
+
+/// <summary>Whether a launch can attach to the running daemon now; <see cref="Reason"/> says why not, for the fallback notice.</summary>
+public sealed record CodexDaemonState(bool Attach, string? Reason = null);
 
 public static class CodexContract
 {
-    public const int WireVersion = 4;
+    public const int WireVersion = 5;
 
     public static readonly PluginMethod<CodexIdeReply, bool> IdeReply = new("ideReply");
     public static readonly PluginMethod<CodexNoParams, CodexAccount> Account = new("account");
     public static readonly PluginMethod<CodexNoParams, IReadOnlyList<CodexModel>> Models = new("models");
+    /// <summary>A bounded, briefly cached <c>codex app-server daemon version</c> probe; never starts the daemon.</summary>
+    public static readonly PluginMethod<CodexNoParams, CodexDaemonState> Daemon = new("daemon");
     public static readonly PluginMethod<CodexConfigParams, CodexConfigSnapshot> ConfigGet = new("configGet");
     public static readonly PluginMethod<CodexSetValueParams, CodexConfigSnapshot> SetValue = new("setValue");
     public static readonly PluginMethod<CodexCreateInstructionsParams, CodexCreatedInstructions> CreateInstructions = new("createInstructions");
@@ -190,5 +197,5 @@ public static class CodexContract
     public static readonly PluginChannel<InstructionSectionsChanged> InstructionsChanged = PluginChannel<InstructionSectionsChanged>.Event("instructionsChanged");
 
     public static readonly PluginContract Contract = PluginContract.Create<CodexSettings>(CodexManifest.Id, WireVersion,
-        [IdeReply, Account, Models, ConfigGet, SetValue, CreateInstructions, InstallHooks, StatusSnapshot, SystemPromptGet, InstructionsList, InstructionsSet], [IdeRequest, Status, InstructionsChanged]);
+        [IdeReply, Account, Models, Daemon, ConfigGet, SetValue, CreateInstructions, InstallHooks, StatusSnapshot, SystemPromptGet, InstructionsList, InstructionsSet], [IdeRequest, Status, InstructionsChanged]);
 }

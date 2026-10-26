@@ -16,8 +16,18 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   `-c model_reasoning_effort="…"` override. Generic launcher selections, model presets and custom
   arguments take precedence without editing Codex's saved configuration or a running session.
   Unset defaults persist as empty strings so merged settings updates clear earlier overrides.
-  SharpRail wire version 4 covers this settings extension: mismatched host/UI halves stay dormant
+  SharpRail wire version 5 covers this and the daemon extension below: mismatched host/UI halves stay dormant
   rather than having the older strict schema silently fall back to defaults.
+- Settings › Codex has "Use the shared Codex daemon" (`SharedDaemon`, host state, default off). Off, every
+  UI launch and revival adds `--no-daemon` (standalone). On, a launch attaches with `--remote unix://` only
+  when the `daemon` method reports the daemon running at the CLI's own version; SharpRail never starts,
+  stops or restarts the daemon. A missing, stopped, mismatched, slow or unqueryable daemon falls back to
+  `--no-daemon`, and the launcher menu's start shows an info notice with the reason. The `daemon` method runs
+  `codex app-server daemon version` off the caller's thread with a 5 s timeout (the process is killed) and
+  shares and caches its answer for 10 s. The launcher dialog's synchronous launch and the revive hook cannot
+  wait, so they use the last answer (standalone before the first) and refresh it in the background. Revival drops
+  an old `--no-daemon` or `--remote unix://` and re-decides; other `--remote` endpoints and a custom-argument
+  `--remote`/`--no-daemon` are kept and not doubled. Windows has no Unix socket and always stays standalone.
 
 - Configuration pane has Context, Settings, Capabilities and Account surfaces. Trust gates the
   project TOML layer; source provenance and shadowed values remain visible. Edits preserve comments

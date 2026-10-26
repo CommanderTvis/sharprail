@@ -63,4 +63,13 @@
       </StackPanel>
     </DockPanel>
   </ToggleButton>
+  <ToggleButton Classes="setting-toggle" x:Name="CodexSharedDaemonToggle" AutomationProperties.Name="Use the shared Codex daemon">
+    <DockPanel>
+      <ContentControl x:Name="DaemonCheck" DockPanel.Dock="Right" />
+      <StackPanel Spacing="2">
+        <TextBlock Text="Use the shared Codex daemon" />
+        <TextBlock Classes="detail" Text="Attaches new sessions to the Codex daemon that is already running (codex --remote unix://) instead of each starting an embedded server. SharpRail never starts the daemon: if it is missing, stopped or a different version, the session starts standalone. Off launches codex --no-daemon." />
+      </StackPanel>
+    </DockPanel>
+  </ToggleButton>
 </StackPanel>

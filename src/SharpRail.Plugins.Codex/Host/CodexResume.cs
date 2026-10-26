@@ -59,6 +59,7 @@ public static partial class CodexResume
             if (token == "--") break;
             if (!token.StartsWith('-')) continue;
             if (token is "--last" or "--all" or "--worktree") continue;
+            if (token == "--no-daemon") continue;
             if (token is "-i" or "--image") { index++; continue; }
             if (token.StartsWith("--image=", StringComparison.Ordinal)) continue;
             var key = token.Split('=', 2)[0];
@@ -70,6 +71,7 @@ public static partial class CodexResume
                 if (string.IsNullOrEmpty(value) || value.StartsWith('-')) return null;
                 if (model is { Length: > 0 } && key is "-m" or "--model") continue;
                 if (effort is { Length: > 0 } && key is "-c" or "--config" && EffortOverride().IsMatch(value)) continue;
+                if (key == "--remote" && value == "unix://") continue;
                 if (key is "-c" or "--config" && McpOverride().IsMatch(value)) continue;
                 if (appended && key is "-c" or "--config" && value.Contains(CodexLaunch.PromptJsonVariable, StringComparison.Ordinal) &&
                     DeveloperInstructions().IsMatch(value))
@@ -89,7 +91,7 @@ public static partial class CodexResume
     /// </summary>
     public static string? Command(string command, string? sessionId, bool mcp, bool windows, string? permissionMode, string? home = null,
         bool appendSystemPrompt = false, bool uiLaunch = false, string? model = null, string? effort = null,
-        IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution>? contributions = null, bool fresh = false)
+        IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution>? contributions = null, bool fresh = false, CodexDaemonMode? daemon = null)
     {
         if (Invocation(command, model, effort) is not { } invocation) return null;
         return CodexLaunch.Line(invocation, new(mcp, windows)
@@ -100,6 +102,7 @@ public static partial class CodexResume
             Model = model,
             Effort = effort,
             Contributions = contributions ?? [],
+            Daemon = daemon,
             Resume = !fresh,
             ResumeSessionId = !fresh && sessionId is not null && SessionExists(sessionId, home) ? sessionId : null
         });

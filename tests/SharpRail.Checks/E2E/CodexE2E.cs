@@ -713,6 +713,8 @@ internal static class CodexE2E
 
     private static string[] WithoutLauncherMcp(string[] args)
     {
+        // With the shared-daemon setting off (the default) every launch starts standalone.
+        if (args.Length > 0 && args[0] == "--no-daemon") args = args[1..];
         string[] tools = ["set_title", "spec_get", "spec_graph", "spec_grep", "spec_validate", "blueprint_check", "lsp_navigate", "lsp_diagnostics", "lsp_status", "context_search", "context_status", "context_index"];
         var count = 2 + tools.Length * 2;
         Require(args.Length >= count && args[0] == "-c" && args[1].StartsWith("mcp_servers.sharprail.url=", StringComparison.Ordinal),
@@ -818,9 +820,9 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => firstIcon.Content is SvgAsset && secondIcon.Content is SvgAsset);
         Require(launcher.Models!().Select(model => model.Id).SequenceEqual(["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]), "the launcher's models");
         Require(launcher.TerminalCommand(new() { Model = "gpt-5.6-sol", InitialPrompt = "probe the build" }) ==
-            $"{CodexLaunch.UiLaunchPrefix} {executable} {CodexLaunch.McpOverride} --model gpt-5.6-sol --sandbox workspace-write --ask-for-approval on-request 'probe the build'", "Start work with a model");
+            $"{CodexLaunch.UiLaunchPrefix} {executable} --no-daemon {CodexLaunch.McpOverride} --model gpt-5.6-sol --sandbox workspace-write --ask-for-approval on-request 'probe the build'", "Start work with a model");
         Require(launcher.TerminalCommand(new() { InitialPrompt = "probe the build" }) ==
-            $"{CodexLaunch.UiLaunchPrefix} {executable} {CodexLaunch.McpOverride} --sandbox workspace-write --ask-for-approval on-request 'probe the build'", "Start work with the default model");
+            $"{CodexLaunch.UiLaunchPrefix} {executable} --no-daemon {CodexLaunch.McpOverride} --sandbox workspace-write --ask-for-approval on-request 'probe the build'", "Start work with the default model");
 
         // Settings persist the default permissions; a menu permission preset overrides them for one launch.
         codex.Settings(new { permissionMode = "default" });

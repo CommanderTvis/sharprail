@@ -43,6 +43,9 @@ internal sealed partial class CodexSettingsView : StackPanel
         var picker = this.FindControl<ComboBox>("CodexPermissionMode")!;
         var ide = this.FindControl<ToggleButton>("CodexIdeContextToggle")!;
         var mcp = this.FindControl<ToggleButton>("CodexMcpToggle")!;
+        var daemon = this.FindControl<ToggleButton>("CodexSharedDaemonToggle")!;
+        var daemonCheck = this.FindControl<ContentControl>("DaemonCheck")!;
+        daemonCheck.Content = Ui.Icon("check", Ui.Accent, 16);
         var prompt = this.FindControl<CheckBox>("CodexAppendSystemPrompt")!;
         var ideCheck = this.FindControl<ContentControl>("IdeCheck")!;
         var mcpCheck = this.FindControl<ContentControl>("McpCheck")!;
@@ -65,6 +68,7 @@ internal sealed partial class CodexSettingsView : StackPanel
         };
         ide.Click += (_, _) => Update(current => current with { IdeContext = !current.IdeContext });
         mcp.Click += (_, _) => Update(current => current with { Mcp = !current.Mcp });
+        daemon.Click += (_, _) => Update(current => current with { SharedDaemon = !current.SharedDaemon });
         prompt.Click += (_, _) => Update(current => current with { AppendSystemPrompt = prompt.IsChecked == true });
 
         // Settings arrive with the host's snapshot; the controls update in place so typing and focus survive.
@@ -77,6 +81,7 @@ internal sealed partial class CodexSettingsView : StackPanel
             picker.SelectedIndex = Math.Max(0, CodexLaunch.PermissionModes.ToList().FindIndex(mode => mode.Id == settings.PermissionMode));
             ide.IsChecked = ideCheck.IsVisible = settings.IdeContext;
             mcp.IsChecked = mcpCheck.IsVisible = settings.Mcp;
+            daemon.IsChecked = daemonCheck.IsVisible = settings.SharedDaemon;
             prompt.IsChecked = settings.AppendSystemPrompt;
             applying = false;
         }

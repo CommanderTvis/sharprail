@@ -19,7 +19,7 @@ namespace SharpRail.Plugins.Codex.UI;
 public sealed class CodexUI : PluginUIModule
 {
     /// <summary>The launch line with this host's settings: its command, permissions mode and MCP hand-off.</summary>
-    public static string LaunchLine(IPluginUIContext context, CodexLaunchOptions options)
+    public static string LaunchLine(IPluginUIContext context, CodexLaunchOptions options, CodexDaemonState? daemon = null)
     {
         var settings = context.Settings<CodexSettings>();
         return CodexLaunch.Line(settings.Command, options with
@@ -30,6 +30,7 @@ public sealed class CodexUI : PluginUIModule
             UiLaunch = true,
             AppendSystemPrompt = settings.AppendSystemPrompt,
             Mcp = settings.Mcp,
+            Daemon = settings.SharedDaemon && daemon is { Attach: true } ? CodexDaemonMode.Shared : CodexDaemonMode.Standalone,
             Contributions = context.AgentLaunchContributions(CodexManifest.Id),
             Windows = context.Host().HostPlatform == HostPlatform.Windows
         });
@@ -58,6 +59,7 @@ public sealed class CodexUI : PluginUIModule
         CodexGlyph.Reset();
         var store = new CodexStore();
         var launcherIdeContext = new HashSet<(string, string)>();
+        CodexDaemonState? daemonState = null;
         CodexEditorContext.Register(context);
         context.Subscribe(CodexContract.Status, push =>
         {
@@ -100,7 +102,7 @@ public sealed class CodexUI : PluginUIModule
                 Images = options.Images,
                 Resume = options.ResumeSessionId is not null,
                 ResumeSessionId = options.ResumeSessionId
-            }),
+            }, KnownDaemon()),
             () => new(true))
         {
             CreateIcon = (size, color) => new CodexGlyph(context, size, color as ISolidColorBrush),
@@ -149,9 +151,30 @@ public sealed class CodexUI : PluginUIModule
             catch (Exception) { }
         }
 
+        // A synchronous launch cannot wait for the probe, so it uses the last answer and refreshes it in the background.
+        CodexDaemonState? KnownDaemon()
+        {
+            if (!context.Settings<CodexSettings>().SharedDaemon) return null;
+            _ = ProbeDaemon();
+            return daemonState;
+        }
+
+        async Task<CodexDaemonState> ProbeDaemon()
+        {
+            try { daemonState = await context.RequestAsync(CodexContract.Daemon, new CodexNoParams()); }
+            catch (Exception) { daemonState = new(false, "the Codex daemon could not be queried"); }
+            return daemonState;
+        }
+
         async Task Start(string workspace, string group, CodexLaunchPreset? preset)
         {
-            var tabKey = await context.OpenTerminalAsync(workspace, new() { Command = LaunchLine(context, new(true, false) { Preset = preset }), GroupId = group });
+            CodexDaemonState? daemon = null;
+            if (context.Settings<CodexSettings>().SharedDaemon)
+            {
+                daemon = await ProbeDaemon();
+                if (!daemon.Attach) context.Notify(PluginNotificationKind.Info, $"Starting Codex standalone: {daemon.Reason}.");
+            }
+            var tabKey = await context.OpenTerminalAsync(workspace, new() { Command = LaunchLine(context, new(true, false) { Preset = preset }, daemon), GroupId = group });
             if (context.Settings<CodexSettings>().IdeContext) launcherIdeContext.Add((workspace, tabKey));
         }
     }

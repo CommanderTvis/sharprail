@@ -51,6 +51,7 @@ internal static class CodexChecks
             await HookCommand(Path.Combine(root, "codex-hook"));
             Status();
             Launch();
+            await Daemon(Path.Combine(root, "codex-daemon"));
             if (!OperatingSystem.IsWindows()) LaunchShell(Path.Combine(root, "codex-launch-shell"));
             Resume(Path.Combine(root, "codex-resume"));
             InstructionScopes(ShortTemp("tr-cs-"));
@@ -353,6 +354,43 @@ internal static class CodexChecks
     }
 
     // The shell expands the host's JSON into one TOML string, never evaluating what it holds; fork launch.test.ts.
+    private static async Task Daemon(string root)
+    {
+        Equal(CodexLaunch.Line("codex", new(false, false) { Daemon = CodexDaemonMode.Standalone }), "codex --no-daemon", "off launches standalone");
+        Equal(CodexLaunch.Line("codex", new(false, false) { Daemon = CodexDaemonMode.Shared }), "codex --remote unix://", "on attaches to the default socket");
+        Equal(CodexLaunch.Line("codex", new(false, true) { Daemon = CodexDaemonMode.Shared }), "codex --no-daemon", "Windows has no Unix socket");
+        Equal(CodexLaunch.Line("codex", new(false, false) { Daemon = CodexDaemonMode.Shared, Resume = true }), "codex resume --last --remote unix://", "the flag follows the subcommand");
+        Equal(CodexLaunch.Line("codex", new(false, false) { Daemon = CodexDaemonMode.Standalone, Preset = new("custom", "Custom") { Args = "--remote ws://h:1" } }), "codex --remote ws://h:1",
+            "a custom remote is not doubled");
+        Equal(CodexLaunch.Line("codex", new(false, false)), "codex", "no daemon option adds nothing");
+        Equal(CodexResume.Command("codex --no-daemon", null, false, false, null, root), "codex resume --last", "revival drops the standalone flag");
+        Equal(CodexResume.Command("codex --remote unix://", null, false, false, null, root, daemon: CodexDaemonMode.Standalone), "codex resume --last --no-daemon", "revival re-decides the mode");
+        Equal(CodexResume.Command("codex --remote ws://h:1", null, false, false, null, root), "codex --remote ws://h:1 resume --last", "another remote is kept");
+
+        Require(CodexDaemonProbe.Parse("""{"status":"running","cliVersion":"0.164.0","appServerVersion":"0.164.0"}""").Attach, "a running daemon of the same version is attachable");
+        Require(CodexDaemonProbe.Parse("""{"status":"running","cliVersion":"0.164.0","appServerVersion":"0.150.0"}""") is { Attach: false, Reason: { } mismatch } && mismatch.Contains("0.150.0"), "a different version is not");
+        Require(CodexDaemonProbe.Parse("""{"status":"stopped","cliVersion":"0.164.0"}""") is { Attach: false }, "a stopped daemon is not");
+        Require(CodexDaemonProbe.Parse("not json") is { Attach: false }, "garbage is not");
+
+        Directory.CreateDirectory(root);
+        var control = Path.Combine(root, "control.json");
+        var log = Path.Combine(root, "log.txt");
+        var executable = FakeCodexExecutable(Path.Combine(root, "codex"), control, log);
+        int Probes() => File.Exists(log) ? File.ReadAllLines(log).Count(line => line == "daemon-version") : 0;
+        var probe = new CodexDaemonProbe(() => executable, TimeSpan.FromSeconds(10), TimeSpan.FromMinutes(5));
+        WriteControl(control, new() { DaemonVersion = """{"status":"running","cliVersion":"1","appServerVersion":"1"}""" });
+        Require((await probe.ReadAsync()).Attach, "the fake daemon is attachable");
+        await probe.ReadAsync();
+        Equal(Probes(), 1, "a second read within the lifetime is cached");
+        probe.Invalidate();
+        WriteControl(control, new());
+        Require(await probe.ReadAsync() is { Attach: false }, "no daemon falls back");
+        var hanging = new CodexDaemonProbe(() => executable, TimeSpan.FromMilliseconds(300));
+        WriteControl(control, new() { DaemonHang = true });
+        Require(await hanging.ReadAsync() is { Attach: false, Reason: { } slow } && slow.Contains("in time"), "a hung probe times out");
+        Require(await new CodexDaemonProbe(() => Path.Combine(root, "missing")).ReadAsync() is { Attach: false }, "a missing executable falls back");
+    }
+
     private static void LaunchShell(string directory)
     {
         Directory.CreateDirectory(directory);
@@ -575,6 +613,9 @@ internal static class CodexChecks
         public string? ArgsLog { get; init; }
         /// <summary>Posts a SessionStart hook report to the status URL the terminal handed it, as installed hooks do.</summary>
         public bool ReportSession { get; init; }
+        /// <summary>What <c>app-server daemon version</c> prints; null makes it exit 1, as with no daemon.</summary>
+        public string? DaemonVersion { get; init; }
+        public bool DaemonHang { get; init; }
     }
 
     private static readonly JsonSerializerOptions ControlJson = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -600,6 +641,14 @@ internal static class CodexChecks
         FakeControl Control() => JsonSerializer.Deserialize<FakeControl>(File.ReadAllText(controlPath), ControlJson)!;
         void Log(JsonObject entry) { lock (logPath) File.AppendAllText(logPath, entry.ToJsonString(LogJson) + "\n"); }
         if (rest.Contains("--version")) { Console.WriteLine("codex 1.0.0"); return 0; }
+        if (rest.SequenceEqual(["app-server", "daemon", "version"]))
+        {
+            File.AppendAllText(logPath, "daemon-version\n");
+            if (Control().DaemonHang) Thread.Sleep(60_000);
+            if (Control().DaemonVersion is not { } version) return 1;
+            Console.WriteLine(version);
+            return 0;
+        }
         if (!rest.SequenceEqual(["app-server"]))
         {
             if (Control().ArgsLog is { } argsLog) File.WriteAllText(argsLog, JsonSerializer.Serialize(rest));
@@ -965,12 +1014,12 @@ internal static class CodexChecks
         var revive = new FakeHostContext(root);
         var dispose = await new CodexHost().ActivateAsync(revive);
         Require(revive.Revive!(revive.Terminal, new("claude", "claude")) is null, "another agent's record is not revived");
-        Equal(revive.Revive!(revive.Terminal, new("codex", "codex resume stale old-prompt -m model") { SessionId = "unsaved" }), new RevivePrefill(CodexLaunch.UiLaunchPrefix + " codex -m model resume --last") { Program = true, Fresh = CodexLaunch.UiLaunchPrefix + " codex -m model" },
+        Equal(revive.Revive!(revive.Terminal, new("codex", "codex resume stale old-prompt -m model") { SessionId = "unsaved" }), new RevivePrefill(CodexLaunch.UiLaunchPrefix + " codex -m model resume --last --no-daemon") { Program = true, Fresh = CodexLaunch.UiLaunchPrefix + " codex -m model --no-daemon" },
             "a normalized UI fallback run as the terminal's program, with a fresh start that resumes nothing");
         Require(revive.Revive!(revive.Terminal, new("codex", "codex --model")) is null, "an incomplete command offers nothing");
         Equal(revive.Revive!(revive.Terminal, new("codex", "codex --model old -c 'model_reasoning_effort=\"low\"'") { Model = "latest", Effort = "high" }),
-            new RevivePrefill(CodexLaunch.UiLaunchPrefix + " codex resume --last --model latest -c 'model_reasoning_effort=\"high\"'")
-            { Program = true, Fresh = CodexLaunch.UiLaunchPrefix + " codex --model latest -c 'model_reasoning_effort=\"high\"'" },
+            new RevivePrefill(CodexLaunch.UiLaunchPrefix + " codex resume --last --no-daemon --model latest -c 'model_reasoning_effort=\"high\"'")
+            { Program = true, Fresh = CodexLaunch.UiLaunchPrefix + " codex --no-daemon --model latest -c 'model_reasoning_effort=\"high\"'" },
             "the host revives the session choices rather than the old command flags");
         await dispose!();
 

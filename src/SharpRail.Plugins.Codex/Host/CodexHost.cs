@@ -54,8 +54,10 @@ public sealed class CodexHost : PluginHostModule
         var command = CommandOf(context);
         var account = new CodexAccountReader(() => CommandOf(context));
         var models = new CodexModelReader(() => CommandOf(context));
+        var daemon = new CodexDaemonProbe(() => CommandOf(context));
         context.OnSettings<CodexSettings>(changed =>
         {
+            daemon.Invalidate();
             var next = CommandOf(context);
             lock (gate)
             {
@@ -74,6 +76,7 @@ public sealed class CodexHost : PluginHostModule
                 return new CodexAccount(false, false, []) { Governed = await governing.Read(cancellationToken) };
             return await account.ReadAsync();
         });
+        context.Method(CodexContract.Daemon, (_, _, _) => new ValueTask<CodexDaemonState>(daemon.ReadAsync()));
         context.Method(CodexContract.Models, async (_, _, _) => await models.ReadAsync());
 
         // A Codex tab's configuration follows its process CWD, then its last reported one; otherwise the worktree's.
@@ -274,7 +277,9 @@ public sealed class CodexHost : PluginHostModule
             var settings = context.Settings<CodexSettings>();
             string? Line(bool fresh) => CodexResume.Command(record.Command, record.SessionId, settings.Mcp, OperatingSystem.IsWindows(), settings.PermissionMode,
                 appendSystemPrompt: settings.AppendSystemPrompt, uiLaunch: true, model: record.Model, effort: record.Effort,
-                contributions: context.AgentLaunchContributions(CodexManifest.Id), fresh: fresh);
+                contributions: context.AgentLaunchContributions(CodexManifest.Id), fresh: fresh,
+                // The revive hook cannot wait: it uses the last probe, which refreshes in the background.
+                daemon: settings.SharedDaemon && daemon.Peek() is { Attach: true } ? CodexDaemonMode.Shared : CodexDaemonMode.Standalone);
             return Line(false) is { } text ? new RevivePrefill(text) { Program = true, Fresh = Line(true) } : null;
         });
 

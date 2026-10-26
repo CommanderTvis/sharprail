@@ -11,8 +11,19 @@ public sealed record CodexLaunchPreset(string Id, string Label)
     public string? Model { get; init; }
 }
 
+/// <summary>Whether a launch runs its own embedded server or attaches to the already-running shared daemon.</summary>
+public enum CodexDaemonMode
+{
+    /// <summary><c>--no-daemon</c>.</summary>
+    Standalone,
+    /// <summary><c>--remote unix://</c>: the daemon's default Unix socket. SharpRail never starts the daemon.</summary>
+    Shared
+}
+
 public sealed record CodexLaunchOptions(bool Mcp, bool Windows)
 {
+    /// <summary>Null adds no flag; Shared falls back to standalone on Windows, which has no Unix socket.</summary>
+    public CodexDaemonMode? Daemon { get; init; }
     /// <summary>Adds SharpRail's developer instructions from <see cref="CodexLaunch.PromptJsonVariable"/>; ignored on Windows.</summary>
     public bool AppendSystemPrompt { get; init; }
     /// <summary>Marks this command as a UI launch independently of the prompt and MCP settings.</summary>
@@ -74,6 +85,9 @@ public static partial class CodexLaunch
         var parts = new List<string> { options.Contributions.Count > 0 ? SharpRail.Plugins.Api.AgentLaunchComposition.Apply(executable, "codex", options.Contributions, options.Windows) : executable };
         if (options.Resume) parts.AddRange(["resume", options.ResumeSessionId is { Length: > 0 } id ? ShellQuote(id) : "--last"]);
         else if (options.Preset?.Subcommand is { } subcommand) parts.Add(subcommand);
+        if (options.Daemon is { } daemon && !ArgumentWord().Matches(options.Preset?.Args ?? "").Any(match =>
+                match.Value is "--no-daemon" or "--remote" || match.Value.StartsWith("--remote=", StringComparison.Ordinal)))
+            parts.Add(daemon == CodexDaemonMode.Shared && !options.Windows ? "--remote unix://" : "--no-daemon");
         if (options.Mcp && !options.Windows) parts.Add(McpOverride);
         if (options.Model is { Length: > 0 } model && !ArgumentWord().Matches(options.Preset?.Args ?? "").Any(match =>
                 match.Value is "--model" or "-m" || match.Value.StartsWith("--model=", StringComparison.Ordinal) ||
