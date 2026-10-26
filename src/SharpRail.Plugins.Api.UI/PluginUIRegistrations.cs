@@ -76,6 +76,9 @@ public sealed record TabDecoration
 
     /// <summary>Creates extra content shown after the tab's title, such as a badge.</summary>
     public Func<Control>? Adornment { get; init; }
+
+    /// <summary>For an agent's terminal: whether the agent is in the middle of a turn, read from in-memory state when the app is asked to quit so it can confirm first. <see langword="null"/> never counts.</summary>
+    public Func<bool>? IsWorking { get; init; }
 }
 
 /// <summary>One open tab, passed to a tab decorator (W8).</summary>

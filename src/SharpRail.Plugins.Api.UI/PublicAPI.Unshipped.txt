@@ -550,6 +550,8 @@ SharpRail.Plugins.Api.UI.TabDecoration.Adornment.init -> void
 SharpRail.Plugins.Api.UI.TabDecoration.Equals(SharpRail.Plugins.Api.UI.TabDecoration? other) -> bool
 SharpRail.Plugins.Api.UI.TabDecoration.Icon.get -> string?
 SharpRail.Plugins.Api.UI.TabDecoration.Icon.init -> void
+SharpRail.Plugins.Api.UI.TabDecoration.IsWorking.get -> System.Func<bool>?
+SharpRail.Plugins.Api.UI.TabDecoration.IsWorking.init -> void
 SharpRail.Plugins.Api.UI.TabDecoration.TabDecoration() -> void
 SharpRail.Plugins.Api.UI.TabRef
 SharpRail.Plugins.Api.UI.TabRef.Deconstruct(out string! WorkspaceId) -> void

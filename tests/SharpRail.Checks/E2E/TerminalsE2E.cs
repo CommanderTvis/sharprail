@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
+using SharpRail.Plugins.Api.UI;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Terminal;
 
@@ -29,6 +30,7 @@ internal static class TerminalsE2E
         RapidReentry(root);
         ShellExit(root);
         BusyClose(root);
+        ExitWithAgent(root);
         IdleClose(root);
         TouchClose(root);
         TerminalSessionsE2E.Run(root);
@@ -292,6 +294,26 @@ internal static class TerminalsE2E
         Require(notice.IsEffectivelyVisible && Regex.IsMatch(notice.Text ?? "", @"\[process exited(?: with code \d+)?\]"),
             "An exited shell must say so in its tab.");
         Console.WriteLine("PASS upstream terminals.spec.ts: a tab says so when its shell exits");
+    }
+
+    private static void ExitWithAgent(string root)
+    {
+        using var app = Open(root, "terminals-exit-agent");
+        CreateTerminalWorkspace(app, "workspace-1");
+        var working = true;
+        // A decorator stands in for an agent plugin: its terminals report whether a turn is running.
+        app.Workbench.PluginLoader!.Registry.AddTabDecorator("fake-agent", tab => tab is TerminalTabRef ? new TabDecoration { IsWorking = () => working } : null);
+        app.Window.Close();
+        Until(() => Dialog(app) is not null);
+        Require(app.Window.IsVisible && app.Workbench.Windows.Count == 1, "Closing the window with a working agent must wait for the answer.");
+        app.Click(Dialog(app)!.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Cancel") || button.Content is TextBlock { Text: "Cancel" }));
+        Until(() => Dialog(app) is null);
+        Require(app.Window.IsVisible && app.Workbench.Windows.Count == 1 && !app.Workbench.AskingToExit, "Canceling the quit confirmation keeps the window open.");
+        working = false;
+        app.Window.Close();
+        Until(() => app.Workbench.Windows.Count == 0);
+        Require(Dialog(app) is null, "An idle agent closes the window without a prompt.");
+        Console.WriteLine("PASS Closing the last window asks first while an agent works, and not when idle");
     }
 
     private static void BusyClose(string root)

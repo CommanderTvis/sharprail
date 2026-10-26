@@ -123,7 +123,12 @@ public sealed class CodexUI : PluginUIModule
                     var agent = context.Host().Terminals.GetValueOrDefault(terminal.WorkspaceId)?.FirstOrDefault(item => item.TabKey == terminal.TabKey)?.Agent;
                     if (agent?.Kind != CodexManifest.Id) return null;
                     EnsureHydrated(terminal.WorkspaceId);
-                    return new TabDecoration { Icon = CodexManifest.Icon, Adornment = () => new CodexStatusBadge(store, terminal.WorkspaceId, terminal.TabKey) };
+                    return new TabDecoration
+                    {
+                        Icon = CodexManifest.Icon,
+                        Adornment = () => new CodexStatusBadge(store, terminal.WorkspaceId, terminal.TabKey),
+                        IsWorking = () => store.Session(terminal.WorkspaceId, terminal.TabKey)?.Status == CodexStatus.Running
+                    };
                 case ToolTabRef { Tool: var tool } when tool == CodexManifest.ConfigTool:
                     return new TabDecoration { Icon = CodexManifest.Icon };
                 default:

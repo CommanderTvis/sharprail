@@ -85,11 +85,17 @@ public sealed partial class WorkbenchWindow
         surface.IsDeleted = tab => deletedDocuments.Contains(workspaceRoot + ":" + tab.Id);
         Closing += async (_, e) =>
         {
-            if (closeConfirmed) return;
+            if (closeConfirmed || workbench.ExitConfirmed) return;
             var pending = documentContent.Keys.Select(Body<CodeDocumentView>).OfType<CodeDocumentView>().Where(view => view.HasPendingChanges).ToArray();
-            if (pending.Length == 0) return;
+            // Closing the last window, or quitting, ends every agent's turn.
+            var exiting = (workbench.ShuttingDown || workbench.Windows.Count == 1) && workbench.AgentInProgress;
+            if (pending.Length == 0 && !exiting) return;
             e.Cancel = true;
-            if (await ResolvePendingAsync(pending)) { closeConfirmed = true; Close(); }
+            if (exiting && workbench.AskingToExit) return;
+            if (pending.Length > 0 && !await ResolvePendingAsync(pending)) { workbench.ShuttingDown = false; return; }
+            if (exiting && !await ConfirmExitAsync()) return;
+            closeConfirmed = true;
+            if (workbench.ShuttingDown) workbench.Commands.Shutdown(); else Close();
         };
         AddHandler(KeyDownEvent, async (_, e) =>
         {
@@ -117,6 +123,23 @@ public sealed partial class WorkbenchWindow
     internal async Task SaveSelectedAsync()
     {
         if (SaveTarget is { } view) await view.SaveAsync();
+    }
+
+    // Returns whether the app may exit with agents still working.
+    private async Task<bool> ConfirmExitAsync()
+    {
+        workbench.AskingToExit = true;
+        try
+        {
+            if (await Dialogs.Confirm(this, "Quit with an agent working?", "An agent is in the middle of a turn. Quitting ends its terminal session.", "Quit", "ExitWithAgentConfirm"))
+            {
+                workbench.ExitConfirmed = true;
+                return true;
+            }
+            workbench.ShuttingDown = false;
+            return false;
+        }
+        finally { workbench.AskingToExit = false; }
     }
 
     // Returns whether the documents may now be removed.

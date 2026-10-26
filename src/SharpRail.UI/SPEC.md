@@ -133,6 +133,11 @@ menu, Mod+Shift+N) opens another window at the source window's Project Home with
 source's size. Each window is its own terminal client and its own project session, while windows share
 host state, the terminal host and the profile. Closing a window while others remain forgets its profile
 entry; quitting keeps every entry so the next launch restores the same set.
+Closing the last window, or quitting, while any agent terminal is in the middle of a turn asks first
+("Quit with an agent working?"); Cancel keeps every window open and Quit proceeds through the normal
+shutdown. "In a turn" comes from the in-memory `TabDecoration.IsWorking` an agent plugin returns for its
+terminals (Claude Code and Codex: status Running; omp reports none), read on the UI thread without polling.
+A quit closing several windows asks once.
 
 ## Window chrome
 

@@ -396,6 +396,10 @@ public sealed partial class WorkbenchWindow
         public void SetKeyEncoding(TerminalKeyEncoding encoding) => terminal.SetAgentNewline(encoding == TerminalKeyEncoding.AgentNewline);
     }
 
+    /// <summary>Whether any agent terminal of this window is in the middle of a turn, as its plugin's decoration reports; reads in-memory state only.</summary>
+    internal bool AgentInProgress() => Plugins.TabDecorators.Count > 0 && TerminalTabs().Any(item => item.Tabs.Any(tab =>
+        Decoration(tab, item.Workspace) is { Decoration.IsWorking: { } working } && Safely(working)));
+
     internal IEnumerable<(string Workspace, IReadOnlyList<DockTab> Tabs, IReadOnlyList<string> Shown)> TerminalTabs()
     {
         foreach (var (workspace, view) in Layout.State.Workspaces)

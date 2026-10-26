@@ -83,7 +83,12 @@ public sealed class ClaudeCodeUI : PluginUIModule
                 context.Host().Terminals.GetValueOrDefault(tab.WorkspaceId)?.FirstOrDefault(candidate => candidate.TabKey == terminal.TabKey)?.Agent?.Kind != "claude")
                 return null;
             Hydrate(tab.WorkspaceId);
-            return new() { Icon = "asset:claude.svg", Adornment = () => new ClaudeStatusAdornment(store, terminal.WorkspaceId, terminal.TabKey) };
+            return new()
+            {
+                Icon = "asset:claude.svg",
+                Adornment = () => new ClaudeStatusAdornment(store, terminal.WorkspaceId, terminal.TabKey),
+                IsWorking = () => store.Session(terminal.WorkspaceId, terminal.TabKey)?.Status == ClaudeCodeStatus.Running
+            };
         });
         // The id `claude --resume` takes: the host's agent record carries it as soon as the process is seen.
         string? SessionOf(TerminalTabRef terminal) => context.Host().Terminals.GetValueOrDefault(terminal.WorkspaceId)?

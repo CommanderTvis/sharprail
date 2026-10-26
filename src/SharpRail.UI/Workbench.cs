@@ -125,6 +125,10 @@ public sealed class Workbench : IDisposable
     public IProjectServices? NewSession() => sessions?.Invoke();
     /// <summary>Set while the app quits, so closing windows keep their profile entries for the next launch.</summary>
     public bool ShuttingDown { get; set; }
+    /// <summary>Whether any window has an agent in the middle of a turn, which quitting would cut off.</summary>
+    internal bool AgentInProgress => windows.Any(window => window.AgentInProgress());
+    /// <summary>Set while the quit confirmation is on screen, so the other windows a quit closes do not ask again, and once it is answered yes so they close.</summary>
+    internal bool AskingToExit, ExitConfirmed;
     public event Action<WorkbenchWindow>? WindowOpened;
 
     /// <summary>Opens a window for a profile entry, starting at <paramref name="root"/> when given.</summary>
