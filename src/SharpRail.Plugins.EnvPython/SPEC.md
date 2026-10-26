@@ -4,6 +4,7 @@ type: module-design
 status: active
 title: Python Environment — the workspace .venv in every shell, as a builtin plugin
 parent: architecture
+depends-on: [module-plugin-env]
 references: [module-plugin-api, submodule-host-plugins]
 tags: [plugins, terminals]
 ---
@@ -12,16 +13,15 @@ tags: [plugins, terminals]
 
 ## Responsibility
 
-A new worktree starts without what the main checkout had set up. This plugin (`env-python`, order 300) is one step of
-the host's workspace environment pipeline (Plugin API H22): it edits the environment the shell of a workspace starts
+A new worktree starts without what the main checkout had set up. This plugin (`env-python`) is one step of
+the workspace environment pipeline (Plugin API H23), a dependent of `Env`: it edits the environment the shell of a workspace starts
 with, so terminals, and the agents run inside them, are ready in a worktree. It is builtin and **enabled by default**,
-independent of the other environment plugins (disabling one leaves the rest working), and with nothing to apply it
-runs nothing and contributes nothing. There is no UI half and no setting: Settings › Plugins is the off switch.
+independent of the other providers (disabling one leaves the rest working) but not of `Env`: it registers exactly one step and `dependsOn` `Env`, so it goes off with it, and with nothing to apply it
+runs nothing and contributes nothing. There is no UI half and no setting: Settings › Plugins is the off switch. Its position in the pipeline and its chip are `Env`'s to place; the step supplies the chip data.
 
-Two projects, `Contract` (`SharpRail.Plugins.EnvPython`: manifest, empty settings, the order) and `Host`
+Two projects, `Contract` (`SharpRail.Plugins.EnvPython`: manifest, empty settings, the step id) and `Host`
 (`SharpRail.Plugins.EnvPython.Host`). The namespace avoids `Environment`, which would shadow `System.Environment` in
-every plugin. The pipeline itself (ordering, the time budget, the cache, running tools, stripping the host's token) is
-the host's: [Plugins.SPEC.md](../SharpRail.Host.Core/Plugins.SPEC.md).
+every plugin. The pipeline itself is the host's mechanism with `Env`'s policy: [Plugins.SPEC.md](../SharpRail.Host.Core/Plugins.SPEC.md), [Env](../SharpRail.Plugins.Env/SPEC.md).
 
 ## Behaviour
 
@@ -51,7 +51,7 @@ No trust is carried over. The only tools run are `poetry env info --path` and `p
 
 ## Verification
 
-`--environment` (gate case `environment`), shared by the four environment plugins: fake `mise` and `direnv` scripts on
+`--environment` (gate case `environment`), shared by the environment plugins: fake `mise` and `direnv` scripts on
 PATH (neither is a prerequisite of the checks), composition order, trust inheritance, each plugin working alone, and a
 real `/bin/sh` whose first shell has the result. The real tools' JSON formats were taken from their documentation and
 not run against the real binaries here.

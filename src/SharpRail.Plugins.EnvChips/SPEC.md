@@ -1,7 +1,7 @@
 ---
 id: module-plugin-env-chips
 type: module-design
-status: active
+status: deprecated
 title: Environment Chips — the environments applied to a terminal, as chips, as a builtin plugin
 parent: architecture
 references: [module-plugin-api, submodule-host-plugins, submodule-ui-plugins]
@@ -9,6 +9,8 @@ tags: [plugins, terminals]
 ---
 
 # Environment Chips — the environments applied to a terminal, as chips, as a builtin plugin
+
+Superseded: the chips move into [Env](../SharpRail.Plugins.Env/SPEC.md), which owns the pipeline policy and the chips; this plugin goes away with the implementation checklist there. The text below describes the code until then.
 
 ## Responsibility
 

@@ -101,7 +101,7 @@ the earlier per-activation native-watcher implementation and its duplicate resou
 ## Activation ids, drain, and the bounded disposer
 
 Only one activation exists per plugin at a time. Activation ids come from one monotonic counter, and every
-mutating member of the host context (`Method`, `Publish`, `Route`, `Tool`, `TerminalEnvironment`, `WorkspaceEnvironment`,
+mutating member of the host context (`Method`, `Publish`, `Route`, `Tool`, `TerminalEnvironment`, `WorkspaceEnvironment`, `WorkspaceEnvironmentStep`,
 `OnTerminal`, `RevivePrefill`, `OnWorkspace`, `OnFilesChanged`, `OnSettings`, `ExternalFiles`, `WriteState`)
 compares the registry's current activation id with the one captured when the context was built before writing
 into that activation's tables or reaching a client. A plugin that keeps a context past its dispose (a stray
@@ -367,13 +367,19 @@ an immediate close/disable cannot be lost as the observer's first snapshot. Both
 producer and plugin observer continue without the starting synchronization context, so UI-owned startup
 and synchronous window teardown never make host cancellation depend on a blocked UI dispatcher. See `Files.SPEC.md` for
 process registry counters, exact lease/instance IDs and the macOS native FSEvents lifetime check.
-## Workspace environment pipeline (H22)
+## Workspace environment pipeline (H22, H23)
 
-Plugins register ordered steps with `WorkspaceEnvironment(order, step)`; the runtime owns the rest, so independent
-plugins compose without knowing each other. Before a shell starts for a tab with none running, the terminal service
+The host owns the mechanism, because terminals need the environment before any plugin UI loads; the `Env` plugin
+owns the policy ([Env](../SharpRail.Plugins.Env/SPEC.md)): the order of steps, how their variables merge, what a
+failing or timed-out step means, and the chips. Without an active `Env` there is no policy, no step runs and every
+shell gets the plain environment (the host's own, minus `SHARPRAIL_TOKEN`).
+
+Step providers register with `WorkspaceEnvironmentStep(id, step)` (H23); `Env` registers the policy with
+`WorkspaceEnvironment(policy)` (H22). Before a shell starts for a tab with none running, the terminal service
 awaits `EnvironmentPreparer`, which resolves the workspace on a pool thread: it takes the process environment without
-`SHARPRAIL_TOKEN`, runs the enabled plugins' steps by order (ties by plugin id), each seeing the earlier ones' edits,
-and keeps the variables that differ from the host's own. A step that throws is logged against its plugin and skipped.
+`SHARPRAIL_TOKEN`, runs the active providers' steps in the order the policy gives (ties by plugin id), each seeing the
+earlier ones' edits, merges them as the policy says, and keeps the variables that differ from the host's own. A step
+that throws is logged against its plugin and skipped, unless the policy says otherwise.
 A resolution already running for a workspace is shared; the shell waits at most 10 seconds and otherwise starts with
 the last good result (or none) while the resolution finishes for the next shell. The synchronous
 `EnvironmentContributor` reads that result, and plugins' own `TerminalEnvironment` contributors override it. A
@@ -384,4 +390,8 @@ the host's value.
 
 A step may also `ShellInit(shell, script)` and `Report(label, detail)`. Scripts (zsh and fish) reach the shell through
 `ShellEnvironmentHooks` (`Terminals.SPEC.md`). Reports become `WorkspaceEnvironmentFact`s, each with the variables its step set,
-and every finished resolution is handed to the plugins' `OnWorkspaceEnvironment` observers: the environment chips are one.
+and every finished resolution is handed to the `OnWorkspaceEnvironment` observers: `Env`'s chips are one.
+
+Providers declare `dependsOn` `Env` in their manifest (the cascade above): switching `Env` off switches every provider
+off, and a provider enabled while `Env` is off is `Refused` (`depends on env, which is off`). Switching them back on
+is per plugin, as for any dependency.

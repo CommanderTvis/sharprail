@@ -4,6 +4,7 @@ type: module-design
 status: active
 title: JVM Environment — the workspace's chosen JDK in every shell, as a builtin plugin
 parent: architecture
+depends-on: [module-plugin-env]
 references: [module-plugin-api, submodule-host-plugins]
 tags: [plugins, terminals]
 ---
@@ -13,13 +14,12 @@ tags: [plugins, terminals]
 ## Responsibility
 
 Gradle, Maven, language servers and agents build with whichever `JAVA_HOME` their shell has, so a worktree whose
-project pins another JDK builds with the wrong one. This plugin (`env-jvm`, order 500) is one step of the host's
-workspace environment pipeline (Plugin API H22): it points `JAVA_HOME` and PATH at the JDK the workspace chooses. It is
-builtin and **enabled by default**, independent of the other environment plugins, has no UI half and no setting
+project pins another JDK builds with the wrong one. This plugin (`env-jvm`) is one step of the
+workspace environment pipeline (Plugin API H23), a dependent of `Env`: it points `JAVA_HOME` and PATH at the JDK the workspace chooses. It is
+builtin and **enabled by default**, independent of the other providers, `dependsOn` `Env` (off with it), has no UI half and no setting
 (Settings › Plugins is the off switch), and runs nothing when the workspace chooses nothing.
 
-Two projects, `Contract` (`SharpRail.Plugins.EnvJvm`) and `Host` (`SharpRail.Plugins.EnvJvm.Host`). The pipeline is
-the host's: [Plugins.SPEC.md](../SharpRail.Host.Core/Plugins.SPEC.md).
+Two projects, `Contract` (`SharpRail.Plugins.EnvJvm`) and `Host` (`SharpRail.Plugins.EnvJvm.Host`). The pipeline is the host's mechanism with `Env`'s policy: [Plugins.SPEC.md](../SharpRail.Host.Core/Plugins.SPEC.md), [Env](../SharpRail.Plugins.Env/SPEC.md).
 
 ## Behaviour
 
