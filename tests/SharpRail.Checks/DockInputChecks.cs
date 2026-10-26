@@ -468,9 +468,11 @@ internal static class DockInputChecks
         window.Layout.Visible("left", true);
         window.Layout.Visible("right", true);
         foreach (var region in new[] { "left", "right" })
-            foreach (var requested in new[] { .06, .04, .03 })
+            foreach (var share in new[] { .75, .55, .4 })
             {
                 window.Layout.ApplyPreset(DockState.Preset("balanced"));
+                var minimum = Math.Clamp(220 / (Bounds(Find<DockSurface>("WorkspaceWorkbench")).Width - 80), .08, .35);
+                var requested = minimum * share;
                 var handle = Find<ResizeHandle>(region + "Separator");
                 var start = Bounds(handle).Center;
                 var initial = region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth;
@@ -482,8 +484,8 @@ internal static class DockInputChecks
                 window.MouseUp(destination, MouseButton.Left); Dispatcher.UIThread.RunJobs();
                 var visible = region == "left" ? window.Layout.State.LeftVisible : window.Layout.State.RightVisible;
                 var retained = region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth;
-                Require(visible == (requested >= .04) && Math.Abs(retained - (visible ? .08 : initial)) < .001,
-                    "Side resize must snap to eight percent or collapse below four percent while retaining expanded width.");
+                Require(visible == (share > .5) && Math.Abs(retained - (visible ? minimum : initial)) < .001,
+                    "Side resize must snap to the 220px side minimum or collapse below half of it while retaining expanded width.");
             }
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         window.Layout.ApplyPreset(DockState.Preset("balanced"));

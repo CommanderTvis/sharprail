@@ -281,7 +281,8 @@ public sealed partial class DockSurface : Grid
             var value = Width(Geometry().Project());
             var opposite = region == "left" ? GeometryState().RightWidth : GeometryState().LeftWidth;
             var maximum = Math.Min(Math.Min(.7, 1 - opposite - 1e-6), Width(Geometry().Resize(region, direction)));
-            return maximum < .08 ? (value, value, value) : (value, .08, maximum);
+            var minimum = SideGeometry.SideMinimum(ShellWidth);
+            return maximum < minimum ? (value, value, value) : (value, minimum, maximum);
         }, value => CommitSideWidth(region, value));
         PlaceSide(splitter, column, span);
     }
@@ -296,7 +297,7 @@ public sealed partial class DockSurface : Grid
         var maximum = Math.Max(double.Epsilon, Math.Min(.7, available - Math.Min(1e-6, available / 2)));
         Session.Geometry(state =>
         {
-            var value = Math.Clamp(width, Math.Min(.08, maximum), maximum);
+            var value = Math.Clamp(width, Math.Min(SideGeometry.SideMinimum(ShellWidth), maximum), maximum);
             if (home) state.HomeProjectsWidth = value;
             else if (region == "left") state.LeftWidth = value;
             else state.RightWidth = value;

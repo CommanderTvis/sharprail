@@ -99,8 +99,9 @@ ids), no live controls, so a stale entry costs memory and profile size rather th
 - Tools and terminals never share a pane ([Panes](#tool-and-terminal-panes)).
 - Left/right: ordered vertical stacks beside persistent 40px edge rails ([Rails](#edge-rails)). Expanded
   bodies keep a 120px minimum; a folded pane occupies nothing inside the stack, keeps its weight and lives
-  only on its rail. A side with no expanded pane takes no width. Dragging an outer separator below the 4%
-  midpoint hides the side and keeps its last expanded width; the rail brings it back. Saved widths stay
+  only on its rail. A side with no expanded pane takes no width. A side is at least 220px wide (at least 8%
+  and at most 35% of the frame, `SideGeometry.MinPaneWidth`), by the separator and on restoring saved widths.
+  Dragging an outer separator below half that minimum hides the side and keeps its last expanded width; the rail brings it back. Saved widths stay
   ratios of the frame between the rails.
 - There is no bottom zone, alignment, resize handle or toggle shortcut. Legacy frames migrate nonterminal bottom documents to center and discard bottom terminal placements.
 - Side resize projects through left, center and right groups. Only the dragged side ratio is committed;
