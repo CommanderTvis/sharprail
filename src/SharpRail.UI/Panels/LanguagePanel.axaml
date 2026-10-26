@@ -69,8 +69,8 @@
                     Classes="quiet" Background="Transparent" BorderThickness="0" Padding="4" MinHeight="0" />
             <TextBlock Grid.Column="4" Name="ServerDisclosure" Text="{Binding Disclosure}" Foreground="{x:Static kit:Ui.Muted}" VerticalAlignment="Center" />
             <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" Name="ServerDetails" Spacing="4">
-              <TextBlock Name="ServerNeeds" IsVisible="{Binding ShowNeeds}" Text="{Binding Needs}" Foreground="{x:Static kit:Ui.Danger}" TextWrapping="Wrap" />
-              <TextBlock Name="ServerDetail" IsVisible="{Binding ShowDetail}" Text="{Binding Server.Detail}" Foreground="{Binding DetailBrush}" TextWrapping="Wrap" />
+              <TextBlock Name="ServerNeeds" FontSize="12" IsVisible="{Binding ShowNeeds}" Text="{Binding Needs}" Foreground="{x:Static kit:Ui.Danger}" TextWrapping="Wrap" />
+              <TextBlock Name="ServerDetail" FontSize="12" IsVisible="{Binding ShowDetail}" Text="{Binding Server.Detail}" Foreground="{Binding DetailBrush}" TextWrapping="Wrap" />
               <local:LanguageDependencyList Name="ServerDependencies" OmitMissingText="True" IsVisible="{Binding ShowDependencies}" Dependencies="{Binding Server.Dependencies}" />
               <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding ShowExit}">
                 <Button Name="ServerExitDetailsAction" Content="{Binding ExitToggle}" Classes="link" Click="ExitDetailsClicked" />
@@ -84,7 +84,7 @@
                       HorizontalAlignment="Left" HorizontalContentAlignment="Left" >
                 <TextBlock Text="{Binding Detection}" ToolTip.Tip="{Binding Detection}" FontSize="12" TextTrimming="CharacterEllipsis" />
               </Button>
-              <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding ShowHideActions}">
+              <StackPanel Orientation="Horizontal" Spacing="12" TextElement.FontSize="12" IsVisible="{Binding ShowHideActions}">
                 <Button Name="ServerHideAction" Content="Hide" Classes="link" Click="HideClicked" IsVisible="{Binding ShowHide}"
                         ToolTip.Tip="Hide this server in this project: it is no longer suggested or started for agents" />
                 <Button Name="ServerUnhideAction" Content="Unhide" Classes="link" Click="HideClicked" IsVisible="{Binding Hidden}" />

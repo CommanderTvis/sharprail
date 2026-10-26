@@ -9,7 +9,7 @@
         <StackPanel Spacing="2">
           <TextBlock Name="DependencyState" IsVisible="{Binding ShowText}" Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="12" TextWrapping="Wrap" />
           <SelectableTextBlock Name="DependencyHint" IsVisible="{Binding Missing}" Text="{Binding Hint}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
-          <StackPanel Orientation="Horizontal" Spacing="12">
+          <StackPanel Orientation="Horizontal" Spacing="12" TextElement.FontSize="12">
             <Button Name="DependencyUsePath" Content="Use path…" Classes="link" Click="UseDependencyPathClicked" IsVisible="{Binding CanChange}"
                     ToolTip.Tip="Choose an existing executable outside the workspace; it is used instead of PATH by every language server" />
             <Button Name="DependencyClearPath" Content="Clear path" Classes="link" Click="ClearDependencyPathClicked" IsVisible="{Binding CanClear}"
