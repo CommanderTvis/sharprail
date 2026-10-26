@@ -6,7 +6,7 @@
   <StackPanel Spacing="2">
     <TextBlock Text="SharpRail Code Intelligence · MCP" FontSize="13" Foreground="{x:Static kit:Ui.TextBrush}" />
     <TextBlock Text="lsp_navigate · lsp_diagnostics · lsp_status" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
-    <TextBlock Text="Needs the bundled SharpRail plugin: enable it in Claude Code Settings and restart the session."
+    <TextBlock Text="Provided by SharpRail in every session it starts."
                FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock Text="Lets agents navigate, inspect, fix missing libraries and configure or restart language servers. Subagents pass their own workspace path."
                FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
