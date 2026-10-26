@@ -43,11 +43,11 @@ internal static class VisualizeE2E
                 if (server is not null) Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();
                 var endpoint = server is null ? null : new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
                 using var terminalAdapter = endpoint is null ? null : new RemoteTerminalAdapter(endpoint, "visualize-ui");
-                using var app = server is null ? new E2eWorkspace(workspace)
+                using var app = server is null ? new E2eWorkspace(workspace, pluginTerminals: true)
                     : new E2eWorkspace(endpoint!, "visualize-ui", workspace, workspace + "-profile", workspace, terminals: new E2eTerminals(terminalAdapter!));
                 Until(() => app.Window.WorkspaceMounted);
                 Scenario(app, server?.Services.GetRequiredService<PluginRuntime>() ?? app.PluginRuntime!, remote);
-                Console.WriteLine($"PASS visualize {(remote ? "remote" : "local")} companion: diagram, comparison contents and columns, toolbar, wheel and drag navigation, title, remount, rollback, second terminal and disable/re-enable");
+                Console.WriteLine($"PASS visualize {(remote ? "remote" : "local")} companion: diagram, comparison contents and columns, toolbar, wheel and drag navigation, title, remount, rollback, second terminal, disable/re-enable and chat tabs");
             }
             finally
             {
@@ -67,6 +67,9 @@ internal static class VisualizeE2E
         var terminals = before.Count + 1;
         var terminal = TerminalsE2E.View(app, tab);
         var owner = new TerminalRef(terminal.Launch.WorkspaceRoot, terminal.Launch.TabKey);
+        // The host tells a terminal from a chat by its live terminal list, so the shell must be up before it calls.
+        var shell = app.Terminals.Views.Last(view => view.SessionId == terminal.Launch.SessionId);
+        Until(() => shell.Started.IsCompletedSuccessfully);
         using var http = new HttpClient();
         string? mcpUrl = null;
         if (remote)
@@ -278,11 +281,8 @@ internal static class VisualizeE2E
         Until(() => TerminalsE2E.TerminalTabs(app).Any(next => !others.Contains(next.Id)));
         var second = TerminalsE2E.View(app, TerminalsE2E.TerminalTabs(app).Single(next => !others.Contains(next.Id)));
         var secondOwner = new TerminalRef(second.Launch.WorkspaceRoot, second.Launch.TabKey);
-        if (remote)
-        {
-            var backend = app.Terminals.Views.Last(view => view.SessionId == second.Launch.SessionId);
-            Until(() => backend.Started.IsCompletedSuccessfully);
-        }
+        var secondBackend = app.Terminals.Views.Last(view => view.SessionId == second.Launch.SessionId);
+        Until(() => secondBackend.Started.IsCompletedSuccessfully);
         var secondCall = Task.Run(async () =>
         {
             var tool = runtime.McpTools(secondOwner, secondOwner.WorkspaceId).Single(tool => tool.Name == "visualize");
@@ -290,6 +290,51 @@ internal static class VisualizeE2E
         });
         Until(() => secondCall.IsCompleted && second.Companion is not null && Texts(second.Companion).Contains("Second only", StringComparison.Ordinal));
         Require(!secondCall.Result.Error && !Texts(second.Companion!).Contains("After enable", StringComparison.Ordinal), "Each terminal keeps its own drawing.");
+
+        // A chat's child holds a terminal token but no terminal: its drawings open as editor tabs, one per key, never beside a terminal.
+        string ChatCall(string key, string arguments)
+        {
+            var chat = new TerminalRef(owner.WorkspaceId, key);
+            var answer = Task.Run(async () =>
+            {
+                var tool = runtime.McpTools(chat, chat.WorkspaceId).Single(tool => tool.Name == "visualize");
+                return await tool.Call(JsonNode.Parse(arguments)!.AsObject(), CancellationToken.None);
+            });
+            Until(() => answer.IsCompleted);
+            Require(!answer.Result.Error, "A chat's visualize call succeeds: " + answer.Result.Text);
+            return answer.Result.Text;
+        }
+        (string Group, string Tab)[] VizTabs() => [.. window.Layout.View.Documents.SelectMany(group => group.Value.Select(item => (Group: group.Key, Item: item)))
+            .Where(entry => entry.Item.Kind == "plugin" && entry.Item.Path.StartsWith("visualization:", StringComparison.Ordinal)).Select(entry => (entry.Group, entry.Item.Id))];
+        Control? ChatPane(string text) => window.GetLogicalDescendants().OfType<Control>().FirstOrDefault(control => control.Name == "VisualizationPane" && Texts(control).Contains(text, StringComparison.Ordinal));
+        var terminalsBefore = TerminalsE2E.TerminalTabs(app).Length;
+        Require(VizTabs().Length == 0, "Terminal callers open no visualization document.");
+        var chatAnswer = ChatCall("chat-viz-a", """{"type":"comparison","title":"Chat plan","options":[{"name":"Chat A one"}]}""");
+        Require(chatAnswer.Contains("Rendered \"Chat plan\" in a Visualization tab (revision 1)", StringComparison.Ordinal), "A chat is told where it was drawn: " + chatAnswer);
+        Until(() => VizTabs().Length == 1 && ChatPane("Chat A one") is not null);
+        var chatPane = ChatPane("Chat A one")!;
+        ChatCall("chat-viz-a", """{"type":"comparison","title":"Chat plan","options":[{"name":"Chat A two"}]}""");
+        Until(() => Texts(chatPane).Contains("Chat A two", StringComparison.Ordinal));
+        Require(VizTabs().Length == 1 && ReferenceEquals(ChatPane("Chat A two"), chatPane), "A second call with the same key updates the open tab in place.");
+        ChatCall("chat-viz-b", """{"type":"comparison","title":"Other chat","options":[{"name":"Chat B only"}]}""");
+        Until(() => VizTabs().Length == 2 && ChatPane("Chat B only") is not null);
+        Require(TerminalsE2E.TerminalTabs(app).Length == terminalsBefore, "A chat's drawing costs no terminal tab and opens no companion.");
+        Require(!Texts(ChatPane("Chat B only")!).Contains("Chat A", StringComparison.Ordinal), "Each key keeps its own drawing.");
+
+        // The tabs restore with their layout: turning the plugin off and on remounts them from the host's stored drawing.
+        SetEnabled(false);
+        Until(() => ChatPane("Chat B only") is null);
+        SetEnabled(true);
+        Until(() => ChatPane("Chat B only") is not null);
+        window.Layout.Open(new("plugin:visualization:chat-viz-none", "Empty", "plugin", "visualization:chat-viz-none"), true);
+        Until(() => window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "VisualizationEmpty" && control.IsEffectivelyVisible));
+        foreach (var (group, id) in VizTabs().Where(entry => entry.Tab.EndsWith("chat-viz-none", StringComparison.Ordinal))) window.Layout.Close(group, id);
+
+        // Closing a tab ends its bookkeeping, so the next revision opens one again.
+        foreach (var (group, id) in VizTabs().Where(entry => entry.Tab.EndsWith("chat-viz-b", StringComparison.Ordinal))) window.Layout.Close(group, id);
+        Until(() => VizTabs().All(entry => !entry.Tab.EndsWith("chat-viz-b", StringComparison.Ordinal)));
+        ChatCall("chat-viz-b", """{"type":"comparison","title":"Other chat","options":[{"name":"Chat B again"}]}""");
+        Until(() => VizTabs().Any(entry => entry.Tab.EndsWith("chat-viz-b", StringComparison.Ordinal)) && ChatPane("Chat B again") is not null);
 
     }
 }

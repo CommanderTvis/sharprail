@@ -38,10 +38,10 @@ public sealed partial class InstructionSectionsView : Border
     private readonly Dictionary<string, string> latest = new(StringComparer.Ordinal);
     private string shownLayout = "";
 
-    /// <summary>Lets the Avalonia runtime loader create the view; it shows no sections.</summary>
-    public InstructionSectionsView() : this("Agent", static () => Task.FromResult(new InstructionSectionList()), static (_, _) => Task.FromResult(new InstructionSectionList()), static _ => { })
-    {
-    }
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct InstructionSectionsView with its arguments.", true)]
+    public InstructionSectionsView() => throw new System.NotSupportedException("InstructionSectionsView needs its constructor arguments.");
 
     /// <summary>Creates the entry, collapsed; it loads its sections at once, for the count, and again on <see cref="Refresh"/>.</summary>
     /// <param name="agentName">The agent's name as the text shows it, such as <c>Claude Code</c>.</param>

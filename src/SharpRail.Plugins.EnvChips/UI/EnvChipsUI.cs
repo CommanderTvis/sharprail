@@ -12,7 +12,7 @@ public sealed class EnvChipsUI : PluginUIModule
 {
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
-        context.TerminalAccessory(new(terminal => new EnvChipsRow(context, terminal.WorkspaceId)));
+        context.TerminalAccessory(new(terminal => new EnvChipsRow(context, terminal.WorkspaceId)) { ForWorkspace = workspaceId => new EnvChipsRow(context, workspaceId) });
         return null;
     }
 }
@@ -44,7 +44,7 @@ internal sealed class EnvChipsRow : WrapPanel
         Children.Clear();
         foreach (var chip in payload.Chips)
         {
-            var control = TerminalFacts.FactChip("env", chip.Label, chip.Detail ?? chip.Label);
+            var control = TerminalFacts.FactChip("env", chip.Label, string.IsNullOrEmpty(chip.Detail) ? chip.Label : chip.Detail);
             control.Margin = new Avalonia.Thickness(0, 0, 4, 0);
             Children.Add(control);
         }

@@ -13,7 +13,7 @@ tags: [plugins, claude-code]
 
 Port source: `6401ccae8`, `packages/plugin-claude-code/SPEC.md` and its host/web modules in
 CommanderTvis's ThinkRail fork. This plugin integrates the external Claude Code terminal program;
-it does not provide bundled AI chat or Pi execution. It is disabled by default.
+it does not provide Pi execution. A launch is presented either as that terminal program or, in chat mode (below), as a conversation over the CLI's own headless protocol; the plugin has no AI chat of its own. It is disabled by default.
 
 ## Boundary
 
@@ -90,6 +90,140 @@ Unset launch defaults persist as empty strings so a merged settings update can c
 Wire version 2 covers these added settings: the strict settings schema would make older UI halves
 fall back to defaults, so mismatched host/UI halves stay dormant.
 
+
+## Chat mode (host)
+
+The `Mode` setting (Terminal by default, or Chat) says how a SharpRail launch is presented; the host serves chat whatever
+the setting says, and the view chooses by it. The wire is `ChatContract` (declared apart from `ClaudeCodeContract` and merged
+into it): items, a header, three push kinds on the keyed `chatUpdates` state channel (workspace id and chat id), and the
+methods open, snapshot, send, interrupt, close, set model, set permission mode, set effort, answer, rewind, fork, stop task,
+item detail, sessions and files. Chat mode drives Claude Code over its stream-json protocol, as the official VS Code
+extension does. The host half lives in `Host/Chat`.
+
+Process. A chat's child is `claude -p --output-format stream-json --verbose --input-format stream-json
+--include-partial-messages --replay-user-messages --permission-prompt-tool=stdio`, plus the settings' model, effort,
+permission mode, advisor, Chrome and appended prompt file, the bundled plugin directory, and the session flags below. It
+gets the environment a terminal launch gets (the prompt file, scratch and worktree directories, `CLAUDE_CODE_SSE_PORT` for
+the IDE bridge, `SHARPRAIL_UI_LAUNCH=claude`, `THINKRAIL_MCP_URL` bound to the chat) and every other plugin's
+launch contribution (wrapper, arguments, environment) composed as `AgentLaunchComposition` does for a command line; the
+hook plugin's status URL is blanked because the chat reports its own status. The IDE bridge is unchanged and still serves terminals, but a headless chat child does not reach it. Probed against the
+real CLI (2.1.310): a `-p` child ignores `CLAUDE_CODE_SSE_PORT` plus the lock file, with or without `--ide` or
+`CLAUDE_CODE_AUTO_CONNECT_IDE`; `--mcp-config` with a `ws-ide` entry (the type in the CLI's config schema) is skipped with
+"unknown MCP server type"; and the `mcp_set_servers` control request answers "IDE transports are registered by the CLI
+itself". So in chat mode open-diff, diagnostics and selection do not travel the bridge; a chat's edit and write cards carry
+`FilePath` for the view to open the diff itself, and the permission request is the approval point. The bridge's
+workspace placement is not extended to chat children. Stdout lines are read and stdin written off the UI thread (one serialized
+writer); stderr becomes warning notices. Off Windows the child starts behind a setsid launcher
+(`sharprail-claude-process-group`, built from the Codex plugin's `process-group.c`), and closing stdin, then SIGTERM and
+SIGKILL to its group, ends it and anything it started; Windows kills the process tree.
+
+Folding. One folder turns messages into the ordered, id-keyed item list, live and from a transcript alike. Streamed partials
+and the complete message of a block meet in one item (the nth block of a type in an API message), tool calls are keyed by
+their `tool_use` id, and `parent_tool_use_id` becomes `ParentId`. A tool item carries a one-line summary, the file path of an
+edit or write, its state, and output cut at `ChatContract.OutputLimit` with the whole text served by item detail. The
+`task_started`, `task_progress`, `task_notification` and `task_updated` events become header tasks and the Task call's
+`TaskId`. A `can_use_tool` control request becomes a pending permission item; answering sends the control response with the
+edited or original input and, when remembering, the CLI's own rule suggestions as `updatedPermissions`. A result adds no row: it fills cost, tokens and context in the header (a failed one adds one failure notice); init and the `initialize` answer fill commands, models, agents and
+MCP servers. Prompts are sent with a uuid and the CLI echoes them back (`--replay-user-messages`), so a prompt sent during a turn is queued
+until its echo and rewind and fork have a uuid for every prompt. Changed items are pushed together at most every 16 ms, so a
+stream costs one push per item per interval.
+
+Queue. A prompt sent during a turn is a queued user item until the CLI echoes it. `chatDequeue` cancels it with the
+`cancel_async_message` control request (keyed by the prompt's uuid) and drops the item with a remove push; the CLI answers
+`cancelled:false` when it already took the prompt up, and the call then fails and the item stays. `chatEditQueued` is that
+cancel followed by sending the new text as one host step, so the old prompt never runs.
+
+Questions. An `AskUserQuestion` `can_use_tool` request becomes a question item (questions with options, multi-select, a
+header; "Other" is free text the view puts in the answer), not a permission. `chatAnswerQuestion` replies with
+`updatedInput` equal to the CLI's own `questions` plus `answers`, keyed by question text (a multi-select answer is its
+labels joined by ", "); cancelling replies with a deny. The shape was read from the official extension, not probed live.
+
+Notices. A notice may carry a category: `compaction` (from `compact_boundary`, with the trigger and token count), `failure`
+(a result that is an error or has a non-success subtype, with the subtype and whether resending the last prompt is a
+sensible recovery: API errors and `error_during_execution`, not turn or budget limits), `retry` (`api_retry`) and
+`restart`. The status feed marks a failed result Failed.
+
+Models and header. Models carry a provider and family label (derived from the id) and the effort levels the CLI reports
+(`supportedEffortLevels`). While a change is under way (the restart for a new effort) the header's `Pending` names it and is
+cleared by the restarted child's init, so the chip never looks idle during the restart.
+
+Control. The model and permission mode change in the header only after the CLI's success response (`set_model`,
+`set_permission_mode`). The effort level changes live too: `apply_flag_settings` with `effortLevel`, confirmed by `applied.effort` from `get_settings`
+(probed against CLI 2.1.310; the extension does the same). Only a CLI that rejects the request gets the older restart on the same
+session with `--effort` and a notice. A chip never shows an arrow: a change under way is the current value and an ellipsis. Interrupt, stop task and rewind-files are control requests; a conversation rewind
+replays the transcript up to the chosen prompt and resumes the CLI at the message before it with `--fork-session`.
+A fork is a new chat record that branches the same way when first opened.
+
+Revival. Each chat's session id, directory, model, effort, permission mode, title and pending fork are kept in the plugin's
+user state (`chats.json` under the plugin state directory, never in a project). Opening a known chat after an app restart
+resumes with `--resume <id>` when the transcript exists (`AgentResume.SessionExists`) and otherwise starts afresh with
+`--session-id <id>`, both with the recorded choices. Before the child is ready the host replays the transcript
+(`~/.claude/projects/<slug>/<id>.jsonl` and the `<id>/subagents/agent-*.jsonl` files, whose meta file names the Task call they
+hang from) into items, sending a reset push first. A revived chat is SharpRail's own launch.
+
+Status. A chat feeds the same status store and `Status` channel as a terminal, keyed by its chat id as the tab key, with the
+hook events' mapping (`ClaudeValues.StatusForAgentEvent`): `prompt_submit` when a turn starts, `permission_request` while
+waiting for an answer, `stop` or `stop_failure` on a result, `interrupted` on interrupt and close, so tab badges and attention
+notifications need no terminal. `--claude-chat-host` checks all of this against a scripted stand-in for the CLI.
+
+## Chat semantics (from the VS Code extension)
+
+The host folds stream-json the way the official extension's webview does, live and from a transcript through one path
+(`ChatFolder`), so a replay gives the same typed items as the live stream (checked by `--claude-chat-host`). Each rule is
+named with the frame that triggers it.
+
+User frames are classified by `origin` and text shape, not by role. `origin` is `{kind, name?, senderTaskId?, subkind?}`;
+`isSynthetic` is the frame's flag, or `is_meta` with an origin. A synthetic frame is dropped unless it is a peer message. A
+frame with `parent_tool_use_id` (subagent traffic) keeps its data in the items' `ParentId` but its prompt text is no row.
+`tool_result`-only frames are no row; the result attaches to its tool item. Text that is only `<system-reminder>` is never a
+row, nor is a hidden `ToolSearch` call.
+- Human prompt (no origin or `kind:human`): a user item; ANSI, control and bidi characters are removed, `pasted_content`
+  tokens and a trailing `<forked-skill-launch>` blob are stripped; `image` and `document` blocks and the IDE's
+  `<ide_selection>` and `<ide_opened_file>` blocks become attachment chips. Another origin (channel, plugin, sdk) keeps the
+  prompt with `Origin` set.
+- Interrupt markers `[Request interrupted by user]` and `... for tool use]`: notices "Interrupted" and "Tool interrupted".
+- `<task-notification>` (origin task-notification, no subkind, non-empty summary): a notice showing the summary, with task
+  id, tool-use id, status, output file, result and usage as sections.
+- Peer, agent, cross-session and channel messages: text with a lead-in line ("Another Claude session sent a message[ while you
+  were working]:", "A peer session sent ...", "A message arrived from <source>:"), one `<agent-message from>`,
+  `<cross-session-message>` or `<channel source>` tag around the body and one of the fixed trailer paragraphs. With a
+  matching origin (peer for agent and cross-session, channel for channel) or an `agentSender` it is a collapsed row
+  ("Message from @name", "Message from channel @name", "Message from <agentSender>") with a 512-character one-line preview
+  and the whole body; with no origin it is "Sender not recorded"; with another origin it is an ordinary prompt.
+- Wrapped notices when the origin is absent (`local-command-caveat` "Command caveat", `teammate-message`, `tick`,
+  `mcp-resource-update`, `mcp-polling-update`), `<command-name>` records ("/cmd args" with Command, Command message and
+  Command contents), `<local-command-stdout>` and `-stderr` (one line, or a block when multi-line or an error; "Set model to X"
+  reads "Switched to X"), `<bash-stdout>` with `<bash-stderr>` and `<bash-exit-code>` (Output, Error output, Exit code) and
+  `<post-tool-use-hook>` diagnostics.
+Result frames draw nothing: they end the turn and update the header (cost, `modelUsage` context window and max output of the
+current model, `fast_mode_state`). A model-less result (`num_turns` 0 with a task-notification origin) is no turn and no
+failure. An error result or a non-success subtype is exactly one failure notice (retryable for API errors and
+`error_during_execution`). `system` frames: `status` drives the header's `Activity` ("Compacting", "Running start-up hooks")
+and permission mode; `thinking_tokens` the streaming thinking item's token count; `compact_boundary` plus the following
+synthetic string user frame one compaction notice ("Compacted chat · auto|manual · Nk tokens freed", the summary as its
+detail); `informational` lines of level other than info (any with tag `brass_thimble`) become meta notices;
+`model_refusal_fallback` a notice that also removes the retracted messages; `task_started`, `task_progress`, `task_updated`,
+`task_notification` and `background_tasks_changed` the header tasks (type labels subagent, workflow, shell, monitor, MCP task,
+teammate, dream, auto-mode scan, memory import, cloud session; background flag, usage). `rate_limit_event` sets the header
+banner: rejected "You've hit your <window> · resets in 2h" (windows: session, weekly, weekly Opus, weekly Sonnet, Fable,
+usage credit limit), warning "You've used N% of your <window> · ..." from 70%, cleared when allowed. Unreadable transcript
+lines are one "N earlier lines of this conversation could not be shown." notice.
+Held prompts: a prompt sent while busy is a queued user item. CLI 2.1.310 emits no `system/command_lifecycle` (probed with
+`--replay-user-messages`), so the echo of the prompt with the same uuid releases it; a CLI that sends `command_lifecycle`
+releases it on started, completed, cancelled, discarded or refused, and `ran_ahead` adds "Ran at once, while Claude was working."
+Permissions: a `can_use_tool` request carries the card's question per tool ("Allow this bash command?", "Make this edit to
+a.cs?", ...), the "don't ask again" label rewritten from the suggestions (one rule, two rules, "and N more", directories, "Yes,
+allow all edits this session", "Yes, return to normal mode") and the five destinations with their labels and tooltips. The reply
+is allow (with the edited input; with the remembered suggestions rewritten to the chosen destination; or, for ExitPlanMode, a
+`setMode` of the chosen mode) or deny with the extension's words: the plain rejection, the same with "The user provided the
+following reason for the rejection: <reason>", "User chose to stay in plan mode and continue planning", or plan feedback
+"Comments on the plan:" followed by `[Re: "<selected text>"] <comment>` lines. An AskUserQuestion item ends as answered,
+declined (with the reason), no-answer or session-ended according to its tool result, and "Answering your earlier question ..."
+text settles an unanswered one. Rewind: `chatRewindPreview` is the dry run (`rewind_files` with `dry_run`), the rewind fails with
+"Failed to rewind code: ...", and skipped links add a meta notice; fork returns the prompt text and fails with "Failed to fork
+conversation: Unknown session id" for an unknown chat. Header: `PermissionModes` (Manual, Edit automatically, Plan, Auto, Bypass
+permissions, Don't ask, with the extension's descriptions), commands with `Section` "Slash Commands", and context numbers from
+the last main-thread assistant usage (input, cache, output) and the model's window and max output.
 
 ## OSC 133 marks
 
@@ -319,6 +453,103 @@ other plugin directories. Paths are quoted for the launcher’s shell. There is 
 prompt, marketplace registration, user-settings edit or background cache maintenance for this
 integration. Existing user-installed copies are not removed. Reports POST rather than emitting
 OSC 777, which unrelated terminals interpret as user notifications.
+
+## Chat mode (UI)
+
+### Upstream chat mapping
+
+The chat view follows ThinkRail's web chat (`apps/web/src/chat`) in layout and vocabulary, over Claude Code's contract and a drawn, virtualized list. Left out on purpose: Pi-specific parts (provider switching, remote model catalogs, extension UI dialogs, templates and slots, review packages) and anything that needs data `ChatContract` lacks.
+
+| Upstream | Here | Notes |
+| --- | --- | --- |
+| `Composer.tsx` footer | `ChatView.Composer.cs`: a bordered shell, the input over a footer row | pickers (model, effort, permission mode), attach and Skills at the left, session stats between, working time, history, Stop, Queue/Send and its menu at the right; cwd, MCP and IDE chips under the shell. Narrow, Skills and stats give way and Send is an arrow |
+| IME care, `recentPrompts`, send options | a key the input method handles (`ImeProcessed`) never sends; Enter sends (or Ctrl/Cmd+Enter, a stored option); Up and Down walk this chat's prompts then earlier chats' (30 kept, client-local) | the send menu offers Queue and Stop and send; there is no mid-turn steering, so no steer option |
+| `promptImages`, `imageAttachment` | image attachments show a thumbnail chip decoded off the UI thread; paste and drop add files and images | |
+| `ModelEffortPicker`, `ModelSelector`, `ThinkingSelector`, `pickerGroups`, `modelVisibility`, `modelPicker`, `useModelPreferences` | `ChatView.Pickers.cs` and `ModelPicks`: a searchable list (upstream's fuzzy score) with Favorites, Recent and families as groups, a star and a hide control per model, hidden models behind a toggle, arrow keys and Enter; effort levels with the current one checked | the group is the host's provider when it names one, else the family; the thinking selector offers the levels the current model reports; a change under way (`ChatHeader.Pending`) shows on its chip; favourites, recents and hidden models are stored through the plugin's client-local preference, never in a project |
+| `SkillsButton`, `SkillsDialog` | Skills button listing `ChatHeader.Commands` whose source is a skill | picking inserts the command |
+| `QueueStrip` | strip above the composer listing the user items marked queued, each with Edit (inline, then Send) and Remove | `chatDequeue` and `chatEditQueued`; a message the CLI already took up stays and the strip says so; a remove push drops an item from the list, its group and its thread |
+| `SessionStatsBar`, `StreamIndicator`, context pie (`sv0`) | stats text, the context pie and "Working" with elapsed seconds (or the CLI's activity word) in the footer | from `ChatHeader.Usage` and `Activity`; a UI timer, no I/O |
+| `ChatHeader` | the title and a past-conversations flyout (a `Search sessions…` box over the host's sessions, newest first; `Loading sessions…`, `No sessions yet`, `No sessions found`); there is no New chat button, a new conversation comes from the `/` menu or Start work | the title is not editable: the contract has no rename; no Web tab, groups or archive |
+| `HistoryOverlay`, `useHistorySearch` | a full overlay: prompts first, Tab zooms to messages and a preview, arrows and Enter jump to the row, Esc closes | scoped to this chat; the contract has no wider search |
+| `rows.ts`, `turns.tsx`, `ActivityGroup`, `activityBreadcrumbs`, `ThinkingGroup` | `ChatTranscript` folds consecutive routine tools and thinking into one activity row with a breadcrumb; opened, tools nest under the thinking that led to them | a plain user message over 500 characters folds to a preview with Show more |
+| `ToolCard`, `tools/*` | drawn by `ChatRowLayout.Tool` from the words in `ToolCards`; see the tool call card row below | |
+| `planKit`, `planView` | plan card for `ExitPlanMode` in the request panel above the composer (and in the list as a tool card): the plan as selectable text, `Yes, and auto-accept`, `Yes, and manually approve edits`, `No, keep planning` / `Send feedback and keep planning`, and `Comment on selection`, which sends `ChatPlanComment(quote, comment)` | the plan is plain text in the panel, Markdown in the list card |
+| `SubagentTranscriptDialog`, `tools/subagent` | Task cards nest their thread and open it in a dialog (a second virtualized list) that stays live | |
+| `BackgroundCommandCompletion` | a finished shell, monitor or workflow task leaves a notice in the conversation | read from `ChatHeader.Tasks` transitions |
+| Skill invocation card | the Skill tool's card keeps the skill's name in its header and the request beneath | |
+| `Markdown`, `markdownBlocks`, `assistantLinks`, `FileChip`, `CopyButton` | drawn Markdown by block; web links only for http, https and mailto; `path[:line[:col]]` and `path#Lline` in links and code spans are file chips that open the file at the line through the editor API, refusing parent segments and paths outside the chat's directory; hover Copy on replies | |
+| `virtualRows`, `rowHeightEstimates`, `readingBand`, `scrollGeometry`, `useChatScroll` | `ChatList`: one drawn surface inside a scroll viewer, as the kit's trees draw; only the rows near the viewport are laid out and drawn, none owns a control | row heights are measured (kept by item, revision and width) or estimated by `ChatRowEstimates`, so the scrollbar is sized from guesses refined as rows come into view; the reading band (a line a tenth of the viewport, 48 to 80 pixels, below the top) names the row and offset into it that is put back when heights above change, rows are inserted or removed, the width changes or the tab is shown again; stick-to-bottom with jump to latest; item stubs expose a list of items to assistive technology |
+| text selection (the webview's native selection) | `ChatList` keeps a selection layer over the drawn rows: anchor and focus are a row id and a character offset into the row's selectable text (its text runs joined by a line break), so they survive virtualization, streaming growth and height changes; highlight is painted from `TextLayout` hit-test ranges with `Ui.TextSelection`; drag within and across rows with edge auto-scroll, double click a word, triple click a paragraph or line, Shift+click extends, Cmd/Ctrl+A selects the transcript, Cmd/Ctrl+C and a context menu Copy put the plain text on the clipboard; a link activates on release only when the pointer did not drag; rows far from the viewport are read in short slices for copy and are never kept | the plan card's `SelectableTextBlock` with Comment on selection sends `ChatPlanComment(quote, comment)` |
+| tool call card (3.2 to 3.5), thinking blocks (3.3) | `ToolCards` holds the words and `ChatRowLayout.Tool` draws them: a status dot (accent while pending, red for a failed call, warning for a denied one, green otherwise; drawn still, not blinking), a bold name and a monospace secondary text per tool as in the extension's table (Bash description else command; `Read basename (lines a-b)` or `(from line n)`; Edit and Write basename; `Glob pattern: "p"`; `Grep "p" (in path, glob: g, type: t)`; `<skill> skill`; `Update Todos`; `Web Fetch url`; `Web Search query`; `Edit Notebook Cell file:cell`; `Artifact path`; `Sent files`; `Agent: description`; MCP `<Server humanised> [<tool>]` with the first present of query, message, channel (as `#channel`), repo, url (hostname), path, title, search, text, cut with an ellipsis at 40 characters, 30 for text; `Claude in Chrome [Tool]`), a secondary line under it (Edit: added, removed or `Modified` from the line counts, `Edit failed`; Write: its line count while running, `Write succeeded`, `Write failed`; Glob, Grep and Search: `No matches found`, `1 line of output`, `N lines of output`; NotebookEdit status; `Fetched from url`; WebSearch `Allowed: .. \u00B7 Blocked: ..`), and, when the card is open, the IN and OUT rows: a label, then the text in a bordered box clipped to 60 pixels with a fade, which opens whole in a dialog titled `<Tool> tool input` or `output` (an output the wire cut is fetched first) when it is over 250 characters or three lines. The Agent card has IN (the prompt) only and `Open thread`; Read, Skill, Edit, Write, Grep, Glob, Search, WebFetch, WebSearch, Artifact and SendUserFile have no IN or OUT of their own (a failed call still shows its OUT); `ToolSearch` is never drawn; every other tool is the generic card with the input as indented JSON. A thinking block is collapsed, `Thinking...` with ` \u00B7 N tokens` while it streams, `Thought for Ns` (rounded seconds from `ChatThinkingItem.DurationMs`) after and `Thinking` when no duration is known (a transcript replay); one without text is a static label | the extension's `Edit` line for an equal count of added and removed lines is read as `Modified`; the header of a card is a single line, not clamped to two |
+| composer and chrome (4.1 to 4.9) | Shift+Tab (anywhere in the view) cycles `ChatHeader.PermissionModes` (the machine's own list when the host sent none), and the mode button's tooltip is `<description>. Click to change, or press Shift+Tab to cycle.`; the `/` menu groups entries under Context, Model, Customize, Settings, Slash Commands, Support and MCP servers in that order (a CLI command sits in its `ChatCommand.Section`, an unknown section follows Slash Commands, `No matching commands` when none match), with a `/` button titled `Show command menu (/)`; finished `@path`, `@"path with spaces"` and `#L10-20` mentions show as removable chips above the input; the context pie shows only with under 50% of the window left, its tooltip `N% of context remaining until auto-compact.` and a click sends `/compact`; the working word is `ChatHeader.Activity` with `...` (`Compacting...`); `ChatHeader.Banner` is a dismissible banner remembered by its key; Rewind opens a dialog titled `Rewind` that shows `Checking code changes…` from `chatRewindPreview`, then `N lines will be removed and M lines will be added across K files:` with the files and `Rewinding does not affect files edited manually or via bash.`, or `The code has not changed, so no code will be restored.`, with `Restore conversation` / `Restore code and conversation` and `Never mind`; the `Waiting for permission…` and `Waiting for your answer…` placeholders are the extension's; Esc interrupts a running turn from anywhere unless a request is waiting, a menu is open or the history overlay is | built-in menu actions are only Attach file…, Resume conversation, New conversation, Switch model… and View help docs (Customize and Settings are empty unless the host names them; omitted because SharpRail has no honest equivalent: Clear conversation and Export conversation, Rewind from the menu, Thinking, Toggle fast mode, Account & usage, MCP servers, Hooks, Permissions, Status, Sandbox, Memory, Instructions, Output styles, Manage plugins, Claude in Chrome, Claude Design, Bookmarks, General config, Focus view, Open Claude in Terminal, Sign out, Switch account, Mention file from this project); the pie's window is the context window less the output the model may reserve (at most 20,000 tokens) and a 13,000-token buffer, the extension's own constants (`Pf5` and `_v0` in its bundle); the stats bar with its five-cell context meter stays beside the pie; mentions are chips beside a plain-text input, not inside it; past conversations have no Web tab, groups or archive; wording that is not the extension's is listed under Neutral phrases below |
+| `AskUserQuestionCard`, `askState` | question panel above the composer for `ChatQuestionItem`: tabs for several questions, single and multi select, `Type your answer…`, `Submit answers` and `No` through `chatAnswerQuestion`, Esc declines; a single-select question where an option has `Preview` shows a side pane after a 150 ms hover (the Markdown, or `No preview for this option`); answered, the row in the list folds to the answers | the draft lives in the transcript, so it survives the row's replacement; a multi-select question never shows the pane |
+| permission request | one panel above the composer, first in first out, the list dimmed behind it: the extension's question per tool, `Yes` / `Yes, allow ...` / `No` answered with 1, 2, 3 or Enter, Left and Right choosing where the rule is saved, a reason box, Esc declines, an editable Bash command | the request leaves no row of its own; the tool's card stays in the list |
+| failure, compaction, retry and restart notices | by `ChatNoticeItem.Category`: a failure card with Try again (the last prompt sent again) when retryable, a rule for compaction, quiet lines for retry and restart | |
+| `RequestReviewCard` | a review tool's verdict (tool name ending `request_review`, a JSON output with `verdict`, `itemTitle` and `findings`) reads as a summary line and the findings | the other SharpRail review cards (`ResolveCommentCard`, `SpecToolCard`) are ordinary tool cards: their results are not shaped for it in a chat's tool output |
+
+### Attachments and paste
+
+Paste belongs to the composer, not to its text box: Cmd/Ctrl+V, Shift+Insert and the box's own Paste take one road, which tries files, then an image (Avalonia's bitmap format, which reads PNG and, on macOS, TIFF), then text, and only text goes into the box. A box alone would ignore a clipboard that holds an image and no text. An image or PDF (pasted, dropped or picked) is read on the UI machine, capped at 5 MB with a message, shown as a chip with a thumbnail and a remove control, and sent in `ChatAttachment.Data` with its `MediaType`: the host turns it into a base64 `image` (or `document`) content block in the stream-json user message, refuses more than 8 MB, and keeps only the name in the transcript, so a host on another machine needs no path. Other files are `@path` mentions as before. Checked on the headless in-memory clipboard (key, Shift+Insert, files, text only, the size cap) and, host-side, by a fake CLI that asserts it received the image block; not checked against the real macOS pasteboard.
+
+### Composer layout
+
+The chat has no header of its own: no title row and no start banner, the list starts at the first row, and the tab carries the name; past conversations open from the `+` popup. The composer is one calm bubble over a plain footer. The shell is the only element with a border and a radius: a raised surface (`ChatPopup.Raised`, a step lighter than the page in every theme), radius 18, a soft `Ui.ControlBorder` border that turns `Ui.ControlBorderActive` while the input has focus, equal padding. The input sits on it with no border, fill or radius in any state (normal, hover, focus, disabled). Inside the box, above the input, are the content chips: the editor-selection chip, attachment chips and `@` mentions; at the right of the input are the working time, history search, the Queue chevron while a turn runs, and the round Stop and Send (an arrow-up glyph, primary when there is text; Stop replaces nothing but sits beside it while the turn runs; Queue is the chevron's menu). The round buttons are as tall as one line of input, so the shell's top, right and bottom insets around them are equal. Below the box, outside it, is one footer row of plain controls with only a `Ui.Hover` wash: at the left the `+` button (a warning dot when an MCP server is down) and the context pie; between them a quiet usage line with a tooltip naming each figure; at the right the model (normal tone) with the effort beside it (muted, shortened away when room runs short) and the mode (muted) as plain text with a small down arrow always shown; the model button's popup lists a flagship per family (the first the CLI lists), then Effort and More models, which open their lists in the same popup; then the chips the terminal shows: the advisor and Chrome the child was launched with (`ChatHeader.Advisor`, `Chrome`), the folder, the IDE context switch, attach and the environment chips (mise, direnv, JVM) other plugins offer through `TerminalAccessoryRegistration.ForWorkspace`. The `+` opens the shared popup with Past conversations, Skills, the command menu, the IDE context switch (checked when on) and the MCP servers. The usage popover names each figure instead of repeating the footer line. As the measured width shrinks the footer gives way in this order: the usage line goes, the values shorten (`default effort` is `default`, `Accept edits` is `edits`), the working time goes, history goes; the chips never go: when they do not fit on one line they wrap onto a second. A wider view relaxes the footer to a lower level only when that level fits with 28 pixels to spare and the view is 28 pixels wider than the width at which that level last failed to fit (a freshly rebuilt footer measures smaller than a settled one, so the measurement alone cannot be trusted), so dragging an edge back and forth over a boundary does not flip it. The editor-selection chip, shown while IDE context is on, reads `name, N lines` with `#Lstart-end` for a selection, `name: “quote…”` (full text in the tooltip) for text selected in a rendered preview that maps to no source lines (the editor event then carries `Mapped: false`; the terminal and Codex ignore such events), or the open file's name alone, lighter; it follows the selection live, its `×` leaves it out of the next prompt, and sending clears it; the prompt carries `@path#Lstart-end`, `@path`, or `@path` plus the quote as a block quote. The usage chip opens a popover with the tokens, cost, context meter and Compact now. When a paste finds nothing the box can use, a line under the input says `Nothing to paste. The clipboard has: <format names>` (or `... is empty.`); that wording is neutral, mine.
+
+### Command, mention and Skills menus
+
+One compact list for all three: as wide as the composer and never over 640 px, no taller than two fifths of the chat, one fixed-height row per entry (the name semibold in a 168 px column, the description after it, muted and ellipsized to one line; the whole text, argument hint included, is the tooltip and the accessible name), section titles as small muted caps labels with room above them, and a virtualizing list, so with hundreds of skills only the rows in view exist. Filtering is as you type and the keys are unchanged.
+
+### Chat zoom
+
+Each chat zooms by itself, like a terminal's font and unlike the page: Ctrl or Cmd with the wheel, a trackpad pinch (magnify), a touch pinch on Android, and Mod+=, Mod+- and Mod+0 while the chat has focus (the window's page-zoom chords stand aside for a focused chat through `ZoomChords`; anywhere else they zoom the page as before). The range is 60% to 250%, remembered per chat id in the `chat-zoom` preference, and the level shows briefly in a floating plate that moves nothing. The whole chat sits in a layout transform, so the list, panels, composer and dialogs-in-place reflow at the scaled width: row layouts are cached by item, revision and width, and the scale is carried by the width, so no cache needs a second key; row estimates and the reading band, selection and hit rectangles work in the chat's own units. The popups (menus, flyouts) are outside the transform and keep the page's size.
+
+### Resizing and page zoom
+
+A change of the list's width (the page zoom steps the width) drops nothing: layouts are keyed by item, revision and width, so those at the old width stop matching and are trimmed after the next draw. The rows in and near the viewport are laid out once, in the measure that sees the new width, so the first frame at that width already has true heights and the settling pass has nothing to correct; the reading band puts the row being read back in the same pass. The footer is fitted once per frame, not once per size step. Checked by counting layouts built and settling passes across zoom steps over 20,000 rows, and that the surface object and the row being read survive each step; whether it looks calmer on screen has not been judged.
+
+### Picking an answer
+
+A pick in the question panel repaints in place: the option marks (fixed-size, same border and inset chosen or not, selection by colour only), the tab ticks and Submit's enabled state change, and the panel, the transcript rows and the list's layouts are untouched. The draft lives in the transcript but a pending question draws nothing in the list, so storing it replaces no row; a row that draws nothing is estimated at zero height, so replacing one never shifts the rows around it. Only switching tab, folding the panel or a new request rebuilds the panel.
+
+### Past conversations
+
+The flyout lists the host's sessions newest first under Today, Yesterday, Previous 7 days and Older (local calendar days), one fixed-height line each: the title ellipsized, small markers (`this chat`, `open in another tab`, and `chat` when a SharpRail chat started the session), and a quiet right-aligned time (`5m ago`, `3h ago`, `Yesterday`, `3d ago`, then `Sep 25` or `Sep 25, 2025`) with the full local date and time in the tooltip. It is bounded like the command menu and virtualized. One session has one child: `ChatSessionInfo.ChatId` names the chat of the workspace that runs a session, choosing such a session focuses that tab, choosing this chat's own does nothing, and `chatOpen` refuses a resume of a session another chat of the workspace runs (`That conversation is already open in another tab (chat <id>).`). `ChatSessionInfo.StartedIn` is `chat` when the host has a chat record for the session; it cannot say where any other session began, so a terminal session carries no label.
+
+### Hover and focus in the drawn list
+
+Every click target in a drawn row (Rewind, Fork, links and file chips, Show more and Show less, tool and thinking headers, Open thread, Open diff, Load full output, the open-in-full boxes, Retry) is found by its hit rectangle, with no control per row: under the pointer it gets a wash from `Ui.Hover` and an underline in the accent, and the surface a hand cursor; leaving clears both, and only the previous and the current target are repainted (as the hovered row is). From the keyboard, Tab and Shift+Tab walk the selected row's targets in reading order (whole-line toggles and the hover-only Rewind and Fork, unless the row is hovered, are skipped), the focused one wears an accent ring, and Enter or Space activates it; past the last one Tab leaves the list.
+
+### Chat UI semantics
+
+What is drawn per item kind (the extension's semantics, ThinkRail's look):
+
+- A human prompt is one bubble, clipped to about three lines with Show more and Show less; Copy, Fork and Rewind sit in a strip below it, shown on hover. A prompt that did not come from a human (a peer, channel or task notification) is a folded row; a queued one says `queued`; a prompt that ran ahead says `Ran at once, while Claude was working.`
+- An assistant reply is its Markdown by block, only the blocks near the viewport realized; Copy sits below it. Subagent traffic is not drawn in the main list; the Agent card opens it in a dialog.
+- A thinking block is a collapsed line (`Thinking...`, `Thought for Ns`, `Thinking`); consecutive routine tools and thinking fold into one activity row with a breadcrumb.
+- A tool call is the card described in the tool call row above; `ToolSearch` is never drawn and a result is never a row.
+- Notices are drawn by category: interrupts and meta lines italic, a failure as a card with Try again, compaction as a rule, retries and restarts as quiet lines.
+
+Selection and popups:
+
+- A selection highlights glyphs only: each line's highlight ends at its last glyph plus a 4 px newline cue, never at the box edge, and is clipped to the clip its text draws in, so text clipped away (the IN and OUT boxes clip at 60 px) is neither highlighted, selectable nor copied. No highlight is painted in gaps between blocks or rows, and an empty row draws none.
+- The past-conversations flyout lists two-line rows: the title ellipsized, then a muted subtitle of the relative time, the message count when the host sends it, and the markers (`this chat`, `open in another tab`, `chat`), which never clip (the title gives way). Rows have a hover and selected wash and a thin separator; date-bucket headers have extra space above.
+- Every popup of the chat (the pickers, the past-conversations flyout, the slash and @ menu, the Skills list, the send options, the usage popover, the question preview pane) is one visual system from `ChatPopup`: one surface (`Ui.Surface`, a step lighter than the page in the dark theme), `Ui.BorderBrush` border, radius 6 and the same 6 px padding on all four sides; lists, scroll viewers and rows inside have no fill of their own, the only fills being the `Ui.Hover` and `Ui.Selected` washes on the row (radius 4); rows inset 8 px, and the header label, bucket headers and row text share that left line while the search box and the rows' wash share the list's left edge; search placeholders use `Ui.Muted`; nothing extends past the container and long text ellipsizes inside its row. `--claude-chat-ui` checks this in both themes.
+- The model, effort and permission-mode pickers are one popup family (`ChatPopup`): a container from the Ui tokens, a small muted header (`Model`, `Effort`, `Permission mode`), rows of one height with a fixed check column that marks the current value without resizing the row, the Ui.Hover and Ui.Selected wash, one click or Enter chooses and closes, Esc closes. Permission-mode rows show the mode's description as a muted one-line second part (full text in the tooltip); the model picker keeps its search, Favorites and Recent sections, stars and hide control; effort levels are lowercase.
+
+What is drawn per panel: the request panel (permission, question, plan) above the composer; the queue strip; the composer with the mention chips, the footer (model, effort and mode pickers, attach, Skills, the `/` button, the context pie, stats, history, Stop, Queue or Send) and the facts line (cwd, MCP, IDE) under it; a status banner for starting, failed or exited, and the host's dismissible banner; the task strip; the history overlay; the past-conversations flyout; the Rewind and full-text dialogs.
+
+Left out on purpose, with the reason:
+
+- Focus view: a setting that is off by default and replaces the transcript with a summary list; the list here is already virtualized and grouped.
+- Ratings and bookmarks on replies: they report to the vendor and persist to a store the contract has no place for.
+- The Web (remote sessions) tab, session groups and archive: they need claude.ai accounts and state SharpRail does not hold.
+- Mentions as chips inside the input: the input is a plain text box; finished mentions show as removable chips above it instead.
+- Built-in slash actions SharpRail cannot honestly do: Clear conversation, Export conversation, Rewind from the menu, Thinking, Toggle fast mode, Account & usage, MCP servers, Hooks, Permissions, Status, Sandbox, Memory, Instructions, Output styles, Manage plugins, Claude in Chrome, Claude Design, Bookmarks, General config, Focus view, Open Claude in Terminal, Sign out, Switch account and Mention file from this project. The menu offers Attach file…, Resume conversation, New conversation, Switch model… and View help docs.
+- Side questions, the browser and terminal collaborators, pasted-content tokens and the per-row timestamps.
+
+Neutral phrases made up here (checked against the webview spec and its bundle; the extension's own wording is used wherever it exists there): `The code cannot be restored to this point.` (a refusal without a reason), `Couldn't check the code: …`, `Couldn't list sessions: …`, `Working · Ns` (the extension's visible busy word was not found; its screen-reader strings are `Claude is working.` and `Compacting conversation.`), the Rewind dialog's title `Rewind`, `Comment on selection`, `Open thread`, `Open diff: <path>`, `Load full output`, `Jump to latest`, `Send options`, `Stop and send`, `Queue`, `Thinking...` with `· N tokens` (the extension shows `Thinking…` in its activity line and the spec gives `Thinking...` for the block), `1 line` / `N lines` in the secondary lines (the spec writes `line(s)`), `Skills`, `attach file`. Recovered from the bundle and used as is: `No preview for this option`, `Checking code changes…`, `The code has not changed, so no code will be restored.`, `N lines will be removed and M lines will be added across K files:`, `Rewinding does not affect files edited manually or via bash.`, `Never mind`, `Restore conversation` and `Restore code and conversation` (the extension's third choice, `Restore code`, is not offered because `chatRewind` always drops the later turns), `Search sessions…`, `Loading sessions…`, `No sessions yet`, `No sessions found`, `Waiting for permission…`, `Waiting for your answer…`, `Open a new conversation in a new tab or the sidebar`, `Type your answer…`, `Submit answers`, `No, keep planning`, `Send feedback and keep planning`. Still unrecoverable: the extension's visible streaming word, its exact empty-state for a failed session list, and whether `Edit` shows `Modified` for an equal count of added and removed lines.
+
+Interface zoom at 150% is exercised in `--claude-chat-e2e` through the real Mod+= steps: the footer keeps the model chip, history and Send.
 
 ## Workflow skills
 

@@ -847,8 +847,12 @@ internal static class ClaudeCodeChecks
         string[] Launch(string preset, Action? choose = null)
         {
             File.Delete(log);
-            var before = Terminals();
             E2eWorkspace.Settle(550);
+            // The terminals the last run closed may still be asking whether to end a running process, and a tab that is still closing
+            // would leave before-and-after counts equal.
+            E2eWorkspace.Until(() => { app.ConfirmDialog("TerminalCloseBusyConfirm"); return Terminals() == 0; });
+            app.UntilDialogsGone("TerminalCloseBusyConfirm");
+            var before = Terminals();
             var button = (Button)Named(app.Window, "NewClaude").First(control => control.IsEffectivelyVisible);
             app.Click(button, freshGesture: false, mouseButton: MouseButton.Right);
             var menu = button.ContextMenu!;
@@ -865,7 +869,8 @@ internal static class ClaudeCodeChecks
             }
             else app.Click(items["ClaudeLaunch_" + preset], freshGesture: false);
             choose?.Invoke();
-            E2eWorkspace.Until(() => !menu.IsOpen && Terminals() == before + 1);
+            app.UntilDialogsGone();
+            E2eWorkspace.Until(() => { app.ConfirmDialog("TerminalCloseBusyConfirm"); return !menu.IsOpen && Terminals() == before + 1; });
             Require(app.Window.Layout.Tabs(app.Center).Any(tab => tab.Kind == "terminal"), "Claude starts in the launcher's own group.");
             E2eWorkspace.Until(() => File.Exists(log));
             var lines = File.ReadAllLines(log);

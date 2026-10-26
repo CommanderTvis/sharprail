@@ -736,6 +736,12 @@ to pi.
 | W22 | the UI-side twin of H18: contribute to and read agent launch contributions, so every launcher, start action and resume of an agent applies them (`AgentLaunch`, `AgentLaunchContributions`) | the agent plugins build their launch lines from their own settings alone |
 | W25 | prompt the user in every window with a notification carrying choices and an optional code-font value; it does not expire and comes down when disposed, dismissed or answered by a closing choice, disables its choices while one runs and shows a failure inline (`Prompt` with a `PluginPrompt`) | `Notify` is a one-line notice with no choices |
 | W26 | contribute an item to the context menu of a terminal tab (`TerminalTabAction` with a `TerminalTabActionRegistration`; the label callback names the terminal's item or `null` to hide it), and put text on the active window's clipboard with a notification (`CopyText`) | the tab menu is fixed; a plugin has no clipboard |
+| W27 | register the control for a document scheme the plugin owns (`Document` with a `PluginDocumentRegistration`), open its tabs in the editor area (`OpenDocumentAsync`), learn when a tab goes away (`Closed`), open a read-only diff of a file against proposed text that is not on disk (`OpenTextDiffAsync`), present an agent launcher's start without a terminal (`AgentLauncher.Open`), and ask for the accessory rows that offer themselves to a workspace without a terminal (`TerminalAccessoryRegistration.ForWorkspace`, `WorkspaceChips`) | a document is keyed by scheme and id and reads nothing from disk; the proposed-text diff is not a Git diff and is not restored with the layout |
+
+W27 has no counterpart in the fork. `PluginDocumentRegistration.Closed` runs once per document, on the UI thread, when its tab leaves the
+layout (closed by the user, its group removed, or its window closed); a plugin deactivation or a workspace switch that only unmounts the control
+does not run it. `AgentLauncher.Open` is consulted first by the Create-workspace and Project Home starts with the options the terminal command
+would have received; `false` falls back to the terminal command, so a launcher without it behaves exactly as before.
 
 W24 has no counterpart in the fork. Core's `PluginHeaderItems` follows the registry like a slot, so a disabled plugin leaves
 no item; the item hides itself while it has nothing to show and reads its data from the plugin's channels. A compact

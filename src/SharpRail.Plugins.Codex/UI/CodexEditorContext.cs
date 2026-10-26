@@ -45,7 +45,7 @@ public static class CodexEditorContext
             switch (change)
             {
                 case EditorSelectionEvent selected:
-                    selections[selected.Editor.Id] = selected.Selection;
+                    selections[selected.Editor.Id] = selected.Selection is { Mapped: false } ? null : selected.Selection;
                     activeEditors[selected.Editor.WorkspaceId] = selected.Editor;
                     break;
                 case EditorLifecycleEvent { Lifecycle: EditorLifecycle.Closed } closed:

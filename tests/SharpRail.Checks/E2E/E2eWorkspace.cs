@@ -272,6 +272,26 @@ internal sealed class E2eWorkspace : IDisposable
         Until(() => node.Expanded && node.Children.All(item => item.Tag is ProjectFile));
     }
 
+    /// <summary>
+    /// Waits until no dialog is open and the dim behind it is gone. A dialog dims the workbench when it opens and lifts the dim when its
+    /// window has closed, which lands after the code that closed it has moved on; a click made in between hits the full-window scrim.
+    /// A terminal's close confirmation, which appears after the busy check of a terminal a check just closed, is answered with
+    /// <paramref name="confirmButton"/> when one is named.
+    /// </summary>
+    internal void UntilDialogsGone(string? confirmButton = null) => Until(() =>
+    {
+        ConfirmDialog(confirmButton);
+        return Window.OwnedWindows.Count == 0 && !Find<Grid>("WorkbenchRoot").Children.OfType<Border>().Any(border => ReferenceEquals(border.Background, Ui.Overlay));
+    });
+
+    /// <summary>Presses the named button of an open dialog, if one is showing it.</summary>
+    internal void ConfirmDialog(string? confirmButton)
+    {
+        if (confirmButton is not null && Window.OwnedWindows.OfType<Window>().SelectMany(dialog => dialog.GetLogicalDescendants().OfType<Button>())
+                .FirstOrDefault(button => button.Name == confirmButton && button.IsEffectivelyVisible) is { } confirm)
+            Click(confirm, freshGesture: false);
+    }
+
     internal Control Click(Control control, bool twice = false, bool freshGesture = true, MouseButton mouseButton = MouseButton.Left)
     {
         var name = control.Name;
@@ -317,7 +337,7 @@ internal sealed class E2eWorkspace : IDisposable
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         var hit = input.InputHitTest(point) as Control;
         Require(hit is not null && (ReferenceEquals(hit, control) || hit.GetVisualAncestors().Contains(control)),
-            $"E2E target {control.Name ?? control.GetType().Name} ({control.Bounds}) is occluded at {point} by {hit?.GetType().Name}/{hit?.Name}; ancestors: {string.Join(",", hit?.GetVisualAncestors().OfType<Control>().Select(item => item.GetType().Name + "/" + item.Name) ?? [])}.");
+            $"E2E target {control.Name ?? control.GetType().Name} ({control.Bounds}) is occluded at {point} by {hit?.GetType().Name}/{hit?.Name} ({hit?.Bounds}, classes {hit?.Classes}, background {(hit as Border)?.Background}/{(hit as Border)?.Background == Ui.Overlay}, z {hit?.ZIndex}, row span {(hit is null ? 0 : Grid.GetRowSpan(hit))}, owned windows {string.Join("|", Window.OwnedWindows.Select(owned => owned.GetType().Name + "/" + owned.Title + "/" + owned.Tag))}, in {hit?.Parent?.GetType().Name}/{(hit?.Parent as Control)?.Name}); ancestors: {string.Join(",", hit?.GetVisualAncestors().OfType<Control>().Select(item => item.GetType().Name + "/" + item.Name) ?? [])}.");
         if (twice)
         {
             // Avalonia counts a double click from the timestamps of the raw presses, and the first release runs the tab or row's whole open

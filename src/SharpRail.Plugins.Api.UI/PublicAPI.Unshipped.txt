@@ -266,6 +266,8 @@ SharpRail.Plugins.Api.UI.EditorSelection.EndColumn.init -> void
 SharpRail.Plugins.Api.UI.EditorSelection.EndLine.get -> int
 SharpRail.Plugins.Api.UI.EditorSelection.EndLine.init -> void
 SharpRail.Plugins.Api.UI.EditorSelection.Equals(SharpRail.Plugins.Api.UI.EditorSelection? other) -> bool
+SharpRail.Plugins.Api.UI.EditorSelection.Mapped.get -> bool
+SharpRail.Plugins.Api.UI.EditorSelection.Mapped.init -> void
 SharpRail.Plugins.Api.UI.EditorSelection.StartColumn.get -> int
 SharpRail.Plugins.Api.UI.EditorSelection.StartColumn.init -> void
 SharpRail.Plugins.Api.UI.EditorSelection.StartLine.get -> int
@@ -810,3 +812,45 @@ SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.Run.init -> void
 SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.TerminalTabActionRegistration(string! Id, System.Func<SharpRail.Plugins.Api.UI.TerminalTabRef!, string?>! Label, System.Action<SharpRail.Plugins.Api.UI.TerminalTabRef!>! Run) -> void
 static SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.operator !=(SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? left, SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? right) -> bool
 static SharpRail.Plugins.Api.UI.TerminalTabActionRegistration.operator ==(SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? left, SharpRail.Plugins.Api.UI.TerminalTabActionRegistration? right) -> bool
+override SharpRail.Plugins.Api.UI.PluginDocumentProps.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.PluginDocumentProps.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.PluginDocumentProps.ToString() -> string!
+override SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.PluginDocumentRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.PluginDocumentRegistration.ToString() -> string!
+SharpRail.Plugins.Api.UI.IPluginUIContext.Document(SharpRail.Plugins.Api.UI.PluginDocumentRegistration! registration) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.OpenDocumentAsync(string! workspaceId, string! scheme, string! id, string! title) -> System.Threading.Tasks.ValueTask
+SharpRail.Plugins.Api.UI.PluginDocumentProps
+SharpRail.Plugins.Api.UI.PluginDocumentProps.<Clone>$() -> SharpRail.Plugins.Api.UI.PluginDocumentProps!
+SharpRail.Plugins.Api.UI.PluginDocumentProps.Deconstruct(out string! WorkspaceId, out string! Id, out string! Title) -> void
+SharpRail.Plugins.Api.UI.PluginDocumentProps.Equals(SharpRail.Plugins.Api.UI.PluginDocumentProps? other) -> bool
+SharpRail.Plugins.Api.UI.PluginDocumentProps.Id.get -> string!
+SharpRail.Plugins.Api.UI.PluginDocumentProps.Id.init -> void
+SharpRail.Plugins.Api.UI.PluginDocumentProps.PluginDocumentProps(string! WorkspaceId, string! Id, string! Title) -> void
+SharpRail.Plugins.Api.UI.PluginDocumentProps.Title.get -> string!
+SharpRail.Plugins.Api.UI.PluginDocumentProps.Title.init -> void
+SharpRail.Plugins.Api.UI.PluginDocumentProps.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.UI.PluginDocumentProps.WorkspaceId.init -> void
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.PluginDocumentRegistration!
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Create.get -> System.Func<SharpRail.Plugins.Api.UI.PluginDocumentProps!, Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Deconstruct(out string! Scheme, out System.Func<SharpRail.Plugins.Api.UI.PluginDocumentProps!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Equals(SharpRail.Plugins.Api.UI.PluginDocumentRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Icon.get -> string?
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Icon.init -> void
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.PluginDocumentRegistration(string! Scheme, System.Func<SharpRail.Plugins.Api.UI.PluginDocumentProps!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Scheme.get -> string!
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Scheme.init -> void
+static SharpRail.Plugins.Api.UI.PluginDocumentProps.operator !=(SharpRail.Plugins.Api.UI.PluginDocumentProps? left, SharpRail.Plugins.Api.UI.PluginDocumentProps? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginDocumentProps.operator ==(SharpRail.Plugins.Api.UI.PluginDocumentProps? left, SharpRail.Plugins.Api.UI.PluginDocumentProps? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginDocumentRegistration.operator !=(SharpRail.Plugins.Api.UI.PluginDocumentRegistration? left, SharpRail.Plugins.Api.UI.PluginDocumentRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginDocumentRegistration.operator ==(SharpRail.Plugins.Api.UI.PluginDocumentRegistration? left, SharpRail.Plugins.Api.UI.PluginDocumentRegistration? right) -> bool
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Closed.get -> System.Action<SharpRail.Plugins.Api.UI.PluginDocumentProps!>?
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Closed.init -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.Open.get -> System.Func<string!, SharpRail.Plugins.Api.UI.LauncherCommandOptions!, System.Threading.Tasks.ValueTask<bool>>?
+SharpRail.Plugins.Api.UI.AgentLauncher.Open.init -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.OpenTextDiffAsync(string! workspaceId, string! path, string! newContent) -> System.Threading.Tasks.ValueTask
+SharpRail.Plugins.Api.UI.IPluginUIContext.WorkspaceChips(string! workspaceId) -> System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.ForWorkspace.get -> System.Func<string!, Avalonia.Controls.Control!>?
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.ForWorkspace.init -> void

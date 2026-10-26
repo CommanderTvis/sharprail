@@ -14,6 +14,11 @@
   <Style Selector="ListBox.drawn-tree ListBoxItem:selected /template/ ContentPresenter">
     <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
   </Style>
+  <!-- Fluent fills a selected list or combo row with the accent and keeps light text of its own, unreadable on it; selection is the theme's neutral selected fill. -->
+  <Style Selector="ListBoxItem:selected /template/ ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter, ListBoxItem:selected:pressed /template/ ContentPresenter, ComboBoxItem:selected /template/ ContentPresenter, ComboBoxItem:selected:pointerover /template/ ContentPresenter, ComboBoxItem:selected:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{x:Static kit:Ui.Selected}" />
+    <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+  </Style>
   <Style Selector="Button, ToggleButton, CheckBox">
     <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
     <Setter Property="CornerRadius" Value="4" />
@@ -154,7 +159,7 @@
     <Setter Property="Foreground" Value="{x:Static kit:Ui.ControlDisabledText}" />
   </Style>
   <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{x:Static kit:Ui.PrimaryDisabledFill}" />
+    <Setter Property="Background" Value="{x:Static kit:Ui.ControlDisabledFill}" />
     <Setter Property="Foreground" Value="{x:Static kit:Ui.ControlDisabledText}" />
   </Style>
   <Style Selector="ToggleButton:checked:disabled /template/ ContentPresenter#PART_ContentPresenter">

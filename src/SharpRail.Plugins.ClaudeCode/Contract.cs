@@ -340,6 +340,8 @@ public sealed record ClaudeCodeSettings
     public string Advisor { get; init; } = "";
     /// <summary>Adds <c>--chrome</c> to every SharpRail launch; off adds nothing, so the CLI's own Chrome setting applies.</summary>
     public bool Chrome { get; init; }
+    /// <summary>How a SharpRail launch is presented: the CLI's terminal UI, or the chat view driven over stream-json.</summary>
+    public ClaudeCodeMode Mode { get; init; }
 }
 
 public sealed record WorkspaceParams(string WorkspaceId)
@@ -469,9 +471,9 @@ public static class ClaudeCodeContract
     /// <summary>A project's <c>.sharprail/instructions.toml</c> changed; open instruction views re-read their sections.</summary>
     public static readonly PluginChannel<InstructionSectionsChanged> InstructionsChanged = PluginChannel<InstructionSectionsChanged>.Event("instructionsChanged");
 
-    public static readonly PluginContract Contract = PluginContract.Create<ClaudeCodeSettings>(Id, 2,
-        [ConfigGet, Account, SystemPromptGet, InstructionsList, InstructionsSet, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
+    public static readonly PluginContract Contract = PluginContract.Create<ClaudeCodeSettings>(Id, 3,
+        [.. ChatContract.Methods, ConfigGet, Account, SystemPromptGet, InstructionsList, InstructionsSet, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
             MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, ModelListGet, ModelListPut, PermissionModesGet, SelectionChanged, DocumentClosed,
             AtMention, ActionReply, StatusSnapshot, ContextUsageGet],
-        [Status, IdeAction, ContextUsage, InstructionsChanged]);
+        [Status, IdeAction, ContextUsage, InstructionsChanged, ChatContract.Updates]);
 }

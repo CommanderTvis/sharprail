@@ -578,3 +578,8 @@ static SharpRail.Plugins.UI.Kit.MenuFill.FillBeforeOpening<T>(Avalonia.Controls.
 static SharpRail.Plugins.UI.Kit.MenuFill.Open(Avalonia.Controls.ContextMenu! menu, Avalonia.Controls.Control! target) -> void
 SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Svg.get -> string?
 SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Svg.init -> void
+SharpRail.Plugins.UI.Kit.ZoomChords
+static SharpRail.Plugins.UI.Kit.ZoomChords.FocusOwned(Avalonia.Controls.TopLevel? top) -> bool
+static SharpRail.Plugins.UI.Kit.ZoomChords.GetOwns(Avalonia.Controls.Control! control) -> bool
+static SharpRail.Plugins.UI.Kit.ZoomChords.SetOwns(Avalonia.Controls.Control! control, bool value) -> void
+static readonly SharpRail.Plugins.UI.Kit.ZoomChords.OwnsProperty -> Avalonia.AttachedProperty<bool>!

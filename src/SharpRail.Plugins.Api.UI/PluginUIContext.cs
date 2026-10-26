@@ -142,6 +142,26 @@ public interface IPluginUIContext
     /// <param name="registration">The viewer.</param>
     void FileViewer(FileViewerRegistration registration);
 
+    /// <summary>Registers the control for the plugin's own document scheme (W27).</summary>
+    /// <param name="registration">The document.</param>
+    void Document(PluginDocumentRegistration registration);
+
+    /// <summary>Opens, or focuses, the plugin's document of that scheme and id in the editor area of the workspace's window.</summary>
+    /// <param name="workspaceId">The workspace.</param>
+    /// <param name="scheme">A scheme this plugin registered.</param>
+    /// <param name="id">The document's id; opening the same id again focuses its tab.</param>
+    /// <param name="title">The tab's title.</param>
+    ValueTask OpenDocumentAsync(string workspaceId, string scheme, string id, string title);
+
+    /// <summary>
+    /// Opens a diff of a workspace file's current contents against proposed text, for a change that is not on disk yet.
+    /// The file need not be modified, or exist; the tab is read-only and nothing is written.
+    /// </summary>
+    /// <param name="workspaceId">The workspace.</param>
+    /// <param name="path">The workspace-relative path (an absolute path inside the workspace is made relative).</param>
+    /// <param name="newContent">The proposed contents of the whole file.</param>
+    ValueTask OpenTextDiffAsync(string workspaceId, string path, string newContent);
+
     /// <summary>Registers a tab decorator (W8); decorators run in registration order and the first non-null result wins.</summary>
     /// <param name="decorate">Returns a decoration for a tab, or <see langword="null"/>.</param>
     void TabDecoration(Func<TabRef, TabDecoration?> decorate);
@@ -210,6 +230,11 @@ public interface IPluginUIContext
     /// <summary>Contributes a terminal accessory row (W11).</summary>
     /// <param name="registration">The accessory.</param>
     void TerminalAccessory(TerminalAccessoryRegistration registration);
+
+    /// <summary>The rows every plugin's terminal accessory offers for a workspace without a terminal (<see cref="TerminalAccessoryRegistration.ForWorkspace"/>), created now.</summary>
+    /// <param name="workspaceId">The workspace.</param>
+    /// <returns>One control per contributing plugin.</returns>
+    IReadOnlyList<Avalonia.Controls.Control> WorkspaceChips(string workspaceId);
 
     /// <summary>Editor operations and events (W12).</summary>
     IPluginEditors Editors { get; }

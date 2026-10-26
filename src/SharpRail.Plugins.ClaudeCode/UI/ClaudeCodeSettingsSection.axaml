@@ -26,6 +26,11 @@
       <TextBlock Text="A model alias or full model id. Leave blank to use Claude Code's default." />
     </StackPanel>
     <StackPanel Spacing="4">
+      <TextBlock Classes="heading" Text="Presentation" />
+      <ComboBox x:Name="ClaudeMode" HorizontalAlignment="Stretch" AutomationProperties.Name="Claude Code presentation" />
+      <TextBlock Text="Terminal runs Claude Code's own interface in a terminal tab. Chat drives it headless and shows the conversation in an editor tab; presets a chat cannot honour, such as teleport and custom arguments, still start the terminal." />
+    </StackPanel>
+    <StackPanel Spacing="4">
       <TextBlock Classes="heading" Text="Default effort" />
       <ComboBox x:Name="ClaudeDefaultEffort" HorizontalAlignment="Stretch" AutomationProperties.Name="Claude Code default effort" />
       <TextBlock Text="Applies to new SharpRail launches. Revived sessions restore their last used model and effort. Per-launch choices take precedence." />

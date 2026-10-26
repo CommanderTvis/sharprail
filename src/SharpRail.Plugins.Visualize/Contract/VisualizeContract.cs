@@ -10,7 +10,14 @@ namespace SharpRail.Plugins.Visualize;
 /// visualization card. <see cref="Revision"/> bumps on every rewrite: the same terminal calling again updates
 /// its view in place rather than opening a second one.
 /// </summary>
-public sealed record TerminalVisualization(string Title, JsonElement Args, int Revision);
+public sealed record TerminalVisualization(string Title, JsonElement Args, int Revision)
+{
+    /// <summary>
+    /// Whether the caller was no live terminal (a chat's child, for one): the UI half shows such a drawing in a document
+    /// tab of its own instead of beside a terminal. A drawing adopted by a terminal is never detached.
+    /// </summary>
+    public bool Detached { get; init; }
+}
 
 // The snapshot method (get) and the channel it feeds share this exact shape: the app's state-channel hydration
 // passes a snapshot result straight through as the channel payload, and the channel's key needs workspaceId at

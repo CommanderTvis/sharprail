@@ -856,6 +856,15 @@ internal static class Program
             ClaudeCodeChecks.Emigrate(root);
             return;
         }
+        if (args.SequenceEqual(["--claude-chat-e2e"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ClaudeChatE2E.Run(root);
+            ClaudeChatE2E.StartWork(root);
+            Console.WriteLine("PASS Claude chat end-to-end checks");
+            return;
+        }
         if (args.SequenceEqual(["--claude-code"]))
         {
             ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
@@ -864,6 +873,21 @@ internal static class Program
             ClaudeCodeChecks.RunUi(root);
             ClaudeCodeChecks.Launcher(root);
             Console.WriteLine("PASS Claude Code checks");
+            return;
+        }
+        if (args.SequenceEqual(["--claude-chat-host"]))
+        {
+            ClaudeChatChecks.Run(root).GetAwaiter().GetResult();
+            Console.WriteLine("PASS Claude chat host checks");
+            return;
+        }
+        if (args.SequenceEqual(["--claude-chat-ui"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ClaudeChatUiChecks.Run();
+            ClaudeChatUiChecks.Launcher(root);
+            Console.WriteLine("PASS Claude chat UI checks");
             return;
         }
         if (args.SequenceEqual(["--terminal-signals"]))
@@ -1263,6 +1287,7 @@ internal static class Program
         Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("blueprint", () => BlueprintChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("claude-code", () => ClaudeCodeChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("claude-chat-host", () => ClaudeChatChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("DiscordChecks-RunHostAsync", () => DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult());
         Gate.Case("BranchGraphChecks-RunHostAsync", () => BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult());
         Gate.Case("VisualizeChecks-Host", () => VisualizeChecks.Host(root).GetAwaiter().GetResult());
@@ -1295,6 +1320,7 @@ internal static class Program
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));
         Gate.Case("claude-code-ui", () => ClaudeCodeChecks.RunUi(root));
         Gate.Case("workspace-emigrate", () => { if (!OperatingSystem.IsWindows()) ClaudeCodeChecks.Emigrate(root); });
+        Gate.Case("claude-chat-ui", () => { ClaudeChatUiChecks.Run(); ClaudeChatUiChecks.Launcher(root); });
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
         Gate.Case("epub-reader", () => EpubChecks.Run(root));

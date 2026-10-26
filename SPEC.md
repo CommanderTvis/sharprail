@@ -41,7 +41,8 @@ Keep the same C# host architecture and optimized open-world CoreCLR/R2R package.
 
 ## Non-goals
 
-AI chat is currently a non-goal: no chat tabs, composer, history, message
+AI chat is currently a non-goal except the Claude Code plugin's chat mode over
+stream-json (see its SPEC): no other chat tabs, composer, history, message
 rendering, agent or provider integration, and no chat-specific settings such as
 the chat line measure. Upstream behavior that exists only for chat, or only for
 Monaco internals rather than editing itself, is not ported; where chat shares a
@@ -328,7 +329,7 @@ Settings: Thinkrail dialog proportions and styling, live appearance, separate fi
 and Markdown line widths (draft inputs validated to 40–240 symbols and applied with
 Save or Enter), layout presets and limits,
 custom layout capture/reset and project preferences.
-No inactive controls pretending to configure out-of-scope providers or chat.
+No inactive controls pretending to configure out-of-scope providers or chat (Claude Code's chat mode excepted).
 
 Themes: the reference's bundled `*.theme.json` manifests (Dark, Light, High Contrast
 Dark, High Contrast Light) are copied unchanged into `Assets/Themes` and discovered

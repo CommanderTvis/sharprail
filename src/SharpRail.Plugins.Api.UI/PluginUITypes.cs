@@ -105,7 +105,11 @@ public sealed record EditorRef(string Id, string WorkspaceId, string Path, Edito
 /// <param name="EndLine">The last line.</param>
 /// <param name="EndColumn">The column after the last selected character.</param>
 /// <param name="Text">The selected text.</param>
-public sealed record EditorSelection(int StartLine, int StartColumn, int EndLine, int EndColumn, string Text);
+public sealed record EditorSelection(int StartLine, int StartColumn, int EndLine, int EndColumn, string Text)
+{
+    /// <summary>False when the lines and columns mean nothing, as for text selected in a rendered preview that maps to no source lines: only <see cref="Text"/> is known.</summary>
+    public bool Mapped { get; init; } = true;
+}
 
 /// <summary>What happened to an editor.</summary>
 public enum EditorLifecycle

@@ -6798,3 +6798,29 @@ mount's Git load now queues a reload instead of cancelling it. `--startup` then 
 ## 2026-10-24 — Browser Tailscale node
 
 The browser connect screen gains "Connect over Tailscale": a Go-to-WASM Tailscale v1.104.1 node (`src/SharpRail.Browser/Tailscale.Wasm`, `scripts/build-tailscale-wasm.sh`, 28.8 MB raw, 4.70 MB Brotli) served under `tailscale/` and fetched only after "Download Tailscale (~4.7 MB)", cached per build in Cache Storage, identity in IndexedDB. Pairing HTTP and WebSocket RPC dial through it (`StreamHttpHandler`, `RpcTransports.RegisterStreamTransport`). Verified: Release, browser and Android builds, format, `--tailscale`, `--transport`, `tailscale.mjs`, and headless Chromium against the real host (offer, download, cached reload with no second fetch, node reaching NeedsLogin with a real login URL, identity persisted). Unverified: real sign-in, pairing and RPC over a tailnet from a browser.
+## 2026-10-26 — Claude Code chat mode (branch claude-chat-mode)
+
+Claude Code can now run as a chat: the plugin's Mode setting (Terminal or Chat, Settings › Claude Code › Presentation)
+chooses how a SharpRail launch is shown. Chat mode spawns the CLI headless over stream-json and draws the conversation in a
+document tab of the editor area, built on a new plugin API for plugin-owned document tabs (W26: `Document`, `OpenDocumentAsync`,
+`Closed`, `OpenTextDiffAsync`, an optional `AgentLauncher.Open`). The semantics follow the official VS Code extension's chat
+(message origins, no per-turn result rows, permission and question panels above the composer, tool tables, compaction, queued
+prompts, rewind and fork), recovered from its bundle and recorded in the plugin SPEC.md; the look follows ThinkRail's chat.
+The list is drawn and virtualized (20,000 rows realize under 60), with its own height estimates, a reading band, text selection,
+hit-rect hover, per-chat zoom and an adaptive footer. Sessions revive from the transcript with `--resume`. Visualizations made from
+a chat open as their own editor tab. A chat child cannot reach the IDE bridge (probed against CLI 2.1.310 in `-p` mode), so diffs
+open from the tool input and the IDE context is an explicit attachment. Effort changes live through `apply_flag_settings`.
+
+Verification at tip a5ec58187 plus the Android and Browser constructor fix: whole-solution `scripts/mise run format` clean; a full
+no-incremental `dotnet build SharpRail.slnx -c Release` with 0 warnings and 0 errors; `scripts/mise run browser` and
+`scripts/mise run android` exit 0 without warnings; `--claude-chat-ui`, `--claude-chat-e2e`, `--claude-chat-host` and `--claude-code`
+pass; one run of every gated case except `WelcomeE2E` passed with 717 checks. `WelcomeE2E` times out in `InitialiseFromWelcome`
+on main itself (acf592d6e) and on this branch, so the argument-free suite is red for a reason that is not this branch. Two
+chat checks (footer density) failed only in full runs because they measured text widths that differ by process state; the
+last fix is test-only and its failure was not reproduced, so a repeat would mean it is not fixed.
+
+Not verified: nothing was seen in a real window (all rendering checks are headless renders); the real macOS pasteboard
+(image paste), a trackpad pinch, and whether the page-zoom and drag-resize flicker are gone; hover over links inside reply
+blocks; the popups inside their real popup hosts; `lsp_diagnostics` and discovery lookups were thin on several agent commits.
+Open gaps: the session list assertion in the host check is weak; the Edit card's "Modified" rule and the extension's visible
+streaming word are not recovered; the chat has no rename, cross-chat history or mid-turn steering because the contract has none.

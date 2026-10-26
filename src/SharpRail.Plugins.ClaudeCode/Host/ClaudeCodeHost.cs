@@ -36,6 +36,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
     private readonly InterruptWatch interrupts = new();
     private readonly TranscriptUsage usage = new();
     private IdeBridge.IdeBridge? bridge;
+    private Chat.ClaudeChatHost? chat;
     private AgentWatch? watch;
     private ContextUsageRunner? contextUsage;
     private FileSystemWatcher? claudeHomeWatch;
@@ -246,7 +247,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         }
         WritePrompt();
 
-        context.TerminalEnvironment(terminal =>
+        Dictionary<string, string> LaunchEnvironment(TerminalRef terminal)
         {
             // Plugins enabled or disabled since the last session change what the file says.
             WritePrompt();
@@ -279,7 +280,10 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             catch (InvalidOperationException) { }
             if (bridge?.Port is { } port) environment[IdeBridge.IdeBridge.SsePortVariable] = port.ToString(System.Globalization.CultureInfo.InvariantCulture);
             return environment;
-        });
+        }
+        context.TerminalEnvironment(LaunchEnvironment);
+        chat = new Chat.ClaudeChatHost(context, LaunchEnvironment, LoopbackRoot, PublishStatus, HookPluginDirectory);
+        chat.Register();
 
         watch = new AgentWatch(
             () => [.. context.Terminals().Where(terminal => terminal.Pid is not null)
@@ -471,8 +475,9 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         return ValueTask.FromResult(Text(200, "ok"));
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
+        if (chat is not null) await chat.DisposeAsync();
         watch?.Stop();
         claudeHomeWatch?.Dispose();
         contextUsage?.Dispose();
@@ -480,6 +485,5 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         bridge?.Stop();
         clientForWorkspace.Clear();
         claudePidOfTab.Clear();
-        return ValueTask.CompletedTask;
     }
 }

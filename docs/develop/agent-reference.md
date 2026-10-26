@@ -106,7 +106,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | Mode | Covers |
 | --- | --- |
 | `--plugins-settings` | Settings › Plugins with a long roster: virtualized, recycled cards; broadcasts update in place; toggles; every builtin plugin draws its icon. |
-| `--plugins`, `--codex`, `--codex-terminals`, `--omp`, `--claude-code`, `--specs`, `--branch-graph` | Plugin runtime and each builtin plugin. |
+| `--plugins`, `--codex`, `--codex-terminals`, `--omp`, `--claude-code`, `--claude-chat-ui`, `--claude-chat-host`, `--claude-chat-e2e`, `--specs`, `--branch-graph` | Plugin runtime and each builtin plugin. |
 | `--environment` | `Env` and its dependents (mise, direnv, Python, JavaScript, JVM) through the host's pipeline with fake `mise` and `direnv` on PATH: provider order, trust inherited only for identical configuration, token never forwarded, slow-tool budget and last-good fallback, and a real shell started with the result (`--case environment` in the gate). |
 | `--epub` | EPUB Reader plugin: generated EPUB 3 (nav) and EPUB 2 (NCX) conversion, disabled by default, enable then open, TOC jumps, in-book and external links, images and cover, scroll and paged modes (page count, next/previous, keys, clean page edges, resize keeps location), Find across chapters, theme contrast, remote-host parity, large-book UI stall budget. `--case epub-reader` runs it in the gate. |
 | `--lsp-narrow` | Code Intelligence rows and pane headers at 160–480px: one-line grid header aligned across rows, trimmed names, reachable actions, titles clear of buttons. |

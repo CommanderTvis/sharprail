@@ -20,10 +20,13 @@ internal sealed partial class VisualizationPane : Border
     private TerminalVisualization? shown;
     private int? reported;
     private string selected = "";
+    private readonly string? emptyText;
+    private bool started;
 
-    public VisualizationPane(IPluginUIContext context, VisualizeUI.Drawings drawings, CompanionHost host)
+    /// <param name="emptyText">What a document tab says while the store holds no drawing for its key; a companion never shows without one.</param>
+    public VisualizationPane(IPluginUIContext context, VisualizeUI.Drawings drawings, CompanionHost host, string? emptyText = null)
     {
-        this.context = context; this.drawings = drawings; this.host = host;
+        this.context = context; this.drawings = drawings; this.host = host; this.emptyText = emptyText;
         AvaloniaXamlLoader.Load(this);
         // A selection ends with a pointer release or a key (Select All); read it once the card has handled either.
         AddHandler(PointerReleasedEvent, (_, _) => Dispatcher.UIThread.Post(ReportSelection), RoutingStrategies.Bubble, handledEventsToo: true);
@@ -47,12 +50,15 @@ internal sealed partial class VisualizationPane : Border
     {
         // A publish for another tab of the workspace leaves this drawing, and its zoom, alone.
         var visualization = drawings.Get(host);
-        if (visualization?.Revision == shown?.Revision) return;
+        if (started && visualization?.Revision == shown?.Revision) return;
+        started = true;
         shown = visualization;
         reported = null;
         selected = "";
-        this.FindControl<ContentControl>("Drawing")!.Content = visualization is null ? null : VisualizationCard.Create(visualization.Args, interactive: true, error => Report(visualization.Revision, error));
+        this.FindControl<ContentControl>("Drawing")!.Content = visualization is null ? Placeholder() : VisualizationCard.Create(visualization.Args, interactive: true, error => Report(visualization.Revision, error));
     }
+
+    private TextBlock? Placeholder() => emptyText is null ? null : new TextBlock { Name = "VisualizationEmpty", Text = emptyText, Opacity = 0.6, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
 
     /// <summary>Tells the host what the user has selected, so the agent's visualize_read can act on "this node".</summary>
     internal void ReportSelection()

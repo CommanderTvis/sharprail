@@ -1,4 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+    <ClaudeProcessGroup>$(MSBuildProjectDirectory)/obj/$(Configuration)/native/$(NETCoreSdkRuntimeIdentifier)/$(RuntimeIdentifier)/sharprail-claude-process-group</ClaudeProcessGroup>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <ClaudeProcessGroupArch Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">x86_64</ClaudeProcessGroupArch>
+    <ClaudeProcessGroupArch Condition="'$(ClaudeProcessGroupArch)' == '' or '$(RuntimeIdentifier)' == 'osx-arm64'">arm64</ClaudeProcessGroupArch>
+    <ClaudeProcessGroupArch Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</ClaudeProcessGroupArch>
+    <ClaudeProcessGroupFlags>-arch $(ClaudeProcessGroupArch)</ClaudeProcessGroupFlags>
+  </PropertyGroup>
   <!-- The Claude Code plugin's host half. Its assets (the claude.svg mark and the bundled Claude
        hook plugin) are staged at plugins/claude-code/assets in every output that references it. The workflow skills
        have one source shared with Codex and are staged into the bundled plugin, where Claude Code discovers them. -->
@@ -9,4 +18,14 @@
     <Content Include="../assets/**" LinkBase="plugins/claude-code/assets" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../SharpRail.Plugins.Agent.Skills/**" LinkBase="plugins/claude-code/assets/marketplace/claude-plugin/skills" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- Chat mode starts its headless child behind the same tiny setsid launcher the Codex plugin uses (one C source), so
+       the child leads a process group that can be signalled whole. -->
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+    <None Include="$(ClaudeProcessGroup)" Link="sharprail-claude-process-group" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildClaudeProcessGroup" BeforeTargets="AssignTargetPaths" Condition="'$(OS)' != 'Windows_NT' and '$(DesignTimeBuild)' != 'true'"
+          Inputs="../../SharpRail.Plugins.Codex/Host/native/process-group.c" Outputs="$(ClaudeProcessGroup)">
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(ClaudeProcessGroup)'))" />
+    <Exec Command="cc $(ClaudeProcessGroupFlags) -O2 -Wall -Wextra -Werror &quot;$(MSBuildProjectDirectory)/../../SharpRail.Plugins.Codex/Host/native/process-group.c&quot; -o &quot;$(ClaudeProcessGroup)&quot;" />
+  </Target>
 </Project>

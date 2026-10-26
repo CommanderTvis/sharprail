@@ -32,6 +32,11 @@ public sealed partial class ConnectWindow : Window
     /// <summary>Raised once the host answered with the entered token.</summary>
     public event Action<HostEndpoint>? Connected;
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct ConnectWindow with its arguments.", true)]
+    public ConnectWindow() => throw new System.NotSupportedException("ConnectWindow needs its constructor arguments.");
+
     internal ConnectWindow(HostEndpoint? remembered, string? tailscaleStatePath = null, EmbeddedTailscaleNetwork? tailscaleNetwork = null)
     {
         this.tailscaleStatePath = tailscaleStatePath;

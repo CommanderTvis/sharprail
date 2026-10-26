@@ -15,7 +15,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     internal const string StateName = "visualizations";
 
     internal const string ToolDescription =
-        "Render a rich visualization in the SharpRail workbench, in a live view beside this terminal — " +
+        "Render a rich visualization in the SharpRail workbench, in a live view beside this terminal (in a Visualization tab when you run in a chat) — " +
         "instead of ASCII art or a plain markdown table. Four kinds, chosen by `type`: 'diagram' renders a " +
         "mermaid diagram (set `mermaid` to raw mermaid source of any kind — flowchart, sequenceDiagram, " +
         "classDiagram, stateDiagram, erDiagram, gantt); 'svg' renders hand-written SVG (set `svg` to a " +
@@ -59,14 +59,17 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     /// <summary>What a client reported for a revision: no error when it rendered.</summary>
     private sealed record Verdict(int Revision, string? Error);
     private Func<string, string, string?> sessionOf = (_, _) => null;
+    private Func<string, string, bool> isTerminal = (_, _) => true;
     private IPersistence persisted = new Nowhere();
 
-    internal void Connect(Action<VisualizationsChanged>? publisher, Func<string, string, string?>? sessionLookup, IPersistence? persistence = null)
+    /// <param name="terminalLookup">Whether a workspace and tab key name a live terminal; a caller that is none (a chat) gets a detached drawing. Unset, every caller is a terminal.</param>
+    internal void Connect(Action<VisualizationsChanged>? publisher, Func<string, string, string?>? sessionLookup, IPersistence? persistence = null, Func<string, string, bool>? terminalLookup = null)
     {
         lock (gate)
         {
             publish = publisher;
             sessionOf = sessionLookup ?? ((_, _) => null);
+            isTerminal = terminalLookup ?? ((_, _) => true);
             if (persistence is not null) persisted = persistence;
         }
     }
@@ -179,6 +182,8 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
                 return null;
             }
             if (current is not null && current.Revision >= stored.Revision) return null;
+            // Whatever tab adopts a drawing is a terminal.
+            if (stored.Detached) stored = stored with { Detached = false };
             byTerminal[(workspaceId, tabKey)] = stored;
             publish?.Invoke(Snapshot(workspaceId));
             return stored;
@@ -212,13 +217,13 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
         }
     }
 
-    internal TerminalVisualization Record(string workspaceId, string tabKey, VisualizeParams parameters)
+    internal TerminalVisualization Record(string workspaceId, string tabKey, VisualizeParams parameters, bool detached = false)
     {
         lock (gate)
         {
             var revision = (byTerminal.GetValueOrDefault((workspaceId, tabKey))?.Revision ?? 0) + 1;
             var title = string.IsNullOrEmpty(parameters.Title) ? parameters.Type switch { VisualizationType.Comparison => "Comparison", VisualizationType.Svg => "SVG", VisualizationType.Markdown => "Markdown", _ => "Diagram" } : parameters.Title;
-            var visualization = new TerminalVisualization(title, JsonSerializer.SerializeToElement(parameters, PluginJson.Options), revision);
+            var visualization = new TerminalVisualization(title, JsonSerializer.SerializeToElement(parameters, PluginJson.Options), revision) { Detached = detached };
             byTerminal[(workspaceId, tabKey)] = visualization;
             if (sessionOf(workspaceId, tabKey) is { } sessionId) RememberForSession(workspaceId, sessionId, visualization);
             publish?.Invoke(Snapshot(workspaceId));
@@ -230,6 +235,8 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     internal async Task<PluginToolResult> RunTool(TerminalRef owner, VisualizeParams arguments, CancellationToken cancellationToken = default)
     {
         if (arguments.ShapeError() is { } shape) return new PluginToolResult(shape) { IsError = true };
+        // Asked of the host outside the gate: its terminal list has a lock of its own.
+        var detached = !isTerminal(owner.WorkspaceId, owner.TabKey);
         TerminalVisualization? previous;
         Verdict? previousVerdict;
         TerminalVisualization visualization;
@@ -240,7 +247,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
             previousVerdict = verdicts.GetValueOrDefault((owner.WorkspaceId, owner.TabKey));
             // An in-process client can report during publication; register its verdict before publishing.
             verdict = AwaitRenderVerdict(owner.WorkspaceId, owner.TabKey, (previous?.Revision ?? 0) + 1, cancellationToken);
-            visualization = Record(owner.WorkspaceId, owner.TabKey, arguments);
+            visualization = Record(owner.WorkspaceId, owner.TabKey, arguments, detached);
         }
         var failure = await verdict;
         if (failure is not null)
@@ -252,6 +259,6 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
             return new PluginToolResult($"The diagram did not render: {failure}\nFix the {(arguments.Type == VisualizationType.Svg ? "SVG" : "mermaid")} source and call visualize again.") { IsError = true };
         }
         lock (gate) rejected.Remove((owner.WorkspaceId, owner.TabKey));
-        return new PluginToolResult($"Rendered \"{visualization.Title}\" in SharpRail (revision {visualization.Revision}). Call visualize again to update it in place.");
+        return new PluginToolResult($"Rendered \"{visualization.Title}\" in {(visualization.Detached ? "a Visualization tab" : "SharpRail")} (revision {visualization.Revision}). Call visualize again to update it in place.");
     }
 }

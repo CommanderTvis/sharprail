@@ -1,5 +1,6 @@
 using SharpRail.Plugins.Agent.UI;
 using SharpRail.Plugins.Api.UI;
+using SharpRail.Plugins.ClaudeCode.UI.Chat;
 
 namespace SharpRail.Plugins.ClaudeCode.UI;
 
@@ -13,6 +14,8 @@ public sealed class ClaudeCodeUI : PluginUIModule
         var modelLists = new ModelListSource(async cancellationToken => await context.RequestAsync(ClaudeCodeContract.ModelListGet, new NoParams(), cancellationToken),
             async models => await context.RequestAsync(ClaudeCodeContract.ModelListPut, new ModelListPutParams(models)));
         var actions = new IdeActions(context);
+        var chat = new PluginChatClient(context);
+        var chatSelections = ChatDocuments.Register(context, chat);
         var hydrated = new HashSet<string>();
         var disposed = false;
         var status = context.Subscribe(ClaudeCodeContract.Status, push =>
@@ -68,9 +71,9 @@ public sealed class ClaudeCodeUI : PluginUIModule
                 contributions: context.AgentLaunchContributions("claude"), sessionId: ClaudeLaunch.NewSessionId(args),
                 permissionMode: settings.PermissionMode, advisor: settings.Advisor, chrome: settings.Chrome ? true : null);
         }, () => new(true))
-        { CreateIcon = glyph.Create, Models = () => [.. ClaudeLaunch.Models.Select(model => new LauncherModel(model.Id, model.Label, "asset:claude.svg"))] });
+        { CreateIcon = glyph.Create, Open = (workspace, options) => ChatLauncher.OpenFromLauncher(context, workspace, options), Models = () => [.. ClaudeLaunch.Models.Select(model => new LauncherModel(model.Id, model.Label, "asset:claude.svg"))] });
         context.WorkspaceAction(new WorkspaceScopedActionRegistration("claude-launch",
-            (workspace, group) => ClaudeLauncherAction.Create(context, glyph, workspace, group)));
+            (workspace, group) => ClaudeLauncherAction.Create(context, glyph, workspace, group, chat)));
         context.WatchHost(host => string.Join("\n", host.Terminals.SelectMany(pair =>
             pair.Value.Where(tab => tab.Agent?.Kind == "claude").Select(tab => pair.Key + "\t" + tab.TabKey))), (_, _) => context.Invalidate());
         context.FileAction(new("mention", target => ClaudeMention.Label(context, target), target => _ = ClaudeMention.SendAsync(context, target))
@@ -107,7 +110,7 @@ public sealed class ClaudeCodeUI : PluginUIModule
             {
                 if (editorEvent is EditorSelectionEvent selected)
                 {
-                    var selection = selected.Selection;
+                    var selection = selected.Selection is { Mapped: false } ? null : selected.Selection;
                     await context.RequestAsync(ClaudeCodeContract.SelectionChanged, new(selected.Editor.WorkspaceId,
                         selected.Editor.Path, selection?.Text ?? "", new(selection?.StartLine ?? 1, selection?.StartColumn ?? 1,
                             selection?.EndLine ?? 1, selection?.EndColumn ?? 1)));
@@ -121,7 +124,7 @@ public sealed class ClaudeCodeUI : PluginUIModule
             catch (Exception error) when (error is not OperationCanceledException) { }
         }
         var ide = context.Subscribe(ClaudeCodeContract.IdeAction, request => _ = actions.HandleAsync(request));
-        return () => { disposed = true; status.Dispose(); editors.Dispose(); ide.Dispose(); actions.Dispose(); };
+        return () => { disposed = true; status.Dispose(); editors.Dispose(); ide.Dispose(); actions.Dispose(); chatSelections.Dispose(); };
     }
 
     // Only live pushes ask: a hydrated snapshot row is where a session already stood, not something that just happened.

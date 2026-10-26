@@ -6,7 +6,7 @@ public static class ClaudeCodeManifest
 {
     public static readonly string ConfigTool = PluginIdentity.ToolId(ClaudeCodeContract.Id, "config");
 
-    public static readonly PluginManifest Manifest = new(ClaudeCodeContract.Id, "Claude Code", "asset:claude.svg", "0.2.0", PluginApi.Generation, 2)
+    public static readonly PluginManifest Manifest = new(ClaudeCodeContract.Id, "Claude Code", "asset:claude.svg", "0.2.0", PluginApi.Generation, 3)
     {
         Category = PluginCategories.Agents,
         Description = "Runs Claude Code in the terminal with an IDE bridge and live status.",

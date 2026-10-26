@@ -35,8 +35,9 @@ public enum PluginTables
     SlotSections = 1 << 15,
     HeaderItems = 1 << 16,
     TerminalTabActions = 1 << 17,
+    Documents = 1 << 18,
     Contributions = SideTools | SettingsSections | Companions | FileViewers | TabDecorators | Launchers | WorkspaceActions |
-        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections | HeaderItems | TerminalTabActions,
+        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections | HeaderItems | TerminalTabActions | Documents,
     // Registrations whose result a predicate decides; Invalidate re-evaluates them.
     Predicates = Companions | TabDecorators | Launchers | FileIconSlots | DocumentLinkSlots
 }
@@ -59,6 +60,7 @@ public sealed class PluginRegistry
     public IReadOnlyList<PluginRow<SettingsSectionRegistration>> SettingsSections { get; private set; } = [];
     public IReadOnlyList<PluginRow<CompanionRegistration>> Companions { get; private set; } = [];
     public IReadOnlyList<PluginFileViewer> FileViewers { get; private set; } = [];
+    public IReadOnlyList<PluginRow<PluginDocumentRegistration>> Documents { get; private set; } = [];
     public IReadOnlyList<PluginRow<Func<TabRef, TabDecoration?>>> TabDecorators { get; private set; } = [];
     public IReadOnlyList<PluginRow<AgentLauncher>> Launchers { get; private set; } = [];
     public IReadOnlyList<PluginRow<Func<string, AgentLaunchContribution?>>> LaunchContributors { get; private set; } = [];
@@ -105,6 +107,7 @@ public sealed class PluginRegistry
     public void AddSettingsSection(string pluginId, SettingsSectionRegistration value) { SettingsSections = [.. SettingsSections, new(pluginId, value)]; Raise(PluginTables.SettingsSections); }
     public void AddCompanion(string pluginId, CompanionRegistration value) { Companions = [.. Companions, new(pluginId, value)]; Raise(PluginTables.Companions); }
     public void AddFileViewer(string pluginId, FileViewerRegistration value, PluginFileRead read) { FileViewers = [.. FileViewers, new(pluginId, value, read)]; Raise(PluginTables.FileViewers); }
+    public void AddDocument(string pluginId, PluginDocumentRegistration value) { Documents = [.. Documents, new(pluginId, value)]; Raise(PluginTables.Documents); }
     public void AddTabDecorator(string pluginId, Func<TabRef, TabDecoration?> value) { TabDecorators = [.. TabDecorators, new(pluginId, value)]; Raise(PluginTables.TabDecorators); }
     public void AddWorkspaceAction(string pluginId, WorkspaceScopedActionRegistration value) { WorkspaceActions = [.. WorkspaceActions, new(pluginId, value)]; Raise(PluginTables.WorkspaceActions); }
     public void AddProjectAction(string pluginId, ProjectScopedActionRegistration value) { ProjectActions = [.. ProjectActions, new(pluginId, value)]; Raise(PluginTables.ProjectActions); }
@@ -153,6 +156,7 @@ public sealed class PluginRegistry
         SettingsSections = Drop(SettingsSections, row => row.PluginId, PluginTables.SettingsSections);
         Companions = Drop(Companions, row => row.PluginId, PluginTables.Companions);
         FileViewers = Drop(FileViewers, row => row.PluginId, PluginTables.FileViewers);
+        Documents = Drop(Documents, row => row.PluginId, PluginTables.Documents);
         TabDecorators = Drop(TabDecorators, row => row.PluginId, PluginTables.TabDecorators);
         Launchers = Drop(Launchers, row => row.PluginId, PluginTables.Launchers);
         LaunchContributors = Drop(LaunchContributors, row => row.PluginId, PluginTables.Predicates);
@@ -185,6 +189,9 @@ public sealed class PluginRegistry
         PluginIdentity.ParseToolId(toolId) is { } parsed
             ? SideTools.FirstOrDefault(row => row.PluginId == parsed.PluginId && row.Value.Tool == parsed.Tool)?.Value
             : null;
+
+    /// <summary>The live registration that owns a document scheme, or null while its plugin is off.</summary>
+    public PluginRow<PluginDocumentRegistration>? Document(string scheme) => Documents.FirstOrDefault(row => row.Value.Scheme == scheme);
 
     /// <summary>The first eligible viewer in registration order: its own predicate when it has one, else its manifest's declaration.</summary>
     public PluginFileViewer? FileViewer(string path) =>

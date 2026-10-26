@@ -18,7 +18,9 @@ public sealed class VisualizeHost : PluginHostModule
         Store.Connect(
             payload => context.Publish(VisualizeContract.Changed, payload),
             (workspaceId, tabKey) => context.AgentRecord(new TerminalRef(workspaceId, tabKey))?.SessionId,
-            new Persistence(context));
+            new Persistence(context),
+            // A chat's child holds a token but runs no terminal: its drawings open as a tab of their own.
+            (workspaceId, tabKey) => context.Terminals().Any(item => item.Terminal.WorkspaceId == workspaceId && item.Terminal.TabKey == tabKey));
 
         context.Method(VisualizeContract.Report, (report, _, _) =>
         {

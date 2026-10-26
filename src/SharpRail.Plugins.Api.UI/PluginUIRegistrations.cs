@@ -27,6 +27,29 @@ public sealed record FileViewerRegistration(Func<FileViewerProps, Control> Creat
     public Func<string, string, bool>? Open { get; init; }
 }
 
+/// <param name="WorkspaceId">The workspace the tab belongs to.</param>
+/// <param name="Id">The document's id within its scheme, as given to <see cref="IPluginUIContext.OpenDocumentAsync"/>.</param>
+/// <param name="Title">The tab's title when it was opened or restored.</param>
+public sealed record PluginDocumentProps(string WorkspaceId, string Id, string Title);
+
+/// <summary>
+/// Registers the control for tabs of one document scheme: documents that belong to the plugin rather than to a file,
+/// such as a conversation. They open in the editor area, restore with the workspace layout and are keyed by scheme and id.
+/// </summary>
+/// <param name="Scheme">The scheme this plugin owns, unique among plugins.</param>
+/// <param name="Create">Creates the document's control; a new control per tab, kept while the tab lives.</param>
+public sealed record PluginDocumentRegistration(string Scheme, Func<PluginDocumentProps, Control> Create)
+{
+    /// <summary>A Remix Icon name or <c>asset:&lt;path&gt;</c> for the tab; the generic document icon when unset.</summary>
+    public string? Icon { get; init; }
+
+    /// <summary>
+    /// Called on the UI thread, once per document, when its tab goes away: the user closed it, its group was removed or its
+    /// window closed. Not called when the plugin is deactivated or a workspace switch only unmounts the control.
+    /// </summary>
+    public Action<PluginDocumentProps>? Closed { get; init; }
+}
+
 /// <summary>Registers a section in Settings (W4).</summary>
 /// <param name="Label">Shown in the section list.</param>
 /// <param name="Icon">A Remix Icon name or <c>asset:&lt;path&gt;</c>.</param>
@@ -160,7 +183,14 @@ public sealed record TerminalTabActionRegistration(string Id, Func<TerminalTabRe
 
 /// <summary>Registers a row shown alongside every terminal (W11).</summary>
 /// <param name="Create">Creates the row for one terminal's accessory handle.</param>
-public sealed record TerminalAccessoryRegistration(Func<ITerminalAccessoryApi, Control> Create);
+public sealed record TerminalAccessoryRegistration(Func<ITerminalAccessoryApi, Control> Create)
+{
+    /// <summary>
+    /// Also shows the row beside an agent chat of a workspace, which has no terminal: creates it for the workspace id
+    /// (<see cref="IPluginUIContext.WorkspaceChips"/>). Null keeps the accessory to terminals.
+    /// </summary>
+    public Func<string, Control>? ForWorkspace { get; init; }
+}
 
 /// <summary>
 /// An agent an operator can start in a terminal (W9): offered when a workspace is created and wherever core
@@ -179,6 +209,13 @@ public sealed record AgentLauncher(string Id, string Label, string Icon, Func<La
 
     /// <summary>The models the launcher offers, read when its picker opens; <see langword="null"/> when it offers no choice.</summary>
     public Func<IReadOnlyList<LauncherModel>>? Models { get; init; }
+
+    /// <summary>
+    /// Starts the agent in the workspace without a terminal, for a plugin that presents it another way (a chat tab). Core's
+    /// Create-workspace and Project Home starts call it first, with the options the terminal command would have received;
+    /// return <see langword="true"/> when it started, <see langword="false"/> to fall back to <see cref="TerminalCommand"/>.
+    /// </summary>
+    public Func<string, LauncherCommandOptions, ValueTask<bool>>? Open { get; init; }
 }
 
 /// <summary>The named places in core's own pages where plugins may contribute a section (W23).</summary>

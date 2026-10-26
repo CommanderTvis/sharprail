@@ -423,6 +423,10 @@ public sealed partial class WorkbenchWindow
                     var opening = !choice.InProjectFolder && !string.IsNullOrWhiteSpace(choice.InitialPrompt)
                         ? choice.InitialPrompt + "\n\nFirst, if the task is clear, call the SharpRail `set_title` MCP tool (load it with ToolSearch if it is deferred) with a 3-6 word title; this names the workspace."
                         : choice.InitialPrompt;
+                    var unedited = string.IsNullOrWhiteSpace(command) || command == baseline;
+                    // A launcher that presents its agent without a terminal takes the start over unless the command was edited.
+                    if (unedited && launcher.Open is { } open && launchRequest == projectRequest && workspaceRoot == launchWorkspace && !atHome &&
+                        await open(launchWorkspace, new() { InitialPrompt = opening, Images = images })) return;
                     var generated = launcher.TerminalCommand(new() { InitialPrompt = opening, Images = images });
                     command = string.IsNullOrWhiteSpace(command) || command == baseline ? generated : command + (generated.StartsWith(baseline, StringComparison.Ordinal)
                         ? generated[baseline.Length..] : throw new InvalidOperationException("This launcher cannot attach a prompt to an edited command."));

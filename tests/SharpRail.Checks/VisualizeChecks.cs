@@ -172,6 +172,26 @@ internal static class VisualizeChecks
             store.Forget("w2");
             Require(store.Get("w2", "t1") is null && store.AdoptForSession("w2", "t3", "sess-2") is null, "A workspace's drawings are forgotten on disk as well as in memory.");
         }
+        {
+            // A caller that is no live terminal (a chat's child) gets a detached drawing and is told it is a tab; a terminal is told what it always was.
+            var store = new VisualizationStore(TimeSpan.FromMilliseconds(20));
+            store.Connect(null, (_, tab) => tab == "t1" ? "sess-3" : null, new Memory(), (_, tab) => tab == "t1");
+            var chat = new TerminalRef("w1", "chat-1");
+            var first = await store.RunTool(chat, Comparison("A"));
+            Require(store.Get("w1", "chat-1") is { Detached: true, Revision: 1 } &&
+                first.Text == "Rendered \"Comparison\" in a Visualization tab (revision 1). Call visualize again to update it in place.", "A chat's drawing is detached and the answer names the tab: " + first.Text);
+            var again = await store.RunTool(chat, Comparison("B"));
+            Require(store.Get("w1", "chat-1") is { Detached: true, Revision: 2 } && again.Text.Contains("(revision 2)", StringComparison.Ordinal), "A second call updates the same key.");
+            var terminal = await store.RunTool(new TerminalRef("w1", "t1"), Comparison("C"));
+            Require(store.Get("w1", "t1") is { Detached: false } && terminal.Text.StartsWith("Rendered \"Comparison\" in SharpRail (revision 1)", StringComparison.Ordinal),
+                "A terminal's drawing is not detached and its answer is unchanged: " + terminal.Text);
+            Require(store.ForWorkspace("w1").Visualizations.Keys.Order().SequenceEqual(["chat-1", "t1"]), "The snapshot carries both, the flag telling them apart.");
+            var other = new VisualizationStore(TimeSpan.FromMilliseconds(20));
+            other.Connect(null, (_, _) => "sess-4", new Memory(), (_, _) => false);
+            await other.RunTool(chat, Comparison("D"));
+            Require(other.AdoptForSession("w1", "t5", "sess-4") is { Detached: false } && other.Get("w1", "t5") is { Detached: false },
+                "A tab that adopts a chat's drawing is a terminal, so the drawing is shown beside it.");
+        }
     }
 
     // visualize_read: the caller's own view, as last drawn, with its verdict, last refusal and the user's selection.

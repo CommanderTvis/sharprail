@@ -17,6 +17,7 @@ public sealed partial class WorkbenchWindow
     private void PruneDocuments()
     {
         var live = LiveDocuments();
+        ClosePluginDocuments(live);
         deletedDocuments.RemoveWhere(key => !live.Contains(key));
         foreach (var key in documents.Keys.Where(key => !live.Contains(DocumentOwner(key))).ToArray())
         { documents.Remove(key); DropDocumentContent(key); }
@@ -27,6 +28,7 @@ public sealed partial class WorkbenchWindow
             if (documentContent[key] is Terminal.TerminalView terminal && !applyingTerminalCatalog && !undoableTerminalCloses.Contains(key)) terminal.Close();
             DropDocumentContent(key);
         }
+        foreach (var key in proposedDiffs.Keys.Where(key => !live.Contains(key)).ToArray()) proposedDiffs.Remove(key);
         foreach (var key in tabViews.Keys.Where(key => !live.Contains(DocumentOwner(key))).ToArray()) tabViews.Remove(key);
         foreach (var key in reviewStates.Keys.Where(key => !live.Contains(key)).ToArray()) reviewStates.Remove(key);
     }

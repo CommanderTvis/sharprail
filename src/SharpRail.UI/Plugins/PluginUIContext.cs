@@ -208,6 +208,8 @@ internal sealed class PluginUIContext : IPluginUIContext
     public void TabDecoration(Func<TabRef, TabDecoration?> decorate) { Guard(); Registry.AddTabDecorator(Id, decorate); }
     public void Launcher(AgentLauncher launcher) { Guard(); Registry.AddLauncher(Id, launcher); }
     public void TerminalAccessory(TerminalAccessoryRegistration registration) { Guard(); Registry.AddTerminalAccessory(Id, registration); }
+    public IReadOnlyList<Avalonia.Controls.Control> WorkspaceChips(string workspaceId) =>
+        [.. Registry.TerminalAccessories.Where(row => row.Value.ForWorkspace is not null).Select(row => WorkbenchWindow.Mount(row.PluginId, () => row.Value.ForWorkspace!(workspaceId)))];
     public void FileIconSlot(Func<string, FileIconKind, string?> resolver) { Guard(); Registry.AddFileIconSlot(Id, resolver); }
     public void DocumentLinkSlot(Func<string, string, string?> resolver) { Guard(); Registry.AddDocumentLinkSlot(Id, resolver); }
 
@@ -215,6 +217,25 @@ internal sealed class PluginUIContext : IPluginUIContext
     {
         Guard();
         Registry.AddFileViewer(Id, registration, entry.Contributes.FileViewers.FirstOrDefault()?.Read ?? PluginFileRead.Text);
+    }
+
+    public void Document(PluginDocumentRegistration registration)
+    {
+        Guard();
+        if (Registry.Document(registration.Scheme) is { } owner && owner.PluginId != Id)
+            throw new InvalidOperationException($"Document scheme '{registration.Scheme}' belongs to {owner.PluginId}.");
+        Registry.AddDocument(Id, registration);
+    }
+
+    public async ValueTask OpenDocumentAsync(string workspaceId, string scheme, string id, string title)
+    {
+        if (Registry.Document(scheme)?.PluginId != Id) throw new InvalidOperationException($"{Id} does not own document scheme '{scheme}'.");
+        if (Workbench.ActiveWindow is { } window) await window.OpenPluginDocumentAsync(workspaceId, scheme, id, title);
+    }
+
+    public async ValueTask OpenTextDiffAsync(string workspaceId, string path, string newContent)
+    {
+        if (Workbench.ActiveWindow is { } window) await window.OpenProposedDiffAsync(workspaceId, path, newContent);
     }
 
     public void FileAction(FileActionRegistration action) { Guard(); Registry.AddFileAction(Id, action); }

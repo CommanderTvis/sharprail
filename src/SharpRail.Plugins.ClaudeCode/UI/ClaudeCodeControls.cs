@@ -6,6 +6,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
 using SharpRail.Plugins.Api.UI;
+using SharpRail.Plugins.ClaudeCode.UI.Chat;
 using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.ClaudeCode.UI;
@@ -17,6 +18,7 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
     private readonly TextBox command;
     private readonly TextBox model;
     private readonly ComboBox effort;
+    private readonly ComboBox mode;
     private readonly ComboBox permissionMode;
     private readonly TextBlock permissionNote;
     private readonly ComboBox advisor;
@@ -31,6 +33,14 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         this.context = context;
         command = this.FindControl<TextBox>("ClaudeCommandInput")!;
         model = this.FindControl<TextBox>("ClaudeDefaultModel")!;
+        mode = this.FindControl<ComboBox>("ClaudeMode")!;
+        mode.Items.Add(new ComboBoxItem { Content = "Terminal", Tag = ClaudeCodeMode.Terminal });
+        mode.Items.Add(new ComboBoxItem { Content = "Chat", Tag = ClaudeCodeMode.Chat });
+        mode.SelectionChanged += (_, _) =>
+        {
+            if (mode.SelectedItem is ComboBoxItem { Tag: ClaudeCodeMode value })
+                Update(settings => settings with { Mode = value }, "Couldn't change how Claude Code is presented");
+        };
         effort = this.FindControl<ComboBox>("ClaudeDefaultEffort")!;
         effort.Items.Add(new ComboBoxItem { Content = "Use CLI default", Tag = "" });
         foreach (var level in EffortPicker.Levels) effort.Items.Add(new ComboBoxItem { Content = level, Tag = level });
@@ -92,6 +102,7 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         applying = true;
         command.Text = settings.Command;
         if (!model.IsFocused) model.Text = settings.Model;
+        mode.SelectedItem = mode.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.Mode));
         effort.SelectedItem = effort.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, settings.Effort ?? ""));
         if (!permissionMode.Items.OfType<ComboBoxItem>().Any(item => Equals(item.Tag, settings.PermissionMode)))
             FillPermissionModes(PermissionModeSource.Current, settings.PermissionMode);
@@ -180,13 +191,20 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
 /// </summary>
 internal static class ClaudeLauncherAction
 {
-    public static Control Create(IPluginUIContext context, ClaudeGlyph glyph, string workspaceId, string groupId)
+    public static Control Create(IPluginUIContext context, ClaudeGlyph glyph, string workspaceId, string groupId, IChatClient? chat = null)
     {
+        Control? anchor = null;
         // A null mode is the saved default; an empty one is Claude Code's own, so the flag is left off for this run.
         // Advisor: null is the saved one, empty none. Chrome: null follows the setting, a value overrides it for this run.
         void Launch(string args = "", string? mode = null, string? advisor = null, bool? chrome = null)
         {
             var settings = context.Settings<ClaudeCodeSettings>();
+            // Chat mode opens a conversation tab; presets a chat cannot honour (teleport, free-form flags) still start the terminal.
+            if (settings.Mode == ClaudeCodeMode.Chat && chat is not null && ChatLauncher.Handles(args))
+            {
+                _ = ChatLauncher.StartAsync(context, chat, workspaceId, args, mode ?? settings.PermissionMode, anchor!);
+                return;
+            }
             var started = ClaudeLaunch.SessionCommand(settings.Command, args, settings.DisableAgentView, settings.AppendSystemPrompt,
                 context.Host().HostPlatform, model: settings.Model, effort: settings.Effort, contributions: context.AgentLaunchContributions("claude"),
                 sessionId: ClaudeLaunch.NewSessionId(args), permissionMode: mode ?? settings.PermissionMode, advisor: advisor ?? settings.Advisor, chrome: chrome ?? (settings.Chrome ? true : null));
@@ -204,6 +222,7 @@ internal static class ClaudeLauncherAction
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(0)
         };
+        anchor = button;
         Avalonia.Automation.AutomationProperties.SetName(button, "Start Claude Code");
         var menu = new ContextMenu { Name = "ClaudeLaunchMenu", Placement = PlacementMode.BottomEdgeAlignedLeft };
         // A touch screen has no right click: a tap opens the options, and the plain start is the first of them.

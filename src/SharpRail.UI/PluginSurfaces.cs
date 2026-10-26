@@ -40,7 +40,7 @@ public sealed partial class WorkbenchWindow
         surface.TabOverlay = tab => workbench.Signals.Strip(Layout.State.ActiveWorkspace, tab);
         Plugins.Changed += PluginsChanged;
         state.Changed += HostStateChanged;
-        Closed += (_, _) => { Plugins.Changed -= PluginsChanged; state.Changed -= HostStateChanged; };
+        Closed += (_, _) => { Plugins.Changed -= PluginsChanged; state.Changed -= HostStateChanged; ClosePluginDocuments(null); };
         Layout.Changed += workbench.RaiseProjectionChanged;
         Layout.Changed += SyncEditors;
         Layout.Changed += () => decorationSignature = DecorationSignature();
@@ -61,6 +61,7 @@ public sealed partial class WorkbenchWindow
             RefreshGitPanels();
         }
         if ((tables & (PluginTables.FileViewers | PluginTables.Roster)) != 0) RefreshViewers();
+        if ((tables & (PluginTables.Documents | PluginTables.Roster)) != 0) RefreshPluginDocuments();
         if (tables.HasFlag(PluginTables.DocumentLinkSlots))
             foreach (var preview in documentContent.Values.SelectMany(control => control.GetLogicalDescendants().Prepend(control)).OfType<MarkdownPreview>())
                 preview.RefreshSpecLinks();
@@ -212,6 +213,9 @@ public sealed partial class WorkbenchWindow
             return PluginIcons.Resolve(decorated, Plugins.Entry(decoration.PluginId), brush, 14);
         if (tab.IsTool && Plugins.Tool(tab.Id) is { } tool)
             return PluginIcons.Resolve(tool.Icon, Plugins.Entry(tool.PluginId), brush, 14);
+        // A plugin's own document wears the icon its scheme registered.
+        if (tab.Kind == PluginDocumentKind && Plugins.Document(tab.Path.Split(':')[0]) is { Value.Icon: { } documentIcon } owner)
+            return PluginIcons.Resolve(documentIcon, Plugins.Entry(owner.PluginId), brush, 14);
         if (tab.Path.Length > 0 && !tab.IsTool && FileIconAnswer(tab.Path) is { } icon)
             return ResolveFileIcon(icon, brush);
         return null;
@@ -286,6 +290,59 @@ public sealed partial class WorkbenchWindow
         }
         var props = new FileViewerProps(workspaceRoot, tab.Path, workbench.FileRevision(workspaceRoot, tab.Path), viewer.Read == PluginFileRead.Text ? document?.Text : null);
         return Mount(viewer.PluginId, () => viewer.Registration.Create(props));
+    }
+
+    // A plugin that went away takes its documents' controls with it; a returning one mounts them again.
+    private void RefreshPluginDocuments()
+    {
+        var stale = documentContent.Where(pair => pair.Value is ContentControl { Name: { } name } && name.StartsWith("PluginMount_", StringComparison.Ordinal) &&
+            Layout.State.Workspaces.Values.SelectMany(view => view.Documents.Values.SelectMany(tabs => tabs)).Any(tab => tab.Kind == PluginDocumentKind && pair.Key.EndsWith(tab.Id, StringComparison.Ordinal) &&
+            Plugins.Document(tab.Path.Split(':')[0]) is null)).Select(pair => pair.Key).ToArray();
+        foreach (var key in stale) DropDocumentContent(key);
+        // The center is rebuilt only when a plugin document needs it: one whose plugin went away, or one waiting on a plugin that is back.
+        // Startup and every other plugin change leave it alone.
+        var waiting = Layout.State.Workspaces.Values.SelectMany(view => view.Documents.Values.SelectMany(tabs => tabs))
+            .Any(tab => tab.Kind == PluginDocumentKind && Plugins.Document(tab.Path.Split(':')[0]) is not null && !documentContent.Keys.Any(key => key.EndsWith(tab.Id, StringComparison.Ordinal)));
+        if (stale.Length > 0 || waiting) surface.RefreshContents();
+    }
+
+    private const string PluginDocumentKind = "plugin";
+
+    internal Task OpenPluginDocumentAsync(string workspace, string scheme, string id, string title)
+    {
+        if (!WorkspaceMounted || workspace != workspaceRoot || Plugins.Document(scheme) is null) return Task.CompletedTask;
+        Layout.Open(new($"plugin:{scheme}:{id}", title, PluginDocumentKind, $"{scheme}:{id}"), keep: true);
+        // Known from the open, so closing a tab that was never shown still reaches its owner.
+        if (Plugins.Document(scheme) is { } owner) pluginDocuments[workspaceRoot + ":plugin:" + scheme + ":" + id] = (owner.Value, new PluginDocumentProps(workspaceRoot, id, title));
+        return Task.CompletedTask;
+    }
+
+    // The documents whose tabs are open and have been mounted, so their owner hears of the close exactly once.
+    private readonly Dictionary<string, (PluginDocumentRegistration Registration, PluginDocumentProps Props)> pluginDocuments = [];
+
+    /// <summary>Tells owners of the documents that are no longer live (every one when <paramref name="live"/> is null); each is told once.</summary>
+    private void ClosePluginDocuments(HashSet<string>? live)
+    {
+        foreach (var key in pluginDocuments.Keys.Where(key => live is null || !live.Contains(key)).ToArray())
+        {
+            var (registration, props) = pluginDocuments[key];
+            pluginDocuments.Remove(key);
+            try { registration.Closed?.Invoke(props); }
+            catch (Exception error) { Console.Error.WriteLine($"Plugin document {registration.Scheme} failed to close: {error.Message}"); }
+        }
+    }
+
+    // A plugin document is not a file: nothing is read, and the control exists only while its plugin is live.
+    private Control PluginDocumentContent(DockTab tab, string key)
+    {
+        var split = tab.Path.IndexOf(':');
+        var scheme = split < 0 ? tab.Path : tab.Path[..split];
+        if (Plugins.Document(scheme) is not { } owner) return Ui.Text($"This document needs the plugin that owns \"{scheme}\".", Ui.Muted, 12);
+        var props = new PluginDocumentProps(workspaceRoot, split < 0 ? "" : tab.Path[(split + 1)..], tab.Title);
+        var content = Mount(owner.PluginId, () => owner.Value.Create(props));
+        documentContent[key] = content;
+        pluginDocuments[key] = (owner.Value, props);
+        return content;
     }
 
     private void RefreshViewers()
@@ -683,9 +740,11 @@ public sealed partial class WorkbenchWindow
         preview.SelectionChanged += text =>
         {
             if (EditorRef(workspace, tab) is not { } editor) return;
-            // The preview knows which source blocks a selection touches, not the columns: it reports their whole lines.
-            workbench.PluginLoader.Editors.Emit(new EditorSelectionEvent(editor, text.Length == 0 || preview.SelectedLines is not { } lines
-                ? null : new EditorSelection(lines.Start, 1, lines.End + 1, 1, text)));
+            // The preview knows which source blocks a selection touches, not the columns: it reports their whole lines. Text that maps to no
+            // lines is still reported, unmapped, so a consumer can quote it.
+            workbench.PluginLoader.Editors.Emit(new EditorSelectionEvent(editor, text.Length == 0 ? null
+                : preview.SelectedLines is { } lines ? new EditorSelection(lines.Start, 1, lines.End + 1, 1, text)
+                : new EditorSelection(1, 1, 1, 1, text) { Mapped = false }));
         };
     }
 

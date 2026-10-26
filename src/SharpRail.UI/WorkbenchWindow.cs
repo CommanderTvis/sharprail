@@ -189,6 +189,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     private bool RunZoomShortcut(KeyEventArgs e)
     {
+        // A chat zooms itself: while one has focus the page-zoom chords are its own.
+        if (ZoomChords.FocusOwned(this)) return false;
         foreach (var entry in ShortcutCommands())
             if (entry.Shortcut == WindowShortcuts.ZoomIn || entry.Shortcut == WindowShortcuts.ZoomOut || entry.Shortcut == WindowShortcuts.ZoomReset)
                 if (entry.Shortcut.Matches(e) && entry.Enabled()) { entry.Run(); return true; }
@@ -646,6 +648,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             ApplyResumeOffer(terminal, state.Current);
             return terminal;
         }
+        if (tab.Kind == "plugin") return PluginDocumentContent(tab, key);
+        if (tab.Kind == ProposedDiffKind) return ProposedDiffContent(tab, key);
         if (documents.TryGetValue(key, out var document))
         {
             var content = tab.Kind == "viewer" ? ViewerContent(tab, key, document) : tab.Kind == "diff" ? DiffDocument(document, tab, key) : FileBody(document, tab, key);
