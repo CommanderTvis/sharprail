@@ -313,6 +313,7 @@ internal static class SpecDialectChecks
         HotToggle(Path.Combine(root, "spec-dialect-toggle"));
         OffRailMovesOn(Path.Combine(root, "spec-dialect-off"));
         SpecsPanelTree(Path.Combine(root, "spec-dialect-panel"));
+        SpecsUpdateInPlace(Path.Combine(root, "spec-dialect-in-place"));
         SpecsAtProjectHome(Path.Combine(root, "spec-dialect-home"));
         RemoteSpecsAtProjectHome(Path.Combine(root, "spec-dialect-remote-home"));
         RetryAfterFailedLoad(Path.Combine(root, "spec-dialect-load-failure"));
@@ -418,6 +419,42 @@ internal static class SpecDialectChecks
             Console.WriteLine("PASS remote Specs loads and refreshes at a cold Project Home over gRPC");
         }
         finally { Task.Run(async () => await server.DisposeAsync()).GetAwaiter().GetResult(); }
+    }
+
+    /// <summary>A re-read keeps the rows it still shows (same instances, expansion, selection) and holds exactly the model's rows after many edits.</summary>
+    private static void SpecsUpdateInPlace(string root)
+    {
+        using var app = new E2eWorkspace(root, openFiles: false, prepare: _ => WriteSpec(root, "module-a/SPEC.md",
+            "id: sample-module\ntype: module-design\ntitle: Sample Module\nparent: sample-root"));
+        app.ShowTool("plugin:spec-dialect:specs");
+        E2eWorkspace.Until(() => SpecRow(app, "SPEC.md") is not null && SpecRow(app, "module-a/SPEC.md") is not null);
+        var tree = app.Find<DrawnTree>("SpecsTree");
+        var rootRow = SpecRow(app, "SPEC.md")!;
+        var module = SpecRow(app, "module-a/SPEC.md")!;
+        app.Click(E2eWorkspace.TreeRow(tree, module.Id));
+        E2eWorkspace.Until(() => ReferenceEquals(tree.SelectedItem, module));
+        WriteSpec(root, "module-a/SPEC.md", "id: sample-module\ntype: module-design\ntitle: Renamed Module\nparent: sample-root");
+        E2eWorkspace.Until(() => SpecRow(app, "module-a/SPEC.md")?.Text.Contains("Renamed", StringComparison.Ordinal) == true);
+        Require(ReferenceEquals(SpecRow(app, "SPEC.md"), rootRow) && ReferenceEquals(SpecRow(app, "module-a/SPEC.md"), module) &&
+            ReferenceEquals(tree.SelectedItem, module) && ReferenceEquals(tree, app.Find<DrawnTree>("SpecsTree")),
+            "A spec edit must update the kept rows in place and keep the selection.");
+        var gone = new List<WeakReference>();
+        for (var index = 0; index < 50; index++)
+        {
+            var path = $"temp-{index}.md";
+            WriteSpec(root, path, $"id: temp-{index}\ntype: module-design\ntitle: Temp {index}\nparent: sample-root");
+            E2eWorkspace.Until(() => SpecRow(app, path) is not null);
+            gone.Add(new WeakReference(SpecRow(app, path)));
+            File.Delete(Path.Combine(root, path));
+            E2eWorkspace.Until(() => SpecRow(app, path) is null);
+        }
+        Require(ReferenceEquals(SpecRow(app, "SPEC.md"), rootRow) && ReferenceEquals(SpecRow(app, "module-a/SPEC.md"), module),
+            "Fifty adds and removes must leave the untouched rows the same instances.");
+        Require(tree.Rows.Count == 2 && rootRow.Children.Count == 1, $"The tree must hold exactly the model's rows (found {tree.Rows.Count}).");
+        for (var round = 0; round < 3; round++) { GC.Collect(); GC.WaitForPendingFinalizers(); E2eWorkspace.Settle(50); }
+        var live = gone.Count(reference => reference.IsAlive);
+        Require(live <= 2, $"Removed spec rows must be released ({live} of 50 still alive).");
+        Console.WriteLine("PASS Specs panel updates its rows in place and releases removed ones");
     }
 
     private static void SpecsPanelTree(string root)

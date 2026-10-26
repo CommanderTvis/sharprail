@@ -31,6 +31,13 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   what they show changed (scope, target, commit, view, loading or error state, branch, change rows, branch
   and commit catalogues; for Review the branch, change count and pull request), so a watcher refresh that
   changes nothing leaves an open menu and the control under the pointer in place.
+- Panes keep their objects and are updated to reflect state. The branch card reconciles its rows by branch name
+  (kept rows are updated, reordered, gain or lose their worktree path and delete state; only added or removed
+  branches create or drop controls). A theme or other appearance change keeps the rail, Files and Changes
+  instances (theme colours reach them through the kit's shared brushes and `Ui.ThemeChanged`); a font-size change
+  and every other tool (Review, plugin tools) still rebuild. Switching to another project keeps the Files frame and
+  swaps its roots, and builds a new Changes pane because its rows belong to one project. The 15 s Files timer
+  only reconciles when the discovered language projects changed.
 - The Changes list virtualizes its rows: a target switch to a branch thousands of files apart builds and
   measures only the rows near the viewport, and a reconcile that adds or removes many rows replaces the list
   in one step rather than row by row (`--changes-branch-switch`).

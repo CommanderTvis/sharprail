@@ -14,6 +14,7 @@ public sealed partial class WorkbenchWindow
 {
     private StackPanel? branchList;
     private readonly StackPanel branchRows = new() { Name = "BranchRows", Spacing = 2 };
+    internal StackPanel BranchRowPanel => branchRows;
     private readonly ScrollViewer branchScroll = new() { MaxHeight = 360, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
 
     /// <summary>
@@ -50,35 +51,66 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
-    private void RenderBranches(IReadOnlyList<string> local)
+    private sealed class BranchRowParts(Grid row, StackPanel text, Button delete)
     {
-        branchRows.Children.Clear();
-        foreach (var name in local)
+        public Grid Row { get; } = row;
+        public StackPanel Text { get; } = text;
+        public Button Delete { get; } = delete;
+        public TextBlock? Worktree { get; set; }
+    }
+
+    private readonly Dictionary<string, BranchRowParts> branchParts = [];
+
+    /// <summary>Reconciles the rows by branch name: kept rows are updated in place and reordered, only added or removed branches create or drop controls.</summary>
+    internal void RenderBranches(IReadOnlyList<string> local)
+    {
+        foreach (var gone in branchParts.Keys.Where(name => !local.Contains(name)).ToArray())
         {
-            var holder = git.Worktrees.FirstOrDefault(tree => tree.Branch == name);
-            var row = new Grid { Name = "BranchRow", Tag = name, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(4, 2) };
-            var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(Ui.Text(name, Ui.TextBrush));
-            if (holder is not null)
-            {
-                var path = Ui.Text(holder.Path, Ui.Hint, 12);
-                path.Name = "BranchWorktree"; path.TextTrimming = Avalonia.Media.TextTrimming.PrefixCharacterEllipsis;
-                text.Children.Add(path);
-            }
-            Ui.Place(row, text);
-            var delete = Ui.IconButton("trash", "Delete branch", () => _ = DeleteBranchAsync(name));
-            delete.Name = "BranchDelete"; delete.Width = delete.Height = 28;
-            if (holder is not null)
-            {
-                // The host refuses these too; the reason lives on the control so nobody has to try to find out.
-                delete.IsEnabled = false;
-                ToolTip.SetShowOnDisabled(delete, true);
-                ToolTip.SetTip(delete, holder.IsMain ? "The branch currently checked out can't be deleted" : "A workspace lives on this branch");
-            }
-            AutomationProperties.SetName(delete, "Delete " + name);
-            Ui.Place(row, delete, 0, 1);
-            branchRows.Children.Add(row);
+            branchRows.Children.Remove(branchParts[gone].Row);
+            branchParts.Remove(gone);
         }
+        for (var index = 0; index < local.Count; index++)
+        {
+            var name = local[index];
+            var holder = git.Worktrees.FirstOrDefault(tree => tree.Branch == name);
+            if (!branchParts.TryGetValue(name, out var parts)) branchParts[name] = parts = NewBranchRow(name);
+            if (holder is not null)
+            {
+                if (parts.Worktree is null)
+                {
+                    var path = Ui.Text(holder.Path, Ui.Hint, 12);
+                    path.Name = "BranchWorktree"; path.TextTrimming = Avalonia.Media.TextTrimming.PrefixCharacterEllipsis;
+                    parts.Text.Children.Add(path);
+                    parts.Worktree = path;
+                }
+                else if (parts.Worktree.Text != holder.Path) parts.Worktree.Text = holder.Path;
+            }
+            else if (parts.Worktree is not null)
+            {
+                parts.Text.Children.Remove(parts.Worktree);
+                parts.Worktree = null;
+            }
+            // The host refuses these too; the reason lives on the control so nobody has to try to find out.
+            parts.Delete.IsEnabled = holder is null;
+            ToolTip.SetShowOnDisabled(parts.Delete, holder is not null);
+            ToolTip.SetTip(parts.Delete, holder is null ? "Delete branch" : holder.IsMain ? "The branch currently checked out can't be deleted" : "A workspace lives on this branch");
+            if (index < branchRows.Children.Count && ReferenceEquals(branchRows.Children[index], parts.Row)) continue;
+            branchRows.Children.Remove(parts.Row);
+            branchRows.Children.Insert(index, parts.Row);
+        }
+    }
+
+    private BranchRowParts NewBranchRow(string name)
+    {
+        var row = new Grid { Name = "BranchRow", Tag = name, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(4, 2) };
+        var text = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(Ui.Text(name, Ui.TextBrush));
+        Ui.Place(row, text);
+        var delete = Ui.IconButton("trash", "Delete branch", () => _ = DeleteBranchAsync(name));
+        delete.Name = "BranchDelete"; delete.Width = delete.Height = 28;
+        AutomationProperties.SetName(delete, "Delete " + name);
+        Ui.Place(row, delete, 0, 1);
+        return new BranchRowParts(row, text, delete);
     }
 
     private async Task DeleteBranchAsync(string name)

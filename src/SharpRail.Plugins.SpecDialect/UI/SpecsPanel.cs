@@ -85,39 +85,48 @@ internal sealed class SpecsPanel : DockPanel
         rendered = true;
         shown = nodes;
         shownFailed = failed;
-        tree.SetRoots([]);
         if (nodes is null)
         {
+            tree.SetRoots([]);
             if (!failed) tree.SetRoots(Enumerable.Range(0, 6).Select(index => new DrawnTreeEntry("skeleton-" + index, "") { Skeleton = true }).ToArray());
             return;
         }
+        // Rows are matched by path: a re-read updates the kept ones and creates or drops only what changed, so expansion,
+        // selection, focus and scroll stay. Skeleton and empty placeholders never match a path.
+        var previous = new Dictionary<string, DrawnTreeEntry>(StringComparer.Ordinal);
+        void Collect(IEnumerable<DrawnTreeEntry> entries)
+        {
+            foreach (var entry in entries) { previous.TryAdd(entry.Id, entry); Collect(entry.Children); }
+        }
+        Collect(tree.Roots);
         tree.SetRoots(nodes.Count == 0 && !failed ? [new DrawnTreeEntry("empty", "No specs") { Muted = true }]
-            : SpecTree.Build(nodes).Select(root => Row(root, 0)).ToArray());
+            : SpecTree.Build(nodes).Select(root => Row(root, 0, previous)).ToArray());
         Select(ActivePath(context.Host()));
     }
 
     private string? ActivePath(PluginHostProjection host) => host.ActiveEditor is { Kind: EditorKind.File } editor && editor.WorkspaceId == workspace ? editor.Path : null;
     private void Select(string? path) => tree.SelectedItem = tree.Rows.FirstOrDefault(row => row.Id == path);
 
-    private DrawnTreeEntry Row(SpecTreeNode branch, int depth)
+    private DrawnTreeEntry Row(SpecTreeNode branch, int depth, Dictionary<string, DrawnTreeEntry> previous)
     {
         var spec = branch.Node;
         var main = depth == 0 && spec.Type == "goal-and-requirements";
         var role = main ? "Main spec" : SpecTree.RoleTag(spec.Type);
-        return new DrawnTreeEntry(spec.Path, SpecTree.DisplayTitle(spec.Title))
-        {
-            Tag = spec.Path,
-            Help = spec.Path + " · " + role,
-            Tip = spec.Title + "\n" + spec.Id + " · " + spec.Type,
-            Main = main,
-            Role = role,
-            CanExpand = branch.Children.Count > 0,
-            Expanded = expanded.GetValueOrDefault(spec.Id, true),
-            Children = branch.Children.Select(child => Row(child, depth + 1)).ToArray(),
-            Icon = selected => Ui.Icon(Icon(spec.Type, main || selected), main || selected ? Ui.Accent : Ui.Muted, 14),
-            ExpansionChanged = value => { expanded[spec.Id] = value; Select(ActivePath(context.Host())); },
-            Activate = clicks => _ = context.Editors.OpenAsync(workspace, spec.Path, new() { Preview = clicks < 2 })
-        };
+        var reused = previous.Remove(spec.Path, out var entry) && entry.Tag is string;
+        if (!reused) entry = new DrawnTreeEntry(spec.Path, "") { Expanded = expanded.GetValueOrDefault(spec.Id, true) };
+        entry!.Text = SpecTree.DisplayTitle(spec.Title);
+        entry.Tag = spec.Path;
+        entry.Help = spec.Path + " · " + role;
+        entry.Tip = spec.Title + "\n" + spec.Id + " · " + spec.Type;
+        entry.Main = main;
+        entry.Role = role;
+        entry.Children = branch.Children.Select(child => Row(child, depth + 1, previous)).ToArray();
+        entry.CanExpand = entry.Children.Count > 0;
+        entry.IconKey = selected => (spec.Type, main || selected);
+        entry.Icon = selected => Ui.Icon(Icon(spec.Type, main || selected), main || selected ? Ui.Accent : Ui.Muted, 14);
+        entry.ExpansionChanged = value => { expanded[spec.Id] = value; Select(ActivePath(context.Host())); };
+        entry.Activate = clicks => _ = context.Editors.OpenAsync(workspace, spec.Path, new() { Preview = clicks < 2 });
+        return entry;
     }
 
     private static string Icon(string type, bool filled) => type switch

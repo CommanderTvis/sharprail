@@ -128,7 +128,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WireTerminalCatalog();
         WireUndoClose();
         WirePlugins();
-        ApplyAppearance();
+        ApplyAppearance(); appearanceFontSize = Preferences.FontSize;
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
         Opened += async (_, _) => { StartupPhases.Mark("window-opened"); await StartAsync(); };
         Activated += (_, _) => { if (WorkspaceMounted) { RefreshProjectWorkspaces(); MarkShownWorkspaceRead(); } };
@@ -430,8 +430,10 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             RestoreFilesTree(sameProject);
             // The rail survives any switch whose projects and workspaces it already lists; only its styling follows.
             var rail = toolContent.GetValueOrDefault("projects");
-            var filesPanel = sameProject ? toolContent.GetValueOrDefault("files") : null;
+            // Files keeps its frame across projects and swaps its roots; Changes carries one project's rows, so another project gets a new one.
+            var filesPanel = toolContent.GetValueOrDefault("files");
             var changesPanel = sameProject ? toolContent.GetValueOrDefault("changes") : null;
+            if (!sameProject && toolContent.GetValueOrDefault("changes") is { } leaving) (leaving.Parent as Panel)?.Children.Remove(leaving);
             var reviewPanel = toolContent.GetValueOrDefault("review");
             toolContent.Clear();
             if (filesPanel is not null) toolContent["files"] = filesPanel;
@@ -445,6 +447,13 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             slot.LastAtHome = home;
             switchingWorkspace = false;
             WorkspaceMounted = true; restorePending = false;
+            if (!sameProject && filesPanel is FilesPaneFrame frame)
+            {
+                var filesTree = frame.Children.OfType<DrawnTree>().Single();
+                filesTree.SetRoots([]);
+                filesTree.SetRoots(FileEntries([], [], filesTree));
+                ApplyFilesMode(frame);
+            }
             timeline?.Mark("state");
             var resolvedTarget = home ? HomeKey(projectRoot) : workspaceRoot;
             if (Layout.State.ActiveWorkspace != resolvedTarget || Layout.State.ActiveProject != projectRoot)
@@ -801,9 +810,23 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         FontSize = Preferences.FontSize;
     }
 
-    private void RefreshAppearance()
+    private static readonly string[] ThemeSurvivors = ["projects", "files", "changes"];
+    private double appearanceFontSize = double.NaN;
+
+    /// <summary>
+    /// Theme colours reach these panes through the kit's shared brushes (rewritten in place by <c>Ui.Apply</c>) and
+    /// <c>Ui.ThemeChanged</c>, so the rail, Files and Changes keep their instances across a theme switch. A change of
+    /// font size bakes into row metrics, so it still rebuilds them. Everything else (review, plugin tools) is rebuilt as before.
+    /// </summary>
+    internal void RefreshAppearance()
     {
-        ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); ClearRetainedTools(); toolContent.Clear(); surface.RefreshContents();
+        ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); ClearRetainedTools();
+        var keep = appearanceFontSize == Preferences.FontSize
+            ? ThemeSurvivors.Where(toolContent.ContainsKey).ToDictionary(id => id, id => toolContent[id]) : [];
+        appearanceFontSize = Preferences.FontSize;
+        toolContent.Clear();
+        foreach (var (id, control) in keep) toolContent[id] = control;
+        surface.RefreshContents();
     }
 
     /// <summary>Steps the app's page zoom like a browser: Mod+= and Mod+- to the adjacent factor, Mod+0 back to 100%.</summary>

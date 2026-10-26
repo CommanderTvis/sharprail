@@ -137,7 +137,8 @@ Checks exercise the real plugin and panel, including local and remote hosts:
 - Cold Project Home loads the default workspace's specs and follows watched edits; opening a spec
   enters that workspace.
 - Click previews a spec; double click or Enter keeps it. Editor navigation updates selection,
-  and adding a spec during the session updates the tree.
+  and adding a spec during the session updates the tree in place: rows are matched by path, so unchanged rows keep
+  their instances, expansion, selection and focus, and removed specs drop their rows.
 - A failed first read shows “Couldn't load specs.” and recovers on Retry. A failed update keeps the
   previous tree under “Couldn't update specs.” until Retry succeeds.
 - Toggling the plugin updates its tools, links and rail defaults. Legacy layouts migrate, and

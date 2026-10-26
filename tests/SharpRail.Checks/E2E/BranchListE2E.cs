@@ -8,6 +8,8 @@ using Avalonia.VisualTree;
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
 
+using ThemeCatalog = SharpRail.UI.Rendering.Themes;
+
 namespace SharpRail.Checks.E2E;
 
 internal static class BranchListE2E
@@ -17,6 +19,63 @@ internal static class BranchListE2E
         using var git = new IsolatedGit(Path.Combine(root, "branch-list-git"));
         GuardsDeletion(Path.Combine(root, "branch-list"));
         Fetches(Path.Combine(root, "branch-list-fetch"));
+        ReconcilesInPlace(Path.Combine(root, "branch-list-in-place"));
+    }
+
+    private static string[] Names(StackPanel rows) => [.. rows.Children.OfType<Grid>().Select(row => (string)row.Tag!)];
+
+    /// <summary>
+    /// Branch rows are reconciled by name, panes keep their instances through a theme switch, and 50 small updates leave
+    /// exactly the model's rows alive.
+    /// </summary>
+    private static void ReconcilesInPlace(string directory)
+    {
+        using var app = OpenFixtureProject(directory);
+        var window = app.Window;
+        var rows = window.BranchRowPanel;
+        string[] first = ["main", "alpha", "beta", "gamma"];
+        window.RenderBranches(first);
+        var kept = rows.Children.ToArray();
+        Require(Names(rows).SequenceEqual(first), "The branch list must show the model's branches in order.");
+        window.RenderBranches(["main", "beta", "alpha", "delta"]);
+        Require(Names(rows).SequenceEqual(["main", "beta", "alpha", "delta"]) && ReferenceEquals(rows.Children[0], kept[0]) &&
+            ReferenceEquals(rows.Children[1], kept[2]) && ReferenceEquals(rows.Children[2], kept[1]),
+            "Kept branches must keep their row instances when others are added, removed or moved.");
+        var removed = new List<WeakReference> { new(kept[3]) };
+        kept = null;
+        for (var index = 0; index < 50; index++)
+        {
+            var name = "temp-" + index;
+            window.RenderBranches(["main", "beta", "alpha", name]);
+            removed.Add(new WeakReference(rows.Children[3]));
+        }
+        window.RenderBranches(["main", "beta", "alpha"]);
+        var fresh = app.Window.BranchRowPanel.Children.Select(row => (Grid)row).ToArray();
+        Require(fresh.Length == 3 && Names(rows).SequenceEqual(["main", "beta", "alpha"]), "The rows must equal the model after 50 updates.");
+        Require(fresh[0].GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "BranchWorktree"),
+            "The checked-out branch must keep showing its worktree after in-place updates.");
+        for (var round = 0; round < 3; round++) { GC.Collect(); GC.WaitForPendingFinalizers(); Settle(50); }
+        var live = removed.Count(reference => reference.IsAlive);
+        Require(live <= 2, $"Removed branch rows must be released ({live} of {removed.Count} alive).");
+
+        app.ShowTool("files");
+        window.SetFilesMode(true);
+        Until(() => app.Window.GetLogicalDescendants().OfType<Grid>().Any(panel => panel.Name == "ChangesPanel"));
+        Control Find(string name) => app.Window.GetLogicalDescendants().OfType<Control>().First(control => control.Name == name);
+        Control[] panes = [Find("ProjectsPanel"), Find("FilesPanel"), Find("ChangesPanel")];
+        var original = window.Preferences.Theme;
+        var other = ThemeCatalog.All.First(theme => theme.Id != original && theme.IsLight != Ui.Theme.IsLight).Id;
+        window.Preferences.Theme = other;
+        window.RefreshAppearance();
+        Settle(200);
+        Require(Ui.Theme.Id == other, "The theme switch must apply.");
+        Require(ReferenceEquals(panes[0], Find("ProjectsPanel")) && ReferenceEquals(panes[1], Find("FilesPanel")) && ReferenceEquals(panes[2], Find("ChangesPanel")),
+            "A theme switch must keep the rail, Files and Changes instances.");
+        window.Preferences.Theme = original;
+        window.RefreshAppearance();
+        Settle(200);
+        Require(ReferenceEquals(panes[1], Find("FilesPanel")), "Switching back must keep the panes too.");
+        Console.WriteLine("PASS branch list, rail, Files and Changes update in place; theme switch keeps their instances");
     }
 
     private static StackPanel Open(E2eWorkspace app)
