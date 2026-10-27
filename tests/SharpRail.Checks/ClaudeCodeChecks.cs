@@ -1238,8 +1238,9 @@ internal static class ClaudeCodeChecks
                 if (managed) start.Environment["THINKRAIL_MCP_URL"] = "http://127.0.0.1:1/mcp";
                 else start.Environment.Remove("THINKRAIL_MCP_URL");
                 using var process = System.Diagnostics.Process.Start(start)!;
-                await process.StandardInput.WriteAsync(input);
-                process.StandardInput.Close();
+                // A hook that does not read stdin (session start) may exit before the write: a broken pipe then only means it was done.
+                try { await process.StandardInput.WriteAsync(input); process.StandardInput.Close(); }
+                catch (IOException) { }
                 var output = await process.StandardOutput.ReadToEndAsync();
                 await process.WaitForExitAsync();
                 return (process.ExitCode, output.Trim());
