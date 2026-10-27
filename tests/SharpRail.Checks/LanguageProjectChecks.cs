@@ -111,6 +111,7 @@ internal static class LanguageProjectChecks
                     Require(!((DrawnTreeLabel)app.FileRow("plain")).GetVisualDescendants().OfType<ProjectFolderIcon>().Any(), "An ordinary folder received a module badge.");
                     var library = (DrawnTreeLabel)app.FileRow("library"); library.OpenMenu();
                     var menu = library.ContextMenu!;
+                    Require(menu.Items.OfType<MenuItem>().Count() > 8 && menu.Items.OfType<MenuItem>().All(item => item.Icon is null), "A Files tree menu item carries an icon, so its labels misalign.");
                     var configure = menu.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeLanguage_csharp");
                     app.Click(configure);
                     E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<LanguageSettingsWindow>().Any());

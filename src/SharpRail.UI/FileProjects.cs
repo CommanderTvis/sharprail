@@ -82,7 +82,6 @@ public sealed partial class WorkbenchWindow
             var project = provider.First();
             var configure = Ui.Menu("Configure " + project.Server + " language service (workspace)…", () => _ = ConfigureProjectLanguageAsync(project));
             configure.Name = "FileNodeLanguage_" + project.Server;
-            configure.Icon = LanguageServerIconConverter.Create(project.Server);
             menu.Items.Add(configure);
         }
         foreach (var project in candidates.Where(project => project.Manifest.Length > 0).GroupBy(project => project.Server)

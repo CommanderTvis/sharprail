@@ -695,7 +695,7 @@ public sealed partial class WorkbenchWindow
     }
 
     // Plugins' file actions for a target, read as a menu opens so their labels and availability are current.
-    private List<Control> FileActionItems(FileActionTarget target) => [.. Plugins.FileActionsFor(target).Select(offer =>
+    private List<Control> FileActionItems(FileActionTarget target, bool icons = true) => [.. Plugins.FileActionsFor(target).Select(offer =>
     {
         var item = Ui.Menu(offer.Label, () =>
         {
@@ -703,7 +703,7 @@ public sealed partial class WorkbenchWindow
             catch (Exception error) { Console.Error.WriteLine($"Plugin {offer.PluginId} file action failed: {error.Message}"); }
         });
         item.Name = $"FileAction_{offer.PluginId}_{offer.Action.Id}";
-        if (offer.Action.Icon is { } icon) item.Icon = PluginIcons.Resolve(icon, Plugins.Entry(offer.PluginId), null, 14);
+        if (icons && offer.Action.Icon is { } icon) item.Icon = PluginIcons.Resolve(icon, Plugins.Entry(offer.PluginId), null, 14);
         return (Control)item;
     })];
 

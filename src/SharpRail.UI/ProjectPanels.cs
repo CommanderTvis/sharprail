@@ -180,26 +180,26 @@ public sealed partial class WorkbenchWindow
         var parent = HostPaths.Parent(file.Path);
         var into = file.IsDirectory ? file.Path : parent;
         var menu = new ContextMenu { Name = "FileNodeActions" };
-        void Add(string header, string name, Action action, string? icon = null)
+        // No row carries an icon, so every label starts at the same edge.
+        void Add(string header, string name, Action action)
         {
             var item = Ui.Menu(header, action);
             item.Name = name;
-            if (icon is not null) item.Icon = Ui.Icon(icon, null, 14);
             menu.Items.Add(item);
         }
-        Add("New file…", "FileNodeNewFile", () => _ = CreatePathAsync(into, false, expand), "fileText");
-        Add("New folder…", "FileNodeNewFolder", () => _ = CreatePathAsync(into, true, expand), "folder");
+        Add("New file…", "FileNodeNewFile", () => _ = CreatePathAsync(into, false, expand));
+        Add("New folder…", "FileNodeNewFolder", () => _ = CreatePathAsync(into, true, expand));
         menu.Items.Add(new Separator());
         // The file lives on the host's machine, so a remote host has no file manager to show it in.
-        if (!remote) Add(RevealLabel, "FileNodeReveal", () => _ = FileActionAsync(new("reveal", file.Path)), "folderOpen");
+        if (!remote) Add(RevealLabel, "FileNodeReveal", () => _ = FileActionAsync(new("reveal", file.Path)));
         Add("Copy path", "FileNodeCopyRelativePath", () => _ = CopyTextAsync(file.Path));
         Add("Copy absolute path", "FileNodeCopyPath", () => _ = CopyTextAsync(Path.Combine(workspaceRoot, file.Path)));
         Add("Rename…", "FileNodeRename", () => _ = RenamePathAsync(file));
         Add("Move…", "FileNodeMove", () => _ = TransferPathAsync(file, false));
         Add("Copy…", "FileNodeCopy", () => _ = TransferPathAsync(file, true));
-        Add(file.IsDirectory ? "Delete folder" : "Delete file", "FileNodeDelete", () => _ = TrashPathAsync(file), "trash");
+        Add(file.IsDirectory ? "Delete folder" : "Delete file", "FileNodeDelete", () => _ = TrashPathAsync(file));
         ProjectFileActions(menu, file);
-        var offered = FileActionItems(new(workspaceRoot, file.Path, file.IsDirectory));
+        var offered = FileActionItems(new(workspaceRoot, file.Path, file.IsDirectory), icons: false);
         if (offered.Count > 0)
         {
             menu.Items.Add(new Separator());
