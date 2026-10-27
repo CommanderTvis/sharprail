@@ -89,7 +89,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         var words = (command ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var advisorAt = Array.IndexOf(words, "--advisor");
         if (advisorAt >= 0 && advisorAt + 1 < words.Length) facts.Add(("advisor", $"advisor {words[advisorAt + 1].Trim('\'')}", "Started with --advisor"));
-        if (words.Contains("--chrome")) facts.Add(("chrome", "Chrome", "Started with Claude in Chrome (--chrome)"));
+        if (words.Contains("--chrome")) facts.Add(("chrome", "chrome", "Started with Claude in Chrome (--chrome)"));
         if (TerminalFacts.CwdLabel(state.Cwd) is { } directory) facts.Add(("cwd", directory, $"Claude started in {state.Cwd}"));
         if (state.Model is { } model) facts.Add(("model", System.Text.RegularExpressions.Regex.Replace(model.StartsWith("claude-", StringComparison.Ordinal) ? model[7..] : model, @"-\d{8}$", ""), model));
         if (state.Effort is { } effort) facts.Add(("effort", $"{effort} effort", "Reasoning effort"));
@@ -122,6 +122,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
                 "model" => TerminalFacts.PickerChip("model", label, $"{title} — click to switch", ModelItems, glyph.Create(12)),
                 "effort" => TerminalFacts.PickerChip("effort", label, $"{title} — click to change", EffortItems),
                 "advisor" => TerminalFacts.FactChip(kind, label, title, glyph.Create(12)),
+                "chrome" => TerminalFacts.FactChip(kind, label, title, Ui.Icon("chrome", Ui.Muted, 12)),
                 _ => TerminalFacts.FactChip(kind, label, title)
             };
             chip.Margin = Chips.Gap;

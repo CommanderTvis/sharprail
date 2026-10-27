@@ -937,6 +937,9 @@ internal static class ClaudeCodeChecks
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, permissionMode = "" });
         Require(Launch("advisor-opus")[^2..].SequenceEqual(["--advisor", "opus"]), "A per-launch advisor passes --advisor.");
         Require(Launch("chrome")[^1] == "--chrome", "The Chrome toggle turns it on for one run.");
+        Require(ClaudeTerminalAccessory.Facts(new ClaudeSessionState(ClaudeCodeStatus.Idle), "claude --chrome").Any(fact => fact is { Kind: "chrome", Label: "chrome" }),
+            "A run started with --chrome shows a lowercase chrome chip.");
+        Require(((Border)Ui.Icon("chrome")).OpacityMask is Avalonia.Media.DrawingBrush, "The Chrome chip's icon is a vector asset.");
         var plainRun = Launch("continue");
         Require(!plainRun.Contains("--advisor") && !plainRun.Contains("--chrome") && !plainRun.Contains("--no-chrome"), "No advisor and Chrome off add no flags.");
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, advisor = "sonnet", chrome = true });

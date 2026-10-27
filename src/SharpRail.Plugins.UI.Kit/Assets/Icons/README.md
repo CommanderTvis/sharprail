@@ -5,3 +5,5 @@ The SVG glyphs use the original 24×24 paths from [`@remixicon/react` 4.9.0](htt
 `fileDiff.svg` is the original `apps/web/public/custom-icons/file-diff-line.svg` from [ThinkRail at `4ab88b5228dde1f234c54cf70319e58890acf650`](https://github.com/CommanderTvis/thinkrail/blob/4ab88b5228dde1f234c54cf70319e58890acf650/apps/web/public/custom-icons/file-diff-line.svg), copied byte-for-byte, under the project's Apache-2.0 license. `brand.png` remains the prototype's raster brand mark because its original SVG source is unavailable.
 
 These monochrome SVGs contain only filled paths in a 24×24 viewbox. `Ui.Icon` retains that full box and fills the parsed paths with a vector opacity mask, so its `Border.Background` controls tint at the final render scale. New assets must preserve this format or extend the parser explicitly; no bitmap conversion is used.
+
+`chrome.svg` is the `googlechrome` mark from [Simple Icons](https://simpleicons.org/) (CC0 1.0), one 24×24 path, used by the Claude Code terminal's Chrome chip. It is not a Remix glyph, so `sources.json` has no entry for it.
