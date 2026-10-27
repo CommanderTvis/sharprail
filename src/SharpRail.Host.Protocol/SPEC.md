@@ -182,7 +182,7 @@ Each connection allows at most 64 active calls and queues at most 64 outgoing fr
 are at most 32 KiB; envelopes are at most 48 KiB. Reassembled messages are limited to 144 MiB, with a
 192 MiB connection budget for retained receive buffers and pending serialized sends. Each call grants
 16 messages of receive credit in each direction. A consumer advances its stream to grant another;
-the bounded window pipelines terminal chunks without a round trip per chunk, and a stalled stream never blocks the connection's receive pump. Protocol violations disconnect the peer.
+frames that arrive for a call already cancelled, completed or failed are dropped, never a violation; the bounded window pipelines terminal chunks without a round trip per chunk, and a stalled stream never blocks the connection's receive pump. Protocol violations disconnect the peer.
 Call cancellation and deadline expiry end only that call, preserve the connection and cancel host work;
 mutations protected by the replay cache retain their established independent lifetime.
 

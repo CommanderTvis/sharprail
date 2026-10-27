@@ -22,6 +22,7 @@ internal static class WebSocketFlowChecks
         builder.Logging.ClearProviders();
         await using var app = builder.Build();
         var produced = 0;
+        var lateRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         app.UseWebSockets();
         app.Map("/rpc", branch => branch.Run(async context =>
@@ -29,6 +30,13 @@ internal static class WebSocketFlowChecks
             using var socket = await context.WebSockets.AcceptWebSocketAsync(RpcWire.Subprotocol);
             await using var peer = new RpcPeer(socket, async (stream, open) =>
             {
+                if (open.Method == "late")
+                {
+                    // Hold the call registered after its Cancel arrived, so a late frame finds a completed call.
+                    try { await Task.Delay(Timeout.Infinite, stream.Token); } catch (OperationCanceledException) { }
+                    await lateRelease.Task;
+                    return;
+                }
                 if (open.Method == "blocked-input") { await Task.Delay(Timeout.Infinite, stream.Token); return; }
                 await foreach (var _ in stream.Read<WorkspaceRequest>()) { }
                 try
@@ -89,6 +97,23 @@ internal static class WebSocketFlowChecks
             Require((await channel.Unary<WorkspaceRequest, WorkspaceReply>("after-cancel", new(), context)).Name == "after-cancel" && proxy.Connections == 1,
                 "Cancellation and deadlines must preserve other calls and the connection.");
 
+            using (var late = new ClientWebSocket())
+            {
+                late.Options.AddSubProtocol(RpcWire.Subprotocol);
+                await late.ConnectAsync(new UriBuilder(address) { Scheme = "ws", Path = "/rpc" }.Uri, timeout.Token);
+                async Task Send(RpcFrame frame) => await late.SendAsync(RpcWire.Encode(frame), WebSocketMessageType.Binary, true, timeout.Token);
+                await Send(new() { Kind = RpcFrameKind.Open, Id = 1, Method = "late" });
+                await Send(new() { Kind = RpcFrameKind.Cancel, Id = 1 });
+                await Send(new() { Kind = RpcFrameKind.Data, Id = 1, Last = true });
+                await Send(new() { Kind = RpcFrameKind.End, Id = 1 });
+                await Send(new() { Kind = RpcFrameKind.Open, Id = 2, Method = "fast" });
+                await Send(new() { Kind = RpcFrameKind.End, Id = 2 });
+                RpcFrame reply;
+                do reply = await RpcWire.Receive(late, timeout.Token);
+                while (reply.Kind != RpcFrameKind.Complete);
+                lateRelease.TrySetResult();
+                Require(reply.Id == 2 && reply.Code == StatusCode.OK, "Frames arriving for a cancelled call must be dropped without failing the connection or other calls.");
+            }
             using var malformed = new ClientWebSocket();
             malformed.Options.AddSubProtocol(RpcWire.Subprotocol);
             await malformed.ConnectAsync(new UriBuilder(address) { Scheme = "ws", Path = "/rpc" }.Uri, timeout.Token);

@@ -183,7 +183,7 @@ public sealed class RpcStream : IAsyncDisposable
     private readonly SemaphoreSlim credit = new(RpcWire.CallWindow, RpcWire.CallWindow);
     private MemoryStream partial = new();
     private readonly object gate = new();
-    private bool receiving, ended, completed;
+    private bool receiving, ended, completed, closed;
     private int receiveCredits = RpcWire.CallWindow;
     private Exception? failure;
     private int disposed;
@@ -202,7 +202,8 @@ public sealed class RpcStream : IAsyncDisposable
     {
         lock (gate)
         {
-            if (disposed != 0) return;
+            // Frames already in flight when the call ended (cancelled, completed or failed) are dropped, not protocol violations.
+            if (disposed != 0 || closed) return;
             switch (frame.Kind)
             {
                 case RpcFrameKind.Credit:
@@ -233,13 +234,13 @@ public sealed class RpcStream : IAsyncDisposable
                     ended = true; incoming.Writer.TryComplete(); break;
                 case RpcFrameKind.Complete:
                     if (receiving) throw new IOException("Incomplete RPC response.");
-                    completed = true;
+                    completed = closed = true;
                     var trailers = new Metadata();
                     foreach (var (key, value) in frame.Headers) trailers.Add(key, value);
                     failure = frame.Code == StatusCode.OK ? null : new RpcException(new(frame.Code, frame.Detail), trailers);
                     incoming.Writer.TryComplete(failure);
                     break;
-                case RpcFrameKind.Cancel: lifetime.Cancel(); incoming.Writer.TryComplete(Cancelled()); break;
+                case RpcFrameKind.Cancel: closed = true; lifetime.Cancel(); incoming.Writer.TryComplete(Cancelled()); break;
                 default: throw new IOException("Unexpected RPC frame.");
             }
         }
@@ -249,7 +250,7 @@ public sealed class RpcStream : IAsyncDisposable
         lock (gate)
         {
             if (completed || disposed != 0) return;
-            failure = error is OperationCanceledException ? Cancelled() : error; incoming.Writer.TryComplete(failure); lifetime.Cancel();
+            closed = true; failure = error is OperationCanceledException ? Cancelled() : error; incoming.Writer.TryComplete(failure); lifetime.Cancel();
         }
     }
     public async ValueTask Send<T>(T value)
