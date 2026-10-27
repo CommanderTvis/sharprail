@@ -630,8 +630,8 @@ internal static class AirGovernanceChecks
             E2eWorkspace.Until(() => workbench.PluginRegistry.Active.Contains("air-governance"));
             Require(fake.Calls.All(call => call.Method == "status"), "Enabling the plugin only reads its status.");
             window.ShowSettings("plugin:air-governance:air-governance");
-            E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-            var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+            E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+            var settings = window.OpenSettingsViews.Single();
             T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
             E2eWorkspace.Until(() => fake.Subscriptions > 1 && Find<TextBlock>("AirCentralLine").Text?.Contains("not installed", StringComparison.Ordinal) == true);
             Require(Find<StackPanel>("AirInstall").IsVisible && Find<TextBox>("AirInstallCommand").Text!.Contains("install.sh", StringComparison.Ordinal) && !Find<Button>("AirSignIn").IsEnabled,
@@ -833,8 +833,8 @@ internal static class AirGovernanceChecks
             E2eWorkspace.Until(() => Text() == "10.00 / 20.00 credits");
 
             Item()!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-            var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+            E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+            var settings = window.OpenSettingsViews.Single();
             Require(settings.Section == "plugin:air-governance:air-governance", "Clicking the item opens Settings › Air Governance, not " + settings.Section);
             settings.Close();
             Settle();

@@ -113,13 +113,10 @@ internal static class AppCommandChecks
         // Preferences' chord is a macOS convention; elsewhere Settings opens from its button.
         if (OperatingSystem.IsMacOS()) Press(Key.OemComma, command, PhysicalKey.Comma);
         else window.ShowSettings();
-        Pump(() => window.OwnedWindows.Count == 1, "Settings did not open.");
-        var settings = (Window)window.OwnedWindows[0];
+        Pump(() => window.OpenSettingsViews.Any(), "Settings did not open.");
         Press(Key.W, command, PhysicalKey.W);
-        Require(Has("close-a") && window.IsVisible, "Mod+W behind a modal must not reach the workbench.");
-        settings.KeyPress(Key.W, command, PhysicalKey.W, null); Dispatcher.UIThread.RunJobs();
-        Pump(() => window.OwnedWindows.Count == 0, "Mod+W did not dismiss the modal.");
-        Require(window.IsVisible && Has("close-a"), "Dismissing a modal with Mod+W must not close the window or a tab.");
+        Pump(() => !window.OpenSettingsViews.Any(), "Mod+W did not dismiss Settings.");
+        Require(window.IsVisible && Has("close-a"), "Dismissing Settings with Mod+W must not close the window or a tab.");
 
         KeyEventArgs Event(Key key, PhysicalKey physical, string? symbol, KeyModifiers modifiers) =>
             new() { RoutedEvent = InputElement.KeyDownEvent, Key = key, PhysicalKey = physical, KeySymbol = symbol, KeyModifiers = modifiers };

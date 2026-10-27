@@ -17,7 +17,7 @@ namespace SharpRail.Checks.E2E;
 internal static class LocalBrowserApprovalE2E
 {
     internal static Window? Prompt(Window root) => root.OwnedWindows.SelectMany(child => new[] { child }.Concat(child.OwnedWindows)).FirstOrDefault(child => Equals(child.Tag, "LocalBrowserApproval"));
-    internal static T Field<T>(Window root, string name) where T : Control => root.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
+    internal static T Field<T>(Control root, string name) where T : Control => root.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
 
     internal static void Run(string root)
     {
@@ -27,7 +27,7 @@ internal static class LocalBrowserApprovalE2E
         Until(() => start.IsCompleted); start.GetAwaiter().GetResult();
         using var client = new HttpClient { BaseAddress = listener.Endpoint };
         var settings = new SettingsWindow(app.Window, () => { }, section: "Host");
-        settings.Show(app.Window);
+        app.Window.ShowInOverlay(settings);
         var denied = Task.Run(() => LocalBrowserConnectionChecks.Request(client));
         Until(() => Prompt(app.Window) is not null);
         var prompt = Prompt(app.Window)!;

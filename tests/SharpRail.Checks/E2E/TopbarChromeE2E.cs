@@ -29,8 +29,8 @@ internal static class TopbarChromeE2E
         Require(initial == Ui.Header.Color, "The header must paint the themed header token.");
 
         app.Click(settingsButton);
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         var original = app.Window.Preferences.Theme;
         var opposite = original == "light" ? "dark" : "light";
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Theme_" + opposite));
@@ -51,8 +51,8 @@ internal static class TopbarChromeE2E
         Settle();
         ExpectUsableHeader(app, header, settingsButton);
         app.Click(settingsButton);
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any(window => window.IsVisible));
-        CloseSettings(app.Window.OwnedWindows.OfType<SettingsWindow>().First(window => window.IsVisible));
+        Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
+        CloseSettings(app.Window.OpenSettingsViews.First(window => window.IsVisible));
         Console.WriteLine("PASS upstream: ordinary browsers have a fixed themed header with zero native insets");
     }
 

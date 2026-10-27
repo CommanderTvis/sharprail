@@ -34,8 +34,8 @@ internal static class PreviewTabsE2E
         Case("with previewing off, every click keeps a tab of its own", app =>
         {
             app.Click(app.Find<Button>("SettingsButton"));
-            Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any(window => window.IsVisible));
-            var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single(window => window.IsVisible);
+            Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
+            var settings = app.Window.OpenSettingsViews.Single(window => window.IsVisible);
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));
             var toggle = settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "PreviewTabs");
             Require(toggle.IsChecked == true, "Previewing must be on by default.");

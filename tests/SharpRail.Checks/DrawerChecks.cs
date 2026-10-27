@@ -158,9 +158,10 @@ internal static class DrawerChecks
         Click(current);
 
         var settings = new SettingsWindow(window, () => { });
-        settings.Show(window);
+        window.ShowInOverlay(settings);
         Dispatcher.UIThread.RunJobs();
-        Require(window.PageBarHeight > 0 && settings.MaxHeight <= window.Bounds.Height - window.PageBarHeight + .5,
+        window.UpdateLayout();
+        Require(window.PageBarHeight > 0 && settings.Bounds.Height <= window.Bounds.Height - window.PageBarHeight + .5,
             "Compact Settings must stop above the page bar.");
         var pane = Named<Border>(settings, "SettingsNavigationPane");
         var up = Named<Button>(settings, "SettingsBack");
@@ -168,11 +169,13 @@ internal static class DrawerChecks
         Click(Named<Button>(settings, "Settings_Terminal"));
         Require(!pane.IsVisible && up.IsVisible && Named<TextBlock>(settings, "SettingsTitle").Text == "Terminal", "Choosing a section must give it the whole page under its name.");
         var leave = new RoutedEventArgs(TopLevel.BackRequestedEvent);
-        settings.RaiseEvent(leave);
+        window.RaiseEvent(leave);
         Require(leave.Handled && pane.IsVisible, "Back in a section must return to the list.");
         leave = new RoutedEventArgs(TopLevel.BackRequestedEvent);
-        settings.RaiseEvent(leave);
-        Require(!leave.Handled, "Back on the list must be left to close Settings.");
+        window.RaiseEvent(leave);
+        Require(leave.Handled && !window.OpenSettingsViews.Any(), "Back on the list must close Settings.");
+        settings = new SettingsWindow(window, () => { });
+        window.ShowInOverlay(settings);
         Click(Named<Button>(settings, "Settings_Layout"));
         Require(!settings.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "VerticalCenterTabs" or "VerticalTabsInProjects"),
             "Layout must not offer retired tab modes.");
@@ -185,20 +188,20 @@ internal static class DrawerChecks
 
         Click(Named<Button>(window, "PageTools"));
         Drag(width * 0.8, width * 0.3);
-        Pump(() => window.OwnedWindows.OfType<SettingsWindow>().Any(), "A sweep past Tools must open Settings, the page after it.");
-        var swept = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Pump(() => window.OpenSettingsViews.Any(), "A sweep past Tools must open Settings, the page after it.");
+        var swept = window.OpenSettingsViews.Single();
         var finger = swept.TouchBegin(new(40, 200), Avalonia.Input.RawInputModifiers.None);
         swept.TouchMove(finger, new(160, 200), Avalonia.Input.RawInputModifiers.None);
         swept.TouchEnd(finger, new(240, 200), Avalonia.Input.RawInputModifiers.None);
-        Pump(() => !window.OwnedWindows.OfType<SettingsWindow>().Any() && layout.State.RightVisible, "A sweep back over Settings must return to Tools.");
+        Pump(() => !window.OpenSettingsViews.Any() && layout.State.RightVisible, "A sweep back over Settings must return to Tools.");
         Click(current);
         window.ShowSettings();
         Dispatcher.UIThread.RunJobs();
-        var shown = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        var shown = window.OpenSettingsViews.Single();
         Require(!window.GetLogicalDescendants().OfType<Border>().Any(border => border.Background == Ui.Overlay && border.IsVisible && border.Name is null),
             "Compact Settings must not dim the workbench, whose page bar stays in use.");
         Click(projects);
-        Pump(() => !window.OwnedWindows.OfType<SettingsWindow>().Any(), "Choosing another page must close Settings.");
+        Pump(() => !window.OpenSettingsViews.Any(), "Choosing another page must close Settings.");
         Require(layout.State.LeftVisible, "Choosing Projects from Settings must open Projects.");
         _ = shown;
         window.Close();

@@ -118,7 +118,7 @@ internal static class ThemeE2E
                 Require(AutomationProperties.GetName(Option(settings, "SystemTheme_dark_trigger")) == $"Dark theme: {fixedTheme.Label}",
                     "The fixed theme must fill its own slot of the derived pair.");
                 Settle(100);
-                using (var frame = settings.CaptureRenderedFrame()!)
+                using (var frame = TopLevel.GetTopLevel(settings)!.CaptureRenderedFrame()!)
                     frame.Save(CheckRoot.Artifact("theme-settings-system.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
 
                 app.Click(Option(settings, "ThemeMode_fixed"));
@@ -346,8 +346,8 @@ internal static class ThemeE2E
     private static SettingsWindow Open(E2eWorkspace app)
     {
         app.Click(app.Find<Button>("SettingsButton"));
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any(window => window.IsVisible));
-        return app.Window.OwnedWindows.OfType<SettingsWindow>().Single(window => window.IsVisible);
+        Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
+        return app.Window.OpenSettingsViews.Single(window => window.IsVisible);
     }
 
     private static void Escape(SettingsWindow settings)

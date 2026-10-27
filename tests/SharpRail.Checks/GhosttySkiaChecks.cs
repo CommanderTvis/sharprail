@@ -779,7 +779,7 @@ internal static class GhosttySkiaChecks
         E2E.TerminalsE2E.Expect(original, "RENDERER_survived");
         var starts = app.Terminals.Started.Count;
         var settings = new SettingsWindow(app.Window, () => { });
-        settings.Show(app.Window);
+        app.Window.ShowInOverlay(settings);
         settings.ShowSection("Terminal");
         try
         {

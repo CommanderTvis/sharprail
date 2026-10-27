@@ -344,8 +344,8 @@ internal static class SyntaxHighlightChecks
         var root = CheckRoot.Create("highlighting-settings");
         using var app = new E2E.E2eWorkspace(root, openFiles: false);
         app.Window.ShowSettings("Highlighting");
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(item => item.Name == name);
         void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         const string json = """{"name":"Example","scopeName":"source.example","patterns":[{"name":"keyword.control.example","match":"hello"}]}""";
@@ -381,7 +381,7 @@ internal static class SyntaxHighlightChecks
             { prompt = options.InitialPrompt; return "echo highlighting-fixture"; }, () => new(true)));
             Require(Find<Button>("HighlightingAskCodex").IsEnabled, "A registered agent did not enable the highlighting button.");
             Click(Find<Button>("HighlightingAskCodex"));
-            Until(() => prompt is not null && !app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
+            Until(() => prompt is not null && !app.Window.OpenSettingsViews.Any());
             Require(prompt!.Contains("add-highlighting", StringComparison.Ordinal), "Agent prompt did not reference the builtin skill.");
         }
         finally { settings.Close(); preview.Close(); frame.Editor.Dispose(); CustomHighlighting.Apply([]); }

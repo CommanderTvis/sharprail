@@ -26,8 +26,8 @@ internal static class LayoutSettingsE2E
     private static SettingsWindow Open(E2eWorkspace app)
     {
         app.Click(app.Find<Button>("SettingsButton"));
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));
         return settings;
     }
@@ -40,10 +40,10 @@ internal static class LayoutSettingsE2E
 
     private static void Respond(E2eWorkspace app, SettingsWindow settings, bool accept)
     {
-        Until(() => settings.OwnedWindows.OfType<DialogWindow>().Any());
-        var dialog = settings.OwnedWindows.OfType<DialogWindow>().Single();
+        Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
+        var dialog = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
         app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => Label(button, accept ? "Apply layout" : "Cancel")));
-        Until(() => !settings.OwnedWindows.OfType<DialogWindow>().Any());
+        Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
     }
 
     private static void Review(string root)

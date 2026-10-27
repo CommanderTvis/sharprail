@@ -154,8 +154,8 @@ internal static class TerminalSignalUiChecks
 
         // Settings › Terminal follows the host's state and changes it.
         app.Window.ShowSettings("Terminal");
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         T Named<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         Require(Named<SharpRail.Plugins.UI.Kit.Switch>("TerminalNotificationsEnabled").IsChecked && Named<CheckBox>("BellSystem").IsChecked == true &&
             Named<CheckBox>("BellTitle").IsChecked == false, "Settings show the host's terminal notification and bell choices.");

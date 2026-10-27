@@ -99,7 +99,15 @@ internal static partial class FileIconsChecks
         .Any(control => control.Name == "FileTypeIcon" && Equals(control.Tag, $"file-type:{name}") &&
             control.GetLogicalDescendants().OfType<SvgAsset>().Any(svg => svg.Source is not null && svg.IsEffectivelyVisible)));
 
-    private static byte[] Raster(E2eWorkspace app, Control icon) => Raster(app.Window, icon);
+    // Settings sits over the workbench in its overlay with a scrim; the icon is read from the workbench alone.
+    private static byte[] Raster(E2eWorkspace app, Control icon)
+    {
+        var layers = app.Window.GetLogicalDescendants().OfType<Control>()
+            .Where(control => control.IsVisible && (control is SharpRail.UI.OverlayHost || control is Border border && ReferenceEquals(border.Background, Ui.Overlay))).ToArray();
+        foreach (var layer in layers) layer.IsVisible = false;
+        try { return Raster(app.Window, icon); }
+        finally { foreach (var layer in layers) layer.IsVisible = true; }
+    }
 
     private static byte[] Raster(Window window, Control icon)
     {
@@ -199,8 +207,8 @@ internal static partial class FileIconsChecks
 
         app.ShowTool("files");
         app.Window.ShowSettings("Appearance");
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         Button Choice(string name) => settings.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "FileTypeIcons_" + name);
         Until(() => Choice("plain").IsEnabled);
         Require(app.Workbench.State.Current.Settings is { FileTypeIconsEnabled: true, FileTypeIconStyle: "" }, "Core file-type icons are on and plain by default.");

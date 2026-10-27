@@ -262,8 +262,8 @@ internal static class VisualizeE2E
         void SetEnabled(bool enabled)
         {
             window.ShowSettings("Plugins");
-            Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-            var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+            Until(() => window.OpenSettingsViews.Any());
+            var settings = window.OpenSettingsViews.Single();
             var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("visualize")!;
             row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;
             Until(() => app.Workbench.PluginLoader.Registry.Active.Contains("visualize") == enabled);

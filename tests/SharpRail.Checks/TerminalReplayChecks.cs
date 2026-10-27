@@ -90,7 +90,7 @@ internal static partial class TerminalHostChecks
     {
         using var app = new E2E.E2eWorkspace(Path.Combine(root, "replay-setting"), openFiles: false);
         var settings = new SettingsWindow(app.Window, () => { });
-        settings.Show(app.Window);
+        app.Window.ShowInOverlay(settings);
         settings.ShowSection("Terminal");
         try
         {

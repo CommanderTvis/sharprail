@@ -73,7 +73,7 @@ internal static class TailscaleChecks
             E2eWorkspace.Until(() => Prompt(window, device) is not null && Prompt(peer, device) is not null);
             var card = Prompt(window, device)!;
             var shown = (Toast)card.Tag!;
-            Require(!window.OwnedWindows.OfType<SettingsWindow>().Any() && shown.Message.Contains(device.Name, StringComparison.Ordinal) &&
+            Require(!window.OpenSettingsViews.Any() && shown.Message.Contains(device.Name, StringComparison.Ordinal) &&
                 shown.Message.Contains(device.User, StringComparison.Ordinal) &&
                 card.GetLogicalDescendants().OfType<SelectableTextBlock>().Single(text => text.Name == "ToastCode").FontFamily == Ui.CodeFont,
                 "An incoming pairing shows its identity and its comparison code in the code font in every window, even when Settings is closed.");
@@ -90,9 +90,9 @@ internal static class TailscaleChecks
                 Choice(card, "Approve").IsEnabled, "Decline answers through the host, and a failure stays inline with the choices usable again.");
             Press(Choice(card, "Open Tailscale settings"));
             // Settings opens in the active window, which may be either.
-            E2eWorkspace.Until(() => workbench.Windows.Any(owner => owner.OwnedWindows.OfType<SettingsWindow>().Any()));
+            E2eWorkspace.Until(() => workbench.Windows.Any(owner => owner.OpenSettingsViews.Any()));
             Require(Prompt(window, device) is not null, "Opening settings from the prompt keeps it until the request is answered.");
-            var settings = workbench.Windows.SelectMany(owner => owner.OwnedWindows.OfType<SettingsWindow>()).Single();
+            var settings = workbench.Windows.SelectMany(owner => owner.OpenSettingsViews).Single();
             T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
             E2eWorkspace.Until(() => Find<TextBlock>("PairingName").Text?.Contains("host.tailnet.ts.net", StringComparison.Ordinal) == true);
             E2eWorkspace.Until(() => fake.Subscriptions > 0 && settings.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Content, "Approve")));

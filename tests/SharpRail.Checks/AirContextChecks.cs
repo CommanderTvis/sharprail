@@ -242,20 +242,20 @@ internal static partial class AirContextChecks
         var owner = OpenSettings(app);
         E2E.E2eWorkspace.Until(() => HasAir(owner));
         Require(owner.GetLogicalDescendants().OfType<Control>().All(control => control.Name != "ContextEnabled" || !control.IsEffectivelyVisible), "The workspace controls appeared in the global Settings section.");
-        T Find<T>(Window window, string name) where T : Control => window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
+        T Find<T>(Control window, string name) where T : Control => window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         E2E.E2eWorkspace.Until(() => owner.GetLogicalDescendants().OfType<Button>().Any(control => control.Name == "ContextSetup"));
         Click(Find<Button>(owner, "ContextSetup"));
-        E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
-        var canceled = owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
+        E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
+        var canceled = app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
         E2E.E2eWorkspace.Until(() => Find<CheckBox>(canceled, "ConsentCheck").IsEnabled);
         Require(Find<CheckBox>(canceled, "ConsentCheck").IsChecked == false && !Find<Button>(canceled, "ConsentDownload").IsEnabled && handler.Requests == 0,
             "Context consent default was accepted or downloaded.");
         Click(Find<Button>(canceled, "ConsentClose"));
         Require(handler.Requests == 0, "Closing consent downloaded the CLI.");
         Click(Find<Button>(owner, "ContextSetup"));
-        E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
-        var dialog = owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
+        E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
+        var dialog = app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
         try
         {
             E2E.E2eWorkspace.Until(() => Find<CheckBox>(dialog, "ConsentCheck").IsEnabled);
@@ -282,8 +282,8 @@ internal static partial class AirContextChecks
             Click(Find<Button>(dialog, "ConsentClose"));
             E2E.E2eWorkspace.Until(() => Find<Button>(owner, "ContextSetup").IsEnabled);
             Click(Find<Button>(owner, "ContextSetup"));
-            E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
-            var reopened = owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
+            E2E.E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
+            var reopened = app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
             E2E.E2eWorkspace.Until(() => Equals(Find<Button>(reopened, "ConsentClose").Content, "Done"));
             Require(!Find<Button>(reopened, "ConsentDownload").IsVisible && handler.Requests == 1, "Reopening offered or repeated an unnecessary download.");
             reopened.Close();
@@ -296,7 +296,7 @@ internal static partial class AirContextChecks
             Switch(false);
             E2E.E2eWorkspace.Until(() => !HasAir(owner) && !HasAir(app.Window, "AirContextPane") && !owner.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "ContextSetup" or "ContextEnabled"));
             Require(app.Window.Layout.Tools.All(tool => !tool.Id.StartsWith("plugin:air-context:", StringComparison.Ordinal)), "A side tool appeared.");
-            Require(owner.OwnedWindows.Count == 0, "A disabled plugin left a window open.");
+            Require(app.Window.OwnedWindows.Count == 0, "A disabled plugin left a window open.");
             Switch(true);
             E2E.E2eWorkspace.Until(() => HasAir(owner) && HasAir(app.Window, "AirContextPane"));
         }
@@ -327,7 +327,7 @@ internal static partial class AirContextChecks
     private static SharpRail.UI.Panels.SettingsWindow OpenSettings(E2E.E2eWorkspace app)
     {
         var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
-        settings.Show(app.Window);
+        app.Window.ShowInOverlay(settings);
         return settings;
     }
 

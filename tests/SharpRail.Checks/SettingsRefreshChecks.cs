@@ -22,7 +22,7 @@ internal static class SettingsRefreshChecks
         window.Show();
         Until(() => window.WorkspaceMounted);
         var settings = new SettingsWindow(window, () => { });
-        settings.Show(window);
+        window.ShowInOverlay(settings);
         try
         {
             var body = settings.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "SettingsBody");

@@ -221,14 +221,14 @@ internal static partial class BrowserChecks
     [JSExport]
     public static async Task<string> SettingsText()
     {
-        return await Dispatcher.UIThread.InvokeAsync(() => JsonSerializer.Serialize(Workbench.ActiveWindow!.OwnedWindows
+        return await Dispatcher.UIThread.InvokeAsync(() => JsonSerializer.Serialize(Workbench.ActiveWindow!.GetVisualDescendants().OfType<SharpRail.UI.Panels.SettingsWindow>()
             .SelectMany(window => window.GetVisualDescendants().OfType<TextBlock>()).Select(text => text.Text).ToArray()));
     }
 
     [JSExport]
     public static async Task ClickSettingsButton(string name)
     {
-        await Dispatcher.UIThread.InvokeAsync(() => Workbench.ActiveWindow!.OwnedWindows
+        await Dispatcher.UIThread.InvokeAsync(() => Workbench.ActiveWindow!.GetVisualDescendants().OfType<SharpRail.UI.Panels.SettingsWindow>()
             .SelectMany(window => window.GetVisualDescendants().OfType<Button>()).Single(button => button.Name == name)
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)));
     }

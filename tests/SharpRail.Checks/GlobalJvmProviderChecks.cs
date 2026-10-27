@@ -113,7 +113,7 @@ internal static class GlobalJvmProviderChecks
     {
         using var app = new E2E.E2eWorkspace(Path.Combine(root, "global-jvm-ui"), openFiles: false);
         var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
-        settings.Show(app.Window);
+        app.Window.ShowInOverlay(settings);
         T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(item => item.Name == name);
         try
         {

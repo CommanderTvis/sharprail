@@ -295,7 +295,7 @@ internal static class PluginUiChecks
         return scope.GetLogicalDescendants().OfType<T>().Single(item => item.Name == name);
     }
 
-    private static bool Has(Window window, string name)
+    private static bool Has(Control window, string name)
     {
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         return window.GetLogicalDescendants().OfType<Control>().Any(item => item.Name == name && item.IsEffectivelyVisible);
@@ -355,8 +355,8 @@ internal static class PluginUiChecks
 
         // The roster lists a discovered external plugin as disabled, with its version and origin; a refused one names both generations.
         window.ShowSettings("Plugins");
-        E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+        var settings = window.OpenSettingsViews.Single();
         var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!;
         static string Texts(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
         Require(Texts(row).Contains("external", StringComparison.Ordinal) && Texts(row).Contains("v1.0.0", StringComparison.Ordinal) &&
@@ -394,8 +394,8 @@ internal static class PluginUiChecks
 
         // Enabling from Settings › Plugins mounts the UI half read from disk through the host.
         window.ShowSettings("Plugins");
-        E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-        settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+        settings = window.OpenSettingsViews.Single();
         var toggle = Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle");
         toggle.IsChecked = true;
         E2eWorkspace.Until(() => loader.Registry.Active.Contains("fixture"));
@@ -455,8 +455,8 @@ internal static class PluginUiChecks
 
         // Disabling from Settings › Plugins unmounts every contribution: placeholders return and calls report disabled.
         window.ShowSettings("Plugins");
-        E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-        settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+        settings = window.OpenSettingsViews.Single();
         Find<ToggleSwitch>(settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!, "PluginToggle").IsChecked = false;
         E2eWorkspace.Until(() => !loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => !Has(settings, "Settings_plugin_fixture_fixture"));

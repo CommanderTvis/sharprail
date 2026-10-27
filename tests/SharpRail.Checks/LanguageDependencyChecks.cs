@@ -138,7 +138,7 @@ internal static class LanguageDependencyChecks
         var paneWindow = new Window { Width = 520, Height = 900, Content = pane };
         paneWindow.Show();
         var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
-        settings.Show(app.Window);
+        app.Window.ShowInOverlay(settings);
         try
         {
             T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);

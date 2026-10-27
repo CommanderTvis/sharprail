@@ -165,8 +165,9 @@ internal static partial class AirContextChecks
         void Await(Task task) { E2E.E2eWorkspace.Until(() => task.IsCompleted); task.GetAwaiter().GetResult(); }
         TurnOn(app);
         var plugins = app.PluginRuntime!;
-        T Find<T>(Window owner, string name) where T : Control => owner.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
-        void Button(Window owner, string name) => Find<Button>(owner, name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+        // A workbench lookup leaves out the Settings overlay, which repeats some of the same controls.
+        T Find<T>(Control owner, string name) where T : Control => owner.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name && (owner is SharpRail.UI.Panels.SettingsWindow || !control.GetLogicalAncestors().OfType<SharpRail.UI.Panels.SettingsWindow>().Any()));
+        void Button(Control owner, string name) => Find<Button>(owner, name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
         void Toggle()
         {
             var checkbox = Find<CheckBox>(window, "ContextEnabled"); checkbox.BringIntoView(); window.UpdateLayout();
@@ -212,12 +213,12 @@ internal static partial class AirContextChecks
             // The sign-in lives in Settings › Code Intelligence; the workspace section only follows it.
             Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ContextLogin" or "ContextSetup" && control.IsEffectivelyVisible), "The workspace section offers its own sign-in.");
             var settings = new SharpRail.UI.Panels.SettingsWindow(window, () => { }, section: "Code Intelligence");
-            settings.Show(window);
+            window.ShowInOverlay(settings);
             try
             {
                 E2E.E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Button>().Any(control => control.Name == "ContextRefresh"));
                 Button(settings, "ContextRefresh");
-                E2E.E2eWorkspace.Until(() => Find<TextBlock>(settings, "AccountState").Text!.StartsWith("Not signed in", StringComparison.Ordinal));
+                E2E.E2eWorkspace.Until(() => Find<TextBlock>(settings, "AccountState").Text?.StartsWith("Not signed in", StringComparison.Ordinal) == true);
                 Require(Find<Button>(settings, "ContextLogin").IsVisible && !Find<Button>(settings, "ContextLogout").IsVisible, "A signed-out account offered no Sign in.");
                 // The workspace section follows the global state without being reopened.
                 E2E.E2eWorkspace.Until(() => Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled);
@@ -226,11 +227,11 @@ internal static partial class AirContextChecks
                 var terminals = app.Window.Layout.Tabs(app.Center).Count(tab => tab.Kind == "terminal");
                 Button(settings, "ContextLogin"); E2E.E2eWorkspace.Until(() => app.Window.Layout.Tabs(app.Center).Count(tab => tab.Kind == "terminal") == terminals + 1);
                 Button(settings, "ContextRefresh"); E2E.E2eWorkspace.Settle(300);
-                Require(Find<TextBlock>(settings, "AccountState").Text!.StartsWith("Not signed in", StringComparison.Ordinal) && Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled,
+                Require(Find<TextBlock>(settings, "AccountState").Text?.StartsWith("Not signed in", StringComparison.Ordinal) == true && Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled,
                     "An unfinished sign-in changed the account state.");
                 // The terminal's login succeeds; the account section notices on its own, the workspace section follows.
                 runtime!.SignedIn = true;
-                E2E.E2eWorkspace.Until(() => Find<TextBlock>(settings, "AccountState").Text!.StartsWith("Signed in", StringComparison.Ordinal));
+                E2E.E2eWorkspace.Until(() => Find<TextBlock>(settings, "AccountState").Text?.StartsWith("Signed in", StringComparison.Ordinal) == true);
                 Require(Find<Button>(settings, "ContextLogout").IsVisible && !Find<Button>(settings, "ContextLogin").IsVisible, "A signed-in account kept offering Sign in.");
                 E2E.E2eWorkspace.Until(() => !Find<StackPanel>(window, "SignInNotice").IsVisible && Find<Button>(window, "ContextIndex").IsEnabled);
                 // Signing out from the global section reaches the workspace section too.

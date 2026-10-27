@@ -68,8 +68,8 @@ internal static class SettledWorkspacesE2E
 
         // Never settles nothing automatically; the header follows.
         app.Click(app.Find<Button>("SettingsButton"));
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         app.Click(Named<Button>(settings, "Settings_Workspaces"));
         Until(() => settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "SettleIdle_Never"));
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SettleIdle_Never"));

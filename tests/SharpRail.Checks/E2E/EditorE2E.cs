@@ -207,8 +207,8 @@ internal static class EditorE2E
     private static SettingsWindow OpenSettings(E2eWorkspace app)
     {
         app.Click(app.Find<Button>("SettingsButton"));
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        return app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        return app.Window.OpenSettingsViews.Single();
     }
 
     private static void CloseSettings(SettingsWindow settings)

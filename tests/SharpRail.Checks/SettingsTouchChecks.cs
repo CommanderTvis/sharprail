@@ -29,7 +29,7 @@ internal static class SettingsTouchChecks
         window.Width = 400; window.Height = 600; window.Show();
         Until(() => window.WorkspaceMounted);
         var settings = new SettingsWindow(window, () => { }) { Width = 400, Height = 320 };
-        settings.Show(window);
+        window.ShowInOverlay(settings);
         try
         {
             Dispatcher.UIThread.RunJobs(); settings.UpdateLayout();

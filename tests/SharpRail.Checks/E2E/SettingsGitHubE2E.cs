@@ -13,16 +13,11 @@ internal static class SettingsGitHubE2E
 {
     internal static void Run(string root)
     {
-        var available = new Avalonia.Rect(1920, 24, 1920, 1056);
-        var large = SettingsWindow.FitBounds(new Avalonia.Rect(1920, 24, 1920, 1056), available, 1);
-        Require(large.Width == 832 && Math.Abs(large.Height - 844.8) < .001
-            && Math.Abs(large.Center.X - available.Center.X) < .001 && Math.Abs(large.Center.Y - available.Center.Y) < .001,
-            "Settings must center its final owner-relative size before opening on another display.");
-        var clipped = SettingsWindow.FitBounds(new Avalonia.Rect(3000, 700, 1200, 1000), available, 2);
-        Require(available.Contains(clipped) && clipped.Right == available.Right && clipped.Bottom == available.Bottom,
-            "Settings must stay within the display work area even for an off-screen owner and interface zoom.");
-        var small = SettingsWindow.FitBounds(new Avalonia.Rect(0, 0, 600, 300), new Avalonia.Rect(0, 0, 600, 300), 1);
-        Require(small == new Avalonia.Rect(0, 0, 600, 300), "Settings minimum size must yield to a smaller display.");
+        var large = SettingsWindow.FitSize(new Avalonia.Size(1920, 1056));
+        Require(large.Width == 832 && Math.Abs(large.Height - 844.8) < .001,
+            "Settings must size itself from the window it opens in.");
+        var small = SettingsWindow.FitSize(new Avalonia.Size(600, 300));
+        Require(small == new Avalonia.Size(600, 300), "Settings minimum size must yield to a smaller window.");
         using var app = new E2eWorkspace(Path.Combine(root, "settings-github"), openFiles: false);
         Settle(800);
         var emptyPath = Path.Combine(root, "settings-github-empty-path");
@@ -32,8 +27,8 @@ internal static class SettingsGitHubE2E
         try
         {
             app.Click(app.Find<Button>("SettingsButton"));
-            Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-            var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+            Until(() => app.Window.OpenSettingsViews.Any());
+            var settings = app.Window.OpenSettingsViews.Single();
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_plugin_github_github"));
             Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.StartsWith("SharpRail uses the GitHub CLI", StringComparison.Ordinal) == true),
                 "Settings must show the GitHub block.");
@@ -52,7 +47,7 @@ internal static class SettingsGitHubE2E
 
     private static void PreferencesChord(E2eWorkspace app)
     {
-        SettingsWindow[] Open() => app.Window.OwnedWindows.OfType<SettingsWindow>().Where(window => window.IsVisible).ToArray();
+        SettingsWindow[] Open() => app.Window.OpenSettingsViews.Where(window => window.IsVisible).ToArray();
         void Press(RawInputModifiers modifiers)
         {
             app.Window.Focus();

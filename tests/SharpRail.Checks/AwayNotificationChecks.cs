@@ -190,8 +190,8 @@ internal static class AwayNotificationChecks
 
         app.Window.Activate();
         app.Window.ShowSettings("Notifications");
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         Switch Toggle() => settings.GetLogicalDescendants().OfType<Switch>().Single(control => control.Name == "NotificationsEnabled");
         Require(Toggle().IsChecked, "Settings shows notifications on by default.");
         app.Click(Toggle(), freshGesture: false);

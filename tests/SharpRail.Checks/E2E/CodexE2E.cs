@@ -768,8 +768,8 @@ internal static class CodexE2E
         // Settings persist the default permissions; a menu permission preset overrides them for one launch.
         codex.Settings(new { permissionMode = "default" });
         app.Window.ShowSettings("Plugins");
-        E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         E2eWorkspace.Until(() => Has(settings, "Settings_plugin_codex_codex"));
         settings.ShowSection("plugin:codex:codex");
         var ide = One<CheckBox>(settings, "CodexIdeContextToggle");
@@ -807,8 +807,8 @@ internal static class CodexE2E
         Require((picker.SelectedItem as ComboBoxItem)?.Content as string == "Sandbox: danger-full-access", "the picker shows the saved mode");
         Require(!settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "CodexSystemPromptEdit" or "CodexSystemPromptReset"),
             "settings offer no way to edit SharpRail's instructions");
-        app.Window.OwnedWindows.OfType<SettingsWindow>().Single().Close();
-        E2eWorkspace.Until(() => !app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
+        app.Window.OpenSettingsViews.Single().Close();
+        E2eWorkspace.Until(() => !app.Window.OpenSettingsViews.Any());
         E2eWorkspace.Until(() => !app.Window.OwnedWindows.Any());
         Launch(() => app.Click(One<Button>(app.Window, "NewCodex")), "-s", "danger-full-access");
         Launch(() => Menu("sandbox-read-only"), "-s", "read-only");

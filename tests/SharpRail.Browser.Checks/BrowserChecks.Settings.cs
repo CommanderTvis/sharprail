@@ -40,16 +40,16 @@ internal static partial class BrowserChecks
                 Height = window.ClientSize.Height,
                 window.RenderScaling,
                 Gear = new { point.X, point.Y, Width = gear.TranslatePoint(new Point(gear.Bounds.Width, 0), window)!.Value.X - point.X, Height = gear.TranslatePoint(new Point(0, gear.Bounds.Height), window)!.Value.Y - point.Y },
-                Dialogs = window.OwnedWindows.Select(dialog =>
+                Dialogs = window.GetVisualDescendants().OfType<SharpRail.UI.Panels.SettingsWindow>().Select(dialog =>
                 {
                     var close = dialog.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "SettingsClose");
                     var position = close.TranslatePoint(default, dialog)!.Value;
                     var end = close.TranslatePoint(new Point(close.Bounds.Width, close.Bounds.Height), dialog)!.Value;
                     return new
                     {
-                        Width = dialog.ClientSize.Width,
-                        Height = dialog.ClientSize.Height,
-                        dialog.RenderScaling,
+                        Width = dialog.Bounds.Width,
+                        Height = dialog.Bounds.Height,
+                        window.RenderScaling,
                         Close = new { position.X, position.Y, Width = end.X - position.X, Height = end.Y - position.Y }
                     };
                 }).ToArray()
@@ -63,7 +63,7 @@ internal static partial class BrowserChecks
         var snapshot = await Dispatcher.UIThread.InvokeAsync(() =>
         {
             var window = BrowserSession.Current!.Workbench!.ActiveWindow!;
-            var dialog = window.OwnedWindows.Single();
+            var dialog = window.GetVisualDescendants().OfType<SharpRail.UI.Panels.SettingsWindow>().Single();
             var body = dialog.GetVisualDescendants().OfType<ContentControl>().Single(control => control.Name == "SettingsBody");
             return (Window: window, Body: body, Content: body.Content);
         });

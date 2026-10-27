@@ -296,8 +296,8 @@ internal static class ClaudeCodeChecks
         Require(app.Window.GetLogicalDescendants().OfType<Control>().Count(control => control.Name == "ClaudeAccount") == 1,
             "The mounted account surface renders again after each read without renaming itself.");
         app.Window.ShowSettings("plugin:claude-code:claude-code");
-        E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var window = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => app.Window.OpenSettingsViews.Any());
+        var window = app.Window.OpenSettingsViews.Single();
         var command = window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeCommandInput");
         command.Text = "custom-claude --verbose";
         command.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
@@ -308,7 +308,7 @@ internal static class ClaudeCodeChecks
         Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ClaudeSystemPromptEdit" or "ClaudeSystemPromptReset"),
             "Settings offer no way to edit SharpRail's instructions.");
         window.Close();
-        E2eWorkspace.Until(() => !app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
+        E2eWorkspace.Until(() => !app.Window.OpenSettingsViews.Any());
         var compose = SettingValueDialog.ShowAsync(app.Window, new("ClaudeCheck", "model", JsonSerializer.SerializeToElement("sonnet"), ["model"], "Review change"));
         E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
         var composer = app.Window.OwnedWindows.Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
@@ -985,8 +985,8 @@ internal static class ClaudeCodeChecks
 
         Settings(new { enabled = true, command = "claude" });
         app.Window.ShowSettings("plugin:claude-code:claude-code");
-        E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var window = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => app.Window.OpenSettingsViews.Any());
+        var window = app.Window.OpenSettingsViews.Single();
         TextBox Command() => window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeCommandInput");
         E2eWorkspace.Until(() => Command().Text == "claude");
         var defaultModel = window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeDefaultModel");
@@ -1031,8 +1031,8 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => Saved() == "claude --model opus");
         window.Close();
         app.Window.ShowSettings("plugin:claude-code:claude-code");
-        E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        window = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => app.Window.OpenSettingsViews.Any());
+        window = app.Window.OpenSettingsViews.Single();
         E2eWorkspace.Until(() => Command().Text == "claude --model opus");
         Require(window.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeDefaultModel").Text == "sonnet" &&
             Equals((window.GetLogicalDescendants().OfType<ComboBox>().Single(control => control.Name == "ClaudeDefaultEffort").SelectedItem as ComboBoxItem)?.Tag, "high"),

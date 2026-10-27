@@ -185,7 +185,7 @@ internal static class LineWidthE2E
         Console.WriteLine("PASS upstream line-width-settings.spec.ts: line-width controls validate drafts, converge on broadcasts, and persist");
     }
 
-    internal static void SaveWidth(E2eWorkspace app, Window settings, string kind, int value)
+    internal static void SaveWidth(E2eWorkspace app, SharpRail.UI.Panels.SettingsWindow settings, string kind, int value)
     {
         var save = Named<Button>(settings, kind + "LineWidthSave");
         Type(app, settings, Named<TextBox>(settings, kind + "LineWidthInput"), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -194,7 +194,7 @@ internal static class LineWidthE2E
         Until(() => !save.IsEnabled);
     }
 
-    private static void Type(E2eWorkspace app, Window settings, TextBox input, string text)
+    private static void Type(E2eWorkspace app, SharpRail.UI.Panels.SettingsWindow settings, TextBox input, string text)
     {
         app.Click(input);
         input.SelectAll();
@@ -202,7 +202,7 @@ internal static class LineWidthE2E
         Until(() => input.Text == text);
     }
 
-    private static T Named<T>(Window window, string name) where T : Control
+    private static T Named<T>(Control window, string name) where T : Control
     {
         Until(() => window.GetLogicalDescendants().OfType<T>().Any(control => control.Name == name));
         return window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
@@ -211,8 +211,8 @@ internal static class LineWidthE2E
     private static SettingsWindow OpenLineWidth(E2eWorkspace app)
     {
         app.Click(app.Find<Button>("SettingsButton"));
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         app.Click(Named<Button>(settings, "Settings_Line_width"));
         return settings;
     }

@@ -313,8 +313,8 @@ internal static class EpubChecks
     {
         var window = app.Window;
         window.ShowSettings("Plugins");
-        E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+        var settings = window.OpenSettingsViews.Single();
         E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card(Id) is not null);
         var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card(Id)!;
         row.GetLogicalDescendants().OfType<ToggleSwitch>().Single(control => control.Name == "PluginToggle").IsChecked = enabled;

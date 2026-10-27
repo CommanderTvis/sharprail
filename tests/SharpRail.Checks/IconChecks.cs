@@ -59,14 +59,14 @@ internal static class IconChecks
     {
         using var app = new E2eWorkspace(Path.Combine(root, "host-icon"), openFiles: false);
         app.Click(app.Find<Button>("SettingsButton"));
-        E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => app.Window.OpenSettingsViews.Any());
+        var settings = app.Window.OpenSettingsViews.Single();
         var host = settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Host");
         var mask = ((Border)Ui.Icon("server")).OpacityMask;
         Require(host.GetLogicalDescendants().OfType<Border>().Any(icon => ReferenceEquals(icon.OpacityMask, mask)),
             "Host settings must use the server glyph rather than a terminal glyph.");
         Dispatcher.UIThread.RunJobs(); settings.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-        using var frame = settings.CaptureRenderedFrame()!;
+        using var frame = TopLevel.GetTopLevel(settings)!.CaptureRenderedFrame()!;
         frame.Save(CheckRoot.Artifact("vector-icons", "settings.png"), PngBitmapEncoderOptions.Default);
         settings.Close();
         Console.WriteLine("PASS actual Settings Host navigation uses the original server vector glyph");

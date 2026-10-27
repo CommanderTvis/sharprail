@@ -54,17 +54,18 @@ internal static class UiChecks
         task.GetAwaiter().GetResult();
     }
 
-    private static T Find<T>(Window window, string name) where T : Control
+    private static T Find<T>(Control window, string name) where T : Control
         => window.GetLogicalDescendants().OfType<T>().Distinct().Single(item => item.Name == name);
 
-    private static Point Center(Window window, Control control)
+    private static Point Center(Visual window, Control control)
         => control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
 
-    private static void Click(Window window, Control control)
+    private static void Click(Control scope, Control control)
     {
+        var window = TopLevel.GetTopLevel(scope)!;
         Dispatcher.UIThread.RunJobs();
-        if (!control.GetVisualAncestors().Contains(window) && control.Name is not null)
-            control = Find<Control>(window, control.Name);
+        if (!control.GetVisualAncestors().Contains(scope) && control.Name is not null)
+            control = Find<Control>(scope, control.Name);
         window.UpdateLayout();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Require(control.Bounds.Width > 0 && control.Bounds.Height > 0, "Click target has not been arranged.");
@@ -485,7 +486,7 @@ internal static class UiChecks
             "Keyboard side resize failed after initial arrange.");
 
         var settings = new SettingsWindow(window, () => { });
-        _ = settings.ShowDialog(window);
+        window.ShowInOverlay(settings);
         settings.ShowSection("Appearance");
         Capture(settings, "prototype-settings.png");
         var light = Find<Button>(settings, "Theme_light");
@@ -512,7 +513,7 @@ internal static class UiChecks
         Pump(() => restored.WorkspaceMounted && restored.GetLogicalDescendants().OfType<MarkdownPreview>().Any(),
             "Fresh process profile restoration left the document loading.");
         restored.ShowSettings();
-        var liveSettings = restored.OwnedWindows.OfType<SettingsWindow>().Single();
+        var liveSettings = restored.OpenSettingsViews.Single();
         var fontSize = liveSettings.GetLogicalDescendants().OfType<NumericUpDown>().Single();
         fontSize.Value = 24;
         Dispatcher.UIThread.RunJobs(); restored.UpdateLayout();
@@ -567,9 +568,9 @@ internal static class UiChecks
         unsaved.Close();
     }
 
-    private static void Capture(Window window, string path)
+    private static void Capture(Control view, string path)
     {
-        using var frame = window.CaptureRenderedFrame();
+        using var frame = TopLevel.GetTopLevel(view)!.CaptureRenderedFrame();
         Require(frame is not null, "No rendered screenshot.");
         frame!.Save(CheckRoot.Artifact(path), PngBitmapEncoderOptions.Default);
     }

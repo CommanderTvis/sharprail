@@ -380,8 +380,8 @@ internal static class ShellChecks
 
         // Window: Settings opened on its Host page.
         Pick(windows, "Host Settings…");
-        Until(() => window.OwnedWindows.Count == 1);
-        var settings = (SharpRail.UI.Panels.SettingsWindow)window.OwnedWindows[0];
+        Until(() => window.OpenSettingsViews.Any());
+        var settings = window.OpenSettingsViews.Single();
         Require(settings.Section == "Host", "Host Settings opens Settings › Host, opened " + settings.Section);
         var launches = 0;
         var launcher = SharpRail.UI.Panels.SettingsWindow.ConnectTailscale;

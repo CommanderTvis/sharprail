@@ -976,11 +976,11 @@ internal static class LanguageChecks
         Console.WriteLine("PASS every language provider renders its publisher mark in dark/light themes, including transparent Roslyn artwork");
     }
 
-    internal static void CaptureLsp(Avalonia.Controls.Window window, string name)
+    internal static void CaptureLsp(Avalonia.Controls.Control window, string name)
     {
         if (Environment.GetEnvironmentVariable("SHARPRAIL_LSP_CAPTURE") != "1") return;
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-        using var frame = window.CaptureRenderedFrame();
+        using var frame = Avalonia.Controls.TopLevel.GetTopLevel(window)!.CaptureRenderedFrame();
         frame!.Save(CheckRoot.Artifact("lsp-ui", name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 
@@ -988,7 +988,7 @@ internal static class LanguageChecks
     {
         using var app = new E2E.E2eWorkspace(Path.Combine(fixture, "lsp-settings"), openFiles: false);
         var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
-        settings.Show(app.Window);
+        app.Window.ShowInOverlay(settings);
         T Find<T>(string name) where T : Avalonia.Controls.Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         try
         {

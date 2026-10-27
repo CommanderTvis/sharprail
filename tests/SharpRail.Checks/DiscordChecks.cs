@@ -250,8 +250,8 @@ internal static class DiscordChecks
     private static SettingsWindow OpenSection(WorkbenchWindow window)
     {
         window.ShowSettings("Plugins");
-        E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+        var settings = window.OpenSettingsViews.Single();
         E2eWorkspace.Until(() => Has(settings, "Settings_plugin_discord_discord"));
         settings.ShowSection("plugin:discord:discord");
         E2eWorkspace.Until(() => Has(settings, "DiscordSettings"));
@@ -313,8 +313,8 @@ internal static class DiscordChecks
             E2eWorkspace.Until(() => loader.Registry.Roster.Any(entry => entry.Id == "discord"));
             Require(loader.Registry.Roster.Single(entry => entry.Id == "discord").Status == PluginStatus.Disabled, "Discord is off by default.");
             window.ShowSettings("Plugins");
-            E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-            var plugins = window.OwnedWindows.OfType<SettingsWindow>().Single();
+            E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+            var plugins = window.OpenSettingsViews.Single();
             Find<ToggleSwitch>(plugins.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").IsChecked = true;
             E2eWorkspace.Until(() => loader.Registry.Active.Contains("discord"));
             Close(window, plugins);
@@ -372,8 +372,8 @@ internal static class DiscordChecks
             E2eWorkspace.Until(() => Find<TextBlock>(settings, "DiscordStatus").Text?.Contains("is blocked from Discord", StringComparison.Ordinal) == true);
             Close(window, settings);
             window.ShowSettings("Plugins");
-            E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-            plugins = window.OwnedWindows.OfType<SettingsWindow>().Single();
+            E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
+            plugins = window.OpenSettingsViews.Single();
             Find<ToggleSwitch>(plugins.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("discord")!, "PluginToggle").IsChecked = false;
             E2eWorkspace.Until(() => !loader.Registry.Active.Contains("discord"));
             Require(!Has(plugins, "Settings_plugin_discord_discord"), "Disable removes the Discord settings contribution.");

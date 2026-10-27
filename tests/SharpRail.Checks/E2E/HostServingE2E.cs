@@ -21,7 +21,7 @@ internal static class HostServingE2E
         using var peer = app.NewWindow();
         var settings = new SettingsWindow(app.Window, () => { }, section: "Host");
         var other = new SettingsWindow(peer.Window, () => { }, section: "Host");
-        settings.Show(app.Window); other.Show(peer.Window); Settle();
+        app.Window.ShowInOverlay(settings); peer.Window.ShowInOverlay(other); Settle();
         T Field<T>(SettingsWindow view, string name) where T : Control => view.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         void Sections(SettingsWindow view)
         {
@@ -43,7 +43,7 @@ internal static class HostServingE2E
         using (var unavailable = new E2eWorkspace(Path.Combine(root, "host-unavailable-ui")))
         {
             var unavailableSettings = new SettingsWindow(unavailable.Window, () => { }, section: "Host");
-            unavailableSettings.Show(unavailable.Window); Settle();
+            unavailable.Window.ShowInOverlay(unavailableSettings); Settle();
             Sections(unavailableSettings);
             Require(!Field<StackPanel>(unavailableSettings, "HostControls").IsVisible &&
                 Field<TextBlock>(unavailableSettings, "HostDescription").Text == "This workbench has no embedded host to serve.",
@@ -68,7 +68,7 @@ internal static class HostServingE2E
             app.Root, Path.Combine(root, "host-remote-profile"), app.Root))
         {
             var remoteSettings = new SettingsWindow(client.Window, () => { }, section: "Host");
-            remoteSettings.Show(client.Window); Settle();
+            client.Window.ShowInOverlay(remoteSettings); Settle();
             Sections(remoteSettings);
             Require(client.Workbench.Remote && !Field<StackPanel>(remoteSettings, "HostControls").IsVisible &&
                 Field<TextBlock>(remoteSettings, "HostDescription").Text == "This app is connected to a remote host. Start serving from the app running the embedded host.",
