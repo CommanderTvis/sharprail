@@ -188,12 +188,6 @@ public interface ITerminalAccessoryApi
     /// <param name="data">The text.</param>
     void Write(string data);
 
-    /// <summary>Reads the last lines of the terminal's screen and scrollback.</summary>
-    /// <param name="lines">How many lines to read.</param>
-    /// <param name="omitFaint">Blanks faint cells: the placeholders and suggestions a TUI draws in its input line. Honoured by renderers that see cell styling (Skia); the native texture renderer answers with plain text, so callers must also recognise known placeholder wording.</param>
-    /// <returns>The lines, oldest first.</returns>
-    IReadOnlyList<string> BufferTail(int lines, bool omitFaint = false);
-
     /// <summary>
     /// Holds the user's keys, text and paste out of the terminal until the handle is disposed, so a command the plugin
     /// is typing is not interleaved with theirs. Keystrokes during a hold are dropped, not queued; <see cref="Write"/>
@@ -202,6 +196,9 @@ public interface ITerminalAccessoryApi
     /// </summary>
     /// <returns>The handle that ends the hold.</returns>
     IDisposable HoldInput();
+
+    /// <summary>Gives the terminal the keyboard focus, for a chip that has just typed a command the user answers with keys.</summary>
+    void Focus();
 
     /// <summary>Sets how typed keys are encoded.</summary>
     /// <param name="encoding">The encoding.</param>

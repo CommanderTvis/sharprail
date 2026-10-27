@@ -186,8 +186,7 @@ and roster registration still precede reconciliation, preserving dormant tools a
   the new workspace. Pending routing retains the previous tool body; unregistering a
   contribution or closing its workspace/project releases its cache, as do appearance and window changes.
 - Terminal accessories (W11) render as rows below the terminal surface, inside `TerminalView`; `Write` types
-  into the Ghostty surface, `BufferTail` reads its screen and scrollback, and the headless terminal backend
-  implements both over its plain-text view.
+  into the Ghostty surface, `Focus` gives it the keyboard, and `HoldInput` holds the user's keys out meanwhile.
 - Editor events (W12) are fed by the Scintilla editor (open, close, activate, save, selection) and the Markdown
   preview (selection).
 - File icons (W17) are consulted for tabs, Files rows, Changes rows and the diff header's path chip; core's

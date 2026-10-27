@@ -3,6 +3,9 @@ namespace SharpRail.Plugins.ClaudeCode;
 /// <summary>The values both halves agree on: scopes, their wording, the hook events offered, and event → status.</summary>
 public static class ClaudeValues
 {
+    /// <summary>The effort levels Claude Code may offer, in order; not every environment shows all of them.</summary>
+    public static readonly IReadOnlyList<string> EffortLevels = ["low", "medium", "high", "xhigh", "max", "ultracode"];
+
     /// <summary>Scopes an edit may target. <c>managed</c> is deliberately absent: it belongs to whoever deploys it.</summary>
     public static readonly IReadOnlyList<ClaudeWritableScope> WritableScopes = [ClaudeWritableScope.User, ClaudeWritableScope.Project, ClaudeWritableScope.Local];
 

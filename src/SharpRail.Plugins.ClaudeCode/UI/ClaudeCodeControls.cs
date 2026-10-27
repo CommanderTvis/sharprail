@@ -43,7 +43,7 @@ internal sealed partial class ClaudeCodeSettingsSection : UserControl
         };
         effort = this.FindControl<ComboBox>("ClaudeDefaultEffort")!;
         effort.Items.Add(new ComboBoxItem { Content = "Use CLI default", Tag = "" });
-        foreach (var level in EffortPicker.Levels) effort.Items.Add(new ComboBoxItem { Content = level, Tag = level });
+        foreach (var level in ClaudeValues.EffortLevels) effort.Items.Add(new ComboBoxItem { Content = level, Tag = level });
         void SaveModel()
         {
             var value = model.Text?.Trim() ?? "";

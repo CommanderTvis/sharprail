@@ -111,21 +111,9 @@ public static class TerminalFacts
         return Chips.Button(name, content, tooltip, onClick);
     }
 
-    /// <summary>A fact chip that opens a menu, such as a model or effort picker; the caller supplies the items when it opens.</summary>
-    public static Button PickerChip(string kind, string label, string title, Func<IReadOnlyList<Control>> items, Control? leading = null)
-    {
-        var content = Content(null, label, leading);
-        content.Children.Add(Ui.Icon("arrowDown", Ui.Muted, 12));
-        Button? button = null;
-        button = ChipButton("TerminalAgentFact_" + kind, content, title, () =>
-        {
-            var menu = new ContextMenu { Name = "TerminalPicker_" + kind, Placement = PlacementMode.TopEdgeAlignedLeft, PlacementTarget = button };
-            foreach (var item in items()) menu.Items.Add(item);
-            button!.ContextMenu = menu;
-            menu.Open(button);
-        });
-        return button;
-    }
+    /// <summary>A fact chip that is a button: the value it shows is read-only, the click only runs <paramref name="onClick"/>, for example to open the agent's own picker. No menu, no chevron.</summary>
+    public static Button ActionFactChip(string kind, string label, string title, Action onClick, Control? leading = null) =>
+        ChipButton("TerminalAgentFact_" + kind, Content(null, label, leading), title, onClick);
 
     /// <summary>The session's token spending: <c>↑in ↓out R cache-read W cache-write</c>, or nothing before any.</summary>
     public static Control? UsageChip(string agent, TokenUsage usage)

@@ -39,7 +39,6 @@ internal static class CodexE2E
     internal static int? Fake(string mode, string[] args) => mode switch
     {
         "--fake-codex" => CodexChecks.FakeCodex(args),
-        "--fake-codex-picker" => FakePicker(),
         "--fake-codex-input" => FakeInput(),
         _ => null
     };
@@ -59,64 +58,6 @@ internal static class CodexE2E
         using var stty = Process.Start(new ProcessStartInfo("stty", ["raw", "-echo"]) { UseShellExecute = false })!;
         stty.WaitForExit();
         if (stty.ExitCode != 0) throw new InvalidOperationException("The Codex fixture requires a raw PTY.");
-    }
-
-    // e2e/fixtures/fake-codex-model-picker.ts: Codex's /model picker, "s" for this session, Enter saves the default.
-    // The headless terminal keeps its whole output rather than a screen, so leaving the picker scrolls its rows out of
-    // the accessory's 48-line tail, as a real screen would clear them.
-    private static int FakePicker()
-    {
-        (string Name, string Slug, bool Efforts)[] models =
-            [("GPT-6-Astra (default)", "gpt-6-astra", true), ("GPT-5.6 Sol", "gpt-5.6-sol", true), ("GPT-5.6 Terra", "gpt-5.6-terra", false), ("GPT-5.6 Luna (current)", "gpt-5.6-luna", true)];
-        string[] efforts = ["Low", "Medium (default)", "High"];
-        var view = "composer";
-        var highlighted = 3;
-        var model = 3;
-        var typed = "";
-        string Rows(IEnumerable<string> names) => string.Join("\r\n", names.Select((name, index) => $"{(index == highlighted ? "›" : " ")} {index + 1}. {name}  A description"));
-        void Render()
-        {
-            var body = view == "models" ? "  Select Model and Effort\r\n\r\n" + Rows(models.Select(item => item.Name))
-                : $"  Select Reasoning Level for {models[model].Name}\r\n\r\n" + Rows(efforts);
-            Out($"\x1b[?1049h\x1b[2J\x1b[H{body}\r\n\r\n  enter default · s session · esc back\r\n");
-        }
-        int Leave(string message)
-        {
-            Out("\x1b[?1049l" + string.Concat(Enumerable.Repeat("\r\n", 60)) + $"• {message}\r\n");
-            return 0;
-        }
-        using var stdout = Console.OpenStandardOutput();
-        RawInput();
-        Out("fake-codex ready\r\n› Ask Codex to do anything\r\n");
-        var buffer = new byte[64];
-        int read;
-        while ((read = (int)ReadInput(0, buffer, (nuint)buffer.Length)) > 0)
-        {
-            var data = Encoding.UTF8.GetString(buffer, 0, read);
-            if (view == "composer")
-            {
-                typed += data;
-                if (typed.Contains("/model", StringComparison.Ordinal) && typed.Contains('\r')) { view = "models"; Render(); }
-                continue;
-            }
-            var size = view == "models" ? models.Length : efforts.Length;
-            if (data.Contains("\x1b[B", StringComparison.Ordinal)) highlighted = (highlighted + 1) % size;
-            else if (data.Contains("\x1b[A", StringComparison.Ordinal)) highlighted = (highlighted + size - 1) % size;
-            else if (data == "\x1b") return Leave("Kept model");
-            else if (view == "models" && data == "\r")
-            {
-                if (!models[highlighted].Efforts) return Leave("Saved the default model");
-                model = highlighted;
-                view = "effort";
-                highlighted = 1;
-            }
-            else if (view == "models" && data == "s" && !models[highlighted].Efforts) return Leave($"Model changed to {models[highlighted].Slug} for this session only");
-            else if (view == "effort" && data == "s")
-                return Leave($"Model changed to {models[model].Slug} {efforts[highlighted].Split(' ')[0].ToLowerInvariant()} for this session only");
-            else if (view == "effort" && data == "\r") return Leave("Saved the default model");
-            Render();
-        }
-        return 0;
     }
 
     // e2e/fixtures/codex-command-input.ts: reports a Codex session, then echoes each command submitted with an Enter
@@ -252,7 +193,7 @@ internal static class CodexE2E
         Directory.CreateDirectory(root);
         ModelPicker(Path.Combine(root, "codex-model-picker"));
         Status(Path.Combine(root, "codex-status"));
-        Console.WriteLine("PASS Codex terminal checks: hooks, IDE commands, session model picker, token totals and plan");
+        Console.WriteLine("PASS Codex terminal checks: hooks, IDE commands, model picker opener, token totals and plan");
     }
 
     internal static void Run(string root)
@@ -268,7 +209,7 @@ internal static class CodexE2E
         if (!OperatingSystem.IsWindows()) LaunchInstructions(Path.Combine(root, "codex-launch-instructions"));
         ModelPicker(Path.Combine(root, "codex-model-picker"));
         Status(Path.Combine(root, "codex-status"));
-        Console.WriteLine("PASS Codex plugin E2E: account, config file, context, IDE context, launcher, launch instructions, model picker, status");
+        Console.WriteLine("PASS Codex plugin E2E: account, config file, context, IDE context, launcher, launch instructions, model picker opener, status");
     }
 
     private static string FakeExecutable(string directory, CodexChecks.FakeControl control, out string controlPath, out string log)
@@ -910,26 +851,15 @@ internal static class CodexE2E
             Texts(Chip()).Contains("gpt-5.6-luna", StringComparison.Ordinal));
         Require(Chip().GetLogicalAncestors().Any(ancestor => ancestor.GetType().Name == "CodexTerminalRow"), "the accessory row is a compiled frame");
 
-        terminal.Run($"stty raw -echo; {Self()} --fake-codex-picker; stty sane");
-        E2eWorkspace.Until(() => ScreenOf(terminal).Contains("fake-codex ready", StringComparison.Ordinal));
+        terminal.Run($"stty raw -echo; {Self()} --fake-codex-input; stty sane");
+        E2eWorkspace.Until(() => ScreenOf(terminal).Contains("codex command input ready", StringComparison.Ordinal));
         var chip = Chip();
+        Require(chip.ContextMenu is null, "the model chip has no menu: Codex's own picker does the choosing");
         codex.App.Click(chip);
-        var menu = chip.ContextMenu!;
-        E2eWorkspace.Until(() => menu.IsOpen && menu.Items.OfType<MenuItem>().Count() == 4);
-        var items = menu.Items.OfType<MenuItem>().ToArray();
-        Require(items.Length == 4 && items.All(item => item.Icon is not null), "four models, each wearing OpenAI's mark: " + string.Join(",", items.Select(item => item.Header)));
-        var option = items.Single(item => Equals(item.Header, "GPT-5.6 Sol"));
-        E2eWorkspace.Until(() => TopLevel.GetTopLevel(option) is not null);
-        codex.App.Click(option, freshGesture: false);
-
-        // Down to Sol, Enter into its efforts, then s on the highlighted one: never Enter there, which saves the default.
-        try { E2eWorkspace.Until(() => ScreenOf(terminal).Contains("Model changed to gpt-5.6-sol medium for this session only", StringComparison.Ordinal)); }
-        catch (InvalidOperationException)
-        {
-            File.WriteAllText(Path.Combine(root, "picker-failure.txt"), ScreenOf(terminal) + "\n" + Texts(codex.App.Window));
-            throw;
-        }
-        E2eWorkspace.Until(() => !Has(codex.App.Window, "TerminalDrivingOverlay") && Texts(Chip()).Contains("gpt-5.6-sol", StringComparison.Ordinal));
+        E2eWorkspace.Until(() => ScreenOf(terminal).Contains("SUBMITTED 1: \"/model\"", StringComparison.Ordinal));
+        E2eWorkspace.Settle(400);
+        Require(!ScreenOf(terminal).Contains("SUBMITTED 2", StringComparison.Ordinal) && Texts(Chip()).Contains("gpt-5.6-luna", StringComparison.Ordinal),
+            "one click types /model once and the chip keeps the reported model");
     }
 
     // codex-status.spec.ts. SharpRail does not adopt terminal titles, so the title half of the action-required case,

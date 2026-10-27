@@ -163,16 +163,15 @@ XAML in the kit. The settings section, pane header/navigation, instruction offer
 capability frames also use compiled XAML. Context checks cover all three offers, override precedence,
 user scope and external source links; capability checks cover installation, manual trust and configured
 MCP targets/source links. Configuration value cells, row actions, the trust line, the no-match line, notices and the terminal
-accessory row (model chip, slots for the kit's usage/plan/IDE/attach chips and the driving status) are
+accessory row (model chip, slots for the kit's usage/plan/IDE/attach chips) are
 compiled frames too; the kit's shared setting rows and chips stay kit-owned. Settings observers restart on remount, with host changes both while detached and after
 reattachment covered by WebSocket RPC checks.
-The draft guard shares the kit's `PromptComposer`; Codex's own example prompts (`Explain this codebase`, `Write tests
-for @filename`, …) and its follow-up line are matched case-insensitively as placeholders. The list follows Codex's
-rotating examples as remembered, not read from a live build, so an unlisted new example is the one wording the
-Metal renderer can mistake for a draft; Skia drops it as faint text.
-The accessory's driven entries (`/ide on|off`, the `/model` picker) hold the user's keys out of the terminal until
-the command has been typed and submitted, or the drive gives up, throws or is cancelled; keys typed meanwhile are
-dropped. `--codex` covers the release on every outcome through a fake TUI.
+The terminal-driving per-session model picker is retired for the same reasons as Claude Code's (screen-scraped, no
+authoritative live source). The model chip shows the model Codex last reported, with a tooltip saying so, and a click
+only opens Codex's own `/model` picker: `CodexTerminalCommands.SubmitAsync` types `/model`, then Enter separately, and
+the terminal is focused; SharpRail never picks a model. The chip is disabled while the session is Running. The `/ide
+on|off` entry uses the same submit under a `HoldInput()` hold released on every outcome. `--codex` covers the typed
+bytes and the release with a fake terminal, and the E2E clicks the chip against the command-input fixture.
 The earlier descendant snapshot teardown passed its resistant-child regression. Its replacement
 uses a private POSIX process group, with new leader-crash and immediate-stop regression cases.
 The .NET build and focused account/configuration/IDE/UI checks pass with that replacement, including

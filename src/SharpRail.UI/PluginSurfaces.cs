@@ -443,13 +443,9 @@ public sealed partial class WorkbenchWindow
         public string TabKey => tabKey;
         public void Write(string data) => terminal.Write(data);
 
-        public IReadOnlyList<string> BufferTail(int lines, bool omitFaint = false)
-        {
-            var all = (omitFaint ? terminal.ReadScreen(true) : terminal.ReadScreen()).Replace("\r", "").TrimEnd('\n').Split('\n');
-            return all.Length <= lines ? all : all[^lines..];
-        }
-
         public IDisposable HoldInput() => terminal.HoldInput();
+
+        public void Focus() => terminal.FocusTerminal();
 
         public void SetKeyEncoding(TerminalKeyEncoding encoding) => terminal.SetAgentNewline(encoding == TerminalKeyEncoding.AgentNewline);
     }

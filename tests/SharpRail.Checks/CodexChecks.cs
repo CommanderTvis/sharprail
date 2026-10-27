@@ -1259,137 +1259,21 @@ internal static class CodexChecks
         Require(store.Session("w", "t")!.Plan!.Count == 0, "an empty plan replaces the last one");
     }
 
-    // Codex's /model flow as its TUI draws it: numbered › rows, an effort list, s for this session.
-    private sealed class FakeTui(bool quick = false, string draft = "", bool sessionKey = true) : ICodexTerminalIo
+    private sealed class TypingTui : ICodexTerminalIo
     {
-        private static readonly (string Name, int Efforts)[] Models = [("GPT-6-Astra (default)", 3), ("GPT-5.6 Sol", 3), ("GPT-5.6 Terra", 1), ("GPT-5.6 Luna (current)", 3)];
-        private string view = "composer";
-        private int highlighted = 3;
-        private string typed = draft;
-        public readonly List<string> Written = [];
-        public string? Outcome;
-
-        private IEnumerable<string> Rows(IEnumerable<string> names) => names.Select((name, index) => $"{(index == highlighted ? "›" : " ")} {index + 1}. {name}  A description");
-
-        public IReadOnlyList<string> ReadLines(bool omitFaint = false) => view switch
-        {
-            "quick" => ["  Select Model", .. Rows(["codex-auto-fast", "All models"])],
-            "models" => ["  Select Model and Effort", .. Rows(Models.Select(model => model.Name)), "  esc back"],
-            "effort" => ["  Select Reasoning Level for x", .. Rows(["Low", "Medium (default)", "High"])],
-            _ => [.. Outcome is null ? Array.Empty<string>() : [$"• {Outcome}"], $"› {(typed.Length > 0 ? typed : "Ask Codex to do anything")}"]
-        };
-
+        public List<string> Written { get; } = [];
+        public int Held;
+        public void Write(string data) => Written.Add(data);
         public Task DelayAsync(TimeSpan delay) => Task.CompletedTask;
-
-        public int Held;
-        public int Holds;
-        public bool HeldAtFirstWrite;
-
-        public IDisposable HoldInput()
-        {
-            Held++; Holds++;
-            return new Release(this);
-        }
-
-        private sealed class Release(FakeTui tui) : IDisposable
-        {
-            private bool done;
-            public void Dispose() { if (!done) { done = true; tui.Held--; } }
-        }
-
-        public void Write(string data)
-        {
-            if (Written.Count == 0) HeldAtFirstWrite = Held > 0;
-            Written.Add(data);
-            if (view == "composer")
-            {
-                if (data == "\r" && typed == "/model") { view = quick ? "quick" : "models"; highlighted = quick ? 0 : 3; }
-                else if (data != "\r") typed += data;
-                return;
-            }
-            var size = view == "quick" ? 2 : view == "effort" ? 3 : Models.Length;
-            if (data == "\x1b[B") highlighted = (highlighted + 1) % size;
-            else if (data == "\x1b") view = view == "models" && quick ? "quick" : "composer";
-            else if (data == "\r" && view == "quick" && highlighted == 1) { view = "models"; highlighted = 3; }
-            else if (data == "\r" && view == "models")
-            {
-                if (Models[highlighted].Efforts > 1) { Outcome = Models[highlighted].Name; view = "effort"; highlighted = 1; }
-                else { Outcome = "saved as default"; view = "composer"; }
-            }
-            else if (data == "s" && !sessionKey) { }
-            else if (data == "s" && view == "models" && Models[highlighted].Efforts == 1) { Outcome = $"Model changed to {Models[highlighted].Name} for this session only"; view = "composer"; }
-            else if (data == "s" && view == "effort") { Outcome = $"Model changed to {Outcome} effort {highlighted} for this session only"; view = "composer"; }
-            if (view == "composer") typed = "";
-        }
-    }
-
-    private sealed class FailingTui : ICodexTerminalIo
-    {
-        public int Held;
-        public CancellationTokenSource? Cancel;
-        public void Write(string data) { if (Cancel is null) throw new IOException("the terminal went away"); }
-        public Task DelayAsync(TimeSpan delay) { Cancel?.Cancel(); return Task.Delay(delay, Cancel?.Token ?? default); }
-        public IReadOnlyList<string> ReadLines(bool omitFaint = false) => ["› "];
         public IDisposable HoldInput() { Held++; return new Hold(this); }
-        private sealed class Hold(FailingTui tui) : IDisposable { public void Dispose() => tui.Held--; }
+        private sealed class Hold(TypingTui tui) : IDisposable { public void Dispose() => tui.Held--; }
     }
 
     private static async Task ModelPicker()
     {
-        Equal(CodexModelPicker.PickerHighlight(["  1. GPT-6-Astra (default)  x", "› 2. GPT-5.6 Luna (current)  x"]), "GPT-5.6 Luna", "the › row's display name");
-        Equal(CodexModelPicker.PickerHighlight(["› 1. All models"]), "All models", "All models");
-        Equal(CodexModelPicker.PickerHighlight(["› Ask Codex to do anything", "› 1 thing"]), null, "nothing at the composer");
-        Equal(CodexModelPicker.ComposerDraft(["› Ask Codex to do anything"]), null, "the placeholder is not a draft");
-        Equal(CodexModelPicker.ComposerDraft(["› Ask a follow-up question"]), null, "the follow-up placeholder is not a draft");
-        Equal(CodexModelPicker.ComposerDraft(["› fix the build"]), "fix the build", "typed text is a draft");
-        foreach (var placeholder in new[]
-        {
-            "Implement {feature}", "Find and fix a bug in @filename", "Explain this codebase", "Summarize recent commits", "Use /skills to list available skills",
-            "Write tests for @filename", "Improve documentation in @filename", "Run /review on my current changes", "Press Enter to send"
-        })
-            Equal(CodexModelPicker.ComposerDraft(["› " + placeholder]), null, $"Codex's example prompt is not a draft: {placeholder}");
-        Equal(CodexModelPicker.ComposerDraft(["›\u00a0Ask Codex to do anything"]), null, "a no-break space after the glyph keeps the placeholder a placeholder");
-        Equal(CodexModelPicker.ComposerDraft(["› explain this codebase to me"]), "explain this codebase to me", "a draft that begins with an example's words is a draft");
-        Equal(CodexModelPicker.ComposerDraft(["› first line", "  second line"]), "first line", "a multi-line draft is a draft");
-        Require(CodexModelPicker.HighlightNamesModel("GPT-5.6 Luna", "gpt-5.6-luna") && CodexModelPicker.HighlightNamesModel("GPT-6-Astra", "gpt-6-astra") &&
-            !CodexModelPicker.HighlightNamesModel("GPT-5.6 Sol", "gpt-5.6-luna"), "a display name names its slug");
-
-        var efforts = new FakeTui();
-        Equal(await CodexModelPicker.DriveAsync(efforts, "gpt-5.6-sol"), CodexModelPickerOutcome.Switched, "a model with efforts switches");
-        Equal(efforts.Outcome, "Model changed to GPT-5.6 Sol effort 1 for this session only", "at its highlighted effort, for this session");
-        var single = new FakeTui();
-        Equal(await CodexModelPicker.DriveAsync(single, "gpt-5.6-terra"), CodexModelPickerOutcome.Switched, "a single-effort model switches");
-        Equal(single.Outcome, "Model changed to GPT-5.6 Terra for this session only", "with the session key on its own row, never Enter");
-        var quick = new FakeTui(quick: true);
-        Equal(await CodexModelPicker.DriveAsync(quick, "gpt-6-astra"), CodexModelPickerOutcome.Switched, "through All models");
-        Require(quick.Outcome!.Contains("GPT-6-Astra", StringComparison.Ordinal), "the quick picker's model");
-        var absent = new FakeTui(quick: true);
-        Equal(await CodexModelPicker.DriveAsync(absent, "gpt-9"), CodexModelPickerOutcome.NotFound, "a model not offered");
-        Equal(CodexModelPicker.PickerHighlight(absent.ReadLines()), null, "the picker is backed out of");
-        var old = new FakeTui(sessionKey: false);
-        Equal(await CodexModelPicker.DriveAsync(old, "gpt-5.6-sol"), CodexModelPickerOutcome.NoSessionKey, "an old Codex without the session key");
-        Equal(old.Outcome, "GPT-5.6 Sol", "nothing was saved as the default");
-        Equal(CodexModelPicker.PickerHighlight(old.ReadLines()), null, "and the picker is closed");
-        var drafted = new FakeTui(draft: "half a thought");
-        Equal(await CodexModelPicker.DriveAsync(drafted, "gpt-5.6-sol"), CodexModelPickerOutcome.Draft, "a draft is left alone");
-        Equal(drafted.Written.Count, 0, "nothing was typed");
-
-        // The driven entry holds the user's keys out of the terminal from before its first byte to after its last,
-        // and lets go on every way out.
-        Require(efforts.HeldAtFirstWrite && efforts.Holds >= 1 && efforts.Held == 0, "a driven switch holds input before typing and releases it when done");
-        Require(absent.Held == 0 && old.Held == 0 && drafted.Held == 0, "input is released after not-found, no-session-key and draft outcomes");
-        var submitted = new FakeTui();
-        await CodexModelPicker.SubmitAsync(submitted, "/ide on");
-        Require(submitted.HeldAtFirstWrite && submitted.Held == 0 && submitted.Written.SequenceEqual(["/ide on", "\r"]), "a submitted command is held until its Enter is written");
-        var failing = new FailingTui();
-        try { await CodexModelPicker.DriveAsync(failing, "gpt-5.6-sol"); throw new InvalidOperationException("a failing terminal must throw"); }
-        catch (IOException) { }
-        Equal(failing.Held, 0, "input is released when the terminal fails mid-entry");
-        using var cancelled = new CancellationTokenSource();
-        var cancelling = new FailingTui { Cancel = cancelled };
-        try { await CodexModelPicker.SubmitAsync(cancelling, "/ide on"); throw new InvalidOperationException("a cancelled wait must throw"); }
-        catch (OperationCanceledException) { }
-        Equal(cancelling.Held, 0, "input is released when the entry is cancelled");
+        var tui = new TypingTui();
+        await CodexTerminalCommands.SubmitAsync(tui, "/model");
+        Require(tui.Written.SequenceEqual(["/model", "\r"]) && tui.Held == 0, "opening the model picker types /model and Enter once, never a selection, and releases the user's keys");
     }
 
     private static void EditorProjection()

@@ -15,17 +15,11 @@
       <StackPanel Orientation="Horizontal" Spacing="2">
         <TextBlock x:Name="ModelLabel" FontSize="11" Foreground="{x:Static kit:Ui.Muted}" FontWeight="{x:Static kit:Ui.InterfaceWeight}"
                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-        <ContentControl x:Name="ModelArrow" />
       </StackPanel>
-      <Button.ContextMenu>
-        <ContextMenu x:Name="ModelMenu" Placement="TopEdgeAlignedLeft" />
-      </Button.ContextMenu>
     </Button>
     <ContentControl x:Name="Usage" />
     <ContentControl x:Name="Plan" />
     <ContentControl x:Name="Ide" />
     <ContentControl x:Name="Attach" />
-    <TextBlock x:Name="TerminalDrivingOverlay" Text="Driving Codex's model picker…" FontSize="11" Foreground="{x:Static kit:Ui.Muted}"
-               FontWeight="{x:Static kit:Ui.InterfaceWeight}" VerticalAlignment="Center" Focusable="True" />
   </WrapPanel>
 </StackPanel>

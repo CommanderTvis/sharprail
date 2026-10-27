@@ -11,8 +11,6 @@ public sealed class ClaudeCodeUI : PluginUIModule
     {
         var store = new ClaudeCodeStore();
         var glyph = new ClaudeGlyph(context);
-        var modelLists = new ModelListSource(async cancellationToken => await context.RequestAsync(ClaudeCodeContract.ModelListGet, new NoParams(), cancellationToken),
-            async models => await context.RequestAsync(ClaudeCodeContract.ModelListPut, new ModelListPutParams(models)));
         var actions = new IdeActions(context);
         var chat = new PluginChatClient(context);
         var chatSelections = ChatDocuments.Register(context, chat);
@@ -101,7 +99,7 @@ public sealed class ClaudeCodeUI : PluginUIModule
         context.TerminalAccessory(new(terminal =>
         {
             Hydrate(terminal.WorkspaceId);
-            return new ClaudeTerminalAccessory(context, store, glyph, terminal, modelLists);
+            return new ClaudeTerminalAccessory(context, store, glyph, terminal);
         }));
         var editors = context.Editors.OnEvent(editorEvent => _ = Forward(editorEvent));
         async Task Forward(EditorEvent editorEvent)

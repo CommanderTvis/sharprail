@@ -85,7 +85,7 @@ refuse one at start). None omits the flag, and its entry names `advisorModel` fr
 `~/.claude/settings.json` when set; Chrome off omits both flags. The right-click menu's Advisor
 submenu picks one for a run, and its Chrome toggle adds `--chrome` for a run, or `--no-chrome` while
 the setting is on. Arguments of the run's own win. Revival keeps both from the recorded command, and
-the terminal shows an advisor chip and a Chrome chip read from that command. The model and advisor chips, the two that name a Claude model, lead with the Claude mark (`ClaudeGlyph`, 12 px, muted, the tab's `claude.svg`) through the optional `leading` control of `TerminalFacts.FactChip`/`PickerChip`; the Chrome chip reads lowercase `chrome` and leads with the kit's `chrome` icon (12 px, muted); the other chips are unchanged.
+the terminal shows an advisor chip and a Chrome chip read from that command. The model chip leads with the Claude mark (`ClaudeGlyph`, 12 px, muted, the tab's `claude.svg`) and the advisor chip with the kit's `discuss` icon (two speech bubbles, 12 px, muted), both through the optional `leading` control of `TerminalFacts.FactChip`/`ActionFactChip`; the Chrome chip reads lowercase `chrome` and leads with the kit's `chrome` icon (12 px, muted); the other chips are unchanged.
 Unset launch defaults persist as empty strings so a merged settings update can clear an earlier override.
 Wire version 2 covers these added settings: the strict settings schema would make older UI halves
 fall back to defaults, so mismatched host/UI halves stay dormant.
@@ -400,7 +400,7 @@ nothing: every open diff or Changes tab is the user's own, since `openDiff` open
 
 UI contributions are the Context/Settings/Capabilities/Account pane, compiled settings section,
 workspace launcher, generic `claude` launcher, status tab decorations and one terminal accessory
-combining facts, model/effort pickers, plan, tokens, attach and session `/ide` switch, and a terminal tab menu
+combining facts, model/effort chips, plan, tokens, attach and session `/ide` switch, and a terminal tab menu
 item, Copy session ID (Plugin API W26), offered while the tab's agent record is Claude's and has a session id and copying
 that bare id, the one `claude --resume` takes; it is hidden, not disabled, otherwise.
 Tab marks refresh as soon as the host identifies or clears Claude in a terminal, without switching
@@ -410,34 +410,27 @@ Each workspace retains its pane and selected surface. An unchanged configuration
 preserves the body, scope and surface controls, including local input and scroll state.
 The generic launcher supplies a fresh Claude SVG icon through its owning asset reader for
 consumer plugins, at the requested size and theme tint.
-New-launch presets retain the four model aliases opus/fable/sonnet/haiku. The running terminal model
-menu instead reads that session's live `/model` picker on demand, including Default and versioned
-or custom choices beyond the visible rows. Discovery cancels the CLI picker without choosing or
-saving a default; selection matches the exact discovered label and uses the session-only switch.
-The discovered list is cached on the host that runs the CLI (`modelListGet`/`modelListPut`, file
-`<state dir>/claude-code/model-list.json`, versioned, written through a temporary file; a missing, corrupt
-or newer-format file is ignored). The key hashes the binary (path, size, mtime), the configuration
-directory, endpoint/model/provider environment overrides and the signed-in account and organisation, so a
-CLI upgrade or another account misses; it is computed without spawning anything. A fresh entry fills the
-menu with no terminal activity; an entry older than `ModelListCache.FreshFor` (24 h) fills it at once and
-is read again once in the background; no entry reads with the "Reading Claude Code's models…" item as
-before. A menu "Refresh models" item reads on demand. Concurrent opens share one host lookup, one terminal
-at a time walks the picker, an empty or failed read never replaces the last good list, and the menu keeps
-showing the cached list when a refresh fails. A Central-governed launch's model override is not in the key
-unless it reaches the host's environment.
-The empty-prompt guard goes through the kit's `PromptComposer`; only `Message @agent…` is Claude-specific.
-Every drive (discovery, model, effort) holds the user's keys out of the terminal from its first
-keystroke to its last, released on success, failure, cancellation and exit, so typing cannot interleave with it;
-keys typed during the hold are dropped. Unsent drafts and concurrent drives block discovery; unavailable or incomplete lists show an
-explanation rather than fabricated choices. Detaching the accessory or losing the Claude agent
-cancels discovery; delayed reads, keys and completions cannot act on a later attachment. Launch flags use shell syntax appropriate to the
+New-launch presets retain the four model aliases opus/fable/sonnet/haiku.
+
+The terminal's model and effort chips show what Claude Code's hooks last reported (`model` and `effort.level` in the
+hook input, `model_switch` for a switch), with a tooltip saying so: it is not a live read. Per-session terminal-driving
+model and effort pickers are retired. They typed `/model` and `/effort`, walked Claude's TUI by screen-scraping and
+believed the result; no authoritative live source for a session's model or effort exists, the scraping was unstable
+and the popup showed rendering glitches. Gone with them: the menus, the model-list discovery and its host cache
+(`modelListGet`/`modelListPut`), the optimistic `effort_switch` update, the draft guard and `PickerChip`. A click on
+either chip only opens Claude's own picker: `ClaudeTerminalAccessory.OpenPicker` types `/model` or `/effort` plus Enter
+once and focuses the terminal, and the user chooses with the arrow keys inside Claude. SharpRail never types a
+selection and keeps no state for it. The chips are disabled with a tooltip while the session is Running, and their
+automation names are `Open model picker` and `Open effort picker`. Launch-time model and effort (launcher, Settings
+defaults, `--model`/`--effort`) are untouched. The `/ide` switch still types its command under a `HoldInput()` hold.
+Launch flags use shell syntax appropriate to the
 host, with agent view disabled by default and the host's prompt file first. Caller prompts stack
 independently. The settings switches affect app-started sessions, not commands the user types.
 
 Agent terminals request Shift+Enter as raw Escape followed by Return when neither kitty nor
 modifyOtherKeys mode 2 is negotiated. Ghostty handles negotiated protocols itself. Clearing the
 agent identity restores its normal encoding; the request survives terminal startup and retry.
-Host-state updates retain the accessory mount so an open picker keeps its control identity.
+Host-state updates retain the accessory mount.
 
 The bundled plugin contains hooks, skills and the MCP declaration. Besides status reports, its hooks
 carry code-intelligence guidance to every session and subagent (`scripts/code-intel.sh`, POSIX sh and
@@ -597,13 +590,9 @@ user value) and both `claude-launcher.spec.ts` cases through the real launcher, 
 agent fallback, default, kitty and modifyOtherKeys input bytes. Hook scripts have
 their own shell checks. The integrated `--plugins` runner includes these checks.
 
-The model-list cache cases cover the file round trip across processes, key change, TTL staleness, corrupt and
-newer files, failed reads keeping the last list, and shared lookups and refresh slot.
-
-The model-picker regressions simulate wrapping and clamped lists longer than the visible viewport,
-starting in the middle, with Default, distinct releases from the same family and custom choices.
-They verify complete discovery, cancellation without a selection/default write, exact-release
-selection and draft preservation. They do not establish appearance or timing against a live CLI.
+The terminal chip cases check that the model and effort facts come from the hook report and that `OpenPicker` types
+exactly `/model` (or `/effort`) plus Enter once, focuses the terminal, never types a selection and does nothing while
+the session is Running. They do not exercise a live Claude Code.
 
 The 2026-10-10 narrow surface-selector check verified the hidden horizontal scrollbar and scrolling
 to Account headlessly. It did not check the packaged app or native narrow-pane appearance.
@@ -611,7 +600,7 @@ to Account headlessly. It did not check the packaged app or native narrow-pane a
 Still required for the full port: complete source-by-source parity audit, the remaining IDE action
 and failure cases, the pane-driven halves of the configuration cases (composer dialogs and their narrow-pane
 layout, source links after unsaved edits, account/usage and the MCP health row), the review
-round trip over MCP, the terminal facts cases, terminal picker and sealing
+round trip over MCP, the terminal facts cases and sealing
 input behavior, a real macOS notification seen and clicked in the signed bundle (the checks stop
 at the notifier seam), compiled static pane/dialog layouts, remote
 UI parity, native appearance and the full repository verification gates. Current focused checks

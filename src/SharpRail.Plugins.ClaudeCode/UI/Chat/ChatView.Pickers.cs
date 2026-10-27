@@ -183,7 +183,7 @@ internal sealed partial class ChatView
     internal Control EffortPanel(ChatHeader header, Flyout flyout)
     {
         // The levels the current model accepts, as the CLI reports them; every level when it reports none.
-        var levels = header.Models.FirstOrDefault(model => model.Id == header.Model) is { Efforts.Count: > 0 } current ? current.Efforts : EffortPicker.Levels;
+        var levels = header.Models.FirstOrDefault(model => model.Id == header.Model) is { Efforts.Count: > 0 } current ? current.Efforts : ClaudeValues.EffortLevels;
         return ChoicePanel("ChatEffortPicker", "ChatEffortList", "Effort",
             [.. levels.Select(level => new PopupChoice(level, level.ToLowerInvariant(), null, header.Effort == level))], flyout, choice => _ = SetEffort(choice.Key));
     }

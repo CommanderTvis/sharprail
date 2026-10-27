@@ -12,20 +12,17 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.Plugins.Codex.UI;
 
 /// <summary>
-/// A detected Codex terminal's accessory row: the model chip that switches this session's model through Codex's own
-/// picker, token totals, the plan, the session-only IDE-context chip and the attach button. Ordinary terminals show
-/// nothing. The row rebuilds only when what it shows changes, so an open menu survives unrelated pushes.
+/// A detected Codex terminal's accessory row: the model chip that opens Codex's own /model picker, token totals, the plan,
+/// the session-only IDE-context chip and the attach button. Ordinary terminals show nothing. The row rebuilds only when
+/// what it shows changes.
 /// </summary>
 public sealed class CodexTerminalFacts : ContentControl
 {
-    private const int PickerTailLines = 48;
-
     private sealed class TerminalIo(ITerminalAccessoryApi terminal) : ICodexTerminalIo
     {
         public void Write(string data) => terminal.Write(data);
         public Task DelayAsync(TimeSpan delay) => Task.Delay(delay);
         public IDisposable HoldInput() => terminal.HoldInput();
-        public IReadOnlyList<string> ReadLines(bool omitFaint = false) => terminal.BufferTail(PickerTailLines, omitFaint);
     }
 
     private readonly IPluginUIContext context;
@@ -36,7 +33,6 @@ public sealed class CodexTerminalFacts : ContentControl
     private IDisposable? watch;
     private bool isCodex;
     private ManualLaunchNotice? launchNotice;
-    private bool driving;
     private bool ideCommandPending;
     private string shown = "";
 
@@ -87,7 +83,7 @@ public sealed class CodexTerminalFacts : ContentControl
         {
             try
             {
-                await CodexModelPicker.SubmitAsync(io, "/ide " + (enabled ? "on" : "off"));
+                await CodexTerminalCommands.SubmitAsync(io, "/ide " + (enabled ? "on" : "off"));
                 store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, enabled);
             }
             catch (Exception) { context.Notify(PluginNotificationKind.Error, "Couldn't change IDE context"); }
@@ -107,7 +103,7 @@ public sealed class CodexTerminalFacts : ContentControl
         var state = store.Session(terminal.WorkspaceId, terminal.TabKey);
         var ide = store.IdeContext(terminal.WorkspaceId, terminal.TabKey) ?? false;
         var signature = !isCodex ? "" : string.Join("\n", state?.Model, state?.Cwd, state?.Usage, state?.Plan is { } plan ? string.Join("|", plan) : null,
-            ide, driving);
+            ide, state?.Status);
         if (signature == shown) return;
         shown = signature;
         Content = isCodex ? Row(state, ide) : null;
@@ -138,89 +134,35 @@ public sealed class CodexTerminalFacts : ContentControl
             : null);
         Fill("Ide", TerminalFacts.IdeContextChip(ide, () =>
         {
-            if (!driving) SendIdeCommand(!(store.IdeContext(terminal.WorkspaceId, terminal.TabKey) ?? false));
+            SendIdeCommand(!(store.IdeContext(terminal.WorkspaceId, terminal.TabKey) ?? false));
         }));
         Fill("Attach", TerminalFacts.AttachButton("Put a file or folder's path in front of Codex", async () => await context.PickFileAsync(),
             path => terminal.Write(TerminalFacts.AttachPath(path, WorktreePath(), store.Session(terminal.WorkspaceId, terminal.TabKey)?.Cwd) + " "),
             error => context.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", error.Message)));
-        var status = row.FindControl<TextBlock>("TerminalDrivingOverlay")!;
-        if (driving) status.AttachedToVisualTree += (_, _) => status.Focus();
-        else facts.Children.Remove(status);
         return row;
     }
 
+    // Clicking only opens Codex's own /model picker; the user chooses inside it, and the chip keeps what Codex last reported.
     private void ModelChip(CodexTerminalRow row, CodexSessionState? state)
     {
         var chip = row.FindControl<Button>("TerminalAgentFact")!;
         row.FindControl<TextBlock>("ModelLabel")!.Text = state?.Model ?? "Model";
-        row.FindControl<ContentControl>("ModelArrow")!.Content = Ui.Icon("arrowDown", Ui.Muted, 12);
-        chip.IsEnabled = !driving;
-        ToolTip.SetTip(chip, $"{state?.Model ?? "Codex's model"} — click to switch");
-        var menu = (ContextMenu)chip.ContextMenu!;
-        IReadOnlyList<CodexModel>? shownModels = null;
-        void Populate()
+        var working = state?.Status == CodexStatus.Running;
+        chip.IsEnabled = !working && !ideCommandPending;
+        ToolTip.SetShowOnDisabled(chip, true);
+        var what = state?.Model ?? "Codex's model";
+        var title = working ? $"{what} (as last reported by Codex). Codex is working: open the model picker when it is at its prompt" : $"{what} (as last reported by Codex). Click to open Codex's /model picker";
+        ToolTip.SetTip(chip, title);
+        Avalonia.Automation.AutomationProperties.SetName(chip, "Open model picker");
+        chip.Click += async (_, _) =>
         {
-            shownModels = store.Models;
-            menu.Items.Clear();
-            if (CodexModelPicker.ComposerDraft(io.ReadLines(omitFaint: true)) is not null)
-            {
-                menu.Items.Add(new MenuItem { Name = "TerminalMenuDraft", Header = "Send or clear what you typed first", IsEnabled = false });
-                return;
-            }
-            foreach (var model in store.Models)
-            {
-                var item = new MenuItem { Name = "TerminalModel_" + model.Id, Header = model.Label, Icon = CodexGlyph.Gpt() };
-                item.Click += (_, _) => SwitchModel(model.Id);
-                menu.Items.Add(item);
-            }
-        }
-        void RefreshModels()
-        {
-            if (menu.IsOpen && !ReferenceEquals(shownModels, store.Models)) Populate();
-        }
-        menu.Opening += (_, _) => Populate();
-        menu.Opened += (_, _) => store.Changed += RefreshModels;
-        menu.Closed += (_, _) => store.Changed -= RefreshModels;
-        chip.DetachedFromVisualTree += (_, _) => { store.Changed -= RefreshModels; menu.Close(); };
-        chip.Click += (_, _) => { Populate(); menu.Open(chip); };
-    }
-
-    private void SwitchModel(string model)
-    {
-        if (driving || ideCommandPending) return;
-        driving = true;
-        Update();
-        _ = Drive();
-
-        async Task Drive()
-        {
+            if (ideCommandPending || store.Session(terminal.WorkspaceId, terminal.TabKey)?.Status == CodexStatus.Running) return;
             try
             {
-                var outcome = await CodexModelPicker.DriveAsync(io, model);
-                if (outcome == CodexModelPickerOutcome.Switched)
-                {
-                    store.Apply(new CodexStatusPush(terminal.WorkspaceId, terminal.TabKey,
-                        store.Session(terminal.WorkspaceId, terminal.TabKey)?.Status ?? CodexStatus.Idle, "model_switch")
-                    { Model = model });
-                    return;
-                }
-                context.Notify(PluginNotificationKind.Error, "Couldn't switch the model", outcome switch
-                {
-                    CodexModelPickerOutcome.Draft => "Send or clear what you typed at Codex's prompt first.",
-                    CodexModelPickerOutcome.NoPicker => "Codex didn't open its model picker — is the session waiting at its prompt?",
-                    CodexModelPickerOutcome.NoSessionKey => "This Codex can only save a model as your default. Update Codex to 0.156 or newer to switch for one session.",
-                    _ => $"Codex's model picker didn't offer {model}."
-                });
+                await CodexTerminalCommands.SubmitAsync(io, "/model");
+                terminal.Focus();
             }
-            catch (Exception)
-            {
-                context.Notify(PluginNotificationKind.Error, "Couldn't switch the model", "The terminal stopped answering while the picker was open.");
-            }
-            finally
-            {
-                driving = false;
-                Update();
-            }
-        }
+            catch (Exception) { context.Notify(PluginNotificationKind.Error, "Couldn't open the model picker"); }
+        };
     }
 }

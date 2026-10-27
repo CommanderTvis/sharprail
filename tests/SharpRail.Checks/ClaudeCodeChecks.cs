@@ -939,6 +939,14 @@ internal static class ClaudeCodeChecks
         Require(Launch("chrome")[^1] == "--chrome", "The Chrome toggle turns it on for one run.");
         Require(ClaudeTerminalAccessory.Facts(new ClaudeSessionState(ClaudeCodeStatus.Idle), "claude --chrome").Any(fact => fact is { Kind: "chrome", Label: "chrome" }),
             "A run started with --chrome shows a lowercase chrome chip.");
+        var modelFacts = ClaudeTerminalAccessory.Facts(new ClaudeSessionState(ClaudeCodeStatus.Idle) { Model = "claude-sonnet-5-5-20260101", Effort = "low" });
+        Require(modelFacts.Any(fact => fact is { Kind: "model", Label: "sonnet-5-5" }) && modelFacts.Any(fact => fact is { Kind: "effort", Label: "low effort" }),
+            "The model and effort chips show what Claude Code's hooks last reported.");
+        var typed = new TypingTerminal();
+        Require(ClaudeTerminalAccessory.OpenPicker(typed, "/model", ClaudeCodeStatus.Idle) && typed.Writes.SequenceEqual(["/model\r"]) && typed.Focused == 1,
+            "Clicking the model chip types /model and Enter once and focuses the terminal; it never picks a model.");
+        Require(!ClaudeTerminalAccessory.OpenPicker(typed, "/effort", ClaudeCodeStatus.Running) && typed.Writes.Count == 1,
+            "A running turn leaves the effort chip inert.");
         Require(((Border)Ui.Icon("chrome")).OpacityMask is Avalonia.Media.DrawingBrush, "The Chrome chip's icon is a vector asset.");
         var plainRun = Launch("continue");
         Require(!plainRun.Contains("--advisor") && !plainRun.Contains("--chrome") && !plainRun.Contains("--no-chrome"), "No advisor and Chrome off add no flags.");
@@ -1176,8 +1184,6 @@ internal static class ClaudeCodeChecks
             terminals.EnvironmentContributor!(terminal).Count == 0, "Disabling removes IDE discovery and terminal contributions.");
         Transcripts(directory);
         await ClaudeContextChecks.Host(Path.Combine(directory, "context"));
-        await Pickers();
-        await ModelLists(directory);
         Console.WriteLine("PASS Claude Code host: disabled lifecycle, configuration provenance, reviewed writes, token status, spending and revive");
     }
 
@@ -1532,186 +1538,17 @@ internal static class ClaudeCodeChecks
         Console.WriteLine("PASS Claude Code IDE: token authorization, initialization, catalogue, zero-based selection, addressed action replies and file references");
     }
 
-    private sealed class Release(Action release) : IDisposable
+    private sealed class TypingTerminal : SharpRail.Plugins.Api.UI.ITerminalAccessoryApi
     {
-        private bool done;
-        public void Dispose() { if (!done) { done = true; release(); } }
-    }
-
-    // The model list a terminal read off the live picker is kept on the host: a cache hit means no terminal walks the picker.
-    private static async Task ModelLists(string directory)
-    {
-        var folder = Path.Combine(directory, "model-lists");
-        Directory.CreateDirectory(folder);
-        var path = Path.Combine(folder, "model-list.json");
-        var clock = new DateTimeOffset(2026, 3, 1, 9, 0, 0, TimeSpan.Zero);
-        var key = "cli-1";
-        var models = new[] { "Default (recommended)", "Opus 5.5", "Haiku 4.5" };
-        ModelListCache Open() => new(path, () => clock, _ => key);
-
-        Require(Open().Get("claude").Models.Count == 0, "Without a cache file the host has no list.");
-        Require(Open().Put("claude", models).Ok && File.Exists(path) && Directory.GetFiles(folder, "*.tmp").Length == 0, "A stored list is written atomically, leaving no temporary file.");
-        var reopened = Open().Get("claude");
-        Require(reopened.Models.SequenceEqual(models) && !reopened.Stale, "A fresh process serves the stored list from the file without reading the picker.");
-
-        key = "cli-2";
-        Require(Open().Get("claude").Models.Count == 0, "A different CLI build or account invalidates the stored list.");
-        key = "cli-1";
-
-        clock += ModelListCache.FreshFor + TimeSpan.FromMinutes(1);
-        var stale = Open().Get("claude");
-        Require(stale.Models.SequenceEqual(models) && stale.Stale, "An expired list is still served at once, flagged stale so exactly one refresh follows.");
-        Require(ModelListSource.Plan(stale) == ModelListPlan.ServeAndRefresh && ModelListSource.Plan(reopened) == ModelListPlan.Serve && ModelListSource.Plan(new([])) == ModelListPlan.Read,
-            "Fresh serves, stale serves and refreshes, empty reads.");
-
-        var cache = Open();
-        Require(!cache.Put("claude", []).Ok && cache.Get("claude").Models.SequenceEqual(models), "A failed read (empty list) keeps the last good list.");
-
-        File.WriteAllText(path, "{ not json");
-        Require(Open().Get("claude").Models.Count == 0, "A corrupt file is ignored.");
-        File.WriteAllText(path, "{\"format\":99,\"key\":\"cli-1\",\"fetchedAt\":\"2026-03-01T09:00:00Z\",\"models\":[\"x\"]}");
-        Require(Open().Get("claude").Models.Count == 0, "A newer-format file is ignored.");
-        Require(Open().Put("claude", models).Ok && Open().Get("claude").Models.SequenceEqual(models), "A corrupt or newer file is replaced by the next good read.");
-
-        var configA = Path.Combine(folder, "a");
-        var previous = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
-        try
-        {
-            Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", configA);
-            var first = ModelListCache.Fingerprint("claude");
-            Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", Path.Combine(folder, "b"));
-            Require(first != ModelListCache.Fingerprint("claude") && first == Fingerprint(configA), "The configuration directory is part of the key.");
-        }
-        finally { Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", previous); }
-
-        // Menus that open together share one host lookup; one terminal at a time walks the picker.
-        var lookups = 0;
-        var gate = new TaskCompletionSource();
-        var stored = new List<IReadOnlyList<string>>();
-        var source = new ModelListSource(async _ => { Interlocked.Increment(ref lookups); await gate.Task; return new(models); }, list => { stored.Add(list); return Task.CompletedTask; });
-        var opens = Enumerable.Range(0, 8).Select(_ => source.CachedAsync()).ToArray();
-        gate.SetResult();
-        Require((await Task.WhenAll(opens)).All(result => result.Models.SequenceEqual(models)) && lookups == 1, "Concurrent opens share one host lookup.");
-        var slot = source.TryBeginRead();
-        Require(slot is not null && source.TryBeginRead() is null, "A second terminal cannot walk the picker while one does.");
-        slot!.Dispose();
-        Require(source.TryBeginRead() is not null, "The refresh slot frees when the read ends.");
-        await source.StoreAsync([]);
-        await source.StoreAsync(models);
-        Require(stored.Count == 1, "Only a non-empty read is handed to the host.");
-        var failing = new ModelListSource(_ => throw new IOException("host gone"), _ => throw new IOException("host gone"));
-        Require((await failing.CachedAsync()).Models.Count == 0, "A failed lookup reads as no cache, so the picker is read as before.");
-        await failing.StoreAsync(models);
-        Console.WriteLine("PASS Claude Code model list cache: host file, key, TTL, corrupt files, failures and shared reads");
-
-        static string Fingerprint(string config)
-        {
-            var previousConfig = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
-            Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", config);
-            try { return ModelListCache.Fingerprint("claude"); }
-            finally { Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", previousConfig); }
-        }
-    }
-
-    private static async Task Pickers()
-    {
-        Require(ModelPicker.ComposerDraft(["❯ fix the build"]) == "fix the build", "Typed text at Claude's prompt is a draft.");
-        foreach (var placeholder in new[]
-        {
-            "Try \"edit App.cs to…\"", "Press up to edit queued messages", "Press up to edit queued messages, Enter to send them immediately",
-            "Press up to select a queued message, then Enter to edit it", "Press Enter to edit the selected message, or up again for history", "Message @reviewer…"
-        })
-            Require(ModelPicker.ComposerDraft(["❯ " + placeholder]) is null, $"Claude's empty-prompt placeholder is not a draft: {placeholder}");
-        foreach (var placeholder in new[]
-        {
-            "Press up to edit queued messages", "Press Esc twice to clear", "Press ↑ to edit queued messages", "Press ctrl+c again to exit", "Press up or down to browse history",
-            "? for shortcuts", "/ for commands", "Type a message…", "Type to queue a message", "Enter to send, Esc to cancel", "Shift+Tab to cycle modes"
-        })
-            Require(ModelPicker.ComposerDraft(["❯ " + placeholder]) is null, $"Hint wording of a known kind is not a draft: {placeholder}");
-        Require(ModelPicker.ComposerDraft(["❯\u00a0Press up to edit queued messages"]) is null, "A no-break space after the glyph does not turn a placeholder into a draft.");
-        Require(ModelPicker.ComposerDraft(["│ ❯ Press up to edit queued messages                  │"]) is null, "A placeholder inside the prompt box is not a draft.");
-        Require(ModelPicker.ComposerDraft(["│ ❯ fix the build        │"]) == "fix the build", "Typed text inside the prompt box is a draft without the box edge.");
-        Require(ModelPicker.ComposerDraft(["❯ Press the button to submit the form"]) == "Press the button to submit the form", "A draft that merely starts with Press is still a draft.");
-        Require(ModelPicker.ComposerDraft(["❯ Try this: rename foo"]) == "Try this: rename foo", "A draft that starts with Try but not a quoted suggestion is still a draft.");
-        Require(ModelPicker.ComposerDraft(["❯ first line of a long message", "  second line", "──────────"]) == "first line of a long message", "A multi-line draft is reported by its first line.");
-        Require(ModelPicker.ComposerDraft(["❯ ", "  Press up to edit queued messages"]) is null, "A hint on its own line below an empty prompt is not a draft.");
-        Require(ModelPicker.ComposerDraft(["❯ fix it", "❯ 1. Opus"]) is null, "An open picker is not a draft.");
-        var offered = new[] { "Default (recommended)", "Opus 5.5", "Fable 5.1", "Sonnet 5.5", "Haiku 5.5", "Haiku 4.5", "Sonnet 5", "Opus 5", "Fable 5", "Opus 4.8", "Future 9", "Custom 10", "Custom 11", "Custom 12" };
-        foreach (var wraps in new[] { false, true })
-        {
-            var current = 8;
-            var open = false;
-            var writes = new List<string>();
-            var io = new PickerIo(key =>
-            {
-                writes.Add(key);
-                if (key == "/model") open = true;
-                else if (key == "\u001b") open = false;
-                else if (key == "\u001b[A") current = wraps ? (current + offered.Length - 1) % offered.Length : Math.Max(0, current - 1);
-                else if (key == "\u001b[B") current = wraps ? (current + 1) % offered.Length : Math.Min(offered.Length - 1, current + 1);
-            }, _ => open ? [$"❯ {current + 1}. {offered[current]}" + (current == 0 ? " ✓" : "")] : ["❯ "], _ => Task.CompletedTask);
-            var discovered = await ModelPicker.DiscoverAsync(io);
-            Require(discovered.Models.SequenceEqual(offered) && !open && !writes.Contains("s") && writes.Count(key => key == "\r") == 1,
-                "The active picker supplies every version and Default across scrolling, without selecting or saving a model.");
-            writes.Clear();
-            Require(await ModelPicker.DriveAsync(io, "Haiku 4.5") == PickerOutcome.Switched && current == 5 && writes.Contains("s"),
-                "A versioned choice selects that exact release rather than the family alias.");
-        }
-        Require(ModelPicker.HighlightNamesModel("Haiku 4.5", "Haiku 4.5") && !ModelPicker.HighlightNamesModel("Haiku 5.5", "Haiku 4.5"),
-            "Versioned model labels cannot match a different release.");
-        var touched = false;
-        var draftIo = new PickerIo(_ => touched = true, _ => ["❯ unsent prompt"], _ => Task.CompletedTask);
-        Require((await ModelPicker.DiscoverAsync(draftIo)).Outcome == PickerOutcome.Draft && !touched,
-            "Reading model choices never overwrites an unsent draft.");
-        foreach (var cancelAfter in new[] { 1, 2 })
-        {
-            using var cancellation = new CancellationTokenSource();
-            var writes = new List<string>();
-            var delays = 0;
-            var io = new PickerIo(key =>
-            {
-                if (key == "\u001b" && cancellation.IsCancellationRequested) return;
-                cancellation.Token.ThrowIfCancellationRequested();
-                writes.Add(key);
-            }, _ => writes.Contains("\r") ? ["❯ 1. Default (recommended)"] : ["❯ "], _ =>
-            {
-                if (++delays == cancelAfter) cancellation.Cancel();
-                return Task.Delay(TimeSpan.Zero, cancellation.Token);
-            });
-            try { await ModelPicker.DiscoverAsync(io); throw new InvalidOperationException("Canceled discovery must stop."); }
-            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
-            Require(writes.SequenceEqual(cancelAfter == 1 ? ["/model"] : new[] { "/model", "\r" }),
-                "Canceled discovery sends no subsequent Enter, navigation, selection or escape to an inactive terminal.");
-        }
-        // The driven entry holds the user's keys out of the terminal for its whole run and lets go on every way out.
-        var held = 0;
-        var heldWhenTyping = new List<bool>();
-        IDisposable Hold() { held++; return new Release(() => held--); }
-        var lifecycleOpen = false;
-        var lifecycle = new PickerIo(key => { heldWhenTyping.Add(held > 0); if (key == "/model") lifecycleOpen = true; },
-            _ => lifecycleOpen ? ["❯ 1. Default (recommended)"] : ["❯ "], _ => Task.CompletedTask, Hold);
-        await ModelPicker.DiscoverAsync(lifecycle);
-        Require(held == 0 && heldWhenTyping.Count > 0 && heldWhenTyping.All(typed => typed), "Discovery holds input for every key it types and releases it afterwards.");
-        heldWhenTyping.Clear();
-        await ModelPicker.DriveAsync(lifecycle, "Default (recommended)");
-        await EffortPicker.DriveAsync(lifecycle, "high");
-        Require(held == 0, "Switching a model or effort releases input when it ends, by switch or by giving up.");
-        var draftHeld = 0;
-        var drafted = new PickerIo(_ => { }, _ => ["❯ unsent prompt"], _ => Task.CompletedTask, () => { draftHeld++; return new Release(() => draftHeld--); });
-        await ModelPicker.DriveAsync(drafted, "Default (recommended)");
-        Require(draftHeld == 0, "A draft outcome releases input.");
-        var failingHeld = 0;
-        var failing = new PickerIo(_ => throw new IOException("gone"), _ => ["❯ "], _ => Task.CompletedTask, () => { failingHeld++; return new Release(() => failingHeld--); });
-        try { await ModelPicker.DiscoverAsync(failing); throw new InvalidOperationException("A failing terminal must throw."); }
-        catch (IOException) { }
-        Require(failingHeld == 0, "A terminal that fails mid-entry releases input.");
-        using var canceled = new CancellationTokenSource();
-        var cancelHeld = 0;
-        var canceling = new PickerIo(_ => { }, _ => ["❯ "], _ => { canceled.Cancel(); return Task.Delay(TimeSpan.Zero, canceled.Token); }, () => { cancelHeld++; return new Release(() => cancelHeld--); });
-        try { await ModelPicker.DiscoverAsync(canceling); }
-        catch (OperationCanceledException) { }
-        Require(cancelHeld == 0, "A cancelled entry releases input.");
-        Console.WriteLine("PASS Claude Code pickers: live paginated model lists, exact versions, draft safety and empty-prompt placeholders");
+        public List<string> Writes { get; } = [];
+        public int Focused { get; private set; }
+        public string WorkspaceId => "workspace";
+        public string TabKey => "tab";
+        public void Write(string data) => Writes.Add(data);
+        public IReadOnlyList<string> BufferTail(int lines, bool omitFaint = false) => [];
+        public IDisposable HoldInput() => throw new NotSupportedException();
+        public void Focus() => Focused++;
+        public void SetKeyEncoding(SharpRail.Plugins.Api.UI.TerminalKeyEncoding encoding) { }
     }
 
     private static void Transcripts(string directory)
