@@ -112,6 +112,13 @@ internal static class LanguageProjectChecks
                     var library = (DrawnTreeLabel)app.FileRow("library"); library.OpenMenu();
                     var menu = library.ContextMenu!;
                     Require(menu.Items.OfType<MenuItem>().Count() > 8 && menu.Items.OfType<MenuItem>().All(item => item.Icon is null), "A Files tree menu item carries an icon, so its labels misalign.");
+                    E2eWorkspace.Until(() => menu.Items.OfType<MenuItem>().First().GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().Any(part => part.Name == "PART_HeaderPresenter" && part.Bounds.Width > 0));
+                    foreach (var item in menu.Items.OfType<MenuItem>().Where(item => item.IsVisible))
+                    {
+                        var label = item.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(part => part.Name == "PART_HeaderPresenter");
+                        var left = Avalonia.VisualExtensions.TranslatePoint(label, default, item)!.Value.X;
+                        Require(left is >= 11.5 and <= 13.5, $"The Files tree menu leaves a gutter before '{item.Header}': its label starts at x={left} instead of the item padding (12).");
+                    }
                     var configure = menu.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeLanguage_csharp");
                     app.Click(configure);
                     E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<LanguageSettingsWindow>().Any());
