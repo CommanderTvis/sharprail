@@ -1,10 +1,11 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
-using System.Text;
 using System.Text.Json;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api.Host;
+
+using ProviderPullRequest = SharpRail.Plugins.Api.Host.PullRequest;
 
 namespace SharpRail.Host.Core;
 
@@ -15,9 +16,9 @@ public sealed partial class ProjectServices
     private static readonly TimeSpan ProviderMutation = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan PushBudget = TimeSpan.FromSeconds(55);
 
-    private sealed class Lookup(Task<(PullRequest? Review, bool Ok)> task)
+    private sealed class Lookup(Task<(ProviderPullRequest? Review, bool Ok)> task)
     {
-        internal Task<(PullRequest? Review, bool Ok)> Task { get; } = task;
+        internal Task<(ProviderPullRequest? Review, bool Ok)> Task { get; } = task;
         internal long CompletedAt;
     }
 
@@ -26,18 +27,8 @@ public sealed partial class ProjectServices
     /// <summary>The provider that owns a remote (H24): the seam's choice, else none (a plain remote).</summary>
     private RepoHostRoute? RouteFor(string origin) => origin.Length == 0 ? null : repoHosts?.Invoke(origin);
 
-    public async ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default)
-    {
-        var currentRoot = root;
-        var branch = await CurrentBranchAsync(currentRoot, cancellationToken);
-        if (branch is null) return null;
-        var origin = await OriginUrlAsync(currentRoot, cancellationToken);
-        if (RouteFor(origin) is not { } route) return null;
-        return ToOpenReview(await LookupAsync(currentRoot, branch, origin, route, fresh, cancellationToken), route.PluginId);
-    }
-
     /// <summary>The branch's request from the owning provider, cached and shared between concurrent callers; failures are never cached.</summary>
-    private async Task<PullRequest?> LookupAsync(string currentRoot, string branch, string origin, RepoHostRoute route, bool fresh, CancellationToken cancellationToken)
+    private async Task<ProviderPullRequest?> LookupAsync(string currentRoot, string branch, string origin, RepoHostRoute route, bool fresh, CancellationToken cancellationToken)
     {
         var key = currentRoot + "\0" + branch;
         Lookup entry;
@@ -68,7 +59,7 @@ public sealed partial class ProjectServices
 
     private static void DropLookups(string currentRoot, string branch) => Lookups.TryRemove(currentRoot + "\0" + branch, out _);
 
-    private static async Task<(PullRequest? Review, bool Ok)> LookupFromProviderAsync(string currentRoot, string branch, string origin, RepoHostRoute route, bool fresh)
+    private static async Task<(ProviderPullRequest? Review, bool Ok)> LookupFromProviderAsync(string currentRoot, string branch, string origin, RepoHostRoute route, bool fresh)
     {
         try
         {
@@ -97,22 +88,15 @@ public sealed partial class ProjectServices
         }
     }
 
-    private static async Task<PullRequest?> FindWithinBudgetAsync(RepoHostRoute route, RepoHostBranch target, CancellationToken cancellationToken)
+    private static async Task<ProviderPullRequest?> FindWithinBudgetAsync(RepoHostRoute route, RepoHostBranch target, CancellationToken cancellationToken)
     {
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         budget.CancelAfter(GhQuery);
         return await route.Provider.FindAsync(target, budget.Token);
     }
 
-    private static OpenReview? ToOpenReview(PullRequest? request, string provider) =>
-        request is { State: "open" } ? new(request.Number, request.Url, provider, request.Unpushed, request.Behind) : null;
-
-    // The wire still carries GitHub's own spellings until the host protocol moves to the neutral model.
-    private static ReviewDetails? ToDetails(PullRequest? request) => request is null ? null : new(request.Number, request.Url, request.State.ToUpperInvariant(), request.Draft,
-        request.Checks == "none" ? "" : request.Checks,
-        request.Review switch { "approved" => "APPROVED", "changes-requested" => "CHANGES_REQUESTED", "required" => "REVIEW_REQUIRED", _ => "" },
-        request.Mergeability switch { "clean" => "CLEAN", "blocked" => "BLOCKED", "behind" => "BEHIND", "conflicting" => "DIRTY", _ => "UNKNOWN" },
-        request.MergeMethods, request.SameRepository);
+    private static Abstractions.PullRequest? ToWire(ProviderPullRequest? request) => request is null ? null : new(request.Number, request.Title, request.Url, request.State, request.Draft,
+        request.Checks, request.Review, request.Mergeability, request.MergeMethods, request.SameRepository, request.Unpushed, request.Behind);
 
     private static async Task<int> CountAsync(string currentRoot, string range)
     {

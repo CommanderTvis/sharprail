@@ -158,12 +158,7 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
     private static SharprailDirectoryReply Map(SharprailDirectoryStatus status) =>
         new() { Exists = status.Exists, Tracked = status.Tracked, Ignored = status.Ignored, Written = status.Written, Detail = status.Detail };
 
-    public ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default) => Execute(async () =>
-        await Host(context).GetOpenReviewAsync(request.Fresh, context.CancellationToken) is { } review
-            ? new OpenReviewReply { Found = true, Number = review.Number, Url = review.Url, Provider = review.Provider, UnpushedCommits = review.UnpushedCommits, BehindCommits = review.BehindCommits }
-            : new OpenReviewReply());
-
-    public ValueTask<BranchStatusReply> GetBranchStatusAsync(OpenReviewRequest request, CallContext context = default) => Execute(async () =>
+    public ValueTask<BranchStatusReply> GetBranchStatusAsync(BranchStatusRequest request, CallContext context = default) => Execute(async () =>
         await Host(context).GetBranchStatusAsync(request.Fresh, context.CancellationToken) is not { } status ? new BranchStatusReply() : new BranchStatusReply
         {
             Found = true,
@@ -177,18 +172,20 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
             OnBase = status.OnBase,
             BaseName = status.BaseName,
             Head = status.Head,
-            Review = status.Review is { } review ? new OpenReviewReply { Found = true, Number = review.Number, Url = review.Url, Provider = review.Provider, UnpushedCommits = review.UnpushedCommits, BehindCommits = review.BehindCommits } : null,
-            Details = status.Details is { } details ? new ReviewDetailsMessage
+            Review = status.Review is { } review ? new PullRequestMessage
             {
-                Number = details.Number,
-                Url = details.Url,
-                State = details.State,
-                Draft = details.Draft,
-                Checks = details.Checks,
-                ReviewDecision = details.ReviewDecision,
-                MergeState = details.MergeState,
-                MergeMethods = [.. details.MergeMethods],
-                SameRepository = details.SameRepository
+                Number = review.Number,
+                Title = review.Title,
+                Url = review.Url,
+                State = review.State,
+                Draft = review.Draft,
+                Checks = review.Checks,
+                Review = review.Review,
+                Mergeability = review.Mergeability,
+                MergeMethods = [.. review.MergeMethods],
+                SameRepository = review.SameRepository,
+                Unpushed = review.Unpushed,
+                Behind = review.Behind
             } : null
         });
 
@@ -207,7 +204,7 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
     public ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
     {
         var result = await host.OpenPrAsync(new(request.Title, request.TitleEdited, request.Body, request.Draft), token);
-        return new PrReply { Action = result.Action, Url = result.Url, Number = result.Number, DirtyFiles = result.DirtyFiles, GhProblem = result.GhProblem };
+        return new PrReply { Action = result.Action, Url = result.Url, Number = result.Number, DirtyFiles = result.DirtyFiles, Problem = result.Problem };
     });
 
     public ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>

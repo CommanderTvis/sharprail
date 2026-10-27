@@ -9,7 +9,13 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 14;
+    public const int Current = 15;
+
+    /// <summary>
+    /// The branch status carries the owning repo hosting plugin's id and the neutral pull request (field 14) instead of GitHub's own
+    /// spellings (fields 12 and 13). A client below it reports no review; a host below it reports none to a client at or above it.
+    /// </summary>
+    public const int NeutralPullRequest = 15;
 
     /// <summary>The file-type icon style (plain, colored, material) beside the on/off toggle.</summary>
     public const int FileTypeIconStyle = 14;

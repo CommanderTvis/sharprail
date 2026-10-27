@@ -15,7 +15,6 @@ public static class RpcServices
     });
     private sealed class ProjectRpcClient(IRpcClient client) : IProjectRpc
     {
-        public ValueTask<GitHubAuthenticationReply> GetGitHubAuthenticationAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, GitHubAuthenticationReply>("IProjectRpc/GetGitHubAuthenticationAsync", request, context);
         public ValueTask<LanguageReply> LanguageAsync(LanguageRequestDto request, CallContext context = default) => client.Unary<LanguageRequestDto, LanguageReply>("IProjectRpc/LanguageAsync", request, context);
         public ValueTask<LanguageTermsReply> LanguageTermsAsync(LanguageTermsRequestDto request, CallContext context = default) => client.Unary<LanguageTermsRequestDto, LanguageTermsReply>("IProjectRpc/LanguageTermsAsync", request, context);
         public ValueTask<FileTransferReply> ImportFilesAsync(FileTransferUpload request, CallContext context = default) => client.Unary<FileTransferUpload, FileTransferReply>("IProjectRpc/ImportFilesAsync", request, context);
@@ -40,10 +39,9 @@ public static class RpcServices
         public ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, GitReply>("IProjectRpc/ApplyGitActionAsync", request, context);
         public ValueTask<SaveFileReply> ApplyFileActionAsync(FileActionRequest request, CallContext context = default) => client.Unary<FileActionRequest, SaveFileReply>("IProjectRpc/ApplyFileActionAsync", request, context);
         public ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default) => client.Unary<BranchesRequest, BranchesReply>("IProjectRpc/ListBranchesAsync", request, context);
-        public ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default) => client.Unary<OpenReviewRequest, OpenReviewReply>("IProjectRpc/GetOpenReviewAsync", request, context);
         public ValueTask<PrDraftReply> PreviewPrAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, PrDraftReply>("IProjectRpc/PreviewPrAsync", request, context);
         public ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default) => client.Unary<OpenPrRequest, PrReply>("IProjectRpc/OpenPrAsync", request, context);
-        public ValueTask<BranchStatusReply> GetBranchStatusAsync(OpenReviewRequest request, CallContext context = default) => client.Unary<OpenReviewRequest, BranchStatusReply>("IProjectRpc/GetBranchStatusAsync", request, context);
+        public ValueTask<BranchStatusReply> GetBranchStatusAsync(BranchStatusRequest request, CallContext context = default) => client.Unary<BranchStatusRequest, BranchStatusReply>("IProjectRpc/GetBranchStatusAsync", request, context);
         public ValueTask<BranchActionReply> ApplyBranchActionAsync(BranchActionRequest request, CallContext context = default) => client.Unary<BranchActionRequest, BranchActionReply>("IProjectRpc/ApplyBranchActionAsync", request, context);
         public ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, EditorsReply>("IProjectRpc/ListEditorsAsync", request, context);
         public ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default) => client.Unary<OpenInEditorRequest, SaveFileReply>("IProjectRpc/OpenInEditorAsync", request, context);

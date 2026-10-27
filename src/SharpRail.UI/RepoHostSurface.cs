@@ -43,7 +43,7 @@ public sealed partial class WorkbenchWindow
         public async Task<RepoPrResult> OpenPrAsync(RepoPrRequest request, CancellationToken cancellationToken)
         {
             var result = await Task.Run(async () => await window.host.OpenPrAsync(new(request.Title, request.TitleEdited, request.Body, request.Draft), cancellationToken), cancellationToken);
-            return new(result.Action, result.Url, result.Number, result.DirtyFiles, result.GhProblem);
+            return new(result.Action, result.Url, result.Number, result.DirtyFiles, result.Problem);
         }
 
         public void RefreshStatus(bool fresh = true) => window.RequestBranchStatus(fresh, force: true);
@@ -70,8 +70,8 @@ public sealed partial class WorkbenchWindow
         }
 
         private static RepoBranchStatus Map(BranchStatus status) => new(status.Branch, status.Head, status.Provider, status.Published, status.OnBase, status.Ahead, status.Behind,
-            status.Review is { } review ? new(review.Number, review.Url, review.UnpushedCommits, review.BehindCommits) : null,
-            status.Details is { } details ? new(details.Number, details.Url, details.State, details.Draft, details.Checks, details.ReviewDecision, details.MergeState, details.MergeMethods, details.SameRepository) : null);
+            status.Review is { } review ? new(review.Number, review.Title, review.Url, review.State, review.Draft, review.Checks, review.Review, review.Mergeability, review.MergeMethods,
+                review.SameRepository, review.Unpushed, review.Behind) : null);
     }
 
     /// <summary>Asks for a fresh branch status, past the host's cache with a fetch; checks use it after changing the remote.</summary>

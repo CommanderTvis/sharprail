@@ -62,16 +62,15 @@ internal static class BranchStatusChecks
     }
 
     private static RepoBranchStatus NeutralOf(BranchStatus status) => new(status.Branch, status.Head, status.Provider, status.Published, status.OnBase, status.Ahead, status.Behind,
-        status.Review is null ? null : new(status.Review.Number, status.Review.Url, status.Review.UnpushedCommits, status.Review.BehindCommits),
-        status.Details is null ? null : new(status.Details.Number, status.Details.Url, status.Details.State, status.Details.Draft, status.Details.Checks, status.Details.ReviewDecision,
-            status.Details.MergeState, status.Details.MergeMethods, status.Details.SameRepository));
+        status.Review is null ? null : new(status.Review.Number, status.Review.Title, status.Review.Url, status.Review.State, status.Review.Draft, status.Review.Checks, status.Review.Review,
+            status.Review.Mergeability, status.Review.MergeMethods, status.Review.SameRepository, status.Review.Unpushed, status.Review.Behind));
 
     // The header's one next-step rule.
     private static void Rules()
     {
-        BranchStatus Status(bool origin = true, bool published = true, int ahead = 0, int behind = 0, bool onBase = false, ReviewDetails? details = null, string provider = "github") =>
-            new("feature", origin, origin ? provider : "", published, ahead, behind, 1, onBase, "main", "abc", null, details);
-        ReviewDetails Pr(string state = "OPEN", bool draft = false, string checks = "passing", string merge = "CLEAN") => new(7, "https://github.com/o/r/pull/7", state, draft, checks, "", merge, ["squash"], true);
+        BranchStatus Status(bool origin = true, bool published = true, int ahead = 0, int behind = 0, bool onBase = false, PullRequest? details = null, string provider = "github") =>
+            new("feature", origin, origin ? provider : "", published, ahead, behind, 1, onBase, "main", "abc", details);
+        PullRequest Pr(string state = "open", bool draft = false, string checks = "passing", string merge = "clean") => new(7, "Title", "https://github.com/o/r/pull/7", state, draft, checks, "none", merge, ["squash"], true, 0, -1);
         (string Remote, string PullRequest) Steps(BranchStatus status) => (WorkbenchWindow.RemoteAction(status), GitHubLocationItem.NextStep(NeutralOf(status)));
         Require(Steps(Status(origin: false)) == ("", ""), "No origin offers nothing to push.");
         Require(Steps(Status(published: false)) == ("publish", "open"), "An unpublished branch publishes and may open a PR.");
@@ -80,9 +79,9 @@ internal static class BranchStatusChecks
         Require(Steps(Status(details: Pr(draft: true))).PullRequest == "ready", "A draft's next step is Ready for review.");
         Require(Steps(Status(details: Pr())).PullRequest == "merge", "A clean PR in sync merges.");
         Require(Steps(Status(details: Pr(checks: "failing"))).PullRequest == "", "Failing checks do not merge.");
-        Require(Steps(Status(details: Pr(merge: "BLOCKED"))).PullRequest == "", "Merge follows merge state, never approvals.");
-        Require(Steps(Status(details: Pr(state: "MERGED"))).PullRequest == "delete-remote", "A merged PR offers deleting its remote branch.");
-        Require(Steps(Status(details: Pr(state: "CLOSED"))).PullRequest == "reopen", "A closed PR offers Reopen.");
+        Require(Steps(Status(details: Pr(merge: "blocked"))).PullRequest == "", "Merge follows merge state, never approvals.");
+        Require(Steps(Status(details: Pr(state: "merged"))).PullRequest == "delete-remote", "A merged PR offers deleting its remote branch.");
+        Require(Steps(Status(details: Pr(state: "closed"))).PullRequest == "reopen", "A closed PR offers Reopen.");
         Require(Steps(Status(onBase: true)).PullRequest == "", "The base branch has no PR step.");
         Require(Steps(Status(provider: "other")).PullRequest == "", "A plain git origin has no PR step.");
         Console.WriteLine("PASS upstream shipActions (#771, #776): one next step per segment from the branch status");
@@ -120,7 +119,7 @@ internal static class BranchStatusChecks
         IProjectServices host = new LocalProjectAdapter(new ProjectServices(work, repoHosts: PullRequestChecks.GitHubRoute));
         await host.OpenProjectAsync(work);
         var status = await host.GetBranchStatusAsync(true);
-        Require(status is { HasOrigin: true, Provider: "other", Published: false, OnBase: false, AheadOfBase: 1, Review: null, Details: null }, "Unpublished: " + status);
+        Require(status is { HasOrigin: true, Provider: "", Published: false, OnBase: false, AheadOfBase: 1, Review: null }, "Unpublished: " + status);
         Require((await host.ApplyBranchActionAsync(new("push", "feature", status!.Head))).Outcome == "done", "Publish must push.");
         status = await host.GetBranchStatusAsync(true);
         Require(status is { Published: true, Ahead: 0, Behind: 0 }, "Published and in sync: " + status);
@@ -162,13 +161,13 @@ internal static class BranchStatusChecks
         var running = """[{"status":"IN_PROGRESS","conclusion":""},{"status":"COMPLETED","conclusion":"SUCCESS"}]""";
         await File.WriteAllTextAsync(Path.Combine(shim, "details.json"), Details("OPEN", true, running, "BLOCKED"));
         var status = await host.GetBranchStatusAsync(false);
-        Require(status?.Details is { Number: 7, State: "OPEN", Draft: true, Checks: "pending", SameRepository: true } details && details.MergeMethods.SequenceEqual(["squash", "rebase"]),
+        Require(status?.Review is { Number: 7, State: "open", Draft: true, Checks: "pending", SameRepository: true } details && details.MergeMethods.SequenceEqual(["squash", "rebase"]),
             "Review details: " + status);
         Require(GitHubLocationItem.NextStep(NeutralOf(status!)) == "ready", "A draft offers Ready for review.");
         Require((await host.ApplyBranchActionAsync(new("ready", "feature", head))).Outcome == "done" &&
             File.ReadAllText(Path.Combine(shim, "log")).Contains("pr ready 7", StringComparison.Ordinal), "Ready must call gh pr ready.");
         await File.WriteAllTextAsync(Path.Combine(shim, "details.json"), Details("OPEN", false, """[{"state":"FAILURE"}]""", "CLEAN"));
-        Require((await host.GetBranchStatusAsync(false))?.Details?.Checks == "failing", "A failing status context fails the checks.");
+        Require((await host.GetBranchStatusAsync(false))?.Review?.Checks == "failing", "A failing status context fails the checks.");
         // A fork's same-named branch is not this branch's pull request.
         await File.WriteAllTextAsync(Path.Combine(shim, "details.json"), Details("OPEN", false, "[]", "CLEAN", owner: "fork"));
         try { await host.ApplyBranchActionAsync(new("merge", "feature", head, Method: "squash")); throw new InvalidOperationException("A fork's PR was merged."); }
@@ -197,8 +196,8 @@ internal static class BranchStatusChecks
         await remote.OpenProjectAsync(work);
         var local = await host.GetBranchStatusAsync(false);
         var over = await remote.GetBranchStatusAsync(false);
-        Require(over is not null && local is not null && over with { Details = null } == local with { Details = null } &&
-            over.Details! with { MergeMethods = [] } == local.Details! with { MergeMethods = [] } && over.Details.MergeMethods.SequenceEqual(local.Details.MergeMethods),
+        Require(over is not null && local is not null && over with { Review = null } == local with { Review = null } &&
+            over.Review! with { MergeMethods = [] } == local.Review! with { MergeMethods = [] } && over.Review.MergeMethods.SequenceEqual(local.Review.MergeMethods),
             $"Remote branch status differs: {over} vs {local}.");
         Require((await remote.ApplyBranchActionAsync(new("reopen", "feature", head))).Outcome == "done", "Remote branch actions must reach the host.");
         await server.StopAsync();

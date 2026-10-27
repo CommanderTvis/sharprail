@@ -12,7 +12,7 @@ internal static class GitHubPrFlow
     {
         public bool Busy;
         public RepoPrRequest? LastSubmit;
-        public RepoOpenReview? Optimistic;
+        public RepoPullRequest? Optimistic;
         public Action? Changed;
     }
 
@@ -21,10 +21,10 @@ internal static class GitHubPrFlow
     internal static RepoPrRequest? LastSubmit(IRepoHostSurface surface) => States.GetOrCreateValue(surface).LastSubmit;
 
     /// <summary>The review the section shows: the answer of a submit not yet confirmed by a status, else the status' own.</summary>
-    internal static RepoOpenReview? ReviewOf(IRepoHostSurface surface)
+    internal static RepoPullRequest? ReviewOf(IRepoHostSurface surface)
     {
         var state = States.GetOrCreateValue(surface);
-        return state.Optimistic ?? surface.Status?.Review;
+        return state.Optimistic ?? (surface.Status?.Review is { State: "open" } open ? open : null);
     }
 
     /// <summary>A status arrived: the answer of a submit made before it no longer stands.</summary>
@@ -93,7 +93,7 @@ internal static class GitHubPrFlow
             var result = await surface.OpenPrAsync(request, CancellationToken.None);
             if (key != surface.Status?.Branch) return (Outcome.Done, null);
             // Nothing is unpushed right after the push; how far origin is ahead is only known to a fetch.
-            if (result.Number > 0) { state.Optimistic = new(result.Number, result.Url, 0, -1); }
+            if (result.Number > 0) { state.Optimistic = new(result.Number, "", result.Url, "open", false, "none", "none", "unknown", [], true, 0, -1); }
             surface.RefreshStatus();
             if (result.DirtyFiles > 0)
                 surface.Toast("info", "Uncommitted changes", $"{result.DirtyFiles} uncommitted {(result.DirtyFiles == 1 ? "file" : "files")} stayed local.");
@@ -123,7 +123,7 @@ internal static class GitHubPrFlow
 
     internal static async Task MergeAsync(IRepoHostSurface surface, RepoBranchStatus status)
     {
-        if (status.Details is not { } details) return;
+        if (status.Review is not { State: "open" } details) return;
         var remembered = surface.MergePreference?.Split('|');
         var choice = await GitHubDialogs.MergeAsync(surface.Owner, details.Number, details.MergeMethods, remembered?[0] ?? details.MergeMethods[0], remembered is [_, "delete"]);
         if (choice is not { } chosen) return;

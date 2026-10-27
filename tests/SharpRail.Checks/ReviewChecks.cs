@@ -188,7 +188,7 @@ internal static class ReviewChecks
         ClearToasts(app);
         Git(work, "commit", "--allow-empty", "-m", "Local");
         var origin = Git(bare, "rev-parse", "refs/heads/feature");
-        app.Host.Review = review => review is null ? null : review with { BehindCommits = 1 };
+        app.Host.Review = review => review is null ? null : review with { Behind = 1 };
         UntilLabel(app, "Branch diverged");
         Require(app.Find<TextBlock>("ReviewIntegrateCommand").Text == "git pull --rebase origin feature" &&
             app.Find<TextBlock>("ReviewPrNotice").Text!.Contains("force-pushing would drop them", StringComparison.Ordinal),

@@ -343,7 +343,6 @@ internal static class StartupChecks
         public ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken ct = default) => inner.UndoChangeAsync(receiptId, expectModifiedHash, ct);
         public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken ct = default) => inner.ApplyGitActionAsync(action, ct);
         public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken ct = default) => ValueTask.FromResult(new BranchCatalog([], [], ""));
-        public ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken ct = default) => ValueTask.FromResult<OpenReview?>(null);
         public ValueTask<PrDraft> PreviewPrAsync(CancellationToken ct = default) => ValueTask.FromResult(new PrDraft("", ""));
         public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken ct = default) => ValueTask.FromResult(new PrResult("compare", "", 0, 0, ""));
         public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken ct = default) => inner.ListEditorsAsync(ct);

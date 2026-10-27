@@ -104,22 +104,24 @@ public record BranchCatalog(IReadOnlyList<string> Local, IReadOnlyList<RemoteBra
 public record EditorInfo(string Id, string Label);
 /// <summary>Line totals of a workspace's changes against its review target.</summary>
 public record DiffStats(int Added, int Removed);
-/// <summary>The open pull request of the workspace branch; counts are -1 when unknown.</summary>
-public record OpenReview(int Number, string Url, string Provider, int UnpushedCommits, int BehindCommits);
 /// <summary>
-/// The review facts of the branch's pull request on GitHub (ThinkRail #776): State is OPEN, MERGED or CLOSED; Checks is
-/// passing, failing, pending or empty; ReviewDecision and MergeState are GitHub's values; MergeMethods are merge, squash
-/// and rebase as the repository allows them. SameRepository is false for a pull request whose head is a fork's branch.
+/// The branch's pull request (or merge request) in the provider-neutral model (Plugin API H24): the open one first, else the
+/// newest in any state, else none. State is open, merged or closed; Checks is passing, failing, pending or none; Review is
+/// approved, changes-requested, required or none; Mergeability is clean, blocked, behind, conflicting or unknown (the forge's
+/// merge state, never approvals); MergeMethods are merge, squash and rebase as the repository allows them. SameRepository is
+/// false for a request whose head is a fork's branch. Unpushed and Behind count commits against the request's head and are
+/// -1 when unknown (only an open request has them).
 /// </summary>
-public record ReviewDetails(int Number, string Url, string State, bool Draft, string Checks, string ReviewDecision, string MergeState,
-    IReadOnlyList<string> MergeMethods, bool SameRepository);
+public record PullRequest(int Number, string Title, string Url, string State, bool Draft, string Checks, string Review, string Mergeability,
+    IReadOnlyList<string> MergeMethods, bool SameRepository, int Unpushed, int Behind);
 /// <summary>
-/// The branch's remote state and next step (ThinkRail #771): whether origin exists and which forge it is (github, gitlab,
-/// other), whether the branch is published there, commits ahead and behind it (-1 when unknown), commits ahead of the
-/// review base, whether the branch is its own base, the commit HEAD names, the open pull request and its details.
+/// The branch's remote state and next step (ThinkRail #771): whether origin exists and which repo hosting plugin owns it
+/// (its plugin id, empty for a plain remote), whether the branch is published there, commits ahead and behind it (-1 when
+/// unknown), commits ahead of the review base, whether the branch is its own base, the commit HEAD names and the
+/// owner's pull request for the branch.
 /// </summary>
 public record BranchStatus(string Branch, bool HasOrigin, string Provider, bool Published, int Ahead, int Behind, int AheadOfBase,
-    bool OnBase, string BaseName, string Head, OpenReview? Review, ReviewDetails? Details);
+    bool OnBase, string BaseName, string Head, PullRequest? Review);
 /// <summary>
 /// A branch mutation bound to what the caller saw: Kind is push, ready, merge, reopen or delete-remote; Head is the commit
 /// the caller's status named (the host refuses when the branch moved); ConfirmBase allows pushing a branch that is its
@@ -130,8 +132,8 @@ public record BranchAction(string Kind, string Branch, string Head, bool Confirm
 public record BranchActionResult(string Outcome, string Message);
 public record PrDraft(string Title, string Body);
 public record PrRequest(string Title, bool TitleEdited, string Body, bool Draft);
-/// <summary>Action is created, updated, pushed, compare or authFailed; GhProblem is missing or unauthenticated when gh could not be used.</summary>
-public record PrResult(string Action, string Url, int Number, int DirtyFiles, string GhProblem);
+/// <summary>Action is created, updated, pushed, compare or authFailed; Problem is missing or unauthenticated when the provider's tool could not be used.</summary>
+public record PrResult(string Action, string Url, int Number, int DirtyFiles, string Problem);
 public record SearchHit(string Path, int Line, string Text);
 /// <summary>Hits in path then line order; <paramref name="Truncated"/> when the host stopped at its limit.</summary>
 public record SearchHits(IReadOnlyList<SearchHit> Hits, bool Truncated);
@@ -153,12 +155,8 @@ public sealed record SharprailDirectoryStatus(bool Exists, bool Tracked, bool Ig
     public bool CanExclude => Exists && !Tracked && !Ignored;
 }
 
-public sealed record GitHubAuthentication(bool Connected, string Detail);
-
 public partial interface IProjectServices
 {
-    /// <summary>The host's gh authentication status; no credentials leave the host.</summary>
-    ValueTask<GitHubAuthentication> GetGitHubAuthenticationAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(new GitHubAuthentication(false, "This host does not report GitHub authentication."));
     ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default);
     /// <summary>Watches the currently opened workspace, captured for this subscription. The first empty batch confirms that watching has started.</summary>
@@ -210,7 +208,6 @@ public partial interface IProjectServices
     /// </summary>
     ValueTask<SharprailDirectoryStatus> ExcludeSharprailDirectoryAsync(CancellationToken cancellationToken = default)
         => ValueTask.FromException<SharprailDirectoryStatus>(new NotSupportedException("This host cannot exclude the .sharprail directory."));
-    ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default);
     ValueTask<PrDraft> PreviewPrAsync(CancellationToken cancellationToken = default);
     /// <summary>The branch's remote facts and review; null for a detached HEAD or a host that predates the operation.</summary>
     ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default) => ValueTask.FromResult<BranchStatus?>(null);

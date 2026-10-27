@@ -210,7 +210,6 @@ internal static class PluginWatchChecks
         public ValueTask<ContentBytes> ReadContentBytesAsync(string path, string? revision, CancellationToken ct = default) => inner.ReadContentBytesAsync(path, revision, ct);
         public ValueTask<ChangeReceipt> RevertChangeAsync(string path, string scope, string comparison, RevertTarget target, ChangeExpectation expect, CancellationToken ct = default) => inner.RevertChangeAsync(path, scope, comparison, target, expect, ct);
         public ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken ct = default) => inner.UndoChangeAsync(receiptId, expectModifiedHash, ct);
-        public ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken ct = default) => inner.GetOpenReviewAsync(fresh, ct);
         public ValueTask<PrDraft> PreviewPrAsync(CancellationToken ct = default) => inner.PreviewPrAsync(ct);
         public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken ct = default) => inner.OpenPrAsync(request, ct);
         public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => inner.ApplyGitActionAsync(action, cancellationToken);

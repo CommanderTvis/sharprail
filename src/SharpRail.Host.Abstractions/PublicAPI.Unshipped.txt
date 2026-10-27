@@ -5,7 +5,6 @@ const SharpRail.Host.Abstractions.FileLimits.ReadMessageBytes = 83886080 -> int
 const SharpRail.Host.Abstractions.FileLimits.SaveMessageBytes = 150994944 -> int
 const SharpRail.Host.Abstractions.HostProtocol.ChangeWritePath = 2 -> int
 const SharpRail.Host.Abstractions.HostProtocol.AirContextPlugin = 8 -> int
-const SharpRail.Host.Abstractions.HostProtocol.Current = 14 -> int
 const SharpRail.Host.Abstractions.HostProtocol.RequestReplay = 3 -> int
 const SharpRail.Host.Abstractions.HostProtocol.SharprailExclude = 9 -> int
 const SharpRail.Host.Abstractions.HostProtocol.WebSocketTransport = 5 -> int
@@ -85,9 +84,6 @@ override SharpRail.Host.Abstractions.GitChange.ToString() -> string!
 override SharpRail.Host.Abstractions.GitCommit.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.GitCommit.GetHashCode() -> int
 override SharpRail.Host.Abstractions.GitCommit.ToString() -> string!
-override SharpRail.Host.Abstractions.GitHubAuthentication.Equals(object? obj) -> bool
-override SharpRail.Host.Abstractions.GitHubAuthentication.GetHashCode() -> int
-override SharpRail.Host.Abstractions.GitHubAuthentication.ToString() -> string!
 override SharpRail.Host.Abstractions.GitSnapshot.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.GitSnapshot.GetHashCode() -> int
 override SharpRail.Host.Abstractions.GitSnapshot.ToString() -> string!
@@ -112,9 +108,6 @@ override SharpRail.Host.Abstractions.LifecycleEvent.ToString() -> string!
 override SharpRail.Host.Abstractions.LineSpan.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.LineSpan.GetHashCode() -> int
 override SharpRail.Host.Abstractions.LineSpan.ToString() -> string!
-override SharpRail.Host.Abstractions.OpenReview.Equals(object? obj) -> bool
-override SharpRail.Host.Abstractions.OpenReview.GetHashCode() -> int
-override SharpRail.Host.Abstractions.OpenReview.ToString() -> string!
 override SharpRail.Host.Abstractions.PluginCallRequest.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.PluginCallRequest.GetHashCode() -> int
 override SharpRail.Host.Abstractions.PluginCallRequest.ToString() -> string!
@@ -439,15 +432,6 @@ SharpRail.Host.Abstractions.GitCommit.ShortSha.get -> string!
 SharpRail.Host.Abstractions.GitCommit.ShortSha.init -> void
 SharpRail.Host.Abstractions.GitCommit.Subject.get -> string!
 SharpRail.Host.Abstractions.GitCommit.Subject.init -> void
-SharpRail.Host.Abstractions.GitHubAuthentication
-SharpRail.Host.Abstractions.GitHubAuthentication.<Clone>$() -> SharpRail.Host.Abstractions.GitHubAuthentication!
-SharpRail.Host.Abstractions.GitHubAuthentication.Connected.get -> bool
-SharpRail.Host.Abstractions.GitHubAuthentication.Connected.init -> void
-SharpRail.Host.Abstractions.GitHubAuthentication.Deconstruct(out bool Connected, out string! Detail) -> void
-SharpRail.Host.Abstractions.GitHubAuthentication.Detail.get -> string!
-SharpRail.Host.Abstractions.GitHubAuthentication.Detail.init -> void
-SharpRail.Host.Abstractions.GitHubAuthentication.Equals(SharpRail.Host.Abstractions.GitHubAuthentication? other) -> bool
-SharpRail.Host.Abstractions.GitHubAuthentication.GitHubAuthentication(bool Connected, string! Detail) -> void
 SharpRail.Host.Abstractions.GitSnapshot
 SharpRail.Host.Abstractions.GitSnapshot.Branch.get -> string!
 SharpRail.Host.Abstractions.GitSnapshot.Branch.init -> void
@@ -590,8 +574,6 @@ SharpRail.Host.Abstractions.IProjectServices.GetDiffAsync(string! path, string! 
 SharpRail.Host.Abstractions.IProjectServices.GetDiffSidesAsync(string! path, string! scope, string! comparisonBranch = "", System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.DiffSides!>
 SharpRail.Host.Abstractions.IProjectServices.GetDiffStatsAsync(string! workspacePath, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.DiffStats?>
 SharpRail.Host.Abstractions.IProjectServices.GetGitAsync(string! comparisonBranch = "", System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), string! scope = "all") -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.GitSnapshot!>
-SharpRail.Host.Abstractions.IProjectServices.GetGitHubAuthenticationAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.GitHubAuthentication!>
-SharpRail.Host.Abstractions.IProjectServices.GetOpenReviewAsync(bool fresh, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.OpenReview?>
 SharpRail.Host.Abstractions.IProjectServices.GetSharprailDirectoryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.SharprailDirectoryStatus!>
 SharpRail.Host.Abstractions.IProjectServices.GetSpecGraphAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.SpecGraph!>
 SharpRail.Host.Abstractions.IProjectServices.HasDurableSpecsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
@@ -677,20 +659,6 @@ SharpRail.Host.Abstractions.LineSpan.LineSpan(int Start, int Count) -> void
 SharpRail.Host.Abstractions.LineSpan.LineSpan(SharpRail.Host.Abstractions.LineSpan! original) -> void
 SharpRail.Host.Abstractions.LineSpan.Start.get -> int
 SharpRail.Host.Abstractions.LineSpan.Start.init -> void
-SharpRail.Host.Abstractions.OpenReview
-SharpRail.Host.Abstractions.OpenReview.BehindCommits.get -> int
-SharpRail.Host.Abstractions.OpenReview.BehindCommits.init -> void
-SharpRail.Host.Abstractions.OpenReview.Deconstruct(out int Number, out string! Url, out string! Provider, out int UnpushedCommits, out int BehindCommits) -> void
-SharpRail.Host.Abstractions.OpenReview.Number.get -> int
-SharpRail.Host.Abstractions.OpenReview.Number.init -> void
-SharpRail.Host.Abstractions.OpenReview.OpenReview(int Number, string! Url, string! Provider, int UnpushedCommits, int BehindCommits) -> void
-SharpRail.Host.Abstractions.OpenReview.OpenReview(SharpRail.Host.Abstractions.OpenReview! original) -> void
-SharpRail.Host.Abstractions.OpenReview.Provider.get -> string!
-SharpRail.Host.Abstractions.OpenReview.Provider.init -> void
-SharpRail.Host.Abstractions.OpenReview.UnpushedCommits.get -> int
-SharpRail.Host.Abstractions.OpenReview.UnpushedCommits.init -> void
-SharpRail.Host.Abstractions.OpenReview.Url.get -> string!
-SharpRail.Host.Abstractions.OpenReview.Url.init -> void
 SharpRail.Host.Abstractions.PluginCallRequest
 SharpRail.Host.Abstractions.PluginCallRequest.<Clone>$() -> SharpRail.Host.Abstractions.PluginCallRequest!
 SharpRail.Host.Abstractions.PluginCallRequest.ClientKey.get -> string!
@@ -770,15 +738,11 @@ SharpRail.Host.Abstractions.PrRequest.TitleEdited.init -> void
 SharpRail.Host.Abstractions.PrResult
 SharpRail.Host.Abstractions.PrResult.Action.get -> string!
 SharpRail.Host.Abstractions.PrResult.Action.init -> void
-SharpRail.Host.Abstractions.PrResult.Deconstruct(out string! Action, out string! Url, out int Number, out int DirtyFiles, out string! GhProblem) -> void
 SharpRail.Host.Abstractions.PrResult.DirtyFiles.get -> int
 SharpRail.Host.Abstractions.PrResult.DirtyFiles.init -> void
-SharpRail.Host.Abstractions.PrResult.GhProblem.get -> string!
-SharpRail.Host.Abstractions.PrResult.GhProblem.init -> void
 SharpRail.Host.Abstractions.PrResult.Number.get -> int
 SharpRail.Host.Abstractions.PrResult.Number.init -> void
 SharpRail.Host.Abstractions.PrResult.PrResult(SharpRail.Host.Abstractions.PrResult! original) -> void
-SharpRail.Host.Abstractions.PrResult.PrResult(string! Action, string! Url, int Number, int DirtyFiles, string! GhProblem) -> void
 SharpRail.Host.Abstractions.PrResult.Url.get -> string!
 SharpRail.Host.Abstractions.PrResult.Url.init -> void
 SharpRail.Host.Abstractions.RemoteBranch
@@ -1095,8 +1059,6 @@ static SharpRail.Host.Abstractions.GitChange.operator !=(SharpRail.Host.Abstract
 static SharpRail.Host.Abstractions.GitChange.operator ==(SharpRail.Host.Abstractions.GitChange? left, SharpRail.Host.Abstractions.GitChange? right) -> bool
 static SharpRail.Host.Abstractions.GitCommit.operator !=(SharpRail.Host.Abstractions.GitCommit? left, SharpRail.Host.Abstractions.GitCommit? right) -> bool
 static SharpRail.Host.Abstractions.GitCommit.operator ==(SharpRail.Host.Abstractions.GitCommit? left, SharpRail.Host.Abstractions.GitCommit? right) -> bool
-static SharpRail.Host.Abstractions.GitHubAuthentication.operator !=(SharpRail.Host.Abstractions.GitHubAuthentication? left, SharpRail.Host.Abstractions.GitHubAuthentication? right) -> bool
-static SharpRail.Host.Abstractions.GitHubAuthentication.operator ==(SharpRail.Host.Abstractions.GitHubAuthentication? left, SharpRail.Host.Abstractions.GitHubAuthentication? right) -> bool
 static SharpRail.Host.Abstractions.GitSnapshot.operator !=(SharpRail.Host.Abstractions.GitSnapshot? left, SharpRail.Host.Abstractions.GitSnapshot? right) -> bool
 static SharpRail.Host.Abstractions.GitSnapshot.operator ==(SharpRail.Host.Abstractions.GitSnapshot? left, SharpRail.Host.Abstractions.GitSnapshot? right) -> bool
 static SharpRail.Host.Abstractions.HostHandshake.operator !=(SharpRail.Host.Abstractions.HostHandshake? left, SharpRail.Host.Abstractions.HostHandshake? right) -> bool
@@ -1128,8 +1090,6 @@ static SharpRail.Host.Abstractions.LifecycleEvent.operator !=(SharpRail.Host.Abs
 static SharpRail.Host.Abstractions.LifecycleEvent.operator ==(SharpRail.Host.Abstractions.LifecycleEvent? left, SharpRail.Host.Abstractions.LifecycleEvent? right) -> bool
 static SharpRail.Host.Abstractions.LineSpan.operator !=(SharpRail.Host.Abstractions.LineSpan? left, SharpRail.Host.Abstractions.LineSpan? right) -> bool
 static SharpRail.Host.Abstractions.LineSpan.operator ==(SharpRail.Host.Abstractions.LineSpan? left, SharpRail.Host.Abstractions.LineSpan? right) -> bool
-static SharpRail.Host.Abstractions.OpenReview.operator !=(SharpRail.Host.Abstractions.OpenReview? left, SharpRail.Host.Abstractions.OpenReview? right) -> bool
-static SharpRail.Host.Abstractions.OpenReview.operator ==(SharpRail.Host.Abstractions.OpenReview? left, SharpRail.Host.Abstractions.OpenReview? right) -> bool
 static SharpRail.Host.Abstractions.PluginCallRequest.operator !=(SharpRail.Host.Abstractions.PluginCallRequest? left, SharpRail.Host.Abstractions.PluginCallRequest? right) -> bool
 static SharpRail.Host.Abstractions.PluginCallRequest.operator ==(SharpRail.Host.Abstractions.PluginCallRequest? left, SharpRail.Host.Abstractions.PluginCallRequest? right) -> bool
 static SharpRail.Host.Abstractions.PluginSubscription.operator !=(SharpRail.Host.Abstractions.PluginSubscription? left, SharpRail.Host.Abstractions.PluginSubscription? right) -> bool
@@ -1280,10 +1240,6 @@ virtual SharpRail.Host.Abstractions.LineSpan.<Clone>$() -> SharpRail.Host.Abstra
 virtual SharpRail.Host.Abstractions.LineSpan.EqualityContract.get -> System.Type!
 virtual SharpRail.Host.Abstractions.LineSpan.Equals(SharpRail.Host.Abstractions.LineSpan? other) -> bool
 virtual SharpRail.Host.Abstractions.LineSpan.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual SharpRail.Host.Abstractions.OpenReview.<Clone>$() -> SharpRail.Host.Abstractions.OpenReview!
-virtual SharpRail.Host.Abstractions.OpenReview.EqualityContract.get -> System.Type!
-virtual SharpRail.Host.Abstractions.OpenReview.Equals(SharpRail.Host.Abstractions.OpenReview? other) -> bool
-virtual SharpRail.Host.Abstractions.OpenReview.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual SharpRail.Host.Abstractions.PrDraft.<Clone>$() -> SharpRail.Host.Abstractions.PrDraft!
 virtual SharpRail.Host.Abstractions.PrDraft.EqualityContract.get -> System.Type!
 virtual SharpRail.Host.Abstractions.PrDraft.Equals(SharpRail.Host.Abstractions.PrDraft? other) -> bool
@@ -1557,7 +1513,6 @@ static SharpRail.Host.Abstractions.LanguageServerOptions.operator !=(SharpRail.H
 static SharpRail.Host.Abstractions.LanguageServerOptions.operator ==(SharpRail.Host.Abstractions.LanguageServerOptions? left, SharpRail.Host.Abstractions.LanguageServerOptions? right) -> bool
 static SharpRail.Host.Abstractions.LanguageServerState.operator !=(SharpRail.Host.Abstractions.LanguageServerState? left, SharpRail.Host.Abstractions.LanguageServerState? right) -> bool
 static SharpRail.Host.Abstractions.LanguageServerState.operator ==(SharpRail.Host.Abstractions.LanguageServerState? left, SharpRail.Host.Abstractions.LanguageServerState? right) -> bool
-
 SharpRail.Host.Abstractions.LanguageTermsRequest
 SharpRail.Host.Abstractions.LanguageTermsRequest.<Clone>$() -> SharpRail.Host.Abstractions.LanguageTermsRequest!
 SharpRail.Host.Abstractions.LanguageTermsRequest.Equals(SharpRail.Host.Abstractions.LanguageTermsRequest? other) -> bool
@@ -1574,7 +1529,6 @@ override SharpRail.Host.Abstractions.LanguageTermsRequest.GetHashCode() -> int
 override SharpRail.Host.Abstractions.LanguageTermsRequest.ToString() -> string!
 static SharpRail.Host.Abstractions.LanguageTermsRequest.operator ==(SharpRail.Host.Abstractions.LanguageTermsRequest? left, SharpRail.Host.Abstractions.LanguageTermsRequest? right) -> bool
 static SharpRail.Host.Abstractions.LanguageTermsRequest.operator !=(SharpRail.Host.Abstractions.LanguageTermsRequest? left, SharpRail.Host.Abstractions.LanguageTermsRequest? right) -> bool
-
 SharpRail.Host.Abstractions.LanguageTermsResult
 SharpRail.Host.Abstractions.LanguageTermsResult.<Clone>$() -> SharpRail.Host.Abstractions.LanguageTermsResult!
 SharpRail.Host.Abstractions.LanguageTermsResult.Equals(SharpRail.Host.Abstractions.LanguageTermsResult? other) -> bool
@@ -1602,7 +1556,6 @@ override SharpRail.Host.Abstractions.LanguageTermsResult.ToString() -> string!
 static SharpRail.Host.Abstractions.LanguageTermsResult.operator ==(SharpRail.Host.Abstractions.LanguageTermsResult? left, SharpRail.Host.Abstractions.LanguageTermsResult? right) -> bool
 static SharpRail.Host.Abstractions.LanguageTermsResult.operator !=(SharpRail.Host.Abstractions.LanguageTermsResult? left, SharpRail.Host.Abstractions.LanguageTermsResult? right) -> bool
 SharpRail.Host.Abstractions.IProjectServices.LanguageTermsAsync(SharpRail.Host.Abstractions.LanguageTermsRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.LanguageTermsResult!>
-
 SharpRail.Host.Abstractions.LanguageProject.Root.get -> string!
 SharpRail.Host.Abstractions.LanguageProject.Root.init -> void
 SharpRail.Host.Abstractions.LanguageProject.Server.get -> string!
@@ -1627,19 +1580,14 @@ override SharpRail.Host.Abstractions.LanguageProject.Equals(object? obj) -> bool
 SharpRail.Host.Abstractions.LanguageProject.Equals(SharpRail.Host.Abstractions.LanguageProject? other) -> bool
 SharpRail.Host.Abstractions.LanguageProject.<Clone>$() -> SharpRail.Host.Abstractions.LanguageProject!
 SharpRail.Host.Abstractions.LanguageProject.Deconstruct(out string! Root, out string! Manifest, out string! Server, out string! Kind, out string! State, out string! Detail) -> void
-
 SharpRail.Host.Abstractions.LanguageItem.Modifiers.get -> string!
 SharpRail.Host.Abstractions.LanguageItem.Modifiers.init -> void
 SharpRail.Host.Abstractions.LanguageItem.Container.get -> string!
 SharpRail.Host.Abstractions.LanguageItem.Container.init -> void
-
 SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.get -> bool
 SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.init -> void
-
-
 SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.get -> string!
 SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.init -> void
-
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.init -> void
 SharpRail.Host.Abstractions.HostState.ProjectLanguageHidden.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
@@ -1719,9 +1667,6 @@ override SharpRail.Host.Abstractions.BranchActionResult.ToString() -> string!
 override SharpRail.Host.Abstractions.BranchStatus.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.BranchStatus.GetHashCode() -> int
 override SharpRail.Host.Abstractions.BranchStatus.ToString() -> string!
-override SharpRail.Host.Abstractions.ReviewDetails.Equals(object? obj) -> bool
-override SharpRail.Host.Abstractions.ReviewDetails.GetHashCode() -> int
-override SharpRail.Host.Abstractions.ReviewDetails.ToString() -> string!
 SharpRail.Host.Abstractions.BranchAction
 SharpRail.Host.Abstractions.BranchAction.Branch.get -> string!
 SharpRail.Host.Abstractions.BranchAction.Branch.init -> void
@@ -1758,10 +1703,6 @@ SharpRail.Host.Abstractions.BranchStatus.Behind.init -> void
 SharpRail.Host.Abstractions.BranchStatus.Branch.get -> string!
 SharpRail.Host.Abstractions.BranchStatus.Branch.init -> void
 SharpRail.Host.Abstractions.BranchStatus.BranchStatus(SharpRail.Host.Abstractions.BranchStatus! original) -> void
-SharpRail.Host.Abstractions.BranchStatus.BranchStatus(string! Branch, bool HasOrigin, string! Provider, bool Published, int Ahead, int Behind, int AheadOfBase, bool OnBase, string! BaseName, string! Head, SharpRail.Host.Abstractions.OpenReview? Review, SharpRail.Host.Abstractions.ReviewDetails? Details) -> void
-SharpRail.Host.Abstractions.BranchStatus.Deconstruct(out string! Branch, out bool HasOrigin, out string! Provider, out bool Published, out int Ahead, out int Behind, out int AheadOfBase, out bool OnBase, out string! BaseName, out string! Head, out SharpRail.Host.Abstractions.OpenReview? Review, out SharpRail.Host.Abstractions.ReviewDetails? Details) -> void
-SharpRail.Host.Abstractions.BranchStatus.Details.get -> SharpRail.Host.Abstractions.ReviewDetails?
-SharpRail.Host.Abstractions.BranchStatus.Details.init -> void
 SharpRail.Host.Abstractions.BranchStatus.HasOrigin.get -> bool
 SharpRail.Host.Abstractions.BranchStatus.HasOrigin.init -> void
 SharpRail.Host.Abstractions.BranchStatus.Head.get -> string!
@@ -1772,40 +1713,15 @@ SharpRail.Host.Abstractions.BranchStatus.Provider.get -> string!
 SharpRail.Host.Abstractions.BranchStatus.Provider.init -> void
 SharpRail.Host.Abstractions.BranchStatus.Published.get -> bool
 SharpRail.Host.Abstractions.BranchStatus.Published.init -> void
-SharpRail.Host.Abstractions.BranchStatus.Review.get -> SharpRail.Host.Abstractions.OpenReview?
 SharpRail.Host.Abstractions.BranchStatus.Review.init -> void
 SharpRail.Host.Abstractions.IProjectServices.ApplyBranchActionAsync(SharpRail.Host.Abstractions.BranchAction! action, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.BranchActionResult!>
 SharpRail.Host.Abstractions.IProjectServices.GetBranchStatusAsync(bool fresh, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.BranchStatus?>
-SharpRail.Host.Abstractions.ReviewDetails
-SharpRail.Host.Abstractions.ReviewDetails.Checks.get -> string!
-SharpRail.Host.Abstractions.ReviewDetails.Checks.init -> void
-SharpRail.Host.Abstractions.ReviewDetails.Deconstruct(out int Number, out string! Url, out string! State, out bool Draft, out string! Checks, out string! ReviewDecision, out string! MergeState, out System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, out bool SameRepository) -> void
-SharpRail.Host.Abstractions.ReviewDetails.Draft.get -> bool
-SharpRail.Host.Abstractions.ReviewDetails.Draft.init -> void
-SharpRail.Host.Abstractions.ReviewDetails.MergeMethods.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Host.Abstractions.ReviewDetails.MergeMethods.init -> void
-SharpRail.Host.Abstractions.ReviewDetails.MergeState.get -> string!
-SharpRail.Host.Abstractions.ReviewDetails.MergeState.init -> void
-SharpRail.Host.Abstractions.ReviewDetails.Number.get -> int
-SharpRail.Host.Abstractions.ReviewDetails.Number.init -> void
-SharpRail.Host.Abstractions.ReviewDetails.ReviewDecision.get -> string!
-SharpRail.Host.Abstractions.ReviewDetails.ReviewDecision.init -> void
-SharpRail.Host.Abstractions.ReviewDetails.ReviewDetails(int Number, string! Url, string! State, bool Draft, string! Checks, string! ReviewDecision, string! MergeState, System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, bool SameRepository) -> void
-SharpRail.Host.Abstractions.ReviewDetails.ReviewDetails(SharpRail.Host.Abstractions.ReviewDetails! original) -> void
-SharpRail.Host.Abstractions.ReviewDetails.SameRepository.get -> bool
-SharpRail.Host.Abstractions.ReviewDetails.SameRepository.init -> void
-SharpRail.Host.Abstractions.ReviewDetails.State.get -> string!
-SharpRail.Host.Abstractions.ReviewDetails.State.init -> void
-SharpRail.Host.Abstractions.ReviewDetails.Url.get -> string!
-SharpRail.Host.Abstractions.ReviewDetails.Url.init -> void
 static SharpRail.Host.Abstractions.BranchAction.operator !=(SharpRail.Host.Abstractions.BranchAction? left, SharpRail.Host.Abstractions.BranchAction? right) -> bool
 static SharpRail.Host.Abstractions.BranchAction.operator ==(SharpRail.Host.Abstractions.BranchAction? left, SharpRail.Host.Abstractions.BranchAction? right) -> bool
 static SharpRail.Host.Abstractions.BranchActionResult.operator !=(SharpRail.Host.Abstractions.BranchActionResult? left, SharpRail.Host.Abstractions.BranchActionResult? right) -> bool
 static SharpRail.Host.Abstractions.BranchActionResult.operator ==(SharpRail.Host.Abstractions.BranchActionResult? left, SharpRail.Host.Abstractions.BranchActionResult? right) -> bool
 static SharpRail.Host.Abstractions.BranchStatus.operator !=(SharpRail.Host.Abstractions.BranchStatus? left, SharpRail.Host.Abstractions.BranchStatus? right) -> bool
 static SharpRail.Host.Abstractions.BranchStatus.operator ==(SharpRail.Host.Abstractions.BranchStatus? left, SharpRail.Host.Abstractions.BranchStatus? right) -> bool
-static SharpRail.Host.Abstractions.ReviewDetails.operator !=(SharpRail.Host.Abstractions.ReviewDetails? left, SharpRail.Host.Abstractions.ReviewDetails? right) -> bool
-static SharpRail.Host.Abstractions.ReviewDetails.operator ==(SharpRail.Host.Abstractions.ReviewDetails? left, SharpRail.Host.Abstractions.ReviewDetails? right) -> bool
 virtual SharpRail.Host.Abstractions.BranchAction.<Clone>$() -> SharpRail.Host.Abstractions.BranchAction!
 virtual SharpRail.Host.Abstractions.BranchAction.EqualityContract.get -> System.Type!
 virtual SharpRail.Host.Abstractions.BranchAction.Equals(SharpRail.Host.Abstractions.BranchAction? other) -> bool
@@ -1818,10 +1734,6 @@ virtual SharpRail.Host.Abstractions.BranchStatus.<Clone>$() -> SharpRail.Host.Ab
 virtual SharpRail.Host.Abstractions.BranchStatus.EqualityContract.get -> System.Type!
 virtual SharpRail.Host.Abstractions.BranchStatus.Equals(SharpRail.Host.Abstractions.BranchStatus? other) -> bool
 virtual SharpRail.Host.Abstractions.BranchStatus.PrintMembers(System.Text.StringBuilder! builder) -> bool
-virtual SharpRail.Host.Abstractions.ReviewDetails.<Clone>$() -> SharpRail.Host.Abstractions.ReviewDetails!
-virtual SharpRail.Host.Abstractions.ReviewDetails.EqualityContract.get -> System.Type!
-virtual SharpRail.Host.Abstractions.ReviewDetails.Equals(SharpRail.Host.Abstractions.ReviewDetails? other) -> bool
-virtual SharpRail.Host.Abstractions.ReviewDetails.PrintMembers(System.Text.StringBuilder! builder) -> bool
 SharpRail.Host.Abstractions.HostState.UnreadWorkspaces.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.UnreadWorkspaces.init -> void
 static SharpRail.Host.Abstractions.HostStateChange.MarkUnread(string! path, string! reason) -> SharpRail.Host.Abstractions.HostStateChange!
@@ -2008,7 +1920,6 @@ const SharpRail.Host.Abstractions.TailscaleDependence.PluginId = "tailscale" -> 
 const SharpRail.Host.Abstractions.TailscaleDependence.Refusal = "This client is connected through Tailscale; turning it off here would disconnect you. Do it from the host machine or a client connected another way." -> string!
 static SharpRail.Host.Abstractions.TailscaleDependence.Protected(System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>! roster) -> System.Collections.Generic.IReadOnlySet<string!>!
 static SharpRail.Host.Abstractions.TailscaleDependence.TurnsOff(SharpRail.Host.Abstractions.HostStateChange! change, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>! roster) -> bool
-
 const SharpRail.Host.Abstractions.HostProtocol.HostDirectoryBrowse = 11 -> int
 override SharpRail.Host.Abstractions.HostDirectoryEntry.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.HostDirectoryEntry.GetHashCode() -> int
@@ -2098,3 +2009,49 @@ SharpRail.Host.Abstractions.TerminalResumeOffer.Progress.get -> string!
 SharpRail.Host.Abstractions.TerminalResumeOffer.Progress.init -> void
 static SharpRail.Host.Abstractions.HostStateChange.QuitOwnerAndResume(SharpRail.Plugins.Api.TerminalRef! terminal) -> SharpRail.Host.Abstractions.HostStateChange!
 SharpRail.Host.Abstractions.TerminalResumeOffer.TerminalResumeOffer(SharpRail.Plugins.Api.TerminalRef! Terminal, string! Agent, string! SessionId, bool OpenElsewhere = false, string! OwnerText = "", string! QuitConfirmation = "", string! Progress = "") -> void
+SharpRail.Host.Abstractions.BranchStatus.BranchStatus(string! Branch, bool HasOrigin, string! Provider, bool Published, int Ahead, int Behind, int AheadOfBase, bool OnBase, string! BaseName, string! Head, SharpRail.Host.Abstractions.PullRequest? Review) -> void
+SharpRail.Host.Abstractions.BranchStatus.Deconstruct(out string! Branch, out bool HasOrigin, out string! Provider, out bool Published, out int Ahead, out int Behind, out int AheadOfBase, out bool OnBase, out string! BaseName, out string! Head, out SharpRail.Host.Abstractions.PullRequest? Review) -> void
+SharpRail.Host.Abstractions.BranchStatus.Review.get -> SharpRail.Host.Abstractions.PullRequest?
+SharpRail.Host.Abstractions.PrResult.Deconstruct(out string! Action, out string! Url, out int Number, out int DirtyFiles, out string! Problem) -> void
+SharpRail.Host.Abstractions.PrResult.PrResult(string! Action, string! Url, int Number, int DirtyFiles, string! Problem) -> void
+SharpRail.Host.Abstractions.PrResult.Problem.get -> string!
+SharpRail.Host.Abstractions.PrResult.Problem.init -> void
+SharpRail.Host.Abstractions.PullRequest
+SharpRail.Host.Abstractions.PullRequest.Behind.get -> int
+SharpRail.Host.Abstractions.PullRequest.Behind.init -> void
+SharpRail.Host.Abstractions.PullRequest.Checks.get -> string!
+SharpRail.Host.Abstractions.PullRequest.Checks.init -> void
+SharpRail.Host.Abstractions.PullRequest.Deconstruct(out int Number, out string! Title, out string! Url, out string! State, out bool Draft, out string! Checks, out string! Review, out string! Mergeability, out System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, out bool SameRepository, out int Unpushed, out int Behind) -> void
+SharpRail.Host.Abstractions.PullRequest.Draft.get -> bool
+SharpRail.Host.Abstractions.PullRequest.Draft.init -> void
+SharpRail.Host.Abstractions.PullRequest.MergeMethods.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Host.Abstractions.PullRequest.MergeMethods.init -> void
+SharpRail.Host.Abstractions.PullRequest.Mergeability.get -> string!
+SharpRail.Host.Abstractions.PullRequest.Mergeability.init -> void
+SharpRail.Host.Abstractions.PullRequest.Number.get -> int
+SharpRail.Host.Abstractions.PullRequest.Number.init -> void
+SharpRail.Host.Abstractions.PullRequest.PullRequest(SharpRail.Host.Abstractions.PullRequest! original) -> void
+SharpRail.Host.Abstractions.PullRequest.PullRequest(int Number, string! Title, string! Url, string! State, bool Draft, string! Checks, string! Review, string! Mergeability, System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, bool SameRepository, int Unpushed, int Behind) -> void
+SharpRail.Host.Abstractions.PullRequest.Review.get -> string!
+SharpRail.Host.Abstractions.PullRequest.Review.init -> void
+SharpRail.Host.Abstractions.PullRequest.SameRepository.get -> bool
+SharpRail.Host.Abstractions.PullRequest.SameRepository.init -> void
+SharpRail.Host.Abstractions.PullRequest.State.get -> string!
+SharpRail.Host.Abstractions.PullRequest.State.init -> void
+SharpRail.Host.Abstractions.PullRequest.Title.get -> string!
+SharpRail.Host.Abstractions.PullRequest.Title.init -> void
+SharpRail.Host.Abstractions.PullRequest.Unpushed.get -> int
+SharpRail.Host.Abstractions.PullRequest.Unpushed.init -> void
+SharpRail.Host.Abstractions.PullRequest.Url.get -> string!
+SharpRail.Host.Abstractions.PullRequest.Url.init -> void
+const SharpRail.Host.Abstractions.HostProtocol.Current = 15 -> int
+const SharpRail.Host.Abstractions.HostProtocol.NeutralPullRequest = 15 -> int
+override SharpRail.Host.Abstractions.PullRequest.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.PullRequest.GetHashCode() -> int
+override SharpRail.Host.Abstractions.PullRequest.ToString() -> string!
+static SharpRail.Host.Abstractions.PullRequest.operator !=(SharpRail.Host.Abstractions.PullRequest? left, SharpRail.Host.Abstractions.PullRequest? right) -> bool
+static SharpRail.Host.Abstractions.PullRequest.operator ==(SharpRail.Host.Abstractions.PullRequest? left, SharpRail.Host.Abstractions.PullRequest? right) -> bool
+virtual SharpRail.Host.Abstractions.PullRequest.<Clone>$() -> SharpRail.Host.Abstractions.PullRequest!
+virtual SharpRail.Host.Abstractions.PullRequest.EqualityContract.get -> System.Type!
+virtual SharpRail.Host.Abstractions.PullRequest.Equals(SharpRail.Host.Abstractions.PullRequest? other) -> bool
+virtual SharpRail.Host.Abstractions.PullRequest.PrintMembers(System.Text.StringBuilder! builder) -> bool

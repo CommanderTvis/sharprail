@@ -2,20 +2,18 @@ using Avalonia.Controls;
 
 namespace SharpRail.Plugins.Api.UI;
 
-/// <summary>The open request of the workspace's branch (W28); counts are -1 when unknown.</summary>
-public sealed record RepoOpenReview(int Number, string Url, int Unpushed, int Behind);
-
 /// <summary>
-/// The newest request of the branch in any state (W28). <c>State</c> is <c>OPEN</c>, <c>MERGED</c> or <c>CLOSED</c>, <c>Checks</c> is
-/// <c>passing</c>, <c>failing</c>, <c>pending</c> or empty, <c>ReviewDecision</c> and <c>MergeState</c> are the forge's values and
-/// <c>MergeMethods</c> are <c>merge</c>, <c>squash</c> and <c>rebase</c>.
+/// The branch's pull request in the provider-neutral model (W28): the open one first, else the newest in any state. <c>State</c> is
+/// <c>open</c>, <c>merged</c> or <c>closed</c>; <c>Checks</c> is <c>passing</c>, <c>failing</c>, <c>pending</c> or <c>none</c>;
+/// <c>Review</c> is <c>approved</c>, <c>changes-requested</c>, <c>required</c> or <c>none</c>; <c>Mergeability</c> is <c>clean</c>,
+/// <c>blocked</c>, <c>behind</c>, <c>conflicting</c> or <c>unknown</c>; <c>MergeMethods</c> are <c>merge</c>, <c>squash</c> and
+/// <c>rebase</c>. <c>Unpushed</c> and <c>Behind</c> are commits against the request's head, -1 when unknown.
 /// </summary>
-public sealed record RepoReviewDetails(int Number, string Url, string State, bool Draft, string Checks, string ReviewDecision, string MergeState,
-    IReadOnlyList<string> MergeMethods, bool SameRepository);
+public sealed record RepoPullRequest(int Number, string Title, string Url, string State, bool Draft, string Checks, string Review, string Mergeability,
+    IReadOnlyList<string> MergeMethods, bool SameRepository, int Unpushed, int Behind);
 
 /// <summary>The branch's remote state as the host reported it (W28); <c>Provider</c> is the owning plugin's id, empty for a plain remote.</summary>
-public sealed record RepoBranchStatus(string Branch, string Head, string Provider, bool Published, bool OnBase, int Ahead, int Behind,
-    RepoOpenReview? Review, RepoReviewDetails? Details);
+public sealed record RepoBranchStatus(string Branch, string Head, string Provider, bool Published, bool OnBase, int Ahead, int Behind, RepoPullRequest? Review);
 
 /// <summary>A mutation bound to the branch and commit the caller saw: <c>ready</c>, <c>merge</c>, <c>reopen</c> or <c>delete-remote</c>.</summary>
 public sealed record RepoAction(string Kind, string Branch, string Head, string Method = "", bool DeleteBranch = false);

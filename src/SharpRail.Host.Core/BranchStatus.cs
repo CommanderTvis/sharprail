@@ -4,6 +4,8 @@ using System.Text.Json;
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api.Host;
 
+using ProviderPullRequest = SharpRail.Plugins.Api.Host.PullRequest;
+
 namespace SharpRail.Host.Core;
 
 /// <summary>
@@ -23,7 +25,7 @@ public sealed partial class ProjectServices
         var origin = (await RemotesAsync(currentRoot, cancellationToken)).Contains("origin") ? await OriginUrlAsync(currentRoot, cancellationToken) : "";
         var hasOrigin = origin.Length > 0;
         var route = hasOrigin ? RouteFor(origin) : null;
-        var provider = !hasOrigin ? "" : route?.PluginId ?? (IsGitLab(origin) ? "gitlab" : "other");
+        var provider = !hasOrigin ? "" : route?.PluginId ?? "";
         if (hasOrigin && fresh)
         {
             // Behind is only trustworthy against a ref that was just fetched; an unpublished branch has nothing to fetch.
@@ -44,11 +46,8 @@ public sealed partial class ProjectServices
         var aheadOfBase = baseRef.Length > 0 && baseName != branch ? await CountAsync(currentRoot, $"{baseRef}..HEAD") : 0;
         var request = route is null ? null : await LookupAsync(currentRoot, branch, origin, route, fresh, cancellationToken);
         branchStatusObserved?.Invoke(new(currentRoot, currentRoot, route?.PluginId ?? "", branch, published, ahead, behind, head, request));
-        return new(branch, hasOrigin, provider, published, ahead, behind, aheadOfBase, baseName == branch, baseName, head, ToOpenReview(request, provider), ToDetails(request));
+        return new(branch, hasOrigin, provider, published, ahead, behind, aheadOfBase, baseName == branch, baseName, head, ToWire(request));
     }
-
-    private static bool IsGitLab(string origin) => origin.StartsWith("git@gitlab.com:", StringComparison.Ordinal) ||
-        Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.Host.Equals("gitlab.com", StringComparison.OrdinalIgnoreCase);
 
     private static async Task<bool> RefExistsAsync(string currentRoot, string reference, CancellationToken ct)
     {
@@ -121,7 +120,7 @@ public sealed partial class ProjectServices
         finally { DropLookups(currentRoot, branch); }
     }
 
-    private static async Task<PullRequest?> FindLiveAsync(RepoHostRoute route, RepoHostBranch target, CancellationToken cancellationToken)
+    private static async Task<ProviderPullRequest?> FindLiveAsync(RepoHostRoute route, RepoHostBranch target, CancellationToken cancellationToken)
     {
         try { return await FindWithinBudgetAsync(route, target, cancellationToken); }
         catch (Exception error) when (error is not OperationCanceledException || !cancellationToken.IsCancellationRequested) { return null; }

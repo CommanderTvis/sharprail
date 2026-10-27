@@ -59,6 +59,10 @@ internal static class PullRequestChecks
         esac
         """;
 
+    /// <summary>The open pull request of the branch through the host's branch status.</summary>
+    private static async Task<SharpRail.Host.Abstractions.PullRequest?> OpenReview(IProjectServices host, bool fresh) =>
+        (await host.GetBranchStatusAsync(fresh))?.Review is { State: "open" } review ? review : null;
+
     private static int Calls(string shim, string text) =>
         File.Exists(Path.Combine(shim, "log")) ? File.ReadAllLines(Path.Combine(shim, "log")).Count(line => line.StartsWith(text, StringComparison.Ordinal)) : 0;
 
@@ -136,9 +140,9 @@ internal static class PullRequestChecks
         var work = await MakeRepo(parent, "provider-off", github: true);
         IProjectServices host = new LocalProjectAdapter(new ProjectServices(work));
         await host.OpenProjectAsync(work);
-        Require(await host.GetOpenReviewAsync(true) is null, "Without a provider a GitHub remote has no review.");
+        Require(await OpenReview(host, true) is null, "Without a provider a GitHub remote has no review.");
         var status = await host.GetBranchStatusAsync(true);
-        Require(status is { HasOrigin: true, Provider: "other", Review: null, Details: null }, $"Without a provider the remote is plain: {status}.");
+        Require(status is { HasOrigin: true, Provider: "", Review: null }, $"Without a provider the remote is plain: {status}.");
         var result = await host.OpenPrAsync(new("Title", true, "Body", false));
         Require(result.Action == "pushed" && Calls(shim, "") == 0, $"Open PR must only push without a provider, got {result.Action}.");
     }
@@ -150,7 +154,7 @@ internal static class PullRequestChecks
         var bare = Path.Combine(parent, "plain.git");
         IProjectServices host = new LocalProjectAdapter(new ProjectServices(work, repoHosts: GitHubRoute));
         await host.OpenProjectAsync(work);
-        Require(await host.GetOpenReviewAsync(true) is null, "A non-GitHub origin must have no open review.");
+        Require(await OpenReview(host, true) is null, "A non-GitHub origin must have no open review.");
         var draft = await host.PreviewPrAsync();
         Require(draft.Title == "feature" && draft.Body == "- Add b", $"Unexpected draft: {draft}.");
 
@@ -185,24 +189,24 @@ internal static class PullRequestChecks
         var found = "[{\"number\":7,\"url\":\"https://github.com/o/r/pull/7\",\"state\":\"OPEN\"}]";
 
         // Lookup: empty answers are cached, fresh bypasses, failures and non-https links are not served.
-        Require(await host.GetOpenReviewAsync(false) is null, "No pull request expected yet.");
+        Require(await OpenReview(host, false) is null, "No pull request expected yet.");
         await File.WriteAllTextAsync(Path.Combine(shim, "pr.json"), found);
-        Require(await host.GetOpenReviewAsync(false) is null && Calls(shim, "pr list") == 1, "A repeated lookup within the TTL must be served from cache.");
-        var review = await host.GetOpenReviewAsync(true);
-        Require(review is { Number: 7, Provider: "github", Url: "https://github.com/o/r/pull/7" } && Calls(shim, "pr list") == 2, "A fresh lookup must bypass the cache.");
+        Require(await OpenReview(host, false) is null && Calls(shim, "pr list") == 1, "A repeated lookup within the TTL must be served from cache.");
+        var review = await OpenReview(host, true);
+        Require(review is { Number: 7, Url: "https://github.com/o/r/pull/7" } && Calls(shim, "pr list") == 2, "A fresh lookup must bypass the cache.");
         await File.WriteAllTextAsync(Path.Combine(shim, "pr.json"), found.Replace("https://", "javascript://"));
-        Require(await host.GetOpenReviewAsync(true) is null, "A non-https url must be dropped.");
+        Require(await OpenReview(host, true) is null, "A non-https url must be dropped.");
         await File.WriteAllTextAsync(Path.Combine(shim, "pr.json"), found);
         await File.WriteAllTextAsync(Path.Combine(shim, "fail-list"), "");
-        Require(await host.GetOpenReviewAsync(true) is null, "A failing gh must degrade to no review.");
+        Require(await OpenReview(host, true) is null, "A failing gh must degrade to no review.");
         File.Delete(Path.Combine(shim, "fail-list"));
-        Require(await host.GetOpenReviewAsync(false) is { Number: 7 }, "A failure must not be cached.");
+        Require(await OpenReview(host, false) is { Number: 7 }, "A failure must not be cached.");
 
         // Concurrent lookups share one gh call.
         await File.WriteAllTextAsync(Path.Combine(shim, "slow"), "");
         File.Delete(Path.Combine(shim, "log"));
         await Git(work, "checkout", "-b", "other");
-        var results = await Task.WhenAll(Enumerable.Range(0, 5).Select(async _ => await host.GetOpenReviewAsync(true)));
+        var results = await Task.WhenAll(Enumerable.Range(0, 5).Select(async _ => await OpenReview(host, true)));
         Require(Calls(shim, "pr list") == 1, $"Concurrent lookups ran gh {Calls(shim, "pr list")} times.");
         await Git(work, "checkout", "feature");
         File.Delete(Path.Combine(shim, "slow"));
@@ -210,7 +214,7 @@ internal static class PullRequestChecks
         // A hung gh whose grandchild keeps the pipe open is killed within the budget.
         await File.WriteAllTextAsync(Path.Combine(shim, "hang"), "");
         var clock = Stopwatch.StartNew();
-        Require(await host.GetOpenReviewAsync(true) is null && clock.Elapsed < TimeSpan.FromSeconds(14), "A hung gh was not stopped in time.");
+        Require(await OpenReview(host, true) is null && clock.Elapsed < TimeSpan.FromSeconds(14), "A hung gh was not stopped in time.");
         File.Delete(Path.Combine(shim, "hang"));
 
         // Opening: an existing pull request is edited by number, the title only when edited.
@@ -223,7 +227,7 @@ internal static class PullRequestChecks
         Require(File.ReadAllLines(Path.Combine(shim, "log")).Any(line => line.StartsWith("pr edit 7", StringComparison.Ordinal) && line.Contains("--title New title", StringComparison.Ordinal)),
             "An edited title must be sent.");
         Require((await Git(bare, "rev-parse", "refs/heads/feature")).Trim() == (await Git(work, "rev-parse", "HEAD")).Trim(), "Opening did not push the branch.");
-        Require((await host.GetOpenReviewAsync(true))?.UnpushedCommits == 0, "Unpushed commits should be zero after a push.");
+        Require((await OpenReview(host, true))?.Unpushed == 0, "Unpushed commits should be zero after a push.");
 
         // Creating names the base explicitly, and a create that failed after succeeding is still created.
         File.Delete(Path.Combine(shim, "pr.json"));
@@ -241,7 +245,7 @@ internal static class PullRequestChecks
         await File.WriteAllTextAsync(Path.Combine(shim, "fail-list"), "");
         await File.WriteAllTextAsync(Path.Combine(shim, "unauth"), "");
         var compare = await host.OpenPrAsync(new("T", false, new string('a', 6000), false));
-        Require(compare.Action == "compare" && compare.GhProblem == "unauthenticated" && compare.Url.StartsWith("https://github.com/o/r/compare/main...feature?quick_pull=1", StringComparison.Ordinal) &&
+        Require(compare.Action == "compare" && compare.Problem == "unauthenticated" && compare.Url.StartsWith("https://github.com/o/r/compare/main...feature?quick_pull=1", StringComparison.Ordinal) &&
             compare.Url.Contains(new string('a', 4000), StringComparison.Ordinal) && !compare.Url.Contains(new string('a', 4001), StringComparison.Ordinal), "Unexpected compare fallback: " + compare);
         File.Delete(Path.Combine(shim, "fail-list"));
         File.Delete(Path.Combine(shim, "unauth"));
@@ -253,7 +257,7 @@ internal static class PullRequestChecks
         Environment.SetEnvironmentVariable("SHARPRAIL_GH_OFFLINE", null);
         var path = Environment.GetEnvironmentVariable("PATH");
         Environment.SetEnvironmentVariable("PATH", gitOnly);
-        try { Require((await host.OpenPrAsync(new("T", false, "", false))).GhProblem == "missing", "A missing gh must be reported."); }
+        try { Require((await host.OpenPrAsync(new("T", false, "", false))).Problem == "missing", "A missing gh must be reported."); }
         finally { Environment.SetEnvironmentVariable("PATH", path); }
 
         // A rejected SSH login is classified instead of surfacing as a generic failure.
@@ -276,7 +280,9 @@ internal static class PullRequestChecks
             .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.Single();
         using var remote = new RemoteProjectAdapter(new Uri(address), "pr-test");
         await remote.OpenProjectAsync(work);
-        Require(await remote.GetOpenReviewAsync(true) == await host.GetOpenReviewAsync(true), "Remote open review differs.");
+        var overWire = await OpenReview(remote, true);
+        var direct = await OpenReview(host, true);
+        Require(overWire is not null && direct is not null && overWire with { MergeMethods = [] } == direct with { MergeMethods = [] } && overWire.MergeMethods.SequenceEqual(direct.MergeMethods), "Remote open review differs.");
         Require(await remote.PreviewPrAsync() == await host.PreviewPrAsync(), "Remote draft differs.");
         var request = new PrRequest("T", false, "B", false);
         Require(await remote.OpenPrAsync(request) == await host.OpenPrAsync(request), "Remote pull request result differs.");

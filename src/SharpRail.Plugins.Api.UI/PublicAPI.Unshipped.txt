@@ -905,9 +905,6 @@ SharpRail.Plugins.Api.UI.RepoBranchStatus.Behind.get -> int
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Behind.init -> void
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Branch.get -> string!
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Branch.init -> void
-SharpRail.Plugins.Api.UI.RepoBranchStatus.Deconstruct(out string! Branch, out string! Head, out string! Provider, out bool Published, out bool OnBase, out int Ahead, out int Behind, out SharpRail.Plugins.Api.UI.RepoOpenReview? Review, out SharpRail.Plugins.Api.UI.RepoReviewDetails? Details) -> void
-SharpRail.Plugins.Api.UI.RepoBranchStatus.Details.get -> SharpRail.Plugins.Api.UI.RepoReviewDetails?
-SharpRail.Plugins.Api.UI.RepoBranchStatus.Details.init -> void
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Equals(SharpRail.Plugins.Api.UI.RepoBranchStatus? other) -> bool
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Head.get -> string!
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Head.init -> void
@@ -917,8 +914,6 @@ SharpRail.Plugins.Api.UI.RepoBranchStatus.Provider.get -> string!
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Provider.init -> void
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Published.get -> bool
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Published.init -> void
-SharpRail.Plugins.Api.UI.RepoBranchStatus.RepoBranchStatus(string! Branch, string! Head, string! Provider, bool Published, bool OnBase, int Ahead, int Behind, SharpRail.Plugins.Api.UI.RepoOpenReview? Review, SharpRail.Plugins.Api.UI.RepoReviewDetails? Details) -> void
-SharpRail.Plugins.Api.UI.RepoBranchStatus.Review.get -> SharpRail.Plugins.Api.UI.RepoOpenReview?
 SharpRail.Plugins.Api.UI.RepoBranchStatus.Review.init -> void
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.RepoHostUIRegistration!
@@ -931,19 +926,6 @@ SharpRail.Plugins.Api.UI.RepoHostUIRegistration.LocationItem.init -> void
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration.RepoHostUIRegistration(string! Caption, System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>! LocationItem, System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>! ReviewSection) -> void
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration.ReviewSection.get -> System.Func<SharpRail.Plugins.Api.UI.IRepoHostSurface!, Avalonia.Controls.Control!>!
 SharpRail.Plugins.Api.UI.RepoHostUIRegistration.ReviewSection.init -> void
-SharpRail.Plugins.Api.UI.RepoOpenReview
-SharpRail.Plugins.Api.UI.RepoOpenReview.<Clone>$() -> SharpRail.Plugins.Api.UI.RepoOpenReview!
-SharpRail.Plugins.Api.UI.RepoOpenReview.Behind.get -> int
-SharpRail.Plugins.Api.UI.RepoOpenReview.Behind.init -> void
-SharpRail.Plugins.Api.UI.RepoOpenReview.Deconstruct(out int Number, out string! Url, out int Unpushed, out int Behind) -> void
-SharpRail.Plugins.Api.UI.RepoOpenReview.Equals(SharpRail.Plugins.Api.UI.RepoOpenReview? other) -> bool
-SharpRail.Plugins.Api.UI.RepoOpenReview.Number.get -> int
-SharpRail.Plugins.Api.UI.RepoOpenReview.Number.init -> void
-SharpRail.Plugins.Api.UI.RepoOpenReview.RepoOpenReview(int Number, string! Url, int Unpushed, int Behind) -> void
-SharpRail.Plugins.Api.UI.RepoOpenReview.Unpushed.get -> int
-SharpRail.Plugins.Api.UI.RepoOpenReview.Unpushed.init -> void
-SharpRail.Plugins.Api.UI.RepoOpenReview.Url.get -> string!
-SharpRail.Plugins.Api.UI.RepoOpenReview.Url.init -> void
 SharpRail.Plugins.Api.UI.RepoPrDraft
 SharpRail.Plugins.Api.UI.RepoPrDraft.<Clone>$() -> SharpRail.Plugins.Api.UI.RepoPrDraft!
 SharpRail.Plugins.Api.UI.RepoPrDraft.Body.get -> string!
@@ -981,29 +963,6 @@ SharpRail.Plugins.Api.UI.RepoPrResult.Problem.init -> void
 SharpRail.Plugins.Api.UI.RepoPrResult.RepoPrResult(string! Action, string! Url, int Number, int DirtyFiles, string! Problem) -> void
 SharpRail.Plugins.Api.UI.RepoPrResult.Url.get -> string!
 SharpRail.Plugins.Api.UI.RepoPrResult.Url.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails
-SharpRail.Plugins.Api.UI.RepoReviewDetails.<Clone>$() -> SharpRail.Plugins.Api.UI.RepoReviewDetails!
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Checks.get -> string!
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Checks.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Deconstruct(out int Number, out string! Url, out string! State, out bool Draft, out string! Checks, out string! ReviewDecision, out string! MergeState, out System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, out bool SameRepository) -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Draft.get -> bool
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Draft.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Equals(SharpRail.Plugins.Api.UI.RepoReviewDetails? other) -> bool
-SharpRail.Plugins.Api.UI.RepoReviewDetails.MergeMethods.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.UI.RepoReviewDetails.MergeMethods.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.MergeState.get -> string!
-SharpRail.Plugins.Api.UI.RepoReviewDetails.MergeState.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Number.get -> int
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Number.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.RepoReviewDetails(int Number, string! Url, string! State, bool Draft, string! Checks, string! ReviewDecision, string! MergeState, System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, bool SameRepository) -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.ReviewDecision.get -> string!
-SharpRail.Plugins.Api.UI.RepoReviewDetails.ReviewDecision.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.SameRepository.get -> bool
-SharpRail.Plugins.Api.UI.RepoReviewDetails.SameRepository.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.State.get -> string!
-SharpRail.Plugins.Api.UI.RepoReviewDetails.State.init -> void
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Url.get -> string!
-SharpRail.Plugins.Api.UI.RepoReviewDetails.Url.init -> void
 override SharpRail.Plugins.Api.UI.RepoAction.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.UI.RepoAction.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.RepoAction.ToString() -> string!
@@ -1016,9 +975,6 @@ override SharpRail.Plugins.Api.UI.RepoBranchStatus.ToString() -> string!
 override SharpRail.Plugins.Api.UI.RepoHostUIRegistration.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.UI.RepoHostUIRegistration.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.RepoHostUIRegistration.ToString() -> string!
-override SharpRail.Plugins.Api.UI.RepoOpenReview.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.UI.RepoOpenReview.GetHashCode() -> int
-override SharpRail.Plugins.Api.UI.RepoOpenReview.ToString() -> string!
 override SharpRail.Plugins.Api.UI.RepoPrDraft.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.UI.RepoPrDraft.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.RepoPrDraft.ToString() -> string!
@@ -1028,9 +984,6 @@ override SharpRail.Plugins.Api.UI.RepoPrRequest.ToString() -> string!
 override SharpRail.Plugins.Api.UI.RepoPrResult.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.UI.RepoPrResult.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.RepoPrResult.ToString() -> string!
-override SharpRail.Plugins.Api.UI.RepoReviewDetails.Equals(object? obj) -> bool
-override SharpRail.Plugins.Api.UI.RepoReviewDetails.GetHashCode() -> int
-override SharpRail.Plugins.Api.UI.RepoReviewDetails.ToString() -> string!
 static SharpRail.Plugins.Api.UI.RepoAction.operator !=(SharpRail.Plugins.Api.UI.RepoAction? left, SharpRail.Plugins.Api.UI.RepoAction? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoAction.operator ==(SharpRail.Plugins.Api.UI.RepoAction? left, SharpRail.Plugins.Api.UI.RepoAction? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoActionResult.operator !=(SharpRail.Plugins.Api.UI.RepoActionResult? left, SharpRail.Plugins.Api.UI.RepoActionResult? right) -> bool
@@ -1039,13 +992,46 @@ static SharpRail.Plugins.Api.UI.RepoBranchStatus.operator !=(SharpRail.Plugins.A
 static SharpRail.Plugins.Api.UI.RepoBranchStatus.operator ==(SharpRail.Plugins.Api.UI.RepoBranchStatus? left, SharpRail.Plugins.Api.UI.RepoBranchStatus? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoHostUIRegistration.operator !=(SharpRail.Plugins.Api.UI.RepoHostUIRegistration? left, SharpRail.Plugins.Api.UI.RepoHostUIRegistration? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoHostUIRegistration.operator ==(SharpRail.Plugins.Api.UI.RepoHostUIRegistration? left, SharpRail.Plugins.Api.UI.RepoHostUIRegistration? right) -> bool
-static SharpRail.Plugins.Api.UI.RepoOpenReview.operator !=(SharpRail.Plugins.Api.UI.RepoOpenReview? left, SharpRail.Plugins.Api.UI.RepoOpenReview? right) -> bool
-static SharpRail.Plugins.Api.UI.RepoOpenReview.operator ==(SharpRail.Plugins.Api.UI.RepoOpenReview? left, SharpRail.Plugins.Api.UI.RepoOpenReview? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoPrDraft.operator !=(SharpRail.Plugins.Api.UI.RepoPrDraft? left, SharpRail.Plugins.Api.UI.RepoPrDraft? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoPrDraft.operator ==(SharpRail.Plugins.Api.UI.RepoPrDraft? left, SharpRail.Plugins.Api.UI.RepoPrDraft? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoPrRequest.operator !=(SharpRail.Plugins.Api.UI.RepoPrRequest? left, SharpRail.Plugins.Api.UI.RepoPrRequest? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoPrRequest.operator ==(SharpRail.Plugins.Api.UI.RepoPrRequest? left, SharpRail.Plugins.Api.UI.RepoPrRequest? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoPrResult.operator !=(SharpRail.Plugins.Api.UI.RepoPrResult? left, SharpRail.Plugins.Api.UI.RepoPrResult? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoPrResult.operator ==(SharpRail.Plugins.Api.UI.RepoPrResult? left, SharpRail.Plugins.Api.UI.RepoPrResult? right) -> bool
-static SharpRail.Plugins.Api.UI.RepoReviewDetails.operator !=(SharpRail.Plugins.Api.UI.RepoReviewDetails? left, SharpRail.Plugins.Api.UI.RepoReviewDetails? right) -> bool
-static SharpRail.Plugins.Api.UI.RepoReviewDetails.operator ==(SharpRail.Plugins.Api.UI.RepoReviewDetails? left, SharpRail.Plugins.Api.UI.RepoReviewDetails? right) -> bool
+SharpRail.Plugins.Api.UI.RepoBranchStatus.Deconstruct(out string! Branch, out string! Head, out string! Provider, out bool Published, out bool OnBase, out int Ahead, out int Behind, out SharpRail.Plugins.Api.UI.RepoPullRequest? Review) -> void
+SharpRail.Plugins.Api.UI.RepoBranchStatus.RepoBranchStatus(string! Branch, string! Head, string! Provider, bool Published, bool OnBase, int Ahead, int Behind, SharpRail.Plugins.Api.UI.RepoPullRequest? Review) -> void
+SharpRail.Plugins.Api.UI.RepoBranchStatus.Review.get -> SharpRail.Plugins.Api.UI.RepoPullRequest?
+SharpRail.Plugins.Api.UI.RepoPullRequest
+SharpRail.Plugins.Api.UI.RepoPullRequest.<Clone>$() -> SharpRail.Plugins.Api.UI.RepoPullRequest!
+SharpRail.Plugins.Api.UI.RepoPullRequest.Behind.get -> int
+SharpRail.Plugins.Api.UI.RepoPullRequest.Behind.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Checks.get -> string!
+SharpRail.Plugins.Api.UI.RepoPullRequest.Checks.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Deconstruct(out int Number, out string! Title, out string! Url, out string! State, out bool Draft, out string! Checks, out string! Review, out string! Mergeability, out System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, out bool SameRepository, out int Unpushed, out int Behind) -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Draft.get -> bool
+SharpRail.Plugins.Api.UI.RepoPullRequest.Draft.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Equals(SharpRail.Plugins.Api.UI.RepoPullRequest? other) -> bool
+SharpRail.Plugins.Api.UI.RepoPullRequest.MergeMethods.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.UI.RepoPullRequest.MergeMethods.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Mergeability.get -> string!
+SharpRail.Plugins.Api.UI.RepoPullRequest.Mergeability.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Number.get -> int
+SharpRail.Plugins.Api.UI.RepoPullRequest.Number.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.RepoPullRequest(int Number, string! Title, string! Url, string! State, bool Draft, string! Checks, string! Review, string! Mergeability, System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, bool SameRepository, int Unpushed, int Behind) -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Review.get -> string!
+SharpRail.Plugins.Api.UI.RepoPullRequest.Review.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.SameRepository.get -> bool
+SharpRail.Plugins.Api.UI.RepoPullRequest.SameRepository.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.State.get -> string!
+SharpRail.Plugins.Api.UI.RepoPullRequest.State.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Title.get -> string!
+SharpRail.Plugins.Api.UI.RepoPullRequest.Title.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Unpushed.get -> int
+SharpRail.Plugins.Api.UI.RepoPullRequest.Unpushed.init -> void
+SharpRail.Plugins.Api.UI.RepoPullRequest.Url.get -> string!
+SharpRail.Plugins.Api.UI.RepoPullRequest.Url.init -> void
+override SharpRail.Plugins.Api.UI.RepoPullRequest.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.RepoPullRequest.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.RepoPullRequest.ToString() -> string!
+static SharpRail.Plugins.Api.UI.RepoPullRequest.operator !=(SharpRail.Plugins.Api.UI.RepoPullRequest? left, SharpRail.Plugins.Api.UI.RepoPullRequest? right) -> bool
+static SharpRail.Plugins.Api.UI.RepoPullRequest.operator ==(SharpRail.Plugins.Api.UI.RepoPullRequest? left, SharpRail.Plugins.Api.UI.RepoPullRequest? right) -> bool

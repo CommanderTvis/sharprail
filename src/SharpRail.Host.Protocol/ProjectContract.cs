@@ -267,10 +267,9 @@ public partial interface IProjectRpc
     ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> ApplyFileActionAsync(FileActionRequest request, CallContext context = default);
     ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default);
-    ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default);
     ValueTask<PrDraftReply> PreviewPrAsync(ProjectRequest request, CallContext context = default);
     ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default);
-    ValueTask<BranchStatusReply> GetBranchStatusAsync(OpenReviewRequest request, CallContext context = default);
+    ValueTask<BranchStatusReply> GetBranchStatusAsync(BranchStatusRequest request, CallContext context = default);
     ValueTask<BranchActionReply> ApplyBranchActionAsync(BranchActionRequest request, CallContext context = default);
     ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default);
@@ -386,20 +385,9 @@ public sealed class CommitsReply
     [ProtoMember(1)] public List<CommitReply> Commits { get; set; } = [];
 }
 [ProtoContract]
-public sealed class OpenReviewRequest
+public sealed class BranchStatusRequest
 {
     [ProtoMember(1)] public bool Fresh { get; set; }
-}
-
-[ProtoContract]
-public sealed class OpenReviewReply
-{
-    [ProtoMember(1)] public bool Found { get; set; }
-    [ProtoMember(2)] public int Number { get; set; }
-    [ProtoMember(3)] public string Url { get; set; } = "";
-    [ProtoMember(4)] public string Provider { get; set; } = "";
-    [ProtoMember(5)] public int UnpushedCommits { get; set; }
-    [ProtoMember(6)] public int BehindCommits { get; set; }
 }
 
 [ProtoContract]
@@ -410,17 +398,20 @@ public sealed class PrDraftReply
 }
 
 [ProtoContract]
-public sealed class ReviewDetailsMessage
+public sealed class PullRequestMessage
 {
     [ProtoMember(1)] public int Number { get; set; }
-    [ProtoMember(2)] public string Url { get; set; } = "";
-    [ProtoMember(3)] public string State { get; set; } = "";
-    [ProtoMember(4)] public bool Draft { get; set; }
-    [ProtoMember(5)] public string Checks { get; set; } = "";
-    [ProtoMember(6)] public string ReviewDecision { get; set; } = "";
-    [ProtoMember(7)] public string MergeState { get; set; } = "";
-    [ProtoMember(8)] public List<string> MergeMethods { get; set; } = [];
-    [ProtoMember(9)] public bool SameRepository { get; set; }
+    [ProtoMember(2)] public string Title { get; set; } = "";
+    [ProtoMember(3)] public string Url { get; set; } = "";
+    [ProtoMember(4)] public string State { get; set; } = "";
+    [ProtoMember(5)] public bool Draft { get; set; }
+    [ProtoMember(6)] public string Checks { get; set; } = "";
+    [ProtoMember(7)] public string Review { get; set; } = "";
+    [ProtoMember(8)] public string Mergeability { get; set; } = "";
+    [ProtoMember(9)] public List<string> MergeMethods { get; set; } = [];
+    [ProtoMember(10)] public bool SameRepository { get; set; }
+    [ProtoMember(11)] public int Unpushed { get; set; }
+    [ProtoMember(12)] public int Behind { get; set; }
 }
 
 [ProtoContract]
@@ -437,8 +428,8 @@ public sealed class BranchStatusReply
     [ProtoMember(9)] public bool OnBase { get; set; }
     [ProtoMember(10)] public string BaseName { get; set; } = "";
     [ProtoMember(11)] public string Head { get; set; } = "";
-    [ProtoMember(12)] public OpenReviewReply? Review { get; set; }
-    [ProtoMember(13)] public ReviewDetailsMessage? Details { get; set; }
+    // Fields 12 and 13 carried GitHub's own review spellings before protocol 15; a client below it reads none of field 14.
+    [ProtoMember(14)] public PullRequestMessage? Review { get; set; }
 }
 
 [ProtoContract]
@@ -475,5 +466,5 @@ public sealed class PrReply
     [ProtoMember(2)] public string Url { get; set; } = "";
     [ProtoMember(3)] public int Number { get; set; }
     [ProtoMember(4)] public int DirtyFiles { get; set; }
-    [ProtoMember(5)] public string GhProblem { get; set; } = "";
+    [ProtoMember(5)] public string Problem { get; set; } = "";
 }

@@ -535,13 +535,8 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     public ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken ct = default) => inner.GetDiffStatsAsync(workspacePath, ct);
     public ValueTask<SharprailDirectoryStatus> GetSharprailDirectoryAsync(CancellationToken ct = default) => inner.GetSharprailDirectoryAsync(ct);
     public ValueTask<SharprailDirectoryStatus> ExcludeSharprailDirectoryAsync(CancellationToken ct = default) => inner.ExcludeSharprailDirectoryAsync(ct);
-    /// <summary>Rewrites a pull request lookup, for states a fixture origin cannot produce.</summary>
-    internal Func<OpenReview?, OpenReview?>? Review { get; set; }
-    public async ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken ct = default)
-    {
-        var review = await inner.GetOpenReviewAsync(fresh, ct);
-        return Review is null ? review : Review(review);
-    }
+    /// <summary>Rewrites the branch status' pull request, for states a fixture origin cannot produce.</summary>
+    internal Func<PullRequest?, PullRequest?>? Review { get; set; }
     public ValueTask<PrDraft> PreviewPrAsync(CancellationToken ct = default) => inner.PreviewPrAsync(ct);
     public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken ct = default) => inner.OpenPrAsync(request, ct);
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken ct = default) => inner.ListEditorsAsync(ct);

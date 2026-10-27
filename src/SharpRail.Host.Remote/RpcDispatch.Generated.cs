@@ -10,13 +10,6 @@ internal static class RpcDispatch
         var context = stream.Context(open.Method);
         switch (open.Method)
         {
-            case "IProjectRpc/GetGitHubAuthenticationAsync":
-            {
-                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
-                var request = await ReadOne<ProjectRequest>(stream);
-                await stream.Send(await service.GetGitHubAuthenticationAsync(request, context));
-                break;
-            }
             case "IProjectRpc/LanguageAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
@@ -185,13 +178,6 @@ internal static class RpcDispatch
                 await stream.Send(await service.ListBranchesAsync(request, context));
                 break;
             }
-            case "IProjectRpc/GetOpenReviewAsync":
-            {
-                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
-                var request = await ReadOne<OpenReviewRequest>(stream);
-                await stream.Send(await service.GetOpenReviewAsync(request, context));
-                break;
-            }
             case "IProjectRpc/PreviewPrAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
@@ -209,7 +195,7 @@ internal static class RpcDispatch
             case "IProjectRpc/GetBranchStatusAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
-                var request = await ReadOne<OpenReviewRequest>(stream);
+                var request = await ReadOne<BranchStatusRequest>(stream);
                 await stream.Send(await service.GetBranchStatusAsync(request, context));
                 break;
             }

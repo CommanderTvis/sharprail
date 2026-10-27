@@ -39,14 +39,15 @@ internal sealed class GitHubLocationItem : StackPanel
     {
         if (status.Provider != GitHubUI.Provider || status.OnBase) return "";
         var remote = !status.Published ? "publish" : status.Behind > 0 ? "sync" : status.Ahead > 0 ? "push" : "";
-        var details = status.Details;
-        if (details is null || details.State is not ("OPEN" or "MERGED" or "CLOSED")) return status.Review is null ? "open" : "";
-        if (details.State == "MERGED") return status.Published ? "delete-remote" : "";
-        if (details.State == "CLOSED") return "reopen";
+        var request = status.Review;
+        if (request is null) return "open";
+        if (request.State is not ("open" or "merged" or "closed")) return "";
+        if (request.State == "merged") return status.Published ? "delete-remote" : "";
+        if (request.State == "closed") return "reopen";
         // While the branch and origin differ, the next step stays with Remote's Push or Sync.
         if (remote.Length > 0) return "";
-        if (details.Draft) return "ready";
-        return details.Checks != "failing" && details.MergeState is "CLEAN" or "UNSTABLE" or "HAS_HOOKS" && details.MergeMethods.Count > 0 ? "merge" : "";
+        if (request.Draft) return "ready";
+        return request.Checks != "failing" && request.Mergeability == "clean" && request.MergeMethods.Count > 0 ? "merge" : "";
     }
 
     private void Render()
@@ -54,30 +55,27 @@ internal sealed class GitHubLocationItem : StackPanel
         Children.Clear();
         var status = surface.Status;
         IsVisible = status is { Provider: GitHubUI.Provider };
-        var running = status?.Details is { State: "OPEN", Checks: "pending" };
+        var running = status?.Review is { State: "open", Checks: "pending" };
         if (!running) checksPoll.Stop(); else if (!checksPoll.IsEnabled) checksPoll.Start();
         if (status is null || !IsVisible) return;
-        var details = status.Details;
-        var empty = details is null && status.Review is null;
-        Children.Add(Icon(empty ? Ui.Hint : Ui.Muted));
-        if (empty) Children.Add(Text("PullRequestState", status.OnBase ? "—" : "No PR", Ui.Hint));
+        var request = status.Review;
+        Children.Add(Icon(request is null ? Ui.Hint : Ui.Muted));
+        if (request is null) Children.Add(Text("PullRequestState", status.OnBase ? "—" : "No PR", Ui.Hint));
         else
         {
-            var number = details?.Number ?? status.Review!.Number;
-            var url = details?.Url ?? status.Review!.Url;
-            var label = details switch
+            var label = request switch
             {
-                { State: "MERGED" } => "Merged #",
-                { State: "CLOSED" } => "Closed #",
+                { State: "merged" } => "Merged #",
+                { State: "closed" } => "Closed #",
                 { Draft: true } => "Draft #",
                 _ => "PR #"
-            } + number;
-            var chip = ShipButton("PullRequestChip", label, () => surface.OpenLink(url));
-            ToolTip.SetTip(chip, url + (details is { ReviewDecision.Length: > 0 } ? " · " + details.ReviewDecision.Replace('_', ' ').ToLowerInvariant() : ""));
+            } + request.Number;
+            var chip = ShipButton("PullRequestChip", label, () => surface.OpenLink(request.Url));
+            ToolTip.SetTip(chip, request.Url + (request.Review is "approved" or "changes-requested" or "required" ? " · " + (request.Review == "required" ? "review required" : request.Review.Replace('-', ' ')) : ""));
             Children.Add(chip);
-            if (details is { State: "OPEN", Checks.Length: > 0 })
+            if (request is { State: "open", Checks: "passing" or "failing" or "pending" })
             {
-                var (glyph, brush, tip) = details.Checks switch
+                var (glyph, brush, tip) = request.Checks switch
                 {
                     "failing" => ("✗", Ui.Danger, "Checks failing"),
                     "pending" => ("●", Ui.Warning, "Checks running"),
