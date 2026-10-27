@@ -105,6 +105,12 @@ internal static class LayoutChecks
         Require(!session.Move("files", files.Id, primary, 0), "Tools must not enter center.");
         Require(session.Epoch == before, "Illegal drop committed state.");
         Require(session.Move("files", files.Id, projects.Id, 1), "Tool move failed.");
+        var pinned = session.Epoch;
+        Require(!session.CanMove("files", projects.Id, files.Id, 0) && !session.Move("files", projects.Id, files.Id, 0) &&
+            !session.CanMove("projects", projects.Id, projects.Id, 0, "after") && !session.CanMoveToRegion("projects", projects.Id, "right") &&
+            !session.CanMoveToNewGroupAt("files", projects.Id, "right", 0) && session.Epoch == pinned,
+            "Tabs of the Projects pane must not leave it by any route.");
+        Require(session.Move("files", projects.Id, projects.Id, 0) && session.Tool("files") is not null, "Reordering inside the Projects pane stays allowed.");
         Require(session.State.Groups.SelectMany(group => group.Tools).Count(tab => tab.Id == "files") == 1, "Tool duplicated.");
         session.Close(projects.Id, "files");
         Require(session.State.ToolRestore.GetValueOrDefault("files") == projects.Id, "Hidden tool restore target lost.");

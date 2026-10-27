@@ -715,6 +715,7 @@ public sealed partial class DockSurface
             };
             move.Items.Add(target);
         }
+        menu.Opening += (_, _) => move.IsVisible = move.Items.OfType<MenuItem>().Any(item => item.IsVisible);
         menu.Items.Add(move);
         // The main column offers tab groups (above) only; side regions still split into groups.
         if (group.Region != "center")

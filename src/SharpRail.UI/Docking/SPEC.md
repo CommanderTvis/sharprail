@@ -223,6 +223,11 @@ broad drop target that reveals the side. Explicit drops reveal and unfold their 
 transition; passive reconciliation keeps folds. Menus name a pane by its contents (`Move to right pane
 (Changes, Review)`, at most three names then +N, `(empty)`) and offer only destinations that can take the tab.
 
+Tabs in the pane holding the Projects tool never leave it: `CanMove`/`Move` (hence every drag, menu, rail, new-pane and
+region route, which all go through `MoveIn`) refuse a different destination or an edge split, so a drag shows the
+not-allowed pointer and the tab menu omits `Move to pane`. Reordering inside it and dropping tabs from elsewhere into it
+stay allowed. Layouts that already hold such a tab elsewhere (saved or preset) are restored as they are.
+
 ## Project Home
 
 A window at a project's home (`home:` view) replaces the frame's left side and drops its bottom: its left

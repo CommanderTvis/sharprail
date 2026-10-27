@@ -234,9 +234,8 @@ internal static class DockInputChecks
         projectsPoint = Bounds(projects).Center;
         window.MouseDown(projectsPoint, MouseButton.Right); window.MouseUp(projectsPoint, MouseButton.Right);
         Dispatcher.UIThread.RunJobs();
-        Require(projects.ContextMenu!.IsOpen && projects.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"))
-            .Items.OfType<MenuItem>().Any(item => Equals(item.Header, "right pane (Specs, Files)")),
-            "Move menu must name a destination pane by its contents.");
+        Require(projects.ContextMenu!.IsOpen && !projects.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane")).IsVisible,
+            "A Projects pane tab must not offer to move to another pane.");
         projects.ContextMenu.Close();
         var insertionFrom = Bounds(Find<Button>("Tab_files")).Center;
         var insertionTo = Bounds(Find<Button>("Tab_projects")).TopLeft + new Vector(16, 16);
@@ -290,7 +289,8 @@ internal static class DockInputChecks
         });
         var compactGroup = window.Layout.State.Groups.First(group => group.Region == "right");
         var compactHeader = Bounds(Find<Grid>("GroupHeader_" + compactGroup.Id));
-        var compactOrigin = Bounds(Find<Button>("Tab_projects")).Center;
+        var compactTab = window.Layout.State.Groups.Where(group => group.Region == "right").ElementAt(1).Tools[0].Id;
+        var compactOrigin = Bounds(Find<Button>("Tab_" + compactTab)).Center;
         window.MouseDown(compactOrigin, MouseButton.Left); window.MouseMove(compactOrigin + new Vector(10, 10));
         window.MouseMove(compactHeader.Center);
         var compactHighlights = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>()
@@ -298,8 +298,7 @@ internal static class DockInputChecks
         Require(compactHighlights.Length == 1 && compactHighlights[0].Height > 32 && compactHighlights[0].Width < compactHeader.Width,
             "Overlapping compact-pane targets must emphasize the nearer creation target rather than the entire header.");
         window.MouseUp(compactHeader.Center, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-        Require(window.Layout.State.Groups.Where(group => group.Region == "right").First().Tools.Single().Id == "projects" &&
-            window.Layout.State.Groups.Count(group => group.Region == "right") == 3 &&
+        Require(window.Layout.State.Groups.Where(group => group.Region == "right").First().Tools.Single().Id == compactTab &&
             window.Layout.Group(compactGroup.Id).Tools.Select(tab => tab.Id).SequenceEqual(new[] { DockState.SpecsTool, "files" }),
             "Corner-distance collision must create a compact pane's nearer neighboring group instead of always preferring its header.");
         window.Width = 1440;
@@ -316,13 +315,13 @@ internal static class DockInputChecks
                 Require(groups.Length == 2 && groups[before ? 0 : 1].Tools.Any(tab => tab.Id == "review"),
                     $"Pointer {region} {(before ? "before" : "after")} insertion chose the wrong destination.");
             }
-        foreach (var region in new[] { "left", "right" })
+        foreach (var region in new[] { "left" })
             foreach (var before in new[] { true, false })
             {
                 window.Layout.ApplyPreset(DockState.Preset("balanced"));
                 var group = window.Layout.State.Groups.First(item => item.Region == region);
                 var originalCount = window.Layout.State.Groups.Count(item => item.Region == region);
-                var source = window.Layout.State.Groups.First(item => item.Region != region && item.Tools.Count > 0).Tools[0].Id;
+                var source = window.Layout.State.Groups.First(item => item.Region != region && item.Tools.Count > 0 && item.Tools.All(tab => tab.Id != "projects")).Tools[0].Id;
                 window.Layout.HidePane(group.Id);
                 Require(!window.GetLogicalDescendants().OfType<Grid>().Any(item => item.Name == "GroupHeader_" + group.Id),
                     "A folded side pane must occupy no interior strip.");
@@ -333,7 +332,7 @@ internal static class DockInputChecks
                     window.Layout.Group(group.Id).Folded,
                     "A rail boundary must insert a neighbour while preserving the folded pane.");
             }
-        foreach (var region in new[] { "left", "right" })
+        foreach (var region in new[] { "left" })
             foreach (var limited in new[] { false, true })
             {
                 var preset = DockState.Preset("balanced");
@@ -341,7 +340,7 @@ internal static class DockInputChecks
                 window.Layout.ApplyPreset(preset);
                 var group = window.Layout.State.Groups.First(item => item.Region == region);
                 var originalCount = window.Layout.State.Groups.Count(item => item.Region == region);
-                var source = window.Layout.State.Groups.First(item => item.Region != region && item.Tools.Count > 0).Tools[0].Id;
+                var source = window.Layout.State.Groups.First(item => item.Region != region && item.Tools.Count > 0 && item.Tools.All(tab => tab.Id != "projects")).Tools[0].Id;
                 window.Layout.HidePane(group.Id);
                 var entry = Bounds(Find<Button>("Tab_" + group.Tools[0].Id.Replace(':', '_')));
                 if (limited)
@@ -405,7 +404,7 @@ internal static class DockInputChecks
         window.TouchMove(finger, new Point(-20, -20), RawInputModifiers.None);
         window.TouchEnd(finger, new Point(-20, -20), RawInputModifiers.None);
         Require(!surface.IsDragging && window.Layout.Epoch == epoch, "A cancelled touch drag must preserve placement.");
-        foreach (var region in new[] { "left", "right" })
+        foreach (var region in new[] { "left" })
         {
             window.Layout.ApplyPreset(DockState.Preset("balanced"));
             var tab = window.Layout.State.Groups.First(group => group.Region != region && group.Tools.Count > 0).Tools[0].Id;

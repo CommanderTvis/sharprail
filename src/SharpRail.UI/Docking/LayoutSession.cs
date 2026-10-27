@@ -468,6 +468,8 @@ public sealed partial class LayoutSession
         var document = view.Documents.GetValueOrDefault(source)?.FirstOrDefault(tab => tab.Id == id);
         var tab = tool ?? document ?? throw new InvalidOperationException();
         if (tab.IsTool ? to.Region == "center" : tab.Kind != "terminal" && to.Region != "center") throw new InvalidOperationException();
+        // Tabs of the Projects pane stay in it: reordering is allowed, leaving (another pane or a split off it) is not.
+        if ((source != destination || edge.Length > 0) && from.Tools.Any(item => item.Id == "projects")) throw new InvalidOperationException();
         if (edge.Length > 0)
         {
             // The main column holds one group; tabs there combine only as tab groups (panes).
