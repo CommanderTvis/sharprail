@@ -136,6 +136,17 @@ On Android, every terminal-tab removal asks for confirmation, including idle, ex
 failed or unmounted terminals. Cancel keeps the tab and session; confirmation permits
 the requested close. Desktop terminals retain their foreground-process confirmation.
 
+## Resize settling
+
+A window or pane drag changes the control's size many times a second, and each grid change would reflow the screen,
+resize the PTY and make the shell redraw. Both renderers therefore keep the current grid, PTY size and picture
+(anchored top-left, clipped, the background filling the new area) while the size keeps changing, and apply the last
+size once, after `ResizeSettle.DefaultQuiet` (140 ms, `src/Ghostty.Avalonia/ResizeSettle.cs`) passes without another
+change, so a full-screen program gets one `SIGWINCH` at the end and remote terminals behave the same. The first
+size, a window state change (maximize, full screen), a display scale change and a fixed (watched) grid apply at
+once. Disposal and detaching cancel the pending timer. `GhosttySkiaView.ResizeQuiet` shortens the period for checks
+(`--ghostty-skia` runs the 10-changes-then-silence check: no resize before the quiet period, exactly one after).
+
 ## Boundary
 
 - Owns: attach/detach of one tab to one session, start-failure and retry, the read-only view of a terminal

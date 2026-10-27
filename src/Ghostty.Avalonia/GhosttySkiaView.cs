@@ -50,6 +50,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         vt.SetColors(colors);
         vt.OptionAsAlt = OperatingSystem.IsMacOS();
         if (OperatingSystem.IsBrowser()) OptionAsAlt = MacKeyboard;
+        settle = new(InvalidateArrange);
         blink.Tick += (_, _) => { cursorOn = !cursorOn; Redraw(snapshot: false); };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = InputMethod, RoutingStrategies.Bubble);
         SoftKeyboard(false);
@@ -229,6 +230,10 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
             Math.Max(1, (int)((finalSize.Width - Padding.Left - Padding.Right) / cells.CellWidth)),
             Math.Max(1, (int)((finalSize.Height - Padding.Top - Padding.Bottom) / cells.CellHeight)));
         var pixels = (Width: (int)Math.Round(cells.CellWidth * scale), Height: (int)Math.Round(cells.CellHeight * scale));
+        // A drag resizes the control many times: keep the grid (and the program's terminal) until the size settles.
+        if (FixedGrid is null && pixels == cellPixels && size != Size && settle.Hold(size)) return finalSize;
+        if (FixedGrid is not null || size == Size) settle.Cancel();
+        settle.Applied();
         if (size != Size || pixels != cellPixels)
         {
             var resized = size != Size;
@@ -241,6 +246,23 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     }
 
     private (int Width, int Height) cellPixels;
+    private readonly ResizeSettle<TerminalSize> settle;
+    private TopLevel? stateWatched;
+
+    /// <summary>How long the control size must hold still before the grid follows it; null restores the default.</summary>
+    internal TimeSpan? ResizeQuiet { set => settle.Quiet = value ?? ResizeSettle<TerminalSize>.DefaultQuiet; }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (TopLevel.GetTopLevel(this) is Window window) { stateWatched = window; window.PropertyChanged += WindowChanged; }
+    }
+
+    // Maximize and full screen are single jumps, not a gesture.
+    private void WindowChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == Window.WindowStateProperty) settle.ApplyNext();
+    }
 
     public override void Render(DrawingContext context)
     {
@@ -531,6 +553,8 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        if (stateWatched is Window window) window.PropertyChanged -= WindowChanged;
+        stateWatched = null;
         blink.Stop();
         highlights?.Clear();
         base.OnDetachedFromVisualTree(e);
@@ -543,6 +567,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         fileHover?.Dispose();
         highlights?.Dispose();
         blink.Stop();
+        settle.Dispose();
         vt.Dispose();
         fonts?.Dispose();
         foreach (var row in rows) row.Release();

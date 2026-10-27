@@ -49,6 +49,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     {
         Focusable = true;
         ClipToBounds = true;
+        settle = new(Resize);
         terminal = new GhosttyView(launch);
         source = Native.Enable(terminal.Handle);
         terminal.Exited += (_, code) => Exited?.Invoke(this, code);
@@ -119,6 +120,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         if (disposed) return;
         topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is not null) topLevel.ScalingChanged += ScalingChanged;
+        if (topLevel is Window window) window.PropertyChanged += WindowChanged;
         Resize();
         lock (frameLock) active = true;
         shown = true;
@@ -228,10 +230,27 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     private void Resize()
     {
         if (disposed || Bounds.Width <= 0 || Bounds.Height <= 0) return;
-        Native.Resize(terminal.Handle, Bounds.Width, Bounds.Height, PixelScale.Of(this));
+        // A drag resizes the control many times: the native grid, and so the program's terminal, waits for it to settle.
+        var target = (Bounds.Width, Bounds.Height, Scale: PixelScale.Of(this));
+        if (settle.Hold(target)) return;
+        settle.Applied();
+        applied = new Size(target.Width, target.Height);
+        Native.Resize(terminal.Handle, target.Width, target.Height, target.Scale);
     }
 
-    private void ScalingChanged(object? sender, EventArgs e) => Resize();
+    private readonly ResizeSettle<(double Width, double Height, double Scale)> settle;
+    private Size applied;
+
+    /// <summary>How long the control size must hold still before the grid follows it; null restores the default.</summary>
+    internal TimeSpan? ResizeQuiet { set => settle.Quiet = value ?? ResizeSettle<(double, double, double)>.DefaultQuiet; }
+
+    // Maximize and full screen are single jumps, not a gesture.
+    private void WindowChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == Window.WindowStateProperty) settle.ApplyNext();
+    }
+
+    private void ScalingChanged(object? sender, EventArgs e) { settle.ApplyNext(); Resize(); }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -243,7 +262,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     public override void Render(DrawingContext context)
     {
         // Link underlines are part of Ghostty's frame (see PushUnderlines), never an overlay that could lag the text.
-        context.Custom(new TextureOperation(this, new Rect(Bounds.Size)));
+        context.Custom(new TextureOperation(this, new Rect(applied.Width > 0 ? applied : Bounds.Size)));
         // Failed-command badges sit in the left gutter, outside the text, so a frame of lag after a scroll moves no glyph.
         if (failedRows.Length == 0 || Size.Rows <= 0) return;
         var height = Bounds.Height / Size.Rows;
@@ -282,6 +301,8 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         lock (frameLock) active = false;
         if (!disposed) Native.Notify(source, null);
         if (topLevel is not null) topLevel.ScalingChanged -= ScalingChanged;
+        if (topLevel is Window window) window.PropertyChanged -= WindowChanged;
+        settle.Cancel();
         topLevel = null;
         if (!disposed) Native.Visible(terminal.Handle, false);
         base.OnDetachedFromVisualTree(e);
@@ -302,7 +323,10 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
             source = 0;
         }
         if (topLevel is not null) topLevel.ScalingChanged -= ScalingChanged;
+        if (topLevel is Window window) window.PropertyChanged -= WindowChanged;
+        settle.Cancel();
         topLevel = null;
+        settle.Dispose();
         terminal.Dispose();
         ready.TrySetCanceled();
         GC.KeepAlive(frameReady);

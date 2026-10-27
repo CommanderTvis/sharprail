@@ -65,6 +65,7 @@ internal static class GhosttySkiaChecks
         CheckZoomedDensity();
         Osc52Checks.RunSkia();
         CheckView();
+        CheckResizeSettles();
         CheckTouchAndSoftKeyboard();
         CheckIncrementalRendering();
         SkiaOutputChecks.Run(root);
@@ -539,6 +540,31 @@ internal static class GhosttySkiaChecks
         finally { window.Close(); }
     }
 
+    // A drag resizes the control many times; the grid, and so the program's PTY, follows once after it settles.
+    private static void CheckResizeSettles()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14, ResizeQuiet = TimeSpan.FromMilliseconds(150) };
+        var sizes = new List<TerminalSize>();
+        view.GridResized += (_, size) => sizes.Add(size);
+        var window = new Window { Width = 640, Height = 320, Content = view };
+        window.Show(); Pump();
+        try
+        {
+            Require(sizes.Count == 1, $"the first layout did not size the grid at once ({sizes.Count} resizes).");
+            var first = sizes[0];
+            for (var step = 1; step <= 10; step++) { window.Width = 640 + step * 20; window.Height = 320 + step * 10; Pump(); }
+            Require(sizes.Count == 1 && view.Size == first, $"the grid changed during the gesture ({sizes.Count} resizes).");
+            Until(() => sizes.Count > 1, "the grid to follow after the quiet period");
+            var settled = view.Size;
+            Thread.Sleep(300); Pump();
+            Require(sizes.Count == 2 && sizes[1] == settled && settled != first, $"expected exactly one final resize, got {sizes.Count - 1}.");
+            window.Width = 400; Pump();
+            Require(sizes.Count == 2, "a later change applied before the quiet period.");
+            Until(() => sizes.Count == 3, "the later change to settle");
+        }
+        finally { window.Close(); Pump(); }
+    }
+
     private static void CheckView()
     {
         var input = new List<byte>();
@@ -631,6 +657,7 @@ internal static class GhosttySkiaChecks
 
             sizes.Clear();
             window.Width = 400; Pump();
+            Until(() => sizes.Count > 0, "the shrunk control to resize the grid");
             Require(sizes.Count == 1 && sizes[0].Columns < 60, "shrinking the control did not resize the grid.");
         }
         finally { window.Close(); }
