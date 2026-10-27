@@ -23,9 +23,8 @@ public sealed partial class ProjectServices
 
     private static readonly ConcurrentDictionary<string, Lookup> Lookups = new();
 
-    /// <summary>The provider that owns a remote (H24): the seam's choice, else the built-in GitHub one, else none (a plain remote).</summary>
-    private RepoHostRoute? RouteFor(string origin) =>
-        origin.Length == 0 ? null : repoHosts?.Invoke(origin) ?? (LegacyGitHubProvider.Route.Provider.Recognizes(origin) ? LegacyGitHubProvider.Route : null);
+    /// <summary>The provider that owns a remote (H24): the seam's choice, else none (a plain remote).</summary>
+    private RepoHostRoute? RouteFor(string origin) => origin.Length == 0 ? null : repoHosts?.Invoke(origin);
 
     public async ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default)
     {

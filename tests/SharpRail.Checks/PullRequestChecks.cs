@@ -7,12 +7,25 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Remote;
+using SharpRail.Plugins.Api.Host;
+using SharpRail.Plugins.GitHub.Host;
 
 namespace SharpRail.Checks;
 
 /// <summary>Open-PR lookup and PR opening against local bare origins and PATH shims for gh; nothing reaches a network.</summary>
 internal static class PullRequestChecks
 {
+    /// <summary>The GitHub provider for a ProjectServices that runs without a plugin runtime, with tools run by the host's bounded runner.</summary>
+    internal static RepoHostRoute? GitHubRoute(string url)
+    {
+        var provider = new GitHubProvider(async (tool, directory, args, timeout, environment, ct) =>
+        {
+            var result = await ChildProcess.RunAsync(tool, directory, args, timeout, ct, environment);
+            return new(result.ExitCode, result.Output, result.Error);
+        });
+        return url.Length == 0 || provider.Recognizes(url) ? new("github", provider) : null;
+    }
+
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
@@ -103,6 +116,7 @@ internal static class PullRequestChecks
             Environment.SetEnvironmentVariable("SHARPRAIL_GH_OFFLINE", null);
             Environment.SetEnvironmentVariable("GIT_SSH_COMMAND", null);
             await Plain(parent, gitOnly);
+            await ProviderOff(parent, shim, gitOnly);
             Environment.SetEnvironmentVariable("PATH", shim + ":" + gitOnly + ":/usr/bin:/bin");
             await GitHub(parent, shim, gitOnly);
             Console.WriteLine("PASS pull request lookup and opening through gh shims and bare origins, locally and over WebSocket RPC");
@@ -110,12 +124,31 @@ internal static class PullRequestChecks
         finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
     }
 
+    /// <summary>Recognition, and the plain-remote outcome when no provider owns a GitHub remote: push still works and no gh is spawned.</summary>
+    private static async Task ProviderOff(string parent, string shim, string gitOnly)
+    {
+        foreach (var url in new[] { "https://github.com/o/r.git", "git@github.com:o/r.git", "ssh://git@github.com/o/r" })
+            Require(GitHubRoute(url) is { PluginId: "github" }, "A github.com remote must be recognized: " + url);
+        foreach (var url in new[] { "https://gitlab.com/o/r.git", "https://github.example.com/o/r.git", "/tmp/bare.git", "https://github.com/o" })
+            Require(GitHubRoute(url) is null, "Only github.com remotes belong to the GitHub provider: " + url);
+        Environment.SetEnvironmentVariable("PATH", gitOnly);
+        if (File.Exists(Path.Combine(shim, "log"))) File.Delete(Path.Combine(shim, "log"));
+        var work = await MakeRepo(parent, "provider-off", github: true);
+        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work));
+        await host.OpenProjectAsync(work);
+        Require(await host.GetOpenReviewAsync(true) is null, "Without a provider a GitHub remote has no review.");
+        var status = await host.GetBranchStatusAsync(true);
+        Require(status is { HasOrigin: true, Provider: "other", Review: null, Details: null }, $"Without a provider the remote is plain: {status}.");
+        var result = await host.OpenPrAsync(new("Title", true, "Body", false));
+        Require(result.Action == "pushed" && Calls(shim, "") == 0, $"Open PR must only push without a provider, got {result.Action}.");
+    }
+
     private static async Task Plain(string parent, string gitOnly)
     {
         Environment.SetEnvironmentVariable("PATH", gitOnly);
         var work = await MakeRepo(parent, "plain", github: false);
         var bare = Path.Combine(parent, "plain.git");
-        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work));
+        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work, repoHosts: GitHubRoute));
         await host.OpenProjectAsync(work);
         Require(await host.GetOpenReviewAsync(true) is null, "A non-GitHub origin must have no open review.");
         var draft = await host.PreviewPrAsync();
@@ -147,7 +180,7 @@ internal static class PullRequestChecks
     {
         var work = await MakeRepo(parent, "hub", github: true);
         var bare = Path.Combine(parent, "hub.git");
-        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work));
+        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work, repoHosts: GitHubRoute));
         await host.OpenProjectAsync(work);
         var found = "[{\"number\":7,\"url\":\"https://github.com/o/r/pull/7\",\"state\":\"OPEN\"}]";
 

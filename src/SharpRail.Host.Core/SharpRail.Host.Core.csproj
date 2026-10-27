@@ -7,6 +7,7 @@
     <ProjectReference Include="../SharpRail.Plugins.Blueprint/Host/SharpRail.Plugins.Blueprint.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.EnvMise/Host/SharpRail.Plugins.EnvMise.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Env/Host/SharpRail.Plugins.Env.Host.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.GitHub/Host/SharpRail.Plugins.GitHub.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.EnvDirenv/Host/SharpRail.Plugins.EnvDirenv.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.EnvPython/Host/SharpRail.Plugins.EnvPython.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.EnvJvm/Host/SharpRail.Plugins.EnvJvm.Host.csproj" />

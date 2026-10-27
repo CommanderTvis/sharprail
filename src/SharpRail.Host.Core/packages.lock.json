@@ -208,6 +208,19 @@
           "VersOne.Epub": "[3.3.6, )"
         }
       },
+      "sharprail.plugins.github": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.github.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.GitHub": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.lsp.clangd": {
         "type": "Project",
         "dependencies": {

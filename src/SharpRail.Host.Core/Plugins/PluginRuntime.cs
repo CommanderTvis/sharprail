@@ -129,12 +129,14 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
                 .Select(entry => (entry, entry.Activation!)).ToArray();
     }
 
-    /// <summary>The first active provider, by plugin id, that recognizes the remote URL (H24); null for a plain remote.</summary>
+    /// <summary>The first active provider, by plugin id, that recognizes the remote URL (H24); null for a plain remote. An empty URL names the first provider.</summary>
     public RepoHostRoute? RepoHostFor(string remoteUrl)
     {
         foreach (var (entry, tables) in Active().OrderBy(active => active.Entry.Id, StringComparer.Ordinal))
         {
             if (tables.RepoHost is not { } provider) continue;
+            // An empty URL asks for the first provider, for sign-in status on a remote nobody recognizes.
+            if (remoteUrl.Length == 0) return new(entry.Id, provider);
             try { if (provider.Recognizes(remoteUrl)) return new(entry.Id, provider); }
             catch (Exception error) when (error is not OperationCanceledException) { Log(entry.Id, "warn", $"its repo host failed to recognize a remote: {error.Message}", null); }
         }

@@ -339,6 +339,7 @@
           "SharpRail.Plugins.EnvMise.Host": "[1.0.0, )",
           "SharpRail.Plugins.EnvPython.Host": "[1.0.0, )",
           "SharpRail.Plugins.Epub.Host": "[1.0.0, )",
+          "SharpRail.Plugins.GitHub.Host": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.CSharp": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.Clangd": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.Css": "[1.0.0, )",
@@ -666,6 +667,28 @@
         "dependencies": {
           "SharpRail.Plugins.Api.UI": "[1.0.0, )",
           "SharpRail.Plugins.Epub": "[1.0.0, )",
+          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.github": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.github.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.GitHub": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.github.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
+          "SharpRail.Plugins.GitHub": "[1.0.0, )",
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },

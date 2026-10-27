@@ -21,6 +21,9 @@
     <Project Path="src/SharpRail.Plugins.Env/Contract/SharpRail.Plugins.Env.csproj" />
     <Project Path="src/SharpRail.Plugins.Env/Host/SharpRail.Plugins.Env.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Env/UI/SharpRail.Plugins.Env.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.GitHub/Contract/SharpRail.Plugins.GitHub.csproj" />
+    <Project Path="src/SharpRail.Plugins.GitHub/Host/SharpRail.Plugins.GitHub.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.GitHub/UI/SharpRail.Plugins.GitHub.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvDirenv/Contract/SharpRail.Plugins.EnvDirenv.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvDirenv/Host/SharpRail.Plugins.EnvDirenv.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvPython/Contract/SharpRail.Plugins.EnvPython.csproj" />

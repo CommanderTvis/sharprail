@@ -28,6 +28,8 @@ using SharpRail.Plugins.EnvPython;
 using SharpRail.Plugins.EnvPython.Host;
 using SharpRail.Plugins.Epub;
 using SharpRail.Plugins.Epub.Host;
+using SharpRail.Plugins.GitHub;
+using SharpRail.Plugins.GitHub.Host;
 using SharpRail.Plugins.Lsp.Clangd;
 using SharpRail.Plugins.Lsp.CSharp;
 using SharpRail.Plugins.Lsp.Css;
@@ -125,6 +127,7 @@ public static class BuiltinPlugins
         (AirContextContract.Manifest, new AirContextHost()),
         (TailscaleContract.Manifest, new TailscaleHost(tailscale)),
         (EpubContract.Manifest, new EpubHost()),
+        (GitHubContract.Manifest, new GitHubHost()),
         (EnvContract.Manifest, new EnvHost()),
         (EnvMiseContract.Manifest, new EnvMiseHost()),
         (EnvDirenvContract.Manifest, new EnvDirenvHost()),

@@ -8,7 +8,7 @@ references: [module-plugin-api, submodule-host-plugins, submodule-host-git, subm
 tags: [plugins, git]
 ---
 
-> Progress notes (remove when the plugin lands). Strangler plan, one slice per commit. Slice A done: `ProjectServices` takes optional `repoHosts` (url to `RepoHostRoute`) and `branchStatusObserved` seams, wired from `PluginRuntime.RepoHostFor`/`NotifyBranchStatus` in App.cs and RemoteServer; every `gh` call now runs through the internal `LegacyGitHubProvider` (Host.Core) behind `RepoHostProvider`; DTOs and wire unchanged (the host maps the neutral model back to GitHub's spellings). Remaining slices: B (plugin projects, move the provider, `--github`), C (UI half), D (wire cleanup and version bump). Done: the host half of the provider API (checklist 4, host part): `RepoHost.cs`
+> Progress notes (remove when the plugin lands). Strangler plan, one slice per commit. Slice A done: `ProjectServices` takes optional `repoHosts` (url to `RepoHostRoute`) and `branchStatusObserved` seams, wired from `PluginRuntime.RepoHostFor`/`NotifyBranchStatus` in App.cs and RemoteServer; every `gh` call now runs through the internal `LegacyGitHubProvider` (Host.Core) behind `RepoHostProvider`; DTOs and wire unchanged (the host maps the neutral model back to GitHub's spellings). Slice B done: `SharpRail.Plugins.GitHub` Contract/Host/UI exist and are registered (Host.Core and UI `BuiltinPlugins.cs`, UI/Android/Browser csprojs, slnx); the provider is `GitHubProvider` in the Host project (runs `gh` through `IPluginHostContext.RunToolAsync`), the core fallback is deleted, so a GitHub remote with the plugin off is a plain remote; sign-in without a recognized remote asks the first active provider (`RepoHostFor("")`). Category is Version Control (resolved). The `--github` mode replaces `--pull-requests` and includes the provider-off case; checks that run `ProjectServices` without a runtime pass `PullRequestChecks.GitHubRoute`. The UI half is still empty. Remaining slices: C (UI half), D (wire cleanup and version bump). Done: the host half of the provider API (checklist 4, host part): `RepoHost.cs`
 > in `Plugins.Api.Host`, `RepoHost`/`OnBranchStatus`/`RunToolAsync` on the host context, and `PluginRuntime.RepoHostFor(url)`
 > / `NotifyBranchStatus`. Remaining: 1, 2, 3, 4 (UI half: W28 `LocationItem`, `core:review-pull-request` slot), 5 to 9.
 > Findings for the successor. (a) `ProjectServices` has no handle on `PluginRuntime`; it is built in many places
@@ -24,7 +24,7 @@ tags: [plugins, git]
 
 ## Responsibility
 
-`GitHub` (`github`, enabled by default, category Source control (unconfirmed), no dependencies, wire version 1) is
+`GitHub` (`github`, enabled by default, category Version Control, no dependencies, wire version 1) is
 the first provider of the generic repo hosting surface ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w28),
 Plugin API H24 and W28). It owns everything that is GitHub and not git:
 

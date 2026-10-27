@@ -548,7 +548,7 @@ internal static class Program
             BranchStatusChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
-        if (args.SequenceEqual(["--pull-requests"]))
+        if (args.SequenceEqual(["--github"]))
         {
             PullRequestChecks.Run(root).GetAwaiter().GetResult();
             return;
@@ -1263,7 +1263,7 @@ internal static class Program
         Gate.Case("agent-launch-contributions", AgentLaunchContributionChecks.Run);
         Gate.Case("file-drop-host", () => FileDropChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("projects", () => ProjectChecks.Run(root).GetAwaiter().GetResult());
-        Gate.Case("pull-requests", () => PullRequestChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("github", () => PullRequestChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("branch-status", () => BranchStatusChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("changes", () => ChangeChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("content", () => ContentChecks.Run(root).GetAwaiter().GetResult());

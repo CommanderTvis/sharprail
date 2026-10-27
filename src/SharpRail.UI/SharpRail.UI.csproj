@@ -20,6 +20,7 @@
     <ProjectReference Include="../SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Env/UI/SharpRail.Plugins.Env.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.GitHub/UI/SharpRail.Plugins.GitHub.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Epub/UI/SharpRail.Plugins.Epub.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Discord/UI/SharpRail.Plugins.Discord.UI.csproj" />

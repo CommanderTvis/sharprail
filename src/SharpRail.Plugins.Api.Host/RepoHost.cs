@@ -34,7 +34,8 @@ public sealed record RepoHostBranch(string Directory, string RemoteUrl, string B
 public sealed record RepoHostRequest(string Title, bool TitleEdited, string Body, bool Draft);
 
 /// <summary>
-/// What a provider's create or update did: <c>Action</c> is <c>created</c> or <c>updated</c>, <c>Problem</c> is empty or
+/// What a provider's create or update did: <c>Action</c> is <c>created</c>, <c>updated</c> or <c>failed</c> (the host then
+/// shows the compare link), <c>Problem</c> is empty or
 /// <c>missing</c> (the tool is not installed) or <c>unauthenticated</c>, which the host turns into the compare-link
 /// outcome.
 /// </summary>

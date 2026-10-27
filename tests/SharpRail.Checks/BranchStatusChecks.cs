@@ -109,7 +109,7 @@ internal static class BranchStatusChecks
     {
         var work = await PullRequestChecks.MakeRepo(parent, "plain", github: false);
         var bare = Path.Combine(parent, "plain.git");
-        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work));
+        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work, repoHosts: PullRequestChecks.GitHubRoute));
         await host.OpenProjectAsync(work);
         var status = await host.GetBranchStatusAsync(true);
         Require(status is { HasOrigin: true, Provider: "other", Published: false, OnBase: false, AheadOfBase: 1, Review: null, Details: null }, "Unpublished: " + status);
@@ -147,7 +147,7 @@ internal static class BranchStatusChecks
     {
         var work = await PullRequestChecks.MakeRepo(parent, "hub", github: true);
         var bare = Path.Combine(parent, "hub.git");
-        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work));
+        IProjectServices host = new LocalProjectAdapter(new ProjectServices(work, repoHosts: PullRequestChecks.GitHubRoute));
         await host.OpenProjectAsync(work);
         var head = (await Git(work, "rev-parse", "HEAD")).Trim();
         Require((await host.ApplyBranchActionAsync(new("push", "feature", head))).Outcome == "done", "The GitHub branch must publish.");

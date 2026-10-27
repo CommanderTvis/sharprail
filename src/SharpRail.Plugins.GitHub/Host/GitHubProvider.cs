@@ -4,25 +4,22 @@ using System.Text.Json;
 
 using SharpRail.Plugins.Api.Host;
 
-namespace SharpRail.Host.Core;
+namespace SharpRail.Plugins.GitHub.Host;
 
-/// <summary>The provider the host routes a workspace's branch to, with the plugin id that owns it (H24).</summary>
-public sealed record RepoHostRoute(string PluginId, RepoHostProvider Provider);
+/// <summary>Runs a tool with the host's bounded runner; <see cref="IPluginHostContext.RunToolAsync"/> in the product.</summary>
+public delegate ValueTask<RepoHostToolResult> ToolRunner(string tool, string directory, IReadOnlyList<string> args, TimeSpan timeout,
+    IReadOnlyDictionary<string, string?>? environment, CancellationToken cancellationToken);
 
-/// <summary>
-/// Today's <c>gh</c> logic behind the neutral provider contract. The host uses it only while no plugin supplies a
-/// provider for a GitHub remote; the GitHub plugin takes it over.
-/// </summary>
-internal sealed class LegacyGitHubProvider : RepoHostProvider
+/// <summary>GitHub behind the neutral provider contract: github.com remotes, through the <c>gh</c> command-line tool.</summary>
+public sealed class GitHubProvider(ToolRunner run) : RepoHostProvider
 {
-    internal static readonly RepoHostRoute Route = new("github", new LegacyGitHubProvider());
 
     private static readonly TimeSpan Query = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan Mutation = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan MergeMethodsTtl = TimeSpan.FromMinutes(10);
     private const int CompareBodyLimit = 4000;
     private static readonly ConcurrentDictionary<string, (IReadOnlyList<string> Methods, long At)> MergeMethodCache = new();
-    private static readonly Dictionary<string, string?> Environment_ = new() { ["GH_PROMPT_DISABLED"] = "1", ["GIT_TERMINAL_PROMPT"] = "0", ["NO_COLOR"] = "1" };
+    private static readonly Dictionary<string, string?> GhEnvironment = new() { ["GH_PROMPT_DISABLED"] = "1", ["GIT_TERMINAL_PROMPT"] = "0", ["NO_COLOR"] = "1" };
 
     private static bool Offline => Environment.GetEnvironmentVariable("SHARPRAIL_GH_OFFLINE") == "1";
 
@@ -30,16 +27,22 @@ internal sealed class LegacyGitHubProvider : RepoHostProvider
 
     public override async ValueTask<RepoHostSignIn> SignInAsync(CancellationToken cancellationToken)
     {
-        var status = await GitHubAuthenticationProbe.CheckAsync(cancellationToken);
-        return new(status.Connected, status.Detail);
+        try
+        {
+            var result = await run("gh", Environment.CurrentDirectory, ["auth", "status"], TimeSpan.FromSeconds(10), GhEnvironment, cancellationToken);
+            var text = (result.Output + result.Error).Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+            return result.ExitCode == 0 ? new(true, text) : new(false, "gh is installed but not signed in. Run gh auth login.");
+        }
+        catch (Win32Exception) { return new(false, "The gh command-line tool was not found on PATH."); }
+        catch (TimeoutException) { return new(false, "gh did not respond."); }
     }
 
     public override async ValueTask<PullRequest?> FindAsync(RepoHostBranch branch, CancellationToken cancellationToken)
     {
         if (Offline) return null;
         // The open request first, else the newest in any state.
-        var result = await ChildProcess.RunAsync("gh", branch.Directory, ["pr", "list", "--head", branch.Branch, "--state", "all", "--limit", "20", "--json",
-            "number,title,url,state,isDraft,statusCheckRollup,reviewDecision,mergeStateStatus,headRepositoryOwner,headRepository"], Query, cancellationToken, Environment_);
+        var result = await run("gh", branch.Directory, ["pr", "list", "--head", branch.Branch, "--state", "all", "--limit", "20", "--json",
+            "number,title,url,state,isDraft,statusCheckRollup,reviewDecision,mergeStateStatus,headRepositoryOwner,headRepository"], Query, GhEnvironment, cancellationToken);
         if (result.ExitCode != 0) throw new IOException("gh pr list failed.");
         using var json = JsonDocument.Parse(result.Output);
         if (json.RootElement.ValueKind != JsonValueKind.Array || json.RootElement.GetArrayLength() == 0) return null;
@@ -107,10 +110,10 @@ internal sealed class LegacyGitHubProvider : RepoHostProvider
                $"?quick_pull=1&title={Uri.EscapeDataString(request.Title)}&body={Uri.EscapeDataString(body)}";
     }
 
-    private static async Task<(int Number, string Url)?> FindOpenAsync(RepoHostBranch branch, CancellationToken ct)
+    private async Task<(int Number, string Url)?> FindOpenAsync(RepoHostBranch branch, CancellationToken ct)
     {
         var args = new List<string> { "pr", "list", "--head", branch.Branch, "--state", "open", "--json", "number,url", "--limit", "1", "--base", branch.BaseName };
-        var result = await ChildProcess.RunAsync("gh", branch.Directory, args, Query, ct, Environment_);
+        var result = await run("gh", branch.Directory, args, Query, GhEnvironment, ct);
         if (result.ExitCode != 0) throw new IOException("gh pr list failed.");
         using var json = JsonDocument.Parse(result.Output);
         if (json.RootElement.ValueKind != JsonValueKind.Array || json.RootElement.GetArrayLength() == 0) return null;
@@ -120,37 +123,37 @@ internal sealed class LegacyGitHubProvider : RepoHostProvider
         return (first.GetProperty("number").GetInt32(), url);
     }
 
-    private static async Task<ChildProcess.Result> MutateAsync(string directory, IEnumerable<string> args, CancellationToken ct)
+    private async Task<RepoHostToolResult> MutateAsync(string directory, IReadOnlyList<string> args, CancellationToken ct)
     {
-        var result = await ChildProcess.RunAsync("gh", directory, args, Mutation, ct, Environment_);
+        var result = await run("gh", directory, args, Mutation, GhEnvironment, ct);
         if (result.ExitCode != 0) throw new IOException("gh failed: " + result.Error.Trim());
         return result;
     }
 
-    private static async Task<string> ProblemAsync(string directory, CancellationToken ct)
+    private async Task<string> ProblemAsync(string directory, CancellationToken ct)
     {
-        try { return (await ChildProcess.RunAsync("gh", directory, ["auth", "status"], Query, ct, Environment_)).ExitCode == 0 ? "" : "unauthenticated"; }
+        try { return (await run("gh", directory, ["auth", "status"], Query, GhEnvironment, ct)).ExitCode == 0 ? "" : "unauthenticated"; }
         catch (Win32Exception) { return "missing"; }
         catch (TimeoutException) { return "unauthenticated"; }
     }
 
-    private static async Task<IReadOnlyList<string>> MergeMethodsAsync(RepoHostBranch branch, CancellationToken ct)
+    private async Task<IReadOnlyList<string>> MergeMethodsAsync(RepoHostBranch branch, CancellationToken ct)
     {
         try { return await ReadMergeMethodsAsync(branch, ct); }
         catch (Exception error) when (error is TimeoutException or IOException or Win32Exception or JsonException) { return []; }
     }
 
-    private static async Task<IReadOnlyList<string>> ReadMergeMethodsAsync(RepoHostBranch branch, CancellationToken ct)
+    private async Task<IReadOnlyList<string>> ReadMergeMethodsAsync(RepoHostBranch branch, CancellationToken ct)
     {
         var origin = branch.RemoteUrl;
-        if (MergeMethodCache.TryGetValue(origin, out var cached) && System.Environment.TickCount64 - cached.At < MergeMethodsTtl.TotalMilliseconds) return cached.Methods;
-        var result = await ChildProcess.RunAsync("gh", branch.Directory, ["repo", "view", "--json", "mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed"], Query, ct, Environment_);
+        if (MergeMethodCache.TryGetValue(origin, out var cached) && Environment.TickCount64 - cached.At < MergeMethodsTtl.TotalMilliseconds) return cached.Methods;
+        var result = await run("gh", branch.Directory, ["repo", "view", "--json", "mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed"], Query, GhEnvironment, ct);
         if (result.ExitCode != 0) return [];
         using var json = JsonDocument.Parse(result.Output);
         bool Allowed(string name) => json.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
         IReadOnlyList<string> methods = [.. new[] { ("merge", "mergeCommitAllowed"), ("squash", "squashMergeAllowed"), ("rebase", "rebaseMergeAllowed") }
             .Where(pair => Allowed(pair.Item2)).Select(pair => pair.Item1)];
-        MergeMethodCache[origin] = (methods, System.Environment.TickCount64);
+        MergeMethodCache[origin] = (methods, Environment.TickCount64);
         return methods;
     }
 

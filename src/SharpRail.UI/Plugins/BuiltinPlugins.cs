@@ -18,6 +18,8 @@ using SharpRail.Plugins.Env;
 using SharpRail.Plugins.Env.UI;
 using SharpRail.Plugins.Epub;
 using SharpRail.Plugins.Epub.UI;
+using SharpRail.Plugins.GitHub;
+using SharpRail.Plugins.GitHub.UI;
 using SharpRail.Plugins.Omp;
 using SharpRail.Plugins.Omp.UI;
 using SharpRail.Plugins.SpecDialect;
@@ -45,6 +47,7 @@ public static class BuiltinPlugins
         (AirContextContract.Manifest, () => new AirContextUI()),
         (TailscaleContract.Manifest, () => new TailscaleUI()),
         (EpubContract.Manifest, () => new EpubUI()),
+        (GitHubContract.Manifest, () => new GitHubUI()),
         (EnvContract.Manifest, () => new EnvUI())
     ];
 }

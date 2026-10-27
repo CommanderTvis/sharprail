@@ -130,7 +130,7 @@ internal sealed class E2eWorkspace : IDisposable
         pluginRuntime.Start();
         var allowsExternalFile = (Func<string, string, bool>)pluginRuntime.AllowsExternalFile;
         // The app's embedded host is reached through its local adapter, which keeps Core off the dispatcher; checks of that opt in.
-        IProjectServices Services() => embedded ? new LocalProjectAdapter(new ProjectServices(root, State, allowsExternalFile)) : new ProjectServices(root, State, allowsExternalFile);
+        IProjectServices Services() => embedded ? new LocalProjectAdapter(new ProjectServices(root, State, allowsExternalFile, pluginRuntime.RepoHostFor)) : new ProjectServices(root, State, allowsExternalFile, pluginRuntime.RepoHostFor);
         Host = new(wrap?.Invoke(Services()) ?? Services());
         prepare?.Invoke(Host);
         ownsTerminals = terminals is null;
