@@ -136,11 +136,11 @@ public sealed partial class SettingsWindow
         };
         copyEndpoint.Click += async (_, _) =>
         {
-            if (listener.Endpoint is { } endpoint && Clipboard is { } clipboard) await clipboard.SetTextAsync(endpoint.ToString());
+            if (listener.Endpoint is { } endpoint && TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(endpoint.ToString());
         };
         copyToken.Click += async (_, _) =>
         {
-            if (Clipboard is { } clipboard) await clipboard.SetTextAsync(listener.Token);
+            if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(listener.Token);
         };
         return page;
     }

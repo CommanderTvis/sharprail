@@ -22,12 +22,12 @@ public sealed partial class SettingsWindow
         var add = PageControl<Button>(panel, "HighlightingImport");
         var choose = PageControl<Button>(panel, "HighlightingChoose");
         void Failed(Exception failure) { message.Text = failure.Message; message.IsVisible = true; }
-        choose.IsEnabled = StorageProvider.CanOpen;
+        choose.IsEnabled = window.StorageProvider.CanOpen;
         choose.Click += async (_, _) =>
         {
             try
             {
-                var files = await StorageProvider.OpenFilePickerAsync(new()
+                var files = await window.StorageProvider.OpenFilePickerAsync(new()
                 {
                     Title = "Choose a TextMate JSON grammar",
                     AllowMultiple = false,

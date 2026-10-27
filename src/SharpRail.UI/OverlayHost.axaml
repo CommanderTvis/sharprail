@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.UI.OverlayHost"
+             IsVisible="False" ZIndex="40">
+  <!-- The transparent scrim takes every pointer press so nothing behind the overlay is reachable. -->
+  <Grid>
+    <Border x:Name="OverlayScrim" Background="Transparent" />
+    <ContentControl x:Name="OverlayContent" KeyboardNavigation.TabNavigation="Cycle" />
+  </Grid>
+</UserControl>

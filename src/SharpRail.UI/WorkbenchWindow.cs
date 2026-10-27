@@ -139,7 +139,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         };
         // App zoom chords win over whatever has focus, a terminal included: on the way down, before a renderer encodes them.
         AddHandler(KeyDownEvent, (_, e) => { if (RunZoomShortcut(e)) e.Handled = true; }, RoutingStrategies.Tunnel);
-        AddHandler(KeyDownEvent, (_, e) => { if (workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
+        // Settings in the overlay is modal: the workbench commands behind it stay out of reach.
+        AddHandler(KeyDownEvent, (_, e) => { if (openSettings is null && workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
         Deactivated += (_, _) => workbench.Commands.Deactivated();
         Activated += (_, _) => { if (toolContent.ContainsKey("review")) RequestBranchStatus(true, force: true); };
@@ -149,7 +150,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             foreach (var content in documentContent.Values)
                 if (content is Terminal.TerminalView { IsEffectivelyVisible: true } view && TopLevel.GetTopLevel(view) == this) workbench.Signals.ClearBell(view.Launch.SessionId);
         };
-        AddHandler(KeyDownEvent, (_, e) => { if (RunShortcut(e)) e.Handled = true; }, RoutingStrategies.Bubble);
+        AddHandler(KeyDownEvent, (_, e) => { if ((openSettings is null || WindowShortcuts.Settings.Matches(e)) && RunShortcut(e)) e.Handled = true; }, RoutingStrategies.Bubble);
     }
 
     /// <summary>The command behind each window chord; <see cref="WindowShortcuts"/> owns the chords.</summary>
@@ -919,20 +920,31 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     public void ShowSettings(string section)
     {
         settingsSection = section;
-        ShowSettings();
+        if (openSettings is { } open) open.ShowSection(section);
+        else ShowSettings();
     }
 
+    /// <summary>Opens Settings in the workbench's overlay; already open, it only takes focus.</summary>
     public void ShowSettings()
     {
-        // A compact workbench shows Settings as a page above its page bar, which must stay clear and in reach.
-        var undim = workbench.Compact ? () => { } : Dim();
-        var settings = new SettingsWindow(this, () =>
+        if (openSettings is { } open) { open.Focus(); return; }
+        ShowInOverlay(new SettingsWindow(this, () =>
         {
             RefreshAppearance(); ReportProfileError();
             foreach (var window in workbench.Windows) window.ApplyTabLayout();
-        }, section: settingsSection);
-        settings.Closed += (_, _) => { settingsSection = settings.Section; undim(); SettingsShown(null); };
+        }, settingsSection));
+    }
+
+    /// <summary>Shows <paramref name="settings"/> in the overlay and tracks it until it closes.</summary>
+    internal void ShowInOverlay(SettingsWindow settings)
+    {
+        var overlay = this.FindControl<OverlayHost>("Overlay")!;
+        overlay.Dimmer = Dim;
+        // A compact workbench shows Settings as a page above its page bar, which must stay clear and in reach.
+        var compact = workbench.Compact;
+        settings.Closed += (_, _) => { settingsSection = settings.Section; overlay.Hide(); SettingsShown(null); };
+        Grid.SetRowSpan(overlay, compact ? 3 : 4);
         SettingsShown(settings);
-        _ = settings.ShowDialog(this);
+        overlay.Show(settings, settings.Close, compact ? null : SettingsWindow.FitSize, dimmed: !compact);
     }
 }

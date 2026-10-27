@@ -209,6 +209,7 @@
       </Grid>
     </Border>
     </StackPanel>
+    <local:OverlayHost x:Name="Overlay" Grid.RowSpan="4" />
   </Grid>
   </LayoutTransformControl>
 </Window>

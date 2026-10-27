@@ -21,7 +21,7 @@ using SharpRail.UI.State;
 
 namespace SharpRail.UI.Panels;
 
-public sealed partial class SettingsWindow : Window
+public sealed partial class SettingsWindow : UserControl
 {
     private readonly WorkbenchWindow window;
     private readonly ProfileStore profile;
@@ -76,27 +76,9 @@ public sealed partial class SettingsWindow : Window
         state.Changed += SharedChanged;
         state.HandshakeChanged += CapabilitiesChanged;
         Name = "SettingsWindow";
+        Focusable = true;
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("SettingsBody")!;
-        if (!OperatingSystem.IsAndroid())
-        {
-            var zoom = InterfaceZoom.Current;
-            MinWidth *= zoom; MinHeight *= zoom; Width *= zoom;
-            Height = Math.Max(MinHeight, window.Bounds.Height * .8);
-#if !ANDROID && !BROWSER
-            if (window.Screens.ScreenFromWindow(window) is { } screen)
-            {
-                var scale = screen.Scaling;
-                var ownerBounds = new Rect(window.Position.X / scale, window.Position.Y / scale, window.Bounds.Width, window.Bounds.Height);
-                var area = screen.WorkingArea;
-                var bounds = FitBounds(ownerBounds, new Rect(area.X / scale, area.Y / scale, area.Width / scale, area.Height / scale), zoom);
-                MinWidth = Math.Min(MinWidth, bounds.Width); MinHeight = Math.Min(MinHeight, bounds.Height);
-                Width = bounds.Width; Height = bounds.Height;
-                WindowStartupLocation = WindowStartupLocation.Manual;
-                Position = new PixelPoint((int)Math.Round(bounds.X * scale), (int)Math.Round(bounds.Y * scale));
-            }
-#endif
-        }
         var close = this.FindControl<Button>("SettingsClose")!;
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
@@ -121,12 +103,28 @@ public sealed partial class SettingsWindow : Window
 
     public string Section => section;
 
-    internal static Rect FitBounds(Rect owner, Rect available, double zoom)
+    /// <summary>The card's size in a window of <paramref name="available"/> size: 832 wide, 80% tall (at least 440), never past the window.</summary>
+    internal static Size FitSize(Size available) =>
+        new(Math.Min(832, available.Width), Math.Min(Math.Max(440, available.Height * .8), available.Height));
+
+    public event EventHandler? Closed;
+
+    /// <summary>Closes Settings; the owner removes it from the overlay on <see cref="Closed"/>. Closing twice is harmless.</summary>
+    public void Close()
     {
-        var width = Math.Min(832 * zoom, available.Width);
-        var height = Math.Min(Math.Max(440 * zoom, owner.Height * .8), available.Height);
-        return new Rect(Math.Clamp(owner.X + (owner.Width - width) / 2, available.X, available.Right - width),
-            Math.Clamp(owner.Y + (owner.Height - height) / 2, available.Y, available.Bottom - height), width, height);
+        if (closing) return;
+        closing = true;
+        IsVisible = false;
+        Closed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool closing;
+
+    /// <summary>The system Back gesture: from a section on a phone it returns to the list, from the list it closes.</summary>
+    internal void GoBack()
+    {
+        if (showSectionList is not null && !this.FindControl<Border>("SettingsNavigationPane")!.IsVisible) showSectionList(true);
+        else Close();
     }
 
     private void Navigation(Button button, string key, StackPanel content)
@@ -253,12 +251,9 @@ public sealed partial class SettingsWindow : Window
             title.Text = list ? "Settings" : section.StartsWith("plugin:", StringComparison.Ordinal) ? "Plugin settings" : section;
         }
         showSectionList = Show;
-        // The page stops above the workbench's page bar, which stays in reach under it.
-        Opened += (_, _) => { if (Owner is Window owner) MaxHeight = Math.Max(1, owner.Bounds.Height - window.PageBarHeight); };
         PaintNavigation();
         back.Content = Ui.Icon("arrowGoBack");
         back.Click += (_, _) => Show(true);
-        AddHandler(BackRequestedEvent, (_, e) => { if (!pane.IsVisible) { Show(true); e.Handled = true; } });
         Show(true);
     }
 
@@ -279,7 +274,7 @@ public sealed partial class SettingsWindow : Window
             "Notifications" => NotificationSettings(),
             "Host" => ServingSettings(),
             "About" => new AboutFields { Margin = new(24) },
-            "Plugins" => new PluginsSettings(state, window.Workbench.Plugins, this),
+            "Plugins" => new PluginsSettings(state, window.Workbench.Plugins, window),
             _ when name.StartsWith("plugin:", StringComparison.Ordinal) => PluginSection(name),
             _ => Appearance()
         };
@@ -327,7 +322,6 @@ public sealed partial class SettingsWindow : Window
     {
         // Terminal activity and other clients' workspace updates must not replace the open page.
         if (previous.Settings == next.Settings && previous.Presets.SequenceEqual(next.Presets) && previous.Projects.SequenceEqual(next.Projects)) return;
-        RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
         if (section == "Code Intelligence" && (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider || previous.Settings.LanguageServers != next.Settings.LanguageServers || previous.Settings.LspEnabled != next.Settings.LspEnabled || previous.Settings.LanguageLimits != next.Settings.LanguageLimits || previous.Settings.LanguageTools != next.Settings.LanguageTools)) foreach (var refresh in refreshers) refresh();
         else if (section == "Line width") foreach (var refresh in refreshers) refresh();
         // A project joining the recents list (the window's own open lands after it mounts) leaves the other pages alone.
@@ -342,7 +336,6 @@ public sealed partial class SettingsWindow : Window
     private void Save()
     {
         profile.Save(); apply();
-        RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
     }
 
     /// <summary>Sends shared changes to the host; the view updates when the resulting snapshot arrives.</summary>
@@ -741,7 +734,7 @@ public sealed partial class SettingsWindow : Window
 
     private async Task ApplyLayout(string name)
     {
-        if (!await Dialogs.Confirm(this, "Apply this layout?", "Open files, documents, and terminals are preserved, but their groups and proportions will be rearranged across every workspace in this window. Other windows are unaffected.", "Apply layout")) return;
+        if (!await Dialogs.Confirm(window, "Apply this layout?", "Open files, documents, and terminals are preserved, but their groups and proportions will be rearranged across every workspace in this window. Other windows are unaffected.", "Apply layout")) return;
         var preset = (state.Preferences.CustomPresets.GetValueOrDefault(name) ?? DockState.Preset(name)).Copy();
         preset.SideLimit = Math.Max(layout.State.SideLimit, Math.Max(preset.Groups.Count(group => group.Region == "left"), preset.Groups.Count(group => group.Region == "right")));
         layout.ApplyPreset(preset);

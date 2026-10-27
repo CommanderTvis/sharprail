@@ -19,6 +19,9 @@ public sealed partial class WorkbenchWindow
     private string pageContext = "";
     private SettingsWindow? openSettings;
 
+    /// <summary>The Settings overlay this window shows, as a sequence of zero or one.</summary>
+    internal IEnumerable<SettingsWindow> OpenSettingsViews => openSettings is { } settings ? [settings] : [];
+
     /// <summary>The height the page bar takes at the bottom of the window; nothing where there is none.</summary>
     internal double PageBarHeight => this.FindControl<Border>("PageBar") is { IsVisible: true } bar ? bar.Bounds.Height : 0;
 
@@ -49,6 +52,7 @@ public sealed partial class WorkbenchWindow
         Layout.SelectionChanged += _ => PageChanged();
         AddHandler(BackRequestedEvent, (_, e) =>
         {
+            if (openSettings is { } settings) { settings.GoBack(); e.Handled = true; return; }
             if (!Layout.State.LeftVisible && !Layout.State.RightVisible) return;
             CloseDrawers();
             e.Handled = true;

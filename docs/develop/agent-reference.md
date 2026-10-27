@@ -20,7 +20,7 @@ Detail moved out of `AGENTS.md`. Read the section you need; do not load it whole
 | `src/SharpRail.Scintilla` | Self-contained Avalonia editor control: a managed port of Scintilla (`Core`, `View`, `Editing`) drawn with Skia, shaped with HarfBuzz, with a managed UAX #9 on Avalonia's Codepoint data; no native build. Its `README.md` documents API, architecture and limits. References no SharpRail project. |
 | `src/SharpRail.UI` | Avalonia application entry point and workbench. |
 | `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, gestures, tab chrome and search popover. |
-| `src/SharpRail.UI/Panels` | Settings and shared dialogs, compiled XAML frames and page templates. |
+| `src/SharpRail.UI/Panels` | Settings (an overlay card shown in the workbench `OverlayHost`) and shared dialogs, compiled XAML frames and page templates. |
 | `src/SharpRail.UI/Rendering` | Theme catalogue, diffs, bindings of the kit's Markdown views to a workspace's host (`MarkdownContexts`). |
 | `src/SharpRail.UI/Resources` | Resource-renderer registry, file pane with view toggle, format views (image, SVG, table, JSON, notebook, LFS, byte cards). |
 | `src/SharpRail.UI/State` | Profile persistence/migration (`ProfileStore`) and the shared-state subscription (`SharedState`). |

@@ -4,7 +4,7 @@ Upstream: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../../STATUS.md#
 
 ## Responsibility
 
-The modal surfaces the workbench opens: the Settings window (`SettingsWindow.axaml` / `.cs`), the shared
+The modal surfaces the workbench opens: the Settings overlay (`SettingsWindow.axaml` / `.cs`, a control shown in the workbench's `OverlayHost`), the shared
 dialog card (`DialogWindow.axaml` / `.cs`) with its factory `Dialogs`, the Start work dialog
 (`NewWorkspaceDialog`), the workspace search dialog (`SearchDialog`), and the local GitHub CLI probe
 (`GitHubStatus.cs`). Static layout, page templates and
@@ -144,12 +144,21 @@ expressions, a case toggle, a glob filter and replace.
 
 Appearance includes a shared File type icons choice of Plain (default, single-colour), Colored, Material and None (generic glyphs). It controls the core bundled icon set independently of Settings › Plugins. Choosing None keeps the style, so returning to a style restores it; changing the choice redraws Files, tabs and Changes in place.
 
-A modal two-pane window laid out as upstream ThinkRail's: a section rail under uppercase muted group headers, INTERFACE (Appearance, Highlighting, Line width, Layout, Terminal) then SYSTEM (Projects, Workspaces, Code Intelligence, Notifications, Host, GitHub, Plugins, About, then each
+A modal two-pane card laid out as upstream ThinkRail's: a section rail under uppercase muted group headers, INTERFACE (Appearance, Highlighting, Line width, Layout, Terminal) then SYSTEM (Projects, Workspaces, Code Intelligence, Notifications, Host, GitHub, Plugins, About, then each
 active plugin's own sections in registration order), with the selected section tinted. No AGENT group: SharpRail has no such pages and a scrolling
 content pane. Page section headings share one `settings-heading` style: small, muted and uppercase (the text is uppercased wherever the class is applied, plugin pages included), under a short muted intro line. A row with a single control or status (a switch, a status line) is a `settings-row` border: name and description on the left, the control on the right, one 1 px hairline below; Appearance, Terminal, Notifications, GitHub, Highlighting, Line width, Layout, Host (bind address, port, token, approved browsers) and the Code Intelligence limits use it; its choice lists sit in one row each. About keeps its own fields, shared with the About window. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
-Preferences window returns where it was left; it is sized to 80% of the owner's height before opening.
-Desktop Settings centers that final size on its owner and stays within the owner's display work area,
-including at larger interface sizes or when the owner extends off-screen. Android keeps its full-screen page.
+Preferences window returns where it was left.
+Settings is not a window: it is content in the workbench window's `OverlayHost` (`OverlayHost.axaml` / `.axaml.cs`), a
+small reusable top layer over the workbench. The host shows one surface at a time over a dimming scrim that takes every
+pointer press (nothing behind is reachable), confines Tab to the surface, closes it on Escape, pulls back focus that lands
+behind it, and returns focus to the control that had it. While Settings is open the workbench's commands (close tab and
+the other window chords) stay out of reach except the Settings chord, which only focuses the open overlay (and
+`ShowSettings(section)` switches section); interface zoom still applies, since Settings sits inside the zoomed layout.
+An owned window was avoided because the macOS native backend re-orders owned windows when the owner is clicked, which made
+Settings flicker. The card is 832 wide and 80% of the window's height (at least 440), clamped to the window and centred in
+it (`SettingsWindow.FitSize`); the close button, Escape and Mod+W dismiss, and `Closed` fires once. A compact workbench keeps its
+page: the overlay leaves the page bar uncovered, fills the rest with no scrim, and the system Back returns from a section to
+the list and from the list closes Settings.
 Shared-setting writes go to the host and the view converges on the broadcast; a rejection shows “The host
 could not save this change: …” inline and re-renders from host state.
 

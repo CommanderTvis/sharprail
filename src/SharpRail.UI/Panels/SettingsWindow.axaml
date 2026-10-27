@@ -1,16 +1,11 @@
-<Window xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
         xmlns:local="using:SharpRail.UI.Panels"
         x:Class="SharpRail.UI.Panels.SettingsWindow"
-        Title="Settings"
-        Width="832" Height="680" MinWidth="640" MinHeight="440"
-        WindowStartupLocation="CenterOwner" WindowDecorations="None" CanResize="False"
-        Background="Transparent" TransparencyLevelHint="Transparent"
-        TransparencyBackgroundFallback="{x:Static rendering:Ui.Elevated}"
         Foreground="{x:Static rendering:Ui.TextBrush}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14" FontWeight="370">
-  <Window.Resources>
+  <UserControl.Resources>
     <local:LanguageServerIconConverter x:Key="LanguageMark" />
     <DataTemplate x:Key="LspPage">
       <StackPanel Spacing="8">
@@ -380,8 +375,8 @@
         <StackPanel x:Name="RecentProjects" Spacing="8" />
       </StackPanel>
     </DataTemplate>
-  </Window.Resources>
-  <Window.Styles>
+  </UserControl.Resources>
+  <UserControl.Styles>
     <Style Selector="NumericUpDown.compact-number">
       <Setter Property="Padding" Value="8,0" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -447,8 +442,7 @@
       <Setter Property="HorizontalContentAlignment" Value="Left" />
       <Setter Property="HorizontalAlignment" Value="Stretch" />
     </Style>
-  </Window.Styles>
-  <LayoutTransformControl LayoutTransform="{DynamicResource InterfaceZoom}">
+  </UserControl.Styles>
   <Border x:Name="SettingsFrame" Background="{x:Static rendering:Ui.Elevated}"
           BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="1" CornerRadius="8">
     <Grid RowDefinitions="42.5,*">
@@ -491,5 +485,4 @@
       </Grid>
     </Grid>
   </Border>
-  </LayoutTransformControl>
-</Window>
+</UserControl>
