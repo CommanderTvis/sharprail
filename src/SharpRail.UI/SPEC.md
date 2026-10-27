@@ -201,7 +201,9 @@ A workbench window gets:
   Symbols, Workspace Problems, Language Server Status, Start / Retry Language Server, Stop Language Server).
   They are enabled only while the focused control is a code editor whose last language answer named a running
   (ready or initializing) server, the condition the context menu applies; the menu follows focus and the editor's
-  in-memory answers and never asks the host.
+  in-memory answers and never asks the host. Planned editor refactoring entries (Show Context Actions, Refactor This,
+  Rename, Optimize Imports and the Refactor submenu, with their chords) are specified in
+  [Refactoring.SPEC.md](../SharpRail.Host.Core/Language/Refactoring.SPEC.md).
 - View: Zoom In ⌘+, Zoom Out ⌘−, Actual Size ⌘0 (the zoom chords' commands).
 - Window: Minimize, Zoom, Host Settings… (Settings › Host), Connect to a Tailscale Host… (the same client launch as
   Settings › Host's button; a failure shows as a toast), Bring All to Front.

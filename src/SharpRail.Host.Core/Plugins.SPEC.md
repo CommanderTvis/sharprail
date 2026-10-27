@@ -423,3 +423,9 @@ Gitea or anything else is another plugin, with no host change.
 
 W28 is the UI side: a provider's UI half contributes items to the location strip and its Review panel section
 (Plugin API W28, W23, W4).
+
+## Language server refactoring hook (planned)
+
+A `LanguageServerSpec` may declare `Refactorings` (`KindAliases`, `Commands`, `Unsupported`) so the host maps a
+server's code actions and custom commands onto normalized refactoring ids and names alternatives in errors. It is
+optional and read-only metadata; see [Language/Refactoring.SPEC.md](Language/Refactoring.SPEC.md).

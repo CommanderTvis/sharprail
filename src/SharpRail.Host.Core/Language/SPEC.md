@@ -78,7 +78,10 @@ coverage; other servers expose their reported/open-document diagnostics.
 Semantic tokens use UTF-16 coordinates and are decoded to complete token spans. The editor replaces TextMate colors with
 supported semantic roles when tokens arrive; missing capabilities, startup and failures retain syntax
 highlighting. Server work and parsing stay off the UI thread. Edits, workspace changes, cancellation
-and disposal reject stale results. Inspection does not apply code actions or edit source.
+and disposal reject stale results. Inspection does not apply code actions or edit source. Code actions, rename and
+refactorings (planned, design only) are specified in [Refactoring.SPEC.md](Refactoring.SPEC.md): they are separate
+explicit tools and editor commands, never part of inspection, and `workspace/applyEdit` stays refused until that
+spec's applier exists.
 
 ## Provisioning and index reuse
 
@@ -421,7 +424,9 @@ the previous one.
 
 ## Agents
 
-Terminal-authenticated MCP exposes `lsp_navigate`, `lsp_diagnostics` and `lsp_status`. An omitted
+Terminal-authenticated MCP exposes `lsp_navigate`, `lsp_diagnostics` and `lsp_status` (read-only); the planned
+`lsp_code_actions`, `lsp_apply_action`, `lsp_rename`, `lsp_organize_imports` and `lsp_refactor` write tools are
+specified in [Refactoring.SPEC.md](Refactoring.SPEC.md). An omitted
 workspace targets the terminal's original workspace; an explicit override must belong to the same
 Git project. Subagents inheriting the connection must pass their own worktree path. Results carry
 freshness and coverage, including an explicit notice when they use an editor's dirty buffer.
