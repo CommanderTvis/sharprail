@@ -943,6 +943,9 @@ internal static class ClaudeCodeChecks
         var modelFacts = ClaudeTerminalAccessory.Facts(new ClaudeSessionState(ClaudeCodeStatus.Idle) { Model = "claude-sonnet-5-5-20260101", Effort = "low" });
         Require(modelFacts.Any(fact => fact is { Kind: "model", Label: "sonnet-5-5" }) && modelFacts.Any(fact => fact is { Kind: "effort", Label: "low effort" }),
             "The model and effort chips show what Claude Code's hooks last reported.");
+        Require(ClaudeTerminalAccessory.RowOrder(["attach", "advisor", "usage", "plan", "chrome", "ide", "effort", "model", "cwd"]).SequenceEqual(["cwd", "model", "effort", "ide", "chrome", "plan", "usage", "advisor", "attach"]) &&
+            ClaudeTerminalAccessory.RowOrder(["attach", "ide", "model"]).SequenceEqual(["model", "ide", "attach"]),
+            "The chip row reads folder, model, effort, IDE context, Chrome, plan, spending, advisor, attach.");
         const string Box = "────────────────────────────";
         string[] Empty = ["● done", Box, "❯ Message @agent…", Box, "  ? for shortcuts"];
         Require(ClaudeTerminalAccessory.Prompt(Empty) == PromptState.Empty && ClaudeTerminalAccessory.Prompt(["", Box, "❯ ", Box]) == PromptState.Empty &&

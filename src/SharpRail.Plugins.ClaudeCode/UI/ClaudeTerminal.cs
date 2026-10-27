@@ -130,6 +130,12 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         return facts;
     }
 
+    // The chip row, left to right: folder, model, effort, IDE context, then the conditional chips the user did not place
+    // (Chrome, the plan), then spending, advisor and attach.
+    private static readonly string[] ChipOrder = ["cwd", "model", "effort", "ide", "chrome", "plan", "usage", "advisor", "attach"];
+
+    internal static IReadOnlyList<string> RowOrder(IEnumerable<string> present) => [.. ChipOrder.Where(present.ToHashSet().Contains)];
+
     // The row rebuilds only when what it shows changes.
     private void Refresh()
     {
@@ -146,35 +152,28 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         facts.Children.Clear();
         facts.IsVisible = claude;
         if (!claude) return;
+        var chips = new Dictionary<string, Control>();
         foreach (var (kind, label, title) in Facts(state, Agent(context.Host())?.Command))
         {
-            var chip = kind switch
+            chips[kind] = kind switch
             {
                 "model" => OpenerChip(kind, label, title, state, "/model", "model"),
                 "effort" => OpenerChip(kind, label, title, state, "/effort", "effort"),
                 "chrome" => TerminalFacts.FactChip(kind, label, title, Ui.Icon("chrome", Ui.Muted, 12)),
                 _ => TerminalFacts.FactChip(kind, label, title)
             };
-            chip.Margin = Chips.Gap;
-            facts.Children.Add(chip);
         }
-        if (state?.Usage is { } usage && TerminalFacts.UsageChip("Claude", new(usage.Input, usage.Output, usage.CacheRead, usage.CacheWrite)) is { } spent)
-        {
-            spent.Margin = Chips.Gap;
-            facts.Children.Add(spent);
-        }
+        if (state?.Usage is { } usage && TerminalFacts.UsageChip("Claude", new(usage.Input, usage.Output, usage.CacheRead, usage.CacheWrite)) is { } spent) chips["usage"] = spent;
         if (state?.Todos is { Count: > 0 } todos)
         {
-            var plan = TerminalFacts.Plan("Claude", [.. todos.Select(todo => new TerminalTodo(todo.Content, todo.Status switch
+            chips["plan"] = TerminalFacts.Plan("Claude", [.. todos.Select(todo => new TerminalTodo(todo.Content, todo.Status switch
             {
                 AgentTodoStatus.Completed => TerminalTodoStatus.Completed,
                 AgentTodoStatus.InProgress => TerminalTodoStatus.InProgress,
                 _ => TerminalTodoStatus.Pending
             }, todo.ActiveForm))]);
-            plan.Margin = Chips.Gap;
-            facts.Children.Add(plan);
         }
-        var ideChip = TerminalFacts.IdeContextChip(ide, () =>
+        chips["ide"] = TerminalFacts.IdeContextChip(ide, () =>
         {
             // Claude's own command, for this session only; the integration's configuration is untouched.
             if (idePending) return;
@@ -182,14 +181,15 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
             idePending = true;
             _ = SendIdeAsync(enabled);
         });
-        ideChip.Margin = Chips.Gap;
-        facts.Children.Add(ideChip);
-        var attach = TerminalFacts.AttachButton("Put a file or folder in front of Claude, as @path",
+        chips["attach"] = TerminalFacts.AttachButton("Put a file or folder in front of Claude, as @path",
             async () => await context.PickFileAsync(new FilePickOptions(terminal.WorkspaceId)),
             path => terminal.Write($"@{TerminalFacts.AttachPath(path, terminal.WorkspaceId, State?.Cwd)} "),
             error => context.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", ClaudeParts.ErrorText(error)));
-        attach.Margin = Chips.Gap;
-        facts.Children.Add(attach);
+        foreach (var name in RowOrder(chips.Keys))
+        {
+            chips[name].Margin = Chips.Gap;
+            facts.Children.Add(chips[name]);
+        }
     }
 }
 
