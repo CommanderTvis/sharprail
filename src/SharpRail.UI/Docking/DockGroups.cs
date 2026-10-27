@@ -408,6 +408,8 @@ public sealed partial class DockSurface
         // A column's start actions wrap in a row under its tabs instead of trailing the strip.
         Panel actions = vertical ? new WrapPanel { Name = "TabStripActions_" + group.Id, Orientation = Orientation.Horizontal, Margin = nested ? new Thickness(0, 4, 0, 0) : default }
             : new StackPanel { Orientation = Orientation.Horizontal };
+        // The header menu is about the pane, not its buttons: a right-click on a launcher or action icon opens nothing.
+        actions.ContextRequested += (_, e) => e.Handled = true;
         Border Fade(bool left) => new()
         {
             Name = (left ? "TabOverflowBefore_" : "TabOverflowAfter_") + group.Id,

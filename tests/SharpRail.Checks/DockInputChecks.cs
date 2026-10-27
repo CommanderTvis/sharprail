@@ -219,7 +219,7 @@ internal static class DockInputChecks
         var initialCenterGroup = window.Layout.State.Center.Leaves().Single();
         window.Width = 1680; window.Height = 1000;
         var centerHeader = Find<Grid>("GroupHeader_" + initialCenterGroup);
-        var headerPoint = Bounds(centerHeader).TopLeft + new Vector(12, 12);
+        var headerPoint = Bounds(centerHeader).TopRight + new Vector(-6, 12);
         window.MouseDown(headerPoint, MouseButton.Right); window.MouseUp(headerPoint, MouseButton.Right);
         Dispatcher.UIThread.RunJobs();
         Require(centerHeader.ContextMenu?.IsOpen == true &&
@@ -228,6 +228,13 @@ internal static class DockInputChecks
         Require(!centerHeader.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Header is string header && header.StartsWith("New split", StringComparison.Ordinal)),
             "The main column header must offer no split actions.");
         centerHeader.ContextMenu!.Close();
+        var launcher = window.GetLogicalDescendants().OfType<Button>().First(button => button.Name?.StartsWith("NewTerminal_", StringComparison.Ordinal) == true && button.IsVisible);
+        var launcherHeader = Find<Grid>("GroupHeader_" + launcher.Name!["NewTerminal_".Length..]);
+        var launcherPoint = Bounds(launcher).Center;
+        window.MouseDown(launcherPoint, MouseButton.Right); window.MouseUp(launcherPoint, MouseButton.Right);
+        Dispatcher.UIThread.RunJobs();
+        Require(launcherHeader.ContextMenu?.IsOpen != true, "Right-clicking a header launcher icon must not open the group menu.");
+        launcherHeader.ContextMenu?.Close();
         var rightGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool));
         window.Layout.Select(rightGroup.Id, "files");
         projects = Find<Button>("Tab_projects");

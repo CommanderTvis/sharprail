@@ -166,7 +166,8 @@ active gesture.
 Adding or removing entries in the tool catalogue leaves existing tabs and their focus intact when
 their displayed metadata is unchanged. Side group header menus (right-click) lead with Show <tool> entries for hidden tools and, on a tool pane,
 New terminal pane below; opening the menu reads the current catalogue and excludes tools already placed anywhere
-in the frame. A change to metadata of a displayed tool refreshes its chrome.
+in the frame. The header menu opens only from the header's own space: a right-click on a header button (new
+terminal, agent launchers, search, hide, remove) opens no menu. A change to metadata of a displayed tool refreshes its chrome.
 
 Pointer is never the only path. Tab, group and header menus cover keep, close/hide, reorder, move to
 another group, side above/below groups, new pane before/after, remove group, fold, region visibility and tool restore; Alt+Shift+Left/Right reorders, Left/Right/Home/End rove, Delete or Mod+W
