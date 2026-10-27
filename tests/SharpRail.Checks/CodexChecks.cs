@@ -909,7 +909,8 @@ internal static class CodexChecks
         public void ExternalFiles(Func<string, IReadOnlyList<string>> provider) { }
         public void Tool(PluginToolDefinition definition) { }
         public void TerminalEnvironment(Func<TerminalRef, IReadOnlyDictionary<string, string>> contributor) { }
-        public void WorkspaceEnvironment(int order, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> provider) { }
+        public void WorkspaceEnvironment(IWorkspaceEnvironmentPolicy policy) { }
+        public void WorkspaceEnvironmentStep(string id, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> step) { }
         public void OnWorkspaceEnvironment(Action<string, IReadOnlyList<WorkspaceEnvironmentFact>> handler) { }
         public void AgentLaunch(Func<string, AgentLaunchContribution?> contributor) { }
         public IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId) => [];

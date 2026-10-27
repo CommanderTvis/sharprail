@@ -379,7 +379,8 @@ Step providers register with `WorkspaceEnvironmentStep(id, step)` (H23); `Env` r
 awaits `EnvironmentPreparer`, which resolves the workspace on a pool thread: it takes the process environment without
 `SHARPRAIL_TOKEN`, runs the active providers' steps in the order the policy gives (ties by plugin id), each seeing the
 earlier ones' edits, merges them as the policy says, and keeps the variables that differ from the host's own. A step
-that throws is logged against its plugin and skipped, unless the policy says otherwise.
+that throws is logged against its plugin and skipped. The policy (`IWorkspaceEnvironmentPolicy`) ranks step ids; merge, failure
+and timeout rules are fixed by the mechanism.
 A resolution already running for a workspace is shared; the shell waits at most 10 seconds and otherwise starts with
 the last good result (or none) while the resolution finishes for the next shell. The synchronous
 `EnvironmentContributor` reads that result, and plugins' own `TerminalEnvironment` contributors override it. A

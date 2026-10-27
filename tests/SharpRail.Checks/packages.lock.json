@@ -269,7 +269,7 @@
           "SharpRail.Plugins.ClaudeCode.Host": "[1.0.0, )",
           "SharpRail.Plugins.Codex.Host": "[1.0.0, )",
           "SharpRail.Plugins.Discord.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvChips.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Env.Host": "[1.0.0, )",
           "SharpRail.Plugins.EnvDirenv.Host": "[1.0.0, )",
           "SharpRail.Plugins.EnvJavaScript.Host": "[1.0.0, )",
           "SharpRail.Plugins.EnvJvm.Host": "[1.0.0, )",
@@ -496,26 +496,26 @@
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envchips": {
+      "sharprail.plugins.env": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envchips.host": {
+      "sharprail.plugins.env.host": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvChips": "[1.0.0, )"
+          "SharpRail.Plugins.Env": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envchips.ui": {
+      "sharprail.plugins.env.ui": {
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.4, )",
           "SharpRail.Plugins.Agent.UI": "[1.0.0, )",
           "SharpRail.Plugins.Api.UI": "[1.0.0, )",
-          "SharpRail.Plugins.EnvChips": "[1.0.0, )",
+          "SharpRail.Plugins.Env": "[1.0.0, )",
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
@@ -846,7 +846,7 @@
           "SharpRail.Plugins.ClaudeCode.UI": "[1.0.0, )",
           "SharpRail.Plugins.Codex.UI": "[1.0.0, )",
           "SharpRail.Plugins.Discord.UI": "[1.0.0, )",
-          "SharpRail.Plugins.EnvChips.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Env.UI": "[1.0.0, )",
           "SharpRail.Plugins.Epub.UI": "[1.0.0, )",
           "SharpRail.Plugins.Omp.UI": "[1.0.0, )",
           "SharpRail.Plugins.SpecDialect.UI": "[1.0.0, )",

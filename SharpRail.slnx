@@ -18,9 +18,9 @@
     <Project Path="src/SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvMise/Contract/SharpRail.Plugins.EnvMise.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvMise/Host/SharpRail.Plugins.EnvMise.Host.csproj" />
-    <Project Path="src/SharpRail.Plugins.EnvChips/Contract/SharpRail.Plugins.EnvChips.csproj" />
-    <Project Path="src/SharpRail.Plugins.EnvChips/Host/SharpRail.Plugins.EnvChips.Host.csproj" />
-    <Project Path="src/SharpRail.Plugins.EnvChips/UI/SharpRail.Plugins.EnvChips.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.Env/Contract/SharpRail.Plugins.Env.csproj" />
+    <Project Path="src/SharpRail.Plugins.Env/Host/SharpRail.Plugins.Env.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.Env/UI/SharpRail.Plugins.Env.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvDirenv/Contract/SharpRail.Plugins.EnvDirenv.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvDirenv/Host/SharpRail.Plugins.EnvDirenv.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvPython/Contract/SharpRail.Plugins.EnvPython.csproj" />

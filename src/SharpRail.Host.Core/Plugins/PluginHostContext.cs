@@ -88,8 +88,14 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
     public void TerminalEnvironment(Func<TerminalRef, IReadOnlyDictionary<string, string>> contributor) =>
         Register(table => table.Environment = table.Environment.Add(contributor));
 
-    public void WorkspaceEnvironment(int order, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> provider) =>
-        Register(table => table.EnvironmentProviders = table.EnvironmentProviders.Add(new(Id, order, provider)));
+    public void WorkspaceEnvironment(IWorkspaceEnvironmentPolicy policy) => Register(table => table.EnvironmentPolicy ??= policy);
+
+    public void WorkspaceEnvironmentStep(string id, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> step) =>
+        Register(table =>
+        {
+            if (table.EnvironmentProviders.Count > 0) runtime.Log(Id, "warn", $"environment step {id} was ignored: the plugin already registered one", null);
+            else table.EnvironmentProviders = table.EnvironmentProviders.Add(new(Id, id, step));
+        });
 
     public void OnWorkspaceEnvironment(Action<string, IReadOnlyList<WorkspaceEnvironmentFact>> handler) =>
         Register(table => table.EnvironmentObservers = table.EnvironmentObservers.Add(handler));

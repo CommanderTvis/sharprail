@@ -145,7 +145,7 @@
           "SharpRail.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envchips": {
+      "sharprail.plugins.env": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api": "[1.0.0, )"

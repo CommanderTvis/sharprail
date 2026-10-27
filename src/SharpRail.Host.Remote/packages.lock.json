@@ -41,7 +41,7 @@
           "SharpRail.Plugins.ClaudeCode.Host": "[1.0.0, )",
           "SharpRail.Plugins.Codex.Host": "[1.0.0, )",
           "SharpRail.Plugins.Discord.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvChips.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Env.Host": "[1.0.0, )",
           "SharpRail.Plugins.EnvDirenv.Host": "[1.0.0, )",
           "SharpRail.Plugins.EnvJavaScript.Host": "[1.0.0, )",
           "SharpRail.Plugins.EnvJvm.Host": "[1.0.0, )",
@@ -181,17 +181,17 @@
           "SharpRail.Plugins.Discord": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envchips": {
+      "sharprail.plugins.env": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.envchips.host": {
+      "sharprail.plugins.env.host": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
-          "SharpRail.Plugins.EnvChips": "[1.0.0, )"
+          "SharpRail.Plugins.Env": "[1.0.0, )"
         }
       },
       "sharprail.plugins.envdirenv": {

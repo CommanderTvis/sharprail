@@ -11,7 +11,7 @@ namespace SharpRail.Host.Core.Plugins;
 internal sealed record ResolvedEnvironment(IReadOnlyDictionary<string, string> Variables, IReadOnlyList<WorkspaceEnvironmentFact> Facts);
 
 /// <summary>One plugin's registered workspace environment step.</summary>
-internal sealed record EnvironmentProvider(string PluginId, int Order, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> Run);
+internal sealed record EnvironmentProvider(string PluginId, string StepId, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> Run);
 
 /// <summary>The environment a workspace's shell would start with, edited in order by the enabled plugins' steps.</summary>
 internal sealed class WorkspaceEnvironmentEdit : IWorkspaceEnvironmentEdit
@@ -243,9 +243,25 @@ public sealed partial class PluginRuntime
 
     private EnvironmentResolutions Resolutions => resolutions ??= new(ResolveEnvironmentAsync, message => Log("host", "warn", message, null), lifetime.Token, NotifyEnvironment);
 
-    private IReadOnlyList<(string Plugin, EnvironmentProvider Provider)> EnvironmentProviders() =>
-        Active().SelectMany(active => active.Tables.EnvironmentProviders.Select(provider => (active.Entry.Id, provider)))
-            .OrderBy(pair => pair.provider.Order).ThenBy(pair => pair.Item1, StringComparer.Ordinal).ToArray();
+    /// <summary>The active steps in the active policy's order, ties by plugin id; none while no plugin owns a policy.</summary>
+    private IReadOnlyList<(string Plugin, EnvironmentProvider Provider)> EnvironmentProviders()
+    {
+        var active = Active().ToArray();
+        var policy = active.OrderBy(pair => pair.Entry.Id, StringComparer.Ordinal).Select(pair => pair.Tables.EnvironmentPolicy).FirstOrDefault(candidate => candidate is not null);
+        if (policy is null) return [];
+        return active.SelectMany(pair => pair.Tables.EnvironmentProviders.Select(provider => (pair.Entry.Id, provider)))
+            .OrderBy(pair => Rank(policy, pair.provider.StepId)).ThenBy(pair => pair.Item1, StringComparer.Ordinal).ToArray();
+    }
+
+    private int Rank(IWorkspaceEnvironmentPolicy policy, string stepId)
+    {
+        try { return policy.Rank(stepId); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            Log("host", "warn", $"the environment policy could not rank step {stepId}: {error.Message}", null);
+            return int.MaxValue;
+        }
+    }
 
     private async Task<ResolvedEnvironment> ResolveEnvironmentAsync(string directory, CancellationToken cancellationToken)
     {

@@ -7,9 +7,9 @@ using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.EnvChips.UI;
+namespace SharpRail.Plugins.Env.UI;
 
-public sealed class EnvChipsUI : PluginUIModule
+public sealed class EnvUI : PluginUIModule
 {
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
@@ -31,7 +31,7 @@ internal sealed class EnvChipsRow : WrapPanel
         Margin = new Avalonia.Thickness(8, 0);
         IsVisible = false;
         // The first snapshot arrives on the subscription; later resolutions replace the chips.
-        subscription = context.Subscribe(EnvChipsContract.Changed, payload => Dispatcher.UIThread.Post(() => Apply(payload)), new EnvChipsQuery(workspaceId));
+        subscription = context.Subscribe(EnvContract.Changed, payload => Dispatcher.UIThread.Post(() => Apply(payload)), new EnvChipsQuery(workspaceId));
         DetachedFromVisualTree += (_, _) => subscription.Dispose();
     }
 

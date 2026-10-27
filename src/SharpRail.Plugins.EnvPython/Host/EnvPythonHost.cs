@@ -17,7 +17,7 @@ public sealed class EnvPythonHost : PluginHostModule
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
-        context.WorkspaceEnvironment(EnvPythonContract.Order, ApplyAsync);
+        context.WorkspaceEnvironmentStep(EnvPythonContract.StepId, ApplyAsync);
         return ValueTask.FromResult<PluginDisposer?>(null);
     }
 

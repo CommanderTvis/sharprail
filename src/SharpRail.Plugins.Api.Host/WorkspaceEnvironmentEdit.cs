@@ -20,7 +20,7 @@ public sealed class EnvironmentToolResult(int? exitCode, string output, string e
 }
 
 /// <summary>
-/// One workspace's shell environment while the enabled <see cref="IPluginHostContext.WorkspaceEnvironment"/> steps
+/// One workspace's shell environment while the enabled <see cref="IPluginHostContext.WorkspaceEnvironmentStep"/> steps
 /// edit it in order. It starts as the host's own environment without the host's session token, and a step sees what the
 /// steps before it produced.
 /// </summary>
@@ -90,6 +90,14 @@ public interface IWorkspaceEnvironmentEdit
     /// </summary>
     /// <param name="files">The configuration files.</param>
     bool MatchesDefault(IReadOnlyList<string> files);
+}
+
+/// <summary>The order of workspace environment steps, supplied by the plugin that owns the policy (<see cref="IPluginHostContext.WorkspaceEnvironment"/>).</summary>
+public interface IWorkspaceEnvironmentPolicy
+{
+    /// <summary>Where a step runs; lower runs first. A step id the policy does not know should rank <see cref="int.MaxValue"/>.</summary>
+    /// <param name="stepId">The id the step was registered with.</param>
+    int Rank(string stepId);
 }
 
 /// <summary>One environment a workspace's terminals start with, as a step reported it.</summary>

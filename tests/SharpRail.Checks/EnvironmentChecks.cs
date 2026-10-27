@@ -6,8 +6,8 @@ using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.EnvChips;
-using SharpRail.Plugins.EnvChips.Host;
+using SharpRail.Plugins.Env;
+using SharpRail.Plugins.Env.Host;
 using SharpRail.Plugins.EnvDirenv;
 using SharpRail.Plugins.EnvDirenv.Host;
 using SharpRail.Plugins.EnvJavaScript;
@@ -61,14 +61,42 @@ internal static class EnvironmentChecks
         public bool Has(string level, string text) { lock (Lines) return Lines.Any(line => line.StartsWith(level + " ") && line.Contains(text)); }
     }
 
+    // A step the Env policy does not know: it must run after all five known ones.
+    private sealed record ProbeSettings;
+
+    private sealed class ProbeHost : PluginHostModule
+    {
+        public static readonly PluginContract ProbeContract = PluginContract.Create<ProbeSettings>("probe-env-step", 1, [], []);
+        public static readonly PluginManifest Manifest = new("probe-env-step", "Probe", "stack-line", "0.1.0", PluginApi.Generation, 1)
+        {
+            Category = PluginCategories.Environment,
+            EnabledByDefault = true,
+            DependsOn = [new("env", 1)],
+            Host = "SharpRail.Checks.dll"
+        };
+
+        public override PluginContract Contract => ProbeContract;
+
+        public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
+        {
+            context.WorkspaceEnvironmentStep("zzz-unknown", (edit, _) =>
+            {
+                if (edit.Get("DIRENV_FLAG") is { } direnv && edit.Get("VIRTUAL_ENV") is { } venv && edit.Get("FROM_MISE") is { } mise) edit.Set("PROBE_LAST", direnv + "|" + mise + "|" + venv);
+                return ValueTask.CompletedTask;
+            });
+            return ValueTask.FromResult<PluginDisposer?>(null);
+        }
+    }
+
     private static readonly (PluginManifest, PluginHostModule?)[] Builtins =
     [
+        (EnvContract.Manifest, new EnvHost()),
+        (ProbeHost.Manifest, new ProbeHost()),
         (EnvMiseContract.Manifest, new EnvMiseHost()),
         (EnvDirenvContract.Manifest, new EnvDirenvHost()),
         (EnvPythonContract.Manifest, new EnvPythonHost()),
         (EnvJavaScriptContract.Manifest, new EnvJavaScriptHost()),
-        (EnvJvmContract.Manifest, new EnvJvmHost()),
-        (EnvChipsContract.Manifest, new EnvChipsHost())
+        (EnvJvmContract.Manifest, new EnvJvmHost())
     ];
 
     private sealed record Composed(PluginRuntime Runtime, HostStateStore State) : IAsyncDisposable
@@ -129,6 +157,8 @@ internal static class EnvironmentChecks
         // Progress lines, so a hang in CI shows which step it is in.
         Console.WriteLine("environment: resolution");
         await Resolution(directory, tools);
+        Console.WriteLine("environment: switch");
+        await Switch(directory, tools);
         Console.WriteLine("environment: runtimes");
         await Runtimes(directory, tools);
         Console.WriteLine("environment: cache");
@@ -193,7 +223,7 @@ internal static class EnvironmentChecks
         var runtime = composed.Runtime;
         Task<IReadOnlyDictionary<string, string>> Resolve(string workspace, string? defaultWorkspace, params (string Name, string Value)[] extra) =>
             WithEnvironment<IReadOnlyDictionary<string, string>>(tools, extra, async () => (await runtime.ResolveEnvironmentAsync(workspace, defaultWorkspace, CancellationToken.None)).Variables);
-        Require((await runtime.ListAsync()).Count(entry => entry.Id.StartsWith("env-") && entry.Status == PluginStatus.Active) == 6, "The environment plugins are active by default.");
+        Require((await runtime.ListAsync()).Count(entry => (entry.Id == EnvContract.Id || entry.Id.StartsWith("env-")) && entry.Status == PluginStatus.Active) == 6, "The environment plugins are active by default.");
 
         // A new worktree with the same configuration inherits the default workspace's trust, and every plugin composes.
         var worktree = Workspace(directory, "worktree");
@@ -209,6 +239,9 @@ internal static class EnvironmentChecks
             "PATH entries stack in plugin order, the last plugin first: " + result["PATH"]);
         Require(tools.Trusted("mise", worktree) && tools.Trusted("direnv", worktree) && log.Has("info", "matches the project's default workspace"), "Identical configuration inherits both trust decisions.");
         Require(!tools.Leaked && !result.ContainsKey("SHARPRAIL_TOKEN"), "The host's session token never reaches a tool or the shell.");
+        Require(result.GetValueOrDefault("PROBE_LAST") == "on|on|" + Path.Combine(worktree, ".venv"), "A step id the policy does not know runs after all the known ones: " + result.GetValueOrDefault("PROBE_LAST"));
+        var ranks = new[] { "mise", "direnv", "python", "javascript", "jvm", "zzz-unknown" }.Select(new EnvHost.StepPolicy().Rank).ToArray();
+        Require(ranks.SequenceEqual(ranks.Order()) && ranks.Distinct().Count() == ranks.Length && ranks[^1] == int.MaxValue, "The policy orders mise, direnv, Python, JavaScript, JVM, then unknown ids.");
         Require(!result.ContainsKey("DROP_ME"), "A variable a tool unsets is not contributed.");
         Require(!result.ContainsKey("FAKE_TOOLS_STATE") && !result.ContainsKey("HOME"), "Only changed variables are contributed.");
 
@@ -267,6 +300,30 @@ internal static class EnvironmentChecks
         await composed.Disable(EnvDirenvContract.Id);
         result = await Resolve(worktree, origin);
         Require(result.GetValueOrDefault("MISE_FLAG") == "on" && !result.ContainsKey("DIRENV_FLAG") && result.ContainsKey("VIRTUAL_ENV"), "Disabling direnv leaves mise, Python and JavaScript working.");
+    }
+
+    // Env owns the policy: with it off no step runs, the shells get the plain environment, and the dependents go off with it.
+    private static async Task Switch(string directory, Tools tools)
+    {
+        var workspace = Workspace(directory, "switch");
+        tools.Trust("mise", workspace);
+        tools.Trust("direnv", workspace);
+        await using var composed = await Compose(Path.Combine(directory, "host-switch"), new Log());
+        var runtime = composed.Runtime;
+        Task<ResolvedEnvironment> Resolve() => WithEnvironment(tools, [], async () => await runtime.ResolveEnvironmentAsync(workspace, null, CancellationToken.None));
+        async Task<int> Active() => (await runtime.ListAsync()).Count(entry => entry.Id.StartsWith("env-") && entry.Status == PluginStatus.Active);
+        Require(await Active() == 5 && (await Resolve()).Variables.ContainsKey("MISE_FLAG"), "With Env on the five step plugins run.");
+        await composed.Disable(EnvContract.Id);
+        var roster = await runtime.ListAsync();
+        Require(roster.Where(entry => entry.Id.StartsWith("env-")).All(entry => entry.Status != PluginStatus.Active), "Switching Env off switches its dependents off.");
+        var plain = await Resolve();
+        Require(plain.Variables.Count == 0 && plain.Facts.Count == 0, "While Env is off no step runs and the shells get the plain environment: " + string.Join(", ", plain.Variables.Keys));
+        await composed.State.ChangeAsync([HostStateChange.PluginEnabled(EnvContract.Id, true)]);
+        await runtime.Schedule();
+        Require(await Active() == 0 && (await runtime.ListAsync()).Single(entry => entry.Id == EnvContract.Id).Status == PluginStatus.Active, "Turning Env back on does not bring the dependents back.");
+        await composed.State.ChangeAsync([HostStateChange.PluginEnabled(EnvMiseContract.Id, true)]);
+        await runtime.Schedule();
+        Require((await Resolve()).Variables.ContainsKey("MISE_FLAG") && await Active() == 1, "A dependent is switched back on on its own.");
     }
 
     // Python and JavaScript runtimes, each found from a fake home so no real installation is read.
@@ -455,7 +512,7 @@ internal static class EnvironmentChecks
         {
             await RunShell(directory, "/bin/sh", worktree, "printf 'SHELL_%s_%s_\\n' \"$DIRENV_FLAG\" \"$FROM_MISE\"\r", "SHELL_on_on_", async composed =>
             {
-                var chips = (EnvChipsChanged)(await composed.Runtime.CallAsync(new(EnvChipsContract.Id, "get", new EnvChipsQuery(worktree), "client")))!;
+                var chips = (EnvChipsChanged)(await composed.Runtime.CallAsync(new(EnvContract.Id, "get", new EnvChipsQuery(worktree), "client")))!;
                 Require(chips.Chips.Select(chip => chip.Label).SequenceEqual(["mise", "direnv"]), "The chips plugin knows what applied to the workspace: " + string.Join(", ", chips.Chips.Select(chip => chip.Label)));
             });
             if (zsh is null) { Console.WriteLine("SKIP environment zsh shell integration: no zsh."); return 0; }

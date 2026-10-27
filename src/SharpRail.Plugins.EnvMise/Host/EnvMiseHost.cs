@@ -15,7 +15,7 @@ public sealed class EnvMiseHost : PluginHostModule
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
-        context.WorkspaceEnvironment(EnvMiseContract.Order, ApplyAsync);
+        context.WorkspaceEnvironmentStep(EnvMiseContract.StepId, ApplyAsync);
         return ValueTask.FromResult<PluginDisposer?>(null);
     }
 

@@ -18,7 +18,7 @@ public sealed class EnvJavaScriptHost : PluginHostModule
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
-        context.WorkspaceEnvironment(EnvJavaScriptContract.Order, Apply);
+        context.WorkspaceEnvironmentStep(EnvJavaScriptContract.StepId, Apply);
         return ValueTask.FromResult<PluginDisposer?>(null);
     }
 

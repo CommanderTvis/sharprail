@@ -690,7 +690,10 @@ SharpRail.Plugins.Api.Host.LanguageServerDependency.Name.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerDependency
 static SharpRail.Plugins.Api.Host.LanguageServerDependency.operator !=(SharpRail.Plugins.Api.Host.LanguageServerDependency? left, SharpRail.Plugins.Api.Host.LanguageServerDependency? right) -> bool
 static SharpRail.Plugins.Api.Host.LanguageServerDependency.operator ==(SharpRail.Plugins.Api.Host.LanguageServerDependency? left, SharpRail.Plugins.Api.Host.LanguageServerDependency? right) -> bool
-SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspaceEnvironment(int order, System.Func<SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! provider) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspaceEnvironment(SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentPolicy! policy) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspaceEnvironmentStep(string! id, System.Func<SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentEdit!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! step) -> void
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentPolicy
+SharpRail.Plugins.Api.Host.IWorkspaceEnvironmentPolicy.Rank(string! stepId) -> int
 SharpRail.Plugins.Api.Host.EnvironmentToolResult
 SharpRail.Plugins.Api.Host.EnvironmentToolResult.EnvironmentToolResult(int? exitCode, string! output, string! error) -> void
 SharpRail.Plugins.Api.Host.EnvironmentToolResult.Error.get -> string!

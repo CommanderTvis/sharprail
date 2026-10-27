@@ -223,15 +223,24 @@ public interface IPluginHostContext
     void LanguageServer(LanguageServerSpec spec);
 
     /// <summary>
-    /// Provides a step of every workspace's shell environment (H22). Before a shell starts for a tab with none running
-    /// the host runs the enabled plugins' steps in <paramref name="order"/> (ties by plugin id) on a pool thread, each
-    /// seeing what the earlier ones produced, and gives the shell the variables that differ from the host's own. The
-    /// host bounds the wait, shares a resolution already running for the workspace and keeps the last good result for
-    /// a shell that cannot wait. A step that throws is logged and skipped.
+    /// Owns the workspace environment policy (H22): the order the registered steps run in. Before a shell starts for a
+    /// tab with none running the host runs the enabled plugins' steps (<see cref="WorkspaceEnvironmentStep"/>) on a pool
+    /// thread in the policy's order (ties by plugin id), each seeing what the earlier ones produced, and gives the shell
+    /// the variables that differ from the host's own. The host bounds the wait, shares a resolution already running for
+    /// the workspace and keeps the last good result for a shell that cannot wait. A step that throws is logged and skipped.
+    /// Without an active policy no step runs and shells get the plain environment. One owner is expected (<c>env</c>);
+    /// with several, the first by plugin id wins.
     /// </summary>
-    /// <param name="order">Where the step runs among the others; lower runs first.</param>
-    /// <param name="provider">Edits the workspace's environment.</param>
-    void WorkspaceEnvironment(int order, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> provider);
+    /// <param name="policy">Orders the steps.</param>
+    void WorkspaceEnvironment(IWorkspaceEnvironmentPolicy policy);
+
+    /// <summary>
+    /// Provides this plugin's one step of every workspace's shell environment (H23). The policy (H22), not the step,
+    /// decides where it runs; a second registration by the same plugin is ignored.
+    /// </summary>
+    /// <param name="id">The step id the policy orders by, such as <c>mise</c>.</param>
+    /// <param name="step">Edits the workspace's environment.</param>
+    void WorkspaceEnvironmentStep(string id, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> step);
 
     /// <summary>
     /// Observes every workspace environment resolution (H22): the workspace's root directory and what the enabled steps

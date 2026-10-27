@@ -14,8 +14,8 @@ using SharpRail.Plugins.Codex;
 using SharpRail.Plugins.Codex.Host;
 using SharpRail.Plugins.Discord;
 using SharpRail.Plugins.Discord.Host;
-using SharpRail.Plugins.EnvChips;
-using SharpRail.Plugins.EnvChips.Host;
+using SharpRail.Plugins.Env;
+using SharpRail.Plugins.Env.Host;
 using SharpRail.Plugins.EnvDirenv;
 using SharpRail.Plugins.EnvDirenv.Host;
 using SharpRail.Plugins.EnvJavaScript;
@@ -125,8 +125,8 @@ public static class BuiltinPlugins
         (AirContextContract.Manifest, new AirContextHost()),
         (TailscaleContract.Manifest, new TailscaleHost(tailscale)),
         (EpubContract.Manifest, new EpubHost()),
+        (EnvContract.Manifest, new EnvHost()),
         (EnvMiseContract.Manifest, new EnvMiseHost()),
-        (EnvChipsContract.Manifest, new EnvChipsHost()),
         (EnvDirenvContract.Manifest, new EnvDirenvHost()),
         (EnvPythonContract.Manifest, new EnvPythonHost()),
         (EnvJavaScriptContract.Manifest, new EnvJavaScriptHost()),
