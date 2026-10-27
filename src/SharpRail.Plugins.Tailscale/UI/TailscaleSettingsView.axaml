@@ -13,7 +13,7 @@
     <TextBlock Text="Clients can find this host on your tailnet. Approve a new device only when its pairing code matches the code on that device." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
     <TextBlock x:Name="PairingStatus" Text="Checking…" TextWrapping="Wrap" />
     <TextBlock x:Name="PairingName" TextWrapping="Wrap" />
-    <TextBlock Text="Waiting for approval" FontWeight="SemiBold" />
+    <TextBlock x:Name="PairingPendingHeading" Text="Waiting for approval" FontWeight="SemiBold" IsVisible="False" />
     <ItemsControl x:Name="PairingPending">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="local:TailscaleApprovalRow">
@@ -28,16 +28,7 @@
         </DataTemplate>
       </ItemsControl.ItemTemplate>
     </ItemsControl>
-    <TextBlock Text="Remembered devices" FontWeight="SemiBold" />
-    <ItemsControl x:Name="PairingApproved">
-      <ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="local:TailscaleApprovalRow">
-          <StackPanel Spacing="4" Margin="0,0,0,12">
-            <TextBlock Text="{Binding Caption}" TextWrapping="Wrap" />
-            <Button Content="Revoke access" Command="{Binding Revoke}" HorizontalAlignment="Left" />
-          </StackPanel>
-        </DataTemplate>
-      </ItemsControl.ItemTemplate>
-    </ItemsControl>
+    <TextBlock x:Name="PairingApprovedHeading" Text="Remembered devices" FontWeight="SemiBold" IsVisible="False" />
+    <ItemsControl x:Name="PairingApproved" Margin="0,-12,0,0" />
   </StackPanel>
 </UserControl>

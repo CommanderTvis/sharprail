@@ -55,7 +55,11 @@ prompt's buttons are disabled, a failure is shown on the prompt, and success tak
 The prompt does not expire on its own: it comes down in every window when the host's status no longer lists the
 request, whether another window or client answered it or it expired. Opening settings keeps it. Repeated polls do not
 repeat the prompt for the same pending request. Any client that shows Settings › Tailscale can answer, so every client
-shows the choices. Requests expire after two minutes, and the host sweeps them every five seconds and republishes its status when an answerable one expires; declined
+shows the choices. Settings › Tailscale shows the "Waiting for approval" and "Remembered devices" headings with their
+lists only while the status has pending requests or remembered devices, following the status broadcast in place;
+otherwise nothing is rendered. A remembered device is one dense single-line row (ellipsis, tooltip with the full
+text) with a small cross button, named "Revoke access", that revokes at once without confirmation and is disabled
+while the request runs. Requests expire after two minutes, and the host sweeps them every five seconds and republishes its status when an answerable one expires; declined
 requests cannot be recreated by polling, and pending requests and approved grants are bounded to 32 and
 128 respectively. Pairing never releases the host's master session token.
 

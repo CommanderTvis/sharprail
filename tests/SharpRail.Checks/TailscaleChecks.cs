@@ -97,6 +97,7 @@ internal static class TailscaleChecks
             E2eWorkspace.Until(() => Find<TextBlock>("PairingName").Text?.Contains("host.tailnet.ts.net", StringComparison.Ordinal) == true);
             E2eWorkspace.Until(() => fake.Subscriptions > 0 && settings.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Content, "Approve")));
             Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == device.Code), "The approval UI shows the comparison code.");
+            Require(Find<TextBlock>("PairingPendingHeading").IsVisible, "The pending heading shows with one pending request.");
             var rows = Find<ItemsControl>("PairingPending").ItemsSource;
             window.Notify(false, "Unrelated notification");
             fake.Push("tailscale", "status", pending);
@@ -112,10 +113,18 @@ internal static class TailscaleChecks
                 "Approve on the prompt answers the matching pending request through the same plugin RPC as Settings.");
             E2eWorkspace.Until(() => Prompt(window, device) is null && Prompt(peer, device) is null);
             fake.Push("tailscale", "status", approved);
-            E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Content, "Revoke access")));
+            static bool IsRevoke(Button button) => button.Name == "RevokeAccess" && Avalonia.Automation.AutomationProperties.GetName(button) == "Revoke access";
+            E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Button>().Any(IsRevoke));
+            Require(Find<TextBlock>("PairingPendingHeading").IsVisible == false && Find<TextBlock>("PairingApprovedHeading").IsVisible,
+                "The pending heading hides with nothing pending; remembered devices show.");
+            var revokeButton = settings.GetLogicalDescendants().OfType<Button>().Single(IsRevoke);
+            var revokeRow = revokeButton.GetLogicalAncestors().OfType<Border>().First();
+            Require(revokeRow.Bounds.Height is > 0 and < 36 && revokeRow.GetLogicalDescendants().OfType<TextBlock>().Single().Bounds.Height < 24,
+                "A remembered device is one dense line under 36 px.");
             fake.Replies["revoke"] = pending with { Pending = [], Approved = [] };
-            settings.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Revoke access")).Command!.Execute(null);
+            settings.GetLogicalDescendants().OfType<Button>().Single(IsRevoke).Command!.Execute(null);
             E2eWorkspace.Until(() => fake.Calls.Any(call => call.Method == "revoke"));
+            E2eWorkspace.Until(() => !Find<TextBlock>("PairingApprovedHeading").IsVisible);
             settings.Close();
             E2eWorkspace.Until(() => fake.Subscriptions == 1);
             Require(fake.Subscriptions == 1, "The activation subscription continues to surface approvals with Settings closed.");
