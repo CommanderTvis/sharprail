@@ -43,6 +43,7 @@ public sealed class SettingsMessage
     [ProtoMember(27)] public bool ShellIntegrationDisabled { get; set; }
     [ProtoMember(10)] public bool NotificationsDisabled { get; set; }
     [ProtoMember(22)] public bool TerminalNotificationsDisabled { get; set; }
+    [ProtoMember(29)] public bool TerminalOptionAsAlt { get; set; }
     /// <summary>Empty, from a host that predates bell features, is the default.</summary>
     [ProtoMember(23)] public string BellFeatures { get; set; } = "";
     [ProtoMember(16), System.ComponentModel.DefaultValue(true)] public bool LspEnabled { get; set; } = true;

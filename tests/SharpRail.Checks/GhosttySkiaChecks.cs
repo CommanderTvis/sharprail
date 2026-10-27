@@ -551,6 +551,31 @@ internal static class GhosttySkiaChecks
         finally { window.Close(); Pump(); }
     }
 
+    private static void CheckOptionComposition(Window window, GhosttySkiaView view, Func<string> sent)
+    {
+        TerminalKeyboard.OptionAsAlt = false;
+        try
+        {
+            // Option composes: the key press carries no text of its own, the composed text follows through TextInput.
+            Press(window, Key.OemMinus, PhysicalKey.Minus, "—", RawInputModifiers.Alt | RawInputModifiers.Shift);
+            window.KeyTextInput("—"); Pump();
+            Require(sent() == "—", "Option+Shift+- did not type an em dash.");
+            Press(window, Key.OemMinus, PhysicalKey.Minus, "–", RawInputModifiers.Alt);
+            window.KeyTextInput("–"); Pump();
+            Require(sent() == "–", "Option+- did not type an en dash.");
+            Press(window, Key.E, PhysicalKey.E, null, RawInputModifiers.Alt);
+            Require(sent() == "", "the Option+E dead key sent bytes.");
+            window.KeyTextInput("é"); Pump();
+            Require(sent() == "é", "the dead key did not compose.");
+            Press(window, Key.Back, PhysicalKey.Backspace, null, RawInputModifiers.Alt);
+            Require(sent() == "\e\x7f", "Option+Backspace did not delete a word.");
+            TerminalKeyboard.OptionAsAlt = true;
+            Press(window, Key.B, PhysicalKey.B, "∫", RawInputModifiers.Alt);
+            Require(sent() == "\eb", "Option as Alt did not send ESC b.");
+        }
+        finally { TerminalKeyboard.OptionAsAlt = false; }
+    }
+
     private static void CheckView()
     {
         var input = new List<byte>();
@@ -591,8 +616,11 @@ internal static class GhosttySkiaChecks
             view.Write("\e[?1h"u8);
             Press(window, Key.Up, PhysicalKey.ArrowUp, null);
             Require(Sent() == "\eOA", "Up ignored application cursor mode.");
+            TerminalKeyboard.OptionAsAlt = true;
             Press(window, Key.B, PhysicalKey.B, "∫", RawInputModifiers.Alt);
             Require(Sent() == "\eb", "Option did not act as Alt.");
+            TerminalKeyboard.OptionAsAlt = false;
+            if (OperatingSystem.IsMacOS()) CheckOptionComposition(window, view, Sent);
             Press(window, Key.Tab, PhysicalKey.Tab, "\t");
             Require(Sent() == "\t" && view.IsKeyboardFocusWithin, "Tab moved focus instead of reaching the program.");
             bubbled.Clear();

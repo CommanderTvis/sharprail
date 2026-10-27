@@ -44,6 +44,7 @@ public sealed partial class WorkbenchWindow
     private void WireHostSync()
     {
         hydratedGeneration = Math.Max(1, state.Generation);
+        Ghostty.Avalonia.TerminalKeyboard.OptionAsAlt = state.Current.Settings.TerminalOptionAsAlt;
         state.Changed += SharedStateChanged;
         state.ConnectionChanged += ConnectionChanged;
         state.ConnectionFailed += Report;
@@ -126,6 +127,7 @@ public sealed partial class WorkbenchWindow
                 RefreshDecorations();
                 RefreshGitPanels();
             }
+            Ghostty.Avalonia.TerminalKeyboard.OptionAsAlt = next.Settings.TerminalOptionAsAlt;
             ApplyTabLayout();
             ApplyTerminalCatalog();
         }

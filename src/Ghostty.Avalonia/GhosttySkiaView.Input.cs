@@ -96,7 +96,8 @@ public sealed partial class GhosttySkiaView
         keyBarReleaseModifiers = KeyModifiers.None;
     }
 
-    private bool Encode(KeyEventArgs e, int action, KeyModifiers extraModifiers = KeyModifiers.None)
+    // An on-screen Alt is explicit, so it is always Alt rather than the Option that composes.
+    private bool Encode(KeyEventArgs e, int action, KeyModifiers extraModifiers = KeyModifiers.None, bool explicitAlt = false)
     {
         var mods = e.KeyModifiers | extraModifiers;
         var physical = Physical(e);
@@ -108,10 +109,14 @@ public sealed partial class GhosttySkiaView
         }
         var symbol = e.KeySymbol;
         var printable = !string.IsNullOrEmpty(symbol) && !char.IsControl(symbol[0]);
-        var alt = mods.HasFlag(KeyModifiers.Alt) && (OptionAsAlt || !MacKeyboard);
+        var optionAsAlt = explicitAlt || OptionAsAlt || TerminalKeyboard.OptionAsAlt;
+        vt.OptionAsAlt = optionAsAlt;
+        var alt = mods.HasFlag(KeyModifiers.Alt) && (optionAsAlt || !MacKeyboard);
+        var unshifted = Unshifted(physical);
+        // Option composes characters (Option+Shift+- is an em dash, Option+E a dead key): the text arrives through TextInput.
+        if (MacKeyboard && !alt && action == Press && mods.HasFlag(KeyModifiers.Alt) && !mods.HasFlag(KeyModifiers.Control) && unshifted != 0) return false;
         // Plain text arrives through TextInput, so input methods and dead keys compose.
         if (action == Press && printable && !mods.HasFlag(KeyModifiers.Control) && !alt) return false;
-        var unshifted = Unshifted(physical);
         // With Option as Alt the composed character is not the key's text; send the key itself.
         string? text = alt && unshifted != 0 ? char.ConvertFromUtf32(mods.HasFlag(KeyModifiers.Shift) ? char.ToUpperInvariant((char)unshifted) : (int)unshifted)
             : printable ? symbol : null;
@@ -180,8 +185,8 @@ public sealed partial class GhosttySkiaView
             {
                 var symbol = character.ToString();
                 var key = new KeyEventArgs { Key = character.Value switch { 13 => Key.Enter, 9 => Key.Tab, _ => Key.None }, KeySymbol = symbol, KeyModifiers = modifiers };
-                Encode(key, Press);
-                Encode(key, Release);
+                Encode(key, Press, explicitAlt: true);
+                Encode(key, Release, explicitAlt: true);
             }
             e.Handled = true;
             return;

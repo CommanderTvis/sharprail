@@ -89,7 +89,7 @@ A supplied `SKTypeface` remains caller-owned and must outlive the control.
 minimum contrast. The Skia path supports wide cells, combining clusters, HarfBuzz
 shaping within a cell, font fallback, procedural box drawing, SGR decorations,
 cursor styles, scrollback, mouse reporting, bracketed paste and IME preedit.
-Command shortcuts bubble to the application; Option acts as Alt by default.
+Command shortcuts bubble to the application; Option composes characters (Option+Shift+- types an em dash, Option+E is a dead key) unless `TerminalKeyboard.OptionAsAlt` is set, which the host setting `terminal-option-as-alt` drives; Option+Backspace and Option+arrows keep their word encodings.
 Set `ClipboardImageDirectory` to save pasted images and send their quoted paths.
 
 All three controls support OSC 52 text clipboard writes and reads on macOS,

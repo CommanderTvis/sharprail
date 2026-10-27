@@ -31,6 +31,8 @@ public sealed record HostSettings
     public bool NotificationsEnabled { get; init; } = true;
     /// <summary>Whether programs in terminals may raise desktop notifications (OSC 9, OSC 777), like Ghostty's desktop-notifications.</summary>
     public bool TerminalNotificationsEnabled { get; init; } = true;
+    /// <summary>Whether the macOS Option key acts as Alt (an ESC prefix) in terminals, like Ghostty's macos-option-as-alt; off, Option composes characters.</summary>
+    public bool TerminalOptionAsAlt { get; init; }
     /// <summary>
     /// What a terminal bell does, like Ghostty's bell-features: a comma-separated subset of <c>system</c> (the system alert
     /// sound), <c>attention</c> (request attention while the app is unfocused) and <c>title</c> (a bell on the tab until it is

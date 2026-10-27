@@ -870,6 +870,11 @@ public sealed partial class SettingsWindow : Window
             if (on) window.Workbench.Notifier?.RequestPermission();
         };
         refreshers.Add(() => programs.IsChecked = state.Current.Settings.TerminalNotificationsEnabled);
+        PageControl<Border>(panel, "TerminalOptionAsAltRow").IsVisible = OperatingSystem.IsMacOS();
+        var optionAsAlt = PageControl<Switch>(panel, "TerminalOptionAsAlt");
+        optionAsAlt.IsChecked = state.Current.Settings.TerminalOptionAsAlt;
+        optionAsAlt.CheckedChange += on => Share(HostStateChange.Setting("terminal-option-as-alt", on ? "true" : "false"));
+        refreshers.Add(() => optionAsAlt.IsChecked = state.Current.Settings.TerminalOptionAsAlt);
         foreach (var (feature, name) in new[] { ("title", "BellTitle"), ("attention", "BellAttention"), ("system", "BellSystem") })
         {
             var box = PageControl<CheckBox>(panel, name);

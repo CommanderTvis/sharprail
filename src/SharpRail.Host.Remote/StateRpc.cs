@@ -80,6 +80,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             ShellIntegrationDisabled = !state.Settings.ShellIntegrationEnabled,
             NotificationsDisabled = !state.Settings.NotificationsEnabled,
             TerminalNotificationsDisabled = !state.Settings.TerminalNotificationsEnabled,
+            TerminalOptionAsAlt = state.Settings.TerminalOptionAsAlt,
             BellFeatures = state.Settings.BellFeatures,
             CustomHighlighting = state.Settings.CustomHighlighting,
             VerticalCenterTabs = state.Settings.VerticalCenterTabs,

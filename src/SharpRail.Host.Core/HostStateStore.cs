@@ -690,6 +690,7 @@ public sealed partial class HostStateStore : IHostStateService
                     "java-kotlin-provider" when IsProviderChoice(value) => settings with { JavaKotlinProvider = value },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
                     "terminal-notifications" when bool.TryParse(value, out var programs) => settings with { TerminalNotificationsEnabled = programs },
+                    "terminal-option-as-alt" when bool.TryParse(value, out var optionAsAlt) => settings with { TerminalOptionAsAlt = optionAsAlt },
                     "bell-features" when HostSettings.NormalizeBellFeatures(value) is { } bell => settings with { BellFeatures = bell },
                     _ when key.StartsWith("language-server:", StringComparison.Ordinal) => settings with { LanguageServers = SetLanguageServer(settings.LanguageServers, key[16..], value) },
                     _ when key.StartsWith("language-tool:", StringComparison.Ordinal) => settings with { LanguageTools = SetLanguageTool(settings.LanguageTools, key[14..], value) },

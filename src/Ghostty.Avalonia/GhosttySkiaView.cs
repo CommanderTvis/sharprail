@@ -48,7 +48,6 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         Cursor = new Cursor(StandardCursorType.Ibeam);
         vt = new Vt(Size.Columns, Size.Rows, scrollbackLines, Reply, OperatingSystem.IsMacOS() ? null : text => _ = CopyAsync(text));
         vt.SetColors(colors);
-        vt.OptionAsAlt = OperatingSystem.IsMacOS();
         if (OperatingSystem.IsBrowser()) OptionAsAlt = MacKeyboard;
         settle = new(InvalidateArrange);
         blink.Tick += (_, _) => { cursorOn = !cursorOn; Redraw(snapshot: false); };
@@ -102,8 +101,8 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         set { colors = value; vt.SetColors(value); Redraw(); }
     }
 
-    /// <summary>Whether Option sends Alt-modified keys on macOS rather than composing characters. On by default.</summary>
-    public bool OptionAsAlt { get; set { field = value; vt.OptionAsAlt = value; } } = OperatingSystem.IsMacOS();
+    /// <summary>Whether Option sends Alt-modified keys here even when <see cref="TerminalKeyboard.OptionAsAlt"/> is off (the browser has no composition).</summary>
+    public bool OptionAsAlt { get; set; }
 
     /// <summary>When set, pasting an image saves it there as PNG and pastes its shell-quoted path.</summary>
     public string? ClipboardImageDirectory { get; set; }

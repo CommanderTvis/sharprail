@@ -1901,6 +1901,8 @@ SharpRail.Host.Abstractions.HostSettings.BellFeatures.get -> string!
 SharpRail.Host.Abstractions.HostSettings.BellFeatures.init -> void
 SharpRail.Host.Abstractions.HostSettings.TerminalNotificationsEnabled.get -> bool
 SharpRail.Host.Abstractions.HostSettings.TerminalNotificationsEnabled.init -> void
+SharpRail.Host.Abstractions.HostSettings.TerminalOptionAsAlt.get -> bool
+SharpRail.Host.Abstractions.HostSettings.TerminalOptionAsAlt.init -> void
 SharpRail.Host.Abstractions.ITerminalCatalogService.WatchSignalsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<SharpRail.Host.Abstractions.TerminalSignal!>!
 SharpRail.Host.Abstractions.TerminalProgressState
 SharpRail.Host.Abstractions.TerminalProgressState.Error = 2 -> SharpRail.Host.Abstractions.TerminalProgressState

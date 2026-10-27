@@ -311,6 +311,12 @@
             <rendering:Switch x:Name="TerminalNotificationsEnabled" Grid.Column="1" Label="Desktop notifications from programs" />
           </Grid>
         </Border>
+        <Border x:Name="TerminalOptionAsAltRow" Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="Option key acts as Alt" Classes="settings-label" ToolTip.Tip="Off, Option composes characters (Option+Shift+- types an em dash); on, it sends Esc-prefixed keys as in Ghostty's macos-option-as-alt" />
+            <rendering:Switch x:Name="TerminalOptionAsAlt" Grid.Column="1" Label="Option key acts as Alt" />
+          </Grid>
+        </Border>
         <TextBlock Text="Bell" Classes="settings-heading" Margin="0,16,0,0" />
         <TextBlock Text="What a terminal bell (BEL) does." Classes="settings-description" />
         <CheckBox x:Name="BellTitle" Content="Mark the tab with a bell until you view it" />

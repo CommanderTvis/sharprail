@@ -148,7 +148,8 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   automatic. `notifications` (`true`/`false`, default on) is the master toggle for clients'
   away notifications; the wire carries its negation, so a host that predates it reads as on.
   `terminal-notifications` (`true`/`false`, default on, Ghostty's `desktop-notifications`) lets programs in terminals raise
-  desktop notifications (OSC 9, OSC 777, OSC 99); the wire carries its negation. `bell-features` is a comma-separated subset of
+  desktop notifications (OSC 9, OSC 777, OSC 99); the wire carries its negation. `terminal-option-as-alt` (`true`/`false`, default off, Ghostty's
+  `macos-option-as-alt`) makes the macOS Option key an Alt (ESC prefix) in terminals instead of composing characters. `bell-features` is a comma-separated subset of
   `system`, `attention` and `title`, or `none`, stored in that canonical order; the default `attention,title` is Ghostty's
   `bell-features` default. An empty wire value, from a host that predates it, and an unknown loaded value read as the default.
 - Setting updates accept a closed set of keys and validate their values before publishing the batch;

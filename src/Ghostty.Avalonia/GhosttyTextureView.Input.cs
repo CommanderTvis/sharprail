@@ -93,13 +93,20 @@ public sealed partial class GhosttyTextureView
         if (e.KeyModifiers.HasFlag(KeyModifiers.Meta) || !KeyCodes.TryGetValue(e.PhysicalKey, out var code)) return;
         var text = e.KeySymbol;
         var printable = !string.IsNullOrEmpty(text) && !char.IsControl(text[0]);
+        var unshifted = Unshifted(e.PhysicalKey);
+        var optionComposes = OperatingSystem.IsMacOS() && !TerminalKeyboard.OptionAsAlt && e.KeyModifiers.HasFlag(KeyModifiers.Alt) && !e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        // Option composes characters (Option+Shift+- is an em dash, Option+E a dead key): the text arrives through TextInput.
+        if (optionComposes && unshifted != 0)
+        {
+            pendingTextKey = null;
+            return;
+        }
         if (printable && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Alt))
         {
             pendingTextKey = code;
             pendingTextModifiers = e.KeyModifiers;
             return;
         }
-        var unshifted = Unshifted(e.PhysicalKey);
         if (e.KeyModifiers.HasFlag(KeyModifiers.Alt) && unshifted != 0)
             text = char.ConvertFromUtf32((int)(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? char.ToUpperInvariant((char)unshifted) : unshifted));
         e.Handled = Native.Key(terminal.Handle, 1, code, Vt.Mods(e.KeyModifiers), 0, printable ? text : null, unshifted);
