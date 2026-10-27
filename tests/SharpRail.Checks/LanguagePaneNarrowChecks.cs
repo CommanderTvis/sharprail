@@ -97,6 +97,11 @@ internal static class LanguagePaneNarrowChecks
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
                 if (round < 3) early.AddRange(servers.Items.Cast<object>().Select(item => new WeakReference(item)));
             }
+            // The pane also asks the host for its real inventory when it opens; that reply may land mid-churn and replace the fake one
+            // (the host is the truth), so settle that request and show the final inventory again before counting.
+            E2E.E2eWorkspace.Until(() => pane.FindControl<Button>("Refresh")!.IsEnabled, "The pane's own inventory request did not finish.");
+            pane.ShowInventory(Enumerable.Range(0, count).Select(index => new LanguageServerState($"fake-{index}", "file.x", "ready", "final", "1")).ToArray());
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
             Require(servers.ItemCount == count, $"The pane showed {servers.ItemCount} rows for {count} servers.");
             for (var pass = 0; pass < 2; pass++) { GC.Collect(); GC.WaitForPendingFinalizers(); }
             var alive = early.Count(reference => reference.IsAlive);
