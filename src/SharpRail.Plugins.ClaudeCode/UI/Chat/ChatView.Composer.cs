@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Plugins.Agent.UI;
 using SharpRail.Plugins.Api;
@@ -18,7 +19,7 @@ namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
 internal sealed partial class ChatView
 {
     private static readonly Dictionary<(string, string), string> Drafts = [];
-    private static readonly Dictionary<(string, string), List<string>> Histories = [];
+    internal static readonly Dictionary<(string, string), List<string>> Histories = [];
 
     private TextBox input = null!;
     private Button send = null!;
@@ -1009,7 +1010,13 @@ internal sealed partial class ChatView
     private bool OnEdgeLine(bool up)
     {
         var text = input.Text ?? "";
-        var caret = input.CaretIndex;
+        var caret = Math.Clamp(input.CaretIndex, 0, text.Length);
+        if (input.GetVisualDescendants().OfType<TextPresenter>().FirstOrDefault()?.TextLayout is { TextLines.Count: > 0 } layout)
+        {
+            // Soft-wrapped lines count: the caret must sit on the first (Up) or last (Down) visual line.
+            var line = layout.GetLineIndexFromCharacterIndex(caret, caret == text.Length);
+            return up ? line <= 0 : line >= layout.TextLines.Count - 1;
+        }
         return up ? text.IndexOf('\n') is var first && (first < 0 || caret <= first) : text.LastIndexOf('\n') is var last && caret > last;
     }
 

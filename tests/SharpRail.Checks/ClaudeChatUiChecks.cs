@@ -173,6 +173,7 @@ internal static class ClaudeChatUiChecks
         CommandMenu();
         HoverAffordance();
         PasteImages();
+        WrappedHistory();
         RunningFooter();
         PrimaryContrast();
         QuestionPreview();
@@ -479,6 +480,39 @@ internal static class ClaudeChatUiChecks
     }
 
     private const double MinimumDisabledContrast = 3.0;
+
+    // Up/Down recall history only from the first/last visual line: a soft-wrapped draft moves the caret between its wrapped lines first.
+    private static void WrappedHistory()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        ChatView.Histories[(Workspace, Chat)] = ["previous prompt"];
+        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var window = new Window { Width = 260, Height = 500, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            void Press(Key key) => view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key });
+            view.Input.Focus();
+            var wrapped = string.Join(" ", Enumerable.Repeat("wrapping", 20));
+            view.Input.Text = wrapped; Frame(window); Frame(window);
+            view.Input.CaretIndex = wrapped.Length; Frame(window);
+            Press(Key.Up);
+            Require(view.Input.Text == wrapped && view.Input.CaretIndex < wrapped.Length, $"Up on a wrapped second visual line moves the caret and keeps the draft (caret {view.Input.CaretIndex}).");
+            view.Input.CaretIndex = 0; Frame(window);
+            Press(Key.Down);
+            Require(view.Input.Text == wrapped && view.Input.CaretIndex > 0, $"Down on the first visual line of a wrapped draft moves the caret and keeps the draft (caret {view.Input.CaretIndex}).");
+            view.Input.CaretIndex = 0; Frame(window);
+            Press(Key.Up);
+            Require(view.Input.Text == "previous prompt", "Up on the first visual line recalls the previous prompt.");
+            view.Input.Text = "short"; view.Input.CaretIndex = 5; Frame(window);
+            Press(Key.Up);
+            Require(view.Input.Text == "previous prompt", "A single-line draft still recalls history.");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); }
+    }
 
     // Paste is the composer's own: an image (or files) on the clipboard becomes an attachment chip with its bytes, by the key, Shift+Insert and
     // the box's Paste; a clipboard of text only still goes into the box. Exercised on the headless in-memory clipboard, not the real macOS pasteboard.
