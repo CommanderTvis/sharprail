@@ -69,7 +69,7 @@ internal static class CodexE2E
         var submitted = 0;
         using var stdout = Console.OpenStandardOutput();
         RawInput();
-        Out("codex command input ready\r\n");
+        Out("codex command input ready\r\n› Ask Codex to do anything\r\n");
         using (var http = new HttpClient())
             http.PostAsync(Environment.GetEnvironmentVariable("THINKRAIL_CODEX_STATUS_URL"),
                 new StringContent("{\"hook_event_name\":\"SessionStart\",\"session_id\":\"codex-ide-command-test\"}", Encoding.UTF8, "application/json")).GetAwaiter().GetResult();

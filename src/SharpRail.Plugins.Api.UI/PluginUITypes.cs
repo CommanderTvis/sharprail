@@ -197,6 +197,14 @@ public interface ITerminalAccessoryApi
     /// <returns>The handle that ends the hold.</returns>
     IDisposable HoldInput();
 
+    /// <summary>
+    /// Reads the bottom rows of the visible screen as plain text, with faint cells (a placeholder, a suggestion) blanked
+    /// where the renderer can. The read runs off the UI thread; await it from a handler instead of waiting on it.
+    /// </summary>
+    /// <param name="lines">How many bottom rows to return.</param>
+    /// <returns>The rows, oldest first.</returns>
+    Task<IReadOnlyList<string>> ReadScreenTailAsync(int lines);
+
     /// <summary>Gives the terminal the keyboard focus, for a chip that has just typed a command the user answers with keys.</summary>
     void Focus();
 

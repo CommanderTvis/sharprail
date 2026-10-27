@@ -61,7 +61,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         var working = state?.Status == ClaudeCodeStatus.Running;
         var chip = TerminalFacts.ActionFactChip(kind, label, working ? $"{title}. Claude is working: open the {what} picker when it is at its prompt" : $"{title}. Click to open Claude Code's {command} picker", () =>
         {
-            if (RunsClaude) OpenPicker(terminal, command, State?.Status);
+            if (RunsClaude) _ = OpenAsync(command);
         }, leading);
         chip.IsEnabled = !working;
         ToolTip.SetShowOnDisabled(chip, true);
@@ -69,13 +69,42 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         return chip;
     }
 
-    /// <summary>Types the picker's slash command and Enter, once, and focuses the terminal for the arrow keys; never a selection, never over a running turn.</summary>
-    internal static bool OpenPicker(ITerminalAccessoryApi terminal, string command, ClaudeCodeStatus? status)
+    // The click handler only starts the screen read; typing happens after it, if the prompt is empty and the tab is unchanged.
+    private async Task OpenAsync(string command)
+    {
+        var tab = terminal.TabKey;
+        if (await TypeAsync(command + "\r", () => RunsClaude && terminal.TabKey == tab)) terminal.Focus();
+    }
+
+    private Task<bool> TypeAsync(string text, Func<bool> stillCurrent) =>
+        TypeIfPromptEmptyAsync(terminal, text, State?.Status, stillCurrent, notice => context.Notify(PluginNotificationKind.Info, notice));
+
+    private static readonly System.Text.RegularExpressions.Regex PickerRow = new(@"^\s*❯\s*\d+\.\s+", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    private static readonly System.Text.RegularExpressions.Regex Placeholder = new(@"^Message @.+(?:…|\.\.\.)$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>What Claude Code's prompt box shows on these screen rows; its own empty-prompt placeholder is <c>Message @agent…</c>.</summary>
+    internal static PromptState Prompt(IReadOnlyList<string> lines) => PromptGuard.Classify(lines, "❯", PickerRow, text => Placeholder.IsMatch(text));
+
+    /// <summary>Types a command only into an empty prompt, once: not over a draft, not on an unknown screen, never over a running turn.</summary>
+    internal static async Task<bool> TypeIfPromptEmptyAsync(ITerminalAccessoryApi terminal, string text, ClaudeCodeStatus? status, Func<bool> stillCurrent, Action<string> refuse)
     {
         if (status == ClaudeCodeStatus.Running) return false;
-        terminal.Write(command + "\r");
-        terminal.Focus();
+        if (!await PromptGuard.MayTypeAsync(terminal.ReadScreenTailAsync, Prompt, stillCurrent, refuse)) return false;
+        terminal.Write(text);
         return true;
+    }
+
+    private bool idePending;
+
+    private async Task SendIdeAsync(bool enabled)
+    {
+        var tab = terminal.TabKey;
+        try
+        {
+            if (await TypeAsync($"/ide {(enabled ? "on" : "off")}\r", () => RunsClaude && terminal.TabKey == tab))
+                store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, enabled);
+        }
+        finally { idePending = false; }
     }
 
     private void StoreChanged(string workspaceId, string tabKey)
@@ -150,9 +179,10 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         var ideChip = TerminalFacts.IdeContextChip(ide, () =>
         {
             // Claude's own command, for this session only; the integration's configuration is untouched.
+            if (idePending) return;
             var enabled = !(store.IdeContext(terminal.WorkspaceId, terminal.TabKey) ?? true);
-            terminal.Write($"/ide {(enabled ? "on" : "off")}\r");
-            store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, enabled);
+            idePending = true;
+            _ = SendIdeAsync(enabled);
         });
         ideChip.Margin = Chips.Gap;
         facts.Children.Add(ideChip);

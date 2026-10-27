@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
+using SharpRail.Plugins.Agent.UI;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.Api.UI;
@@ -1274,6 +1275,13 @@ internal static class CodexChecks
         var tui = new TypingTui();
         await CodexTerminalCommands.SubmitAsync(tui, "/model");
         Require(tui.Written.SequenceEqual(["/model", "\r"]) && tui.Held == 0, "opening the model picker types /model and Enter once, never a selection, and releases the user's keys");
+        Equal(CodexTerminalCommands.Prompt(["• done", "› Ask Codex to do anything", "  gpt-5.6-luna"]), PromptState.Empty, "Codex's placeholder is an empty prompt");
+        Equal(CodexTerminalCommands.Prompt(["› ", "  ? for shortcuts"]), PromptState.Empty, "an empty composer with the placeholder omitted");
+        Equal(CodexTerminalCommands.Prompt(["› fix the build"]), PromptState.Draft, "typed text is a draft");
+        Equal(CodexTerminalCommands.Prompt(["› explain this codebase to me"]), PromptState.Draft, "a draft that begins with an example's words is a draft");
+        Equal(CodexTerminalCommands.Prompt(["› /mo", "  /model  choose what model and reasoning effort to use"]), PromptState.Draft, "an open slash-command menu means a draft");
+        Equal(CodexTerminalCommands.Prompt(["  Select Model and Effort", "› 2. GPT-5.6 Luna (current)  x"]), PromptState.NotAtPrompt, "an open picker is not the prompt");
+        Equal(CodexTerminalCommands.Prompt(["some dialog"]), PromptState.NotAtPrompt, "an unknown screen is not the prompt");
     }
 
     private static void EditorProjection()

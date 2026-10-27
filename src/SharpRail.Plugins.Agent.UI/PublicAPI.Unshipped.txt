@@ -84,3 +84,13 @@ SharpRail.Plugins.Agent.UI.TokenAmount.IsNarrow.get -> bool
 SharpRail.Plugins.Agent.UI.TokenAmount.Text.get -> string!
 SharpRail.Plugins.Agent.UI.TokenAmount.TokenAmount(string! amount, long tokens, Avalonia.Media.IBrush! foreground, string! suffix = "") -> void
 static SharpRail.Plugins.Agent.UI.TokenAmount.Unit(long tokens, bool abbreviated) -> string!
+SharpRail.Plugins.Agent.UI.PromptGuard
+SharpRail.Plugins.Agent.UI.PromptState
+SharpRail.Plugins.Agent.UI.PromptState.Draft = 1 -> SharpRail.Plugins.Agent.UI.PromptState
+SharpRail.Plugins.Agent.UI.PromptState.Empty = 0 -> SharpRail.Plugins.Agent.UI.PromptState
+SharpRail.Plugins.Agent.UI.PromptState.NotAtPrompt = 2 -> SharpRail.Plugins.Agent.UI.PromptState
+const SharpRail.Plugins.Agent.UI.PromptGuard.DraftNotice = "Clear the prompt first: it holds a draft." -> string!
+const SharpRail.Plugins.Agent.UI.PromptGuard.NotAtPromptNotice = "Not at the prompt." -> string!
+const SharpRail.Plugins.Agent.UI.PromptGuard.TailLines = 24 -> int
+static SharpRail.Plugins.Agent.UI.PromptGuard.Classify(System.Collections.Generic.IReadOnlyList<string!>! lines, string! glyph, System.Text.RegularExpressions.Regex! pickerRow, System.Func<string!, bool>! isPlaceholder) -> SharpRail.Plugins.Agent.UI.PromptState
+static SharpRail.Plugins.Agent.UI.PromptGuard.MayTypeAsync(System.Func<int, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!>! readTail, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, SharpRail.Plugins.Agent.UI.PromptState>! classify, System.Func<bool>! stillCurrent, System.Action<string!>! refuse) -> System.Threading.Tasks.Task<bool>!

@@ -55,8 +55,13 @@ the module owns no session, account or terminal state.
   the body or "Open the terminal for details." It returns text only; the provider decides
   when to ask and hands the result to the plugin API.
 
-There is no prompt-draft reader any more: it existed only for the guards of the retired terminal-driving model and effort
-pickers (see the Claude Code and Codex specs). `TerminalFacts.ActionFactChip` builds a read-only fact chip whose click
+`PromptGuard` is the guard every chip that types a slash command into an agent goes through. `Classify` is a pure function over
+the screen's bottom rows (`PromptState.Empty`, `Draft`, `NotAtPrompt`): it reads the line after the prompt glyph, tolerating a box edge and
+no-break spaces, counts text between that line and the box's bottom border as a multi-line draft, ignores the agent's
+placeholders and hints of a kind every agent shows (`Press up to edit queued messages`, `Try "…"`, `? for shortcuts`, matched by
+family), and answers `NotAtPrompt` for an open picker row or when no prompt line exists. `MayTypeAsync` reads the tail off the UI thread,
+re-checks the tab and notifies the refusal ("Clear the prompt first: it holds a draft." / "Not at the prompt."). It never
+types speculatively. The pre-existing terminal-driving pickers it once served are retired (see the Claude Code and Codex specs). `TerminalFacts.ActionFactChip` builds a read-only fact chip whose click
 runs a caller action, with no menu and no chevron.
 
 Generic scoped settings and value composers remain in the general UI kit.

@@ -14,6 +14,7 @@ using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Plugins.Agent.UI;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.Api.UI;
@@ -942,11 +943,32 @@ internal static class ClaudeCodeChecks
         var modelFacts = ClaudeTerminalAccessory.Facts(new ClaudeSessionState(ClaudeCodeStatus.Idle) { Model = "claude-sonnet-5-5-20260101", Effort = "low" });
         Require(modelFacts.Any(fact => fact is { Kind: "model", Label: "sonnet-5-5" }) && modelFacts.Any(fact => fact is { Kind: "effort", Label: "low effort" }),
             "The model and effort chips show what Claude Code's hooks last reported.");
-        var typed = new TypingTerminal();
-        Require(ClaudeTerminalAccessory.OpenPicker(typed, "/model", ClaudeCodeStatus.Idle) && typed.Writes.SequenceEqual(["/model\r"]) && typed.Focused == 1,
-            "Clicking the model chip types /model and Enter once and focuses the terminal; it never picks a model.");
-        Require(!ClaudeTerminalAccessory.OpenPicker(typed, "/effort", ClaudeCodeStatus.Running) && typed.Writes.Count == 1,
-            "A running turn leaves the effort chip inert.");
+        const string Box = "────────────────────────────";
+        string[] Empty = ["● done", Box, "❯ Message @agent…", Box, "  ? for shortcuts"];
+        Require(ClaudeTerminalAccessory.Prompt(Empty) == PromptState.Empty && ClaudeTerminalAccessory.Prompt(["", Box, "❯ ", Box]) == PromptState.Empty &&
+            ClaudeTerminalAccessory.Prompt([Box, "❯ Press up to edit queued messages", Box]) == PromptState.Empty, "an empty prompt, placeholder omitted or shown, is empty");
+        Require(ClaudeTerminalAccessory.Prompt([Box, "❯ fix the build", Box]) == PromptState.Draft && ClaudeTerminalAccessory.Prompt([Box, "│ ❯ fix the build        │", Box]) == PromptState.Draft,
+            "a one-line draft is a draft");
+        Require(ClaudeTerminalAccessory.Prompt([Box, "❯", "  second line of a draft", Box]) == PromptState.Draft && ClaudeTerminalAccessory.Prompt([Box, "❯ first", "  second", Box]) == PromptState.Draft,
+            "a multi-line draft is a draft");
+        Require(ClaudeTerminalAccessory.Prompt([Box, "❯ /mo", Box, "  /model   Set the AI model for Claude Code"]) == PromptState.Draft, "an open slash-command menu means a draft");
+        Require(ClaudeTerminalAccessory.Prompt(["Select model", "❯ 1. Default (recommended)  x", "  2. Opus"]) == PromptState.NotAtPrompt &&
+            ClaudeTerminalAccessory.Prompt(["some unknown dialog", "Press Enter to continue"]) == PromptState.NotAtPrompt && ClaudeTerminalAccessory.Prompt([]) == PromptState.NotAtPrompt,
+            "an open picker or an unknown screen is not the prompt");
+        (bool Typed, TypingTerminal Terminal, string? Notice) Click(string[] screen, ClaudeCodeStatus status = ClaudeCodeStatus.Idle, bool current = true)
+        {
+            var terminal = new TypingTerminal { Screen = screen };
+            string? notice = null;
+            var typed = ClaudeTerminalAccessory.TypeIfPromptEmptyAsync(terminal, "/model\r", status, () => current, text => notice = text).GetAwaiter().GetResult();
+            return (typed, terminal, notice);
+        }
+        var clicked = Click(Empty);
+        Require(clicked.Typed && clicked.Terminal.Writes.SequenceEqual(["/model\r"]), "Clicking over an empty prompt types /model and Enter once, never a selection.");
+        var overDraft = Click([Box, "❯ fix the build", Box]);
+        Require(!overDraft.Typed && overDraft.Terminal.Writes.Count == 0 && overDraft.Notice == "Clear the prompt first: it holds a draft.", "A draft is never appended to.");
+        var unknown = Click(["some dialog"]);
+        Require(!unknown.Typed && unknown.Terminal.Writes.Count == 0 && unknown.Notice == "Not at the prompt.", "An unknown screen is never typed into.");
+        Require((Click(Empty, ClaudeCodeStatus.Running)).Terminal.Writes.Count == 0 && (Click(Empty, current: false)).Terminal.Writes.Count == 0, "A running turn or a changed tab types nothing.");
         Require(((Border)Ui.Icon("chrome")).OpacityMask is Avalonia.Media.DrawingBrush, "The Chrome chip's icon is a vector asset.");
         var plainRun = Launch("continue");
         Require(!plainRun.Contains("--advisor") && !plainRun.Contains("--chrome") && !plainRun.Contains("--no-chrome"), "No advisor and Chrome off add no flags.");
@@ -1542,10 +1564,11 @@ internal static class ClaudeCodeChecks
     {
         public List<string> Writes { get; } = [];
         public int Focused { get; private set; }
+        public string[] Screen { get; init; } = [];
         public string WorkspaceId => "workspace";
         public string TabKey => "tab";
         public void Write(string data) => Writes.Add(data);
-        public IReadOnlyList<string> BufferTail(int lines, bool omitFaint = false) => [];
+        public Task<IReadOnlyList<string>> ReadScreenTailAsync(int lines) => Task.FromResult<IReadOnlyList<string>>(Screen);
         public IDisposable HoldInput() => throw new NotSupportedException();
         public void Focus() => Focused++;
         public void SetKeyEncoding(SharpRail.Plugins.Api.UI.TerminalKeyEncoding encoding) { }

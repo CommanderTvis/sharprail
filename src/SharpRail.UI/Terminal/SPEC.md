@@ -30,8 +30,8 @@ plain-text view.
 cells (`GhosttySkiaView.ReadViewport`, no scrollback) with faint cells blanked, plus an inverse cell directly before a
 faint one (an agent's cursor on a placeholder's first glyph). The texture renderer, the browser and the default
 interface implementation return plain text. The checks feed SGR sequences (2 faint, 7 inverse) through a real
-`GhosttySkiaView`; they were not captured from a live session. No accessory reads the buffer any more
-(`ITerminalAccessoryApi.BufferTail` was removed with the pickers' draft guards).
+`GhosttySkiaView`; they were not captured from a live session. Accessories read the bottom rows through `ITerminalAccessoryApi.ReadScreenTailAsync` (a `Task.Run` over `ReadScreen(true)`),
+only for the prompt guard in Agent.UI.
 
 An accessory that types a command into an agent (a slash command) takes `HoldInput()` first and
 disposes the handle in a `finally` when the entry is complete, submitted included. While a hold is in force

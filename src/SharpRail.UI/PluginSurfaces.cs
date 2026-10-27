@@ -445,6 +445,12 @@ public sealed partial class WorkbenchWindow
 
         public IDisposable HoldInput() => terminal.HoldInput();
 
+        public Task<IReadOnlyList<string>> ReadScreenTailAsync(int lines) => Task.Run<IReadOnlyList<string>>(() =>
+        {
+            var all = terminal.ReadScreen(true).Replace("\r", "").TrimEnd('\n').Split('\n');
+            return all.Length <= lines ? all : all[^lines..];
+        });
+
         public void Focus() => terminal.FocusTerminal();
 
         public void SetKeyEncoding(TerminalKeyEncoding encoding) => terminal.SetAgentNewline(encoding == TerminalKeyEncoding.AgentNewline);

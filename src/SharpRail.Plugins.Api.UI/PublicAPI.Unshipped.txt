@@ -418,6 +418,7 @@ SharpRail.Plugins.Api.UI.IPluginUILogger.Info(string! message, object? fields = 
 SharpRail.Plugins.Api.UI.IPluginUILogger.Warn(string! message, object? fields = null) -> void
 SharpRail.Plugins.Api.UI.ITerminalAccessoryApi
 SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.Focus() -> void
+SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.ReadScreenTailAsync(int lines) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
 SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.HoldInput() -> System.IDisposable!
 SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.SetKeyEncoding(SharpRail.Plugins.Api.UI.TerminalKeyEncoding encoding) -> void
 SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.TabKey.get -> string!

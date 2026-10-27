@@ -73,7 +73,15 @@ public sealed class CodexTerminalFacts : ContentControl
         store.Changed -= Update;
     }
 
-    private void SendIdeCommand(bool enabled)
+    // A click never appends a command to text already typed: the screen is read off the UI thread first.
+    private Task<bool> MayTypeAsync()
+    {
+        var tab = terminal.TabKey;
+        return PromptGuard.MayTypeAsync(terminal.ReadScreenTailAsync, CodexTerminalCommands.Prompt, () => isCodex && terminal.TabKey == tab,
+            notice => context.Notify(PluginNotificationKind.Info, notice));
+    }
+
+    private void SendIdeCommand(bool enabled, bool guarded = true)
     {
         if (ideCommandPending) return;
         ideCommandPending = true;
@@ -83,6 +91,7 @@ public sealed class CodexTerminalFacts : ContentControl
         {
             try
             {
+                if (guarded && !await MayTypeAsync()) return;
                 await CodexTerminalCommands.SubmitAsync(io, "/ide " + (enabled ? "on" : "off"));
                 store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, enabled);
             }
@@ -97,7 +106,7 @@ public sealed class CodexTerminalFacts : ContentControl
         if (isCodex && store.IdeContext(terminal.WorkspaceId, terminal.TabKey) is null)
         {
             store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, false);
-            if (startsWithIdeContext(terminal)) SendIdeCommand(true);
+            if (startsWithIdeContext(terminal)) SendIdeCommand(true, guarded: false);
             return;
         }
         var state = store.Session(terminal.WorkspaceId, terminal.TabKey);
@@ -159,6 +168,7 @@ public sealed class CodexTerminalFacts : ContentControl
             if (ideCommandPending || store.Session(terminal.WorkspaceId, terminal.TabKey)?.Status == CodexStatus.Running) return;
             try
             {
+                if (!await MayTypeAsync()) return;
                 await CodexTerminalCommands.SubmitAsync(io, "/model");
                 terminal.Focus();
             }

@@ -420,7 +420,7 @@ and the popup showed rendering glitches. Gone with them: the menus, the model-li
 (`modelListGet`/`modelListPut`), the optimistic `effort_switch` update, the draft guard and `PickerChip`. A click on
 either chip only opens Claude's own picker: `ClaudeTerminalAccessory.OpenPicker` types `/model` or `/effort` plus Enter
 once and focuses the terminal, and the user chooses with the arrow keys inside Claude. SharpRail never types a
-selection and keeps no state for it. The chips are disabled with a tooltip while the session is Running, and their
+selection and keeps no state for it. Before typing, the click reads the bottom 24 rows of the screen off the UI thread (`ITerminalAccessoryApi.ReadScreenTailAsync`, faint placeholder cells omitted) and `PromptGuard.Classify` decides: an empty prompt box types as above; a draft (text after `❯`, or text between the prompt line and the box's bottom border, including an open slash-command menu's `/…`) types nothing and notifies "Clear the prompt first: it holds a draft."; no prompt box (an open picker row `❯ 1.`, an unknown screen) types nothing and notifies "Not at the prompt.". The same guard covers the `/ide` chip. After the read the click checks the tab is still the same and the session not Running. Claude's own placeholder is `Message @agent…`. The chips are disabled with a tooltip while the session is Running, and their
 automation names are `Open model picker` and `Open effort picker`. Launch-time model and effort (launcher, Settings
 defaults, `--model`/`--effort`) are untouched. The `/ide` switch still types its command under a `HoldInput()` hold.
 Launch flags use shell syntax appropriate to the

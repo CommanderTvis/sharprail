@@ -169,7 +169,7 @@ reattachment covered by WebSocket RPC checks.
 The terminal-driving per-session model picker is retired for the same reasons as Claude Code's (screen-scraped, no
 authoritative live source). The model chip shows the model Codex last reported, with a tooltip saying so, and a click
 only opens Codex's own `/model` picker: `CodexTerminalCommands.SubmitAsync` types `/model`, then Enter separately, and
-the terminal is focused; SharpRail never picks a model. The chip is disabled while the session is Running. The `/ide
+the terminal is focused; SharpRail never picks a model. The click and the `/ide` chip first read the screen tail and `PromptGuard.Classify` with Codex's `›` glyph and example prompts (`CodexTerminalCommands.Prompt`): a draft refuses with "Clear the prompt first: it holds a draft.", no recognisable prompt (including an open `› 1.` picker) refuses with "Not at the prompt.". Codex draws no box border, so a draft whose first line is empty is not seen; the session-start automatic `/ide on` is not guarded. The chip is disabled while the session is Running. The `/ide
 on|off` entry uses the same submit under a `HoldInput()` hold released on every outcome. `--codex` covers the typed
 bytes and the release with a fake terminal, and the E2E clicks the chip against the command-input fixture.
 The earlier descendant snapshot teardown passed its resistant-child regression. Its replacement
