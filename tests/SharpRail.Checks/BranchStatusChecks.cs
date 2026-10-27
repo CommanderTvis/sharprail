@@ -7,6 +7,8 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Remote;
+using SharpRail.Plugins.Api.UI;
+using SharpRail.Plugins.GitHub.UI;
 using SharpRail.UI;
 
 namespace SharpRail.Checks;
@@ -59,24 +61,30 @@ internal static class BranchStatusChecks
         return OperatingSystem.IsWindows() ? Task.CompletedTask : RunShimmed(fixture);
     }
 
+    private static RepoBranchStatus NeutralOf(BranchStatus status) => new(status.Branch, status.Head, status.Provider, status.Published, status.OnBase, status.Ahead, status.Behind,
+        status.Review is null ? null : new(status.Review.Number, status.Review.Url, status.Review.UnpushedCommits, status.Review.BehindCommits),
+        status.Details is null ? null : new(status.Details.Number, status.Details.Url, status.Details.State, status.Details.Draft, status.Details.Checks, status.Details.ReviewDecision,
+            status.Details.MergeState, status.Details.MergeMethods, status.Details.SameRepository));
+
     // The header's one next-step rule.
     private static void Rules()
     {
         BranchStatus Status(bool origin = true, bool published = true, int ahead = 0, int behind = 0, bool onBase = false, ReviewDetails? details = null, string provider = "github") =>
             new("feature", origin, origin ? provider : "", published, ahead, behind, 1, onBase, "main", "abc", null, details);
         ReviewDetails Pr(string state = "OPEN", bool draft = false, string checks = "passing", string merge = "CLEAN") => new(7, "https://github.com/o/r/pull/7", state, draft, checks, "", merge, ["squash"], true);
-        Require(WorkbenchWindow.ShipActions(Status(origin: false)) == ("", ""), "No origin offers nothing to push.");
-        Require(WorkbenchWindow.ShipActions(Status(published: false)) == ("publish", "open"), "An unpublished branch publishes and may open a PR.");
-        Require(WorkbenchWindow.ShipActions(Status(ahead: 2, details: Pr())) == ("push", ""), "Ahead of origin: Push, and the PR waits.");
-        Require(WorkbenchWindow.ShipActions(Status(ahead: 1, behind: 1, details: Pr())).Remote == "sync", "Diverged: Sync, never a force push.");
-        Require(WorkbenchWindow.ShipActions(Status(details: Pr(draft: true))).PullRequest == "ready", "A draft's next step is Ready for review.");
-        Require(WorkbenchWindow.ShipActions(Status(details: Pr())).PullRequest == "merge", "A clean PR in sync merges.");
-        Require(WorkbenchWindow.ShipActions(Status(details: Pr(checks: "failing"))).PullRequest == "", "Failing checks do not merge.");
-        Require(WorkbenchWindow.ShipActions(Status(details: Pr(merge: "BLOCKED"))).PullRequest == "", "Merge follows merge state, never approvals.");
-        Require(WorkbenchWindow.ShipActions(Status(details: Pr(state: "MERGED"))).PullRequest == "delete-remote", "A merged PR offers deleting its remote branch.");
-        Require(WorkbenchWindow.ShipActions(Status(details: Pr(state: "CLOSED"))).PullRequest == "reopen", "A closed PR offers Reopen.");
-        Require(WorkbenchWindow.ShipActions(Status(onBase: true)).PullRequest == "", "The base branch has no PR step.");
-        Require(WorkbenchWindow.ShipActions(Status(provider: "other")).PullRequest == "", "A plain git origin has no PR step.");
+        (string Remote, string PullRequest) Steps(BranchStatus status) => (WorkbenchWindow.RemoteAction(status), GitHubLocationItem.NextStep(NeutralOf(status)));
+        Require(Steps(Status(origin: false)) == ("", ""), "No origin offers nothing to push.");
+        Require(Steps(Status(published: false)) == ("publish", "open"), "An unpublished branch publishes and may open a PR.");
+        Require(Steps(Status(ahead: 2, details: Pr())) == ("push", ""), "Ahead of origin: Push, and the PR waits.");
+        Require(Steps(Status(ahead: 1, behind: 1, details: Pr())).Remote == "sync", "Diverged: Sync, never a force push.");
+        Require(Steps(Status(details: Pr(draft: true))).PullRequest == "ready", "A draft's next step is Ready for review.");
+        Require(Steps(Status(details: Pr())).PullRequest == "merge", "A clean PR in sync merges.");
+        Require(Steps(Status(details: Pr(checks: "failing"))).PullRequest == "", "Failing checks do not merge.");
+        Require(Steps(Status(details: Pr(merge: "BLOCKED"))).PullRequest == "", "Merge follows merge state, never approvals.");
+        Require(Steps(Status(details: Pr(state: "MERGED"))).PullRequest == "delete-remote", "A merged PR offers deleting its remote branch.");
+        Require(Steps(Status(details: Pr(state: "CLOSED"))).PullRequest == "reopen", "A closed PR offers Reopen.");
+        Require(Steps(Status(onBase: true)).PullRequest == "", "The base branch has no PR step.");
+        Require(Steps(Status(provider: "other")).PullRequest == "", "A plain git origin has no PR step.");
         Console.WriteLine("PASS upstream shipActions (#771, #776): one next step per segment from the branch status");
     }
 
@@ -127,7 +135,7 @@ internal static class BranchStatusChecks
         await Git(other, "commit", "--allow-empty", "-m", "Theirs");
         await Git(other, "push", "origin", "feature");
         status = await host.GetBranchStatusAsync(true);
-        Require(status is { Ahead: 1, Behind: 1 } && WorkbenchWindow.ShipActions(status).Remote == "sync", "Diverged: " + status);
+        Require(status is { Ahead: 1, Behind: 1 } && WorkbenchWindow.RemoteAction(status) == "sync", "Diverged: " + status);
         // The base branch is pushed only after the caller confirms it.
         await Git(work, "checkout", "main");
         await Git(work, "commit", "--allow-empty", "-m", "Main work");
@@ -156,7 +164,7 @@ internal static class BranchStatusChecks
         var status = await host.GetBranchStatusAsync(false);
         Require(status?.Details is { Number: 7, State: "OPEN", Draft: true, Checks: "pending", SameRepository: true } details && details.MergeMethods.SequenceEqual(["squash", "rebase"]),
             "Review details: " + status);
-        Require(WorkbenchWindow.ShipActions(status!).PullRequest == "ready", "A draft offers Ready for review.");
+        Require(GitHubLocationItem.NextStep(NeutralOf(status!)) == "ready", "A draft offers Ready for review.");
         Require((await host.ApplyBranchActionAsync(new("ready", "feature", head))).Outcome == "done" &&
             File.ReadAllText(Path.Combine(shim, "log")).Contains("pr ready 7", StringComparison.Ordinal), "Ready must call gh pr ready.");
         await File.WriteAllTextAsync(Path.Combine(shim, "details.json"), Details("OPEN", false, """[{"state":"FAILURE"}]""", "CLEAN"));

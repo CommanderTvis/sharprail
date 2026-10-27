@@ -5,25 +5,31 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.UI.Rendering;
+using SharpRail.Plugins.Api.UI;
+using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.UI.Panels;
+namespace SharpRail.Plugins.GitHub.UI;
 
 /// <summary>Problem is pushAuth, missing or unauthenticated; the compare link is offered when the host built one.</summary>
-public sealed record PrSetup(string Problem, string CompareUrl = "");
+internal sealed record GitHubSetup(string Problem, string CompareUrl = "");
 
-public enum PrSetupChoice { Closed, Retry, Compare }
+internal enum GitHubSetupChoice { Closed, Retry, Compare }
 
-public static class PrDialogs
+internal static class GitHubDialogs
 {
     /// <summary>
     /// Merge PR (ThinkRail #776): offers only the methods the repository allows, starting from the remembered one, and
     /// whether to delete the remote branch afterwards. Returns null when cancelled.
     /// </summary>
+    private static Button Primary(Button button)
+    {
+        button.Classes.Add("primary");
+        return button;
+    }
+
     public static async Task<(string Method, bool DeleteBranch)?> MergeAsync(Window owner, int number, IReadOnlyList<string> methods, string method, bool deleteBranch)
     {
-        var window = Dialogs.Create($"Merge PR #{number}", 460);
+        var window = DialogWindow.Create($"Merge PR #{number}", 460);
         window.Tag = "PrMergeDialog";
         var fields = window.FindControl<StackPanel>("DialogFields")!;
         var chosen = methods.Contains(method) ? method : methods[0];
@@ -44,7 +50,7 @@ public static class PrDialogs
         (string, bool)? answer = null;
         var buttons = window.FindControl<StackPanel>("DialogActions")!;
         buttons.Children.Add(Ui.Button("Cancel", () => window.Close()));
-        var confirm = Dialogs.Primary(Ui.Button("Merge", () => { answer = (chosen, delete.IsChecked == true); window.Close(); }));
+        var confirm = Primary(Ui.Button("Merge", () => { answer = (chosen, delete.IsChecked == true); window.Close(); }));
         confirm.Name = "PrMergeConfirm"; confirm.IsDefault = true;
         buttons.Children.Add(confirm);
         await window.ShowDialog(owner);
@@ -55,10 +61,10 @@ public static class PrDialogs
     /// Edits the title and description before anything is pushed. <paramref name="submit"/> answers whether the dialog
     /// may close; a failure keeps it open with the edits. Returns false when the user cancelled.
     /// </summary>
-    public static async Task<bool> ComposeAsync(Window owner, PrDraft draft, bool titleEdited, bool asDraft, bool updating, Func<PrRequest, Task<bool>> submit)
+    public static async Task<bool> ComposeAsync(Window owner, RepoPrDraft draft, bool titleEdited, bool asDraft, bool updating, Func<RepoPrRequest, Task<bool>> submit)
     {
         var action = updating ? "Push updates" : asDraft ? "Open draft PR" : "Open PR";
-        var window = Dialogs.Create(action, 640);
+        var window = DialogWindow.Create(action, 640);
         window.Tag = "PrComposeDialog";
         var explanation = window.FindControl<TextBlock>("DialogExplanation")!;
         explanation.Text = updating
@@ -88,7 +94,7 @@ public static class PrDialogs
             accept.IsEnabled = !busy && !string.IsNullOrWhiteSpace(title.Text);
             ((TextBlock)accept.Content!).Text = busy ? "Pushing…" : action;
         }
-        accept = Dialogs.Primary(Ui.Button(action, async () =>
+        accept = Primary(Ui.Button(action, async () =>
         {
             busy = true; Sync();
             bool close;
@@ -114,11 +120,11 @@ public static class PrDialogs
     /// Explains a fixable setup gap with copyable commands. <paramref name="platform"/> is the host's (darwin, linux,
     /// win32) or null when unknown, which gets the generic commands rather than one platform's.
     /// </summary>
-    public static async Task<PrSetupChoice> SetupAsync(Window owner, PrSetup setup, string? platform)
+    public static async Task<GitHubSetupChoice> SetupAsync(Window owner, GitHubSetup setup, string? platform)
     {
         var pushAuth = setup.Problem == "pushAuth";
         var missing = setup.Problem == "missing";
-        var window = Dialogs.Create(pushAuth ? "Git push couldn't authenticate" : missing ? "GitHub CLI isn't installed" : "GitHub CLI isn't signed in", 520);
+        var window = DialogWindow.Create(pushAuth ? "Git push couldn't authenticate" : missing ? "GitHub CLI isn't installed" : "GitHub CLI isn't signed in", 520);
         window.Tag = "PrSetupDialog";
         var explanation = window.FindControl<TextBlock>("DialogExplanation")!;
         explanation.Text = pushAuth
@@ -180,14 +186,14 @@ public static class PrDialogs
         var actions = window.FindControl<StackPanel>("DialogActions")!;
         if (!pushAuth && setup.CompareUrl.Length > 0)
         {
-            var compare = Ui.Button("Open compare page", () => window.Close(PrSetupChoice.Compare));
+            var compare = Ui.Button("Open compare page", () => window.Close(GitHubSetupChoice.Compare));
             compare.Name = "PrSetupCompare";
             actions.Children.Add(compare);
         }
-        var retry = Dialogs.Primary(Ui.Button("Try again", () => window.Close(PrSetupChoice.Retry)));
+        var retry = Primary(Ui.Button("Try again", () => window.Close(GitHubSetupChoice.Retry)));
         retry.Name = "PrSetupRetry";
         actions.Children.Add(retry);
         window.Opened += (_, _) => retry.Focus();
-        return await window.ShowDialog<PrSetupChoice>(owner);
+        return await window.ShowDialog<GitHubSetupChoice>(owner);
     }
 }

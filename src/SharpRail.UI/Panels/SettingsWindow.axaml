@@ -372,19 +372,6 @@
         <TextBlock x:Name="NotificationsChannel" Classes="settings-description" />
       </StackPanel>
     </DataTemplate>
-    <DataTemplate x:Key="GitHubPage">
-      <StackPanel Spacing="8">
-        <TextBlock Text="Local GitHub" Classes="settings-heading" />
-        <TextBlock Text="SharpRail uses the GitHub CLI on this computer; it stores no credentials." Classes="settings-description" />
-        <Border Classes="settings-row">
-          <StackPanel x:Name="GitHubStatus" Spacing="4">
-            <TextBlock x:Name="GitHubStatusText" Text="Checking…" Classes="settings-label" />
-            <TextBlock x:Name="GitHubStatusDetail" Classes="settings-description" />
-          </StackPanel>
-        </Border>
-        <ContentControl x:Name="GitHubRefreshHost" />
-      </StackPanel>
-    </DataTemplate>
     <DataTemplate x:Key="ProjectsPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Projects" Classes="settings-heading" />
@@ -493,7 +480,6 @@
               <Button x:Name="Settings_Code_Intelligence" Classes="settings-navigation" />
               <Button x:Name="Settings_Notifications" Classes="settings-navigation" />
               <Button x:Name="Settings_Host" Classes="settings-navigation" />
-              <Button x:Name="Settings_GitHub" Classes="settings-navigation" />
               <Button x:Name="Settings_Plugins" Classes="settings-navigation" />
               <Button x:Name="Settings_About" Classes="settings-navigation" />
             </StackPanel>

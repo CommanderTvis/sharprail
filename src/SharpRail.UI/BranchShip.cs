@@ -6,16 +6,19 @@ using Avalonia.Media;
 using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.UI;
 using SharpRail.UI.Panels;
+using SharpRail.UI.Plugins;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
 
 namespace SharpRail.UI;
 
 /// <summary>
-/// The header's Remote and Pull request segments (ThinkRail #771 and #776): always present for a mounted workspace's
-/// branch, each turning the host's branch status into the branch's next step. The host owns the facts and every
-/// mutation; this only derives the actions and runs them, binding each to the branch and commit it showed.
+/// The header's Remote segment (ThinkRail #771) and the place of a repo hosting plugin's item (W28): the segment turns the
+/// host's branch status into the branch's next step. The host owns the facts and every mutation; this only derives the
+/// action and runs it, binding it to the branch and commit it showed. A provider's pull request item and Review section
+/// are the plugin's.
 /// </summary>
 public sealed partial class WorkbenchWindow
 {
@@ -24,29 +27,13 @@ public sealed partial class WorkbenchWindow
     private long branchStatusLookup;
     private long branchStatusAt;
     private bool shipBusy;
-    private DispatcherTimer? checksPoll;
 
     /// <summary>The branch status the header shows; checks read it.</summary>
     public BranchStatus? BranchStatus => branchStatus;
 
-    /// <summary>The next step each segment derives from a status, as action names; one pure rule for the header and checks.</summary>
-    internal static (string Remote, string PullRequest) ShipActions(BranchStatus status)
-    {
-        var remote = !status.HasOrigin ? "" : !status.Published ? "publish" : status.Behind > 0 ? "sync" : status.Ahead > 0 ? "push" : "";
-        var pr = "";
-        if (status.Provider == "github" && !status.OnBase)
-        {
-            var details = status.Details;
-            if (details is null || details.State is not ("OPEN" or "MERGED" or "CLOSED")) pr = status.Review is null ? "open" : "";
-            else if (details.State == "MERGED") pr = status.Published ? "delete-remote" : "";
-            else if (details.State == "CLOSED") pr = "reopen";
-            // While the branch and origin differ, the next step stays with Remote's Push or Sync.
-            else if (remote.Length > 0) pr = "";
-            else if (details.Draft) pr = "ready";
-            else if (details.Checks != "failing" && details.MergeState is "CLEAN" or "UNSTABLE" or "HAS_HOOKS" && details.MergeMethods.Count > 0) pr = "merge";
-        }
-        return (remote, pr);
-    }
+    /// <summary>The Remote segment's next step from a status, as an action name; one pure rule for the header and checks.</summary>
+    internal static string RemoteAction(BranchStatus status) =>
+        !status.HasOrigin ? "" : !status.Published ? "publish" : status.Behind > 0 ? "sync" : status.Ahead > 0 ? "push" : "";
 
     private void RequestBranchStatus(bool fresh, bool force = false)
     {
@@ -74,15 +61,13 @@ public sealed partial class WorkbenchWindow
     private void UpdateShipSegments()
     {
         var remoteSegment = this.FindControl<Border>("RemoteSegment")!;
-        var prSegment = this.FindControl<Border>("PullRequestSegment")!;
         var remoteRow = this.FindControl<StackPanel>("RemoteRow")!;
-        var prRow = this.FindControl<StackPanel>("PullRequestRow")!;
-        remoteRow.Children.Clear(); prRow.Children.Clear();
+        remoteRow.Children.Clear();
         var status = branchStatus;
-        remoteSegment.IsVisible = prSegment.IsVisible = status is not null;
-        UpdateChecksPoll(status);
+        remoteSegment.IsVisible = status is not null;
+        repoSurface?.Raise();
         if (status is null) return;
-        var (remoteAction, prAction) = ShipActions(status);
+        var remoteAction = RemoteAction(status);
         // Remote: its icon slot, its state, then its one action.
         remoteRow.Children.Add(ShipIcon("RemoteIcon", "network", status.HasOrigin ? Ui.Muted : Ui.Hint));
         if (!status.HasOrigin) remoteRow.Children.Add(ShipText("RemoteState", "No remote", Ui.Hint));
@@ -99,50 +84,52 @@ public sealed partial class WorkbenchWindow
             case "push": remoteRow.Children.Add(ShipButton("RemotePush", $"Push {status.Ahead}", () => _ = PushBranchAsync(status))); break;
             case "sync": remoteRow.Children.Add(ShipButton("RemoteSync", "Sync", () => _ = SyncBranchAsync(status))); break;
         }
-        // Pull request: the review chip or its absence, then the next step.
-        var details = status.Details;
-        var prEmpty = status.Provider != "github" || details is null && status.Review is null;
-        prRow.Children.Add(ShipIcon("PullRequestIcon", "fileDiff", prEmpty ? Ui.Hint : Ui.Muted));
-        if (status.Provider != "github") prRow.Children.Add(ShipText("PullRequestState", status.Provider == "gitlab" ? "Open on GitLab" : "—", Ui.Hint));
-        else if (details is null && status.Review is null) prRow.Children.Add(ShipText("PullRequestState", status.OnBase ? "—" : "No PR", Ui.Hint));
-        else
+    }
+
+    private PluginRow<RepoHostUIRegistration>? shownRepoHostUi;
+
+    /// <summary>Mounts the active repo hosting plugin's strip item in the segment after Remote, or empties it (W28).</summary>
+    private void SyncRepoHostUi()
+    {
+        var row = workbench.PluginRegistry.ActiveRepoHostUi();
+        if (ReferenceEquals(row, shownRepoHostUi)) return;
+        shownRepoHostUi = row;
+        var segment = this.FindControl<Border>("PullRequestSegment")!;
+        var grid = (Grid)segment.Child!;
+        var caption = (TextBlock)grid.Children[0];
+        while (grid.Children.Count > 1) grid.Children.RemoveAt(1);
+        if (row is null) { segment.IsVisible = false; return; }
+        caption.Text = row.Value.Caption;
+        Control? content = null;
+        var item = Mount(row.PluginId, () => content = row.Value.LocationItem(RepoHostSurface));
+        Grid.SetRow(item, 1);
+        grid.Children.Add(item);
+        // The plugin's control hides itself while it has nothing to show; the segment follows it.
+        segment.IsVisible = content?.IsVisible ?? false;
+        if (content is not null)
+            content.PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty && ReferenceEquals(shownRepoHostUi, row)) segment.IsVisible = content.IsVisible; };
+    }
+
+    /// <summary>The Review panel's place for the repo hosting plugin's section; it follows the registry while shown (W28).</summary>
+    private ContentControl RepoHostReviewSection()
+    {
+        var host = new ContentControl { Name = "ReviewPullRequestHost" };
+        PluginRow<RepoHostUIRegistration>? shown = null;
+        void Sync()
         {
-            var number = details?.Number ?? status.Review!.Number;
-            var url = details?.Url ?? status.Review!.Url;
-            var label = details switch
-            {
-                { State: "MERGED" } => "Merged #",
-                { State: "CLOSED" } => "Closed #",
-                { Draft: true } => "Draft #",
-                _ => "PR #"
-            } + number;
-            var chip = ShipButton("PullRequestChip", label, () => OpenLink(url));
-            ToolTip.SetTip(chip, url + (details is { ReviewDecision.Length: > 0 } ? " · " + details.ReviewDecision.Replace('_', ' ').ToLowerInvariant() : ""));
-            prRow.Children.Add(chip);
-            if (details is { State: "OPEN", Checks.Length: > 0 })
-            {
-                var (glyph, brush, tip) = details.Checks switch
-                {
-                    "failing" => ("✗", Ui.Danger, "Checks failing"),
-                    "pending" => ("●", Ui.Warning, "Checks running"),
-                    _ => ("✓", Ui.Success, "Checks passing")
-                };
-                var checks = ShipText("PullRequestChecks", glyph, brush);
-                ToolTip.SetTip(checks, tip); AutomationProperties.SetName(checks, tip);
-                prRow.Children.Add(checks);
-            }
+            var row = workbench.PluginRegistry.ActiveRepoHostUi();
+            if (ReferenceEquals(row, shown)) return;
+            shown = row;
+            host.Content = row is null ? null : Mount(row.PluginId, () => row.Value.ReviewSection(RepoHostSurface));
         }
-        switch (prAction)
+        void Changed(PluginTables tables)
         {
-            case "open":
-                prRow.Children.Add(ShipButton("PullRequestOpen", "Open PR", () => { EnsureOpenReview(); _ = OpenPrFlowAsync(false); }));
-                prRow.Children.Add(ShipButton("PullRequestOpenDraft", "Draft", () => { EnsureOpenReview(); _ = OpenPrFlowAsync(true); }));
-                break;
-            case "ready": prRow.Children.Add(ShipButton("PullRequestReady", "Ready for review", () => _ = BranchActionAsync(status, new("ready", status.Branch, status.Head)))); break;
-            case "merge": prRow.Children.Add(ShipButton("PullRequestMerge", "Merge PR", () => _ = MergePrAsync(status))); break;
-            case "reopen": prRow.Children.Add(ShipButton("PullRequestReopen", "Reopen", () => _ = BranchActionAsync(status, new("reopen", status.Branch, status.Head)))); break;
-            case "delete-remote": prRow.Children.Add(ShipButton("PullRequestDeleteBranch", "Delete remote branch", () => _ = DeleteRemoteBranchAsync(status))); break;
+            if ((tables & (PluginTables.RepoHostUis | PluginTables.Active | PluginTables.Roster)) == 0) return;
+            if (Dispatcher.UIThread.CheckAccess()) Sync(); else Dispatcher.UIThread.Post(Sync);
         }
+        host.AttachedToVisualTree += (_, _) => { workbench.PluginRegistry.Changed += Changed; Sync(); };
+        host.DetachedFromVisualTree += (_, _) => { workbench.PluginRegistry.Changed -= Changed; host.Content = null; shown = null; };
+        return host;
     }
 
     // The field's leading icon, in the same column as the other location fields' icons.
@@ -180,22 +167,6 @@ public sealed partial class WorkbenchWindow
         return button;
     }
 
-    // While checks run and the window is visible, the review is re-read every 20 seconds without a fetch.
-    private void UpdateChecksPoll(BranchStatus? status)
-    {
-        var running = status?.Details is { State: "OPEN", Checks: "pending" };
-        if (!running) { checksPoll?.Stop(); return; }
-        checksPoll ??= CreateChecksPoll();
-        if (!checksPoll.IsEnabled) checksPoll.Start();
-    }
-
-    private DispatcherTimer CreateChecksPoll()
-    {
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
-        timer.Tick += (_, _) => { if (IsVisible && WindowState != WindowState.Minimized) RequestBranchStatus(false, force: true); };
-        return timer;
-    }
-
     private async Task<BranchActionResult?> BranchActionAsync(BranchStatus status, BranchAction action, string? failure = null)
     {
         if (shipBusy) return null;
@@ -218,7 +189,6 @@ public sealed partial class WorkbenchWindow
         {
             shipBusy = false;
             if (key == branchStatusKey) { UpdateShipSegments(); RequestBranchStatus(true, force: true); }
-            if (reviewKey.Length > 0) _ = LookupOpenReviewAsync(true);
         }
     }
 
@@ -243,23 +213,5 @@ public sealed partial class WorkbenchWindow
         if (await Dialogs.Confirm(this, "Integrate origin", $"origin/{status.Branch} has {status.Behind} commit{(status.Behind == 1 ? "" : "s")} you don't have. " +
             $"Run this in a terminal, then push:\n{command}", "Copy command", "RemoteSyncCopy"))
             await CopyIntegrateAsync(command);
-    }
-
-    private async Task MergePrAsync(BranchStatus status)
-    {
-        if (status.Details is not { } details) return;
-        var remembered = profile.Data.MergePreferences.GetValueOrDefault(projectRoot)?.Split('|');
-        var choice = await PrDialogs.MergeAsync(this, details.Number, details.MergeMethods, remembered?[0] ?? details.MergeMethods[0], remembered is [_, "delete"]);
-        if (choice is not { } chosen) return;
-        profile.Data.MergePreferences[projectRoot] = chosen.Method + "|" + (chosen.DeleteBranch ? "delete" : "keep");
-        SaveProfile();
-        await BranchActionAsync(status, new("merge", status.Branch, status.Head, Method: chosen.Method, DeleteBranch: chosen.DeleteBranch), "Merge failed");
-    }
-
-    private async Task DeleteRemoteBranchAsync(BranchStatus status)
-    {
-        if (!await Dialogs.Confirm(this, $"Delete origin/{status.Branch}?",
-            "The pull request merged. This deletes the branch on origin only; your local branch and workspace stay.", "Delete remote branch", "PullRequestDeleteConfirm")) return;
-        await BranchActionAsync(status, new("delete-remote", status.Branch, status.Head), "Delete failed");
     }
 }

@@ -9,28 +9,17 @@ tags: [plugins, git]
 ---
 
 > Progress notes (remove when the plugin lands). Strangler plan, one slice per commit. Slice A done: `ProjectServices` takes optional `repoHosts` (url to `RepoHostRoute`) and `branchStatusObserved` seams, wired from `PluginRuntime.RepoHostFor`/`NotifyBranchStatus` in App.cs and RemoteServer; every `gh` call now runs through the internal `LegacyGitHubProvider` (Host.Core) behind `RepoHostProvider`; DTOs and wire unchanged (the host maps the neutral model back to GitHub's spellings). Slice B done: `SharpRail.Plugins.GitHub` Contract/Host/UI exist and are registered (Host.Core and UI `BuiltinPlugins.cs`, UI/Android/Browser csprojs, slnx); the provider is `GitHubProvider` in the Host project (runs `gh` through `IPluginHostContext.RunToolAsync`), the core fallback is deleted, so a GitHub remote with the plugin off is a plain remote; sign-in without a recognized remote asks the first active provider (`RepoHostFor("")`). Category is Version Control (resolved). The `--github` mode replaces `--pull-requests` and includes the provider-off case; checks that run `ProjectServices` without a runtime pass `PullRequestChecks.GitHubRoute`. The UI half is still empty. Remaining slices: C (UI half), D (wire cleanup and version bump).
-> Slice C design notes (not started in code). Coupling found: `BranchShip.cs` (Pull request half), `ReviewPull.cs`, `PrDialogs.cs` and
-> `GitPanels.cs:480` (`ReviewPullRequestHost`) use `WorkbenchWindow` state (`git.Branch`, `host`, `profile.Data.MergePreferences`,
-> `Toasts`, `Dialogs` in `SharpRail.UI/Panels`, `OpenLink`, the `remote` flag, `RequestBranchStatus`), none reachable from a plugin UI
-> project, which references only `Plugins.Api.UI` and `UI.Kit`. Moving them therefore needs one core-implemented surface handed to the
-> plugin through W28 (status view of the branch with the neutral request, apply/preview/open-PR calls that delegate to `IProjectServices`
-> so they work remotely, toast, confirm/notice dialogs, clipboard, open-link, the remembered merge choice) plus: a `LocationItemRegistration`
-> hosted by `LocationStrip` after `BranchSegment` and next to `RemoteSegment` (the PR segment in `WorkbenchWindow.axaml:156` becomes a
-> plugin-built control keeping the 14 + 20 row grid, the 16 px icon slot `LayoutRoles.LocationIconSlot` and `Margin="8,0,0,0"` row), the
-> `core:review-pull-request` slot in the Review panel, a Settings section for the GitHub page (auto refresh on show, status broadcast
-> and a gentle poll, no Refresh button), and moving `SettingsGitHubE2E`, the PR half of `ReviewChecks` and `LocationBarChecks` to `--github`.
-> Phone: the location strip is built identically for compact workbenches (`BranchShip` ran regardless of `workbench.Compact`; only
-> `PluginHeaderItems` is hidden there), so location items show on phones too; W24's "shows none" applies to header items only. Done: the host half of the provider API (checklist 4, host part): `RepoHost.cs`
-> in `Plugins.Api.Host`, `RepoHost`/`OnBranchStatus`/`RunToolAsync` on the host context, and `PluginRuntime.RepoHostFor(url)`
-> / `NotifyBranchStatus`. Remaining: 1, 2, 3, 4 (UI half: W28 `LocationItem`, `core:review-pull-request` slot), 5 to 9.
-> Findings for the successor. (a) `ProjectServices` has no handle on `PluginRuntime`; it is built in many places
-> (`new ProjectServices(root, state, plugins.AllowsExternalFile)`), so routing needs a constructor seam of the same kind,
-> for example `Func<string, (string PluginId, RepoHostProvider Provider)?>` from `PluginRuntime.RepoHostFor`, plus a
-> `Func<BranchStatusEvent, ...>` for `NotifyBranchStatus`; with no seam the host reports a plain remote. (b)
-> `Host.Abstractions` cannot reference `Plugins.Api.Host`, so the neutral `PullRequest` exists twice (Abstractions for the
-> wire and UI, Api.Host for providers) and Core maps between them. (c) The merge dialog's preference is the UI profile's
-> `MergePreferences[projectRoot]` (`method|delete` or `method|keep`). (d) `BranchStatusChecks`, `PullRequestChecks` and
-> `E2eWorkspace` wrap `IProjectServices` and must follow its signature changes.
+> Slice C done: W28 is one `RepoHostUI(RepoHostUIRegistration)` registration (`Plugins.Api.UI/RepoHostUI.cs`) carrying the Pull request
+> location item and the Review panel section; the section is part of the registration rather than a W23 slot because it needs the window's
+> `IRepoHostSurface` (status, apply/preview/open-PR, toasts, dialogs, clipboard, merge preference), which a slot's workspace id cannot
+> give. The core window keeps only the Remote segment and mounts the item in the segment after it (`PullRequestSegment` keeps its caption
+> row, 16 px icon slot and `8,0,0,0` row) and the section in `ReviewPullRequestHost`. The Settings page is a W4 section (`Settings_plugin_github_github`)
+> that reads `gh auth status` through the plugin's `signIn` method when shown and every 30 s while visible; there is no Refresh button
+> (it does not follow a host broadcast). The merge choice still lives in the UI profile's `MergePreferences` behind the surface. Phone:
+> the location strip is built identically for compact workbenches, so the Pull request item shows there too; W24's "shows none" is header
+> items only. Moved checks: `--review`, `--settings` and `--shell` (location bar) now run against the plugin's UI; the pure next-step rules
+> are `GitHubLocationItem.NextStep` and `WorkbenchWindow.RemoteAction` (tested in `--branch-status`). Remaining: slice D (neutral wire,
+> version bump, `GetGitHubAuthenticationAsync` and `OpenReview`/`ReviewDetails` leftovers).
 
 # GitHub — pull requests and GitHub sign-in, as a builtin repo hosting plugin
 

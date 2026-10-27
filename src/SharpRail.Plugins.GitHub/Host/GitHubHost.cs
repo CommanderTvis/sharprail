@@ -10,7 +10,13 @@ public sealed class GitHubHost : PluginHostModule
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
-        context.RepoHost(new GitHubProvider(context.RunToolAsync));
+        var provider = new GitHubProvider(context.RunToolAsync);
+        context.RepoHost(provider);
+        context.Method(GitHubContract.SignIn, async (_, _, cancellationToken) =>
+        {
+            var status = await provider.SignInAsync(cancellationToken);
+            return new GitHubSignIn(status.Connected, status.Detail);
+        });
         return ValueTask.FromResult<PluginDisposer?>(null);
     }
 }

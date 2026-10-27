@@ -552,7 +552,7 @@ whose diffs load and unload editors. These are synthetic results, not native pre
 ## Review
 
 The tool summarises the changed-file count on the current branch, offers Show Changes (which reveals or
-restores Files and selects Changed) and, through the `core:review-pull-request` slot (W23), hosts the branch's pull
+restores Files and selects Changed) and, through the repo hosting registration (W28, `ReviewPullRequestHost`), hosts the branch's pull
 request section contributed by the repo hosting provider that owns the remote ([GitHub](../SharpRail.Plugins.GitHub/SPEC.md)
 today): a deterministic host flow of push plus the provider's calls (see Git.SPEC.md). The slot is empty, and only
 Show Changes remains, while no provider is enabled or recognizes the remote. The bullets below describe that

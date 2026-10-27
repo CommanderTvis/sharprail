@@ -34,17 +34,14 @@ internal static class SettingsGitHubE2E
             app.Click(app.Find<Button>("SettingsButton"));
             Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
             var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
-            app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_GitHub"));
-            Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => string.Equals(text.Text, "Local GitHub", StringComparison.OrdinalIgnoreCase)),
-                "Settings must show the Local GitHub block.");
+            app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_plugin_github_github"));
+            Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.StartsWith("SharpRail uses the GitHub CLI", StringComparison.Ordinal) == true),
+                "Settings must show the GitHub block.");
             var status = settings.GetLogicalDescendants().OfType<StackPanel>().Single(panel => panel.Name == "GitHubStatus");
             var text = settings.GetLogicalDescendants().OfType<TextBlock>().Single(block => block.Name == "GitHubStatusText");
-            var refresh = settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "GitHubRefresh");
-            Until(() => refresh.IsEnabled);
-            Require(Equals(status.Tag, false) && text.Text == "Not connected", "A missing gh must read as not connected.");
-            app.Click(refresh);
-            Until(() => refresh.IsEnabled);
-            Require(Equals(status.Tag, false) && text.Text == "Not connected", "Refreshing without gh must stay not connected.");
+            // There is no Refresh button: the page reads the status when shown.
+            Require(!settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "GitHubRefresh"), "The GitHub page must refresh by itself.");
+            Until(() => Equals(status.Tag, false) && text.Text == "Not connected");
             settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Settle();
             Require(!settings.IsVisible, "Escape must close Settings.");
         }

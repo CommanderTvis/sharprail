@@ -56,7 +56,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     public bool WorkspaceMounted { get; private set; }
     public string WorkspaceRoot => workspaceRoot;
     public Preferences Preferences => state.Preferences;
-    public Func<CancellationToken, Task<GitHubStatus>>? GitHubStatusProbe { get; set; }
     public Workbench Workbench => workbench;
     public WindowProfile Slot => slot;
     internal IProjectServices Host => host;
@@ -143,7 +142,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         AddHandler(KeyDownEvent, (_, e) => { if (workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
         Deactivated += (_, _) => workbench.Commands.Deactivated();
-        Activated += (_, _) => { if (toolContent.ContainsKey("review")) RefreshOpenReview(); };
+        Activated += (_, _) => { if (toolContent.ContainsKey("review")) RequestBranchStatus(true, force: true); };
         // A bell is seen once its terminal is on screen in an active window.
         Activated += (_, _) =>
         {
@@ -274,6 +273,15 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         settings.Content = Ui.Icon("settings");
         settings.Click += (_, _) => ShowSettings();
         if (settings.Parent is Panel trailing) trailing.Children.Insert(0, headerItems);
+        // The repo hosting plugin's item sits in the location strip after Remote (W28), whatever the workbench size.
+        void RepoHostUiChanged(SharpRail.UI.Plugins.PluginTables tables)
+        {
+            if ((tables & (SharpRail.UI.Plugins.PluginTables.RepoHostUis | SharpRail.UI.Plugins.PluginTables.Active | SharpRail.UI.Plugins.PluginTables.Roster)) == 0) return;
+            if (Dispatcher.UIThread.CheckAccess()) SyncRepoHostUi(); else Dispatcher.UIThread.Post(SyncRepoHostUi);
+        }
+        workbench.PluginRegistry.Changed += RepoHostUiChanged;
+        Closed += (_, _) => workbench.PluginRegistry.Changed -= RepoHostUiChanged;
+        SyncRepoHostUi();
         if (!OperatingSystem.IsMacOS()) { ToolTip.SetTip(settings, "Settings"); AutomationProperties.SetName(settings, "Settings"); }
         if (OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
         // Linux window managers differ on client-side decorations: the header is the title bar only where LinuxWindowChrome trusts the
@@ -922,7 +930,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         {
             RefreshAppearance(); ReportProfileError();
             foreach (var window in workbench.Windows) window.ApplyTabLayout();
-        }, GitHubStatusProbe, settingsSection);
+        }, section: settingsSection);
         settings.Closed += (_, _) => { settingsSection = settings.Section; undim(); SettingsShown(null); };
         SettingsShown(settings);
         _ = settings.ShowDialog(this);

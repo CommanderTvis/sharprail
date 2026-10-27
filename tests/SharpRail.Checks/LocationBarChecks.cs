@@ -149,9 +149,9 @@ internal static class LocationBarChecks
         Switch(app, app.Root);
         app.ShowTool("changes");
         Until(() => Buttons(app).Any(button => button.Name == "ChangesBranch"));
-        // Upstream #771: Remote and Pull request are present for a branch even without an origin or a PR.
-        Until(() => app.Find<Border>("RemoteSegment").IsVisible && app.Find<Border>("PullRequestSegment").IsVisible);
-        Require(app.Find<TextBlock>("RemoteState").Text == "No remote" && app.Find<TextBlock>("PullRequestState").Text == "—" &&
+        // Upstream #771: Remote is present for a branch even without an origin; the provider's Pull request item hides itself on a plain remote (W28).
+        Until(() => app.Find<Border>("RemoteSegment").IsVisible);
+        Require(app.Find<TextBlock>("RemoteState").Text == "No remote" && !app.Find<Border>("PullRequestSegment").IsVisible &&
             !Buttons(app).Any(button => button.Name?.StartsWith("Remote", StringComparison.Ordinal) == true),
             "Without an origin the header says so and offers no push.");
         var pill = app.Find<Button>("ScopeBranch");

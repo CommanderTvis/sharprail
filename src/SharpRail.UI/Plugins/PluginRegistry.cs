@@ -36,8 +36,9 @@ public enum PluginTables
     HeaderItems = 1 << 16,
     TerminalTabActions = 1 << 17,
     Documents = 1 << 18,
+    RepoHostUis = 1 << 19,
     Contributions = SideTools | SettingsSections | Companions | FileViewers | TabDecorators | Launchers | WorkspaceActions |
-        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections | HeaderItems | TerminalTabActions | Documents,
+        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections | HeaderItems | TerminalTabActions | Documents | RepoHostUis,
     // Registrations whose result a predicate decides; Invalidate re-evaluates them.
     Predicates = Companions | TabDecorators | Launchers | FileIconSlots | DocumentLinkSlots
 }
@@ -73,6 +74,7 @@ public sealed class PluginRegistry
     public IReadOnlyList<PluginRow<TerminalTabActionRegistration>> TerminalTabActions { get; private set; } = [];
     public IReadOnlyList<PluginRow<SlotSectionRegistration>> SlotSections { get; private set; } = [];
     public IReadOnlyList<PluginRow<HeaderItemRegistration>> HeaderItems { get; private set; } = [];
+    public IReadOnlyList<PluginRow<RepoHostUIRegistration>> RepoHostUis { get; private set; } = [];
 
     /// <summary>Plugin-declared side tools in roster order, then builtin manifests the roster has not listed yet.</summary>
     public IReadOnlyList<PluginToolEntry> ToolCatalog { get; private set; } = [];
@@ -115,6 +117,7 @@ public sealed class PluginRegistry
     public void AddFileIconSlot(string pluginId, Func<string, FileIconKind, string?> value) { FileIconSlots = [.. FileIconSlots, new(pluginId, value)]; Raise(PluginTables.FileIconSlots); }
     public void AddDocumentLinkSlot(string pluginId, Func<string, string, string?> value) { DocumentLinkSlots = [.. DocumentLinkSlots, new(pluginId, value)]; Raise(PluginTables.DocumentLinkSlots); }
     public void AddSlotSection(string pluginId, SlotSectionRegistration value) { SlotSections = [.. SlotSections, new(pluginId, value)]; Raise(PluginTables.SlotSections); }
+    public void AddRepoHostUi(string pluginId, RepoHostUIRegistration value) { RepoHostUis = [.. RepoHostUis, new(pluginId, value)]; Raise(PluginTables.RepoHostUis); }
     public void AddHeaderItem(string pluginId, HeaderItemRegistration value) { HeaderItems = [.. HeaderItems, new(pluginId, value)]; Raise(PluginTables.HeaderItems); }
     public void AddTerminalTabAction(string pluginId, TerminalTabActionRegistration value) { TerminalTabActions = [.. TerminalTabActions, new(pluginId, value)]; Raise(PluginTables.TerminalTabActions); }
     public void AddFileAction(string pluginId, FileActionRegistration value) { FileActions = [.. FileActions, new(pluginId, value)]; Raise(PluginTables.FileActions); }
@@ -169,6 +172,7 @@ public sealed class PluginRegistry
         TerminalTabActions = Drop(TerminalTabActions, row => row.PluginId, PluginTables.TerminalTabActions);
         SlotSections = Drop(SlotSections, row => row.PluginId, PluginTables.SlotSections);
         HeaderItems = Drop(HeaderItems, row => row.PluginId, PluginTables.HeaderItems);
+        RepoHostUis = Drop(RepoHostUis, row => row.PluginId, PluginTables.RepoHostUis);
         if (touched == PluginTables.None) return;
         if (touched.HasFlag(PluginTables.Launchers)) LauncherList = [.. Launchers.Select(row => row.Value)];
         ToolCatalog = BuildToolCatalog();
@@ -231,6 +235,7 @@ public sealed class PluginRegistry
         [.. SlotSections.Where(row => row.Value.Slot == slot && active.Contains(row.PluginId))];
 
     /// <summary>The header items of active plugins, in registration order.</summary>
+    public PluginRow<RepoHostUIRegistration>? ActiveRepoHostUi() => RepoHostUis.FirstOrDefault(row => active.Contains(row.PluginId));
     public IReadOnlyList<PluginRow<HeaderItemRegistration>> ActiveHeaderItems() => [.. HeaderItems.Where(row => active.Contains(row.PluginId))];
 
     /// <summary>The file actions offered for a target, in registration order, each with the label it gave.</summary>

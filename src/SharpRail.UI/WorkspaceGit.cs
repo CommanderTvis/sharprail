@@ -142,12 +142,6 @@ public sealed partial class WorkbenchWindow
         ReconcileChangesPanel();
         UpdateFileMarks();
         RequestBranchStatus(false);
-        if (toolContent.ContainsKey("review"))
-        {
-            var previousKey = reviewKey;
-            EnsureOpenReview();
-            if (previousKey != reviewKey) RefreshReviewPanel();
-        }
         UpdateRailSelection();
         surface.RefreshContents("review");
     }

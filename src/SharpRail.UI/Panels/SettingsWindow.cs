@@ -28,7 +28,6 @@ public sealed partial class SettingsWindow : Window
     private readonly SharedState state;
     private readonly LayoutSession layout;
     private readonly Action apply;
-    private readonly Func<CancellationToken, Task<GitHubStatus>> gitHub;
     private readonly CancellationTokenSource lifetime = new();
     private readonly ContentControl body;
     private readonly Dictionary<string, Button> navigation = [];
@@ -59,15 +58,10 @@ public sealed partial class SettingsWindow : Window
     /// Settings for <paramref name="window"/>. Shared settings round-trip through the host and every
     /// open Settings view re-renders when the snapshot arrives; <paramref name="apply"/> follows local changes.
     /// </summary>
-    public SettingsWindow(WorkbenchWindow window, Action apply, Func<CancellationToken, Task<GitHubStatus>>? gitHub = null, string section = "Appearance")
+    public SettingsWindow(WorkbenchWindow window, Action apply, string section = "Appearance")
     {
         this.section = section;
         this.window = window; profile = window.Workbench.Profile; state = window.Workbench.State; layout = window.Layout; this.apply = apply;
-        this.gitHub = gitHub ?? (async ct =>
-        {
-            var status = await window.Host.GetGitHubAuthenticationAsync(ct);
-            return new(status.Connected, status.Detail);
-        });
         Closed += (_, _) =>
         {
             lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged; state.HandshakeChanged -= CapabilitiesChanged;
@@ -107,7 +101,7 @@ public sealed partial class SettingsWindow : Window
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Code Intelligence", "code"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("GitHub", "gitBranch"), ("Plugins", "puzzle"), ("About", "alertInfo") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Code Intelligence", "code"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         // Listed only for a host that settles workspaces; an older one has no idle window to set.
@@ -228,7 +222,6 @@ public sealed partial class SettingsWindow : Window
         ["Terminal"] = OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser() ? "Replayed output" : "Renderer, replayed output",
         ["Notifications"] = "When an agent needs you",
         ["Host"] = "The host this app works with",
-        ["GitHub"] = "Command-line sign-in",
         ["About"] = "Version, runtime, licenses",
         ["Plugins"] = "Installed plugins and their settings"
     };
@@ -285,7 +278,6 @@ public sealed partial class SettingsWindow : Window
             "Workspaces" => WorkspaceSettings(),
             "Notifications" => NotificationSettings(),
             "Host" => ServingSettings(),
-            "GitHub" => GitHubSettings(),
             "About" => new AboutFields { Margin = new(24) },
             "Plugins" => new PluginsSettings(state, window.Workbench.Plugins, this),
             _ when name.StartsWith("plugin:", StringComparison.Ordinal) => PluginSection(name),
@@ -970,32 +962,6 @@ public sealed partial class SettingsWindow : Window
         PageControl<TextBlock>(panel, "NotificationsChannel").Text = notifier is null
             ? "Desktop notifications are not available on this platform."
             : "Your operating system delivers these notifications; allow or silence SharpRail in its notification settings.";
-        return panel;
-    }
-
-    private Control GitHubSettings()
-    {
-        var panel = Page("GitHubPage");
-        var status = PageControl<StackPanel>(panel, "GitHubStatus");
-        var text = PageControl<TextBlock>(panel, "GitHubStatusText");
-        var detail = PageControl<TextBlock>(panel, "GitHubStatusDetail");
-        var refresh = Ui.Button("Refresh", () => { });
-        refresh.Name = "GitHubRefresh";
-        PageControl<ContentControl>(panel, "GitHubRefreshHost").Content = refresh;
-        async Task Check()
-        {
-            refresh.IsEnabled = false;
-            GitHubStatus result;
-            try { result = await gitHub(lifetime.Token); }
-            catch (OperationCanceledException) { return; }
-            catch (Exception error) { result = new(false, error.Message); }
-            status.Tag = result.Connected;
-            text.Text = result.Connected ? "Connected" : "Not connected";
-            detail.Text = result.Detail;
-            refresh.IsEnabled = true;
-        }
-        refresh.Click += async (_, _) => await Check();
-        _ = Check();
         return panel;
     }
 }

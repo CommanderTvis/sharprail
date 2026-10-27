@@ -433,7 +433,11 @@ internal sealed class E2eWorkspace : IDisposable
 
 internal sealed class E2eHost(IProjectServices inner) : IProjectServices
 {
-    public ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default) => inner.GetBranchStatusAsync(fresh, cancellationToken);
+    public async ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default)
+    {
+        var status = await inner.GetBranchStatusAsync(fresh, cancellationToken);
+        return status is null || Review is null ? status : status with { Review = Review(status.Review) };
+    }
     public ValueTask<BranchActionResult> ApplyBranchActionAsync(BranchAction action, CancellationToken cancellationToken = default) => inner.ApplyBranchActionAsync(action, cancellationToken);
     internal Func<LanguageRequest, LanguageResult?>? LanguageReply { get; set; }
     public ValueTask<LanguageResult> LanguageAsync(LanguageRequest request, CancellationToken cancellationToken = default) =>

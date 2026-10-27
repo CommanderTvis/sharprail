@@ -38,13 +38,17 @@ internal static class ReviewChecks
     private static void UntilLabel(E2eWorkspace app, string label)
     {
         var asked = System.Diagnostics.Stopwatch.StartNew();
-        app.Window.RefreshOpenReview();
-        Until(() =>
+        app.Window.RefreshBranchStatus();
+        try
         {
-            if (PrLabel(app) == label) return true;
-            if (asked.Elapsed > TimeSpan.FromSeconds(3)) { asked.Restart(); app.Window.RefreshOpenReview(); }
-            return false;
-        });
+            Until(() =>
+            {
+                if (PrLabel(app) == label) return true;
+                if (asked.Elapsed > TimeSpan.FromSeconds(3)) { asked.Restart(); app.Window.RefreshBranchStatus(); }
+                return false;
+            });
+        }
+        catch (InvalidOperationException) { throw new InvalidOperationException($"The review button read \"{PrLabel(app)}\", not \"{label}\"; status {app.Window.BranchStatus}."); }
     }
 
     private static string PrLabel(E2eWorkspace app) => Maybe<Button>(app, "ReviewOpenPr") is { } button ? Text(button) : "";

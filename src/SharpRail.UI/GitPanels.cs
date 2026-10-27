@@ -477,7 +477,7 @@ public sealed partial class WorkbenchWindow
         var summary = Ui.Text(ReviewSummary());
         summary.Name = "ReviewSummary";
         panel.Children.Add(summary);
-        panel.Children.Add(new ContentControl { Name = "ReviewPullRequestHost", Content = PullRequestSection() });
+        panel.Children.Add(RepoHostReviewSection());
         panel.Children.Add(Ui.Text("Select a file in Files · Changed to inspect its diff.", Ui.Hint, 12));
         panel.Children.Add(Ui.Button("Show Changes", RevealChanges, "fileDiff"));
         return panel;

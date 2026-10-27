@@ -227,6 +227,13 @@ public interface IPluginUIContext
     /// <param name="item">The item.</param>
     void HeaderItem(HeaderItemRegistration item);
 
+    /// <summary>
+    /// Contributes a repo hosting provider's UI (W28): an item in each window's location strip after Remote and a section in
+    /// the Review panel. Both exist only while the plugin is enabled; a plain remote shows none.
+    /// </summary>
+    /// <param name="registration">The registration.</param>
+    void RepoHostUI(RepoHostUIRegistration registration);
+
     /// <summary>Contributes a terminal accessory row (W11).</summary>
     /// <param name="registration">The accessory.</param>
     void TerminalAccessory(TerminalAccessoryRegistration registration);
