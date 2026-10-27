@@ -23,6 +23,9 @@ public sealed class LocationStrip : Panel
     private static readonly int[] YieldOrder = [3, 4, 2, 0];
     private double[] widths = [];
 
+    /// <summary>The width every segment wants, before any yields; the header weighs it against the room it has.</summary>
+    public double NaturalWidth { get; private set; }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         widths = new double[Children.Count];
@@ -31,7 +34,8 @@ public sealed class LocationStrip : Panel
             Children[index].Measure(availableSize.WithWidth(double.PositiveInfinity));
             widths[index] = Children[index].DesiredSize.Width;
         }
-        var over = widths.Sum() - availableSize.Width;
+        NaturalWidth = widths.Sum();
+        var over = NaturalWidth - availableSize.Width;
         foreach (var index in YieldOrder)
         {
             if (over <= 0 || index >= widths.Length) continue;

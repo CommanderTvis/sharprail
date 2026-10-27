@@ -465,13 +465,13 @@ internal static class ShellChecks
         var window = app.Window;
         var header = app.Find<Grid>("MainHeader");
         var inset = OperatingSystem.IsMacOS() ? 80 : 12;
-        Require(header.Margin.Left == inset, "A windowed header leaves room for the native window controls.");
+        Require(app.Find<LayoutTransformControl>("HeaderZoom").Margin.Left == inset, "A windowed header leaves room for the native window controls.");
         window.WindowState = WindowState.FullScreen; Dispatcher.UIThread.RunJobs();
-        Require(header.Margin.Left == 12, "Full screen hides the traffic lights, so the header drops their inset.");
+        Require(app.Find<LayoutTransformControl>("HeaderZoom").Margin.Left == 12, "Full screen hides the traffic lights, so the header drops their inset.");
         window.TitleBarDoubleClick(null);
         Require(window.WindowState == WindowState.FullScreen, "A title-bar double-click does nothing in full screen.");
         window.WindowState = WindowState.Normal; Dispatcher.UIThread.RunJobs();
-        Require(header.Margin.Left == inset, "Leaving full screen restores the inset.");
+        Require(app.Find<LayoutTransformControl>("HeaderZoom").Margin.Left == inset, "Leaving full screen restores the inset.");
 
         Require(!MacWindowChrome.WantsToolbar(new Version(15, 6)) && MacWindowChrome.WantsToolbar(new Version(26, 0)) &&
             MacWindowChrome.WantsToolbar(new Version(26, 7, 1)) && !MacWindowChrome.WantsToolbar(new Version(27, 0)),
@@ -491,6 +491,12 @@ internal static class ShellChecks
 
         bool Zoomed(double factor) => Math.Abs(window.Preferences.Zoom - factor) < 1e-9 && Math.Abs(InterfaceZoom.Current - factor) < 1e-9;
         Require(Zoomed(1), "The zoom fixture starts at 100%.");
+        double LabelHeight() { window.UpdateLayout(); var label = window.FindControl<TextBlock>("WorkspaceLabel")!; return label.Bounds.Height * label.TransformToVisual(window)!.Value.M22; }
+        var labelAt100 = LabelHeight();
+        Require(WorkbenchWindow.HeaderScale(0.5, 600, 900) == 1 && WorkbenchWindow.HeaderScale(1.5, 600, 900) == 1.5 && WorkbenchWindow.HeaderScale(1.5, 600, 300) == 1.5,
+            "A header that fits stays at 100% when zooming out and zooms in as usual.");
+        Require(WorkbenchWindow.HeaderScale(0.5, 600, 450) is var narrow && narrow == 0.75 && WorkbenchWindow.HeaderScale(0.5, 600, 200) == 0.5,
+            "A header that does not fit takes the largest scale between the zoom and 100% that does, and no less than the zoom.");
         window.PinchZoom(0.1); window.PinchZoom(0.1);
         Require(Zoomed(1.2), $"A pinch applies its accumulated scale to the starting factor and may rest between the steps: {window.Preferences.Zoom}.");
         window.PinchZoom(5);
@@ -499,6 +505,8 @@ internal static class ShellChecks
         Require(Zoomed(0.5), "A pinch stops at 50%.");
         if (OperatingSystem.IsMacOS())
             Require(window.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height.Value * 0.5 >= LayoutRoles.TopbarRow - 1e-9, "The macOS top rail stays as tall as the traffic lights at 50%.");
+        if (OperatingSystem.IsMacOS())
+            Require(Math.Abs(LabelHeight() - labelAt100) < 0.5, $"The macOS header content keeps its 100% size at 50% zoom: {LabelHeight()} against {labelAt100}.");
         window.PinchZoom(0.9);
         Require(Zoomed(1.2), "Within one gesture every scale is taken against the same baseline.");
         Settle(400);

@@ -97,6 +97,7 @@
   <Grid x:Name="WorkbenchRoot" RowDefinitions="40,*,Auto,Auto">
     <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
+      <LayoutTransformControl x:Name="HeaderZoom">
       <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto">
         <ContentControl x:Name="BrandIcon" />
         <local:LocationStrip x:Name="LocationBar" Grid.Column="1" ClipToBounds="True">
@@ -159,7 +160,7 @@
             </Grid>
           </Border>
         </local:LocationStrip>
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <StackPanel x:Name="HeaderTools" Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <StackPanel x:Name="HostListeningMark" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" IsVisible="False"
                       AutomationProperties.Name="Host listening">
             <TextBlock Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
@@ -176,6 +177,7 @@
                   ToolTip.Tip="Settings (⌘,)" AutomationProperties.Name="Settings (⌘,)" />
         </StackPanel>
       </Grid>
+      </LayoutTransformControl>
     </Border>
     <TextBlock x:Name="WorkspaceError" Grid.Row="2" FontSize="12" Margin="12,4"
                Foreground="{x:Static rendering:Ui.Danger}" TextWrapping="Wrap" IsVisible="False"

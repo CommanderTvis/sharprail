@@ -233,6 +233,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private void WireHeader()
     {
         var header = this.FindControl<Grid>("MainHeader")!;
+        header.LayoutUpdated += (_, _) => ApplyHeaderScale();
         ApplyChromeZoom();
         InterfaceZoom.Changed += ApplyChromeZoom;
         PropertyChanged += (_, e) => { if (e.Property == WindowStateProperty) ApplyChromeZoom(); };
@@ -859,7 +860,35 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         row.Height = new GridLength(OperatingSystem.IsMacOS() ? Math.Max(LayoutRoles.TopbarRow, LayoutRoles.TopbarRow / zoom) : LayoutRoles.TopbarRow);
         ExtendClientAreaTitleBarHeightHint = row.Height.Value * zoom;
         var lights = OperatingSystem.IsMacOS() && WindowState != WindowState.FullScreen;
-        this.FindControl<Grid>("MainHeader")!.Margin = new Thickness(lights ? 80 / zoom : 12, 0, OperatingSystem.IsWindows() ? 0 : 12, 0);
+        this.FindControl<LayoutTransformControl>("HeaderZoom")!.Margin = new Thickness(lights ? 80 / zoom : 12, 0, OperatingSystem.IsWindows() ? 0 : 12, 0);
+        ApplyHeaderScale();
+    }
+
+    /// <summary>
+    /// The scale the header's content renders at. Zooming out exists to save room in the rails and the main column,
+    /// but on macOS the header's height is pinned by the traffic lights, so shrinking its content saves nothing: it
+    /// stays at 100% while it all fits in <paramref name="available"/> (physical px) and otherwise takes the largest
+    /// scale from the zoom up to 100% at which it does. Zooming in, and platforms with a free height, follow the zoom.
+    /// </summary>
+    internal static double HeaderScale(double zoom, double natural, double available) =>
+        zoom >= 1 || natural <= 0 || available <= 0 ? zoom : Math.Clamp(available / natural, zoom, 1);
+
+    /// <summary>
+    /// Counter-scales the header's content to <see cref="HeaderScale"/>. The strip reports its natural width from its own
+    /// measure, so nothing is measured twice; the scale changes only when it differs, which ends the layout pass chain.
+    /// </summary>
+    private void ApplyHeaderScale()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+        var zoom = InterfaceZoom.Current;
+        var zoomRoot = this.FindControl<LayoutTransformControl>("HeaderZoom")!;
+        var bar = this.FindControl<Border>("WindowTitleBar")!;
+        var natural = 36 + this.FindControl<LocationStrip>("LocationBar")!.NaturalWidth + this.FindControl<StackPanel>("HeaderTools")!.DesiredSize.Width;
+        var room = (bar.Bounds.Width - bar.BorderThickness.Right - zoomRoot.Margin.Left - zoomRoot.Margin.Right) * zoom - 1;
+        var counter = HeaderScale(zoom, natural, room) / zoom;
+        if (zoomRoot.LayoutTransform is ScaleTransform current && Math.Abs(current.ScaleX - counter) < 1e-6) return;
+        if (zoomRoot.LayoutTransform is null && Math.Abs(counter - 1) < 1e-6) return;
+        zoomRoot.LayoutTransform = new ScaleTransform(counter, counter);
     }
 
     /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>
