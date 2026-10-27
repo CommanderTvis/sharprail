@@ -15,10 +15,10 @@ public static class MacWindowChrome
     private const int UnifiedCompact = 4;
     private const int SeparatorNone = 1;
 
-    /// <summary>Whether the OS version rounds toolbar windows more than bare ones (macOS 26 and later).</summary>
-    public static bool WantsToolbar(Version os) => os.Major >= 26;
+    /// <summary>Whether the OS version rounds toolbar windows more than bare ones (macOS 26 only).</summary>
+    public static bool WantsToolbar(Version os) => os.Major == 26;
 
-    /// <summary>Gives <paramref name="window"/> an empty compact toolbar on macOS 26 or later; other systems are left alone.</summary>
+    /// <summary>Gives <paramref name="window"/> an empty compact toolbar on macOS 26 only; other systems, 27 and later included, are left alone.</summary>
     public static void Apply(Window window)
     {
         if (!OperatingSystem.IsMacOS() || !WantsToolbar(Environment.OSVersion.Version)) return;

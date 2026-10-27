@@ -54,5 +54,11 @@ if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
+  # Tahoe rounds windows by the SDK the executable was linked against: the apphost's 15.x stamp keeps the old small corner
+  # radius, so the packaged executable is restamped as built with SDK 26 (the signature is redone below).
+  exe="$bundle/Contents/MacOS/SharpRail.UI"
+  minos="$(xcrun vtool -show-build "$exe" | awk '/minos/ {print $2; exit}')"
+  xcrun vtool -set-build-version macos "$minos" 26.0 -replace -output "$exe.stamped" "$exe" 2>/dev/null
+  mv "$exe.stamped" "$exe"; chmod +x "$exe"
   codesign --force --deep --sign - "$bundle"
 fi
