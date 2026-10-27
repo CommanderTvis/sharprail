@@ -43,6 +43,11 @@ public static partial class Ui
     public static readonly SolidColorBrush WarningWash = new();
     public static readonly SolidColorBrush Danger = new();
     public static readonly SolidColorBrush DangerWash = new();
+    public static readonly SolidColorBrush FileIconCode = new();
+    public static readonly SolidColorBrush FileIconMarkup = new();
+    public static readonly SolidColorBrush FileIconData = new();
+    public static readonly SolidColorBrush FileIconScript = new();
+    public static readonly SolidColorBrush FileIconMedia = new();
     public static readonly SolidColorBrush PdfSelection = new();
     public static readonly SolidColorBrush TextSelection = new();
     public static Color? SelectionText { get; private set; }
@@ -91,6 +96,11 @@ public static partial class Ui
         WarningWash.Color = Alpha(theme["warning"], 12);
         Danger.Color = theme["danger"];
         DangerWash.Color = Alpha(theme["danger"], 12);
+        FileIconCode.Color = theme["info"];
+        FileIconMarkup.Color = theme["warning"];
+        FileIconData.Color = theme["accent"];
+        FileIconScript.Color = theme["success"];
+        FileIconMedia.Color = theme["danger"];
         PdfSelection.Color = Alpha(theme["accent"], 40);
         TextSelection.Color = theme["selection"];
         SelectionText = theme.Colors["selectionForeground"];

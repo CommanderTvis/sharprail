@@ -49,6 +49,7 @@ internal static partial class FileIconsChecks
             File.WriteAllText(Path.Combine(workspace, "sample.pdf"), "%PDF-1.7\n");
             File.WriteAllText(Path.Combine(workspace, "unknown.qqqq"), "unknown\n");
             File.WriteAllText(Path.Combine(workspace, "server.py"), "print('hi')\n");
+            Directory.CreateDirectory(Path.Combine(workspace, "src"));
             var server = remote ? RemoteServer.Create(workspace, IPAddress.Loopback, 0, "icons", workspace + "-state") : null;
             try
             {
@@ -200,16 +201,45 @@ internal static partial class FileIconsChecks
         app.Window.ShowSettings("Appearance");
         Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
         var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
-        Switch Toggle() => settings.GetLogicalDescendants().OfType<Switch>().Single(control => control.Name == "FileTypeIconsEnabled");
-        Until(() => Toggle().IsEnabled);
-        Require(Toggle().IsChecked, "Appearance shows core file-type icons on by default.");
-        app.Click(Toggle(), freshGesture: false);
-        Until(() => !app.Workbench.State.Current.Settings.FileTypeIconsEnabled && !Toggle().IsChecked);
+        Button Choice(string name) => settings.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "FileTypeIcons_" + name);
+        Until(() => Choice("plain").IsEnabled);
+        Require(app.Workbench.State.Current.Settings is { FileTypeIconsEnabled: true, FileTypeIconStyle: "" }, "Core file-type icons are on and plain by default.");
+        app.Click(Choice("none"), freshGesture: false);
+        Until(() => !app.Workbench.State.Current.Settings.FileTypeIconsEnabled);
         Until(() => !app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FileTypeIcon"));
         Require(app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "file") && control.IsEffectivelyVisible),
             "Disabling File Icons restores core's plain file glyph.");
-        app.Click(Toggle(), freshGesture: false);
-        Until(() => app.Workbench.State.Current.Settings.FileTypeIconsEnabled && Toggle().IsChecked);
+        app.Click(Choice("plain"), freshGesture: false);
+        Until(() => app.Workbench.State.Current.Settings.FileTypeIconsEnabled);
+        Control Icon(string file, string name)
+        {
+            var row = app.FileRow(file);
+            row.BringIntoView();
+            Settle(50);
+            return Asset(row, name);
+        }
+        Loaded(app.FileRow("server.py"), "python");
+        var plain = Raster(app, Icon("server.py", "python"));
+        app.Click(Choice("colored"), freshGesture: false);
+        Until(() => app.Workbench.State.Current.Settings.FileTypeIconStyle == "colored");
+        Loaded(app.FileRow("server.py"), "colored/python");
+        var coloredBefore = Raster(app, Icon("server.py", "colored/python"));
+        Require(!coloredBefore.SequenceEqual(plain), "The colored style renders differently from plain in the Files row.");
+        var theme = Ui.Theme;
+        var palette = theme.Colors.ToDictionary();
+        palette["info"] = Color.Parse("#ff00ff");
+        Ui.Apply(theme with { Id = theme.Id + "-file-colors", Colors = palette });
+        Until(() => !Raster(app, Icon("server.py", "colored/python")).SequenceEqual(coloredBefore));
+        Ui.Apply(theme);
+        app.Click(Choice("material"), freshGesture: false);
+        Until(() => app.Workbench.State.Current.Settings.FileTypeIconStyle == "material");
+        Loaded(app.FileRow("server.py"), "material/python");
+        Loaded(app.FileRow("src"), "material/folder");
+        var material = Raster(app, Icon("server.py", "material/python"));
+        Require(!material.SequenceEqual(plain) && !material.SequenceEqual(coloredBefore), "The Material style renders its own colours in the Files row.");
+        app.Click(Choice("plain"), freshGesture: false);
+        Until(() => app.Workbench.State.Current.Settings.FileTypeIconStyle.Length == 0);
+        Loaded(app.FileRow("server.py"), "python");
         settings.Close();
         Loaded(app.FileRow("README.md"), "readme");
         Loaded(app.Tab("README.md"), "readme");

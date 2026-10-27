@@ -199,15 +199,11 @@
           <Button x:Name="SystemTheme_dark_trigger" Classes="theme-trigger" />
           <TextBlock x:Name="SystemTheme_dark_fallback" Classes="theme-fallback" />
         </StackPanel>
-        <Border Classes="settings-row">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <StackPanel Spacing="2">
-              <TextBlock Text="File type icons" Classes="settings-label" />
-              <TextBlock Text="Show file-type icons in Files, tabs and Changes. Shared by every client of this host." Classes="settings-description" />
-            </StackPanel>
-            <rendering:Switch x:Name="FileTypeIconsEnabled" Grid.Column="1" Label="File type icons" />
-          </Grid>
-        </Border>
+        <StackPanel Spacing="8">
+          <TextBlock Text="File type icons" Classes="settings-label" />
+          <TextBlock Text="How Files, tabs and Changes draw file types. Shared by every client of this host." Classes="settings-description" />
+          <StackPanel x:Name="FileTypeIconChoices" Spacing="4" AutomationProperties.Name="File type icons" />
+        </StackPanel>
         <StackPanel x:Name="WindowDecorationsSection" Spacing="8" IsVisible="False">
           <TextBlock Text="Window decorations" Classes="settings-label" />
           <TextBlock Text="Linux only. Integrated header puts the window controls in the workbench header and saves the system title bar’s row. Shared by every client of this host; other platforms ignore it. Applies to open windows now; if your window manager keeps the old frame, open a new window." Classes="settings-description" />

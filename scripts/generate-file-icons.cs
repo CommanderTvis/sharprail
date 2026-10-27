@@ -13,6 +13,8 @@ using System.Text.RegularExpressions;
 const string Version = "5.38.1";
 const string ArchiveSha256 = "d4342dc13a24bd40c4f417337dc19d2d2c42e47f8bb42ca677109bce769f078e";
 var assetsDirectory = Path.Combine("src", "SharpRail.Plugins.UI.Kit", "obj", "file-icons");
+var materialDirectory = Path.Combine(assetsDirectory, "material");
+const int MaterialCommon = 110; // the most widely mapped icons keep Material's own colours; the rest stay on the tinted set
 var tablePath = Path.Combine("src", "SharpRail.Plugins.UI.Kit", "FileIcons", "FileIconTable.g.cs");
 var check = args.Contains("--check");
 var assetsOnly = args.Contains("--assets-only");
@@ -34,6 +36,7 @@ if (!File.Exists(archive) || Sha256(archive) != ArchiveSha256)
 }
 
 var svgs = new SortedDictionary<string, string>(StringComparer.Ordinal);
+var originals = new SortedDictionary<string, string>(StringComparer.Ordinal);
 JsonElement manifest = default;
 await using (var gzip = new GZipStream(File.OpenRead(archive), CompressionMode.Decompress))
 using (var tar = new TarReader(gzip))
@@ -44,7 +47,10 @@ using (var tar = new TarReader(gzip))
         var text = reader.ReadToEnd();
         if (entry.Name == "package/dist/material-icons.json") manifest = JsonDocument.Parse(text).RootElement.Clone();
         else if (entry.Name.StartsWith("package/icons/", StringComparison.Ordinal) && entry.Name.EndsWith(".svg", StringComparison.Ordinal))
+        {
             svgs[Path.GetFileNameWithoutExtension(entry.Name)] = Monotone(text).Trim() + "\n";
+            originals[Path.GetFileNameWithoutExtension(entry.Name)] = text.Trim() + "\n";
+        }
     }
 
 SortedDictionary<string, string> Lower(string property)
@@ -54,6 +60,16 @@ SortedDictionary<string, string> Lower(string property)
         if (item.Value.GetString() is { } icon && svgs.ContainsKey(icon)) table[item.Name.ToLowerInvariant()] = icon;
     return table;
 }
+
+// Material style: the original artwork of the icons that most filenames and extensions map to, plus the default file
+// and the folder pair. Anything else renders the tinted set, so no name lacks an icon.
+var fileNames = Lower("fileNames");
+var fileExtensions = Lower("fileExtensions");
+var material = fileNames.Values.Concat(fileExtensions.Values).GroupBy(icon => icon)
+    .OrderByDescending(group => group.Count()).ThenBy(group => group.Key, StringComparer.Ordinal)
+    .Take(MaterialCommon).Select(group => group.Key)
+    .Append(manifest.GetProperty("file").GetString()!).Append("folder").Append("folder-open")
+    .Where(originals.ContainsKey).ToHashSet().Order(StringComparer.Ordinal).ToList();
 
 var literal = new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 string Entries(SortedDictionary<string, string> table) =>
@@ -76,12 +92,15 @@ var source = $$"""
         // Whole filenames, which win over an extension: vitest.config.ts is not a TypeScript file icon.
         public static readonly FrozenDictionary<string, string> ByName = new Dictionary<string, string>
         {
-    {{Entries(Lower("fileNames"))}}    }.ToFrozenDictionary();
+    {{Entries(fileNames)}}    }.ToFrozenDictionary();
 
         // Longest extension first at lookup time, so d.ts beats ts.
         public static readonly FrozenDictionary<string, string> ByExtension = new Dictionary<string, string>
         {
-    {{Entries(Lower("fileExtensions"))}}    }.ToFrozenDictionary();
+    {{Entries(fileExtensions)}}    }.ToFrozenDictionary();
+
+        // Icons that also ship in their original Material colours.
+        public static readonly FrozenSet<string> Material = new[] { {{string.Join(", ", material.Select(name => JsonSerializer.Serialize(name, literal)))}} }.ToFrozenSet();
     }
 
     """.ReplaceLineEndings("\n");
@@ -96,6 +115,9 @@ if (check)
 {
     var stale = !File.Exists(tablePath) || File.ReadAllText(tablePath).ReplaceLineEndings("\n") != source;
     var onDisk = Directory.Exists(assetsDirectory) ? Directory.GetFiles(assetsDirectory, "*.svg") : [];
+    var materialOnDisk = Directory.Exists(materialDirectory) ? Directory.GetFiles(materialDirectory, "*.svg") : [];
+    stale |= materialOnDisk.Length != material.Count || material.Any(name => !File.Exists(Path.Combine(materialDirectory, name + ".svg")) ||
+        File.ReadAllText(Path.Combine(materialDirectory, name + ".svg")) != originals[name]);
     stale |= onDisk.Length != svgs.Count || svgs.Any(svg => !File.Exists(Path.Combine(assetsDirectory, svg.Key + ".svg")) ||
         File.ReadAllText(Path.Combine(assetsDirectory, svg.Key + ".svg")) != svg.Value);
     if (stale) { Console.Error.WriteLine("file icons: STALE; run dotnet run scripts/generate-file-icons.cs and commit the result."); return 1; }
@@ -106,7 +128,9 @@ if (!assetsOnly) File.WriteAllText(tablePath, source);
 if (Directory.Exists(assetsDirectory)) Directory.Delete(assetsDirectory, recursive: true);
 Directory.CreateDirectory(assetsDirectory);
 foreach (var (name, svg) in svgs) File.WriteAllText(Path.Combine(assetsDirectory, name + ".svg"), svg);
-Console.WriteLine($"file icons: wrote {svgs.Count} recoloured icons and the name table (v{Version})");
+Directory.CreateDirectory(materialDirectory);
+foreach (var name in material) File.WriteAllText(Path.Combine(materialDirectory, name + ".svg"), originals[name]);
+Console.WriteLine($"file icons: wrote {svgs.Count} recoloured icons, {material.Count} original-colour icons and the name table (v{Version})");
 return 0;
 
 static string Sha256(string path)

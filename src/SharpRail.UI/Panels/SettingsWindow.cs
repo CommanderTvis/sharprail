@@ -452,15 +452,29 @@ public sealed partial class SettingsWindow : Window
                 });
             }
         }
-        var fileIcons = PageControl<Switch>(panel, "FileTypeIconsEnabled");
-        fileIcons.IsChecked = state.Current.Settings.FileTypeIconsEnabled;
-        fileIcons.IsEnabled = state.Supports(HostProtocol.FileTypeIcons);
-        fileIcons.CheckedChange += on => Share(HostStateChange.Setting("file-type-icons", on ? "true" : "false"));
-        refreshers.Add(() =>
+        var fileIcons = PageControl<StackPanel>(panel, "FileTypeIconChoices");
+        void FileIconChoices()
         {
-            fileIcons.IsChecked = state.Current.Settings.FileTypeIconsEnabled;
-            fileIcons.IsEnabled = state.Supports(HostProtocol.FileTypeIcons);
-        });
+            fileIcons.Children.Clear();
+            var settings = state.Current.Settings;
+            var current = settings.FileTypeIconsEnabled ? settings.FileTypeIconStyle : "none";
+            foreach (var (value, label, description) in new[]
+            {
+                ("", "Plain", "Single-colour icons that follow the text colour"),
+                ("colored", "Colored", "The same icons tinted by file kind with the theme’s colours"),
+                ("material", "Material", "Material Icon Theme in its own colours"),
+                ("none", "None", "Generic file glyphs only")
+            })
+                fileIcons.Children.Add(Choice("FileTypeIcons_" + (value.Length == 0 ? "plain" : value), label, description, current == value, () =>
+                {
+                    if (current == value) return;
+                    if (value == "none") Share(HostStateChange.Setting("file-type-icons", "false"));
+                    else Share(HostStateChange.Setting("file-type-icons", "true"), HostStateChange.Setting("file-type-icon-style", value.Length == 0 ? "plain" : value));
+                }));
+            fileIcons.IsEnabled = state.Supports(HostProtocol.FileTypeIconStyle);
+        }
+        FileIconChoices();
+        refreshers.Add(FileIconChoices);
         WindowDecorationSettings(panel);
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
         CompactSteppers(size, 24);

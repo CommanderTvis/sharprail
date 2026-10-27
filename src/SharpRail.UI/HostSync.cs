@@ -118,9 +118,9 @@ public sealed partial class WorkbenchWindow
             ClearRetainedTools(removed.Path);
         if (next.Settings != previous.Settings)
         {
-            if (next.Settings with { FileTypeIconsEnabled = previous.Settings.FileTypeIconsEnabled, WindowDecorations = previous.Settings.WindowDecorations } != previous.Settings) RefreshAppearance();
+            if (next.Settings with { FileTypeIconsEnabled = previous.Settings.FileTypeIconsEnabled, FileTypeIconStyle = previous.Settings.FileTypeIconStyle, WindowDecorations = previous.Settings.WindowDecorations } != previous.Settings) RefreshAppearance();
             if (next.Settings.WindowDecorations != previous.Settings.WindowDecorations) ApplyLinuxChrome();
-            if (next.Settings.FileTypeIconsEnabled != previous.Settings.FileTypeIconsEnabled)
+            if (next.Settings.FileTypeIconsEnabled != previous.Settings.FileTypeIconsEnabled || next.Settings.FileTypeIconStyle != previous.Settings.FileTypeIconStyle)
             {
                 RefreshFileIcons();
                 RefreshDecorations();

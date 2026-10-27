@@ -29,6 +29,8 @@
     <ItemGroup>
       <FileIconsSvg Include="$(FileIconsDirectory)/*.svg" />
       <EmbeddedResource Include="@(FileIconsSvg)" LogicalName="SharpRail.Plugins.UI.Kit.FileIcons.%(FileIconsSvg.Filename)%(FileIconsSvg.Extension)" />
+      <MaterialIconsSvg Include="$(FileIconsDirectory)/material/*.svg" />
+      <EmbeddedResource Include="@(MaterialIconsSvg)" LogicalName="SharpRail.Plugins.UI.Kit.FileIcons.material.%(MaterialIconsSvg.Filename)%(MaterialIconsSvg.Extension)" />
     </ItemGroup>
   </Target>
 </Project>

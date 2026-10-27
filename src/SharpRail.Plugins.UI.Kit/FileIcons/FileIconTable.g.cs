@@ -3495,4 +3495,7 @@ internal static class FileIconTable
         ["ц"] = "tsil",
         ["\uD83D\uDD25"] = "mojo",
     }.ToFrozenDictionary();
+
+    // Icons that also ship in their original Material colours.
+    public static readonly FrozenSet<string> Material = new[] { "3d", "angular", "assembly", "audio", "authors", "auto", "azure-pipelines", "babel", "changelog", "commitizen", "commitlint", "console", "cpp", "craco", "cypress", "database", "disc", "docker", "drizzle", "email", "esbuild", "eslint", "excalidraw", "file", "folder", "folder-open", "font", "garden", "gatsby", "git", "godot-assets", "graphql", "grunt", "gulp", "histoire", "hpp", "html", "husky", "image", "istanbul", "javascript", "jest", "json", "karma", "key", "knip", "lefthook", "license", "lighthouse", "lintstaged", "markdown", "markdownlint", "mercurial", "metro", "minecraft", "mocha", "nano-staged", "packship", "playwright", "postcss", "posthtml", "powerpoint", "powershell", "prettier", "puppeteer", "python", "python-misc", "remark", "rocket", "rollup", "routing", "rstack", "ruby", "semantic-release", "sentry", "settings", "shader", "sml", "snowpack", "storybook", "stryker", "stylelint", "subtitles", "svelte", "svgr", "swift", "syncpack", "table", "tailwindcss", "taskfile", "tauri", "taze", "test-js", "test-jsx", "test-ts", "tex", "textlint", "tsconfig", "tsdown", "tune", "unocss", "video", "visualstudio", "vitest", "vscode", "vue-config", "webpack", "werf", "xml", "yaml", "yarn", "zeabur", "zip" }.ToFrozenSet();
 }

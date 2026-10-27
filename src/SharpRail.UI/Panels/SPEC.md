@@ -142,7 +142,7 @@ expressions, a case toggle, a glob filter and replace.
 
 ## Settings
 
-Appearance includes a shared File type icons switch, enabled by default. It controls the core bundled icon set independently of Settings › Plugins.
+Appearance includes a shared File type icons choice of Plain (default, single-colour), Colored, Material and None (generic glyphs). It controls the core bundled icon set independently of Settings › Plugins. Choosing None keeps the style, so returning to a style restores it; changing the choice redraws Files, tabs and Changes in place.
 
 A modal two-pane window laid out as upstream ThinkRail's: a section rail under uppercase muted group headers, INTERFACE (Appearance, Highlighting, Line width, Layout, Terminal) then SYSTEM (Projects, Workspaces, Code Intelligence, Notifications, Host, GitHub, Plugins, About, then each
 active plugin's own sections in registration order), with the selected section tinted. No AGENT group: SharpRail has no such pages and a scrolling
