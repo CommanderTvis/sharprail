@@ -85,7 +85,7 @@ refuse one at start). None omits the flag, and its entry names `advisorModel` fr
 `~/.claude/settings.json` when set; Chrome off omits both flags. The right-click menu's Advisor
 submenu picks one for a run, and its Chrome toggle adds `--chrome` for a run, or `--no-chrome` while
 the setting is on. Arguments of the run's own win. Revival keeps both from the recorded command, and
-the terminal shows an advisor chip and a Chrome chip read from that command. The model chip leads with the Claude mark (`ClaudeGlyph`, 12 px, muted, the tab's `claude.svg`) and the advisor chip with the kit's `discuss` icon (two speech bubbles, 12 px, muted), both through the optional `leading` control of `TerminalFacts.FactChip`/`ActionFactChip`; the Chrome chip reads lowercase `chrome` and leads with the kit's `chrome` icon (12 px, muted); the other chips are unchanged.
+the terminal shows an advisor chip and a Chrome chip read from that command. The model, effort and advisor chips are plain text with no leading icon (the Claude mark stays on the tab and launcher only); the Chrome chip reads lowercase `chrome` and leads with the kit's `chrome` icon (12 px, muted); the other chips are unchanged.
 Unset launch defaults persist as empty strings so a merged settings update can clear an earlier override.
 Wire version 2 covers these added settings: the strict settings schema would make older UI halves
 fall back to defaults, so mismatched host/UI halves stay dormant.

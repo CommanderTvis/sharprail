@@ -19,16 +19,15 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
 {
     private readonly IPluginUIContext context;
     private readonly ClaudeCodeStore store;
-    private readonly ClaudeGlyph glyph;
     private readonly ITerminalAccessoryApi terminal;
     private readonly ManualLaunchNotice launchNotice = new();
     private readonly WrapPanel facts = new() { Name = "TerminalAgentFacts", Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
     private string signature = "";
     private IDisposable? watch;
 
-    public ClaudeTerminalAccessory(IPluginUIContext context, ClaudeCodeStore store, ClaudeGlyph glyph, ITerminalAccessoryApi terminal)
+    public ClaudeTerminalAccessory(IPluginUIContext context, ClaudeCodeStore store, ITerminalAccessoryApi terminal)
     {
-        this.context = context; this.store = store; this.glyph = glyph; this.terminal = terminal;
+        this.context = context; this.store = store; this.terminal = terminal;
         SetValue(FileDrop.AcceptsProperty, () => RunsClaude);
         SetValue(FileDrop.AttachProperty, paths => terminal.Write(string.Join(" ", paths.Select(path => "@" + TerminalFacts.QuoteAttachPath(TerminalFacts.AttachPath(path, terminal.WorkspaceId, State?.Cwd)))) + " "));
         Name = "ClaudeTerminalAccessory";
@@ -56,13 +55,13 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
     private bool RunsClaude => Agent(context.Host())?.Kind == "claude";
 
     // Clicking only opens Claude Code's own picker; the user chooses inside the TUI, and the chip keeps what hooks report.
-    private Button OpenerChip(string kind, string label, string title, ClaudeSessionState? state, string command, string what, Control? leading = null)
+    private Button OpenerChip(string kind, string label, string title, ClaudeSessionState? state, string command, string what)
     {
         var working = state?.Status == ClaudeCodeStatus.Running;
         var chip = TerminalFacts.ActionFactChip(kind, label, working ? $"{title}. Claude is working: open the {what} picker when it is at its prompt" : $"{title}. Click to open Claude Code's {command} picker", () =>
         {
             if (RunsClaude) _ = OpenAsync(command);
-        }, leading);
+        });
         chip.IsEnabled = !working;
         ToolTip.SetShowOnDisabled(chip, true);
         Avalonia.Automation.AutomationProperties.SetName(chip, $"Open {what} picker");
@@ -151,9 +150,8 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         {
             var chip = kind switch
             {
-                "model" => OpenerChip(kind, label, title, state, "/model", "model", glyph.Create(12)),
+                "model" => OpenerChip(kind, label, title, state, "/model", "model"),
                 "effort" => OpenerChip(kind, label, title, state, "/effort", "effort"),
-                "advisor" => TerminalFacts.FactChip(kind, label, title, Ui.Icon("discuss", Ui.Muted, 12)),
                 "chrome" => TerminalFacts.FactChip(kind, label, title, Ui.Icon("chrome", Ui.Muted, 12)),
                 _ => TerminalFacts.FactChip(kind, label, title)
             };

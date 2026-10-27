@@ -99,7 +99,7 @@ public sealed class ClaudeCodeUI : PluginUIModule
         context.TerminalAccessory(new(terminal =>
         {
             Hydrate(terminal.WorkspaceId);
-            return new ClaudeTerminalAccessory(context, store, glyph, terminal);
+            return new ClaudeTerminalAccessory(context, store, terminal);
         }));
         var editors = context.Editors.OnEvent(editorEvent => _ = Forward(editorEvent));
         async Task Forward(EditorEvent editorEvent)
