@@ -290,16 +290,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         if (session is not null)
         {
             scopeBlock.Children.Add(Ui.Text($"Context of Claude in tab “{session.Title}”", Ui.Muted, 13));
-            var cwd = ClaudeParts.Code(TerminalFacts.CwdLabel(snapshot?.Root) ?? "…");
-            cwd.Name = "ClaudeConfigScopeCwd";
-            ToolTip.SetTip(cwd, snapshot?.Root ?? "Reading the directory…");
-            var folder = Ui.Icon("folder", Ui.Muted, 12);
-            folder.Margin = new Thickness(0, 0, 4, 0);
-            folder.VerticalAlignment = VerticalAlignment.Center;
-            var cwdLine = new StackPanel { Orientation = Orientation.Horizontal };
-            cwdLine.Children.Add(folder);
-            cwdLine.Children.Add(cwd);
-            scopeBlock.Children.Add(cwdLine);
+            scopeBlock.Children.Add(new PathLine { Path = snapshot?.Root });
         }
         else
         {

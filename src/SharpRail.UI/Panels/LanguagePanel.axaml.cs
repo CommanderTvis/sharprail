@@ -25,6 +25,7 @@ internal sealed partial class LanguagePanel : UserControl
         /// <summary>Suggested or unavailable rows offer an inline Hide; running servers hide from the context menu, which stops them first.</summary>
         public bool ShowHide => !Hidden && !IsRunning;
         public bool ShowHideActions => ShowHide || Hidden;
+        public bool ShowSourceLine => HasSource || ShowHideActions;
         public bool ShowDependencies => Server.Dependencies is { Count: > 0 } && (Expanded || HasMissing);
         public bool HasExit => Server.Exit is not null && Server.State is not ("ready" or "initializing" or "installing");
         public bool ShowExit => HasExit && Server.Exit!.Unexpected;
@@ -96,7 +97,7 @@ internal sealed partial class LanguagePanel : UserControl
         Name = "LspPanel";
         LanguageDependencyList.SetHostState(this, state);
         AddHandler(LanguageDependencyList.StatusEvent, (_, e) => SetStatus(e.Text));
-        this.FindControl<TextBlock>("Workspace")!.Text = workspace;
+        this.FindControl<SharpRail.Plugins.UI.Kit.PathLine>("Workspace")!.Path = workspace;
         this.FindControl<TextBlock>("LifetimeNote")!.Text = LanguageNotes.Lifetime;
         if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(slot = new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
         var servers = this.FindControl<ListBox>("Servers")!;
@@ -123,7 +124,6 @@ internal sealed partial class LanguagePanel : UserControl
             RefreshRows(id);
             add.SelectedIndex = -1;
         };
-        this.FindControl<Button>("Refresh")!.Click += async (_, _) => await RunAsync("servers");
         this.FindControl<Button>("HiddenToggle")!.Click += (_, _) => { showHidden = !showHidden; RefreshRows(); };
         timer.Tick += async (_, _) => { if (IsEffectivelyVisible) { await RunAsync("servers"); } };
         void ConfigurationChanged(HostState previous, HostState next)
@@ -144,6 +144,12 @@ internal sealed partial class LanguagePanel : UserControl
         AttachedToVisualTree += (_, _) => { lifetime = new(); if (state is not null) { hidden = HiddenIn(state.Current); state.Changed += ConfigurationChanged; } timer.Start(); _ = RunAsync("servers"); };
         DetachedFromVisualTree += (_, _) => { if (state is not null) state.Changed -= ConfigurationChanged; foreach (var view in configurations.Values) view.SettingsWindow?.Close(); busyOn = null; timer.Stop(); lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
     }
+
+    /// <summary>True when no host request of this pane is in flight. The pane keeps itself fresh (on mount, on host broadcasts and every few seconds while visible), so there is no Refresh button.</summary>
+    internal bool Idle => busyOn is null;
+
+    /// <summary>Re-reads the inventory now, as the visible-pane poll does; a request already in flight absorbs it.</summary>
+    internal void RefreshNow() => _ = RunAsync("servers");
 
     /// <summary>The workspace the pane describes.</summary>
     internal string WorkspaceRoot => workspace;
@@ -170,8 +176,7 @@ internal sealed partial class LanguagePanel : UserControl
         added.Clear(); expanded.Clear(); exitOpen.Clear(); showHidden = false;
         hidden = state is null ? new HashSet<string>() : HiddenIn(state.Current);
         items.Clear();
-        this.FindControl<Button>("Refresh")!.IsEnabled = true;
-        this.FindControl<TextBlock>("Workspace")!.Text = next;
+        this.FindControl<SharpRail.Plugins.UI.Kit.PathLine>("Workspace")!.Path = next;
         SetStatus("Reading language servers…");
         RefreshRows();
         slot?.Retarget(next);
@@ -367,7 +372,6 @@ internal sealed partial class LanguagePanel : UserControl
             return;
         }
         busyOn = current;
-        this.FindControl<Button>("Refresh")!.IsEnabled = false;
         try
         {
             var token = current.Token;
@@ -419,7 +423,6 @@ internal sealed partial class LanguagePanel : UserControl
         {
             // After a retarget the new lifetime owns the button and the queue; this request only lets go of what is still its own.
             if (busyOn == current) busyOn = null;
-            if (current == lifetime) this.FindControl<Button>("Refresh")!.IsEnabled = true;
             if (pending is { } next && current == lifetime)
             {
                 pending = null;

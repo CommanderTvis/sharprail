@@ -26,18 +26,10 @@ public sealed record TerminalTodo(string Content, TerminalTodoStatus Status, str
 /// </summary>
 public static class TerminalFacts
 {
-    private const int CwdLabelMax = 40;
     private static readonly System.Text.Json.JsonSerializerOptions AttachJson = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     /// <summary>A directory, written in full as the terminal shows it, whose middle, not its identifying end, is what a long path loses.</summary>
-    public static string? CwdLabel(string? cwd)
-    {
-        if (string.IsNullOrEmpty(cwd)) return null;
-        if (cwd.Length <= CwdLabelMax) return cwd;
-        var segments = cwd.Split('/');
-        var head = segments[0];
-        return $"{head}/…/{string.Join('/', segments[^2..])}";
-    }
+    public static string? CwdLabel(string? cwd) => SharpRail.Plugins.UI.Kit.PathLine.Label(cwd);
 
     private static bool IsAbsolute(string path) =>
         path.StartsWith('/') || path.Length >= 3 && char.IsAsciiLetter(path[0]) && path[1] == ':' && path[2] is '\\' or '/';

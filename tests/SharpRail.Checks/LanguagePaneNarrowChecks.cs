@@ -21,6 +21,7 @@ internal static class LanguagePaneNarrowChecks
     {
         Header(fixture);
         Rows(fixture);
+        Dense(fixture);
         Churn(fixture);
         Hidden(fixture);
     }
@@ -99,7 +100,7 @@ internal static class LanguagePaneNarrowChecks
             }
             // The pane also asks the host for its real inventory when it opens; that reply may land mid-churn and replace the fake one
             // (the host is the truth), so settle that request and show the final inventory again before counting.
-            E2E.E2eWorkspace.Until(() => pane.FindControl<Button>("Refresh")!.IsEnabled, "The pane's own inventory request did not finish.");
+            E2E.E2eWorkspace.Until(() => pane.Idle, "The pane's own inventory request did not finish.");
             pane.ShowInventory(Enumerable.Range(0, count).Select(index => new LanguageServerState($"fake-{index}", "file.x", "ready", "final", "1")).ToArray());
             Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
             Require(servers.ItemCount == count, $"The pane showed {servers.ItemCount} rows for {count} servers.");
@@ -107,6 +108,45 @@ internal static class LanguagePaneNarrowChecks
             var alive = early.Count(reference => reference.IsAlive);
             Require(alive == 0, $"{alive} of {early.Count} server rows from early refreshes were still reachable after 50 refreshes.");
             Console.WriteLine("PASS 50 refreshes of 20 servers leave one row per server and release replaced rows");
+        }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+    }
+
+    private const double PlainSuggestedRowBudget = 56;
+
+    /// <summary>Rows are dense and aligned: every detail line starts at the name's left edge, Hide shares the suggested-by line, a plain suggested row fits its height budget, and the path line is the shared control.</summary>
+    private static void Dense(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-dense"); Directory.CreateDirectory(Path.Combine(root, "scripts"));
+        var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
+        File.WriteAllText(Path.Combine(root, "scripts", "window-probe.m"), "int main(void) { return 0; }");
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(statePath);
+        using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
+        shared.Start();
+        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var window = new Window { Width = 480, Height = 900, Content = pane };
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        window.Show();
+        try
+        {
+            Require(pane.FindControl<SharpRail.Plugins.UI.Kit.PathLine>("Workspace") is { Path: var path } && path == root, "The pane's path line is not the shared PathLine showing the workspace.");
+            var servers = pane.FindControl<ListBox>("Servers")!;
+            E2E.E2eWorkspace.Until(() => servers.Items.Any(item => item?.ToString() == "C / C++ (clangd)"), "The dense-layout fixture did not list clangd.");
+            window.UpdateLayout();
+            var index = Enumerable.Range(0, servers.ItemCount).First(i => servers.Items[i]?.ToString() == "C / C++ (clangd)");
+            var row = (ListBoxItem)servers.ContainerFromIndex(index)!;
+            double Left(Control part) => part.TranslatePoint(default, window)!.Value.X;
+            double Top(Control part) => part.TranslatePoint(default, window)!.Value.Y;
+            T Named<T>(string name) where T : Control => row.GetVisualDescendants().OfType<T>().First(control => control.Name == name && control.IsEffectivelyVisible);
+            var name = Named<TextBlock>("ServerTitle");
+            var source = Named<Button>("ServerSourceAction").GetVisualDescendants().OfType<TextBlock>().First();
+            var hide = Named<Button>("ServerHideAction");
+            Require(Math.Abs(Left(source) - Left(name)) < 0.5, $"The suggested-by line starts at {Left(source)} but the name at {Left(name)}.");
+            Require(Math.Abs(Top(hide) + hide.Bounds.Height / 2 - (Top(source) + source.Bounds.Height / 2)) < 2, "Hide is not on the suggested-by line.");
+            Require(Left(hide) > Left(source), "Hide is not after the suggested-by text.");
+            Require(row.Bounds.Height <= PlainSuggestedRowBudget, $"A plain suggested row is {row.Bounds.Height} px tall, over {PlainSuggestedRowBudget}.");
+            Console.WriteLine("PASS Language rows align their detail lines with the name, put Hide on the suggested-by line and stay within the row height budget");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }

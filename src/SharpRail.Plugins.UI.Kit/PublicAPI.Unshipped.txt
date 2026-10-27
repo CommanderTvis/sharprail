@@ -596,3 +596,8 @@ static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconMarkup -> Avalonia.Media.Sol
 static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconData -> Avalonia.Media.SolidColorBrush!
 static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconScript -> Avalonia.Media.SolidColorBrush!
 static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconMedia -> Avalonia.Media.SolidColorBrush!
+SharpRail.Plugins.UI.Kit.PathLine
+SharpRail.Plugins.UI.Kit.PathLine.Path.get -> string?
+SharpRail.Plugins.UI.Kit.PathLine.Path.set -> void
+SharpRail.Plugins.UI.Kit.PathLine.PathLine() -> void
+static SharpRail.Plugins.UI.Kit.PathLine.Label(string? path) -> string?

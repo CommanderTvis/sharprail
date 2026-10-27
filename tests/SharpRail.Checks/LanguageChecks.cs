@@ -1156,7 +1156,6 @@ internal static class LanguageChecks
                 item => { navigated = item; return Task.CompletedTask; }, shared);
             window.Content = pane;
             T Find<T>(string name) where T : Avalonia.Controls.Control => Avalonia.Controls.ControlExtensions.FindControl<T>(pane, name)!;
-            void Click(string name) => Find<Avalonia.Controls.Button>(name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
             var servers = Find<Avalonia.Controls.ListBox>("Servers");
             // Refresh rebuilds rows, so a container can briefly lack its status icon; that reads as no status yet.
             string? RowStatus(int index) => servers.ContainerFromIndex(index) is ListBoxItem row &&
@@ -1211,8 +1210,8 @@ internal static class LanguageChecks
             Require(state.Current.WorkspaceLanguages[root].Contains("pane saved", StringComparison.Ordinal), "Pane failed to persist workspace settings.");
             Require(Config<Expander>("ActiveConfigurationExpander").IsVisible, "Pane hid the active configuration snapshot.");
             Config<TextBox>("InitializationOptions").Text = "{\"fixture\":\"unsaved pane edit\"}";
-            Click("Refresh");
-            E2E.E2eWorkspace.Until(() => Find<Button>("Refresh").IsEnabled);
+            pane.RefreshNow();
+            E2E.E2eWorkspace.Until(() => pane.Idle);
             Require(Config<TextBox>("InitializationOptions").Text!.Contains("unsaved pane edit", StringComparison.Ordinal), "Polling discarded unsaved configuration edits.");
             Config<Button>("ReloadConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => Config<TextBox>("InitializationOptions").Text!.Contains("pane saved", StringComparison.Ordinal));
@@ -1285,7 +1284,7 @@ internal static class LanguageChecks
                 "The Code Intelligence pane does not tell the user that servers run for their workspace's lifetime and that agents start them.");
             E2E.E2eWorkspace.Until(() =>
             {
-                if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ServerProvenance" && text.IsVisible &&
+                if (pane.Idle) pane.RefreshNow(); return ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ServerProvenance" && text.IsVisible &&
                 text.Text!.StartsWith("started by human", StringComparison.Ordinal) && text.Text.Contains("Agent calls: none yet", StringComparison.Ordinal));
             });
             navigated = null;
@@ -1295,7 +1294,7 @@ internal static class LanguageChecks
             var pythonIndex = Enumerable.Range(0, servers.ItemCount).Single(index => servers.Items[index]!.ToString()!.StartsWith("Python (Pyright)", StringComparison.Ordinal));
             servers.SelectedIndex = pythonIndex;
             servers.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter });
-            E2E.E2eWorkspace.Until(() => { if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return RowStatus(pythonIndex) == "error"; });
+            E2E.E2eWorkspace.Until(() => { if (pane.Idle) pane.RefreshNow(); return RowStatus(pythonIndex) == "error"; });
             servers.SelectedIndex = 0;
             var failedRow = (Avalonia.Controls.ListBoxItem)servers.ContainerFromIndex(pythonIndex)!;
             Require(failedRow.GetLogicalDescendants().OfType<Avalonia.Controls.TextBlock>().Any(text => text.Name == "ServerDetail" &&
@@ -1304,7 +1303,7 @@ internal static class LanguageChecks
             Require(failedRow.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Retry ▷"),
                 "Failed servers must advertise the left-click retry action.");
             ServerAction(pythonIndex, "Start / Retry");
-            E2E.E2eWorkspace.Until(() => Find<Button>("Refresh").IsEnabled);
+            E2E.E2eWorkspace.Until(() => pane.Idle);
             window.Height = 640;
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             failedRow.BringIntoView();
@@ -1324,9 +1323,9 @@ internal static class LanguageChecks
             var dying = new LanguageRequest(root, Operation: "restart", Server: "typescript", Configuration: """{"settings":{"fixtureDie":{"code":137,"stderr":3}}}""");
             void Lang(LanguageRequest request) => Task.Run(async () => await new LocalProjectAdapter(new ProjectServices(root, state)).LanguageAsync(request, new CancellationTokenSource(20000).Token)).GetAwaiter().GetResult();
             Lang(dying);
-            E2E.E2eWorkspace.Until(() => { Lang(new(root, "code.ts", "hover", 0, 3)); if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return RowStatus(0) == "error"; });
+            E2E.E2eWorkspace.Until(() => { Lang(new(root, "code.ts", "hover", 0, 3)); if (pane.Idle) pane.RefreshNow(); return RowStatus(0) == "error"; });
             var deadRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
-            E2E.E2eWorkspace.Until(() => { if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ServerDetail" && text.Text!.StartsWith("Stopped unexpectedly: Exited with code 137", StringComparison.Ordinal)); });
+            E2E.E2eWorkspace.Until(() => { if (pane.Idle) pane.RefreshNow(); return ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ServerDetail" && text.Text!.StartsWith("Stopped unexpectedly: Exited with code 137", StringComparison.Ordinal)); });
             deadRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
             var exitDetails = deadRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerExitDetailsAction");
             Require(exitDetails.IsVisible && deadRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerExitCopyAction").IsVisible &&
@@ -1338,7 +1337,7 @@ internal static class LanguageChecks
             Require(ExitText() is { IsVisible: true } shown &&
                 shown.Text!.Contains("Exit code: 137", StringComparison.Ordinal) && shown.Text.Contains("fixture stderr", StringComparison.Ordinal), "Details did not show the exit code and stderr.");
             Lang(new(root, Operation: "restart", Server: "typescript", Configuration: "{}"));
-            E2E.E2eWorkspace.Until(() => { if (Find<Button>("Refresh").IsEnabled) Click("Refresh"); return RowStatus(0) == "ready"; });
+            E2E.E2eWorkspace.Until(() => { if (pane.Idle) pane.RefreshNow(); return RowStatus(0) == "ready"; });
             Find<ComboBox>("AddServer").SelectedItem = "intellij";
             E2E.E2eWorkspace.Until(() => servers.Items.Cast<object>().Any(item => item.ToString()!.StartsWith("Java / Kotlin (IntelliJ)", StringComparison.Ordinal)));
             var intellijIndex = Enumerable.Range(0, servers.ItemCount).Single(index => servers.Items[index]!.ToString()!.StartsWith("Java / Kotlin (IntelliJ)", StringComparison.Ordinal));
@@ -1417,7 +1416,7 @@ internal static class LanguageChecks
             E2E.E2eWorkspace.Until(() => IJ<Button>("RestartConfiguration").IsEnabled);
             Require(!intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any(), "Acknowledged IntelliJ settings restart reopened consent.");
             ServerAction(intellijIndex, "Start / Retry");
-            E2E.E2eWorkspace.Until(() => Find<Button>("Refresh").IsEnabled);
+            E2E.E2eWorkspace.Until(() => pane.Idle);
             Require(!window.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Any(), "Acknowledged IntelliJ row startup reopened consent.");
             ReviewTerms();
             termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();

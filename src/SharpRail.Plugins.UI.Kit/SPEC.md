@@ -257,6 +257,7 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
 | `useThemeSwap` | `Ui.ThemeChanged` |
 | `Outline`, `OutlineColumn`, `OutlineToggle`, `outlineTree` | `Markdown.Outline`, extracted from `MarkdownDocumentView` |
 | `ToggleSegment` | `Ui.Segment`, extracted from `DiffView`'s private segment factory; `MarkdownDocumentView`'s Preview \| Source \| Split uses the same selected-state rule |
+| `path-line` | `PathLine`: the muted folder icon and middle-trimmed code-font directory (`PathLine.Label`, also `TerminalFacts.CwdLabel`) with the full path as tooltip, shared by the Claude Code and Code Intelligence panes |
 | `chips` (`CHIP*`) | `Chips` (terminal accessory chips: label, tooltip, button, `ChipGap`), `Ui.Chip`, the chip border `MarkdownProperties` and `DiffView`'s path chip share |
 | `SvgAsset` | `SvgAsset`, a control drawing SVG bytes through Svg.Skia, used for `asset:` icons |
 | `./markdown`: `Markdown`, `FrontmatterProperties`, frontmatter parsing, alerts, heading ids | `Markdown.MarkdownPreview`, `MarkdownDocumentView`, `MarkdownProperties`, `Frontmatter`, `MarkdownLink` |

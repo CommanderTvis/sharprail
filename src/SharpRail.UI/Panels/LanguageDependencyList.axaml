@@ -3,13 +3,14 @@
              xmlns:kit="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.UI.Panels.LanguageDependencyList">
   <ItemsControl Name="DependencyRows">
-    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="4" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Spacing="2" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
     <ItemsControl.ItemTemplate>
       <DataTemplate x:CompileBindings="False">
         <StackPanel Spacing="2">
+          <StackPanel.Styles><Style Selector="Button.link"><Setter Property="Padding" Value="0,2" /></Style></StackPanel.Styles>
           <TextBlock Name="DependencyState" IsVisible="{Binding ShowText}" Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="12" TextWrapping="Wrap" />
           <SelectableTextBlock Name="DependencyHint" IsVisible="{Binding Missing}" Text="{Binding Hint}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
-          <StackPanel Orientation="Horizontal" Spacing="12" TextElement.FontSize="12">
+          <StackPanel Orientation="Horizontal" Spacing="8" TextElement.FontSize="12">
             <Button Name="DependencyUsePath" Content="Use path…" Classes="link" Click="UseDependencyPathClicked" IsVisible="{Binding CanChange}"
                     ToolTip.Tip="Choose an existing executable outside the workspace. Every language server uses it instead of PATH" />
             <Button Name="DependencyClearPath" Content="Clear path" Classes="link" Click="ClearDependencyPathClicked" IsVisible="{Binding CanClear}"
