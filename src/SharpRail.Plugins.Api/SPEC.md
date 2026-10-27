@@ -898,8 +898,10 @@ contributions leave `Account` unset because reading it is I/O. `Account` does no
 
 ## Repo hosting contributions (H24, W28)
 
-H24 and W28 are the two halves of one contribution, as H18 and W22 are for agent launches. Details: [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w27).
+H24 and W28 are the two halves of one contribution, as H18 and W22 are for agent launches. Details: [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w28).
 The location strip item follows the registry like a slot (W24): a disabled provider leaves no item, and the item hides
 itself on a workspace whose remote it does not own. The strip yields items right to left under the existing width
 rule, a provider's before the branch. A provider's channel carries the status per `workspaceId` (snapshot `get`); the UI half
 never runs a tool itself. Whether a compact (phone) workbench shows location items is unconfirmed; W24 shows none.
+
+H24's API shape: `RepoHost(provider)` takes a `RepoHostProvider` (Recognizes, SignInAsync, FindAsync, CreateOrUpdateAsync, Ready/Reopen/MergeAsync, CompareUrl) over `RepoHostBranch`; `OnBranchStatus` delivers a `BranchStatusEvent`; `RunToolAsync` is the host-bounded tool runner. Types: `src/SharpRail.Plugins.Api.Host/RepoHost.cs`.

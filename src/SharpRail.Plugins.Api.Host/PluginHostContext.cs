@@ -321,6 +321,36 @@ public interface IPluginHostContext
     /// <returns>The result; a non-zero exit is a result, not an exception.</returns>
     ValueTask<GitRunResult> GitAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options = null, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Provides this plugin's repo hosting provider (H24) for the remotes it recognizes. The host routes a workspace's
+    /// branch to the first active provider, by plugin id, that recognizes <c>origin</c>; none means a plain remote. A
+    /// second registration by the same plugin is ignored.
+    /// </summary>
+    /// <param name="provider">The provider.</param>
+    void RepoHost(RepoHostProvider provider);
+
+    /// <summary>
+    /// Observes each finished branch status (H24) the host computed for a workspace, with the owner's pull request.
+    /// Handlers run on a pool thread and publish on the plugin's own channels for its UI half.
+    /// </summary>
+    /// <param name="handler">Receives the status.</param>
+    void OnBranchStatus(Action<BranchStatusEvent> handler);
+
+    /// <summary>
+    /// Runs a provider's command-line tool with the host's bounded runner (H24): no console, prompts off, the process
+    /// group killed on expiry. A non-zero exit is a result.
+    /// </summary>
+    /// <param name="tool">The program, resolved on the host's PATH.</param>
+    /// <param name="directory">The working directory.</param>
+    /// <param name="args">The arguments.</param>
+    /// <param name="timeout">The deadline.</param>
+    /// <param name="environment">Overrides over the host's environment; a null value removes the variable.</param>
+    /// <param name="cancellationToken">Kills the tool when cancelled.</param>
+    /// <exception cref="System.ComponentModel.Win32Exception">The tool is not installed.</exception>
+    /// <exception cref="TimeoutException">The deadline passed.</exception>
+    ValueTask<RepoHostToolResult> RunToolAsync(string tool, string directory, IReadOnlyList<string> args, TimeSpan timeout,
+        IReadOnlyDictionary<string, string?>? environment = null, CancellationToken cancellationToken = default);
+
     /// <summary>Resolves a handle on a dependency declared in this plugin's manifest.</summary>
     /// <param name="contract">The dependency's contract.</param>
     /// <returns>The handle, dispatching in process.</returns>

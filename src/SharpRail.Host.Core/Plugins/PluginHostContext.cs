@@ -236,6 +236,17 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
         public void Dispose() => action();
     }
 
+    public void RepoHost(RepoHostProvider provider) => Register(table => table.RepoHost ??= provider);
+
+    public void OnBranchStatus(Action<BranchStatusEvent> handler) => Register(table => table.BranchStatusObservers = table.BranchStatusObservers.Add(handler));
+
+    public async ValueTask<RepoHostToolResult> RunToolAsync(string tool, string directory, IReadOnlyList<string> args, TimeSpan timeout,
+        IReadOnlyDictionary<string, string?>? environment = null, CancellationToken cancellationToken = default)
+    {
+        var result = await ChildProcess.RunAsync(tool, directory, args, timeout, cancellationToken, environment);
+        return new(result.ExitCode, result.Output, result.Error);
+    }
+
     public async ValueTask<GitRunResult> GitAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options = null, CancellationToken cancellationToken = default) =>
         await runtime.Seams.Git(cwd, args, options, cancellationToken);
 

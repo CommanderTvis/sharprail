@@ -145,7 +145,7 @@ clients re-read Git although no file in the workspace changed.
   local branch.
 - `GetOpenReviewAsync` answers the open pull request of the workspace branch (neutral `PullRequest`; unpushed and behind
   counts, -1 when unknown) through the repo hosting provider that recognizes `origin` (Plugin API H24, routing in
-  [Plugins](Plugins.SPEC.md#repo-hosting-providers-h24-w27)); without one, or when the provider's tool is missing,
+  [Plugins](Plugins.SPEC.md#repo-hosting-providers-h24-w28)); without one, or when the provider's tool is missing,
   unauthenticated or late, the answer is no review. The host runs it with the 8 s query budget, caches successful answers (empty
   ones included) for 60 s per worktree and branch, never failures, shares concurrent lookups, and `fresh` skips the
   cache (joining a call already running) and fetches the branch so the behind count can be trusted. The `gh`

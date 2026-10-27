@@ -912,6 +912,9 @@ internal static class CodexChecks
         public void WorkspaceEnvironment(IWorkspaceEnvironmentPolicy policy) { }
         public void WorkspaceEnvironmentStep(string id, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> step) { }
         public void OnWorkspaceEnvironment(Action<string, IReadOnlyList<WorkspaceEnvironmentFact>> handler) { }
+        public void RepoHost(RepoHostProvider provider) { }
+        public void OnBranchStatus(Action<BranchStatusEvent> handler) { }
+        public ValueTask<RepoHostToolResult> RunToolAsync(string tool, string directory, IReadOnlyList<string> args, TimeSpan timeout, IReadOnlyDictionary<string, string?>? environment = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public void AgentLaunch(Func<string, AgentLaunchContribution?> contributor) { }
         public IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId) => [];
         public string TerminalToken(TerminalRef terminal) => "token";

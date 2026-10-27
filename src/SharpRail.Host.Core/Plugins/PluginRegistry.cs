@@ -26,6 +26,8 @@ internal sealed class ActivationTables(long id)
     public ImmutableList<Func<TerminalRef, IReadOnlyDictionary<string, string>>> Environment { get; set; } = [];
     public ImmutableList<EnvironmentProvider> EnvironmentProviders { get; set; } = [];
     public IWorkspaceEnvironmentPolicy? EnvironmentPolicy { get; set; }
+    public RepoHostProvider? RepoHost { get; set; }
+    public ImmutableList<Action<BranchStatusEvent>> BranchStatusObservers { get; set; } = [];
     public ImmutableList<Action<string, IReadOnlyList<WorkspaceEnvironmentFact>>> EnvironmentObservers { get; set; } = [];
     public ImmutableList<Func<string, IReadOnlyList<string>>> ExternalFiles { get; set; } = [];
     public ImmutableList<Action<TerminalEvent>> TerminalObservers { get; set; } = [];

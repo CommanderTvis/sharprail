@@ -13,7 +13,7 @@ tags: [plugins, git]
 ## Responsibility
 
 `GitHub` (`github`, enabled by default, category Source control (unconfirmed), no dependencies, wire version 1) is
-the first provider of the generic repo hosting surface ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w27),
+the first provider of the generic repo hosting surface ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#repo-hosting-providers-h24-w28),
 Plugin API H24 and W28). It owns everything that is GitHub and not git:
 
 - Recognition: a remote URL belongs to it when its host is `github.com` (https, ssh and scp forms; enterprise hosts are
@@ -74,7 +74,7 @@ for mutations, which the host turns into the compare-link outcome with the setup
 ## Settings and migration
 
 The plugin has no settings of its own beyond `enabled`; the old Settings › GitHub page held none. The merge dialog's
-remembered method and branch-deletion choice per project (profile key unconfirmed) moves to the plugin's state
+remembered method and branch-deletion choice per project (today the UI profile's `MergePreferences[projectRoot]`, the string `method|delete` or `method|keep`) moves to the plugin's state
 (H14) on first run; an unreadable old value falls back to the dialog defaults. Profiles without an explicit
 `plugins.github.enabled` get the plugin on.
 

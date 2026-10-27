@@ -752,3 +752,162 @@ SharpRail.Plugins.Api.Host.GeneratedInstructions
 static SharpRail.Plugins.Api.Host.GeneratedInstructions.Owns(string! path) -> bool
 static SharpRail.Plugins.Api.Host.GeneratedInstructions.StateDirectory() -> string!
 static SharpRail.Plugins.Api.Host.GeneratedInstructions.Write(string! path, string! text) -> bool
+SharpRail.Plugins.Api.Host.IPluginHostContext.OnBranchStatus(System.Action<SharpRail.Plugins.Api.Host.BranchStatusEvent!>! handler) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.RepoHost(SharpRail.Plugins.Api.Host.RepoHostProvider! provider) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.RunToolAsync(string! tool, string! directory, System.Collections.Generic.IReadOnlyList<string!>! args, System.TimeSpan timeout, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? environment = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.RepoHostToolResult!>
+SharpRail.Plugins.Api.Host.PullRequest
+SharpRail.Plugins.Api.Host.PullRequest.<Clone>$() -> SharpRail.Plugins.Api.Host.PullRequest!
+SharpRail.Plugins.Api.Host.PullRequest.Behind.get -> int
+SharpRail.Plugins.Api.Host.PullRequest.Behind.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.Checks.get -> string!
+SharpRail.Plugins.Api.Host.PullRequest.Checks.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.Deconstruct(out int Number, out string! Title, out string! Url, out string! State, out bool Draft, out string! Checks, out string! Review, out string! Mergeability, out System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, out bool SameRepository, out int Unpushed, out int Behind) -> void
+SharpRail.Plugins.Api.Host.PullRequest.Draft.get -> bool
+SharpRail.Plugins.Api.Host.PullRequest.Draft.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.Equals(SharpRail.Plugins.Api.Host.PullRequest? other) -> bool
+SharpRail.Plugins.Api.Host.PullRequest.MergeMethods.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.PullRequest.MergeMethods.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.Mergeability.get -> string!
+SharpRail.Plugins.Api.Host.PullRequest.Mergeability.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.Number.get -> int
+SharpRail.Plugins.Api.Host.PullRequest.Number.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.PullRequest(int Number, string! Title, string! Url, string! State, bool Draft, string! Checks, string! Review, string! Mergeability, System.Collections.Generic.IReadOnlyList<string!>! MergeMethods, bool SameRepository, int Unpushed = -1, int Behind = -1) -> void
+SharpRail.Plugins.Api.Host.PullRequest.Review.get -> string!
+SharpRail.Plugins.Api.Host.PullRequest.Review.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.SameRepository.get -> bool
+SharpRail.Plugins.Api.Host.PullRequest.SameRepository.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.State.get -> string!
+SharpRail.Plugins.Api.Host.PullRequest.State.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.Title.get -> string!
+SharpRail.Plugins.Api.Host.PullRequest.Title.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.Unpushed.get -> int
+SharpRail.Plugins.Api.Host.PullRequest.Unpushed.init -> void
+SharpRail.Plugins.Api.Host.PullRequest.Url.get -> string!
+SharpRail.Plugins.Api.Host.PullRequest.Url.init -> void
+SharpRail.Plugins.Api.Host.RepoHostBranch
+SharpRail.Plugins.Api.Host.RepoHostBranch.<Clone>$() -> SharpRail.Plugins.Api.Host.RepoHostBranch!
+SharpRail.Plugins.Api.Host.RepoHostBranch.BaseName.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostBranch.BaseName.init -> void
+SharpRail.Plugins.Api.Host.RepoHostBranch.Branch.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostBranch.Branch.init -> void
+SharpRail.Plugins.Api.Host.RepoHostBranch.Deconstruct(out string! Directory, out string! RemoteUrl, out string! Branch, out string! BaseName) -> void
+SharpRail.Plugins.Api.Host.RepoHostBranch.Directory.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostBranch.Directory.init -> void
+SharpRail.Plugins.Api.Host.RepoHostBranch.Equals(SharpRail.Plugins.Api.Host.RepoHostBranch? other) -> bool
+SharpRail.Plugins.Api.Host.RepoHostBranch.RemoteUrl.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostBranch.RemoteUrl.init -> void
+SharpRail.Plugins.Api.Host.RepoHostBranch.RepoHostBranch(string! Directory, string! RemoteUrl, string! Branch, string! BaseName) -> void
+SharpRail.Plugins.Api.Host.RepoHostRequest.<Clone>$() -> SharpRail.Plugins.Api.Host.RepoHostRequest!
+override SharpRail.Plugins.Api.Host.PullRequest.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.PullRequest.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.PullRequest.ToString() -> string!
+override SharpRail.Plugins.Api.Host.RepoHostBranch.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.RepoHostBranch.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.RepoHostBranch.ToString() -> string!
+override SharpRail.Plugins.Api.Host.RepoHostRequest.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.RepoHostRequest.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.RepoHostRequest.ToString() -> string!
+static SharpRail.Plugins.Api.Host.PullRequest.operator !=(SharpRail.Plugins.Api.Host.PullRequest? left, SharpRail.Plugins.Api.Host.PullRequest? right) -> bool
+static SharpRail.Plugins.Api.Host.PullRequest.operator ==(SharpRail.Plugins.Api.Host.PullRequest? left, SharpRail.Plugins.Api.Host.PullRequest? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostBranch.operator !=(SharpRail.Plugins.Api.Host.RepoHostBranch? left, SharpRail.Plugins.Api.Host.RepoHostBranch? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostBranch.operator ==(SharpRail.Plugins.Api.Host.RepoHostBranch? left, SharpRail.Plugins.Api.Host.RepoHostBranch? right) -> bool
+SharpRail.Plugins.Api.Host.BranchStatusEvent
+SharpRail.Plugins.Api.Host.BranchStatusEvent.<Clone>$() -> SharpRail.Plugins.Api.Host.BranchStatusEvent!
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Ahead.get -> int
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Ahead.init -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Behind.get -> int
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Behind.init -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Branch.get -> string!
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Branch.init -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.BranchStatusEvent(string! WorkspaceId, string! Directory, string! Provider, string! Branch, bool Published, int Ahead, int Behind, string! Head, SharpRail.Plugins.Api.Host.PullRequest? Review) -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Deconstruct(out string! WorkspaceId, out string! Directory, out string! Provider, out string! Branch, out bool Published, out int Ahead, out int Behind, out string! Head, out SharpRail.Plugins.Api.Host.PullRequest? Review) -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Directory.get -> string!
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Directory.init -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Equals(SharpRail.Plugins.Api.Host.BranchStatusEvent? other) -> bool
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Head.get -> string!
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Head.init -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Provider.get -> string!
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Provider.init -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Published.get -> bool
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Published.init -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Review.get -> SharpRail.Plugins.Api.Host.PullRequest?
+SharpRail.Plugins.Api.Host.BranchStatusEvent.Review.init -> void
+SharpRail.Plugins.Api.Host.BranchStatusEvent.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.Host.BranchStatusEvent.WorkspaceId.init -> void
+SharpRail.Plugins.Api.Host.RepoHostOutcome
+SharpRail.Plugins.Api.Host.RepoHostOutcome.<Clone>$() -> SharpRail.Plugins.Api.Host.RepoHostOutcome!
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Action.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Action.init -> void
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Deconstruct(out string! Action, out string! Url, out int Number, out string! Problem) -> void
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Equals(SharpRail.Plugins.Api.Host.RepoHostOutcome? other) -> bool
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Number.get -> int
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Number.init -> void
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Problem.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Problem.init -> void
+SharpRail.Plugins.Api.Host.RepoHostOutcome.RepoHostOutcome(string! Action, string! Url, int Number, string! Problem = "") -> void
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Url.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostOutcome.Url.init -> void
+SharpRail.Plugins.Api.Host.RepoHostProvider
+SharpRail.Plugins.Api.Host.RepoHostProvider.RepoHostProvider() -> void
+SharpRail.Plugins.Api.Host.RepoHostRequest
+SharpRail.Plugins.Api.Host.RepoHostRequest.Body.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostRequest.Body.init -> void
+SharpRail.Plugins.Api.Host.RepoHostRequest.Deconstruct(out string! Title, out bool TitleEdited, out string! Body, out bool Draft) -> void
+SharpRail.Plugins.Api.Host.RepoHostRequest.Draft.get -> bool
+SharpRail.Plugins.Api.Host.RepoHostRequest.Draft.init -> void
+SharpRail.Plugins.Api.Host.RepoHostRequest.Equals(SharpRail.Plugins.Api.Host.RepoHostRequest? other) -> bool
+SharpRail.Plugins.Api.Host.RepoHostRequest.RepoHostRequest(string! Title, bool TitleEdited, string! Body, bool Draft) -> void
+SharpRail.Plugins.Api.Host.RepoHostRequest.Title.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostRequest.Title.init -> void
+SharpRail.Plugins.Api.Host.RepoHostRequest.TitleEdited.get -> bool
+SharpRail.Plugins.Api.Host.RepoHostRequest.TitleEdited.init -> void
+SharpRail.Plugins.Api.Host.RepoHostSignIn
+SharpRail.Plugins.Api.Host.RepoHostSignIn.<Clone>$() -> SharpRail.Plugins.Api.Host.RepoHostSignIn!
+SharpRail.Plugins.Api.Host.RepoHostSignIn.Connected.get -> bool
+SharpRail.Plugins.Api.Host.RepoHostSignIn.Connected.init -> void
+SharpRail.Plugins.Api.Host.RepoHostSignIn.Deconstruct(out bool Connected, out string! Detail) -> void
+SharpRail.Plugins.Api.Host.RepoHostSignIn.Detail.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostSignIn.Detail.init -> void
+SharpRail.Plugins.Api.Host.RepoHostSignIn.Equals(SharpRail.Plugins.Api.Host.RepoHostSignIn? other) -> bool
+SharpRail.Plugins.Api.Host.RepoHostSignIn.RepoHostSignIn(bool Connected, string! Detail) -> void
+SharpRail.Plugins.Api.Host.RepoHostToolResult
+SharpRail.Plugins.Api.Host.RepoHostToolResult.<Clone>$() -> SharpRail.Plugins.Api.Host.RepoHostToolResult!
+SharpRail.Plugins.Api.Host.RepoHostToolResult.Deconstruct(out int ExitCode, out string! Output, out string! Error) -> void
+SharpRail.Plugins.Api.Host.RepoHostToolResult.Equals(SharpRail.Plugins.Api.Host.RepoHostToolResult? other) -> bool
+SharpRail.Plugins.Api.Host.RepoHostToolResult.Error.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostToolResult.Error.init -> void
+SharpRail.Plugins.Api.Host.RepoHostToolResult.ExitCode.get -> int
+SharpRail.Plugins.Api.Host.RepoHostToolResult.ExitCode.init -> void
+SharpRail.Plugins.Api.Host.RepoHostToolResult.Output.get -> string!
+SharpRail.Plugins.Api.Host.RepoHostToolResult.Output.init -> void
+SharpRail.Plugins.Api.Host.RepoHostToolResult.RepoHostToolResult(int ExitCode, string! Output, string! Error) -> void
+abstract SharpRail.Plugins.Api.Host.RepoHostProvider.CompareUrl(SharpRail.Plugins.Api.Host.RepoHostBranch! branch, SharpRail.Plugins.Api.Host.RepoHostRequest! request) -> string!
+abstract SharpRail.Plugins.Api.Host.RepoHostProvider.CreateOrUpdateAsync(SharpRail.Plugins.Api.Host.RepoHostBranch! branch, SharpRail.Plugins.Api.Host.RepoHostRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.RepoHostOutcome!>
+abstract SharpRail.Plugins.Api.Host.RepoHostProvider.FindAsync(SharpRail.Plugins.Api.Host.RepoHostBranch! branch, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.PullRequest?>
+abstract SharpRail.Plugins.Api.Host.RepoHostProvider.MergeAsync(SharpRail.Plugins.Api.Host.RepoHostBranch! branch, SharpRail.Plugins.Api.Host.PullRequest! request, string! method, string! head, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract SharpRail.Plugins.Api.Host.RepoHostProvider.ReadyAsync(SharpRail.Plugins.Api.Host.RepoHostBranch! branch, SharpRail.Plugins.Api.Host.PullRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract SharpRail.Plugins.Api.Host.RepoHostProvider.Recognizes(string! remoteUrl) -> bool
+abstract SharpRail.Plugins.Api.Host.RepoHostProvider.ReopenAsync(SharpRail.Plugins.Api.Host.RepoHostBranch! branch, SharpRail.Plugins.Api.Host.PullRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract SharpRail.Plugins.Api.Host.RepoHostProvider.SignInAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.RepoHostSignIn!>
+override SharpRail.Plugins.Api.Host.BranchStatusEvent.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.BranchStatusEvent.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.BranchStatusEvent.ToString() -> string!
+override SharpRail.Plugins.Api.Host.RepoHostOutcome.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.RepoHostOutcome.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.RepoHostOutcome.ToString() -> string!
+override SharpRail.Plugins.Api.Host.RepoHostSignIn.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.RepoHostSignIn.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.RepoHostSignIn.ToString() -> string!
+override SharpRail.Plugins.Api.Host.RepoHostToolResult.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.RepoHostToolResult.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.RepoHostToolResult.ToString() -> string!
+static SharpRail.Plugins.Api.Host.BranchStatusEvent.operator !=(SharpRail.Plugins.Api.Host.BranchStatusEvent? left, SharpRail.Plugins.Api.Host.BranchStatusEvent? right) -> bool
+static SharpRail.Plugins.Api.Host.BranchStatusEvent.operator ==(SharpRail.Plugins.Api.Host.BranchStatusEvent? left, SharpRail.Plugins.Api.Host.BranchStatusEvent? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostOutcome.operator !=(SharpRail.Plugins.Api.Host.RepoHostOutcome? left, SharpRail.Plugins.Api.Host.RepoHostOutcome? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostOutcome.operator ==(SharpRail.Plugins.Api.Host.RepoHostOutcome? left, SharpRail.Plugins.Api.Host.RepoHostOutcome? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostRequest.operator !=(SharpRail.Plugins.Api.Host.RepoHostRequest? left, SharpRail.Plugins.Api.Host.RepoHostRequest? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostRequest.operator ==(SharpRail.Plugins.Api.Host.RepoHostRequest? left, SharpRail.Plugins.Api.Host.RepoHostRequest? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostSignIn.operator !=(SharpRail.Plugins.Api.Host.RepoHostSignIn? left, SharpRail.Plugins.Api.Host.RepoHostSignIn? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostSignIn.operator ==(SharpRail.Plugins.Api.Host.RepoHostSignIn? left, SharpRail.Plugins.Api.Host.RepoHostSignIn? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostToolResult.operator !=(SharpRail.Plugins.Api.Host.RepoHostToolResult? left, SharpRail.Plugins.Api.Host.RepoHostToolResult? right) -> bool
+static SharpRail.Plugins.Api.Host.RepoHostToolResult.operator ==(SharpRail.Plugins.Api.Host.RepoHostToolResult? left, SharpRail.Plugins.Api.Host.RepoHostToolResult? right) -> bool
