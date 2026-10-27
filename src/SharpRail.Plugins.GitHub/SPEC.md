@@ -8,6 +8,18 @@ references: [module-plugin-api, submodule-host-plugins, submodule-host-git, subm
 tags: [plugins, git]
 ---
 
+> Progress notes (remove when the plugin lands). Done: the host half of the provider API (checklist 4, host part): `RepoHost.cs`
+> in `Plugins.Api.Host`, `RepoHost`/`OnBranchStatus`/`RunToolAsync` on the host context, and `PluginRuntime.RepoHostFor(url)`
+> / `NotifyBranchStatus`. Remaining: 1, 2, 3, 4 (UI half: W28 `LocationItem`, `core:review-pull-request` slot), 5 to 9.
+> Findings for the successor. (a) `ProjectServices` has no handle on `PluginRuntime`; it is built in many places
+> (`new ProjectServices(root, state, plugins.AllowsExternalFile)`), so routing needs a constructor seam of the same kind,
+> for example `Func<string, (string PluginId, RepoHostProvider Provider)?>` from `PluginRuntime.RepoHostFor`, plus a
+> `Func<BranchStatusEvent, ...>` for `NotifyBranchStatus`; with no seam the host reports a plain remote. (b)
+> `Host.Abstractions` cannot reference `Plugins.Api.Host`, so the neutral `PullRequest` exists twice (Abstractions for the
+> wire and UI, Api.Host for providers) and Core maps between them. (c) The merge dialog's preference is the UI profile's
+> `MergePreferences[projectRoot]` (`method|delete` or `method|keep`). (d) `BranchStatusChecks`, `PullRequestChecks` and
+> `E2eWorkspace` wrap `IProjectServices` and must follow its signature changes.
+
 # GitHub — pull requests and GitHub sign-in, as a builtin repo hosting plugin
 
 ## Responsibility
