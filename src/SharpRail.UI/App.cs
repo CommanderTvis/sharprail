@@ -142,7 +142,7 @@ public sealed partial class App : Application
         IPluginService plugins = remotePlugins ?? (IPluginService)new LocalPluginAdapter(runtime!);
         Func<IProjectServices> sessions = remote
             ? () => new RemoteProjectAdapter(new Uri(endpoint!), token, connection)
-            : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local, runtime!.AllowsExternalFile));
+            : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local, runtime!.AllowsExternalFile, runtime!.RepoHostFor, runtime!.NotifyBranchStatus));
         // Which terminal tabs exist is the host's to say, so every window and every other client shows the same ones.
         var remoteCatalog = remote ? new RemoteTerminalCatalogAdapter(new Uri(endpoint!), token) : null;
         ITerminalCatalogService? catalog = remoteCatalog is not null ? remoteCatalog : localTerminals is not null ? new LocalTerminalCatalogAdapter(localTerminals) : null;

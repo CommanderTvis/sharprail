@@ -35,5 +35,12 @@ public static class GitHubAuthenticationProbe
 }
 public sealed partial class ProjectServices
 {
-    public async ValueTask<GitHubAuthentication> GetGitHubAuthenticationAsync(CancellationToken cancellationToken = default) => await GitHubAuthenticationProbe.CheckAsync(cancellationToken);
+    public async ValueTask<GitHubAuthentication> GetGitHubAuthenticationAsync(CancellationToken cancellationToken = default) => await SignInAsync(cancellationToken);
+
+    private async ValueTask<GitHubAuthentication> SignInAsync(CancellationToken cancellationToken)
+    {
+        var route = RouteFor(await OriginUrlAsync(root, cancellationToken)) ?? LegacyGitHubProvider.Route;
+        var status = await route.Provider.SignInAsync(cancellationToken);
+        return new(status.Connected, status.Detail);
+    }
 }

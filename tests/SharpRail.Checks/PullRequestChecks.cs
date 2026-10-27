@@ -38,7 +38,7 @@ internal static class PullRequestChecks
         case "$1 $2" in
           "pr list") [ -f "$SHIM_DIR/fail-list" ] && exit 1; cat "$SHIM_DIR/pr.json" 2>/dev/null || echo '[]' ;;
           "pr create")
-            echo '[{"number":7,"url":"https://github.com/o/r/pull/7"}]' > "$SHIM_DIR/pr.json"
+            echo '[{"number":7,"url":"https://github.com/o/r/pull/7","state":"OPEN"}]' > "$SHIM_DIR/pr.json"
             [ -f "$SHIM_DIR/fail-create" ] && exit 1
             echo https://github.com/o/r/pull/7 ;;
           "pr edit") exit 0 ;;
@@ -149,7 +149,7 @@ internal static class PullRequestChecks
         var bare = Path.Combine(parent, "hub.git");
         IProjectServices host = new LocalProjectAdapter(new ProjectServices(work));
         await host.OpenProjectAsync(work);
-        var found = "[{\"number\":7,\"url\":\"https://github.com/o/r/pull/7\"}]";
+        var found = "[{\"number\":7,\"url\":\"https://github.com/o/r/pull/7\",\"state\":\"OPEN\"}]";
 
         // Lookup: empty answers are cached, fresh bypasses, failures and non-https links are not served.
         Require(await host.GetOpenReviewAsync(false) is null, "No pull request expected yet.");

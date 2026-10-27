@@ -10,7 +10,8 @@ namespace SharpRail.Host.Core;
 /// One client's project session; <paramref name="state"/> receives workspace lifecycle changes, and
 /// <paramref name="allowsExternalFile"/> admits exact absolute files outside the workspace for reading and saving.
 /// </summary>
-public sealed partial class ProjectServices(string initialRoot, HostStateStore? state = null, Func<string, string, bool>? allowsExternalFile = null) : IProjectServices
+public sealed partial class ProjectServices(string initialRoot, HostStateStore? state = null, Func<string, string, bool>? allowsExternalFile = null,
+    Func<string, RepoHostRoute?>? repoHosts = null, Action<BranchStatusEvent>? branchStatusObserved = null) : IProjectServices
 {
     private string root = Path.GetFullPath(initialRoot);
     private readonly SemaphoreSlim mutations = new(1, 1);

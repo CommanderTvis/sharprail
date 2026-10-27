@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Text.Json;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core;
 
@@ -12,9 +12,6 @@ namespace SharpRail.Host.Core;
 /// </summary>
 public sealed partial class ProjectServices
 {
-    private static readonly TimeSpan MergeMethodsTtl = TimeSpan.FromMinutes(10);
-    private static readonly ConcurrentDictionary<string, (IReadOnlyList<string> Methods, long At)> MergeMethodCache = new();
-
     public async ValueTask<BranchStatus?> GetBranchStatusAsync(bool fresh, CancellationToken cancellationToken = default)
     {
         var currentRoot = root;
@@ -25,7 +22,8 @@ public sealed partial class ProjectServices
         var head = (await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "HEAD")).Trim();
         var origin = (await RemotesAsync(currentRoot, cancellationToken)).Contains("origin") ? await OriginUrlAsync(currentRoot, cancellationToken) : "";
         var hasOrigin = origin.Length > 0;
-        var provider = !hasOrigin ? "" : IsGitHub(origin) ? "github" : IsGitLab(origin) ? "gitlab" : "other";
+        var route = hasOrigin ? RouteFor(origin) : null;
+        var provider = !hasOrigin ? "" : route?.PluginId ?? (IsGitLab(origin) ? "gitlab" : "other");
         if (hasOrigin && fresh)
         {
             // Behind is only trustworthy against a ref that was just fetched; an unpublished branch has nothing to fetch.
@@ -44,9 +42,9 @@ public sealed partial class ProjectServices
         catch (IOException) { }
         var baseName = baseRef.StartsWith("origin/", StringComparison.Ordinal) ? baseRef[7..] : baseRef;
         var aheadOfBase = baseRef.Length > 0 && baseName != branch ? await CountAsync(currentRoot, $"{baseRef}..HEAD") : 0;
-        var review = provider == "github" ? await GetOpenReviewAsync(fresh, cancellationToken) : null;
-        var details = provider == "github" ? await ReviewDetailsAsync(currentRoot, branch, origin, cancellationToken) : null;
-        return new(branch, hasOrigin, provider, published, ahead, behind, aheadOfBase, baseName == branch, baseName, head, review, details);
+        var request = route is null ? null : await LookupAsync(currentRoot, branch, origin, route, fresh, cancellationToken);
+        branchStatusObserved?.Invoke(new(currentRoot, currentRoot, route?.PluginId ?? "", branch, published, ahead, behind, head, request));
+        return new(branch, hasOrigin, provider, published, ahead, behind, aheadOfBase, baseName == branch, baseName, head, ToOpenReview(request, provider), ToDetails(request));
     }
 
     private static bool IsGitLab(string origin) => origin.StartsWith("git@gitlab.com:", StringComparison.Ordinal) ||
@@ -56,62 +54,6 @@ public sealed partial class ProjectServices
     {
         try { await GitRepository.RunAsync(currentRoot, ct, "rev-parse", "--verify", "-q", "--end-of-options", reference); return true; }
         catch (IOException) { return false; }
-    }
-
-    /// <summary>The newest pull request heading this branch in any state, with its checks, review and merge facts; null when gh cannot say.</summary>
-    private static async Task<ReviewDetails?> ReviewDetailsAsync(string currentRoot, string branch, string origin, CancellationToken ct)
-    {
-        if (Environment.GetEnvironmentVariable("SHARPRAIL_GH_OFFLINE") == "1") return null;
-        try
-        {
-            var result = await ChildProcess.RunAsync("gh", currentRoot, ["pr", "list", "--head", branch, "--state", "all", "--limit", "1", "--json",
-                "number,url,state,isDraft,statusCheckRollup,reviewDecision,mergeStateStatus,headRepositoryOwner,headRepository"], GhQuery, ct, GhEnvironment);
-            if (result.ExitCode != 0) return null;
-            using var json = JsonDocument.Parse(result.Output);
-            if (json.RootElement.ValueKind != JsonValueKind.Array || json.RootElement.GetArrayLength() == 0) return null;
-            var pr = json.RootElement[0];
-            var url = Text(pr, "url");
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return null;
-            var owner = pr.TryGetProperty("headRepositoryOwner", out var ownerElement) ? Text(ownerElement, "login") : "";
-            var name = pr.TryGetProperty("headRepository", out var repositoryElement) ? Text(repositoryElement, "name") : "";
-            // gh matches --head by branch name only, so a fork's same-named branch must not pass as this one.
-            var same = string.Equals(owner + "/" + name, GitHubRepository(origin), StringComparison.OrdinalIgnoreCase);
-            return new(pr.GetProperty("number").GetInt32(), url, Text(pr, "state"), pr.TryGetProperty("isDraft", out var draft) && draft.ValueKind == JsonValueKind.True,
-                ChecksState(pr), Text(pr, "reviewDecision"), Text(pr, "mergeStateStatus"), await MergeMethodsAsync(currentRoot, origin, ct), same);
-        }
-        catch (Exception error) when (error is TimeoutException or IOException or Win32Exception or JsonException or InvalidOperationException or KeyNotFoundException) { return null; }
-    }
-
-    private static string Text(JsonElement element, string property) =>
-        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
-
-    /// <summary>failing when any check failed, else pending while any runs, else passing when there are checks.</summary>
-    internal static string ChecksState(JsonElement pr)
-    {
-        if (!pr.TryGetProperty("statusCheckRollup", out var rollup) || rollup.ValueKind != JsonValueKind.Array || rollup.GetArrayLength() == 0) return "";
-        var pending = false;
-        foreach (var check in rollup.EnumerateArray())
-        {
-            var conclusion = Text(check, "conclusion");
-            var status = Text(check, "status");
-            var state = Text(check, "state");
-            if (conclusion is "FAILURE" or "TIMED_OUT" or "CANCELLED" or "ACTION_REQUIRED" or "STARTUP_FAILURE" || state is "FAILURE" or "ERROR") return "failing";
-            if (status.Length > 0 && status != "COMPLETED" || state is "PENDING" or "EXPECTED") pending = true;
-        }
-        return pending ? "pending" : "passing";
-    }
-
-    private static async Task<IReadOnlyList<string>> MergeMethodsAsync(string currentRoot, string origin, CancellationToken ct)
-    {
-        if (MergeMethodCache.TryGetValue(origin, out var cached) && Environment.TickCount64 - cached.At < MergeMethodsTtl.TotalMilliseconds) return cached.Methods;
-        var result = await ChildProcess.RunAsync("gh", currentRoot, ["repo", "view", "--json", "mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed"], GhQuery, ct, GhEnvironment);
-        if (result.ExitCode != 0) return [];
-        using var json = JsonDocument.Parse(result.Output);
-        bool Allowed(string name) => json.RootElement.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
-        IReadOnlyList<string> methods = [.. new[] { ("merge", "mergeCommitAllowed"), ("squash", "squashMergeAllowed"), ("rebase", "rebaseMergeAllowed") }
-            .Where(pair => Allowed(pair.Item2)).Select(pair => pair.Item1)];
-        MergeMethodCache[origin] = (methods, Environment.TickCount64);
-        return methods;
     }
 
     public async ValueTask<BranchActionResult> ApplyBranchActionAsync(BranchAction action, CancellationToken cancellationToken = default)
@@ -136,41 +78,53 @@ public sealed partial class ProjectServices
                     if (await PushAsync(currentRoot, branch, cancellationToken) is not null) return new("authFailed", "git push could not authenticate.");
                     return new("done", $"Pushed {branch} to origin.");
                 case "ready" or "merge" or "reopen" or "delete-remote":
-                    if (branch == baseName) throw new InvalidOperationException("The base branch has no pull request of its own.");
-                    var details = await ReviewDetailsAsync(currentRoot, branch, origin, cancellationToken)
-                        ?? throw new InvalidOperationException("GitHub reports no pull request for this branch.");
-                    if (!details.SameRepository) throw new InvalidOperationException("The pull request for this branch name comes from another repository.");
-                    var number = details.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    switch (action.Kind)
                     {
-                        case "ready":
-                            if (details is not { State: "OPEN", Draft: true }) throw new InvalidOperationException("The pull request is not an open draft.");
-                            await GhMutationAsync(currentRoot, ["pr", "ready", number], cancellationToken);
-                            return new("done", $"PR #{number} is ready for review.");
-                        case "reopen":
-                            if (details.State != "CLOSED") throw new InvalidOperationException("Only a closed pull request can be reopened.");
-                            await GhMutationAsync(currentRoot, ["pr", "reopen", number], cancellationToken);
-                            return new("done", $"PR #{number} is open again.");
-                        case "merge":
-                            if (details.State != "OPEN") throw new InvalidOperationException("The pull request is not open.");
-                            if (!details.MergeMethods.Contains(action.Method)) throw new InvalidOperationException("The repository does not allow that merge method.");
-                            await GhMutationAsync(currentRoot, ["pr", "merge", number, "--" + action.Method, "--match-head-commit", head], cancellationToken);
-                            DropLookups(currentRoot, branch);
-                            if (!action.DeleteBranch) return new("done", $"PR #{number} merged.");
-                            // A queued merge keeps its branch: deletion waits until GitHub reports the merge.
-                            if (await ReviewDetailsAsync(currentRoot, branch, origin, cancellationToken) is not { State: "MERGED" })
-                                return new("done", $"PR #{number} is queued to merge; its branch stays until it lands.");
-                            await DeleteRemoteBranchAsync(currentRoot, branch, cancellationToken);
-                            return new("done", $"PR #{number} merged and origin/{branch} deleted.");
-                        default:
-                            if (details.State != "MERGED") throw new InvalidOperationException("The remote branch is deleted only after its pull request merged.");
-                            await DeleteRemoteBranchAsync(currentRoot, branch, cancellationToken);
-                            return new("done", $"Deleted origin/{branch}.");
+                        if (branch == baseName) throw new InvalidOperationException("The base branch has no pull request of its own.");
+                        var target = new RepoHostBranch(currentRoot, origin, branch, baseName);
+                        var route = RouteFor(origin);
+                        var details = route is null ? null : await FindLiveAsync(route, target, cancellationToken);
+                        if (route is null || details is null) throw new InvalidOperationException("GitHub reports no pull request for this branch.");
+                        if (!details.SameRepository) throw new InvalidOperationException("The pull request for this branch name comes from another repository.");
+                        var number = details.Number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        budget.CancelAfter(ProviderMutation);
+                        switch (action.Kind)
+                        {
+                            case "ready":
+                                if (details is not { State: "open", Draft: true }) throw new InvalidOperationException("The pull request is not an open draft.");
+                                await route.Provider.ReadyAsync(target, details, budget.Token);
+                                return new("done", $"PR #{number} is ready for review.");
+                            case "reopen":
+                                if (details.State != "closed") throw new InvalidOperationException("Only a closed pull request can be reopened.");
+                                await route.Provider.ReopenAsync(target, details, budget.Token);
+                                return new("done", $"PR #{number} is open again.");
+                            case "merge":
+                                if (details.State != "open") throw new InvalidOperationException("The pull request is not open.");
+                                if (!details.MergeMethods.Contains(action.Method)) throw new InvalidOperationException("The repository does not allow that merge method.");
+                                await route.Provider.MergeAsync(target, details, action.Method, head, budget.Token);
+                                DropLookups(currentRoot, branch);
+                                if (!action.DeleteBranch) return new("done", $"PR #{number} merged.");
+                                // A queued merge keeps its branch: deletion waits until GitHub reports the merge.
+                                if (await FindLiveAsync(route, target, cancellationToken) is not { State: "merged" })
+                                    return new("done", $"PR #{number} is queued to merge; its branch stays until it lands.");
+                                await DeleteRemoteBranchAsync(currentRoot, branch, cancellationToken);
+                                return new("done", $"PR #{number} merged and origin/{branch} deleted.");
+                            default:
+                                if (details.State != "merged") throw new InvalidOperationException("The remote branch is deleted only after its pull request merged.");
+                                await DeleteRemoteBranchAsync(currentRoot, branch, cancellationToken);
+                                return new("done", $"Deleted origin/{branch}.");
+                        }
                     }
                 default: throw new ArgumentException("Unknown branch action " + action.Kind + ".");
             }
         }
         finally { DropLookups(currentRoot, branch); }
+    }
+
+    private static async Task<PullRequest?> FindLiveAsync(RepoHostRoute route, RepoHostBranch target, CancellationToken cancellationToken)
+    {
+        try { return await FindWithinBudgetAsync(route, target, cancellationToken); }
+        catch (Exception error) when (error is not OperationCanceledException || !cancellationToken.IsCancellationRequested) { return null; }
     }
 
     /// <summary>Deletes origin's branch through git, leased to the tip last fetched, so a newer push there is never lost.</summary>

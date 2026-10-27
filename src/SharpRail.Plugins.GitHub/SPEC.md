@@ -8,7 +8,7 @@ references: [module-plugin-api, submodule-host-plugins, submodule-host-git, subm
 tags: [plugins, git]
 ---
 
-> Progress notes (remove when the plugin lands). Done: the host half of the provider API (checklist 4, host part): `RepoHost.cs`
+> Progress notes (remove when the plugin lands). Strangler plan, one slice per commit. Slice A done: `ProjectServices` takes optional `repoHosts` (url to `RepoHostRoute`) and `branchStatusObserved` seams, wired from `PluginRuntime.RepoHostFor`/`NotifyBranchStatus` in App.cs and RemoteServer; every `gh` call now runs through the internal `LegacyGitHubProvider` (Host.Core) behind `RepoHostProvider`; DTOs and wire unchanged (the host maps the neutral model back to GitHub's spellings). Remaining slices: B (plugin projects, move the provider, `--github`), C (UI half), D (wire cleanup and version bump). Done: the host half of the provider API (checklist 4, host part): `RepoHost.cs`
 > in `Plugins.Api.Host`, `RepoHost`/`OnBranchStatus`/`RunToolAsync` on the host context, and `PluginRuntime.RepoHostFor(url)`
 > / `NotifyBranchStatus`. Remaining: 1, 2, 3, 4 (UI half: W28 `LocationItem`, `core:review-pull-request` slot), 5 to 9.
 > Findings for the successor. (a) `ProjectServices` has no handle on `PluginRuntime`; it is built in many places

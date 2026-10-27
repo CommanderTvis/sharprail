@@ -130,19 +130,19 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     }
 
     /// <summary>The first active provider, by plugin id, that recognizes the remote URL (H24); null for a plain remote.</summary>
-    internal (string PluginId, RepoHostProvider Provider)? RepoHostFor(string remoteUrl)
+    public RepoHostRoute? RepoHostFor(string remoteUrl)
     {
         foreach (var (entry, tables) in Active().OrderBy(active => active.Entry.Id, StringComparer.Ordinal))
         {
             if (tables.RepoHost is not { } provider) continue;
-            try { if (provider.Recognizes(remoteUrl)) return (entry.Id, provider); }
+            try { if (provider.Recognizes(remoteUrl)) return new(entry.Id, provider); }
             catch (Exception error) when (error is not OperationCanceledException) { Log(entry.Id, "warn", $"its repo host failed to recognize a remote: {error.Message}", null); }
         }
         return null;
     }
 
     /// <summary>Hands a finished branch status to the plugins that observe them (H24).</summary>
-    internal void NotifyBranchStatus(BranchStatusEvent status)
+    public void NotifyBranchStatus(BranchStatusEvent status)
     {
         foreach (var (entry, tables) in Active())
             foreach (var observer in tables.BranchStatusObservers) Guard(entry.Id, () => observer(status));

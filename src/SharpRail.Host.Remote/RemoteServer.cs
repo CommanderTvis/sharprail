@@ -38,7 +38,7 @@ public static class RemoteServer
         var runtime = new PluginRuntime(plugins?.Invoke(seams) ?? seams);
         loopback.Plugins = runtime;
         builder.Services.AddSingleton(runtime);
-        builder.Services.AddSingleton(new ProjectSessions(root, state, runtime.AllowsExternalFile));
+        builder.Services.AddSingleton(new ProjectSessions(root, state, runtime.AllowsExternalFile, runtime.RepoHostFor, runtime.NotifyBranchStatus));
         builder.Services.AddSingleton<RequestReplayCache>();
         builder.Services.AddSingleton(services => services.GetRequiredService<ITerminalService>() as ITerminalCatalogService ?? new MemoryTerminalCatalog());
         var app = builder.Build();
@@ -88,7 +88,7 @@ public static class RemoteServer
         builder.Services.AddSingleton(services => services.GetRequiredService<ITerminalService>() as ITerminalCatalogService ?? new MemoryTerminalCatalog());
         builder.Services.AddSingleton<RequestReplayCache>();
         builder.Services.AddSingleton(plugins);
-        builder.Services.AddSingleton(new ProjectSessions(root, state, plugins.AllowsExternalFile));
+        builder.Services.AddSingleton(new ProjectSessions(root, state, plugins.AllowsExternalFile, plugins.RepoHostFor, plugins.NotifyBranchStatus));
         var app = builder.Build();
         browsers?.Map(app);
         Map(app, token, tailscale, browsers);
