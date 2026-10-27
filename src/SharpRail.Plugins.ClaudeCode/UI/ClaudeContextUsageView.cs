@@ -36,6 +36,14 @@ internal sealed partial class ClaudeContextUsageView : UserControl
         return tokens < 1_000 ? tokens.ToString(CultureInfo.InvariantCulture) : tokens < 1_000_000 ? Trim(tokens / 1_000.0) + "k" : Trim(tokens / 1_000_000.0) + "m";
     }
 
+    /// <summary>Renders the same answer again so "Measured … ago" follows the clock.</summary>
+    public void Retick()
+    {
+        if (shown is not (ClaudeContextUsage again, _)) return;
+        shown = null;
+        Show(again);
+    }
+
     /// <summary>Shows the host's answer; the same answer twice does nothing.</summary>
     public void Show(ClaudeContextUsage? usage)
     {

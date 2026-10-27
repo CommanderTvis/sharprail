@@ -18,6 +18,9 @@ internal sealed class ClaudeAccountSurface(IPluginUIContext context) : StackPane
     private ClaudeAccount? account;
     private string? error;
     private bool busy;
+
+    /// <summary>Whether a forced read is running.</summary>
+    public bool Busy => busy;
     private int generation;
 
     // The mount's read has nothing to force; only a press asks Claude Code to fetch the numbers again.

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 using Avalonia;
@@ -27,6 +28,10 @@ internal sealed class ClaudeConfigPanel : DockPanel
     private readonly ClaudeContextUsageView usageView = new();
     private ClaudeContextUsage? contextUsage;
     private int usageGeneration;
+    private bool usagePending;
+    private DateTimeOffset? requestedAt;
+    private readonly ClaudeAutoRefresh auto;
+    private DispatcherTimer? minute;
     private IDisposable? usageChannel;
     private string memoryKey = "";
     private readonly ClaudeGlyph glyph;
@@ -56,13 +61,9 @@ internal sealed class ClaudeConfigPanel : DockPanel
         Name = "ClaudeConfigPanel";
         Background = Ui.Sidebar;
         var header = new DockPanel { Margin = new Thickness(8, 4) };
-        var refresh = Ui.IconButton("refresh", "Re-read configuration", () =>
-        {
-            // On the account surface a press is also the only thing that asks Claude Code for fresh usage numbers.
-            if (surface == Surface.Account) account?.Read(refresh: true);
-            Load();
-            if (surface == Surface.Context) LoadUsage(refresh: true);
-        });
+        auto = new ClaudeAutoRefresh(() => DateTimeOffset.UtcNow, () => TopLevel.GetTopLevel(this) is Window { IsActive: true, WindowState: not WindowState.Minimized } && IsEffectivelyVisible,
+            () => usagePending || contextUsage?.Running == true || account?.Busy == true, LastRead, Refresh);
+        var refresh = Ui.IconButton("refresh", "Refresh usage and context (also runs hourly)", Refresh);
         refresh.Name = "ClaudeConfigRefresh";
         refresh.Width = refresh.Height = 24;
         refresh.Padding = new Thickness(4);
@@ -82,6 +83,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         {
             watch?.Dispose(); watch = null;
             usageChannel?.Dispose(); usageChannel = null;
+            minute?.Stop(); minute = null;
             Ui.ThemeChanged -= ThemeChanged;
         };
     }
@@ -96,6 +98,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         if (next == workspaceId) return true;
         workspaceId = next;
         generation++; usageGeneration++;
+        usagePending = false; requestedAt = null;
         snapshot = null; reached = []; error = null; contextUsage = null; session = activeTab = null;
         snapshotKey = reachedKey = memoryKey = ""; settingsQuery = ""; surface = Surface.Context;
         expandedRows.Clear();
@@ -127,6 +130,12 @@ internal sealed class ClaudeConfigPanel : DockPanel
         });
         Ui.ThemeChanged -= ThemeChanged;
         Ui.ThemeChanged += ThemeChanged;
+        if (minute is null)
+        {
+            minute = new DispatcherTimer { Interval = ClaudeAutoRefresh.TickEvery };
+            minute.Tick += (_, _) => { usageView.Retick(); auto.Tick(); };
+            minute.Start();
+        }
         (session, activeTab) = Shown(context.Host());
         watch ??= context.WatchHost(host =>
         {
@@ -154,10 +163,27 @@ internal sealed class ClaudeConfigPanel : DockPanel
 
     private void ShowUsage() => usageView.Show(contextUsage);
 
+    // The button and the hourly tick are the same refresh: on the account surface it also asks Claude Code for fresh usage numbers.
+    private void Refresh()
+    {
+        if (surface == Surface.Account) account?.Read(refresh: true);
+        Load();
+        if (surface == Surface.Context) LoadUsage(refresh: true);
+        requestedAt = DateTimeOffset.UtcNow;
+    }
+
+    // The newer of the baseline's own stamp and our last request, so a failed refresh is not retried every minute.
+    private DateTimeOffset? LastRead()
+    {
+        DateTimeOffset? measured = contextUsage?.MeasuredAt is { } stamp && DateTimeOffset.TryParse(stamp, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var at) ? at : null;
+        return measured is null ? requestedAt : requestedAt is { } asked && asked > measured ? asked : measured;
+    }
+
     // The host answers at once with what it has cached and measures in the background when that is missing or stale.
     private void LoadUsage(bool refresh)
     {
         var mine = ++usageGeneration;
+        usagePending = true;
         var tabKey = session?.TabKey;
         _ = Task.Run(async () =>
         {
@@ -168,8 +194,10 @@ internal sealed class ClaudeConfigPanel : DockPanel
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (mine != usageGeneration) return;
+                usagePending = false;
                 contextUsage = result;
                 ShowUsage();
+                if (!refresh) auto.Tick();
                 if (key != memoryKey)
                 {
                     memoryKey = key;

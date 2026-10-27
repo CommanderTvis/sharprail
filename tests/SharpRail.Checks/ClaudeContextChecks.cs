@@ -205,8 +205,27 @@ internal static class ClaudeContextChecks
         Require(usage.Read(transcript).Context == 1303, "Live context follows an appended turn with a tail read.");
     }
 
+    private static void AutoRefresh()
+    {
+        var clock = DateTimeOffset.UtcNow;
+        var visible = true; var running = false; DateTimeOffset? last = clock; var refreshes = 0;
+        var auto = new ClaudeAutoRefresh(() => clock, () => visible, () => running, () => last, () => { refreshes++; last = clock; });
+        Require(!auto.Tick() && refreshes == 0, "A fresh reading is not refreshed.");
+        clock += ClaudeAutoRefresh.Interval - TimeSpan.FromMinutes(1);
+        Require(!auto.Tick(), "A reading just under an hour old is not refreshed.");
+        visible = false; clock += TimeSpan.FromMinutes(2);
+        Require(!auto.Tick() && refreshes == 0, "A hidden pane is not refreshed.");
+        visible = true; running = true;
+        Require(!auto.Tick() && refreshes == 0, "No refresh starts while one is running.");
+        running = false;
+        Require(auto.Tick() && refreshes == 1 && !auto.Tick() && refreshes == 1, "The hourly tick refreshes exactly once.");
+        last = null;
+        Require(auto.Tick() && refreshes == 2, "A pane with no reading refreshes when first visible.");
+    }
+
     public static void Ui()
     {
+        AutoRefresh();
         // The baseline's rows: Claude's own prompt less the appendix, built-in tools, MCP tools by server, server
         // instructions and skills; memory files, deferred tools, the message, free space and the reserve are not rows.
         var rows = ClaudeConfigPanel.BaselineRows(Fixture(), claudePrompt: 1_300);

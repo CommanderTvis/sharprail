@@ -268,7 +268,8 @@ autocompact reserve are not rows. MCP tools open, in the table's own row style w
 first, with subtotals) and each server into its tools; Skills open into each skill. The header totals the rows as
 "N tokens in new session". Every amount says "1 token" for one and abbreviates to "tok"/"toks" where the row is
 narrower than the Agent UI `TokenAmount` threshold; a short line above the table says "Measured 5m ago" (the same `ClaudeParts.Ago` phrasing as the account usage reading, the absolute time in the tooltip), that it is measuring, or why it
-failed, with Retry. Before a baseline exists rows show an ellipsis. The host matches memory paths to the resolver's
+failed, with Retry. Before a baseline exists rows show an ellipsis.
+The pane refreshes by itself with the same code path as its refresh button (tooltip "Refresh usage and context (also runs hourly)"): a one-minute UI tick re-renders "Measured … ago" and, when the pane is mounted, its window is active and not minimised, no refresh is running, and the last reading (the newer of the baseline's stamp and the last request) is at least `ClaudeAutoRefresh.Interval` (1 hour) old or missing, starts one refresh; the first reply after the pane appears applies the same test, so stale data refreshes on first view. Nothing polls while the pane is detached. `ClaudeContextChecks` drives the rule with a fake clock. The host matches memory paths to the resolver's
 with `~` expanded, made absolute and through symbolic links.
 
 `/context` (2.1.x, also `/context all` and the JSON reply) does not list an `--append-system-prompt-file` file; it
