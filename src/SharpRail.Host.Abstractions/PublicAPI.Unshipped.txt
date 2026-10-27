@@ -5,7 +5,7 @@ const SharpRail.Host.Abstractions.FileLimits.ReadMessageBytes = 83886080 -> int
 const SharpRail.Host.Abstractions.FileLimits.SaveMessageBytes = 150994944 -> int
 const SharpRail.Host.Abstractions.HostProtocol.ChangeWritePath = 2 -> int
 const SharpRail.Host.Abstractions.HostProtocol.AirContextPlugin = 8 -> int
-const SharpRail.Host.Abstractions.HostProtocol.Current = 13 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 14 -> int
 const SharpRail.Host.Abstractions.HostProtocol.RequestReplay = 3 -> int
 const SharpRail.Host.Abstractions.HostProtocol.SharprailExclude = 9 -> int
 const SharpRail.Host.Abstractions.HostProtocol.WebSocketTransport = 5 -> int
@@ -1365,6 +1365,9 @@ const SharpRail.Host.Abstractions.SettledOverrides.Settled = "settled" -> string
 static SharpRail.Host.Abstractions.WorkspaceAction.Settle(string! id) -> SharpRail.Host.Abstractions.WorkspaceAction!
 static SharpRail.Host.Abstractions.WorkspaceAction.Unsettle(string! id) -> SharpRail.Host.Abstractions.WorkspaceAction!
 const SharpRail.Host.Abstractions.HostProtocol.FileTypeIcons = 7 -> int
+const SharpRail.Host.Abstractions.HostProtocol.FileTypeIconStyle = 14 -> int
+SharpRail.Host.Abstractions.HostSettings.FileTypeIconStyle.get -> string!
+SharpRail.Host.Abstractions.HostSettings.FileTypeIconStyle.init -> void
 SharpRail.Host.Abstractions.HostSettings.FileTypeIconsEnabled.get -> bool
 SharpRail.Host.Abstractions.HostSettings.FileTypeIconsEnabled.init -> void
 override SharpRail.Host.Abstractions.LanguageFileResult.Equals(object? obj) -> bool

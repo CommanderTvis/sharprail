@@ -682,6 +682,8 @@ public sealed partial class HostStateStore : IHostStateService
                     "terminal-keep-after-exit" when bool.TryParse(value, out var keep) => settings with { TerminalKeepAfterExit = keep },
                     "terminal-undo-close" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) && seconds <= HostSettings.MaxTerminalUndoCloseSeconds
                         => settings with { TerminalUndoCloseSeconds = seconds },
+                    "file-type-icon-style" when value is "plain" or "" => settings with { FileTypeIconStyle = "" },
+                    "file-type-icon-style" when value is "colored" or "material" => settings with { FileTypeIconStyle = value },
                     "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
                     "shell-integration" when bool.TryParse(value, out var integrate) => settings with { ShellIntegrationEnabled = integrate },
                     "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },

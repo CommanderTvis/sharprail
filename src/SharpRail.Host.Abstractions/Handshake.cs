@@ -9,7 +9,10 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 13;
+    public const int Current = 14;
+
+    /// <summary>The file-type icon style (plain, colored, material) beside the on/off toggle.</summary>
+    public const int FileTypeIconStyle = 14;
 
     /// <summary>Listing any host directory by absolute path, for choosing a host file to attach to an agent.</summary>
     public const int HostDirectoryBrowse = 11;

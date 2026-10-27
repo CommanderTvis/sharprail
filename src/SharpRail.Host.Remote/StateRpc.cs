@@ -76,6 +76,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             TerminalKeepAfterExit = state.Settings.TerminalKeepAfterExit,
             TerminalUndoCloseSeconds = state.Settings.TerminalUndoCloseSeconds,
             FileTypeIconsDisabled = !state.Settings.FileTypeIconsEnabled,
+            FileTypeIconStyle = state.Settings.FileTypeIconStyle,
             ShellIntegrationDisabled = !state.Settings.ShellIntegrationEnabled,
             NotificationsDisabled = !state.Settings.NotificationsEnabled,
             TerminalNotificationsDisabled = !state.Settings.TerminalNotificationsEnabled,

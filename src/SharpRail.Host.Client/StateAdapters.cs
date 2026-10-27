@@ -103,6 +103,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             TerminalKeepAfterExit = reply.Settings.TerminalKeepAfterExit,
             TerminalUndoCloseSeconds = reply.Settings.TerminalUndoCloseSeconds,
             FileTypeIconsEnabled = !reply.Settings.FileTypeIconsDisabled,
+            FileTypeIconStyle = reply.Settings.FileTypeIconStyle is "colored" or "material" ? reply.Settings.FileTypeIconStyle : "",
             ShellIntegrationEnabled = !reply.Settings.ShellIntegrationDisabled,
             NotificationsEnabled = !reply.Settings.NotificationsDisabled,
             TerminalNotificationsEnabled = !reply.Settings.TerminalNotificationsDisabled,

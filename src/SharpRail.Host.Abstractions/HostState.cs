@@ -9,6 +9,8 @@ public sealed record HostSettings
 {
     /// <summary>Whether clients use the bundled file-type icons instead of generic file glyphs.</summary>
     public bool FileTypeIconsEnabled { get; init; } = true;
+    /// <summary>The bundled icon set's look when <see cref="FileTypeIconsEnabled"/>: empty is plain (decoloured), <c>colored</c> tints it per file kind, <c>material</c> uses Material Icon Theme's own colours.</summary>
+    public string FileTypeIconStyle { get; init; } = "";
     public string Theme { get; init; } = "";
     public string ThemeMode { get; init; } = "fixed";
     public string SystemLight { get; init; } = "";

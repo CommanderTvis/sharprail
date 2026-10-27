@@ -591,3 +591,8 @@ static SharpRail.Plugins.UI.Kit.Chips.Button(string! name, Avalonia.Controls.Con
 static SharpRail.Plugins.UI.Kit.Chips.Gap.get -> Avalonia.Thickness
 static SharpRail.Plugins.UI.Kit.Chips.Label(string! text) -> Avalonia.Controls.TextBlock!
 static SharpRail.Plugins.UI.Kit.Chips.Tip<T>(T! control, string! tooltip) -> T!
+static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconCode -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconMarkup -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconData -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconScript -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.FileIconMedia -> Avalonia.Media.SolidColorBrush!

@@ -37,6 +37,8 @@ public sealed class SettingsMessage
     /// <summary>Always written, so zero (undo off) differs from a host that predates the setting.</summary>
     [ProtoMember(26, IsRequired = true)] public int TerminalUndoCloseSeconds { get; set; } = 5;
     [ProtoMember(15)] public bool FileTypeIconsDisabled { get; set; }
+    /// <summary>Empty, from a host that predates styles, is plain.</summary>
+    [ProtoMember(28)] public string FileTypeIconStyle { get; set; } = "";
     /// <summary>Inverted so a host that predates the setting reads as integrating, its default.</summary>
     [ProtoMember(27)] public bool ShellIntegrationDisabled { get; set; }
     [ProtoMember(10)] public bool NotificationsDisabled { get; set; }
