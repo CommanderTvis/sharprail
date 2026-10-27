@@ -1,25 +1,12 @@
 ---
 id: module-plugin-github
 type: module-design
-status: draft
+status: active
 title: GitHub — pull requests and GitHub sign-in, as a builtin repo hosting plugin
 parent: architecture
 references: [module-plugin-api, submodule-host-plugins, submodule-host-git, submodule-ui-plugins]
 tags: [plugins, git]
 ---
-
-> Progress notes (remove when the plugin lands). Strangler plan, one slice per commit. Slice A done: `ProjectServices` takes optional `repoHosts` (url to `RepoHostRoute`) and `branchStatusObserved` seams, wired from `PluginRuntime.RepoHostFor`/`NotifyBranchStatus` in App.cs and RemoteServer; every `gh` call now runs through the internal `LegacyGitHubProvider` (Host.Core) behind `RepoHostProvider`; DTOs and wire unchanged (the host maps the neutral model back to GitHub's spellings). Slice B done: `SharpRail.Plugins.GitHub` Contract/Host/UI exist and are registered (Host.Core and UI `BuiltinPlugins.cs`, UI/Android/Browser csprojs, slnx); the provider is `GitHubProvider` in the Host project (runs `gh` through `IPluginHostContext.RunToolAsync`), the core fallback is deleted, so a GitHub remote with the plugin off is a plain remote; sign-in without a recognized remote asks the first active provider (`RepoHostFor("")`). Category is Version Control (resolved). The `--github` mode replaces `--pull-requests` and includes the provider-off case; checks that run `ProjectServices` without a runtime pass `PullRequestChecks.GitHubRoute`. The UI half is still empty. Remaining slices: C (UI half), D (wire cleanup and version bump).
-> Slice C done: W28 is one `RepoHostUI(RepoHostUIRegistration)` registration (`Plugins.Api.UI/RepoHostUI.cs`) carrying the Pull request
-> location item and the Review panel section; the section is part of the registration rather than a W23 slot because it needs the window's
-> `IRepoHostSurface` (status, apply/preview/open-PR, toasts, dialogs, clipboard, merge preference), which a slot's workspace id cannot
-> give. The core window keeps only the Remote segment and mounts the item in the segment after it (`PullRequestSegment` keeps its caption
-> row, 16 px icon slot and `8,0,0,0` row) and the section in `ReviewPullRequestHost`. The Settings page is a W4 section (`Settings_plugin_github_github`)
-> that reads `gh auth status` through the plugin's `signIn` method when shown and every 30 s while visible; there is no Refresh button
-> (it does not follow a host broadcast). The merge choice still lives in the UI profile's `MergePreferences` behind the surface. Phone:
-> the location strip is built identically for compact workbenches, so the Pull request item shows there too; W24's "shows none" is header
-> items only. Moved checks: `--review`, `--settings` and `--shell` (location bar) now run against the plugin's UI; the pure next-step rules
-> are `GitHubLocationItem.NextStep` and `WorkbenchWindow.RemoteAction` (tested in `--branch-status`). Remaining: slice D (neutral wire,
-> version bump, `GetGitHubAuthenticationAsync` and `OpenReview`/`ReviewDetails` leftovers).
 
 # GitHub — pull requests and GitHub sign-in, as a builtin repo hosting plugin
 
@@ -95,7 +82,7 @@ remembered method and branch-deletion choice per project (today the UI profile's
 
 Switching `GitHub` off (plugin enable switch, no dependents to cascade) removes only its segment, Review section,
 Settings page and the `gh` calls; the host drops the cached lookups and reports no review. Remote, Publish, Push, Sync,
-branch status and `OpenReview`'s push step keep working; Open PR then pushes and reports `pushed`. With it off, a
+branch status and Open PR's push step keep working; Open PR then pushes and reports `pushed`. With it off, a
 GitHub remote is simply a remote.
 
 ## Limits
@@ -104,26 +91,14 @@ GitHub remote is simply a remote.
 - Needs `gh` on the host's PATH; the browser never runs it (the host probes authentication, as before).
 - Fix with agent, templates, description sources and Merge locally stay unported.
 
-## Implementation checklist (nothing below exists yet)
+## Implementation status
 
-1. Host contract (Abstractions, Core): add the neutral `PullRequest`, `RepoHostProvider` and H24 registration; replace
-   `OpenReview`/`ReviewDetails` with it; make `BranchStatus.Provider` the matched provider id (empty when none) and
-   `PrResult.GhProblem` the neutral `Problem`; remove `GitHubAuthentication` from `IProjectServices`.
-2. Host.Core: provider registry, routing by `origin` URL, the generic cache, `OnBranchStatus`; strip `gh`, `IsGitHub`
-   and `IsGitLab` from `BranchStatus.cs`, `PullRequests.cs` and delete `GitHubAuthentication.cs`.
-3. Protocol and Client: remove `GitHubContract.cs`, `GitHubRpc.cs`, `GitHubAdapters.cs`; update the status DTOs
-   (`ProjectContract.cs`, `ProjectRpc.cs`, `ProjectAdapters.cs`); bump the host protocol version
-   (`HostCapabilities`); a client that predates it reports no review.
-4. Plugin API: H24 and W28 (and the `core:review-pull-request` slot of W23) in `Plugins.Api`, `Plugins.Api.Host`,
-   `Plugins.Api.UI`.
-5. New projects `SharpRail.Plugins.GitHub` (`Contract`, `Host`, `UI`) with locks and the solution entry; move the code
-   named above; `GitHubPlugin.Manifest`, `WireVersion = 1`.
-6. Register in `src/SharpRail.Host.Core/Plugins/BuiltinPlugins.cs`, `src/SharpRail.UI/Plugins/BuiltinPlugins.cs`,
-   `SharpRail.UI.csproj` and the Android and Browser csprojs (UI half).
-7. UI core: `BranchShip.cs` keeps Remote only; `LocationStrip` hosts W28 items; remove the Settings GitHub entry and
-   `GitHubSettings()`; Review panel keeps Show Changes and exposes the slot.
-8. Checks: move `PullRequestChecks`, `ReviewChecks`, `BranchStatusChecks` (pull request half) and
-   `SettingsGitHubE2E` behind a `--github` mode against a fake `gh`; add to `--plugins` the off case (no segment,
-   no `gh` spawned, push still works) and to `BoundaryChecks` that Host.Core and UI core spawn no `gh`; keep
-   Remote tests in the core mode.
-9. Docs: `docs/develop/agent-reference.md` project map and check modes, `STATUS.md`, `context-log.md`.
+Implemented in strangler slices (host seam, plugin projects, UI half, wire): `GitHubProvider` runs every `gh` call through
+the host's bounded runner; the Pull request item and the Review section are one W28 registration (`RepoHostUI`, over the
+window's `IRepoHostSurface`; the section is not a W23 slot because it needs the window surface); the Settings page is a W4
+section reading sign-in through the plugin's `signIn` method when shown and every 30 s; the wire is protocol 15 (neutral
+`PullRequest` in field 14, provider = plugin id). Category is Version Control. A compact (phone) workbench builds the same location
+strip, so the item shows there. Checks: `--github` (provider, cache, failures, plugin off = plain remote), `--branch-status`, `--review`,
+`--settings`, `--shell`. Open: the merge dialog's remembered choice still lives in the UI profile (`MergePreferences`,
+`method|delete` or `method|keep`) behind the surface rather than in plugin state (H14); the Settings page does not follow a host
+broadcast; no `--plugins` case switches the plugin off through the registry.

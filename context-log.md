@@ -6824,3 +6824,7 @@ Not verified: nothing was seen in a real window (all rendering checks are headle
 blocks; the popups inside their real popup hosts; `lsp_diagnostics` and discovery lookups were thin on several agent commits.
 Open gaps: the session list assertion in the host check is weak; the Edit card's "Modified" rule and the extension's visible
 streaming word are not recovered; the chat has no rename, cross-chat history or mid-turn steering because the contract has none.
+
+## 2026-10-27 — GitHub plugin and repo hosting providers
+
+Pull requests and GitHub sign-in moved out of the host into the builtin `GitHub` plugin ([spec](src/SharpRail.Plugins.GitHub/SPEC.md)): the host routes by `origin` URL to the first active `RepoHostProvider` (H24), the plugin's UI half contributes the Pull request strip item, the Review section and the Settings page (W28, W4), and the wire is protocol 15 with the neutral `PullRequest`. Verified: build, format, `--github`, `--branch-status`, `--review`, `--settings`, `--shell`, `--design`, `--plugins`, `--conformance`, `--reconnect`, `--state`, Android and browser builds. Open: the merge choice is still in the UI profile; no registry-level plugin-off check in `--plugins`.

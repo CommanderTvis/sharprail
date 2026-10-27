@@ -143,8 +143,8 @@ clients re-read Git although no file in the workspace changed.
   one currently checked out, and every other worktree is a workspace. The refusal does not depend on which
   client asked. The `fetch` action brings every remote up to date (`fetch --all --no-prune`) and moves no
   local branch.
-- `GetOpenReviewAsync` answers the open pull request of the workspace branch (neutral `PullRequest`; unpushed and behind
-  counts, -1 when unknown) through the repo hosting provider that recognizes `origin` (Plugin API H24, routing in
+- The pull request lookup (the neutral `PullRequest`, in `GetBranchStatusAsync`; unpushed and behind counts, -1 when unknown, only for an
+  open one) goes through the repo hosting provider that recognizes `origin` (Plugin API H24, routing in
   [Plugins](Plugins.SPEC.md#repo-hosting-providers-h24-w28)); without one, or when the provider's tool is missing,
   unauthenticated or late, the answer is no review. The host runs it with the 8 s query budget, caches successful answers (empty
   ones included) for 60 s per worktree and branch, never failures, shares concurrent lookups, and `fresh` skips the
@@ -168,7 +168,7 @@ Ported from ThinkRail #771 and #776. `GetBranchStatusAsync(fresh)` reports the c
 origin exists and which repo hosting provider owns it (its plugin id, empty when none or when it is switched off),
 whether `origin/<branch>` exists (published), commits ahead and behind it (a fresh read fetches that branch first),
 commits ahead of the review base, whether the branch is its own base, and HEAD. These are git and are always
-reported. With a provider it adds the cached open-review lookup and the newest pull request heading the branch in any
+reported. With a provider it adds the cached lookup: the open pull request of the branch, else the newest in any
 state (`state`, `draft`, `checks`, `review`, `mergeability`, `sameRepository`, `mergeMethods`; Plugin API H24, the model is in
 [GitHub](../SharpRail.Plugins.GitHub/SPEC.md#data-contract)). An unborn branch has no status.
 

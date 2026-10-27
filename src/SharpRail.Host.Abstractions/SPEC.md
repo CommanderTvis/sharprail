@@ -213,3 +213,5 @@ Air Context is a builtin plugin ([module](../SharpRail.Plugins.AirContext/SPEC.m
 visibility left the typed project services and the host state at protocol 8 (`HostProtocol.AirContextPlugin`). The plugin ships disabled; opening a state file that still carries the old keys migrates them once (hidden disables it, a profile that used it enables it).
 
 Project language-server autostart choices belong to host state; [language services](../SharpRail.Host.Core/Language/SPEC.md) define their scope and launch behavior.
+
+- Protocol 15 (`HostProtocol.NeutralPullRequest`): `BranchStatus.Provider` is the owning repo hosting plugin's id (empty for a plain remote) and `BranchStatus.Review` the neutral `PullRequest` (state `open`/`merged`/`closed`, checks, review, mergeability, merge methods, same repository, unpushed and behind); `PrResult.Problem` replaces `GhProblem`; `GetOpenReviewAsync` and `GetGitHubAuthenticationAsync` are gone. A client below 15 reads no review; sign-in status is the GitHub plugin's `signIn` method.
