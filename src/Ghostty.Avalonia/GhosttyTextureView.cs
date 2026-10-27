@@ -121,6 +121,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         topLevel = TopLevel.GetTopLevel(this);
         if (topLevel is not null) topLevel.ScalingChanged += ScalingChanged;
         if (topLevel is Window window) window.PropertyChanged += WindowChanged;
+        settle.ApplyNext();
         Resize();
         lock (frameLock) active = true;
         shown = true;
@@ -232,14 +233,18 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         if (disposed || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         // A drag resizes the control many times: the native grid, and so the program's terminal, waits for it to settle.
         var target = (Bounds.Width, Bounds.Height, Scale: PixelScale.Of(this));
+        // Re-attaching at the size already applied (a tab switch) changes nothing: no hold, no native resize or redraw.
+        if (appliedScale == target.Scale && applied == new Size(target.Width, target.Height)) { settle.Cancel(); settle.Applied(); return; }
         if (settle.Hold(target)) return;
         settle.Applied();
         applied = new Size(target.Width, target.Height);
+        appliedScale = target.Scale;
         Native.Resize(terminal.Handle, target.Width, target.Height, target.Scale);
     }
 
     private readonly ResizeSettle<(double Width, double Height, double Scale)> settle;
     private Size applied;
+    private double appliedScale;
 
     /// <summary>How long the control size must hold still before the grid follows it; null restores the default.</summary>
     internal TimeSpan? ResizeQuiet { set => settle.Quiet = value ?? ResizeSettle<(double, double, double)>.DefaultQuiet; }

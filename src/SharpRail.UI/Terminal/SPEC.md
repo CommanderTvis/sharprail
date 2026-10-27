@@ -144,7 +144,7 @@ resize the PTY and make the shell redraw. Both renderers therefore keep the curr
 size once, after `ResizeSettle.DefaultQuiet` (140 ms, `src/Ghostty.Avalonia/ResizeSettle.cs`) passes without another
 change, so a full-screen program gets one `SIGWINCH` at the end and remote terminals behave the same. The first
 size, a window state change (maximize, full screen), a display scale change and a fixed (watched) grid apply at
-once. Disposal and detaching cancel the pending timer. `GhosttySkiaView.ResizeQuiet` shortens the period for checks
+once. Re-attaching a view (a tab switch) is not a gesture: the Metal view applies its new size at once, and re-attaching at the size and scale already applied neither waits nor resizes the native grid, so the last frame shows at the right size with no intermediate one. Disposal and detaching cancel the pending timer. `GhosttySkiaView.ResizeQuiet` shortens the period for checks
 (`--ghostty-skia` runs the 10-changes-then-silence check: no resize before the quiet period, exactly one after).
 
 ## Boundary
