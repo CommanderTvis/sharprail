@@ -24,10 +24,10 @@ show its own variant of "Delete".
 
 | Meaning | Icon | Used by |
 | --- | --- | --- |
-| Delete | `trash` | Files tree: Delete file, Delete folder |
+| Delete | `trash` | Files tree: Delete file, Delete folder; workspace menu: Remove worktree… |
 | NewFile | `fileAdd` | Files tree: New file |
 | NewFolder | `folderAdd` | Files tree: New folder |
-| CopyPath | `fileCopy` | Files tree: Copy path, Copy absolute path |
+| CopyPath | `fileCopy` | Files tree: Copy path, Copy absolute path; project and workspace menus: Copy absolute path |
 | Add | `add` | Scope menus: Add project, New workspace; project menu: Start work |
 | Close | `close` | Project menu: Close project |
 | OpenFolder | `folderOpen` | Project menu: Open existing worktree; external workspaces in the switcher |

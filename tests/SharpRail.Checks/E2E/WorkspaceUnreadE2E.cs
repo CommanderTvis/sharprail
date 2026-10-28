@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
@@ -47,6 +48,18 @@ internal static class WorkspaceUnreadE2E
 
         // Mark as unread on the shown workspace stays lit until the user leaves and comes back.
         var menu = OpenWorkspaceMenu(app, project);
+        var entries = menu.Items.OfType<MenuItem>().ToArray();
+        Require(entries[0].Name == "WorkspaceCopyPath" && entries[0].Header is "Copy absolute path" && entries[1].Name == "WorkspaceOpenIn",
+            "The workspace menu opens with Copy absolute path, then Open in.");
+        var removal = entries.SingleOrDefault(item => item.Name == "WorkspaceRemove");
+        Require(removal is null || removal.Header is "Remove worktree…" or "Remove from SharpRail", "Removal is not the workspace menu's last item.");
+        Require(entries.Where(item => item.Icon is not null).Select(item => item.Name).Order()
+            .SequenceEqual(new[] { "WorkspaceCopyPath", "WorkspaceRemove" }.Where(name => entries.Any(item => item.Name == name)).Order()),
+            "Only Copy absolute path and Remove worktree carry icons in the workspace menu.");
+        Until(() => entries[0].GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().Any(part => part.Name == "PART_HeaderPresenter" && part.Bounds.Width > 0));
+        var lefts = entries.Where(item => item.IsVisible).Select(item => Avalonia.VisualExtensions.TranslatePoint(
+            item.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(part => part.Name == "PART_HeaderPresenter"), default, item)!.Value.X).ToArray();
+        Require(lefts.All(left => Math.Abs(left - lefts[0]) < 0.5), "The workspace menu aligns labels differently with and without an icon: " + string.Join(", ", lefts));
         app.Click(menu.Items.OfType<MenuItem>().Single(item => item.Name == "WorkspaceReadToggle" && Equals(item.Header, "Mark as unread")), freshGesture: false);
         Until(() => Mark(project) == "manual");
         app.Window.Activate(); Settle(300);

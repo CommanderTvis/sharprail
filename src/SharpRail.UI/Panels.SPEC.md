@@ -54,8 +54,8 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
 - The whole row is one rounded highlight: hover highlights it, and the selected project at Project Home stays
   highlighted.
 - Right-click opens the project context menu at the row without selecting or navigating; with the name
-  focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Start work, Open existing worktree…, separator,
-  Copy absolute path, Rename…, Close project. Rename (ThinkRail #764) opens the name dialog on the shown name and
+  focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Copy absolute path, Start work, Open existing worktree…, separator,
+  Rename…, Close project. Rename (ThinkRail #764) opens the name dialog on the shown name and
   sends `HostStateChange.RenameProject`; every window follows the broadcast, restyling the row's text in place.
   Upstream renames inline in the row; SharpRail uses its name dialog, which also refuses leading or trailing spaces. Create is exactly the `+` flow (opening the project's home first if
   needed).
@@ -106,10 +106,10 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   stops at the rail, so a switch never scrolls the rail out and back.
 - Workspace rows carry no `+N −M` change badge: the rail is for navigation and identity; change detail
   belongs to Changes.
-- A hover- and focus-revealed kebab and right-click open the same workspace menu: “Open in” (editors from
+- A hover- and focus-revealed kebab and right-click open the same workspace menu: Copy absolute path (first, with the CopyPath icon), “Open in” (editors from
   `ListEditorsAsync`, fetched lazily on first open, with explicit “Looking for editors…” and “No editors
-  found” rows), Copy absolute path, Copy name and Reveal in file manager (omitted for a remote host: the folder is on the other machine). A
-  managed worktree adds Rename and Remove worktree…; an external one only Remove from SharpRail, whose
+  found” rows), Copy name and Reveal in file manager (omitted for a remote host: the folder is on the other machine). A
+  managed worktree adds Rename and Remove worktree… (Delete icon); an external one only Remove from SharpRail, whose
   confirmation promises the checkout and its branch stay untouched. The Default workspace gets neither
   mutation. A locked worktree's Remove is disabled.
 - A plain folder has no workspace row: its tabs and terminal/agent actions sit directly beneath the

@@ -264,16 +264,16 @@ public sealed partial class WorkbenchWindow
         var create = Ui.IconMenu("Start work", () => _ = CreateWorkspaceForAsync(project), ActionIcon.Add);
         create.Name = "ProjectMenuCreateWorkspace";
         // Copying neither selects the project nor activates a workspace.
-        var copy = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(project));
+        var copy = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(project), ActionIcon.CopyPath);
         copy.Name = "ProjectMenuCopyPath";
         var close = Ui.IconMenu("Close project", () => _ = CloseProjectAsync(project), ActionIcon.Close);
         close.Name = "ProjectMenuClose";
         var existing = Ui.IconMenu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project), ActionIcon.OpenFolder);
         existing.Name = "ProjectMenuOpenExisting";
+        menu.Items.Add(copy);
         menu.Items.Add(create);
         menu.Items.Add(existing);
         menu.Items.Add(new Separator());
-        menu.Items.Add(copy);
         var rename = Ui.IconMenu("Rename…", () => _ = RenameProjectAsync(project), ActionIcon.Rename);
         rename.Name = "ProjectMenuRename";
         menu.Items.Add(rename);
@@ -553,12 +553,12 @@ public sealed partial class WorkbenchWindow
     /// <summary>The one set of workspace actions, shown by a Projects row and by the header's workspace menu.</summary>
     private MenuItem AddWorkspaceActions(ContextMenu menu, WorkspaceRecord worktree, bool header)
     {
+        var copy = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(worktree.Path), ActionIcon.CopyPath);
+        copy.Name = "WorkspaceCopyPath";
+        menu.Items.Add(copy);
         var openIn = new MenuItem { Header = "Open in", Name = "WorkspaceOpenIn" };
         FillEditors(openIn, worktree.Path);
         menu.Items.Add(openIn);
-        var copy = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(worktree.Path));
-        copy.Name = "WorkspaceCopyPath";
-        menu.Items.Add(copy);
         var copyName = Ui.Menu("Copy name", () => _ = CopyTextAsync(WorkspaceName(worktree.Path)));
         copyName.Name = "WorkspaceCopyName";
         menu.Items.Add(copyName);
@@ -579,8 +579,8 @@ public sealed partial class WorkbenchWindow
             menu.Items.Add(rename);
         }
         menu.Items.Add(new Separator());
-        var remove = Ui.Menu(worktree.Kind == WorkspaceKinds.External ? "Remove from SharpRail" : "Remove worktree…", () => _ = RemoveWorkspaceAsync(worktree),
-            !WorktreeLocked(worktree.Path));
+        var remove = Ui.IconMenu(worktree.Kind == WorkspaceKinds.External ? "Remove from SharpRail" : "Remove worktree…", () => _ = RemoveWorkspaceAsync(worktree),
+            ActionIcon.Delete, !WorktreeLocked(worktree.Path));
         remove.Name = "WorkspaceRemove";
         menu.Items.Add(remove);
         ScopeWorkspaceActions(menu, worktree);

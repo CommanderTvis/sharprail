@@ -238,8 +238,8 @@ host state: it shows what the window already knows and calls the same methods as
   registry, most recently active first after Default, with their branch when it differs from the name, then
   a `Settled · N` submenu of the shelf's rows with their reason chips; an older host keeps its registry
   order and no shelf) and New
-  workspace with the Mod+N label. The actions are the Projects row's own (`AddWorkspaceActions`): Open in,
-  Copy path, Reveal in file manager, Settle or Keep active for any but Default, Rename for a managed workspace, and Remove worktree… or, for an
+  workspace with the Mod+N label. The actions are the Projects row's own (`AddWorkspaceActions`): Copy absolute path, Open in,
+  Copy name, Reveal in file manager, Settle or Keep active for any but Default, Rename for a managed workspace, and Remove worktree… or, for an
   attached one, Remove from SharpRail. At Project Home the pill reads `Project home` and offers only the
   switcher and creation.
 - Removing a dirty managed worktree offers a second confirmation explaining that modified and
