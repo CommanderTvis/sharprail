@@ -10,6 +10,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
@@ -239,6 +240,13 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         PropertyChanged += (_, e) => { if (e.Property == WindowStateProperty) ApplyChromeZoom(); };
         WirePinchZoom();
         Closed += (_, _) => InterfaceZoom.Changed -= ApplyChromeZoom;
+        // The View menu belongs to the header's own space: a right-click on a button inside it (pickers, plugin items, Settings)
+        // opens nothing, unless that control carries a menu of its own. Registered before the menu so it runs first.
+        header.ContextRequested += (_, e) =>
+        {
+            for (var node = e.Source as Visual; node is not null && node != header; node = node.GetVisualParent())
+                if (node is Button) { e.Handled = true; return; }
+        };
         var view = new ContextMenu();
         // Filled as it opens, so it names the tools plugins have contributed since.
         view.Opening += (_, _) => FillViewMenu(view);

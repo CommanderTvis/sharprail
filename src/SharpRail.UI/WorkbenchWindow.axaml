@@ -98,7 +98,7 @@
     <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
       <LayoutTransformControl x:Name="HeaderZoom">
-      <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto">
+      <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto" Background="Transparent">
         <ContentControl x:Name="BrandIcon" />
         <local:LocationStrip x:Name="LocationBar" Grid.Column="1" ClipToBounds="True">
           <Border x:Name="ProjectSegment" Classes="location-segment" MaxWidth="220" Padding="0">

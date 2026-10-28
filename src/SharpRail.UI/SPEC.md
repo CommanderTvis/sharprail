@@ -153,7 +153,7 @@ The X11 backend rewrites its Motif hints at once; a window manager that ignores 
 which Settings says. The client path makes the window background transparent over the shadow, keeps `WindowDecorationMargin` free around
 the zoom root, and shows Minimize, Maximize/Restore and Close buttons (`Button.caption-button` in the kit `ControlStyles.axaml`,
 accessible names, Close red on hover) after Settings. Dragging and double-click maximize use the existing header handler; `StartsMove`
-keeps buttons and text boxes clickable. No window menu is offered on right-click, which still opens the View menu. The setting is the
+keeps buttons and text boxes clickable. No window menu is offered on right-click, which still opens the View menu. The View menu opens only from the header's own space: a right-click on a button in it (the pickers, Remote and pull request items, plugin header items, Settings) opens no menu. The setting is the
 host's, so every client of a host shares it; non-Linux clients ignore it.
 
 The 40px header (`LayoutRoles.TopbarRow`) is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the

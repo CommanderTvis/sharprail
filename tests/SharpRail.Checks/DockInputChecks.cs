@@ -235,6 +235,27 @@ internal static class DockInputChecks
         Dispatcher.UIThread.RunJobs();
         Require(launcherHeader.ContextMenu?.IsOpen != true, "Right-clicking a header launcher icon must not open the group menu.");
         launcherHeader.ContextMenu?.Close();
+        // The top bar's window menu belongs to its empty space: the pickers, items and Settings open nothing.
+        var topBar = Find<Grid>("MainHeader");
+        var barControls = 0;
+        foreach (var controlName in new[] { "ScopeProject", "ScopeWorkspace", "ScopeBranch", "RemotePublish", "RemotePush", "RemoteSync", "SettingsButton" })
+        {
+            var control = window.GetLogicalDescendants().OfType<Button>().FirstOrDefault(item => item.Name == controlName && item.IsVisible);
+            if (control is null) continue;
+            barControls++;
+            var controlPoint = Bounds(control).Center;
+            window.MouseDown(controlPoint, MouseButton.Right); window.MouseUp(controlPoint, MouseButton.Right);
+            Dispatcher.UIThread.RunJobs();
+            Require(topBar.ContextMenu?.IsOpen != true, $"Right-clicking the top bar's {controlName} must not open the window menu.");
+            topBar.ContextMenu?.Close();
+        }
+        Require(barControls >= 3, "The top bar probe found too few controls.");
+        var barSpace = new Point(Bounds(Find<Control>("LocationBar")).Right - 4, Bounds(topBar).Center.Y);
+        window.MouseDown(barSpace, MouseButton.Right); window.MouseUp(barSpace, MouseButton.Right);
+        Dispatcher.UIThread.RunJobs();
+        Require(topBar.ContextMenu?.IsOpen == true && topBar.ContextMenu.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Reset frame")),
+            "Right-clicking the top bar's empty space must open the window menu.");
+        topBar.ContextMenu!.Close();
         var rightGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool));
         window.Layout.Select(rightGroup.Id, "files");
         projects = Find<Button>("Tab_projects");
