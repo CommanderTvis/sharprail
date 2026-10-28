@@ -48,6 +48,68 @@ internal static class ClaudeChatE2E
         finally { foreach (var (name, value) in previous) Environment.SetEnvironmentVariable(name, value); }
     }
 
+    /// <summary>Two chat tabs in one workspace: a real press and release on a tab button switches to it, also while the shown chat streams (a document id reads as a plugin tool id).</summary>
+    public static void TabClicks(string root)
+    {
+        if (OperatingSystem.IsWindows()) return;
+        var directory = Path.Combine(root, "claude-chat-tab-clicks");
+        var previous = new Dictionary<string, string?>();
+        foreach (var (name, path) in new Dictionary<string, string>
+        {
+            ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
+            ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+            [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
+        })
+        {
+            previous[name] = Environment.GetEnvironmentVariable(name);
+            Directory.CreateDirectory(path);
+            Environment.SetEnvironmentVariable(name, path);
+        }
+        try { TabClicksIn(directory); }
+        finally { foreach (var (name, value) in previous) Environment.SetEnvironmentVariable(name, value); }
+    }
+
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    private static void TabClicksIn(string directory)
+    {
+        var project = Path.Combine(directory, "project");
+        var fake = Path.Combine(directory, "fake", "claude");
+        Directory.CreateDirectory(Path.GetDirectoryName(fake)!);
+        File.WriteAllText(fake, ClaudeChatChecks.FakeClaude.Replace("\r\n", "\n"));
+        File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        using var app = new E2eWorkspace(project, openFiles: false, pluginTerminals: true);
+        E2eWorkspace.Until(() => app.Workbench.PluginLoader!.Registry.Entry("claude-code") is not null);
+        app.State!.ChangeAsync([HostStateChange.PluginSettings("claude-code", JsonSerializer.Serialize(new { enabled = true, command = fake, mode = "Chat" }))]).AsTask().GetAwaiter().GetResult();
+        E2eWorkspace.Until(() => app.Window.GetVisualDescendants().OfType<Button>().Any(button => button.Name == "NewClaude" && button.IsEffectivelyVisible));
+        E2eWorkspace.Settle(550);
+        app.UntilDialogsGone();
+        for (var made = 1; made <= 2; made++)
+        {
+            app.Click(app.Window.GetVisualDescendants().OfType<Button>().First(button => button.Name == "NewClaude" && button.IsEffectivelyVisible), freshGesture: false);
+            E2eWorkspace.Until(() => app.Window.Layout.State.Workspaces.Values.SelectMany(workspace => workspace.Documents.Values.SelectMany(tabs => tabs)).Count(item => item.Kind == "plugin") == made);
+            E2eWorkspace.Until(() => View(app)?.Transcript.Header is { Status: ChatStatus.Idle });
+        }
+        var buttons = app.Window.GetVisualDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Where(button => button.IsEffectivelyVisible).ToArray();
+        Require(buttons.Length >= 2, $"Both chat tabs show in the strip ({buttons.Length}).");
+        SharpRail.UI.Docking.DockTabButton[] Buttons() => [.. app.Window.GetVisualDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Where(button => button.IsEffectivelyVisible)];
+        void ClickOther(string what)
+        {
+            var target = Buttons().Single(button => !button.IsSelected);
+            app.Click(target, freshGesture: false);
+            Require(target.IsSelected && Buttons().Count(button => button.IsSelected) == 1, $"{what}: one click on the other chat tab selects it.");
+        }
+        for (var round = 0; round < 3; round++)
+        {
+            ClickOther($"Round {round}");
+            // The shown chat streams a turn while the pointer goes to the other tab's button.
+            var view = View(app)!;
+            view.Input.Text = "hello";
+            Await(view.Submit());
+            ClickOther($"Round {round} while the shown chat streams");
+            E2eWorkspace.Until(() => View(app)?.Transcript.Header is { Status: ChatStatus.Idle });
+        }
+    }
+
     /// <summary>The "Start work" flow with Claude Code in Chat mode: the dialog creates the workspace and opens exactly one chat tab, the prompt is its first message; in Terminal mode it opens a terminal.</summary>
     public static void StartWork(string root)
     {

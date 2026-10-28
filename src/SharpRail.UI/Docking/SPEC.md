@@ -163,6 +163,9 @@ its pointer release; after the click selects it, apply the latest chrome and ret
 on the same control or its equivalent named tab. A real layout mutation still cancels an incompatible
 active gesture.
 
+Only a tool tab is held to the tool catalogue when it is selected: a plugin document's id (`plugin:<scheme>:<id>`, a Claude Code chat for one)
+reads like a plugin tool id and is always selectable.
+
 Adding or removing entries in the tool catalogue leaves existing tabs and their focus intact when
 their displayed metadata is unchanged. Side group header menus (right-click) lead with Show <tool> entries for hidden tools and, on a tool pane,
 New terminal pane below; opening the menu reads the current catalogue and excludes tools already placed anywhere

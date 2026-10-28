@@ -229,15 +229,18 @@ public sealed partial class LayoutSession
         return true;
     }
 
+    // A plugin document's id (plugin:<scheme>:<id>) reads as a plugin tool id, so only a tool tab is held to the tool catalog.
+    private bool CanSelect(string groupId, string tabId) => ProjectTabs(State, groupId).FirstOrDefault(tab => tab.Id == tabId) is { IsTool: false } || IsToolAvailable(tabId);
+
     /// <summary>Moves what a group opens on without navigating or taking focus.</summary>
     public void Reseat(string groupId, string tabId)
     {
-        if (IsToolAvailable(tabId)) Change(state => Active(state).Selected[groupId] = tabId, groupId);
+        if (CanSelect(groupId, tabId)) Change(state => Active(state).Selected[groupId] = tabId, groupId);
     }
 
     public void Select(string groupId, string tabId)
     {
-        if (!IsToolAvailable(tabId)) return;
+        if (!CanSelect(groupId, tabId)) return;
         Navigating?.Invoke(groupId);
         if (Selected(groupId)?.Id == tabId)
         {
