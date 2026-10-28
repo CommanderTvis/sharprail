@@ -1991,6 +1991,12 @@ internal static class ClaudeChatUiChecks
             chat.Push(new ChatHeaderPush(Workspace, Chat, chat.Header with { Tasks = [new ChatTask("bg1", ChatTaskKind.Shell, "npm test", ChatTaskStatus.Done)] }));
             Frame(window);
             Require(transcript.Item("bg:bg1") is ChatNoticeItem { Text: var finished } && finished.Contains("finished: npm test", StringComparison.Ordinal), "A background command that finishes leaves a notice.");
+            // A shell task's description is its whole command: the chip stays one trimmed line however long and multi-line it is.
+            var heredoc = "cd /work && python3 - <<'EOF'\n" + string.Join("\n", Enumerable.Repeat("s=s.replace('a very long line of a script that goes on and on', 'b')", 40)) + "\nEOF";
+            chat.Push(new ChatHeaderPush(Workspace, Chat, chat.Header with { Tasks = [new ChatTask("bg2", ChatTaskKind.Shell, heredoc, ChatTaskStatus.Running)] }));
+            Frame(window);
+            var taskChip = view.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "ChatTask_bg2");
+            Require(taskChip.Bounds.Height < 40 && taskChip.Bounds.Width < 480, $"A long multi-line background command must keep a one-line chip, got {taskChip.Bounds.Width:0}x{taskChip.Bounds.Height:0}.");
 
             // Composer extras: Enter sends by default and Ctrl or Cmd+Enter when that is switched off; recent prompts are remembered; the send menu
             // appears with a running turn, "stop and send" interrupts first; an image attachment shows a preview chip; a narrow footer is compact.

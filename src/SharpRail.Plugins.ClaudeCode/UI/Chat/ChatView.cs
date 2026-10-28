@@ -556,6 +556,8 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         return mention + (selection.Quote is null ? " " : "\n\n") + text;
     }
 
+    private const double TaskLabelWidth = 320;
+
     private void RebuildTasks(ChatHeader header)
     {
         tasks.Children.Clear();
@@ -571,9 +573,19 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             };
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
             row.Children.Add(Ui.Text(mark, brush, 11));
-            row.Children.Add(Ui.Text($"{task.Kind}: {task.Description}", Ui.Muted, 11));
-            if (task.LastTool is { Length: > 0 } last && task.Status == ChatTaskStatus.Running) row.Children.Add(Ui.Text(last, Ui.Hint, 11));
-            var chip = TerminalFacts.ChipButton("ChatTask_" + task.TaskId, row, task.Summary ?? "Show where it runs", () => RevealTask(task));
+            // A shell task's description is its whole command, newlines included: the chip shows its first line, trimmed, and the tooltip the rest.
+            var label = Ui.Text($"{task.Kind}: {ChatRowLayout.Preview(task.Description)}", Ui.Muted, 11);
+            label.TextTrimming = TextTrimming.CharacterEllipsis;
+            label.MaxWidth = TaskLabelWidth;
+            row.Children.Add(label);
+            if (task.LastTool is { Length: > 0 } last && task.Status == ChatTaskStatus.Running)
+            {
+                var tool = Ui.Text(ChatRowLayout.Preview(last), Ui.Hint, 11);
+                tool.TextTrimming = TextTrimming.CharacterEllipsis;
+                tool.MaxWidth = TaskLabelWidth;
+                row.Children.Add(tool);
+            }
+            var chip = TerminalFacts.ChipButton("ChatTask_" + task.TaskId, row, task.Summary is { Length: > 0 } summary ? summary : task.Description.Length > 600 ? task.Description[..600] + "…" : task.Description, () => RevealTask(task));
             chip.Margin = new Thickness(0, 0, 4, 4);
             tasks.Children.Add(chip);
             if (task.Status == ChatTaskStatus.Running)
