@@ -1,6 +1,7 @@
 #!/bin/sh
-# `scripts/mise run android [build|run|apk]` builds the Android client (src/SharpRail.Android). `run` also installs it on the connected device or
-# emulator and starts it; `apk` builds the signed Release package into artifacts/android.
+# `scripts/mise run android [build|run|apk|install]` builds the Android client (src/SharpRail.Android). `run` also installs it on the connected device or
+# emulator and starts it; `apk` builds the signed Release package into artifacts/android; `install` puts that package on the
+# device when exactly one is connected, rebuilding it first (MSBuild skips what is unchanged).
 # Needs the Android SDK (ANDROID_HOME, default ~/Library/Android/sdk). The JDK is the pinned one that
 # `scripts/tool jdk` prints; JAVA_HOME, when set, names another JDK 17 or 21 instead.
 # With SHARPRAIL_ANDROID_KEYSTORE (a keystore file), SHARPRAIL_ANDROID_KEY_ALIAS and SHARPRAIL_ANDROID_KEY_PASSWORD
@@ -34,5 +35,17 @@ case "${1:-build}" in
     cp src/SharpRail.Android/bin/Release/net10.0-android/dev.thinkrail.sharprail-Signed.apk artifacts/android/SharpRail.apk
     echo "artifacts/android/SharpRail.apk"
     ;;
-  *) echo 'Usage: scripts/mise run android [build|run|apk]' >&2; exit 1 ;;
+  install)
+    apk=artifacts/android/SharpRail.apk
+    adb="$sdk/platform-tools/adb"
+    devices="$("$adb" devices | awk 'NR > 1 && $2 == "device" { print $1 }')"
+    case "$devices" in
+      '') echo "No device connected." >&2; exit 1 ;;
+      *"
+"*) echo "More than one device connected; unplug the others:" >&2; echo "$devices" >&2; exit 1 ;;
+    esac
+    sh "$0" apk
+    "$adb" -s "$devices" install -r "$apk"
+    ;;
+  *) echo 'Usage: scripts/mise run android [build|run|apk|install]' >&2; exit 1 ;;
 esac

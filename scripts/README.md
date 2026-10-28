@@ -175,6 +175,7 @@ Android workload when missing and the pinned NDK.
 | --- | --- |
 | `scripts/mise run android build` | Build the client; this is the default mode. Configuration defaults to Debug and can be set with `SHARPRAIL_CONFIGURATION`. |
 | `scripts/mise run android run` | Build, install on the connected device/emulator with adb, and launch `dev.thinkrail.sharprail`. |
+| `scripts/mise run android install` | Rebuild the Release package (MSBuild skips unchanged work) and install it on the connected device; refuses when none or more than one is connected. |
 | `scripts/mise run package:android` | Build Release and copy the signed package to `artifacts/android/SharpRail.apk`. |
 
 Set `SHARPRAIL_ANDROID_KEYSTORE`, `SHARPRAIL_ANDROID_KEY_ALIAS` and
