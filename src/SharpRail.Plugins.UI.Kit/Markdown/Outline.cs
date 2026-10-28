@@ -15,16 +15,19 @@ public static class Outline
         if (preview.SpecTitle is { } title)
         {
             var line = Array.FindIndex(sourceText.Split('\n'), text => text.StartsWith("title:", StringComparison.Ordinal));
-            entries.Children.Add(Entry(1, title.Text ?? "", Math.Max(0, line), preview, preview.ScrollToTitle, revealSource));
+            entries.Children.Add(Entry(1, title.Text ?? "", Math.Max(0, line), preview, preview.ScrollToTitle, revealSource, root: true));
         }
+        // Under a spec title the headings are its children, so a `# Title` heading does not read as the title twice.
+        var depth = preview.SpecTitle is null ? 0 : 1;
         foreach (var (level, text, id, line) in preview.Headings)
-            entries.Children.Add(Entry(level, text, line, preview, () => preview.ScrollToAnchor(id), revealSource));
+            entries.Children.Add(Entry(level + depth, text, line, preview, () => preview.ScrollToAnchor(id), revealSource));
         if (entries.Children.Count == 0) entries.Children.Add(Ui.Text("No headings", Ui.Hint, 12));
     }
 
-    private static Button Entry(int level, string text, int line, MarkdownPreview preview, Action scrollPreview, Action<int>? revealSource)
+    private static Button Entry(int level, string text, int line, MarkdownPreview preview, Action scrollPreview, Action<int>? revealSource, bool root = false)
     {
-        var label = Ui.Text(text, Ui.Muted, 12);
+        var label = Ui.Text(text, root ? Ui.TextBrush : Ui.Muted, 12);
+        if (root) label.FontWeight = FontWeight.SemiBold;
         label.TextTrimming = TextTrimming.CharacterEllipsis;
         var entry = new Button
         {

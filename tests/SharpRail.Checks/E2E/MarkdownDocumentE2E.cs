@@ -285,8 +285,11 @@ internal static class MarkdownDocumentE2E
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         Require(All<TextBlock>(preview, "SpecTitle").Single().Text == "Sample Module", "A spec must be titled by its frontmatter.");
         app.Click(app.Find<Button>("MarkdownOutlineToggle"));
-        Require(All<Button>(app.Find<Border>("MarkdownOutline"), "OutlineEntry").First() is { Content: TextBlock { Text: "Sample Module" } },
-            "The outline must open with the spec's title.");
+        var outlineEntries = All<Button>(app.Find<Border>("MarkdownOutline"), "OutlineEntry").ToArray();
+        Require(outlineEntries[0] is { Content: TextBlock { Text: "Sample Module", FontWeight: Avalonia.Media.FontWeight.SemiBold } title } && title.Foreground == Ui.TextBrush,
+            "The outline must open with the spec's title, semibold and not muted.");
+        Require(outlineEntries[1] is { Content: TextBlock { Text: "Goal" }, Padding.Left: var goalIndent } && goalIndent == outlineEntries[0].Padding.Left + 12 * 2,
+            "Headings must nest one level under the spec title.");
         Button Link(string label) => All<Button>(preview, "SpecLink").Single(link => link.Content is TextBlock text && text.Text == label);
         Until(() => !Link("no-such-node").IsEnabled);
         Require(Link("sample-root").IsEnabled, "A link naming a spec in this workspace must stay enabled.");
