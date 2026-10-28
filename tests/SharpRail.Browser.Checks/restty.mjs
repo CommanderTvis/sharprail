@@ -68,20 +68,6 @@ try {
   }
   if (process.argv.includes('--settings')) {
     page.setDefaultTimeout(30000);
-    await page.addInitScript(() => {
-      globalThis.settingsTransitions = [];
-      new MutationObserver(records => {
-        for (const record of records) {
-          if (record.type === 'attributes' && record.target.classList?.contains('sharprail-dialog')) {
-            const element = record.target;
-            const bounds = element.getBoundingClientRect();
-            const value = { id: element.id, visible: element.style.visibility, width: bounds.width, height: bounds.height };
-            const previous = globalThis.settingsTransitions.at(-1);
-            if (JSON.stringify(value) !== JSON.stringify(previous)) globalThis.settingsTransitions.push(value);
-          }
-        }
-      }).observe(document, { subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
-    });
   }
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) { errors.push(message.text()); console.error(message.text()); } });
@@ -469,19 +455,22 @@ try {
         assert.ok(Gear.X + Gear.Width > viewport.width - 64 * Number(process.env.SETTINGS_ZOOM ?? 1), 'The real Settings gear must stay at the viewport edge');
         await page.mouse.click(Gear.X + Gear.Width / 2, Gear.Y + Gear.Height / 2);
       } else await invoke('OpenSettings', section);
-      const dialog = page.locator('.sharprail-dialog');
-      await page.waitForFunction(() => document.querySelector('.sharprail-workbench').inert);
-      await until(() => dialog.boundingBox(), bounds => bounds && Math.abs(bounds.height - page.viewportSize().height * .8) < 1, 'Settings did not finish sizing');
+      const scrim = () => page.evaluate(() => getComputedStyle(document.querySelector('.sharprail-restty'), '::after').backgroundColor);
+      const open = async () => (await geometry()).Dialogs;
+      const zoom = Number(process.env.SETTINGS_ZOOM ?? 1);
+      // The card is 832 wide and 80% of the window tall in layout units; interface zoom scales both.
+      const sized = card => Math.abs(card.Width * zoom - Math.min(832 * zoom, viewport.width)) < 1 && Math.abs(card.Height * zoom - viewport.height * .8) < 1;
+      await until(open, dialogs => dialogs.length === 1 && sized(dialogs[0]), 'Settings did not finish sizing');
+      assert.equal((await open())[0].Section, section);
+      assert.equal(await scrim(), 'rgba(0, 0, 0, 0.5)', 'The workbench behind Settings was not dimmed');
       assert.equal(await invoke('SettingsRetainPageOnHostUpdate'), true, 'An unrelated host update rebuilt the open Settings page');
       await invoke('RepaintEmbeddedRoots');
       for (let frame = 0; frame < 30; frame++) {
         if (frame % 6 === 0) assert.equal(await invoke('SettingsRetainPageOnHostUpdate'), true, 'Live host activity replaced Settings controls');
         await page.waitForTimeout(100);
-        assert.equal(await dialog.count(), 1);
-        const stable = await dialog.boundingBox();
-        assert.equal(stable.width, Math.min(832 * Number(process.env.SETTINGS_ZOOM ?? 1), viewport.width), 'Settings width oscillated during repaint');
-        assert.ok(Math.abs(stable.height - viewport.height * .8) < 1, 'Settings height oscillated during repaint');
-        assert.equal(await dialog.evaluate(element => element.style.visibility), 'visible');
+        const [stable, ...rest] = await open();
+        assert.equal(rest.length, 0);
+        assert.ok(sized(stable), 'Settings size oscillated during repaint');
         const pixels = await page.screenshot();
         const magenta = await page.evaluate(async data => {
           const image = new Image(); image.src = 'data:image/png;base64,' + data; await image.decode();
@@ -494,22 +483,33 @@ try {
         }, pixels.toString('base64'));
         assert.equal(magenta, 0, 'The temporary embedded renderer painted over a real window');
       }
-      console.log('SETTINGS_TRANSITIONS', JSON.stringify(await page.evaluate(() => globalThis.settingsTransitions)));
-      const shape = await geometry();
-      assert.equal(shape.Dialogs.length, 1);
-      const bounds = await dialog.boundingBox();
-      assert.ok(Math.abs(shape.Dialogs[0].Width - bounds.width) < 1 && Math.abs(shape.Dialogs[0].Height - bounds.height) < 1, 'Settings logical and CSS sizes must agree');
-      const { Close } = shape.Dialogs[0];
-      await page.mouse.click(bounds.x + Close.X + Close.Width / 2, bounds.y + Close.Y + Close.Height / 2);
-      await page.waitForFunction(() => !document.querySelector('.sharprail-workbench').inert);
-      assert.equal(await dialog.count(), 0);
+      // Settings is an in-window overlay: the card is centred in the workbench window and its close button is a canvas control.
+      const [shape] = await open();
+      assert.ok(Math.abs(shape.X + shape.Width / 2 - viewport.width / 2) < 1 && Math.abs(shape.Y + shape.Height / 2 - viewport.height / 2) < 1, 'Settings must be centred in the window');
+      const { Close } = shape;
+      await page.mouse.click(Close.X + Close.Width / 2, Close.Y + Close.Height / 2);
+      await until(open, dialogs => dialogs.length === 0, 'The close button did not dismiss Settings');
+      await until(scrim, value => value === 'rgba(0, 0, 0, 0)', 'Closing Settings left the workbench dimmed');
     }
+    // Escape dismisses, and the next open (by the real gear) returns to the section Settings was last left on.
+    const { Gear } = await geometry();
+    await page.mouse.click(Gear.X + Gear.Width / 2, Gear.Y + Gear.Height / 2);
+    await until(geometry, value => value.Dialogs.length === 1, 'Settings did not reopen');
+    assert.equal((await geometry()).Dialogs[0].Section, 'Plugins', 'Settings did not reopen on the last section');
+    await invoke('OpenSettings', 'Terminal');
+    assert.equal((await geometry()).Dialogs[0].Section, 'Terminal', 'Switching section while open failed');
+    await page.keyboard.press('Escape');
+    await until(geometry, value => value.Dialogs.length === 0, 'Escape did not dismiss Settings');
+    await page.mouse.click(Gear.X + Gear.Width / 2, Gear.Y + Gear.Height / 2);
+    await until(geometry, value => value.Dialogs.length === 1 && value.Dialogs[0].Section === 'Terminal', 'Settings did not reopen on the section it was left on after Escape');
+    await page.keyboard.press('Escape');
+    await until(geometry, value => value.Dialogs.length === 0, 'Escape did not dismiss the reopened Settings');
     await term.locator('canvas').click();
     await page.keyboard.type("printf '%s_%s\\n' SETTINGS PASS");
     await page.keyboard.press('Enter');
     await until(screen, value => value.includes('SETTINGS_PASS'), 'Terminal input did not recover after Settings');
     assert.deepEqual(errors, []);
-    console.log('PASS Settings uses the actual viewport and native DPR, opens by real gear click, stays painted through embedded-root repaints and closes by pointer; terminal input recovers');
+    console.log('PASS Settings uses the actual viewport and native DPR, opens by real gear click as a dimmed in-window overlay, stays painted through embedded-root repaints, closes by pointer and Escape and reopens on its last section; terminal input recovers');
   } else {
   assert.equal(await term.getAttribute('data-backend'), 'webgl2');
   const command = async text => { await term.locator('canvas').click(); await page.keyboard.type(text); await page.keyboard.press('Enter'); };
@@ -533,8 +533,7 @@ try {
     const gridBefore = [await term.getAttribute('data-columns'), await term.getAttribute('data-rows')];
     await invoke('OpenSettings', 'Layout');
     await page.waitForFunction(() => getComputedStyle(document.querySelector('.sharprail-restty'), '::after').backgroundColor === 'rgba(0, 0, 0, 0.5)');
-    await page.waitForFunction(() => document.querySelector('.sharprail-dialog')?.getBoundingClientRect().height < innerHeight);
-    const dialog = await page.locator('.sharprail-dialog').boundingBox();
+    const dialog = await (async () => { for (;;) { const [card] = JSON.parse(await invoke('SettingsGeometry')).Dialogs; if (card) return { x: card.X, y: card.Y, width: card.Width, height: card.Height }; await page.waitForTimeout(50); } })();
     const point = [[bounds.x + 5, bounds.y + 5], [bounds.x + 5, bounds.y + bounds.height - 5],
       [bounds.x + bounds.width - 5, bounds.y + 5]].find(([x, y]) => x < dialog.x || x >= dialog.x + dialog.width || y < dialog.y || y >= dialog.y + dialog.height);
     assert.ok(point, 'No exposed terminal area to check');

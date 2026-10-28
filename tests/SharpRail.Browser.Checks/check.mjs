@@ -164,11 +164,9 @@ try {
     assert.ok(proseDeliveredAt, 'The normal bundle must read the restored prose document');
     console.log('Published prose data-to-paint: ' + (performance.now() - proseDeliveredAt).toFixed(0) + ' ms');
     await page.mouse.click(1255, 35);
-    await page.waitForFunction(() => document.querySelector('.sharprail-workbench').inert);
-    await page.waitForFunction(() => [...document.querySelectorAll('.sharprail-dialog')].some(dialog => dialog.style.visibility === 'visible'));
-    assert.equal(await page.locator('.sharprail-dialog:visible').count(), 1);
+    await page.waitForFunction(async () => JSON.parse(await check.SettingsText()).length > 0);
     await page.keyboard.press('Escape');
-    await page.waitForFunction(() => !document.querySelector('.sharprail-workbench').inert);
+    await page.waitForFunction(async () => JSON.parse(await check.SettingsText()).length === 0);
     assert.deepEqual(errors, []);
     assert.ok(brotliRuntime, 'The published runtime must load through negotiated Brotli compression.');
     console.log('PASS Brotli runtime, published browser prose/Mermaid/Settings, external managed plugin JSON, full viewport and excluded test hooks');
@@ -263,10 +261,9 @@ try {
   await page.evaluate(() => check.OpenDocument('sample.pdf')); await page.evaluate(() => check.OpenDocument('diagram.md'));
   console.log('PASS browser PDFium text, Unicode, rotation/crop, pixels and Mermaid worker');
   await page.evaluate(() => check.OpenSettings('Plugins'));
-  await page.waitForFunction(() => document.querySelector('.sharprail-workbench').inert);
-  assert.equal(await page.locator('.sharprail-dialog').evaluateAll(dialogs => dialogs.filter(dialog => dialog.style.visibility === 'visible').length), 1);
+  await page.waitForFunction(async () => JSON.parse(await check.SettingsText()).length > 0);
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => !document.querySelector('.sharprail-workbench').inert);
+  await page.waitForFunction(async () => JSON.parse(await check.SettingsText()).length === 0);
   console.log('PASS browser modal plugin settings and keyboard dismissal');
   await page.evaluate(() => check.EnablePlugin('fixture'));
   await until(snapshot, windows => windows[0].Plugins.includes('fixture'), 'The browser did not load the external managed plugin UI.');

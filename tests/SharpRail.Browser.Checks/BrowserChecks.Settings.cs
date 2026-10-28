@@ -43,10 +43,14 @@ internal static partial class BrowserChecks
                 Dialogs = window.GetVisualDescendants().OfType<SharpRail.UI.Panels.SettingsView>().Select(dialog =>
                 {
                     var close = dialog.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "SettingsClose");
-                    var position = close.TranslatePoint(default, dialog)!.Value;
-                    var end = close.TranslatePoint(new Point(close.Bounds.Width, close.Bounds.Height), dialog)!.Value;
+                    var origin = dialog.TranslatePoint(default, window)!.Value;
+                    var position = close.TranslatePoint(default, window)!.Value;
+                    var end = close.TranslatePoint(new Point(close.Bounds.Width, close.Bounds.Height), window)!.Value;
                     return new
                     {
+                        dialog.Section,
+                        origin.X,
+                        origin.Y,
                         Width = dialog.Bounds.Width,
                         Height = dialog.Bounds.Height,
                         window.RenderScaling,
