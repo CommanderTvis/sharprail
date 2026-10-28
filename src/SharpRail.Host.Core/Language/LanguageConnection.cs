@@ -194,12 +194,16 @@ internal sealed class LanguageConnection : IAsyncDisposable
 
     private async Task SendAsync(object message, CancellationToken token)
     {
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(message);
+        var body = JsonSerializer.SerializeToUtf8Bytes(message);
+        // Header and body leave in one write, so a frame is never half in the pipe between two writes.
+        var header = Encoding.ASCII.GetBytes($"Content-Length: {body.Length}\r\n\r\n");
+        var frame = new byte[header.Length + body.Length];
+        header.CopyTo(frame, 0);
+        body.CopyTo(frame, header.Length);
         await writing.WaitAsync(token);
         try
         {
-            await process.StandardInput.BaseStream.WriteAsync(Encoding.ASCII.GetBytes($"Content-Length: {bytes.Length}\r\n\r\n"), token);
-            await process.StandardInput.BaseStream.WriteAsync(bytes, token);
+            await process.StandardInput.BaseStream.WriteAsync(frame, token);
             await process.StandardInput.BaseStream.FlushAsync(token);
         }
         catch (Exception error)
