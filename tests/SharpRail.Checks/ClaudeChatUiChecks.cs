@@ -179,6 +179,7 @@ internal static class ClaudeChatUiChecks
         PasteImages();
         WrappedHistory();
         RunningFooter();
+        FooterChipEdges();
         PrimaryContrast();
         QuestionPreview();
         ToolCardsText();
@@ -451,6 +452,47 @@ internal static class ClaudeChatUiChecks
         var front = Over(((ISolidColorBrush)label.Foreground!).Color, back);
         var (hi, lo) = (Math.Max(Luminance(front), Luminance(back)), Math.Min(Luminance(front), Luminance(back)));
         return (hi + 0.05) / (lo + 0.05);
+    }
+
+    // The footer chips wrap on a narrow chat: each wrapped row starts at the same left edge, and a chip without an icon (advisor, model, mode)
+    // keeps the same inset between its box and its content as the others, so no chip sits further in than its neighbours.
+    private static void FooterChipEdges()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Model = "opus", Effort = "high", PermissionMode = "default", Cwd = "/work/some/long/project/directory-name", Advisor = "opus" } };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            var wrapped = false;
+            foreach (var width in new[] { 560, 500, 460, 420, 380, 340, 300 })
+            {
+                window.Width = width; Frame(window); Frame(window); Frame(window);
+                var panel = view.GetVisualDescendants().OfType<WrapPanel>().First(candidate => candidate.Name == "ChatChips");
+                var chips = panel.Children.OfType<Control>().Where(chip => chip.IsVisible && chip.Bounds.Width > 0).ToList();
+                var rows = chips.GroupBy(chip => Math.Round(chip.TranslatePoint(new Point(0, 0), panel)!.Value.Y / 4)).OrderBy(group => group.Key).Select(group => group.OrderBy(chip => chip.TranslatePoint(new Point(0, 0), panel)!.Value.X).ToList()).ToList();
+                // A chip's content starts at its first icon or text; the inset is the distance from the chip's box.
+                static double Content(Control chip, Control panel) => chip.GetVisualDescendants().OfType<Visual>().Where(visual => visual is TextBlock or Border { OpacityMask: not null }).Min(visual => visual.TranslatePoint(new Point(0, 0), panel)!.Value.X);
+                static double Box(Control chip, Control panel) => chip.TranslatePoint(new Point(0, 0), panel)!.Value.X;
+                if (rows.Count < 2) continue;
+                wrapped = true;
+                var edges = rows.Select(row => Box(row[0], panel) + 0d).ToList();
+                var contents = rows.Select(row => Content(row[0], panel)).ToList();
+                Require(edges.All(edge => Math.Abs(edge - edges[0]) <= 0.5) && contents.All(edge => Math.Abs(edge - contents[0]) <= 0.5),
+                    $"Every wrapped footer row starts at one left edge at {width}px (boxes {string.Join(",", edges.Select(edge => edge.ToString("0.#")))}, content {string.Join(",", contents.Select(edge => edge.ToString("0.#")))}).");
+                var insets = new[] { "TerminalAgentFact_advisor", "TerminalAgentFact_model", "TerminalAgentFact_permission" }
+                    .Select(name => (name, chip: chips.FirstOrDefault(chip => chip.Name == name))).Where(pair => pair.chip is not null)
+                    .Select(pair => (pair.name, inset: Content(pair.chip!, panel) - Box(pair.chip!, panel))).ToList();
+                Require(insets.Count >= 2 && insets.All(pair => Math.Abs(pair.inset - insets[0].inset) <= 0.5),
+                    $"The advisor, model and mode chips share one left inset at {width}px ({string.Join(", ", insets.Select(pair => pair.name + " " + pair.inset.ToString("0.#")))}).");
+                break;
+            }
+            Require(wrapped, "The footer chips wrap at some narrow width, so the row edges can be compared.");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); }
     }
 
     // A primary button reads when enabled and when disabled: its label takes the button's colour, never its own.

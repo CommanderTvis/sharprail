@@ -434,6 +434,11 @@ internal sealed partial class ChatView : Grid, IChatRowActions
                 foreach (var child in panel.Children) Flatten(child);
                 panel.Children.CollectionChanged += (_, e) => { foreach (var added in e.NewItems?.OfType<Control>() ?? []) Flatten(added); };
                 break;
+            case Button { Content: Control content } button:
+                button.Padding = new Thickness(6, 3); // the chip's own local padding would beat the footer's "plain" style, leaving buttons narrower than the fact chips
+                content.Margin = new Thickness(0);
+                Flatten(content);
+                break;
             case ContentControl { Content: Control content }:
                 content.Margin = new Thickness(0); // a plugin's mounted row carries margins of its own
                 Flatten(content);
