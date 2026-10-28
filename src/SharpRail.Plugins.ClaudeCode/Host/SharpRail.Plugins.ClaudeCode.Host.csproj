@@ -12,6 +12,7 @@
        hook plugin) are staged at plugins/claude-code/assets in every output that references it. The workflow skills
        have one source shared with Codex and are staged into the bundled plugin, where Claude Code discovers them. -->
   <ItemGroup>
+    <Using Include="SharpRail.Plugins.Chat" />
     <ProjectReference Include="../SharpRail.Plugins.ClaudeCode.csproj" />
     <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <InternalsVisibleTo Include="SharpRail.Checks" />

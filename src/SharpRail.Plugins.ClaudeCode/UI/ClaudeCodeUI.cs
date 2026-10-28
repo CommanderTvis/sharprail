@@ -13,7 +13,8 @@ public sealed class ClaudeCodeUI : PluginUIModule
         var glyph = new ClaudeGlyph(context);
         var actions = new IdeActions(context);
         var chat = new PluginChatClient(context);
-        var chatSelections = ChatDocuments.Register(context, chat);
+        var chatSelections = ChatDocuments.Register(context, chat, ClaudeChat.Agent(context),
+            async (workspaceId, path) => (await context.RequestAsync(ClaudeCodeContract.ReadFile, new ReadFileParams(workspaceId, path))).Content);
         var hydrated = new HashSet<string>();
         var disposed = false;
         var status = context.Subscribe(ClaudeCodeContract.Status, push =>

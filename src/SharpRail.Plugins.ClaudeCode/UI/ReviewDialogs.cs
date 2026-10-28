@@ -242,7 +242,7 @@ internal static class ReviewDialogs
         go.Click += async (_, _) =>
         {
             go.IsEnabled = cancel.IsEnabled = false;
-            go.Content = SharpRail.Plugins.ClaudeCode.UI.Chat.ChatView.Inherit(runningLabel, Ui.FontSize);
+            go.Content = SharpRail.Plugins.Chat.UI.ChatView.Inherit(runningLabel, Ui.FontSize);
             error.IsVisible = false;
             try
             {
@@ -259,7 +259,7 @@ internal static class ReviewDialogs
             {
                 if (!done)
                 {
-                    go.Content = SharpRail.Plugins.ClaudeCode.UI.Chat.ChatView.Inherit(runLabel, Ui.FontSize);
+                    go.Content = SharpRail.Plugins.Chat.UI.ChatView.Inherit(runLabel, Ui.FontSize);
                     go.IsEnabled = cancel.IsEnabled = true;
                 }
             }

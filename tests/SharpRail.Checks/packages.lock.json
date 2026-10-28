@@ -428,10 +428,27 @@
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.claudecode": {
+      "sharprail.plugins.chat": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.chat.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "SharpRail.Plugins.Agent.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Chat": "[1.0.0, )",
+          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.claudecode": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )",
+          "SharpRail.Plugins.Chat": "[1.0.0, )"
         }
       },
       "sharprail.plugins.claudecode.host": {
@@ -447,6 +464,7 @@
           "Avalonia": "[12.1.4, )",
           "SharpRail.Plugins.Agent.UI": "[1.0.0, )",
           "SharpRail.Plugins.Api.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Chat.UI": "[1.0.0, )",
           "SharpRail.Plugins.ClaudeCode": "[1.0.0, )",
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }

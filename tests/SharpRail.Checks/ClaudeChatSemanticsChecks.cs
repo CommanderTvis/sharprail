@@ -1,6 +1,8 @@
 using System.Text.Json;
 
 using SharpRail.Plugins.Api;
+using SharpRail.Plugins.Chat;
+using SharpRail.Plugins.Chat.UI;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host.Chat;
 
@@ -80,7 +82,7 @@ internal static class ClaudeChatSemanticsChecks
             var path = Path.Combine(directory, "session.jsonl");
             File.WriteAllLines(path, frames.Select(frame => JsonSerializer.Serialize(frame)));
             var replayed = new ChatFolder();
-            Require(ChatTranscript.Replay(replayed, path, null, CancellationToken.None).Found, "The transcript is found.");
+            Require(SharpRail.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(replayed, path, null, CancellationToken.None).Found, "The transcript is found.");
             Require(Json(live.Items) == Json(replayed.Items), "Live frames and the replayed transcript fold to identical items.");
         }
         finally { Directory.Delete(directory, true); }
@@ -105,7 +107,7 @@ internal static class ClaudeChatSemanticsChecks
                 """{"type":"last-prompt","lastPrompt":"typed in a terminal"}"""
             ]);
             var fromTerminal = new ChatFolder();
-            ChatTranscript.Replay(fromTerminal, path, null, CancellationToken.None);
+            SharpRail.Plugins.ClaudeCode.Host.Chat.ChatTranscript.Replay(fromTerminal, path, null, CancellationToken.None);
             Require(fromTerminal.Items.Select(item => item.GetType()).SequenceEqual([typeof(ChatUserItem), typeof(ChatAssistantItem)]),
                 "A terminal session's transcript replays as its prompts and answers, whatever bookkeeping lines sit between them.");
         }

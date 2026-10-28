@@ -2,7 +2,10 @@
   <PropertyGroup><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled></PropertyGroup>
   <!-- The Claude Code plugin's UI half, built against the plugin API's UI entry and the kit. -->
   <ItemGroup>
+    <Using Include="SharpRail.Plugins.Chat" />
+    <Using Include="SharpRail.Plugins.Chat.UI" />
     <ProjectReference Include="../SharpRail.Plugins.ClaudeCode.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.Chat.UI/SharpRail.Plugins.Chat.UI.csproj" />
     <ProjectReference Include="../../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
     <ProjectReference Include="../../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
     <ProjectReference Include="../../SharpRail.Plugins.Agent.UI/SharpRail.Plugins.Agent.UI.csproj" />

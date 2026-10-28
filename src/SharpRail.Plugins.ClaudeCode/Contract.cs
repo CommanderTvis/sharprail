@@ -400,7 +400,8 @@ public sealed record CommandOutput(string Output);
 
 public sealed record McpListResult(IReadOnlyList<ClaudeCapability> Capabilities);
 
-public sealed record Ack(bool Ok = true);
+/// <summary>How a SharpRail launch of Claude Code is presented: the CLI's terminal UI, or the chat view over stream-json.</summary>
+public enum ClaudeCodeMode { Terminal, Chat }
 
 /// <summary>The plugin's wire contract: its methods under <c>plugin.claude-code.*</c> and its two channels.</summary>
 public static class ClaudeCodeContract

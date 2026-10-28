@@ -4,6 +4,12 @@
     "net10.0": {
       "sharprail.plugins.api": {
         "type": "Project"
+      },
+      "sharprail.plugins.chat": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
       }
     },
     "net10.0/linux-arm64": {},

@@ -9,6 +9,8 @@ using Avalonia.VisualTree;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Chat;
+using SharpRail.Plugins.Chat.UI;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host;
 using SharpRail.Plugins.ClaudeCode.UI.Chat;

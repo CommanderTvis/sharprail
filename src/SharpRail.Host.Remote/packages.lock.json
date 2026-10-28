@@ -142,10 +142,17 @@
           "SharpRail.Plugins.BranchGraph": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.claudecode": {
+      "sharprail.plugins.chat": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.claudecode": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )",
+          "SharpRail.Plugins.Chat": "[1.0.0, )"
         }
       },
       "sharprail.plugins.claudecode.host": {

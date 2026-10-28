@@ -8,6 +8,8 @@ using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
+using SharpRail.Plugins.Chat;
+using SharpRail.Plugins.Chat.UI;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host;
 

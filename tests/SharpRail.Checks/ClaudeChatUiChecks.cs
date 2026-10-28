@@ -14,6 +14,8 @@ using Avalonia.VisualTree;
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
+using SharpRail.Plugins.Chat;
+using SharpRail.Plugins.Chat.UI;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.UI.Chat;
 using SharpRail.Plugins.UI.Kit;
@@ -23,6 +25,8 @@ namespace SharpRail.Checks;
 /// <summary>The Claude Code chat view against a scripted client: bounded realization, streaming, nesting, permissions, chips, menus and the mode switch.</summary>
 internal static class ClaudeChatUiChecks
 {
+    private static readonly ChatAgent TestAgent = SharpRail.Plugins.ClaudeCode.UI.Chat.ClaudeChat.Agent(() => Task.FromResult(SharpRail.Plugins.ClaudeCode.UI.PermissionModeSource.Current));
+
     private const string Workspace = "ws", Chat = "chat-1";
 
     private static void Require(bool condition, string message)
@@ -256,7 +260,7 @@ internal static class ClaudeChatUiChecks
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { PermissionMode = "default", PermissionModes = modes, Model = "opus" } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
         chat.Snapshot.Add(Item(new ChatUserItem("u", 1, "first") { Uuid = "u-1" }));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -340,7 +344,7 @@ internal static class ClaudeChatUiChecks
     {
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.AwaitingPermission) };
         chat.Snapshot.Add(Item(new ChatQuestionItem("q", 1, "req-q", [new("Which layout?", [new("Grid") { Preview = "# Grid layout\n\nRows and columns" }, new("Stack")])])));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -359,7 +363,7 @@ internal static class ClaudeChatUiChecks
 
         var multi = new FakeChat { Header = new ChatHeader(ChatStatus.AwaitingPermission) };
         multi.Snapshot.Add(Item(new ChatQuestionItem("q", 1, "req-q", [new("Which checks?", [new("Unit") { Preview = "# Unit" }, new("E2E")]) { MultiSelect = true }])));
-        var multiView = new ChatView(new ChatEnvironment(multi), Workspace, Chat);
+        var multiView = new ChatView(new ChatEnvironment(multi, TestAgent), Workspace, Chat);
         var multiWindow = new Window { Width = 900, Height = 700, Content = multiView, Background = Ui.Surface };
         multiWindow.Show();
         try
@@ -379,7 +383,7 @@ internal static class ClaudeChatUiChecks
         {
             var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Running) { Model = "opus", Effort = "high", PermissionMode = "default", Cwd = "/work/project", Usage = new ChatUsage { Input = 1200, Output = 300, CostUsd = 0.5, ContextTokens = 40_000, ContextWindow = 200_000 } } };
             chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-            var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+            var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
             var host = new LayoutTransformControl { LayoutTransform = new ScaleTransform(zoom, zoom), Child = view };
             var window = new Window { Width = 900, Height = 700, Content = host, Background = Ui.Surface };
             window.Show();
@@ -454,7 +458,7 @@ internal static class ClaudeChatUiChecks
     {
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.AwaitingPermission) };
         chat.Snapshot.Add(Item(new ChatQuestionItem("q", 1, "req-q", [new("Which?", [new("A"), new("B")])])));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -487,7 +491,7 @@ internal static class ClaudeChatUiChecks
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
         ChatView.Histories[(Workspace, Chat)] = ["previous prompt"];
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 260, Height = 500, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -521,7 +525,7 @@ internal static class ClaudeChatUiChecks
         var notes = new List<string>();
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-        var view = new ChatView(new ChatEnvironment(chat) { Notify = (_, title, detail) => notes.Add(title + ": " + detail) }, Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent) { Notify = (_, title, detail) => notes.Add(title + ": " + detail) }, Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII=");
@@ -592,7 +596,7 @@ internal static class ClaudeChatUiChecks
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
         chat.Snapshot.Add(Item(new ChatUserItem("u", 1, "a short prompt") { Uuid = "u-1" }));
         chat.Snapshot.Add(Item(new ChatUserItem("long", 2, string.Join(" ", Enumerable.Repeat("a long prompt that folds with Show more", 12)))));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -637,7 +641,7 @@ internal static class ClaudeChatUiChecks
         var commands = Enumerable.Range(0, 500).Select(index => new ChatCommand("skill-" + index, "A long description of what this skill does.\nIt runs over several lines and says far more than a menu row can hold, so it must be cut to one line. " + new string('x', 200)) { ArgumentHint = "[argument]" }).ToList();
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Commands = commands, Model = "opus" } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 1400, Height = 800, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -683,7 +687,7 @@ internal static class ClaudeChatUiChecks
         var opened = new List<(string Chat, string Title, ChatOpenParams? Open)>();
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { SessionId = "s-own" } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-        var view = new ChatView(new ChatEnvironment(chat) { OpenChat = (id, title, open) => opened.Add((id, title, open)) }, Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent) { OpenChat = (id, title, open) => opened.Add((id, title, open)) }, Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         Window? flyoutHost = null;
@@ -762,7 +766,7 @@ internal static class ClaudeChatUiChecks
         chat.Snapshot.Add(Item(new ChatAssistantItem("a", 2, "First paragraph.\n\nSecond paragraph with **bold** text.")));
         chat.Snapshot.Add(Item(new ChatQuestionItem("q", 3, "req-q", [new("Which approach?", [new("Fast", "less careful"), new("Careful", "slower"), new("Other way")])])));
         chat.Snapshot.Add(Item(new ChatQuestionItem("q2", 4, "req-q2", [new("Which checks?", [new("Unit"), new("E2E")]) { MultiSelect = true }])));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -817,7 +821,7 @@ internal static class ClaudeChatUiChecks
         var store = new MemoryZoomStore();
         var chat = new FakeChat();
         for (var index = 0; index < 20_000; index++) chat.Snapshot.Add(Item(Sample(index)));
-        var view = new ChatView(new ChatEnvironment(chat) { ZoomPreference = store }, Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent) { ZoomPreference = store }, Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -856,8 +860,8 @@ internal static class ClaudeChatUiChecks
 
             // Remembered per chat id.
             view.SetZoom(1.5);
-            var again = new ChatView(new ChatEnvironment(new FakeChat()) { ZoomPreference = store }, Workspace, Chat);
-            var other = new ChatView(new ChatEnvironment(new FakeChat()) { ZoomPreference = store }, Workspace, "chat-zoom-b");
+            var again = new ChatView(new ChatEnvironment(new FakeChat(), TestAgent) { ZoomPreference = store }, Workspace, Chat);
+            var other = new ChatView(new ChatEnvironment(new FakeChat(), TestAgent) { ZoomPreference = store }, Workspace, "chat-zoom-b");
             Require(again.Zoom == 1.5 && other.Zoom == 1, $"A reopened chat keeps its zoom and another chat has its own ({again.Zoom}, {other.Zoom}).");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
@@ -870,7 +874,7 @@ internal static class ClaudeChatUiChecks
     {
         var chat = new FakeChat();
         for (var index = 0; index < 20_000; index++) chat.Snapshot.Add(Item(Sample(index)));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var transform = new LayoutTransformControl { LayoutTransform = new ScaleTransform(1, 1), Child = view };
         var window = new Window { Width = 1000, Height = 700, Content = transform, Background = Ui.Surface };
         window.Show();
@@ -917,7 +921,7 @@ internal static class ClaudeChatUiChecks
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Model = "opus", Effort = "high", PermissionMode = "default", Models = [new("opus", "Opus 5.1")], Usage = new ChatUsage { Input = 12345, Output = 6789, CostUsd = 0.12 } } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
         for (var index = 0; index < 400; index++) chat.Snapshot.Add(Item(Sample(index)));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -999,7 +1003,7 @@ internal static class ClaudeChatUiChecks
     {
         var chat = new FakeChat();
         for (var index = 0; index < 20_000; index++) chat.Snapshot.Add(Item(Sample(index)));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -1109,7 +1113,7 @@ internal static class ClaudeChatUiChecks
         chat.Snapshot.Add(Item(new ChatUserItem("u1", 1, "alpha beta gamma")));
         chat.Snapshot.Add(Item(new ChatAssistantItem("a1", 2, "First paragraph here\n\nSecond paragraph there")));
         chat.Snapshot.Add(Item(new ChatAssistantItem("s1", 3, "Streaming so far") { Streaming = true }));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -1155,7 +1159,7 @@ internal static class ClaudeChatUiChecks
 
         var big = new FakeChat();
         for (var index = 0; index < 20_000; index++) big.Snapshot.Add(Item(Sample(index)));
-        var bigView = new ChatView(new ChatEnvironment(big), Workspace, Chat);
+        var bigView = new ChatView(new ChatEnvironment(big, TestAgent), Workspace, Chat);
         var bigWindow = new Window { Width = 900, Height = 700, Content = bigView, Background = Ui.Surface };
         bigWindow.Show();
         try
@@ -1223,7 +1227,7 @@ internal static class ClaudeChatUiChecks
         var chat = new FakeChat();
         for (var index = 0; index < 20_000; index++) chat.Snapshot.Add(Item(new ChatAssistantItem("m" + index, index, reply + " " + index)));
         chat.Snapshot.Add(Item(new ChatAssistantItem("big", 30_000, string.Join("\n\n", Enumerable.Range(0, 400).Select(block => $"Paragraph {block} of a very long answer with **weight**.")))));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -1259,7 +1263,7 @@ internal static class ClaudeChatUiChecks
         ChatModel[] models = [new("default", "Default (recommended)"), new("opus", "Opus 5.1") { Efforts = ["low", "medium", "high"] }, new("sonnet", "Sonnet 5.5")];
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { PermissionMode = "acceptEdits", PermissionModes = modes, Model = "opus", Models = models, Effort = "medium" } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         var closed = 0;
@@ -1336,7 +1340,7 @@ internal static class ClaudeChatUiChecks
         ChatCommand[] commands = [.. Enumerable.Range(0, 12).Select(index => new ChatCommand("skill-" + index, "Does something quite useful with a description long enough that it has to be cut to one line " + index))];
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { PermissionMode = "acceptEdits", PermissionModes = modes, Model = "opus", Models = models, Effort = "medium", Commands = commands } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         var now = new DateTime(2026, 10, 25, 15, 0, 0, DateTimeKind.Local);
@@ -1440,7 +1444,7 @@ internal static class ClaudeChatUiChecks
                 var chat = new FakeChat { Header = new ChatHeader(state == "running" ? ChatStatus.Running : ChatStatus.Idle) { Model = "sonnet", Models = [new("sonnet", "Sonnet 5.5")], Effort = "medium", PermissionMode = "default", PermissionModes = [new("default", "Manual", "Ask before each edit")], Cwd = "/work/project", Usage = new ChatUsage { Input = 1200, Output = 300, CostUsd = 0.5 } } };
                 chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
                 chat.Snapshot.Add(Item(new ChatAssistantItem("a", 2, "An answer above the composer.")));
-                var view = new ChatView(new ChatEnvironment(chat) { ActiveSelection = () => state == "chips" ? selected : null }, Workspace, Chat);
+                var view = new ChatView(new ChatEnvironment(chat, TestAgent) { ActiveSelection = () => state == "chips" ? selected : null }, Workspace, Chat);
                 var window = new Window { Width = 760, Height = 300, Content = view, Background = Ui.Surface };
                 window.Show();
                 try
@@ -1488,7 +1492,7 @@ internal static class ClaudeChatUiChecks
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
         ChatSelection? selected = new("README.md", 10, 20, true);
         Action? changed = null;
-        var view = new ChatView(new ChatEnvironment(chat) { ActiveSelection = () => selected, WatchSelection = handler => { changed = handler; return new Subscription(() => changed = null); } }, Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent) { ActiveSelection = () => selected, WatchSelection = handler => { changed = handler; return new Subscription(() => changed = null); } }, Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -1578,7 +1582,7 @@ internal static class ClaudeChatUiChecks
 
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Model = "claude-opus-4-5", Models = models } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 500, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -1648,7 +1652,7 @@ internal static class ClaudeChatUiChecks
         chat.Snapshot.Add(Item(Ask("one", 1)));
         chat.Snapshot.Add(Item(Ask("two", 2)));
         var preference = new MemoryPreference();
-        var view = new ChatView(new ChatEnvironment(chat) { ComposerPreference = preference }, Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent) { ComposerPreference = preference }, Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -1694,7 +1698,7 @@ internal static class ClaudeChatUiChecks
         chat.Snapshot.Add(Item(new ChatThinkingItem("t", 4, "hmm")));
         chat.Snapshot.Add(Item(new ChatToolItem("g", 5, "Grep", JsonSerializer.SerializeToElement(new { pattern = "x" }), ChatToolState.Running) { Summary = "x" }));
         chat.Snapshot.Add(Item(new ChatAssistantItem("a", 6, "Found it")));
-        var view = new ChatView(new ChatEnvironment(chat), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 600, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -1721,7 +1725,7 @@ internal static class ClaudeChatUiChecks
         var many = new FakeChat();
         for (var index = 0; index < 18_000; index++)
             many.Snapshot.Add(Item(index % 6 == 0 ? new ChatUserItem("u" + index, index, "ask " + index) : Read("r" + index, index)));
-        var big = new ChatView(new ChatEnvironment(many), Workspace, Chat);
+        var big = new ChatView(new ChatEnvironment(many, TestAgent), Workspace, Chat);
         var host = new Window { Width = 900, Height = 700, Content = big, Background = Ui.Surface };
         host.Show();
         try
@@ -1744,7 +1748,7 @@ internal static class ClaudeChatUiChecks
     {
         var starting = new FakeChat { Header = new ChatHeader(ChatStatus.Starting) };
         starting.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, starting.Header));
-        var view = new ChatView(new ChatEnvironment(starting), Workspace, Chat);
+        var view = new ChatView(new ChatEnvironment(starting, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 500, Content = view, Background = Ui.Surface };
         window.Show();
         try
@@ -1760,7 +1764,7 @@ internal static class ClaudeChatUiChecks
         finally { window.Close(); }
 
         var missing = new FakeChat { OpenFailure = new PluginCallException(PluginCallError.Unknown, "Plugin claude-code registered no handler for plugin.claude-code.chatOpen") };
-        var broken = new ChatView(new ChatEnvironment(missing), Workspace, Chat);
+        var broken = new ChatView(new ChatEnvironment(missing, TestAgent), Workspace, Chat);
         var host = new Window { Width = 900, Height = 500, Content = broken, Background = Ui.Surface };
         host.Show();
         try
@@ -1798,7 +1802,7 @@ internal static class ClaudeChatUiChecks
         var composerPreference = new MemoryPreference();
         var opened = new List<(string Path, int Line)>();
         ChatSelection? selected = new("src/Alpha.cs", 3, 5, true);
-        var view = new ChatView(new ChatEnvironment(chat)
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent)
         {
             OpenDiff = request => { diffs.Add(request); return Task.CompletedTask; },
             ActiveSelection = () => selected,
@@ -2107,7 +2111,7 @@ internal static class ClaudeChatUiChecks
             // A rebuilt view (a restored tab) opens the same chat id and repaints from the replay.
             var revived = new FakeChat { Header = chat.Header };
             revived.Snapshot.Add(Item(new ChatUserItem("u1", 1, "Hello")));
-            var again = new ChatView(new ChatEnvironment(revived), Workspace, Chat);
+            var again = new ChatView(new ChatEnvironment(revived, TestAgent), Workspace, Chat);
             window.Content = again; Frame(window); Frame(window);
             Require(again.Transcript.Rows.Count == 1 && revived.Calls.Contains(ChatContract.Open.Name), "A restored chat tab opens its chat id and shows the replayed items.");
             revived.Push(new ChatResetPush(Workspace, Chat));
