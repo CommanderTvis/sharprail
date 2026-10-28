@@ -185,6 +185,15 @@ public sealed partial class HostStateStore : IHostStateService
                 PluginSettings = initial.PluginSettings.Where(entry => entry.Key != "file-icons").ToDictionary()
             };
         }
+        // Air Governance was renamed Air Gateway (plugin id air-governance -> air-gateway). The old namespace carries over once, unless the new one
+        // already exists; it leaves the file in the same save.
+        var gatewayRenamed = migrated.PluginSettings.TryGetValue("air-governance", out var legacyGateway);
+        if (gatewayRenamed)
+        {
+            var renamed = migrated.PluginSettings.Where(entry => entry.Key != "air-governance").ToDictionary();
+            renamed.TryAdd("air-gateway", legacyGateway);
+            migrated = migrated with { PluginSettings = renamed };
+        }
         // Air Context became a plugin (protocol 8). Hiding it is now the plugin being disabled; the workspaces the user enabled
         // and the CLI's storage move into the plugin's own state. The old keys leave the file in the same save, so this runs once.
         var hadHiddenKey = unknownSettings.Remove("AirContextHidden", out var hiddenNode);
@@ -217,7 +226,7 @@ public sealed partial class HostStateStore : IHostStateService
         MigrateJavaKotlinProvider();
         // Identities minted for a file that predates them are written at once, or they would change on the next launch.
         if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords) ||
-            state.Settings != initial.Settings || airContextLegacy || state.PluginSettings.Count != initial.PluginSettings.Count || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
+            state.Settings != initial.Settings || airContextLegacy || gatewayRenamed || state.PluginSettings.Count != initial.PluginSettings.Count || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
         if (directory is not null)
             try { InstallationId = Installation.EnsureIn(directory); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError ??= error.Message; }

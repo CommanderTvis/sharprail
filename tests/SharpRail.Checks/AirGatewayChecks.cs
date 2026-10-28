@@ -132,6 +132,24 @@ internal static class AirGatewayChecks
     private static AirGatewayRuntime Runtime(Fixture fixture, AirSettings settings, List<AirStatus>? published = null) =>
         new(fixture.Environment, () => settings, status => published?.Add(status));
 
+    // Air Governance's settings namespace (enabled, source, agents) moves to the plugin's new id once, and never over an existing one.
+    private static void IdMigration(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        var file = Path.Combine(directory, HostStateStore.FileName);
+        File.WriteAllText(file, JsonSerializer.Serialize(new { PluginSettings = new Dictionary<string, object> { ["air-governance"] = new { enabled = true, source = "central", codex = false } } }));
+        var migrated = new HostStateStore(directory).Current.PluginSettings;
+        Require(!migrated.ContainsKey("air-governance") && migrated[AirGatewayContract.Id] is { } moved && moved.GetProperty("enabled").GetBoolean()
+            && moved.GetProperty("source").GetString() == "central" && !moved.GetProperty("codex").GetBoolean(), "The old plugin id's enabled state and settings carry over to Air Gateway.");
+        Require(!File.ReadAllText(file).Contains("air-governance", StringComparison.Ordinal), "The old namespace leaves the file in the same save.");
+        File.WriteAllText(file, JsonSerializer.Serialize(new
+        {
+            PluginSettings = new Dictionary<string, object> { ["air-governance"] = new { enabled = false }, [AirGatewayContract.Id] = new { enabled = true, source = "direct" } }
+        }));
+        var kept = new HostStateStore(directory).Current.PluginSettings;
+        Require(!kept.ContainsKey("air-governance") && kept[AirGatewayContract.Id].GetProperty("source").GetString() == "direct", "An existing Air Gateway namespace wins over the stale one.");
+    }
+
     internal static async Task Run(string root)
     {
         Parsing();
@@ -146,6 +164,7 @@ internal static class AirGatewayChecks
         await Access(Path.Combine(directory, "access"));
         await Transport(Path.Combine(directory, "transport"));
         await GovernedAccounts(Path.Combine(directory, "governed"));
+        IdMigration(Path.Combine(directory, "id-migration"));
         Directory.Delete(directory, true);
         Console.WriteLine("PASS Air Gateway: detection, source contributions, launch command shapes, untouched agent configuration, failures, access sources, the host seam over plugin RPC and the governed Codex and Claude Code accounts");
     }
