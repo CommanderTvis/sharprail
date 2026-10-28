@@ -428,7 +428,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             case Border { OpacityMask: not null }: break; // an icon: its fill is the glyph
             case Border border:
                 border.Background = Brushes.Transparent;
-                border.Padding = new Thickness(6, 3);
+                border.Padding = new Thickness(4, 2);
                 border.MaxWidth = double.PositiveInfinity;
                 border.Margin = new Thickness(0);
                 if (border.Child is { } inner) Flatten(inner);
@@ -442,7 +442,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
                 panel.Children.CollectionChanged += (_, e) => { foreach (var added in e.NewItems?.OfType<Control>() ?? []) Flatten(added); };
                 break;
             case Button { Content: Control content } button:
-                button.Padding = new Thickness(6, 3); // the chip's own local padding would beat the footer's "plain" style, leaving buttons narrower than the fact chips
+                button.Padding = new Thickness(4, 2); // the chip's own local padding would beat the footer's "plain" style; fact chips and buttons share the buttons' padding so the footer stays one line at 520px
                 content.Margin = new Thickness(0);
                 Flatten(content);
                 break;
