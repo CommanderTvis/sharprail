@@ -94,8 +94,7 @@ fall back to defaults, so mismatched host/UI halves stay dormant.
 ## Chat mode (host)
 
 The `Mode` setting (Terminal by default, or Chat) says how a SharpRail launch is presented; the host serves chat whatever
-the setting says, and the view chooses by it. The wire is `ChatContract` (declared apart from `ClaudeCodeContract` and merged
-into it): items, a header, three push kinds on the keyed `chatUpdates` state channel (workspace id and chat id), and the
+the setting says, and the view chooses by it. The wire is `ChatContract` (in `SharpRail.Plugins.Chat`, merged into `ClaudeCodeContract`): items, a header, three push kinds on the keyed `chatUpdates` state channel (workspace id and chat id), and the
 methods open, snapshot, send, interrupt, close, set model, set permission mode, set effort, answer, rewind, fork, stop task,
 item detail, sessions and files. Chat mode drives Claude Code over its stream-json protocol, as the official VS Code
 extension does. The host half lives in `Host/Chat`.
@@ -449,6 +448,11 @@ integration. Existing user-installed copies are not removed. Reports POST rather
 OSC 777, which unrelated terminals interpret as user notifications.
 
 ## Chat mode (UI)
+
+The chat view and its wire records are not part of this plugin: they live in `SharpRail.Plugins.Chat` (contract) and
+`SharpRail.Plugins.Chat.UI` (view), described in `src/SharpRail.Plugins.Chat/SPEC.md`, so another agent protocol can reuse them. This
+plugin gives the view a `ChatAgent` (`ClaudeChat`): its names, the `claude-chat` document scheme and icon, the effort levels, the CLI's
+permission modes and the help link; it keeps the launcher (`ChatLauncher`) and its settings. The rows below describe the shared view.
 
 ### Upstream chat mapping
 

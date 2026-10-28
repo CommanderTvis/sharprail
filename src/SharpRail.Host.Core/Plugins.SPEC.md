@@ -48,6 +48,13 @@ implemented here and never redeclared.
 The runtime runs where the host runs: in the app's process for its own host, inside `SharpRail.Host.Remote` for a
 remote host. A remote client never runs a host half.
 
+## Shared chat contract
+
+An agent plugin that offers a chat mode lists `ChatContract.Methods` and `ChatContract.Updates` (project `SharpRail.Plugins.Chat`, which
+depends only on the plugin API) in its own contract, so the wire names stay under the plugin's id, and gives the shared chat view
+(`SharpRail.Plugins.Chat.UI`) a `ChatAgent` description. The core references the contract project through the plugin, never the view.
+See `src/SharpRail.Plugins.Chat/SPEC.md`.
+
 ## Manifest-only builtins (no host half)
 
 A builtin plugin whose manifest declares no host half is registered from its manifest alone: the entry carries a
