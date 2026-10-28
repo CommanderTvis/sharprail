@@ -180,6 +180,7 @@ internal static class ClaudeChatUiChecks
         HoverAffordance();
         PasteImages();
         WrappedHistory();
+        DraftSurvivesHistory();
         RunningFooter();
         FooterChipEdges();
         PrimaryContrast();
@@ -531,6 +532,40 @@ internal static class ClaudeChatUiChecks
     private const double MinimumDisabledContrast = 3.0;
 
     // Up/Down recall history only from the first/last visual line: a soft-wrapped draft moves the caret between its wrapped lines first.
+    // Up/Down history never destroys a draft: Down outside history is plain caret movement, and leaving history restores what was typed.
+    private static void DraftSurvivesHistory()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        ChatView.Histories[(Workspace, Chat)] = ["first", "second"];
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 600, Height = 500, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            void Press(Key key) => view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key });
+            view.Input.Focus();
+            view.Input.Text = "my draft"; view.Input.CaretIndex = 8; Frame(window);
+            Press(Key.Down);
+            Require(view.Input.Text == "my draft", $"Down outside history keeps the draft (got '{view.Input.Text}').");
+            Press(Key.Up);
+            Require(view.Input.Text == "second", "Up recalls the newest prompt.");
+            Press(Key.Down);
+            Require(view.Input.Text == "my draft", $"Down past the newest entry restores the draft (got '{view.Input.Text}').");
+            Press(Key.Up); Press(Key.Up);
+            Require(view.Input.Text == "first", "Up twice reaches the older prompt.");
+            Press(Key.Down); Press(Key.Down);
+            Require(view.Input.Text == "my draft", $"Up Up Down Down returns to the draft (got '{view.Input.Text}').");
+            Press(Key.Up);
+            view.Input.Text = "edited recall"; Frame(window);
+            Press(Key.Down);
+            Require(view.Input.Text == "edited recall", $"Editing a recalled entry leaves history; Down keeps the text (got '{view.Input.Text}').");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); }
+    }
+
     private static void WrappedHistory()
     {
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };

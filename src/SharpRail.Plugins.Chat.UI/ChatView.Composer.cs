@@ -29,6 +29,9 @@ internal sealed partial class ChatView
     private readonly List<ChatAttachment> attachments = [];
     private CancellationTokenSource? mentionSearch;
     private int historyAt = -1;
+    // The draft typed before the first Up, put back when Down leaves history; recalling is set while history writes the box.
+    private string? draftStash;
+    private bool recalling;
     private ChatStatus status = ChatStatus.Starting;
 
     internal TextBox Input => input;
@@ -214,7 +217,7 @@ internal sealed partial class ChatView
         root.Children.Add(queue);
         root.Children.Add(shell);
         root.Children.Add(footer);
-        input.TextChanged += (_, _) => { pasteNote.IsVisible = false; Drafts[(workspaceId, chatId)] = input.Text ?? ""; UpdateMenu(); UpdateSend(); UpdateMentions(); };
+        input.TextChanged += (_, _) => { if (!recalling) { historyAt = -1; draftStash = null; } pasteNote.IsVisible = false; Drafts[(workspaceId, chatId)] = input.Text ?? ""; UpdateMenu(); UpdateSend(); UpdateMentions(); };
         input.AddHandler(KeyDownEvent, InputKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         // The box's own Paste (its context menu) takes the same road.
         input.PastingFromClipboard += (_, e) => { e.Handled = true; _ = PasteAttachments(); };
@@ -695,6 +698,7 @@ internal sealed partial class ChatView
             var history = Histories.TryGetValue((workspaceId, chatId), out var existing) ? existing : Histories[(workspaceId, chatId)] = [];
             if (text.Length > 0) { history.Add(text); RememberPrompt(text); }
             historyAt = -1;
+            draftStash = null;
             input.Text = "";
             attachments.Clear();
             RebuildAttachmentChips();
@@ -745,12 +749,20 @@ internal sealed partial class ChatView
             e.Handled = true;
             return;
         }
-        if (e.Key is Key.Up or Key.Down && RecentPrompts() is { Count: > 0 } history && OnEdgeLine(e.Key == Key.Up))
+        if (e.Key is Key.Up or Key.Down && (e.Key == Key.Up || historyAt >= 0) && RecentPrompts() is { Count: > 0 } history && OnEdgeLine(e.Key == Key.Up))
         {
-            historyAt = e.Key == Key.Up ? (historyAt < 0 ? history.Count - 1 : Math.Max(0, historyAt - 1)) : (historyAt < 0 ? -1 : historyAt + 1);
-            if (historyAt >= history.Count) historyAt = -1;
-            input.Text = historyAt < 0 ? "" : history[historyAt];
-            input.CaretIndex = input.Text.Length;
+            if (e.Key == Key.Up)
+            {
+                if (historyAt < 0) draftStash = input.Text ?? "";
+                historyAt = historyAt < 0 ? history.Count - 1 : Math.Max(0, historyAt - 1);
+            }
+            else if (++historyAt >= history.Count) historyAt = -1;
+            var shown = historyAt < 0 ? draftStash ?? "" : history[historyAt];
+            if (historyAt < 0) draftStash = null;
+            recalling = true;
+            try { input.Text = shown; }
+            finally { recalling = false; }
+            input.CaretIndex = shown.Length;
             e.Handled = true;
         }
     }
