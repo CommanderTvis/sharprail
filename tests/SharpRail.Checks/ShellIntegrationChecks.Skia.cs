@@ -61,7 +61,7 @@ internal static partial class ShellIntegrationChecks
             }
             return Task.CompletedTask;
         }).GetAwaiter().GetResult();
-        Console.WriteLine("PASS shell integration (Skia): Command+Up/Down jumps between real zsh prompts; Command+triple-click and the menu's Copy Output of This Command take exactly one command's output; a click on the input line moves zsh's cursor, and a running command gets no arrows; a command that exits non-zero is badged on its command line");
+        Console.WriteLine("PASS shell integration (Skia): Command+Up/Down jumps between real zsh prompts; Command+triple-click takes exactly one command's output; a click on the input line moves zsh's cursor, and a running command gets no arrows; a command that exits non-zero is badged on its command line");
     }
 
     private static void Type(Window window, string command)
@@ -105,10 +105,6 @@ internal static partial class ShellIntegrationChecks
         var row = Array.FindIndex(rows, line => line.Trim() == "30");
         Require(row >= 0, "the last command's output must be on view: " + string.Join("|", rows));
         var point = view().CellCenter(0, row)!.Value;
-        var output = view().CommandOutputAt(point);
-        Require(output == SeqOutput, "the output at a point must be exactly that command's output, got: [" + output + "]");
-        var prompt = Array.FindLastIndex(rows, line => line.TrimEnd().EndsWith('%'));
-        Require(view().CommandOutputAt(view().CellCenter(0, prompt)!.Value) is null, "a prompt row is no command's output.");
         var position = view().TranslatePoint(point, window)!.Value;
         window.MouseDown(position, Avalonia.Input.MouseButton.Left); window.MouseUp(position, Avalonia.Input.MouseButton.Left); Pump();
         window.MouseDown(position, Avalonia.Input.MouseButton.Left); window.MouseUp(position, Avalonia.Input.MouseButton.Left); Pump();
@@ -123,12 +119,8 @@ internal static partial class ShellIntegrationChecks
         Until(() => view().SelectedText == SeqOutput, "Command+triple-click selecting the output; selected: [" + view().SelectedText + "]");
         window.MouseDown(position, Avalonia.Input.MouseButton.Right);
         window.MouseUp(position, Avalonia.Input.MouseButton.Right);
-        Until(() => view().ClipboardMenu?.Items.OfType<MenuItem>().Any(item => item.Header as string == "Copy Output of This Command") == true,
-            "the context menu offering Copy Output of This Command");
-        view().ClipboardMenu!.Close();
-        // The open menu took the right button's release; the view's next release completes that click instead.
-        window.MouseDown(position, Avalonia.Input.MouseButton.Left); window.MouseUp(position, Avalonia.Input.MouseButton.Left);
         Pump();
+        Require(view().ClipboardMenu is null, "a right-click opened a menu.");
     }
 
     private static Point CellOf(Window window, GhosttySkiaView view, string text, int offset)

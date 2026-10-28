@@ -57,7 +57,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
 
     public TerminalView(TerminalFactory factory, TerminalLaunch launch)
     {
-        this.factory = factory; this.launch = launch with { ExtendContextMenu = AddSecureInputItem };
+        this.factory = factory; this.launch = launch;
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("TerminalBody")!;
         failure = this.FindControl<Control>("TerminalStartFailure")!;
@@ -273,16 +273,6 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private void SecureInputChanged() => Avalonia.Threading.Dispatcher.UIThread.Post(ShowSecureInput);
 
     private void WindowActivationChanged(object? sender, EventArgs e) => UpdateSecureInput();
-
-    // The terminal's context menu is the primary way to Ghostty's toggle_secure_input; the macOS Edit menu is the second.
-    private void AddSecureInputItem(ContextMenu menu)
-    {
-        if (!SecureInput.Shared.Supported) return;
-        var item = new MenuItem { Header = SecureInputMenuHeader, ToggleType = MenuItemToggleType.CheckBox, IsChecked = SecureInput.Shared.Manual };
-        item.Click += (_, _) => SecureInput.Shared.Toggle();
-        menu.Items.Add(new Separator());
-        menu.Items.Add(item);
-    }
 
     public const string SecureInputMenuHeader = "Secure Keyboard Entry";
 

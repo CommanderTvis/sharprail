@@ -2,10 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Input.Platform;
-using Avalonia.Media;
 using Avalonia.Threading;
 
 namespace Ghostty.Avalonia;
@@ -147,8 +144,6 @@ public sealed partial class GhosttyTextureView
     /// <summary>Opens a resolved file in the embedding application's editor.</summary>
     public Func<TerminalLink, Task>? OpenFileLink
     { get => FileHover.Open; set => FileHover.Open = value; }
-    /// <summary>Adds the embedding application's items to the context menu just before it opens, below the clipboard items.</summary>
-    public Action<ContextMenu>? ExtendContextMenu { get; set; }
 
     [DllImport("GhosttyAvaloniaView", EntryPoint = "gav_texture_set_link_underlines")]
     [return: MarshalAs(UnmanagedType.I1)]
@@ -196,16 +191,6 @@ public sealed partial class GhosttyTextureView
         return cursor;
     }
 
-    private Task<TerminalContextLink?> ContextFileLink(Point point)
-    {
-        linkPointer = point;
-        var modifiers = linkModifiers;
-        linkModifiers = LinkModifier;
-        RefreshFileLink();
-        linkModifiers = modifiers;
-        return FileHover.ResolveContext();
-    }
-
     /// <summary>The selected text; empty without a selection.</summary>
     public string SelectedText
     {
@@ -220,66 +205,7 @@ public sealed partial class GhosttyTextureView
         }
     }
 
-    /// <summary>The output of the command at a point in the view, or null when the point is not in a command's output.</summary>
-    public string? CommandOutputAt(Point point)
-    {
-        if (disposed) return null;
-        var length = (long)Native.CommandOutput(terminal.Handle, point.X, point.Y, false, null, 0);
-        if (length < 0) return null;
-        var buffer = new byte[length];
-        length = Native.CommandOutput(terminal.Handle, point.X, point.Y, false, buffer, (nuint)buffer.Length);
-        return length < 0 ? null : Encoding.UTF8.GetString(buffer, 0, (int)Math.Min(length, buffer.Length));
-    }
-
-    private async void ShowClipboardMenu(string? url, Task<TerminalContextLink?>? lookup = null, string? output = null)
-    {
-        // A native popup keeps the size it measured when it opened, so the file-link lookup finishes before the menu
-        // opens with its final items; a newer request drops this one.
-        var request = ++clipboardMenuRequest;
-        var resolved = url is null && lookup is not null ? await lookup : null;
-        if (disposed || request != clipboardMenuRequest) return;
-        var menu = new ContextMenu();
-        if (url is not null)
-        {
-            var open = new MenuItem { Header = "Open link", Tag = url };
-            open.Click += async (_, _) => await OpenUrlAsync(url);
-            menu.Items.Add(open);
-            menu.Items.Add(new Separator());
-        }
-        else if (resolved is not null)
-        {
-            var open = new MenuItem { Header = "Open link", Tag = resolved.Link.Path };
-            open.Click += async (_, _) => await resolved.Activate();
-            menu.Items.Add(open);
-            menu.Items.Add(new Separator());
-        }
-        foreach (var (title, action) in new[] { ("Copy", "copy_to_clipboard"), ("Paste", "paste_from_clipboard"), ("Select All", "select_all") })
-        {
-            var item = new MenuItem { Header = title };
-            item.Click += (_, _) =>
-            {
-                if (disposed) return;
-                if (action == "paste_from_clipboard") UserInput?.Invoke(this, EventArgs.Empty);
-                Native.Action(terminal.Handle, action);
-            };
-            menu.Items.Add(item);
-            if (action == "copy_to_clipboard" && output is not null)
-            {
-                var copyOutput = new MenuItem { Header = "Copy Output of This Command" };
-                copyOutput.Click += async (_, _) =>
-                {
-                    if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(output);
-                };
-                menu.Items.Add(copyOutput);
-            }
-        }
-        ExtendContextMenu?.Invoke(menu);
-        if (MenuExtras?.Invoke() is { } extras) foreach (var extra in extras) menu.Items.Add(extra);
-        ClipboardMenu = menu;
-        menu.Open(this);
-    }
-
-    // Ghostty's own links (OSC 8 hyperlinks, URLs) and the menu's Open link: file URLs open in the application.
+    // Ghostty's own links (OSC 8 hyperlinks, URLs): file URLs open in the application.
     private async Task OpenUrlAsync(string url)
     {
         try { await TerminalLinkLauncher.Open(this, url, ResolveFileLinks, OpenFileLink); }

@@ -74,7 +74,6 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
     public void SetMenuExtras(Func<IEnumerable<Control>>? items)
     {
         menuExtras = items;
-        if (texture is not null) texture.MenuExtras = items;
         fallback?.SetMenuExtras(items);
     }
 
@@ -101,11 +100,9 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
             Colors = TerminalTheme.Colors(),
             AgentNewline = agentNewline,
             FontSizeOffset = fontSizeOffset,
-            MenuExtras = menuExtras,
             ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
             ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
-            OpenFileLink = launch.OpenFileLink,
-            ExtendContextMenu = launch.ExtendContextMenu
+            OpenFileLink = launch.OpenFileLink
         };
         texture.OperationFailed += TextureFailed;
         texture.UserInput += (_, _) => ResumeHint.Dismiss();

@@ -65,11 +65,9 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
                 Colors = TerminalTheme.Colors(),
                 AgentNewline = agentNewline,
                 FontSizeOffset = fontSizeOffset,
-                MenuExtras = menuExtras,
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(remote.Terminals, launch, text, token),
                 ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(remote.Terminals, launch, text, token),
-                OpenFileLink = launch.OpenFileLink,
-                ExtendContextMenu = launch.ExtendContextMenu
+                OpenFileLink = launch.OpenFileLink
             };
             texture.Exited += (_, code) => Ended(code);
             texture.OperationFailed += TextureFailed;
@@ -226,7 +224,6 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
     public void SetMenuExtras(Func<IEnumerable<Control>>? items)
     {
         menuExtras = items;
-        if (texture is not null) texture.MenuExtras = items;
         fallback?.SetMenuExtras(items);
     }
 

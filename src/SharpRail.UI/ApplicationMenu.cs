@@ -167,7 +167,7 @@ public static class ApplicationMenu
         return items;
     }
 
-    /// <summary>The second way to Ghostty's toggle_secure_input; the terminal's context menu is the first. Checked while on.</summary>
+    /// <summary>Ghostty's toggle_secure_input, the only menu entry for it. Checked while on.</summary>
     internal static NativeMenuItem SecureKeyboardEntry(Terminal.SecureInput secure)
     {
         var item = Item(Terminal.TerminalView.SecureInputMenuHeader, Key.None, KeyModifiers.None, secure.Toggle);

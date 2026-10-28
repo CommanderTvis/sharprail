@@ -9,8 +9,6 @@ public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, stri
 {
     public Func<Ghostty.Avalonia.TerminalLink, Task>? OpenFileLink { get; init; }
     public Func<string, CancellationToken, Task<IReadOnlyList<Ghostty.Avalonia.TerminalLink>>>? ResolveCommitLinks { get; init; }
-    // Adds the tab's own items (secure keyboard entry) below the renderer's clipboard items.
-    public Action<ContextMenu>? ExtendContextMenu { get; init; }
     // The tab's layout id; with the workspace root it is the TerminalRef plugins see.
     public string TabKey { get; init; } = "";
     // Attach only when no other client holds the session; a tab created here, or taken over, attaches plainly.
@@ -63,7 +61,7 @@ public interface ITerminalBackend : IDisposable
     // Points added to the renderer's base font size for this view alone; the renderer refits its grid, and the PTY
     // follows only where this client sizes it. Renderers without a font size ignore it.
     void SetFontSizeOffset(double points) { }
-    // Items the renderer appends to its own context menu, built when the menu opens.
+    // Items the Skia renderer appends to its touch clipboard menu, built when the menu opens.
     void SetMenuExtras(Func<IEnumerable<Control>>? items) { }
 }
 

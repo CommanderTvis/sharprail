@@ -50,8 +50,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
                 Name = "TerminalSkiaView",
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
                 ResolveHighlightedLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
-                OpenFileLink = launch.OpenFileLink,
-                ExtendContextMenu = launch.ExtendContextMenu
+                OpenFileLink = launch.OpenFileLink
             };
         }
         catch (DllNotFoundException)

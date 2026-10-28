@@ -72,7 +72,8 @@ terminal.GridResized += (_, size) => ResizePty(size.Columns, size.Rows);
 terminal.Write(output.Span);
 ```
 
-`MenuExtras` (both controls) appends caller items to the context menu. The texture control's
+The terminal has no right-click menu. The Skia control's long-press (touch) clipboard menu offers Copy, Paste and Select All,
+and `MenuExtras` appends caller items to it. The texture control's
 `FontSizeOffset` changes its surface's font with Ghostty's `increase_font_size`, `decrease_font_size` and
 `reset_font_size` actions; the Skia control takes `FontSize` directly. Either refits the grid and raises the
 usual resize.
@@ -193,8 +194,7 @@ use this patch; it does not reduce the scrollback limit.
 ## Prompts
 
 Both texture and Skia controls offer Ghostty's prompt features over OSC 133 marks: `JumpToPrompt` and its default keys
-(Command+Up/Down on macOS, Ctrl+Shift+Up/Down elsewhere); `CommandOutputAt` and Command/Ctrl+triple-click for a command's
-output, also offered by the context menu as Copy Output of This Command. `GhosttyView.ReadViewport` reads the rows on view
+(Command+Up/Down on macOS, Ctrl+Shift+Up/Down elsewhere); Command/Ctrl+triple-click selects a command's output. `GhosttyView.ReadViewport` reads the rows on view
 and `GhosttyTextureView.SelectedText` the selection. `ClickToMoveCursor` (default true) turns a plain click on the shell's
 input line into the arrow keys that move its cursor there, only between OSC 133 B and C.
 
@@ -217,9 +217,7 @@ Command-click to open HTTP(S) URLs in the system browser (Ctrl on other platform
 Soft-wrapped URLs remain clickable across rows; dragging still selects text.
 The texture control uses Ghostty's built-in link detection; Skia detects web URLs
 from VT cells and soft-wrap metadata.
-Right-click offers Open link when the pointer is over a URL, without a keyboard modifier, alongside
-Copy, Paste and Select All. The menu retains the URI captured at the click even as output changes.
-Mouse-tracking programs retain right-button input; Shift bypasses reporting to open the menu, and right-click on an underlined `ResolveHighlightedLinks` reference always opens it.
+Right-click opens no menu: a mouse-tracking program receives it, otherwise it is ignored (also with Shift, and over links).
 Both controls also follow OSC 8 hyperlinks: Metal through Ghostty, Skia from the hyperlink libghostty-vt records per
 cell (`gav_vt_hyperlink`), overriding text-detected URLs on those cells. Command-hover underlines the whole target and
 shows it as a tooltip; Command-click opens it like any other link. OSC 22 pointer shapes map to Avalonia cursors in
@@ -294,11 +292,8 @@ full repaint, replay yielding to input, cancellation, split UTF-8 and exit order
 `GhosttySkiaView` and `GhosttyTextureView` accept `ResolveFileLinks` and `OpenFileLink` callbacks.
 Resolution receives one logical line off the dispatcher and returns UTF-16 spans with file targets
 and one-based positions. The embedding host owns filesystem checks and navigation. Modifier-hover
-underlines resolved files; modifier-click revalidates before navigation. Right-click resolves the
-captured logical line asynchronously and opens the menu once that answer is in, with Open link for a
-verified target (a native popup keeps the size measured at opening, so a late item would be clipped);
-a newer right-click drops the older answer. Activation rechecks
-it even after the menu closes. Existing URL actions take precedence. The embedding application may
+underlines resolved files; modifier-click revalidates before navigation. Activation rechecks
+it. Existing URL actions take precedence. The embedding application may
 use private non-file targets in the same callback without adding domain logic to this library. Soft wraps and Unicode cell
 mapping are preserved. The Metal bridge snapshots only the hovered line under the renderer lock.
 The pinned native URL matcher excludes file paths and `file:` URLs so it cannot bypass the host's
@@ -306,14 +301,11 @@ existence check. Ghostty's own link opening (Command-click on an OSC 8 hyperlink
 never reaches NSWorkspace: the bridge hands the URL to `GhosttyView.OpenUrl`, and the texture view opens
 a `file:` URL (any host name, as `ls --hyperlink` writes it) through `ResolveFileLinks` and
 `OpenFileLink`, or not at all, so a file never opens in Finder or a default app. HTTP(S) and the other
-schemes go to the system launcher, as does the menu's Open link for them.
+schemes go to the system launcher.
 
 Browser builds link libghostty-vt and the existing C bridge into WASM. The bridge uses the Emscripten
 allocator to share the managed runtime heap. `GhosttySkiaView.SaveClipboardImage` can store PNG bytes
 on a remote host and paste the returned shell path instead of writing a client-local file.
-
-Both renderers accept `ExtendContextMenu`, called with the right-click menu after its link and clipboard
-items and before it opens, so the application can append its own items.
 
 Both renderers also accept `ResolveHighlightedLinks` for background resolution of visible references. Valid ranges are underlined independently of hover, and a plain click (no drag) on one opens it through `OpenFileLink`; the press still reaches selection or a mouse-tracking program. Resolution is debounced, bounded, cancelled on detach/disposal, and never runs on the UI thread.
 

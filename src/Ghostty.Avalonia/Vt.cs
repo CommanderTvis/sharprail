@@ -112,15 +112,6 @@ internal sealed unsafe class Vt : IDisposable
 
     internal bool TripleClickSelectsOutput { set => gav_vt_set_triple_output(handle, value); }
 
-    // The command output at a grid pixel, or null when the point is in none.
-    internal string? CommandOutput(double x, double y)
-    {
-        var length = gav_vt_command_output(handle, x, y, null, 0);
-        if (length < 0) return null;
-        var buffer = new byte[length];
-        fixed (byte* output = buffer) length = gav_vt_command_output(handle, x, y, output, (nuint)buffer.Length);
-        return Encoding.UTF8.GetString(buffer, 0, (int)Math.Min(length, buffer.Length));
-    }
     internal void ClearSelection() => gav_vt_clear_selection(handle);
 
     internal ReadOnlySpan<byte> Key(int action, int key, ushort mods, ushort consumed, string? text, uint unshifted)
@@ -233,7 +224,6 @@ internal sealed unsafe class Vt : IDisposable
     [DllImport(Library)] private static extern nuint gav_vt_failed_rows(nint vt, ushort* rows, nuint capacity);
     [DllImport(Library)] private static extern nuint gav_vt_prompt_click(nint vt, double x, double y, byte* output, nuint capacity);
     [DllImport(Library)] private static extern void gav_vt_set_triple_output(nint vt, [MarshalAs(UnmanagedType.I1)] bool value);
-    [DllImport(Library)] private static extern long gav_vt_command_output(nint vt, double x, double y, byte* output, nuint capacity);
     [DllImport(Library)] private static extern void gav_vt_clear_selection(nint vt);
     [DllImport(Library)] private static extern nuint gav_vt_selection_text(nint vt, byte* output, nuint capacity);
     [DllImport(Library)] private static extern nuint gav_vt_hyperlink(nint vt, ushort x, ushort y, byte* output, nuint capacity);

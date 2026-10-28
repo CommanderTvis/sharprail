@@ -164,11 +164,12 @@ internal static class TerminalCommitLinkChecks
                     var point = new Point(view.Padding.Left + cw * 1.5, view.Padding.Top + ch * 0.5);
                     terminalWindow.MouseDown(point, MouseButton.Right);
                     terminalWindow.MouseUp(point, MouseButton.Right);
-                    E2eWorkspace.Until(() => view.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Open link")) == true);
-                    var item = view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
-                    Require(Equals(item.Tag, link.Path), "Right-click without Command must resolve the canonical commit target.");
-                    view.ClipboardMenu.Close();
-                    item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                    E2eWorkspace.Settle(150);
+                    Require(view.ClipboardMenu is null && !window.Layout.Tabs(window.Layout.View.FocusedCenter)
+                        .Any(tab => tab.Kind == "changes" && tab.Scope == "commit" && tab.Comparison == sha), "Right-click on a hash must open no menu and follow no link.");
+                    // A plain click on the underlined hash opens it on release.
+                    terminalWindow.MouseDown(point, MouseButton.Left);
+                    terminalWindow.MouseUp(point, MouseButton.Left);
                     E2eWorkspace.Until(() => window.Layout.Tabs(window.Layout.View.FocusedCenter)
                         .Any(tab => tab.Kind == "changes" && tab.Scope == "commit" && tab.Comparison == sha));
                 }
@@ -186,7 +187,7 @@ internal static class TerminalCommitLinkChecks
             resolution = launch.ResolveCommitLinks(sha, default);
             E2eWorkspace.Until(() => resolution.IsCompleted);
             Require(resolution.GetAwaiter().GetResult().Count == 0, "An inactive workspace's terminal must not resolve navigation links.");
-            Console.WriteLine("PASS terminal commit right-click without Command opens and reuses committed Changes, and rejects inactive workspace results");
+            Console.WriteLine("PASS terminal commit click opens and reuses committed Changes, and rejects inactive workspace results");
         }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     }

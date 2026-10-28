@@ -57,7 +57,7 @@ internal static class NativePromptChecks
         await Output(terminal);
         await ClickToMove(window);
         await Badges(window);
-        Console.WriteLine("PASS Metal prompts: Command+Up/Down jumps between OSC 133 prompts; Command+triple-click and Copy Output of This Command take exactly one command's output; a plain click on the input line sends the arrows to it only between OSC 133 B and C; a non-zero 133;D badges its command line");
+        Console.WriteLine("PASS Metal prompts: Command+Up/Down jumps between OSC 133 prompts; Command+triple-click takes exactly one command's output; a plain click on the input line sends the arrows to it only between OSC 133 B and C; a non-zero 133;D badges its command line");
     }
 
     private static string Top(GhosttyTextureView terminal) => terminal.ReadViewport().Split('\n')[0];
@@ -89,9 +89,6 @@ internal static class NativePromptChecks
         var row = Array.FindIndex(rows, line => line.Trim() == "30");
         Require(row >= 0, "the last command's output must be on view: " + string.Join("|", rows));
         var point = Cell(terminal, 0, row);
-        var output = terminal.CommandOutputAt(point);
-        Require(output == SeqOutput, "the output at a point must be exactly that command's output, got: [" + output + "]");
-        Require(terminal.CommandOutputAt(Cell(terminal, 0, Array.FindLastIndex(rows, line => line.TrimEnd().EndsWith('%')))) is null, "a prompt row is no command's output.");
         var pointer = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true);
         for (var i = 0; i < 3; i++)
         {
@@ -102,13 +99,6 @@ internal static class NativePromptChecks
             await Task.Delay(60);
         }
         await Until(() => string.Join("\n", terminal.SelectedText.Split('\n').Select(line => line.TrimEnd())) == SeqOutput, "Command+triple-click selecting the output; selected: [" + terminal.SelectedText + "]");
-        terminal.RaiseEvent(new PointerPressedEventArgs(terminal, pointer, terminal, point, 3,
-            new PointerPointProperties(RawInputModifiers.RightMouseButton, PointerUpdateKind.RightButtonPressed), KeyModifiers.None, 1));
-        terminal.RaiseEvent(new PointerReleasedEventArgs(terminal, pointer, terminal, point, 4,
-            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.RightButtonReleased), KeyModifiers.None, MouseButton.Right));
-        await Until(() => terminal.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => item.Header as string == "Copy Output of This Command") == true,
-            "the context menu offering Copy Output of This Command");
-        terminal.ClipboardMenu!.Close();
     }
 
     private static async Task ClickToMove(Window window)

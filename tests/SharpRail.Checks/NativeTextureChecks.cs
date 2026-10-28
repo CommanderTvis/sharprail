@@ -179,26 +179,10 @@ internal static class NativeTextureChecks
             terminal.RaiseEvent(new PointerReleasedEventArgs(terminal, pointer, terminal, point, 5,
                 new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.RightButtonReleased), modifiers, MouseButton.Right));
         }
+        // A right-click opens no menu and follows no link, with or without Shift.
         RightClick();
-        Require(terminal.ClipboardMenu?.IsOpen == true, "Metal RMB did not open the URL menu without Command.");
-        var open = terminal.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
-        Require(Equals(open.Tag, "https://example.com/path"), "Metal menu lost the URI target.");
-        terminal.WriteOutput("\e[2J\e[H\e]8;;https://example.com/hidden-target\e\\Label\e]8;;\e\\"u8);
-        await Task.Delay(150);
-        Require(Equals(open.Tag, "https://example.com/path"), "Metal menu target changed after output.");
-        terminal.ClipboardMenu.Close();
-        RightClick();
-        Require(Equals(terminal.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link")).Tag, "https://example.com/hidden-target"),
-            "Metal OSC8 label must open its URI, not its label text.");
-        terminal.ClipboardMenu.Close();
-        terminal.WriteOutput("\e[2J\e[Hplain\e[?1000h"u8);
-        await Task.Delay(150);
-        RightClick();
-        Require(!terminal.ClipboardMenu.IsOpen, "Metal RMB must stay with mouse-tracking applications.");
         RightClick(KeyModifiers.Shift);
-        Require(terminal.ClipboardMenu.IsOpen && terminal.ClipboardMenu.Items.OfType<MenuItem>().All(item => !Equals(item.Header, "Open link")),
-            "Shift bypass must offer clipboard actions without a link on plain text.");
-        terminal.ClipboardMenu.Close();
+        Require(opened.Count == 1, "Metal RMB followed a link.");
         Move(KeyModifiers.None);
         terminal.WriteOutput("\e[2J\e[H\e[?25lcommit abcdef12 and deadbeef"u8);
         await Task.Delay(300);

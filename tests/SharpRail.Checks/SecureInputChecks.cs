@@ -160,20 +160,15 @@ internal static class SecureInputChecks
             a.Exit(0); Until(() => viewA.IsExited && !secure.Enabled);
             Require(!viewA.SecureInputShown, "The shell exiting releases secure input.");
 
-            // The context menu is the primary way to toggle_secure_input.
-            var menu = new ContextMenu();
-            viewB.Launch.ExtendContextMenu!(menu);
-            var item = menu.Items.OfType<MenuItem>().Single(entry => Equals(entry.Header, TerminalView.SecureInputMenuHeader));
-            Require(item.IsChecked == false, "The toggle starts off.");
+            // The Edit menu is the way to toggle_secure_input.
+            Require(!secure.Manual, "The toggle starts off.");
             b.FocusTerminal(); Settle();
-            item.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+            var native = SharpRail.UI.ApplicationMenu.SecureKeyboardEntry(secure);
+            secure.Toggle();
             Until(() => secure.Manual && secure.Enabled);
             Require(viewB.SecureInputShown, "The manually toggled terminal shows the lock while it has focus.");
-            var native = SharpRail.UI.ApplicationMenu.SecureKeyboardEntry(secure);
             Settle();
             Require(native.IsChecked, "The Edit menu item follows the toggle.");
-            menu = new ContextMenu(); viewB.Launch.ExtendContextMenu!(menu);
-            Require(menu.Items.OfType<MenuItem>().Single(entry => Equals(entry.Header, TerminalView.SecureInputMenuHeader)).IsChecked == true, "A reopened menu shows the toggle checked.");
             secure.Toggle(); Until(() => !secure.Enabled);
             Settle();
             Require(!native.IsChecked, "The Edit menu item unchecks with the toggle.");

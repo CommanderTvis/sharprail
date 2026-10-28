@@ -57,8 +57,8 @@ internal static class GhosttySkiaChecks
         CheckPlaceholderCells();
         CheckUrls();
         CheckUrlHover();
-        CheckLinkContextMenu();
-        CheckHighlightedLinkContextMenu();
+        CheckRightClickOpensNoMenu();
+        CheckHighlightedLinkRightClick();
         CheckFileLinks();
         CheckHyperlinks();
         CheckPointerShapes();
@@ -148,7 +148,8 @@ internal static class GhosttySkiaChecks
         finally { window.Close(); Pump(); }
     }
 
-    private static void CheckLinkContextMenu()
+    // A plain right-click opens no menu anywhere: a program tracking the mouse gets it, otherwise it is ignored.
+    private static void CheckRightClickOpensNoMenu()
     {
         using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
         var window = new Window { Width = 240, Height = 160, Content = view };
@@ -164,31 +165,22 @@ internal static class GhosttySkiaChecks
             {
                 window.MouseDown(point, MouseButton.Right, modifiers); window.MouseUp(point, MouseButton.Right, modifiers); Pump();
             }
-            RightClick();
-            Require(view.ClipboardMenu?.IsOpen == true, "RMB on a wrapped URL without Command did not open its menu.");
-            var open = view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
-            Require(Equals(open.Tag, url), "Open link changed the soft-wrapped URL target.");
-            view.Write("\e[2J\e[Hdifferent output"u8); Pump();
-            Require(Equals(open.Tag, url), "Output changed the target captured by the menu.");
-            view.ClipboardMenu.Close(); Pump();
-            point = new Point(view.Padding.Left + cw * 1.5, view.Padding.Top + ch * .5);
-            RightClick();
-            Require(view.ClipboardMenu!.Items.OfType<MenuItem>().All(item => !Equals(item.Header, "Open link")), "Plain terminal text offered Open link.");
-            view.ClipboardMenu.Close(); Pump();
-            view.Write("\e[?1000h\e[?1006h"u8); Pump();
             var output = new List<byte>();
             view.Input += (_, bytes) => output.AddRange(bytes.ToArray());
             RightClick();
-            Require(!view.ClipboardMenu.IsOpen && Encoding.UTF8.GetString(output.ToArray()).Contains("\e[<2;", StringComparison.Ordinal),
-                "RMB must reach programs tracking the mouse instead of opening a menu.");
+            Require(view.ClipboardMenu is null && output.Count == 0, "RMB on a wrapped URL opened a menu or reached a program that does not track the mouse.");
+            point = new Point(view.Padding.Left + cw * 1.5, view.Padding.Top + ch * .5);
             RightClick(RawInputModifiers.Shift);
-            Require(view.ClipboardMenu.IsOpen, "Shift must bypass mouse reporting for the terminal menu.");
-            view.ClipboardMenu.Close();
+            Require(view.ClipboardMenu is null && output.Count == 0, "Shift+RMB opened a menu or reached a program that does not track the mouse.");
+            view.Write("\e[?1000h\e[?1006h"u8); Pump();
+            RightClick();
+            Require(view.ClipboardMenu is null && Encoding.UTF8.GetString(output.ToArray()).Contains("\e[<2;", StringComparison.Ordinal),
+                "RMB must reach programs tracking the mouse and open no menu.");
         }
         finally { window.Close(); Pump(); }
     }
 
-    private static void CheckHighlightedLinkContextMenu()
+    private static void CheckHighlightedLinkRightClick()
     {
         using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
         var window = new Window { Width = 240, Height = 160, Content = view };
@@ -221,16 +213,8 @@ internal static class GhosttySkiaChecks
                 window.MouseDown(point, MouseButton.Right); window.MouseUp(point, MouseButton.Right); Pump();
             }
             RightClick(2.5);
-            Until(() => view.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Open link")) == true,
-                "context menu on an underlined hash while the program tracks the mouse");
-            Require(!Encoding.UTF8.GetString(output.ToArray()).Contains("\e[<2;", StringComparison.Ordinal), "Right-click on an underlined hash was also reported to the program.");
-            view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link")).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
-            view.ClipboardMenu.Close();
-            Until(() => opened.Count == 1, "hash navigation from the menu");
-            output.Clear();
-            RightClick(12.5);
-            Require(!view.ClipboardMenu.IsOpen && Encoding.UTF8.GetString(output.ToArray()).Contains("\e[<2;", StringComparison.Ordinal),
-                "Right-click beside the underlined hash must still reach the tracking program.");
+            Require(view.ClipboardMenu is null && opened.Count == 0 && Encoding.UTF8.GetString(output.ToArray()).Contains("\e[<2;", StringComparison.Ordinal),
+                "Right-click on an underlined hash must reach the tracking program, open no menu and navigate nowhere.");
         }
         finally { window.Close(); Pump(); }
     }
@@ -348,17 +332,8 @@ internal static class GhosttySkiaChecks
             Require(opened[0].Line == 12 && opened[0].Column == 3, "file click lost source coordinates.");
             window.KeyRelease(Key.LWin, RawInputModifiers.None, PhysicalKey.MetaLeft, null); Pump();
             Require(view.Cursor?.ToString() != "Hand", "file hover survived modifier release.");
-            window.MouseDown(point, MouseButton.Right); window.MouseUp(point, MouseButton.Right);
-            Until(() => view.ClipboardMenu?.IsOpen == true, "terminal context menu");
-            var openedWith = MenuFillProbe.Snapshot(view.ClipboardMenu!.Items);
-            Until(() => view.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Open link")) == true, "resolved target context menu without modifier");
-            Require(openedWith == MenuFillProbe.Snapshot(view.ClipboardMenu!.Items),
-                $"The terminal context menu opened with [{openedWith}] and its file link was added afterwards, so its native popup clipped it.");
-            var contextOpen = view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
-            view.ClipboardMenu.Close(); Pump();
-            contextOpen.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
-            Until(() => opened.Count == 2, "captured context target navigation after menu closes");
-            Require(opened[1] == opened[0], "Context-menu navigation changed the resolved target.");
+            window.MouseDown(point, MouseButton.Right); window.MouseUp(point, MouseButton.Right); Pump();
+            Require(view.ClipboardMenu is null && opened.Count == 1, "Right-click on a file link opened a menu or navigated.");
             view.Write("\r\e[2Kmissing.cs"u8); Pump();
             window.KeyPress(Key.LWin, RawInputModifiers.Meta, PhysicalKey.MetaLeft, null); Pump();
             Require(view.Cursor?.ToString() != "Hand", "changed output kept stale file link.");

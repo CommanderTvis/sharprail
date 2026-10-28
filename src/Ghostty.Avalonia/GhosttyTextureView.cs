@@ -84,8 +84,6 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         }
     }
 
-    /// <summary>Items appended to the context menu after the clipboard ones, built when it opens.</summary>
-    public Func<IEnumerable<Control>>? MenuExtras { get; set; }
 
     /// <summary>Completes after Skia's first GPU read of a completed Ghostty frame.</summary>
     public Task Ready => ready.Task;

@@ -7,7 +7,6 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Input.TextInput;
 using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Avalonia.Threading;
 
 namespace Ghostty.Avalonia;
@@ -257,7 +256,6 @@ public sealed partial class GhosttySkiaView
     {
         base.OnPointerPressed(e);
         if (disposed) return;
-        contextClick = false;
         Focus();
         var properties = e.GetCurrentPoint(this).Properties;
         var button = Button(properties.PointerUpdateKind);
@@ -281,15 +279,7 @@ public sealed partial class GhosttySkiaView
         // A plain click on an underlined file opens it on release; the press still selects or reaches the program.
         pressedHighlight = button == 1 && e.KeyModifiers == KeyModifiers.None ? HighlightAt(e.GetPosition(this)) : null;
         linkPressPointer = e.GetPosition(this);
-        // An underlined resolved reference wins over mouse reporting, as a modifier-click on a link does.
-        if (!(button == 2 && OverUnderlinedLink(e.GetPosition(this))) && Track(Press, button, e)) return;
-        if (button == 2)
-        {
-            contextClick = true;
-            var url = UrlAt(e.GetPosition(this));
-            ShowClipboardMenu(url, url is null ? ContextFileLink(e.GetPosition(this)) : null, CommandOutputAt(e.GetPosition(this)));
-            return;
-        }
+        if (Track(Press, button, e)) return;
         if (button != 1) return;
         var point = Grid(e);
         selecting = 0;
@@ -353,7 +343,6 @@ public sealed partial class GhosttySkiaView
             }
             return;
         }
-        if (contextClick) { contextClick = false; e.Pointer.Capture(null); e.Handled = true; return; }
         var file = pressedFile;
         pressedFile = null;
         var link = pressedUrl;
@@ -426,54 +415,22 @@ public sealed partial class GhosttySkiaView
         e.Handled = true;
     }
 
-    private bool contextClick;
     internal ContextMenu? ClipboardMenu { get; private set; }
 
-    /// <summary>Items appended to the context menu after the clipboard ones, built when it opens.</summary>
+    /// <summary>Items appended to the touch clipboard menu after the clipboard ones, built when it opens.</summary>
     public Func<IEnumerable<Control>>? MenuExtras { get; set; }
-    private int clipboardMenuRequest;
 
-    /// <summary>The output of the command at a point in the view, or null when the point is not in a command's output.</summary>
-    public string? CommandOutputAt(Point point) =>
-        disposed ? null : vt.CommandOutput((point.X - Padding.Left) * fontKey.Scale, (point.Y - Padding.Top) * fontKey.Scale);
-
-    private async void ShowClipboardMenu(string? url = null, Task<TerminalContextLink?>? lookup = null, string? output = null)
+    // The only clipboard menu: a finger has no keyboard shortcut, so lifting a long press offers Copy, Paste and Select All.
+    private void ShowClipboardMenu()
     {
         var copy = new MenuItem { Header = "Copy", IsEnabled = SelectedText.Length > 0 };
         copy.Click += (_, _) => _ = ClipboardAsync(false);
         var paste = new MenuItem { Header = "Paste" };
         paste.Click += (_, _) => _ = ClipboardAsync(true);
         var all = new MenuItem { Header = "Select All" };
-        all.Click += (_, _) => { SelectAll(); Dispatcher.UIThread.Post(() => ShowClipboardMenu()); };
-        // A native popup keeps the size it measured when it opened, so the file-link lookup finishes before the menu
-        // opens with its final items; a newer request drops this one.
-        var request = ++clipboardMenuRequest;
-        var resolved = url is null && lookup is not null ? await lookup : null;
-        if (disposed || request != clipboardMenuRequest) return;
+        all.Click += (_, _) => { SelectAll(); Dispatcher.UIThread.Post(ShowClipboardMenu); };
         var menu = new ContextMenu();
-        if (url is not null)
-        {
-            var open = new MenuItem { Header = "Open link", Tag = url };
-            open.Click += (_, _) => _ = OpenLinkAsync(url);
-            menu.Items.Add(open);
-            menu.Items.Add(new Separator());
-        }
-        else if (resolved is not null)
-        {
-            var open = new MenuItem { Header = "Open link", Tag = resolved.Link.Path };
-            open.Click += async (_, _) => await resolved.Activate();
-            menu.Items.Add(open);
-            menu.Items.Add(new Separator());
-        }
-        menu.Items.Add(copy);
-        if (output is not null)
-        {
-            var copyOutput = new MenuItem { Header = "Copy Output of This Command" };
-            copyOutput.Click += (_, _) => _ = CopyAsync(output);
-            menu.Items.Add(copyOutput);
-        }
-        menu.Items.Add(paste); menu.Items.Add(all);
-        ExtendContextMenu?.Invoke(menu);
+        menu.Items.Add(copy); menu.Items.Add(paste); menu.Items.Add(all);
         if (MenuExtras?.Invoke() is { } extras) foreach (var extra in extras) menu.Items.Add(extra);
         ClipboardMenu = menu;
         menu.Open(this);

@@ -321,7 +321,7 @@ internal static class ShellChecks
             "File: " + string.Join(", ", Headers(file)));
         Require(Headers(edit).SequenceEqual(["Undo", "Redo", "-", "Cut", "Copy", "Paste", "Delete", "Select All", "-", "Undo Close Tab", "-", "Find", "-", .. language, "-", "Secure Keyboard Entry"]),
             "Edit: " + string.Join(", ", Headers(edit)));
-        // The second way to the terminal context menu's toggle; checks run against a counting fake, never the real call.
+        // The only way to Ghostty's toggle_secure_input; checks run against a counting fake, never the real call.
         Pick(edit, "Secure Keyboard Entry");
         Require(SharpRail.UI.Terminal.SecureInput.Shared.Manual && Entry(edit, "Secure Keyboard Entry").IsChecked, "The Edit menu toggles secure keyboard entry on and checks it.");
         Pick(edit, "Secure Keyboard Entry");

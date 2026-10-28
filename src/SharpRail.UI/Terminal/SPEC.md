@@ -113,7 +113,7 @@ font, not the app zoom; `TerminalView` claims them before the window's pinch han
 scrolls, and gestures over accessories or the companion are not the terminal's. The steps are Ghostty's
 `increase_font_size`/`decrease_font_size` in whole points: a point per wheel notch, and a point per tenth of
 magnification (or pinch scale), with fractions carried so a trackpad stays smooth. The offset from the
-renderer's base size is bounded to −8…+48 points; "Reset Font Size" in the terminal's context menu is Ghostty's
+renderer's base size is bounded to −8…+48 points; "Reset Font Size" in the touch clipboard menu is Ghostty's
 `reset_font_size`. The base is the renderer's own (13 for Skia, Ghostty's configured size for the texture, 14 for
 restty; there is no Settings terminal font size), and the app zoom still scales on top. The keyboard zoom chords
 always zoom the app, a focused terminal included.
@@ -398,7 +398,7 @@ history catalog. Existing commits are persistently underlined throughout the vis
 without requiring a modifier or pointer hover. Visible-text lookups are debounced off-thread and
 bounded to 32 cached viewport texts (30 seconds for positive results, one second for empty results);
 Metal scans dirty viewports at most five times per second. Output changes, detach and disposal reject
-superseded work. Modifier-click and the terminal's Open link context action (right-click without Command/Ctrl) revalidate the target
+superseded work. Modifier-click and a plain click on an underlined reference revalidate the target
 and open the existing kept continuous Changes tab for that commit. Hover results are bounded to
 16 logical lines for one second and reject superseded requests. Leaving the workspace or closing
 the renderer prevents stale navigation. Restty's canvas runtime has no custom link-provider seam;
@@ -448,8 +448,7 @@ which works the same for a remote host: the host reports the flag, the client's 
   `ISecureEventInput`; checks install a counting fake process-wide and never touch the real one.
 - A lock badge (top right of the terminal, with a tooltip) shows on the focused terminal while secure input is on
   because of it or the manual toggle, Ghostty's indication.
-- Secure Keyboard Entry, a check item, is Ghostty's `toggle_secure_input`: primary in the terminal's context menu
-  (appended through the renderers' `ExtendContextMenu`), secondary in the macOS Edit menu. The toggle is not
+- Secure Keyboard Entry, a check item, is Ghostty's `toggle_secure_input`: reached only from the macOS Edit menu (the terminal has no context menu). The toggle is not
   remembered across launches.
 - Settings › Terminal › "Secure input for password prompts (macOS)", default on, is an app preference
   (`SecureInputForPasswords`) like the renderer: it concerns this machine's keyboard, not the host. Off withdraws
@@ -464,9 +463,8 @@ which works the same for a remote host: the host reports the flag, the client's 
 Both renderers underline HTTP(S) URLs under the pointer while Command is held
 on macOS (Ctrl elsewhere), and modifier-click opens the URL using the system
 browser. Soft-wrapped URLs remain one link across rows; explicit newlines remain
-boundaries. Right-click over a web URL offers Open link alongside the terminal clipboard menu,
-without Command/Ctrl. The action opens the URI captured at right-click even if output changes. Mouse
-tracking forwards RMB to the program; Shift bypasses tracking for the menu, and right-click on an underlined resolved reference (a validated file or commit hash) always opens the menu, as a modifier-click on a link wins over reporting. Every renderer
+boundaries. The terminal has no right-click menu on desktop: a mouse-tracking program receives RMB, otherwise it is ignored, with or
+without Shift and over links. Only the Skia touch long-press offers a Copy, Paste and Select All menu. Every renderer
 also follows OSC 8 hyperlinks (a label whose target is not its text): Metal through Ghostty, Skia (desktop, Android and
 the browser fallback) from the per-cell hyperlinks libghostty-vt records. Command-hover underlines every cell of the
 hovered target, across soft wraps, and shows the target as the view's tooltip; Command-click routes it as any terminal
@@ -606,8 +604,7 @@ own terminal state keeps, so local and remote terminals behave alike.
   (Skia, real zsh) and `--native-prompts` (Metal window, Ghostty's marks) check it.
 - Command output (Ghostty's `Screen.selectOutput`; gesture from Ghostty's `Surface.zig`): Command+triple-click on macOS
   (Ctrl+triple-click elsewhere) on a command's output selects exactly that output, from its first output row to the last
-  non-blank row before the next prompt; prompt and input rows select nothing. The right-click menu offers "Copy Output of
-  This Command" when the click was on output (the text is taken at the click). Metal answers through
+  non-blank row before the next prompt; prompt and input rows select nothing. Metal answers through
   `gav_ghostty_command_output` (Native/prompt-surface.zig, prompts.zig; Ghostty 1.2.3 did not apply the gesture to events
   the view forwards, so the view selects on Avalonia's third click itself); Skia uses libghostty-vt's
   `ghostty_terminal_select_output` and the gesture's output behaviour. Skia's repeat clicks now carry Ghostty's 500 ms

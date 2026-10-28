@@ -30,8 +30,6 @@ public sealed partial class GhosttySkiaView
     /// <summary>Opens a resolved file in the embedding application's editor.</summary>
     public Func<TerminalLink, Task>? OpenFileLink
     { get => FileHover.Open; set => FileHover.Open = value; }
-    /// <summary>Adds the embedding application's items to the context menu just before it opens, below the clipboard items.</summary>
-    public Action<ContextMenu>? ExtendContextMenu { get; set; }
 
     private static readonly Regex UrlPattern = new(@"https?://[^\s<>""'`]+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     private readonly HashSet<int> linkCells = [];
@@ -84,23 +82,6 @@ public sealed partial class GhosttySkiaView
             positions.Clear();
         }
         return result;
-    }
-
-    private bool OverUnderlinedLink(Point point)
-    {
-        if (fonts is not { } cells || last.Columns <= 0) return false;
-        var x = (int)Math.Floor((point.X - Padding.Left) / cells.CellWidth);
-        var y = (int)Math.Floor((point.Y - Padding.Top) / cells.CellHeight);
-        return x >= 0 && x < last.Columns && y >= 0 && y < last.Rows && linkCells.Contains(y * last.Columns + x);
-    }
-
-    private unsafe string? UrlAt(Point point)
-    {
-        if (fonts is not { } cells || !vt.Snapshot(out last)) return null;
-        var x = (int)Math.Floor((point.X - Padding.Left) / cells.CellWidth);
-        var y = (int)Math.Floor((point.Y - Padding.Top) / cells.CellHeight);
-        return x >= 0 && x < last.Columns && y >= 0 && y < last.Rows
-            ? Links(last).GetValueOrDefault(y * last.Columns + x) : null;
     }
 
     /// <summary>
@@ -250,16 +231,6 @@ public sealed partial class GhosttySkiaView
         if (disposed) return;
         linkPointer = new(-1, -1);
         Redraw(false);
-    }
-
-    private unsafe Task<TerminalContextLink?> ContextFileLink(Point point)
-    {
-        linkPointer = point;
-        var modifiers = linkModifiers;
-        linkModifiers = LinkModifier;
-        if (vt.Snapshot(out last)) UpdateLinks(last);
-        linkModifiers = modifiers;
-        return FileHover.ResolveContext();
     }
 
     private async Task OpenFileAsync(TerminalLink link)
