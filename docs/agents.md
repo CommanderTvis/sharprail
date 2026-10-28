@@ -32,6 +32,9 @@ project folder itself. Agents can create them too.
   `git worktree add`, so the workspace is placed and described in SharpRail.
 - The tool returns the new path and does not move the agent's terminal. `set_title` titles the terminal's tab, and for
   an unnamed generated workspace the first title also becomes its name and branch.
+- Agents report long-running background processes they start (dev servers, watchers) with `owned_process_report` and
+  withdraw them with `owned_process_release`. SharpRail stops reported processes when their terminal closes or it quits,
+  and quitting tells you how many it will stop. Nothing else is stopped.
 - Given several unrelated tasks, an agent can use a separate workspace and subagent for each.
 - When the work is preserved, agents remove the workspaces they created with `workspace_delete`. It refuses a dirty or
   locked checkout, and it never removes the Default workspace or another workspace. The branch is kept.

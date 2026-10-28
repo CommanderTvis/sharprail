@@ -186,6 +186,9 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   `deny`) removes a pending request and settles its waiting call; an unknown id changes nothing. The creator of each
   workspace made through `workspace_create` persists host-side only (`WorkspaceCreators`). See the
   [Workspaces SPEC](Workspaces.SPEC.md).
+- `OwnedProcesses` lists the processes agents reported with `owned_process_report` (terminal, pid, description); it rides
+  snapshots and remote clients (protocol 16), is never persisted in `state.json` (the registry keeps its own file) and
+  follows `PtyTerminalService.Owned`. See [Terminals SPEC](Terminals.SPEC.md#owned-processes).
 - `TerminalAgents` persist (`SetTerminalAgent`, `RemoveTerminalAgents`); the roster (`PublishPlugins`) and
   `Platform` ride every snapshot and are never persisted. Publishing an unchanged roster publishes nothing.
 - Namespaces are kept as compact JSON objects, so a reloaded file and a fresh change compare equal; a

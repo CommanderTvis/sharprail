@@ -83,6 +83,13 @@ forgetting removes its row while leaving the checkout in place. The Default work
   checkout is the tool's error and nothing changes. The calling terminal's own workspace, the Default
   workspace, an external worktree, another project's workspace and an unknown path are refused; the branch
   is kept.
+- `owned_process_report` (`pid`, optional `description`) and `owned_process_release` (`pid`) let any agent that uses the
+  SharpRail MCP hand SharpRail a long-running process it started (dev server, watcher, `run_in_background` command), so
+  that closing SharpRail or the terminal does not leave it behind. They are core tools, not a plugin's. Only a process
+  an agent reports is ever stopped. The tools refuse pid 1 and below, the host itself and any terminal's shell, a pid
+  that is not live, and a process of another user; the registry and its stopping rules are in
+  [Terminals SPEC](Terminals.SPEC.md#owned-processes). The `core.owned-processes` prompt section tells agents to report
+  and to release.
 - `workspace_emigrate` (`path`, optional `reason`) moves only the calling terminal's tab into a workspace and relaunches
   its agent there, resumed. workspace_create records the calling terminal as the new workspace's creator (persisted in
   `state.json`, never sent to clients). The tool refuses, changing nothing, unless the caller is a Claude Code or Codex

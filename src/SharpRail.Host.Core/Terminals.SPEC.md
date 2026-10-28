@@ -207,6 +207,31 @@ including draining output while closing the pseudoconsole.
   (pid null once exited) and `WorkspaceForProcess` walks a pid's ancestors (`/proc` on Linux, one `ps` on
   macOS) to a live shell's workspace.
 
+## Owned processes
+
+- An agent reports a long-running process it started with the `owned_process_report` MCP tool (Workspaces SPEC) and
+  withdraws it with `owned_process_release`. `PtyTerminalService.Owned` (`OwnedProcesses`) is the registry, keyed by the
+  reporting terminal. Only reported processes are ever stopped; nothing is guessed from a process tree.
+- A record is the terminal, pid, command line, description and the process's start time. A record counts as its
+  process only while a live process with that pid has that start time (1 s tolerance), so a reused pid is never
+  signalled. Reporting refuses pid 1 and below, the host, any terminal's shell, a dead pid and a process the host
+  user cannot signal. Reporting a pid again replaces its record.
+- Stopping, off every caller's thread: SIGTERM to the process group when the process leads one (`getpgid(pid) == pid`),
+  else to the pid; after a short grace (3 s, settable for checks) SIGKILL, and it waits for the process to be gone.
+  Windows runs `taskkill /T /F` (best effort). A record that no longer matches a live process is dropped silently.
+- Stops happen when the owning tab's session ends (`EndAsync`: tab closed after its undo window, workspace or project
+  removed, an emigration moving the tab), when the service is disposed (a clean quit or host stop), and on release.
+- Records persist to `owned-processes-<host pid>.json` beside the terminal recordings (memory only without a recordings
+  directory), with the host's own start time. At start a sweep reads every such file whose host is no longer running
+  (pid and start time must not match a live process), stops each record that still matches its process, and deletes the
+  file; files of a live host are left alone, so two SharpRail instances do not touch each other's processes.
+- `HostState.OwnedProcesses` (terminal, pid, description; never persisted in `state.json`; protocol 16) lets every
+  client show them. The windows toast a new report, and the quit confirmation counts them: quitting or closing the last
+  window asks when any exist, even with no agent mid-turn, and says how many will be stopped.
+- `--owned-processes` covers: a real `sleep` reported and stopped by closing its tab, by disposing the service and by
+  release; refusals (pid 1, a shell, the host, a dead pid); and a record whose start time differs surviving both the
+  stop and the sweep.
+
 ## Exit
 
 - Ghostty's default (`wait-after-command = false`, Surface.zig `childExited`) closes a surface when its
