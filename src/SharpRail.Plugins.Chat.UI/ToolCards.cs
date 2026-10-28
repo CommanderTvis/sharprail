@@ -211,5 +211,5 @@ internal static class ToolCards
 
     /// <summary>A thinking block's summary: "Thinking..." with the running token count while it streams, "Thought for Ns" after (rounded seconds), "Thinking" when no duration is known.</summary>
     internal static string ThinkingLabel(ChatThinkingItem thinking) =>
-        thinking.Streaming ? "Thinking..." + (thinking.Tokens is { } tokens ? $" · {tokens} tokens" : "") : thinking.DurationMs is { } took ? $"Thought for {Math.Max(1, Math.Round(took / 1000.0, MidpointRounding.AwayFromZero))}s" : "Thinking";
+        thinking.Streaming ? "Thinking..." + (thinking.Tokens is { } tokens ? $" · {tokens} tokens" : "") : thinking.DurationMs is { } took ? $"Thought for {ChatDuration.Format((long)Math.Max(1, Math.Round(took / 1000.0, MidpointRounding.AwayFromZero)))}" : "Thinking";
 }

@@ -417,7 +417,7 @@ internal sealed partial class ChatView
 
     private void TickWorking(object? sender, EventArgs e) => working.Text = activity is { Length: > 0 } word
         ? word.TrimEnd('.', '\u2026', ' ') + "..."
-        : $"Working \u00B7 {(int)(DateTime.UtcNow - workingSince).TotalSeconds}s";
+        : $"Working \u00B7 {ChatDuration.Format((long)(DateTime.UtcNow - workingSince).TotalSeconds)}";
 
     private string? editingQueued;
     private readonly Dictionary<string, string> queueNotes = [];

@@ -182,6 +182,7 @@ internal static class ClaudeChatUiChecks
         WrappedHistory();
         DraftSurvivesHistory();
         TaskNoticeBounded();
+        DurationFormat();
         RunningFooter();
         FooterChipEdges();
         PrimaryContrast();
@@ -552,6 +553,13 @@ internal static class ClaudeChatUiChecks
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); }
+    }
+
+    // Elapsed seconds read "45s", "10m 27s", "1h 02m 05s" everywhere in the chat.
+    private static void DurationFormat()
+    {
+        foreach (var (seconds, expected) in new[] { (0L, "0s"), (59, "59s"), (60, "1m 00s"), (627, "10m 27s"), (3599, "59m 59s"), (3600, "1h 00m 00s"), (3725, "1h 02m 05s") })
+            Require(ChatDuration.Format(seconds) == expected, $"{seconds}s reads '{expected}', got '{ChatDuration.Format(seconds)}'.");
     }
 
     // Up/Down history never destroys a draft: Down outside history is plain caret movement, and leaving history restores what was typed.
