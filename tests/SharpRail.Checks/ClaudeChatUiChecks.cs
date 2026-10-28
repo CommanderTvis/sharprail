@@ -73,6 +73,7 @@ internal static class ClaudeChatUiChecks
                 ChatSetParams { Value: var value } when method.Name == ChatContract.SetModel.Name =>
                     ModelGate is { } gate ? await gate.Task : Header with { Model = value },
                 ChatSetParams plain => Plain(method.Name, plain),
+                ChatPathParams { Prefix: var prefix } => PathHost(prefix),
                 ChatFilesParams { Query: var query } => new ChatFileList([.. new[] { "src/Alpha.cs", "src/Beta.cs", "README.md" }.Where(path => path.Contains(query, StringComparison.OrdinalIgnoreCase))]),
                 ChatAnswerParams answer => Answered(answer),
                 ChatAnswerQuestionParams asked => Asked(asked),
@@ -88,6 +89,18 @@ internal static class ClaudeChatUiChecks
                 _ => new Ack()
             };
             return (TResult)result!;
+        }
+
+        /// <summary>What the fake host lists per directory text; a directory it does not know is empty, and a null listing fails the call.</summary>
+        public Dictionary<string, ChatPathEntry[]> Directories { get; } = [];
+        public List<string> PathCalls { get; } = [];
+
+        private ChatPathList PathHost(string prefix)
+        {
+            PathCalls.Add(prefix);
+            var cut = prefix.LastIndexOf('/') + 1;
+            var name = prefix[cut..];
+            return new([.. (Directories.GetValueOrDefault(prefix[..cut]) ?? []).Where(entry => entry.Name.StartsWith(name, StringComparison.OrdinalIgnoreCase))]);
         }
 
         private Ack Asked(ChatAnswerQuestionParams asked)
@@ -2160,6 +2173,36 @@ internal static class ClaudeChatUiChecks
             E2eWorkspace.Until(() => view.MenuOpen && view.Menu.ItemCount == 1);
             view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Tab });
             E2eWorkspace.Until(() => view.Input.Text == "see @src/Alpha.cs ");
+
+            // Path completion: any host directory, directories first with a slash; choosing one opens its next level.
+            chat.Directories["/tmp-fixture/"] = [new("sub", true), new("my dir", true), new("a.txt", false), new("b c.txt", false)];
+            chat.Directories["/tmp-fixture/sub/"] = [new("deep.md", false)];
+            chat.Directories["~/"] = [new("Downloads", true)];
+            view.Input.Text = "@/tmp-fixture/"; view.Input.CaretIndex = view.Input.Text.Length;
+            E2eWorkspace.Until(() => view.MenuOpen && view.Menu.ItemCount == 4);
+            Require(view.Menu.Items.Cast<object>().Select(item => item.ToString()!).SequenceEqual(["@/tmp-fixture/sub/", "@/tmp-fixture/my dir/", "@/tmp-fixture/a.txt", "@/tmp-fixture/b c.txt"]), "A path after @ lists that directory's entries, directories first with a trailing slash.");
+            view.Input.Text = "@/tmp-fixture/S"; view.Input.CaretIndex = view.Input.Text.Length;
+            E2eWorkspace.Until(() => view.MenuOpen && view.Menu.ItemCount == 1);
+            view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Tab });
+            E2eWorkspace.Until(() => view.Input.Text == "@/tmp-fixture/sub/" && view.MenuOpen && view.Menu.ItemCount == 1 && view.Menu.Items.Cast<object>().Single().ToString() == "@/tmp-fixture/sub/deep.md");
+            view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Tab });
+            E2eWorkspace.Until(() => view.Input.Text == "@/tmp-fixture/sub/deep.md " && !view.MenuOpen);
+            view.Input.Text = "@/tmp-fixture/b"; view.Input.CaretIndex = view.Input.Text.Length;
+            E2eWorkspace.Until(() => view.MenuOpen && view.Menu.ItemCount == 1);
+            view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Tab });
+            E2eWorkspace.Until(() => view.Input.Text == "@\"/tmp-fixture/b c.txt\" ");
+            view.Input.Text = "@~/"; view.Input.CaretIndex = 3;
+            E2eWorkspace.Until(() => view.MenuOpen && view.Menu.Items.Cast<object>().Single().ToString() == "@~/Downloads/");
+            Require(chat.PathCalls.Contains("~/"), "A home path goes to the host as typed; the host expands it.");
+            view.Input.Text = "@/nowhere/"; view.Input.CaretIndex = view.Input.Text.Length;
+            E2eWorkspace.Until(() => chat.PathCalls.Contains("/nowhere/"));
+            Frame(window);
+            Require(!view.MenuOpen, "A missing directory shows no menu.");
+            var before = chat.PathCalls.Count;
+            view.Input.Text = "@alp"; view.Input.CaretIndex = 4;
+            E2eWorkspace.Until(() => view.MenuOpen && view.Menu.ItemCount == 1);
+            Require(chat.PathCalls.Count == before, "A plain query keeps the workspace search and never lists a directory.");
+            view.Input.Text = "";
 
             // Sending clears the draft; with the turn running the same button interrupts.
             view.Input.Text = "do it";

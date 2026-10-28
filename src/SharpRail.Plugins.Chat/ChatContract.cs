@@ -439,6 +439,14 @@ public sealed record ChatFilesParams(string WorkspaceId, string Query);
 
 public sealed record ChatFileList(IReadOnlyList<string> Paths);
 
+/// <summary>Completes a path typed after <c>@</c>: <paramref name="Prefix"/> is the text as typed (<c>/abs/dir/na</c>, <c>~/</c>, <c>../x/</c>, <c>C:\</c>); the host lists the part before the last separator and filters by the rest.</summary>
+public sealed record ChatPathParams(string WorkspaceId, string ChatId, string Prefix);
+
+public sealed record ChatPathEntry(string Name, bool IsDirectory);
+
+/// <summary>The entries (directories first) of the directory a <see cref="ChatPathParams.Prefix"/> names; empty when it is missing or unreadable.</summary>
+public sealed record ChatPathList(IReadOnlyList<ChatPathEntry> Entries);
+
 /// <summary>The chat wire contract. It is declared apart from any plugin's contract; each agent plugin merges it into its own (Claude Code's is <c>ClaudeCodeContract</c>).</summary>
 public static class ChatContract
 {
@@ -471,6 +479,8 @@ public static class ChatContract
     public static readonly PluginMethod<ChatDetailParams, ChatDetail> ItemDetail = new("chatItemDetail");
     public static readonly PluginMethod<ChatSessionsParams, ChatSessionList> Sessions = new("chatSessions");
     public static readonly PluginMethod<ChatFilesParams, ChatFileList> Files = new("chatFiles");
+    /// <summary>Lists one host directory for <c>@</c> path completion, resolved against the chat's working directory (<c>~</c> against the host user's home).</summary>
+    public static readonly PluginMethod<ChatPathParams, ChatPathList> CompletePath = new("chatCompletePath");
 
     /// <summary>A chat's pushes, scoped by workspace and chat id; the snapshot is the same list a late subscriber replays.</summary>
     public static readonly PluginChannel<ChatPush> Updates = PluginChannel<ChatPush>.State("chatUpdates", Snapshot, "workspaceId", "chatId");
@@ -479,5 +489,5 @@ public static class ChatContract
     public const int OutputLimit = 16 * 1024;
 
     public static readonly IReadOnlyList<PluginMethodSpec> Methods =
-        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files];
+        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files, CompletePath];
 }

@@ -445,6 +445,26 @@ internal static class ClaudeChatChecks
             Require((await fixture.Call(ChatContract.Files, new ChatFilesParams(project, "x"))).Paths is not null && (await fixture.Call(ChatContract.Sessions, new ChatSessionsParams(project))).Sessions is not null,
                 "The sessions and file lookups answer.");
 
+            // @ path completion lists one host directory: directories first, prefix-filtered, hidden only on a dot, ~ against the home.
+            var listed2 = Path.Combine(directory, "complete");
+            Directory.CreateDirectory(Path.Combine(listed2, "Beta"));
+            Directory.CreateDirectory(Path.Combine(listed2, "alpha"));
+            Directory.CreateDirectory(Path.Combine(listed2, ".hid"));
+            File.WriteAllText(Path.Combine(listed2, "aardvark.txt"), "");
+            File.WriteAllText(Path.Combine(listed2, "zed.txt"), "");
+            async Task<string> Complete(string prefix) => string.Join(",", (await fixture.Call(ChatContract.CompletePath, new ChatPathParams(project, chat, prefix))).Entries.Select(entry => entry.Name + (entry.IsDirectory ? "/" : "")));
+            var slash = listed2.Replace('\\', '/') + "/";
+            Require(await Complete(slash) == "alpha/,Beta/,aardvark.txt,zed.txt", "Path completion lists directories first, then files, hiding dot entries: " + await Complete(slash));
+            Require(await Complete(slash + "A") == "alpha/,aardvark.txt" && await Complete(slash + ".") == ".hid/" && await Complete(slash + "q") == "", "The last segment filters by prefix ignoring case; a dot shows hidden entries.");
+            Require(await Complete(slash + "missing/") == "" && await Complete(slash + "zed.txt/") == "", "A missing directory or a file lists nothing, without an error.");
+            var realHome = Environment.GetEnvironmentVariable("HOME");
+            try
+            {
+                Environment.SetEnvironmentVariable("HOME", directory);
+                Require(await Complete("~/complete/z") == "zed.txt", "~ expands against the host user's home.");
+            }
+            finally { Environment.SetEnvironmentVariable("HOME", realHome); }
+
             // Revival without a transcript starts afresh under the recorded id, with the recorded choices.
             await fixture.Call(ChatContract.Open, new ChatOpenParams(project, chat));
             var revivedBare = await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle, "the revival without a transcript");

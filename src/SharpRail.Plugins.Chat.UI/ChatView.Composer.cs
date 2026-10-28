@@ -45,6 +45,8 @@ internal sealed partial class ChatView
         public bool IsHeader { get; init; }
         /// <summary>For a built-in action: what choosing it does instead of inserting text.</summary>
         public Action? Run { get; init; }
+        /// <summary>A directory in path completion: choosing it inserts the path and opens the next level.</summary>
+        public bool Continue { get; init; }
         public override string ToString() => Detail.Length == 0 ? Label : Label + "  —  " + Detail;
     }
 
@@ -1125,8 +1127,9 @@ internal sealed partial class ChatView
         var text = input.Text ?? "";
         input.Text = text[..entry.From] + entry.Insert + text[entry.To..];
         input.CaretIndex = entry.From + entry.Insert.Length;
-        menu.IsOpen = false;
         input.Focus();
+        if (entry.Continue) { UpdateMenu(); return; }
+        menu.IsOpen = false;
         entry.Run?.Invoke();
     }
 
@@ -1184,18 +1187,45 @@ internal sealed partial class ChatView
         else menu.IsOpen = false;
     }
 
+    // Path mode: an absolute, home or explicitly relative path (or a drive); other queries search the workspace's files.
+    internal static bool IsPathQuery(string query) => query.StartsWith('/') || query.StartsWith('~') || query.StartsWith("./", StringComparison.Ordinal) || query.StartsWith("../", StringComparison.Ordinal) ||
+        query.StartsWith(@".\", StringComparison.Ordinal) || query.StartsWith(@"..\", StringComparison.Ordinal) || query.Length >= 3 && char.IsAsciiLetter(query[0]) && query[1] == ':' && query[2] is '\\' or '/';
+
     private async Task SearchFiles(string query, int from, int to)
     {
         var search = mentionSearch = new CancellationTokenSource();
         try
         {
             await Task.Delay(120, search.Token);
-            var found = await env.Client.RequestAsync(ChatContract.Files, new ChatFilesParams(workspaceId, query), search.Token);
+            var pathFirst = IsPathQuery(query);
+            List<MenuEntry>? entries = null;
+            if (pathFirst) entries = await CompletePath(query, from, to, search.Token);
+            if (entries is not { Count: > 0 } && !(pathFirst && entries is not null))
+            {
+                var found = await env.Client.RequestAsync(ChatContract.Files, new ChatFilesParams(workspaceId, query), search.Token);
+                entries = [.. found.Paths.Take(50).Select(path => new MenuEntry("@" + path, "", "@" + TerminalFacts.QuoteAttachPath(path) + " ", from, to))];
+                if (entries.Count == 0 && !pathFirst && query.AsSpan().IndexOfAny('/', '\\') >= 0) entries = await CompletePath(query, from, to, search.Token) ?? entries;
+            }
             if (search.IsCancellationRequested) return;
-            ShowMenu([.. found.Paths.Take(50).Select(path => new MenuEntry("@" + path, "", "@" + TerminalFacts.QuoteAttachPath(path) + " ", from, to))]);
+            ShowMenu(entries);
         }
         catch (OperationCanceledException) { }
         catch (Exception) { menu.IsOpen = false; }
+    }
+
+    // The host's listing of the directory the query names; null when the host cannot answer (the caller falls back to the workspace search).
+    private async Task<List<MenuEntry>?> CompletePath(string query, int from, int to, CancellationToken cancellationToken)
+    {
+        if (query == "~") query = "~/";
+        var directoryText = query[..(query.LastIndexOfAny(['/', '\\']) + 1)];
+        try
+        {
+            var listing = await env.Client.RequestAsync(ChatContract.CompletePath, new ChatPathParams(workspaceId, chatId, query), cancellationToken);
+            return [.. listing.Entries.Take(50).Select(entry => entry.IsDirectory
+                ? new MenuEntry("@" + directoryText + entry.Name + "/", "", "@" + TerminalFacts.QuoteAttachPath(directoryText + entry.Name + "/"), from, to) { Continue = true }
+                : new MenuEntry("@" + directoryText + entry.Name, "", "@" + TerminalFacts.QuoteAttachPath(directoryText + entry.Name) + " ", from, to))];
+        }
+        catch (Exception error) when (error is not OperationCanceledException) { return null; }
     }
 
     private void ShowMenu(List<MenuEntry> entries)

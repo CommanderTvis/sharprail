@@ -27,6 +27,10 @@ an error and never produces the items that would make the view offer it: without
 with no permission or question items there is nothing to approve. The view's wording is neutral where it cannot know the agent
 ("Assistant"); anything else comes from the `ChatAgent`.
 
+## Mention completion
+
+`Files` searches the workspace for an `@` query. `CompletePath` (`ChatPathParams`: workspace, chat, the text as typed) lists one directory for a path query (`/`, `~`, `./`, `../`, a drive): directories first, then files, filtered by the last segment, at most 50, resolved against the chat's working directory and the host user's home; a missing directory is an empty list. A host that cannot serve it fails the call and the view uses `Files`. The method is additive, so the host protocol version does not change.
+
 ## Serving another agent protocol (ACP)
 
 An ACP agent needs no view change: its plugin supplies a `ChatAgent` and a host half that serves `ChatContract` over the ACP connection

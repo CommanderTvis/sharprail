@@ -130,6 +130,7 @@ internal sealed class ClaudeChatHost
             ValueTask.FromResult(new ChatDetail(Session(p.WorkspaceId, p.ChatId).ItemDetail(p.ItemId) ?? "")));
         context.Method(ChatContract.Sessions, (p, _, ct) => Task.Run(() => ListSessions(p.WorkspaceId, ct), ct).ToValueTask());
         context.Method(ChatContract.Files, async (p, _, ct) => await FindFilesAsync(p, ct));
+        context.Method(ChatContract.CompletePath, (p, _, ct) => Task.Run(() => CompletePath(p, ct), ct).ToValueTask());
     }
 
     public async Task DisposeAsync()
@@ -240,6 +241,33 @@ internal sealed class ClaudeChatHost
         }
         catch (Exception error) when (error is IOException or JsonException or UnauthorizedAccessException) { }
         return null;
+    }
+
+    // One level of the directory the typed prefix names: no recursion, links listed as what they point to, nothing on failure.
+    private ChatPathList CompletePath(ChatPathParams p, CancellationToken cancellationToken)
+    {
+        var prefix = p.Prefix;
+        if (prefix.Contains('\0')) return new([]);
+        var cut = prefix.LastIndexOfAny(['/', '\\']);
+        var directoryText = cut < 0 ? "" : prefix[..(cut + 1)];
+        var name = prefix[(cut + 1)..];
+        var cwd = LoadRecord(p.WorkspaceId, p.ChatId)?.Cwd ?? p.WorkspaceId;
+        try
+        {
+            var directory = directoryText.StartsWith("~/", StringComparison.Ordinal) || directoryText.StartsWith(@"~\", StringComparison.Ordinal)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), directoryText[2..])
+                : Path.IsPathFullyQualified(directoryText) || directoryText.StartsWith('/') ? directoryText : Path.Combine(cwd, directoryText);
+            if (!Directory.Exists(directory)) return new([]);
+            var entries = new List<ChatPathEntry>();
+            foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!entry.Name.StartsWith(name, StringComparison.OrdinalIgnoreCase) || entry.Name.StartsWith('.') && !name.StartsWith('.')) continue;
+                entries.Add(new(entry.Name, entry is DirectoryInfo || entry.LinkTarget is not null && Directory.Exists(entry.FullName)));
+            }
+            return new([.. entries.OrderByDescending(entry => entry.IsDirectory).ThenBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase).Take(50)]);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { return new([]); }
     }
 
     private async ValueTask<ChatFileList> FindFilesAsync(ChatFilesParams p, CancellationToken cancellationToken)
