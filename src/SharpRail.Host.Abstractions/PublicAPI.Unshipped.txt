@@ -2044,7 +2044,6 @@ SharpRail.Host.Abstractions.PullRequest.Unpushed.get -> int
 SharpRail.Host.Abstractions.PullRequest.Unpushed.init -> void
 SharpRail.Host.Abstractions.PullRequest.Url.get -> string!
 SharpRail.Host.Abstractions.PullRequest.Url.init -> void
-const SharpRail.Host.Abstractions.HostProtocol.Current = 15 -> int
 const SharpRail.Host.Abstractions.HostProtocol.NeutralPullRequest = 15 -> int
 override SharpRail.Host.Abstractions.PullRequest.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.PullRequest.GetHashCode() -> int
@@ -2055,3 +2054,23 @@ virtual SharpRail.Host.Abstractions.PullRequest.<Clone>$() -> SharpRail.Host.Abs
 virtual SharpRail.Host.Abstractions.PullRequest.EqualityContract.get -> System.Type!
 virtual SharpRail.Host.Abstractions.PullRequest.Equals(SharpRail.Host.Abstractions.PullRequest? other) -> bool
 virtual SharpRail.Host.Abstractions.PullRequest.PrintMembers(System.Text.StringBuilder! builder) -> bool
+SharpRail.Host.Abstractions.HostState.OwnedProcesses.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.OwnedProcessInfo!>!
+SharpRail.Host.Abstractions.HostState.OwnedProcesses.init -> void
+SharpRail.Host.Abstractions.OwnedProcessInfo
+SharpRail.Host.Abstractions.OwnedProcessInfo.<Clone>$() -> SharpRail.Host.Abstractions.OwnedProcessInfo!
+SharpRail.Host.Abstractions.OwnedProcessInfo.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out int Pid, out string! Description) -> void
+SharpRail.Host.Abstractions.OwnedProcessInfo.Description.get -> string!
+SharpRail.Host.Abstractions.OwnedProcessInfo.Description.init -> void
+SharpRail.Host.Abstractions.OwnedProcessInfo.Equals(SharpRail.Host.Abstractions.OwnedProcessInfo? other) -> bool
+SharpRail.Host.Abstractions.OwnedProcessInfo.OwnedProcessInfo(SharpRail.Plugins.Api.TerminalRef! Terminal, int Pid, string! Description) -> void
+SharpRail.Host.Abstractions.OwnedProcessInfo.Pid.get -> int
+SharpRail.Host.Abstractions.OwnedProcessInfo.Pid.init -> void
+SharpRail.Host.Abstractions.OwnedProcessInfo.Terminal.get -> SharpRail.Plugins.Api.TerminalRef!
+SharpRail.Host.Abstractions.OwnedProcessInfo.Terminal.init -> void
+const SharpRail.Host.Abstractions.HostProtocol.Current = 16 -> int
+const SharpRail.Host.Abstractions.HostProtocol.OwnedProcesses = 16 -> int
+override SharpRail.Host.Abstractions.OwnedProcessInfo.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.OwnedProcessInfo.GetHashCode() -> int
+override SharpRail.Host.Abstractions.OwnedProcessInfo.ToString() -> string!
+static SharpRail.Host.Abstractions.OwnedProcessInfo.operator !=(SharpRail.Host.Abstractions.OwnedProcessInfo? left, SharpRail.Host.Abstractions.OwnedProcessInfo? right) -> bool
+static SharpRail.Host.Abstractions.OwnedProcessInfo.operator ==(SharpRail.Host.Abstractions.OwnedProcessInfo? left, SharpRail.Host.Abstractions.OwnedProcessInfo? right) -> bool

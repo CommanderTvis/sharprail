@@ -68,6 +68,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     internal Func<string, CancellationToken, ValueTask>? PrepareRevival { get; set; }
     public Action<string, TerminalRef?>? SessionClosed { get; set; }
 
+    /// <summary>The processes agents reported as their own; stopped with their terminal and when the service is disposed.</summary>
+    public OwnedProcesses Owned { get; }
+
     // A null shell runs the user's login shell. With a recordings directory, the catalog is kept there, the last
     // screen of every session is saved when the service is disposed, and a tab attached again after a restart
     // starts a new shell showing it. replayBytes is read when a shell starts and sizes its replay snapshot; none
@@ -83,7 +86,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         this.shell = shell; this.replayBytes = replayBytes; this.keepAfterExit = keepAfterExit; this.undoCloseSeconds = undoCloseSeconds; this.shellIntegration = shellIntegration;
         clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "sharprail-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
         catalog = new TerminalCatalogStore(recordingsDirectory);
+        Owned = new OwnedProcesses(recordingsDirectory is null ? null : Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory)));
         if (recordingsDirectory is null) return;
+        _ = Task.Run(Owned.SweepAsync);
         store = new TerminalRecordingStore(recordingsDirectory);
         // Once a catalog exists, a recording revives only a tab that is still in it. A host that never kept one
         // keeps every recording until its clients have brought their tabs.
@@ -370,6 +375,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         store?.Delete(sessionId);
         signals.End(sessionId);
         if (terminal is not null) await terminal.DisposeAsync();
+        if (closed is not null) await Owned.StopTerminalAsync(closed);
         SessionClosed?.Invoke(sessionId, closed);
     }
 
@@ -508,6 +514,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             }
             closing.Clear();
         }
+        await Owned.StopAllAsync();
         foreach (var (_, terminal) in all) await terminal.DisposeAsync();
         signals.Dispose();
     }

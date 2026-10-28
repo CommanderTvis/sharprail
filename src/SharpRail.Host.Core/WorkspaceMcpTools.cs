@@ -119,6 +119,44 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
             return (await new ProjectServices(workspace, state).DeleteWorkspaceAsync(workspace, path, token), false);
         });
 
+    public McpServer.McpTool ReportProcess(TerminalRef? terminal) => new(
+        "owned_process_report", "Report a long-running process you started",
+        "Report a long-running background process you started (a dev server, a watcher, a run_in_background command) so SharpRail stops it when this terminal closes or SharpRail quits, instead of leaving it running. Report only processes you started and want gone then; call owned_process_release if you stop it yourself. Refuses pid 1, SharpRail, any terminal's shell, a dead pid and another user's process.",
+        JsonNode.Parse("""
+            {"type":"object","properties":{
+              "pid":{"type":"integer","minimum":2,"description":"The process id; for a command that starts children, the leader of its process group."},
+              "description":{"type":"string","description":"A few words for the user: what the process is."}
+            },"required":["pid"],"additionalProperties":false}
+            """)!.AsObject(),
+        async (arguments, token) =>
+        {
+            if (arguments.Any(argument => argument.Key is not ("pid" or "description"))) throw new ArgumentException("Only pid and description are accepted.");
+            var pid = Pid(arguments);
+            var description = Text(arguments, "description");
+            if (terminal is null || state.Terminals is not { } terminals) throw new InvalidOperationException("This session has no terminal tab to own a process.");
+            var shells = terminals.List().Where(process => process.Pid is not null).Select(process => process.Pid!.Value).ToArray();
+            return (await Task.Run(() => terminals.Owned.Report(terminal, pid, description, shells), token), false);
+        });
+
+    public McpServer.McpTool ReleaseProcess(TerminalRef? terminal) => new(
+        "owned_process_release", "Withdraw a reported process",
+        "Tell SharpRail a process you reported with owned_process_report is no longer yours to be stopped, usually because you stopped it. It does not stop the process.",
+        JsonNode.Parse("""
+            {"type":"object","properties":{
+              "pid":{"type":"integer","minimum":2,"description":"The pid you reported."}
+            },"required":["pid"],"additionalProperties":false}
+            """)!.AsObject(),
+        (arguments, token) =>
+        {
+            if (arguments.Any(argument => argument.Key is not "pid")) throw new ArgumentException("Only pid is accepted.");
+            var pid = Pid(arguments);
+            if (terminal is null || state.Terminals is not { } terminals) throw new InvalidOperationException("This session has no terminal tab to own a process.");
+            return Task.FromResult((terminals.Owned.Release(terminal, pid) ? $"Released pid {pid}." : $"This terminal had not reported pid {pid}; nothing changed.", false));
+        });
+
+    private static int Pid(JsonObject arguments) =>
+        arguments["pid"] is JsonValue value && value.TryGetValue<int>(out var pid) ? pid : throw new ArgumentException("pid must be an integer.");
+
     /// <summary>The agents whose plugins resume a session in a revived tab, so an emigrated tab continues its conversation.</summary>
     private static readonly string[] ResumableAgents = ["claude", "codex"];
 

@@ -139,6 +139,11 @@ internal static class Program
             ProjectChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--owned-processes"]))
+        {
+            OwnedProcessChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--workspace-tools"]))
         {
             WorkspaceToolChecks.Run(root).GetAwaiter().GetResult();
@@ -1261,6 +1266,7 @@ internal static class Program
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("shell-integration", () => ShellIntegrationChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("windows-host", () => WindowsChecks.RunHost(root).GetAwaiter().GetResult());
+        Gate.Case("owned-processes", () => OwnedProcessChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("agent-launch-origins", AgentLaunchChecks.RunHost);
         Gate.Case("agent-launch-contributions", AgentLaunchContributionChecks.Run);

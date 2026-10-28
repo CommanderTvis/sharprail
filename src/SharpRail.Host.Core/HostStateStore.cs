@@ -77,6 +77,7 @@ public sealed partial class HostStateStore : IHostStateService
             {
                 terminals.InputAccepted -= TerminalInput;
                 terminals.TitleChanged -= ProgramTitle;
+                terminals.Owned.Changed -= PublishOwnedProcesses;
                 terminals.PrepareRevival = null;
             }
             terminals = value;
@@ -84,6 +85,7 @@ public sealed partial class HostStateStore : IHostStateService
             {
                 value.InputAccepted += TerminalInput;
                 value.TitleChanged += ProgramTitle;
+                value.Owned.Changed += PublishOwnedProcesses;
                 value.PrepareRevival = async (workspace, token) =>
                 {
                     try { await ProjectLanguageAutostartAsync(new(workspace, Operation: "prepareAgent"), token); }
@@ -94,6 +96,13 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
     private PtyTerminalService? terminals;
+
+    private void PublishOwnedProcesses()
+    {
+        var owned = terminals?.Owned.List() ?? [];
+        lock (gate)
+            if (!state.OwnedProcesses.SequenceEqual(owned)) Publish(state with { OwnedProcesses = owned }, persist: false);
+    }
 
     private void TerminalInput(string workspace) => RecordWorkspaceActivity(workspace);
 

@@ -164,6 +164,11 @@ public sealed record HostState
     /// </summary>
     public IReadOnlyList<TerminalTitle> TerminalTitles { get; init; } = [];
     /// <summary>
+    /// The long-running processes agents reported with <c>owned_process_report</c>, which SharpRail stops when their terminal
+    /// closes or it quits. Never persisted here: the host's registry keeps its own file.
+    /// </summary>
+    public IReadOnlyList<OwnedProcessInfo> OwnedProcesses { get; init; } = [];
+    /// <summary>
     /// Agents asking to move their terminal tab into a workspace they created (<c>workspace_emigrate</c>), each waiting for
     /// the user's answer from any client. Never persisted: an unanswered request ends with its tool call.
     /// </summary>
@@ -188,6 +193,9 @@ public sealed record TerminalAgent(TerminalRef Terminal, TerminalAgentRecord Rec
 
 /// <summary>An agent's request to move its tab from <paramref name="Terminal"/>'s workspace into <paramref name="Target"/>, awaiting the user.</summary>
 /// <param name="Reason">The agent's own explanation, shown in the prompt; may be empty.</param>
+/// <summary>A process an agent reported as its own, shown to the user.</summary>
+public sealed record OwnedProcessInfo(TerminalRef Terminal, int Pid, string Description);
+
 public sealed record TerminalEmigrationRequest(string Id, TerminalRef Terminal, string Target, string Reason = "");
 
 /// <summary>A revived agent tab's session, offered for resuming instead of resumed automatically.</summary>

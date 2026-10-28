@@ -130,6 +130,8 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         ConnectedThroughTailscale = RpcConnection.ThroughTailscale,
         PendingEmigrations = state.PendingEmigrations.Select(request => new TerminalEmigrationMessage
         { Id = request.Id, WorkspaceId = request.Terminal.WorkspaceId, TabKey = request.Terminal.TabKey, Target = request.Target, Reason = request.Reason }).ToList(),
+        OwnedProcesses = state.OwnedProcesses.Select(owned => new OwnedProcessMessage
+        { WorkspaceId = owned.Terminal.WorkspaceId, TabKey = owned.Terminal.TabKey, Pid = owned.Pid, Description = owned.Description }).ToList(),
         FailedEmigrations = state.FailedEmigrations.Select(request => new TerminalEmigrationMessage
         { Id = request.Id, WorkspaceId = request.Terminal.WorkspaceId, TabKey = request.Terminal.TabKey, Target = request.Target, Reason = request.Reason }).ToList(),
         ResumeOffers = state.ResumeOffers.Select(offer => new TerminalResumeOfferMessage

@@ -126,6 +126,7 @@ public sealed class StateReply
     [ProtoMember(28)] public List<TerminalEmigrationMessage> FailedEmigrations { get; set; } = [];
     [ProtoMember(29)] public List<TerminalResumeOfferMessage> ResumeOffers { get; set; } = [];
     [ProtoMember(30)] public List<WorkspaceRefMessage> ProjectLanguageHidden { get; set; } = [];
+    [ProtoMember(31)] public List<OwnedProcessMessage> OwnedProcesses { get; set; } = [];
 }
 
 [ProtoContract]
@@ -139,6 +140,15 @@ public sealed class TerminalResumeOfferMessage
     [ProtoMember(6)] public string OwnerText { get; set; } = "";
     [ProtoMember(7)] public string QuitConfirmation { get; set; } = "";
     [ProtoMember(8)] public string Progress { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class OwnedProcessMessage
+{
+    [ProtoMember(1)] public string WorkspaceId { get; set; } = "";
+    [ProtoMember(2)] public string TabKey { get; set; } = "";
+    [ProtoMember(3)] public int Pid { get; set; }
+    [ProtoMember(4)] public string Description { get; set; } = "";
 }
 
 [ProtoContract]

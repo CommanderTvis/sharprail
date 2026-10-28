@@ -75,6 +75,7 @@ internal static class Posix
     [DllImport(Libc, EntryPoint = "pipe2", SetLastError = true)] private static extern int Pipe2(int[] fds, int flags);
     [DllImport(Libc, EntryPoint = "waitpid", SetLastError = true)] internal static extern int WaitPid(int pid, out int status, int options);
     [DllImport(Libc, EntryPoint = "kill", SetLastError = true)] internal static extern int Kill(int pid, int signal);
+    [DllImport(Libc, EntryPoint = "getpgid", SetLastError = true)] internal static extern int GetPgid(int pid);
     [DllImport(Libc, EntryPoint = "tcgetpgrp", SetLastError = true)] internal static extern int ForegroundGroup(int fd);
     [DllImport(Libc, EntryPoint = "tcgetattr", SetLastError = true)] internal static extern int GetAttributes(int fd, byte[] termios);
     [DllImport(Libc, EntryPoint = "tcsetattr", SetLastError = true)] internal static extern int SetAttributes(int fd, int actions, byte[] termios);

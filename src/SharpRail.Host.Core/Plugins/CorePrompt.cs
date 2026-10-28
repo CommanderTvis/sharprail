@@ -37,6 +37,10 @@ internal static class CorePrompt
             Call it ONLY when the user explicitly instructed you to work in a new workspace AND you are 100% certain you will never again touch the workspace you started in; otherwise keep working in the new `path` from here.
             The user approves each move; after an approved call, end your turn at once without further tool calls. It moves only your own tab, never another terminal.
             """),
+        ("owned-processes", "Owned processes", "Report long-running background processes with owned_process_report, release them with owned_process_release.", """
+            Report every long-running background process you start (dev servers, watchers, `run_in_background` commands) with `owned_process_report` (its `pid`, and a short `description`), so SharpRail stops it when the terminal closes or SharpRail quits.
+            Call `owned_process_release` when you stop it yourself. Report only processes you started.
+            """),
         ("parallel-tasks", "Parallel tasks", "Suggest a subagent and workspace per unrelated task.", """
             When the user gives you several unrelated tasks or bug reports, suggest parallelizing them with a subagent and a separate SharpRail workspace per independent task, even if this session did not start as an orchestrator.
             Explain that this keeps each task's context focused and lets the user follow and review the work separately in SharpRail. Make the suggestion before processing the backlog sequentially; delegate only when authorized and subagent tools are available.

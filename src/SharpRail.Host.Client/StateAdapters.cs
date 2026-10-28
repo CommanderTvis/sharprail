@@ -152,6 +152,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         Platform = Enum.TryParse<HostPlatform>(reply.Platform, ignoreCase: true, out var platform) ? platform : null,
         ConnectedThroughTailscale = reply.ConnectedThroughTailscale,
         PendingEmigrations = reply.PendingEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray(),
+        OwnedProcesses = reply.OwnedProcesses.Select(owned => new OwnedProcessInfo(new(owned.WorkspaceId, owned.TabKey), owned.Pid, owned.Description)).ToArray(),
         FailedEmigrations = reply.FailedEmigrations.Select(request => new TerminalEmigrationRequest(request.Id, new(request.WorkspaceId, request.TabKey), request.Target, request.Reason)).ToArray(),
         ResumeOffers = reply.ResumeOffers.Select(offer => new TerminalResumeOffer(new(offer.WorkspaceId, offer.TabKey), offer.Agent, offer.SessionId, offer.OpenElsewhere, offer.OwnerText, offer.QuitConfirmation, offer.Progress)).ToArray()
     };
