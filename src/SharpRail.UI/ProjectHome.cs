@@ -538,7 +538,14 @@ public sealed partial class WorkbenchWindow
 
     private ContextMenu WorkspaceActions(WorkspaceRecord worktree, Button kebab)
     {
-        var menu = new ContextMenu { Name = "WorkspaceActions", Placement = PlacementMode.BottomEdgeAlignedRight, PlacementTarget = kebab };
+        var menu = new ContextMenu
+        {
+            Name = "WorkspaceActions",
+            Placement = PlacementMode.BottomEdgeAlignedRight,
+            PlacementTarget = kebab,
+            // A menu wider than the room left of the kebab slides along the screen edge instead of flipping over the row.
+            PlacementConstraintAdjustment = Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.SlideX | Avalonia.Controls.Primitives.PopupPositioning.PopupPositionerConstraintAdjustment.FlipY
+        };
         var openIn = AddWorkspaceActions(menu, worktree, header: false);
         // The Open in submenu lists the host's editors; the menu opens once they are read.
         MenuFill.FillBeforeOpening(menu, kebab, async token => editors ?? await host.ListEditorsAsync(token), found =>

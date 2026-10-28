@@ -150,8 +150,8 @@ internal static class WorkspaceActionsE2E
         var kebab = Item(app, app.Root).GetLogicalChildren().OfType<Button>().Single(button => button.Name == "WorkspaceMenu");
         var menuCorner = menu.PointToScreen(new Point(menu.Bounds.Width, 0));
         var kebabCorner = kebab.PointToScreen(new Point(kebab.Bounds.Width, kebab.Bounds.Height));
-        Require(Math.Abs(menuCorner.X - kebabCorner.X) < 8 && Math.Abs(menuCorner.Y - kebabCorner.Y) < 12,
-            $"The right-click menu must anchor below the row's kebab (menu {menuCorner}, kebab {kebabCorner}).");
+        Require(Math.Abs(menuCorner.X - Math.Max(kebabCorner.X, menu.Bounds.Width)) < 8 && Math.Abs(menuCorner.Y - kebabCorner.Y) < 12,
+            $"The right-click menu must anchor below the row's kebab (menu {menuCorner}, kebab {kebabCorner}, width {menu.Bounds.Width}).");
         Require(MenuEntry(menu, "WorkspaceCopyPath") is not null && MenuEntry(menu, "WorkspaceRename") is null && MenuEntry(menu, "WorkspaceRemove") is null,
             "The Default workspace menu must offer only non-mutating actions.");
         Require(Active(app, workspace) && !Active(app, app.Root), "Right-click must not activate the workspace.");
