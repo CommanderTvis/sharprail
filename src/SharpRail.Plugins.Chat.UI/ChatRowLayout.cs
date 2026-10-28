@@ -341,15 +341,23 @@ internal sealed class ChatRowLayout : IDisposable
         y += layout.Height + 12 + 2;
     }
 
-    private void Chevron(double top, bool open)
+    // Chevron and status dot share one centre: the middle of the header's first line, taken from its laid-out text.
+    private static double LineCentre(TextLayout text, double top) => top + text.Height / 2;
+
+    /// <summary>The vertical centres of the first chevron, the first status dot and the first text line, for checks; null where the row has none.</summary>
+    internal (double? Chevron, double? Dot, double? Text) GlyphCentres() =>
+        (geometries.Count > 0 ? geometries[0].Shape.Bounds.Center.Y : null,
+            fills.Where(fill => fill.Bounds.Width == 7 && fill.Radius == 3.5).Select(fill => (double?)fill.Bounds.Center.Y).FirstOrDefault(),
+            texts.Count > 0 ? texts[0].Origin.Y + texts[0].Text.Height / 2 : null);
+
+    private void Chevron(double mid, bool open)
     {
         var pen = new Pen(Ui.Muted, 1.3);
         var x = left;
-        var mid = top + 10;
         var stroke = new StreamGeometry();
         using (var context = stroke.Open())
         {
-            if (open) { context.BeginFigure(new Point(x + 1, mid - 2), false); context.LineTo(new Point(x + 4, mid + 1)); context.LineTo(new Point(x + 7, mid - 2)); }
+            if (open) { context.BeginFigure(new Point(x + 1, mid - 1.5), false); context.LineTo(new Point(x + 4, mid + 1.5)); context.LineTo(new Point(x + 7, mid - 1.5)); }
             else { context.BeginFigure(new Point(x + 2, mid - 3), false); context.LineTo(new Point(x + 5, mid)); context.LineTo(new Point(x + 2, mid + 3)); }
             context.EndFigure(false);
         }
@@ -421,9 +429,10 @@ internal sealed class ChatRowLayout : IDisposable
     // A row folded to one line with a chevron: its label, a colon and a preview, the body when opened.
     private void Disclosure(string label, string? preview, bool open, Action body, bool italic = false)
     {
-        Chevron(y, open);
         var text = preview is { Length: > 0 } ? label + ": " + preview : label;
-        Place(Make(text, Ui.Muted, 12, inner - 20, italic: italic, maxLines: 1), left + 14, y + 3);
+        var head = Make(text, Ui.Muted, 12, inner - 20, italic: italic, maxLines: 1);
+        Chevron(LineCentre(head, y + 3), open);
+        Place(head, left + 14, y + 3);
         hits.Add(new(new Rect(left, y, inner, 22), ChatHitKind.Toggle));
         y += 24;
         if (open) { body(); y += 2; }
@@ -556,11 +565,11 @@ internal sealed class ChatRowLayout : IDisposable
 
     private void Activity(ChatActivityItem activity, bool open)
     {
-        Chevron(y, open);
         var live = activity.Steps.Any(step => step is ChatToolItem { State: ChatToolState.Running or ChatToolState.Pending } or ChatThinkingItem { Streaming: true });
         var tag = Make(live ? "Working\u2026" : "Done", live ? Ui.Accent : Ui.Success, 11, 120, maxLines: 1);
         var tagBox = Place(tag, left + inner - tag.Width - 2, y + 4);
         var crumb = Make(Breadcrumb(activity.Steps), Ui.Muted, 12, Math.Max(40, tagBox.Left - left - 24), maxLines: 1);
+        Chevron(LineCentre(crumb, y + 3), open);
         Place(crumb, left + 14, y + 3);
         hits.Add(new(new Rect(left, y, inner, 22), ChatHitKind.Toggle));
         y += 24;
@@ -586,8 +595,8 @@ internal sealed class ChatRowLayout : IDisposable
     {
         // Without text there is nothing to open: a static label, no chevron.
         var empty = string.IsNullOrWhiteSpace(thinking.Text);
-        if (!empty) Chevron(y, open);
         var head = Make(ToolCards.ThinkingLabel(thinking), Ui.Muted, 12, inner - 20, italic: true, maxLines: 1);
+        if (!empty) Chevron(LineCentre(head, y + 2), open);
         var bounds = Place(head, left + (empty ? 0 : 14), y + 2);
         if (!empty) hits.Add(new(new Rect(left, y, inner, 22), ChatHitKind.Toggle));
         y += Math.Max(22, bounds.Height + 4);
@@ -680,7 +689,6 @@ internal sealed class ChatRowLayout : IDisposable
         var checklist = tool.Name == "TodoWrite";
         var plan = tool.Name == "ExitPlanMode";
         var open = row.Expanded || checklist || plan;
-        Chevron(y, open);
         var dot = ToolCards.StatusOf(tool) switch
         {
             ToolCards.Dot.Failure => Ui.Danger,
@@ -688,9 +696,11 @@ internal sealed class ChatRowLayout : IDisposable
             ToolCards.Dot.Success => Ui.Success,
             _ => Ui.Accent
         };
-        fills.Add(new(new Rect(left + 14, y + 8, 7, 7), dot, 3.5, null));
         var head = ToolCards.Header(tool);
         var name = Make(head.Name, Ui.TextBrush, 12, 220, bold: true, maxLines: 1);
+        var centre = LineCentre(name, y + 3);
+        Chevron(centre, open);
+        fills.Add(new(new Rect(left + 14, centre - 3.5, 7, 7), dot, 3.5, null));
         var nameBox = Place(name, left + 28, y + 3);
         var right = left + inner - 2;
         // A subagent's thread opens in its own dialog, live.

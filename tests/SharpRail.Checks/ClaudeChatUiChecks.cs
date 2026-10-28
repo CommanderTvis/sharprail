@@ -159,6 +159,7 @@ internal static class ClaudeChatUiChecks
     internal static void Run()
     {
         Placeholders();
+        GlyphAlignment();
         ItemKinds();
         Requests();
         Pickers();
@@ -1680,6 +1681,25 @@ internal static class ClaudeChatUiChecks
             Require(!ChipText(view, "TerminalAgentFact_model").Contains('\u2026'), "The pending marker clears once the host does.");
         }
         finally { window.Close(); }
+    }
+
+    // The chevron and the status dot share one vertical centre, the first text line's, for every tool state and for the thinking and activity rows.
+    private static void GlyphAlignment()
+    {
+        var input = JsonSerializer.SerializeToElement(new { command = "ls" });
+        var rows = new List<(string Name, ChatItem Item, bool Open, bool Dot)>();
+        foreach (var state in new[] { ChatToolState.Done, ChatToolState.Running, ChatToolState.Failed })
+            foreach (var open in new[] { false, true })
+                rows.Add(($"Bash {state} open={open}", new ChatToolItem("g" + state, 1, "Bash", input, state), open, true));
+        rows.Add(("Thought", new ChatThinkingItem("gt", 1, "hmm"), false, false));
+        rows.Add(("Thought open", new ChatThinkingItem("gt", 1, "hmm"), true, false));
+        foreach (var (name, item, open, dot) in rows)
+        {
+            using var layout = ChatRowLayout.Build(new ChatRow(item, 0, 1, open, null), 700, true);
+            var (chevron, dotY, text) = layout.GlyphCentres();
+            Require(chevron is { } c && text is { } t && Math.Abs(c - t) <= 1 && (!dot || dotY is { } d && Math.Abs(d - c) < 0.01),
+                $"{name}: chevron {chevron}, dot {dotY} and first line {text} share one vertical centre.");
+        }
     }
 
     private static double Height(ChatItem item, bool expanded, out IReadOnlyList<ChatHit> hits)
