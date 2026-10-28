@@ -42,7 +42,9 @@ internal static class TerminalSignalUiChecks
         Until(() => app.Workbench.WindowHolding(workspace, a) is not null && app.Workbench.WindowHolding(workspace, b) is not null);
         app.Window.Layout.Select(app.Center, a);
         HostTerminal View(string tab) => app.Terminals.Views.Last(view => view.SessionId == TerminalLaunch.SessionFor(workspace, tab));
-        Until(() => app.Terminals.Views.Any(view => view.SessionId == TerminalLaunch.SessionFor(workspace, a)) && View(a).Text.Length > 0);
+        // Both tabs' views must exist before either is driven: the second is created asynchronously and a slow runner reaches it first.
+        Until(() => app.Terminals.Views.Any(view => view.SessionId == TerminalLaunch.SessionFor(workspace, a)) && View(a).Text.Length > 0 &&
+            app.Terminals.Views.Any(view => view.SessionId == TerminalLaunch.SessionFor(workspace, b)));
         Settle();
 
         Control Tab(string tab) => app.Window.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "DockTab_" + tab.Replace(':', '_'));
