@@ -168,6 +168,7 @@ internal static class ClaudeChatUiChecks
         SelectionChip();
         Grouping();
         Bounded();
+        StreamingStable();
         Composer();
         PageZoomSteps();
         ResizeDrag();
@@ -1042,6 +1043,42 @@ internal static class ClaudeChatUiChecks
     }
 
     // Twenty thousand variable-height items: scrolling, resizing and streaming keep the realized rows and text layouts small.
+    // A reply streams in as repeated updates of one row: the extent and the offset a viewer sees between frames never step back, and one
+    // update costs one settling pass, so the bottom does not jump to a guessed height and back.
+    private static void StreamingStable()
+    {
+        var chat = new FakeChat();
+        for (var index = 0; index < 40; index++) chat.Snapshot.Add(Item(Sample(index)));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            var scroller = view.List.Scroller!;
+            var seen = new List<(double Extent, double Offset)>();
+            scroller.ScrollChanged += (_, _) => seen.Add((scroller.Extent.Height, scroller.Offset.Y));
+            var text = "";
+            string[] pieces = ["Here is the plan.\n\n", "- first item\n", "- second item with more words to wrap around the line a bit\n\n", "```cs\n", "var a = 1;\n", "var b = 2;\n", "```\n\n", "| a | b |\n|---|---|\n| 1 | 2 |\n\n", "And a closing paragraph that is long enough to wrap onto a second line of the view, repeated. And a closing paragraph that is long enough to wrap onto a second line."];
+            var passes = view.List.Passes;
+            for (var step = 0; step < pieces.Length; step++)
+            {
+                text += pieces[step];
+                chat.Push(Item(new ChatAssistantItem("stream", 900, text) { Streaming = true }));
+                Frame(window);
+                Require(view.List.Passes - passes <= 2 * (step + 1), $"Step {step}: an update costs at most two settling passes ({view.List.Passes - passes} so far).");
+            }
+            Frame(window); Frame(window);
+            for (var at = 1; at < seen.Count; at++)
+            {
+                Require(seen[at].Extent >= seen[at - 1].Extent - 0.5, $"The extent never shrinks while text only grows (step {at}: {seen[at - 1].Extent} then {seen[at].Extent}).");
+                Require(seen[at].Offset >= seen[at - 1].Offset - 0.5, $"The pinned offset never steps back while text only grows (step {at}: {seen[at - 1].Offset} then {seen[at].Offset}).");
+            }
+            Require(view.List.Stuck && scroller.Offset.Y >= scroller.Extent.Height - scroller.Viewport.Height - 4, "The stream keeps following the end.");
+        }
+        finally { window.Close(); }
+    }
+
     private static void Bounded()
     {
         var chat = new FakeChat();

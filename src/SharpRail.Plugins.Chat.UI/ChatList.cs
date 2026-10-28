@@ -236,6 +236,9 @@ internal sealed class ChatList : ScrollViewer
         {
             passScheduled = false;
             Passes++;
+            // A replaced row has only an estimate until drawn: lay out the rows in view first, so the extent and the end the list follows are
+            // exact in this pass and the draw finds nothing to correct (a streaming reply would otherwise jump to a guess and back each update).
+            Prelayout();
             EnsureTops();
             surface.InvalidateMeasure();
             surface.Redraw();
