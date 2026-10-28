@@ -157,7 +157,7 @@ internal sealed partial class ChatFolder
             }
             if (trimmed.StartsWith("<terminal ", StringComparison.Ordinal) || trimmed.StartsWith("<browser", StringComparison.Ordinal) || trimmed.StartsWith("<post-tool-use-hook>", StringComparison.Ordinal) && !trimmed.Contains("<ide_diagnostics>", StringComparison.Ordinal))
                 continue;
-            if (trimmed == "[Request interrupted by user]") { PutNotice(id, ChatNoticeLevel.Info, "Interrupted", ChatNoticeKinds.Interrupt); emitted++; continue; }
+            if (trimmed == "[Request interrupted by user]") { interruptPending = true; PutNotice(id, ChatNoticeLevel.Info, "Interrupted", ChatNoticeKinds.Interrupt); emitted++; continue; }
             if (trimmed == "[Request interrupted by user for tool use]") { PutNotice(id, ChatNoticeLevel.Info, "Tool interrupted", ChatNoticeKinds.Interrupt); emitted++; continue; }
             if (trimmed.StartsWith("<task-notification>", StringComparison.Ordinal) && TaskNotification(id, trimmed, origin)) { emitted++; continue; }
             if (ParsePeer(trimmed, origin, agentSender) is { } peer) { PutPeer(id, peer); emitted++; continue; }

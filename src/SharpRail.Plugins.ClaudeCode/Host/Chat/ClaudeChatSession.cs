@@ -421,6 +421,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     {
         lock (gate)
         {
+            if (folder.Header.Status is ChatStatus.Running or ChatStatus.AwaitingPermission) folder.MarkInterrupted();
             foreach (var permission in folder.Items.OfType<ChatPermissionItem>().Where(item => item.Decision == ChatPermissionDecision.Pending))
                 folder.Decide(permission.RequestId, ChatPermissionDecision.Denied);
             foreach (var question in folder.Items.OfType<ChatQuestionItem>().Where(item => item.Decision == ChatPermissionDecision.Pending))

@@ -199,7 +199,7 @@ row, nor is a hidden `ToolSearch` call.
 Result frames draw nothing: they end the turn and update the header (cost, `modelUsage` context window and max output of the
 current model, `fast_mode_state`). A model-less result (`num_turns` 0 with a task-notification origin) is no turn and no
 failure. An error result or a non-success subtype is exactly one failure notice (retryable for API errors and
-`error_during_execution`). `system` frames: `status` drives the header's `Activity` ("Compacting", "Running start-up hooks")
+`error_during_execution`), unless the turn was interrupted: a requested `interrupt` while the turn runs, the CLI's `[Request interrupted by user]` marker (another client of the session) or a `terminal_reason` starting with `aborted` makes the error result add no failure and no Try again, leaving only the Interrupted notice; the mark ends with that result. `system` frames: `status` drives the header's `Activity` ("Compacting", "Running start-up hooks")
 and permission mode; `thinking_tokens` the streaming thinking item's token count; `compact_boundary` plus the following
 synthetic string user frame one compaction notice ("Compacted chat · auto|manual · Nk tokens freed", the summary as its
 detail); `informational` lines of level other than info (any with tag `brass_thimble`) become meta notices;

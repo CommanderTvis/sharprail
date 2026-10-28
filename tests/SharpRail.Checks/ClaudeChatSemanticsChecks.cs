@@ -145,6 +145,17 @@ internal static class ClaudeChatSemanticsChecks
         Require(results.Items.Count == 0 && results.Header.Usage is { CostUsd: 0.5, ContextWindow: 200000, MaxOutputTokens: 32000 } && results.Header.FastMode == "off", "A result adds no row; a model-less error result adds no failure either.");
         results.Apply(Frame(new { type = "result", subtype = "error_during_execution", is_error = true, num_turns = 1, result = "API Error: overloaded" }));
         Require(results.Items.OfType<ChatNoticeItem>().Single() is { Category: ChatNoticeKinds.Failure, Retryable: true }, "An error result is exactly one failure notice.");
+        // An interrupt (host-requested or echoed by the CLI) leaves only the neutral notice; the pending mark ends with the result.
+        var stopped = new ChatFolder();
+        stopped.MarkInterrupted();
+        var stoppedResult = stopped.Apply(Frame(new { type = "result", subtype = "error_during_execution", is_error = true, num_turns = 1 }));
+        Require(!stopped.Items.OfType<ChatNoticeItem>().Any() && !stoppedResult.Failed, "An error result after a requested interrupt is no failure.");
+        stopped.Apply(Frame(new { type = "result", subtype = "error_during_execution", is_error = true, num_turns = 1 }));
+        Require(stopped.Items.OfType<ChatNoticeItem>().Single() is { Category: ChatNoticeKinds.Failure, Retryable: true }, "The interrupt mark is consumed: a later genuine error still shows with Try again.");
+        var echoed = new ChatFolder();
+        echoed.Apply(Frame(User("e1", Text("[Request interrupted by user]"))));
+        echoed.Apply(Frame(new { type = "result", subtype = "error_during_execution", is_error = true, num_turns = 1 }));
+        Require(echoed.Items.OfType<ChatNoticeItem>().Single() is { Category: ChatNoticeKinds.Interrupt }, "The CLI's own interrupt marker (another client) also suppresses the error card.");
         results.Apply(Frame(new { type = "system", subtype = "status", status = "compacting", permissionMode = "plan" }));
         Require(results.Header is { Activity: "Compacting", PermissionMode: "plan" } && results.Header.PermissionModes.Count == 5 && results.Header.PermissionModes.All(mode => mode.Key != "bypassPermissions"), "A status frame drives the activity and the mode; a session that cannot bypass is not offered the bypass mode.");
         var bypassing = new ChatFolder { AllowBypass = true };

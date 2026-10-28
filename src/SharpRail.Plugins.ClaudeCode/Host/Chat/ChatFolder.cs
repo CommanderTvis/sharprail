@@ -106,6 +106,12 @@ internal sealed partial class ChatFolder
             if (items[id] is ChatUserItem { Queued: true } user) Put(user with { Queued = false });
     }
 
+    // Set when an interrupt was requested (here or by another client) or the CLI echoed its interrupt marker; the next result consumes it.
+    private bool interruptPending;
+
+    /// <summary>Notes that the running turn was interrupted on purpose, so its error result is not shown as a failure.</summary>
+    public void MarkInterrupted() => interruptPending = true;
+
     public ChatNoticeItem AddNotice(ChatNoticeLevel level, string text, string? kind = null, string? subtype = null, bool? retryable = null)
     {
         var id = "n:" + (sequence + 1);
@@ -602,7 +608,9 @@ internal sealed partial class ChatFolder
         // A result draws nothing. A model-less one (a task notification delivered without a model call) is no turn at all.
         var modelLess = Long(message, "num_turns") == 0 && OriginOf(message) is { Kind: "task-notification" };
         var subtype = Str(message, "subtype");
-        if (!modelLess && (isError || subtype is not (null or "success")))
+        var interrupted = interruptPending || Str(message, "terminal_reason") is { } reason && reason.StartsWith("aborted", StringComparison.OrdinalIgnoreCase);
+        if (!modelLess) interruptPending = false;
+        if (!modelLess && !(interrupted && isError) && (isError || subtype is not (null or "success")))
         {
             var detail = Str(message, "result");
             var failure = subtype switch
@@ -640,7 +648,7 @@ internal sealed partial class ChatFolder
             }
         });
         if (message.TryGetProperty("fast_mode_state", out var fast) && fast.ValueKind == JsonValueKind.String) SetHeader(header => header with { FastMode = fast.GetString() });
-        return new(Signal.Result, null, !modelLess && (isError || subtype is not (null or "success")));
+        return new(Signal.Result, null, !modelLess && !(interrupted && isError) && (isError || subtype is not (null or "success")));
     }
 
     private static readonly Dictionary<string, string> LimitNames = new()
