@@ -56,7 +56,7 @@ internal static class TopbarChromeE2E
         Console.WriteLine("PASS upstream: ordinary browsers have a fixed themed header with zero native insets");
     }
 
-    private static void CloseSettings(SettingsWindow settings)
+    private static void CloseSettings(SettingsView settings)
     {
         settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SettingsClose").Focus();
         settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);

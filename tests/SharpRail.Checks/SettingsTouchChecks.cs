@@ -28,7 +28,7 @@ internal static class SettingsTouchChecks
         var window = new WorkbenchWindow(host, directory, new ProfileStore(directory + "-profile"), E2eTerminals.Plain, compact: true);
         window.Width = 400; window.Height = 600; window.Show();
         Until(() => window.WorkspaceMounted);
-        var settings = new SettingsWindow(window, () => { }) { Width = 400, Height = 320 };
+        var settings = new SettingsView(window, () => { }) { Width = 400, Height = 320 };
         window.ShowInOverlay(settings);
         try
         {

@@ -137,7 +137,7 @@ internal static class LanguageDependencyChecks
         File.WriteAllText(Path.Combine(app.Root, "main.go"), "package main\n");
         var paneWindow = new Window { Width = 520, Height = 900, Content = pane };
         paneWindow.Show();
-        var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
+        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
         app.Window.ShowInOverlay(settings);
         try
         {

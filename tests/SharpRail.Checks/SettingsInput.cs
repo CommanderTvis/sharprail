@@ -13,24 +13,24 @@ namespace SharpRail.Checks;
 /// </summary>
 internal static class SettingsInput
 {
-    private static TopLevel Top(SettingsWindow settings) => TopLevel.GetTopLevel(settings)!;
+    private static TopLevel Top(SettingsView settings) => TopLevel.GetTopLevel(settings)!;
 
-    private static Point In(SettingsWindow settings, Point point) => settings.TranslatePoint(point, Top(settings))!.Value;
+    private static Point In(SettingsView settings, Point point) => settings.TranslatePoint(point, Top(settings))!.Value;
 
     // Keys reach the focused control; Settings takes focus when it is not already holding it.
-    private static TopLevel Focused(SettingsWindow settings)
+    private static TopLevel Focused(SettingsView settings)
     {
         var top = Top(settings);
         if (top.FocusManager?.GetFocusedElement() is not Visual focus || focus != settings && !Avalonia.VisualTree.VisualExtensions.GetVisualAncestors(focus).Contains(settings)) settings.Focus();
         return top;
     }
 
-    internal static void KeyPress(this SettingsWindow settings, Key key, RawInputModifiers modifiers, PhysicalKey physical, string? symbol) => Focused(settings).KeyPress(key, modifiers, physical, symbol);
-    internal static void KeyRelease(this SettingsWindow settings, Key key, RawInputModifiers modifiers, PhysicalKey physical, string? symbol) => Focused(settings).KeyRelease(key, modifiers, physical, symbol);
-    internal static void KeyTextInput(this SettingsWindow settings, string text) => Focused(settings).KeyTextInput(text);
-    internal static IHeadlessTouchPointer TouchBegin(this SettingsWindow settings, Point point, RawInputModifiers modifiers) => Top(settings).TouchBegin(In(settings, point), modifiers);
-    internal static void TouchMove(this SettingsWindow settings, IHeadlessTouchPointer finger, Point point, RawInputModifiers modifiers) => Top(settings).TouchMove(finger, In(settings, point), modifiers);
-    internal static void TouchEnd(this SettingsWindow settings, IHeadlessTouchPointer finger, Point point, RawInputModifiers modifiers) => Top(settings).TouchEnd(finger, In(settings, point), modifiers);
-    internal static void MouseDown(this SettingsWindow settings, Point point, MouseButton button) => Top(settings).MouseDown(In(settings, point), button);
-    internal static void MouseUp(this SettingsWindow settings, Point point, MouseButton button) => Top(settings).MouseUp(In(settings, point), button);
+    internal static void KeyPress(this SettingsView settings, Key key, RawInputModifiers modifiers, PhysicalKey physical, string? symbol) => Focused(settings).KeyPress(key, modifiers, physical, symbol);
+    internal static void KeyRelease(this SettingsView settings, Key key, RawInputModifiers modifiers, PhysicalKey physical, string? symbol) => Focused(settings).KeyRelease(key, modifiers, physical, symbol);
+    internal static void KeyTextInput(this SettingsView settings, string text) => Focused(settings).KeyTextInput(text);
+    internal static IHeadlessTouchPointer TouchBegin(this SettingsView settings, Point point, RawInputModifiers modifiers) => Top(settings).TouchBegin(In(settings, point), modifiers);
+    internal static void TouchMove(this SettingsView settings, IHeadlessTouchPointer finger, Point point, RawInputModifiers modifiers) => Top(settings).TouchMove(finger, In(settings, point), modifiers);
+    internal static void TouchEnd(this SettingsView settings, IHeadlessTouchPointer finger, Point point, RawInputModifiers modifiers) => Top(settings).TouchEnd(finger, In(settings, point), modifiers);
+    internal static void MouseDown(this SettingsView settings, Point point, MouseButton button) => Top(settings).MouseDown(In(settings, point), button);
+    internal static void MouseUp(this SettingsView settings, Point point, MouseButton button) => Top(settings).MouseUp(In(settings, point), button);
 }

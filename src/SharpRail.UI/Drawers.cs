@@ -17,16 +17,16 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow
 {
     private string pageContext = "";
-    private SettingsWindow? openSettings;
+    private SettingsView? openSettings;
 
     /// <summary>The Settings overlay this window shows, as a sequence of zero or one.</summary>
-    internal IEnumerable<SettingsWindow> OpenSettingsViews => openSettings is { } settings ? [settings] : [];
+    internal IEnumerable<SettingsView> OpenSettingsViews => openSettings is { } settings ? [settings] : [];
 
     /// <summary>The height the page bar takes at the bottom of the window; nothing where there is none.</summary>
     internal double PageBarHeight => this.FindControl<Border>("PageBar") is { IsVisible: true } bar ? bar.Bounds.Height : 0;
 
     // Settings is a page like the others in a compact workbench: its item is lit while it shows.
-    private void SettingsShown(SettingsWindow? settings)
+    private void SettingsShown(SettingsView? settings)
     {
         openSettings = settings;
         if (settings is not null) WireSettingsSwipe(settings);
@@ -178,7 +178,7 @@ public sealed partial class WorkbenchWindow
     }
 
     // Settings is the last page: a finger swept to the right over it goes back to the one before.
-    private static void WireSettingsSwipe(SettingsWindow settings)
+    private static void WireSettingsSwipe(SettingsView settings)
     {
         (IPointer Pointer, Point Start)? touch = null;
         settings.AddHandler(PointerPressedEvent, (_, e) =>

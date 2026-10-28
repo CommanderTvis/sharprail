@@ -7,7 +7,7 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.UI.Panels;
 
-public sealed partial class SettingsWindow
+public sealed partial class SettingsView
 {
     /// <summary>One server in the Code Intelligence rail; <see cref="Missing"/> marks a tool its next start needs and cannot find.</summary>
     internal sealed record LspServerItem(string Id, bool Missing)

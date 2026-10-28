@@ -485,7 +485,7 @@ internal static class UiChecks
         Require(window.Layout.State.LeftWidth > originalWidth && window.Layout.State.RightWidth == originalRightWidth,
             "Keyboard side resize failed after initial arrange.");
 
-        var settings = new SettingsWindow(window, () => { });
+        var settings = new SettingsView(window, () => { });
         window.ShowInOverlay(settings);
         settings.ShowSection("Appearance");
         Dispatcher.UIThread.RunJobs();

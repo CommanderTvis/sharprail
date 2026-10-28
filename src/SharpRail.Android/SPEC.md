@@ -14,7 +14,7 @@ is the connect screen, and the one page it replaces is Settings › Host.
 
 - Owns: `MainApplication` (starts Avalonia and installs the windowing platform before any activity exists),
   `MainActivity` (the single activity), `ClientSession` (connect screen or workbench, never both),
-  `ConnectWindow`, `HostEndpoint` (`host.json`), the Android half of `SettingsWindow` (`HostSettings.cs`),
+  `ConnectWindow`, `HostEndpoint` (`host.json`), the Android half of `SettingsView` (`HostSettings.cs`),
   `Windowing/` and the project's native-library build hook.
 - Forbidden: an embedded host, a local PTY, a terminal relay child or a served endpoint; a second copy of
   workbench sources; behaviour that only Android has outside this folder, other than a platform test in the
@@ -33,7 +33,7 @@ namespace (`SharpRail.UI`), instead of referencing that project: `SharpRail.UI.c
 for Android. Three files are excluded: `Program.cs`, `Terminal/LoopbackTerminals.cs` and
 `Panels/HostSettings.cs`. The remaining host-serving members are compiled out with `#if !ANDROID`: the desktop
 composition in `App.OnFrameworkInitializationCompleted`, `Workbench.Listener` and the two listener
-subscriptions in `SettingsWindow`. `HostSettings.cs` in this folder supplies the `ServingSettings` partial the
+subscriptions in `SettingsView`. `HostSettings.cs` in this folder supplies the `ServingSettings` partial the
 excluded file otherwise provides.
 
 Consequences the shared sources must keep honouring:

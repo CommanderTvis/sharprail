@@ -19,11 +19,11 @@ internal static class HostServingE2E
         var host = Session();
         var document = app.Find<Control>("FilesTree");
         using var peer = app.NewWindow();
-        var settings = new SettingsWindow(app.Window, () => { }, section: "Host");
-        var other = new SettingsWindow(peer.Window, () => { }, section: "Host");
+        var settings = new SettingsView(app.Window, () => { }, section: "Host");
+        var other = new SettingsView(peer.Window, () => { }, section: "Host");
         app.Window.ShowInOverlay(settings); peer.Window.ShowInOverlay(other); Settle();
-        T Field<T>(SettingsWindow view, string name) where T : Control => view.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
-        void Sections(SettingsWindow view)
+        T Field<T>(SettingsView view, string name) where T : Control => view.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
+        void Sections(SettingsView view)
         {
             var connect = Field<Border>(view, "HostConnectSection");
             var share = Field<Border>(view, "HostShareSection");
@@ -42,7 +42,7 @@ internal static class HostServingE2E
         Sections(settings);
         using (var unavailable = new E2eWorkspace(Path.Combine(root, "host-unavailable-ui")))
         {
-            var unavailableSettings = new SettingsWindow(unavailable.Window, () => { }, section: "Host");
+            var unavailableSettings = new SettingsView(unavailable.Window, () => { }, section: "Host");
             unavailable.Window.ShowInOverlay(unavailableSettings); Settle();
             Sections(unavailableSettings);
             Require(!Field<StackPanel>(unavailableSettings, "HostControls").IsVisible &&
@@ -67,7 +67,7 @@ internal static class HostServingE2E
         using (var client = new E2eWorkspace(app.Workbench.Listener.Endpoint!, app.Workbench.Listener.Token,
             app.Root, Path.Combine(root, "host-remote-profile"), app.Root))
         {
-            var remoteSettings = new SettingsWindow(client.Window, () => { }, section: "Host");
+            var remoteSettings = new SettingsView(client.Window, () => { }, section: "Host");
             client.Window.ShowInOverlay(remoteSettings); Settle();
             Sections(remoteSettings);
             Require(client.Workbench.Remote && !Field<StackPanel>(remoteSettings, "HostControls").IsVisible &&

@@ -987,7 +987,7 @@ internal static class LanguageChecks
     private static void SettingsUi(string fixture)
     {
         using var app = new E2E.E2eWorkspace(Path.Combine(fixture, "lsp-settings"), openFiles: false);
-        var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
+        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
         app.Window.ShowInOverlay(settings);
         T Find<T>(string name) where T : Avalonia.Controls.Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         try

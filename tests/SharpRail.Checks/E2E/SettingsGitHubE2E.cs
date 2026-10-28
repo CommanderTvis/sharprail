@@ -13,10 +13,10 @@ internal static class SettingsGitHubE2E
 {
     internal static void Run(string root)
     {
-        var large = SettingsWindow.FitSize(new Avalonia.Size(1920, 1056));
+        var large = SettingsView.FitSize(new Avalonia.Size(1920, 1056));
         Require(large.Width == 832 && Math.Abs(large.Height - 844.8) < .001,
             "Settings must size itself from the window it opens in.");
-        var small = SettingsWindow.FitSize(new Avalonia.Size(600, 300));
+        var small = SettingsView.FitSize(new Avalonia.Size(600, 300));
         Require(small == new Avalonia.Size(600, 300), "Settings minimum size must yield to a smaller window.");
         using var app = new E2eWorkspace(Path.Combine(root, "settings-github"), openFiles: false);
         Settle(800);
@@ -47,7 +47,7 @@ internal static class SettingsGitHubE2E
 
     private static void PreferencesChord(E2eWorkspace app)
     {
-        SettingsWindow[] Open() => app.Window.OpenSettingsViews.Where(window => window.IsVisible).ToArray();
+        SettingsView[] Open() => app.Window.OpenSettingsViews.Where(window => window.IsVisible).ToArray();
         void Press(RawInputModifiers modifiers)
         {
             app.Window.Focus();

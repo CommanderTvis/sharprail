@@ -52,7 +52,7 @@ internal static class LocalBrowserApprovalFixture
                 }
                 else if (command == "revoke")
                 {
-                    var settings = new SettingsWindow(app.Window, () => { }, section: "Host");
+                    var settings = new SettingsView(app.Window, () => { }, section: "Host");
                     app.Window.ShowInOverlay(settings); Settle();
                     app.Click(LocalBrowserApprovalE2E.Field<Button>(settings, "LocalBrowserRevoke"));
                     settings.Close();

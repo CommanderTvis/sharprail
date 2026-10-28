@@ -250,10 +250,10 @@ internal static class VerticalTabsE2E
         });
     }
 
-    private static T Control<T>(SettingsWindow settings, string name) where T : Control =>
+    private static T Control<T>(SettingsView settings, string name) where T : Control =>
         settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
 
-    private static void SetLayout(E2eWorkspace app, Action<SettingsWindow> change)
+    private static void SetLayout(E2eWorkspace app, Action<SettingsView> change)
     {
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));

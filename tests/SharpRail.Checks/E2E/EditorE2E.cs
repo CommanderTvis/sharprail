@@ -204,14 +204,14 @@ internal static class EditorE2E
         Console.WriteLine("PASS upstream line-width-settings.spec.ts: the file width wraps source and updates an already-mounted editor");
     }
 
-    private static SettingsWindow OpenSettings(E2eWorkspace app)
+    private static SettingsView OpenSettings(E2eWorkspace app)
     {
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OpenSettingsViews.Any());
         return app.Window.OpenSettingsViews.Single();
     }
 
-    private static void CloseSettings(SettingsWindow settings)
+    private static void CloseSettings(SettingsView settings)
     {
         settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SettingsClose").Focus();
         settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);

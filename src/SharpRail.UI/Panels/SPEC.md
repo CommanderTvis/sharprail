@@ -4,7 +4,7 @@ Upstream: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../../STATUS.md#
 
 ## Responsibility
 
-The modal surfaces the workbench opens: the Settings overlay (`SettingsWindow.axaml` / `.cs`, a control shown in the workbench's `OverlayHost`), the shared
+The modal surfaces the workbench opens: the Settings overlay (`SettingsView.axaml` / `.cs`, a control shown in the workbench's `OverlayHost`), the shared
 dialog card (`DialogWindow.axaml` / `.cs`) with its factory `Dialogs`, the Start work dialog
 (`NewWorkspaceDialog`), the workspace search dialog (`SearchDialog`), and the local GitHub CLI probe
 (`GitHubStatus.cs`). Static layout, page templates and
@@ -156,7 +156,7 @@ the other window chords) stay out of reach except the Settings chord, which only
 `ShowSettings(section)` switches section); interface zoom still applies, since Settings sits inside the zoomed layout.
 An owned window was avoided because the macOS native backend re-orders owned windows when the owner is clicked, which made
 Settings flicker. The card is 832 wide and 80% of the window's height (at least 440), clamped to the window and centred in
-it (`SettingsWindow.FitSize`); the close button, Escape and Mod+W dismiss, and `Closed` fires once. A compact workbench keeps its
+it (`SettingsView.FitSize`); the close button, Escape and Mod+W dismiss, and `Closed` fires once. A compact workbench keeps its
 page: the overlay leaves the page bar uncovered, fills the rest with no scrim, and the system Back returns from a section to
 the list and from the list closes Settings.
 Shared-setting writes go to the host and the view converges on the broadcast; a rejection shows “The host

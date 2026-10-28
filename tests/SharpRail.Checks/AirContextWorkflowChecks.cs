@@ -166,7 +166,7 @@ internal static partial class AirContextChecks
         TurnOn(app);
         var plugins = app.PluginRuntime!;
         // A workbench lookup leaves out the Settings overlay, which repeats some of the same controls.
-        T Find<T>(Control owner, string name) where T : Control => owner.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name && (owner is SharpRail.UI.Panels.SettingsWindow || !control.GetLogicalAncestors().OfType<SharpRail.UI.Panels.SettingsWindow>().Any()));
+        T Find<T>(Control owner, string name) where T : Control => owner.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name && (owner is SharpRail.UI.Panels.SettingsView || !control.GetLogicalAncestors().OfType<SharpRail.UI.Panels.SettingsView>().Any()));
         void Button(Control owner, string name) => Find<Button>(owner, name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
         void Toggle()
         {
@@ -212,7 +212,7 @@ internal static partial class AirContextChecks
             Require(rows.All(row => row.IsEffectivelyVisible && row.Y is not null && Math.Abs(row.Y.Value - rows[0].Y!.Value) < 1), $"Index now, Stop and Logs… do not share one row: {string.Join(", ", rows.Select(row => row.Y))}.");
             // The sign-in lives in Settings › Code Intelligence; the workspace section only follows it.
             Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ContextLogin" or "ContextSetup" && control.IsEffectivelyVisible), "The workspace section offers its own sign-in.");
-            var settings = new SharpRail.UI.Panels.SettingsWindow(window, () => { }, section: "Code Intelligence");
+            var settings = new SharpRail.UI.Panels.SettingsView(window, () => { }, section: "Code Intelligence");
             window.ShowInOverlay(settings);
             try
             {

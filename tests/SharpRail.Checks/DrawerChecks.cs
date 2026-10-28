@@ -157,7 +157,7 @@ internal static class DrawerChecks
             "Opening another tab must select it and leave Projects.");
         Click(current);
 
-        var settings = new SettingsWindow(window, () => { });
+        var settings = new SettingsView(window, () => { });
         window.ShowInOverlay(settings);
         Dispatcher.UIThread.RunJobs();
         window.UpdateLayout();
@@ -174,7 +174,7 @@ internal static class DrawerChecks
         leave = new RoutedEventArgs(TopLevel.BackRequestedEvent);
         window.RaiseEvent(leave);
         Require(leave.Handled && !window.OpenSettingsViews.Any(), "Back on the list must close Settings.");
-        settings = new SettingsWindow(window, () => { });
+        settings = new SettingsView(window, () => { });
         window.ShowInOverlay(settings);
         Click(Named<Button>(settings, "Settings_Layout"));
         Require(!settings.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "VerticalCenterTabs" or "VerticalTabsInProjects"),

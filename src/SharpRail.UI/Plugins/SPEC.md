@@ -160,7 +160,7 @@ and roster registration still precede reconciliation, preserving dormant tools a
 - `Editors.OpenAsync` opens in the window showing the file's workspace, falling back to the active window.
 - Attention notifications (W20) go to the workbench's `AttentionNotifications`, which decides whether and
   how they leave the app ([Away notifications](../SPEC.md)); the context adds nothing of its own.
-- Settings sections (W4) are grouped under Settings › Plugins in `SettingsWindow`, indented behind a rule
+- Settings sections (W4) are grouped under Settings › Plugins in `SettingsView`, indented behind a rule
   directly below it, as the fork's navigation nests them; Settings › Plugins is core's own section.
 - Companions (W6) open beside a terminal tab in an embedded split inside the terminal's body, never as a tab of
   their own; the open companion per terminal is window view state. The pane has a top-right close

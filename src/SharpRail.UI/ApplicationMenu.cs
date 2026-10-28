@@ -121,7 +121,7 @@ public static class ApplicationMenu
             new NativeMenuItemSeparator(),
             Item("Host Settings…", Key.None, KeyModifiers.None, () => window.ShowSettings("Host")),
 #if !ANDROID && !BROWSER
-            Item("Connect to a Tailscale Host…", Key.None, KeyModifiers.None, () => Panels.SettingsWindow.ConnectTailscale(window.ShowNotification)),
+            Item("Connect to a Tailscale Host…", Key.None, KeyModifiers.None, () => Panels.SettingsView.ConnectTailscale(window.ShowNotification)),
 #endif
             new NativeMenuItemSeparator(),
             Item("Bring All to Front", Key.None, KeyModifiers.None, () => BringAllToFront(window)),

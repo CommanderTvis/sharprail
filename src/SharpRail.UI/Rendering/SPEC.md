@@ -11,7 +11,7 @@ Markdown source contract: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../
 
 The dependency-light shared layer every workbench surface builds on: the theme brushes and control
 factories in `Ui`, the native Markdown document renderer, the diff viewer, Mermaid rendering and small
-helpers. It references no workbench, docking or host-state code, so any panel, dialog or the Settings window
+helpers. It references no workbench, docking or host-state code, so any panel, dialog or the Settings overlay
 can use it without a cycle. Theme catalogue and colour roles have their own documents:
 [Themes.SPEC.md](Themes.SPEC.md), [COLOR.md](COLOR.md), [SPACING.md](SPACING.md) and
 [TYPOGRAPHY.md](TYPOGRAPHY.md).

@@ -324,9 +324,9 @@ internal static partial class AirContextChecks
     }
 
     /// <summary>Settings › Code Intelligence, where the account section lives.</summary>
-    private static SharpRail.UI.Panels.SettingsWindow OpenSettings(E2E.E2eWorkspace app)
+    private static SharpRail.UI.Panels.SettingsView OpenSettings(E2E.E2eWorkspace app)
     {
-        var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
+        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
         app.Window.ShowInOverlay(settings);
         return settings;
     }

@@ -21,7 +21,7 @@ using SharpRail.UI.State;
 
 namespace SharpRail.UI.Panels;
 
-public sealed partial class SettingsWindow : UserControl
+public sealed partial class SettingsView : UserControl
 {
     private readonly WorkbenchWindow window;
     private readonly ProfileStore profile;
@@ -40,7 +40,7 @@ public sealed partial class SettingsWindow : UserControl
 
     // Section headings read as uppercase muted labels; Avalonia has no text transform, so the text itself is uppercased
     // (static XAML, plugin pages and headings set later alike) wherever the shared settings-heading class is on.
-    static SettingsWindow() => TextBlock.TextProperty.Changed.AddClassHandler<TextBlock>((block, _) => UppercaseHeading(block));
+    static SettingsView() => TextBlock.TextProperty.Changed.AddClassHandler<TextBlock>((block, _) => UppercaseHeading(block));
 
     private static void UppercaseHeading(TextBlock block)
     {
@@ -51,14 +51,14 @@ public sealed partial class SettingsWindow : UserControl
 
     // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [System.Obsolete("Construct SettingsWindow with its arguments.", true)]
-    public SettingsWindow() => throw new System.NotSupportedException("SettingsWindow needs its constructor arguments.");
+    [System.Obsolete("Construct SettingsView with its arguments.", true)]
+    public SettingsView() => throw new System.NotSupportedException("SettingsView needs its constructor arguments.");
 
     /// <summary>
     /// Settings for <paramref name="window"/>. Shared settings round-trip through the host and every
     /// open Settings view re-renders when the snapshot arrives; <paramref name="apply"/> follows local changes.
     /// </summary>
-    public SettingsWindow(WorkbenchWindow window, Action apply, string section = "Appearance")
+    public SettingsView(WorkbenchWindow window, Action apply, string section = "Appearance")
     {
         this.section = section;
         this.window = window; profile = window.Workbench.Profile; state = window.Workbench.State; layout = window.Layout; this.apply = apply;
@@ -75,7 +75,7 @@ public sealed partial class SettingsWindow : UserControl
         SharpRail.Plugins.UI.Kit.Editor.CustomHighlighting.Changed += HighlightingChanged;
         state.Changed += SharedChanged;
         state.HandshakeChanged += CapabilitiesChanged;
-        Name = "SettingsWindow";
+        Name = "SettingsView";
         Focusable = true;
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("SettingsBody")!;

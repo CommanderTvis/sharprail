@@ -7,7 +7,7 @@ using Avalonia.Threading;
 
 namespace SharpRail.UI.Panels;
 
-public sealed partial class SettingsWindow
+public sealed partial class SettingsView
 {
     private void ListenerChanged() => Dispatcher.UIThread.Post(() =>
     {

@@ -9,7 +9,7 @@ using SharpRail.Plugins.UI.Kit.Editor;
 
 namespace SharpRail.UI.Panels;
 
-public sealed partial class SettingsWindow
+public sealed partial class SettingsView
 {
     internal const string HighlightingPrompt = "Use the builtin add-highlighting skill to help me add custom syntax highlighting in SharpRail. Ask which language or file format and filename patterns I want, then prepare a TextMate JSON grammar for Settings > Highlighting.";
 

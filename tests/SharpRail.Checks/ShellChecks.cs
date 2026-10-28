@@ -384,8 +384,8 @@ internal static class ShellChecks
         var settings = window.OpenSettingsViews.Single();
         Require(settings.Section == "Host", "Host Settings opens Settings › Host, opened " + settings.Section);
         var launches = 0;
-        var launcher = SharpRail.UI.Panels.SettingsWindow.ConnectTailscale;
-        SharpRail.UI.Panels.SettingsWindow.ConnectTailscale = _ => launches++;
+        var launcher = SharpRail.UI.Panels.SettingsView.ConnectTailscale;
+        SharpRail.UI.Panels.SettingsView.ConnectTailscale = _ => launches++;
         try
         {
             settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "HostTailscaleConnect").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -393,7 +393,7 @@ internal static class ShellChecks
             Pick(windows, "Connect to a Tailscale Host…");
             Require(launches == 2, "The Tailscale item starts the same client as Settings › Host's button.");
         }
-        finally { SharpRail.UI.Panels.SettingsWindow.ConnectTailscale = launcher; }
+        finally { SharpRail.UI.Panels.SettingsView.ConnectTailscale = launcher; }
 
         // Edit: Find arrives as its chord; the language items follow the focused editor's running server.
         var chords = new List<(Key Key, KeyModifiers Modifiers)>();

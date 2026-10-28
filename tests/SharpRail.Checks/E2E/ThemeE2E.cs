@@ -327,30 +327,30 @@ internal static class ThemeE2E
 
     private static ThemeVariant Variant(string theme) => Themes.Resolve(theme).IsLight ? ThemeVariant.Light : ThemeVariant.Dark;
 
-    private static Button[] Options(SettingsWindow settings) =>
+    private static Button[] Options(SettingsView settings) =>
         [.. settings.GetLogicalDescendants().OfType<Button>().Where(button => button.Tag is ThemeManifest)];
 
-    private static ThemeManifest Active(SettingsWindow settings) =>
+    private static ThemeManifest Active(SettingsView settings) =>
         (ThemeManifest)Options(settings).Single(option => ReferenceEquals(option.Background, Ui.PrimarySubtle)).Tag!;
 
-    private static Button Option(SettingsWindow settings, string name)
+    private static Button Option(SettingsView settings, string name)
     {
         Button? found = null;
         Until(() => (found = settings.GetLogicalDescendants().OfType<Button>().SingleOrDefault(button => button.Name == name && button.IsEffectivelyVisible)) is not null);
         return found!;
     }
 
-    private static string CurrentText(SettingsWindow settings) => string.Join(" ", settings.GetLogicalDescendants().OfType<StackPanel>()
+    private static string CurrentText(SettingsView settings) => string.Join(" ", settings.GetLogicalDescendants().OfType<StackPanel>()
         .Single(panel => panel.Name == "SystemThemeCurrentValue").Children.OfType<TextBlock>().Select(text => text.Text));
 
-    private static SettingsWindow Open(E2eWorkspace app)
+    private static SettingsView Open(E2eWorkspace app)
     {
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
         return app.Window.OpenSettingsViews.Single(window => window.IsVisible);
     }
 
-    private static void Escape(SettingsWindow settings)
+    private static void Escape(SettingsView settings)
     {
         settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SettingsClose").Focus();
         settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);

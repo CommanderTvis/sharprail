@@ -23,7 +23,7 @@ internal static class LayoutSettingsE2E
         CustomPresetsSync(root);
     }
 
-    private static SettingsWindow Open(E2eWorkspace app)
+    private static SettingsView Open(E2eWorkspace app)
     {
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OpenSettingsViews.Any());
@@ -34,11 +34,11 @@ internal static class LayoutSettingsE2E
 
     private static bool Label(Button button, string label) => button.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == label);
 
-    private static Button PresetButton(SettingsWindow settings, string name, string label) =>
+    private static Button PresetButton(SettingsView settings, string name, string label) =>
         settings.GetLogicalDescendants().OfType<Grid>().Single(grid => grid.Name == "Preset_" + name)
             .GetLogicalDescendants().OfType<Button>().Single(button => Label(button, label));
 
-    private static void Respond(E2eWorkspace app, SettingsWindow settings, bool accept)
+    private static void Respond(E2eWorkspace app, SettingsView settings, bool accept)
     {
         Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
         var dialog = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
@@ -195,7 +195,7 @@ internal static class LayoutSettingsE2E
         Console.WriteLine("PASS upstream layout.spec.ts: an accepted side-group overage is grandfathered without allowing further growth");
     }
 
-    private static Grid? PresetRow(SettingsWindow settings, string name) =>
+    private static Grid? PresetRow(SettingsView settings, string name) =>
         settings.GetLogicalDescendants().OfType<Grid>().SingleOrDefault(grid => grid.Name == "Preset_" + name);
 
     private static void CustomPresetsSync(string root)

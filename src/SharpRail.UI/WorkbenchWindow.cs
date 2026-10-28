@@ -928,7 +928,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     public void ShowSettings()
     {
         if (openSettings is { } open) { open.Focus(); return; }
-        ShowInOverlay(new SettingsWindow(this, () =>
+        ShowInOverlay(new SettingsView(this, () =>
         {
             RefreshAppearance(); ReportProfileError();
             foreach (var window in workbench.Windows) window.ApplyTabLayout();
@@ -936,7 +936,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     }
 
     /// <summary>Shows <paramref name="settings"/> in the overlay and tracks it until it closes.</summary>
-    internal void ShowInOverlay(SettingsWindow settings)
+    internal void ShowInOverlay(SettingsView settings)
     {
         var overlay = this.FindControl<OverlayHost>("Overlay")!;
         overlay.Dimmer = Dim;
@@ -945,6 +945,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         settings.Closed += (_, _) => { settingsSection = settings.Section; overlay.Hide(); SettingsShown(null); };
         Grid.SetRowSpan(overlay, compact ? 3 : 4);
         SettingsShown(settings);
-        overlay.Show(settings, settings.Close, compact ? null : SettingsWindow.FitSize, dimmed: !compact);
+        overlay.Show(settings, settings.Close, compact ? null : SettingsView.FitSize, dimmed: !compact);
     }
 }

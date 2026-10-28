@@ -26,7 +26,7 @@ internal static class LocalBrowserApprovalE2E
         var start = listener.StartAsync(IPAddress.Loopback, 0, listener.Token);
         Until(() => start.IsCompleted); start.GetAwaiter().GetResult();
         using var client = new HttpClient { BaseAddress = listener.Endpoint };
-        var settings = new SettingsWindow(app.Window, () => { }, section: "Host");
+        var settings = new SettingsView(app.Window, () => { }, section: "Host");
         app.Window.ShowInOverlay(settings);
         var denied = Task.Run(() => LocalBrowserConnectionChecks.Request(client));
         Until(() => Prompt(app.Window) is not null);

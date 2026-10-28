@@ -247,7 +247,7 @@ internal static class DiscordChecks
         return scope.GetLogicalDescendants().OfType<Control>().Any(item => item.Name == name && item.IsEffectivelyVisible);
     }
 
-    private static SettingsWindow OpenSection(WorkbenchWindow window)
+    private static SettingsView OpenSection(WorkbenchWindow window)
     {
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
@@ -258,14 +258,14 @@ internal static class DiscordChecks
         return settings;
     }
 
-    private static void Close(WorkbenchWindow window, SettingsWindow settings)
+    private static void Close(WorkbenchWindow window, SettingsView settings)
     {
         settings.Close();
         E2eWorkspace.Until(() => !window.OwnedWindows.Any());
     }
 
     // Types into the field and moves focus away, which is when the section saves it.
-    private static void Commit(SettingsWindow settings, string text)
+    private static void Commit(SettingsView settings, string text)
     {
         var field = Find<TextBox>(settings, "DiscordApplicationId");
         field.Focus();

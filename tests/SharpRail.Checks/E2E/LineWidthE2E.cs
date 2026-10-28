@@ -185,7 +185,7 @@ internal static class LineWidthE2E
         Console.WriteLine("PASS upstream line-width-settings.spec.ts: line-width controls validate drafts, converge on broadcasts, and persist");
     }
 
-    internal static void SaveWidth(E2eWorkspace app, SharpRail.UI.Panels.SettingsWindow settings, string kind, int value)
+    internal static void SaveWidth(E2eWorkspace app, SharpRail.UI.Panels.SettingsView settings, string kind, int value)
     {
         var save = Named<Button>(settings, kind + "LineWidthSave");
         Type(app, settings, Named<TextBox>(settings, kind + "LineWidthInput"), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -194,7 +194,7 @@ internal static class LineWidthE2E
         Until(() => !save.IsEnabled);
     }
 
-    private static void Type(E2eWorkspace app, SharpRail.UI.Panels.SettingsWindow settings, TextBox input, string text)
+    private static void Type(E2eWorkspace app, SharpRail.UI.Panels.SettingsView settings, TextBox input, string text)
     {
         app.Click(input);
         input.SelectAll();
@@ -208,7 +208,7 @@ internal static class LineWidthE2E
         return window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
     }
 
-    private static SettingsWindow OpenLineWidth(E2eWorkspace app)
+    private static SettingsView OpenLineWidth(E2eWorkspace app)
     {
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OpenSettingsViews.Any());
@@ -217,7 +217,7 @@ internal static class LineWidthE2E
         return settings;
     }
 
-    private static void Close(SettingsWindow settings)
+    private static void Close(SettingsView settings)
     {
         Named<Button>(settings, "SettingsClose").Focus();
         settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);

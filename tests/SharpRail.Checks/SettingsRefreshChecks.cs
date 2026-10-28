@@ -21,7 +21,7 @@ internal static class SettingsRefreshChecks
         var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2eTerminals.Plain);
         window.Show();
         Until(() => window.WorkspaceMounted);
-        var settings = new SettingsWindow(window, () => { });
+        var settings = new SettingsView(window, () => { });
         window.ShowInOverlay(settings);
         try
         {

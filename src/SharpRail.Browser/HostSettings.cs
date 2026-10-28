@@ -5,7 +5,7 @@ using SharpRail.UI.Browser;
 namespace SharpRail.UI.Panels;
 
 // Settings › Host on a client: the host it is connected to, and the way back to the connect screen.
-public sealed partial class SettingsWindow
+public sealed partial class SettingsView
 {
     private Control ServingSettings()
     {

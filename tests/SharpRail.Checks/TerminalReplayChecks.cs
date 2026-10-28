@@ -89,7 +89,7 @@ internal static partial class TerminalHostChecks
     internal static void ReplaySetting(string root)
     {
         using var app = new E2E.E2eWorkspace(Path.Combine(root, "replay-setting"), openFiles: false);
-        var settings = new SettingsWindow(app.Window, () => { });
+        var settings = new SettingsView(app.Window, () => { });
         app.Window.ShowInOverlay(settings);
         settings.ShowSection("Terminal");
         try
