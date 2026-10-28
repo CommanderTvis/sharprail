@@ -155,9 +155,10 @@ internal static class RailRetentionChecks
         VerifyRemoval(app, second, first);
         VerifyRemoval(app, first, app.Root);
         retained = RailControls(app);
-        _ = CreateWorkspaceViaDialog(app);
+        var created = CreateWorkspaceViaDialog(app);
         Require(retained.All(control => Controls(app).Contains(control)), "Creating a workspace must insert rows without replacing survivors.");
         Console.WriteLine("PASS rail creation, rename, inactive/active removal retain surviving controls, focus, menus and scroll position");
+        VerifySwitchScroll(app, app.Root, created);
         void Publish(string[] paths) => app.State!.ChangeWorkspaces(current => current.Where(workspace => workspace.ProjectRoot != other)
             .Concat(paths.Select(path => new WorkspaceRecord(Guid.NewGuid().ToString(), other,
                 path == other ? WorkspaceKinds.Default : WorkspaceKinds.External, path, path == other ? "main" : "", "main"))));
@@ -259,6 +260,43 @@ internal static class RailRetentionChecks
             CloseMenu(menu);
         }
         finally { held.TrySetResult(); }
+    }
+
+    /// <summary>Switching workspaces moves a scrolled rail along one path: its offset is never written back toward where it was.</summary>
+    private static void VerifySwitchScroll(E2eWorkspace app, params string[] targets)
+    {
+        var scroller = Controls(app).OfType<ScrollViewer>().Single(item => item.Content is StackPanel && item.Parent is Grid { Name: "ProjectsPanel" });
+        foreach (var target in targets)
+        {
+            app.Click(Select(app, target));
+            Until(() => Active(app, target) && app.Find<TextBlock>("BranchLabel").Text is { Length: > 0 });
+            for (var index = 0; index < 4; index++)
+            {
+                File.WriteAllText(Path.Combine(app.Window.WorkspaceRoot, $"rail-tab-{index}.txt"), "tab");
+                app.Window.Layout.Open(new($"file:rail-tab-{index}.txt", $"rail-tab-{index}.txt", "file", $"rail-tab-{index}.txt"), true);
+            }
+            Settle(500);
+            var middle = Math.Max(0, (scroller.Extent.Height - scroller.Viewport.Height) / 2);
+            scroller.Offset = new Vector(0, middle);
+            Settle(100);
+            var other = targets.First(path => path != target);
+            var seen = new List<double> { scroller.Offset.Y };
+            using var watch = scroller.GetObservable(ScrollViewer.OffsetProperty).Subscribe(new Recorder(offset => seen.Add(offset.Y)));
+            app.Click(Select(app, other));
+            Until(() => Active(app, other) && app.Find<TextBlock>("BranchLabel").Text is { Length: > 0 });
+            Settle(500);
+            var path = seen.Zip(seen.Skip(1), (a, b) => Math.Sign(Math.Round(b - a, 2))).Where(sign => sign != 0).ToList();
+            Require(path.Distinct().Count() <= 1,
+                $"Switching to {Path.GetFileName(other)} must move the rail's scroll offset one way, not back and forth ({string.Join(" > ", seen.Select(value => Math.Round(value, 1)))}).");
+        }
+        Console.WriteLine("PASS switching workspaces never moves the rail's scroll offset back and forth");
+    }
+
+    private sealed class Recorder(Action<Vector> on) : IObserver<Vector>
+    {
+        public void OnNext(Vector value) => on(value);
+        public void OnError(Exception error) { }
+        public void OnCompleted() { }
     }
 
     private static List<Grid> Rows(E2eWorkspace app) => Controls(app).OfType<Grid>().Where(item => item.Name == "WorkspaceItem").ToList();

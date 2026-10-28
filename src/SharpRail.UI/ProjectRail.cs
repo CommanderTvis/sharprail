@@ -246,6 +246,12 @@ public sealed partial class WorkbenchWindow
         Ui.Place(panel, toolbar);
         // The gutter belongs inside the scroller, beside the rows' trailing buttons.
         projectsTree = new StackPanel { Name = "ProjectsTree", Spacing = 4, Margin = new Thickness(0, 0, 12, 0) };
+        // A tab strip in a rail row reveals its active tab inside the strip; the request must not also scroll the rail,
+        // whose offset belongs to KeepRailAnchor alone.
+        projectsTree.AddHandler(Control.RequestBringIntoViewEvent, (_, e) =>
+        {
+            if (e.Source is Visual source && source.GetVisualAncestors().Any(ancestor => ancestor is Control { Name: "WorkspaceTabs" })) e.Handled = true;
+        });
         var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
         var add = Ui.IconButton("add", $"Start work ({Shortcut("N")})", () => _ = CreateWorkspaceDialogAsync());
         add.Name = "AddWorkspace";

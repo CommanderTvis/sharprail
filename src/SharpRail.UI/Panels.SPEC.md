@@ -101,7 +101,9 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   removed or changes kind or lock; selection, branch text and what Git allows are restyled in place, so
   rows, focus and pointer targets survive a mount, a Git refresh and a checkout. A reconcile keeps the topmost
   visible row where it was: removing or adding rows above the viewport shifts the scroll offset by their height
-  instead of moving the visible content (clamped to the new extent).
+  instead of moving the visible content (clamped to the new extent). That anchor is the only writer of the
+  rail's offset: a tab strip inside a row reveals its active tab within the strip and its bring-into-view request
+  stops at the rail, so a switch never scrolls the rail out and back.
 - Workspace rows carry no `+N −M` change badge: the rail is for navigation and identity; change detail
   belongs to Changes.
 - A hover- and focus-revealed kebab and right-click open the same workspace menu: “Open in” (editors from
