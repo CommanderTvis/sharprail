@@ -186,8 +186,10 @@ could not save this change: …” inline and re-renders from host state.
   complete-pair writes cannot overwrite one another with stale sibling slots. The page
   re-renders when the device appearance changes. All catalogue, resolution and pair logic comes from
   `Rendering/Themes` (see Rendering/Themes.SPEC.md). The interface font size is an app preference below.
-- Line width has File and Markdown groups, each a 40–240 integer field with a `symbols` suffix and an
-  explicit Save, plus an independent “Limit lines to this width” switch. Defaults are 120 and 78, bounded.
+- Line width is one section with a one-sentence intro and two compact `settings-row` rows, File and Markdown, each on
+  one line: name with a muted detail, a 40–240 integer field with a `symbols` suffix, and a `Limit lines` switch,
+  in columns that line up across the rows. The field commits on Enter or focus loss (no Save button); an invalid
+  draft is marked and reverts on focus loss, Escape reverts it. Defaults are 120 and 78, bounded.
   Invalid drafts stay local with a range error; Escape restores the host value; Enter saves when valid. A
   broadcast updates an untouched field and the switch in place, but keeps an edited draft.
 - Layout lists Balanced, Focus, Review and the named custom presets. Custom save, rename and delete are shared
@@ -236,9 +238,8 @@ could not save this change: …” inline and re-renders from host state.
 
 - The fork's Settings redesign (Settings redesign, #710). The rail is not grouped into Agent, Interface and
   System, and pages keep their own control shapes rather than shared row, group, segmented-control and notice
-  primitives. Free-text values (Line width) keep an explicit Save instead of the one auto-save pattern: Enter
-  or blur saves a valid, changed value once, an invalid draft stays visible with its range message and is
-  never sent, and Escape reverts the draft before it dismisses the window. Appearance has no Theme mode
+  primitives. Free-text values (Line width) commit on Enter or blur with no Save button: a valid, changed value is saved
+  once, an invalid draft is marked and never sent, and Escape reverts the draft before it dismisses the window. Appearance has no Theme mode
   (System, Light, Dark) and Contrast (Default, High) controls with the specific theme behind a collapsed
   disclosure, and the editor line width is not a group of Appearance. Layout does not mark the card whose
   geometry matches the live frame as applied (derived by comparison, never stored, with its Apply disabled),

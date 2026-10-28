@@ -63,30 +63,34 @@ internal static class LineWidthE2E
         {
             var settings = OpenLineWidth(app);
             var fileInput = Named<TextBox>(settings, "FileLineWidthInput");
-            var fileSave = Named<Button>(settings, "FileLineWidthSave");
             var markdownInput = Named<TextBox>(settings, "MarkdownLineWidthInput");
             Require(fileInput.Text == "120" && markdownInput.Text == "78", "Line widths must start at the reference defaults.");
             Require(Named<Switch>(settings, "FileLineWidthBounded").IsChecked == true &&
                 Named<Switch>(settings, "MarkdownLineWidthBounded").IsChecked == true, "Both widths must start bounded.");
+            var fileRow = Named<Border>(settings, "FileLineWidthControl");
+            var markdownRow = Named<Border>(settings, "MarkdownLineWidthControl");
+            settings.UpdateLayout();
+            Require(fileRow.Bounds.Height + markdownRow.Bounds.Height < 120,
+                $"The two line-width rows must stay compact, got {fileRow.Bounds.Height + markdownRow.Bounds.Height}.");
+            double X(Control control) => Avalonia.VisualExtensions.TranslatePoint(control, default, settings)!.Value.X;
+            Require(Math.Abs(X(fileInput) - X(markdownInput)) < 0.5 &&
+                Math.Abs(X(Named<Switch>(settings, "FileLineWidthBounded")) - X(Named<Switch>(settings, "MarkdownLineWidthBounded"))) < 0.5,
+                "File and Markdown controls must line up.");
 
             Type(app, settings, fileInput, "90");
-            Require(fileSave.IsEnabled, "A valid changed draft must enable Save.");
             settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             settings.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
             Until(() => fileInput.Text == "120");
-            Require(settings.IsVisible && !fileSave.IsEnabled, "Escape must revert the draft without closing Settings.");
+            Require(settings.IsVisible, "Escape must revert the draft without closing Settings.");
 
             Type(app, settings, fileInput, "39");
-            var error = Named<TextBlock>(settings, "FileLineWidthError");
-            Require(fileInput.Classes.Contains("invalid") && error.IsEffectivelyVisible && error.Text == "Enter a whole number from 40 to 240.",
-                "An out-of-range draft must be marked invalid with the reference message.");
-            Require(!fileSave.IsEnabled, "An invalid draft must disable Save.");
+            Require(fileInput.Classes.Contains("invalid"), "An out-of-range draft must be marked invalid.");
 
             Type(app, settings, fileInput, "80");
-            Require(fileSave.IsEnabled && !error.IsVisible, "A valid draft must clear the error and enable Save.");
+            Require(!fileInput.Classes.Contains("invalid"), "A valid draft must clear the invalid mark.");
             settings.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
             settings.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            Until(() => !fileSave.IsEnabled && app.Window.Preferences.FileLineWidth == 80);
+            Until(() => app.Window.Preferences.FileLineWidth == 80);
             SaveWidth(app, settings, "Markdown", 60);
 
             app.Click(Named<Switch>(settings, "MarkdownLineWidthBounded"));
@@ -146,7 +150,7 @@ internal static class LineWidthE2E
             Type(app, settings, markdownInput, "80");
             settings.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
             settings.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            Until(() => !Named<Button>(settings, "MarkdownLineWidthSave").IsEnabled && app.Window.Preferences.MarkdownLineWidth == 80);
+            Until(() => app.Window.Preferences.MarkdownLineWidth == 80);
             SaveWidth(app, settings, "File", 160);
 
             hold!.Arm();
@@ -187,11 +191,10 @@ internal static class LineWidthE2E
 
     internal static void SaveWidth(E2eWorkspace app, SharpRail.UI.Panels.SettingsView settings, string kind, int value)
     {
-        var save = Named<Button>(settings, kind + "LineWidthSave");
         Type(app, settings, Named<TextBox>(settings, kind + "LineWidthInput"), value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        Require(save.IsEnabled, "Save must be enabled for a valid changed width.");
-        app.Click(save);
-        Until(() => !save.IsEnabled);
+        settings.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+        settings.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+        Until(() => kind == "File" ? app.Window.Preferences.FileLineWidth == value : app.Window.Preferences.MarkdownLineWidth == value);
     }
 
     private static void Type(E2eWorkspace app, SharpRail.UI.Panels.SettingsView settings, TextBox input, string text)

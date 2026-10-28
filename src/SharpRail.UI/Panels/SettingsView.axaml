@@ -217,41 +217,26 @@
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="LineWidthPage">
-      <StackPanel Spacing="16">
-        <StackPanel Spacing="8">
-          <TextBlock Text="Line width" Classes="settings-heading" />
-          <TextBlock Text="Set the visual wrap column for source files and rendered Markdown. These preferences are shared by every window and client of this host." Classes="settings-description" />
-        </StackPanel>
+      <StackPanel Spacing="8">
+        <TextBlock Text="Line width" Classes="settings-heading" />
+        <TextBlock Text="Wrap column for source files and rendered Markdown, shared by every window and client of this host." Classes="settings-description" />
         <ContentControl x:Name="FileLineWidthHost" />
         <ContentControl x:Name="MarkdownLineWidthHost" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="LineWidthControl">
-      <StackPanel Spacing="12">
-        <Border Height="1" Background="{x:Static rendering:Ui.BorderBrush}" />
-        <StackPanel Spacing="4">
-          <TextBlock x:Name="LineWidthTitle" Classes="settings-heading" />
-          <TextBlock x:Name="LineWidthDescription" Classes="settings-description" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <StackPanel Spacing="4">
-            <TextBlock Text="Line width" Classes="settings-description" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <TextBox x:Name="LineWidthInput" Width="96" />
-              <TextBlock Text="symbols" Classes="settings-description" VerticalAlignment="Center" />
-            </StackPanel>
+      <Border Classes="settings-row compact">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock x:Name="LineWidthTitle" Classes="settings-label" />
+            <TextBlock x:Name="LineWidthDescription" Classes="settings-description" />
           </StackPanel>
-          <Button x:Name="LineWidthSave" Content="Save" VerticalAlignment="Bottom" />
-        </StackPanel>
-        <TextBlock x:Name="LineWidthError" Text="Enter a whole number from 40 to 240." FontSize="12"
-                   Foreground="{x:Static rendering:Ui.Danger}" IsVisible="False" />
-        <Border Classes="settings-row">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <TextBlock Text="Limit lines to this width" Classes="settings-label" />
-            <rendering:Switch x:Name="LineWidthBounded" Grid.Column="1" Label="Limit lines to this width" VerticalAlignment="Center" />
-          </Grid>
-        </Border>
-      </StackPanel>
+          <TextBox x:Name="LineWidthInput" Grid.Column="1" Width="72" VerticalAlignment="Center" />
+          <TextBlock Text="symbols" Grid.Column="2" Width="48" Classes="settings-description" VerticalAlignment="Center" />
+          <TextBlock Text="Limit lines" Grid.Column="3" Width="64" Classes="settings-description" VerticalAlignment="Center" />
+          <rendering:Switch x:Name="LineWidthBounded" Grid.Column="4" Label="Limit lines to this width" ToolTip.Tip="Limit lines to this width" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
     </DataTemplate>
     <DataTemplate x:Key="LayoutPage">
       <StackPanel Spacing="8">
@@ -401,6 +386,9 @@
       <Setter Property="Padding" Value="0,12" />
       <Setter Property="BorderThickness" Value="0,0,0,1" />
       <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.BorderBrush}" />
+    </Style>
+    <Style Selector="Border.settings-row.compact">
+      <Setter Property="Padding" Value="0,4" />
     </Style>
     <Style Selector="TextBlock.settings-description">
       <Setter Property="FontSize" Value="12" />

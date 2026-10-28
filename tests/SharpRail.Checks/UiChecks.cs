@@ -524,8 +524,9 @@ internal static class UiChecks
         fontSize.Value = 14;
         liveSettings.ShowSection("Line width");
         var previewWidth = ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth;
-        Find<TextBox>(liveSettings, "MarkdownLineWidthInput").Text = "60";
-        Find<Button>(liveSettings, "MarkdownLineWidthSave").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        var markdownWidth = Find<TextBox>(liveSettings, "MarkdownLineWidthInput");
+        markdownWidth.Text = "60";
+        markdownWidth.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter });
         double PreviewWidth() { restored.UpdateLayout(); return ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth; }
         // Measured against the width itself: the preview may still be at the font size chosen a moment ago.
         Require(previewWidth > 0, "The Markdown preview has no line width.");

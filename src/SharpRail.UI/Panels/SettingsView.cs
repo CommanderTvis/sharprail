@@ -563,8 +563,8 @@ public sealed partial class SettingsView : UserControl
         return panel;
     }
 
-    // A draft input saved only by Save or Enter, as in the reference's line-width controls. Both the
-    // width and the toggle show the host's value until its broadcast confirms a change.
+    // A draft input committed by Enter or when it loses focus (an invalid draft then reverts); Escape reverts it.
+    // Both the width and the toggle show the host's value until its broadcast confirms a change.
     private Control LineWidthControl(string kind, string description, Func<int> value, Func<bool> bounded)
     {
         var key = kind.ToLowerInvariant();
@@ -574,11 +574,9 @@ public sealed partial class SettingsView : UserControl
         PageControl<TextBlock>(control, "LineWidthTitle").Text = kind;
         PageControl<TextBlock>(control, "LineWidthDescription").Text = description;
         var input = PageControl<TextBox>(control, "LineWidthInput");
-        var save = PageControl<Button>(control, "LineWidthSave");
-        var error = PageControl<TextBlock>(control, "LineWidthError");
         var limit = PageControl<Switch>(control, "LineWidthBounded");
-        input.Name = kind + "LineWidthInput"; save.Name = kind + "LineWidthSave";
-        error.Name = kind + "LineWidthError"; limit.Name = kind + "LineWidthBounded";
+        input.Name = kind + "LineWidthInput"; limit.Name = kind + "LineWidthBounded";
+        ToolTip.SetTip(input, "Enter a whole number from 40 to 240.");
         AutomationProperties.SetName(input, kind + " line width");
         AutomationProperties.SetName(limit, "Limit " + kind.ToLowerInvariant() + " lines to this width");
         string Current() => value().ToString(CultureInfo.InvariantCulture);
@@ -587,9 +585,7 @@ public sealed partial class SettingsView : UserControl
         void Validate()
         {
             var parsed = Parsed();
-            error.IsVisible = parsed is null;
             input.Classes.Set("invalid", parsed is null);
-            save.IsEnabled = parsed is not null && parsed != value();
         }
         void Commit()
         {
@@ -603,7 +599,7 @@ public sealed partial class SettingsView : UserControl
             if (e.Key == Key.Escape) { input.Text = Current(); e.Handled = true; }
             else if (e.Key == Key.Enter) { Commit(); e.Handled = true; }
         };
-        save.Click += (_, _) => Commit();
+        input.LostFocus += (_, _) => { Commit(); if (Parsed() is null) input.Text = Current(); Validate(); };
         limit.IsChecked = bounded();
         limit.CheckedChange += requested =>
         {
