@@ -83,9 +83,10 @@ internal sealed partial class AirSettingsView : UserControl
             generation++;
             hostWindow = TopLevel.GetTopLevel(this) as Window;
             if (hostWindow is not null) hostWindow.Activated += Activated;
-            _ = CheckAsync(true);
             observers.Add(context.OnSettings<AirSettings>(next => { var was = lastSource; ApplySettings(next); _ = RefreshAsync(true, next.Source != was); }));
             observers.Add(context.Subscribe(AirGovernanceContract.Changed, next => { status = next; Render(); }, new AirStatusParams()));
+            // After the observers: a check with none registered is skipped, so the on-open check must follow them.
+            _ = CheckAsync(true);
         };
         DetachedFromVisualTree += (_, _) =>
         {
