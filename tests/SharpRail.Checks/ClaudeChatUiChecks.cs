@@ -460,7 +460,8 @@ internal static class ClaudeChatUiChecks
     {
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Model = "opus", Effort = "high", PermissionMode = "default", Cwd = "/work/some/long/project/directory-name", Advisor = "opus" } };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
-        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        // The environment plugin mounts its row first; each plugin's row is hidden until it has something to show, as in the running app; three of them stand in for the plugins that offer one.
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent) { WorkspaceChips = () => [.. Enumerable.Range(0, 3).Select(_ => (Control)new ContentControl { Name = "PluginMount_env", Content = new WrapPanel { Name = "TerminalEnvironmentChips", Margin = new Thickness(8, 0), IsVisible = false } })] }, Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
         try

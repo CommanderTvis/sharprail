@@ -477,7 +477,13 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             (currentMode?.Description ?? env.Agent.DescribeMode(header.PermissionMode ?? "default").Description) + ". Click to change, or press Shift+Tab to cycle.",
             flyout => ModePanel(header, flyout)));
         if (header.PermissionMode == "plan") Add(TerminalFacts.FactChip("plan", "Plan mode", $"{env.Agent.Short} plans and asks before changing anything"));
-        foreach (var row in environmentChips ??= env.WorkspaceChips()) { row.Margin = new Thickness(0); Add(row); }
+        foreach (var row in environmentChips ??= env.WorkspaceChips())
+        {
+            row.Margin = new Thickness(0);
+            // A plugin's row hides itself until it has chips; its empty mount would still take a wrap gap, pushing the first row in.
+            if (row is ContentControl { Content: Control inner }) row.Bind(IsVisibleProperty, inner.GetObservable(IsVisibleProperty));
+            Add(row);
+        }
         // The facts the terminal shows beside the pickers: the launch choices, the folder, the IDE switch and attach. A fact chip is read-only.
         // They give way with the width (see the density levels): the read-only facts at level 2, attach and the IDE switch at level 3 (the switch stays in the "+" popup).
         if (header.Advisor is { Length: > 0 } advisor) Add(TerminalFacts.FactChip("advisor", "advisor " + advisor, "Started with --advisor"));
