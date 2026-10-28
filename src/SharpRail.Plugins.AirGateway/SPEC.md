@@ -1,15 +1,15 @@
 ---
-id: module-plugin-air-governance
+id: module-plugin-air-gateway
 type: module-design
 status: draft
-title: Air Governance — Codex and Claude Code through JetBrains Central
+title: Air Gateway — Codex and Claude Code through JetBrains Central
 parent: module-plugin-api
 depends-on: [module-plugin-api, module-plugin-ui-kit]
 references: [submodule-host-plugins, submodule-ui-plugins, submodule-ui-panels]
 tags: [plugins, central, governance]
 ---
 
-# Air Governance — Codex and Claude Code through JetBrains Central
+# Air Gateway — Codex and Claude Code through JetBrains Central
 
 Upstream: central-integration.md, packages/shared/src/jbcentral.ts (adapter), packages/server/src/auth/jbcentral.ts
 (lifecycle), apps/web/src/panels/JetBrainsAiCard.tsx (card) and e2e/fixtures/bin/central (fixture) @ the fork's
@@ -18,13 +18,15 @@ this plugin keeps the fork's detection, sign-in, proxy, update and access-source
 extension with Central's `central run <agent>`, one launch at a time, for Codex and Claude Code. omp, which
 `central run` (1.13.0) cannot start, gets Central's Pi wire through its environment (see Mechanism).
 
+Air Gateway was called Air Governance until JetBrains renamed the product; the plugin id `air-governance` is migrated to `air-gateway` when host state loads (HostState.SPEC.md), and the fork's and STATUS.md's older entries keep the old name.
+
 ## Responsibility
 
-Lets the user choose where Codex and Claude Code get their AI, from Settings › Air Governance:
+Lets the user choose where Codex and Claude Code get their AI, from Settings › Air Gateway:
 
 - Direct (default): each agent keeps its own account. The plugin contributes nothing.
 - JetBrains AI through Central: each enabled agent (Claude Code, Codex, omp; all on by default) is started through
-  JetBrains Air governance by the user's own `central` CLI.
+  JetBrains Air Gateway by the user's own `central` CLI.
 
 The chosen source and the per-agent switches are the plugin's settings namespace (`source`, `claudeCode`, `codex`, `omp`),
 persisted by the host and effective at once for the next launch. The plugin ships disabled, since governing agents is
@@ -63,9 +65,9 @@ OpenAI and Vertex routes are not mirrored, and an omp model from another provide
 `ANTHROPIC_OAUTH_TOKEN` in the environment takes precedence in omp over the key. Nothing under `~/.pi` or `~/.omp` is
 written and `-e` is not passed. When the integration is missing, its wire cannot be read, or the UI has not yet
 received the status, the governed omp launch runs a command that cannot exist
-(`air-governance-needs-central-pi-integration--run-central-add-pi`), failing in the shell like a missing Central; on
-Windows, whose shells get no contributed environment, it runs `air-governance-cannot-govern-omp-on-windows`. The pane
-then says "Air Governance needs Central's Pi integration: run `central add pi`" with the command and a Copy button;
+(`air-gateway-needs-central-pi-integration--run-central-add-pi`), failing in the shell like a missing Central; on
+Windows, whose shells get no contributed environment, it runs `air-gateway-cannot-govern-omp-on-windows`. The pane
+then says "Air Gateway needs Central's Pi integration: run `central add pi`" with the command and a Copy button;
 the plugin never runs `central add`.
 
 Central chooses its own AI access source and proxy; `central access <id>` (switch, then `central proxy restart`)
@@ -103,7 +105,7 @@ The numbers are the status channel's credits (above), so the host that runs `cen
 remote one; the host stamps each successful read with its time (`ReadAt`). The tooltip names the governed agents,
 the plan's remaining and total credits, the top-up when nonzero, the next refill and when the credits were read
 (the licence name and email stay off the status channel, so the plan is not named). Below a tenth of the plan left,
-top-up included, the item uses the warning colour. Clicking it opens Settings › Air Governance.
+top-up included, the item uses the warning colour. Clicking it opens Settings › Air Gateway.
 
 Reads are the status method with the probe (so the same `--version`, `status` and `limit --json` as the pane), one
 shared reader per activation however many windows show the item: when an item attaches or its window activates,
@@ -114,7 +116,7 @@ disabled. Status pushes (the pane's checks, actions and the agents' Account read
 Before the first read nothing is shown; after a read without credits the item shows `credits ?` in the warning
 colour with the reason in the tooltip (not installed, outdated, cannot be used, not signed in, sign-in unknown, no
 credits reported, or the call's error). A compact (phone) workbench shows no header items; the credits stay in
-Settings › Air Governance.
+Settings › Air Gateway.
 
 ## Account for governed agents
 
@@ -123,7 +125,7 @@ Claude Code call it from their Account tab while their launches are governed, an
 `central limit --json` (the read above), then returns the `email` and `licenseName` of that output, the credits and
 the refill time. They are passed on for display only, never stored or logged, and never put on the plugin's status
 channel. An unavailable Central is reported as one actionable message instead of numbers: not installed, cannot be
-used, not signed in (sign in under Settings › Air Governance), outdated, or credits unreadable. The UI-side
+used, not signed in (sign in under Settings › Air Gateway), outdated, or credits unreadable. The UI-side
 contribution carries no account.
 
 ## Listing access sources
@@ -171,7 +173,7 @@ replies. Mutating calls are serialised and publish a busy status on the `status`
 
 ## Verification and limits
 
-`--air-governance` runs the host and pane checks against a fake `central` modelled on the fork's fixture (version,
+`--air-gateway` runs the host and pane checks against a fake `central` modelled on the fork's fixture (version,
 status rows, `login export`, access switching, proxy, login, update) plus a `run` that records its argv, under a throwaway home: detection,
 the contributions per source and toggle (omp's wire, proxy start and missing-integration block included; `--omp`
 runs the governed omp line through a real shell), the Claude and Codex launch lines executed by a real shell so prompts with

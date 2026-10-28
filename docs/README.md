@@ -4,7 +4,7 @@
 
 - [Install](install.md): downloads, Homebrew and WinGet for each platform.
 - [Using SharpRail](using.md): projects, workspaces, editor, diffs and terminals.
-- [Agents](agents.md): agent panes, worktrees, environments, code intelligence, omp and Air Governance.
+- [Agents](agents.md): agent panes, worktrees, environments, code intelligence, omp and Air Gateway.
 - [Plugins](plugins.md): what ships and how to add your own.
 - [Terminal rendering](terminal.md): how terminals draw, with a comparison against Ghostty.
 

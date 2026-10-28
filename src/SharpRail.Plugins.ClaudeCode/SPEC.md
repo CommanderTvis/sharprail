@@ -682,7 +682,7 @@ offer all pass the executable word of the command through `AgentLaunchCompositio
 contribution reaches every new or revived terminal. A custom command that is not the `claude` executable is never
 rewritten, and a disabled contributor changes nothing.
 
-A host-side contribution may also carry the account the launch runs under (`Account`, Plugin API H18; Air Governance with Central chosen and Claude Code enabled). The Account method then returns it instead of Claude's account and usage and does not run `claude auth status`, `--version` or `/usage`; the tab shows the source's identity, credits and refill time, or its actionable problem. Ungoverned launches are unchanged. The terminal fact chips show token totals and the plan, not vendor quota, so they are unchanged.
+A host-side contribution may also carry the account the launch runs under (`Account`, Plugin API H18; Air Gateway with Central chosen and Claude Code enabled). The Account method then returns it instead of Claude's account and usage and does not run `claude auth status`, `--version` or `/usage`; the tab shows the source's identity, credits and refill time, or its actionable problem. Ungoverned launches are unchanged. The terminal fact chips show token totals and the plan, not vendor quota, so they are unchanged.
 
 The appendix is strict: it says an agent MUST use `lsp_navigate` for symbol questions before grep or whole-file reads, MUST run
 `lsp_diagnostics` with `paths` on every edited file before declaring done (a build is no substitute), and CAN and MUST start any

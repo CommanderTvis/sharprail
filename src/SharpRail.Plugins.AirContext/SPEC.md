@@ -16,7 +16,7 @@ Code Intelligence page.
 
 ## Plugin shape
 
-The plugin id is `air-context`. It ships disabled, like Air Governance. Enabled, it still does nothing by itself: the CLI is not downloaded, no terms are read from the
+The plugin id is `air-context`. It ships disabled, like Air Gateway. Enabled, it still does nothing by itself: the CLI is not downloaded, no terms are read from the
 network and no workspace is indexed until the user acts in the plugin's sections of the Code Intelligence pages. Settings › Plugins is the only switch for the plugin as a
 whole. Disabled, the plugin serves no tools, contributes no instructions to agent sessions, shows no section anywhere, accepts no consent calls,
 makes no network requests and starts no process; disabling stops running indexing and searches through the activation's disposer, and

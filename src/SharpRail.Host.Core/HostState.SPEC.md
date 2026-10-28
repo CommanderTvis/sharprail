@@ -19,6 +19,8 @@ At local store construction, previously absent values take the embedded desktop 
 otherwise false. Existing saved values always win, including false; migration persists only when values change.
 This startup migration does not depend on the profile's older `StateMigrated` marker.
 
+Plugin ids can be renamed: loading older state moves the `air-governance` plugin namespace (enabled state and settings) to `air-gateway`, unless an `air-gateway` namespace already exists, and the old key leaves the file in the same save, so it runs once. Plugin data is keyed by id only in that namespace, so nothing else moves. The wire shape is unchanged (ids are data), so the protocol version was not raised.
+
 The state every client of one host shares: the open project list and recents, shared settings
 (appearance mode, fixed theme and system light/dark pair, file and Markdown line widths with their bound
 switches, the terminal replay size), the custom layout-preset catalog, workspace display labels, each workspace's

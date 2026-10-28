@@ -12,7 +12,7 @@ Claude Code and Codex get their own side panes. For Claude Code the pane has fou
 - Settings edits user, project or local settings with suggested values. Every change is shown as a diff to review before
   anything is written.
 - Capabilities lists what is configured, and the CLI plugin and marketplace commands show the exact command first.
-- Account shows your usage windows and the CLI version. When Air Governance launches Claude Code, it shows that
+- Account shows your usage windows and the CLI version. When Air Gateway launches Claude Code, it shows that
   source's account instead.
 
 <img src="screenshots/claude-code-context.png" alt="The Claude Code pane's Context tab with instruction files, system prompt, tools and skills, each with its token count" width="360">
@@ -91,11 +91,11 @@ discussion develops.
   default profile.
 - Settings › omp can import your existing sign-in.
 
-## Air Governance
+## Air Gateway
 
-[JetBrains Air Governance](https://www.jetbrains.com/air/governance/) can serve Claude Code, Codex and omp instead of
+[JetBrains Air Gateway](https://www.jetbrains.com/air/gateway/) can serve Claude Code, Codex and omp instead of
 their own accounts.
 
-- Choose the source in Settings › Air Governance.
+- Choose the source in Settings › Air Gateway.
 - SharpRail starts each agent through your own `central` CLI and edits none of the agents' configuration.
 - For omp, only Anthropic models are governed, and Central's Pi integration (`central add pi`) must be installed.

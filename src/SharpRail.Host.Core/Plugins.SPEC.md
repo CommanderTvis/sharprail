@@ -84,7 +84,7 @@ manifest.EnabledByDefault : false)`, ANDed with every dependency being known, no
 declared wire version, and itself desired, computed dependency-first over the registry's topological order so a
 dependency's desiredness is resolved before its dependent reads it. External plugins never auto-enable. Changing a builtin's
 `EnabledByDefault` needs no migration: profiles with an explicit stored `enabled` keep it, profiles without one
-follow the new default. A
+follow the new default. Renaming a builtin's id moves its stored namespace in `HostStateStore` once at load (Air Governance's `air-governance` became `air-gateway`; see HostState.SPEC.md); plugin RPC routes are keyed by the id, so old and new ids never share a route. A
 dependency cycle refuses every plugin the topological order could not place (those in the cycle and anything
 transitively depending on them). Activations walk the order forward; deactivations walk it in reverse. Desired
 state is a snapshot taken at the start of the pass, so the activation loop re-checks each candidate's

@@ -58,7 +58,7 @@ Diagrams and option comparisons.<br><br>
 
 - <img src="docs/icons/claude.svg" alt="" height="20" align="top"> [Claude Code](https://code.claude.com/docs/en/overview) and <picture><source media="(prefers-color-scheme: dark)" srcset="docs/icons/codex-dark.svg"><img src="docs/icons/codex-light.svg" alt="" height="20" align="top"></picture> [Codex](https://github.com/openai/codex) get launchers, resume and status in workspace terminals.
 - <picture><source media="(prefers-color-scheme: dark)" srcset="docs/icons/omp-dark.svg"><img src="docs/icons/omp-light.svg" alt="" height="20" align="top"></picture> [omp](https://omp.sh) has very early support.
-- All three can run through [JetBrains Air Governance](https://www.jetbrains.com/air/governance/).
+- All three can run through [JetBrains Air Gateway](https://www.jetbrains.com/air/gateway/).
 
 ## Install
 

@@ -276,7 +276,7 @@ The bundled file-type icon set is [core UI functionality](../../SharpRail.Plugin
 
 ## Builtins disabled by default
 
-Builtin plugins whose manifest sets `EnabledByDefault = false` (Claude Code, Codex, Discord, Air Governance, Air
+Builtin plugins whose manifest sets `EnabledByDefault = false` (Claude Code, Codex, Discord, Air Gateway, Air
 Context, Tailscale, [Specs](../../SharpRail.Plugins.SpecDialect/SPEC.md), [Blueprint](../../SharpRail.Plugins.Blueprint/SPEC.md)
 and the [EPUB Reader](../../SharpRail.Plugins.Epub/SPEC.md)) are listed in Settings › Plugins but
 contribute nothing until enabled there. The EPUB Reader is the builtin file viewer for `.epub`: while it is

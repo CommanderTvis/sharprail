@@ -73,10 +73,10 @@ No real omp run backs them; the checks use a fixture `omp`.
   as an `omp` agent record and clears it when the process leaves; zombie (`Z`) rows are skipped. A record of another
   agent kind is left alone. The search does not descend through another SharpRail app (process name `SharpRail.UI`/`SharpRail`), so an agent in a nested SharpRail's terminals never marks the outer tab; a SharpRail run as `dotnet SharpRail.UI.dll` is not recognised by name. If an omp build runs under another process name (for example its runtime's), it is not
   detected; this is not verified against a real install.
-- Air Governance can govern omp (its `omp` switch, with Central chosen): Central's `central run` (1.13.0) has no omp
-  agent, so Air Governance contributes Central's Pi wire as `ANTHROPIC_BASE_URL`/`ANTHROPIC_API_KEY` and a proxy start
+- Air Gateway can govern omp (its `omp` switch, with Central chosen): Central's `central run` (1.13.0) has no omp
+  agent, so Air Gateway contributes Central's Pi wire as `ANTHROPIC_BASE_URL`/`ANTHROPIC_API_KEY` and a proxy start
   before omp, read from Central's Pi integration (`central add pi`); without it the launch fails in the shell. Only
-  Anthropic models are governed. Details and the real-run evidence are in Air Governance's SPEC; the launch line
+  Anthropic models are governed. Details and the real-run evidence are in Air Gateway's SPEC; the launch line
   applies the contribution like any other.
 - Mark: the manifest icon is `asset:omp.svg`, omp's π mark from the omp.sh site header redrawn as one `currentColor`
   path, so Settings › omp, the plugin card, the side tool, its pane tab and omp terminal tabs (workbench and Projects)

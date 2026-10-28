@@ -13,7 +13,7 @@ Plugins without restarting the app, where they are grouped by the categories bel
 | Codex | Off | Runs OpenAI Codex in the terminal with live status and SharpRail's MCP tools. |
 | omp | Off | Very early support. Runs [omp](https://omp.sh) in the terminal with SharpRail's MCP tools and shows its context files. |
 | Air Context | Off | Semantic code search through [JetBrains Air Context](https://www.jetbrains.com/air/context/). Indexing is cloud processing that you enable per project. |
-| Air Governance | Off | Starts Claude Code, Codex and omp through [JetBrains Air Governance](https://www.jetbrains.com/air/governance/) with the Central CLI, or leaves them on their own accounts. |
+| Air Gateway | Off | Starts Claude Code, Codex and omp through [JetBrains Air Gateway](https://www.jetbrains.com/air/gateway/) with the Central CLI, or leaves them on their own accounts. |
 
 ### Environment
 
@@ -80,7 +80,7 @@ Swift run the SDK's own executable when it is allowed for that server.
 - Android includes the builtin plugin interfaces. Plugin UI beyond the default workbench has not yet been verified on a
   device.
 
-[Agents](agents.md) explains how the agent plugins, omp's profile and Air Governance work.
+[Agents](agents.md) explains how the agent plugins, omp's profile and Air Gateway work.
 
 ## External plugins
 
