@@ -85,6 +85,8 @@ internal static class WorkspaceUnreadE2E
         Rect Within(Control control) => new(control.TranslatePoint(default, app.Window) ?? default, control.Bounds.Size);
         Require(rowBounds.Contains(Within(Dot(app, other))), "The workspace dot must sit inside its row.");
         Require(!Within(Dot(app, other)).Intersects(Within(row.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceMenu"))), "The workspace dot must not overlap the actions menu.");
+        var nameBox = row.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "WorkspaceName");
+        Require(!Within(Dot(app, other)).Intersects(Within(nameBox)), "The workspace dot must have its own column, clear of the name: dot " + Within(Dot(app, other)) + ", name " + Within(nameBox));
         var tabRow = app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceTabPreview" && Equals(button.Tag, failedTab));
         var tabDot = tabRow.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "TerminalFailedMark");
         Require(tabDot.IsVisible && (ToolTip.GetTip(tabDot) as string ?? "").Contains("Claude Code"), "The failed agent's tab row must carry a named dot.");

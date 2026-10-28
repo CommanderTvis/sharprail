@@ -151,7 +151,8 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   creation stays disabled for it, since there is no repository for a worktree to attach to.
 
 - Workspace rows show an unread dot after the name (ThinkRail #770, `WorkspaceUnread.cs`): success for a finished or
-  hand-marked result, warning for an agent waiting for input, danger for a failure, with the reason as tooltip.
+  hand-marked result, warning for an agent waiting for input, danger for a failure, with the reason as tooltip. The dot has its own
+  Auto column right of the name, vertically centred on the row, so a wrapping name never extends under it.
   The workspace menu (rail row and header) offers Mark as unread or Mark as read for the current mark; see
   HostState.SPEC.md "Unread workspaces".
 - The unread dot sits in its own right-hand column of the workspace row, centred on the whole row and clear of the

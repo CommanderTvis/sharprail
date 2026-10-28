@@ -402,7 +402,7 @@ public sealed partial class WorkbenchWindow
         var name = WorkspaceName(worktree.Path);
         var active = !atHome && worktree.Path == workspaceRoot;
         var color = active ? Ui.Accent : Ui.Muted;
-        var contents = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
+        var contents = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
         var icon = Ui.Icon(worktree.Kind switch { WorkspaceKinds.Default => "homeFill", WorkspaceKinds.External => "folderOpen", _ => "gitBranch" }, color, 14);
         Ui.Place(contents, icon);
         var labels = new StackPanel();
