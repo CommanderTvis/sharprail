@@ -320,6 +320,8 @@ public sealed record ChatHeader(ChatStatus Status)
     public string? Advisor { get; init; }
     /// <summary>Whether the child was launched with <c>--chrome</c>.</summary>
     public bool Chrome { get; init; }
+    /// <summary>Whether the host serves <see cref="ChatContract.SendQueuedNow"/>; the view offers "Send now" on a queued message only then.</summary>
+    public bool CanSendQueuedNow { get; init; }
 }
 
 /// <summary>One push on a chat's channel. Every payload carries the key fields the channel is scoped by.</summary>
@@ -459,6 +461,8 @@ public static class ChatContract
     public static readonly PluginMethod<ChatQueuedParams, Ack> Dequeue = new("chatDequeue");
     /// <summary>Replaces a queued message's text: cancels it and sends the new text as a queued message, as one step; fails when the CLI already took the old one up.</summary>
     public static readonly PluginMethod<ChatEditQueuedParams, Ack> EditQueued = new("chatEditQueued");
+    /// <summary>Interrupts the running turn (when there is one) and sends this queued message next, ahead of the other queued ones, which keep their order; fails when the CLI already took the message up.</summary>
+    public static readonly PluginMethod<ChatQueuedParams, Ack> SendQueuedNow = new("chatSendQueuedNow");
     public static readonly PluginMethod<ChatRewindParams, Ack> Rewind = new("chatRewind");
     /// <summary>A dry run of the code rewind to a prompt (<c>rewind_files</c> with <c>dry_run</c>): what would change.</summary>
     public static readonly PluginMethod<ChatRewindParams, ChatRewindPreview> RewindPreview = new("chatRewindPreview");
@@ -475,5 +479,5 @@ public static class ChatContract
     public const int OutputLimit = 16 * 1024;
 
     public static readonly IReadOnlyList<PluginMethodSpec> Methods =
-        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files];
+        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files];
 }

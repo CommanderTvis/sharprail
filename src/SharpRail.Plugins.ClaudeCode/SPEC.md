@@ -130,7 +130,9 @@ stream costs one push per item per interval.
 Queue. A prompt sent during a turn is a queued user item until the CLI echoes it. `chatDequeue` cancels it with the
 `cancel_async_message` control request (keyed by the prompt's uuid) and drops the item with a remove push; the CLI answers
 `cancelled:false` when it already took the prompt up, and the call then fails and the item stays. `chatEditQueued` is that
-cancel followed by sending the new text as one host step, so the old prompt never runs.
+cancel followed by sending the new text as one host step, so the old prompt never runs. `chatSendQueuedNow` (offered by the
+header flag `CanSendQueuedNow`, which this host sets) cancels every queued prompt in order, interrupts the turn when one runs, sends the
+chosen prompt first and then queues the others again behind it in their old order; it fails when the CLI already took the chosen prompt up.
 
 Questions. An `AskUserQuestion` `can_use_tool` request becomes a question item (questions with options, multi-select, a
 header; "Other" is free text the view puts in the answer), not a permission. `chatAnswerQuestion` replies with
@@ -467,7 +469,7 @@ The chat view follows ThinkRail's web chat (`apps/web/src/chat`) in layout and v
 | `promptImages`, `imageAttachment` | image attachments show a thumbnail chip decoded off the UI thread; paste and drop add files and images | |
 | `ModelEffortPicker`, `ModelSelector`, `ThinkingSelector`, `pickerGroups`, `modelVisibility`, `modelPicker`, `useModelPreferences` | `ChatView.Pickers.cs` and `ModelPicks`: a searchable list (upstream's fuzzy score) with Favorites, Recent and families as groups, a star and a hide control per model, hidden models behind a toggle, arrow keys and Enter; effort levels with the current one checked | the group is the host's provider when it names one, else the family; the thinking selector offers the levels the current model reports; a change under way (`ChatHeader.Pending`) shows on its chip; favourites, recents and hidden models are stored through the plugin's client-local preference, never in a project |
 | `SkillsButton`, `SkillsDialog` | Skills button listing `ChatHeader.Commands` whose source is a skill | picking inserts the command |
-| `QueueStrip` | strip above the composer listing the user items marked queued, each with Edit (inline, then Send) and Remove | `chatDequeue` and `chatEditQueued`; a message the CLI already took up stays and the strip says so; a remove push drops an item from the list, its group and its thread |
+| `QueueStrip` | strip above the composer listing the user items marked queued, each with Send now (only when the header has `CanSendQueuedNow`), Edit (inline, then Send) and Remove | `chatSendQueuedNow`, `chatDequeue` and `chatEditQueued`; a message the CLI already took up stays and the strip says so; a remove push drops an item from the list, its group and its thread |
 | `SessionStatsBar`, `StreamIndicator`, context pie (`sv0`) | stats text, the context pie and "Working" with elapsed seconds (or the CLI's activity word) in the footer | from `ChatHeader.Usage` and `Activity`; a UI timer, no I/O |
 | `ChatHeader` | the title and a past-conversations flyout (a `Search sessions…` box over the host's sessions, newest first; `Loading sessions…`, `No sessions yet`, `No sessions found`); there is no New chat button, a new conversation comes from the `/` menu or Start work | the title is not editable: the contract has no rename; no Web tab, groups or archive |
 | `HistoryOverlay`, `useHistorySearch` | a full overlay: prompts first, Tab zooms to messages and a preview, arrows and Enter jump to the row, Esc closes | scoped to this chat; the contract has no wider search |

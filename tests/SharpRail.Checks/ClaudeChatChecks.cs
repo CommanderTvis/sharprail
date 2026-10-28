@@ -368,6 +368,24 @@ internal static class ClaudeChatChecks
             }
             catch (PluginCallException) { }
             Require((await fixture.View(chat)).Items.Any(item => item.Id == taken.Id), "A message the CLI already took up stays, and the cancel is refused.");
+            // Send now: interrupts the running turn, sends the chosen queued message first and queues the others again behind it in order.
+            await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "queued alpha"));
+            await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "queued beta"));
+            var beforeNow = await fixture.View(chat);
+            var beta = beforeNow.Items.OfType<ChatUserItem>().Single(item => item.Text == "queued beta");
+            Require(beforeNow.Header.CanSendQueuedNow && beforeNow.Header.Status == ChatStatus.Running, "The host offers send-now, and a turn runs.");
+            await fixture.Call(ChatContract.SendQueuedNow, new ChatQueuedParams(project, chat, beta.Id));
+            var afterNow = await fixture.View(chat);
+            var texts = afterNow.Items.OfType<ChatUserItem>().Select(item => item.Text).Where(text => text is "queued alpha" or "queued beta").ToList();
+            Require(texts.SequenceEqual(["queued beta", "queued alpha"]) && afterNow.Items.All(item => item.Id != beta.Id) &&
+                afterNow.Items.OfType<ChatAssistantItem>().All(item => !item.Streaming),
+                "Send now interrupts the turn, then sends the chosen message ahead of the other queued ones: " + string.Join(", ", texts));
+            try
+            {
+                await fixture.Call(ChatContract.SendQueuedNow, new ChatQueuedParams(project, chat, taken.Id));
+                throw new InvalidOperationException("A taken message was sent now.");
+            }
+            catch (PluginCallException) { }
             await fixture.Call(ChatContract.Interrupt, new ChatKey(project, chat));
             var interrupted = await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle, "the interrupt");
             Require(interrupted.Items.OfType<ChatAssistantItem>().All(item => !item.Streaming), "An interrupt settles the streaming item.");

@@ -109,6 +109,11 @@ internal sealed class ClaudeChatHost
             await Session(p.WorkspaceId, p.ChatId).EditQueuedAsync(p.ItemId, p.Text);
             return new Ack();
         });
+        context.Method(ChatContract.SendQueuedNow, async (p, _, _) =>
+        {
+            await Session(p.WorkspaceId, p.ChatId).SendQueuedNowAsync(p.ItemId);
+            return new Ack();
+        });
         context.Method(ChatContract.Rewind, async (p, _, _) =>
         {
             await Session(p.WorkspaceId, p.ChatId).RewindAsync(p.Uuid, p.Files == true);

@@ -138,7 +138,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         }
         var launch = deps.Launch(current, spawn);
         var advisorAt = launch.Arguments.ToList().IndexOf("--advisor");
-        lock (gate) folder.SetHeader(header => header with { Advisor = advisorAt >= 0 && advisorAt + 1 < launch.Arguments.Count ? launch.Arguments[advisorAt + 1] : null, Chrome = launch.Arguments.Contains("--chrome") });
+        lock (gate) folder.SetHeader(header => header with { Advisor = advisorAt >= 0 && advisorAt + 1 < launch.Arguments.Count ? launch.Arguments[advisorAt + 1] : null, Chrome = launch.Arguments.Contains("--chrome"), CanSendQueuedNow = true });
         lock (gate) folder.AllowBypass = current.PermissionMode == "bypassPermissions" || launch.Arguments.Any(argument => argument is "--dangerously-skip-permissions" or "--allow-dangerously-skip-permissions");
         var started = ChatProcess.Start(launch.Executable, launch.Arguments, launch.Environment, launch.Cwd,
             line => OnLineAsync(mine, line), text => OnError(mine, text));
@@ -657,6 +657,29 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     {
         var old = await TakeQueuedAsync(itemId);
         await SendAsync(text, old.Attachments);
+    }
+
+    /// <summary>
+    /// Sends a queued message at once: every queued prompt is cancelled (in order), the turn is interrupted when one runs, then the chosen
+    /// prompt goes first and the others are queued again behind it in their old order. A prompt the CLI took up meanwhile stays where it is.
+    /// </summary>
+    public async Task SendQueuedNowAsync(string itemId)
+    {
+        List<string> order;
+        lock (gate) order = [.. folder.Items.OfType<ChatUserItem>().Where(item => item.Queued && item.Uuid is not null).Select(item => item.Id)];
+        if (!order.Contains(itemId)) throw new InvalidOperationException("That message is not queued.");
+        var chosen = await TakeQueuedAsync(itemId);
+        var others = new List<ChatUserItem>();
+        foreach (var id in order.Where(id => id != itemId))
+        {
+            try { others.Add(await TakeQueuedAsync(id)); }
+            catch (InvalidOperationException) { }
+        }
+        bool running;
+        lock (gate) running = folder.Header.Status is ChatStatus.Running or ChatStatus.AwaitingPermission;
+        if (running) await InterruptAsync();
+        await SendAsync(chosen.Text, chosen.Attachments);
+        foreach (var other in others) await SendAsync(other.Text, other.Attachments);
     }
 
     public string? ItemDetail(string itemId)

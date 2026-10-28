@@ -428,7 +428,7 @@ internal sealed partial class ChatView
     private void ShowQueue()
     {
         var queued = transcript.QueuedMessages();
-        var signature = string.Join("\n", queued.Select(message => message.Id + "\t" + message.Text)) + "|" + editingQueued + "|" + string.Join(",", queueNotes.Keys);
+        var signature = string.Join("\n", queued.Select(message => message.Id + "\t" + message.Text)) + "|" + (transcript.Header?.CanSendQueuedNow == true) + "|" + editingQueued + "|" + string.Join(",", queueNotes.Keys);
         if (signature == queueSignature) return;
         queueSignature = signature;
         queue.Children.Clear();
@@ -453,9 +453,19 @@ internal sealed partial class ChatView
                 var edit = Ui.IconButton("pencil", "Edit the queued message", () => { editingQueued = message.Id; ShowQueue(); });
                 edit.Name = "ChatQueueEditButton";
                 DockPanel.SetDock(remove, Dock.Right); DockPanel.SetDock(edit, Dock.Right);
+                Button? sendNowButton = null;
+                if (transcript.Header?.CanSendQueuedNow == true)
+                {
+                    var sendNow = Ui.IconButton("arrowRight", "Send now", () => _ = SendQueuedNow(message));
+                    sendNow.Name = "ChatQueueSendNow";
+                    DockPanel.SetDock(sendNow, Dock.Right);
+                    sendNowButton = sendNow;
+                }
                 var line = new TextBlock { Foreground = Ui.Muted, FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Text = "Queued: " + message.Text.ReplaceLineEndings(" ") };
                 ToolTip.SetTip(line, message.Text + " \u2014 runs after the agent finishes");
-                row.Children.Add(remove); row.Children.Add(edit); row.Children.Add(line);
+                row.Children.Add(remove); row.Children.Add(edit);
+                if (sendNowButton is not null) row.Children.Add(sendNowButton);
+                row.Children.Add(line);
             }
             queue.Children.Add(row);
             if (queueNotes.TryGetValue(message.Id, out var note))
@@ -476,6 +486,21 @@ internal sealed partial class ChatView
         catch (Exception error) when (error is not OperationCanceledException)
         {
             queueNotes[message.Id] = $"{env.Agent.Name} already took this message up, so it can no longer be removed.";
+            env.Notify(PluginNotificationKind.Error, "The message is already running", ChatErrors.Text(error));
+        }
+        ShowQueue();
+    }
+
+    internal async Task SendQueuedNow(ChatUserItem message)
+    {
+        try
+        {
+            await env.Client.RequestAsync(ChatContract.SendQueuedNow, new ChatQueuedParams(workspaceId, chatId, message.Id));
+            queueNotes.Remove(message.Id);
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            queueNotes[message.Id] = $"{env.Agent.Name} already took this message up, so it can no longer be sent now.";
             env.Notify(PluginNotificationKind.Error, "The message is already running", ChatErrors.Text(error));
         }
         ShowQueue();

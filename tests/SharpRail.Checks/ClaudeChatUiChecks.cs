@@ -76,6 +76,7 @@ internal static class ClaudeChatUiChecks
                 ChatFilesParams { Query: var query } => new ChatFileList([.. new[] { "src/Alpha.cs", "src/Beta.cs", "README.md" }.Where(path => path.Contains(query, StringComparison.OrdinalIgnoreCase))]),
                 ChatAnswerParams answer => Answered(answer),
                 ChatAnswerQuestionParams asked => Asked(asked),
+                ChatQueuedParams now when method.Name == ChatContract.SendQueuedNow.Name => SentNow(now),
                 ChatQueuedParams queued => Queued(queued, null),
                 ChatEditQueuedParams edited => Queued(new ChatQueuedParams(edited.WorkspaceId, edited.ChatId, edited.ItemId), edited.Text),
                 ChatRewindParams rewind when method.Name == ChatContract.Rewind.Name => Rewound(rewind),
@@ -100,6 +101,10 @@ internal static class ClaudeChatUiChecks
             })));
             return new Ack();
         }
+
+        public List<string> SentNowIds { get; } = [];
+
+        private Ack SentNow(ChatQueuedParams now) { SentNowIds.Add(now.ItemId); return new Ack(); }
 
         private Ack Queued(ChatQueuedParams queued, string? replacement)
         {
@@ -2223,7 +2228,7 @@ internal static class ClaudeChatUiChecks
             Require(levels[0] <= 2 && levels.Zip(levels.Skip(1), (x, y) => y >= x).All(ok => ok) && levels[^1] >= 2, $"The footer collapses monotonically as width shrinks ({string.Join(",", levels)}).");
             window.Width = 900; Frame(window); Frame(window);
             // While the turn runs the footer offers Stop beside Queue, shows the working time, the session stats and the queued messages.
-            chat.Push(new ChatHeaderPush(Workspace, Chat, chat.Header with { Status = ChatStatus.Running, Usage = new ChatUsage { Input = 1200, Output = 300, CostUsd = 0.5, ContextTokens = 40_000, ContextWindow = 200_000 } }));
+            chat.Push(new ChatHeaderPush(Workspace, Chat, chat.Header with { Status = ChatStatus.Running, CanSendQueuedNow = false, Usage = new ChatUsage { Input = 1200, Output = 300, CostUsd = 0.5, ContextTokens = 40_000, ContextWindow = 200_000 } }));
             chat.Push(Item(new ChatUserItem("queued", 40, "do this next") { Queued = true }));
             Frame(window);
             var statsText = view.StatsText;
@@ -2235,6 +2240,14 @@ internal static class ClaudeChatUiChecks
             Require(view.StopButton.IsVisible && statsText is not null && statsText.Contains("$0.500", StringComparison.Ordinal) && statsText.Contains("20.0%/200k", StringComparison.Ordinal) && statsText.Contains('\u25B0'),
                 "Stop appears while the chat runs, and the footer's stats show cost and a context bar: " + statsText);
             var queueStrip = view.GetVisualDescendants().OfType<StackPanel>().First(panel => panel.Name == "ChatQueue");
+            Require(!queueStrip.GetVisualDescendants().OfType<Button>().Any(button => button.Name == "ChatQueueSendNow"), "A host without send-now gets no Send now button.");
+            chat.Push(new ChatHeaderPush(Workspace, Chat, transcript.Header! with { CanSendQueuedNow = true }));
+            Frame(window);
+            var sendNowButton = queueStrip.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "ChatQueueSendNow");
+            Require(Avalonia.Automation.AutomationProperties.GetName(sendNowButton) == "Send now" && sendNowButton.TranslatePoint(default, queueStrip)!.Value.X < queueStrip.GetVisualDescendants().OfType<Button>().First(button => button.Name == "ChatQueueEditButton").TranslatePoint(default, queueStrip)!.Value.X && sendNowButton.Width == 32,
+                "Send now sits left of Edit and Remove with the same size and an accessible name.");
+            sendNowButton.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            E2eWorkspace.Until(() => chat.SentNowIds.SequenceEqual(["queued"]));
             Require(queueStrip.IsVisible && queueStrip.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("do this next", StringComparison.Ordinal) == true),
                 "Messages queued behind the turn are listed above the composer.");
 

@@ -22,8 +22,8 @@ one today; the seams below are what a second agent protocol (the Agent Client Pr
 ## Semantics
 
 The semantics of the records and the view are those of the Claude Code chat (`src/SharpRail.Plugins.ClaudeCode/SPEC.md`, "Chat mode"
-sections). A host that cannot do something the contract offers (queue editing, rewind, fork, permission requests) answers that method with
-an error and never produces the items that would make the view offer it: with no message `Uuid` there are no rewind or fork buttons, and
+sections). A host that cannot do something the contract offers (queue editing, send-now on a queued message, rewind, fork, permission requests) answers that method with
+an error and never produces the items that would make the view offer it: without the header flag `CanSendQueuedNow` there is no Send now button, with no message `Uuid` there are no rewind or fork buttons, and
 with no permission or question items there is nothing to approve. The view's wording is neutral where it cannot know the agent
 ("Assistant"); anything else comes from the `ChatAgent`.
 
