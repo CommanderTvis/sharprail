@@ -344,9 +344,12 @@ public sealed partial class WorkbenchWindow
     private async Task ExpandProjectAsync(string project)
     {
         WorkspaceCatalog catalog;
+        var request = projectRequest;
         try { catalog = await Task.Run(async () => await host.ListWorkspacesAsync(project, lifetime.Token), lifetime.Token); }
         catch (OperationCanceledException) { return; }
         catch (Exception error) { Console.Error.WriteLine("Workspaces could not be listed: " + error.Message); return; }
+        // A switch made while the listing ran wins: the expand must not pull the window back to this project.
+        if (request != projectRequest) return;
         if (!Collapsed(project) && !HasWorkspaceRows(project, project == projectRoot ? RailWorkspaces(project) : catalog.Workspaces)) await OpenProjectAsync(project);
     }
 
