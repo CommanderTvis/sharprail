@@ -8,7 +8,7 @@ public sealed class AirGatewayUI : PluginUIModule
 {
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
-        context.SettingsSection(new("Air Gateway", "asset:air-gateway.svg", () => new AirSettingsView(context)));
+        context.SettingsSection(new("Air Gateway", "", () => new AirSettingsView(context)));
         // Contributions are read synchronously on the UI thread, so the path Central was found at comes from the host's
         // status channel rather than the file system; until it arrives the bare name is used and the shell resolves it.
         // Central's Pi wire is likewise known only from the channel; until then a governed omp launch fails closed.

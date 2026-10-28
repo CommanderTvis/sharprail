@@ -169,7 +169,9 @@ internal static class PluginsSettingsScrollChecks
         {
             var manifests = SharpRail.Host.Core.Plugins.BuiltinPlugins.All.Select(item => item.Manifest).ToArray();
             var panel = new StackPanel();
-            var icons = manifests.Select(manifest =>
+            // The user wants Air Gateway without an icon anywhere, so it is the one builtin allowed to declare none.
+            const string Iconless = "air-gateway";
+            var icons = manifests.Where(manifest => manifest.Id != Iconless).Select(manifest =>
             {
                 var entry = new PluginRosterEntry(manifest.Id, manifest.Label, manifest.Icon, manifest.Version, manifest.WireVersion, PluginOrigin.Builtin, PluginStatus.Active) { Assets = manifest.Assets };
                 var icon = PluginIcons.Resolve(entry.Icon, entry, null, 16);
@@ -181,11 +183,19 @@ internal static class PluginsSettingsScrollChecks
             static bool Drawn(Control icon) => icon.GetVisualDescendants().OfType<Image>().Any(image => image.Source is not null);
             foreach (var (manifest, icon) in icons)
             {
+                Require(manifest.Icon.Length > 0, $"Builtin plugin {manifest.Id} must declare an icon.");
                 if (manifest.Icon.StartsWith("asset:", StringComparison.Ordinal))
                     E2eWorkspace.Until(() => { Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); return Drawn(icon); });
                 else Require(PluginIcons.Glyph(manifest.Icon) != PluginIcons.Fallback || manifest.Icon.Contains("puzzle", StringComparison.Ordinal),
                     $"Builtin plugin {manifest.Id} names icon {manifest.Icon}, which draws the generic puzzle glyph.");
             }
+            var github = manifests.Single(manifest => manifest.Id == "github");
+            Require(github.Icon == "asset:github.svg" && github.Assets is { } githubAssets && File.Exists(Path.Combine(AppContext.BaseDirectory, "plugins", "github", githubAssets, "github.svg")),
+                "GitHub must declare its mark and ship it with the host.");
+            var air = manifests.Single(manifest => manifest.Id == Iconless);
+            var airMark = PluginIcons.Resolve(air.Icon, null, Ui.Muted);
+            Require(air.Icon.Length == 0 && air.Assets is null && !airMark.GetVisualDescendants().OfType<Image>().Any() && airMark is Border { Width: 16, Height: 16 },
+                "Air Gateway declares no icon, and its Settings row and Plugins card keep an empty slot of the icon size.");
             foreach (var (manifest, host) in SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries)
             {
                 var server = (SharpRail.Plugins.Api.Host.LanguageServerPlugin)host!;
@@ -194,7 +204,7 @@ internal static class PluginsSettingsScrollChecks
                     $"{manifest.Id}'s plugin icon must be the mark Code Intelligence shows for {server.Spec.Name}.");
             }
             window.Close();
-            Console.WriteLine($"PASS plugins settings: all {manifests.Length} builtin plugin cards draw an icon; language servers show their Code Intelligence marks");
+            Console.WriteLine($"PASS plugins settings: all {icons.Length} builtin plugin cards draw an icon, Air Gateway none; language servers show their Code Intelligence marks");
         }
         finally { PluginIcons.ReadAsset = read; }
     }

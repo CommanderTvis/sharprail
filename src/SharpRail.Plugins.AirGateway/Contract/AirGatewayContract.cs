@@ -166,12 +166,11 @@ public static class AirGatewayContract
     public static readonly PluginContract Contract = PluginContract.Create<AirSettings>(Id, 1,
         [Status, SignIn, SignOut, StartProxy, Update, AccessSources, SwitchAccess], [Changed]);
 
-    public static readonly PluginManifest Manifest = new(Id, "Air Gateway", "asset:air-gateway.svg", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Air Gateway", "", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Agents,
         Description = "Starts Codex and Claude Code through JetBrains Air Gateway with the Central CLI, per launch, or leaves them on their own accounts.",
         EnabledByDefault = false,
-        Assets = "assets",
         Host = "SharpRail.Plugins.AirGateway.Host.dll",
         Ui = "SharpRail.Plugins.AirGateway.UI.dll"
     };

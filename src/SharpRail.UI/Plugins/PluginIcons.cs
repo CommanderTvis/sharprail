@@ -102,6 +102,8 @@ public static class PluginIcons
     /// <summary>A control for the icon; an asset is drawn once read, with the supplied fallback if unavailable.</summary>
     public static Control Resolve(string? name, PluginRosterEntry? entry, IBrush? color = null, double size = 16, string fallbackGlyph = Fallback)
     {
+        // A plugin without an icon keeps the slot, so its label lines up with the other rows.
+        if (string.IsNullOrEmpty(name)) return new Border { Width = size, Height = size };
         if (name is null || !name.StartsWith(AssetPrefix, StringComparison.Ordinal) || entry?.Assets is not { } assets || ReadAsset is not { } read)
             return Ui.Icon(name?.StartsWith(AssetPrefix, StringComparison.Ordinal) == true ? fallbackGlyph : Glyph(name), color, size);
         var host = new AssetIcon(name, fallbackGlyph, color, size);

@@ -3,6 +3,5 @@
     <ProjectReference Include="../Contract/SharpRail.Plugins.AirGateway.csproj" />
     <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
-    <Content Include="../assets/**" LinkBase="plugins/air-gateway/assets" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
