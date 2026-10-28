@@ -13,7 +13,7 @@ tags: [plugins, claude-code]
 
 Port source: `6401ccae8`, `packages/plugin-claude-code/SPEC.md` and its host/web modules in
 CommanderTvis's ThinkRail fork. This plugin integrates the external Claude Code terminal program;
-it does not provide Pi execution. A launch is presented either as that terminal program or, in chat mode (below), as a conversation over the CLI's own headless protocol; the plugin has no AI chat of its own. It is disabled by default.
+it does not provide Pi execution. A launch is presented either as that terminal program or, in chat mode (below), as a conversation over the CLI's own headless protocol; other AI chat components are not restricted and are added as their own plugins. It is disabled by default.
 
 ## Boundary
 

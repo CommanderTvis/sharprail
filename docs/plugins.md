@@ -75,7 +75,7 @@ Swift run the SDK's own executable when it is allowed for that server.
 
 - The agent plugins integrate external command-line tools, which must be installed on the machine running the
   workspace.
-- Agent sessions run in terminals, with no separate chat UI.
+- Agent sessions run in terminals; the Claude Code plugin can also present a session as a chat tab.
 - PDFs preview with built-in support and need no plugin.
 - Android includes the builtin plugin interfaces. Plugin UI beyond the default workbench has not yet been verified on a
   device.

@@ -4,7 +4,7 @@ Ports fork `packages/plugin-codex` at `177abd30c`, with hook report fields refre
 fork tip `1c7c90a5a` (workspace naming and its prompt/last-message report fields were removed), and
 session-scoped context and launch instructions from fork tip `867bffea5` (wire version 3).
 Disabled by default. Host and UI communicate only through plugin contracts. Pi subscription
-invitation and bundled AI chat are excluded by the SharpRail product contract.
+invitation is excluded by the SharpRail product contract; a Codex chat component is not ported yet.
 
 ## Acceptance contract
 

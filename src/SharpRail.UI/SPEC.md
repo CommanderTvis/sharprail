@@ -270,7 +270,7 @@ host state: it shows what the window already knows and calls the same methods as
   remembered per project in the profile), Reopen, or Delete remote branch. While the branch and origin differ the
   step stays with Remote. Merge follows the provider's mergeability, never approvals. The status is read when the branch
   changes, at most every 15 seconds on Git refreshes, after every action, and every 20 seconds while checks run.
-  Not ported: Fix with agent and Ask agent to integrate (embedded chat is out of scope), description sources,
+  Not ported: Fix with agent and Ask agent to integrate (embedded chat is not ported yet), description sources,
   PR templates and Generate with agent, Merge locally, split-button menus (each step is one
   button) and the branch card's Checks and Review rows.
 - Pills and the rename input never start a window drag; captions and the space between remain part of the

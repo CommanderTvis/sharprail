@@ -770,8 +770,9 @@ the terminal's workspace and tab ([the app runtime](../SharpRail.UI/Plugins/SPEC
 W17 is unoccupied in this commit; core's generic glyph is the fallback when no plugin answers. The
 `DocumentLinkSlot` is consulted the same way when a rendered document's link is followed.
 
-The fork's chat parts are not ported: chat companion hosts, `openChat`, tool renderers and the
-`writtenPathGroup` slot all serve the AI chat SharpRail excludes.
+The fork's chat parts are not ported yet: chat companion hosts, `openChat`, tool renderers and the
+`writtenPathGroup` slot all serve AI chat components, which SharpRail does not restrict and takes up
+as plugins.
 
 Some contributions are excluded. There is no state-slice contribution, since a plugin owns its own state.
 There are no plugin centre-tab kinds. There are no layout-mode, drop-target, context-menu, or group-metadata

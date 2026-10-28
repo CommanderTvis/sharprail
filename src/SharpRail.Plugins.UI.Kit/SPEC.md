@@ -265,7 +265,7 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
 | `./editor`: `MonacoEditor`, `monacoSetup`, `editorFont`, `editorWrapping` | `Editor.EditorFrame` over `SharpRail.Scintilla`; `CodeDocumentView`, which binds host saving, stays in the app |
 | `./editor`: review gutter and widgets | absent: SharpRail has no review commenting |
 | `./visualization`: `MermaidView`, `PanZoomView`, `renderMermaid`, `zoomGesture` | `Visualization.MermaidRenderer`, `MermaidDialog` |
-| `./visualization`: `VisualizationCard`, `DiagramCard`, `ComparisonCard` | absent: the visualize tool is an AI chat surface |
+| `./visualization`: `VisualizationCard`, `DiagramCard`, `ComparisonCard` | absent for now: the fork's visualize tool card is an AI chat surface not ported yet |
 | `ToolFileLink` | absent: a chat tool card's file link |
 | `ScopedSetting`, `SettingValueDialog`, `SettingsToolbar` | shared configuration rows, typed value composer, `ScopedSetting.SettingsToolbar` |
 

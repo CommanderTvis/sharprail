@@ -41,12 +41,14 @@ Keep the same C# host architecture and optimized open-world CoreCLR/R2R package.
 
 ## Non-goals
 
-AI chat is currently a non-goal except the Claude Code plugin's chat mode over
-stream-json (see its SPEC): no other chat tabs, composer, history, message
-rendering, agent or provider integration, and no chat-specific settings such as
-the chat line measure. Upstream behavior that exists only for chat, or only for
-Monaco internals rather than editing itself, is not ported; where chat shares a
-layout with supported content, keep the layout contract and omit the chat surface.
+AI chat components are not restricted: chat tabs, composer, history, message
+rendering, agent and provider integration and chat-specific settings such as the
+chat line measure are in scope. Today only the Claude Code plugin's chat mode over
+stream-json exists (see its SPEC); others are ported as plugins when taken up, and
+upstream chat behavior that is not ported yet is a gap, not a non-goal. Upstream
+behavior that exists only for Monaco internals rather than editing itself is not
+ported; where chat shares a layout with supported content, keep the layout
+contract.
 
 ## Git comparisons
 

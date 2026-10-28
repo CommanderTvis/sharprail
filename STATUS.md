@@ -246,7 +246,7 @@ byte-identical between the two tips, so the rebase moved no fork behavior.
 
 ### Not tracked
 
-Out of scope for SharpRail (AI functionality, the pi packages, CLI launcher, website,
+Out of scope for SharpRail (the pi packages, CLI launcher, website,
 analytics, GitHub/PR review, desktop updates, web-only tooling): every other upstream
 `SPEC.md`, plus `goal-and-requirements.md`, whose applicable scope already lives in
 `SPEC.md`. A new upstream spec is triaged into one of the two lists on the next sync.
@@ -334,7 +334,7 @@ the fork chain as fetched on the date given and will not match after a force-pus
 - omp: original builtin plugin with early (basic) support, marked by the new manifest `support` field and its Settings › Plugins badge: launcher and start action with `--model`, `--approval-mode`, `--advisor` and `--no-lsp` (SharpRail code intelligence by default), SharpRail's MCP server through a SharpRail-owned omp profile, a session folder per launch for revival, context files with nested @-imports and Add offers, version and missing-binary state, and zombie-safe agent detection; not run against a real omp, and not governed by Air (Central has no omp agent). Checks: `--omp`; gate cases `omp-host` and `omp-ui`.
 - Air Context: the semantic code search moved out of the host into a builtin plugin, switched only through Settings › Plugins and disabled by default, using the plugin state directory and tool guidance handles (Plugin API H19/H20). Checks: `--context`.
 
-Out of scope for every pass: pi, AI chat, CLI, website/analytics, desktop update flow, Electron-
+Out of scope for every pass: pi, CLI, website/analytics, desktop update flow, Electron-
 and browser-only mechanics with no Avalonia counterpart.
 
 #### General improvements, one commit (2026-10-01)
@@ -554,7 +554,7 @@ cases open the second window from the same app so both windows share one host.
 Browser URL/page-count assertions become internal workspace navigation assertions.
 ARIA roles and relationships become Avalonia automation-peer assertions. Delayed
 WebSocket replies become held host-call responses; local mode uses direct C# calls.
-AI chat is a non-goal (see `SPEC.md`): the initial upstream chat tab is omitted from
+AI chat is no longer restricted (see `SPEC.md`); the passes recorded here skipped it, so the initial upstream chat tab is omitted from
 document counts, chat-only cases are excluded, and mixed cases keep only their
 non-chat assertions.
 Workspaces start empty. Terminal cases explicitly create the terminal tabs they exercise.
@@ -1016,7 +1016,7 @@ Projects and workspaces:
 - `7641d7df9` rename projects from the project context menu (#764): ported (`e9a5d4e0`).
 - `ac5476b55` mark a workspace as read or unread (#770): ported with a workspace-level unread model that closes A18 (566a059e; HostState.SPEC "Unread workspaces").
 
-Chat, pi, MCP and agent internals (not applicable: embedded chat and pi are out of scope):
+Chat, pi, MCP and agent internals (skipped by earlier passes; pi is out of scope, embedded chat is no longer restricted and these are gaps to take up with it):
 - `2ce6ccb73` extension dialogs in chat, MCP "Always allow" (#749); `4499b93f9` calmer Connect dialog (#761); `58bb7f96d` host questionnaires vs extensions (#754); `988a50662` MCP call arguments in approval prompt (#763); `dfdcaa9be` background results row (#778); `da9bb4235` transcript reads without watcher wait (#786); `d3aae2d04` minor chat/renderer performance (#798).
 
 Build, docs and website (not applicable: Bun/CLI/website only):
