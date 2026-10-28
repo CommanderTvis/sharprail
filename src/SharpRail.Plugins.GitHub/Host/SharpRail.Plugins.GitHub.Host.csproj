@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <ProjectReference Include="../Contract/SharpRail.Plugins.GitHub.csproj" />
+    <None Include="../assets/**" Link="plugins/github/assets/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
 </Project>

@@ -11,7 +11,7 @@ public sealed class GitHubUI : PluginUIModule
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
         context.RepoHostUI(new("Pull request", surface => new GitHubLocationItem(surface), surface => new GitHubReviewSection(surface)));
-        context.SettingsSection(new("GitHub", "gitBranch", () => new GitHubSettingsPage(context)));
+        context.SettingsSection(new("GitHub", "asset:github.svg", () => new GitHubSettingsPage(context)));
         return null;
     }
 }

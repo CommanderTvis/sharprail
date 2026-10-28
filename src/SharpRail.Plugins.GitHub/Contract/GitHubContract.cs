@@ -15,11 +15,12 @@ public static class GitHubContract
 
     public static readonly PluginMethod<GitHubSignInQuery, GitHubSignIn> SignIn = new("signIn");
     public static readonly PluginContract Contract = PluginContract.Create<GitHubSettings>(Id, 1, [SignIn], []);
-    public static readonly PluginManifest Manifest = new(Id, "GitHub", "git-pull-request", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "GitHub", "asset:github.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.VersionControl,
         Description = "Pull requests and GitHub sign-in for github.com remotes through the gh command-line tool: lookup, open, update, ready, merge and reopen.",
         EnabledByDefault = true,
+        Assets = "assets",
         Host = "SharpRail.Plugins.GitHub.Host.dll",
         Ui = "SharpRail.Plugins.GitHub.UI.dll"
     };
