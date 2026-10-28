@@ -6,7 +6,7 @@ using Avalonia.Media;
 
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {
@@ -56,7 +56,7 @@ internal sealed partial class ChatView
             if (at < 0) continue;
             var start = Math.Max(0, at - 24);
             var snippet = text[start..Math.Min(text.Length, at + query.Length + 48)].ReplaceLineEndings(" ");
-            (prompt ? prompts : messages).Add(new HistoryHit(item.Id, prompt, item switch { ChatUserItem => "You", ChatAssistantItem => "Claude", ChatToolItem tool => tool.Name, _ => "" }, snippet, text));
+            (prompt ? prompts : messages).Add(new HistoryHit(item.Id, prompt, item switch { ChatUserItem => "You", ChatAssistantItem => "Assistant", ChatToolItem tool => tool.Name, _ => "" }, snippet, text));
         }
         return [.. prompts, .. messages];
     }

@@ -9,7 +9,7 @@ using Avalonia.Media;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {
@@ -148,7 +148,7 @@ internal sealed partial class ChatView
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            flyout.Content = Ui.Text("Couldn't list sessions: " + ClaudeParts.ErrorText(error), Ui.Muted, 12);
+            flyout.Content = Ui.Text("Couldn't list sessions: " + ChatErrors.Text(error), Ui.Muted, 12);
         }
     }
 }

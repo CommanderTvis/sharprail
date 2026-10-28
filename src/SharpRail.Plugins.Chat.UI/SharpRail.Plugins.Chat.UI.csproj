@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled></PropertyGroup>
+  <!-- The chat view shared by the plugins that offer a chat: the drawn transcript, the composer and the pickers. -->
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Chat/SharpRail.Plugins.Chat.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Agent.UI/SharpRail.Plugins.Agent.UI.csproj" />
+    <PackageReference Include="Avalonia" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <InternalsVisibleTo Include="SharpRail.Plugins.ClaudeCode.UI" />
+    <InternalsVisibleTo Include="SharpRail.Plugins.Pi.UI" />
+  </ItemGroup>
+</Project>

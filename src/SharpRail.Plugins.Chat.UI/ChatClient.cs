@@ -1,7 +1,7 @@
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>
 /// What the chat view needs of the plugin: one chat's pushes and the contract's methods. The view and its checks talk to

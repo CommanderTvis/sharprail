@@ -1,6 +1,6 @@
 using Avalonia.Collections;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>
 /// Consecutive routine steps (reads, searches, thinking) folded into one row, as upstream's activity group: not a wire item, so it

@@ -14,7 +14,7 @@ internal static class BoundaryChecks
     private const string Abstractions = "SharpRail.Host.Abstractions", Protocol = "SharpRail.Host.Protocol", Core = "SharpRail.Host.Core",
         Client = "SharpRail.Host.Client", Remote = "SharpRail.Host.Remote", Scintilla = "SharpRail.Scintilla", Ghostty = "Ghostty.Avalonia",
         UI = "SharpRail.UI", Checks = "SharpRail.Checks", Api = "SharpRail.Plugins.Api",
-        ApiHost = "SharpRail.Plugins.Api.Host", ApiUi = "SharpRail.Plugins.Api.UI", Kit = "SharpRail.Plugins.UI.Kit", Android = "SharpRail.Android", Browser = "SharpRail.Browser";
+        Chat = "SharpRail.Plugins.Chat", ChatUi = "SharpRail.Plugins.Chat.UI", ApiHost = "SharpRail.Plugins.Api.Host", ApiUi = "SharpRail.Plugins.Api.UI", Kit = "SharpRail.Plugins.UI.Kit", Android = "SharpRail.Android", Browser = "SharpRail.Browser";
 
     /// <summary>Every project and what it may reach, directly or through a reference. A new project needs its own entry.</summary>
     private static readonly Dictionary<string, string[]> Allowed = new()
@@ -36,6 +36,9 @@ internal static class BoundaryChecks
         [ApiHost] = [Api],
         [ApiUi] = [Api],
         [Kit] = [Scintilla],
+        // The chat contract and the chat view are shared by the plugins that offer a chat.
+        [Chat] = [Api],
+        [ChatUi] = [Api, ApiUi, Kit, Chat, "SharpRail.Plugins.Agent.UI"],
         ["SharpRail.Plugins.Agent.UI"] = [Api, Kit],
         ["SharpRail.PluginFixture.Host"] = [Api, ApiHost],
         ["SharpRail.PluginFixture.UI"] = [Api, ApiUi, Kit]
@@ -81,6 +84,17 @@ internal static class BoundaryChecks
             rules[Android] = [.. rules[Android], contract, contract + ".UI"];
             rules[Browser] = [.. rules[Browser], contract, contract + ".UI"];
             rules[Checks] = [.. rules[Checks], contract, contract + ".Host", contract + ".UI"];
+            if (plugin is "ClaudeCode")
+            {
+                rules[contract] = [.. rules[contract], Chat];
+                rules[contract + ".Host"] = [.. rules[contract + ".Host"], Chat];
+                rules[contract + ".UI"] = [.. rules[contract + ".UI"], Chat, ChatUi];
+                rules[Core] = [.. rules[Core], Chat];
+                rules[UI] = [.. rules[UI], Chat, ChatUi];
+                rules[Android] = [.. rules[Android], Chat, ChatUi];
+                rules[Browser] = [.. rules[Browser], Chat, ChatUi];
+                rules[Checks] = [.. rules[Checks], Chat, ChatUi];
+            }
         }
         // Language server plugins (H21) are one host-only project each, referenced by the host core only.
         foreach (var plugin in projects.Select(project => Path.GetFileNameWithoutExtension(project)).Where(name => name.StartsWith("SharpRail.Plugins.Lsp.", StringComparison.Ordinal)))

@@ -8,7 +8,7 @@ using Avalonia.Styling;
 
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>
 /// The one popup family of the chat's pickers (model, effort, permission mode, past conversations): one container with a muted header, list rows with

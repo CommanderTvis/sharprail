@@ -12,7 +12,7 @@ using Avalonia.Threading;
 
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 internal interface IChatRowActions
 {
@@ -125,7 +125,7 @@ internal sealed class ChatList : ScrollViewer
     internal static string Describe(ChatItem item) => item switch
     {
         ChatUserItem user => "You: " + user.Text,
-        ChatAssistantItem assistant => "Claude: " + assistant.Text,
+        ChatAssistantItem assistant => "Assistant: " + assistant.Text,
         ChatThinkingItem => "Thinking",
         ChatActivityItem activity => "Activity: " + ChatRowLayout.Breadcrumb(activity.Steps),
         ChatToolItem tool => tool.Name + " " + tool.Summary + " " + tool.State,

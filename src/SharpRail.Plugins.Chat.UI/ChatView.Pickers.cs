@@ -11,7 +11,7 @@ using Avalonia.VisualTree;
 using SharpRail.Plugins.Agent.UI;
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {
@@ -183,7 +183,7 @@ internal sealed partial class ChatView
     internal Control EffortPanel(ChatHeader header, Flyout flyout)
     {
         // The levels the current model accepts, as the CLI reports them; every level when it reports none.
-        var levels = header.Models.FirstOrDefault(model => model.Id == header.Model) is { Efforts.Count: > 0 } current ? current.Efforts : ClaudeValues.EffortLevels;
+        var levels = header.Models.FirstOrDefault(model => model.Id == header.Model) is { Efforts.Count: > 0 } current ? current.Efforts : env.Agent.EffortLevels;
         return ChoicePanel("ChatEffortPicker", "ChatEffortList", "Effort",
             [.. levels.Select(level => new PopupChoice(level, level.ToLowerInvariant(), null, header.Effort == level))], flyout, choice => _ = SetEffort(choice.Key));
     }

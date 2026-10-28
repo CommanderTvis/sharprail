@@ -3,14 +3,13 @@ using System.Text.Json.Serialization;
 
 using SharpRail.Plugins.Api;
 
-namespace SharpRail.Plugins.ClaudeCode;
+namespace SharpRail.Plugins.Chat;
 
-// Chat mode: Claude Code driven headless over its stream-json protocol, shown as a conversation. The host owns the
+// Chat mode: an agent driven headless by its plugin's host (Claude Code over stream-json is the first), shown as a conversation. The host owns the
 // child process and folds its events into an ordered, id-keyed list of items; the UI renders that list and sends
 // requests back. Both halves agree on the records below and nothing else.
 
-/// <summary>How a SharpRail launch of Claude Code is presented: the CLI's terminal UI, or the chat view over stream-json.</summary>
-public enum ClaudeCodeMode { Terminal, Chat }
+public sealed record Ack(bool Ok = true);
 
 /// <summary>Where a chat is in its turn cycle.</summary>
 public enum ChatStatus { Starting, Idle, Running, AwaitingPermission, Failed, Exited }
@@ -253,7 +252,11 @@ public sealed record ChatMcpServer(string Name, string Status);
 
 public sealed record ChatBanner(string Key, string Text, ChatNoticeLevel Level);
 
-public sealed record ChatMode(string Key, string Label, string Description);
+public sealed record ChatMode(string Key, string Label, string Description)
+{
+    /// <summary>Skips permission checks: offered only while the session already runs in it, and drawn in the danger colour.</summary>
+    public bool Dangerous { get; init; }
+}
 
 /// <summary>A background unit of work: a subagent, workflow run, monitor or shell.</summary>
 public sealed record ChatTask(string TaskId, ChatTaskKind Kind, string Description, ChatTaskStatus Status)
@@ -434,7 +437,7 @@ public sealed record ChatFilesParams(string WorkspaceId, string Query);
 
 public sealed record ChatFileList(IReadOnlyList<string> Paths);
 
-/// <summary>The chat wire contract. It is declared apart from <see cref="ClaudeCodeContract"/> and merged into it there.</summary>
+/// <summary>The chat wire contract. It is declared apart from any plugin's contract; each agent plugin merges it into its own (Claude Code's is <c>ClaudeCodeContract</c>).</summary>
 public static class ChatContract
 {
     /// <summary>Starts, resumes or reattaches the chat and returns its header. Idempotent per chat id.</summary>
@@ -467,9 +470,6 @@ public static class ChatContract
 
     /// <summary>A chat's pushes, scoped by workspace and chat id; the snapshot is the same list a late subscriber replays.</summary>
     public static readonly PluginChannel<ChatPush> Updates = PluginChannel<ChatPush>.State("chatUpdates", Snapshot, "workspaceId", "chatId");
-
-    /// <summary>The scheme of the editor-area document a chat opens in.</summary>
-    public const string DocumentScheme = "claude-chat";
 
     /// <summary>The wire cut for a tool's output and a notice's text; the rest is fetched with <see cref="ItemDetail"/>.</summary>
     public const int OutputLimit = 16 * 1024;

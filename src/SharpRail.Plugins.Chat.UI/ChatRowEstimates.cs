@@ -1,4 +1,4 @@
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>
 /// Heights guessed from a row's content before it has been laid out, after ThinkRail's rowHeightEstimates: lines of prose at a

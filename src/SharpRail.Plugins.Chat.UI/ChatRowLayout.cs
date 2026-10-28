@@ -8,7 +8,7 @@ using Avalonia.Utilities;
 
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 internal enum ChatHitKind { Toggle, Allow, Deny, Always, Rewind, Fork, OpenDiff, LoadFull, Link, EditInput, OpenThread, OpenText, Pick, OtherText, Submit, CancelAsk, Retry }
 
@@ -396,7 +396,7 @@ internal sealed class ChatRowLayout : IDisposable
             hits.Add(new(moreBox.Inflate(4), ChatHitKind.Toggle));
         }
         y = box.Bottom;
-        if (user.RanAhead) Block("Ran at once, while Claude was working.", Ui.Muted, 11, italic: true);
+        if (user.RanAhead) Block("Ran at once, while the assistant was working.", Ui.Muted, 11, italic: true);
         // Fork and rewind sit in a strip below a human prompt that has been taken up, so they never cover its text.
         if (user.Uuid is not null && !user.Queued)
         {

@@ -13,12 +13,11 @@ using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>What the chat view reaches outside itself for: the wire client and the few workbench actions a chat triggers.</summary>
-internal sealed record ChatEnvironment(IChatClient Client)
+internal sealed record ChatEnvironment(IChatClient Client, ChatAgent Agent)
 {
-    public Func<Task<PermissionModesResult>> PermissionModes { get; init; } = () => Task.FromResult(PermissionModeSource.Current);
     /// <summary>Opens SharpRail's own diff view for a file: of the proposed change, or of what the call already changed.</summary>
     public Func<ChatDiffRequest, Task> OpenDiff { get; init; } = _ => Task.CompletedTask;
     public Func<string, Task> OpenFile { get; init; } = _ => Task.CompletedTask;
@@ -95,7 +94,7 @@ internal static class ChatLaunches
 }
 
 /// <summary>
-/// A Claude Code conversation over stream-json: the transcript list, the chips, the task strip and the composer. It
+/// An agent conversation: the transcript list, the chips, the task strip and the composer. It
 /// subscribes to the chat's channel, asks the host to open (or revive) the session and then only applies pushes by id.
 /// </summary>
 internal sealed partial class ChatView : Grid, IChatRowActions
@@ -124,7 +123,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     private string chipSignature = "";
     private bool densityPosted;
     private string? pendingModel, pendingEffort, pendingMode;
-    private PermissionModesResult modes = PermissionModeSource.Current;
+    private IReadOnlyList<ChatMode> modes = [];
     private readonly bool ideInitial = true;
     private bool ide;
 
@@ -246,7 +245,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
 
     private async Task LoadModes()
     {
-        try { modes = await env.PermissionModes(); }
+        try { modes = await env.Agent.Modes(); }
         catch (Exception error) when (error is not OperationCanceledException) { }
     }
 
@@ -263,15 +262,15 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            Enqueue(new ChatHeaderPush(workspaceId, chatId, new ChatHeader(ChatStatus.Failed) { Error = Explain(error) }));
+            Enqueue(new ChatHeaderPush(workspaceId, chatId, new ChatHeader(ChatStatus.Failed) { Error = Explain(env.Agent, error) }));
         }
     }
 
     /// <summary>What a failed open tells the user: a host that has no chat handler says so in plain words instead of the wire's message.</summary>
-    internal static string Explain(Exception error) =>
+    internal static string Explain(ChatAgent agent, Exception error) =>
         error is PluginCallException { Error: PluginCallError.Unknown or PluginCallError.Disabled } || error.Message.Contains("registered no handler", StringComparison.Ordinal)
-            ? "This host does not provide Claude Code chat mode (its Claude Code plugin is missing, disabled or too old). Update or restart the host, or switch to Terminal mode in Settings."
-            : ClaudeParts.ErrorText(error);
+            ? $"This host does not provide {agent.Name} chat mode (its {agent.Name} plugin is missing, disabled or too old). Update or restart the host{agent.UnavailableHint}"
+            : ChatErrors.Text(error);
 
     /// <summary>Queues a push; the queue is applied once per frame, and consecutive updates of one item collapse to the last.</summary>
     internal void Enqueue(ChatPush push)
@@ -349,7 +348,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             else if (what is "mode" or "permission") pendingMode ??= wanted;
             pendingFromHeader = wanted;
         }
-        title.Text = header.Title is { Length: > 0 } text ? text : "Claude Code";
+        title.Text = header.Title is { Length: > 0 } text ? text : env.Agent.Name;
         env.SetTitle(title.Text);
         var failed = header.Status is ChatStatus.Failed or ChatStatus.Exited;
         banner.IsVisible = failed || header.Status == ChatStatus.Starting;
@@ -357,9 +356,9 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         bannerText.Foreground = failed ? Ui.Danger : Ui.Muted;
         bannerText.Text = header.Status switch
         {
-            ChatStatus.Starting => "Starting Claude Code…",
-            ChatStatus.Exited => "Claude Code exited." + (header.Error is { Length: > 0 } exited ? " " + exited : ""),
-            ChatStatus.Failed => "Claude Code failed." + (header.Error is { Length: > 0 } error ? " " + error : ""),
+            ChatStatus.Starting => $"Starting {env.Agent.Name}…",
+            ChatStatus.Exited => env.Agent.Name + " exited." + (header.Error is { Length: > 0 } exited ? " " + exited : ""),
+            ChatStatus.Failed => env.Agent.Name + " failed." + (header.Error is { Length: > 0 } error ? " " + error : ""),
             _ => ""
         };
         if (banner.Child is DockPanel { Children: [Button restart, ..] }) restart.IsVisible = failed;
@@ -396,7 +395,8 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     private IReadOnlyList<ChatMode> ModeList(ChatHeader? header) => header is { PermissionModes.Count: > 0 } ? header.PermissionModes
 
         // Without the host's list the machine's own is used, but bypass is only offered when the session already runs in it: the CLI refuses it otherwise.
-        : [.. PermissionModeSource.Modes(modes, header?.PermissionMode).Where(mode => mode.Id != "bypassPermissions" || mode.Id == header?.PermissionMode).Select(mode => new ChatMode(mode.Id, PermissionModeSource.Label(mode), mode.Description))];
+        : [.. modes.Concat(header?.PermissionMode is { Length: > 0 } saved && modes.All(mode => mode.Key != saved) ? [env.Agent.DescribeMode(saved)] : [])
+            .Where(mode => !mode.Dangerous || mode.Key == header?.PermissionMode).Select(mode => mode with { Label = env.Agent.ModeLabel(mode) })];
 
     /// <summary>Moves to the next permission mode, wrapping at the end.</summary>
     internal void CycleMode()
@@ -453,7 +453,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         var pickers = new List<Control>();
         void AddPicker(Control chip) => pickers.Add(chip);
         void AddFactButton(Button button) { button.Classes.Add("plain"); button.Background = Brushes.Transparent; Add(button); }
-        // Until Claude Code has reported, a chip holds a one-word muted placeholder rather than a value it does not know.
+        // Until the agent has reported, a chip holds a one-word muted placeholder rather than a value it does not know.
         var waiting = header.Status == ChatStatus.Starting;
         var modelLabel = header.Model is null ? "model" : ModelLabel(header.Model, header);
         // A change under way shows the value in force with a quiet ellipsis, never an arrow, and nothing when the target is the value already.
@@ -463,25 +463,25 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         var effortLabel = header.Effort is { } known ? known : waiting ? "effort" : "default";
         var effortShown = pendingEffort is null || pendingEffort == header.Effort ? effortLabel : effortLabel + "…";
         AddPicker(PickerButton("model", modelShown, pendingModel is null ? (header.Model ?? "Model") + " — click to switch the model or the effort (" + (header.Effort ?? "default") + ")" : "Waiting for Claude Code to confirm the model", flyout =>
-            header.Models.Count == 0 ? Ui.Text("Waiting for Claude Code…", Ui.Muted, 12) : ModelMenu(header, flyout), shortened || (header.Effort is null && pendingEffort is null && !waiting) ? null : effortShown));
+            header.Models.Count == 0 ? Ui.Text($"Waiting for {env.Agent.Name}…", Ui.Muted, 12) : ModelMenu(header, flyout), shortened || (header.Effort is null && pendingEffort is null && !waiting) ? null : effortShown));
         var offeredModes = ModeList(header);
         var currentMode = offeredModes.FirstOrDefault(mode => mode.Key == header.PermissionMode);
         var modeLabel = header.PermissionMode is null && waiting ? "permissions" : currentMode?.Label ?? ModeLabel(header.PermissionMode);
         var modeShown = shortened ? (header.PermissionMode is null or "default" ? "ask" : modeLabel.Split(' ')[^1].ToLowerInvariant()) : modeLabel;
         AddPicker(PickerButton("permission", pendingMode is null || pendingMode == header.PermissionMode ? modeShown : modeShown + "…",
-            (currentMode?.Description ?? ClaudePermissionModes.Describe(header.PermissionMode ?? "default").Description) + ". Click to change, or press Shift+Tab to cycle.",
+            (currentMode?.Description ?? env.Agent.DescribeMode(header.PermissionMode ?? "default").Description) + ". Click to change, or press Shift+Tab to cycle.",
             flyout => ModePanel(header, flyout)));
-        if (header.PermissionMode == "plan") Add(TerminalFacts.FactChip("plan", "Plan mode", "Claude plans and asks before changing anything"));
+        if (header.PermissionMode == "plan") Add(TerminalFacts.FactChip("plan", "Plan mode", $"{env.Agent.Short} plans and asks before changing anything"));
         foreach (var row in environmentChips ??= env.WorkspaceChips()) { row.Margin = new Thickness(0); Add(row); }
         // The facts the terminal shows beside the pickers: the launch choices, the folder, the IDE switch and attach. A fact chip is read-only.
         // They give way with the width (see the density levels): the read-only facts at level 2, attach and the IDE switch at level 3 (the switch stays in the "+" popup).
         if (header.Advisor is { Length: > 0 } advisor) Add(TerminalFacts.FactChip("advisor", "advisor " + advisor, "Started with --advisor"));
         if (header.Chrome) Add(TerminalFacts.FactChip("chrome", "Chrome", "Started with Claude in Chrome (--chrome)"));
-        if (TerminalFacts.CwdLabel(header.Cwd) is { } directory) Add(TerminalFacts.FactChip("cwd", directory, $"Claude runs in {header.Cwd}"));
+        if (TerminalFacts.CwdLabel(header.Cwd) is { } directory) Add(TerminalFacts.FactChip("cwd", directory, $"{env.Agent.Short} runs in {header.Cwd}"));
         AddFactButton(TerminalFacts.IdeContextChip(ide, () => _ = ToggleIde()));
         Button? attach = null;
-        attach = TerminalFacts.AttachButton("Put a file or folder in front of Claude, as @path", () => PickFileOrFolder(attach!), AddAttachment,
-            error => env.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", ClaudeParts.ErrorText(error)));
+        attach = TerminalFacts.AttachButton($"Put a file or folder in front of {env.Agent.Short}, as @path", () => PickFileOrFolder(attach!), AddAttachment,
+            error => env.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", ChatErrors.Text(error)));
         AddFactButton(attach);
         foreach (var picker in pickers) Add(picker);
         // The "+" wears a warning dot when an MCP server is down.
@@ -494,7 +494,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
 
     private static string ModelLabel(string? id, ChatHeader header) => id is null ? "model" : ModelPicks.Label(id, header.Models);
 
-    private static string ModeLabel(string? id) => ClaudePermissionModes.Describe(id ?? "default").Label;
+    private string ModeLabel(string? id) => env.Agent.DescribeMode(id ?? "default").Label;
 
     internal async Task SetModel(string id) => await Set(value => pendingModel = value, id, ChatContract.SetModel, "model");
 
@@ -516,7 +516,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            env.Notify(PluginNotificationKind.Error, $"Couldn't change the {what}", ClaudeParts.ErrorText(error));
+            env.Notify(PluginNotificationKind.Error, $"Couldn't change the {what}", ChatErrors.Text(error));
             ClearPending(value, null);
         }
     }
@@ -530,7 +530,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         if (pendingEffort == value) pendingEffort = null;
         if (pendingMode == value) pendingMode = null;
         if (header is not null && header.Model != value && header.Effort != value && header.PermissionMode != value)
-            env.Notify(PluginNotificationKind.Error, "Claude Code did not confirm the change", value);
+            env.Notify(PluginNotificationKind.Error, $"{env.Agent.Name} did not confirm the change", value);
         if (transcript.Header is { } current) { chipSignature = ""; RebuildChips(current); }
     }
 
@@ -601,7 +601,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     private async Task StopTask(ChatTask task)
     {
         try { await env.Client.RequestAsync(ChatContract.StopTask, new ChatTaskParams(workspaceId, chatId, task.TaskId)); }
-        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't stop the task", ClaudeParts.ErrorText(error)); }
+        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't stop the task", ChatErrors.Text(error)); }
     }
 
     internal void RevealTask(ChatTask task)
@@ -692,7 +692,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             var detail = await env.Client.RequestAsync(ChatContract.ItemDetail, new ChatDetailParams(workspaceId, chatId, row.Id));
             transcript.SetFull(row.Id, detail.Text);
         }
-        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't load the full output", ClaudeParts.ErrorText(error)); }
+        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't load the full output", ChatErrors.Text(error)); }
     }
 
     // A clipped IN or OUT row opens its whole text in a dialog; an output the wire cut is fetched first.
@@ -726,7 +726,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         var fields = dialog.FindControl<StackPanel>("DialogFields")!;
         fields.Children.Add(conversation);
         fields.Children.Add(files);
-        var go = ClaudeParts.Primary(Ui.Button("Rewind", () => { dialog.Close(); _ = Rewind(uuid, files.IsChecked == true); }));
+        var go = ChatButtons.Primary(Ui.Button("Rewind", () => { dialog.Close(); _ = Rewind(uuid, files.IsChecked == true); }));
         go.Name = "ChatRewindGo";
         var never = Ui.Button("Never mind", () => dialog.Close());
         never.Name = "ChatRewindCancel";
@@ -746,7 +746,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {
-                summary.Text = "Couldn't check the code: " + ClaudeParts.ErrorText(error);
+                summary.Text = "Couldn't check the code: " + ChatErrors.Text(error);
             }
         }
     }
@@ -766,7 +766,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     internal async Task Rewind(string uuid, bool files)
     {
         try { await env.Client.RequestAsync(ChatContract.Rewind, new ChatRewindParams(workspaceId, chatId, uuid) { Files = files ? true : null }); }
-        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't rewind", ClaudeParts.ErrorText(error)); }
+        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't rewind", ChatErrors.Text(error)); }
     }
 
     private async Task Fork(string uuid)
@@ -774,8 +774,8 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         try
         {
             var forked = await env.Client.RequestAsync(ChatContract.Fork, new ChatRewindParams(workspaceId, chatId, uuid));
-            env.OpenChat(forked.ChatId, (title.Text ?? "Claude Code") + " (fork)", null);
+            env.OpenChat(forked.ChatId, (title.Text ?? env.Agent.Name) + " (fork)", null);
         }
-        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't fork", ClaudeParts.ErrorText(error)); }
+        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't fork", ChatErrors.Text(error)); }
     }
 }

@@ -2,7 +2,7 @@ using Avalonia.Controls;
 
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {

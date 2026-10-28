@@ -14,7 +14,7 @@ using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {
@@ -64,11 +64,11 @@ internal sealed partial class ChatView
             BorderThickness = new Thickness(0),
             Background = Brushes.Transparent,
             CornerRadius = new CornerRadius(0),
-            PlaceholderText = "Ask Claude to edit…",
+            PlaceholderText = $"Ask {env.Agent.Short} to edit…",
             PlaceholderForeground = Ui.Muted,
             Text = Drafts.GetValueOrDefault((workspaceId, chatId), "")
         };
-        Avalonia.Automation.AutomationProperties.SetName(input, "Message Claude");
+        Avalonia.Automation.AutomationProperties.SetName(input, $"Message {env.Agent.Short}");
         send = new Button { Name = "ChatSend", Padding = new Thickness(12, 6), VerticalAlignment = VerticalAlignment.Center };
         send.Classes.Add("primary");
         send.Click += (_, _) => _ = Submit();
@@ -253,7 +253,7 @@ internal sealed partial class ChatView
     private async Task AttachFromPicker()
     {
         try { if (await env.PickFile() is { Length: > 0 } picked) AddAttachment(picked); }
-        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", ClaudeParts.ErrorText(error)); }
+        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't open the file picker", ChatErrors.Text(error)); }
     }
 
     /// <summary>A finished <c>@path</c>, <c>@"path with spaces"</c> or either followed by <c>#L10-20</c>: what the composer shows as a chip.</summary>
@@ -353,7 +353,7 @@ internal sealed partial class ChatView
     private async Task Interrupt()
     {
         try { await env.Client.RequestAsync(ChatContract.Interrupt, key); }
-        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't interrupt", ClaudeParts.ErrorText(error)); }
+        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't interrupt", ChatErrors.Text(error)); }
     }
 
     // Upstream's session stats bar: token counts and cost, then a five-cell context bar.
@@ -472,8 +472,8 @@ internal sealed partial class ChatView
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            queueNotes[message.Id] = "Claude Code already took this message up, so it can no longer be removed.";
-            env.Notify(PluginNotificationKind.Error, "The message is already running", ClaudeParts.ErrorText(error));
+            queueNotes[message.Id] = $"{env.Agent.Name} already took this message up, so it can no longer be removed.";
+            env.Notify(PluginNotificationKind.Error, "The message is already running", ChatErrors.Text(error));
         }
         ShowQueue();
     }
@@ -488,9 +488,9 @@ internal sealed partial class ChatView
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            queueNotes[message.Id] = "Claude Code already took this message up, so it can no longer be changed.";
+            queueNotes[message.Id] = $"{env.Agent.Name} already took this message up, so it can no longer be changed.";
             editingQueued = null;
-            env.Notify(PluginNotificationKind.Error, "The message is already running", ClaudeParts.ErrorText(error));
+            env.Notify(PluginNotificationKind.Error, "The message is already running", ChatErrors.Text(error));
         }
         ShowQueue();
     }
@@ -545,7 +545,7 @@ internal sealed partial class ChatView
 
     // The extension's placeholder: waiting while a request is open, queueing while Claude works, else the plain invitation. The key-hint variants
     // ("Esc to focus or unfocus", "Esc to attach selected text") belong to keybindings SharpRail does not have.
-    internal string Placeholder() => transcript.PendingCount > 0 ? (transcript.FirstPending() is ChatQuestionItem ? "Waiting for your answer…" : "Waiting for permission…") : Busy ? "Queue another message…" : "Ask Claude to edit…";
+    internal string Placeholder() => transcript.PendingCount > 0 ? (transcript.FirstPending() is ChatQuestionItem ? "Waiting for your answer…" : "Waiting for permission…") : Busy ? "Queue another message…" : $"Ask {env.Agent.Short} to edit…";
 
     private bool Busy => status is ChatStatus.Running or ChatStatus.AwaitingPermission;
 
@@ -683,7 +683,7 @@ internal sealed partial class ChatView
         {
             if (!Busy) return;
             try { await env.Client.RequestAsync(ChatContract.Interrupt, key); }
-            catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't interrupt", ClaudeParts.ErrorText(error)); }
+            catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't interrupt", ChatErrors.Text(error)); }
             return;
         }
         // An image still being read from disk is waited for, so it goes out with the message.
@@ -711,7 +711,7 @@ internal sealed partial class ChatView
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            env.Notify(PluginNotificationKind.Error, "Couldn't send the message", ClaudeParts.ErrorText(error));
+            env.Notify(PluginNotificationKind.Error, "Couldn't send the message", ChatErrors.Text(error));
             return false;
         }
     }
@@ -1003,7 +1003,7 @@ internal sealed partial class ChatView
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            env.Notify(PluginNotificationKind.Error, "Couldn't attach the pasted content", ClaudeParts.ErrorText(error));
+            env.Notify(PluginNotificationKind.Error, "Couldn't attach the pasted content", ChatErrors.Text(error));
         }
     }
 
@@ -1112,9 +1112,9 @@ internal sealed partial class ChatView
         }
         Action("Context", "Attach file\u2026", "Upload a file to include in conversation", () => _ = AttachFromPicker());
         Action("Context", "Resume conversation", "Continue a previous conversation", () => _ = ShowSessions());
-        Action("Context", "New conversation", "Open a new conversation in a new tab or the sidebar", () => env.OpenChat("chat-" + Guid.NewGuid().ToString("N")[..12], "Claude Code", null));
+        Action("Context", "New conversation", "Open a new conversation in a new tab or the sidebar", () => env.OpenChat("chat-" + Guid.NewGuid().ToString("N")[..12], env.Agent.Name, null));
         Action("Model", "Switch model\u2026", header.Model is { } model ? ModelLabel(model, header) : "", () => chips.Children.OfType<Button>().FirstOrDefault(chip => chip.Name == "TerminalAgentFact_model")?.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)));
-        Action("Support", "View help docs", "", () => OpenUrl("https://code.claude.com/docs"));
+        if (env.Agent.HelpUrl is { } helpUrl) Action("Support", "View help docs", "", () => OpenUrl(helpUrl));
         foreach (var command in header.Commands.Where(command => Matches(command.Name)).OrderBy(command => !command.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase)))
             Add(command.Section, new MenuEntry("/" + command.Name, string.Join("  ", new[] { command.ArgumentHint, command.Description }.Where(part => !string.IsNullOrEmpty(part))), "/" + command.Name + " ", from, to));
         foreach (var server in header.McpServers.Where(server => Matches(server.Name)))

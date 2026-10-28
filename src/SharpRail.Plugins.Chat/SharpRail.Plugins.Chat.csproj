@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The chat wire contract (items, header, pushes, methods) shared by every plugin that offers a chat and by the chat view. -->
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+  </ItemGroup>
+</Project>

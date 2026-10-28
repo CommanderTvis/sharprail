@@ -13,7 +13,7 @@ using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 // Permission and question requests, after the extension: the first request still waiting is a panel above the composer (first in, first out),
 // the transcript behind it dims, and the composer says it is waiting. What stays in the transcript is the tool's own card.
@@ -163,7 +163,7 @@ internal sealed partial class ChatView
                 break;
         }
 
-        reasonBox = new TextBox { Name = "ChatPermReason", PlaceholderText = plan ? "Add feedback for Claude" : "Tell Claude what to do instead", FontSize = 12 };
+        reasonBox = new TextBox { Name = "ChatPermReason", PlaceholderText = plan ? $"Add feedback for {env.Agent.Short}" : $"Tell {env.Agent.Short} what to do instead", FontSize = 12 };
         reasonBox.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Reject(item); e.Handled = true; } };
         var choices = new List<Button>();
         if (plan)
@@ -264,7 +264,7 @@ internal sealed partial class ChatView
         catch (Exception error) when (error is not OperationCanceledException)
         {
             answering.Remove(item.RequestId);
-            env.Notify(PluginNotificationKind.Error, "Couldn't answer the permission request", ClaudeParts.ErrorText(error));
+            env.Notify(PluginNotificationKind.Error, "Couldn't answer the permission request", ChatErrors.Text(error));
         }
     }
 
@@ -461,7 +461,7 @@ internal sealed partial class ChatView
         catch (Exception error) when (error is not OperationCanceledException)
         {
             answering.Remove(question.RequestId);
-            env.Notify(PluginNotificationKind.Error, "Couldn't answer the questions", ClaudeParts.ErrorText(error));
+            env.Notify(PluginNotificationKind.Error, "Couldn't answer the questions", ChatErrors.Text(error));
         }
     }
 

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>
 /// What a tool call's card says, by tool, after the extension's tool table (spec 3.4 and 3.5): the one-line header, the secondary line under it,

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SharpRail.Plugins.ClaudeCode.UI.Chat;
+namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>
 /// The model picker's data and rules, after ThinkRail's pickerGroups, modelVisibility and useModelPreferences: models grouped by
