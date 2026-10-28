@@ -88,7 +88,7 @@ public sealed partial class WorkbenchWindow
             if (closeConfirmed || workbench.ExitConfirmed) return;
             var pending = documentContent.Keys.Select(Body<CodeDocumentView>).OfType<CodeDocumentView>().Where(view => view.HasPendingChanges).ToArray();
             // Closing the last window, or quitting, ends every agent's turn.
-            var exiting = (workbench.ShuttingDown || workbench.Windows.Count == 1) && workbench.AgentInProgress;
+            var exiting = (workbench.ShuttingDown || workbench.Windows.Count == 1) && (workbench.AgentInProgress || state.Current.OwnedProcesses.Count > 0);
             if (pending.Length == 0 && !exiting) return;
             e.Cancel = true;
             if (exiting && workbench.AskingToExit) return;
@@ -125,13 +125,16 @@ public sealed partial class WorkbenchWindow
         if (SaveTarget is { } view) await view.SaveAsync();
     }
 
-    // Returns whether the app may exit with agents still working.
+    // Returns whether the app may exit with agents still working or reported processes still running.
     private async Task<bool> ConfirmExitAsync()
     {
         workbench.AskingToExit = true;
         try
         {
-            if (await Dialogs.Confirm(this, "Quit with an agent working?", "An agent is in the middle of a turn. Quitting ends its terminal session.", "Quit", "ExitWithAgentConfirm"))
+            var owned = OwnedProcessesNote(state.Current.OwnedProcesses.Count);
+            var agent = workbench.AgentInProgress;
+            if (await Dialogs.Confirm(this, agent ? "Quit with an agent working?" : "Quit with background processes running?",
+                (agent ? "An agent is in the middle of a turn. Quitting ends its terminal session." : "No agent is mid-turn.") + owned, "Quit", "ExitWithAgentConfirm"))
             {
                 workbench.ExitConfirmed = true;
                 return true;

@@ -110,6 +110,7 @@ public sealed partial class WorkbenchWindow
     private void SharedStateChanged(HostState previous, HostState next)
     {
         NotifyLanguageDeaths(previous, next);
+        if (!next.OwnedProcesses.SequenceEqual(previous.OwnedProcesses)) NotifyOwnedProcesses(previous, next);
         if (!ReferenceEquals(next.PendingEmigrations, previous.PendingEmigrations)) PromptEmigrations(next);
         if (!ReferenceEquals(next.FailedEmigrations, previous.FailedEmigrations)) NotifyEmigrationFailures(previous, next);
         if (!next.ResumeOffers.SequenceEqual(previous.ResumeOffers)) ApplyResumeOffers(next);
