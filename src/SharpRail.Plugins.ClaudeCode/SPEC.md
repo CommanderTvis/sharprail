@@ -268,6 +268,8 @@ first, with subtotals) and each server into its tools; Skills open into each ski
 "N tokens in new session". Every amount says "1 token" for one and abbreviates to "tok"/"toks" where the row is
 narrower than the Agent UI `TokenAmount` threshold; a short line above the table says "Measured 5m ago" (the same `ClaudeParts.Ago` phrasing as the account usage reading, the absolute time in the tooltip), that it is measuring, or why it
 failed, with Retry. Before a baseline exists rows show an ellipsis.
+Account usage limits come from `claude -p --output-format stream-json --verbose /usage`, Claude Code's official command (no tokens, about a second), never from its state file: the host takes the first line with `usage_report.rate_limits`, maps its `limits` (session, weekly, model-scoped weeks) and stamps the reading with that line's `timestamp`. Non-JSON and unknown lines are skipped; a failed, timed-out or report-less run leaves usage unavailable (no windows, no time), never older numbers. Refresh and the hourly sync run the command; a read without refresh returns the last successful result kept in host memory per binary (empty before any fetch). `extra_usage` is not shown. `ClaudeCodeChecks` covers it with a fake `claude`.
+
 The pane refreshes by itself with the same code path as its refresh button (tooltip "Refresh usage and context (also runs hourly)"): a one-minute UI tick re-renders "Measured … ago" and, when the pane is mounted, its window is active and not minimised, no refresh is running, and the last reading (the newer of the baseline's stamp and the last request) is at least `ClaudeAutoRefresh.Interval` (1 hour) old or missing, starts one refresh; the first reply after the pane appears applies the same test, so stale data refreshes on first view. Nothing polls while the pane is detached. `ClaudeContextChecks` drives the rule with a fake clock. The host matches memory paths to the resolver's
 with `~` expanded, made absolute and through symbolic links.
 
@@ -676,7 +678,7 @@ offer all pass the executable word of the command through `AgentLaunchCompositio
 contribution reaches every new or revived terminal. A custom command that is not the `claude` executable is never
 rewritten, and a disabled contributor changes nothing.
 
-A host-side contribution may also carry the account the launch runs under (`Account`, Plugin API H18; Air Governance with Central chosen and Claude Code enabled). The Account method then returns it instead of Claude's account and cached usage and does not run `claude auth status`, `--version` or `/usage`; the tab shows the source's identity, credits and refill time, or its actionable problem. Ungoverned launches are unchanged. The terminal fact chips show token totals and the plan, not vendor quota, so they are unchanged.
+A host-side contribution may also carry the account the launch runs under (`Account`, Plugin API H18; Air Governance with Central chosen and Claude Code enabled). The Account method then returns it instead of Claude's account and usage and does not run `claude auth status`, `--version` or `/usage`; the tab shows the source's identity, credits and refill time, or its actionable problem. Ungoverned launches are unchanged. The terminal fact chips show token totals and the plan, not vendor quota, so they are unchanged.
 
 The appendix is strict: it says an agent MUST use `lsp_navigate` for symbol questions before grep or whole-file reads, MUST run
 `lsp_diagnostics` with `paths` on every edited file before declaring done (a build is no substitute), and CAN and MUST start any

@@ -1053,6 +1053,44 @@ internal static class ClaudeCodeChecks
         Console.WriteLine("PASS fork plugins/claude-code/claude-launcher.spec.ts: the launch command is a command line, and never reaches a shell blank");
     }
 
+    private const string UsageLimits = """{"type":"assistant","usage_report":{"session":{},"rate_limits":{"limits":[{"kind":"session","group":"session","percent":18,"resets_at":"2026-10-28T13:40:00.956966+00:00","scope":null,"severity":"normal","is_active":false},{"kind":"weekly_all","group":"weekly","percent":25,"resets_at":"2026-11-02T06:00:00.956984+00:00","scope":null,"severity":"warning","is_active":true},{"kind":"weekly_scoped","group":"weekly","percent":0,"resets_at":"2026-11-02T06:00:00+00:00","scope":{"model":{"display_name":"Fable"},"surface":null},"severity":"normal","is_active":false}],"extra_usage":{"is_enabled":false}}},"local_command_run":{"command":"usage"},"timestamp":"2026-10-28T11:12:43.060Z"}""";
+
+    // /usage is read from a fake claude's stream-json output: parsed, tolerant of noise, and never stale when it fails.
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    private static async Task AccountUsage(string directory)
+    {
+        var fakes = Directory.CreateDirectory(Path.Combine(directory, "usage-fakes")).FullName;
+        string Fake(string name, string stdout, int exit = 0)
+        {
+            var bin = Path.Combine(fakes, name);
+            var output = Path.Combine(fakes, name + ".out");
+            File.WriteAllText(output, stdout);
+            // Every call is logged; /usage answers with the fixture, the other commands with nothing useful.
+            File.WriteAllText(bin, $"#!/bin/sh\necho \"$*\" >> '{bin}.log'\ncase \"$*\" in *'/usage'*) cat '{output}'; exit {exit} ;; *) exit 1 ;; esac\n");
+            File.SetUnixFileMode(bin, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            return bin;
+        }
+        var noisy = "claude starting up\n{not json\n{\"type\":\"system\",\"subtype\":\"init\"}\n[1,2]\n" + UsageLimits + "\n{\"type\":\"result\",\"subtype\":\"success\",\"local_command\":\"usage\"}\n";
+        var good = Fake("good", noisy);
+        var account = await ClaudeAccountReader.ReadAsync(good, true);
+        Require(File.ReadAllText(good + ".log").Contains("-p --output-format stream-json --verbose /usage", StringComparison.Ordinal), "Usage is read with the stream-json form of /usage.");
+        Require(account.Usage.Select(window => (window.Label, window.Percent, window.Severity)).SequenceEqual(
+            [("Session (5 hr)", 18, ClaudeUsageSeverity.Normal), ("Weekly (7 day)", 25, ClaudeUsageSeverity.Warning), ("Fable limit", 0, ClaudeUsageSeverity.Normal)]),
+            "Session, weekly and the model-scoped limit parse, noise lines skipped.");
+        Require(account.Usage[0].ResetsAt == "2026-10-28T13:40:00.956966+00:00" && account.UsageFetchedAt == "2026-10-28T11:12:43.060Z", "Resets come from the report and the fetch time from the line's timestamp.");
+        Require((await ClaudeAccountReader.ReadAsync(good, false)).Usage.Count == 3 && File.ReadAllLines(good + ".log").Count(line => line.Contains("/usage", StringComparison.Ordinal)) == 1,
+            "A read without refresh reuses the last fetch instead of running /usage again.");
+        Require((await ClaudeAccountReader.ReadAsync(Fake("fresh", noisy), false)) is { Usage.Count: 0, UsageFetchedAt: null } && !File.ReadAllText(Path.Combine(fakes, "fresh.log")).Contains("/usage", StringComparison.Ordinal),
+            "A read without refresh and without an earlier fetch reports nothing and runs nothing.");
+        Require((await ClaudeAccountReader.ReadAsync(Fake("noreport", "{\"type\":\"result\",\"result\":\"Current session: 18% used\"}\n"), true)) is { Usage.Count: 0, UsageFetchedAt: null }, "Output without a usage_report is unavailable.");
+        var failing = Fake("failing", noisy, 3);
+        File.Copy(failing, good, true);
+        File.SetUnixFileMode(good, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        Require((await ClaudeAccountReader.ReadAsync(good, true)) is { Usage.Count: 0, UsageFetchedAt: null } && (await ClaudeAccountReader.ReadAsync(good, false)).Usage.Count == 0,
+            "A failing /usage leaves usage unavailable, not the earlier numbers.");
+        Console.WriteLine("PASS Claude Code account: usage read from claude /usage stream-json, noise skipped, in-memory reuse and failure unavailable");
+    }
+
     public static async Task Run(string root)
     {
         var directory = Path.Combine(root, "claude-code");
@@ -1085,6 +1123,7 @@ internal static class ClaudeCodeChecks
         async Task<T> Call<P, T>(PluginMethod<P, T> method, P parameters) =>
             PluginJson.Convert<T>(await runtime.CallAsync(new("claude-code", method.Name, parameters, "claude-client")));
         var config = await Call(ClaudeCodeContract.ConfigGet, new WorkspaceParams(project));
+        if (!OperatingSystem.IsWindows()) await AccountUsage(directory);
         Require((await Call(ClaudeCodeContract.ContextUsageGet, new ContextUsageParams(project))).Running, "The host measures a missing baseline in the background.");
         ClaudeContextUsage measured;
         do { await Task.Delay(50); measured = await Call(ClaudeCodeContract.ContextUsageGet, new ContextUsageParams(project)); } while (measured.Running);
