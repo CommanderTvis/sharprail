@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
@@ -24,6 +26,53 @@ internal static class LanguagePaneNarrowChecks
         Dense(fixture);
         Churn(fixture);
         Hidden(fixture);
+        Scrolls(fixture);
+    }
+
+    /// <summary>A pane taller than its window scrolls and keeps its offset across refreshes (a selected row must not pull itself into view): the wheel over any part of it moves the one vertical ScrollViewer, the last row can be reached, and nothing is wider than the viewport.</summary>
+    private static void Scrolls(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-scroll"); Directory.CreateDirectory(root);
+        var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(statePath);
+        using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
+        shared.Start();
+        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var window = new Window { Width = 260, Height = 300, Content = pane };
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        window.Show();
+        try
+        {
+            E2E.E2eWorkspace.Until(() => pane.Idle, "The pane's own inventory request did not finish.");
+            pane.ShowInventory(Enumerable.Range(0, 12).Select(index => new LanguageServerState($"fake-{index}", "file.x", "error", $"detail {index}", "1")).ToArray());
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            var scroll = pane.FindControl<ScrollViewer>("PaneScroll")!;
+            var servers = pane.FindControl<ListBox>("Servers")!;
+            Require(scroll.Extent.Height > scroll.Viewport.Height + 1, $"The pane does not overflow (extent {scroll.Extent.Height}, viewport {scroll.Viewport.Height}).");
+            Require(scroll.Extent.Width <= scroll.Viewport.Width + 0.5, $"The pane is wider than its viewport (extent {scroll.Extent.Width}, viewport {scroll.Viewport.Width}).");
+            foreach (var point in new[] { new Point(130, 20), new Point(130, 150), new Point(130, 280) })
+            {
+                scroll.Offset = default; window.UpdateLayout();
+                window.MouseWheel(point, new Vector(0, -3)); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+                Require(scroll.Offset.Y > 0, $"The wheel at {point} did not scroll the pane (offset {scroll.Offset.Y}).");
+            }
+            scroll.Offset = new Vector(0, scroll.Extent.Height); window.UpdateLayout();
+            var last = (Control)servers.ContainerFromIndex(servers.ItemCount - 1)!;
+            var bottom = last.TranslatePoint(new Point(0, last.Bounds.Height), scroll)!.Value.Y;
+            Require(bottom <= scroll.Viewport.Height + 0.5, $"The last row ends at {bottom}, below the viewport {scroll.Viewport.Height}.");
+            servers.SelectedIndex = 3; window.UpdateLayout();
+            scroll.Offset = new Vector(0, scroll.Extent.Height); window.UpdateLayout();
+            var before = scroll.Offset.Y;
+            for (var round = 0; round < 3; round++)
+            {
+                pane.ShowInventory(Enumerable.Range(0, 12).Select(index => new LanguageServerState($"fake-{index}", "file.x", "error", $"detail {index} round {round}", "1")).ToArray());
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            }
+            Require(scroll.Offset.Y >= before - 1, $"A refresh moved the scroll offset from {before} to {scroll.Offset.Y}.");
+            Console.WriteLine("PASS The Code Intelligence pane scrolls with the wheel, reaches its last row and does not overflow horizontally");
+        }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }
 
     /// <summary>Hide removes a suggested row behind "1 hidden · Show", persists per project in host state, stops suggesting it, and Show/Unhide bring it back.</summary>
