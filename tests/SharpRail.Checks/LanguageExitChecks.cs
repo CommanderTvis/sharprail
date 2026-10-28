@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 
 using Microsoft.AspNetCore.Hosting.Server;
@@ -24,6 +26,7 @@ internal static class LanguageExitChecks
     internal static async Task Run(string fixture)
     {
         Records();
+        await StderrFlood(fixture);
         await DisposeWaitsForStops(fixture);
         foreach (var remote in new[] { false, true }) await Exercise(Path.Combine(fixture, "language-exit", remote ? "remote" : "local"), remote);
         Console.WriteLine("PASS language server exit records: exit code and signal, bounded stderr, stop reasons, workspace removal, persistence, transport and notifications");
@@ -58,6 +61,110 @@ internal static class LanguageExitChecks
             Require(!Directory.Exists(state), "A language service wrote to its state directory after DisposeAsync returned.");
         }
         finally { await service.DisposeAsync(); Directory.Delete(root, true); }
+    }
+
+    /// <summary>
+    /// A server that floods stderr (megabytes, with and without newlines, lines past the 2000-character cap) while it answers requests must never
+    /// stall on a full pipe: the connection keeps draining stderr, keeps a bounded tail, and the one-shot installer runner finishes with a bounded error prefix.
+    /// </summary>
+    private static async Task StderrFlood(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-exit", "stderr-flood"); Directory.CreateDirectory(root);
+        var executable = Environment.ProcessPath!;
+        string[] Arguments(params string[] more) => [.. (Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location] : Array.Empty<string>()), "--fake-stderr-flood", .. more];
+        var stopwatch = Stopwatch.StartNew();
+
+        var start = new ProcessStartInfo(executable);
+        foreach (var argument in Arguments()) start.ArgumentList.Add(argument);
+        var exits = new List<LanguageExit>();
+        await using (var connection = new LanguageConnection(start, root, new LanguageLog(), "flood", exits.Add))
+        {
+            for (var round = 0; round < 4; round++)
+            {
+                var result = await connection.RequestAsync("flood", new { round }, CancellationToken.None, TimeSpan.FromSeconds(30));
+                Require(result?["round"]?.GetValue<int>() == round, "The flooding server's answer was lost in round " + round);
+                Require(!connection.Exited, "The flooding server connection died in round " + round);
+            }
+            await connection.RequestAsync("flood-last", null, CancellationToken.None, TimeSpan.FromSeconds(30));
+            using var wait = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            while (connection.ExitRecord is null) await Task.Delay(50, wait.Token);
+            var details = connection.ExitRecord.Details;
+            Require(connection.ExitRecord.ExitCode == 3, "The flooding server exit code was lost: " + connection.ExitRecord.Reason);
+            Require(details.Contains($"Last {LanguageConnection.StderrLines} stderr lines", StringComparison.Ordinal) && details.Contains("tail 299", StringComparison.Ordinal) &&
+                details.Contains("tail 100\n", StringComparison.Ordinal) && !details.Contains("tail 99\n", StringComparison.Ordinal),
+                "The retained stderr tail is not the most recent lines after a flood.");
+            Require(details.Length < 2 * 24 * 1024 + 60_000 && !details.Contains(new string('y', 2100), StringComparison.Ordinal), "The retained stderr tail after a flood is not bounded in size or line length.");
+        }
+
+        foreach (var code in new[] { 0, 5 })
+        {
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var oneShot = new ProcessStartInfo(executable);
+            foreach (var argument in Arguments("oneshot", code.ToString())) oneShot.ArgumentList.Add(argument);
+            try
+            {
+                var output = await LanguageServers.RunAsync(oneShot, root, deadline.Token);
+                Require(code == 0 && output.Trim() == "ok", "A one-shot command that floods stderr returned the wrong output.");
+            }
+            catch (IOException error)
+            {
+                Require(code != 0 && error.Message.Contains("BEGIN", StringComparison.Ordinal) && !error.Message.Contains("END", StringComparison.Ordinal) && error.Message.Length < 3200,
+                    "A failed one-shot command did not carry a bounded stderr prefix: " + error.Message[..Math.Min(error.Message.Length, 300)]);
+            }
+        }
+        Console.WriteLine("PASS language server stderr flood: connection and one-shot runner keep draining stderr (" + stopwatch.ElapsedMilliseconds + " ms)");
+    }
+
+    /// <summary>The flooding fixture server: writes megabytes to stderr before answering each request, so an undrained pipe stalls it.</summary>
+    internal static async Task FloodServer(string[] args)
+    {
+        var error = Console.OpenStandardError();
+        async Task Flood()
+        {
+            var text = new StringBuilder();
+            for (var line = 0; line < 20_000; line++) text.Append("flood line ").Append(line).Append('\n');
+            for (var line = 0; line < 3; line++) text.Append('x', 5000).Append('\n');
+            text.Append('y', 300_000); // no newline
+            await error.WriteAsync(Encoding.UTF8.GetBytes(text.ToString()));
+            await error.FlushAsync();
+        }
+        if (args is ["oneshot", var code])
+        {
+            await error.WriteAsync("BEGIN\n"u8.ToArray());
+            for (var index = 0; index < 4; index++) await Flood();
+            await error.WriteAsync("\nEND\n"u8.ToArray());
+            await error.FlushAsync();
+            await Console.Out.WriteAsync("ok");
+            await Console.Out.FlushAsync();
+            Environment.Exit(int.Parse(code));
+        }
+        var input = Console.OpenStandardInput();
+        var output = Console.OpenStandardOutput();
+        var single = new byte[1];
+        while (true)
+        {
+            var header = new StringBuilder();
+            while (!header.ToString().EndsWith("\r\n\r\n", StringComparison.Ordinal))
+            {
+                if (await input.ReadAsync(single) == 0) return;
+                header.Append((char)single[0]);
+            }
+            var length = int.Parse(header.ToString().Split("\r\n").First(line => line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase))[15..].Trim());
+            var body = new byte[length];
+            await input.ReadExactlyAsync(body);
+            var request = System.Text.Json.Nodes.JsonNode.Parse(body)!;
+            if (request["id"] is not { } id) continue;
+            var method = request["method"]!.ToString();
+            await Flood();
+            if (method == "flood-last")
+                for (var line = 0; line < 300; line++) await error.WriteAsync(Encoding.UTF8.GetBytes("tail " + line + "\n"));
+            await error.FlushAsync();
+            var reply = Encoding.UTF8.GetBytes(new System.Text.Json.Nodes.JsonObject { ["jsonrpc"] = "2.0", ["id"] = id.DeepClone(), ["result"] = request["params"]?.DeepClone() }.ToJsonString());
+            await output.WriteAsync(Encoding.ASCII.GetBytes($"Content-Length: {reply.Length}\r\n\r\n"));
+            await output.WriteAsync(reply);
+            await output.FlushAsync();
+            if (method == "flood-last") Environment.Exit(3);
+        }
     }
 
     private static void Records()

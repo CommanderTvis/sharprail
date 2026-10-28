@@ -392,6 +392,7 @@ are resynchronized after the notification.
 ### Process exit records
 
 Every server process that ends leaves a `LanguageExit` in its `servers` row, so no death is silent.
+A connection drains stderr for the whole life of the process, so a server that floods it never stalls on a full pipe; `--case language-exit` floods megabytes through a live connection and the one-shot runner to hold this.
 The connection watches the process itself (not stdout EOF) and, once it has exited and stderr is
 drained (two seconds at most), records the time, uptime, exit code, the signal that code names
 (Unix exit codes above 128 are 128 plus the signal; Windows fault statuses are named), the last 200

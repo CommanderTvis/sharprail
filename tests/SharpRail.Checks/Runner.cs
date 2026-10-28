@@ -68,6 +68,7 @@ internal static class Runner
         if (args is ["--stage-packaged", var source, var destination]) { PackagedApp.AddCheckFiles(source, destination); return 0; }
 
         if (args.Length > 0 && args[0] == "--fake-lsp") { LanguageChecks.Fake().GetAwaiter().GetResult(); return 0; }
+        if (args.Length > 0 && args[0] == "--fake-stderr-flood") { LanguageExitChecks.FloodServer(args[1..]).GetAwaiter().GetResult(); return 0; }
         if (args.SequenceEqual(["--fake-lsp-push"])) { LanguageChecks.Fake(push: true).GetAwaiter().GetResult(); return 0; }
         if (args.Contains("--terminal-relay")) { Program.Checks(args); return 0; }
         if (args is ["--check-root-child", var childMode]) return CheckRootChecks.Child(childMode);

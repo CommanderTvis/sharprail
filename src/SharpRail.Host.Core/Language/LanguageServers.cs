@@ -335,7 +335,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         }
     }
 
-    private static async Task<string> RunAsync(ProcessStartInfo start, string root, CancellationToken token)
+    internal static async Task<string> RunAsync(ProcessStartInfo start, string root, CancellationToken token)
     {
         start.WorkingDirectory = root; start.UseShellExecute = false;
         start.RedirectStandardOutput = start.RedirectStandardError = true; start.CreateNoWindow = true;
