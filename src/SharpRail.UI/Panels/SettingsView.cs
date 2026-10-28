@@ -540,7 +540,7 @@ public sealed partial class SettingsView : UserControl
             var item = Ui.Menu(theme.Label, () => select(theme.Id));
             item.Name = $"SystemTheme_{appearance}_option_{theme.Id}";
             item.Foreground = Ui.TextBrush;
-            item.Icon = theme == resolution.Theme ? Ui.Icon("check", Ui.Accent, 14) : null;
+            item.Icon = theme == resolution.Theme ? ActionIcons.Create(ActionIcon.Check, Ui.Accent) : null;
             menu.Items.Add(item);
         }
         trigger.ContextMenu = menu;

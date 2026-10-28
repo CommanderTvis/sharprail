@@ -601,3 +601,20 @@ SharpRail.Plugins.UI.Kit.PathLine.Path.get -> string?
 SharpRail.Plugins.UI.Kit.PathLine.Path.set -> void
 SharpRail.Plugins.UI.Kit.PathLine.PathLine() -> void
 static SharpRail.Plugins.UI.Kit.PathLine.Label(string? path) -> string?
+SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.Add = 4 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.Branch = 9 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.Check = 10 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.Close = 5 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.CopyPath = 3 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.Delete = 0 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.Home = 8 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.NewFile = 1 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.NewFolder = 2 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.OpenFolder = 6 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcon.Rename = 7 -> SharpRail.Plugins.UI.Kit.ActionIcon
+SharpRail.Plugins.UI.Kit.ActionIcons
+static SharpRail.Plugins.UI.Kit.ActionIcons.All.get -> System.Collections.Generic.IReadOnlyList<(SharpRail.Plugins.UI.Kit.ActionIcon Icon, string! Asset)>!
+static SharpRail.Plugins.UI.Kit.ActionIcons.Asset(SharpRail.Plugins.UI.Kit.ActionIcon icon) -> string!
+static SharpRail.Plugins.UI.Kit.ActionIcons.Create(SharpRail.Plugins.UI.Kit.ActionIcon icon, Avalonia.Media.IBrush? color = null, double size = 14) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.Ui.IconMenu(string! label, System.Action! action, SharpRail.Plugins.UI.Kit.ActionIcon icon, bool enabled = true) -> Avalonia.Controls.MenuItem!

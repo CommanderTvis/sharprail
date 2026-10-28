@@ -22,6 +22,10 @@ the project is created empty with this spec, and the controls move into it as li
 
 [File-type icons](FileIcons/SPEC.md) are bundled here for every app client; the host holds only their shared enabled setting. They require no builtin plugin or asset RPC.
 
+## Menu action icons
+
+[Menu action icons](ActionIcons/SPEC.md): every menu icon is chosen by meaning through one registry, so a meaning such as Delete has a single icon everywhere.
+
 ## Shared control states
 
 `ControlStyles.axaml` and `Ui.ApplyResources` own button, toggle and checkbox states for the entire app

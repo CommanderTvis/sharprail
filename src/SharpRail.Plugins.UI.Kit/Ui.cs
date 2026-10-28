@@ -271,6 +271,14 @@ public static partial class Ui
         return item;
     }
 
+    /// <summary>A menu item with the registry's icon for its meaning; items of one menu share the icon column.</summary>
+    public static MenuItem IconMenu(string label, Action action, ActionIcon icon, bool enabled = true)
+    {
+        var item = Menu(label, action, enabled);
+        item.Icon = ActionIcons.Create(icon);
+        return item;
+    }
+
     /// <summary>One option of a segmented toggle: shared hover feedback and an accent outline when selected.</summary>
     public static ToggleButton Segment(string name, string label)
     {

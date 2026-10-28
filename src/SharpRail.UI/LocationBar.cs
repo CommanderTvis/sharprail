@@ -120,11 +120,11 @@ public sealed partial class WorkbenchWindow
             menu.Items.Add(item);
         }
         menu.Items.Add(new Separator());
-        var home = Ui.Menu("Project home", () => _ = OpenProjectHomeAsync(projectRoot), projectRoot.Length > 0 && !atHome);
-        home.Name = "ScopeProjectHome"; home.Icon = Ui.Icon("homeFill", null, 14);
+        var home = Ui.IconMenu("Project home", () => _ = OpenProjectHomeAsync(projectRoot), ActionIcon.Home, projectRoot.Length > 0 && !atHome);
+        home.Name = "ScopeProjectHome";
         menu.Items.Add(home);
-        var add = Ui.Menu("Add project…", () => _ = PickProjectAsync());
-        add.Name = "ScopeProjectAdd"; add.Icon = Ui.Icon("add", null, 14);
+        var add = Ui.IconMenu("Add project…", () => _ = PickProjectAsync(), ActionIcon.Add);
+        add.Name = "ScopeProjectAdd";
         menu.Items.Add(add);
     }
 
@@ -158,8 +158,8 @@ public sealed partial class WorkbenchWindow
             menu.Items.Add(shelf);
         }
         menu.Items.Add(new Separator());
-        var create = Ui.Menu("New workspace", () => _ = CreateWorkspaceDialogAsync(), git.IsRepository);
-        create.Name = "ScopeWorkspaceNew"; create.Icon = Ui.Icon("add", null, 14);
+        var create = Ui.IconMenu("New workspace", () => _ = CreateWorkspaceDialogAsync(), ActionIcon.Add, git.IsRepository);
+        create.Name = "ScopeWorkspaceNew";
         create.InputGesture = WindowShortcuts.NewWorkspace.Gesture;
         menu.Items.Add(create);
     }
@@ -176,7 +176,7 @@ public sealed partial class WorkbenchWindow
                 Name = "ScopeWorkspaceOption",
                 Tag = worktree.Path,
                 Header = label,
-                Icon = Ui.Icon(worktree.Kind switch { WorkspaceKinds.Default => "homeFill", WorkspaceKinds.External => "folderOpen", _ => "gitBranch" }, null, 14)
+                Icon = ActionIcons.Create(worktree.Kind switch { WorkspaceKinds.Default => ActionIcon.Home, WorkspaceKinds.External => ActionIcon.OpenFolder, _ => ActionIcon.Branch })
             };
             if (settled is not null)
             {

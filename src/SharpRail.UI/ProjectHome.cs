@@ -261,21 +261,21 @@ public sealed partial class WorkbenchWindow
     private ContextMenu ProjectActions(string project)
     {
         var menu = new ContextMenu { Name = "ProjectActions" };
-        var create = Ui.Menu("Start work", () => _ = CreateWorkspaceForAsync(project));
-        create.Name = "ProjectMenuCreateWorkspace"; create.Icon = Ui.Icon("add", null, 14);
+        var create = Ui.IconMenu("Start work", () => _ = CreateWorkspaceForAsync(project), ActionIcon.Add);
+        create.Name = "ProjectMenuCreateWorkspace";
         // Copying neither selects the project nor activates a workspace.
         var copy = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(project));
         copy.Name = "ProjectMenuCopyPath";
-        var close = Ui.Menu("Close project", () => _ = CloseProjectAsync(project));
-        close.Name = "ProjectMenuClose"; close.Icon = Ui.Icon("close", null, 14);
-        var existing = Ui.Menu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project));
-        existing.Name = "ProjectMenuOpenExisting"; existing.Icon = Ui.Icon("folderOpen", null, 14);
+        var close = Ui.IconMenu("Close project", () => _ = CloseProjectAsync(project), ActionIcon.Close);
+        close.Name = "ProjectMenuClose";
+        var existing = Ui.IconMenu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project), ActionIcon.OpenFolder);
+        existing.Name = "ProjectMenuOpenExisting";
         menu.Items.Add(create);
         menu.Items.Add(existing);
         menu.Items.Add(new Separator());
         menu.Items.Add(copy);
-        var rename = Ui.Menu("Rename…", () => _ = RenameProjectAsync(project));
-        rename.Name = "ProjectMenuRename"; rename.Icon = Ui.Icon("pencil", null, 14);
+        var rename = Ui.IconMenu("Rename…", () => _ = RenameProjectAsync(project), ActionIcon.Rename);
+        rename.Name = "ProjectMenuRename";
         menu.Items.Add(rename);
         menu.Items.Add(close);
         menu.Closed += (_, _) => { if (!creatingWorkspace) FocusProject(project); };

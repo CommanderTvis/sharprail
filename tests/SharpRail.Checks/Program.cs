@@ -669,6 +669,7 @@ internal static class Program
         if (args.SequenceEqual(["--conformance"]))
         {
             BoundaryChecks.Run(root);
+            ActionIconChecks.Run();
             return;
         }
         if (args.SequenceEqual(["--zig-deps"]))
@@ -1226,6 +1227,7 @@ internal static class Program
         Gate.Case("packaged-app", PackagedApp.Run);
         Gate.Case("gc-settings", () => GcSettingsChecks.Run(root));
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
+        Gate.Case("action-icons", ActionIconChecks.Run);
         Gate.Case("zig-deps", () => ZigDepsChecks.Run());
         Gate.Case("lock-script", () => LockScriptChecks.Run());
         Gate.Case("check-root", CheckRootChecks.Run);
