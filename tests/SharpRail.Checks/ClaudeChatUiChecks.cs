@@ -181,6 +181,7 @@ internal static class ClaudeChatUiChecks
         PasteImages();
         WrappedHistory();
         DraftSurvivesHistory();
+        TaskNoticeBounded();
         RunningFooter();
         FooterChipEdges();
         PrimaryContrast();
@@ -532,6 +533,27 @@ internal static class ClaudeChatUiChecks
     private const double MinimumDisabledContrast = 3.0;
 
     // Up/Down recall history only from the first/last visual line: a soft-wrapped draft moves the caret between its wrapped lines first.
+    // A finished background command's notice carries one trimmed line of the command, not the whole heredoc.
+    private static void TaskNoticeBounded()
+    {
+        var command = "python3 - <<'EOF'\n" + string.Join("\n", Enumerable.Range(0, 40).Select(i => $"print('line {i}')")) + "\nEOF";
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Tasks = [new ChatTask("t1", ChatTaskKind.Shell, command, ChatTaskStatus.Running)] } };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 600, Height = 500, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            chat.Push(new ChatHeaderPush(Workspace, Chat, chat.Header with { Tasks = [new ChatTask("t1", ChatTaskKind.Shell, command, ChatTaskStatus.Done)] }));
+            Frame(window); Frame(window);
+            var notice = view.Transcript.Rows.Select(row => row.Item).OfType<ChatNoticeItem>().Single(item => item.Id == "bg:t1");
+            Require(!notice.Text.Contains('\n') && notice.Text.Length <= 160 && notice.Text.StartsWith("Background command finished: python3"), $"The notice shows one trimmed line ({notice.Text.Length} chars, newline {notice.Text.Contains('\n')}).");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); }
+    }
+
     // Up/Down history never destroys a draft: Down outside history is plain caret movement, and leaving history restores what was typed.
     private static void DraftSurvivesHistory()
     {

@@ -316,10 +316,17 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             {
                 var what = task.Kind switch { ChatTaskKind.Shell => "Background command", ChatTaskKind.Monitor => "Monitor", ChatTaskKind.Workflow => "Workflow", _ => "Background task" };
                 var outcome = task.Status switch { ChatTaskStatus.Done => "finished", ChatTaskStatus.Failed => "failed", _ => "was stopped" };
-                transcript.Upsert(new ChatNoticeItem("bg:" + task.TaskId, long.MaxValue, task.Status == ChatTaskStatus.Failed ? ChatNoticeLevel.Error : ChatNoticeLevel.Info, $"{what} {outcome}: {task.Description}"));
+                transcript.Upsert(new ChatNoticeItem("bg:" + task.TaskId, long.MaxValue, task.Status == ChatTaskStatus.Failed ? ChatNoticeLevel.Error : ChatNoticeLevel.Info, $"{what} {outcome}: {OneLine(task.Description)}"));
             }
             taskStatus[task.TaskId] = task.Status;
         }
+    }
+
+    // A shell task's description is its whole command: a notice or tooltip carries its first line, cut at about 120 characters.
+    internal static string OneLine(string? description)
+    {
+        var line = ChatRowLayout.Preview(description);
+        return line.Length > 120 ? line[..119].TrimEnd() + "\u2026" : line;
     }
 
     private void OnHeader(ChatHeader header)
@@ -601,7 +608,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             tasks.Children.Add(chip);
             if (task.Status == ChatTaskStatus.Running)
             {
-                var stop = Ui.IconButton("close", "Stop " + task.Description, () => _ = StopTask(task));
+                var stop = Ui.IconButton("close", "Stop " + OneLine(task.Description), () => _ = StopTask(task));
                 stop.Name = "ChatTaskStop_" + task.TaskId;
                 stop.Margin = new Thickness(0, 0, 8, 4);
                 tasks.Children.Add(stop);
