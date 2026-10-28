@@ -255,6 +255,8 @@ internal static class OmpChecks
         Require(snapshot.FindDescendant(10, ["omp"]) is { Pid: 12 }, "a live omp under the shell is found and a zombie one skipped");
         var zombie = new ProcessSnapshot(ProcessSnapshot.ParseRows(ProcessSnapshot.Living("  10     1 Ss   zsh\n  11    10 Z    omp\n")));
         Require(zombie.FindDescendant(10, ["omp"]) is null, "an exited, unreaped omp keeps no agent");
+        var nested = new ProcessSnapshot([new(10, 1, "zsh"), new(20, 10, "claude"), new(30, 20, "SharpRail.UI"), new(40, 30, "zsh"), new(50, 40, "omp")]);
+        Require(nested.FindDescendant(10, ["omp"]) is null && nested.FindDescendant(30, ["omp"]) is { Pid: 50 }, "omp below an inner SharpRail app is not the outer tab's agent");
     }
 
     private static void Sessions(string root)

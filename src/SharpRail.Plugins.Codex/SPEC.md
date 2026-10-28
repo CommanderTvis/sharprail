@@ -287,3 +287,5 @@ user-disabled settings are respected and reported. A delegating parent MUST put 
 rules and a requirement to report its `lsp_navigate`/`lsp_diagnostics` call counts into the brief, and MUST reject a report with
 none for code work. Air Context's paragraph (only while enabled) adds MUST `context_search` first. `PromptChecks` asserts these
 phrases in both agents and their absence with the feature or plugin off.
+
+Agent detection never descends through another SharpRail app (`SharpRail.UI`/`SharpRail` process): a Codex in a nested SharpRail's terminal does not mark the outer tab. The Omp copy follows the same rule.

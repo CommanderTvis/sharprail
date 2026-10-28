@@ -38,7 +38,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
 
 - POSIX shell selection: an existing `SHELL` wins, else `/bin/zsh` on macOS, else `/bin/sh`. It starts as a
   login shell (`-l`) in the workspace root, matching Terminal.app; the PTY supplies interactivity. The
-  environment is the host's minus `SHARPRAIL_TOKEN`, with 256-colour/truecolour `TERM` and a UTF-8 locale
+  environment is the host's minus `SHARPRAIL_TOKEN` and any `SHARPRAIL_*_STATUS_URL`/`THINKRAIL_*_STATUS_URL` (an outer SharpRail's per-terminal identity, which would make an inner agent report to the outer tab; plugins add their own after), with 256-colour/truecolour `TERM` and a UTF-8 locale
   when none is set. `USER` and `LOGNAME` are stamped from the uid: the PTY registers no utmpx record, so a
   login shell without `LOGNAME` would ask `getlogin()`, which reads whatever stale record the reused device
   carries and can name another user.

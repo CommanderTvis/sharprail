@@ -36,12 +36,33 @@ internal static partial class TerminalHostChecks
         Environment.SetEnvironmentVariable("ZDOTDIR", startup);
         // Without LOGNAME a login shell would ask getlogin(), which can read a stale utmpx record.
         Environment.SetEnvironmentVariable("LOGNAME", null);
-        try { await RunIsolated(root, workspace, watchReplayOnly); }
+        try
+        {
+            OuterIdentityIsStripped();
+            await RunIsolated(root, workspace, watchReplayOnly);
+        }
         finally
         {
             Environment.SetEnvironmentVariable("ZDOTDIR", previous);
             Environment.SetEnvironmentVariable("LOGNAME", logname);
         }
+    }
+
+    // An outer SharpRail's per-terminal status URLs are not inherited; the inner host's own contribution and a user's configuration stay.
+    private static void OuterIdentityIsStripped()
+    {
+        string[] names = ["THINKRAIL_CODEX_STATUS_URL", "SHARPRAIL_AGENT_STATUS_URL", "SHARPRAIL_STATE_DIR"];
+        var saved = names.Select(Environment.GetEnvironmentVariable).ToArray();
+        try
+        {
+            foreach (var name in names) Environment.SetEnvironmentVariable(name, "outer");
+            var inherited = PtyTerminalService.ShellEnvironment().OfType<string>().ToArray();
+            Require(!inherited.Any(line => line.Contains("_STATUS_URL=", StringComparison.Ordinal)) && inherited.Contains("SHARPRAIL_STATE_DIR=outer"),
+                "An outer terminal's status URLs must not reach an inner host's terminals, while configuration variables stay.");
+            var own = PtyTerminalService.ShellEnvironment(null, new Dictionary<string, string> { ["SHARPRAIL_AGENT_STATUS_URL"] = "inner" }).OfType<string>();
+            Require(own.Contains("SHARPRAIL_AGENT_STATUS_URL=inner"), "The inner host's own contribution is applied after the strip.");
+        }
+        finally { for (var i = 0; i < names.Length; i++) Environment.SetEnvironmentVariable(names[i], saved[i]); }
     }
 
     private static async Task RunIsolated(string root, string workspace, bool watchReplayOnly)

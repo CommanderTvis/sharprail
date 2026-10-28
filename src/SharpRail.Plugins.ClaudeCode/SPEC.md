@@ -319,7 +319,7 @@ is loaded only for app-started Claude processes through `--plugin-dir`; activati
 
 Activation owns the process poll, bridge, terminal environment, revive hook and status route.
 Disable removes them and stops reading Claude configuration and polling processes. Nested agents
-do not replace an outer terminal agent record. The poll skips zombie processes (`ps` state Z): an agent that exited
+do not replace an outer terminal agent record, and the descendant search never descends through another SharpRail app (`SharpRail.UI`/`SharpRail` process), so agents in a nested SharpRail's terminals never mark the outer tab. The poll skips zombie processes (`ps` state Z): an agent that exited
 but is not yet reaped keeps its name, and must still clear its record.
 
 The status URL includes a host-minted terminal token. Its POST resolves the terminal, reads known

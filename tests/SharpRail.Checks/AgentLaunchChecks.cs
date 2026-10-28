@@ -79,6 +79,9 @@ internal static class AgentLaunchChecks
         claudeWatch.Sweep();
         claudeWatch.Stop();
         Require(claudeDetections.SequenceEqual([20, 21]), "Replacing Claude between polls must recheck the launch origin once.");
+        var nestedClaude = ClaudeProcesses.FromRows([new(10, 1, "sh"), new(20, 10, "codex"), new(30, 20, "SharpRail.UI"), new(40, 30, "sh"), new(50, 40, "claude")]);
+        Require(ClaudeProcesses.FindDescendant(nestedClaude, 10, ["claude"]) is null && ClaudeProcesses.FindDescendant(nestedClaude, 10, ["codex"]) is { Pid: 20 } &&
+            !ClaudeProcesses.RunsInsideAgent(nestedClaude, 10, "claude", "codex"), "Claude below an inner SharpRail app is not the outer tab's agent");
     }
 
     internal static void RunUi(string root)

@@ -71,7 +71,7 @@ No real omp run backs them; the checks use a fixture `omp`.
   itself unavailable with the same hint.
 - Agent detection: a 2.5 s process poll (a copy of the Codex plugin's) records an `omp` descendant of a tab's shell
   as an `omp` agent record and clears it when the process leaves; zombie (`Z`) rows are skipped. A record of another
-  agent kind is left alone. If an omp build runs under another process name (for example its runtime's), it is not
+  agent kind is left alone. The search does not descend through another SharpRail app (process name `SharpRail.UI`/`SharpRail`), so an agent in a nested SharpRail's terminals never marks the outer tab; a SharpRail run as `dotnet SharpRail.UI.dll` is not recognised by name. If an omp build runs under another process name (for example its runtime's), it is not
   detected; this is not verified against a real install.
 - Air Governance can govern omp (its `omp` switch, with Central chosen): Central's `central run` (1.13.0) has no omp
   agent, so Air Governance contributes Central's Pi wire as `ANTHROPIC_BASE_URL`/`ANTHROPIC_API_KEY` and a proxy start

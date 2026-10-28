@@ -593,6 +593,9 @@ internal static class CodexChecks
         Require(Tab("codex", "claude").RunsInsideAgent(10, "codex", "claude"), "Codex that Claude Code started leaves the tab to Claude Code");
         Require(!Tab("claude", "codex").RunsInsideAgent(10, "codex", "claude") && !Tab("codex", "bash").RunsInsideAgent(10, "codex", "claude") &&
             !Tab("bash", "claude").RunsInsideAgent(10, "codex", "claude"), "Codex is the tab's agent when nothing the record names sits above it");
+        var nested = new ProcessSnapshot([new(10, 1, "zsh"), new(20, 10, "claude"), new(30, 20, "SharpRail.UI"), new(40, 30, "zsh"), new(50, 40, "codex")]);
+        Require(nested.FindDescendant(10, ["codex"]) is null && nested.FindDescendant(10, ["claude"]) is { Pid: 20 } && nested.FindDescendant(30, ["codex"]) is { Pid: 50 },
+            "Codex below an inner SharpRail app is not the outer tab's agent");
         Require(ProcessSnapshot.ParseRows("  10     1 /bin/zsh\n  20 10 /usr/local/bin/codex\ngarbage\n").SequenceEqual([new ProcessRow(10, 1, "zsh"), new ProcessRow(20, 10, "codex")]),
             "ps rows parse to base names");
         Require(ProcessSnapshot.ParseRows(ProcessSnapshot.Living("  10 1 Ss /bin/zsh\n  20 10 Z codex\n  21 10 S+ /usr/local/bin/codex\n")).SequenceEqual([new ProcessRow(10, 1, "zsh"), new ProcessRow(21, 10, "codex")]),

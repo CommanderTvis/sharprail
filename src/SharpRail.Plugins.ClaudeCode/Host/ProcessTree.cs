@@ -100,6 +100,10 @@ internal static partial class ProcessTree
         return output is null ? null : FromRows(ParseRows(output));
     }
 
+    /// <summary>Another SharpRail app (the bundle and apphost are <c>SharpRail.UI</c>): its terminals' agents belong to its own tabs, so the search never descends through it.</summary>
+    public static bool IsSharpRailHost(string name) =>
+        name.Equals("SharpRail.UI", StringComparison.OrdinalIgnoreCase) || name.Equals("SharpRail", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>The first process named in <paramref name="wanted"/> below <paramref name="rootPid"/>, breadth first.</summary>
     public static (int Pid, string Name)? FindDescendant(IProcessSnapshot snapshot, int rootPid, IReadOnlyCollection<string> wanted, int maxDepth = MaxDescendantDepth)
     {
@@ -112,8 +116,9 @@ internal static partial class ProcessTree
                 foreach (var child in snapshot.ChildrenOf(pid))
                 {
                     if (!seen.Add(child)) continue;
-                    if (snapshot.NameOf(child) is { } name && wanted.Contains(name)) return (child, name);
-                    next.Add(child);
+                    var name = snapshot.NameOf(child);
+                    if (name is not null && wanted.Contains(name)) return (child, name);
+                    if (name is null || !IsSharpRailHost(name)) next.Add(child);
                 }
             frontier = next;
         }

@@ -549,6 +549,11 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         "CLAUDE_CODE_SSE_PORT", "CLAUDE_PID", "CLAUDE_EFFORT"
     ];
 
+    // Plugins name per-terminal status endpoints SHARPRAIL_*_STATUS_URL or THINKRAIL_*_STATUS_URL, so a plugin's variable is covered without listing it here.
+    internal static bool IsTerminalIdentityVariable(string name) =>
+        name.EndsWith("_STATUS_URL", StringComparison.Ordinal) &&
+        (name.StartsWith("SHARPRAIL_", StringComparison.Ordinal) || name.StartsWith("THINKRAIL_", StringComparison.Ordinal));
+
     internal static string?[] ShellEnvironment(string? mcpUrl = null, IReadOnlyDictionary<string, string>? contributed = null, string shell = "") =>
         ShellEnvironment(mcpUrl, contributed, shell, null, out _);
 
@@ -570,6 +575,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         // An app started from a Ghostty or SharpRail terminal inherits integration variables; only the host's own injection sets them.
         foreach (var key in variables.Keys.Where(key => key.StartsWith("GHOSTTY_", StringComparison.Ordinal) ||
             key.StartsWith(ShellIntegration.VariablePrefix, StringComparison.Ordinal)).ToArray()) variables.Remove(key);
+        // An outer SharpRail's per-terminal identity (status URLs carry the terminal's token) must not reach this host's
+        // terminals: an inner agent's hooks would report to the outer tab. This host's own contributions are applied below.
+        foreach (var key in variables.Keys.Where(IsTerminalIdentityVariable).ToArray()) variables.Remove(key);
         variables["TERM"] = "xterm-256color";
         variables["COLORTERM"] = "truecolor";
         // The PTY registers no utmpx record, so a login shell without LOGNAME asks getlogin(), which reads
