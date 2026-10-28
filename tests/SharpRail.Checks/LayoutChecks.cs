@@ -24,8 +24,8 @@ internal static class LayoutChecks
         var tabs = session.State.Workspaces["one"].Documents.Values.SelectMany(tabs => tabs).ToArray();
         Require(tabs.Single(tab => tab.Id == "terminal:initial").Title == "Fix login",
             "Catalog updates must retain the host's agent title in an inactive workspace.");
-        Require(tabs.Single(tab => tab.Id == "peer").Title == "Terminal 72" && session.State.Workspaces["one"].NextTerminalNumber == 73,
-            "Untitled terminals must retain catalog titles and numbering.");
+        Require(tabs.Single(tab => tab.Id == "peer").Title == "Terminal 72",
+            "Untitled terminals must retain catalog titles.");
         titles["peer"] = "Review changes";
         session.ReconcileTerminals("one", catalog, new HashSet<string>(), titles: titles);
         session.SwitchWorkspace("one");
@@ -33,6 +33,33 @@ internal static class LayoutChecks
             "A terminal placed by the catalog must also receive later agent titles.");
         Require(session.State.Workspaces["two"].Documents.Values.SelectMany(tabs => tabs).Single(tab => tab.Id == "terminal:initial").Title == "Terminal 1",
             "Agent titles must be scoped to their workspace.");
+    }
+
+    private static void CheckTerminalNumbers()
+    {
+        var session = new LayoutSession();
+        session.SwitchWorkspace("n");
+        var group = session.State.Center.Leaves().Single();
+        string[] Numbered() => session.Tabs(group).Where(tab => tab.Kind == "terminal").Select(tab => tab.Title).ToArray();
+        session.NewTerminal(group); session.NewTerminal(group); session.NewTerminal(group);
+        Require(Numbered().SequenceEqual(["Terminal 1", "Terminal 2", "Terminal 3"]), "Terminals are numbered from 1.");
+        var middle = session.Tabs(group).Single(tab => tab.Title == "Terminal 2");
+        session.Close(group, middle.Id);
+        session.NewTerminal(group);
+        Require(Numbered().Order().SequenceEqual(["Terminal 1", "Terminal 2", "Terminal 3"]), "A closed middle terminal's number is reused.");
+        var first = session.Tabs(group).Single(tab => tab.Title == "Terminal 1");
+        session.ReconcileTerminals("n", session.Tabs(group).Where(tab => tab.Kind == "terminal").Select(tab => new TerminalTab(tab.Id, tab.Title)).ToArray(),
+            new HashSet<string>(), titles: new Dictionary<string, string> { [first.Id] = "Fix login" });
+        session.NewTerminal(group);
+        Require(session.Tabs(group).Count(tab => tab.Title == "Terminal 1") == 1 && session.Tabs(group).All(tab => tab.Title != "Fix login" || tab.Id == first.Id),
+            "A renamed terminal frees its number.");
+        session.ReconcileTerminals("n", [.. session.Tabs(group).Where(tab => tab.Kind == "terminal").Select(tab => new TerminalTab(tab.Id, tab.Title)), new("peer", "Terminal 5")], new HashSet<string>());
+        session.NewTerminal(group); session.NewTerminal(group);
+        var titles = session.Tabs(group).Select(tab => tab.Title).ToArray();
+        Require(titles.Count(title => title == "Terminal 5") == 1 && titles.Contains("Terminal 4") && titles.Contains("Terminal 6"),
+            "A catalog terminal occupies its number.");
+        var old = System.Text.Json.JsonSerializer.Deserialize<WorkspaceView>("{\"NextTerminalNumber\":226}");
+        Require(old is not null, "A saved view with the retired NextTerminalNumber must load.");
     }
 
     public static void Run()
@@ -64,6 +91,7 @@ internal static class LayoutChecks
             "Projects must retain access to catalog terminals whose side region is hidden.");
         ProjectPaneChecks.Model();
         CheckTerminalTitles();
+        CheckTerminalNumbers();
         CheckAuxiliaryRegions();
         CheckSeparatePanes();
         CheckPanes();

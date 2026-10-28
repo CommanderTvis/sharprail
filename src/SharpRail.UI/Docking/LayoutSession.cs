@@ -213,9 +213,6 @@ public sealed partial class LayoutSession
             }
         foreach (var tab in catalog)
         {
-            // New terminals here keep counting past every numbered title a peer already used.
-            if (tab.Title.StartsWith("Terminal ", StringComparison.Ordinal) && int.TryParse(tab.Title.AsSpan(9), out var number) && number < int.MaxValue)
-                view.NextTerminalNumber = Math.Max(view.NextTerminalNumber, number + 1);
             if (!placed.Add(tab.Key)) continue;
             if (!view.Documents.TryGetValue(target, out var tabs)) view.Documents[target] = tabs = [];
             tabs.Add(new DockTab(tab.Key, known[tab.Key], "terminal")); changed = true;
@@ -227,6 +224,18 @@ public sealed partial class LayoutSession
         State = next; Epoch++;
         Changed?.Invoke();
         return true;
+    }
+
+    // The lowest positive number no tab titled "Terminal N" in the view holds (peers' tabs are in the view once reconciled).
+    private static int LowestFreeTerminalNumber(WorkspaceView view)
+    {
+        var used = new HashSet<int>();
+        foreach (var tab in view.Documents.Values.SelectMany(tabs => tabs))
+            if (tab.Kind == "terminal" && tab.Title.StartsWith("Terminal ", StringComparison.Ordinal) && int.TryParse(tab.Title.AsSpan(9), System.Globalization.NumberStyles.None, null, out var number))
+                used.Add(number);
+        var free = 1;
+        while (used.Contains(free)) free++;
+        return free;
     }
 
     // A plugin document's id (plugin:<scheme>:<id>) reads as a plugin tool id, so only a tool tab is held to the tool catalog.
@@ -350,7 +359,7 @@ public sealed partial class LayoutSession
             view.Documents.GetValueOrDefault(group)?.Any(tab => tab.Id == shown && tab.Kind == "terminal") == true ? shown : null;
         var source = Terminal(groupId) ?? Terminal(view.FocusedGroup);
         if (!view.Documents.TryGetValue(groupId, out var tabs)) view.Documents[groupId] = tabs = [];
-        var tab = new DockTab(id ?? "terminal:" + Guid.NewGuid().ToString("N"), "Terminal " + view.NextTerminalNumber++, "terminal");
+        var tab = new DockTab(id ?? "terminal:" + Guid.NewGuid().ToString("N"), "Terminal " + LowestFreeTerminalNumber(view), "terminal");
         if (source is not null) terminalSources[(state.ActiveWorkspace, tab.Id)] = source;
         tabs.Add(tab); group.Folded = false;
         view.Selected[groupId] = tab.Id; view.FocusedGroup = groupId;

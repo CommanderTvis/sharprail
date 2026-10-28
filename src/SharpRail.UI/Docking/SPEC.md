@@ -313,8 +313,9 @@ removal veto (its shell was ended by whoever closed it), its group selecting the
 the view lacks is appended to the last-focused centre group,
 without selecting it, revealing or unfolding its region, changing frame geometry or taking focus; titles follow
 the host's saved agent title when present, otherwise the catalog. Catalog refreshes cannot replace an agent
-title with its original numbered title, including retained inactive views and newly placed tabs. The view's next
-terminal number moves past every numbered title a peer used. A tab created here
+title with its original numbered title, including retained inactive views and newly placed tabs. A new terminal
+takes the lowest positive number no "Terminal N" tab of the view holds (peers' tabs occupy theirs once placed; renamed
+or agent-titled tabs free theirs; nothing is persisted, and an older saved `NextTerminalNumber` is ignored). A tab created here
 is exempt until the host has recorded it. `WorkspaceView.TerminalsShared` records that a view has met the catalog,
 so a view saved before the catalog existed brings its tabs once instead of losing them. Upstream places only the
 initial terminal passively and leaves other peer-created terminals out of a surface's layout; here every catalogued
