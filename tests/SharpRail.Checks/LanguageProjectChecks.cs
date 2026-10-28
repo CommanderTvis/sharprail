@@ -111,20 +111,25 @@ internal static class LanguageProjectChecks
                     Require(!((DrawnTreeLabel)app.FileRow("plain")).GetVisualDescendants().OfType<ProjectFolderIcon>().Any(), "An ordinary folder received a module badge.");
                     var library = (DrawnTreeLabel)app.FileRow("library"); library.OpenMenu();
                     var menu = library.ContextMenu!;
-                    Require(menu.Items.OfType<MenuItem>().Count() > 8 && menu.Items.OfType<MenuItem>().All(item => item.Icon is null), "A Files tree menu item carries an icon, so its labels misalign.");
+                    Require(menu.Items.OfType<MenuItem>().Count() > 8 && menu.Items.OfType<MenuItem>().Where(item => item.Icon is not null).Select(item => item.Name).Order()
+                        .SequenceEqual(new[] { "FileNodeCopyPath", "FileNodeCopyRelativePath", "FileNodeDelete", "FileNodeNewFile", "FileNodeNewFolder" }), "The Files tree menu icons are not exactly New file, New folder, Copy path, Copy absolute path and Delete.");
                     E2eWorkspace.Until(() => menu.Items.OfType<MenuItem>().First().GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().Any(part => part.Name == "PART_HeaderPresenter" && part.Bounds.Width > 0));
-                    foreach (var item in menu.Items.OfType<MenuItem>().Where(item => item.IsVisible))
+                    var edges = menu.Items.OfType<MenuItem>().Where(item => item.IsVisible).Select(item =>
                     {
                         var label = item.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(part => part.Name == "PART_HeaderPresenter");
-                        var left = Avalonia.VisualExtensions.TranslatePoint(label, default, item)!.Value.X;
-                        Require(left is >= 11.5 and <= 13.5, $"The Files tree menu leaves a gutter before '{item.Header}': its label starts at x={left} instead of the item padding (12).");
-                    }
+                        return (item.Header, Left: Avalonia.VisualExtensions.TranslatePoint(label, default, item)!.Value.X);
+                    }).ToArray();
+                    Require(edges.All(edge => Math.Abs(edge.Left - edges[0].Left) < 0.5), "The Files tree menu aligns labels differently with and without an icon: " + string.Join(", ", edges.Select(edge => $"{edge.Header}={edge.Left}")));
                     var configure = menu.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeLanguage_csharp");
                     app.Click(configure);
                     E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<LanguageSettingsWindow>().Any());
                     var settings = app.Window.OwnedWindows.OfType<LanguageSettingsWindow>().Single();
                     Require(settings.Title == "C# (Roslyn)" && settings.FindControl<TextBlock>("SettingsWorkspace")!.Text == root, "Folder settings target the wrong provider/workspace or misrepresent their scope.");
                     settings.Close();
+                    var plain = (DrawnTreeLabel)app.FileRow("plain"); plain.OpenMenu();
+                    Require(!plain.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name is not null && (item.Name.StartsWith("FileNodeLanguage_", StringComparison.Ordinal) || item.Name == "FileNodeBuildDefinition")),
+                        "A folder that is no project root offered language configuration or a build definition.");
+                    plain.ContextMenu.Close();
                     var rust = (DrawnTreeLabel)app.FileRow("rust"); rust.OpenMenu();
                     var open = rust.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeBuildDefinition");
                     app.Click(open);

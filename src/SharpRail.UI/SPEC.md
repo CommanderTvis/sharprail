@@ -730,6 +730,15 @@ existing workspace-scoped configuration window, labelled with its scope. They al
 the detected build definitions as editable documents. These actions do not automatically
 rewrite Gradle/Maven/MSBuild models or claim native module configuration/import controls.
 
+Rule for the Files tree menu: a folder row offers "Configure <server> language service" and "Open build definition"
+only when the folder is itself the root of a project a provider reported (the project's root equals the folder's path); a plain
+subfolder, even inside a project, offers neither. A file row keeps the nearest enclosing root of each provider. The lookup reads
+the in-memory project snapshot Files already refreshes off the UI thread (`ProjectsAt`), so opening the menu does no I/O.
+
+The Files tree menu shows icons on exactly New file, New folder, Copy path, Copy absolute path, Delete and plugin file actions that
+bring their own mark (the Claude mention). The icons come from the [menu action icon registry](../SharpRail.Plugins.UI.Kit/ActionIcons/SPEC.md); the
+other rows have none, and the menu's shared icon column keeps all labels aligned.
+
 
 The Air Context plugin's workspace section in the language servers pane provides workspace-scoped enablement, Index now,
 Stop and Logs; sign-in is global and lives in Settings › Code Intelligence. Both sections are plugin slot contributions (W23) hosted by `PluginSlot` and absent while the plugin is disabled. Cloud enablement uses an explicit confirmation describing source upload,

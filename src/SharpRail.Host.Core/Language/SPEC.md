@@ -788,6 +788,13 @@ closure clears it. Files may force refresh on listing changes. The operation use
 local/remote transport and lsp_status operation selection. Runtime inventory uses compact
 session progress while detailed resolution/manifests remain in analysis coverage.
 
+The Files tree uses this list to decide where "Configure <server> language service" and
+"Open build definition" appear. Rule: a folder row shows them only when the folder is itself a
+reported project root (some result's `root` equals the folder path, so its build definition sits
+directly in that folder, or the provider reported the folder as a source root); a plain
+subfolder, even inside a root, shows neither. A file row keeps the nearest enclosing root per
+provider. The UI reads the cached snapshot in memory when the menu opens and does no I/O.
+
 
 2026-10-17 verification: project-root discovery and pagination pass on direct/WebSocket
 adapters, including exclusions, JVM selection, cancellation and workspace isolation.

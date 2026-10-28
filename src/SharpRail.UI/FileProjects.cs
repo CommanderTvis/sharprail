@@ -72,8 +72,9 @@ public sealed partial class WorkbenchWindow
     {
         if (fileProjectsWorkspace != workspaceRoot) return;
         var folder = file.IsDirectory ? file.Path : HostPaths.Parent(file.Path);
-        var candidates = fileProjects.Where(project => project.Root.Length == 0 || folder == project.Root || folder.StartsWith(project.Root + "/", StringComparison.Ordinal))
-            .ToArray();
+        // A folder row offers the language entries only when it is itself a project root; a file row, when it sits inside one.
+        var candidates = file.IsDirectory ? ProjectsAt(folder)
+            : fileProjects.Where(project => project.Root.Length == 0 || folder == project.Root || folder.StartsWith(project.Root + "/", StringComparison.Ordinal)).ToArray();
         var applicable = candidates.GroupBy(project => project.Server).SelectMany(group => group.Where(project => project.Root.Length == group.Max(item => item.Root.Length))).ToArray();
         if (applicable.Length == 0) return;
         menu.Items.Add(new Separator());
