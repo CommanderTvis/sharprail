@@ -579,8 +579,10 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     private void RebuildTasks(ChatHeader header)
     {
         tasks.Children.Clear();
-        tasks.IsVisible = header.Tasks.Count > 0;
-        foreach (var task in header.Tasks)
+        // Only running tasks keep a chip; a finished one has left its notice in the transcript.
+        var running = header.Tasks.Where(task => task.Status == ChatTaskStatus.Running).ToList();
+        tasks.IsVisible = running.Count > 0;
+        foreach (var task in running)
         {
             var (mark, brush) = task.Status switch
             {

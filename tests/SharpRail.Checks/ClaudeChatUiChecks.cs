@@ -183,6 +183,7 @@ internal static class ClaudeChatUiChecks
         DraftSurvivesHistory();
         TaskNoticeBounded();
         DurationFormat();
+        OnlyRunningChips();
         RunningFooter();
         FooterChipEdges();
         PrimaryContrast();
@@ -550,6 +551,30 @@ internal static class ClaudeChatUiChecks
             Frame(window); Frame(window);
             var notice = view.Transcript.Rows.Select(row => row.Item).OfType<ChatNoticeItem>().Single(item => item.Id == "bg:t1");
             Require(!notice.Text.Contains('\n') && notice.Text.Length <= 160 && notice.Text.StartsWith("Background command finished: python3"), $"The notice shows one trimmed line ({notice.Text.Length} chars, newline {notice.Text.Contains('\n')}).");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); }
+    }
+
+    // The task chips above the transcript are the running tasks only; finished ones are left as notices.
+    private static void OnlyRunningChips()
+    {
+        ChatTask Shell(string id, ChatTaskStatus status) => new(id, ChatTaskKind.Shell, "echo " + id, status);
+        var finished = Enumerable.Range(0, 5).Select(i => Shell("old" + i, ChatTaskStatus.Done)).ToList();
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Tasks = [.. finished, Shell("live", ChatTaskStatus.Running)] } };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 600, Height = 500, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            List<Control> Named(string prefix) => [.. view.GetVisualDescendants().OfType<Control>().Where(control => control.Name?.StartsWith(prefix) == true)];
+            Require(Named("ChatTask_").Count == 1 && Named("ChatTask_")[0].Name == "ChatTask_live" && Named("ChatTaskStop_live").Count == 1, $"One running task keeps its chip and Stop among six ({Named("ChatTask_").Count} chips).");
+            chat.Push(new ChatHeaderPush(Workspace, Chat, chat.Header with { Tasks = [.. finished, Shell("live", ChatTaskStatus.Done)] }));
+            Frame(window); Frame(window);
+            Require(Named("ChatTask_").Count == 0 && !view.GetVisualDescendants().OfType<WrapPanel>().First(panel => panel.Name == "ChatTasks").IsVisible, "A finished task's chip goes and the row hides.");
+            Require(view.Transcript.Rows.Select(row => row.Item).OfType<ChatNoticeItem>().Any(item => item.Id == "bg:live"), "The finished task leaves its notice.");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); }
