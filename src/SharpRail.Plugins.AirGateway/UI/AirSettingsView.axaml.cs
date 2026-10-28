@@ -7,10 +7,10 @@ using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.AirGovernance.UI;
+namespace SharpRail.Plugins.AirGateway.UI;
 
 /// <summary>
-/// Settings › Air Governance. The source and the agent switches are plugin settings. Only the local, read-only
+/// Settings › Air Gateway. The source and the agent switches are plugin settings. Only the local, read-only
 /// sign-in status check runs automatically (on open, on window activation at most every <see cref="Throttle"/>,
 /// after sign-in and sign-out, and every <see cref="PollInterval"/> for at most <see cref="PollLimit"/> while a
 /// sign-in is awaited, only while the pane is attached and visible); every other action is a button. The AI access
@@ -71,10 +71,10 @@ internal sealed partial class AirSettingsView : UserControl
         {
             if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(AirLaunch.PiInstallCommand);
         };
-        signIn.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignIn);
-        signOut.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignOut);
-        startProxy.Click += (_, _) => _ = RunAsync(AirGovernanceContract.StartProxy);
-        update.Click += (_, _) => _ = RunAsync(AirGovernanceContract.Update);
+        signIn.Click += (_, _) => _ = RunAsync(AirGatewayContract.SignIn);
+        signOut.Click += (_, _) => _ = RunAsync(AirGatewayContract.SignOut);
+        startProxy.Click += (_, _) => _ = RunAsync(AirGatewayContract.StartProxy);
+        update.Click += (_, _) => _ = RunAsync(AirGatewayContract.Update);
         ApplySettings(Settings);
         Render();
         AttachedToVisualTree += (_, _) =>
@@ -84,7 +84,7 @@ internal sealed partial class AirSettingsView : UserControl
             hostWindow = TopLevel.GetTopLevel(this) as Window;
             if (hostWindow is not null) hostWindow.Activated += Activated;
             observers.Add(context.OnSettings<AirSettings>(next => { var was = lastSource; ApplySettings(next); _ = RefreshAsync(true, next.Source != was); }));
-            observers.Add(context.Subscribe(AirGovernanceContract.Changed, next => { status = next; Render(); }, new AirStatusParams()));
+            observers.Add(context.Subscribe(AirGatewayContract.Changed, next => { status = next; Render(); }, new AirStatusParams()));
             // After the observers: a check with none registered is skipped, so the on-open check must follow them.
             _ = CheckAsync(true);
         };
@@ -124,7 +124,7 @@ internal sealed partial class AirSettingsView : UserControl
         try { await context.UpdateSettingsAsync(settings); }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            context.Notify(PluginNotificationKind.Error, "Couldn't change the Air Governance setting", error.Message);
+            context.Notify(PluginNotificationKind.Error, "Couldn't change the Air Gateway setting", error.Message);
             ApplySettings(Settings);
         }
     }
@@ -146,7 +146,7 @@ internal sealed partial class AirSettingsView : UserControl
         Render();
         try
         {
-            var next = await context.RequestAsync(AirGovernanceContract.Status, new AirStatusParams(true));
+            var next = await context.RequestAsync(AirGatewayContract.Status, new AirStatusParams(true));
             if (mine != generation) return;
             status = next;
             if (next.Central.Auth == "connected") StopPolling();
@@ -177,7 +177,7 @@ internal sealed partial class AirSettingsView : UserControl
     {
         try
         {
-            status = await context.RequestAsync(AirGovernanceContract.Status, new AirStatusParams(probe));
+            status = await context.RequestAsync(AirGatewayContract.Status, new AirStatusParams(probe));
             wasAuth = status.Central.Auth;
             Render();
         }
@@ -189,8 +189,8 @@ internal sealed partial class AirSettingsView : UserControl
     {
         busy = true; Render();
         var mine = generation;
-        var automatic = method == AirGovernanceContract.SignIn || method == AirGovernanceContract.SignOut;
-        if (method == AirGovernanceContract.SignOut) StopPolling();
+        var automatic = method == AirGatewayContract.SignIn || method == AirGatewayContract.SignOut;
+        if (method == AirGatewayContract.SignOut) StopPolling();
         try
         {
             var outcome = await context.RequestAsync(method, new AirActionParams());
@@ -202,7 +202,7 @@ internal sealed partial class AirSettingsView : UserControl
         finally { if (mine == generation) { busy = false; Render(); } }
         if (!automatic || mine != generation) return;
         await CheckAsync(true);
-        if (method == AirGovernanceContract.SignIn && status?.Central.Auth != "connected" && status?.Central.State is "supported" or "outdated") StartPolling();
+        if (method == AirGatewayContract.SignIn && status?.Central.Auth != "connected" && status?.Central.State is "supported" or "outdated") StartPolling();
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ internal sealed partial class AirSettingsView : UserControl
         var token = ++listGeneration;
         accessNote.Text = "Loading access sources…";
         AirAccessList list;
-        try { list = await context.RequestAsync(AirGovernanceContract.AccessSources, new AirActionParams()); }
+        try { list = await context.RequestAsync(AirGatewayContract.AccessSources, new AirActionParams()); }
         catch (PluginCallException error)
         {
             if (mine == generation && token == listGeneration) ShowAccess(null, error.Message);
@@ -261,7 +261,7 @@ internal sealed partial class AirSettingsView : UserControl
         var mine = generation;
         try
         {
-            var outcome = await context.RequestAsync(AirGovernanceContract.SwitchAccess, new AirSwitchParams(id));
+            var outcome = await context.RequestAsync(AirGatewayContract.SwitchAccess, new AirSwitchParams(id));
             if (mine != generation) return;
             status = outcome.Status;
             result.Text = outcome.Message;

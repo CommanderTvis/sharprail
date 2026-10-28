@@ -1,7 +1,7 @@
 using SharpRail.Plugins.AirContext;
 using SharpRail.Plugins.AirContext.Host;
-using SharpRail.Plugins.AirGovernance;
-using SharpRail.Plugins.AirGovernance.Host;
+using SharpRail.Plugins.AirGateway;
+using SharpRail.Plugins.AirGateway.Host;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.Blueprint;
@@ -123,7 +123,7 @@ public static class BuiltinPlugins
         (VisualizeContract.Manifest, new VisualizeHost()),
         (CodexManifest.Manifest, new CodexHost()),
         (OmpManifest.Manifest, new OmpHost()),
-        (AirGovernanceContract.Manifest, new AirGovernanceHost()),
+        (AirGatewayContract.Manifest, new AirGatewayHost()),
         (AirContextContract.Manifest, new AirContextHost()),
         (TailscaleContract.Manifest, new TailscaleHost(tailscale)),
         (EpubContract.Manifest, new EpubHost()),

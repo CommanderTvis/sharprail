@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.AirGovernance.Host;
+namespace SharpRail.Plugins.AirGateway.Host;
 
 /// <summary>The two endpoints of one Central environment. Production values come only from the fixed table below.</summary>
 internal sealed record AirAccessEndpoints(Uri Token, Uri Options)

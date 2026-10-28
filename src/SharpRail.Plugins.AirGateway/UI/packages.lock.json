@@ -127,7 +127,7 @@
           "Svg.SceneGraph": "5.2.3"
         }
       },
-      "sharprail.plugins.airgovernance": {
+      "sharprail.plugins.airgateway": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api": "[1.0.0, )"

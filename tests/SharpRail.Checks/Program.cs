@@ -1194,12 +1194,12 @@ internal static class Program
             OmpChecks.RunUi(Path.Combine(root, "omp-ui"));
             return;
         }
-        if (args.SequenceEqual(["--air-governance"]))
+        if (args.SequenceEqual(["--air-gateway"]))
         {
-            AirGovernanceChecks.Run(root).GetAwaiter().GetResult();
+            AirGatewayChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
-            AirGovernanceChecks.RunUi(root);
+            AirGatewayChecks.RunUi(root);
             return;
         }
         if (args.SequenceEqual(["--button-centering"]))
@@ -1283,7 +1283,7 @@ internal static class Program
         Gate.Case("host-state", () => StateStoreChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-paths", () => ProjectPathChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("specs", () => SpecChecks.Run(root).GetAwaiter().GetResult());
-        Gate.Case("air-governance", () => AirGovernanceChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("air-gateway", () => AirGatewayChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("tailscale", () => TailscaleChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("local-browser-approval", () => LocalBrowserConnectionChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
@@ -1310,7 +1310,7 @@ internal static class Program
         Gate.Case("design-roles", Design.RoleChecks.Run);
         Gate.Case("tailscale-ui", () => TailscaleChecks.RunUi(root));
         Gate.Case("button-centering", ButtonCenteringChecks.RunUi);
-        Gate.Case("air-governance-ui", () => AirGovernanceChecks.RunUi(root));
+        Gate.Case("air-gateway-ui", () => AirGatewayChecks.RunUi(root));
         Gate.Case("language-limits-ui", () => LanguageLimitChecks.Ui(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));

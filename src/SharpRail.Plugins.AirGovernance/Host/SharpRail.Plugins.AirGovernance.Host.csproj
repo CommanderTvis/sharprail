@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <ProjectReference Include="../Contract/SharpRail.Plugins.AirGovernance.csproj" />
-    <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
-    <InternalsVisibleTo Include="SharpRail.Checks" />
-    <Content Include="../assets/**" LinkBase="plugins/air-governance/assets" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-</Project>

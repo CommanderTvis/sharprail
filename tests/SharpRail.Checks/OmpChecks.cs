@@ -14,7 +14,7 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
-using SharpRail.Plugins.AirGovernance;
+using SharpRail.Plugins.AirGateway;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Omp;
 using SharpRail.Plugins.Omp.Host;
@@ -24,7 +24,7 @@ namespace SharpRail.Checks;
 
 // The omp plugin: the launch line (profile, session folder, model, approval mode, advisor, --no-lsp), the context-file
 // resolution with nested, cycle-safe @-imports and the offers, the profile's MCP file, the version probe against a
-// fixture omp and a missing one, process detection, revival, Air Governance's stance, and the UI end to end.
+// fixture omp and a missing one, process detection, revival, Air Gateway's stance, and the UI end to end.
 internal static class OmpChecks
 {
     private static void Require(bool condition, string message)
@@ -64,10 +64,10 @@ internal static class OmpChecks
         Processes();
         Sessions(Path.Combine(root, "omp-sessions"));
         await Governed(Path.Combine(root, "omp-air"));
-        Console.WriteLine("PASS omp host: launch line, context files and imports, profile MCP file, setup wizard switch, version and missing binary, detection, sessions, Air Governance through Central's Pi wire");
+        Console.WriteLine("PASS omp host: launch line, context files and imports, profile MCP file, setup wizard switch, version and missing binary, detection, sessions, Air Gateway through Central's Pi wire");
     }
 
-    // Air Governance: a governed omp launch, run by a real shell against a fake omp and central, starts Central's proxy
+    // Air Gateway: a governed omp launch, run by a real shell against a fake omp and central, starts Central's proxy
     // and reaches omp with Central's Pi wire in its environment; a missing Pi integration fails closed; direct adds nothing.
     private static async Task Governed(string root)
     {
@@ -81,7 +81,7 @@ internal static class OmpChecks
         File.WriteAllText(Path.Combine(bin, "central"), "#!/bin/sh\necho \"CENTRAL=$*\" >> \"" + record + "\"\n");
         foreach (var name in new[] { "omp", "central" }) File.SetUnixFileMode(Path.Combine(bin, name), UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         var settings = new AirSettings { Source = AirSources.Central };
-        using var missing = new SharpRail.Plugins.AirGovernance.Host.AirGovernanceRuntime(new(home, bin), () => settings, _ => { });
+        using var missing = new SharpRail.Plugins.AirGateway.Host.AirGatewayRuntime(new(home, bin), () => settings, _ => { });
         Require(missing.PiWire() is null && missing.Contribution(OmpManifest.Id) is { Wrapper: [AirLaunch.PiMissingCommand], ReplacesExecutable: true },
             "governed omp without Central's Pi integration is blocked");
         Require((await missing.StatusAsync(false, default)).Agents.Single(agent => agent.Id == OmpManifest.Id).Launch!.Contains("run `central add pi`", StringComparison.Ordinal),

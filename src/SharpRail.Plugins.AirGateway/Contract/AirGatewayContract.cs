@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 using SharpRail.Plugins.Api;
 
-namespace SharpRail.Plugins.AirGovernance;
+namespace SharpRail.Plugins.AirGateway;
 
 /// <summary>The AI sources the plugin switches between. <see cref="Direct"/> leaves the agents as the user configured them.</summary>
 public static class AirSources
@@ -83,10 +83,10 @@ public static partial class AirLaunch
     /// The executable a governed omp launch gets when Central's Pi wire is unknown: a command that cannot exist, so
     /// the launch fails in the shell, naming the fix, instead of starting an ungoverned omp.
     /// </summary>
-    public const string PiMissingCommand = "air-governance-needs-central-pi-integration--run-central-add-pi";
+    public const string PiMissingCommand = "air-gateway-needs-central-pi-integration--run-central-add-pi";
 
     /// <summary>The executable a governed omp launch gets on Windows, whose shells receive no contributed environment.</summary>
-    public const string WindowsUnsupportedCommand = "air-governance-cannot-govern-omp-on-windows";
+    public const string WindowsUnsupportedCommand = "air-gateway-cannot-govern-omp-on-windows";
 
     /// <summary>The API key Central's proxy expects in place of a vendor key, as its Pi integration passes it.</summary>
     public const string WireApiKey = "wire-proxy";
@@ -142,17 +142,17 @@ public static partial class AirLaunch
         Contribution(settings, launcherId, centralPath, piWire, windows) switch
         {
             null => null,
-            { Wrapper: [PiMissingCommand] } => "blocked: Air Governance needs Central's Pi integration: run `" + PiInstallCommand + "`",
-            { Wrapper: [WindowsUnsupportedCommand] } => "blocked: Air Governance cannot govern omp on Windows",
+            { Wrapper: [PiMissingCommand] } => "blocked: Air Gateway needs Central's Pi integration: run `" + PiInstallCommand + "`",
+            { Wrapper: [WindowsUnsupportedCommand] } => "blocked: Air Gateway cannot govern omp on Windows",
             { ReplacesExecutable: false } contribution => string.Join(' ', contribution.Environment.Select(pair => pair.Key + "=" + pair.Value)) + " "
                 + contribution.Wrapper[^1] + " proxy start, then " + launcherId + " <" + launcherId + " arguments>",
             var contribution => string.Join(' ', contribution.Wrapper) + " <" + launcherId + " arguments>"
         };
 }
 
-public static class AirGovernanceContract
+public static class AirGatewayContract
 {
-    public const string Id = "air-governance";
+    public const string Id = "air-gateway";
 
     public static readonly PluginMethod<AirStatusParams, AirStatus> Status = new("status");
     public static readonly PluginMethod<AirActionParams, AirOutcome> SignIn = new("sign-in");
@@ -166,13 +166,13 @@ public static class AirGovernanceContract
     public static readonly PluginContract Contract = PluginContract.Create<AirSettings>(Id, 1,
         [Status, SignIn, SignOut, StartProxy, Update, AccessSources, SwitchAccess], [Changed]);
 
-    public static readonly PluginManifest Manifest = new(Id, "Air Governance", "asset:air-governance.svg", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Air Gateway", "asset:air-gateway.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Agents,
-        Description = "Starts Codex and Claude Code through JetBrains Air governance with the Central CLI, per launch, or leaves them on their own accounts.",
+        Description = "Starts Codex and Claude Code through JetBrains Air Gateway with the Central CLI, per launch, or leaves them on their own accounts.",
         EnabledByDefault = false,
         Assets = "assets",
-        Host = "SharpRail.Plugins.AirGovernance.Host.dll",
-        Ui = "SharpRail.Plugins.AirGovernance.UI.dll"
+        Host = "SharpRail.Plugins.AirGateway.Host.dll",
+        Ui = "SharpRail.Plugins.AirGateway.UI.dll"
     };
 }

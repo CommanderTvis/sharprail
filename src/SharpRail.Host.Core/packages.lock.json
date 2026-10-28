@@ -27,16 +27,16 @@
           "SharpRail.Plugins.Api.Host": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.airgovernance": {
+      "sharprail.plugins.airgateway": {
         "type": "Project",
         "dependencies": {
           "SharpRail.Plugins.Api": "[1.0.0, )"
         }
       },
-      "sharprail.plugins.airgovernance.host": {
+      "sharprail.plugins.airgateway.host": {
         "type": "Project",
         "dependencies": {
-          "SharpRail.Plugins.AirGovernance": "[1.0.0, )",
+          "SharpRail.Plugins.AirGateway": "[1.0.0, )",
           "SharpRail.Plugins.Api.Host": "[1.0.0, )"
         }
       },

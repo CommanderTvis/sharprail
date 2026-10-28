@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 using SharpRail.Plugins.Api;
 
-namespace SharpRail.Plugins.AirGovernance.Host;
+namespace SharpRail.Plugins.AirGateway.Host;
 
 /// <summary>
 /// The plugin's behaviour apart from the host context: detecting Central and the actions the user triggers on it
@@ -11,7 +11,7 @@ namespace SharpRail.Plugins.AirGovernance.Host;
 /// agent's configuration: governed launches are `central run` in the command line, built by the agent's own plugin.
 /// Central runs only from a status check (the read-only `central status` and, with Central chosen and signed in, `central limit --json`, which the pane repeats automatically) or a method the user triggered, and no Central output is stored; the identity and credits reach only the governed agents' Account tabs, on request.
 /// </summary>
-internal sealed class AirGovernanceRuntime : IDisposable
+internal sealed class AirGatewayRuntime : IDisposable
 {
     private readonly AirCentralCli cli;
     private readonly Func<AirSettings> settings;
@@ -26,7 +26,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
     private (string? Email, string? License) identity;
     private int busy;
 
-    public AirGovernanceRuntime(AirEnvironment environment, Func<AirSettings> settings, Action<AirStatus> publish)
+    public AirGatewayRuntime(AirEnvironment environment, Func<AirSettings> settings, Action<AirStatus> publish)
     {
         cli = new(environment);
         this.settings = settings; this.publish = publish;
@@ -77,11 +77,11 @@ internal sealed class AirGovernanceRuntime : IDisposable
             var status = await StatusAsync(true, cancellationToken);
             publish(status);
             var central = status.Central;
-            if (central.State == "absent") return new(Source, Problem: "Central is not installed. See Settings › Air Governance.");
-            if (central.State is not ("supported" or "outdated")) return new(Source, Problem: "Central cannot be used on this host. See Settings › Air Governance.");
-            if (central.Auth == "signed-out") return new(Source, Problem: "Not signed in to Central. Sign in under Settings › Air Governance.");
+            if (central.State == "absent") return new(Source, Problem: "Central is not installed. See Settings › Air Gateway.");
+            if (central.State is not ("supported" or "outdated")) return new(Source, Problem: "Central cannot be used on this host. See Settings › Air Gateway.");
+            if (central.Auth == "signed-out") return new(Source, Problem: "Not signed in to Central. Sign in under Settings › Air Gateway.");
             if (central.Auth != "connected") return new(Source, Problem: "Could not check whether Central is signed in.");
-            if (central.State == "outdated") return new(Source, Problem: "Central is outdated. Update it under Settings › Air Governance.");
+            if (central.State == "outdated") return new(Source, Problem: "Central is outdated. Update it under Settings › Air Gateway.");
             if (status.Credits is not { } left) return new(Source, Problem: "Could not read the remaining credits from Central.");
             return new(Source, identity.Email, identity.License, left.Remaining, left.Total, left.TopUp, left.RefillNext);
         }

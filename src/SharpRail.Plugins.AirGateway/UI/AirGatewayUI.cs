@@ -1,14 +1,14 @@
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 
-namespace SharpRail.Plugins.AirGovernance.UI;
+namespace SharpRail.Plugins.AirGateway.UI;
 
-/// <summary>The UI half: Settings › Air Governance, the `central run` contribution to Claude Code and Codex launches, Central's Pi wire for omp, and the remaining credits in the header while Central governs an agent.</summary>
-public sealed class AirGovernanceUI : PluginUIModule
+/// <summary>The UI half: Settings › Air Gateway, the `central run` contribution to Claude Code and Codex launches, Central's Pi wire for omp, and the remaining credits in the header while Central governs an agent.</summary>
+public sealed class AirGatewayUI : PluginUIModule
 {
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
-        context.SettingsSection(new("Air Governance", "asset:air-governance.svg", () => new AirSettingsView(context)));
+        context.SettingsSection(new("Air Gateway", "asset:air-gateway.svg", () => new AirSettingsView(context)));
         // Contributions are read synchronously on the UI thread, so the path Central was found at comes from the host's
         // status channel rather than the file system; until it arrives the bare name is used and the shell resolves it.
         // Central's Pi wire is likewise known only from the channel; until then a governed omp launch fails closed.
@@ -16,7 +16,7 @@ public sealed class AirGovernanceUI : PluginUIModule
         context.AgentLaunch(launcherId => AirLaunch.Contribution(context.Settings<AirSettings>(), launcherId, Volatile.Read(ref centralPath), Volatile.Read(ref piWire), context.Host().HostPlatform == HostPlatform.Windows));
         var feed = new AirCreditsFeed(context);
         context.HeaderItem(new(() => new AirCreditsHeader(context, feed)));
-        var subscription = context.Subscribe(AirGovernanceContract.Changed, status => { Volatile.Write(ref centralPath, status.Central.Path); Volatile.Write(ref piWire, status.PiWire); feed.Apply(status); }, new AirStatusParams());
+        var subscription = context.Subscribe(AirGatewayContract.Changed, status => { Volatile.Write(ref centralPath, status.Central.Path); Volatile.Write(ref piWire, status.PiWire); feed.Apply(status); }, new AirStatusParams());
         return () => { subscription.Dispose(); feed.Dispose(); };
     }
 }

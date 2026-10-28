@@ -118,7 +118,7 @@ internal static class ClaudeChatE2E
         if (OperatingSystem.IsWindows()) return;
         var directory = Path.Combine(root, "claude-chat-start-work");
         var previous = new Dictionary<string, string?>();
-        // A stand-in `central` on PATH under a throwaway HOME: Air Governance, set to Central, contributes a wrapper to Claude launches, and the
+        // A stand-in `central` on PATH under a throwaway HOME: Air Gateway, set to Central, contributes a wrapper to Claude launches, and the
         // stand-in records the arguments and environment of the launch it was asked to run.
         var governedBin = Path.Combine(directory, "gov-bin");
         Directory.CreateDirectory(governedBin);
@@ -237,8 +237,8 @@ internal static class ClaudeChatE2E
         Begin(WorkspaceFixture.Dialog(app, "NewWorkspaceDialog"), "from the project menu", enter: false);
         Started("from the project menu", 3);
 
-        // Launch contributions: with Air Governance set to Central, the child is run by the wrapper with the chat's own arguments after it.
-        app.State!.ChangeAsync([HostStateChange.PluginSettings("air-governance", JsonSerializer.Serialize(new { enabled = true, source = "central", claudeCode = true }))]).AsTask().GetAwaiter().GetResult();
+        // Launch contributions: with Air Gateway set to Central, the child is run by the wrapper with the chat's own arguments after it.
+        app.State!.ChangeAsync([HostStateChange.PluginSettings("air-gateway", JsonSerializer.Serialize(new { enabled = true, source = "central", claudeCode = true }))]).AsTask().GetAwaiter().GetResult();
         E2eWorkspace.Until(() => app.Workbench.PluginRegistry.LaunchContributions("claude").Count == 1);
         var centralLog = Path.Combine(directory, "central-run.log");
         WorkspaceFixture.GoProjectHome(app);

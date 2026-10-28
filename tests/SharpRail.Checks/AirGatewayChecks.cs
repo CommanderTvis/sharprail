@@ -10,9 +10,9 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
-using SharpRail.Plugins.AirGovernance;
-using SharpRail.Plugins.AirGovernance.Host;
-using SharpRail.Plugins.AirGovernance.UI;
+using SharpRail.Plugins.AirGateway;
+using SharpRail.Plugins.AirGateway.Host;
+using SharpRail.Plugins.AirGateway.UI;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.ClaudeCode;
@@ -25,10 +25,10 @@ using SharpRail.UI.State;
 
 namespace SharpRail.Checks;
 
-// The Air Governance builtin plugin against a fake `central`, ported from the fork's e2e/fixtures/bin/central: the
+// The Air Gateway builtin plugin against a fake `central`, ported from the fork's e2e/fixtures/bin/central: the
 // fork's version/status/login/access/proxy surface, with `add`/`remove` for the claude-code and codex agents in
 // place of its pi extension. The real CLI is never run, and every path lives under a throwaway HOME.
-internal static class AirGovernanceChecks
+internal static class AirGatewayChecks
 {
     private const string Sentinel = "E2E_CENTRAL_CHILD_SENTINEL";
     private const string Original = "{\"theme\":\"dark\"}\n";
@@ -129,13 +129,13 @@ internal static class AirGovernanceChecks
         if (!condition) throw new InvalidOperationException(message);
     }
 
-    private static AirGovernanceRuntime Runtime(Fixture fixture, AirSettings settings, List<AirStatus>? published = null) =>
+    private static AirGatewayRuntime Runtime(Fixture fixture, AirSettings settings, List<AirStatus>? published = null) =>
         new(fixture.Environment, () => settings, status => published?.Add(status));
 
     internal static async Task Run(string root)
     {
         Parsing();
-        var directory = Path.Combine(root, "air-governance");
+        var directory = Path.Combine(root, "air-gateway");
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         await Detection(Path.Combine(directory, "detect"));
         Contributions();
@@ -147,7 +147,7 @@ internal static class AirGovernanceChecks
         await Transport(Path.Combine(directory, "transport"));
         await GovernedAccounts(Path.Combine(directory, "governed"));
         Directory.Delete(directory, true);
-        Console.WriteLine("PASS Air Governance: detection, source contributions, launch command shapes, untouched agent configuration, failures, access sources, the host seam over plugin RPC and the governed Codex and Claude Code accounts");
+        Console.WriteLine("PASS Air Gateway: detection, source contributions, launch command shapes, untouched agent configuration, failures, access sources, the host seam over plugin RPC and the governed Codex and Claude Code accounts");
     }
 
     private static void Parsing()
@@ -176,7 +176,7 @@ internal static class AirGovernanceChecks
             Require((await runtime.StatusAsync(false, default)).Central.State == state, $"{tokens} central is {state}.");
         }
         var empty = new AirEnvironment(fixture.Home, Path.Combine(directory, "nowhere"));
-        using var absent = new AirGovernanceRuntime(empty, () => new(), _ => { });
+        using var absent = new AirGatewayRuntime(empty, () => new(), _ => { });
         var missing = await absent.StatusAsync(false, default);
         Require(missing.Central is { State: "absent", Path: null } && missing.Central.InstallCommand.StartsWith(OperatingSystem.IsWindows() ? "irm " : "curl ", StringComparison.Ordinal), "A missing CLI offers the install command, never runs it.");
         var local = Path.Combine(fixture.Home, ".local", "bin");
@@ -201,7 +201,7 @@ internal static class AirGovernanceChecks
             omp.Environment["ANTHROPIC_BASE_URL"] == "http://127.0.0.1:1/wire/a/pi/anthropic" && omp.Environment["ANTHROPIC_API_KEY"] == AirLaunch.WireApiKey,
             "omp starts Central's proxy and gets its Pi wire through the environment.");
         Require(AirLaunch.Contribution(central, "omp", "/c") is { Wrapper: [AirLaunch.PiMissingCommand] } && AirLaunch.Contribution(central with { Omp = false }, "omp", "/c") is null &&
-            AirLaunch.Shape(central, "omp", "/c") == "blocked: Air Governance needs Central's Pi integration: run `central add pi`", "Without Central's Pi integration omp is blocked, and it has its own switch.");
+            AirLaunch.Shape(central, "omp", "/c") == "blocked: Air Gateway needs Central's Pi integration: run `central add pi`", "Without Central's Pi integration omp is blocked, and it has its own switch.");
     }
 
     private static string[] Snapshot(Fixture fixture) => [.. Directory.EnumerateFiles(fixture.Home, "*", SearchOption.AllDirectories)
@@ -389,7 +389,7 @@ internal static class AirGovernanceChecks
         var environment = fixture.Environment with { TestEndpoints = endpoint.Endpoints };
         var surfaced = new List<string>();
         var published = new List<AirStatus>();
-        using var runtime = new AirGovernanceRuntime(environment, () => new(), status => published.Add(status));
+        using var runtime = new AirGatewayRuntime(environment, () => new(), status => published.Add(status));
         void Export(string text) { Directory.CreateDirectory(Path.GetDirectoryName(fixture.StubFile("export"))!); File.WriteAllText(fixture.StubFile("export"), text + "\n"); }
         async Task<AirAccessList> List() { var list = await runtime.AccessSourcesAsync(default); surfaced.Add(JsonSerializer.Serialize(list)); return list; }
 
@@ -471,7 +471,7 @@ internal static class AirGovernanceChecks
             File.ReadAllText(fixture.StubFile("access")).Trim() == "license:lic-9", "Switches run one at a time and A, B, A is preserved: " + string.Join("|", fixture.Log));
     }
 
-    // The Codex and Claude Code Account methods under a governing Air Governance, over the real plugin runtime: the
+    // The Codex and Claude Code Account methods under a governing Air Gateway, over the real plugin runtime: the
     // Central account replaces the vendor one, the vendor CLI is never started, and unavailable Centrals say why.
     private static async Task GovernedAccounts(string directory)
     {
@@ -496,12 +496,12 @@ internal static class AirGovernanceChecks
                 StateDirectory = Path.Combine(directory, "state"),
                 State = state,
                 PublicBaseUrl = () => "http://127.0.0.1:1",
-                Builtins = [(AirGovernanceContract.Manifest, new AirGovernanceHost { Environment = fixture.Environment }), (CodexManifest.Manifest, new CodexHost()), (ClaudeCodeManifest.Manifest, new ClaudeCodeHost())],
+                Builtins = [(AirGatewayContract.Manifest, new AirGatewayHost { Environment = fixture.Environment }), (CodexManifest.Manifest, new CodexHost()), (ClaudeCodeManifest.Manifest, new ClaudeCodeHost())],
                 Worktrees = (_, _) => Task.FromResult<IReadOnlyList<WorktreeInfo>>([])
             });
             await runtime.Start();
             async Task Settings(object air) =>
-                await state.ChangeAsync([HostStateChange.PluginSettings("air-governance", JsonSerializer.Serialize(air)),
+                await state.ChangeAsync([HostStateChange.PluginSettings("air-gateway", JsonSerializer.Serialize(air)),
                     HostStateChange.PluginSettings("codex", JsonSerializer.Serialize(new { enabled = true, command = vendor })),
                     HostStateChange.PluginSettings("claude-code", JsonSerializer.Serialize(new { enabled = true, command = vendor }))]);
             async Task<(CodexAccount? Codex, ClaudeAccount? Claude)> Read()
@@ -546,7 +546,7 @@ internal static class AirGovernanceChecks
             }
             fixture.Tokens("");
             Require(!File.Exists(vendorLog), "Failures under Central never fall back to the vendor account: " + (File.Exists(vendorLog) ? File.ReadAllText(vendorLog) : ""));
-            var absent = new AirGovernanceRuntime(new AirEnvironment(fixture.Home, Path.Combine(directory, "nowhere")), () => new() { Source = AirSources.Central }, _ => { });
+            var absent = new AirGatewayRuntime(new AirEnvironment(fixture.Home, Path.Combine(directory, "nowhere")), () => new() { Source = AirSources.Central }, _ => { });
             Require((await absent.AccountAsync(default)).Problem!.Contains("not installed", StringComparison.Ordinal), "A missing Central is reported.");
             absent.Dispose();
             using var directRuntime = Runtime(fixture, new());
@@ -570,33 +570,33 @@ internal static class AirGovernanceChecks
         {
             StateDirectory = Path.Combine(directory, "state"),
             State = state,
-            Builtins = [(AirGovernanceContract.Manifest with { EnabledByDefault = true }, new AirGovernanceHost { Environment = fixture.Environment }),
+            Builtins = [(AirGatewayContract.Manifest with { EnabledByDefault = true }, new AirGatewayHost { Environment = fixture.Environment }),
                 (new PluginManifest("agents", "Agents", "puzzle-2-line", "1", PluginApi.Generation, 1) { EnabledByDefault = true }, new Recorder(context => agents = context))]
         });
         await runtime.Start();
-        Require((await runtime.ListAsync()).Single(entry => entry.Id == "air-governance") is { Status: PluginStatus.Active, Origin: PluginOrigin.Builtin }, "Air Governance is a builtin.");
-        Require(!AirGovernanceContract.Manifest.EnabledByDefault, "It ships disabled: governing agents is the user's choice.");
-        async Task<T> Call<T>(string method, object parameters) => PluginJson.Convert<T>(await runtime.CallAsync(new("air-governance", method, parameters, "fixture")));
+        Require((await runtime.ListAsync()).Single(entry => entry.Id == "air-gateway") is { Status: PluginStatus.Active, Origin: PluginOrigin.Builtin }, "Air Gateway is a builtin.");
+        Require(!AirGatewayContract.Manifest.EnabledByDefault, "It ships disabled: governing agents is the user's choice.");
+        async Task<T> Call<T>(string method, object parameters) => PluginJson.Convert<T>(await runtime.CallAsync(new("air-gateway", method, parameters, "fixture")));
         var status = await Call<AirStatus>("status", new AirStatusParams());
         Require(status.Source == AirSources.Direct && status.Central.State == "supported" && status.Agents.All(agent => agent.Launch is null), "Status answers over plugin RPC, direct by default.");
         Require(agents!.AgentLaunchContributions("codex").Count == 0, "Direct contributes nothing on the host.");
-        await state.ChangeAsync([HostStateChange.PluginSettings("air-governance", JsonSerializer.Serialize(new { enabled = true, source = AirSources.Central, codex = false }))]);
+        await state.ChangeAsync([HostStateChange.PluginSettings("air-gateway", JsonSerializer.Serialize(new { enabled = true, source = AirSources.Central, codex = false }))]);
         status = await Call<AirStatus>("status", new AirStatusParams());
         Require(status.Agents.Single(agent => agent.Id == "claude").Launch == fixture.Central + " run claude-code -- <claude arguments>" && status.Agents.Single(agent => agent.Id == "codex").Launch is null, "The persisted source and agent switches drive the launch shapes.");
         Require(agents.AgentLaunchContributions("claude").Single() is { ReplacesExecutable: true } contribution && contribution.Wrapper[0] == fixture.Central && agents.AgentLaunchContributions("codex").Count == 0,
             "The host half contributes to revived launches for the enabled agent only.");
         Require(AgentLaunchComposition.Apply("claude --resume abc", "claude", agents.AgentLaunchContributions("claude")) == fixture.Central + " run claude-code -- --resume abc", "A revive offer is rewritten.");
-        await state.ChangeAsync([HostStateChange.PluginSettings("air-governance", JsonSerializer.Serialize(new { enabled = false }))]);
+        await state.ChangeAsync([HostStateChange.PluginSettings("air-gateway", JsonSerializer.Serialize(new { enabled = false }))]);
         for (var attempt = 0; attempt < 200 && agents.AgentLaunchContributions("claude").Count > 0; attempt++) await Task.Delay(25);
-        Require(agents.AgentLaunchContributions("claude").Count == 0, "A disabled Air Governance contributes nothing.");
-        await state.ChangeAsync([HostStateChange.PluginSettings("air-governance", JsonSerializer.Serialize(new { enabled = true, source = AirSources.Direct }))]);
+        Require(agents.AgentLaunchContributions("claude").Count == 0, "A disabled Air Gateway contributes nothing.");
+        await state.ChangeAsync([HostStateChange.PluginSettings("air-gateway", JsonSerializer.Serialize(new { enabled = true, source = AirSources.Direct }))]);
         await Task.Delay(300);
         Require(agents.AgentLaunchContributions("claude").Count == 0 && fixture.Log.All(line => !line.StartsWith("run", StringComparison.Ordinal)), "Switching back removes the contribution; Central was never asked to run an agent.");
     }
 
     internal static void RunUi(string root)
     {
-        var directory = Path.Combine(root, "air-governance-ui");
+        var directory = Path.Combine(root, "air-gateway-ui");
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         Directory.CreateDirectory(directory);
         // The governed account section the agent panels share: credits and identity, or one actionable message.
@@ -608,7 +608,7 @@ internal static class AirGovernanceChecks
             !failed.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ClaudeGovernedCredits"), "A governed account that cannot be read shows only the message.");
         var profile = new ProfileStore(Path.Combine(directory, "profile"));
         var store = profile.OpenState();
-        var roster = new PluginRosterEntry("air-governance", "Air Governance", "asset:air-governance.svg", "0.1.0", 1, PluginOrigin.Builtin, PluginStatus.Disabled)
+        var roster = new PluginRosterEntry("air-gateway", "Air Gateway", "asset:air-gateway.svg", "0.1.0", 1, PluginOrigin.Builtin, PluginStatus.Disabled)
         {
             Channels = new Dictionary<string, PluginRosterChannel> { ["status"] = new(PluginChannelKind.State, "status", []) }
         };
@@ -626,10 +626,10 @@ internal static class AirGovernanceChecks
         window.Width = 1200; window.Height = 800; window.Show();
         try
         {
-            _ = workbench.State.ChangeAsync(HostStateChange.PluginEnabled("air-governance", true));
-            E2eWorkspace.Until(() => workbench.PluginRegistry.Active.Contains("air-governance"));
+            _ = workbench.State.ChangeAsync(HostStateChange.PluginEnabled("air-gateway", true));
+            E2eWorkspace.Until(() => workbench.PluginRegistry.Active.Contains("air-gateway"));
             Require(fake.Calls.All(call => call.Method == "status"), "Enabling the plugin only reads its status.");
-            window.ShowSettings("plugin:air-governance:air-governance");
+            window.ShowSettings("plugin:air-gateway:air-gateway");
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             var settings = window.OpenSettingsViews.Single();
             T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
@@ -637,7 +637,7 @@ internal static class AirGovernanceChecks
             Require(Find<StackPanel>("AirInstall").IsVisible && Find<TextBox>("AirInstallCommand").Text!.Contains("install.sh", StringComparison.Ordinal) && !Find<Button>("AirSignIn").IsEnabled,
                 "A missing CLI shows the install command and offers no action.");
 
-            fake.Push("air-governance", "status", Status("supported", "unknown", AirSources.Direct));
+            fake.Push("air-gateway", "status", Status("supported", "unknown", AirSources.Direct));
             E2eWorkspace.Until(() => Find<TextBlock>("AirCentralLine").Text?.Contains("1.13.0", StringComparison.Ordinal) == true);
             Require(Find<RadioButton>("AirSourceDirect").IsChecked == true && workbench.PluginRegistry.LaunchContributions("claude").Count == 0 &&
                 Find<TextBlock>("AirLaunches").Text!.Contains("claude: unchanged", StringComparison.OrdinalIgnoreCase) == false && Find<TextBlock>("AirLaunches").Text!.Contains("unchanged", StringComparison.Ordinal),
@@ -645,13 +645,13 @@ internal static class AirGovernanceChecks
 
             fake.Replies["status"] = Status("supported", "unknown", AirSources.Central);
             Find<RadioButton>("AirSourceCentral").IsChecked = true;
-            E2eWorkspace.Until(() => workbench.State.Current.PluginSettings.TryGetValue("air-governance", out var saved) && saved.TryGetProperty("source", out var source) && source.GetString() == AirSources.Central);
+            E2eWorkspace.Until(() => workbench.State.Current.PluginSettings.TryGetValue("air-gateway", out var saved) && saved.TryGetProperty("source", out var source) && source.GetString() == AirSources.Central);
             E2eWorkspace.Until(() => Find<TextBlock>("AirLaunches").Text!.Contains("run claude-code --", StringComparison.Ordinal));
             Require(Find<TextBlock>("AirLaunches").Text!.Contains("/usr/local/bin/central run codex -- <codex arguments>", StringComparison.Ordinal) && fake.Calls.All(call => call.Method == "status"),
                 "Choosing a source persists it and shows the exact command shape, running nothing.");
             Require(workbench.PluginRegistry.LaunchContributions("claude").Single().Wrapper.SequenceEqual(["/usr/local/bin/central", "run", "claude-code", "--"]), "The UI half contributes the wrapper with the detected path.");
             Find<CheckBox>("AirAgentCodex").IsChecked = false;
-            E2eWorkspace.Until(() => workbench.State.Current.PluginSettings["air-governance"].TryGetProperty("codex", out var codex) && codex.ValueKind == System.Text.Json.JsonValueKind.False);
+            E2eWorkspace.Until(() => workbench.State.Current.PluginSettings["air-gateway"].TryGetProperty("codex", out var codex) && codex.ValueKind == System.Text.Json.JsonValueKind.False);
             Require(workbench.PluginRegistry.LaunchContributions("codex").Count == 0 && workbench.PluginRegistry.LaunchContributions("claude").Count == 1, "Each agent's toggle is honoured by new launches.");
 
             fake.Replies["access-sources"] = new AirAccessList([new("workspace:o:w", "Team workspace", true), new("license:l", "Personal licence", false)], null);
@@ -706,24 +706,24 @@ internal static class AirGovernanceChecks
                 "Choosing a source rechecks the sign-in state on its own; signed out offers Sign in and shows no credits.");
             E2eWorkspace.Until(() => !settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AirSwitchAccess"));
             Require(Find<TextBlock>("AirAccessNote").Text == "", "Choosing the direct source clears the access list.");
-            fake.Push("air-governance", "status", Status("supported", "connected", AirSources.Central) with { Credits = new(16.27, 20, 5.5, 1800000000000) });
+            fake.Push("air-gateway", "status", Status("supported", "connected", AirSources.Central) with { Credits = new(16.27, 20, 5.5, 1800000000000) });
             E2eWorkspace.Until(() => Find<TextBlock>("AirCredits").IsVisible && Find<TextBlock>("AirCredits").Text!.StartsWith("16.27 of 20.00 credits remaining", StringComparison.Ordinal));
             settings.Close();
             E2eWorkspace.Until(() => fake.Subscriptions == 1);
-            _ = workbench.State.ChangeAsync(HostStateChange.PluginEnabled("air-governance", false));
-            E2eWorkspace.Until(() => !workbench.PluginRegistry.Active.Contains("air-governance"));
+            _ = workbench.State.ChangeAsync(HostStateChange.PluginEnabled("air-gateway", false));
+            E2eWorkspace.Until(() => !workbench.PluginRegistry.Active.Contains("air-gateway"));
             Require(workbench.PluginRegistry.LaunchContributions("claude").Count == 0, "Disabling the plugin removes its contributions at once.");
         }
         finally { window.Close(); }
         RunHeader(root);
         RunLaunchers(root);
-        Console.WriteLine("PASS Air Governance UI: plugin settings persistence, launch command shape, access switching, contributions and subscription teardown, and the header's credits item");
+        Console.WriteLine("PASS Air Gateway UI: plugin settings persistence, launch command shape, access switching, contributions and subscription teardown, and the header's credits item");
     }
 
     // The real launchers of the Claude Code and Codex plugins in the app, with a fake central first on PATH.
     private static void RunLaunchers(string root)
     {
-        var directory = Path.Combine(root, "air-governance-launchers");
+        var directory = Path.Combine(root, "air-gateway-launchers");
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         using var fixture = new Fixture(directory);
         var saved = new Dictionary<string, string?>();
@@ -736,31 +736,31 @@ internal static class AirGovernanceChecks
         {
             using var app = new E2eWorkspace(Path.Combine(directory, "project"), openFiles: false);
             var registry = app.Workbench.PluginLoader!.Registry;
-            E2eWorkspace.Until(() => registry.Entry("air-governance") is not null);
+            E2eWorkspace.Until(() => registry.Entry("air-gateway") is not null);
             string Command(string id) => registry.LauncherList.Single(launcher => launcher.Id == id).TerminalCommand(new() { InitialPrompt = "go" });
             void Settings(string plugin, object value) => app.State!.ChangeAsync([HostStateChange.PluginSettings(plugin, JsonSerializer.Serialize(value))]).AsTask().GetAwaiter().GetResult();
             Settings("claude-code", new { enabled = true }); Settings("codex", new { enabled = true });
             E2eWorkspace.Until(() => registry.LauncherList.Any(launcher => launcher.Id == "claude") && registry.LauncherList.Any(launcher => launcher.Id == "codex"));
             var plainClaude = Command("claude"); var plainCodex = Command("codex");
             Require(!plainClaude.Contains("central", StringComparison.Ordinal) && !plainCodex.Contains("central", StringComparison.Ordinal), "Without the plugin the launchers are unchanged.");
-            Settings("air-governance", new { enabled = true, source = AirSources.Central });
-            E2eWorkspace.Until(() => registry.Active.Contains("air-governance") && Command("claude").Contains(fixture.Central, StringComparison.Ordinal));
+            Settings("air-gateway", new { enabled = true, source = AirSources.Central });
+            E2eWorkspace.Until(() => registry.Active.Contains("air-gateway") && Command("claude").Contains(fixture.Central, StringComparison.Ordinal));
             var claude = Command("claude"); var codex = Command("codex");
             Require(claude.Contains(fixture.Central + " run claude-code -- ", StringComparison.Ordinal) && claude.StartsWith("SHARPRAIL_UI_LAUNCH=claude ", StringComparison.Ordinal) &&
                 codex.Contains("SHARPRAIL_UI_LAUNCH=codex " + fixture.Central + " run codex -- ", StringComparison.Ordinal), "Both agents' launchers run through `central run`: " + claude + " / " + codex);
-            Settings("air-governance", new { enabled = true, source = AirSources.Central, codex = false });
+            Settings("air-gateway", new { enabled = true, source = AirSources.Central, codex = false });
             E2eWorkspace.Until(() => !Command("codex").Contains("central", StringComparison.Ordinal));
             Require(Command("claude").Contains("central", StringComparison.Ordinal), "The Codex toggle leaves Claude governed.");
             Settings("claude-code", new { enabled = true, command = "my-claude --x" });
             E2eWorkspace.Until(() => Command("claude").Contains("my-claude", StringComparison.Ordinal));
             Require(!Command("claude").Contains("central", StringComparison.Ordinal), "A custom Claude command is never rewritten.");
             Settings("claude-code", new { enabled = true, command = "" });
-            Settings("air-governance", new { enabled = true, source = AirSources.Direct });
+            Settings("air-gateway", new { enabled = true, source = AirSources.Direct });
             E2eWorkspace.Until(() => !Command("claude").Contains("central", StringComparison.Ordinal));
-            Settings("air-governance", new { enabled = true, source = AirSources.Central });
+            Settings("air-gateway", new { enabled = true, source = AirSources.Central });
             E2eWorkspace.Until(() => Command("claude").Contains("central", StringComparison.Ordinal));
-            Settings("air-governance", new { enabled = false, source = AirSources.Central });
-            E2eWorkspace.Until(() => !registry.Active.Contains("air-governance"));
+            Settings("air-gateway", new { enabled = false, source = AirSources.Central });
+            E2eWorkspace.Until(() => !registry.Active.Contains("air-gateway"));
             Require(!Command("claude").Contains("central", StringComparison.Ordinal) && !Command("codex").Contains("central", StringComparison.Ordinal), "Disabling the plugin returns every launch to normal.");
             Require(fixture.Log.All(line => !line.StartsWith("run", StringComparison.Ordinal)), "Building commands never runs an agent through central.");
         }
@@ -770,12 +770,12 @@ internal static class AirGovernanceChecks
     // The header item (Plugin API W24): shown only while Central governs an agent, with the credits or the reason they are missing.
     private static void RunHeader(string root)
     {
-        var directory = Path.Combine(root, "air-governance-header");
+        var directory = Path.Combine(root, "air-gateway-header");
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         Directory.CreateDirectory(directory);
         var profile = new ProfileStore(Path.Combine(directory, "profile"));
         var store = profile.OpenState();
-        var roster = new PluginRosterEntry("air-governance", "Air Governance", "asset:air-governance.svg", "0.1.0", 1, PluginOrigin.Builtin, PluginStatus.Disabled)
+        var roster = new PluginRosterEntry("air-gateway", "Air Gateway", "asset:air-gateway.svg", "0.1.0", 1, PluginOrigin.Builtin, PluginStatus.Disabled)
         {
             Channels = new Dictionary<string, PluginRosterChannel> { ["status"] = new(PluginChannelKind.State, "status", []) }
         };
@@ -791,7 +791,7 @@ internal static class AirGovernanceChecks
         try
         {
             int Probes() => fake.Calls.Count(call => call.Method == "status" && call.Params is AirStatusParams { Probe: true });
-            void Settings(object value) => _ = workbench.State.ChangeAsync([HostStateChange.PluginSettings("air-governance", JsonSerializer.Serialize(value))]);
+            void Settings(object value) => _ = workbench.State.ChangeAsync([HostStateChange.PluginSettings("air-gateway", JsonSerializer.Serialize(value))]);
             AirCreditsHeader? Item() => window.GetLogicalDescendants().OfType<AirCreditsHeader>().SingleOrDefault();
             string Text() => Item()!.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "AirCreditsHeaderText").Text ?? "";
             string Tip() => ToolTip.GetTip(Item()!) as string ?? "";
@@ -811,7 +811,7 @@ internal static class AirGovernanceChecks
             Settings(new { enabled = true, source = AirSources.Central, claudeCode = true, codex = false });
             E2eWorkspace.Until(() => Item()!.IsVisible && Text() == "16.27 / 20.00 credits");
             Require(Probes() >= 1 && Tip().Contains("for Claude Code", StringComparison.Ordinal) && Tip().Contains("Refills 2027-", StringComparison.Ordinal) &&
-                Tip().Contains("Updated 2026-", StringComparison.Ordinal) && Tip().Contains("Settings › Air Governance", StringComparison.Ordinal) && !Tip().Contains("Top-up", StringComparison.Ordinal),
+                Tip().Contains("Updated 2026-", StringComparison.Ordinal) && Tip().Contains("Settings › Air Gateway", StringComparison.Ordinal) && !Tip().Contains("Top-up", StringComparison.Ordinal),
                 "One governed agent shows the credits, with the refill and read time in the tooltip: " + Tip());
             var label = Item()!.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "AirCreditsHeaderText");
             Require(ReferenceEquals(label.Foreground, SharpRail.Plugins.UI.Kit.Ui.Muted), "Plenty of credits are muted.");
@@ -829,13 +829,13 @@ internal static class AirGovernanceChecks
             Require(Item()!.IsVisible && Tip().Contains("Not signed in to Central.", StringComparison.Ordinal) && Tip().Contains("for Codex", StringComparison.Ordinal),
                 "Credits that cannot be read show a warning with the reason: " + Tip());
 
-            fake.Push("air-governance", "status", Status("connected", AirSources.Central, new(10, 20)));
+            fake.Push("air-gateway", "status", Status("connected", AirSources.Central, new(10, 20)));
             E2eWorkspace.Until(() => Text() == "10.00 / 20.00 credits");
 
             Item()!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             var settings = window.OpenSettingsViews.Single();
-            Require(settings.Section == "plugin:air-governance:air-governance", "Clicking the item opens Settings › Air Governance, not " + settings.Section);
+            Require(settings.Section == "plugin:air-gateway:air-gateway", "Clicking the item opens Settings › Air Gateway, not " + settings.Section);
             settings.Close();
             Settle();
 

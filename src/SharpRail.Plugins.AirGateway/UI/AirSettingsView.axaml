@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.AirGovernance.UI.AirSettingsView"
+             x:Class="SharpRail.Plugins.AirGateway.UI.AirSettingsView"
              x:ClassModifier="internal">
   <UserControl.Styles>
     <Style Selector="Button">
@@ -11,7 +11,7 @@
     </Style>
   </UserControl.Styles>
   <StackPanel Spacing="16">
-    <TextBlock Text="Air governance" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
+    <TextBlock Text="Air Gateway" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
     <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
                Text="Choose where Codex and Claude Code get their AI: their own accounts, or JetBrains AI governed through your Central CLI. The choice changes only the command that starts each new agent terminal; no agent configuration file is touched, and only Central's local sign-in status is checked automatically (when this page opens, when the window regains focus, and while a sign-in is awaited); signing in or out, listing sources, switching, starting the proxy and updating run only when you press their button." />
     <TextBlock x:Name="AirCentralLine" TextWrapping="Wrap" Text="Checking Central…" />
@@ -43,7 +43,7 @@
       <TextBlock Text="What new launches will run" Foreground="{x:Static kit:Ui.TextBrush}" />
       <TextBlock x:Name="AirLaunches" TextWrapping="Wrap" FontFamily="{x:Static kit:Ui.CodeFont}" Foreground="{x:Static kit:Ui.TextBrush}" />
       <StackPanel x:Name="AirPiInstall" Spacing="4" IsVisible="False">
-        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" Text="Air Governance needs Central's Pi integration: run `central add pi`. Until then governed omp launches fail in the terminal." />
+        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" Text="Air Gateway needs Central's Pi integration: run `central add pi`. Until then governed omp launches fail in the terminal." />
         <WrapPanel Orientation="Horizontal">
           <TextBox x:Name="AirPiInstallCommand" IsReadOnly="True" FontFamily="{x:Static kit:Ui.CodeFont}" Text="central add pi" Margin="0,0,8,0" />
           <Button x:Name="AirPiInstallCopy" Content="Copy" />

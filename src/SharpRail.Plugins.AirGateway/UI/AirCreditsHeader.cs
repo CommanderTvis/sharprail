@@ -10,7 +10,7 @@ using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.AirGovernance.UI;
+namespace SharpRail.Plugins.AirGateway.UI;
 
 /// <summary>What the header item shows: nothing, the credits, or a warning with its reason in the tooltip.</summary>
 internal sealed record AirCreditsShown(bool Visible, string Text = "", string Tip = "", bool Warning = false);
@@ -88,7 +88,7 @@ internal sealed class AirCreditsFeed : IDisposable
         try
         {
             // The embedded host runs the method inline until its first real await, so the call starts off the UI thread.
-            var next = await Task.Run(() => context.RequestAsync(AirGovernanceContract.Status, new AirStatusParams(true)).AsTask());
+            var next = await Task.Run(() => context.RequestAsync(AirGatewayContract.Status, new AirStatusParams(true)).AsTask());
             status = next; failure = null;
         }
         catch (PluginCallException error) { failure = error.Message; }
@@ -109,7 +109,7 @@ internal sealed class AirCreditsFeed : IDisposable
         if (!AirLaunch.Wired(settings)) return new(false);
         var governs = string.Join(" and ", AirLaunch.CentralNames.Keys.Append(AirLaunch.OmpLauncher).Where(id => AirLaunch.Enabled(settings, id))
             .Select(id => id switch { "claude" => "Claude Code", "codex" => "Codex", _ => "omp" }));
-        const string Open = "Click to open Settings › Air Governance.";
+        const string Open = "Click to open Settings › Air Gateway.";
         if (failure is null && status is { Source: AirSources.Central, Credits: { } credits })
         {
             var culture = CultureInfo.InvariantCulture;
@@ -155,7 +155,7 @@ internal sealed class AirCreditsFeed : IDisposable
     }
 }
 
-/// <summary>The header item (Plugin API W24): the remaining credits beside Settings, which it opens on Air Governance.</summary>
+/// <summary>The header item (Plugin API W24): the remaining credits beside Settings, which it opens on Air Gateway.</summary>
 internal sealed class AirCreditsHeader : Button
 {
     private readonly AirCreditsFeed feed;
@@ -174,7 +174,7 @@ internal sealed class AirCreditsHeader : Button
         VerticalAlignment = VerticalAlignment.Center;
         label = Typography.Apply(new TextBlock { Name = "AirCreditsHeaderText", VerticalAlignment = VerticalAlignment.Center }, Typography.UiMetadata);
         Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { icon, label } };
-        Click += (_, _) => context.OpenSettings(UiPages.PluginSection(AirGovernanceContract.Id));
+        Click += (_, _) => context.OpenSettings(UiPages.PluginSection(AirGatewayContract.Id));
         IsVisible = false;
         AttachedToVisualTree += (_, _) =>
         {

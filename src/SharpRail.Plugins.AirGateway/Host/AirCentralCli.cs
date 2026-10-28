@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Plugins.AirGovernance.Host;
+namespace SharpRail.Plugins.AirGateway.Host;
 
 /// <summary>Where the host looks for Central and the agents' configuration; checks point it at a fixture home.</summary>
 internal sealed record AirEnvironment(string Home, string SearchPath, string? ClaudeDirectory = null, string? CodexDirectory = null)
