@@ -97,8 +97,7 @@ internal static class TerminalChromeChecks
             ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "The hidden-side drop must create one left pane, retain the empty source pane and its neighbouring tools, and retain one terminal body.");
         terminal = app.Find<Button>("Tab_" + name);
         app.Click(terminal, mouseButton: MouseButton.Right); Until(() => terminal.ContextMenu!.IsOpen);
-        foreach (var title in new[] { "New left group at bottom", "New left group at top" })
-            Require(terminal.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, title)).IsEnabled, "Terminal side creation must be enabled.");
+        Require(app.SplitItem(terminal, "Left").IsEnabled, "Terminal side creation must be enabled.");
         terminal.ContextMenu!.Close();
         double Height(string group) => ((Grid)app.Find<Grid>("GroupHeader_" + group).Parent!.Parent!).Bounds.Height;
         var projects = left.Single(group => group.Tools.Any(tab => tab.Id == "projects")).Id;
@@ -122,7 +121,7 @@ internal static class TerminalChromeChecks
         Require(new[] { projects, terminalGroup }.All(Folded), "Both side groups must fold independently onto the rail.");
         foreach (var entry in new[] { "Tab_projects", "RailPane_" + terminalGroup }) app.Click(app.Find<Button>(entry));
         Require(ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "Restoring both groups must retain the terminal body.");
-        app.ContextAction(app.Find<Button>("Tab_files"), "New left group at bottom");
+        app.SplitAction(app.Find<Button>("Tab_files"), "Left");
         Require(app.Window.Layout.State.Groups.Count(group => group.Region == "left") == 3 &&
             app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Count(tab => tab.Id == "files") == 1,
             "The Files context action must create one new left group without duplicating its tab.");
@@ -141,26 +140,23 @@ internal static class TerminalChromeChecks
         Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "TerminalSurface_" + name));
         var body = app.Find<Control>("TerminalSurface_" + name);
         foreach (var region in new[] { "left", "right" })
-            foreach (var atStart in new[] { true, false })
-            {
-                var count = app.Window.Layout.State.Groups.Count(group => group.Region == region);
-                var direction = atStart ? "top" : "bottom";
-                app.ContextAction(app.Find<Button>("Tab_" + name), $"New {region} group at {direction}");
-                Until(() => app.Window.Layout.State.Groups.Count(group => group.Region == region) == count + 1);
-                var groups = app.Window.Layout.State.Groups.Where(group => group.Region == region).ToArray();
-                Require(app.Window.Layout.Tabs(atStart ? groups[0].Id : groups[^1].Id).Single().Id == id &&
-                    app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Count(tab => tab.Id == id) == 1 &&
-                    ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)),
-                    "Region creation must insert at the chosen end and move the one terminal surface without copying it.");
-            }
+        {
+            var count = app.Window.Layout.State.Groups.Count(group => group.Region == region);
+            app.SplitAction(app.Find<Button>("Tab_" + name), region == "left" ? "Left" : "Right");
+            Until(() => app.Window.Layout.State.Groups.Count(group => group.Region == region) == count + 1);
+            var groups = app.Window.Layout.State.Groups.Where(group => group.Region == region).ToArray();
+            Require(app.Window.Layout.Tabs(groups[^1].Id).Single().Id == id &&
+                app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Count(tab => tab.Id == id) == 1 &&
+                ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)),
+                "Region creation must append at the bottom and move the one terminal surface without copying it.");
+        }
         app.Window.Layout.Geometry(state => state.SideLimit = state.Groups.Count(group => group.Region == "right"));
         var tab = app.Find<Button>("Tab_" + name);
         app.Click(tab, mouseButton: MouseButton.Right); Until(() => tab.ContextMenu!.IsOpen);
-        Require(tab.ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Header is string title && title.StartsWith("New right group", StringComparison.Ordinal))
-            .All(item => !item.IsEnabled && ((string)item.Header!).EndsWith(" — limited to 4", StringComparison.Ordinal)) &&
-            !tab.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Header is string title && title.StartsWith("New bottom group", StringComparison.Ordinal)),
+        Require(!app.SplitItem(tab, "Right").IsEnabled && ((string)app.SplitItem(tab, "Right").Header!).EndsWith($" — limited to {app.Window.Layout.State.SideLimit}", StringComparison.Ordinal) &&
+            !tab.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Header is string title && title.StartsWith("New ", StringComparison.Ordinal)),
             "Region creation must disable its commands and explain the configured group limit.");
-        tab.ContextMenu.Close();
+        tab.ContextMenu!.Close();
         Console.WriteLine("PASS terminal region-edge commands, retained surface identity and group limits");
     }
 

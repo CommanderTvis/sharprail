@@ -296,6 +296,11 @@ terminal body is created only when its tab is selected in a visible, unfolded gr
 their session without a body
 until shown. New terminal from a group lands in that group and reveals its region; from a tool pane it lands in a new tool-free pane directly below.
 
+Tab menus list Close (with the Close icon), Close group (only where removing the group can act; it merges the group's tabs into a
+neighbour rather than closing them), Move left/right (up/down in the main column), Move to pane and, last, Split. Split offers
+Above and Below (side regions), and Left and Right (tool and terminal tabs; a new group at the bottom of that side region,
+disabled with `— limited to N` at the side limit). The four corner entries are gone; drag and drop reaches those corners.
+
 File-backed tab menus (editor, Markdown, PDF, image, diff) offer Copy path (workspace-relative) and Copy absolute path, matching
 the Files tree; terminal and tool tabs offer neither. They copy the host-side path through the window clipboard.
 

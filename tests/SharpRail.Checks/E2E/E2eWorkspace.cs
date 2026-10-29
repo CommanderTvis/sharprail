@@ -405,6 +405,23 @@ internal sealed class E2eWorkspace : IDisposable
         Click(item, freshGesture: false);
     }
 
+    internal MenuItem SplitItem(Control control, string title)
+    {
+        var menu = control.ContextMenu!;
+        var split = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Split"));
+        return split.Items.OfType<MenuItem>().Single(item => item.Header is string header && header.StartsWith(title, StringComparison.Ordinal));
+    }
+
+    internal void SplitAction(Control control, string title)
+    {
+        control = Click(control, mouseButton: MouseButton.Right);
+        Until(() => control.ContextMenu!.IsOpen);
+        var item = SplitItem(control, title);
+        Require(item.IsEnabled, "E2E split action is disabled: " + title);
+        item.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        control.ContextMenu!.Close();
+    }
+
     internal void Open(string path, bool keep = false)
     {
         Click(FileRow(path), keep);

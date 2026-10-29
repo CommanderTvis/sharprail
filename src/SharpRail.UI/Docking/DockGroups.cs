@@ -658,8 +658,9 @@ public sealed partial class DockSurface
             menu.Items.Add(copyRelative);
             menu.Items.Add(copyAbsolute);
         }
-        menu.Items.Add(Ui.Menu("Close", () => Session.Close(group.Id, tab.Id)));
-        menu.Items.Add(RemoveGroupMenuItem(group));
+        menu.Items.Add(Ui.IconMenu("Close", () => Session.Close(group.Id, tab.Id), ActionIcon.Close));
+        // Removing a group merges its tabs into a neighbour rather than closing them, so the entry shows only where it can act.
+        if (RemoveGroupMenuItem(group).IsEnabled) menu.Items.Add(Ui.Menu("Close group", () => RemoveGroup(group.Id)));
         var members = Session.Tabs(group.Id);
         var position = members.ToList().FindIndex(item => item.Id == tab.Id);
         var vertical = group.Region == "center";
@@ -720,31 +721,31 @@ public sealed partial class DockSurface
         menu.Opening += (_, _) => move.IsVisible = move.Items.OfType<MenuItem>().Any(item => item.IsVisible);
         menu.Items.Add(move);
         // The main column offers tab groups (above) only; side regions still split into groups.
+        var splitMenu = new MenuItem { Header = "Split" };
         if (group.Region != "center")
         {
             foreach (var edge in new[] { "before", "after" })
             {
-                var direction = edge == "before" ? "above" : "below";
-                var split = Ui.Menu("New group " + direction, () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
+                var split = Ui.Menu(edge == "before" ? "Above" : "Below", () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
                 menu.Opening += (_, _) => split.IsEnabled = Session.CanMove(tab.Id, group.Id, group.Id, 0, edge);
-                menu.Items.Add(split);
+                splitMenu.Items.Add(split);
             }
         }
+        // Left and Right open a new group at the bottom of that side region; drag and drop reaches the other corners.
         if (tab.IsTool || tab.Kind == "terminal")
             foreach (var region in new[] { "left", "right" })
-                foreach (var atStart in new[] { true, false })
+            {
+                var title = region == "left" ? "Left" : "Right";
+                var create = Ui.Menu(title, () => Session.MoveToNewRegionGroup(tab.Id, group.Id, region, false));
+                menu.Opening += (_, _) =>
                 {
-                    var direction = atStart ? "top" : "bottom";
-                    var title = $"New {region} group at {direction}";
-                    var create = Ui.Menu(title, () => Session.MoveToNewRegionGroup(tab.Id, group.Id, region, atStart));
-                    menu.Opening += (_, _) =>
-                    {
-                        var limit = Session.State.SideLimit;
-                        create.IsEnabled = Session.State.Groups.Count(item => item.Region == region) < limit;
-                        create.Header = title + (create.IsEnabled ? "" : $" — limited to {limit}");
-                    };
-                    menu.Items.Add(create);
-                }
+                    var limit = Session.State.SideLimit;
+                    create.IsEnabled = Session.State.Groups.Count(item => item.Region == region) < limit;
+                    create.Header = title + (create.IsEnabled ? "" : $" — limited to {limit}");
+                };
+                splitMenu.Items.Add(create);
+            }
+        if (splitMenu.Items.Count > 0) menu.Items.Add(splitMenu);
         return menu;
     }
 

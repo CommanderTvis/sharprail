@@ -202,6 +202,12 @@ internal static class DockInputChecks
         Dispatcher.UIThread.RunJobs();
         Require(projects.ContextMenu?.IsOpen == true, "Right-click did not open the pane tab menu.");
         var closePane = projects.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Close"));
+        var projectsPaneId = window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "projects")).Id;
+        var tabEntries = projects.ContextMenu.Items.OfType<MenuItem>().Select(item => item.Header as string).ToArray();
+        Require(closePane.Icon is not null && tabEntries.Contains("Close group") == window.Layout.CanRemoveGroup(projectsPaneId) &&
+            !tabEntries.Any(header => header is not null && (header.StartsWith("New ", StringComparison.Ordinal) || header == "Remove group")) &&
+            tabEntries.Last() == "Split",
+            "The tab menu must lead with the iconed Close, offer Close group only where a group can be removed, end with Split and carry no corner entries.");
         closePane.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         projects.ContextMenu.Close(); Dispatcher.UIThread.RunJobs();
         Require(!window.Layout.State.Groups.SelectMany(group => group.Tools).Any(tab => tab.Id == "projects"),

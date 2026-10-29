@@ -79,8 +79,15 @@ internal static class LayoutE2E
         using var app = new E2eWorkspace(directory, prepare: _ => WorkspaceTabsE2E.Git(directory, "init", "-q", "-b", "main"));
         var files = app.Find<Button>("Tab_files");
         app.Click(files, mouseButton: MouseButton.Right); Until(() => files.ContextMenu!.IsOpen);
-        foreach (var title in new[] { "New group above", "New group below" })
-            Require(files.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, title)).IsEnabled,
+        var entries = files.ContextMenu!.Items.OfType<MenuItem>().Select(item => (string)item.Header!).Where(header => header != "Close group").ToArray();
+        Require(entries.SequenceEqual(["Close", "Move left", "Move right", "Move to pane", "Split"]) &&
+            files.ContextMenu.Items.OfType<MenuItem>().First().Icon is not null &&
+            app.SplitItem(files, "Above") is not null && app.SplitItem(files, "Left") is not null &&
+            ((MenuItem)files.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Split"))).Items.OfType<MenuItem>()
+                .Select(item => (string)item.Header!).Take(2).SequenceEqual(["Above", "Below"]),
+            "A side tab menu must read Close, Move left, Move right, Move to pane, Split (Above, Below, Left, Right), with Close group only where it can act.");
+        foreach (var title in new[] { "Above", "Below" })
+            Require(app.SplitItem(files, title).IsEnabled,
                 "Side tabs must offer enabled above and below split actions.");
         files.ContextMenu!.Close();
         string[] Order() => app.Window.Layout.State.Groups.Where(group => group.Region == "right")

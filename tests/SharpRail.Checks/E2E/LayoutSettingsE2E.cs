@@ -172,7 +172,7 @@ internal static class LayoutSettingsE2E
             SaveLimit(3);
             app.Window.Layout.NewTerminal(app.Center);
             var id = app.Window.Layout.Tabs(app.Center).Single(tab => tab.Kind == "terminal").Id;
-            app.ContextAction(app.Find<Button>("Tab_" + id.Replace(':', '_')), "New right group at bottom");
+            app.SplitAction(app.Find<Button>("Tab_" + id.Replace(':', '_')), "Right");
             Require(app.Window.Layout.State.Groups.Count(group => group.Region == "right") == 3, "The saved limit must permit the third right group.");
             WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
             SaveLimit(2);
@@ -182,10 +182,10 @@ internal static class LayoutSettingsE2E
             {
                 var tab = app.Find<Button>(name);
                 app.Click(tab, mouseButton: MouseButton.Right); Until(() => tab.ContextMenu!.IsOpen);
-                var choices = tab.ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Header is string title && title.StartsWith("New right group at", StringComparison.Ordinal)).ToArray();
-                Require(choices.Length == 2 && choices.All(item => !item.IsEnabled && ((string)item.Header!).EndsWith(" — limited to 2", StringComparison.Ordinal)),
-                    "An accepted overage must disable both region-edge creation commands and explain the new limit.");
-                tab.ContextMenu.Close();
+                var choice = app.SplitItem(tab, "Right");
+                Require(!choice.IsEnabled && ((string)choice.Header!).EndsWith(" — limited to 2", StringComparison.Ordinal),
+                    "An accepted overage must disable the region split command and explain the new limit.");
+                tab.ContextMenu!.Close();
             }
             Require(app.Window.Layout.State.Groups.Count(group => group.Region == "right") == 3, "Inspecting disabled commands must preserve the accepted overage.");
         }
