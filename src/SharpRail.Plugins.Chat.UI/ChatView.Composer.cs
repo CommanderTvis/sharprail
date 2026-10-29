@@ -34,6 +34,9 @@ internal sealed partial class ChatView
     private bool recalling;
     private ChatStatus status = ChatStatus.Starting;
 
+    /// <summary>Forgets the client-local drafts, as a new process would have none.</summary>
+    internal static void ForgetLocalDrafts() => Drafts.Clear();
+    internal string? DraftNote => pasteNote.IsVisible ? pasteNote.Text : null;
     internal TextBox Input => input;
     internal ListBox Menu => menuList;
     internal bool MenuOpen => menu.IsOpen;

@@ -44,6 +44,7 @@ internal static class ClaudeChatUiChecks
         public bool FailQueue { get; set; }
         public List<string> Calls { get; } = [];
         public List<string> Sends { get; } = [];
+        public List<string> DraftWrites { get; } = [];
         public List<(string Method, string Value)> Sets { get; } = [];
         public TaskCompletionSource<ChatHeader>? ModelGate { get; set; }
         public ChatHeader Header { get; set; } = new(ChatStatus.Idle);
@@ -63,6 +64,13 @@ internal static class ClaudeChatUiChecks
 
         public async ValueTask<TResult> RequestAsync<TParams, TResult>(PluginMethod<TParams, TResult> method, TParams parameters, CancellationToken cancellationToken = default)
         {
+            // This fake host does not share drafts: it answers like a host without the method. The writes are kept apart from Calls.
+            if (parameters is ChatSetDraftParams draft)
+            {
+                DraftWrites.Add(draft.Text);
+                await Task.Yield();
+                throw new PluginCallException(PluginCallError.Unknown, "The claude-code plugin registered no handler for chatSetDraft.");
+            }
             Calls.Add(method.Name);
             if (parameters is ChatSendParams sending) Sends.Add(sending.Text);
             await Task.Yield();
@@ -199,6 +207,7 @@ internal static class ClaudeChatUiChecks
         PasteImages();
         WrappedHistory();
         DraftSurvivesHistory();
+        DraftWithoutHost();
         TaskNoticeBounded();
         DurationFormat();
         OnlyRunningChips();
@@ -662,6 +671,35 @@ internal static class ClaudeChatUiChecks
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); }
+    }
+
+    // A host that does not share drafts answers the draft method with an error: the view stops asking and keeps the draft client-locally.
+    private static void DraftWithoutHost()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        ChatView.ForgetLocalDrafts();
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 600, Height = 500, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window);
+            view.Input.Text = "typed here"; Frame(window);
+            E2eWorkspace.Settle(500);
+            Require(chat.DraftWrites.SequenceEqual(["typed here"]), $"The view tries the draft method once, debounced ({chat.DraftWrites.Count} writes).");
+            view.Input.Text = "typed here too"; Frame(window);
+            E2eWorkspace.Settle(500);
+            Require(chat.DraftWrites.Count == 1, "After the host refused the draft method the view stops sending drafts.");
+            window.Close();
+            var again = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+            window = new Window { Width = 600, Height = 500, Content = again, Background = Ui.Surface };
+            window.Show();
+            Frame(window);
+            Require(again.Input.Text == "typed here too", "Without a draft host the local copy still restores the text.");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); ChatView.ForgetLocalDrafts(); }
     }
 
     private static void WrappedHistory()

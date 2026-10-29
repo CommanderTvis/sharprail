@@ -219,6 +219,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
         content.Children.Add(child);
     }
 
+    internal ChatKey ChatKey => key;
     internal ChatTranscript Transcript => transcript;
     internal ChatList List => list;
 

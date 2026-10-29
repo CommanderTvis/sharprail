@@ -330,6 +330,7 @@ public sealed record ChatHeader(ChatStatus Status)
 [JsonDerivedType(typeof(ChatHeaderPush), "header")]
 [JsonDerivedType(typeof(ChatResetPush), "reset")]
 [JsonDerivedType(typeof(ChatRemovePush), "remove")]
+[JsonDerivedType(typeof(ChatDraftPush), "draft")]
 public abstract record ChatPush(string WorkspaceId, string ChatId);
 
 /// <summary>An item was added, or replaced in place (same id).</summary>
@@ -342,6 +343,21 @@ public sealed record ChatResetPush(string WorkspaceId, string ChatId) : ChatPush
 
 /// <summary>An item is gone (a queued message that was cancelled): drop it from the list.</summary>
 public sealed record ChatRemovePush(string WorkspaceId, string ChatId, string ItemId) : ChatPush(WorkspaceId, ChatId);
+
+/// <summary>The chat's shared composer draft: the whole text at a monotonic <see cref="Revision"/> (0 when the host never stored one).</summary>
+public sealed record ChatDraft(string Text, long Revision)
+{
+    /// <summary>Reserved: path-only attachments. Null today; the text is all that is shared.</summary>
+    public IReadOnlyList<ChatAttachment>? Attachments { get; init; }
+    /// <summary>The client id of the write (or send) that made this revision; null for a draft stored before this host started.</summary>
+    public string? Origin { get; init; }
+}
+
+/// <summary>The draft changed (written by a client, or cleared by a send); the snapshot ends with the current one.</summary>
+public sealed record ChatDraftPush(string WorkspaceId, string ChatId, ChatDraft Draft) : ChatPush(WorkspaceId, ChatId);
+
+/// <summary>Replaces the draft's text. Last-writer-wins today; <paramref name="BaseRevision"/> is the revision the client's text was made against (reserved for host-ordered edits).</summary>
+public sealed record ChatSetDraftParams(string WorkspaceId, string ChatId, long BaseRevision, string Text, string ClientId);
 
 public sealed record ChatKey(string WorkspaceId, string ChatId);
 
@@ -360,6 +376,10 @@ public sealed record ChatOpenParams(string WorkspaceId, string ChatId)
 
 public sealed record ChatSendParams(string WorkspaceId, string ChatId, string Text)
 {
+    /// <summary>The draft revision this text was sent from; null for a send that is not the composer's draft (it then neither checks nor clears the draft).</summary>
+    public long? DraftRevision { get; init; }
+    /// <summary>The sender's client id, echoed as the <see cref="ChatDraft.Origin"/> of the clearing draft.</summary>
+    public string? ClientId { get; init; }
     public IReadOnlyList<ChatAttachment>? Attachments { get; init; }
 }
 
@@ -485,9 +505,17 @@ public static class ChatContract
     /// <summary>A chat's pushes, scoped by workspace and chat id; the snapshot is the same list a late subscriber replays.</summary>
     public static readonly PluginChannel<ChatPush> Updates = PluginChannel<ChatPush>.State("chatUpdates", Snapshot, "workspaceId", "chatId");
 
+    /// <summary>Replaces the chat's shared draft text and returns the new record; fails on a host that does not share drafts.</summary>
+    public static readonly PluginMethod<ChatSetDraftParams, ChatDraft> SetDraft = new("chatSetDraft");
+
+    /// <summary>The error text of a send whose draft revision an earlier send already consumed.</summary>
+    public const string AlreadySent = "That draft was already sent from another device.";
+    /// <summary>The longest draft text the host stores.</summary>
+    public const int DraftLimit = 100_000;
+
     /// <summary>The wire cut for a tool's output and a notice's text; the rest is fetched with <see cref="ItemDetail"/>.</summary>
     public const int OutputLimit = 16 * 1024;
 
     public static readonly IReadOnlyList<PluginMethodSpec> Methods =
-        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files, CompletePath];
+        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files, CompletePath, SetDraft];
 }

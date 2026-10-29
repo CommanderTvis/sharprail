@@ -197,7 +197,7 @@ internal static class ClaudeChatChecks
             Directory.CreateDirectory(path);
             Environment.SetEnvironmentVariable(name, path);
         }
-        try { await RunIn(directory); }
+        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); }
         finally { foreach (var (name, value) in previous) Environment.SetEnvironmentVariable(name, value); }
     }
 
@@ -225,6 +225,95 @@ internal static class ClaudeChatChecks
         await runtime.Schedule();
         Require((await runtime.ListAsync()).Single().Status == PluginStatus.Active, "The Claude Code host activates with the scripted CLI as its command.");
         return new Fixture { Runtime = runtime, Project = project, Directory = directory };
+    }
+
+    private static async Task<ChatDraft> DraftOf(Fixture fixture, string chat) =>
+        (await fixture.Call(ChatContract.Snapshot, new ChatKey(fixture.Project, chat))).OfType<ChatDraftPush>().Single().Draft;
+
+    // The shared composer draft on the host: revisions, last-writer-wins, the send claim, persistence across a host restart, and bounds.
+    private static async Task SharedDraft(string directory)
+    {
+        var chat = Guid.NewGuid().ToString();
+        var other = Guid.NewGuid().ToString();
+        var gone = Guid.NewGuid().ToString();
+        long consumed;
+        await using (var fixture = await Start(directory, new StateHolder()))
+        {
+            var project = fixture.Project;
+            fixture.Watch(chat);
+            Require((await DraftOf(fixture, chat)) is { Text: "", Revision: 0 }, "A chat with no stored draft reports an empty draft at revision 0, also before it was opened.");
+            var one = await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, chat, 0, "one", "desk"));
+            Require(one is { Text: "one", Revision: 1, Origin: "desk" }, "A write gets the next revision and names its client.");
+            var same = await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, chat, 1, "one", "phone"));
+            Require(same.Revision == 1, "Writing the text that is already there makes no new revision.");
+            var two = await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, chat, 0, "two", "phone"));
+            Require(two is { Text: "two", Revision: 2, Origin: "phone" }, "Last writer wins whatever base revision it names.");
+            for (var wait = 0; wait < 100 && fixture.Pushes.OfType<ChatDraftPush>().Count(push => push.Draft.Revision > 0) < 2; wait++) await Task.Delay(20);
+            Require(fixture.Pushes.OfType<ChatDraftPush>().Select(push => (push.Draft.Revision, push.Draft.Origin)).Where(pair => pair.Revision > 0).SequenceEqual([(1L, "desk"), (2L, "phone")]),
+                "Every change is pushed on the channel with its revision and origin.");
+            var tooLong = false;
+            try { await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, chat, 2, new string('x', ChatContract.DraftLimit + 1), "desk")); }
+            catch (Exception error) when (error is PluginCallException or InvalidOperationException) { tooLong = true; }
+            Require(tooLong && (await DraftOf(fixture, chat)).Text == "two", "A draft over the limit is refused and the stored one stays.");
+            Require((await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, chat, 2, new string('x', ChatContract.DraftLimit), "desk"))).Revision == 3, "A draft at the limit is stored.");
+
+            // A send claims its revision: the same revision, or an older one, is refused; a send that is not the draft leaves it alone.
+            await fixture.Call(ChatContract.Open, new ChatOpenParams(project, chat));
+            await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle, "the draft chat to be ready");
+            var typed = await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, chat, 3, "hello draft", "desk"));
+            await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "hello draft") { DraftRevision = typed.Revision, ClientId = "desk" });
+            var cleared = await DraftOf(fixture, chat);
+            Require(cleared is { Text: "" } && cleared.Revision > typed.Revision && cleared.Origin == "desk", "A send clears the draft with a new revision, naming the sender.");
+            foreach (var stale in new[] { typed.Revision, typed.Revision - 1 })
+            {
+                var refused = "";
+                try { await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "hello draft") { DraftRevision = stale, ClientId = "phone" }); }
+                catch (Exception error) when (error is PluginCallException or InvalidOperationException) { refused = error.Message; }
+                Require(refused.Contains(ChatContract.AlreadySent, StringComparison.Ordinal), $"A send from revision {stale}, already consumed, is refused as already sent: {refused}");
+            }
+            await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle, "the first send to finish");
+            Require((await fixture.View(chat)).Items.OfType<ChatUserItem>().Count(item => item.Text == "hello draft") == 1, "Only one send reached the chat.");
+            var newer = await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, chat, cleared.Revision, "keep this", "desk"));
+            await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "hello plain"));
+            Require((await DraftOf(fixture, chat)) is { Text: "keep this" } kept && kept.Revision == newer.Revision, "A send without a draft revision neither checks nor clears the draft.");
+            consumed = typed.Revision;
+
+            // A send that fails (no such running chat) releases its claim and keeps the draft.
+            var failed = await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, other, 0, "unsent", "desk"));
+            try { await fixture.Call(ChatContract.Send, new ChatSendParams(project, other, "unsent") { DraftRevision = failed.Revision, ClientId = "desk" }); }
+            catch (Exception error) when (error is PluginCallException or InvalidOperationException) { }
+            Require((await DraftOf(fixture, other)).Text == "unsent", "A failed send keeps the draft.");
+
+            await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, gone, 0, "goes with its workspace", "desk"));
+            await fixture.Call(ChatContract.Close, new ChatKey(project, chat));
+        }
+
+        // A host restart: a new state store over the same directory still has the drafts, the revisions and the consumed marker.
+        await using (var fixture = await Start(directory, new StateHolder()))
+        {
+            var project = fixture.Project;
+            var restored = await DraftOf(fixture, chat);
+            Require(restored.Text == "keep this" && restored.Revision > consumed, "A draft survives a host restart with its revision.");
+            Require((await DraftOf(fixture, other)).Text == "unsent", "Every stored draft survives a host restart.");
+            var next = await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, chat, restored.Revision, "after restart", "desk"));
+            Require(next.Revision == restored.Revision + 1, "Revisions go on from the stored one after a restart.");
+            await fixture.Call(ChatContract.Open, new ChatOpenParams(project, chat));
+            await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle, "the restarted chat to be ready");
+            var refused = false;
+            try { await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "again") { DraftRevision = consumed, ClientId = "phone" }); }
+            catch (Exception error) when (error is PluginCallException or InvalidOperationException) { refused = true; }
+            Require(refused, "A consumed revision stays consumed after a host restart.");
+
+            // A removed workspace takes its drafts with it.
+            Require((await DraftOf(fixture, gone)).Text == "goes with its workspace", "The draft of the workspace to be removed is there.");
+        }
+        var closing = new StateHolder();
+        await using (var fixture = await Start(directory, closing))
+        {
+            await closing.State!.ChangeAsync([HostStateChange.CloseProject(fixture.Project)]);
+            for (var wait = 0; wait < 100 && (await DraftOf(fixture, gone)).Text.Length > 0; wait++) await Task.Delay(20);
+            Require((await DraftOf(fixture, gone)) is { Text: "" } && (await DraftOf(fixture, chat)).Text == "", "The drafts of a removed workspace are dropped.");
+        }
     }
 
     private sealed class StateHolder { public HostStateStore? State { get; set; } }

@@ -870,6 +870,7 @@ internal static class Program
             ClaudeChatE2E.TabClicks(root);
             ClaudeChatE2E.Run(root);
             ClaudeChatE2E.StartWork(root);
+            ClaudeChatDraftE2E.Run(root);
             Console.WriteLine("PASS Claude chat end-to-end checks");
             return;
         }

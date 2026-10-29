@@ -31,6 +31,43 @@ with no permission or question items there is nothing to approve. The view's wor
 
 `Files` searches the workspace for an `@` query. `CompletePath` (`ChatPathParams`: workspace, chat, the text as typed) lists one directory for a path query (`/`, `~`, `./`, `../`, a drive): directories first, then files, filtered by the last segment, at most 50, resolved against the chat's working directory and the host user's home; a missing directory is an empty list. A host that cannot serve it fails the call and the view uses `Files`. The method is additive, so the host protocol version does not change.
 
+## Shared draft
+
+The composer's unsent text is host state, so one user on several clients (a desktop and a phone) sees and edits the same draft. It is
+text only: no carets, selections or typing indicators are shared, and two people are never assumed to type at once. Attachments are not
+shared: they may be bytes held in the client's memory (`ChatAttachment.Data`, up to 8 MB), so each client keeps its own and the draft
+record's `Attachments` stays null (reserved for path-only attachments later).
+
+- Record. `ChatDraft(Text, Revision)` with `Attachments` (reserved, null) and `Origin`. `Revision` is a monotonic long per chat that
+  never goes back, also across a clear and a host restart; revision 0 is "the host has never stored a draft for this chat".
+- Reading. The `chatSnapshot` list starts with a `ChatDraftPush` (kind `draft`: workspace, chat, draft), also for a chat whose child is not running; later changes
+  arrive on `chatUpdates` as the same push. A host that does not serve the draft answers `chatSetDraft` with an error and never pushes one;
+  the view then keeps its draft client-locally (a static per-process map) and stops syncing.
+- Writing. `chatSetDraft(ChatSetDraftParams: workspace, chat, BaseRevision, Text, ClientId)` returns the new `ChatDraft`, whose `Origin`
+  is the `ClientId`. Today the host is last-writer-wins on the whole text: it ignores `BaseRevision` for ordering, assigns the next
+  revision and broadcasts, unless the text equals the current one, when it changes nothing and returns the current record. Text over
+  100,000 characters is refused. A client ignores a push whose `Origin` is its own id (the reply already told it the revision) and a
+  push whose revision is not newer than the highest it knows.
+- Reserved extension (not implemented). Host-ordered edit operations replace last-writer-wins without changing clients that already send
+  `BaseRevision` and read `Revision`: `ChatSetDraftParams` gains an optional `Edit` (`replace range [Start, End) with Text, against
+  BaseRevision`); the host transforms it over the edits applied since `BaseRevision`, applies it, and the push carries the edit with the
+  new revision. A client that sends whole `Text` keeps working because the host treats it as one replace of the whole range.
+- Persistence. The Claude Code host keeps the drafts in the plugin's user state (see the Claude Code SPEC), bounded and saved after a short
+  debounce; a client reload, another device or a host restart shows the draft again. It is cleared when the message is sent and when the
+  chat's workspace is removed.
+- Send. `ChatSendParams` carries `DraftRevision` and `ClientId`. The host claims the revision atomically: a send whose `DraftRevision` is
+  at or below the revision a previous send already consumed is refused with `ChatContract.AlreadySent` and sends nothing; otherwise it
+  sends what the client typed (also from a stale revision), and then clears the draft and pushes an empty draft with a new revision. A
+  send that fails releases the claim and keeps the draft. A send without `DraftRevision` (a launcher prompt, a queued edit) neither
+  checks nor clears.
+- Client apply rule. The client sends its text about 250 ms after the last keystroke, on focus loss, on detaching and before a send, with
+  the async request, never on the UI thread's I/O. A remote draft replaces the input only when the input equals the text the client last
+  sent or applied and nothing is in flight; the caret keeps its logical place (at the end stays at the end). Unsent or in-flight local text
+  wins for that moment and is sent again as the next revision. While the input has focus and the user typed within the last 400 ms the
+  replacement waits (the text box exposes no composition state cheaply), then applies only if the input is still clean. History recall
+  (Up/Down) and its stash make the input differ from the last sent text, so a remote draft never replaces a recalled prompt. The view
+  shows a quiet note under the input when a send is refused as already sent.
+
 ## Serving another agent protocol (ACP)
 
 An ACP agent needs no view change: its plugin supplies a `ChatAgent` and a host half that serves `ChatContract` over the ACP connection
@@ -74,5 +111,5 @@ workspace, never by the view.
 
 ## Checks
 
-The view is covered by `--claude-chat-ui` and `--claude-chat-e2e`, the records and the Claude Code host by `--claude-chat-host`, and the
+The view is covered by `--claude-chat-ui` and `--claude-chat-e2e` (two views of one host for the shared draft), the records and the Claude Code host by `--claude-chat-host`, and the
 project and dependency rules by `--conformance` (the boundary table).
