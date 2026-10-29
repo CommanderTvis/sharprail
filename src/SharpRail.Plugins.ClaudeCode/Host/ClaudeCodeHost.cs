@@ -331,7 +331,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         context.OnWorkspace(change =>
         {
             if (change is WorkspaceCreated created) workspaces[created.Workspace.Id] = created.Workspace;
-            else if (change is WorkspaceRemoved removed) workspaces.TryRemove(removed.Id, out _);
+            else if (change is WorkspaceRemoved removed) { workspaces.TryRemove(removed.Id, out _); chat?.ForgetWorkspace(removed.Id); }
             if (change is not WorkspaceUpdated) bridge?.RefreshWorkspaces();
         });
 

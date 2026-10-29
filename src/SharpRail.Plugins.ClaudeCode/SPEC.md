@@ -158,8 +158,9 @@ A fork is a new chat record that branches the same way when first opened.
 Shared draft. `chatSetDraft` and the `ChatDraftPush` on `chatUpdates` (rules in `src/SharpRail.Plugins.Chat/SPEC.md`, "Shared draft") are
 served by `ChatDrafts` in `Host/Chat`, independent of whether the chat's child runs. Drafts persist in the plugin's user state (`drafts.json`
 under the plugin state directory, never in a project) as one map keyed by workspace and chat, each entry with text, revision, the revision
-the last send consumed and a last-change time. The write is atomic (the plugin state mechanism) and debounced by 500 ms after the last
-change, and flushed when the host stops. Bounds: text at most 100,000 characters, at most 200 stored chats (the least recently changed are
+the last send consumed and a last-change time. The write is atomic (the plugin state mechanism) and debounced: it happens 500 ms after the last
+change (the plugin can no longer write state once it is being stopped, so a change younger than that is lost with the host; the clients still
+hold their text). Bounds: text at most 100,000 characters, at most 200 stored chats (the least recently changed are
 dropped first, keeping a non-empty draft over an empty one), and a removed workspace drops its drafts. No host-protocol field was added:
 the methods and push are namespaced additions to the Claude Code plugin contract.
 

@@ -286,6 +286,8 @@ internal static class ClaudeChatChecks
 
             await fixture.Call(ChatContract.SetDraft, new ChatSetDraftParams(project, gone, 0, "goes with its workspace", "desk"));
             await fixture.Call(ChatContract.Close, new ChatKey(project, chat));
+            // The save is debounced: it happens shortly after the last change.
+            await Task.Delay(SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.SaveDelay + TimeSpan.FromMilliseconds(700));
         }
 
         // A host restart: a new state store over the same directory still has the drafts, the revisions and the consumed marker.
@@ -304,17 +306,41 @@ internal static class ClaudeChatChecks
             catch (Exception error) when (error is PluginCallException or InvalidOperationException) { refused = true; }
             Require(refused, "A consumed revision stays consumed after a host restart.");
 
-            // A removed workspace takes its drafts with it.
-            Require((await DraftOf(fixture, gone)).Text == "goes with its workspace", "The draft of the workspace to be removed is there.");
         }
-        var closing = new StateHolder();
-        await using (var fixture = await Start(directory, closing))
-        {
-            await closing.State!.ChangeAsync([HostStateChange.CloseProject(fixture.Project)]);
-            for (var wait = 0; wait < 100 && (await DraftOf(fixture, gone)).Text.Length > 0; wait++) await Task.Delay(20);
-            Require((await DraftOf(fixture, gone)) is { Text: "" } && (await DraftOf(fixture, chat)).Text == "", "The drafts of a removed workspace are dropped.");
-        }
+        StoreBounds();
     }
+
+    // The draft store on its own: persistence round trip, the stored-chat bound, the length bound and a removed workspace's drafts.
+    private static void StoreBounds()
+    {
+        var saved = new Dictionary<string, SharpRail.Plugins.ClaudeCode.Host.Chat.StoredDraft>();
+        var pushes = new List<ChatPush>();
+        using (var store = new SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts(() => [], all => { saved = all; }, pushes.Add, _ => { }))
+        {
+            for (var index = 0; index < SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats + 20; index++)
+                store.Set("w", "c" + index, "text " + index, "x");
+            store.Set("w", "empty", "temp", "x");
+            store.Set("w", "empty", "", "x");
+            store.Set("other", "kept", "elsewhere", "x");
+            Require(store.Get("w", "c0").Text == "text 0" || store.Get("w", "c0").Revision == 0, "The oldest drafts may be dropped, never altered.");
+            store.Save();
+            Require(saved.Count <= SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats, $"At most {SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats} chats are stored ({saved.Count}).");
+            Require(store.Get("w", "c" + (SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts.MaxChats + 19)).Text.StartsWith("text ", StringComparison.Ordinal) && store.Get("other", "kept").Text == "elsewhere",
+                "The most recent drafts and non-empty ones are kept.");
+            Require(store.Get("w", "empty") is { Text: "" }, "A cleared draft is empty.");
+            var before = pushes.Count;
+            store.Set("w", "c150", store.Get("w", "c150").Text, "x");
+            Require(pushes.Count == before, "Writing the stored text again pushes nothing.");
+            store.ForgetWorkspace("w");
+            store.Save();
+            Require(saved.Keys.All(key => key.StartsWith("other\0", StringComparison.Ordinal)) && saved.Count == 1, "A removed workspace's drafts are dropped and the drop is saved.");
+        }
+        var json = JsonSerializer.Serialize(saved, PluginJson.Options);
+        var back = JsonSerializer.Deserialize<Dictionary<string, SharpRail.Plugins.ClaudeCode.Host.Chat.StoredDraft>>(json, PluginJson.Options)!;
+        using var reloaded = new SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts(() => back, _ => { }, _ => { }, _ => { });
+        Require(reloaded.Get("other", "kept") is { Text: "elsewhere", Revision: 1 }, "A stored draft round-trips through the state file's JSON.");
+    }
+
 
     private sealed class StateHolder { public HostStateStore? State { get; set; } }
 

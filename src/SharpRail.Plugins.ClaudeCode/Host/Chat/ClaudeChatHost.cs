@@ -15,6 +15,7 @@ namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
 internal sealed class ClaudeChatHost
 {
     private const string RecordsState = "chats";
+    private const string DraftsState = "drafts";
 
     private readonly IPluginHostContext context;
     private readonly Func<TerminalRef, IReadOnlyDictionary<string, string>> pluginEnvironment;
@@ -23,6 +24,7 @@ internal sealed class ClaudeChatHost
     private readonly string hookPluginDirectory;
     private readonly ConcurrentDictionary<(string, string), ClaudeChatSession> sessions = new();
     private readonly Lock recordsGate = new();
+    private readonly ChatDrafts drafts;
 
     public ClaudeChatHost(IPluginHostContext context, Func<TerminalRef, IReadOnlyDictionary<string, string>> pluginEnvironment, Func<string> loopbackRoot,
         Action<ClaudeCodeStatusPush> status, string hookPluginDirectory)
@@ -32,7 +34,11 @@ internal sealed class ClaudeChatHost
         this.loopbackRoot = loopbackRoot;
         this.status = status;
         this.hookPluginDirectory = hookPluginDirectory;
+        drafts = new ChatDrafts(() => context.ReadState<Dictionary<string, StoredDraft>>(DraftsState, []), all => context.WriteState(DraftsState, all), Publish, message => context.Log.Warn(message));
     }
+
+    /// <summary>A removed workspace takes its chats' drafts with it.</summary>
+    public void ForgetWorkspace(string workspaceId) => drafts.ForgetWorkspace(workspaceId);
 
     private static string RecordKey(string workspaceId, string chatId) => workspaceId + "\0" + chatId;
 
@@ -70,10 +76,21 @@ internal sealed class ClaudeChatHost
     public void Register()
     {
         context.Method(ChatContract.Open, (p, _, _) => OpenAsync(p));
-        context.Method(ChatContract.Snapshot, (p, _, _) => ValueTask.FromResult(sessions.TryGetValue((p.WorkspaceId, p.ChatId), out var session) ? session.Snapshot() : []));
+        context.Method(ChatContract.Snapshot, (p, _, _) => ValueTask.FromResult<IReadOnlyList<ChatPush>>([new ChatDraftPush(p.WorkspaceId, p.ChatId, drafts.Get(p.WorkspaceId, p.ChatId)), .. sessions.TryGetValue((p.WorkspaceId, p.ChatId), out var session) ? session.Snapshot() : []]));
+        context.Method(ChatContract.SetDraft, (p, _, _) => ValueTask.FromResult(drafts.Set(p.WorkspaceId, p.ChatId, p.Text, p.ClientId)));
         context.Method(ChatContract.Send, async (p, _, _) =>
         {
-            await Session(p.WorkspaceId, p.ChatId).SendAsync(p.Text, p.Attachments);
+            var session = Session(p.WorkspaceId, p.ChatId);
+            // A send from a draft claims its revision first, so two clients sending one draft at the same moment send it once.
+            long? claimed = p.DraftRevision is > 0 and var revision ? revision : null;
+            var previous = claimed is { } mine ? drafts.Claim(p.WorkspaceId, p.ChatId, mine) : 0;
+            try { await session.SendAsync(p.Text, p.Attachments); }
+            catch
+            {
+                if (claimed is { } held) drafts.Release(p.WorkspaceId, p.ChatId, held, previous);
+                throw;
+            }
+            if (claimed is not null) drafts.Clear(p.WorkspaceId, p.ChatId, p.ClientId);
             return new Ack();
         });
         context.Method(ChatContract.Interrupt, async (p, _, _) =>
@@ -138,6 +155,7 @@ internal sealed class ClaudeChatHost
         var all = sessions.Values.ToArray();
         sessions.Clear();
         await Task.WhenAll(all.Select(session => session.DisposeAsync()));
+        drafts.Dispose();
     }
 
     private async ValueTask<ChatHeader> OpenAsync(ChatOpenParams p)
