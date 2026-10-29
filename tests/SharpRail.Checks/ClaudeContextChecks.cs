@@ -1,6 +1,8 @@
 using System.Text.Json;
 
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Plugins.Agent.UI;
@@ -268,6 +270,35 @@ internal static class ClaudeContextChecks
         Require(Drawn(1, "1", 480) == "1 token in new session" && Drawn(2_500, "2.5k", 480) == "2.5k tokens in new session" &&
             Drawn(1, "1", 200) == "1 tok in new session" && Drawn(2_500, "2.5k", 200) == "2.5k toks in new session",
             "Token amounts say 1 token, never 1 tokens, and abbreviate to tok/toks when narrow.");
+        // The header label spells Context out where the row has room beside the token summary, CTX where it has not.
+        static (string Label, string Summary, bool Trimmed, object? Tip, string? Name) Header(Window host, double width)
+        {
+            host.Width = width;
+            E2eWorkspace.Settle();
+            var label = host.GetLogicalDescendants().OfType<ClaudeContextLabel>().Single();
+            var amount = host.GetLogicalDescendants().OfType<TokenAmount>().Single();
+            return (label.Text, amount.Text, amount.Bounds.Width < amount.DesiredSize.Width, ToolTip.GetTip(label), Avalonia.Automation.AutomationProperties.GetName(label));
+        }
+        var heading = new DockPanel { Margin = new Thickness(8, 4) };
+        var summary = new TokenAmount("22.5k", 22_500, Avalonia.Media.Brushes.Gray, " in new session");
+        DockPanel.SetDock(summary, Avalonia.Controls.Dock.Right);
+        heading.Children.Add(summary);
+        heading.Children.Add(new ClaudeContextLabel());
+        var headingHost = new Window { Width = 520, Height = 60, Content = heading };
+        headingHost.Show();
+        try
+        {
+            var wide = Header(headingHost, 520);
+            var narrowed = Header(headingHost, 200);
+            var widened = Header(headingHost, 520);
+            Require(wide.Label == "CONTEXT" && widened.Label == "CONTEXT" && narrowed.Label == "CTX",
+                $"The header says CONTEXT in a wide pane, CTX in a narrow one, and CONTEXT again once widened. Got {wide.Label}, {narrowed.Label}, {widened.Label}.");
+            Require(!wide.Trimmed && !narrowed.Trimmed && !widened.Trimmed && wide.Summary == "22.5k tokens in new session",
+                "The token summary is never trimmed, in either state.");
+            Require(new[] { wide, narrowed, widened }.All(state => Equals(state.Tip, "Context") && state.Name == "Context"),
+                "Both spellings keep the tooltip and automation name Context.");
+        }
+        finally { headingHost.Close(); }
         Console.WriteLine("PASS Claude Code context UI: baseline rows, MCP and skill parts, freshness note, inline error, token units");
     }
 }
