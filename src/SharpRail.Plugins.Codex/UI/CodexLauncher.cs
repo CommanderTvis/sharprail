@@ -65,6 +65,7 @@ public static class CodexLauncher
                 {
                     var item = new MenuItem { Name = "CodexLaunch_" + preset.Id, Header = preset.Label };
                     if (preset.Model is not null) item.Icon = CodexGlyph.Gpt();
+                    else if (preset.Id switch { "resume-last" => ActionIcon.Continue, "resume" => ActionIcon.Resume, _ => (ActionIcon?)null } is { } action) item.Icon = ActionIcons.Create(action);
                     item.Click += (_, _) => start(preset);
                     menu.Items.Add(item);
                 }

@@ -244,7 +244,7 @@ internal static class ClaudeLauncherAction
             if (index > 0) menu.Items.Add(new Separator());
             foreach (var preset in ClaudeLaunch.Menu[index])
             {
-                var item = new MenuItem { Name = "ClaudeLaunch_" + preset.Id, Header = preset.Label, Icon = preset.Model is null ? null : glyph.Create(14) };
+                var item = new MenuItem { Name = "ClaudeLaunch_" + preset.Id, Header = preset.Label, Icon = preset.Model is not null ? glyph.Create(14) : preset.Icon is { } action ? ActionIcons.Create(action) : null };
                 item.Click += (_, _) => Launch(preset.Args);
                 menu.Items.Add(item);
             }

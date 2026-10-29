@@ -1,10 +1,11 @@
 using System.Text.RegularExpressions;
 
 using SharpRail.Plugins.Api;
+using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.ClaudeCode.UI;
 
-internal sealed record ClaudeLaunchPreset(string Id, string Label, string Args, string? Model = null);
+internal sealed record ClaudeLaunchPreset(string Id, string Label, string Args, string? Model = null, ActionIcon? Icon = null);
 
 internal sealed record ClaudeModel(string Id, string Label);
 
@@ -27,8 +28,8 @@ internal static partial class ClaudeLaunch
     public static readonly IReadOnlyList<IReadOnlyList<ClaudeLaunchPreset>> Menu =
     [
         [
-            new("continue", "Continue the last conversation", "--continue"),
-            new("resume", "Resume a session…", "--resume"),
+            new("continue", "Continue the last conversation", "--continue", Icon: ActionIcon.Continue),
+            new("resume", "Resume a session…", "--resume", Icon: ActionIcon.Resume),
             new("resume-fork", "Resume as a new session", "--resume --fork-session"),
             new("teleport", "Teleport a session here…", "--teleport")
         ],
