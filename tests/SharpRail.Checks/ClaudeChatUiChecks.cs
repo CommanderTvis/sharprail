@@ -676,6 +676,9 @@ internal static class ClaudeChatUiChecks
     // A host that does not share drafts answers the draft method with an error: the view stops asking and keeps the draft client-locally.
     private static void DraftWithoutHost()
     {
+        Require(ChatView.MapCaret("hello world", "hello brave world", 11) == 17 && ChatView.MapCaret("hello world", "hello brave world", 3) == 3 &&
+            ChatView.MapCaret("hello world", "hello brave world", 8) == 14 && ChatView.MapCaret("abc", "", 2) == 0 && ChatView.MapCaret("abcdef", "abXYef", 3) == 3,
+            "A remote draft keeps the caret at the end, before the change and after it, and clamps in the changed part.");
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
         chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
         ChatView.ForgetLocalDrafts();

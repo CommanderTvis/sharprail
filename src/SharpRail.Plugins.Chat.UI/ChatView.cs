@@ -228,6 +228,8 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     {
         if (subscription is not null) return;
         subscription = env.Client.Subscribe(key, Enqueue);
+        // Text kept from before this view existed (typed offline, or on a host that lost it) goes to the host once it can.
+        if (draftSync && (input.Text ?? "") != baseText) ScheduleDraft();
         WatchEditorSelection();
         if (!started)
         {
@@ -239,6 +241,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
 
     private void Stop()
     {
+        _ = FlushDraft();
         subscription?.Dispose();
         subscription = null;
         UnwatchEditorSelection();
@@ -296,7 +299,8 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             else if (batch[index] is ChatItemPush { Item: var item } && !later.Add(item.Id)) skip[index] = true;
         }
         for (var index = 0; index < batch.Length; index++)
-            if (!skip[index]) transcript.Apply(batch[index]);
+            if (batch[index] is ChatDraftPush draft) OnDraft(draft.Draft);
+            else if (!skip[index]) transcript.Apply(batch[index]);
         ShowQueue();
         UpdateRequests();
         if (list.Stuck) list.FollowEnd();

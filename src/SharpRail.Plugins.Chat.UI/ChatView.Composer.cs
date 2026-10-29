@@ -18,7 +18,9 @@ namespace SharpRail.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {
+    // The client-local copy of the draft: all there is for a host that does not share drafts, and what a rebuilt view starts from otherwise.
     private static readonly Dictionary<(string, string), string> Drafts = [];
+    private static readonly Dictionary<(string, string), (long Revision, string Base)> DraftSyncs = [];
     internal static readonly Dictionary<(string, string), List<string>> Histories = [];
 
     private TextBox input = null!;
@@ -35,7 +37,7 @@ internal sealed partial class ChatView
     private ChatStatus status = ChatStatus.Starting;
 
     /// <summary>Forgets the client-local drafts, as a new process would have none.</summary>
-    internal static void ForgetLocalDrafts() => Drafts.Clear();
+    internal static void ForgetLocalDrafts() { Drafts.Clear(); DraftSyncs.Clear(); }
     internal string? DraftNote => pasteNote.IsVisible ? pasteNote.Text : null;
     internal TextBox Input => input;
     internal ListBox Menu => menuList;
@@ -74,7 +76,7 @@ internal sealed partial class ChatView
             CornerRadius = new CornerRadius(0),
             PlaceholderText = $"Ask {env.Agent.Short} to edit…",
             PlaceholderForeground = Ui.Muted,
-            Text = Drafts.GetValueOrDefault((workspaceId, chatId), "")
+            Text = StartDraft()
         };
         Avalonia.Automation.AutomationProperties.SetName(input, $"Message {env.Agent.Short}");
         send = new Button { Name = "ChatSend", Padding = new Thickness(12, 6), VerticalAlignment = VerticalAlignment.Center };
@@ -222,7 +224,15 @@ internal sealed partial class ChatView
         root.Children.Add(queue);
         root.Children.Add(shell);
         root.Children.Add(footer);
-        input.TextChanged += (_, _) => { if (!recalling) { historyAt = -1; draftStash = null; } pasteNote.IsVisible = false; Drafts[(workspaceId, chatId)] = input.Text ?? ""; UpdateMenu(); UpdateSend(); UpdateMentions(); };
+        input.TextChanged += (_, _) =>
+        {
+            if (!recalling) { historyAt = -1; draftStash = null; }
+            // The box raises its change after the setter returns, so a change that left the text a remote draft put there is told by its text.
+            if (!applyingRemote && input.Text != appliedText) { appliedText = null; pasteNote.IsVisible = false; lastTyped = Environment.TickCount64; ScheduleDraft(); }
+            Drafts[(workspaceId, chatId)] = input.Text ?? "";
+            UpdateMenu(); UpdateSend(); UpdateMentions();
+        };
+        input.LostFocus += (_, _) => _ = FlushDraft();
         input.AddHandler(KeyDownEvent, InputKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         // The box's own Paste (its context menu) takes the same road.
         input.PastingFromClipboard += (_, e) => { e.Handled = true; _ = PasteAttachments(); };
@@ -230,6 +240,142 @@ internal sealed partial class ChatView
         SetValue(FileDrop.AttachProperty, paths => { foreach (var path in paths) AddAttachment(path); });
         UpdateSend();
         return root;
+    }
+
+
+    // The shared draft (see "Shared draft" in the Chat SPEC). baseText is the text this client last sent to the host or took from it; the
+    // box differs from it exactly when there are local edits the host has not seen.
+    private readonly string clientId = Guid.NewGuid().ToString("N");
+    private long hostRevision;
+    private string baseText = "";
+    private bool draftSync = true, draftInFlight, repush, applyingRemote;
+    private long lastTyped;
+    private string? appliedText;
+    private Task? draftLoop;
+    private DispatcherTimer? draftTimer, deferTimer;
+    private ChatDraft? deferred;
+    internal static readonly TimeSpan DraftDebounce = TimeSpan.FromMilliseconds(250);
+    private const long TypingQuiet = 400;
+
+    internal long DraftRevision => hostRevision;
+
+    private string StartDraft()
+    {
+        if (DraftSyncs.TryGetValue((workspaceId, chatId), out var known)) { hostRevision = known.Revision; baseText = known.Base; }
+        return Drafts.GetValueOrDefault((workspaceId, chatId), "");
+    }
+
+    private void RememberSync() => DraftSyncs[(workspaceId, chatId)] = (hostRevision, baseText);
+
+    private void ScheduleDraft()
+    {
+        if (!draftSync) return;
+        draftTimer ??= new DispatcherTimer { Interval = DraftDebounce };
+        draftTimer.Tick -= DraftTick;
+        draftTimer.Tick += DraftTick;
+        draftTimer.Stop();
+        draftTimer.Start();
+    }
+
+    private void DraftTick(object? sender, EventArgs e) => _ = FlushDraft();
+
+    /// <summary>Sends the box's text to the host when it differs from what the host has; completes when it is there.</summary>
+    internal Task FlushDraft()
+    {
+        draftTimer?.Stop();
+        if (!draftSync) return Task.CompletedTask;
+        return draftLoop is { IsCompleted: false } running ? running : draftLoop = SendDrafts();
+    }
+
+    private async Task SendDrafts()
+    {
+        while (draftSync && ((input.Text ?? "") != baseText || repush))
+        {
+            var text = input.Text ?? "";
+            var before = baseText;
+            repush = false;
+            draftInFlight = true;
+            baseText = text;
+            try
+            {
+                var reply = await Task.Run(() => env.Client.RequestAsync(ChatContract.SetDraft, new ChatSetDraftParams(workspaceId, chatId, hostRevision, text, clientId)).AsTask());
+                // Someone wrote after this write was ordered: the local text wins for now and goes out again.
+                if (hostRevision > reply.Revision) repush = true;
+                hostRevision = Math.Max(hostRevision, reply.Revision);
+            }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                baseText = before;
+                // A host without the method keeps nothing for us: the local copy is all there is. Any other failure is tried again with the next edit.
+                if (error is PluginCallException { Error: PluginCallError.Unknown or PluginCallError.Disabled } || error.Message.Contains("registered no handler", StringComparison.Ordinal)) draftSync = false;
+                break;
+            }
+            finally { draftInFlight = false; RememberSync(); }
+        }
+    }
+
+    /// <summary>A draft from the host: newer ones replace the box only when nothing local is unsent.</summary>
+    private void OnDraft(ChatDraft draft)
+    {
+        if (!draftSync || draft.Revision <= hostRevision) return;
+        hostRevision = draft.Revision;
+        RememberSync();
+        if (draft.Origin == clientId) return;
+        var text = input.Text ?? "";
+        if (draftInFlight || text != baseText)
+        {
+            deferred = null;
+            repush = true;
+            ScheduleDraft();
+            return;
+        }
+        if (draft.Text == text) return;
+        if (input.IsKeyboardFocusWithin && Environment.TickCount64 - lastTyped < TypingQuiet)
+        {
+            deferred = draft;
+            deferTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(TypingQuiet) };
+            deferTimer.Tick -= DeferTick;
+            deferTimer.Tick += DeferTick;
+            deferTimer.Stop();
+            deferTimer.Start();
+            return;
+        }
+        ApplyRemote(draft.Text);
+    }
+
+    private void DeferTick(object? sender, EventArgs e)
+    {
+        deferTimer?.Stop();
+        if (deferred is not { } draft) return;
+        deferred = null;
+        if (draftInFlight || (input.Text ?? "") != baseText) { repush = true; ScheduleDraft(); return; }
+        ApplyRemote(draft.Text);
+    }
+
+    private void ApplyRemote(string text)
+    {
+        var old = input.Text ?? "";
+        var caret = input.CaretIndex;
+        applyingRemote = true;
+        appliedText = text;
+        try { input.Text = text; }
+        finally { applyingRemote = false; }
+        input.CaretIndex = MapCaret(old, text, caret);
+        baseText = text;
+        RememberSync();
+    }
+
+    /// <summary>Where a caret at <paramref name="caret"/> in <paramref name="old"/> belongs in <paramref name="next"/>: at the end stays at the end, before the change stays, after it moves with it.</summary>
+    internal static int MapCaret(string old, string next, int caret)
+    {
+        if (caret >= old.Length) return next.Length;
+        var prefix = 0;
+        var most = Math.Min(old.Length, next.Length);
+        while (prefix < most && old[prefix] == next[prefix]) prefix++;
+        if (caret <= prefix) return caret;
+        var suffix = 0;
+        while (suffix < most - prefix && old[old.Length - 1 - suffix] == next[next.Length - 1 - suffix]) suffix++;
+        return caret >= old.Length - suffix ? Math.Max(prefix, caret + next.Length - old.Length) : Math.Clamp(caret, 0, next.Length);
     }
 
     private Button stop = null!;
@@ -723,28 +869,38 @@ internal sealed partial class ChatView
         if (attachmentLoads.Count > 0) { await Task.WhenAll(attachmentLoads.ToArray()); attachmentLoads.Clear(); }
         var sent = attachments.ToArray();
         text = WithEditorContext(text);
-        if (await SendText(text, sent.Length > 0 ? sent : null))
+        await FlushDraft();
+        if (await SendText(text, sent.Length > 0 ? sent : null, draft: true))
         {
             var history = Histories.TryGetValue((workspaceId, chatId), out var existing) ? existing : Histories[(workspaceId, chatId)] = [];
             if (text.Length > 0) { history.Add(text); RememberPrompt(text); }
             historyAt = -1;
             draftStash = null;
             input.Text = "";
+            baseText = "";
+            RememberSync();
             attachments.Clear();
             RebuildAttachmentChips();
         }
     }
 
     // While a turn runs the host queues the message and marks its item; the composer does not wait.
-    private async Task<bool> SendText(string text, IReadOnlyList<ChatAttachment>? files)
+    private async Task<bool> SendText(string text, IReadOnlyList<ChatAttachment>? files, bool draft = false)
     {
         try
         {
-            await env.Client.RequestAsync(ChatContract.Send, new ChatSendParams(workspaceId, chatId, text) { Attachments = files });
+            await env.Client.RequestAsync(ChatContract.Send, new ChatSendParams(workspaceId, chatId, text) { Attachments = files, DraftRevision = draft && draftSync ? hostRevision : null, ClientId = clientId });
             return true;
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
+            // Another client sent this draft first: a quiet note, and its clearing of the draft empties the box.
+            if (error.Message.Contains(ChatContract.AlreadySent, StringComparison.Ordinal))
+            {
+                pasteNote.Text = ChatContract.AlreadySent;
+                pasteNote.IsVisible = true;
+                return false;
+            }
             env.Notify(PluginNotificationKind.Error, "Couldn't send the message", ChatErrors.Text(error));
             return false;
         }

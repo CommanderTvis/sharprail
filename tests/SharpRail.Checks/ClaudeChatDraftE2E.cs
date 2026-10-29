@@ -36,7 +36,13 @@ internal static class ClaudeChatDraftE2E
             var updates = runtime.SubscribeAsync(new("claude-code", ChatContract.Updates.Name, new { workspaceId = key.WorkspaceId, chatId = key.ChatId }, caller), stop.Token);
             _ = Task.Run(async () =>
             {
-                try { await foreach (var payload in updates) { var push = PluginJson.Convert<ChatPush>(payload!); Dispatcher.UIThread.Post(() => handler(push)); } }
+                try
+                {
+                    // A state channel starts with its snapshot, as the app's own client delivers it.
+                    var snapshot = PluginJson.Convert<IReadOnlyList<ChatPush>>((await runtime.CallAsync(new("claude-code", ChatContract.Snapshot.Name, key, caller), stop.Token))!);
+                    foreach (var push in snapshot) Dispatcher.UIThread.Post(() => handler(push));
+                    await foreach (var payload in updates) { var push = PluginJson.Convert<ChatPush>(payload!); Dispatcher.UIThread.Post(() => handler(push)); }
+                }
                 catch (OperationCanceledException) { }
             });
             return new Cancel(stop);
@@ -136,8 +142,12 @@ internal static class ClaudeChatDraftE2E
             E2eWorkspace.Until(() => phone.Input.Text == "hello" && reloaded.Input.Text == "hello");
             Await(desk.Submit());
             E2eWorkspace.Until(() => phone.Input.Text == "" && desk.Input.Text == "" && reloaded.Input.Text == "" && HostDraft().Text == "");
+            int Sent(string text) => desk.Transcript.Rows.Select(row => row.Item).OfType<ChatUserItem>().Count(item => item.Text == text);
+            E2eWorkspace.Until(() => Sent("hello") > 0);
+            E2eWorkspace.Settle(300);
             E2eWorkspace.Until(() => desk.Transcript.Header is { Status: ChatStatus.Idle });
-            Require(desk.Transcript.Rows.Select(row => row.Item).OfType<ChatUserItem>().Count(item => item.Text == "hello") == 1, "The send reached the chat once.");
+            Require(Sent("hello") == 1,
+                "The send reached the chat once: " + string.Join(" | ", desk.Transcript.Rows.Select(row => row.Item).OfType<ChatUserItem>().Select(item => item.Text)));
             Console.WriteLine("PASS shared draft: a send clears the draft on every client");
 
             // Two sends of one draft at the same moment: one goes, the other says it was already sent.
@@ -148,8 +158,10 @@ internal static class ClaudeChatDraftE2E
             Await(first);
             Await(second);
             E2eWorkspace.Until(() => desk.Input.Text == "" && phone.Input.Text == "");
-            E2eWorkspace.Until(() => desk.Transcript.Header is { Status: ChatStatus.Idle });
-            Require(desk.Transcript.Rows.Select(row => row.Item).OfType<ChatUserItem>().Count(item => item.Text == "hello again") == 1, "Two sends of one draft reach the chat once.");
+            E2eWorkspace.Until(() => Sent("hello again") > 0);
+            E2eWorkspace.Settle(300);
+            Require(Sent("hello again") == 1,
+                "Two sends of one draft reach the chat once: " + string.Join(" | ", desk.Transcript.Rows.Select(row => row.Item).OfType<ChatUserItem>().Select(item => item.Text)));
             Require(new[] { desk.DraftNote, phone.DraftNote }.Count(note => note is { Length: > 0 }) == 1 &&
                 new[] { desk.DraftNote, phone.DraftNote }.Single(note => note is { Length: > 0 })!.Contains("already sent", StringComparison.OrdinalIgnoreCase),
                 $"The second send shows a quiet already-sent note (desk: {desk.DraftNote}; phone: {phone.DraftNote}).");
