@@ -723,6 +723,7 @@ internal static class CodexE2E
         var labels = launcherButton.ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Name!.StartsWith("CodexLaunch_model-", StringComparison.Ordinal))
             .Select(item => (string)item.Header!).ToArray();
         Require(labels.SequenceEqual(["GPT-6 Astra", "GPT-5.6 Sol", "GPT-5.6 Terra", "GPT-5.6 Luna"]), "the catalog's models: " + string.Join(",", labels));
+        ActionIconChecks.RequireLauncherMenu(launcherButton.ContextMenu, "Codex", "CodexLaunch_resume-last", "CodexLaunch_resume", "CodexLaunch_fork");
         launcherButton.ContextMenu.Close();
         Launch(() => Menu("model-gpt-6-astra"), "--model", "gpt-6-astra");
 

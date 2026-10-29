@@ -40,6 +40,28 @@ internal static partial class ActionIconChecks
         Console.WriteLine("PASS action icons: one distinct shipped icon per semantic, and no menu source assigns a raw icon name");
     }
 
+    /// <summary>
+    /// An agent launcher menu: Continue and Resume carry the registry icons, the named other entries carry none, and the labels
+    /// of every visible entry start on one edge whether or not the row has an icon or a model mark.
+    /// </summary>
+    internal static void RequireLauncherMenu(Avalonia.Controls.ContextMenu menu, string agent, string continueName, string resumeName, params string[] bare)
+    {
+        var items = menu.Items.OfType<Avalonia.Controls.MenuItem>().ToDictionary(item => item.Name!);
+        void Carries(string name, ActionIcon expected) =>
+            Require(items[name].Icon is Avalonia.Controls.Border { OpacityMask: { } mask } && ReferenceEquals(mask, ((Avalonia.Controls.Border)Ui.Icon(ActionIcons.Asset(expected))).OpacityMask),
+                $"{agent} launcher entry {name} must show the {expected} registry icon.");
+        Carries(continueName, ActionIcon.Continue);
+        Carries(resumeName, ActionIcon.Resume);
+        foreach (var name in bare) Require(items[name].Icon is null, $"{agent} launcher entry {name} must have no icon.");
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var edges = items.Values.Where(item => item.IsVisible).Select(item =>
+        {
+            var label = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(item).OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(part => part.Name == "PART_HeaderPresenter");
+            return (item.Header, Left: Avalonia.VisualExtensions.TranslatePoint(label, default, item)!.Value.X);
+        }).ToArray();
+        Require(edges.All(edge => Math.Abs(edge.Left - edges[0].Left) < 0.5), $"{agent} launcher menu labels are not aligned: " + string.Join(", ", edges.Select(edge => $"{edge.Header}={edge.Left}")));
+    }
+
     private static void Require(bool value, string message)
     {
         if (!value) throw new InvalidOperationException(message);

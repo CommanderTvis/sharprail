@@ -861,6 +861,7 @@ internal static class ClaudeCodeChecks
             var items = menu.Items.OfType<MenuItem>().ToDictionary(item => item.Name!);
             Require((string)items["ClaudeLaunch_continue"].Header! == "Continue the last conversation" && items.ContainsKey("ClaudeLaunch_model-opus") &&
                 ((string)items["ClaudeLaunch_teleport"].Header!).StartsWith("Teleport", StringComparison.Ordinal), "The menu offers continue, teleport and the models.");
+            ActionIconChecks.RequireLauncherMenu(menu, "Claude Code", "ClaudeLaunch_continue", "ClaudeLaunch_resume", "ClaudeLaunch_resume-fork", "ClaudeLaunch_teleport");
             if (preset.StartsWith("permission-", StringComparison.Ordinal) || preset.StartsWith("advisor-", StringComparison.Ordinal))
             {
                 var submenu = items["ClaudeLaunch_" + preset.Split('-')[0]];

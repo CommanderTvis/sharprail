@@ -18,6 +18,8 @@ show its own variant of "Delete".
   without an icon keep their labels on the same edge as rows with one. Menu icons are 14 px, tinted by the menu item.
 - Plugin identity glyphs (the Claude mark on "Mention ... in Claude Code", agent launcher marks) say who
   acts, not what happens; they come from the plugin (`PluginIcons`) and are outside this registry.
+- Every continue action of every agent uses Continue and every resume action uses Resume. "Resume as a new session",
+  "Teleport a session here…" and "Fork a session…" show no icon. omp has no launcher menu with such entries.
 - A state mark such as the checked theme uses Check.
 
 ## Table
@@ -35,6 +37,8 @@ show its own variant of "Delete".
 | Home | `homeFill` | Scope menu: Project home; the default workspace in the switcher |
 | Branch | `gitBranch` | Worktree workspaces in the switcher |
 | Check | `check` | Selected theme in Settings |
+| Continue | `play` | Agent launcher menus: Continue the last conversation (Claude Code), Continue the last session (Codex) |
+| Resume | `history` | Agent launcher menus: Resume a session… (Claude Code, Codex) |
 
 ## Enforcement
 
