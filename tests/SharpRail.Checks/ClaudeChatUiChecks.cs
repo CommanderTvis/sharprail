@@ -204,6 +204,7 @@ internal static class ClaudeChatUiChecks
         OnlyRunningChips();
         RunningFooter();
         FooterChipEdges();
+        ChromeChip();
         PrimaryContrast();
         QuestionPreview();
         ToolCardsText();
@@ -521,6 +522,30 @@ internal static class ClaudeChatUiChecks
     }
 
     // A primary button reads when enabled and when disabled: its label takes the button's colour, never its own.
+    // The Chrome fact chip looks and sits as the terminal's: lowercase "chrome" with the Chrome mark, right after the IDE switch.
+    private static void ChromeChip()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) { Model = "opus", PermissionMode = "default", Cwd = "/work/project", Chrome = true } };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            var panel = view.GetVisualDescendants().OfType<WrapPanel>().First(candidate => candidate.Name == "ChatChips");
+            var chrome = view.GetVisualDescendants().OfType<Control>().First(control => control.Name == "TerminalAgentFact_chrome");
+            Require(ChipText(view, "TerminalAgentFact_chrome").Trim() == "chrome", "The chat's Chrome chip reads lowercase \"chrome\" like the terminal's.");
+            Require(chrome.GetVisualDescendants().OfType<Border>().Any(border => border.OpacityMask is not null), "The chat's Chrome chip carries the Chrome mark.");
+            var order = panel.Children.OfType<Control>().Select(child => child.Name ?? child.GetVisualDescendants().OfType<Control>().FirstOrDefault(inner => inner.Name?.StartsWith("TerminalAgentFact_", StringComparison.Ordinal) == true)?.Name).ToList();
+            var ide = order.FindIndex(name => name is not null && name.Contains("ide", StringComparison.OrdinalIgnoreCase));
+            var at = order.IndexOf("TerminalAgentFact_chrome");
+            Require(at >= 0 && (ide < 0 || at > ide), $"The Chrome chip follows the IDE switch ({string.Join(",", order)}).");
+            Console.WriteLine("PASS chat Chrome chip: lowercase with the Chrome mark, after the IDE switch");
+        }
+        finally { window.Close(); }
+    }
+
     private static void PrimaryContrast()
     {
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.AwaitingPermission) };
