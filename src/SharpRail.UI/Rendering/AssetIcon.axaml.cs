@@ -31,9 +31,20 @@ internal sealed partial class AssetIcon : Grid
         this.FindControl<ContentControl>("Image")!.Content = image;
     }
 
+    /// <summary>PNG decodes so far; a list that recycles icons must not decode a mark again for each card it realizes.</summary>
+    internal static int Decodes;
+
+    // A card is realized again each time it scrolls into view with the same bytes; the decoded mark lives as long as they do.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], Avalonia.Media.Imaging.Bitmap?> Decoded = new();
+
     private static Avalonia.Media.Imaging.Bitmap? Bitmap(byte[] bytes)
     {
-        try { using var stream = new MemoryStream(bytes); return new Avalonia.Media.Imaging.Bitmap(stream); }
-        catch (Exception error) when (error is ArgumentException or InvalidOperationException or IOException) { return null; }
+        if (Decoded.TryGetValue(bytes, out var cached)) return cached;
+        Interlocked.Increment(ref Decodes);
+        Avalonia.Media.Imaging.Bitmap? bitmap;
+        try { using var stream = new MemoryStream(bytes); bitmap = new Avalonia.Media.Imaging.Bitmap(stream); }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException or IOException) { bitmap = null; }
+        Decoded.AddOrUpdate(bytes, bitmap);
+        return bitmap;
     }
 }

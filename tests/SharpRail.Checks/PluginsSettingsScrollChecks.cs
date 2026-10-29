@@ -13,6 +13,7 @@ using SharpRail.Host.Client;
 using SharpRail.Plugins.Api;
 using SharpRail.UI.Panels;
 using SharpRail.UI.Plugins;
+using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
 
 namespace SharpRail.Checks;
@@ -120,9 +121,51 @@ internal static class PluginsSettingsScrollChecks
         window.Close();
         state.Dispose();
         Console.WriteLine("PASS plugins settings: long roster virtualized and recycled, broadcasts update cards in place, toggles work");
+        AssetIconDecodes(root);
         BuiltinIcons();
         TailscaleLock(root, through: true);
         TailscaleLock(root, through: false);
+    }
+
+    // Language servers draw PNG marks (up to 256 px): scrolling realizes cards again and again, so a mark is decoded once
+    // per plugin, never once per realization on the UI thread.
+    private static void AssetIconDecodes(string root)
+    {
+        var profile = new ProfileStore(Path.Combine(root, "plugins-decode-profile"));
+        var store = profile.OpenState();
+        byte[] png;
+        using (var bitmap = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(256, 256), new Vector(96, 96), Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Premul))
+        using (var stream = new MemoryStream()) { bitmap.Save(stream, Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default); png = stream.ToArray(); }
+        var roster = Enumerable.Range(0, Plugins).Select(index => new PluginRosterEntry($"png-{index:00}", $"Server {index:00}", "asset:Icon.png", "1", 1, PluginOrigin.Builtin, PluginStatus.Disabled)
+        {
+            Assets = "assets",
+            Description = "A language server with its own PNG mark and a description long enough to give the card some height."
+        }).ToArray();
+        var read = PluginIcons.ReadAsset;
+        PluginIcons.ReadAsset = (_, _, _) => Task.FromResult<byte[]?>([.. png]);
+        try
+        {
+            var host = new FakePluginHost(new LocalStateAdapter(store), store.Current, roster);
+            var state = new SharedState(host, profile.Data.Preferences);
+            state.Start();
+            E2eWorkspace.Until(() => state.Current.Plugins.Count == Plugins);
+            var scroller = new ScrollViewer { Content = new PluginsSettings(state, null, new Window()), Padding = new Thickness(16) };
+            var window = new Window { Width = 800, Height = 600, Content = scroller };
+            window.Show();
+            Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            for (var pass = 0; pass < 2; pass++)
+            {
+                for (var guard = 0; guard < 400 && scroller.Offset.Y < scroller.Extent.Height - scroller.Viewport.Height - 1; guard++)
+                { scroller.Offset = scroller.Offset.WithY(scroller.Offset.Y + 60); Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); }
+                for (var guard = 0; guard < 400 && scroller.Offset.Y > 0; guard++)
+                { scroller.Offset = scroller.Offset.WithY(Math.Max(0, scroller.Offset.Y - 60)); Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); }
+            }
+            Console.WriteLine($"plugins-settings icons: {AssetIcon.Decodes} PNG decodes for {Plugins} plugins over two full scroll passes");
+            Require(AssetIcon.Decodes <= Plugins, $"A PNG mark must decode once per plugin, not once per realization ({AssetIcon.Decodes} decodes, {Plugins} plugins).");
+            window.Close();
+            state.Dispose();
+        }
+        finally { PluginIcons.ReadAsset = read; }
     }
 
     // On a client connected through Tailscale, the Tailscale card and those of plugins it depends on cannot be switched off.
