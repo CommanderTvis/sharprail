@@ -21,7 +21,7 @@
       <MenuItem x:Name="FrontmatterTypeMapping" Header="Convert to mapping" Tag="Mapping" />
     </ContextMenu>
   </UserControl.ContextMenu>
-  <Grid x:Name="RowGrid" Background="Transparent" Margin="0,1" ColumnSpacing="4">
+  <Grid x:Name="RowGrid" Background="Transparent" Margin="0,2" ColumnSpacing="4">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="Auto" SharedSizeGroup="FrontmatterKeys" />
       <ColumnDefinition Width="*" />
