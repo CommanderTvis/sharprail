@@ -27,7 +27,6 @@
   "expandVertical": "ExpandVerticalLine",
   "file": "FileLine",
   "fileAdd": "FileAddLine",
-  "fileCopy": "FileCopyLine",
   "filePdf": "FilePdf2Line",
   "fileText": "FileTextLine",
   "fileTextFill": "FileTextFill",
@@ -55,6 +54,7 @@
   "networkFill": "NodeTree",
   "openai": "OpenaiLine",
   "palette": "PaletteLine",
+  "mapPin": "MapPinLine",
   "pencil": "PencilLine",
   "pencilRuler": "PencilRuler2Line",
   "play": "PlayLine",
@@ -72,6 +72,7 @@
   "terminal": "TerminalBoxLine",
   "trash": "DeleteBinLine",
   "puzzle": "Puzzle2Line",
+  "route": "RouteLine",
   "server": "ServerLine",
   "bell": "Notification3Line"
 }

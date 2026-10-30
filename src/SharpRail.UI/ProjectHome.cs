@@ -264,7 +264,7 @@ public sealed partial class WorkbenchWindow
         var create = Ui.IconMenu("Start work", () => _ = CreateWorkspaceForAsync(project), ActionIcon.Add);
         create.Name = "ProjectMenuCreateWorkspace";
         // Copying neither selects the project nor activates a workspace.
-        var copy = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(project), ActionIcon.CopyPath);
+        var copy = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(project), ActionIcon.CopyAbsolutePath);
         copy.Name = "ProjectMenuCopyPath";
         var close = Ui.IconMenu("Close project", () => _ = CloseProjectAsync(project), ActionIcon.Close);
         close.Name = "ProjectMenuClose";
@@ -560,7 +560,7 @@ public sealed partial class WorkbenchWindow
     /// <summary>The one set of workspace actions, shown by a Projects row and by the header's workspace menu.</summary>
     private MenuItem AddWorkspaceActions(ContextMenu menu, WorkspaceRecord worktree, bool header)
     {
-        var copy = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(worktree.Path), ActionIcon.CopyPath);
+        var copy = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(worktree.Path), ActionIcon.CopyAbsolutePath);
         copy.Name = "WorkspaceCopyPath";
         menu.Items.Add(copy);
         var openIn = new MenuItem { Header = "Open in", Name = "WorkspaceOpenIn" };

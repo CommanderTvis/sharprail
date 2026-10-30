@@ -193,7 +193,7 @@ public sealed partial class WorkbenchWindow
         // The file lives on the host's machine, so a remote host has no file manager to show it in.
         if (!remote) Add(RevealLabel, "FileNodeReveal", () => _ = FileActionAsync(new("reveal", file.Path)));
         Add("Copy path", "FileNodeCopyRelativePath", () => _ = CopyTextAsync(file.Path), ActionIcon.CopyPath);
-        Add("Copy absolute path", "FileNodeCopyPath", () => _ = CopyTextAsync(Path.Combine(workspaceRoot, file.Path)), ActionIcon.CopyPath);
+        Add("Copy absolute path", "FileNodeCopyPath", () => _ = CopyTextAsync(Path.Combine(workspaceRoot, file.Path)), ActionIcon.CopyAbsolutePath);
         Add("Rename…", "FileNodeRename", () => _ = RenamePathAsync(file));
         Add("Move…", "FileNodeMove", () => _ = TransferPathAsync(file, false));
         Add("Copy…", "FileNodeCopy", () => _ = TransferPathAsync(file, true));

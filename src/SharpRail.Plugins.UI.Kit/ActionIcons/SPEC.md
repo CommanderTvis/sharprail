@@ -12,8 +12,8 @@ show its own variant of "Delete".
 - A new meaning is added to `ActionIcon` and the table in `ActionIcons.cs` with an icon from
   `Assets/Icons` (the Remix set, sources in `Assets/Icons/sources.json`); a glyph that is missing is added there in the
   same format (24x24 filled path). It is never chosen inline at the menu.
-- Related actions share a meaning when they do the same thing to a different form of the same object:
-  Copy path and Copy absolute path both use CopyPath.
+- Actions that copy a different form of the same object keep distinct meanings, so neighbouring rows never show the same
+  glyph: Copy path (relative to the project root) uses CopyPath, Copy absolute path uses CopyAbsolutePath.
 - Menus may show icons on some rows only. Avalonia's menu shares one icon column across the rows of a menu, so rows
   without an icon keep their labels on the same edge as rows with one. Menu icons are 14 px, tinted by the menu item.
 - Plugin identity glyphs (the Claude mark on "Mention ... in Claude Code", agent launcher marks) say who
@@ -29,7 +29,7 @@ show its own variant of "Delete".
 | Delete | `trash` | Files tree: Delete file, Delete folder; workspace menu: Remove worktree… |
 | NewFile | `fileAdd` | Files tree: New file |
 | NewFolder | `folderAdd` | Files tree: New folder; add-project menu: Create project… |
-| CopyPath | `fileCopy` | Files tree: Copy path, Copy absolute path; project and workspace menus: Copy absolute path |
+| CopyPath | `route` (Remix route-line, the way from the project root) | Files tree: Copy path |
 | Add | `add` | Scope menus: Add project, New workspace; project menu: Start work |
 | Close | `close` | Project menu: Close project; dock tab menu: Close |
 | OpenFolder | `folderOpen` | Project menu: Open existing worktree; add-project menu: Open project; external workspaces in the switcher |
@@ -41,6 +41,7 @@ show its own variant of "Delete".
 | Resume | `history` | Agent launcher menus: Resume a session… (Claude Code, Codex) |
 | EnterPath | `inputCursor` | Add-project menu: Enter path…, Enter host path… |
 | Clone | `gitFork` | Add-project menu: Clone repository… |
+| CopyAbsolutePath | `mapPin` (Remix map-pin-line, a fixed location) | Files tree: Copy absolute path; project and workspace menus: Copy absolute path |
 | QuickFix | `alertTip` (the Remix lightbulb, also the Tip callout's glyph) | Code editor menu: Show Quick Fixes |
 
 ## Enforcement

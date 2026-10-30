@@ -6,7 +6,7 @@ namespace SharpRail.Plugins.UI.Kit;
 /// <summary>What a menu action means. A semantic has exactly one icon (<see cref="ActionIcons"/>); see ActionIcons/SPEC.md.</summary>
 public enum ActionIcon
 {
-    Delete, NewFile, NewFolder, CopyPath, Add, Close, OpenFolder, Rename, Home, Branch, Check, Continue, Resume, EnterPath, Clone, QuickFix
+    Delete, NewFile, NewFolder, CopyPath, Add, Close, OpenFolder, Rename, Home, Branch, Check, Continue, Resume, EnterPath, Clone, QuickFix, CopyAbsolutePath
 }
 
 /// <summary>The single registry from a menu action's meaning to its icon asset, so no menu picks its own variant.</summary>
@@ -17,7 +17,7 @@ public static class ActionIcons
         (ActionIcon.Delete, "trash"),
         (ActionIcon.NewFile, "fileAdd"),
         (ActionIcon.NewFolder, "folderAdd"),
-        (ActionIcon.CopyPath, "fileCopy"),
+        (ActionIcon.CopyPath, "route"),
         (ActionIcon.Add, "add"),
         (ActionIcon.Close, "close"),
         (ActionIcon.OpenFolder, "folderOpen"),
@@ -29,7 +29,8 @@ public static class ActionIcons
         (ActionIcon.Resume, "history"),
         (ActionIcon.EnterPath, "inputCursor"),
         (ActionIcon.Clone, "gitFork"),
-        (ActionIcon.QuickFix, "alertTip")
+        (ActionIcon.QuickFix, "alertTip"),
+        (ActionIcon.CopyAbsolutePath, "mapPin")
     ];
 
     /// <summary>Every semantic with its asset name, for checks and documentation.</summary>

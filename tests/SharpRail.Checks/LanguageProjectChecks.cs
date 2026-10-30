@@ -113,6 +113,9 @@ internal static class LanguageProjectChecks
                     var menu = library.ContextMenu!;
                     Require(menu.Items.OfType<MenuItem>().Count() > 8 && menu.Items.OfType<MenuItem>().Where(item => item.Icon is not null).Select(item => item.Name).Order()
                         .SequenceEqual(new[] { "FileNodeCopyPath", "FileNodeCopyRelativePath", "FileNodeDelete", "FileNodeNewFile", "FileNodeNewFolder" }), "The Files tree menu icons are not exactly New file, New folder, Copy path, Copy absolute path and Delete.");
+                    Require(menu.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeCopyRelativePath").Icon is Avalonia.Controls.Border { OpacityMask: { } relativeGlyph }
+                        && menu.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeCopyPath").Icon is Avalonia.Controls.Border { OpacityMask: { } absoluteGlyph }
+                        && !ReferenceEquals(relativeGlyph, absoluteGlyph), "Copy path and Copy absolute path show the same icon.");
                     E2eWorkspace.Until(() => menu.Items.OfType<MenuItem>().First().GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().Any(part => part.Name == "PART_HeaderPresenter" && part.Bounds.Width > 0));
                     var edges = menu.Items.OfType<MenuItem>().Where(item => item.IsVisible).Select(item =>
                     {

@@ -106,7 +106,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   stops at the rail, so a switch never scrolls the rail out and back.
 - Workspace rows carry no `+N −M` change badge: the rail is for navigation and identity; change detail
   belongs to Changes.
-- A hover- and focus-revealed kebab and right-click open the same workspace menu: Copy absolute path (first, with the CopyPath icon), “Open in” (editors from
+- A hover- and focus-revealed kebab and right-click open the same workspace menu: Copy absolute path (first, with the CopyAbsolutePath icon), “Open in” (editors from
   `ListEditorsAsync`, fetched lazily on first open, with explicit “Looking for editors…” and “No editors
   found” rows), Copy name and Reveal in file manager (omitted for a remote host: the folder is on the other machine). A
   managed worktree adds Rename and Remove worktree… (Delete icon); an external one only Remove from SharpRail, whose
