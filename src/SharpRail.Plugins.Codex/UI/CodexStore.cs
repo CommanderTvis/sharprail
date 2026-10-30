@@ -4,6 +4,7 @@ namespace SharpRail.Plugins.Codex.UI;
 public sealed record CodexSessionState(CodexStatus Status)
 {
     public string? Model { get; init; }
+    public string? Effort { get; init; }
     public string? Cwd { get; init; }
     public CodexTokenUsage? Usage { get; init; }
     public IReadOnlyList<CodexPlanItem>? Plan { get; init; }
@@ -28,6 +29,7 @@ public sealed class CodexStore
         sessions[(push.WorkspaceId, push.TabKey)] = new(push.Status)
         {
             Model = push.Model ?? previous?.Model,
+            Effort = push.Effort ?? previous?.Effort,
             Cwd = push.Cwd ?? previous?.Cwd,
             Usage = push.Usage ?? previous?.Usage,
             Plan = push.Plan ?? previous?.Plan

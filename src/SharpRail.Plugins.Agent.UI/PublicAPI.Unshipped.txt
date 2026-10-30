@@ -52,6 +52,7 @@ static SharpRail.Plugins.Agent.UI.TerminalFacts.FactChip(string! kind, string! l
 static SharpRail.Plugins.Agent.UI.TerminalFacts.FormatTokens(long count) -> string!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.IdeContextChip(bool enabled, System.Action! onToggle) -> Avalonia.Controls.Button!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.ActionFactChip(string! kind, string! label, string! title, System.Action! onClick, Avalonia.Controls.Control? leading = null) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.OpenerChip(string! kind, string! label, string! title, bool working, string! agent, string! product, string! command, string! what, System.Action! onClick) -> Avalonia.Controls.Button!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.Plan(string! agent, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Agent.UI.TerminalTodo!>! todos) -> Avalonia.Controls.Control!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.TokenUsageParts(SharpRail.Plugins.Agent.UI.TokenUsage! usage) -> System.Collections.Generic.IReadOnlyList<string!>!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.UsageChip(string! agent, SharpRail.Plugins.Agent.UI.TokenUsage! usage) -> Avalonia.Controls.Control?

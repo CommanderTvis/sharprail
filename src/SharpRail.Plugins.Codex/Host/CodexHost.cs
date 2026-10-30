@@ -170,6 +170,7 @@ public sealed class CodexHost : PluginHostModule
             var push = new CodexStatusPush(owner.WorkspaceId, owner.TabKey, report.Status, report.Event)
             {
                 Model = report.Model,
+                Effort = report.Effort ?? facts?.Effort,
                 Cwd = report.Cwd,
                 SessionId = report.SessionId,
                 Usage = facts?.Usage,

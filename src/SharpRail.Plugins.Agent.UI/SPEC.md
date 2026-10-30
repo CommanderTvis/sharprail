@@ -62,7 +62,7 @@ placeholders and hints of a kind every agent shows (`Press up to edit queued mes
 family), and answers `NotAtPrompt` for an open picker row or when no prompt line exists. `MayTypeAsync` reads the tail off the UI thread,
 re-checks the tab and notifies the refusal ("Clear the prompt first: it holds a draft." / "Not at the prompt."). It never
 types speculatively. The pre-existing terminal-driving pickers it once served are retired (see the Claude Code and Codex specs). `TerminalFacts.ActionFactChip` builds a read-only fact chip whose click
-runs a caller action, with no menu and no chevron.
+runs a caller action, with no menu and no chevron. `TerminalFacts.OpenerChip` is the one owner of the model and effort chips of every agent terminal (Claude Code, Codex): the label is what the agent last reported, the tooltip says so ("Click to open <agent>'s <command> picker", or that the agent is working), the chip is disabled while it works, its accessible name is "Open <model|effort> picker", and the click only runs the plugin's guarded opener.
 
 Generic scoped settings and value composers remain in the general UI kit.
 Provider protocols, configuration, launch behavior and state remain plugin-owned.

@@ -107,6 +107,21 @@ public static class TerminalFacts
     public static Button ActionFactChip(string kind, string label, string title, Action onClick, Control? leading = null) =>
         ChipButton("TerminalAgentFact_" + kind, Content(null, label, leading), title, onClick);
 
+    /// <summary>
+    /// The model or effort chip of an agent terminal: it shows what the agent last reported, and a click only opens the agent's own
+    /// <paramref name="command"/> picker through <paramref name="onClick"/>; the user chooses inside the TUI. It is disabled, with an explaining
+    /// tooltip, while the agent <paramref name="working"/>. <paramref name="agent"/> names the agent in prose ("Claude"), <paramref name="product"/>
+    /// the program whose picker opens ("Claude Code").
+    /// </summary>
+    public static Button OpenerChip(string kind, string label, string title, bool working, string agent, string product, string command, string what, Action onClick)
+    {
+        var chip = ActionFactChip(kind, label, working ? $"{title}. {agent} is working: open the {what} picker when it is at its prompt" : $"{title}. Click to open {product}'s {command} picker", onClick);
+        chip.IsEnabled = !working;
+        ToolTip.SetShowOnDisabled(chip, true);
+        Avalonia.Automation.AutomationProperties.SetName(chip, $"Open {what} picker");
+        return chip;
+    }
+
     /// <summary>The session's token spending: <c>↑in ↓out R cache-read W cache-write</c>, or nothing before any.</summary>
     public static Control? UsageChip(string agent, TokenUsage usage)
     {

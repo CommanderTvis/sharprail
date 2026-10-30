@@ -1049,6 +1049,11 @@ internal static class CodexChecks
         Require(push.Status == CodexStatus.Running && push.Usage == new CodexTokenUsage(12603, 33, 11008, 0) && push.Plan!.SequenceEqual([new CodexPlanItem("Fix it", CodexPlanStatus.InProgress)]),
             "the pushed status carries the rollout's facts");
         Require(pushes.Record is { Model: "session-model", Effort: "high" }, "rollout choices are persisted on the session record");
+        Require(push.Effort == "high", "the pushed status carries the reported effort for the terminal chip");
+        var store = new SharpRail.Plugins.Codex.UI.CodexStore();
+        store.Apply(push);
+        store.Apply(new(push.WorkspaceId, push.TabKey, CodexStatus.Done, "Stop"));
+        Require(store.Session(push.WorkspaceId, push.TabKey)?.Effort == "high", "a sparse push keeps the UI half's last reported effort");
         await pushes.Report(new { hook_event_name = "Stop" });
         Require(pushes.Record is { Model: "session-model", Effort: "high" }, "sparse later hooks preserve the session choices");
         await pushes.Report(new { session_id = "different-session", hook_event_name = "SessionStart", model = "different-model" });

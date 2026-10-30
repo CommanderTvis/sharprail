@@ -55,18 +55,11 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
     private bool RunsClaude => Agent(context.Host())?.Kind == "claude";
 
     // Clicking only opens Claude Code's own picker; the user chooses inside the TUI, and the chip keeps what hooks report.
-    private Button OpenerChip(string kind, string label, string title, ClaudeSessionState? state, string command, string what)
-    {
-        var working = state?.Status == ClaudeCodeStatus.Running;
-        var chip = TerminalFacts.ActionFactChip(kind, label, working ? $"{title}. Claude is working: open the {what} picker when it is at its prompt" : $"{title}. Click to open Claude Code's {command} picker", () =>
+    private Button OpenerChip(string kind, string label, string title, ClaudeSessionState? state, string command, string what) =>
+        TerminalFacts.OpenerChip(kind, label, title, state?.Status == ClaudeCodeStatus.Running, "Claude", "Claude Code", command, what, () =>
         {
             if (RunsClaude) _ = OpenAsync(command);
         });
-        chip.IsEnabled = !working;
-        ToolTip.SetShowOnDisabled(chip, true);
-        Avalonia.Automation.AutomationProperties.SetName(chip, $"Open {what} picker");
-        return chip;
-    }
 
     // The click handler only starts the screen read; typing happens after it, if the prompt is empty and the tab is unchanged.
     private async Task OpenAsync(string command)

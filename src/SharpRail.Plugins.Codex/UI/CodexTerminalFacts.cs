@@ -12,7 +12,7 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.Plugins.Codex.UI;
 
 /// <summary>
-/// A detected Codex terminal's accessory row: the model chip that opens Codex's own /model picker, token totals, the plan,
+/// A detected Codex terminal's accessory row: the model and effort chips that open Codex's own /model picker, token totals, the plan,
 /// the session-only IDE-context chip and the attach button. Ordinary terminals show nothing. The row rebuilds only when
 /// what it shows changes.
 /// </summary>
@@ -111,7 +111,7 @@ public sealed class CodexTerminalFacts : ContentControl
         }
         var state = store.Session(terminal.WorkspaceId, terminal.TabKey);
         var ide = store.IdeContext(terminal.WorkspaceId, terminal.TabKey) ?? false;
-        var signature = !isCodex ? "" : string.Join("\n", state?.Model, state?.Cwd, state?.Usage, state?.Plan is { } plan ? string.Join("|", plan) : null,
+        var signature = !isCodex ? "" : string.Join("\n", state?.Model, state?.Effort, state?.Cwd, state?.Usage, state?.Plan is { } plan ? string.Join("|", plan) : null,
             ide, state?.Status);
         if (signature == shown) return;
         shown = signature;
@@ -131,7 +131,15 @@ public sealed class CodexTerminalFacts : ContentControl
             if (chip is null) facts.Children.Remove(slot);
             else slot.Content = chip;
         }
-        ModelChip(row, state);
+        // Read-only like Claude's: the chips show what Codex last reported and a click only opens its own /model picker.
+        // Codex has no separate effort command; reasoning effort is chosen in the same picker.
+        var working = state?.Status == CodexStatus.Running;
+        Fill("Model", state?.Model is { } model
+            ? OpenerChip("model", model, $"{model} \u2014 as last reported by Codex's hooks", working, "model")
+            : null);
+        Fill("Effort", state?.Effort is { } effort
+            ? OpenerChip("effort", $"{effort} effort", "Reasoning effort as last reported by Codex's hooks; Codex sets it in its /model picker", working, "effort")
+            : null);
         Fill("Usage", state?.Usage is { } usage ? TerminalFacts.UsageChip("Codex", new(usage.Input, usage.Output, usage.CacheRead, usage.CacheWrite)) : null);
         Fill("Plan", state?.Plan is { Count: > 0 } plan
             ? TerminalFacts.Plan("Codex", [.. plan.Select(item => new TerminalTodo(item.Content, item.Status switch
@@ -152,27 +160,18 @@ public sealed class CodexTerminalFacts : ContentControl
     }
 
     // Clicking only opens Codex's own /model picker; the user chooses inside it, and the chip keeps what Codex last reported.
-    private void ModelChip(CodexTerminalRow row, CodexSessionState? state)
+    private Button OpenerChip(string kind, string label, string title, bool working, string what) =>
+        TerminalFacts.OpenerChip(kind, label, title, working, "Codex", "Codex", "/model", what, () => _ = OpenPickerAsync());
+
+    private async Task OpenPickerAsync()
     {
-        var chip = row.FindControl<Button>("TerminalAgentFact")!;
-        row.FindControl<TextBlock>("ModelLabel")!.Text = state?.Model ?? "Model";
-        var working = state?.Status == CodexStatus.Running;
-        chip.IsEnabled = !working && !ideCommandPending;
-        ToolTip.SetShowOnDisabled(chip, true);
-        var what = state?.Model ?? "Codex's model";
-        var title = working ? $"{what} (as last reported by Codex). Codex is working: open the model picker when it is at its prompt" : $"{what} (as last reported by Codex). Click to open Codex's /model picker";
-        ToolTip.SetTip(chip, title);
-        Avalonia.Automation.AutomationProperties.SetName(chip, "Open model picker");
-        chip.Click += async (_, _) =>
+        if (ideCommandPending || store.Session(terminal.WorkspaceId, terminal.TabKey)?.Status == CodexStatus.Running) return;
+        try
         {
-            if (ideCommandPending || store.Session(terminal.WorkspaceId, terminal.TabKey)?.Status == CodexStatus.Running) return;
-            try
-            {
-                if (!await MayTypeAsync()) return;
-                await CodexTerminalCommands.SubmitAsync(io, "/model");
-                terminal.Focus();
-            }
-            catch (Exception) { context.Notify(PluginNotificationKind.Error, "Couldn't open the model picker"); }
-        };
+            if (!await MayTypeAsync()) return;
+            await CodexTerminalCommands.SubmitAsync(io, "/model");
+            terminal.Focus();
+        }
+        catch (Exception) { context.Notify(PluginNotificationKind.Error, "Couldn't open the model picker"); }
     }
 }

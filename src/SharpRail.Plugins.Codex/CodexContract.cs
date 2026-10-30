@@ -55,6 +55,8 @@ public sealed record CodexPlanItem(string Content, CodexPlanStatus Status);
 public sealed record CodexStatusPush(string WorkspaceId, string TabKey, CodexStatus Status, string Event)
 {
     public string? Model { get; init; }
+    /// <summary>The reasoning effort Codex last reported (hook payload or rollout turn context).</summary>
+    public string? Effort { get; init; }
     public string? Cwd { get; init; }
     public string? SessionId { get; init; }
     public CodexTokenUsage? Usage { get; init; }
