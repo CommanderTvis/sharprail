@@ -122,11 +122,14 @@ label/reason; multiple choices expose all option labels/reasons. Locked choices 
 the lock mark. Passage edits commit on blur or Ctrl/Cmd+Enter, and Escape abandons the
 draft. Text remains staged until Confirm edits; Revert returns to disk.
 
-Properties support text, sequence and one-level mapping values, renamed keys, added
-and removed properties/entries and shape conversions. Duplicate/blank keys are refused.
-Unsupported YAML shapes remain read-only. The outline navigates prose headings.
-Each property places its key, shape selector and removal action above a full-width
-value area, keeping text, sequence items and mappings readable in narrow panes.
+Properties are the shared Kit frontmatter editor (`FrontmatterEditor`, owned by
+`SharpRail.Plugins.UI.Kit/SPEC.md`) under a plain "Properties" expander header, the same control
+the Markdown preview uses for any file with YAML frontmatter. Blueprint is only the adapter: it
+serializes the edited property list into the staged property-block edit and keeps the mounted
+editor (and focus) when the echoed content already matches it. Unreadable YAML stays a raw block.
+Choice drop-downs are one flat list: no per-option frame, a hover/selected fill only, a
+check column reserved on every option so titles and descriptions (muted, below the title)
+share one left edge, at least as wide as the anchor and no wider than the pane.
 Changes have dismissible notices, highlighted controls and links to surviving controls.
 Loading, absent and awaiting-author states remain distinct.
 

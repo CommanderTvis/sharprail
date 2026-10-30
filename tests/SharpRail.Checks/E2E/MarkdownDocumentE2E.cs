@@ -147,6 +147,16 @@ internal static class MarkdownDocumentE2E
             Require(Frontmatter.Parse(content) is { Readable: false } && Frontmatter.WithProperties(content, properties) == content,
                 "Unsupported YAML must never be rewritten by the properties editor.");
         }
+        const string commented = "---\n# keep me\nid:   'quoted'   # trailing\ntitle: Before\ntags: [a,   b]\nstatus: draft\n---\n# Body\n";
+        var parsedComments = Frontmatter.Parse(commented)!;
+        var changedTitle = parsedComments.Properties.Select(property => property.Key == "title" ? property with { Text = "After" } : property).ToArray();
+        Require(Frontmatter.WithProperties(commented, changedTitle) == commented.Replace("title: Before", "title: After", StringComparison.Ordinal),
+            "Editing a scalar leaves comments, quoting, spacing and every other line byte for byte.");
+        var changedTags = parsedComments.Properties.Select(property => property.Key == "tags" ? property with { Items = ["a", "b", "c"] } : property).ToArray();
+        Require(Frontmatter.WithProperties(commented, changedTags) == commented.Replace("tags: [a,   b]", "tags:\n  - a\n  - b\n  - c", StringComparison.Ordinal),
+            "Editing a list rewrites only that property.");
+        Require(Frontmatter.WithProperties(commented, parsedComments.Properties) == commented, "An unchanged edit round-trips the document exactly.");
+        Require(Frontmatter.Parse("# Just prose\n\n---\nnot: frontmatter\n---\n") is null && Frontmatter.Parse("") is null, "Files without a leading frontmatter block show no properties.");
         Console.WriteLine("PASS frontmatter serialization: exact body, quoting, empty shapes, conversions and unsupported YAML");
     }
 
@@ -232,11 +242,9 @@ internal static class MarkdownDocumentE2E
         Require(type.ItemsSource!.Cast<string>().Contains("task-spec"), "Type values offer the spec vocabulary without constraining text.");
         void ConvertTo(string shape)
         {
-            app.Click(All<Button>(Editor(), "FrontmatterType").First());
-            Settle();
-            var menu = All<Button>(Editor(), "FrontmatterType").First().ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "FrontmatterType" + shape);
-            menu.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
-            All<Button>(Editor(), "FrontmatterType").FirstOrDefault()?.ContextMenu?.Close();
+            var row = Editor().GetLogicalDescendants().OfType<FrontmatterRow>().First();
+            row.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "FrontmatterType" + shape)
+                .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
             Settle(250);
         }
         ConvertTo("Sequence");

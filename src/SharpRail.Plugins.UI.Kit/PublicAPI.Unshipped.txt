@@ -620,3 +620,6 @@ static SharpRail.Plugins.UI.Kit.ActionIcons.All.get -> System.Collections.Generi
 static SharpRail.Plugins.UI.Kit.ActionIcons.Asset(SharpRail.Plugins.UI.Kit.ActionIcon icon) -> string!
 static SharpRail.Plugins.UI.Kit.ActionIcons.Create(SharpRail.Plugins.UI.Kit.ActionIcon icon, Avalonia.Media.IBrush? color = null, double size = 14) -> Avalonia.Controls.Control!
 static SharpRail.Plugins.UI.Kit.Ui.IconMenu(string! label, System.Action! action, SharpRail.Plugins.UI.Kit.ActionIcon icon, bool enabled = true) -> Avalonia.Controls.MenuItem!
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor.FrontmatterEditor(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock! block, System.Action<System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!>! commit, System.Func<string!, System.Collections.Generic.IEnumerable<string!>?>? suggestions = null) -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor.Properties.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!

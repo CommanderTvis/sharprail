@@ -12,7 +12,9 @@ internal sealed class FrontmatterChip : UserControl
         Name = "FrontmatterListItem";
         this.FindControl<TextBlock>("Label")!.Text = value;
         var button = this.FindControl<Button>("Remove")!;
+        button.Content = ActionIcons.Create(ActionIcon.Close, Ui.Muted, 8);
         AutomationProperties.SetName(button, "Remove " + value);
+        ToolTip.SetTip(button, "Remove " + value);
         button.Click += (_, _) => remove();
     }
 }

@@ -1,20 +1,34 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterRow">
-  <Grid ColumnDefinitions="Auto,160,*,Auto" Margin="0,2">
-    <Button x:Name="FrontmatterType" MinWidth="24" MinHeight="28" Padding="2"
-            ToolTip.Tip="Property type" VerticalAlignment="Top">
-      <Button.ContextMenu>
-        <ContextMenu>
-          <MenuItem x:Name="FrontmatterTypeText" Header="Text" />
-          <MenuItem x:Name="FrontmatterTypeSequence" Header="Sequence" />
-          <MenuItem x:Name="FrontmatterTypeMapping" Header="Mapping" />
-        </ContextMenu>
-      </Button.ContextMenu>
-    </Button>
-    <ContentControl x:Name="Key" Grid.Column="1" Margin="4,0,8,0" />
-    <ContentControl x:Name="Value" Grid.Column="2" />
-    <Button x:Name="Remove" Grid.Column="3" Content="×" Padding="4,2"
-            MinHeight="28" VerticalAlignment="Top" />
+  <UserControl.Styles>
+    <Style Selector="Button.frontmatter-remove">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="4" />
+    </Style>
+    <Style Selector="Grid#RowGrid:pointerover Button.frontmatter-remove, Grid#RowGrid:focus-within Button.frontmatter-remove, Button.frontmatter-remove:focus-visible">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+  </UserControl.Styles>
+  <UserControl.ContextMenu>
+    <ContextMenu>
+      <MenuItem x:Name="FrontmatterTypeText" Header="Convert to text" Tag="Text" />
+      <MenuItem x:Name="FrontmatterTypeSequence" Header="Convert to list" Tag="Sequence" />
+      <MenuItem x:Name="FrontmatterTypeMapping" Header="Convert to mapping" Tag="Mapping" />
+    </ContextMenu>
+  </UserControl.ContextMenu>
+  <Grid x:Name="RowGrid" Background="Transparent" Margin="0,1" ColumnSpacing="4">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto" SharedSizeGroup="FrontmatterKeys" />
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="Auto" />
+    </Grid.ColumnDefinitions>
+    <ContentControl x:Name="Key" MinWidth="72" MaxWidth="140" VerticalAlignment="Top" />
+    <ContentControl x:Name="Value" Grid.Column="1" HorizontalContentAlignment="Stretch" VerticalAlignment="Top" />
+    <Button x:Name="Remove" Classes="frontmatter-remove" Grid.Column="2" VerticalAlignment="Top" />
   </Grid>
 </UserControl>

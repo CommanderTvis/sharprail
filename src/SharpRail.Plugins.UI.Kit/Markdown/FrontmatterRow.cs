@@ -12,18 +12,15 @@ internal sealed class FrontmatterRow : UserControl
         this.FindControl<ContentControl>("Key")!.Content = key;
         this.FindControl<ContentControl>("Value")!.Content = value;
         var button = this.FindControl<Button>("Remove")!;
+        button.Content = ActionIcons.Create(ActionIcon.Close, Ui.Muted, 10);
         AutomationProperties.SetName(button, label);
+        ToolTip.SetTip(button, label);
         button.Click += (_, _) => remove();
-        var type = this.FindControl<Button>("FrontmatterType")!;
-        type.IsVisible = convert is not null;
-        type.Content = shape switch { "Sequence" => "☷", "Mapping" => "{}", _ => "T" };
-        AutomationProperties.SetName(type, "Change property type");
-        if (convert is not null)
+        if (convert is null) { ContextMenu = null; return; }
+        foreach (var choice in ContextMenu!.Items.OfType<MenuItem>())
         {
-            var menu = type.ContextMenu!;
-            foreach (var choice in menu.Items.OfType<MenuItem>())
-                choice.Click += (_, _) => convert((string)choice.Header!);
-            type.Click += (_, _) => menu.Open(type);
+            choice.IsVisible = (string)choice.Tag! != shape;
+            choice.Click += (_, _) => convert((string)choice.Tag!);
         }
     }
 }

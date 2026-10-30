@@ -6,6 +6,8 @@
   <UserControl.Styles>
     <Style Selector="AutoCompleteBox /template/ TextBox">
       <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="0" />
     </Style>
     <Style Selector="AutoCompleteBox:pointerover">
       <Setter Property="BorderBrush" Value="{x:Static kit:Ui.BorderBrush}" />
@@ -17,6 +19,6 @@
       <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
     </Style>
   </UserControl.Styles>
-  <AutoCompleteBox x:Name="Input" MinHeight="28" Padding="4,2" Background="Transparent" BorderBrush="Transparent"
+  <AutoCompleteBox x:Name="Input" MinHeight="0" Padding="4,2" FontSize="12" Background="Transparent" BorderBrush="Transparent"
                    MinimumPrefixLength="0" FilterMode="Contains" />
 </UserControl>

@@ -5,17 +5,26 @@ using Avalonia.Threading;
 
 namespace SharpRail.Plugins.UI.Kit.Markdown;
 
-internal sealed class FrontmatterEditor : UserControl
+/// <summary>
+/// The compact key/value editor for a YAML frontmatter block, shared by every Markdown view and the Blueprint pane:
+/// one line per property (aligned keys, inline values), a list as removable chips with an inline add field, a
+/// one-level mapping as nested rows, and remove shown on row hover or focus. The shape follows the value; a row's
+/// context menu converts it. Edits go to <c>commit</c> with the whole ordered property list.
+/// </summary>
+public sealed class FrontmatterEditor : UserControl
 {
     private readonly List<FrontmatterProperty> properties;
     private readonly StackPanel rows;
     private readonly Action<IReadOnlyList<FrontmatterProperty>> commit;
+    private readonly Func<string, IEnumerable<string>?> suggest;
 
-    internal FrontmatterEditor(FrontmatterBlock block, Action<IReadOnlyList<FrontmatterProperty>> commit)
+    /// <param name="suggestions">Values offered for a key (never constraining); defaults to the spec vocabulary for <c>status</c> and <c>type</c>.</param>
+    public FrontmatterEditor(FrontmatterBlock block, Action<IReadOnlyList<FrontmatterProperty>> commit, Func<string, IEnumerable<string>?>? suggestions = null)
     {
         AvaloniaXamlLoader.Load(this);
         properties = block.Properties.ToList();
         this.commit = commit;
+        suggest = suggestions ?? (key => key == "status" ? ["draft", "active", "stale", "done", "deprecated"] : key == "type" ? Frontmatter.SpecTypes : null);
         rows = this.FindControl<StackPanel>("Rows")!;
         this.FindControl<Button>("FrontmatterAdd")!.Click += (_, _) =>
         {
@@ -33,7 +42,8 @@ internal sealed class FrontmatterEditor : UserControl
         return key;
     }
 
-    internal IReadOnlyList<FrontmatterProperty> Properties => properties;
+    /// <summary>The properties as currently shown, in order.</summary>
+    public IReadOnlyList<FrontmatterProperty> Properties => properties;
 
     internal void SuppressBlur(bool suppress)
     {
@@ -102,7 +112,7 @@ internal sealed class FrontmatterEditor : UserControl
                 value = map;
             }
             else value = new FrontmatterField(property.Text ?? "", "FrontmatterValue", next => Set(at, properties[at] with { Text = next }, rebuild: false),
-                property.Key == "status" ? ["draft", "active", "stale", "done", "deprecated"] : property.Key == "type" ? Frontmatter.SpecTypes : null);
+                suggest(property.Key));
             rows.Children.Add(new FrontmatterRow(key, value, () => { properties.RemoveAt(at); Save(); }, "Remove property " + property.Key,
                 shape => { if (Frontmatter.Shape(properties[at]) != shape) Set(at, Frontmatter.Convert(properties[at], shape)); }, Frontmatter.Shape(property))
             { Name = "FrontmatterProperty" });

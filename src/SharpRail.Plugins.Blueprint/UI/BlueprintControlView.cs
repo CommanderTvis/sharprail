@@ -30,17 +30,38 @@ internal sealed partial class BlueprintControlView : UserControl
         var selected = control.Options.FirstOrDefault(option => control.SelectedIds.Contains(option.Id));
         choice.Content = selected?.Label ?? "…";
         choice.Name = "BlueprintChoice"; choice.Tag = string.Join(' ', control.SelectedIds);
-        var menu = new StackPanel { MaxWidth = 420 };
+        var menu = new StackPanel();
         foreach (var option in control.Options)
         {
+            // Every option reserves the check column, so titles and descriptions share one left edge.
+            var isSelected = control.SelectedIds.Contains(option.Id);
+            var mark = new ContentControl { Name = "BlueprintOptionCheck", Width = 14, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Margin = new Avalonia.Thickness(0, 2, 0, 0) };
+            if (isSelected) mark.Content = ActionIcons.Create(ActionIcon.Check, Ui.TextBrush, 12);
             var label = new StackPanel();
-            label.Children.Add(Ui.Text((control.SelectedIds.Contains(option.Id) ? "✓ " : "   ") + option.Label, Ui.TextBrush));
-            if (option.Axis.Length > 0) label.Children.Add(Ui.Text(option.Axis, Ui.Muted, 12));
-            var button = new Button { Name = "BlueprintOption", Tag = option.Id, Content = label, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+            label.Children.Add(Ui.Text(option.Label, Ui.TextBrush, 13));
+            if (option.Axis.Length > 0)
+            {
+                var axis = Ui.Text(option.Axis, Ui.Muted, 12);
+                axis.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+                label.Children.Add(axis);
+            }
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 8 };
+            Ui.Place(row, mark);
+            Ui.Place(row, label, 0, 1);
+            var button = new Button { Name = "BlueprintOption", Tag = option.Id, Content = row };
+            button.Classes.Add("option-row");
+            if (isSelected) button.Classes.Add("selected");
             button.Click += (_, _) => { choice.Flyout?.Hide(); toggle(option.Id); };
             menu.Children.Add(button);
         }
-        choice.Flyout = new Flyout { Content = menu, Placement = PlacementMode.BottomEdgeAlignedLeft };
+        var flyout = new Flyout { Content = menu, Placement = PlacementMode.BottomEdgeAlignedLeft, FlyoutPresenterClasses = { "flat-list" } };
+        // The list is at least as wide as its anchor and never wider than the pane.
+        flyout.Opening += (_, _) =>
+        {
+            menu.MinWidth = choice.Bounds.Width;
+            menu.MaxWidth = Math.Max(choice.Bounds.Width, Math.Min(420, Bounds.Width - 24));
+        };
+        choice.Flyout = flyout;
         void AddOption(BlueprintOption option, bool checkbox)
         {
             var text = new StackPanel();

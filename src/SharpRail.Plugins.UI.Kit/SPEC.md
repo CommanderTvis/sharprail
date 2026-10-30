@@ -26,13 +26,30 @@ the project is created empty with this spec, and the controls move into it as li
 
 [Menu action icons](ActionIcons/SPEC.md): every menu icon is chosen by meaning through one registry, so a meaning such as Delete has a single icon everywhere.
 
+## Frontmatter editor
+
+`FrontmatterEditor` is the one editor for YAML frontmatter, used by the Markdown preview (any `.md`
+file starting with a frontmatter block) and by Blueprint; plugins pass a `FrontmatterBlock`, a commit
+callback receiving the whole ordered property list, and optional per-key suggestions. One line per
+property: aligned key column, inline value fields that read as text until hovered or focused, a list as
+small removable chips with a trailing add field, a one-level mapping as nested rows, and a small
+remove button shown only on row hover or focus. There is no type selector: the shape follows the value
+and a row's context menu converts text, list and mapping. `Frontmatter.WithProperties` writes edits back
+keeping the body, leading comments and the exact source lines (quoting, comments, spacing) of every
+unchanged property; only changed or new properties are re-serialized. A block using any construct the
+editor cannot round-trip (nested mappings deeper than one level, block scalars `|`/`>`, anchors and
+aliases, nested or structured flow items, duplicate keys, lines that are not `key: value`) is shown as
+raw read-only text and never rewritten. Parsing and edits are in-memory; the host owns file I/O.
+
 ## Shared control states
 
 `ControlStyles.axaml` and `Ui.ApplyResources` own button, toggle and checkbox states for the entire app
 and its plugins, including compiled layouts and controls created from code. Primary, link, quiet and
 Welcome card variants share these rules; panes do not copy Fluent state resources. Button content
 is vertically centered by default (Fluent leaves it stretched, which tops the text of fixed-height buttons);
-a control that wants otherwise sets it locally. Selected toggles
+a control that wants otherwise sets it locally. An `Expander` header is plain text with a chevron and a hover fill only; the expanded (checked)
+toggle never takes the primary fill. `FlyoutPresenter.flat-list` with `Button.option-row` is the flat
+option list (no per-option frame, hover/selected fill, flush with its anchor), used by Blueprint choices. Selected toggles
 retain an accent outline when hovered or pressed. Checkbox glyphs use the same contrast-safe foreground
 as primary buttons: retain the manifest foreground when readable, otherwise use the more readable
 black or white against both normal and hovered fills. Button factory labels and icons follow the

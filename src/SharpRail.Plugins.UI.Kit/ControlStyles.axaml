@@ -222,4 +222,63 @@
   <Style Selector="ScrollViewer:pointerover /template/ ScrollBar /template/ Thumb#thumb, ScrollViewer:focus-within /template/ ScrollBar /template/ Thumb#thumb, ScrollViewer.quiet-scroll-intent /template/ ScrollBar /template/ Thumb#thumb">
     <Setter Property="Margin" Value="0" />
   </Style>
+  <!-- Fluent paints the expanded header (a checked ToggleButton) with the primary fill and accent border; an expander header is plain text with a chevron and only a hover fill. -->
+  <Style Selector="Expander">
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel>
+          <ToggleButton Classes="expander-header" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="4,2" MinHeight="0">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Path Classes="expander-chevron" Data="M 2,4 L 6,8 L 10,4" Width="12" Height="12" Stroke="{x:Static kit:Ui.Muted}"
+                    StrokeThickness="1.5" VerticalAlignment="Center" />
+              <ContentPresenter Content="{TemplateBinding Header}" VerticalAlignment="Center" />
+            </StackPanel>
+          </ToggleButton>
+          <ContentPresenter Content="{TemplateBinding Content}" Padding="{TemplateBinding Padding}" IsVisible="{TemplateBinding IsExpanded}" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Expander:not(:expanded) Path.expander-chevron">
+    <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+  </Style>
+  <Style Selector="ToggleButton.expander-header">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ToggleButton.expander-header /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.expander-header:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="ToggleButton.expander-header:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.expander-header:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
+  </Style>
+  <!-- A flat option list in a flyout: no per-option frame, a hover fill only, and the popup flush with its anchor. -->
+  <Style Selector="FlyoutPresenter.flat-list">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="Button.option-row">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Button.option-row /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.option-row:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.option-row:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
+  </Style>
+  <Style Selector="Button.option-row.selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{x:Static kit:Ui.Selected}" />
+  </Style>
 </Styles>

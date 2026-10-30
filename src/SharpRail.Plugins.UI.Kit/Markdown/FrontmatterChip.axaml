@@ -3,10 +3,10 @@
              xmlns:kit="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterChip"
              VerticalAlignment="Center">
-  <Border Background="{x:Static kit:Ui.ControlFill}" CornerRadius="16" Padding="8,2" Margin="0,2,4,2">
-    <Grid ColumnDefinitions="*,Auto">
-      <TextBlock x:Name="Label" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-      <Button x:Name="Remove" Grid.Column="1" Content="×" Padding="2,0" MinHeight="20"
+  <Border Background="{x:Static kit:Ui.Elevated}" CornerRadius="4" Padding="6,1,1,1" Margin="0,1,4,1">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="2">
+      <TextBlock x:Name="Label" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+      <Button x:Name="Remove" Grid.Column="1" Padding="3" MinHeight="0" MinWidth="0"
               Background="Transparent" BorderThickness="0" />
     </Grid>
   </Border>

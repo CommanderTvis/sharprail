@@ -4,8 +4,12 @@ using System.Threading.Channels;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
+using Avalonia.VisualTree;
 
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -70,17 +74,44 @@ internal static class BlueprintChecks
         Until(() => PaneText().Contains("An author that reports to nobody, twice.", StringComparison.Ordinal));
         Require(ReferenceEquals(pane, app.Find<UserControl>("Blueprint")), "An external write updates the mounted pane in place.");
         File.WriteAllText(Path.Combine(project, "BLUEPRINT.md"), "---\nid: cattery\ntitle: Cattery storefront for selling cats\ntags: [product, cats]\n---\n" + Document);
-        Until(() => pane.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "BlueprintPropertyValue"));
+        Until(() => pane.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FrontmatterValue"));
         var properties = app.Find<UserControl>("BlueprintProperties");
         properties.Width = 320;
         properties.UpdateLayout();
-        var fields = properties.GetLogicalDescendants().OfType<UserControl>().Where(control => control.Name == "BlueprintPropertyValue").ToArray();
-        var keys = properties.GetLogicalDescendants().OfType<UserControl>().Where(control => control.Name == "BlueprintPropertyKey").ToArray();
-        Require(fields.Length == 2 && fields.All(field => field.Bounds.Width > 250), "Scalar frontmatter values retain the pane width at 320 pixels.");
-        Require(fields.Zip(keys).All(pair => pair.First.TranslatePoint(default, properties)!.Value.Y > pair.Second.TranslatePoint(default, properties)!.Value.Y),
-            "Frontmatter values sit below their keys instead of being squeezed into a remaining column.");
-        Require(properties.GetLogicalDescendants().OfType<ComboBox>().Where(control => control.Name == "BlueprintPropertyType").All(control => control.Bounds.Width >= 120),
-            "Property shape selectors have room for Sequence and Mapping.");
+        Require(properties.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor>().Count() == 1,
+            "Blueprint properties are the shared Kit frontmatter editor.");
+        var fields = properties.GetLogicalDescendants().OfType<Control>().Where(control => control.Name == "FrontmatterValue").ToArray();
+        var keys = properties.GetLogicalDescendants().OfType<UserControl>().Where(control => control.Name == "FrontmatterKey").ToArray();
+        Require(fields.Length == 3 && keys.Length == 3, "Frontmatter keys and values (text and list) are inline fields.");
+        Point At(Control control) => control.TranslatePoint(default, properties)!.Value;
+        Require(fields.Zip(keys).All(pair => Math.Abs(At(pair.First).Y - At(pair.Second).Y) < 6 && At(pair.First).X >= At(pair.Second).X + pair.Second.Bounds.Width - 1),
+            "Each frontmatter value shares its key's line, to the right of it.");
+        Require(keys.Select(key => Math.Round(At(key).X)).Distinct().Count() == 1 && fields.Select(field => Math.Round(At(field).X)).Distinct().Count() == 1,
+            "Keys share one column and values share another.");
+        Require(fields.All(field => field.Bounds.Right <= properties.Bounds.Width + 1), "Values never overflow the pane width.");
+        Require(!properties.GetLogicalDescendants().OfType<ComboBox>().Any() && !properties.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "FrontmatterType"),
+            "Properties have no per-row type dropdown.");
+        var chips = properties.GetLogicalDescendants().OfType<UserControl>().Where(control => control.Name == "FrontmatterListItem").ToArray();
+        Require(chips.Length == 2 && properties.GetLogicalDescendants().OfType<UserControl>().Count(control => control.Name == "FrontmatterListAdd") == 1,
+            "A list value is small removable chips with one trailing inline add field.");
+        var removes = properties.GetLogicalDescendants().OfType<Button>().Where(control => control.Name == "Remove" && control.Classes.Contains("frontmatter-remove")).ToArray();
+        Require(removes.Length == 3 && removes.All(button => button.Opacity == 0 && button.Bounds.Width <= 24 && button.Focusable),
+            "Property removal is a small keyboard-reachable button, hidden until row hover or focus.");
+        var toggle = properties.GetVisualDescendants().OfType<ToggleButton>().Single(control => control.Classes.Contains("expander-header"));
+        var headerFill = (toggle.GetVisualDescendants().OfType<ContentPresenter>().First(presenter => presenter.Name == "PART_ContentPresenter").Background as ISolidColorBrush)?.Color;
+        Require(toggle.IsChecked == true && (headerFill is null || headerFill.Value.A == 0), "The expanded Properties header paints no filled block.");
+        var choice = pane.GetLogicalDescendants().OfType<Button>().First(control => control.Name == "BlueprintChoice");
+        choice.Flyout!.ShowAt(choice);
+        Until(() => ((Flyout)choice.Flyout).Content is StackPanel { Children.Count: > 0 } list && list.Children.All(child => child.Bounds.Width > 0));
+        var options = ((StackPanel)((Flyout)choice.Flyout).Content!).Children.OfType<Button>().ToArray();
+        Require(options.Length == 2 && options.All(option => option.Classes.Contains("option-row") && option.BorderThickness == default),
+            "Choice options are flat rows with no individual border.");
+        var checks = options.Select(option => option.GetVisualDescendants().OfType<ContentControl>().Single(control => control.Name == "BlueprintOptionCheck")).ToArray();
+        Require(checks.All(mark => mark.Bounds.Width >= 14) && checks.Select(mark => mark.TranslatePoint(default, options[0])!.Value.X).Distinct().Count() == 1,
+            "Every option reserves the same check column.");
+        var edges = options.Select(option => option.GetVisualDescendants().OfType<TextBlock>().Select(text => text.TranslatePoint(default, option)!.Value.X).Distinct().ToArray()).ToArray();
+        Require(edges.All(set => set.Length == 1) && edges.Select(set => set[0]).Distinct().Count() == 1, "Option titles and descriptions share one left edge.");
+        choice.Flyout.Hide();
         properties.ClearValue(Control.WidthProperty);
         Console.WriteLine("PASS fork plugins/blueprint/blueprint-watch.spec.ts (pane): a terminal author's write reaches the pane through the watcher alone");
         app.Click(pane.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Raw"));
