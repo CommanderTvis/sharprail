@@ -28,17 +28,19 @@ show its own variant of "Delete".
 | --- | --- | --- |
 | Delete | `trash` | Files tree: Delete file, Delete folder; workspace menu: Remove worktree… |
 | NewFile | `fileAdd` | Files tree: New file |
-| NewFolder | `folderAdd` | Files tree: New folder |
+| NewFolder | `folderAdd` | Files tree: New folder; add-project menu: Create project… |
 | CopyPath | `fileCopy` | Files tree: Copy path, Copy absolute path; project and workspace menus: Copy absolute path |
 | Add | `add` | Scope menus: Add project, New workspace; project menu: Start work |
 | Close | `close` | Project menu: Close project; dock tab menu: Close |
-| OpenFolder | `folderOpen` | Project menu: Open existing worktree; external workspaces in the switcher |
+| OpenFolder | `folderOpen` | Project menu: Open existing worktree; add-project menu: Open project; external workspaces in the switcher |
 | Rename | `pencil` | Project menu: Rename |
 | Home | `homeFill` | Scope menu: Project home; the default workspace in the switcher |
 | Branch | `gitBranch` | Worktree workspaces in the switcher |
 | Check | `check` | Selected theme in Settings |
 | Continue | `play` | Agent launcher menus: Continue the last conversation (Claude Code), Continue the last session (Codex) |
 | Resume | `history` | Agent launcher menus: Resume a session… (Claude Code, Codex) |
+| EnterPath | `inputCursor` | Add-project menu: Enter path…, Enter host path… |
+| Clone | `gitFork` | Add-project menu: Clone repository… |
 
 ## Enforcement
 

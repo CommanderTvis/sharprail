@@ -133,7 +133,8 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   to that project's home, deselecting the active workspace.
 - The Add project `+` and the Welcome “Open project” card share one menu: Create project…, Open project, Enter host path…
   (Enter path… locally, where the host is this computer), Clone repository…, and Recent (closed recent
-  projects). Clone repository… asks for a URL, the parent folder (Choose… locally, typed on a remote host),
+  projects). The four actions carry registry icons (NewFolder, OpenFolder, EnterPath, Clone); Recent entries have none
+  and keep their labels on the shared icon column's edge. Clone repository… asks for a URL, the parent folder (Choose… locally, typed on a remote host),
   an optional folder name whose placeholder is the repository's name and an optional depth (at least 1);
   the target path shows before anything runs, the clone runs off the UI thread, the dialog stays open with
   git's reason when it fails, and a successful clone opens as a project. Open project

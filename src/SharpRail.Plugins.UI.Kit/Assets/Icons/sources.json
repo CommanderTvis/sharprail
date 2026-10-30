@@ -38,6 +38,8 @@
   "folderTab": "Folder2Line",
   "fullscreen": "FullscreenLine",
   "gitBranch": "GitBranchLine",
+  "gitFork": "GitForkLine",
+  "inputCursor": "InputCursorMove",
   "history": "HistoryLine",
   "homeFill": "HomeFill",
   "layout": "LayoutLine",

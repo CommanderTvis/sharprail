@@ -202,6 +202,8 @@ internal static class ProjectPickerE2E
     {
         app.Click(app.Find<Button>("AddProjectMenu"));
         Until(() => app.Find<Button>("AddProjectMenu").ContextMenu!.IsOpen);
+        Require(app.Find<Button>("AddProjectMenu").ContextMenu!.Items.OfType<MenuItem>().Where(entry => entry.Header is "Create project…" or "Open project" or "Enter path…" or "Enter host path…" or "Clone repository…").All(entry => entry.Icon is not null) &&
+            app.Find<Button>("AddProjectMenu").ContextMenu!.Items.OfType<MenuItem>().Count(entry => entry.Icon is not null) == 4, "The four add-project actions carry icons and the Recent entries none.");
         app.Click(app.Find<Button>("AddProjectMenu").ContextMenu!.Items.OfType<MenuItem>().Single(entry => Equals(entry.Header, item)), freshGesture: false);
     }
 
