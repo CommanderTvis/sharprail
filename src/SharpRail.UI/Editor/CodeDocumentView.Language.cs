@@ -54,7 +54,7 @@ internal sealed partial class CodeDocumentView
     {
         languageTimer.Tick += async (_, _) => await InspectLanguageAsync();
         AttachedToVisualTree += (_, _) => { languageTimer.Start(); _ = InspectLanguageAsync(); };
-        DetachedFromVisualTree += (_, _) => { SetLanguageAvailable(false); languageTimer.Stop(); languageRequest?.Cancel(); this.FindControl<Popup>("LanguagePopup")!.IsOpen = false; };
+        DetachedFromVisualTree += (_, _) => { SetLanguageAvailable(false); languageTimer.Stop(); languageRequest?.Cancel(); this.FindControl<Popup>("LanguagePopup")!.IsOpen = false; this.FindControl<Popup>("QuickFixPopup")!.IsOpen = false; quickFixRequest?.Cancel(); };
         Editor.TextChanged += (_, _) =>
         {
             languageVersion++; languageRequest?.Cancel();
@@ -105,6 +105,7 @@ internal sealed partial class CodeDocumentView
             query.IsVisible = true;
             query.Text += e.Text; query.CaretIndex = query.Text.Length; query.Focus(); e.Handled = true;
         };
+        WireQuickFixes();
         Editor.ContextMenu = new ContextMenu();
         AddLanguageMenu(Editor.ContextMenu);
         Editor.AddHandler(KeyDownEvent, async (_, e) =>
@@ -127,7 +128,7 @@ internal sealed partial class CodeDocumentView
     }
 
     private static readonly (string Label, string Operation)[] NavigationOperations =
-        [("Go to Declaration (F12)", "definition"), ("Go to Type Declaration", "typeDefinition"), ("Go to Implementation", "implementation"), ("Find Usages (Alt+F7)", "references")];
+        [("Show Quick Fixes (Alt+Enter)", "quickFix"), ("Go to Declaration (F12)", "definition"), ("Go to Type Declaration", "typeDefinition"), ("Go to Implementation", "implementation"), ("Find Usages (Alt+F7)", "references")];
 
     private static readonly (string Label, string Operation)[] ServerOperations =
         [("Document Symbols", "symbols"), ("Workspace Problems", "diagnostics"), ("Language Server Status", "status"), ("Start / Retry Language Server", "retry"), ("Stop Language Server", "stop")];
@@ -151,7 +152,11 @@ internal sealed partial class CodeDocumentView
     private static bool Running(LanguageResult result) => result.Server.Length > 0 && result.State is "ready" or "initializing";
 
     /// <summary>Runs one of <see cref="LanguageOperations"/> as its context-menu item does.</summary>
-    internal void RunLanguageOperation(string operation) => _ = RunLanguageAsync(operation, wholeWorkspace: operation == "diagnostics");
+    internal void RunLanguageOperation(string operation)
+    {
+        if (operation == "quickFix") ShowQuickFixes();
+        else _ = RunLanguageAsync(operation, wholeWorkspace: operation == "diagnostics");
+    }
 
     internal void AddLanguageMenu(ContextMenu menu) =>
         // The menu opens only once the status lookup has added or removed its language items.
@@ -166,7 +171,8 @@ internal sealed partial class CodeDocumentView
                 menu.Items.Add(new Separator { Tag = "lsp" });
                 foreach (var (label, operation) in NavigationOperations)
                 {
-                    var item = Ui.Menu(label, () => RunLanguageOperation(operation)); item.Tag = "lsp"; menu.Items.Add(item);
+                    var item = operation == "quickFix" ? Ui.IconMenu(label, () => RunLanguageOperation(operation), ActionIcon.QuickFix) : Ui.Menu(label, () => RunLanguageOperation(operation));
+                    item.Name = "Language_" + operation; item.Tag = "lsp"; menu.Items.Add(item);
                 }
                 foreach (var (label, operation) in ServerOperations)
                 {

@@ -113,7 +113,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
         request = request with { Workspace = workspace };
         if (request.Operation == "release") return await ReleaseAsync(workspace, request.Server);
-        if (request.Operation is not ("servers" or "inspect" or "diagnostics" or "hover" or "definition" or "typeDefinition" or "implementation" or "references" or "source" or "symbolBody" or "symbols" or "workspaceSymbols" or "close" or "status" or "retry" or "restart" or "stop" or "configurationSchema" or "configuration" or "configure" or "logs" or "projects"))
+        if (request.Operation is not ("servers" or "inspect" or "diagnostics" or "hover" or "definition" or "typeDefinition" or "implementation" or "references" or "source" or "symbolBody" or "symbols" or "workspaceSymbols" or "codeActions" or "applyCodeAction" or "close" or "status" or "retry" or "restart" or "stop" or "configurationSchema" or "configuration" or "configure" or "logs" or "projects"))
             throw new ArgumentException("Unknown language operation.");
         if (request.Offset < 0 || request.Limit is < 1 or > 200) throw new ArgumentException("Offset must be nonnegative and limit must be between 1 and 200.");
         if (request.Line < 0 || request.Column < 0) throw new ArgumentException("Positions must be zero-based and nonnegative.");

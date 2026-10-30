@@ -32,6 +32,8 @@ public sealed partial class ProjectRpc
             Locations = result.Locations.Select(MapLanguage).ToList(),
             Diagnostics = result.Diagnostics.Select(MapLanguage).ToList(),
             Tokens = result.Tokens.Select(MapLanguage).ToList(),
+            Actions = result.Actions.Select(MapLanguage).ToList(),
+            Edits = result.Edits.Select(MapLanguage).ToList(),
             Freshness = result.Freshness,
             Coverage = result.Coverage
         };

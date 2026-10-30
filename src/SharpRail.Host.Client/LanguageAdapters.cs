@@ -65,6 +65,8 @@ public sealed partial class RemoteProjectAdapter
             Locations = reply.Locations.Select(MapLanguage).ToArray(),
             Diagnostics = reply.Diagnostics.Select(MapLanguage).ToArray(),
             Tokens = reply.Tokens.Select(MapLanguage).ToArray(),
+            Actions = reply.Actions.Select(MapLanguage).ToArray(),
+            Edits = reply.Edits.Select(MapLanguage).ToArray(),
             Freshness = reply.Freshness,
             Coverage = reply.Coverage
         };

@@ -134,6 +134,12 @@ internal sealed class Editor : IDocumentWatcher, IDisposable
                 break;
             case ScintillaMessage.GetModify:
                 return doc.IsModified ? 1 : 0;
+            case ScintillaMessage.BeginUndoAction:
+                doc.BeginUndoAction();
+                break;
+            case ScintillaMessage.EndUndoAction:
+                doc.EndUndoAction();
+                break;
             case ScintillaMessage.EmptyUndoBuffer:
                 doc.DeleteUndoHistory();
                 break;

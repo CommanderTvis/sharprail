@@ -59,5 +59,26 @@
         </Grid>
       </Border>
     </Popup>
+    <Popup x:Name="QuickFixPopup" IsLightDismissEnabled="True" Placement="BottomEdgeAlignedLeft">
+      <Border x:Name="QuickFixes" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.ControlBorder}" BorderThickness="1" CornerRadius="6" MinWidth="240" MaxWidth="560">
+        <StackPanel>
+          <ListBox x:Name="QuickFixItems" MaxHeight="240" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Quick fixes">
+            <ListBox.Styles>
+              <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
+                <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+              </Style>
+            </ListBox.Styles>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:CompileBindings="False">
+                <TextBlock Text="{Binding Title}" FontWeight="{Binding Weight}" TextTrimming="CharacterEllipsis" Margin="4,0" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <TextBlock x:Name="QuickFixStatus" IsVisible="False" Foreground="{x:Static kit:Ui.Muted}" Margin="12,8" />
+          <TextBlock x:Name="QuickFixKeys" Text="↑ ↓ select    Enter apply    Esc close" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" Margin="12,4,12,8" />
+        </StackPanel>
+      </Border>
+    </Popup>
   </Grid>
 </UserControl>

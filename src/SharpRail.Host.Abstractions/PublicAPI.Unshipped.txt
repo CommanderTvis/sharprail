@@ -2074,3 +2074,9 @@ override SharpRail.Host.Abstractions.OwnedProcessInfo.GetHashCode() -> int
 override SharpRail.Host.Abstractions.OwnedProcessInfo.ToString() -> string!
 static SharpRail.Host.Abstractions.OwnedProcessInfo.operator !=(SharpRail.Host.Abstractions.OwnedProcessInfo? left, SharpRail.Host.Abstractions.OwnedProcessInfo? right) -> bool
 static SharpRail.Host.Abstractions.OwnedProcessInfo.operator ==(SharpRail.Host.Abstractions.OwnedProcessInfo? left, SharpRail.Host.Abstractions.OwnedProcessInfo? right) -> bool
+SharpRail.Host.Abstractions.LanguageItem.Raw.get -> string!
+SharpRail.Host.Abstractions.LanguageItem.Raw.init -> void
+SharpRail.Host.Abstractions.LanguageResult.Actions.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>!
+SharpRail.Host.Abstractions.LanguageResult.Actions.init -> void
+SharpRail.Host.Abstractions.LanguageResult.Edits.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>!
+SharpRail.Host.Abstractions.LanguageResult.Edits.init -> void

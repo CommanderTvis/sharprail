@@ -166,6 +166,22 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         Changed();
     }
 
+    /// <summary>
+    /// Replaces several non-overlapping UTF-16 ranges of the current text as one undoable group, so one Undo reverts them all.
+    /// Ranges refer to the text before any of them applies.
+    /// </summary>
+    public void ReplaceRanges(IReadOnlyList<(int Start, int Length, string Text)> edits)
+    {
+        if (IsReadOnly || edits.Count == 0) return;
+        document.Send(ScintillaMessage.BeginUndoAction);
+        try
+        {
+            foreach (var edit in edits.OrderByDescending(edit => edit.Start)) { SelectRange(edit.Start, edit.Length); document.Replace(edit.Text); }
+        }
+        finally { document.Send(ScintillaMessage.EndUndoAction); }
+        Changed();
+    }
+
     public void Undo() { document.Send(ScintillaMessage.Undo); Changed(); }
     public void Redo() { document.Send(ScintillaMessage.Redo); Changed(); }
     public void SelectAll() { document.Send(ScintillaMessage.SelectAll); InvalidateVisual(); inputClient.Notify(); }

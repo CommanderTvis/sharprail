@@ -1545,7 +1545,8 @@ internal static class LanguageChecks
                         referencesProvider = true,
                         documentSymbolProvider = true,
                         workspaceSymbolProvider = true,
-                        executeCommandProvider = new { commands = new[] { "decompile", "java.project.listSourcePaths" } },
+                        codeActionProvider = new { resolveProvider = true },
+                        executeCommandProvider = new { commands = new[] { "decompile", "java.project.listSourcePaths", "fixture.applyFix" } },
                         semanticTokensProvider = new { full = true, legend = new { tokenTypes = new[] { "variable" }, tokenModifiers = new[] { "static" } } }
                     }
                 };
@@ -1606,6 +1607,13 @@ internal static class LanguageChecks
                     : uri.EndsWith("many.ts", StringComparison.Ordinal)
                     ? Enumerable.Range(0, 250).Select(line => new { uri, range = new { start = new { line, character = 0 }, end = new { line, character = 5 } } }).ToArray()
                     : new[] { new { uri, range } };
+            }
+            else if (method == "textDocument/codeAction") result = LanguageCodeActionChecks.Offer(uri, documents[uri].Text, documents[uri].Version, parameters!);
+            else if (method == "codeAction/resolve") result = LanguageCodeActionChecks.Resolve(documents.Single().Key, documents.Single().Value.Version, parameters!);
+            else if (method == "workspace/executeCommand" && parameters?["command"]?.ToString() == "fixture.applyFix")
+            {
+                await Send(new { jsonrpc = "2.0", id = "fixture-apply", method = "workspace/applyEdit", @params = new { edit = LanguageCodeActionChecks.Edit(documents.Single().Key, documents.Single().Value.Version, "/*cmd*/") } });
+                result = null;
             }
             else result = new[] { new { uri, range } };
             await Send(new { jsonrpc = "2.0", id, result });

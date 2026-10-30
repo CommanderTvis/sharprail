@@ -8,7 +8,10 @@ parent: module-host-language
 
 # Code actions and refactoring through language servers
 
-Status: design only. Nothing here is implemented; the shipped state is under "Survey". Semantic refactorings come
+Status: design only except the editor's quick fixes (Alt+Enter, documented in the parent spec and in the editor spec),
+which advertise `textDocument.codeAction` with literal, resolve, disabled and preferred support, `workspace.applyEdit`
+and `workspaceEdit.documentChanges`, and apply edits only from the editor. The survey below predates it and is otherwise
+current. Nothing else here is implemented; the shipped state is under "Survey". Semantic refactorings come
 from a language server or IDE engine, never from textual replace. A missing capability is reported, not emulated.
 
 ## Survey of what exists (2026-10-27)

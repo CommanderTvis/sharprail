@@ -241,5 +241,7 @@ LanguageReply field 16 carries project-root DTOs (root, manifest, server, kind, 
 
 LanguageReply field 17 carries semantic-color capability; LanguageItemDto field 12 carries semantic modifier names. Both are additive with false/empty defaults and are mapped by direct and WebSocket adapters. Existing RPC operations and protocol version remain unchanged.
 
+LanguageReply fields 18 and 19 carry the quick-fix actions (title, kind, id, preferred) and the resolved text edits of the `codeActions` and `applyCodeAction` language operations as `LanguageItemDto` lists. Both are additive with empty defaults and the operations are new values of the existing operation string, so an older host answers `unsupported` and the protocol version is unchanged.
+
 Air Context is a plugin (protocol 8): the Context RPC service, `SettingsReply` field 18 (its visibility) and `StateReply` field 19 (its enabled
 workspaces) are retired and their numbers are not reused. Its operations are the plugin's own methods over the generic plugin call.

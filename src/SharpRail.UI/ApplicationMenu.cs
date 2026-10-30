@@ -146,7 +146,7 @@ public static class ApplicationMenu
         {
             // The context menu names a chord in its label; here the gesture shows it.
             var header = entry.Label.Split(" (")[0];
-            var gesture = entry.Operation switch { "definition" => new KeyGesture(Key.F12), "references" => new KeyGesture(Key.F7, KeyModifiers.Alt), _ => null };
+            var gesture = entry.Operation switch { "definition" => new KeyGesture(Key.F12), "references" => new KeyGesture(Key.F7, KeyModifiers.Alt), "quickFix" => new KeyGesture(Key.Enter, KeyModifiers.Alt), _ => null };
             var item = new NativeMenuItem(header) { Gesture = gesture, IsEnabled = false };
             item.Click += (_, _) => { if (editor is { LanguageAvailable: true } target) target.RunLanguageOperation(entry.Operation); };
             return item;

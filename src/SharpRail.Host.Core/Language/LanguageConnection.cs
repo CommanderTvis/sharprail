@@ -40,6 +40,9 @@ internal sealed class LanguageConnection : IAsyncDisposable
     internal Action<string, JsonNode?>? Notification { get; set; }
     internal Func<object[]>? WorkspaceFolders { get; set; }
     internal Func<string, JsonNode?, object?>? ClientRequest { get; set; }
+
+    /// <summary>Answers a server's <c>workspace/applyEdit</c>; without it, or when it returns null, the edit is refused.</summary>
+    internal Func<JsonNode?, object?>? ApplyEdit { get; set; }
     internal Func<string, object?>? Configuration { get; set; }
     internal int? ExitCode => process.HasExited ? process.ExitCode : null;
     internal async Task<int?> ObserveExitAsync()
@@ -287,7 +290,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
             "workspace/workspaceFolders" => WorkspaceFolders?.Invoke() ?? new[] { new { uri = new Uri(workspace + Path.DirectorySeparatorChar).AbsoluteUri, name = Path.GetFileName(workspace) } },
             "workspace/configuration" => (parameters?["items"] as JsonArray ?? []).Select(item => Configuration?.Invoke(item?["section"]?.ToString() ?? "")).ToArray(),
             "window/showMessageRequest" => ClientRequest?.Invoke(method, parameters?.DeepClone()),
-            "workspace/applyEdit" => new { applied = false, failureReason = "Use the editor to apply changes." },
+            "workspace/applyEdit" => ApplyEdit?.Invoke(parameters?.DeepClone()) ?? new { applied = false, failureReason = "Use the editor to apply changes." },
             _ => null
         };
         var known = method is "workspace/workspaceFolders" or "workspace/configuration" or "workspace/applyEdit"

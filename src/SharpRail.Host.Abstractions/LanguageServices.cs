@@ -13,6 +13,9 @@ public sealed record LanguageItem(string Path, int Line, int Column, int EndLine
 
     /// <summary>The server's container name for a workspace symbol, such as its file and project or its containing type.</summary>
     public string Container { get; init; } = "";
+
+    /// <summary>A diagnostic as the server sent it, which the host returns in a code-action request; never crosses the wire.</summary>
+    public string Raw { get; init; } = "";
 }
 
 /// <summary>A supported language server in one workspace; listing never starts a process.</summary>
@@ -96,6 +99,12 @@ public sealed record LanguageResult(string State, string Detail = "", string Ser
     public IReadOnlyList<LanguageItem> Locations { get; init; } = [];
     public IReadOnlyList<LanguageItem> Diagnostics { get; init; } = [];
     public IReadOnlyList<LanguageItem> Tokens { get; init; } = [];
+
+    /// <summary>Code actions for <c>codeActions</c>: <c>Text</c> is the title, <c>Kind</c> the LSP kind, <c>Source</c> the id to pass as <c>Query</c> to <c>applyCodeAction</c>, <c>Preview</c> is <c>preferred</c> for a preferred action.</summary>
+    public IReadOnlyList<LanguageItem> Actions { get; init; } = [];
+
+    /// <summary>Text edits for <c>applyCodeAction</c> in zero-based UTF-16 ranges of each <c>Path</c>; <c>Text</c> is the replacement. Apply every edit of a path against the text the request was made for.</summary>
+    public IReadOnlyList<LanguageItem> Edits { get; init; } = [];
     public string Freshness { get; init; } = "pending";
     public string Coverage { get; init; } = "open documents";
 

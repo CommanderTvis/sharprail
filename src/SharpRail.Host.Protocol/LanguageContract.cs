@@ -144,6 +144,8 @@ public sealed class LanguageReply
     [ProtoMember(15)] public string ActiveConfiguration { get; set; } = "";
     [ProtoMember(13)] public bool Truncated { get; set; }
     [ProtoMember(9)] public string Coverage { get; set; } = "open documents";
+    [ProtoMember(18)] public List<LanguageItemDto> Actions { get; set; } = [];
+    [ProtoMember(19)] public List<LanguageItemDto> Edits { get; set; } = [];
 }
 
 public partial interface IProjectRpc

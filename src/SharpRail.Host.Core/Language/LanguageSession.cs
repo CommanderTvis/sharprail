@@ -61,6 +61,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             Notification = OnNotification,
             ClientRequest = OnClientRequest,
             WorkspaceFolders = () => ProjectFolders,
+            ApplyEdit = CaptureEdit,
             Configuration = section => section.Length == 0 ? settings : settings[section] ?? section.Split('.').Aggregate((JsonNode?)settings, (node, key) => node is JsonObject obj ? obj[key] : null)
         };
     }
@@ -90,10 +91,19 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 {
                     general = new { positionEncodings = new[] { "utf-16" } },
                     window = new { workDoneProgress = true },
-                    workspace = new { workspaceFolders = true, configuration = true, didChangeWatchedFiles = new { dynamicRegistration = true, relativePatternSupport = true } },
+                    workspace = new { applyEdit = true, workspaceEdit = new { documentChanges = true }, executeCommand = new { dynamicRegistration = false }, workspaceFolders = true, configuration = true, didChangeWatchedFiles = new { dynamicRegistration = true, relativePatternSupport = true } },
                     textDocument = new
                     {
                         references = new { dynamicRegistration = true },
+                        codeAction = new
+                        {
+                            dynamicRegistration = true,
+                            isPreferredSupport = true,
+                            disabledSupport = true,
+                            dataSupport = true,
+                            resolveSupport = new { properties = new[] { "edit" } },
+                            codeActionLiteralSupport = new { codeActionKind = new { valueSet = new[] { "", "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports", "source.fixAll" } } }
+                        },
                         synchronization = new { didSave = true },
                         publishDiagnostics = new { versionSupport = true, relatedInformation = true },
                         diagnostic = new { dynamicRegistration = false, relatedDocumentSupport = false },
@@ -303,6 +313,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             }
             if (NeedsConfiguration) return result with { State = "actionRequired", Detail = ProjectDetail, Freshness = "partial", Coverage = projectModel.Description };
             if (projectRestores.Values.Any(task => task.IsFaulted)) return result with { State = "error", Detail = ProjectDetail, Freshness = "partial", Coverage = projectModel.Description };
+            if (request.Operation is "codeActions" or "applyCodeAction") return await CodeActionsAsync(result, request, uri, document, token);
             // An outline is syntax and answers at once. References, implementations and symbol searches could silently miss what is not
             // loaded yet, so they wait; a definition, type definition or hover that found something is right, and only an empty one waits.
             var loading = IsIndexing;
@@ -464,7 +475,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
 
     private LanguageItem[] Diagnostics(JsonNode? value, string path) => (value as JsonArray ?? [])
         .Where(item => item?["range"] is not null)
-        .Select(item => Item(path, item!["range"]!, item["message"]?.ToString() ?? "", item["severity"]?.ToString() ?? "1", item["source"]?.ToString() ?? server.Id)).ToArray();
+        .Select(item => Item(path, item!["range"]!, item["message"]?.ToString() ?? "", item["severity"]?.ToString() ?? "1", item["source"]?.ToString() ?? server.Id) with { Raw = item.ToJsonString() }).ToArray();
 
     private IEnumerable<LanguageItem> Locations(JsonNode? node, string fallback)
     {

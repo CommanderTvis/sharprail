@@ -48,6 +48,8 @@ internal enum ScintillaMessage : uint
     LineScroll = 2168,
     ScrollCaret = 2169,
     SetReadOnly = 2171,
+    BeginUndoAction = 2078,
+    EndUndoAction = 2079,
     EmptyUndoBuffer = 2175,
     Undo = 2176,
     Clear = 2180,

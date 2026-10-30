@@ -78,10 +78,24 @@ coverage; other servers expose their reported/open-document diagnostics.
 Semantic tokens use UTF-16 coordinates and are decoded to complete token spans. The editor replaces TextMate colors with
 supported semantic roles when tokens arrive; missing capabilities, startup and failures retain syntax
 highlighting. Server work and parsing stay off the UI thread. Edits, workspace changes, cancellation
-and disposal reject stale results. Inspection does not apply code actions or edit source. Code actions, rename and
+and disposal reject stale results. Inspection does not apply code actions or edit source. Rename and
 refactorings (planned, design only) are specified in [Refactoring.SPEC.md](Refactoring.SPEC.md): they are separate
-explicit tools and editor commands, never part of inspection, and `workspace/applyEdit` stays refused until that
-spec's applier exists.
+explicit tools and editor commands, never part of inspection, and `workspace/applyEdit` stays refused outside the
+quick-fix command described next until that spec's applier exists.
+
+Quick fixes are the one code-action slice shipped, for the editor only (no agent tool). The editor's `codeActions`
+operation sends `textDocument/codeAction` for the caret (a collapsed range, the selection's start) with the stored
+raw diagnostics that cover it, and lists the answer: disabled actions are hidden, and so is an action that has no
+edit and either names a command the server did not declare in `executeCommandProvider` or, with no command,
+cannot be resolved (`codeActionProvider.resolveProvider`). Preferred actions come first, then `quickfix` kinds, at most 50. The ids it returns are valid
+for the document state of that answer only. `applyCodeAction` (id as `Query`) resolves with `codeAction/resolve` when the
+action has no edit, runs a declared command through `workspace/executeCommand` while capturing the server's
+`workspace/applyEdit` requests into the same edit set (answered applied), and returns the text edits in `Edits`
+(zero-based UTF-16 ranges, the encoding this client negotiates; file creation, renaming and deletion and edits outside
+the workspace make the action `unsupported`, and a `documentChanges` version that differs from the synchronized one
+or a changed document makes it `stale`). The host never writes the files: the editor applies edits to its buffer as
+one undo step and saves other files through the normal save path with its conflict check. Servers that do not
+declare `codeActionProvider` answer `unsupported`.
 
 ## Provisioning and index reuse
 

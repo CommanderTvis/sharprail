@@ -607,6 +607,15 @@ height are bounded by the owner window. Dismissal cancels pending navigation, an
 inspection does not replace an open chooser's status. Cmd/Ctrl+B and Alt+F7 complement F12 and
 Shift+F12. Workspace-symbol query text remains a separate server-side search on Enter.
 
+Quick fixes follow IntelliJ's Show Context Actions: Alt+Enter (Option+Enter on macOS, the same key with the Alt modifier) and the
+context menu's Show Quick Fixes item (lightbulb icon, listed in the macOS menu bar too) ask the server for code actions at the
+caret (the selection's start) and open a small caret-anchored list; Up/Down select, Enter or double tap applies, Escape closes.
+Preferred actions are bold and first. An empty answer opens no list, only a "No quick fixes" line that closes itself after
+two seconds (a server without code actions shows its status the same way). The request and the apply step carry the
+editor revision: an answer or a choice for an older revision is dropped. Edits to the open buffer apply as one undo group;
+edits to other files are read, spliced and saved through the host with the usual conflict check before the buffer changes.
+Files the server would create, rename or delete are not applied. Nothing waits on the UI thread.
+
 Verified 2026-10-17: focused LSP UI checks exercise unopened-file rows, navigation after
 filtering, empty filtering, scope changes, neutral syntax previews and narrow-window sizing.
 The 142-case four-lane gate passed. A final switch to the shared platform command modifier

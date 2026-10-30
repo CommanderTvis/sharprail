@@ -41,6 +41,7 @@ show its own variant of "Delete".
 | Resume | `history` | Agent launcher menus: Resume a session… (Claude Code, Codex) |
 | EnterPath | `inputCursor` | Add-project menu: Enter path…, Enter host path… |
 | Clone | `gitFork` | Add-project menu: Clone repository… |
+| QuickFix | `alertTip` (the Remix lightbulb, also the Tip callout's glyph) | Code editor menu: Show Quick Fixes |
 
 ## Enforcement
 
