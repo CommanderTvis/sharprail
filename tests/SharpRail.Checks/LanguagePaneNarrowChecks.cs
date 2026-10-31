@@ -27,6 +27,7 @@ internal static class LanguagePaneNarrowChecks
         Churn(fixture);
         Hidden(fixture);
         Scrolls(fixture);
+        Poll(fixture);
     }
 
     /// <summary>A pane taller than its window scrolls and keeps its offset across refreshes (a selected row must not pull itself into view): the wheel over any part of it moves the one vertical ScrollViewer, the last row can be reached, and nothing is wider than the viewport.</summary>
@@ -71,6 +72,43 @@ internal static class LanguagePaneNarrowChecks
             }
             Require(scroll.Offset.Y >= before - 1, $"A refresh moved the scroll offset from {before} to {scroll.Offset.Y}.");
             Console.WriteLine("PASS The Code Intelligence pane scrolls with the wheel, reaches its last row and does not overflow horizontally");
+        }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+    }
+
+    /// <summary>The pane re-reads the host every few seconds and each reply carries freshly built arrays and lists; an unchanged server must keep its row container, or every poll rebuilds the rows and drops a click or drag in flight.</summary>
+    private static void Poll(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-poll"); Directory.CreateDirectory(root);
+        var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(statePath);
+        using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
+        shared.Start();
+        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var window = new Window { Width = 480, Height = 600, Content = pane };
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        window.Show();
+        try
+        {
+            E2E.E2eWorkspace.Until(() => pane.Idle, "The pane's own inventory request did not finish.");
+            static LanguageServerState[] Reply() => Enumerable.Range(0, 3).Select(index => new LanguageServerState($"fake-{index}", "file.x", "idle", "detail", "1")
+            {
+                Presentation = new("Fake", [1, 2], "svg", ["compilerFlags"], ["other"]),
+                Dependencies = [new("tool", "Tool", "found", "/bin/tool", "path", "")]
+            }).ToArray();
+            var servers = pane.FindControl<ListBox>("Servers")!;
+            pane.ShowInventory(Reply());
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            var first = Enumerable.Range(0, 3).Select(index => servers.ContainerFromIndex(index)).ToArray();
+            for (var round = 0; round < 5; round++)
+            {
+                pane.ShowInventory(Reply());
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            }
+            for (var index = 0; index < 3; index++)
+                Require(ReferenceEquals(first[index], servers.ContainerFromIndex(index)), $"An unchanged server row {index} was rebuilt by a poll reply.");
+            Console.WriteLine("PASS An unchanged inventory reply keeps the Code Intelligence rows in place");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }

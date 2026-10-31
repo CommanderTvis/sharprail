@@ -312,3 +312,5 @@ the same control and actions; servers without declared tools show no section, an
 missing carries a small red marker in the left list. The page re-reads the catalog (which carries the probe) when
 `LanguageTools` or `LanguageServers` changes, so a path set in either place, or by another client, updates both.
 `--lsp-dependencies` asserts the pane and the page.
+
+The pane re-reads the host every few seconds. A row is replaced only when its content changed (presentation and dependency lists compare by content, since every reply builds new ones), so a poll never rebuilds unchanged rows under a click or drag; `--lsp-narrow` asserts it.

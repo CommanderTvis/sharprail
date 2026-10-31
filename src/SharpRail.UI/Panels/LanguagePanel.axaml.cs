@@ -65,6 +65,19 @@ internal sealed partial class LanguagePanel : UserControl
             _ => Server.State
         };
         public override string ToString() => LanguageServerNameConverter.Display(Server.Id);
+
+        // Every host reply carries freshly built arrays and lists (presentation, dependencies), which compare by reference; compare their contents, or each poll replaces every row.
+        public bool Equals(ServerRow? other) => other is not null && ReferenceEquals(ConfigurationView, other.ConfigurationView)
+            && Expanded == other.Expanded && ExitOpen == other.ExitOpen && Hidden == other.Hidden
+            && Server with { Presentation = null, Dependencies = null } == other.Server with { Presentation = null, Dependencies = null }
+            && SamePresentation(Server.Presentation, other.Server.Presentation)
+            && (Server.Dependencies ?? []).SequenceEqual(other.Server.Dependencies ?? []);
+        public override int GetHashCode() => HashCode.Combine(Server.Id, Server.State, Server.Detail, Expanded, ExitOpen, Hidden);
+
+        private static bool SamePresentation(LanguageServerPresentation? left, LanguageServerPresentation? right) => left is null || right is null ? left is null && right is null
+            : left.Name == right.Name && left.IconFormat == right.IconFormat && (left.Icon ?? []).AsSpan().SequenceEqual(right.Icon ?? [])
+            && (left.OptionGroups ?? []).SequenceEqual(right.OptionGroups ?? []) && (left.Replaces ?? []).SequenceEqual(right.Replaces ?? [])
+            && left.HasTerms == right.HasTerms && left.TermsNote == right.TermsNote && left.ReplacesLabel == right.ReplacesLabel && left.TermsDeadline == right.TermsDeadline;
     }
     private readonly IProjectServices host;
     private readonly SharpRail.UI.State.SharedState? state;
