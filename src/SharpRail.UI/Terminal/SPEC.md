@@ -258,7 +258,7 @@ passes through when there is nothing to undo; each operation keeps its own timeo
 - The timeout is the host setting `TerminalUndoCloseSeconds` (Settings › Terminal › Undo close: Off, 5 s
   default, 15 s, 1 min; at most 600), shared by every client. The host reads it at each close.
 - A user close of a document or terminal tab (`LayoutSession.TabClosing`) records the tab, its group, index
-  and pane, and shows a toast "Closed <title> (N s)" with Undo and a live countdown for the timeout. A live
+  and pane, and shows a toast "Closed “<title>” (N s)" with Undo and a live countdown for the timeout. A live
   terminal in a host-shared workspace keeps its session: the host removes the tab from the catalog (other
   clients see it gone) and ends the shell only when the timeout passes. An exited or failed terminal, one of
   a window without a catalog, a tool tab, and every close the layout makes for other reasons (catalog

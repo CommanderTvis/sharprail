@@ -682,6 +682,7 @@ internal static class Program
         {
             BoundaryChecks.Run(root);
             ActionIconChecks.Run();
+            TabNameChecks.Run();
             return;
         }
         if (args.SequenceEqual(["--zig-deps"]))

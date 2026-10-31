@@ -10,7 +10,7 @@ public sealed partial class WorkbenchWindow
     {
         foreach (var owned in next.OwnedProcesses.Where(process => !previous.OwnedProcesses.Contains(process)))
         {
-            var tab = next.TerminalTitles.FirstOrDefault(title => title.Terminal == owned.Terminal)?.Title ?? "An agent terminal";
+            var tab = next.TerminalTitles.FirstOrDefault(title => title.Terminal == owned.Terminal)?.Title is { } named ? TabNames.Quote(named) : "An agent terminal";
             var what = owned.Description.Length > 0 ? $"{owned.Description} (pid {owned.Pid})" : $"pid {owned.Pid}";
             Toasts.Push(ToastVariant.Info, $"{tab} reported {what}. SharpRail stops it when that terminal closes or SharpRail quits.", "Background process reported");
         }

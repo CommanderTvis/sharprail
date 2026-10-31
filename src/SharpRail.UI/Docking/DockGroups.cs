@@ -252,7 +252,7 @@ public sealed partial class DockSurface
             {
                 // Leave the label to the Projects scroller; only an explicit action opens the tab.
                 button.IsHitTestVisible = false;
-                var open = Ui.IconButton("arrowRight", "Open " + Session.ToolTitle(tab), () =>
+                var open = Ui.IconButton("arrowRight", "Open " + TabNames.Quote(Session.ToolTitle(tab)), () =>
                 {
                     SelectTab();
                     if (Drawers) Session.Visible("left", false);

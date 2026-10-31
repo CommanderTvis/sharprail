@@ -119,7 +119,7 @@ internal static class SharedTerminalsE2E
             Settle(200);
             CloseTab(a, middle);
             Until(() => TerminalTabs(a).Length == 2 && TerminalTabs(b).Length == 2);
-            Require(a.Window.Toasts.Items.Any(toast => toast is { Countdown: true, Message: "Closed Terminal 2", Action.Label: "Undo" }) && host.Pty.ClosingCount == 1 &&
+            Require(a.Window.Toasts.Items.Any(toast => toast is { Countdown: true, Message: "Closed \u201CTerminal 2\u201D", Action.Label: "Undo" }) && host.Pty.ClosingCount == 1 &&
                 !Catalog(host, workspace).Contains(middle.Id), "Closing a live terminal must offer undo while the host keeps its shell out of the catalog.");
             Settle(1500);
             // A focused terminal keeps Ctrl+Z for its shell (SIGTSTP): off macOS, where Ctrl is the command key, the undo

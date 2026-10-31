@@ -55,7 +55,7 @@ public sealed partial class WorkbenchWindow
         : Layout.State.Workspaces.GetValueOrDefault(workspace)?.Documents.Values.SelectMany(tabs => tabs).FirstOrDefault(open => open.Id == tab)?.Title ?? tab;
 
     private string FailedPhrase(string workspace, string tab) =>
-        $"{AgentName(state.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == new TerminalRef(workspace, tab))?.Record.Kind ?? "agent")} in “{TabTitle(workspace, tab)}”";
+        $"{AgentName(state.Current.TerminalAgents.FirstOrDefault(agent => agent.Terminal == new TerminalRef(workspace, tab))?.Record.Kind ?? "agent")} in {TabNames.Quote(TabTitle(workspace, tab))}";
 
     /// <summary>The tooltip of one failed agent terminal's mark, read from in-memory state when it opens.</summary>
     internal string FailedAgentTip(string workspace, string tab) => FailedPhrase(workspace, tab) + " hit an error";

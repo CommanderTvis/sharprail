@@ -238,7 +238,7 @@ public sealed partial class WorkbenchWindow
         {
             button.IsHitTestVisible = false;
             button.Height = 48;
-            var open = Ui.IconButton("arrowRight", "Open " + tab.Title, OpenTab);
+            var open = Ui.IconButton("arrowRight", "Open " + TabNames.Quote(tab.Title), OpenTab);
             open.Name = "OpenProjectTab";
             open.Tag = tab.Id;
             open.Classes.Add("project-tab-open");

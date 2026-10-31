@@ -627,3 +627,5 @@ SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor.FrontmatterEditor(SharpRail.
 SharpRail.Plugins.UI.Kit.Markdown.FrontmatterEditor.Properties.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!
 SharpRail.Plugins.UI.Kit.ActionIcon.QuickFix = 15 -> SharpRail.Plugins.UI.Kit.ActionIcon
 SharpRail.Plugins.UI.Kit.ActionIcon.CopyAbsolutePath = 16 -> SharpRail.Plugins.UI.Kit.ActionIcon
+static SharpRail.Plugins.UI.Kit.TabNames.Quote(string? title) -> string!
+SharpRail.Plugins.UI.Kit.TabNames

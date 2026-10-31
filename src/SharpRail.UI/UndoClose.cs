@@ -56,7 +56,7 @@ public sealed partial class WorkbenchWindow
             undoableTerminalCloses.Add(key);
         }
         var timeout = TimeSpan.FromSeconds(seconds);
-        var toast = Toasts.Push(ToastVariant.Info, "Closed " + closed.Tab.Title, duration: timeout,
+        var toast = Toasts.Push(ToastVariant.Info, "Closed " + TabNames.Quote(closed.Tab.Title), duration: timeout,
             action: new ToastAction("Undo", () => UndoClose(closed)), countdown: true);
         undoCloses.Add(new(closed, DateTime.UtcNow + timeout, toast));
     }
