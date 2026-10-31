@@ -42,6 +42,14 @@ public sealed partial class LanguageService
     private static bool Evictable(Entry entry) => Volatile.Read(ref entry.InFlight) == 0 && Volatile.Read(ref entry.Stopped) == 0 &&
         entry.Session.IsValueCreated && entry.Session.Value is { IsCompletedSuccessfully: true } task && !task.Result.HasEditors;
 
+    /// <summary>The servers whose processes run now: workspace root, server id and pid. It reads in-memory state only.</summary>
+    internal IReadOnlyList<(string Workspace, string ServerId, int Pid)> RunningServers() =>
+    [
+        .. entries.Values.Where(entry => entry.Session.IsValueCreated && entry.Session.Value is { IsCompletedSuccessfully: true } task && !task.Result.Exited)
+            .Select(entry => (entry.Workspace, entry.ServerId, Pid: entry.Session.Value.Result.ProcessId))
+            .Where(row => row.Pid is not null).Select(row => (row.Workspace, row.ServerId, row.Pid!.Value))
+    ];
+
     private void Touch(Entry entry) => Volatile.Write(ref entry.LastUsed, Ticks());
 
     private void Pulse()

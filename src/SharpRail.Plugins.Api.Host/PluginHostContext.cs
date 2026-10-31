@@ -303,6 +303,11 @@ public interface IPluginHostContext
     void OnInstructionSectionsChanged(Action<string> handler) { }
 
     /// <summary>
+    /// The host's process facts, language-server processes and owned-process registry (H27), or <see langword="null"/> on a host that has none.
+    /// </summary>
+    IProcessHost? Processes => null;
+
+    /// <summary>
     /// Lists the guidance every enabled plugin contributed with <see cref="ToolGuidance"/> (H20), in activation
     /// order. It is <see cref="PromptTexts(string, PromptPlacement)"/> for every agent with <see cref="PromptPlacement.ToolList"/>; an agent
     /// plugin should call that with its own id instead.

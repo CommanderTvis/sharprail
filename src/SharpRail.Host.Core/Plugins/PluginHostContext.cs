@@ -122,6 +122,10 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 
     public void WriteTerminal(TerminalRef terminal, string data) => runtime.Seams.Terminals?.Write(terminal, data);
 
+    public IProcessHost? Processes => processHost ??= new ProcessHostSeam(runtime.Seams.State);
+
+    private IProcessHost? processHost;
+
     public IReadOnlyList<HostProject> Projects() => runtime.Projects();
 
     public ValueTask<IReadOnlyList<HostWorkspace>> WorkspacesAsync(string? projectId = null, CancellationToken cancellationToken = default) =>

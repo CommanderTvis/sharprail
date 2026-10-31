@@ -67,6 +67,7 @@ internal static class OwnedProcessChecks
     {
         await using var service = new PtyTerminalService("/bin/sh", recordingsDirectory: Path.Combine(directory, "terminals"));
         service.Owned.Grace = TimeSpan.FromSeconds(3);
+        service.Owned.SetEnabled(true);
         var tab = await OpenTab(service, workspace);
         var shells = service.List().Where(process => process.Pid is not null).Select(process => process.Pid!.Value).ToArray();
         Require(shells.Length > 0, "The tab must have a shell.");
@@ -103,6 +104,7 @@ internal static class OwnedProcessChecks
         var released = Sleep();
         var kept = Sleep();
         var service = new PtyTerminalService("/bin/sh", recordingsDirectory: Path.Combine(directory, "terminals"));
+        service.Owned.SetEnabled(true);
         var tab = await OpenTab(service, workspace);
         var other = await OpenTab(service, workspace);
         service.Owned.Report(tab, released.Id, null, []);

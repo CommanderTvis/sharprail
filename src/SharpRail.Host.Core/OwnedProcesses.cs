@@ -43,6 +43,28 @@ public sealed class OwnedProcesses
     /// <summary>How long SIGTERM gets before SIGKILL; three seconds unless a check shortens it.</summary>
     public TimeSpan Grace { get; set; } = TimeSpan.FromSeconds(3);
 
+    /// <summary>
+    /// Whether agents may own processes: false until the Processes plugin switches it on (and again when it is switched off). While
+    /// false nothing can be reported and nothing is stopped on terminal close or quit.
+    /// </summary>
+    public bool Enabled { get; private set; }
+
+    /// <summary>
+    /// Turns management on, sweeping the records of dead hosts in the background, or off, forgetting the live records without
+    /// stopping their processes (the user opted out of managing them) and deleting this host's file.
+    /// </summary>
+    public void SetEnabled(bool enabled)
+    {
+        lock (gate)
+        {
+            if (Enabled == enabled) return;
+            Enabled = enabled;
+            if (!enabled) { entries.Clear(); Save(); }
+        }
+        if (enabled) _ = Task.Run(SweepAsync);
+        else Changed?.Invoke();
+    }
+
     /// <summary>Raised, on the thread that changed the registry, after the reported processes changed.</summary>
     public event Action? Changed;
 
@@ -57,6 +79,7 @@ public sealed class OwnedProcesses
     /// </summary>
     public string Report(TerminalRef terminal, int pid, string? description, IReadOnlyCollection<int> refused)
     {
+        if (!Enabled) throw new ArgumentException("Owned-process management is off: the Processes plugin is disabled.");
         if (pid <= 1) throw new ArgumentException("pid must be a process of yours; pid 1 and below are never accepted.");
         if (pid == Environment.ProcessId || refused.Contains(pid)) throw new ArgumentException($"pid {pid} is SharpRail itself or a terminal's shell, which is never accepted.");
         var row = ProcessTable.Read().FirstOrDefault(known => known.Pid == pid) ?? throw new ArgumentException($"No live process has pid {pid}.");
@@ -98,7 +121,7 @@ public sealed class OwnedProcesses
     private async Task StopSelectedAsync(Func<Entry, bool> selected)
     {
         Entry[] chosen;
-        lock (gate) chosen = [.. entries.Where(selected)];
+        lock (gate) chosen = Enabled ? [.. entries.Where(selected)] : [];
         if (chosen.Length == 0) return;
         await Task.WhenAll(chosen.Select(entry => Task.Run(() => StopAsync(entry))));
         lock (gate)
@@ -133,6 +156,18 @@ public sealed class OwnedProcesses
                 Trace.WriteLine($"Owned-process sweep of {path} failed: {error.Message}");
             }
         }
+    }
+
+    /// <summary>
+    /// Ends any process by pid the way a terminal close does: a reported process by its own rules, else SIGTERM then SIGKILL after
+    /// <see cref="Grace"/> (taskkill on Windows). <paramref name="command"/> guards against a reused pid.
+    /// </summary>
+    internal async Task StopPidAsync(int pid, string command)
+    {
+        Entry? owned;
+        lock (gate) owned = entries.FirstOrDefault(entry => entry.Pid == pid);
+        if (owned is not null) { await StopSelectedAsync(entry => entry.Pid == pid); return; }
+        await ProcessTable.EndAsync(new Dictionary<int, string> { [pid] = command }, Grace, Posix.Sigterm);
     }
 
     /// <summary>Ends one process the way the SPEC says: SIGTERM, then SIGKILL after <see cref="Grace"/>, to its group when it leads one.</summary>

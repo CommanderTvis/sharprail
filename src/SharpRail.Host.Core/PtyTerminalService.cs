@@ -88,7 +88,6 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         catalog = new TerminalCatalogStore(recordingsDirectory);
         Owned = new OwnedProcesses(recordingsDirectory is null ? null : Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory)));
         if (recordingsDirectory is null) return;
-        _ = Task.Run(Owned.SweepAsync);
         store = new TerminalRecordingStore(recordingsDirectory);
         // Once a catalog exists, a recording revives only a tab that is still in it. A host that never kept one
         // keeps every recording until its clients have brought their tabs.

@@ -43,6 +43,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     /// <summary>The last sampled resident memory of the server process, in bytes; zero before the first sample.</summary>
     internal long MemoryBytes => connection.MemoryBytes;
     internal bool Exited => connection.Exited;
+    internal int? ProcessId => connection.ProcessId;
     internal LanguageExit? ExitRecord => connection.ExitRecord;
     /// <summary>Names why SharpRail is about to end this server, so its exit record explains the death.</summary>
     internal void Terminate(string reason, bool failure = false) => connection.Terminate(reason, failure);

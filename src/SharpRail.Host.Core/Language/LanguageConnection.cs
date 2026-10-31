@@ -44,6 +44,8 @@ internal sealed class LanguageConnection : IAsyncDisposable
     /// <summary>Answers a server's <c>workspace/applyEdit</c>; without it, or when it returns null, the edit is refused.</summary>
     internal Func<JsonNode?, object?>? ApplyEdit { get; set; }
     internal Func<string, object?>? Configuration { get; set; }
+    /// <summary>The server process's id, or null once it has exited.</summary>
+    internal int? ProcessId { get { try { return process.HasExited ? null : process.Id; } catch (InvalidOperationException) { return null; } } }
     internal int? ExitCode => process.HasExited ? process.ExitCode : null;
     internal async Task<int?> ObserveExitAsync()
     {

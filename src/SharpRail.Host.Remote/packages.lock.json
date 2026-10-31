@@ -68,6 +68,7 @@
           "SharpRail.Plugins.Lsp.Swift": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.TypeScript": "[1.0.0, )",
           "SharpRail.Plugins.Omp.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Processes.Host": "[1.0.0, )",
           "SharpRail.Plugins.SpecDialect.Host": "[1.0.0, )",
           "SharpRail.Plugins.Tailscale.Host": "[1.0.0, )",
           "SharpRail.Plugins.Visualize.Host": "[1.0.0, )",
@@ -414,6 +415,19 @@
         "dependencies": {
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
           "SharpRail.Plugins.Omp": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.processes": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.processes.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Processes": "[1.0.0, )"
         }
       },
       "sharprail.plugins.specdialect": {

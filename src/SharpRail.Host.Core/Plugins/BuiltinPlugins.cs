@@ -50,6 +50,8 @@ using SharpRail.Plugins.Lsp.Swift;
 using SharpRail.Plugins.Lsp.TypeScript;
 using SharpRail.Plugins.Omp;
 using SharpRail.Plugins.Omp.Host;
+using SharpRail.Plugins.Processes;
+using SharpRail.Plugins.Processes.Host;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.Host;
@@ -120,6 +122,7 @@ public static class BuiltinPlugins
         (ClaudeCodeManifest.Manifest, new ClaudeCodeHost()),
         (DiscordPlugin.Manifest, new DiscordHost()),
         (BranchGraphPlugin.Manifest, new BranchGraphHost()),
+        (ProcessesPlugin.Manifest, new ProcessesHost()),
         (VisualizeContract.Manifest, new VisualizeHost()),
         (CodexManifest.Manifest, new CodexHost()),
         (OmpManifest.Manifest, new OmpHost()),

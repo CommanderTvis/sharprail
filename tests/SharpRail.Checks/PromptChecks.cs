@@ -10,6 +10,7 @@ using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host;
 using SharpRail.Plugins.Codex;
 using SharpRail.Plugins.Codex.Host;
+using SharpRail.Plugins.Processes;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Visualize;
 
@@ -50,7 +51,8 @@ internal static class PromptChecks
         async Task Only(params string[] ids) => await Set([.. Optional.Select(id => (id, ids.Contains(id)))]);
 
         // Everything optional off: neither agent's instructions name any plugin's tools.
-        await Set([.. Optional.Append(AirContextContract.Id).Select(id => (id, false))]);
+        // The Processes plugin's own section follows the host's text (ProcessesChecks covers it), so it stays off here.
+        await Set([.. Optional.Append(AirContextContract.Id).Append(ProcessesPlugin.Id).Select(id => (id, false))]);
         var bare = Prompts(runtime);
         foreach (var prompt in new[] { bare.Claude, bare.Codex })
         {
@@ -147,7 +149,7 @@ internal static class PromptChecks
         string[] ids =
         [
             visualize, "plugin." + SpecDialectManifest.Manifest.Id + ".spec-tools", "plugin." + BlueprintContract.Manifest.Id + ".blueprint-check",
-            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.workspace-emigrate", "core.owned-processes", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.code-intelligence",
+            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.workspace-emigrate", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.code-intelligence",
         ];
         var listed = runtime.InstructionSections(ClaudeCodeContract.Id, project);
         Require(listed.Sections.Select(section => section.Id).SequenceEqual(ids), "The sections are not the expected ids in composition order: " + string.Join(", ", listed.Sections.Select(section => section.Id)));

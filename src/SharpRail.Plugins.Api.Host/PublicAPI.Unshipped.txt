@@ -911,3 +911,14 @@ static SharpRail.Plugins.Api.Host.RepoHostSignIn.operator !=(SharpRail.Plugins.A
 static SharpRail.Plugins.Api.Host.RepoHostSignIn.operator ==(SharpRail.Plugins.Api.Host.RepoHostSignIn? left, SharpRail.Plugins.Api.Host.RepoHostSignIn? right) -> bool
 static SharpRail.Plugins.Api.Host.RepoHostToolResult.operator !=(SharpRail.Plugins.Api.Host.RepoHostToolResult? left, SharpRail.Plugins.Api.Host.RepoHostToolResult? right) -> bool
 static SharpRail.Plugins.Api.Host.RepoHostToolResult.operator ==(SharpRail.Plugins.Api.Host.RepoHostToolResult? left, SharpRail.Plugins.Api.Host.RepoHostToolResult? right) -> bool
+SharpRail.Plugins.Api.Host.IPluginHostContext.Processes.get -> SharpRail.Plugins.Api.Host.IProcessHost?
+SharpRail.Plugins.Api.Host.IProcessHost
+SharpRail.Plugins.Api.Host.IProcessHost.LanguageServers() -> System.Collections.Generic.IReadOnlyList<(string! Workspace, string! ServerId, int Pid)>!
+SharpRail.Plugins.Api.Host.IProcessHost.ManageOwned(bool enabled) -> void
+SharpRail.Plugins.Api.Host.IProcessHost.OwnedProcesses() -> System.Collections.Generic.IReadOnlyList<(SharpRail.Plugins.Api.TerminalRef! Terminal, int Pid, string! Description)>!
+SharpRail.Plugins.Api.Host.IProcessHost.ReleaseOwned(SharpRail.Plugins.Api.TerminalRef! terminal, int pid) -> bool
+SharpRail.Plugins.Api.Host.IProcessHost.ReportOwned(SharpRail.Plugins.Api.TerminalRef! terminal, int pid, string? description) -> string!
+SharpRail.Plugins.Api.Host.IProcessHost.StopLanguageServerAsync(string! workspace, string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+SharpRail.Plugins.Api.Host.IProcessHost.StopProcessAsync(int pid, string! command, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+SharpRail.Plugins.Api.Host.IProcessHost.Table() -> System.Collections.Generic.IReadOnlyList<(int Pid, int ParentPid, string! Command)>!
+SharpRail.Plugins.Api.Host.IProcessHost.Usage(int pid) -> (System.TimeSpan Cpu, long MemoryBytes)?

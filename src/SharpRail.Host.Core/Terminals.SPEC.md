@@ -209,7 +209,9 @@ including draining output while closing the pseudoconsole.
 
 ## Owned processes
 
-- An agent reports a long-running process it started with the `owned_process_report` MCP tool (Workspaces SPEC) and
+- The registry is switched on by the Processes plugin (`OwnedProcesses.SetEnabled`, via H27; [its SPEC](../SharpRail.Plugins.Processes/SPEC.md)) and is off
+  without it: nothing can be reported and tab close, quit and the stale sweep stop nothing. Switching it off forgets the records without stopping the processes.
+- An agent reports a long-running process it started with the `owned_process_report` MCP tool (a Processes plugin tool) and
   withdraws it with `owned_process_release`. `PtyTerminalService.Owned` (`OwnedProcesses`) is the registry, keyed by the
   reporting terminal. Only reported processes are ever stopped; nothing is guessed from a process tree.
 - A record is the terminal, pid, command line, description and the process's start time. A record counts as its

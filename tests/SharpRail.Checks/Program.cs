@@ -139,6 +139,11 @@ internal static class Program
             ProjectChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--processes"]))
+        {
+            ProcessesChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--owned-processes"]))
         {
             OwnedProcessChecks.Run(root).GetAwaiter().GetResult();
@@ -724,6 +729,7 @@ internal static class Program
             DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
+            ProcessesChecks.Run(root).GetAwaiter().GetResult();
             VisualizeChecks.Host(root).GetAwaiter().GetResult();
             FileIconsChecks.Host(root).GetAwaiter().GetResult();
             CodexChecks.RunHost(root).GetAwaiter().GetResult();
@@ -1275,6 +1281,7 @@ internal static class Program
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("shell-integration", () => ShellIntegrationChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("windows-host", () => WindowsChecks.RunHost(root).GetAwaiter().GetResult());
+        Gate.Case("processes", () => ProcessesChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("owned-processes", () => OwnedProcessChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("agent-launch-origins", AgentLaunchChecks.RunHost);

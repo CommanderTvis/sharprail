@@ -6828,3 +6828,7 @@ streaming word are not recovered; the chat has no rename, cross-chat history or 
 ## 2026-10-27 — GitHub plugin and repo hosting providers
 
 Pull requests and GitHub sign-in moved out of the host into the builtin `GitHub` plugin ([spec](src/SharpRail.Plugins.GitHub/SPEC.md)): the host routes by `origin` URL to the first active `RepoHostProvider` (H24), the plugin's UI half contributes the Pull request strip item, the Review section and the Settings page (W28, W4), and the wire is protocol 15 with the neutral `PullRequest`. Verified: build, format, `--github`, `--branch-status`, `--review`, `--settings`, `--shell`, `--design`, `--plugins`, `--conformance`, `--reconnect`, `--state`, Android and browser builds. Open: the merge choice is still in the UI profile; no registry-level plugin-off check in `--plugins`.
+
+## 2026-10-31 — Processes plugin
+
+The builtin `Processes` plugin ([spec](src/SharpRail.Plugins.Processes/SPEC.md)) adds a Processes side tool (language servers, AI agents and daemons, spawned agents; CPU, memory, 30-sample trend; Stop selected and Stop group) and owns the agent-facing owned-process management of #52: the `owned_process_report`/`owned_process_release` tools and prompt section moved out of core into it, and `OwnedProcesses` (still core) stays inert until the plugin switches it on through H27. Disabled, nothing is sampled, registered, swept or stopped on close or quit. Verified with `--processes`, `--owned-processes`, `--plugins`, `--conformance`, `--design` and the Release build; not seen rendered.

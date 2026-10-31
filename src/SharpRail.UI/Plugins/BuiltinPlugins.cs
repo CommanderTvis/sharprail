@@ -22,6 +22,8 @@ using SharpRail.Plugins.GitHub;
 using SharpRail.Plugins.GitHub.UI;
 using SharpRail.Plugins.Omp;
 using SharpRail.Plugins.Omp.UI;
+using SharpRail.Plugins.Processes;
+using SharpRail.Plugins.Processes.UI;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.UI;
@@ -40,6 +42,7 @@ public static class BuiltinPlugins
         (ClaudeCodeManifest.Manifest, () => new ClaudeCodeUI()),
         (DiscordPlugin.Manifest, () => new DiscordUI()),
         (BranchGraphPlugin.Manifest, () => new BranchGraphUI()),
+        (ProcessesPlugin.Manifest, () => new ProcessesUI()),
         (VisualizeContract.Manifest, () => new VisualizeUI()),
         (CodexManifest.Manifest, () => new CodexUI()),
         (OmpManifest.Manifest, () => new OmpUI()),

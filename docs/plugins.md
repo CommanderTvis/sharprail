@@ -12,6 +12,7 @@ Plugins without restarting the app, where they are grouped by the categories bel
 | Claude Code | Off | Runs Claude Code in the terminal with an IDE bridge, live status and a pane for its context, settings, capabilities and account. |
 | Codex | Off | Runs OpenAI Codex in the terminal with live status and SharpRail's MCP tools. |
 | omp | Off | Very early support. Runs [omp](https://omp.sh) in the terminal with SharpRail's MCP tools and shows its context files. |
+| Processes | On | Shows language servers, agents and the agents they spawned as a tree with CPU and memory, and stops the processes agents report as theirs when their terminal closes or SharpRail quits. |
 | Air Context | Off | Semantic code search through [JetBrains Air Context](https://www.jetbrains.com/air/context/). Indexing is cloud processing that you enable per project. |
 | Air Gateway | Off | Starts Claude Code, Codex and omp through [JetBrains Air Gateway](https://www.jetbrains.com/air/gateway/) with the Central CLI, or leaves them on their own accounts. |
 
