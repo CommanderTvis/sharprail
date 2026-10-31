@@ -58,8 +58,19 @@ internal static class LanguageDependencyChecks
         Require(detail.Contains("Needs go", StringComparison.Ordinal), "A start without go did not name the missing dependency: " + detail);
         Console.WriteLine("PASS dependency probe reports each declared tool missing on an empty PATH and a start names it");
 
+        // The pane polls "servers" every few seconds: in steady state the poll walks no tree and searches no PATH, and an explicit action starts afresh.
+        var service = (LanguageService)state.Languages;
+        Row(state, workspace, "go");
+        var walks = service.CensusWalks; var runs = service.ServerProbeRuns;
+        for (var poll = 0; poll < 25; poll++) Row(state, workspace, "go");
+        Require(service.CensusWalks == walks && service.ServerProbeRuns == runs, $"25 polls walked the tree {service.CensusWalks - walks} times and probed {service.ServerProbeRuns - runs} times.");
+        state.Languages.ExecuteAsync(new(workspace, Operation: "stop", Server: "go")).AsTask().GetAwaiter().GetResult();
+        Row(state, workspace, "go");
+        Require(service.CensusWalks > walks && service.ServerProbeRuns > runs, "A stop did not make the next listing walk and probe again.");
+        Console.WriteLine("PASS steady-state polls walk no tree and probe no tool; an explicit action refreshes both");
+
         var onPath = Tool(bin, "node");
-        Thread.Sleep(TimeSpan.FromSeconds(2.2));
+        state.Languages.ExecuteAsync(new(workspace, Operation: "stop", Server: "go")).AsTask().GetAwaiter().GetResult();
         var node = Row(state, workspace, "typescript").Dependencies!.Single(item => item.Executable == "node");
         Require(node is { State: "found", Source: "path" } && node.Path == onPath, $"node on PATH was not found: {node}.");
         Console.WriteLine("PASS a tool that appears on PATH is found without a restart");

@@ -102,6 +102,9 @@ internal sealed partial class LanguagePanel : UserControl
     // Servers hidden in this project (host state, per project); shown again only while showHidden is on.
     private IReadOnlySet<string> hidden = new HashSet<string>();
     private bool showHidden;
+    private const int QuietPolls = 10;
+    private int quietTicks;
+    private bool pollSoon;
 
     internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, SharpRail.UI.State.SharedState? state = null, SharpRail.UI.Plugins.PluginRegistry? plugins = null)
     {
@@ -138,7 +141,14 @@ internal sealed partial class LanguagePanel : UserControl
             add.SelectedIndex = -1;
         };
         this.FindControl<Button>("HiddenToggle")!.Click += (_, _) => { showHidden = !showHidden; RefreshRows(); };
-        timer.Tick += async (_, _) => { if (IsEffectivelyVisible) { await RunAsync("servers"); } };
+        // Poll every 3 s only while a server is changing state or after an action of this pane; otherwise every 30 s (host broadcasts cover settings changes).
+        timer.Tick += async (_, _) =>
+        {
+            if (!IsEffectivelyVisible) return;
+            if (!pollSoon && ++quietTicks < QuietPolls && inventory.Count > 0 && !inventory.Any(server => server.State is "installing" or "initializing" or "starting")) return;
+            quietTicks = 0; pollSoon = false;
+            await RunAsync("servers");
+        };
         void ConfigurationChanged(HostState previous, HostState next)
         {
             if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => ConfigurationChanged(previous, next)); return; }
@@ -436,6 +446,7 @@ internal sealed partial class LanguagePanel : UserControl
         {
             // After a retarget the new lifetime owns the button and the queue; this request only lets go of what is still its own.
             if (busyOn == current) busyOn = null;
+            if (operation != "servers") pollSoon = true;
             if (pending is { } next && current == lifetime)
             {
                 pending = null;

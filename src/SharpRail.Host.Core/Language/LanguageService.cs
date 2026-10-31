@@ -132,6 +132,8 @@ public sealed partial class LanguageService : IAsyncDisposable
         var provider = Replacing(workspace);
         if (Competing(provider).Any(id => entries.ContainsKey(workspace + "\0" + id) || drafts.ContainsKey(workspace + "\0" + id)))
             await SwitchProviderAsync(workspace, provider, CancellationToken.None);
+        // The inventory is polled every few seconds; an explicit lifecycle or configuration action forgets the cached file census and tool probes so its effect shows at once.
+        if (request.Operation is "retry" or "restart" or "stop" or "configure") { censuses.Clear(); servers.ForgetProbes(); }
         if (request.Operation == "servers") return ListServers(workspace, token);
         if (LanguageSession.IsVirtual(request.Path))
         {
@@ -393,7 +395,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     private LanguageResult ListServers(string workspace, CancellationToken token)
     {
         var paths = new Dictionary<string, string>();
-        foreach (var path in Discover(workspace))
+        foreach (var path in CachedDiscovery(workspace))
         {
             token.ThrowIfCancellationRequested();
             paths[Detect(workspace, path)!.Id] = path;
@@ -522,6 +524,25 @@ public sealed partial class LanguageService : IAsyncDisposable
     /// <summary>The ids of the servers that own at least one file in the workspace; scans the tree, so call it off the UI thread.</summary>
     internal IReadOnlyList<string> DetectedServers(string workspace)
         => [.. Discover(workspace).Select(path => Detect(workspace, path)).OfType<LanguageServer>().Select(server => server.Id).Distinct()];
+
+    private static readonly TimeSpan CensusLifetime = TimeSpan.FromSeconds(30);
+    private readonly ConcurrentDictionary<string, (DateTime Time, string[] Files)> censuses = new();
+
+    /// <summary>How many times the inventory walked the workspace tree (the cached census was missing or older than 30 s).</summary>
+    internal int CensusWalks;
+
+    /// <summary>How many tool probes searched the machine for this service's listings.</summary>
+    internal int ServerProbeRuns => servers.ProbeRuns;
+
+    /// <summary>The inventory's discovery, reused for 30 s so the pane's poll does no filesystem walk in steady state.</summary>
+    private string[] CachedDiscovery(string workspace)
+    {
+        if (censuses.TryGetValue(workspace, out var cached) && DateTime.UtcNow - cached.Time < CensusLifetime) return cached.Files;
+        Interlocked.Increment(ref CensusWalks);
+        var files = Discover(workspace).ToArray();
+        censuses[workspace] = (DateTime.UtcNow, files);
+        return files;
+    }
 
     private IEnumerable<string> Discover(string workspace)
     {

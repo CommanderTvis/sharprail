@@ -11,7 +11,7 @@ internal sealed record ToolProbe(string State, string Path, string Source, strin
 
 internal sealed partial class LanguageServers
 {
-    private static readonly TimeSpan ProbeLifetime = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan ProbeLifetime = TimeSpan.FromSeconds(30);
     private readonly ConcurrentDictionary<(string Workspace, string Executable, string Home, string Override), (DateTime Time, ToolProbe Probe)> probes = new();
 
     /// <summary>The user's host-wide tool paths from host state, as a JSON object of executable name to absolute path.</summary>
@@ -40,11 +40,18 @@ internal sealed partial class LanguageServers
     /// Finds one tool without running it: the user's path for it first, then <paramref name="homeVariable"/>'s <c>bin</c> and root, then the
     /// hardened PATH. Never returns an executable inside the workspace. Recent answers are reused unless <paramref name="fresh"/>.
     /// </summary>
+    /// <summary>How many tool probes actually searched the machine (cache misses and fresh probes).</summary>
+    internal int ProbeRuns;
+
+    /// <summary>Drops the cached probes, so the next listing searches the machine again.</summary>
+    internal void ForgetProbes() => probes.Clear();
+
     internal ToolProbe ProbeTool(string executable, string workspace, string homeVariable = "", bool fresh = false)
     {
         var chosen = ToolOverride(executable);
         var key = (workspace, executable, homeVariable, chosen);
         if (!fresh && probes.TryGetValue(key, out var cached) && DateTime.UtcNow - cached.Time < ProbeLifetime) return cached.Probe;
+        Interlocked.Increment(ref ProbeRuns);
         var probe = Probe(executable, workspace, homeVariable, chosen);
         probes[key] = (DateTime.UtcNow, probe);
         return probe;

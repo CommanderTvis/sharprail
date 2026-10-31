@@ -313,4 +313,4 @@ missing carries a small red marker in the left list. The page re-reads the catal
 `LanguageTools` or `LanguageServers` changes, so a path set in either place, or by another client, updates both.
 `--lsp-dependencies` asserts the pane and the page.
 
-The pane re-reads the host every few seconds. A row is replaced only when its content changed (presentation and dependency lists compare by content, since every reply builds new ones), so a poll never rebuilds unchanged rows under a click or drag; `--lsp-narrow` asserts it.
+The pane re-reads the host every 3 s while a server is installing or initializing, after an action of its own, or until the first inventory arrives, and every 30 s otherwise (host broadcasts cover settings changes). The host reuses its file census and tool probes for 30 s. A row is replaced only when its content changed (presentation and dependency lists compare by content, since every reply builds new ones), so a poll never rebuilds unchanged rows under a click or drag; `--lsp-narrow` asserts it.
