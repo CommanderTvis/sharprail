@@ -219,6 +219,24 @@ internal static partial class ResourceChecks
         using var reordered = System.Text.Json.JsonDocument.Parse("""{ "keep": [1, 2], "name": "x" }""");
         using var compact = System.Text.Json.JsonDocument.Parse("""{"name":"x","keep":[1,2]}""");
         Require(JsonModel.Diff("", reordered.RootElement, compact.RootElement).Kind == JsonChange.Unchanged, "Formatting and member order are not structural changes.");
+        static IEnumerable<TreeViewItem> All(TreeViewItem item) => new[] { item }.Concat(item.Items.OfType<TreeViewItem>().SelectMany(All));
+        using var oldDoc = System.Text.Json.JsonDocument.Parse("""{"k":1}""");
+        using var newDoc = System.Text.Json.JsonDocument.Parse("""{"k":1,"plugins":[{"a":{"b":1}}],"snippets":[1]}""");
+        var diffRoot = JsonModel.Diff("", oldDoc.RootElement, newDoc.RootElement);
+        JsonViews.JsonTreeState? diffSaved = null;
+        var diffTree = JsonViews.DiffTree(diffRoot, new(), state => diffSaved = state as JsonViews.JsonTreeState).Items.OfType<TreeViewItem>().Single();
+        var plugins = diffTree.Items.OfType<TreeViewItem>().First();
+        Require(diffTree.IsExpanded && All(diffTree).Where(item => item.Items.Count > 0 && item.Items.OfType<TreeViewItem>().Any(child => child.Tag is string)).All(item => item.IsExpanded) &&
+            plugins.IsExpanded && plugins.Items.OfType<TreeViewItem>().Single().Items.OfType<TreeViewItem>().Single().IsExpanded,
+            "Added containers and their nested containers are expanded when a JSON diff first shows.");
+        plugins.IsExpanded = false;
+        Require(diffSaved is { Count: 1 } && JsonViews.DiffTree(diffRoot, diffSaved, _ => { }).Items.OfType<TreeViewItem>().Single().Items.OfType<TreeViewItem>().First() is { IsExpanded: false },
+            "A collapse in a JSON diff is saved and survives a refresh.");
+        using var bigDoc = System.Text.Json.JsonDocument.Parse("""{"items":[""" + string.Join(',', Enumerable.Repeat("""{"a":{"b":{"c":1}}}""", 1800)) + "]}");
+        var bigTop = JsonViews.DiffTree(JsonModel.Diff("", oldDoc.RootElement, bigDoc.RootElement), new(), _ => { }).Items.OfType<TreeViewItem>().Single();
+        var bigOpen = All(bigTop).Count(item => item.IsExpanded);
+        Require(bigOpen > 100 && bigOpen <= JsonViews.ExpandBudget + 2 && All(bigTop).Any(item => item.Items.Count > 0 && !item.IsExpanded && item.Tag is string),
+            "A huge added value stays within the expansion budget: " + bigOpen);
     }
 
     private const string NotebookText = """

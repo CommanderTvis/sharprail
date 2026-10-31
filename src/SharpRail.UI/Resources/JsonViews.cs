@@ -214,11 +214,45 @@ internal static class JsonViews
         }
 
         // Opening a node builds its children, so replaying walks only what the user's choices or the defaults opened.
-        private void Replay(TreeViewItem item)
+        private void Replay(TreeViewItem item) => JsonViews.Replay(item, overrides);
+    }
+
+    private static void Replay(TreeViewItem item, JsonTreeState overrides)
+    {
+        if (item.Tag is string path && overrides.TryGetValue(path, out var expanded)) item.IsExpanded = expanded;
+        if (!item.IsExpanded) return;
+        foreach (var child in item.Items.OfType<TreeViewItem>()) Replay(child, overrides);
+    }
+
+    // Changed containers are open already; added and removed values open breadth first while the budget lasts.
+    private static void ExpandDiff(TreeViewItem root, JsonDiffNode node)
+    {
+        var remaining = ExpandBudget;
+        var changed = new Queue<(TreeViewItem Item, JsonDiffNode Node)>();
+        var values = new Queue<(TreeViewItem Item, JsonElement Value)>();
+        changed.Enqueue((root, node));
+        while (changed.TryDequeue(out var entry))
         {
-            if (item.Tag is string path && overrides.TryGetValue(path, out var expanded)) item.IsExpanded = expanded;
-            if (!item.IsExpanded) return;
-            foreach (var child in item.Items.OfType<TreeViewItem>()) Replay(child);
+            remaining -= entry.Node.Children.Count;
+            if (entry.Node.Kind is JsonChange.Added or JsonChange.Removed) values.Enqueue((entry.Item, (entry.Node.New ?? entry.Node.Old)!.Value));
+            else
+                foreach (var (child, childNode) in entry.Item.Items.OfType<TreeViewItem>().Zip(entry.Node.Children.Where(c => c.Kind != JsonChange.Unchanged)))
+                    changed.Enqueue((child, childNode));
+        }
+        // Values queued above are in document order; the budget is spent on the shallowest first within each.
+        var pending = new Queue<(TreeViewItem Item, JsonElement Value)>(values);
+        while (pending.TryDequeue(out var entry))
+        {
+            if (entry.Value.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array)) continue;
+            var count = entry.Value.ValueKind == JsonValueKind.Object ? entry.Value.GetPropertyCount() : entry.Value.GetArrayLength();
+            if (count == 0 || count > remaining) continue;
+            remaining -= Math.Min(count, MaxChildren);
+            entry.Item.IsExpanded = true;
+            var members = entry.Value.ValueKind == JsonValueKind.Object
+                ? entry.Value.EnumerateObject().Select(member => member.Value)
+                : entry.Value.EnumerateArray();
+            foreach (var (child, childValue) in entry.Item.Items.OfType<TreeViewItem>().Zip(members))
+                pending.Enqueue((child, childValue));
         }
     }
 
@@ -265,13 +299,30 @@ internal static class JsonViews
                 if (root!.Kind == JsonChange.Unchanged) body = Notice("JsonDiffEmpty", "No structural changes: the two sides differ only in formatting or member order.", Ui.Muted);
                 else
                 {
-                    var tree = new TreeView { Name = "JsonDiff", Margin = new Thickness(12, 8), Background = Brushes.Transparent };
-                    tree.Items.Add(DiffItem(root, isRoot: true));
+                    var tree = DiffTree(root, diff.ViewState as JsonTreeState ?? new(), diff.SaveViewState);
                     body = tree;
                 }
                 return before?.Dialect == true || after?.Dialect == true ? WithNotice("JsonDialect", "Parsed as JSONC: comments and trailing commas are ignored.", body) : body;
             });
         }, token);
+    }
+
+    // Every changed, added or removed container opens within the budget; what the user toggled by hand wins and is saved.
+    internal static TreeView DiffTree(JsonDiffNode root, JsonTreeState overrides, Action<object?> save)
+    {
+        var tree = new TreeView { Name = "JsonDiff", Margin = new Thickness(12, 8), Background = Brushes.Transparent };
+        var applying = true;
+        var top = DiffItem(root, "", (path, expanded) =>
+        {
+            if (applying) return;
+            overrides[path] = expanded;
+            save(overrides);
+        }, isRoot: true);
+        ExpandDiff(top, root);
+        Replay(top, overrides);
+        applying = false;
+        tree.Items.Add(top);
+        return tree;
     }
 
     private static Control Notice(string name, string message, IBrush color)
@@ -329,7 +380,7 @@ internal static class JsonViews
         return item;
     }
 
-    private static TreeViewItem DiffItem(JsonDiffNode node, bool isRoot = false)
+    private static TreeViewItem DiffItem(JsonDiffNode node, string path, Action<string, bool> toggled, bool isRoot = false)
     {
         var key = isRoot ? null : node.Key;
         var item = node.Kind switch
@@ -339,19 +390,24 @@ internal static class JsonViews
             _ when node.Children.Count == 0 => new TreeViewItem { Header = Leaf(key, node) },
             _ => new TreeViewItem { Header = Label(key, JsonModel.Preview(node.New!.Value), Ui.Muted, "~", Ui.Warning), IsExpanded = true }
         };
+        item.Tag = path;
         item.Classes.Add("json-" + node.Kind.ToString().ToLowerInvariant());
+        item.PropertyChanged += (_, change) =>
+        {
+            if (change.Property == TreeViewItem.IsExpandedProperty) toggled(path, item.IsExpanded);
+        };
         if (node.Kind is JsonChange.Added or JsonChange.Removed)
         {
             // The whole added or removed value can still be browsed.
             var value = (node.New ?? node.Old)!.Value;
             if (value.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
-                foreach (var child in Children(Item(null, value))) item.Items.Add(child);
+                foreach (var child in Children(Item(null, value, path, toggled))) item.Items.Add(child);
             return item;
         }
         var unchanged = 0;
         foreach (var child in node.Children)
             if (child.Kind == JsonChange.Unchanged) unchanged++;
-            else item.Items.Add(DiffItem(child));
+            else item.Items.Add(DiffItem(child, path + "/" + child.Key.Replace("~", "~0").Replace("/", "~1"), toggled));
         if (unchanged > 0 && node.Children.Count > 0)
             item.Items.Add(new TreeViewItem { Header = Ui.Text($"… {unchanged} unchanged", Ui.Hint, 12) });
         return item;

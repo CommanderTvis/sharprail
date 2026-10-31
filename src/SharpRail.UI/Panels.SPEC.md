@@ -472,7 +472,10 @@ whose diffs load and unload editors. These are synthetic results, not native pre
     is structural: members by key regardless of order, array elements by identity (`id`, `key` or `name`,
     otherwise the whole value), showing added, removed and changed nodes with a count of the unchanged
     rest, a notice when the sides differ only in formatting or member order, and a notice naming the side
-    that is not valid JSON.
+    that is not valid JSON. Changed containers open always; added and removed values open at every depth,
+    breadth first, within the same 2,000-node budget (`JsonViews.ExpandBudget`), the rest staying one click
+    away. The `… N unchanged` rows are not nodes. Hand toggles are the diff tab's view state and are replayed
+    over the default on a refresh.
   - Notebooks (`.ipynb`, nbformat 4) as cells with kind, execution count, source and outputs. Stream,
     plain-text and error outputs are text, PNG/JPEG/GIF outputs are decoded as pixels, and markup outputs
     (HTML, SVG, JavaScript) are named, never drawn. A diff aligns cells by id, otherwise by source, and
