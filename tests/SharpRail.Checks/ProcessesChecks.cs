@@ -169,11 +169,10 @@ internal static class ProcessesChecks
     /// Polling must not rebuild the pane: snapshots with the same structure and new numbers keep the row controls, the scroll offset, the
     /// selection and a collapsed group; rows of vanished processes go; an equal snapshot touches nothing; a hidden pane asks for nothing.
     /// </summary>
+    // Needs the headless platform: the gate runs it inside UiChecks.Run, the focused modes set the platform up first. A host-section case must not create
+    // the platform itself, or later host cases run beside a live Avalonia platform and one of them hangs.
     internal static void RunUi()
     {
-        // The full suite reaches this case without a windowing platform when a shard skips the cases that create one.
-        try { AppBuilder.Configure<SharpRail.UI.App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting(); }
-        catch (InvalidOperationException) { } // already set up by an earlier case
         var shown = false;
         var next = Pane(0);
         var panel = new ProcessesPanel(() => Task.FromResult(next), _ => Task.CompletedTask, message => throw new InvalidOperationException(message), () => shown);
