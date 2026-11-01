@@ -55,7 +55,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   highlighted.
 - Right-click opens the project context menu at the row without selecting or navigating; with the name
   focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Copy absolute path, Start work, Open existing worktree…, separator,
-  Rename…, Close project. Rename (ThinkRail #764) opens the name dialog on the shown name and
+  Rename…, Close project; Open existing worktree… and Rename… are plain text, the others carry icons. Rename (ThinkRail #764) opens the name dialog on the shown name and
   sends `HostStateChange.RenameProject`; every window follows the broadcast, restyling the row's text in place.
   Upstream renames inline in the row; SharpRail uses its name dialog, which also refuses leading or trailing spaces. Create is exactly the `+` flow (opening the project's home first if
   needed).

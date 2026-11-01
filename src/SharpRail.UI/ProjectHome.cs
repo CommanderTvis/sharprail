@@ -268,13 +268,13 @@ public sealed partial class WorkbenchWindow
         copy.Name = "ProjectMenuCopyPath";
         var close = Ui.IconMenu("Close project", () => _ = CloseProjectAsync(project), ActionIcon.Close);
         close.Name = "ProjectMenuClose";
-        var existing = Ui.IconMenu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project), ActionIcon.OpenFolder);
+        var existing = Ui.Menu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project));
         existing.Name = "ProjectMenuOpenExisting";
         menu.Items.Add(copy);
         menu.Items.Add(create);
         menu.Items.Add(existing);
         menu.Items.Add(new Separator());
-        var rename = Ui.IconMenu("Rename…", () => _ = RenameProjectAsync(project), ActionIcon.Rename);
+        var rename = Ui.Menu("Rename…", () => _ = RenameProjectAsync(project));
         rename.Name = "ProjectMenuRename";
         menu.Items.Add(rename);
         menu.Items.Add(close);
