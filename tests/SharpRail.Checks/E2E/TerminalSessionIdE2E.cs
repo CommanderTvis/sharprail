@@ -49,6 +49,8 @@ internal static class TerminalSessionIdE2E
         {
             Agent(kind, id);
             var item = Offered().Single();
+            Require(app.Find<Button>("Tab_" + tab).ContextMenu!.Items.OfType<MenuItem>().First() is { Header: "Close", Icon: not null },
+                "A terminal tab menu leads with the iconed Close.");
             Require(Equals(item.Header, "Copy session ID") && item.IsVisible, $"A {kind} tab with a session id offers Copy session ID.");
             TopLevel.GetTopLevel(item)!.UpdateLayout();
             app.Click(item, freshGesture: false);

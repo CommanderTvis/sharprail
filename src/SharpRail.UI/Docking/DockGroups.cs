@@ -637,6 +637,7 @@ public sealed partial class DockSurface
     private ContextMenu TabMenu(DockGroup group, DockTab tab, Control geometry)
     {
         var menu = new ContextMenu();
+        menu.Items.Add(Ui.IconMenu("Close", () => Session.Close(group.Id, tab.Id), ActionIcon.Close));
         if (!tab.IsTool && tab.Kind != "terminal") menu.Items.Add(Ui.Menu("Keep open", () => Session.Keep(group.Id, tab.Id), tab.Preview));
         if (tab.Kind == "terminal" && RenameTerminal is not null)
         {
@@ -658,7 +659,6 @@ public sealed partial class DockSurface
             menu.Items.Add(copyRelative);
             menu.Items.Add(copyAbsolute);
         }
-        menu.Items.Add(Ui.IconMenu("Close", () => Session.Close(group.Id, tab.Id), ActionIcon.Close));
         // Removing a group merges its tabs into a neighbour rather than closing them, so the entry shows only where it can act.
         if (RemoveGroupMenuItem(group).IsEnabled) menu.Items.Add(Ui.Menu("Close group", () => RemoveGroup(group.Id)));
         var members = Session.Tabs(group.Id);
