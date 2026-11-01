@@ -264,6 +264,11 @@ internal static class ClaudeChatUiChecks
         Is(Tool("mcp__web_tools__fetch", new { url = "https://docs.example.com/x/y" }), "Web Tools [fetch]", "docs.example.com");
         Is(Tool("mcp__srv__t", new { text = new string('q', 50) }), "Srv [t]", new string('q', 30) + "\u2026");
         Is(Tool("mcp__srv__t", new { query = new string('q', 50), text = "ignored" }), "Srv [t]", new string('q', 40) + "\u2026");
+        Is(Tool("mcp__plugin_sharprail_sharprail__lsp_navigate", new { operation = "references", query = "ChatView", workspace = "/very/long/path" }), "SharpRail [LSP navigate]", "references ChatView");
+        Is(Tool("mcp__plugin_sharprail_sharprail__lsp_diagnostics", new { paths = new[] { "a.cs", "b.cs" }, workspace = "/w" }), "SharpRail [LSP diagnostics]", "a.cs (+1 more)");
+        Is(Tool("mcp__sharprail__context_search", new { query = "tool cards" }), "SharpRail [Context search]", "tool cards");
+        Is(Tool("mcp__plugin:sharprail:sharprail__set_title", new { title = "Fix cards" }), "SharpRail [Set title]", "Fix cards");
+        Require(!ToolCards.InText(Tool("mcp__plugin_sharprail_sharprail__lsp_navigate", new { query = "x", workspace = "/w" })).Contains("workspace"), "SharpRail IN text hides workspace.");
         Is(Tool("mcp__claude-in-chrome__navigate", new { url = "https://a.example/b" }), "Claude in Chrome [Navigate]", "a.example");
         Is(Tool("Mystery", new { a = 1 }, summary: "sum"), "Mystery", "sum");
         Require(ToolCards.InText(Tool("Mystery", new { a = 1 })).Contains("\n") && ToolCards.InText(Tool("Agent", new { prompt = "P" })) == "P" && ToolCards.InText(Tool("Bash", new { command = "c" })) == "c", "IN is pretty JSON, the agent's prompt, or the command.");

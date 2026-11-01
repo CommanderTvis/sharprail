@@ -102,6 +102,7 @@ workspace, never by the view.
   audio have no record. Tool diffs (`Diff` content) reach the card only as `FilePath`, not as old and new text.
 - Tool kinds: tool cards pick their layout by Claude Code tool name (Bash, Edit, Read, Grep, ExitPlanMode...). An ACP tool has a `kind`
   (read, edit, execute, search, fetch...) but its own title; the card falls back to the generic layout until the kind drives it.
+- SharpRail's own MCP tools (server `plugin_sharprail_sharprail`, `sharprail` or `plugin:sharprail:sharprail`) read "SharpRail [LSP navigate]" with a short line from the call's input (operation and query, first path, search query, title, id, description); the long `workspace` argument is never shown, in the header or the expanded IN row.
 - Header fields that only Claude Code has (`Chrome`, `ChatQuestionItem`'s AskUserQuestion shape, rewind and fork by message uuid,
   `StopTask`) are simply never set by another host; ACP has no equivalent of rewind or fork except `session/fork` where offered.
 - Session list: `ChatSessionInfo` has id, title and time, which fits `session/list`; paging and `cwd` filtering are not modelled.

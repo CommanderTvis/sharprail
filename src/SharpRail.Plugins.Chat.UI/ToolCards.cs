@@ -101,6 +101,7 @@ internal static class ToolCards
         var parts = name.Split("__", 3);
         var server = parts.Length > 1 ? parts[1] : name;
         var tool = parts.Length > 2 ? parts[2] : "";
+        if (IsSharpRail(server)) return new("SharpRail [" + SharpRailTool(tool) + "]", SharpRailSecondary(tool, input));
         var title = server == "claude-in-chrome" ? "Claude in Chrome" : Humanise(server);
         var shown = server == "claude-in-chrome" ? Humanise(tool) : tool;
         var secondary = "";
@@ -118,6 +119,38 @@ internal static class ToolCards
             break;
         }
         return new(title + " [" + shown + "]", secondary);
+    }
+
+    /// <summary>SharpRail's own MCP server, as Claude names it (plugin_sharprail_sharprail, plugin:sharprail:sharprail) or plainly.</summary>
+    private static bool IsSharpRail(string server) => server is "sharprail" or "plugin_sharprail_sharprail" or "plugin:sharprail:sharprail";
+
+    /// <summary>"LSP navigate" from "lsp_navigate": first word capitalised, acronyms upper-case.</summary>
+    internal static string SharpRailTool(string tool)
+    {
+        var words = tool.Split(['_', '-', ' '], StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(" ", words.Select((word, index) => word == "lsp" ? "LSP" : index == 0 ? char.ToUpperInvariant(word[0]) + word[1..] : word));
+    }
+
+    private static string SharpRailSecondary(string tool, JsonElement input)
+    {
+        string Pick(params string[] keys) => keys.Select(key => Str(input, key)).FirstOrDefault(value => value.Length > 0) ?? "";
+        var text = tool switch
+        {
+            "lsp_navigate" => string.Join(" ", new[] { Str(input, "operation"), Pick("query", "path") }.Where(part => part.Length > 0)),
+            "lsp_diagnostics" => Pick("path") is { Length: > 0 } one ? one
+                : input.ValueKind == JsonValueKind.Object && input.TryGetProperty("paths", out var paths) && paths.ValueKind == JsonValueKind.Array && paths.GetArrayLength() > 0
+                    ? (paths[0].GetString() ?? "") + (paths.GetArrayLength() > 1 ? $" (+{paths.GetArrayLength() - 1} more)" : "")
+                    : Str(input, "scope"),
+            "context_search" => Pick("query"),
+            "workspace_create" => Pick("description", "name"),
+            "set_title" => Pick("title"),
+            "visualize" => Pick("title", "type"),
+            _ when tool.StartsWith("spec_", StringComparison.Ordinal) => Pick("id", "query", "title"),
+            _ when tool.StartsWith("owned_process_", StringComparison.Ordinal) => Pick("description", "pid"),
+            _ => Pick("query", "title", "path")
+        };
+        if (text.Length == 0 && input.ValueKind == JsonValueKind.Object && tool.StartsWith("owned_process_", StringComparison.Ordinal) && input.TryGetProperty("pid", out var pid)) text = pid.ToString();
+        return Cut(Words(text), 60);
     }
 
     /// <summary>Lines of a text: its line breaks plus one, a final break not counted; zero for none.</summary>
@@ -202,7 +235,10 @@ internal static class ToolCards
     /// <summary>The IN row: a command as it is, anything else as indented JSON.</summary>
     internal static string InText(ChatToolItem tool) => tool.Name is "Bash" or "PowerShell" && Str(tool.Input, "command") is { Length: > 0 } command ? command
         : tool.Name is "Task" or "Agent" ? Str(tool.Input, "prompt")
-        : tool.Input.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? "" : JsonSerializer.Serialize(tool.Input, Indented);
+        : tool.Input.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? ""
+        : tool.Name.StartsWith("mcp__", StringComparison.Ordinal) && IsSharpRail(tool.Name.Split("__", 3)[1]) && tool.Input.ValueKind == JsonValueKind.Object
+            ? JsonSerializer.Serialize(tool.Input.EnumerateObject().Where(property => property.Name != "workspace").ToDictionary(property => property.Name, property => property.Value), Indented)
+        : JsonSerializer.Serialize(tool.Input, Indented);
 
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
