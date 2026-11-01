@@ -142,7 +142,6 @@ internal static class Program
         if (args.SequenceEqual(["--processes"]))
         {
             ProcessesChecks.Run(root).GetAwaiter().GetResult();
-            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             ProcessesChecks.RunUi();
             return;
         }

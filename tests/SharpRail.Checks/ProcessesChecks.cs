@@ -171,6 +171,9 @@ internal static class ProcessesChecks
     /// </summary>
     internal static void RunUi()
     {
+        // The full suite reaches this case without a windowing platform when a shard skips the cases that create one.
+        try { AppBuilder.Configure<SharpRail.UI.App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting(); }
+        catch (InvalidOperationException) { } // already set up by an earlier case
         var shown = false;
         var next = Pane(0);
         var panel = new ProcessesPanel(() => Task.FromResult(next), _ => Task.CompletedTask, message => throw new InvalidOperationException(message), () => shown);
