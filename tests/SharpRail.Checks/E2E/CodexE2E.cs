@@ -849,33 +849,24 @@ internal static class CodexE2E
         codex.Hook(terminal, new { hook_event_name = "SessionStart", session_id = "codex-model-test", model = "gpt-5.6-luna" });
         Button? Find(string kind) => codex.App.Window.GetLogicalDescendants().OfType<Button>().SingleOrDefault(item => item.Name == "TerminalAgentFact_" + kind && item.IsEffectivelyVisible);
         Button Chip() => Find("model")!;
-        E2eWorkspace.Until(() => Find("model") is { } model && Texts(model).Contains("gpt-5.6-luna", StringComparison.Ordinal));
-        Require(Find("effort") is null, "no effort chip until Codex reports an effort");
+        E2eWorkspace.Until(() => Find("model") is { } model && Texts(model).Trim() == "gpt-5.6-luna");
+        Require(Find("effort") is null, "model and effort are one chip, never two");
         codex.Hook(terminal, new { hook_event_name = "PostToolUse", session_id = "codex-model-test", reasoning_effort = "high" });
-        E2eWorkspace.Until(() => Find("effort") is { } effort && Texts(effort).Trim() == "high effort");
-        Require(Texts(Chip()).Contains("gpt-5.6-luna", StringComparison.Ordinal), "the model chip survives a report without a model");
-        var row = codex.App.Window.GetLogicalDescendants().OfType<Control>().First(item => item.GetType().Name == "CodexTerminalRow");
-        var order = row.GetLogicalDescendants().OfType<Button>().Select(item => item.Name).Where(name => name is "TerminalAgentFact_model" or "TerminalAgentFact_effort").ToArray();
-        Require(order.SequenceEqual(["TerminalAgentFact_model", "TerminalAgentFact_effort"]), "model then effort");
-        Require((ToolTip.GetTip(Find("effort")!) as string)?.Contains("as last reported by Codex's hooks", StringComparison.Ordinal) == true &&
-            (ToolTip.GetTip(Chip()) as string)?.Contains("as last reported by Codex's hooks", StringComparison.Ordinal) == true, "both chips say they are not a live read");
+        E2eWorkspace.Until(() => Texts(Chip()).Trim() == "gpt-5.6-luna \u00b7 high");
+        Require(Find("effort") is null, "still one chip once an effort is reported");
+        Require((ToolTip.GetTip(Chip()) as string) is { } tip && tip.Contains("Change model and effort (/model)", StringComparison.Ordinal) &&
+            tip.Contains("as last reported by Codex's hooks", StringComparison.Ordinal), "the chip says what a click does and that it is not a live read");
         Require(Chip().GetLogicalAncestors().Any(ancestor => ancestor.GetType().Name == "CodexTerminalRow"), "the accessory row is a compiled frame");
 
         terminal.Run($"stty raw -echo; {Self()} --fake-codex-input; stty sane");
         E2eWorkspace.Until(() => ScreenOf(terminal).Contains("codex command input ready", StringComparison.Ordinal));
         var chip = Chip();
-        Require(chip.ContextMenu is null, "the model chip has no menu: Codex's own picker does the choosing");
+        Require(chip.ContextMenu is null, "the chip has no menu: Codex's own picker does the choosing");
         codex.App.Click(chip);
         E2eWorkspace.Until(() => ScreenOf(terminal).Contains("SUBMITTED 1: \"/model\"", StringComparison.Ordinal));
         E2eWorkspace.Settle(400);
-        Require(!ScreenOf(terminal).Contains("SUBMITTED 2", StringComparison.Ordinal) && Texts(Chip()).Contains("gpt-5.6-luna", StringComparison.Ordinal),
-            "one click types /model once and the chip keeps the reported model");
-        Require(Find("effort")!.ContextMenu is null, "the effort chip has no menu either");
-        codex.App.Click(Find("effort")!);
-        E2eWorkspace.Until(() => ScreenOf(terminal).Contains("SUBMITTED 2: \"/model\"", StringComparison.Ordinal));
-        E2eWorkspace.Settle(400);
-        Require(!ScreenOf(terminal).Contains("SUBMITTED 3", StringComparison.Ordinal) && Texts(Find("effort")!).Trim() == "high effort",
-            "the effort chip opens the same /model picker once and keeps the reported effort");
+        Require(!ScreenOf(terminal).Contains("SUBMITTED 2", StringComparison.Ordinal) && Texts(Chip()).Trim() == "gpt-5.6-luna \u00b7 high",
+            "one click types /model once and the chip keeps the reported model and effort");
     }
 
     // codex-status.spec.ts. SharpRail does not adopt terminal titles, so the title half of the action-required case,

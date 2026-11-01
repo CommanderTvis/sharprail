@@ -12,7 +12,7 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.Plugins.Codex.UI;
 
 /// <summary>
-/// A detected Codex terminal's accessory row: the model and effort chips that open Codex's own /model picker, token totals, the plan,
+/// A detected Codex terminal's accessory row: the one model-and-effort chip that opens Codex's own /model picker, token totals, the plan,
 /// the session-only IDE-context chip and the attach button. Ordinary terminals show nothing. The row rebuilds only when
 /// what it shows changes.
 /// </summary>
@@ -131,15 +131,13 @@ public sealed class CodexTerminalFacts : ContentControl
             if (chip is null) facts.Children.Remove(slot);
             else slot.Content = chip;
         }
-        // Read-only like Claude's: the chips show what Codex last reported and a click only opens its own /model picker.
-        // Codex has no separate effort command; reasoning effort is chosen in the same picker.
+        // One chip for model and effort: it shows what Codex last reported and a click only opens its own /model picker, where both are chosen.
+        // Codex reports nothing until its first hook, so the chip stays reachable under a neutral label until then.
         var working = state?.Status == CodexStatus.Running;
-        Fill("Model", state?.Model is { } model
-            ? OpenerChip("model", model, $"{model} \u2014 as last reported by Codex's hooks", working, "model")
-            : null);
-        Fill("Effort", state?.Effort is { } effort
-            ? OpenerChip("effort", $"{effort} effort", "Reasoning effort as last reported by Codex's hooks; Codex sets it in its /model picker", working, "effort")
-            : null);
+        var label = state?.Model is { } model ? state.Effort is { } effort ? $"{model} \u00b7 {effort}" : model : state?.Effort ?? "model";
+        Fill("Model", OpenerChip("model", label, state?.Model is null && state?.Effort is null
+            ? "Change model and effort (/model); Codex has not reported them yet"
+            : $"Change model and effort (/model); {label} as last reported by Codex's hooks", working));
         Fill("Usage", state?.Usage is { } usage ? TerminalFacts.UsageChip("Codex", new(usage.Input, usage.Output, usage.CacheRead, usage.CacheWrite)) : null);
         Fill("Plan", state?.Plan is { Count: > 0 } plan
             ? TerminalFacts.Plan("Codex", [.. plan.Select(item => new TerminalTodo(item.Content, item.Status switch
@@ -160,8 +158,8 @@ public sealed class CodexTerminalFacts : ContentControl
     }
 
     // Clicking only opens Codex's own /model picker; the user chooses inside it, and the chip keeps what Codex last reported.
-    private Button OpenerChip(string kind, string label, string title, bool working, string what) =>
-        TerminalFacts.OpenerChip(kind, label, title, working, "Codex", "Codex", "/model", what, () => _ = OpenPickerAsync());
+    private Button OpenerChip(string kind, string label, string title, bool working) =>
+        TerminalFacts.OpenerChip(kind, label, title, working, "Codex", "Codex", "/model", "model and effort", () => _ = OpenPickerAsync());
 
     private async Task OpenPickerAsync()
     {

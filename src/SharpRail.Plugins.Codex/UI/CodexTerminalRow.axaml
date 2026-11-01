@@ -11,7 +11,6 @@
       </Style>
     </WrapPanel.Styles>
     <ContentControl x:Name="Model" />
-    <ContentControl x:Name="Effort" />
     <ContentControl x:Name="Usage" />
     <ContentControl x:Name="Plan" />
     <ContentControl x:Name="Ide" />
