@@ -1,5 +1,9 @@
 using System.Diagnostics;
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
@@ -8,6 +12,7 @@ using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.Processes;
 using SharpRail.Plugins.Processes.Host;
+using SharpRail.Plugins.Processes.UI;
 
 namespace SharpRail.Checks;
 
@@ -143,6 +148,81 @@ internal static class ProcessesChecks
         Require(await sampler.StopAsync(ProcessModel.SpawnedGroup, default) == 4 && source.Stopped.Order().SequenceEqual(["pid:12", "pid:13", "pid:14", "pid:21"]), "Stop group on spawned agents stops every row under it.");
         source.Stopped.Clear();
         Require(await sampler.StopAsync("pid:1", default) == 0 && await sampler.StopAsync("spawn:999", default) == 0 && source.Stopped.Count == 0, "An id the snapshot does not hold stops nothing.");
+    }
+
+    private static ProcessNode Leaf(string id, double cpu, int trend = 3) =>
+        new(id, "spawned", id, "pid " + id, 1, cpu, 1_000_000, [.. Enumerable.Range(0, trend).Select(item => cpu + item)], [], true);
+
+    private static ProcessSnapshot Pane(int round, params string[] without)
+    {
+        var spawned = Enumerable.Range(0, 30).Select(index => $"spawn:{index}").Where(id => !without.Contains(id)).Select(id => Leaf(id, round)).ToArray();
+        ProcessNode[] groups =
+        [
+            new(ProcessModel.LanguageGroup, "group", "Language servers", "", null, round, 5, [round], [Leaf("lang:a", round), Leaf("lang:b", round)], true),
+            new(ProcessModel.AgentGroup, "group", "AI agents and daemons", "", null, round, 5, [round], [], false),
+            new(ProcessModel.SpawnedGroup, "group", "Spawned agents", "", null, round, 5, [round], spawned, true)
+        ];
+        return new(round, groups, round, 15);
+    }
+
+    /// <summary>
+    /// Polling must not rebuild the pane: snapshots with the same structure and new numbers keep the row controls, the scroll offset, the
+    /// selection and a collapsed group; rows of vanished processes go; an equal snapshot touches nothing; a hidden pane asks for nothing.
+    /// </summary>
+    internal static void RunUi()
+    {
+        var shown = false;
+        var next = Pane(0);
+        var panel = new ProcessesPanel(() => Task.FromResult(next), _ => Task.CompletedTask, message => throw new InvalidOperationException(message), () => shown);
+        var window = new Window { Width = 400, Height = 150, Content = panel };
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        window.Show();
+        try
+        {
+            panel.Poll(); panel.Poll(); panel.Poll();
+            Require(panel.Requests == 0, "A hidden pane must not ask the host for a snapshot.");
+            shown = true;
+            panel.Poll();
+            Require(panel.Requests == 1 && panel.RowCount == 3 + 2 + 30, $"The first visible poll asks once and shows the whole tree, got {panel.Requests} requests and {panel.RowCount} rows.");
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            var ids = Enumerable.Range(0, 30).Select(index => $"spawn:{index}").Concat([ProcessModel.LanguageGroup, ProcessModel.SpawnedGroup, "lang:a"]).ToArray();
+            var first = ids.ToDictionary(id => id, id => panel.RowOf(id) ?? throw new InvalidOperationException("No row " + id));
+
+            panel.Scroll.Offset = new Vector(0, 60);
+            window.UpdateLayout();
+            var offset = panel.Scroll.Offset.Y;
+            Require(offset > 0, "The pane must be taller than its window for this check.");
+            panel.Choose("spawn:12", false);
+            panel.Choose(ProcessModel.LanguageGroup, true);
+            Require(panel.RowOf("lang:a") is null && panel.Selected == ProcessModel.LanguageGroup, "Collapsing a group removes its rows and selects it.");
+            panel.Choose("spawn:12", false);
+            for (var round = 1; round <= 6; round++)
+            {
+                panel.Apply(Pane(round));
+                window.UpdateLayout();
+            }
+            foreach (var id in ids.Where(id => id != "lang:a"))
+                Require(ReferenceEquals(first[id], panel.RowOf(id)), $"Row {id} was replaced by a poll.");
+            Require(panel.Scroll.Offset.Y == offset, "A poll moved the scroll offset.");
+            Require(panel.Selected == "spawn:12", "A poll lost the selection.");
+            Require(panel.RowOf("lang:a") is null && panel.RowOf("lang:b") is null, "A collapsed group re-expanded on a poll.");
+
+            panel.Apply(Pane(7, "spawn:7"));
+            Require(panel.RowOf("spawn:7") is null && panel.RowCount == 3 + 29, "The row of a vanished process must go and no other.");
+            foreach (var id in ids.Where(id => id is not ("lang:a" or "spawn:7")))
+                Require(ReferenceEquals(first[id], panel.RowOf(id)), $"Row {id} was replaced when a sibling vanished.");
+            // An equal snapshot is skipped entirely: a mark made on a row survives it.
+            var marked = panel.RowOf("spawn:3")!;
+            marked.Margin = new Thickness(1);
+            panel.Apply(Pane(7, "spawn:7"));
+            Require(marked.Margin == new Thickness(1), "An unchanged snapshot rewrote rows.");
+            panel.Choose(ProcessModel.LanguageGroup, true);
+            Require(panel.RowOf("lang:a") is not null, "Toggling the group again expands it.");
+            panel.Apply(Pane(8, "spawn:7"));
+            Require(panel.RowOf("lang:a") is not null && ReferenceEquals(first["spawn:3"], panel.RowOf("spawn:3")), "A returning node keeps its place.");
+            Console.WriteLine("PASS processes pane: polls reconcile rows in place, keeping controls, scroll, selection and collapse, dropping vanished rows, skipping equal snapshots; a hidden pane asks for nothing");
+        }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); }
     }
 
     private static async Task PluginSwitch(string directory)
