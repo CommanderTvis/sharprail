@@ -546,7 +546,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     private static string? ConfiguredShell() =>
         Environment.GetEnvironmentVariable("SHELL") is { } configured && !string.IsNullOrWhiteSpace(configured) && File.Exists(configured) ? configured : null;
 
-    private static string LoginShell() => ConfiguredShell() ?? (OperatingSystem.IsWindows() ? WindowsProcesses.DefaultShell() : File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh");
+    internal static string LoginShell() => ConfiguredShell() ?? (OperatingSystem.IsWindows() ? WindowsProcesses.DefaultShell() : File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh");
 
     private static readonly string[] ClaudeSessionMarkers =
     [

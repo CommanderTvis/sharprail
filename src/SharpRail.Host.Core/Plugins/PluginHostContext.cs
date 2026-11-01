@@ -106,6 +106,9 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 
     public string TerminalToken(TerminalRef terminal) => TerminalSeams.Token(terminal);
 
+    public ValueTask<IReadOnlyDictionary<string, string>> ShellEnvironmentAsync(TerminalRef terminal, CancellationToken cancellationToken = default) =>
+        runtime.ShellEnvironmentAsync(terminal, cancellationToken);
+
     public TerminalRef? TerminalForToken(string token) => TerminalSeams.ForToken(token);
 
     public TerminalAgentRecord? AgentRecord(TerminalRef terminal) => runtime.AgentRecord(terminal);

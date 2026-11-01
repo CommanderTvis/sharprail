@@ -94,6 +94,21 @@ public interface IPluginHostContext
     /// <returns>The token, valid until the terminal closes.</returns>
     string TerminalToken(TerminalRef terminal);
 
+    /// <summary>
+    /// The environment a shell started for this terminal would get (H5, H22): the host's own, sanitised the way terminals are, with the
+    /// workspace environment steps and every plugin's contribution applied. A host without terminals returns the process environment.
+    /// Resolves the workspace environment, so it runs off the UI thread.
+    /// </summary>
+    /// <param name="terminal">The terminal the environment is for.</param>
+    /// <param name="cancellationToken">Cancels the wait.</param>
+    /// <returns>The variables, in full.</returns>
+    ValueTask<IReadOnlyDictionary<string, string>> ShellEnvironmentAsync(TerminalRef terminal, CancellationToken cancellationToken = default)
+    {
+        var plain = new Dictionary<string, string>();
+        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables()) plain[(string)entry.Key] = (string?)entry.Value ?? "";
+        return ValueTask.FromResult<IReadOnlyDictionary<string, string>>(plain);
+    }
+
     /// <summary>Resolves a token minted by <see cref="TerminalToken"/> (H6).</summary>
     /// <param name="token">The token.</param>
     /// <returns>Its terminal, or <see langword="null"/> when unknown.</returns>

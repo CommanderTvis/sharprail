@@ -310,6 +310,19 @@ public sealed partial class PluginRuntime
         if (EnvironmentProviders().Count > 0) await Resolutions.PrepareAsync(terminal.WorkspaceId, cancellationToken);
     }
 
+    /// <summary>The environment a terminal's shell would start with, in full, for a plugin that runs a command of its own (H5).</summary>
+    internal async ValueTask<IReadOnlyDictionary<string, string>> ShellEnvironmentAsync(TerminalRef terminal, CancellationToken cancellationToken)
+    {
+        await PrepareEnvironment(terminal, cancellationToken);
+        var variables = new Dictionary<string, string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        foreach (var pair in PtyTerminalService.ShellEnvironment(null, Environment(terminal), PtyTerminalService.LoginShell()).OfType<string>())
+        {
+            var split = pair.IndexOf('=', StringComparison.Ordinal);
+            if (split > 0) variables[pair[..split]] = pair[(split + 1)..];
+        }
+        return variables;
+    }
+
     /// <summary>Resolves a new workspace's environment in the background, so trust is settled before its first terminal.</summary>
     private void WarmEnvironment(string directory)
     {

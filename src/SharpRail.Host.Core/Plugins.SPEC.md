@@ -396,6 +396,11 @@ first terminal. Tools run through `IWorkspaceEnvironmentEdit.RunAsync` (no conso
 tree killed on timeout or cancellation). A variable a step removes affects later steps only; the shell still inherits
 the host's value.
 
+A plugin that runs a command of its own in a workspace's shell (the Claude Code chat's bash mode) asks
+`ShellEnvironmentAsync(terminal)` for the environment a terminal's shell would start with: it waits for the same resolution
+as a starting shell does, then returns the full variable set (the host's own, sanitised as terminals' are, with the steps' and
+every plugin's contributions). It runs off the UI thread; a host without terminals returns the process environment.
+
 A step may also `ShellInit(shell, script)` and `Report(label, detail)`. Scripts (zsh and fish) reach the shell through
 `ShellEnvironmentHooks` (`Terminals.SPEC.md`). Reports become `WorkspaceEnvironmentFact`s, each with the variables its step set,
 and every finished resolution is handed to the `OnWorkspaceEnvironment` observers: `Env`'s chips are one.
