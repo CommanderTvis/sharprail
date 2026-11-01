@@ -210,7 +210,8 @@ public sealed partial class WorkbenchWindow
             Tag = tab.Id,
             Content = row,
             Height = (subtitle is null ? 36 : 44) + (boxed ? 2 : 0),
-            Padding = new Thickness(8, 0, 24, 0),
+            // The tab list is inset 4 from the rail edge, its row 4 more, and a boxed tab's border 1, so this puts the dot on the workspace dot's column.
+            Padding = new Thickness(8, 0, RailDotInset - 8 - (boxed ? 1 : 0), 0),
             CornerRadius = new CornerRadius(6),
             BorderThickness = new Thickness(boxed ? 1 : 0),
             BorderBrush = selected && boxed ? Ui.BorderBrush : Avalonia.Media.Brushes.Transparent,

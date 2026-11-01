@@ -398,6 +398,9 @@ public sealed partial class WorkbenchWindow
             : [new("", project, WorkspaceKinds.Default, project, git.Worktrees.FirstOrDefault(tree => tree.IsMain)?.Branch ?? "", ""), .. known];
     }
 
+    /// <summary>Distance from the rail row's right edge to the right edge of its status dot, shared by workspace and tab rows; it clears the settle and actions buttons.</summary>
+    internal const double RailDotInset = 60;
+
     private Control WorkspaceItem(WorkspaceRecord worktree)
     {
         // Another project's workspace opens that project; renaming and removal stay with the project that is open, while
@@ -491,7 +494,7 @@ public sealed partial class WorkbenchWindow
             Tag = worktree.Path,
             Content = contents,
             Background = active ? Ui.Selected : Avalonia.Media.Brushes.Transparent,
-            Padding = new Thickness(4, 4, 60, 4),
+            Padding = new Thickness(4, 4, RailDotInset, 4),
             MinHeight = 28,
             CornerRadius = new(4),
             BorderThickness = new(0),

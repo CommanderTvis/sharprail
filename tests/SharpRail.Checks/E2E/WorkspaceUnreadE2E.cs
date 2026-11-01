@@ -104,6 +104,9 @@ internal static class WorkspaceUnreadE2E
         var tabDot = tabRow.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "TerminalFailedMark");
         Require(tabDot.IsVisible && (ToolTip.GetTip(tabDot) as string ?? "").Contains("Claude Code"), "The failed agent's tab row must carry a named dot.");
         Require(Within(tabRow).Contains(Within(tabDot)), "The tab dot must sit inside its tab row.");
+        Require(Math.Abs(Within(Dot(app, other)).Right - Within(tabDot).Right) < 0.5, "The workspace dot and the tab dot must share a right edge: workspace " + Within(Dot(app, other)) + ", tab " + Within(tabDot));
+        Require(Math.Abs(Within(Dot(app, other)).Center.X - Within(tabDot).Center.X) < 0.5, "The workspace dot and the tab dot must share a centre x.");
+        Require(Math.Abs(Within(tabDot).Center.Y - Within(tabRow).Center.Y) < 1 && Math.Abs(Within(Dot(app, other)).Center.Y - rowBounds.Center.Y) < 1, "Each dot must be vertically centred on its own row.");
         WorkspaceTabsE2E.Switch(app, other);
         app.Window.Activate();
         Until(() => Mark(other) is null && !app.Workbench.Signals.Failed(SharpRail.UI.Terminal.TerminalLaunch.SessionFor(other, failedTab)));

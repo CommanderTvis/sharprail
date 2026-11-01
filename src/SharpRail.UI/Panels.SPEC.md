@@ -157,7 +157,8 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   The workspace menu (rail row and header) offers Mark as unread or Mark as read for the current mark; see
   HostState.SPEC.md "Unread workspaces".
 - The unread dot sits in its own right-hand column of the workspace row, centred on the whole row and clear of the
-  settle and actions buttons. A failure names its agents: the row tooltip reads "Claude Code in “Orchestrator” hit an
+  settle and actions buttons. Tab rows' status dots (agent status, failed mark) end on the same column: workspace and tab rows
+  share one trailing inset (`RailDotInset`), so their dots have equal right edges and each is centred on its own row. A failure names its agents: the row tooltip reads "Claude Code in “Orchestrator” hit an
   error" (up to three agent/tab pairs, then "and N more"; "An agent hit an error" when only the host mark is known),
   and each failing agent terminal's own tab row (Projects tab list and tab strip) carries a danger dot in the tab's
   adornment slot with the same wording for that agent. Both come from in-memory state: the terminal signal board's
