@@ -8,9 +8,10 @@ namespace SharpRail.Plugins.Processes;
 /// </summary>
 /// <param name="Id">Stable across snapshots; the stop methods take it.</param>
 /// <param name="Detail">The tooltip: pid, workspace and command.</param>
+/// <param name="Workspace">The id (root path) of the workspace the row belongs to, so a client can scope the tree to one project; null on the three top groups.</param>
 /// <param name="Trend">The last CPU samples, oldest first, at most <see cref="ProcessesPlugin.TrendLength"/>.</param>
 public sealed record ProcessNode(string Id, string Kind, string Label, string Detail, int? Pid, double Cpu, long MemoryBytes,
-    IReadOnlyList<double> Trend, IReadOnlyList<ProcessNode> Children, bool CanStop);
+    IReadOnlyList<double> Trend, IReadOnlyList<ProcessNode> Children, bool CanStop, string? Workspace = null);
 
 /// <param name="Sequence">Increases with every fresh sample.</param>
 public sealed record ProcessSnapshot(long Sequence, IReadOnlyList<ProcessNode> Groups, double TotalCpu, long TotalMemoryBytes);

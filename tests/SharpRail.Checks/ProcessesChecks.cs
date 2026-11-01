@@ -222,9 +222,47 @@ internal static class ProcessesChecks
             Require(panel.RowOf("lang:a") is not null, "Toggling the group again expands it.");
             panel.Apply(Pane(8, "spawn:7"));
             Require(panel.RowOf("lang:a") is not null && ReferenceEquals(first["spawn:3"], panel.RowOf("spawn:3")), "A returning node keeps its place.");
+            ScopeChecks(window);
             Console.WriteLine("PASS processes pane: polls reconcile rows in place, keeping controls, scroll, selection and collapse, dropping vanished rows, skipping equal snapshots; a hidden pane asks for nothing");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); }
+    }
+
+    private static ProcessNode Owned(string id, string workspace, double cpu) =>
+        Leaf(id, cpu) with { Workspace = workspace };
+
+    /// <summary>The project scope: a pane shows only its project's rows and sums, the toggle reveals the rest in place, stops stay on visible rows.</summary>
+    private static void ScopeChecks(Window window)
+    {
+        ProcessNode[] mine = [Owned("spawn:1", "/p/a", 10), Owned("spawn:2", "/p/a2", 20)];
+        ProcessNode[] other = [Owned("spawn:3", "/q/b", 40)];
+        ProcessSnapshot Mixed() => new(1,
+        [
+            new(ProcessModel.LanguageGroup, "group", "Language servers", "", null, 0, 0, [], [], false),
+            new(ProcessModel.SpawnedGroup, "group", "Spawned agents", "", null, 70, 3_000_000, [70], [.. mine, .. other], true)
+        ], 70, 3_000_000);
+        var filtered = ProcessesPanel.Filter(Mixed(), new HashSet<string> { "/p/a", "/p/a2" });
+        Require(filtered.TotalCpu == 30 && filtered.TotalMemoryBytes == 2_000_000 && filtered.Groups[1].Children.Count == 2 && filtered.Groups[1].Cpu == 30 && filtered.Groups[1].Trend.Count == 3,
+            "The filter keeps the project's rows and recomputes group sums and the total.");
+
+        var stopped = new List<string>();
+        var view = new ProcessesView();
+        var panel = new ProcessesPanel(() => Task.FromResult(Mixed()), id => { stopped.Add(id); return Task.CompletedTask; }, message => throw new InvalidOperationException(message), () => true,
+            () => new HashSet<string> { "/p/a", "/p/a2" }, view);
+        window.Content = panel;
+        panel.Apply(Mixed());
+        Require(panel.RowCount == 2 + 2 && panel.RowOf("spawn:3") is null, "By default only the pane's own project is shown.");
+        var row = panel.RowOf("spawn:1")!;
+        panel.Choose(ProcessModel.SpawnedGroup, false);
+        Require(panel.StopTargets(panel.Snapshot!.Groups[1]).SequenceEqual(["spawn:1", "spawn:2"]), "Stop group in a scoped pane names only visible rows.");
+        view.AllProjects = true;
+        panel.Apply(Mixed());
+        Require(panel.RowCount == 2 + 3 && panel.RowOf("spawn:3") is not null && ReferenceEquals(row, panel.RowOf("spawn:1")) && panel.Selected == ProcessModel.SpawnedGroup,
+            "Showing all projects adds rows in place and keeps controls and selection.");
+        Require(panel.StopTargets(panel.Snapshot!.Groups[1]).SequenceEqual([ProcessModel.SpawnedGroup]), "Unscoped, Stop group stops the whole group.");
+        view.AllProjects = false;
+        panel.Apply(new ProcessSnapshot(2, [.. Mixed().Groups.Select(group => group with { Children = [.. group.Children.Where(child => child.Workspace != "/p/a" && child.Workspace != "/p/a2")] })], 40, 1_000_000));
+        Require(panel.RowCount == 0 && panel.Snapshot!.TotalCpu == 0, "A project with nothing running shows no rows (and the message).");
     }
 
     private static async Task PluginSwitch(string directory)

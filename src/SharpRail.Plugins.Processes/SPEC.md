@@ -59,6 +59,14 @@ per workspace. Language servers' own helper processes (for example tsserver) are
 
 Row tooltip: pid, workspace and tab, command line. CPU is percent of one core (several busy cores exceed 100). Memory is the macOS physical footprint (what Activity Monitor shows), the working set elsewhere.
 
+## Project scope
+
+Every node below a group carries the id (root path) of the workspace it belongs to (`ProcessNode.Workspace`, additive; null on the three groups). The host always samples and sends the whole tree once; the pane
+limits what it shows. By default a pane shows only the rows of its own project (every workspace of the project its workspace belongs to, from the host projection); the "All projects" check box above the tree
+shows everything. Groups, their sums and the Total are recomputed from the visible rows, and the Total line says "(this project)" or "(all projects)". Toggling re-filters the last snapshot in place (no request, same row
+controls, scroll, selection and collapse state). Stop selected and Stop group act on visible rows only: a scoped group is stopped through the visible rows below it, never by the group id, which would reach other projects.
+A project with nothing running shows "Nothing running for this project" and the check box stays. The choice is shared by the Processes panes of one run and is not persisted (the plugin has no settings type).
+
 ## Sampling
 
 The pane asks; the host never samples on its own. `snapshot` samples at most once per second (a closer call, including a second window's, returns the last sample), so the cost is one
@@ -84,7 +92,7 @@ A method not listed in the contract makes the plugin refuse to activate, so the 
 
 `--processes` (also in `--plugins` and the full run) uses fake process sources: grouping and nesting of language servers, an agent with two spawned children and a reported process, workspace rows, group sums
 and the total, the 30-sample trend cap, no sampling before a request and one sample per interval, the 50 percent CPU arithmetic, stop through the language service versus the process path, and ids the snapshot
-does not hold. A real runtime with a real terminal service covers the switch: default on, tools and prompt present, a reported process kept running after disabling, no registration while off, no quit sweep, and
+does not hold, and the project scope (filter, sums, toggle in place, scoped stop targets, empty project). A real runtime with a real terminal service covers the switch: default on, tools and prompt present, a reported process kept running after disabling, no registration while off, no quit sweep, and
 re-enabling restoring management. `--owned-processes` keeps covering the registry itself.
 
 Not covered: the pane rendered (no screenshot taken), UI polling stopping when the pane is hidden (it follows from `IsEffectivelyVisible`), Linux and Windows usage reads, and the

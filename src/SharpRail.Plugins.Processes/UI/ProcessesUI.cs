@@ -7,7 +7,14 @@ public sealed class ProcessesUI : PluginUIModule
 {
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
-        context.SideTool(new(ProcessesPlugin.Tool, _ => new ProcessesPanel(context)));
+        var view = new ProcessesView();
+        context.SideTool(new(ProcessesPlugin.Tool, workspace => new ProcessesPanel(context, workspace, view)));
         return null;
     }
+}
+
+/// <summary>The pane's view choice, shared by every Processes pane of this window set for the session: false shows only the pane's own project.</summary>
+internal sealed class ProcessesView
+{
+    internal bool AllProjects { get; set; }
 }

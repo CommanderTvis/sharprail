@@ -140,7 +140,7 @@ internal static class ProcessModel
         live.Add(row.Id);
         history.Record(row.Id, cpu);
         var canStop = row.Stop is not null || nodes.Any(node => node.CanStop);
-        return new(row.Id, row.Kind, row.Label, row.Detail, row.Pid, Math.Round(cpu, 1), memory, history.Trend(row.Id), nodes, canStop);
+        return new(row.Id, row.Kind, row.Label, row.Detail, row.Pid, Math.Round(cpu, 1), memory, history.Trend(row.Id), nodes, canStop, row.Workspace);
     }
 
     /// <summary>The stop targets at or below <paramref name="id"/>, in tree order; empty for an unknown id.</summary>

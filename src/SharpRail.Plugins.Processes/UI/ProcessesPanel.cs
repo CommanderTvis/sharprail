@@ -23,6 +23,10 @@ internal sealed class ProcessesPanel : UserControl
     private readonly Func<string, Task> stop;
     private readonly Action<string> warn;
     private readonly Func<bool> visible;
+    private readonly Func<IReadOnlySet<string>?> scope;
+    private readonly ProcessesView view;
+    private readonly CheckBox allProjects = new() { Content = "All projects" };
+    private bool syncing;
     private readonly StackPanel rows = new();
     private readonly ScrollViewer scroll;
     private readonly TextBlock message = Ui.Text("Reading processes…", Ui.Muted);
@@ -31,7 +35,7 @@ internal sealed class ProcessesPanel : UserControl
     private readonly DispatcherTimer timer = new() { Interval = Interval };
     private readonly HashSet<string> collapsed = [];
     private readonly Dictionary<string, RowView> views = [];
-    private ProcessSnapshot? snapshot;
+    private ProcessSnapshot? full, snapshot;
     private string? selected;
     private int generation;
     private bool reading;
@@ -48,18 +52,41 @@ internal sealed class ProcessesPanel : UserControl
         internal int Depth = -1;
     }
 
-    internal ProcessesPanel(IPluginUIContext context)
+    internal ProcessesPanel(IPluginUIContext context, string workspace, ProcessesView view)
         : this(() => context.RequestAsync(ProcessesContract.Snapshot, new ProcessSnapshotParams()).AsTask(),
-            id => context.RequestAsync(ProcessesContract.Stop, new ProcessStopParams(id)).AsTask(), message => context.Log.Warn(message))
+            id => context.RequestAsync(ProcessesContract.Stop, new ProcessStopParams(id)).AsTask(), message => context.Log.Warn(message),
+            scope: () => ProjectWorkspaces(context.Host(), workspace), view: view)
     { }
+
+    // The ids of every workspace of the project the pane's workspace belongs to, from the in-memory host projection.
+    private static IReadOnlySet<string> ProjectWorkspaces(PluginHostProjection host, string workspace)
+    {
+        var all = host.Workspaces.Values.SelectMany(items => items).ToArray();
+        var project = all.FirstOrDefault(item => item.Id == workspace)?.ProjectId;
+        return all.Where(item => item.ProjectId == project).Select(item => item.Id).Append(workspace).ToHashSet(StringComparer.Ordinal);
+    }
 
     /// <param name="read">Asks the host for a snapshot.</param>
     /// <param name="stop">Asks the host to stop a node.</param>
     /// <param name="warn">Reports a failed call.</param>
     /// <param name="visible">Whether the pane is on screen; the default is the control's own effective visibility.</param>
-    internal ProcessesPanel(Func<Task<ProcessSnapshot>> read, Func<string, Task> stop, Action<string> warn, Func<bool>? visible = null)
+    /// <param name="scope">The workspace ids of the pane's own project; null shows every row.</param>
+    /// <param name="view">The shared view choice (all projects or the own one); a fresh one by default.</param>
+    internal ProcessesPanel(Func<Task<ProcessSnapshot>> read, Func<string, Task> stop, Action<string> warn, Func<bool>? visible = null,
+        Func<IReadOnlySet<string>?>? scope = null, ProcessesView? view = null)
     {
         this.read = read; this.stop = stop; this.warn = warn;
+        this.scope = scope ?? (() => null);
+        this.view = view ?? new ProcessesView();
+        allProjects.IsChecked = this.view.AllProjects;
+        allProjects.IsVisible = scope is not null;
+        allProjects.Margin = new Thickness(8, 4, 8, 0);
+        allProjects.IsCheckedChanged += (_, _) =>
+        {
+            if (syncing) return;
+            this.view.AllProjects = allProjects.IsChecked == true;
+            Refilter();
+        };
         this.visible = visible ?? (() => IsEffectivelyVisible);
         stopSelected = Ui.Button("Stop selected", () => Stop(selected));
         stopGroup = Ui.Button("Stop group", () => Stop(GroupOf(selected)));
@@ -70,10 +97,12 @@ internal sealed class ProcessesPanel : UserControl
         DockPanel.SetDock(actions, Dock.Right);
         footer.Children.Add(actions);
         footer.Children.Add(total);
-        var body = new Grid { RowDefinitions = new("*,Auto") };
+        var body = new Grid { RowDefinitions = new("Auto,*,Auto") };
         scroll = new ScrollViewer { HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, Content = new StackPanel { Children = { message, rows } } };
+        Grid.SetRow(scroll, 1);
+        body.Children.Add(allProjects);
         body.Children.Add(scroll);
-        Grid.SetRow(footer, 1);
+        Grid.SetRow(footer, 2);
         body.Children.Add(footer);
         Content = body;
         timer.Tick += (_, _) => Poll();
@@ -86,6 +115,7 @@ internal sealed class ProcessesPanel : UserControl
     internal int Requests { get; private set; }
     internal ScrollViewer Scroll => scroll;
     internal string? Selected => selected;
+    internal ProcessSnapshot? Snapshot => snapshot;
     internal Control? RowOf(string id) => views.GetValueOrDefault(id)?.Row;
     internal int RowCount => rows.Children.Count;
 
@@ -117,20 +147,57 @@ internal sealed class ProcessesPanel : UserControl
         Apply(next);
     }
 
+    // A row, workspace or parent node stays inside one workspace, so the host's stop on its id touches only that project; a group spans
+    // projects, so a scoped group is stopped through the visible rows below it.
     private async void Stop(string? id)
     {
-        if (id is null) return;
-        try { await stop(id); }
+        if (id is null || snapshot is null) return;
+        var node = Find(snapshot.Groups, id);
+        if (node is null) return;
+        try { foreach (var target in StopTargets(node)) await stop(target); }
         catch (PluginCallException error) { warn(error.Message); }
         if (visible()) Read();
     }
 
-    /// <summary>Shows a snapshot: nothing at all when it equals the one shown, else the rows that changed are rewritten in place.</summary>
+    internal IReadOnlyList<string> StopTargets(ProcessNode node) =>
+        node.Workspace is not null || !Scoped ? [node.Id] : [.. node.Children.Where(child => child.CanStop).SelectMany(StopTargets)];
+
+    /// <summary>Whether the view is limited to the pane's own project.</summary>
+    internal bool Scoped => !view.AllProjects && scope() is not null;
+
+    /// <summary>Shows a snapshot: nothing at all when what it shows equals the one shown, else the rows that changed are rewritten in place.</summary>
     internal void Apply(ProcessSnapshot next)
     {
-        if (snapshot is { } shown && Same(shown, next)) return;
+        full = next;
+        Refilter();
+    }
+
+    private void Refilter()
+    {
+        if (full is null) return;
+        var next = Scoped ? Filter(full, scope()!) : full;
+        syncing = true; allProjects.IsChecked = view.AllProjects; syncing = false;
+        if (snapshot is { } shown && Same(shown, next) && scopedShown == Scoped) return;
         snapshot = next;
+        scopedShown = Scoped;
         Render();
+    }
+
+    private bool scopedShown;
+
+    private static double At(ProcessNode node, int index) => index >= 0 ? node.Trend[index] : 0;
+
+    /// <summary>The snapshot limited to rows of <paramref name="workspaces"/>; the group sums and the total are those of what remains.</summary>
+    internal static ProcessSnapshot Filter(ProcessSnapshot source, IReadOnlySet<string> workspaces)
+    {
+        var groups = source.Groups.Select(group =>
+        {
+            var kept = group.Children.Where(child => child.Workspace is null || workspaces.Contains(child.Workspace)).ToArray();
+            var length = kept.Length == 0 ? 0 : kept.Max(child => child.Trend.Count);
+            var trend = Enumerable.Range(0, length).Select(index => Math.Round(kept.Sum(child => At(child, child.Trend.Count - length + index)), 1)).ToArray();
+            return group with { Children = kept, Cpu = Math.Round(kept.Sum(child => child.Cpu), 1), MemoryBytes = kept.Sum(child => child.MemoryBytes), Trend = trend, CanStop = kept.Any(child => child.CanStop) };
+        }).ToArray();
+        return source with { Groups = groups, TotalCpu = Math.Round(groups.Sum(group => group.Cpu), 1), TotalMemoryBytes = groups.Sum(group => group.MemoryBytes) };
     }
 
     private static bool Same(ProcessSnapshot a, ProcessSnapshot b) =>
@@ -157,12 +224,14 @@ internal sealed class ProcessesPanel : UserControl
 
     private void Render()
     {
-        message.IsVisible = snapshot is null;
-        if (snapshot is null) return;
+        if (snapshot is null) { message.IsVisible = true; return; }
+        var empty = snapshot.Groups.All(group => group.Children.Count == 0);
+        message.Text = Scoped && empty ? "Nothing running for this project" : "Reading processes…";
+        message.IsVisible = Scoped && empty;
         if (selected is not null && Find(snapshot.Groups, selected) is null) selected = null;
         var wanted = new List<RowView>();
         var live = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var group in snapshot.Groups) Visit(group, 0, wanted, live);
+        if (!(Scoped && empty)) foreach (var group in snapshot.Groups) Visit(group, 0, wanted, live);
         foreach (var id in views.Keys.Where(id => !live.Contains(id)).ToArray()) views.Remove(id);
         // Only rows that appeared, vanished or moved touch the panel; the others keep their place, focus and pointer capture.
         for (var index = 0; index < wanted.Count; index++)
@@ -173,7 +242,7 @@ internal sealed class ProcessesPanel : UserControl
             rows.Children.Insert(index, row);
         }
         while (rows.Children.Count > wanted.Count) rows.Children.RemoveAt(rows.Children.Count - 1);
-        total.Text = $"Total {Cpu(snapshot.TotalCpu)} · {Memory(snapshot.TotalMemoryBytes)}";
+        total.Text = $"Total{(scope() is null ? "" : Scoped ? " (this project)" : " (all projects)")} {Cpu(snapshot.TotalCpu)} · {Memory(snapshot.TotalMemoryBytes)}";
         Buttons();
     }
 
