@@ -156,10 +156,17 @@ public sealed partial class WorkbenchWindow
             var title = pending.Count == 1
                 ? $"Do you want to save the changes you made to {pending[0].FileName}?"
                 : $"Do you want to save the changes to {pending.Count} files?";
-            switch (await Dialogs.AskToSave(this, title, pending.Count > 1))
+            var files = string.Join("\n", pending.Select(view => $"{view.FileName} ({state.Label(view.Workspace)})"));
+            switch (await Dialogs.AskToSave(this, title, pending.Count > 1, files))
             {
                 case Dialogs.SaveChoice.Save:
-                    foreach (var view in pending) await view.SaveAsync();
+                    // Each buffer saves to its own workspace; a failure is named and offers discarding that file.
+                    foreach (var view in pending)
+                    {
+                        if (await view.TrySaveAsync() is not { } error) continue;
+                        if (!await Dialogs.DiscardUnsaved(this, view.FileName, state.Label(view.Workspace), workbench.RedactError(error.Message))) return false;
+                        view.Discard();
+                    }
                     return pending.All(view => !view.HasPendingChanges);
                 case Dialogs.SaveChoice.DontSave:
                     foreach (var view in pending) view.Discard();

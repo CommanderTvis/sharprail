@@ -78,8 +78,10 @@ skipped. Each hit is a path, a 1-based line and that line's text cut at 400 char
 
 ## Saves
 
-A save names the workspace root it was edited in and the text it started from. It is refused when the
-window's workspace changed, when the file on disk no longer matches that original text (the editor keeps
+A save names the workspace root it was edited in and the text it started from. It is refused when
+the root is neither the session's current workspace nor another checkout of the same project (a buffer kept
+open in a workspace the window left saves to its own checkout, which is how quitting saves every workspace's
+edits), when the file on disk no longer matches that original text (the editor keeps
 the user's edits and reports the conflict), and when the text exceeds the editable limit. The new text is
 written to a sibling temporary file with the original's Unix mode, the path and content are checked again,
 and the temporary file is moved over the original. Saves are serialized with the session's other

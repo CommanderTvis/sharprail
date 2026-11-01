@@ -13,10 +13,9 @@ public sealed partial class ProjectServices
         string? temporary = null;
         try
         {
-            if (Path.GetFullPath(request.WorkspaceRoot) != root)
-                throw new IOException("The workspace changed. Return to the file's workspace before saving.");
-            var external = External(root, request.Path);
-            var path = external ?? Resolve(root, request.Path);
+            var saveRoot = SaveRoot(request.WorkspaceRoot);
+            var external = External(saveRoot, request.Path);
+            var path = external ?? Resolve(saveRoot, request.Path);
             if (GeneratedInstructions.Owns(path)) throw new UnauthorizedAccessException(GeneratedInstructions.Notice);
             var utf8 = new UTF8Encoding(false, true);
             if (utf8.GetByteCount(request.Text) > FileLimits.EditableBytes)
@@ -30,8 +29,8 @@ public sealed partial class ProjectServices
             cancellationToken.ThrowIfCancellationRequested();
             // Recheck after asynchronous I/O so a workspace/file replacement does
             // not accidentally redirect the write through a newly created symlink.
-            if (external is null) Resolve(root, request.Path);
-            else if (External(root, request.Path) is null) throw new UnauthorizedAccessException("The file is no longer exposed for editing.");
+            if (external is null) Resolve(saveRoot, request.Path);
+            else if (External(saveRoot, request.Path) is null) throw new UnauthorizedAccessException("The file is no longer exposed for editing.");
             if (!(await File.ReadAllBytesAsync(path, cancellationToken)).AsSpan().SequenceEqual(bytes))
                 throw new IOException("The file changed while saving. Your edits have been kept.");
             File.Move(temporary, path, true);
@@ -41,5 +40,16 @@ public sealed partial class ProjectServices
             try { if (temporary is not null && File.Exists(temporary)) File.Delete(temporary); }
             finally { mutations.Release(); }
         }
+    }
+
+    // A save goes to the checkout it was edited in, which may differ from the session's current one (a buffer kept
+    // open in another workspace of the same project, saved on quit); anything else is refused.
+    private string SaveRoot(string requested)
+    {
+        var full = Path.GetFullPath(requested);
+        if (full == root) return root;
+        if (KnownCheckout(full) is { } other && KnownCheckout(root) is { } current && other.ProjectRoot == current.ProjectRoot)
+            return other.Root;
+        throw new IOException("The file belongs to a workspace of another project. Return to it before saving.");
     }
 }

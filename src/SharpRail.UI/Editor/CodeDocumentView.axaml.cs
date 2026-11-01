@@ -20,6 +20,8 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
     internal string FileName => Path.GetFileName(path);
     /// <summary>The workspace-relative path this buffer saves to; a rename followed by <see cref="Retarget"/> changes it.</summary>
     internal string FilePath => path;
+    /// <summary>The workspace root this buffer was opened in and saves to, whichever workspace the window shows.</summary>
+    internal string Workspace => workspace;
     internal bool HasPendingChanges => saving || Editor.IsModified;
     private readonly Border deletedBanner;
 
@@ -54,7 +56,13 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
 
     internal async Task SaveAsync()
     {
-        if (saving || disposed || !Editor.IsModified) return;
+        if (await TrySaveAsync() is { } error && !disposed) report(error);
+    }
+
+    /// <summary>Saves to this buffer's own workspace; returns why it failed (the buffer keeps its edits) or null.</summary>
+    internal async Task<Exception?> TrySaveAsync()
+    {
+        if (saving || disposed || !Editor.IsModified) return null;
         saving = true;
         var text = Editor.Text;
         try
@@ -66,8 +74,9 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
                 if (Editor.Text == text) Editor.MarkSaved();
                 saved(text);
             }
+            return null;
         }
-        catch (Exception error) { if (!disposed) report(error); }
+        catch (Exception error) { return error; }
         finally { saving = false; if (!disposed) UpdateModified(); }
     }
 

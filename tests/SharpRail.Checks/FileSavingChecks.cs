@@ -22,6 +22,7 @@ internal static class FileSavingChecks
         var root = Path.Combine(fixture, "editor-saves"); Directory.CreateDirectory(root);
         var core = new ProjectServices(root);
         await Exercise(new LocalProjectAdapter(core), root);
+        await OtherWorkspace(fixture);
         await using var server = RemoteServer.Create(root, IPAddress.Loopback, 0, "editor-test");
         await server.StartAsync();
         try
@@ -35,6 +36,25 @@ internal static class FileSavingChecks
         }
         finally { await server.StopAsync(); }
         Console.WriteLine("PASS editor saves locally and over WebSocket RPC, conflict/workspace/path checks, encoding, permissions and cancellation");
+    }
+
+    // A buffer kept open in a workspace the window left saves to that workspace's own checkout, not the current one's.
+    private static async Task OtherWorkspace(string fixture)
+    {
+        var project = E2E.IsolatedGit.Repository(Path.Combine(fixture, "editor-saves-other"));
+        var second = project + "-other";
+        E2E.IsolatedGit.Run(project, "worktree", "add", "-b", "other", second);
+        var unrelated = E2E.IsolatedGit.Repository(Path.Combine(fixture, "editor-saves-unrelated"));
+        File.WriteAllText(Path.Combine(second, "kept.txt"), "one\n");
+        File.WriteAllText(Path.Combine(unrelated, "kept.txt"), "one\n");
+        var host = new LocalProjectAdapter(new ProjectServices(project));
+        await host.OpenProjectAsync(project);
+        await host.SaveFileAsync(new(second, "kept.txt", "one\n", "two\n"));
+        Require(File.ReadAllText(Path.Combine(second, "kept.txt")) == "two\n", "A save from a left workspace did not reach its own checkout.");
+        Require(!File.Exists(Path.Combine(project, "kept.txt")), "A save from a left workspace leaked into the current one.");
+        await Reject(host, new(unrelated, "kept.txt", "one\n", "foreign"));
+        await Reject(host, new(second, "../kept.txt", "one\n", "escape"));
+        Require(File.ReadAllText(Path.Combine(unrelated, "kept.txt")) == "one\n", "A save reached another project.");
     }
 
     private static async Task Exercise(IProjectServices host, string root)

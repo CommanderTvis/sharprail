@@ -212,12 +212,13 @@ public static class Dialogs
 
     public enum SaveChoice { Cancel, Save, DontSave }
 
-    public static async Task<SaveChoice> AskToSave(Window owner, string title, bool several)
+    public static async Task<SaveChoice> AskToSave(Window owner, string title, bool several, string? files = null)
     {
         var window = Create(title, 520);
+        window.Tag = "AskToSaveDialog";
         window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
         var text = window.FindControl<TextBlock>("DialogExplanation")!;
-        text.Text = "Your changes will be lost if you don't save them."; text.IsVisible = true;
+        text.Text = (files is null ? "" : files + "\n\n") + "Your changes will be lost if you don't save them."; text.IsVisible = true;
         var actions = window.FindControl<StackPanel>("DialogActions")!;
         actions.Children.Add(Ui.Button("Don't Save", () => window.Close(SaveChoice.DontSave)));
         actions.Children.Add(Ui.Button("Cancel", () => window.Close(SaveChoice.Cancel)));
@@ -225,6 +226,25 @@ public static class Dialogs
         save.IsDefault = true; actions.Children.Add(Primary(save));
         window.Opened += (_, _) => save.Focus();
         return await window.ShowDialog<SaveChoice>(owner);
+    }
+
+    /// <summary>A file that could not be saved: the reason, with a way out (discard its edits) besides cancelling the close.</summary>
+    public static async Task<bool> DiscardUnsaved(Window owner, string file, string workspace, string reason)
+    {
+        var window = Create($"Couldn't save {file}", 520);
+        window.Tag = "SaveFailedDialog";
+        window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
+        var text = window.FindControl<TextBlock>("DialogExplanation")!;
+        text.Text = $"{file} in workspace {workspace} was not saved: {reason}\n\nDiscard its changes to continue, or cancel to keep them."; text.IsVisible = true;
+        var actions = window.FindControl<StackPanel>("DialogActions")!;
+        var cancel = Ui.Button("Cancel", () => window.Close(false));
+        cancel.Name = "SaveFailedCancel";
+        var discard = Ui.Button("Discard This File", () => window.Close(true));
+        discard.Name = "SaveFailedDiscard";
+        actions.Children.Add(discard); actions.Children.Add(Primary(cancel));
+        cancel.IsDefault = true;
+        window.Opened += (_, _) => cancel.Focus();
+        return await window.ShowDialog<bool>(owner);
     }
 
     /// <summary>Marks the dialog's confirming action, which takes the reference's solid primary button style.</summary>

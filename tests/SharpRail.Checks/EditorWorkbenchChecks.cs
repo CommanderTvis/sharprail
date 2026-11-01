@@ -136,6 +136,21 @@ internal static class EditorWorkbenchChecks
             Answer(window, "Save");
             Pump(() => window.Layout.Tabs(group).All(tab => tab.Path != "second.cs"));
             Require(File.ReadAllText(Path.Combine(root, "second.cs")).StartsWith("// saved on close", StringComparison.Ordinal), "Save in the close prompt did not write the file.");
+            // A save that fails during the close prompt names the file and workspace and offers a way out instead of a dead end.
+            Await(window.OpenDocumentAsync("second.cs", true)); window.UpdateLayout();
+            Editor(window).Focus(); window.KeyTextInput("// doomed\n"); Dispatcher.UIThread.RunJobs();
+            File.WriteAllText(Path.Combine(root, "second.cs"), "external again\n");
+            window.Close(); Answer(window, "Save");
+            Pump(() => window.OwnedWindows.OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveFailedDialog"));
+            var failure = string.Join(" ", window.OwnedWindows.OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+            Require(failure.Contains("second.cs", StringComparison.Ordinal) && failure.Contains("changed on disk", StringComparison.Ordinal),
+                "The save failure dialog did not name the file and the reason: " + failure);
+            Answer(window, "Cancel");
+            Require(window.IsVisible && Editor(window).IsModified, "Cancelling a failed save closed the window or lost the buffer.");
+            window.Layout.Close(group, "file:second.cs"); Answer(window, "Save");
+            Answer(window, "Discard This File");
+            Pump(() => window.Layout.Tabs(group).All(tab => tab.Path != "second.cs"));
+            Require(File.ReadAllText(Path.Combine(root, "second.cs")) == "external again\n", "Discarding a file that failed to save wrote it.");
             Console.WriteLine("PASS workbench editor preview retention, unsaved dot, save/don't save/cancel prompts, reopening, tab switching, Cmd/Ctrl+S and conflict recovery");
         }
         finally

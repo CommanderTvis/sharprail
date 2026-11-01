@@ -295,6 +295,11 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
   and a Scintilla editor a banner over the text. Only a missing file marks it (a local
   `FileNotFoundException`, a remote `NotFound`); any other failed read leaves the tab as it was, and a later
   read that finds the file clears the mark. An editor with unsaved edits is never marked.
+- Closing the window or quitting asks about every unsaved editor of every workspace the window retains, listing
+  each as file name and workspace. Save writes each buffer to the workspace it was opened in, through the host
+  (never the active workspace's); Don't Save discards them; Cancel keeps the window. A save that fails (a file
+  changed or deleted on disk) opens a dialog naming the file, its workspace and the reason, offering Discard This
+  File to go on or Cancel to keep the edits and the window open.
 - An open tab follows its file through a rename or move, of the file or of a folder above it: its path,
   title, tooltip, highlighting and language-server document (closed under the old path, opened under the
   new one on the next inspection) take the new path, and the persisted layout keeps it. The tab keeps its id,
