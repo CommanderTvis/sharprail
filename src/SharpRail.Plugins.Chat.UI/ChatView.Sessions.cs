@@ -90,11 +90,18 @@ internal sealed partial class ChatView
     /// <summary>The flyout's content: a search box over a bounded, virtualized list. <paramref name="pick"/> gets the session chosen.</summary>
     internal (Control Panel, ListBox List, TextBox Search) BuildSessions(IReadOnlyList<ChatSessionInfo> all, Action<ChatSessionInfo> pick, DateTime now)
     {
+        var room = TopLevel.GetTopLevel(this)?.ClientSize.Width - 32 ?? MenuMaxWidth;
+        return BuildSessionList(all, pick, now, transcript.Header?.SessionId, chatId, Math.Max(120, Bounds.Height * 0.4), Math.Clamp(Math.Min(Bounds.Width - 48, room), 280, MenuMaxWidth));
+    }
+
+    /// <summary>The same list without a chat: the resume launcher shows it for a workspace that has no chat view yet.</summary>
+    internal static (Control Panel, ListBox List, TextBox Search) BuildSessionList(IReadOnlyList<ChatSessionInfo> all, Action<ChatSessionInfo> pick, DateTime now, string? own, string ownChat, double maxHeight, double width)
+    {
         var search = ChatPopup.Search(new TextBox { Name = "ChatSessionSearch", PlaceholderText = "Search sessions\u2026" });
         var clear = Ui.IconButton("close", "Clear search", () => search.Text = "");
         clear.Name = "ChatSessionSearchClear";
         clear.IsVisible = false;
-        var results = ChatPopup.Rows(new ListBox { Name = "ChatSessionMenu", MaxHeight = Math.Max(120, Bounds.Height * 0.4) });
+        var results = ChatPopup.Rows(new ListBox { Name = "ChatSessionMenu", MaxHeight = maxHeight });
         results.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<object>((item, _) => item is null ? null : SessionTemplate(item), false);
         ScrollViewer.SetHorizontalScrollBarVisibility(results, ScrollBarVisibility.Disabled);
         results.ContainerPrepared += (_, e) =>
@@ -102,12 +109,11 @@ internal sealed partial class ChatView
             if (e.Container is ListBoxItem { DataContext: SessionBucketHeader } header) { header.IsEnabled = false; header.Focusable = false; }
         };
         var note = Ui.Text("", Ui.Muted, 12);
-        var own = transcript.Header?.SessionId;
         void Fill()
         {
             var query = search.Text ?? "";
             clear.IsVisible = query.Length > 0;
-            var items = SessionItems(all, query, own, chatId, now);
+            var items = SessionItems(all, query, own, ownChat, now);
             results.ItemsSource = items;
             note.IsVisible = items.Count == 0;
             note.Text = all.Count == 0 ? "No sessions yet" : "No sessions found";
@@ -119,8 +125,7 @@ internal sealed partial class ChatView
         searchRow.Children.Add(clear);
         searchRow.Children.Add(search);
         var panel = ChatPopup.Container("ChatSessionsPanel", "Past conversations", searchRow, results, note);
-        var room = TopLevel.GetTopLevel(this)?.ClientSize.Width - 32 ?? MenuMaxWidth;
-        panel.Width = Math.Clamp(Math.Min(Bounds.Width - 48, room), 280, MenuMaxWidth);
+        panel.Width = width;
         Avalonia.Automation.AutomationProperties.SetName(panel, "Past conversations");
         Fill();
         return (panel, results, search);

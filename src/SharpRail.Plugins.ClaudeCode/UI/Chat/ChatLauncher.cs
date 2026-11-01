@@ -61,20 +61,16 @@ internal static class ChatLauncher
                 else ChatDocuments.Open(context, ClaudeChat.Agent(context), workspaceId, open.ChatId, "Claude Code", open);
                 return;
             }
-            var menu = new ContextMenu { Name = "ChatResumeMenu", Placement = PlacementMode.BottomEdgeAlignedLeft };
-            foreach (var session in sessions.Sessions.Take(30))
+            // The chat's own "Past conversations" list, anchored on the launcher control.
+            var flyout = new Flyout { Placement = PlacementMode.BottomEdgeAlignedLeft };
+            var width = Math.Clamp(TopLevel.GetTopLevel(anchor)?.ClientSize.Width - 32 ?? ChatView.MenuMaxWidth, 280, ChatView.MenuMaxWidth);
+            flyout.Content = ChatView.BuildSessionList(sessions.Sessions, session =>
             {
-                var when = DateTime.TryParse(session.LastModified, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var parsed) ? ChatView.RelativeTime(parsed.ToLocalTime(), DateTime.Now) : session.LastModified;
-                var item = new MenuItem { Header = $"{session.Title}  ·  {when}" + (session.ChatId is null ? "" : "  ·  open in another tab") };
-                item.Click += (_, _) =>
-                {
-                    if (session.ChatId is { } running && !fork) ChatDocuments.Open(context, ClaudeChat.Agent(context), workspaceId, running, session.Title);
-                    else ChatDocuments.Open(context, ClaudeChat.Agent(context), workspaceId, open.ChatId, session.Title, open with { ResumeSessionId = session.SessionId, Fork = fork ? true : null });
-                };
-                menu.Items.Add(item);
-            }
-            if (menu.Items.Count == 0) menu.Items.Add(new MenuItem { Header = "No earlier sessions", IsEnabled = false });
-            menu.Open(anchor);
+                flyout.Hide();
+                if (session.ChatId is { } running && !fork) ChatDocuments.Open(context, ClaudeChat.Agent(context), workspaceId, running, session.Title);
+                else ChatDocuments.Open(context, ClaudeChat.Agent(context), workspaceId, open.ChatId, session.Title, open with { ResumeSessionId = session.SessionId, Fork = fork ? true : null });
+            }, DateTime.Now, null, "", 360, width).Panel;
+            ChatPopup.Show(flyout, anchor);
             return;
         }
         ChatDocuments.Open(context, ClaudeChat.Agent(context), workspaceId, open.ChatId, "Claude Code", open);
