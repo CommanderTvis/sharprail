@@ -10,6 +10,8 @@ internal sealed partial class ChatFolder
 {
     private const int PreviewLimit = 512;
     private string? pendingCompaction;
+    // The card of a bash-mode command whose input the transcript gave and whose output is still to come.
+    private string? pendingBash;
 
     private static readonly string[] PeerLeads =
     [
@@ -87,7 +89,7 @@ internal sealed partial class ChatFolder
         return new ChatOrigin(kind) { Name = Str(origin, "name"), SenderTaskId = Str(origin, "senderTaskId") ?? Str(origin, "sender_task_id"), Subkind = Str(origin, "subkind") };
     }
 
-    private ChatNoticeItem PutNotice(string id, ChatNoticeLevel level, string text, string category, string? label = null, string? detail = null, IReadOnlyList<ChatSection>? sections = null, string? parent = null)
+    private ChatNoticeItem PutNotice(string id, ChatNoticeLevel level, string text, string category, string? label = null, string? detail = null, IReadOnlyList<ChatSection>? sections = null, string? parent = null, string? command = null, bool running = false)
     {
         var item = new ChatNoticeItem(id, items.GetValueOrDefault(id)?.Seq ?? Next(), level, text)
         {
@@ -95,7 +97,9 @@ internal sealed partial class ChatFolder
             Label = label,
             Detail = detail,
             Sections = sections ?? [],
-            ParentId = parent
+            ParentId = parent,
+            Command = command,
+            Running = running
         };
         Put(item);
         return item;
@@ -163,6 +167,7 @@ internal sealed partial class ChatFolder
             if (ParsePeer(trimmed, origin, agentSender) is { } peer) { PutPeer(id, peer); emitted++; continue; }
             if (origin is null && Wrapped(id, trimmed)) { emitted++; continue; }
             if (trimmed.StartsWith("<local-command-stdout>", StringComparison.Ordinal) || trimmed.StartsWith("<local-command-stderr>", StringComparison.Ordinal)) { CommandResult(id, ForkedSkill().Replace(trimmed, "").Trim()); emitted++; continue; }
+            if (trimmed.StartsWith("<bash-input>", StringComparison.Ordinal)) { BashInput(id, trimmed); emitted++; continue; }
             if (trimmed.StartsWith("<bash-stdout>", StringComparison.Ordinal) || trimmed.StartsWith("<bash-stderr>", StringComparison.Ordinal)) { BashOutput(id, trimmed); emitted++; continue; }
             if (trimmed.StartsWith("<post-tool-use-hook>", StringComparison.Ordinal)) { PutNotice(id, ChatNoticeLevel.Warning, "IDE diagnostics", ChatNoticeKinds.Diagnostics, detail: Tag(trimmed, "ide_diagnostics")); emitted++; continue; }
             if (trimmed.StartsWith("<command-name>", StringComparison.Ordinal) && CommandRecord(id, trimmed)) { emitted++; continue; }
@@ -305,18 +310,47 @@ internal sealed partial class ChatFolder
         PutNotice(id, error ? ChatNoticeLevel.Error : ChatNoticeLevel.Info, line, ChatNoticeKinds.CommandResult, detail: block ? shown : null);
     }
 
+    // The input of a bash-mode command: a card with just the command, which the output that follows fills in.
+    private void BashInput(string id, string text)
+    {
+        var command = Tag(text, "bash-input");
+        pendingBash = id;
+        PutNotice(id, ChatNoticeLevel.Info, "Terminal command output", ChatNoticeKinds.BashOutput, command: command);
+    }
+
     private void BashOutput(string id, string text)
     {
-        var sections = new List<ChatSection>();
         var stdout = Tag(text, "bash-stdout");
         var stderr = Tag(text, "bash-stderr");
         var exit = Tag(text, "bash-exit-code");
         var persisted = Tag(stdout, "persisted-output");
         if (persisted.Length > 0) stdout = persisted;
+        // Output that follows a command's input fills that card in; output the CLI recorded alone is a card of its own.
+        var command = pendingBash is { } waiting ? (items.GetValueOrDefault(waiting) as ChatNoticeItem)?.Command : null;
+        if (command is not null) id = pendingBash!;
+        pendingBash = null;
+        PutBash(id, command, stdout, stderr, exit, false);
+    }
+
+    private void PutBash(string id, string? command, string stdout, string stderr, string exit, bool running)
+    {
+        var sections = new List<ChatSection>();
         if (stdout.Length > 0) sections.Add(new("Output", stdout));
         if (stderr.Length > 0) sections.Add(new("Error output", stderr));
         if (exit.Length > 0) sections.Add(new("Exit code", exit));
-        PutNotice(id, stderr.Length > 0 ? ChatNoticeLevel.Warning : ChatNoticeLevel.Info, "Terminal command output", ChatNoticeKinds.BashOutput, sections: sections);
+        PutNotice(id, stderr.Length > 0 || exit.Length > 0 ? ChatNoticeLevel.Warning : ChatNoticeLevel.Info, "Terminal command output", ChatNoticeKinds.BashOutput, sections: sections, command: command, running: running);
+    }
+
+    /// <summary>Shows a bash-mode command's card as it runs and when it ends; the text is what the model will be given, so the card and the transcript agree.</summary>
+    public void PutShell(string id, string command, string stdout, string stderr, string exit, bool running) =>
+        PutBash(id, command, Sanitise(stdout).Trim(), Sanitise(stderr).Trim(), exit, running);
+
+    /// <summary>Gives a finished card the id its echo in the transcript will have, keeping its place before the prompt it rides on.</summary>
+    public void RekeyShell(string from, string to)
+    {
+        if (items.GetValueOrDefault(from) is not ChatNoticeItem card) return;
+        Remove(from);
+        Put(card with { Id = to });
     }
 
     // A slash command's record: /name args, with the parts it carried as an expandable detail.

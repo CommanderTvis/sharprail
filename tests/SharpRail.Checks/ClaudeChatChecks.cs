@@ -74,13 +74,18 @@ internal static class ClaudeChatChecks
               if grep -q "$CU" "$D/taken.txt" 2>/dev/null; then ok "$(rid "$line")" '{"cancelled":false}'; else ok "$(rid "$line")" '{"cancelled":true}'; fi ;;
             *'"subtype":"interrupt"'*) ok "$(rid "$line")"; result ;;
             *'"type":"user"'*)
+              echo "$line" >> "$D/users.log"
               case "$line" in *'"type":"image"'*) echo "$line" > "$D/image.txt";; esac
               case "$line" in *'"type":"document"'*) echo "$line" > "$D/document.txt";; esac
               UUID=$(echo "$line" | sed 's/.*"uuid":"\([^"]*\)".*/\1/')
               TEXT=$(echo "$line" | sed 's/.*"text":"\([^"]*\)".*/\1/')
               # A prompt sent mid-turn is held by the CLI: no echo and no turn until it is taken up.
               case "$TEXT" in *queued*|*taken*) case "$TEXT" in *taken*) echo "$UUID" >> "$D/taken.txt";; esac; continue;; esac
-              emit "{\"type\":\"user\",\"uuid\":\"$UUID\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"echo\"}]},\"parent_tool_use_id\":null}"
+              # A prompt that carries bash-mode blocks is echoed whole, as the CLI does with --replay-user-messages.
+              case "$line" in
+                *'bash-input'*) emit "$line" ;;
+                *) emit "{\"type\":\"user\",\"uuid\":\"$UUID\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"echo\"}]},\"parent_tool_use_id\":null}" ;;
+              esac
               case "$TEXT" in
                 *hello*)
                   emit '{"type":"stream_event","event":{"type":"message_start","message":{"id":"m1"}},"parent_tool_use_id":null}'
@@ -197,7 +202,7 @@ internal static class ClaudeChatChecks
             Directory.CreateDirectory(path);
             Environment.SetEnvironmentVariable(name, path);
         }
-        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); }
+        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); await BashMode(Path.Combine(directory, "bash-mode")); }
         finally { foreach (var (name, value) in previous) Environment.SetEnvironmentVariable(name, value); }
     }
 
@@ -343,6 +348,73 @@ internal static class ClaudeChatChecks
 
 
     private sealed class StateHolder { public HostStateStore? State { get; set; } }
+
+    // Bash mode on the host: the card streams with the environment a terminal gets, stops on request, is bounded, and rides the next send.
+    private static async Task BashMode(string directory)
+    {
+        var chat = Guid.NewGuid().ToString();
+        await using var fixture = await Start(directory, new StateHolder());
+        var project = fixture.Project;
+        fixture.Watch(chat);
+        await fixture.Call(ChatContract.Open, new ChatOpenParams(project, chat));
+        var ready = await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle, "the bash chat to be ready");
+        Require(ready.Header.CanRunShell, "The Claude host offers bash mode.");
+        async Task<ChatNoticeItem> Card(string command, Func<ChatNoticeItem, bool> done, string what) =>
+            (await fixture.Until(chat, view => view.Items.OfType<ChatNoticeItem>().Any(item => item.Command == command && done(item)), what)).Items.OfType<ChatNoticeItem>().Last(item => item.Command == command);
+        string Section(ChatNoticeItem card, string label) => card.Sections.FirstOrDefault(section => section.Label == label)?.Text ?? "";
+
+        // A run: the card shows the command, both streams and the failing exit code; the shell is in the project and has a terminal's environment.
+        await fixture.Call(ChatContract.RunShell, new ChatShellParams(project, chat, "echo hello; echo oops 1>&2; exit 3"));
+        var failed = await Card("echo hello; echo oops 1>&2; exit 3", card => !card.Running, "the failing command to finish");
+        Require(failed.Category == ChatNoticeKinds.BashOutput && Section(failed, "Output") == "hello" && Section(failed, "Error output") == "oops" && Section(failed, "Exit code") == "3",
+            "A command's card has its output, its error output and the exit code of a failure.");
+        await fixture.Call(ChatContract.RunShell, new ChatShellParams(project, chat, "pwd; printf '%s|%s|%s' \"$TERM\" \"${SHARPRAIL_TOKEN:-none}\" \"$THINKRAIL_MCP_URL\""));
+        var where = await Card("pwd; printf '%s|%s|%s' \"$TERM\" \"${SHARPRAIL_TOKEN:-none}\" \"$THINKRAIL_MCP_URL\"", card => !card.Running, "the environment command to finish");
+        var lines = Section(where, "Output").Split('\n');
+        Require(Path.GetFileName(lines[0]) == Path.GetFileName(project), $"The command runs in the chat's directory ({lines[0]}).");
+        Require(lines[1].StartsWith("xterm-256color|none|", StringComparison.Ordinal), $"The shell gets a terminal's sanitised environment: {lines[1]}");
+        Require(Section(where, "Exit code") == "", "A success shows no exit code.");
+
+        // The output is bounded, with a visible note.
+        await fixture.Call(ChatContract.RunShell, new ChatShellParams(project, chat, "head -c 100000 /dev/zero | tr '\\0' x"));
+        var big = await Card("head -c 100000 /dev/zero | tr '\\0' x", card => !card.Running, "the large output to finish");
+        Require(Section(big, "Output").Length < ChatContract.OutputLimit + 200 && Section(big, "Output").Contains("more characters not shown", StringComparison.Ordinal), "Output beyond the limit is cut with a note.");
+
+        // A running command streams, refuses a second one, and stops with its whole process group.
+        var started = Stopwatch.StartNew();
+        await fixture.Call(ChatContract.RunShell, new ChatShellParams(project, chat, "echo started; sleep 60"));
+        var running = await Card("echo started; sleep 60", card => card.Running && Section(card, "Output") == "started", "the running command to show its output");
+        Require(running.Running, "A running command's card says it runs.");
+        var refused = false;
+        try { await fixture.Call(ChatContract.RunShell, new ChatShellParams(project, chat, "echo second")); }
+        catch (Exception error) when (error is PluginCallException or InvalidOperationException) { refused = true; }
+        Require(refused, "A second command is refused while one runs.");
+        await fixture.Call(ChatContract.StopShell, new ChatKey(project, chat));
+        var stopped = await Card("echo started; sleep 60", card => !card.Running, "the stopped command to settle");
+        Require(Section(stopped, "Exit code") == "stopped" && Section(stopped, "Output") == "started" && started.Elapsed < TimeSpan.FromSeconds(20), "Stop ends the command and the card keeps what it printed.");
+
+        // The finished cards ride the next send, in the CLI's wrapping, ahead of the prompt; each card is shown once, in place of its echo.
+        await fixture.Call(ChatContract.RunShell, new ChatShellParams(project, chat, "echo prepended"));
+        await Card("echo prepended", card => !card.Running, "the command to prepend");
+        var users = Path.Combine(directory, "fake", "users.log");
+        var before = File.Exists(users) ? File.ReadAllLines(users).Length : 0;
+        await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "plain question"));
+        var sent = await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle && view.Items.OfType<ChatUserItem>().Any(item => item.Text == "plain question"), "the send to finish");
+        string[] Texts(string line) => [.. JsonDocument.Parse(line).RootElement.GetProperty("message").GetProperty("content").EnumerateArray().Select(block => block.GetProperty("text").GetString() ?? "")];
+        var frame = Texts(File.ReadAllLines(users)[before]);
+        Require(frame[0] == "<bash-input>echo hello; echo oops 1>&2; exit 3</bash-input>" && frame[1] == "<bash-stdout>hello</bash-stdout><bash-stderr>oops</bash-stderr><bash-exit-code>3</bash-exit-code>" &&
+            frame[^1] == "plain question" && frame.Contains("<bash-input>echo prepended</bash-input>") && frame.Contains("<bash-stdout>prepended</bash-stdout><bash-stderr></bash-stderr>") &&
+            frame.Contains("<bash-stdout>started</bash-stdout><bash-stderr></bash-stderr><bash-exit-code>stopped</bash-exit-code>"),
+            "The next send carries every finished command and its output, then the prompt, as the CLI writes them.");
+        var cards = sent.Items.OfType<ChatNoticeItem>().Where(item => item.Command is not null).ToList();
+        var order = sent.Items.Select(item => item.Id).ToList();
+        Require(cards.Count == 5 && cards.All(card => card.Id.StartsWith("m:", StringComparison.Ordinal)) && order.IndexOf(cards[^1].Id) < order.IndexOf(sent.Items.OfType<ChatUserItem>().Single(item => item.Text == "plain question").Id),
+            "Each command shows once, as the card its echo makes, before the prompt it rode on.");
+        await fixture.Call(ChatContract.Send, new ChatSendParams(project, chat, "again"));
+        await fixture.Until(chat, view => view.Header.Status == ChatStatus.Idle && view.Items.OfType<ChatUserItem>().Any(item => item.Text == "again"), "the second send to finish");
+        Require(Texts(File.ReadAllLines(users)[^1]).SequenceEqual(["again"]), "A command is carried once.");
+        await fixture.Call(ChatContract.Close, new ChatKey(project, chat));
+    }
 
     private static async Task RunIn(string directory)
     {

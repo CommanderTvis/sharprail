@@ -61,7 +61,7 @@ internal sealed class ClaudeChatHost
     private ClaudeChatSession Create(ChatRecord record) =>
         sessions.AddOrUpdate((record.WorkspaceId, record.ChatId), _ => Build(record), (_, existing) => existing);
 
-    private ClaudeChatSession Build(ChatRecord record) => new(record, new ChatDeps(Launch, Publish, status, SaveRecord, message => context.Log.Warn(message)));
+    private ClaudeChatSession Build(ChatRecord record) => new(record, new ChatDeps(Launch, Publish, status, SaveRecord, message => context.Log.Warn(message), ShellOf));
 
     // A push the wire refuses is logged, never allowed to take the session's flush down with it.
     private void Publish(ChatPush push)
@@ -71,6 +71,14 @@ internal sealed class ClaudeChatHost
         {
             context.Log.Warn($"could not publish a chat {push.GetType().Name}: {error.Message}");
         }
+    }
+
+    // What a bash-mode command runs with: the environment a terminal of this workspace gets, in the chat's directory.
+    private async Task<(IReadOnlyDictionary<string, string> Environment, string Cwd)> ShellOf(ChatRecord record, CancellationToken cancellationToken)
+    {
+        var environment = await context.ShellEnvironmentAsync(new TerminalRef(record.WorkspaceId, record.ChatId), cancellationToken);
+        var cwd = record.Cwd is { } known && Directory.Exists(known) ? known : record.WorkspaceId;
+        return (environment, cwd);
     }
 
     public void Register()
@@ -129,6 +137,16 @@ internal sealed class ClaudeChatHost
         context.Method(ChatContract.SendQueuedNow, async (p, _, _) =>
         {
             await Session(p.WorkspaceId, p.ChatId).SendQueuedNowAsync(p.ItemId);
+            return new Ack();
+        });
+        context.Method(ChatContract.RunShell, async (p, _, _) =>
+        {
+            await Session(p.WorkspaceId, p.ChatId).RunShellAsync(p.Command);
+            return new Ack();
+        });
+        context.Method(ChatContract.StopShell, async (p, _, _) =>
+        {
+            await Session(p.WorkspaceId, p.ChatId).StopShellAsync();
             return new Ack();
         });
         context.Method(ChatContract.Rewind, async (p, _, _) =>
@@ -270,8 +288,9 @@ internal sealed class ClaudeChatHost
                 if (ChatFolder.Str(message, "type") != "user" || message.TryGetProperty("isMeta", out var meta) && meta.ValueKind == JsonValueKind.True) continue;
                 if (!message.TryGetProperty("message", out var body) || !body.TryGetProperty("content", out var content)) continue;
                 var text = content.ValueKind == JsonValueKind.String ? content.GetString()
-                    : content.ValueKind == JsonValueKind.Array ? string.Concat(content.EnumerateArray().Select(block => ChatFolder.Str(block, "text"))) : null;
-                if (SessionTitle(text) is { } title) return title;
+                    : content.ValueKind == JsonValueKind.Array ? string.Concat(content.EnumerateArray().Select(block => ChatFolder.Str(block, "text")).Where(piece => piece?.StartsWith("<bash-", StringComparison.Ordinal) != true)) : null;
+                // A bash-mode command's input and output are not what the conversation is about.
+                if (text is not null && !text.StartsWith("<bash-", StringComparison.Ordinal) && SessionTitle(text) is { } title) return title;
             }
         }
         catch (Exception error) when (error is IOException or JsonException or UnauthorizedAccessException) { }

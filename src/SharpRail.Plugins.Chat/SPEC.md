@@ -27,6 +27,15 @@ an error and never produces the items that would make the view offer it: without
 with no permission or question items there is nothing to approve. The view's wording is neutral where it cannot know the agent
 ("Assistant"); anything else comes from the `ChatAgent`.
 
+## Bash mode
+
+A host that can run a user's shell command sets the header flag `CanRunShell` and serves `chatRunShell` and `chatStopShell`; the composer offers
+bash mode only then (a leading `!` is plain text otherwise). `chatRunShell` starts the command and returns at once; the host streams one
+`ChatNoticeItem` of category `bash-output` whose `Command` is the command, `Running` says whether it still runs, and whose `Output`,
+`Error output` and `Exit code` sections hold what it printed (each cut at `ChatContract.OutputLimit` with a note naming what was left out) and,
+for a failure, the exit code (`stopped` when the user ended it). `chatStopShell` ends the running command. Only one command of a chat runs at a time.
+The finished cards are not a turn: the host carries them in front of the user's next message.
+
 ## Mention completion
 
 `Files` searches the workspace for an `@` query. `CompletePath` (`ChatPathParams`: workspace, chat, the text as typed) lists one directory for a path query (`/`, `~`, `./`, `../`, a drive): directories first, then files, filtered by the last segment, at most 50, resolved against the chat's working directory and the host user's home; a missing directory is an empty list. A host that cannot serve it fails the call and the view uses `Files`. The method is additive, so the host protocol version does not change.

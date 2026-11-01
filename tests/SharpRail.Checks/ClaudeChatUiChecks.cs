@@ -2275,6 +2275,50 @@ internal static class ClaudeChatUiChecks
             Require(chat.PathCalls.Count == before, "A plain query keeps the workspace search and never lists a directory.");
             view.Input.Text = "";
 
+            // Bash mode: a leading "!" in an empty box is the mode; Enter runs the command (never a send), Up recalls it, Esc and Backspace on nothing leave.
+            Require(!chat.Header.CanRunShell, "A host that does not offer bash mode leaves a typed ! alone.");
+            view.Input.Text = "!ls";
+            Frame(window);
+            Require(!view.BashMode && view.Input.Text == "!ls", "Without host support a leading ! is plain text.");
+            view.Input.Text = "";
+            Frame(window);
+            chat.Header = chat.Header with { CanRunShell = true };
+            chat.Push(new ChatHeaderPush(Workspace, Chat, chat.Header));
+            Frame(window);
+            view.Input.Text = "!";
+            E2eWorkspace.Until(() => view.BashMode && view.Input.Text == "");
+            Require(view.BashMode && view.Input.Text == "" && view.ShellMark.IsVisible && view.Input.PlaceholderText == "Run a shell command", $"A ! typed first turns the box into a shell prompt and is not part of the command ({view.BashMode}, '{view.Input.Text}', {view.ShellMark.IsVisible}, '{view.Input.PlaceholderText}', {view.Transcript.Header?.CanRunShell}).");
+            view.Input.Text = "/usr/bin/env @x"; view.Input.CaretIndex = view.Input.Text.Length;
+            Frame(window); Frame(window);
+            Require(!view.MenuOpen, "A shell command opens no slash or file menu.");
+            view.Input.Text = "echo hi";
+            var sendsBefore = chat.Sends.Count;
+            Await(view.Submit());
+            E2eWorkspace.Until(() => !view.BashMode && view.Input.Text == "");
+            Require(chat.Calls.Contains(ChatContract.RunShell.Name) && chat.Sends.Count == sendsBefore && !view.BashMode && view.Input.Text == "" && !view.ShellMark.IsVisible,
+                "Enter in bash mode runs the command instead of sending it, and the box goes back to messages.");
+            view.Input.Text = "!";
+            E2eWorkspace.Until(() => view.BashMode && view.Input.Text == "");
+            view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Up });
+            Require(view.BashMode && view.Input.Text == "echo hi", "Up in bash mode recalls the commands that were run.");
+            view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
+            Require(!view.BashMode && view.Input.Text == "echo hi" && view.Input.PlaceholderText == view.Placeholder(), "Esc leaves bash mode and keeps the text as a message.");
+            view.Input.Text = "";
+            Frame(window);
+            view.Input.Text = "!";
+            E2eWorkspace.Until(() => view.BashMode && view.Input.Text == "");
+            view.Input.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Back });
+            Require(!view.BashMode, "Backspace on an empty shell prompt leaves bash mode.");
+            // The card: the command and how it ended; while it runs it has Stop, which asks the host to end it.
+            var shellCard = new ChatNoticeItem("b1", 70, ChatNoticeLevel.Info, "Terminal command output") { Category = ChatNoticeKinds.BashOutput, Command = "sleep 9", Running = true, Sections = [new("Output", "started")] };
+            using (var running = ChatRowLayout.Build(new ChatRow(shellCard, 0, 1, false, null), 700, false))
+                Require(running.OwnHits.Any(hit => hit.Kind == ChatHitKind.StopShell), "A running command's card offers Stop.");
+            using (var ended = ChatRowLayout.Build(new ChatRow(shellCard with { Running = false, Sections = [new("Output", "started"), new("Exit code", "stopped")] }, 0, 1, false, null), 700, false))
+                Require(!ended.OwnHits.Any(hit => hit.Kind == ChatHitKind.StopShell), "A finished command's card has no Stop.");
+            view.Activate(new ChatRow(shellCard, 0, 1, false, null), ChatHitKind.StopShell);
+            E2eWorkspace.Until(() => chat.Calls.Contains(ChatContract.StopShell.Name));
+            view.Input.Text = "";
+
             // Sending clears the draft; with the turn running the same button interrupts.
             view.Input.Text = "do it";
             Await(view.Submit());

@@ -309,6 +309,19 @@ internal static class ClaudeChatE2E
                 view.Transcript.Header is { Status: ChatStatus.Idle });
             Require(view.Transcript.Rows.Select(row => row.Item).OfType<ChatUserItem>().Single().Text == "hello", "The prompt is one user item.");
 
+            // Bash mode through the real host: "!" then a command shows a card with its output; the next message carries it and the card stays one.
+            view.Input.Text = "!";
+            E2eWorkspace.Until(() => view.BashMode);
+            view.Input.Text = "echo e2e-bash";
+            Await(view.Submit());
+            ChatNoticeItem? Shell() => view.Transcript.Rows.Select(row => row.Item).OfType<ChatNoticeItem>().SingleOrDefault(item => item.Command == "echo e2e-bash");
+            E2eWorkspace.Until(() => Shell() is { Running: false, Sections: [{ Label: "Output", Text: "e2e-bash" }] });
+            view.Input.Text = "plain follow up";
+            Await(view.Submit());
+            E2eWorkspace.Until(() => view.Transcript.Header is { Status: ChatStatus.Idle } && Shell() is { Id: var echoed } && echoed.StartsWith("m:", StringComparison.Ordinal));
+            Require(Shell() is { Running: false, Sections: [{ Text: "e2e-bash" }] } && view.Transcript.Rows.Select(row => row.Item).OfType<ChatNoticeItem>().Count(item => item.Command is not null) == 1,
+                "A bash-mode command shows once, as the card the CLI's echo of the next message makes.");
+
             // A tool call with a nested subagent shows nested.
             view.Input.Text = "run an agent";
             Await(view.Submit());

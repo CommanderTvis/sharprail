@@ -10,7 +10,7 @@ using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.Chat.UI;
 
-internal enum ChatHitKind { Toggle, Allow, Deny, Always, Rewind, Fork, OpenDiff, LoadFull, Link, EditInput, OpenThread, OpenText, Pick, OtherText, Submit, CancelAsk, Retry }
+internal enum ChatHitKind { Toggle, Allow, Deny, Always, Rewind, Fork, OpenDiff, LoadFull, Link, EditInput, OpenThread, OpenText, Pick, OtherText, Submit, CancelAsk, Retry, StopShell }
 
 internal readonly record struct ChatHit(Rect Bounds, ChatHitKind Kind, string? Arg = null);
 
@@ -827,6 +827,9 @@ internal sealed class ChatRowLayout : IDisposable
             case ChatNoticeKinds.Wrapped:
                 Disclosure(notice.Label ?? notice.Text, null, open, () => Block(notice.Detail ?? notice.Text, Ui.TextBrush, 12, indent: 14));
                 return;
+            case ChatNoticeKinds.BashOutput when notice.Command is { } command:
+                BashCard(notice, command, open);
+                return;
             case ChatNoticeKinds.BashOutput:
                 Disclosure(notice.Label ?? "Terminal command output", null, open, () => Sections(notice));
                 return;
@@ -877,6 +880,32 @@ internal sealed class ChatRowLayout : IDisposable
                 return;
         }
         Block(notice.Text, notice.Level switch { ChatNoticeLevel.Error => Ui.Danger, ChatNoticeLevel.Warning => Ui.Warning, _ => Ui.Muted }, 12, italic: notice.Level == ChatNoticeLevel.Info);
+    }
+
+    // A bash-mode command: "! command" with how it ended, its output below, and Stop at the right while it runs.
+    private void BashCard(ChatNoticeItem notice, string command, bool open)
+    {
+        var code = notice.Sections.FirstOrDefault(section => section.Label == "Exit code")?.Text;
+        var state = notice.Running ? "running\u2026" : code is null ? "" : code == "stopped" ? "stopped" : "exit " + code;
+        var line = command.Split('\n')[0].Trim();
+        var text = "! " + line + (command.Contains('\n') ? " \u2026" : "") + (state.Length > 0 ? " \u00B7 " + state : "");
+        var reserved = 0.0;
+        if (notice.Running)
+        {
+            var stop = Make("Stop", Ui.Danger, 12, 80, maxLines: 1, bold: true);
+            var box = new Rect(left + inner - stop.Width - 16, y + 1, stop.Width + 12, 20);
+            fills.Add(new(box, Ui.Elevated, 4, new Pen(Ui.BorderBrush)));
+            Place(stop, box.X + 6, box.Y + 2);
+            hits.Add(new(box, ChatHitKind.StopShell));
+            reserved = box.Width + 8;
+        }
+        var head = Make(text, code is not null && code != "" && !notice.Running ? Ui.Danger : Ui.Muted, 12, inner - 20 - reserved, maxLines: 1, mono: true);
+        var expanded = open || notice.Running;
+        Chevron(LineCentre(head, y + 3), expanded);
+        Place(head, left + 14, y + 3);
+        hits.Add(new(new Rect(left, y, inner - reserved, 22), ChatHitKind.Toggle));
+        y += 24;
+        if (expanded) { Sections(notice); y += 2; }
     }
 
     private void Sections(ChatNoticeItem notice)

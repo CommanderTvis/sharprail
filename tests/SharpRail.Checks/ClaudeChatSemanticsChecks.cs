@@ -54,6 +54,8 @@ internal static class ClaudeChatSemanticsChecks
             User("c2", Text("<local-command-stdout>Set model to opus</local-command-stdout>")),
             User("c3", Text("<local-command-stderr>no such thing</local-command-stderr>")),
             User("b1", Text("<bash-stdout>out</bash-stdout><bash-stderr>err</bash-stderr><bash-exit-code>2</bash-exit-code>")),
+            // Bash mode: the CLI writes the input and its output as blocks of one message; the card is one, with the command on it.
+            new { type = "user", uuid = "bm1", message = new { role = "user", content = new[] { new { type = "text", text = "<bash-input>ls -l</bash-input>" }, new { type = "text", text = "<bash-stdout>total 0</bash-stdout><bash-stderr></bash-stderr>" }, new { type = "text", text = "then what" } } }, parent_tool_use_id = (string?)null },
             // 3.14: subagent traffic keeps its parent; the Agent call's tool_result attaches to its card and draws no row.
             new { type = "assistant", uuid = "a1", message = new { id = "m1", content = new object[] { new { type = "tool_use", id = "toolu_agent", name = "Agent", input = new { description = "Dig", prompt = "go" } } } }, parent_tool_use_id = (string?)null },
             new { type = "system", subtype = "task_started", task_id = "tk1", task_type = "local_agent", tool_use_id = "toolu_agent", description = "Dig", prompt = "go", is_backgrounded = true },
@@ -115,7 +117,7 @@ internal static class ClaudeChatSemanticsChecks
 
         var items = live.Items;
         var users = items.OfType<ChatUserItem>().ToList();
-        Require(users.Select(user => user.Text).SequenceEqual(["hi", "with origin", PeerText("z", "typed by a human")]) && users.All(user => user.Origin is null),
+        Require(users.Select(user => user.Text).SequenceEqual(["hi", "with origin", PeerText("z", "typed by a human"), "then what"]) && users.All(user => user.Origin is null),
             "Human prompts are user items; an origin-less or human-origin peer-shaped text with a human origin stays a prompt; the system reminder and subagent prompt are not rows.");
         var notices = items.OfType<ChatNoticeItem>().ToList();
         Require(notices.Single(notice => notice.Category == ChatNoticeKinds.Peer && notice.Label == "Message from @x") is { Text: "hello", Detail: "hello" },
@@ -128,7 +130,9 @@ internal static class ClaudeChatSemanticsChecks
         Require(notices.Single(notice => notice.Category == ChatNoticeKinds.Command) is { Text: "/model opus" }, "A command record reads /cmd args.");
         Require(notices.Where(notice => notice.Category == ChatNoticeKinds.CommandResult).Select(notice => (notice.Text, notice.Level)).SequenceEqual([("Switched to opus", ChatNoticeLevel.Info), ("no such thing", ChatNoticeLevel.Error)]),
             "Local command output is one line, an error for stderr, and a model switch reads Switched to <model>.");
-        Require(notices.Single(notice => notice.Category == ChatNoticeKinds.BashOutput).Sections.Select(section => section.Label).SequenceEqual(["Output", "Error output", "Exit code"]), "Terminal output has Output, Error output and Exit code sections.");
+        Require(notices.Single(notice => notice.Category == ChatNoticeKinds.BashOutput && notice.Command is null).Sections.Select(section => section.Label).SequenceEqual(["Output", "Error output", "Exit code"]), "Terminal output has Output, Error output and Exit code sections.");
+        Require(notices.Single(notice => notice.Category == ChatNoticeKinds.BashOutput && notice.Command is not null) is { Command: "ls -l", Running: false, Id: "m:bm1:0" } shell && shell.Sections is [{ Label: "Output", Text: "total 0" }] &&
+            items.OfType<ChatUserItem>().Any(user => user.Text == "then what"), "A bash-mode command's input and output make one card with the command on it, and the prompt after them stays a prompt.");
         var agent = items.OfType<ChatToolItem>().Single();
         Require(agent is { Name: "Agent", TaskId: "tk1", Summary: "Dig", Output: "found", State: ChatToolState.Done } && items.OfType<ChatAssistantItem>().Any(item => item.Text == "inside" && item.ParentId == "toolu_agent"),
             "The Agent card carries its description and result; subagent messages keep their parent; ToolSearch is not an item.");

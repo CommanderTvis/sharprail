@@ -10,8 +10,8 @@ namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
 /// </summary>
 internal sealed class ChatProcess
 {
-    private const int SigTerm = 15;
-    private const int SigKill = 9;
+    internal const int SigTerm = 15;
+    internal const int SigKill = 9;
     private const int MaxLine = 64 * 1024 * 1024;
 
     private readonly Process child;
@@ -48,12 +48,15 @@ internal sealed class ChatProcess
         });
     }
 
+    /// <summary>The launcher that makes its child a session leader, so the whole group it starts can be signalled.</summary>
+    internal static string GroupLauncher => Path.Combine(Path.GetDirectoryName(typeof(ChatProcess).Assembly.Location)!, "sharprail-claude-process-group");
+
     /// <summary>Starts the child; the caller runs this off the UI thread.</summary>
     public static ChatProcess Start(string executable, IReadOnlyList<string> arguments, IReadOnlyDictionary<string, string> environment, string cwd, Func<string, Task> onLine, Action<string> onError)
     {
         // Off Windows the child runs behind the setsid launcher, so it leads a group the whole of which can be signalled.
         var grouped = !OperatingSystem.IsWindows();
-        var start = new ProcessStartInfo(grouped ? Path.Combine(Path.GetDirectoryName(typeof(ChatProcess).Assembly.Location)!, "sharprail-claude-process-group") : executable)
+        var start = new ProcessStartInfo(grouped ? GroupLauncher : executable)
         {
             WorkingDirectory = cwd,
             RedirectStandardInput = true,
@@ -110,7 +113,7 @@ internal sealed class ChatProcess
         try { if (!child.HasExited) child.Kill(); } catch (InvalidOperationException) { }
     }
 
-    private static string ResolveUnixExecutable(string executable, string workingDirectory)
+    internal static string ResolveUnixExecutable(string executable, string workingDirectory)
     {
         var candidates = executable.Contains('/') ? new[] { Path.GetFullPath(executable, workingDirectory) }
             : (Environment.GetEnvironmentVariable("PATH") ?? "/usr/bin:/bin").Split(':')
@@ -121,7 +124,7 @@ internal sealed class ChatProcess
     }
 
     [DllImport("libc", EntryPoint = "kill", SetLastError = true)]
-    private static extern int Kill(int pid, int signal);
+    internal static extern int Kill(int pid, int signal);
 
     [DllImport("libc", EntryPoint = "access", SetLastError = true)]
     private static extern int Access(string path, int mode);

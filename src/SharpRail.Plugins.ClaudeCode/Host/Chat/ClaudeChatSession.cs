@@ -28,7 +28,8 @@ internal sealed record ChatDeps(
     Action<ChatPush> Push,
     Action<ClaudeCodeStatusPush> Status,
     Action<ChatRecord> Save,
-    Action<string> Warn);
+    Action<string> Warn,
+    Func<ChatRecord, CancellationToken, Task<(IReadOnlyDictionary<string, string> Environment, string Cwd)>> Shell);
 
 /// <summary>
 /// One chat: the headless child, the folder that turns its messages into items, the control requests in flight and the
@@ -43,6 +44,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     private readonly ChatFolder folder = new();
     private readonly Dictionary<string, TaskCompletionSource<JsonElement>> controls = [];
     private readonly CancellationTokenSource lifetime = new();
+    private readonly List<ShellEntry> shells = [];
     private ChatRecord record = initial;
     private ChatProcess? process;
     private int generation;
@@ -138,7 +140,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         }
         var launch = deps.Launch(current, spawn);
         var advisorAt = launch.Arguments.ToList().IndexOf("--advisor");
-        lock (gate) folder.SetHeader(header => header with { Advisor = advisorAt >= 0 && advisorAt + 1 < launch.Arguments.Count ? launch.Arguments[advisorAt + 1] : null, Chrome = launch.Arguments.Contains("--chrome"), CanSendQueuedNow = true });
+        lock (gate) folder.SetHeader(header => header with { Advisor = advisorAt >= 0 && advisorAt + 1 < launch.Arguments.Count ? launch.Arguments[advisorAt + 1] : null, Chrome = launch.Arguments.Contains("--chrome"), CanSendQueuedNow = true, CanRunShell = true });
         lock (gate) folder.AllowBypass = current.PermissionMode == "bypassPermissions" || launch.Arguments.Any(argument => argument is "--dangerously-skip-permissions" or "--allow-dangerously-skip-permissions");
         var started = ChatProcess.Start(launch.Executable, launch.Arguments, launch.Environment, launch.Cwd,
             line => OnLineAsync(mine, line), text => OnError(mine, text));
@@ -398,12 +400,16 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
             else if (attachment.Path.Length > 0) mentions.Add("@" + attachment.Path);
         }
         var prompt = mentions.Count > 0 ? text + "\n\n" + string.Join("\n", mentions) : text;
+        List<ShellEntry> attached;
         // The transcript keeps the names, not the bytes.
         var shown = attachments?.Select(attachment => attachment with { Data = null }).ToList();
         lock (gate)
         {
             if (process is null) throw new InvalidOperationException("The chat is not running.");
+            attached = TakeShells();
             var running = folder.Header.Status is ChatStatus.Running or ChatStatus.AwaitingPermission;
+            // The finished bash-mode cards take the ids their echo will have, so the echo replaces them in place.
+            for (var at = 0; at < attached.Count; at++) folder.RekeyShell(attached[at].Id, $"m:{uuid}:{at * 2}");
             folder.AddUser(text, shown, running, "u:" + uuid, uuid);
             if (!running)
             {
@@ -414,7 +420,95 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         }
         var content = new List<object>(blocks);
         if (prompt.Length > 0 || content.Count == 0) content.Insert(0, new { type = "text", text = prompt });
-        await WriteAsync(new { type = "user", uuid, message = new { role = "user", content }, parent_tool_use_id = (string?)null });
+        // Each command is its input and its output as blocks of their own, ahead of the prompt, as the CLI writes them.
+        content.InsertRange(0, attached.SelectMany(entry => new object[] { new { type = "text", text = $"<bash-input>{entry.Command}</bash-input>" }, new { type = "text", text = entry.Block() } }));
+        try { await WriteAsync(new { type = "user", uuid, message = new { role = "user", content }, parent_tool_use_id = (string?)null }); }
+        catch
+        {
+            // The model never got them: they ride the next send instead.
+            lock (gate) shells.InsertRange(0, attached);
+            throw;
+        }
+    }
+
+    /// <summary>One bash-mode command: its card, and once finished what the next send carries.</summary>
+    private sealed class ShellEntry(string id, string command)
+    {
+        public string Id { get; } = id;
+        public string Command { get; } = command;
+        public CancellationTokenSource Stop { get; } = new();
+        public bool Done { get; set; }
+        public string Stdout { get; set; } = "";
+        public string Stderr { get; set; } = "";
+        public string Exit { get; set; } = "";
+
+        /// <summary>The output as the CLI writes it, and the exit code after it when the command did not succeed.</summary>
+        public string Block() => $"<bash-stdout>{Stdout}</bash-stdout><bash-stderr>{Stderr}</bash-stderr>" + (Exit.Length > 0 ? $"<bash-exit-code>{Exit}</bash-exit-code>" : "");
+    }
+
+    // Callers hold the gate.
+    private List<ShellEntry> TakeShells()
+    {
+        var finished = shells.Where(entry => entry.Done).ToList();
+        shells.RemoveAll(entry => entry.Done);
+        return finished;
+    }
+
+    /// <summary>Starts a bash-mode command and returns; the card streams and the finished one rides the next send.</summary>
+    public Task RunShellAsync(string command)
+    {
+        command = command.Trim();
+        if (command.Length == 0) throw new InvalidOperationException("Type a command to run.");
+        if (command.Length > 20_000) throw new InvalidOperationException("That command is too long.");
+        ShellEntry entry;
+        lock (gate)
+        {
+            if (closed || process is null) throw new InvalidOperationException("The chat is not running.");
+            if (shells.Any(other => !other.Done)) throw new InvalidOperationException("A shell command is already running.");
+            entry = new ShellEntry("b:" + Guid.NewGuid(), command);
+            shells.Add(entry);
+            folder.PutShell(entry.Id, command, "", "", "", running: true);
+            ScheduleFlush();
+        }
+        _ = Task.Run(async () =>
+        {
+            ChatShellResult result;
+            try
+            {
+                var (environment, cwd) = await deps.Shell(Record, entry.Stop.Token);
+                result = await ChatShell.RunAsync(command, environment, cwd, (stdout, stderr) =>
+                {
+                    lock (gate)
+                    {
+                        if (entry.Done) return;
+                        folder.PutShell(entry.Id, command, stdout, stderr, "", running: true);
+                        ScheduleFlush();
+                    }
+                }, entry.Stop.Token);
+            }
+            catch (OperationCanceledException) { result = new ChatShellResult("", "", null, true); }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                result = new ChatShellResult("", error.Message, 127, false);
+            }
+            lock (gate)
+            {
+                entry.Stdout = ChatFolder.Sanitise(result.Stdout).Trim();
+                entry.Stderr = ChatFolder.Sanitise(result.Stderr).Trim();
+                entry.Exit = result.Stopped ? "stopped" : result.ExitCode is { } code and not 0 ? code.ToString(System.Globalization.CultureInfo.InvariantCulture) : "";
+                entry.Done = true;
+                folder.PutShell(entry.Id, command, entry.Stdout, entry.Stderr, entry.Exit, running: false);
+                ScheduleFlush();
+            }
+        });
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Ends the running bash-mode command; its card settles with what it printed.</summary>
+    public Task StopShellAsync()
+    {
+        lock (gate) foreach (var entry in shells.Where(entry => !entry.Done)) entry.Stop.Cancel();
+        return Task.CompletedTask;
     }
 
     public Task InterruptAsync()
@@ -713,6 +807,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         {
             old = process;
             process = null;
+            foreach (var entry in shells.Where(entry => !entry.Done)) entry.Stop.Cancel();
             folder.SetStatus(ChatStatus.Exited);
             folder.Settle(ChatToolState.Failed);
             foreach (var pending in controls.Values) pending.TrySetException(new IOException("The chat was closed."));
@@ -730,6 +825,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         lock (gate)
         {
             closed = true;
+            foreach (var entry in shells.Where(entry => !entry.Done)) entry.Stop.Cancel();
             old = process;
             process = null;
         }

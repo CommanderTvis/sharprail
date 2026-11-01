@@ -646,6 +646,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             case ChatHitKind.OpenDiff: _ = OpenDiff(row.Item); break;
             case ChatHitKind.OpenThread when arg is not null: OpenThread(arg); break;
             case ChatHitKind.Retry: _ = RetryLast(); break;
+            case ChatHitKind.StopShell: _ = StopShell(); break;
             case ChatHitKind.Link when arg is not null && Markdown.SafeLink(arg): OpenUrl(arg); break;
             case ChatHitKind.Link when arg is not null && arg.StartsWith("file:", StringComparison.Ordinal): OpenFileLink(arg[5..]); break;
             case ChatHitKind.LoadFull: _ = LoadFull(row); break;

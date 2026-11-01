@@ -216,6 +216,10 @@ public sealed record ChatNoticeItem(string Id, long Seq, ChatNoticeLevel Level, 
     /// <summary>The body shown when the row is opened: a peer message, a compaction summary, a multi-line command result.</summary>
     public string? Detail { get; init; }
     public IReadOnlyList<ChatSection> Sections { get; init; } = [];
+    /// <summary>For a <see cref="ChatNoticeKinds.BashOutput"/> card: the command the user ran; null for output the CLI recorded without its input.</summary>
+    public string? Command { get; init; }
+    /// <summary>For a <see cref="ChatNoticeKinds.BashOutput"/> card: the command is still running, and <see cref="ChatContract.StopShell"/> ends it.</summary>
+    public bool Running { get; init; }
 }
 
 /// <summary>Obsolete and never emitted: the extension draws nothing for a result; its numbers go to the header, a failure to a notice.</summary>
@@ -322,6 +326,8 @@ public sealed record ChatHeader(ChatStatus Status)
     public bool Chrome { get; init; }
     /// <summary>Whether the host serves <see cref="ChatContract.SendQueuedNow"/>; the view offers "Send now" on a queued message only then.</summary>
     public bool CanSendQueuedNow { get; init; }
+    /// <summary>Whether the host serves <see cref="ChatContract.RunShell"/>; the composer offers bash mode (a leading <c>!</c>) only then.</summary>
+    public bool CanRunShell { get; init; }
 }
 
 /// <summary>One push on a chat's channel. Every payload carries the key fields the channel is scoped by.</summary>
@@ -382,6 +388,9 @@ public sealed record ChatSendParams(string WorkspaceId, string ChatId, string Te
     public string? ClientId { get; init; }
     public IReadOnlyList<ChatAttachment>? Attachments { get; init; }
 }
+
+/// <summary>Runs a shell command in the chat's working directory (bash mode). The card streams over the channel; the command and its output ride the next send.</summary>
+public sealed record ChatShellParams(string WorkspaceId, string ChatId, string Command);
 
 public sealed record ChatSetParams(string WorkspaceId, string ChatId, string Value);
 
@@ -491,6 +500,10 @@ public static class ChatContract
     public static readonly PluginMethod<ChatEditQueuedParams, Ack> EditQueued = new("chatEditQueued");
     /// <summary>Interrupts the running turn (when there is one) and sends this queued message next, ahead of the other queued ones, which keep their order; fails when the CLI already took the message up.</summary>
     public static readonly PluginMethod<ChatQueuedParams, Ack> SendQueuedNow = new("chatSendQueuedNow");
+    /// <summary>Starts a bash-mode command and returns at once; the host streams a <see cref="ChatNoticeKinds.BashOutput"/> notice (Running while it runs) and prepends the finished one to the next send. Fails while another shell command of the chat runs.</summary>
+    public static readonly PluginMethod<ChatShellParams, Ack> RunShell = new("chatRunShell");
+    /// <summary>Ends the chat's running bash-mode command (its whole process group); the card settles with what it printed.</summary>
+    public static readonly PluginMethod<ChatKey, Ack> StopShell = new("chatStopShell");
     public static readonly PluginMethod<ChatRewindParams, Ack> Rewind = new("chatRewind");
     /// <summary>A dry run of the code rewind to a prompt (<c>rewind_files</c> with <c>dry_run</c>): what would change.</summary>
     public static readonly PluginMethod<ChatRewindParams, ChatRewindPreview> RewindPreview = new("chatRewindPreview");
@@ -517,5 +530,5 @@ public static class ChatContract
     public const int OutputLimit = 16 * 1024;
 
     public static readonly IReadOnlyList<PluginMethodSpec> Methods =
-        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files, CompletePath, SetDraft];
+        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, RunShell, StopShell, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files, CompletePath, SetDraft];
 }

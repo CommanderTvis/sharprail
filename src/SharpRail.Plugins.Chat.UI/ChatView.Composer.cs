@@ -22,6 +22,8 @@ internal sealed partial class ChatView
     private static readonly Dictionary<(string, string), string> Drafts = [];
     private static readonly Dictionary<(string, string), (long Revision, string Base)> DraftSyncs = [];
     internal static readonly Dictionary<(string, string), List<string>> Histories = [];
+    /// <summary>The shell commands a chat's bash mode has run, newest last: what Up recalls there.</summary>
+    internal static readonly Dictionary<(string, string), List<string>> ShellHistories = [];
 
     private TextBox input = null!;
     private Button send = null!;
@@ -35,6 +37,14 @@ internal sealed partial class ChatView
     private string? draftStash;
     private bool recalling;
     private ChatStatus status = ChatStatus.Starting;
+    // Bash mode: a leading "!" typed into an empty box. The box then holds the command alone; the mode shows as the mark before it.
+    private bool bashMode;
+    private string? shellPrevious;
+    private TextBlock shellMark = null!;
+
+    /// <summary>Whether the box is in bash mode: Enter runs its text as a shell command instead of sending it.</summary>
+    internal bool BashMode => bashMode;
+    internal TextBlock ShellMark => shellMark;
 
     /// <summary>Forgets the client-local drafts, as a new process would have none.</summary>
     internal static void ForgetLocalDrafts() { Drafts.Clear(); DraftSyncs.Clear(); }
@@ -145,11 +155,15 @@ internal sealed partial class ChatView
         right.Children.Add(stop);
         right.Children.Add(send);
         inputControls = right;
-        var inputRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = Space.Gap, Name = "ChatInputRow" };
+        var inputRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = Space.Gap, Name = "ChatInputRow" };
         input.VerticalAlignment = VerticalAlignment.Center;
+        shellMark = new TextBlock { Name = "ChatShellMark", Text = "!", FontSize = 13, FontWeight = FontWeight.Bold, Foreground = Ui.Accent, VerticalAlignment = VerticalAlignment.Center, IsVisible = false };
+        inputRow.Children.Add(shellMark);
+        Grid.SetColumn(input, 1);
         inputRow.Children.Add(input);
-        Grid.SetColumn(right, 1);
+        Grid.SetColumn(right, 2);
         inputRow.Children.Add(right);
+        ShowShellMode();
         // The chips that are content (the selection, attachments, mentions) sit above the input inside the box.
         var content = new StackPanel { Name = "ChatContext", Orientation = Orientation.Horizontal, Spacing = Space.Gap, Margin = new Thickness(0, 0, 0, 4), IsVisible = false };
         contextRow = content;
@@ -226,10 +240,21 @@ internal sealed partial class ChatView
         root.Children.Add(footer);
         input.TextChanged += (_, _) =>
         {
+            // "!" typed (or pasted first) into an empty box turns it into a shell prompt; the "!" itself is the mode, not part of the command.
+            if (!bashMode && !recalling && !applyingRemote && transcript.Header?.CanRunShell == true && string.IsNullOrEmpty(shellPrevious) && (input.Text ?? "").StartsWith('!'))
+            {
+                var command = (input.Text ?? "")[1..];
+                bashMode = true;
+                ShowShellMode();
+                input.Text = command;
+                input.CaretIndex = command.Length;
+                return;
+            }
+            shellPrevious = input.Text;
             if (!recalling) { historyAt = -1; draftStash = null; }
             // The box raises its change after the setter returns, so a change that left the text a remote draft put there is told by its text.
             if (!applyingRemote && input.Text != appliedText) { appliedText = null; pasteNote.IsVisible = false; lastTyped = Environment.TickCount64; ScheduleDraft(); }
-            Drafts[(workspaceId, chatId)] = input.Text ?? "";
+            Drafts[(workspaceId, chatId)] = (bashMode ? "!" : "") + (input.Text ?? "");
             UpdateMenu(); UpdateSend(); UpdateMentions();
         };
         input.LostFocus += (_, _) => _ = FlushDraft();
@@ -262,14 +287,38 @@ internal sealed partial class ChatView
     private string StartDraft()
     {
         if (DraftSyncs.TryGetValue((workspaceId, chatId), out var known)) { hostRevision = known.Revision; baseText = known.Base; }
-        return Drafts.GetValueOrDefault((workspaceId, chatId), "");
+        var kept = Drafts.GetValueOrDefault((workspaceId, chatId), "");
+        // A draft that was a shell command comes back as one.
+        if (kept.StartsWith('!')) { bashMode = true; kept = kept[1..]; }
+        shellPrevious = kept;
+        return kept;
+    }
+
+    private void ShowShellMode()
+    {
+        shellMark.IsVisible = bashMode;
+        input.PlaceholderText = Placeholder();
+        Avalonia.Automation.AutomationProperties.SetName(input, bashMode ? "Shell command" : $"Message {env.Agent.Short}");
+        if (send is not null) UpdateSend();
+    }
+
+    /// <summary>Leaves bash mode, keeping what was typed as an ordinary message.</summary>
+    internal void LeaveShellMode()
+    {
+        if (!bashMode) return;
+        bashMode = false;
+        ShowShellMode();
+        menu.IsOpen = false;
+        Drafts[(workspaceId, chatId)] = input.Text ?? "";
+        if (!applyingRemote) { appliedText = null; ScheduleDraft(); }
+        UpdateMenu(); UpdateMentions();
     }
 
     private void RememberSync() => DraftSyncs[(workspaceId, chatId)] = (hostRevision, baseText);
 
     private void ScheduleDraft()
     {
-        if (!draftSync) return;
+        if (!draftSync || bashMode) return;
         draftTimer ??= new DispatcherTimer { Interval = DraftDebounce };
         draftTimer.Tick -= DraftTick;
         draftTimer.Tick += DraftTick;
@@ -283,7 +332,7 @@ internal sealed partial class ChatView
     internal Task FlushDraft()
     {
         draftTimer?.Stop();
-        if (!draftSync) return Task.CompletedTask;
+        if (!draftSync || bashMode) return Task.CompletedTask;
         return draftLoop is { IsCompleted: false } running ? running : draftLoop = SendDrafts();
     }
 
@@ -429,7 +478,7 @@ internal sealed partial class ChatView
 
     private void UpdateMentions()
     {
-        var text = input.Text ?? "";
+        var text = bashMode ? "" : input.Text ?? "";
         var mentions = Mentions(text);
         var signature = string.Join("|", mentions.Select(mention => mention.Path + mention.Range + mention.Start));
         if (signature == mentionSignature) return;
@@ -724,7 +773,7 @@ internal sealed partial class ChatView
 
     // The extension's placeholder: waiting while a request is open, queueing while Claude works, else the plain invitation. The key-hint variants
     // ("Esc to focus or unfocus", "Esc to attach selected text") belong to keybindings SharpRail does not have.
-    internal string Placeholder() => transcript.PendingCount > 0 ? (transcript.FirstPending() is ChatQuestionItem ? "Waiting for your answer…" : "Waiting for permission…") : Busy ? "Queue another message…" : $"Ask {env.Agent.Short} to edit…";
+    internal string Placeholder() => bashMode ? "Run a shell command" : transcript.PendingCount > 0 ? (transcript.FirstPending() is ChatQuestionItem ? "Waiting for your answer…" : "Waiting for permission…") : Busy ? "Queue another message…" : $"Ask {env.Agent.Short} to edit…";
 
     private bool Busy => status is ChatStatus.Running or ChatStatus.AwaitingPermission;
 
@@ -736,7 +785,7 @@ internal sealed partial class ChatView
         stop.Content = Ui.Text("\u25A0", Ui.Danger, 12);
         send.Content = Inherit("\u2191", 15);
         send.IsEnabled = !empty && status is not (ChatStatus.Failed or ChatStatus.Exited);
-        Avalonia.Automation.AutomationProperties.SetName(send, Busy ? "Queue the message until the turn ends" : "Send the message");
+        Avalonia.Automation.AutomationProperties.SetName(send, bashMode ? "Run the command" : Busy ? "Queue the message until the turn ends" : "Send the message");
         Avalonia.Automation.AutomationProperties.SetName(stop, "Interrupt the turn");
     }
 
@@ -857,6 +906,7 @@ internal sealed partial class ChatView
 
     internal async Task Submit()
     {
+        if (bashMode) { await RunShell(); return; }
         var text = (input.Text ?? "").Trim();
         if (text.Length == 0 && attachments.Count == 0)
         {
@@ -882,6 +932,38 @@ internal sealed partial class ChatView
             attachments.Clear();
             RebuildAttachmentChips();
         }
+    }
+
+    // Bash mode's Enter: the host runs the command and streams its card; the box goes back to messages, as the CLI's does.
+    private async Task RunShell()
+    {
+        var command = (input.Text ?? "").Trim();
+        if (command.Length == 0) return;
+        try { await env.Client.RequestAsync(ChatContract.RunShell, new ChatShellParams(workspaceId, chatId, command)); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            env.Notify(PluginNotificationKind.Error, "Couldn't run the command", ChatErrors.Text(error));
+            return;
+        }
+        var history = ShellHistories.TryGetValue((workspaceId, chatId), out var existing) ? existing : ShellHistories[(workspaceId, chatId)] = [];
+        history.Add(command);
+        historyAt = -1;
+        draftStash = null;
+        bashMode = false;
+        shellPrevious = "";
+        recalling = true;
+        try { input.Text = ""; }
+        finally { recalling = false; }
+        ShowShellMode();
+        Drafts[(workspaceId, chatId)] = "";
+        UpdateMenu(); UpdateMentions();
+    }
+
+    /// <summary>Ends the running bash-mode command; its card settles with what it printed.</summary>
+    internal async Task StopShell()
+    {
+        try { await env.Client.RequestAsync(ChatContract.StopShell, key); }
+        catch (Exception error) when (error is not OperationCanceledException) { env.Notify(PluginNotificationKind.Error, "Couldn't stop the command", ChatErrors.Text(error)); }
     }
 
     // While a turn runs the host queues the message and marks its item; the composer does not wait.
@@ -920,6 +1002,8 @@ internal sealed partial class ChatView
                 case Key.Escape: menu.IsOpen = false; e.Handled = true; return;
             }
         }
+        if (bashMode && e.Key == Key.Escape) { LeaveShellMode(); e.Handled = true; return; }
+        if (bashMode && e.Key == Key.Back && string.IsNullOrEmpty(input.Text) && e.KeyModifiers == KeyModifiers.None) { LeaveShellMode(); e.Handled = true; return; }
         // Paste is ours, before the box sees it: a clipboard may hold an image or files and no text at all, which the box would silently ignore.
         // Text-only clipboards are inserted below; everything else becomes attachments.
         if (e.Key == Key.V && (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) || e.Key == Key.Insert && e.KeyModifiers == KeyModifiers.Shift)
@@ -935,7 +1019,7 @@ internal sealed partial class ChatView
             e.Handled = true;
             return;
         }
-        if (e.Key is Key.Up or Key.Down && (e.Key == Key.Up || historyAt >= 0) && RecentPrompts() is { Count: > 0 } history && OnEdgeLine(e.Key == Key.Up))
+        if (e.Key is Key.Up or Key.Down && (e.Key == Key.Up || historyAt >= 0) && (bashMode ? ShellHistories.GetValueOrDefault((workspaceId, chatId)) : RecentPrompts()) is { Count: > 0 } history && OnEdgeLine(e.Key == Key.Up))
         {
             if (e.Key == Key.Up)
             {
@@ -1333,6 +1417,7 @@ internal sealed partial class ChatView
     private void UpdateMenu()
     {
         mentionSearch?.Cancel();
+        if (bashMode) { menu.IsOpen = false; return; }
         var text = input.Text ?? "";
         var caret = Math.Min(input.CaretIndex, text.Length);
         var start = caret;
