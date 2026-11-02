@@ -71,6 +71,11 @@ public static partial class Ui
             app.Resources["ToggleButtonBackgroundChecked" + state] = disabled ? ControlDisabledFill : PrimaryMuted;
             app.Resources["ToggleButtonForegroundChecked" + state] = disabled ? ControlDisabledText : TextBrush;
             app.Resources["ToggleButtonBorderBrushChecked" + state] = disabled ? ControlDisabledBorder : Accent;
+            // A checked radio button reads like a checked box: the accent fill with the readable on-accent dot, never Fluent's fixed white.
+            app.Resources["RadioButtonOuterEllipseCheckedFill" + state] = disabled ? ControlDisabledFill : state == "" ? PrimaryFill : PrimaryFillHover;
+            app.Resources["RadioButtonOuterEllipseCheckedStroke" + state] = disabled ? ControlDisabledBorder : PrimaryFill;
+            app.Resources["RadioButtonCheckGlyphFill" + state] = disabled ? ControlDisabledText : OnPrimary;
+            app.Resources["RadioButtonCheckGlyphStroke" + state] = disabled ? ControlDisabledText : OnPrimary;
             foreach (var value in new[] { "Unchecked", "Checked", "Indeterminate" })
             {
                 var selected = value != "Unchecked";

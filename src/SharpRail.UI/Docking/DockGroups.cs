@@ -283,7 +283,7 @@ public sealed partial class DockSurface
                 var active = Session.Selected(group.Id)?.Id == tab.Id;
                 button.IsTabStop = active;
                 title.Foreground = active ? Ui.TextBrush : Ui.Muted;
-                if (icon is Border glyph) glyph.Background = title.Foreground;
+                if (icon is Border { OpacityMask: not null } glyph) glyph.Background = title.Foreground;
                 UpdateActiveMarker();
                 UpdateBackground();
                 if (active) chrome.BringIntoView();

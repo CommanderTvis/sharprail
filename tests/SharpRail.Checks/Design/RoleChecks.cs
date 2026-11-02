@@ -29,6 +29,11 @@ internal static class RoleChecks
                 Ui.ControlDisabledBorder.Color == Ui.Alpha(theme["border"], 60) && Ui.PrimaryDisabledFill.Color == Ui.Alpha(theme["accent"], 60) &&
                 Ui.PrimaryDisabledText.Color == Ui.Alpha(theme["onAccent"], 60) && Ui.PrimarySoft.Color == Ui.Alpha(theme["accent"], 20),
                 $"{theme.Id}: a disabled role is its enabled colour at the 60% step.");
+            // A checked radio button is an accent disc with the on-accent dot, so the dot stays readable in every theme.
+            var resources = Application.Current!.Resources;
+            Require(ReferenceEquals(resources["RadioButtonCheckGlyphFill"], Ui.OnPrimary) && ReferenceEquals(resources["RadioButtonOuterEllipseCheckedFill"], Ui.PrimaryFill) &&
+                ReferenceEquals(resources["RadioButtonCheckGlyphFillPointerOver"], Ui.OnPrimary) && ReferenceEquals(resources["RadioButtonCheckGlyphFillDisabled"], Ui.ControlDisabledText),
+                $"{theme.Id}: a checked radio button must draw its dot in the on-accent role over the accent fill.");
         }
         Ui.Apply(original);
 
