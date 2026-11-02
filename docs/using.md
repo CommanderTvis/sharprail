@@ -28,7 +28,10 @@
 - Settings › Keymap picks the keymap preset: the built-in IntelliJ one (macOS or Windows/Linux flavour, whichever matches your system) or a custom one. The choice applies at once to every window.
 - New preset duplicates the selected preset under a name you type; Rename, Duplicate and Delete work on custom presets. Deleting the active one returns to IntelliJ. IntelliJ itself is read-only: the first edit offers to make a custom copy.
 - Select an action and press Edit (or double-click it), then press the new shortcut. Escape cancels; Backspace or Delete clears it. Each action holds up to two shortcuts. A shortcut another action uses is reported by name and can be reassigned; keys terminals need (for example Ctrl+C) are refused. Reset to preset puts a row back to the preset the copy was made from.
-- This covers the app's own window commands. Editor and terminal keys, and shortcuts from plugins, are not part of it.
+- Actions are grouped by area (General, Navigation, View, Tabs and windows, Language), and each plugin's actions form a group of their own under Plugins. Click a group to collapse it; search looks across every group and opens the ones with a match. The page shows how many shortcuts are used twice, and Reset group puts a whole group back to its preset in a custom preset.
+- Language covers the editor's language-server actions: Go to Declaration (⌘B or F12; F12 on Windows and Linux), Go to Type Declaration (⌘⇧B), Go to Implementation (⌘⌥B), Find Usages (⌥F7), Show Quick Fixes (⌥Enter), Document Symbols (⌘F12), plus Workspace Problems and the language server controls, which have no shortcut until you give them one. The editor's context menu and the Edit menu show the current shortcuts.
+- A plugin's actions keep your shortcuts when the plugin is turned off: they stop working and the page lists them as plugin not available, then come back when you turn the plugin on again.
+- Text-editing keys, terminal keys, chat composer keys, find and save are not part of the keymap.
 
 ## Files and editing
 

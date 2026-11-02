@@ -208,6 +208,94 @@ internal static class KeymapChecks
         finally { ActiveKeymap.Set(new HostState()); window.Close(); }
     }
 
+    /// <summary>A fake plugin contributing keymap actions: enable, default, run, bind, conflict, disable keeps the stored binding and drops the live one, enable again restores it; the page groups it.</summary>
+    internal static void PluginActions(string root)
+    {
+        var command = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
+        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-keymap-plugin"), E2E.E2eTerminals.Plain);
+        window.Show();
+        void Until(Func<bool> done, string message)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (!done() && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+            Require(done(), message);
+        }
+        Until(() => window.WorkspaceMounted && window.Workbench.State.Handshake is not null, "The plugin keymap window did not mount.");
+        var registry = window.Workbench.PluginRegistry;
+        var platform = ActiveKeymap.Platform;
+        var ran = 0;
+        const string Id = "fake:Go";
+        void Enable()
+        {
+            registry.SetActive("fake", true);
+            registry.AddKeymapAction("fake", new SharpRail.Plugins.Api.UI.KeymapActionRegistration("Go", "Fake go", "Fake group", () => ran++)
+            { Mac = ["Mod+Alt+Shift+G"], Other = ["Mod+Alt+Shift+G"] });
+            registry.AddKeymapAction("fake", new SharpRail.Plugins.Api.UI.KeymapActionRegistration("Stop", "Fake stop", "Fake group", () => ran += 10));
+        }
+        try
+        {
+            Enable();
+            Require(ActiveKeymap.PluginActions.Count(action => action.Plugin == "fake") == 2 && ActiveKeymap.PluginActions.First(action => action.Plugin == "fake").Id == Id,
+                "An enabled plugin's actions join the keymap under pluginId:id.");
+            Require(ActiveKeymap.Chords(Id).Select(chord => chord.Text).SequenceEqual(["Mod+Alt+Shift+G"]) && ActiveKeymap.Chords("fake:Stop").Count == 0, "The default reaches the live keymap; none leaves the action unbound.");
+            window.RaiseEvent(Press(Key.G, command | KeyModifiers.Alt | KeyModifiers.Shift));
+            Require(ran == 1, "The plugin's chord runs its command.");
+
+            // Bind in a custom preset, with a conflict refused and Reassign taking the chord.
+            var plugins = ActiveKeymap.PluginActions;
+            var bindings = KeymapBindings.IntelliJ(platform, plugins);
+            var taken = ActiveKeymap.Chords(KeymapActions.ToggleRight)[0];
+            var refused = Keymaps.Bind(bindings, Id, 0, taken, platform, plugins: plugins);
+            Require(!refused.Applied && refused.Conflicts.SequenceEqual([KeymapActions.ToggleRight]), "A plugin action conflicts with a built-in one.");
+            var reserved = Keymaps.Bind(bindings, Id, 0, new KeyChord(KeyMods.Mod, "C"), platform, plugins: plugins);
+            Require(reserved.Reserved is not null, "A terminal-reserved chord is refused for a plugin action too.");
+            var bound = Keymaps.Bind(bindings, Id, 0, new KeyChord(KeyMods.Mod | KeyMods.Shift, "K"), platform, plugins: plugins);
+            Require(bound.Applied, "bind plugin action");
+            var reversed = Keymaps.Bind(bound.Bindings, KeymapActions.ToggleRight, 0, new KeyChord(KeyMods.Mod | KeyMods.Shift, "K"), platform, reassign: true, plugins: plugins);
+            Require(reversed.Applied && reversed.Bindings.Chords(Id, platform).Count == 0, "Reassign takes the chord from a plugin action.");
+            _ = window.Workbench.State.ChangeAsync([HostStateChange.SaveKeymap("Mine", bound.Bindings.ToJson()), HostStateChange.SelectKeymap("Mine")]);
+            Until(() => ActiveKeymap.Chords(Id).Select(chord => chord.Text).SequenceEqual(["Mod+Shift+K"]), "A custom preset's binding wins over the plugin default.");
+            Require(Keymaps.Effective([new("Mine", "{\"bindings\":{}}")], "Mine", platform, plugins)[Id].Select(chord => chord.Text).SequenceEqual(["Mod+Alt+Shift+G"]),
+                "A custom preset that does not mention the action inherits the plugin's default.");
+
+            // Disabling removes the live binding; the stored one stays; enabling again restores it.
+            registry.RemovePlugin("fake");
+            Require(ActiveKeymap.PluginActions.All(action => action.Plugin != "fake") && ActiveKeymap.Chords(Id).Count == 0, "A disabled plugin leaves the live keymap.");
+            var after = ran;
+            window.RaiseEvent(Press(Key.K, command | KeyModifiers.Shift));
+            Require(ran == after, "A disabled plugin's chord does nothing.");
+            Require(KeymapBindings.Parse(bound.Bindings.ToJson()).Chords(Id, platform).Count == 1, "The stored binding survives the plugin being off.");
+            Enable();
+            Require(ActiveKeymap.Chords(Id).Select(chord => chord.Text).SequenceEqual(["Mod+Shift+K"]), "Enabling the plugin again restores the stored binding.");
+            window.RaiseEvent(Press(Key.K, command | KeyModifiers.Shift));
+            Require(ran == after + 1, "The restored chord runs the command.");
+
+            // The page: a plugin group under Plugins with its count; collapsing; search expands; absent plugins are listed as not available.
+            window.ShowSettings("Keymap");
+            Until(() => window.OpenSettingsViews.Any(), "Settings did not open.");
+            var settings = window.OpenSettingsViews.Single();
+            T? Maybe<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().FirstOrDefault(control => control.Name == name);
+            int Rows(string prefix = "KeymapRow_") => settings.GetLogicalDescendants().OfType<Border>().Count(border => border.Name?.StartsWith(prefix) == true);
+            Until(() => Maybe<Button>("KeymapGroup_fake_Fake_group") is not null && Maybe<TextBlock>("KeymapPluginsHeading") is not null, "The plugin's group is listed under Plugins.");
+            Require(Maybe<Button>("KeymapGroup_Language") is not null && Maybe<Button>("KeymapGroup_General") is not null, "Built-in groups are listed by area.");
+            var total = Rows();
+            Maybe<Button>("KeymapGroup_Language")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Until(() => Rows() == total - KeymapActions.All.Count(action => action.Group == KeymapActions.LanguageGroup), "Collapsing a group hides its rows.");
+            var search = Maybe<TextBox>("KeymapSearch")!;
+            search.Text = "Go to Declaration";
+            Until(() => Rows() == 1, "Search filters across groups and expands a collapsed group.");
+            search.Text = "";
+            Until(() => Rows() == total - 10, "Clearing the search restores the collapsed state.");
+            Maybe<Button>("KeymapGroup_Language")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            registry.RemovePlugin("fake");
+            Until(() => Maybe<Button>("KeymapGroup_fake_Fake_group") is null && Maybe<Button>("KeymapGroup_Unavailable") is not null, "A disabled plugin's group leaves; its stored binding shows as not available.");
+            Require(Maybe<Border>("KeymapRow_" + Id) is not null, "The absent plugin's binding row is listed.");
+            Require(Maybe<TextBlock>("KeymapConflicts")?.Text == "No conflicts", "No conflicts are reported for the default keymap.");
+            settings.Close();
+        }
+        finally { ActiveKeymap.Set(new HostState()); ActiveKeymap.SetPluginActions([]); window.Close(); }
+    }
+
     /// <summary>Settings › Keymap driven like a user: presets, search, the recorder, conflicts, Reassign, reserved chords, clearing, Reset, delete and narrow layout.</summary>
     internal static void Page(string root)
     {

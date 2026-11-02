@@ -334,6 +334,7 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             KeymapChecks.Runtime(root);
             KeymapChecks.Page(root);
+            KeymapChecks.PluginActions(root);
             Console.WriteLine("PASS keymap checks");
             return;
         }
