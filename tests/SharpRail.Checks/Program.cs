@@ -326,6 +326,12 @@ internal static class Program
             SwitchChecks.Run();
             return;
         }
+        if (args.SequenceEqual(["--keymap"]))
+        {
+            KeymapChecks.Model();
+            Console.WriteLine("PASS keymap checks");
+            return;
+        }
         if (args.SequenceEqual(["--state"]))
         {
             StateChecks.Run(root).GetAwaiter().GetResult();

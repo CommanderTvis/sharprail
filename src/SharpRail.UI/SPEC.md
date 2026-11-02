@@ -329,7 +329,18 @@ including projects that are not currently open, so removed checkouts leave the P
 
 ## Global shortcuts
 
-`WindowShortcuts.cs` declares each window chord once (gesture and key test); the window dispatches key-downs through it and menus and tooltips read their gestures from it.
+`WindowShortcuts.cs` declares each window command once (a stable action id); the window dispatches key-downs through it and menus and tooltips read their gestures from it. The chords themselves are the active keymap's, not hard-coded: see Keymap below. The defaults named in the paragraph after this one are the built-in IntelliJ preset's.
+
+### Keymap
+
+A keymap maps action ids (`KeymapActions`: Settings, OpenProject, NewWorkspace, NewWindow, SearchWorkspace, Back, Forward, Refresh, ToggleLeft, ToggleRight, ZoomIn, ZoomOut, ZoomReset, UndoClose, RedoClose) to at most two chords. The model is pure and lives in `SharpRail.Host.Abstractions` (`Keymaps.cs`) so the host can validate it and no UI type leaks into the host.
+
+- A chord is spelled `Mod+Shift+N`: modifiers in the order Mod, Ctrl, Alt, Shift, Meta, then a key token (letters, digits, F1-F24, Left, Comma, Plus, OpenBracket and the like). `Mod` is the command key: Command on macOS, Control elsewhere, so one preset means the same on every platform; the platform's own spelling (Meta on macOS, Ctrl elsewhere) folds into it, while Ctrl on macOS and Windows/Linux Meta stay themselves. People see chords as symbols on macOS (⇧⌘N) and words elsewhere (Ctrl+Shift+N).
+- Exactly one built-in preset exists, `IntelliJ`: read-only, undeletable, and its name is taken. It holds the IntelliJ IDEA keymap for the commands SharpRail has in two variants, the macOS keymap on macOS and Default for Windows/Linux on every other platform (Browser and Android with a keyboard included). Where IntelliJ has no chord for a command the previous SharpRail chord stays; where IntelliJ's chord would reach a terminal (Alt+1) or the desktop (Ctrl+Alt+Arrow) the previous chord stays.
+- A custom preset is a name and a JSON document `{"version":1,"bindings":{"Id":["Mod+O"]}}`. Creating one duplicates a preset's resolved bindings for the creating platform. An action the document does not list keeps IntelliJ's chords; one listed with no chords is unbound. Ids, chord spellings and members this build does not know are kept untouched across edits.
+- Names are trimmed, non-empty and unique (case-insensitively), and never IntelliJ. The active preset is a name; empty, IntelliJ or a name that is gone resolve to IntelliJ.
+- Binding a chord that another action of the same preset uses is a conflict that names the other action and changes nothing until the user chooses Reassign, which takes the chord from it. A chord a terminal or the system needs (Ctrl+C, D, R, L, U, A, E, K, Ctrl+Shift+C/V off macOS; Ctrl+C, D, R, Z, L, U and Cmd+C, V, X, A, K, Q, W, H, M on macOS; plain character keys; Alt+F4) is refused outright, never assigned silently.
+- Matching is exact on modifiers. The active keymap reaches `WindowShortcuts` when the host snapshot arrives; open windows pick it up at once, menu key equivalents are re-set in place, no control tree is rebuilt and focus does not move. Editor, terminal, quit and close chords are not part of the keymap (editor cursor keys are the native editor's fixed table; Mod+W/Q and the terminal-reserved chords are the platform's).
 
 The window handles app-wide chords before panels: Mod+O opens a project, Mod+N (and Mod+Alt+N) opens
 Start work, Mod+Shift+N opens a window, Mod+B toggles left (at Project Home, its Projects pane), Mod+J toggles right, Mod+Shift+F searches the workspace, and F5 refreshes.

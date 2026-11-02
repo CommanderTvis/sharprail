@@ -28,6 +28,8 @@ creation base and re-pointed review target, and the workspace registry, plugin s
 `HostStateStore` implements `IHostStateService`: it reads, validates, persists and broadcasts complete
 snapshots.
 
+Keymaps are shared state too: `HostState.KeymapPresets` (custom presets, name plus a versioned JSON bindings document the host only checks for shape; ids and chords it does not know are kept) and `HostSettings.ActiveKeymap` (a preset name; empty is the built-in IntelliJ). The changes are `keymap-save` (create or replace a preset, validated name, never IntelliJ), `keymap-rename` (the active selection follows) and `keymap-delete` (deleting the active preset resets the selection), plus the `keymap` setting. A store without these fields (an older profile) has no presets and IntelliJ active. The rules and the model live in `SharpRail.Host.Abstractions/Keymaps.cs`; the UI spec ("Keymap") defines chords.
+
 The workbench frame, per-workspace document placement, current or default preset, group limits, bottom
 alignment, selection, focus and last location are frontend-local and never reach this store. Built-in
 presets belong to the UI.
