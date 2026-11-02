@@ -17,6 +17,7 @@ public sealed class SearchDialog
 {
     private readonly Func<string, CancellationToken, Task<SearchHits>> search;
     private readonly TextBox query;
+    private const double StatusHeight = 20, ResultsHeight = 420;
     private readonly StackPanel results;
     private readonly TextBlock status;
     private readonly DispatcherTimer debounce;
@@ -35,9 +36,11 @@ public sealed class SearchDialog
         fields.Children.Add(query);
         status = Ui.Text("", Ui.Hint, 12);
         status.Name = "SearchStatus"; status.IsVisible = false;
-        fields.Children.Add(status);
+        // The dialog's size never depends on the answer: a status line and a result list of fixed heights, so the window is not resized
+        // (and its transparent, shadowed surface not redrawn at a new size) when the first results arrive.
+        fields.Children.Add(new Border { Height = StatusHeight, Child = status });
         results = new StackPanel { Name = "SearchResults", Spacing = 2 };
-        fields.Children.Add(new ScrollViewer { Content = results, MaxHeight = 420, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        fields.Children.Add(new ScrollViewer { Content = results, Height = ResultsHeight, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         debounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
         debounce.Tick += (_, _) => { debounce.Stop(); _ = RunAsync(); };
         query.TextChanged += (_, _) => { debounce.Stop(); debounce.Start(); };
