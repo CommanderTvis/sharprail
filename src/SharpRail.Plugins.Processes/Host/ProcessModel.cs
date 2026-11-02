@@ -92,13 +92,16 @@ internal static class ProcessModel
             // Spawned agents: agent processes below the terminal, nested under the nearest agent process above them; the owned
             // processes it reported hang from the process that reported them (the terminal's parent row).
             var starter = new Row($"parent:{workspace}\0{terminal.Terminal.TabKey}", "parent", $"of {name} · {terminal.Tab}", workspaceLabel(workspace), null, null, workspace);
+            // Under a recognised agent every process forked from it hangs below its row; otherwise only agent-like processes are listed.
+            var holder = root ?? starter;
             var nested = new Dictionary<int, Row>();
+            var reported = ownedByTerminal[terminal.Terminal].Select(item => item.Pid).ToHashSet();
             foreach (var pid in subtree.OrderBy(pid => pid))
             {
-                if (!table.TryGetValue(pid, out var row) || ExecutableOf(row.Command) is null || !claimed.Add(pid)) continue;
+                if (reported.Contains(pid) || !table.TryGetValue(pid, out var row) || root is null && ExecutableOf(row.Command) is null || !claimed.Add(pid)) continue;
                 var node = new Row($"spawn:{pid}", "spawned", Short(row.Command), Describe(pid, workspaceLabel(workspace), row.Command), pid, new(pid, row.Command, null, null), workspace);
                 var above = Ancestors(table, pid).FirstOrDefault(nested.ContainsKey);
-                (above != 0 ? nested[above] : starter).Children.Add(node);
+                (above != 0 ? nested[above] : holder).Children.Add(node);
                 nested[pid] = node;
             }
             foreach (var (_, pid, description) in ownedByTerminal[terminal.Terminal])
@@ -107,7 +110,8 @@ internal static class ProcessModel
                 var command = table.TryGetValue(pid, out var row) ? row.Command : "";
                 var node = new Row($"owned:{pid}", "owned", description.Length > 0 ? description : Short(command), Describe(pid, workspaceLabel(workspace), command), pid, new(pid, command, null, null), workspace);
                 var above = Ancestors(table, pid).FirstOrDefault(nested.ContainsKey);
-                (above != 0 ? nested[above] : starter).Children.Add(node);
+                (above != 0 ? nested[above] : holder).Children.Add(node);
+                nested[pid] = node;
             }
             if (starter.Children.Count > 0) spawned.Children.Add(starter);
         }

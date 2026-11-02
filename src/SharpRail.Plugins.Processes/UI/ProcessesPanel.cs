@@ -33,6 +33,7 @@ internal sealed class ProcessesPanel : UserControl
     private readonly TextBlock total = Ui.Text("", Ui.TextBrush);
     private readonly Button stopSelected, stopGroup;
     private readonly DispatcherTimer timer = new() { Interval = Interval };
+    private const double NarrowWidth = 300;
     private readonly HashSet<string> collapsed = [];
     private readonly Dictionary<string, RowView> views = [];
     private ProcessSnapshot? full, snapshot;
@@ -275,8 +276,18 @@ internal sealed class ProcessesPanel : UserControl
     {
         var view = new RowView();
         var grid = new Grid { ColumnDefinitions = new("*,52,68,56") };
-        var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { view.Chevron, view.Label } };
+        // The name takes what the numbers leave and is cut with an ellipsis; below NarrowWidth the trend column gives its space to the name.
+        view.Label.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+        view.Chevron.Margin = new Thickness(0, 0, 4, 0);
+        DockPanel.SetDock(view.Chevron, Dock.Left);
+        var label = new DockPanel { ClipToBounds = true, Children = { view.Chevron, view.Label } };
         grid.Children.Add(label);
+        view.Row.SizeChanged += (_, e) =>
+        {
+            var narrow = e.NewSize.Width < NarrowWidth;
+            view.Spark.IsVisible = !narrow;
+            grid.ColumnDefinitions[3].Width = narrow ? new GridLength(0) : new GridLength(56);
+        };
         foreach (var (control, column) in new (Control, int)[] { (view.Cpu, 1), (view.Memory, 2), (view.Spark, 3) })
         {
             if (control is TextBlock text) text.HorizontalAlignment = HorizontalAlignment.Right;

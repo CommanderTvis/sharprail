@@ -615,8 +615,8 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => Args(argsLog).Length > 0);
         var args = WithoutLauncherMcp(Args(argsLog));
         var content = File.ReadAllText(CodexSystemPrompt.FilePath());
-        // The session gets the file's text with the Code Intelligence section composed for its own workspace.
-        static string Shared(string text) => text.Split("\n## Code intelligence")[0];
+        // The session gets the file's text with the checkout and Code Intelligence sections composed for its own workspace.
+        static string Shared(string text) => System.Text.RegularExpressions.Regex.Replace(text.Split("\n## Code intelligence")[0], @"\n*This session runs in [^\n]*", "");
         var launched = args.Length > 1 && args[1].StartsWith("developer_instructions=", StringComparison.Ordinal) ? JsonSerializer.Deserialize<string>(args[1]["developer_instructions=".Length..]) ?? "" : "";
         Require(args.Length == 4 && args[0] == "-c" && Shared(launched) == Shared(content) && (launched == content || !launched.Contains("<absolute path>", StringComparison.Ordinal)),
             "launch arguments: " + string.Join(" | ", args));

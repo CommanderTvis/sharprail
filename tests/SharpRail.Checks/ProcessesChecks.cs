@@ -47,7 +47,7 @@ internal static class ProcessesChecks
         if (secondWorkspace) terminals.Add(new(Tab3, 40, "codex", "tab 1"));
         List<(int, int, string)> table =
         [
-            (10, 1, "-zsh"), (11, 10, "node /opt/bin/claude --resume"), (12, 11, "claude -p fix chat"), (13, 12, "codex exec lint"), (14, 11, "sleep 600"),
+            (10, 1, "-zsh"), (11, 10, "node /opt/bin/claude --resume"), (12, 11, "claude -p fix chat"), (13, 12, "codex exec lint"), (14, 11, "sleep 600"), (15, 13, "make build"),
             (20, 1, "-zsh"), (21, 20, "vite --port 5173"), (30, 1, "csharp-ls"), (31, 1, "typescript-language-server --stdio")
         ];
         if (secondWorkspace) table.AddRange([(40, 1, "-zsh"), (41, 40, "codex --model x"), (32, 1, "pyright-langserver")]);
@@ -92,14 +92,14 @@ internal static class ProcessesChecks
         var agent = Find(snapshot.Groups, "agent:/w/alpha\0t1");
         Require(agent.Label == "Claude Code" && agent.Pid == 11 && agent.Detail.Contains("pid 11") && agent.Detail.Contains("tab 1"), "The agent row is the agent process below the shell, with pid and tab in its tooltip.");
         Require(snapshot.Groups[1].Children.Count == 1 && snapshot.Groups[1].Children[0].Id == agent.Id, "Only terminals with an agent are in AI agents and daemons.");
-        var starter = Find(snapshot.Groups, "parent:/w/alpha\0t1");
-        Require(starter.Label == "of Claude Code · tab 1" && starter.Kind == "parent" && starter.CanStop, "Spawned agents nest under a row naming the agent that started them.");
-        var child = Find(starter.Children, "spawn:12");
-        Require(child.Label == "claude -p fix chat" && child.Children.Single().Id == "spawn:13", "A spawned agent nests under the agent process that started it, whatever its depth.");
-        Require(starter.Children.Select(node => node.Id).SequenceEqual(["spawn:12", "owned:14"]) && Find(starter.Children, "owned:14").Label == "dev watcher", "A reported process hangs under the terminal that reported it, named by its description.");
+        Require(TryFind(snapshot.Groups, "parent:/w/alpha\0t1") is null && agent.CanStop, "Everything forked from an agent hangs under its own row, with no separate parent row.");
+        var child = Find(agent.Children, "spawn:12");
+        Require(child.Label == "claude -p fix chat" && child.Children.Single().Id == "spawn:13", "A process nests under the process that forked it, whatever its depth.");
+        Require(Find(child.Children, "spawn:13").Children.Single() is { Id: "spawn:15", Label: "make build" }, "Every forked process is listed under the agent, not only agents.");
+        Require(agent.Children.Select(node => node.Id).SequenceEqual(["spawn:12", "owned:14"]) && Find(agent.Children, "owned:14").Label == "dev watcher", "A reported process hangs under its agent, named by its description.");
         Require(Find(snapshot.Groups, "parent:/w/alpha\0t2").Label == "of Terminal · tab 2", "A terminal without an agent still names the starter of what it owns.");
-        Require(snapshot.Groups[2].Cpu == 12 + 13 + 14 + 21 && snapshot.TotalCpu == snapshot.Groups.Sum(group => group.Cpu) && snapshot.TotalMemoryBytes == snapshot.Groups.Sum(group => group.MemoryBytes), "The total is the sum of the groups and no process is counted twice.");
-        Require(Find(snapshot.Groups, "spawn:12").Cpu == 12 + 13, "A row includes the spawned agents nested under it.");
+        Require(snapshot.Groups[1].Cpu == 11 + 12 + 13 + 14 + 15 && snapshot.Groups[2].Cpu == 21 && snapshot.TotalCpu == snapshot.Groups.Sum(group => group.Cpu) && snapshot.TotalMemoryBytes == snapshot.Groups.Sum(group => group.MemoryBytes), "The total is the sum of the groups and no process is counted twice.");
+        Require(Find(snapshot.Groups, "spawn:12").Cpu == 12 + 13 + 15, "A row includes the spawned agents nested under it.");
 
         var two = Snapshot(Fixture(true));
         Require(two.Groups[0].Children.Select(node => node.Kind).SequenceEqual(["workspace", "workspace"]) && two.Groups[0].Children.Select(node => node.Label).SequenceEqual(["alpha", "beta"]), "With rows from two workspaces, each group nests its rows under workspace labels.");
@@ -127,7 +127,7 @@ internal static class ProcessesChecks
         var trend = Find(last.Groups, "spawn:12").Trend;
         Require(trend.Count == ProcessesPlugin.TrendLength, "A trend keeps at most " + ProcessesPlugin.TrendLength + " samples, got " + trend.Count);
         Require(Math.Abs(Find(last.Groups, "owned:14").Cpu - 50) < 0.5, "One CPU second per two wall seconds is 50 percent, got " + Find(last.Groups, "owned:14").Cpu);
-        Require(Math.Abs(Find(last.Groups, "spawn:12").Cpu - 100) < 0.5, "A row sums itself and what is nested under it.");
+        Require(Math.Abs(Find(last.Groups, "spawn:12").Cpu - 150) < 0.5, "A row sums itself and what is nested under it.");
         source.Inputs = source.Inputs with { Owned = [] };
         now += 2;
         Require(TryFind(sampler.Sample().Groups, "owned:14") is null && sampler.Samples == 42, "A process that left the registry leaves the tree on the next sample.");
@@ -144,10 +144,10 @@ internal static class ProcessesChecks
         Require(await sampler.StopAsync(ProcessModel.LanguageGroup, default) == 2 && source.Stopped.All(item => item.StartsWith("lang:", StringComparison.Ordinal)), "Stop group stops each language server through the service.");
         source.Stopped.Clear();
         sampler.Sample();
-        Require(await sampler.StopAsync("agent:/w/alpha\0t1", default) == 1 && source.Stopped.Single() == "pid:11", "An agent row stops its process on the graceful path.");
+        Require(await sampler.StopAsync("agent:/w/alpha\0t1", default) == 5 && source.Stopped.Count == 5 && source.Stopped.Contains("pid:11") && source.Stopped.Contains("pid:15"), "An agent row stops its process and everything forked from it on the graceful path.");
         source.Stopped.Clear();
         sampler.Sample();
-        Require(await sampler.StopAsync(ProcessModel.SpawnedGroup, default) == 4 && source.Stopped.Order().SequenceEqual(["pid:12", "pid:13", "pid:14", "pid:21"]), "Stop group on spawned agents stops every row under it.");
+        Require(await sampler.StopAsync(ProcessModel.SpawnedGroup, default) == 1 && source.Stopped.Single() == "pid:21", "Stop group on spawned agents stops every row under it.");
         source.Stopped.Clear();
         Require(await sampler.StopAsync("pid:1", default) == 0 && await sampler.StopAsync("spawn:999", default) == 0 && source.Stopped.Count == 0, "An id the snapshot does not hold stops nothing.");
     }

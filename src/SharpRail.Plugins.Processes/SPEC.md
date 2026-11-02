@@ -49,10 +49,10 @@ function and a `ProcessHistory`. Three top groups, in this order, always present
 - Language servers: one row per running server of the host language service (workspace root, server id, pid), ordered by workspace then id, labelled with the server's display name (the one the Code Intelligence pane shows, the id when it has none).
 - Tooltips (`Detail`) show the command on one line, cut at 160 characters with an ellipsis; stopping still uses the full recorded command.
 - AI agents and daemons: one row per terminal that carries an agent record. The row is the shallowest descendant of the terminal's shell whose command names the agent
-  (`claude`, `codex`, `omp`, looking through an interpreter in the first two tokens), else the shell.
-- Spawned agents: under each terminal a parent row "of Claude Code · tab 3" (or "of Terminal · tab 2" without an agent). Below it every descendant process whose command
-  names an agent executable, nested under the nearest such process above it (`claude -p` under its starter, `codex exec` under that), and every process the terminal reported with
-  `owned_process_report`, under the nearest nested process above it or the parent row. Each pid appears once.
+  (`claude`, `codex`, `omp`, looking through an interpreter in the first two tokens), else the shell. Under it hangs every process forked from the agent (agent or not, any depth),
+  each nested under the process that forked it, and every process the terminal reported with `owned_process_report`, named by its description. Each pid appears once.
+- Spawned agents: for a terminal without a recognised agent, a parent row "of Terminal · tab 2" with the agent processes below the shell (nested under the nearest one above) and
+  the processes it reported. A terminal with an agent has no row here: its processes are under the agent row.
 
 A group, workspace or parent row shows the sum of everything under it; a process row shows itself plus what is nested below it. The total is the sum of the three groups.
 When the rows of a group come from more than one workspace they sit under collapsible workspace rows labelled with the workspace folder name. Tab labels count the host's terminals
