@@ -91,13 +91,15 @@ internal sealed class ProcessesPanel : UserControl
         this.visible = visible ?? (() => IsEffectivelyVisible);
         stopSelected = Ui.Button("Stop selected", () => Stop(selected));
         stopGroup = Ui.Button("Stop group", () => Stop(GroupOf(selected)));
-        var footer = new DockPanel { Margin = new Thickness(8) };
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        // The total reads in full on its own line (wrapping, never cut); the buttons sit under it and wrap when the pane is narrow.
+        total.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+        total.TextTrimming = Avalonia.Media.TextTrimming.None;
+        var footer = new StackPanel { Margin = new Thickness(8), Spacing = 8 };
+        var actions = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 8, LineSpacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
         actions.Children.Add(stopSelected);
         actions.Children.Add(stopGroup);
-        DockPanel.SetDock(actions, Dock.Right);
-        footer.Children.Add(actions);
         footer.Children.Add(total);
+        footer.Children.Add(actions);
         var body = new Grid { RowDefinitions = new("Auto,*,Auto") };
         scroll = new ScrollViewer { HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, Content = new StackPanel { Children = { message, rows } } };
         Grid.SetRow(scroll, 1);
