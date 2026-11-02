@@ -6,6 +6,7 @@
 #include "GhosttyView.h"
 // keyboard-mode.zig, appended to libghostty: the embedding API does not expose the negotiated keyboard protocol.
 extern bool gav_ghostty_agent_newline(ghostty_surface_t surface);
+extern void gav_ghostty_reclaim_targets(ghostty_surface_t surface);
 
 @interface GAVTerminalView : NSView <NSTextInputClient>
 @property(nonatomic, assign) ghostty_surface_t surface;
@@ -408,6 +409,12 @@ void gav_texture_resize(void *pointer, double width, double height, double scale
     ghostty_surface_set_content_scale(view.surface, scale, scale);
     ghostty_surface_set_size(view.surface, MAX(1, width * scale), MAX(1, height * scale));
     ghostty_surface_refresh(view.surface);
+}
+// Frees the GPU targets of a surface set not visible (gav_texture_visible false) except its last presented frame; the next
+// visible draws recreate them at the same size. The grid and the PTY are untouched.
+void gav_texture_reclaim(void *pointer) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    if (view.surface) gav_ghostty_reclaim_targets(view.surface);
 }
 void gav_texture_focus(void *pointer, bool focused) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;

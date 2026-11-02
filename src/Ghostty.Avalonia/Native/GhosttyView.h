@@ -40,6 +40,7 @@ void gav_texture_release(void *surface);
 void gav_texture_resize(void *view, double width, double height, double scale);
 void gav_texture_focus(void *view, bool focused);
 void gav_texture_visible(void *view, bool visible);
+void gav_texture_reclaim(void *view);
 bool gav_texture_key(void *view, int32_t action, uint32_t keycode, int32_t mods,
                      int32_t consumed, const char *text, uint32_t unshifted);
 void gav_texture_text(void *view, const char *text);

@@ -1,0 +1,63 @@
+--- a/src/renderer/message.zig
++++ b/src/renderer/message.zig
+@@ -22,6 +22,11 @@
+     /// and still have focus.
+     visible: bool,
+ 
++    /// Free the render targets of an occluded surface except the one holding
++    /// the last presented frame. They are recreated, at the unchanged size,
++    /// by the draws that follow once the surface is visible again.
++    gav_reclaim: void,
++
+     /// Reset the cursor blink by immediately showing the cursor then
+     /// restarting the timer.
+     reset_cursor_blink: void,
+--- a/src/renderer/Thread.zig
++++ b/src/renderer/Thread.zig
+@@ -365,6 +365,11 @@
+                 // check the visible state themselves to control their behavior.
+             },
+ 
++            .gav_reclaim => {
++                // Only an occluded surface gives its targets back.
++                if (!self.flags.visible) self.renderer.gavReclaimTargets();
++            },
++
+             .focus => |v| focus: {
+                 // If our state didn't change we do nothing.
+                 if (self.flags.focused == v) break :focus;
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -1035,7 +1035,32 @@
+                 }
+             }
+         }
++
++        /// Replaces the targets of every frame but the most recently drawn one
++        /// (the frame the apprt may still present) with 1x1 ones, freeing their
++        /// GPU memory. The draws that follow resize each target to the
++        /// unchanged surface size when they reach it, so the grid, the terminal
++        /// state and the PTY are untouched. Idempotent.
++        ///
++        /// Must be called on the render thread.
++        pub fn gavReclaimTargets(self: *Self) void {
++            self.draw_mutex.lock();
++            defer self.draw_mutex.unlock();
++            if (self.swap_chain.defunct) return;
+ 
++            // No frame may be in flight on the GPU.
++            for (0..SwapChain.buf_count) |_| self.swap_chain.frame_sema.wait();
++            defer for (0..SwapChain.buf_count) |_| self.swap_chain.frame_sema.post();
++
++            for (&self.swap_chain.frames, 0..) |*frame, index| {
++                if (index == self.swap_chain.frame_index) continue;
++                if (frame.target.width == 1 and frame.target.height == 1) continue;
++                const target = self.api.initTarget(1, 1) catch continue;
++                frame.target.deinit();
++                frame.target = target;
++            }
++        }
++
+         /// Callback when the window is visible or occluded.
+         ///
+         /// Must be called on the render thread.
