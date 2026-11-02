@@ -37,6 +37,17 @@ internal sealed partial class LanguagePanel : UserControl
         public bool ShowDetail => Expanded || ShowExit || Server.State is "error" or "unavailable" or "installing" or "initializing" or "actionRequired" or "requiresAcceptance" or "expired";
         public bool ShowLogs => Expanded || ShowExit || Server.State is "error" or "unavailable" or "expired";
         public bool HasSource => Server.Path.Length > 0;
+        /// <summary>The plugin's license notice (a trial ending soon, a grace period, a parked server), shown in the row without opening the settings.</summary>
+        public string LicenseNotice
+        {
+            get
+            {
+                if (Server.PluginState.Length == 0) return "";
+                try { return System.Text.Json.Nodes.JsonNode.Parse(Server.PluginState)?["notice"]?.ToString() ?? ""; }
+                catch (System.Text.Json.JsonException) { return ""; }
+            }
+        }
+        public bool HasLicenseNotice => LicenseNotice.Length > 0;
         public bool RestartRequired => Server.ActiveConfiguration.Length > 0 && Server.Configuration != Server.ActiveConfiguration;
         public string SettingsTooltip => RestartRequired ? "Workspace settings · restart needed" : "Workspace settings";
         public Control SettingsIcon => Ui.Icon("settings", RestartRequired ? Ui.Accent : Ui.Muted);

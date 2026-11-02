@@ -1357,6 +1357,7 @@ internal static class Program
         Gate.Case("button-centering", ButtonCenteringChecks.RunUi);
         Gate.Case("air-gateway-ui", () => AirGatewayChecks.RunUi(root));
         Gate.Case("language-limits-ui", () => LanguageLimitChecks.Ui(root));
+        Gate.Case("intellij-license-ui", () => IntelliJLicenseChecks.Ui(root));
         Gate.Case("language-code-actions", () => LanguageCodeActionChecks.Run(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));

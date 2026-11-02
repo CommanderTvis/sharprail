@@ -52,7 +52,7 @@ public sealed partial class RemoteProjectAdapter
                 Offset = request.Offset,
                 Configuration = request.Configuration,
                 Limit = request.Limit
-            }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(5)));
+            }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(request.Operation == "action" ? 7 : 5))); // A browser sign-in waits up to six minutes.
         }
         catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return new("unavailable", "This host does not provide language services."); }
         catch (RpcException) when (cancellationToken.IsCancellationRequested) { throw new OperationCanceledException(cancellationToken); }

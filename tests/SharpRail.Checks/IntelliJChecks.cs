@@ -139,6 +139,7 @@ internal static class IntelliJChecks
         var silent = await host.LanguageAsync(new(workspace, "Sample.java", "references"));
         Require(silent.State == "actionRequired" && silent.Locations.Count == 0 && silent.Detail.Contains("license", StringComparison.OrdinalIgnoreCase), "An unlicensed server answered silently instead of saying so.");
         var heldRow = (await host.LanguageAsync(new(workspace, Operation: "servers"))).Servers.Single(server => server.Id == "intellij");
+        Require(held.Detail.Length < 300 && silent.Detail.Length < 300, "The unlicensed answer was not short: " + held.Detail.Length);
         Require(heldRow.State == "actionRequired" && JsonNode.Parse(heldRow.PluginState)!["kind"]!.ToString() == "parked", "The settings row did not receive the license state: " + heldRow.State + " " + heldRow.PluginState);
         var trial = await host.LanguageAsync(new(workspace, Operation: "action", Server: "intellij", Query: "trial"));
         Require(trial.State == "ready" && JsonNode.Parse(trial.Detail)!["ok"]!.GetValue<bool>(), "The trial action failed: " + trial.State + " " + trial.Detail);
@@ -290,6 +291,8 @@ internal static class IntelliJChecks
         await using var service = new LanguageService(Path.Combine(root, ".tools", "language"), () => true, () => global,
             (workspace, id) => configuration.GetValueOrDefault((workspace, id)) ?? "{}", (workspace, id, json) => configuration[(workspace, id)] = json);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        try { await service.ExecuteForAgentAsync(new(root, Operation: "action", Server: "intellij", Query: "trial"), default); throw new InvalidOperationException("An agent ran a license action."); }
+        catch (ArgumentException) { }
         async Task<LanguageResult> Ready(LanguageRequest request)
         {
             LanguageResult result;

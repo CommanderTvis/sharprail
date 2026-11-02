@@ -209,8 +209,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 if (Expired) return new("expired", server.Spec.ExpiredDetail, server.Id, request.Version) { Freshness = "unavailable" };
                 throw new IOException("The language server exited.");
             }
+            if (unavailable.Length > 0) return new("actionRequired", unavailable, server.Id, request.Version) { SemanticColoring = SemanticColoring, Freshness = "unavailable", Coverage = projectModel.Description };
             if (request.Operation is "retry" or "status") return new(NeedsConfiguration ? "actionRequired" : IsIndexing ? "initializing" : "ready", ProjectDetail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Coverage = projectModel.Description, Freshness = NeedsConfiguration || IsIndexing || projectModel.Truncated ? "partial" : "current" };
-            if (unavailable.Length > 0) return new("actionRequired", ProjectDetail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Freshness = "unavailable", Coverage = projectModel.Description };
             if (request.Operation == "workspaceDiagnostics")
             {
                 var coverage = "open documents";

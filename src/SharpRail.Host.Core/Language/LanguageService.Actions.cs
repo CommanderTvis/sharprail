@@ -10,6 +10,8 @@ public sealed partial class LanguageService
     /// <summary>Runs a plugin-defined action (<c>Query</c> names it, <c>Configuration</c> carries its JSON arguments) on the server's running session; it never starts a server (H21).</summary>
     private async Task<LanguageResult> RunActionAsync(string workspace, LanguageServer? server, LanguageRequest request, CancellationToken token)
     {
+        // Activating or removing a license is the user's act; agents never run plugin actions.
+        if (request.Origin == LanguageLimits.AgentOrigin) throw new ArgumentException("Plugin actions are for the user; ask them to change the license in Settings, Code Intelligence.");
         if (server is null || server.Spec.ActionAsync is null) throw new ArgumentException("Select a language server that offers actions.");
         if (request.Query.Length == 0) throw new ArgumentException("Name the action to run.");
         JsonNode? arguments;
