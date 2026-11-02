@@ -2420,8 +2420,10 @@ internal static class ClaudeChatUiChecks
                 "A file reference reads path, line and column and refuses anything that leaves the worktree.");
             var (_, _, inlineLinks) = Markdown.Inline("see `src/A.cs:9` and [there](b/c.cs:2) or [web](https://x.y)", Ui.TextBrush, Ui.Accent, 14);
             Require(inlineLinks.Select(link => link.Url).SequenceEqual(["file:src/A.cs:9", "file:b/c.cs:2", "https://x.y"]), "Code spans and links naming files become file chips next to web links.");
-            view.OpenFileLink("src/Alpha.cs:12"); view.OpenFileLink("/work/project/src/B.cs:3"); view.OpenFileLink("/etc/passwd.txt"); view.OpenFileLink("../up.cs");
+            Await(view.OpenFileLink("src/Alpha.cs:12")); Await(view.OpenFileLink("/work/project/src/B.cs:3")); Await(view.OpenFileLink("/etc/passwd.txt")); Await(view.OpenFileLink("../up.cs"));
             Require(opened.SequenceEqual([("src/Alpha.cs", 12), ("src/B.cs", 3)]), "A reference opens relative to the chat's directory, and an outside path does not open.");
+            Await(view.OpenFileLink("Alpha.cs:4"));
+            Require(opened.Last() == ("src/Alpha.cs", 4), "A bare file name the workspace holds once opens that file, as the agent may have named it from another directory.");
 
             // A long user message folds to a preview with Show more; a Skill call keeps its name in the header; a finished background command leaves a notice.
             var longUser = new ChatUserItem("long", 1, string.Join(" ", Enumerable.Repeat("a very long pasted paragraph of words", 40)));

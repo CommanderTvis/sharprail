@@ -648,7 +648,7 @@ internal sealed partial class ChatView : Grid, IChatRowActions
             case ChatHitKind.Retry: _ = RetryLast(); break;
             case ChatHitKind.StopShell: _ = StopShell(); break;
             case ChatHitKind.Link when arg is not null && Markdown.SafeLink(arg): OpenUrl(arg); break;
-            case ChatHitKind.Link when arg is not null && arg.StartsWith("file:", StringComparison.Ordinal): OpenFileLink(arg[5..]); break;
+            case ChatHitKind.Link when arg is not null && arg.StartsWith("file:", StringComparison.Ordinal): _ = OpenFileLink(arg[5..]); break;
             case ChatHitKind.LoadFull: _ = LoadFull(row); break;
             case ChatHitKind.OpenText when arg is not null: _ = OpenText(row, arg); break;
             case ChatHitKind.Rewind when row.Item.Uuid is { } uuid: ShowRewind(uuid, row); break;
@@ -691,12 +691,27 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     }
 
     // A file reference in a reply opens in the editor at its line, if it stays inside the chat's directory.
-    internal void OpenFileLink(string target)
+    internal Task OpenFileLink(string target)
     {
-        if (Markdown.FileTarget(target) is not { } file) return;
+        if (Markdown.FileTarget(target) is not { } file) return Task.CompletedTask;
         var path = Relative(file.Path);
-        if (path.StartsWith('/') || path.Length > 1 && path[1] == ':') return;
-        _ = env.OpenFileAt(path, file.Line);
+        if (path.StartsWith('/') || path.Length > 1 && path[1] == ':') return Task.CompletedTask;
+        return OpenFileResolved(path, file.Line);
+    }
+
+    // A reply often names a file relative to a directory the agent had moved into, not the chat's: a path that is not there as written
+    // opens the one file of the workspace it ends, and otherwise opens as written (the editor says it is missing).
+    private async Task OpenFileResolved(string path, int line)
+    {
+        var target = path;
+        try
+        {
+            var found = await env.Client.RequestAsync(ChatContract.Files, new ChatFilesParams(workspaceId, path));
+            var files = found.Paths.Where(candidate => !candidate.EndsWith('/')).ToArray();
+            if (!files.Contains(path, StringComparer.Ordinal) && files.Where(candidate => candidate.EndsWith('/' + path, StringComparison.Ordinal)).ToArray() is [var only]) target = only;
+        }
+        catch (Exception) { }
+        await env.OpenFileAt(target, line);
     }
 
     private static string DiffPath(ChatItem item) => item switch
