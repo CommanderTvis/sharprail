@@ -42,7 +42,7 @@ internal static class Program
             if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
             NativeTerminalChecks.Run(args); return;
         }
-        if (args.Contains("--native-terminal-links") || args.Contains("--native-scroll") || args.Contains("--native-file-links") || args.Contains("--native-direct") || args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52") || args.Contains("--native-frame-pump") || args.Contains("--native-prompts")) { NativeTextureChecks.Run(args); return; }
+        if (args.Contains("--native-terminal-links") || args.Contains("--native-scroll") || args.Contains("--native-file-links") || args.Contains("--native-direct") || args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52") || args.Contains("--native-frame-pump") || args.Contains("--native-surface-memory") || args.Contains("--native-prompts")) { NativeTextureChecks.Run(args); return; }
         if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
         var root = CheckRoot.Create("fixture");
         Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(root, "host-state"));

@@ -39,6 +39,7 @@ internal static class NativeTextureChecks
     private static bool terminalLinkCheck;
     private static bool framePumpBenchmark;
     private static bool promptCheck;
+    private static bool surfaceMemoryMeasure;
     private const string Title = "SharpRail Ghostty texture check";
 
     public static void Run(string[] args)
@@ -54,6 +55,7 @@ internal static class NativeTextureChecks
         terminalLinkCheck = args.Contains("--native-terminal-links");
         promptCheck = args.Contains("--native-prompts");
         framePumpBenchmark = args.Contains("--native-frame-pump");
+        surfaceMemoryMeasure = args.Contains("--native-surface-memory");
         // Shutdown(1) only sets the lifetime's return value; drop it and a failed scenario exits 0.
         if (AppBuilder.Configure<TextureApplication>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [fallbackCheck ? AvaloniaNativeRenderingMode.Software : AvaloniaNativeRenderingMode.Metal] })
@@ -95,6 +97,7 @@ internal static class NativeTextureChecks
                 {
                     if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
                     if (promptCheck) await NativePromptChecks.Run(window);
+                    else if (surfaceMemoryMeasure) await NativeSurfaceMemoryMeasure.Run(window);
                     else if (framePumpBenchmark) await NativeFramePumpBenchmark.Run(window);
                     else if (terminalLinkCheck) await TerminalFileLinkChecks.RunRenderers(window);
                     else if (scrollCheck) await CheckScrollBoundary(window);
