@@ -33,7 +33,9 @@ internal sealed class ProcessesPanel : UserControl
     private readonly TextBlock total = Ui.Text("", Ui.TextBrush);
     private readonly Button stopSelected, stopGroup;
     private readonly DispatcherTimer timer = new() { Interval = Interval };
-    private const double NarrowWidth = 300;
+    // The trend column goes when the whole pane is narrow, for every row at once: a row narrower only by its indent would shift its numbers off the columns.
+    private const double NarrowWidth = 320;
+    private bool narrow;
     private readonly HashSet<string> collapsed = [];
     private readonly Dictionary<string, RowView> views = [];
     private ProcessSnapshot? full, snapshot;
@@ -48,6 +50,7 @@ internal sealed class ProcessesPanel : UserControl
         internal readonly ContentControl Chevron = new() { Width = 12 };
         internal readonly TextBlock Label = Ui.Text("", Ui.TextBrush), Cpu = Ui.Text("", Ui.Muted), Memory = Ui.Text("", Ui.Muted);
         internal readonly Sparkline Spark = new() { HorizontalAlignment = HorizontalAlignment.Right };
+        internal Grid Grid = null!;
         internal ProcessNode Node = null!;
         internal bool? Open;
         internal int Depth = -1;
@@ -96,7 +99,7 @@ internal sealed class ProcessesPanel : UserControl
         total.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
         total.TextTrimming = Avalonia.Media.TextTrimming.None;
         var footer = new StackPanel { Margin = new Thickness(8), Spacing = 8 };
-        var actions = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 8, LineSpacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        var actions = new WrapPanel { Orientation = Orientation.Horizontal, ItemSpacing = 8, LineSpacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
         actions.Children.Add(stopSelected);
         actions.Children.Add(stopGroup);
         footer.Children.Add(total);
@@ -275,6 +278,21 @@ internal sealed class ProcessesPanel : UserControl
         if (open) foreach (var child in node.Children) Visit(child, depth + 1, wanted, live);
     }
 
+    private void ApplyNarrow(RowView view)
+    {
+        view.Spark.IsVisible = !narrow;
+        view.Grid.ColumnDefinitions[3].Width = narrow ? new GridLength(0) : new GridLength(56);
+    }
+
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        var next = e.NewSize.Width < NarrowWidth;
+        if (next == narrow) return;
+        narrow = next;
+        foreach (var view in views.Values) ApplyNarrow(view);
+    }
+
     private RowView Create(string id)
     {
         var view = new RowView();
@@ -285,12 +303,8 @@ internal sealed class ProcessesPanel : UserControl
         DockPanel.SetDock(view.Chevron, Dock.Left);
         var label = new DockPanel { ClipToBounds = true, Children = { view.Chevron, view.Label } };
         grid.Children.Add(label);
-        view.Row.SizeChanged += (_, e) =>
-        {
-            var narrow = e.NewSize.Width < NarrowWidth;
-            view.Spark.IsVisible = !narrow;
-            grid.ColumnDefinitions[3].Width = narrow ? new GridLength(0) : new GridLength(56);
-        };
+        view.Grid = grid;
+        ApplyNarrow(view);
         foreach (var (control, column) in new (Control, int)[] { (view.Cpu, 1), (view.Memory, 2), (view.Spark, 3) })
         {
             if (control is TextBlock text) text.HorizontalAlignment = HorizontalAlignment.Right;

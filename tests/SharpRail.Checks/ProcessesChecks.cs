@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
@@ -272,6 +273,17 @@ internal static class ProcessesChecks
         window.Content = panel;
         panel.Apply(Mixed());
         Require(panel.RowCount == 2 + 2 && panel.RowOf("spawn:3") is null, "By default only the pane's own project is shown.");
+        // Numbers stay on their columns at every depth and width: a narrow pane drops the trend column from every row at once.
+        foreach (var width in new[] { 600.0, 300.0 })
+        {
+            window.Width = width;
+            Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            var rights = panel.GetVisualDescendants().OfType<TextBlock>().Where(text => text.Text is { } label && label.EndsWith('%') && text.IsEffectivelyVisible)
+                .Select(text => Math.Round(text.TranslatePoint(new Point(text.Bounds.Width, 0), window)!.Value.X)).Distinct().ToArray();
+            Require(rights.Length == 1, $"CPU numbers must share one right edge at width {width} (rows at different depths are not narrower than the pane): {string.Join(", ", rights)}");
+        }
+        window.Width = 400;
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         var box = panel.GetLogicalDescendants().OfType<CheckBox>().Single();
         box.IsChecked = true; box.IsChecked = false;
         Require(saved.SequenceEqual([true, false]) && !view.AllProjects, "Changing the All projects box tells the plugin so it can keep the choice for the next run.");
