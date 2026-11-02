@@ -45,7 +45,50 @@ internal static class IntelliJDistribution
     {
         if (installation.InstallationPath.Length > 0) return installation.InstallationPath;
         var destination = Managed(installation);
-        return await InstallAsync(destination, Bundle(installation.Platform), installation.Http, token);
+        var installed = await InstallAsync(destination, Bundle(installation.Platform), installation.Http, token);
+        _ = Task.Run(() => PruneSuperseded(installed, installation.Platform));
+        return installed;
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> Launched = new();
+
+    /// <summary>Remembers that a session directory (removed when its session ends) runs from this installation, so pruning keeps it.</summary>
+    internal static void RecordLaunch(string sessionDirectory, string root) => Launched[sessionDirectory] = root;
+
+    private static bool InUse(string root)
+    {
+        foreach (var (session, launchedRoot) in Launched)
+            if (!Directory.Exists(session)) Launched.TryRemove(session, out _);
+            else if (launchedRoot == root) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// After a managed build installed, removes older managed builds of this platform beside it and their <c>.expired</c> markers.
+    /// Never touches a user-selected installation, the installed build or one a session in this process runs from; failures are ignored.
+    /// </summary>
+    internal static void PruneSuperseded(string installed, string platform)
+    {
+        try
+        {
+            var parent = Path.GetDirectoryName(installed)!;
+            var keep = Path.GetFileName(installed);
+            var suffix = "-" + platform;
+            foreach (var entry in Directory.EnumerateFileSystemEntries(parent))
+            {
+                var name = Path.GetFileName(entry);
+                var stem = name.EndsWith(".expired", StringComparison.Ordinal) ? name[..^8] : name;
+                if (stem == keep || !stem.EndsWith(suffix, StringComparison.Ordinal)) continue;
+                if (!System.Version.TryParse(stem[..^suffix.Length], out var older) || !System.Version.TryParse(keep[..^suffix.Length], out var current) || older >= current) continue;
+                try
+                {
+                    if (Directory.Exists(entry)) { if (!InUse(entry)) Directory.Delete(entry, true); }
+                    else if (name != stem && !InUse(Path.Combine(parent, stem))) File.Delete(entry);
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
     }
 
     internal static string EulaHash(ReadOnlySpan<byte> bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
@@ -59,6 +102,7 @@ internal static class IntelliJDistribution
         if (!accepted.Answers.TryGetValue(IntelliJTerms.Region, out var region) || !accepted.Answers.TryGetValue(IntelliJTerms.DataSharing, out var sharing))
             throw new IOException("IntelliJ region and data-sharing choices were not recorded for this artifact.");
         Directory.CreateDirectory(installation.SessionDirectory);
+        RecordLaunch(installation.SessionDirectory, root);
         return new(Path.Combine(root, "bin", OperatingSystem.IsWindows() ? "intellij-server.exe" : "intellij-server"),
             ["--stdio", "--system-path", installation.SessionDirectory, "--eula", actual[..16]])
         {

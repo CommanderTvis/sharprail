@@ -58,6 +58,14 @@ First-start consent: the terms review asks the region (`europe`, `africa`, `amer
 `oceania`) and data sharing (`full`, `anonymous`, `none`), unanswered until chosen. The launch passes them as
 `INTELLIJ_REGION` and `INTELLIJ_DATA_SHARING` next to `--eula <hash prefix>`, and refuses to start without recorded answers.
 
+## Superseded builds
+
+When a managed build installs and passes its checksum, older managed builds of the same platform beside it, and their
+`.expired` markers left by earlier SharpRail versions, are removed in the background. A user-selected installation
+directory, the installed build, other platforms and any build a session of this process still runs from (known by its
+session directory) are kept; a deletion that fails is ignored and retried at the next install. A session of another
+SharpRail process on the same machine is not known, so its build can be removed.
+
 ## Primed index in new workspaces
 
 Each launch passes `indexDir = <session directory>/index` (unless the workspace's initialization options name one), so
