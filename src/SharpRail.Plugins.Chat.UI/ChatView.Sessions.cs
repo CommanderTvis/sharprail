@@ -90,7 +90,10 @@ internal sealed partial class ChatView
     /// <summary>The flyout's content: a search box over a bounded, virtualized list. <paramref name="pick"/> gets the session chosen.</summary>
     internal (Control Panel, ListBox List, TextBox Search) BuildSessions(IReadOnlyList<ChatSessionInfo> all, Action<ChatSessionInfo> pick, DateTime now)
     {
-        var room = TopLevel.GetTopLevel(this)?.ClientSize.Width - 32 ?? MenuMaxWidth;
+        // The flyout opens from the + button's left edge, so only the window's width to the right of it is available.
+        var top = TopLevel.GetTopLevel(this);
+        var left = plus is not null && top is not null ? plus.TranslatePoint(default, top)?.X ?? 0 : 0;
+        var room = top is null ? MenuMaxWidth : top.ClientSize.Width - Math.Max(0, left) - 16;
         return BuildSessionList(all, pick, now, transcript.Header?.SessionId, chatId, Math.Max(120, Bounds.Height * 0.4), Math.Clamp(Math.Min(Bounds.Width - 48, room), 280, MenuMaxWidth));
     }
 
@@ -142,7 +145,7 @@ internal sealed partial class ChatView
     // Past conversations: a flyout with a search box over the sessions the host lists, newest first, in date buckets.
     private async Task ShowSessions()
     {
-        var flyout = new Flyout { Placement = PlacementMode.BottomEdgeAlignedRight };
+        var flyout = new Flyout { Placement = PlacementMode.TopEdgeAlignedLeft };
         flyout.Content = Ui.Text("Loading sessions\u2026", Ui.Muted, 12);
         ChatPopup.Show(flyout, plus!);
         try

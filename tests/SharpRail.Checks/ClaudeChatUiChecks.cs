@@ -1012,6 +1012,9 @@ internal static class ClaudeChatUiChecks
             Require(rows[0].Current && !rows[0].Elsewhere && rows[1].Elsewhere && !rows[1].Current && rows.Skip(2).All(row => !row.Current && !row.Elsewhere), "This chat's session and another tab's are marked, no other.");
 
             var (panel, list, search) = view.BuildSessions(sessions, session => view.ChooseSession(session), now);
+            var sessionsTop = TopLevel.GetTopLevel(view)!;
+            var plusLeft = view.GetVisualDescendants().OfType<Control>().First(control => control.Name == "ChatPlus").TranslatePoint(default, sessionsTop)!.Value.X;
+            Require(panel.Width <= sessionsTop.ClientSize.Width - plusLeft - 16 + 0.5, "The sessions flyout fits the window to the right of the + button it opens from.");
             flyoutHost = new Window { Width = 700, Height = 700, Content = panel, Background = Ui.Surface };
             flyoutHost.Show();
             Frame(flyoutHost); Frame(flyoutHost);
