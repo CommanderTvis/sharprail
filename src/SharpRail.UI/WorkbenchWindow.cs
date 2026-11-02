@@ -252,11 +252,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         view.Opening += (_, _) => FillViewMenu(view);
         header.ContextMenu = view;
         WireLocationBar();
-        var brand = this.FindControl<ContentControl>("BrandIcon")!;
-        // macOS title bars carry no app logo: the traffic lights are followed directly by the location strip.
-        // The phone layout drops it too, leaving its width to the location pills.
-        if (OperatingSystem.IsMacOS() || workbench.Compact) { brand.IsVisible = false; header.ColumnDefinitions[0].Width = new GridLength(0); }
-        else brand.Content = Ui.Icon("brand", Ui.Accent, 28);
         var connection = this.FindControl<Button>("ConnectionButton")!;
         connection.Click += (_, _) =>
         {

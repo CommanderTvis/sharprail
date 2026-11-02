@@ -98,9 +98,8 @@
     <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
       <LayoutTransformControl x:Name="HeaderZoom">
-      <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto" Background="Transparent">
-        <ContentControl x:Name="BrandIcon" />
-        <local:LocationStrip x:Name="LocationBar" Grid.Column="1" ClipToBounds="True">
+      <Grid x:Name="MainHeader" ColumnDefinitions="*,Auto" Background="Transparent">
+        <local:LocationStrip x:Name="LocationBar" ClipToBounds="True">
           <Border x:Name="ProjectSegment" Classes="location-segment" MaxWidth="220" Padding="0">
             <Grid RowDefinitions="14,20" VerticalAlignment="Center">
               <TextBlock Classes="location-caption tr-text-metadata" Text="Project" />
@@ -159,7 +158,7 @@
             </Grid>
           </Border>
         </local:LocationStrip>
-        <StackPanel x:Name="HeaderTools" Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+        <StackPanel x:Name="HeaderTools" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <StackPanel x:Name="HostListeningMark" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" IsVisible="False"
                       AutomationProperties.Name="Host listening">
             <TextBlock Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
