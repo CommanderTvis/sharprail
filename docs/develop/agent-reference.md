@@ -125,6 +125,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--vertical-tabs` | Projects-only tab projection and interactions. |
 | `--rail` | Retained Projects controls and geometry. |
 | `--state` | Host state and profile/preset migration. |
+| `--keymap` | Keymap model (chords, IntelliJ variants, conflicts, reserved chords, tolerance), preset changes through local and WebSocket hosts, the active keymap reaching a live window and its menus, and the Settings › Keymap page (recorder, conflict and Reassign, reserved chords, Reset, delete, narrow layout). Headless. |
 | `--rename-follows` | Open editor and Markdown preview tabs follow a rename from the Files tree and an outside `mv`: unsaved edits, selection and focus kept, title and highlighting path updated, saves go to the new path; deleting still marks the tab. |
 | `--file-drop` | Workspace file drag representations, transfers, attachment gestures. |
 | `--about` | About screen: version fallback, runtime and copy text, links, application menu (About, Settings), Escape. |

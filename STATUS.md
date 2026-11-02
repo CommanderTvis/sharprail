@@ -125,6 +125,10 @@ Acceptance on two real Tailscale devices, physical Android UI and the packaged
 application remains unverified. The owning module spec is draft pending review,
 and the changes are preserved in signed commits.
 
+### Keymap editor
+
+Settings › Keymap with the built-in IntelliJ preset and custom presets over host state (protocol 18). Covers the window commands in `KeymapActions`; editor cursor keys, terminal keys and plugin-contributed keys are not bindable, and keymap import/export, per-workspace keymaps and key sequences are not built. The "Create custom preset to edit" prompt on the first edit of IntelliJ is not exercised headlessly.
+
 ### Verification scope
 
 The [checks contract](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) retains the dated

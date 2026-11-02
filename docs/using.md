@@ -23,6 +23,13 @@
 - Choose a bundled theme, including high contrast, or follow the system with your preferred light and dark pair.
 - File-type icons are built in. Turn them on or off in Settings › Appearance.
 
+## Keymap
+
+- Settings › Keymap picks the keymap preset: the built-in IntelliJ one (macOS or Windows/Linux flavour, whichever matches your system) or a custom one. The choice applies at once to every window.
+- New preset duplicates the selected preset under a name you type; Rename, Duplicate and Delete work on custom presets. Deleting the active one returns to IntelliJ. IntelliJ itself is read-only: the first edit offers to make a custom copy.
+- Select an action and press Edit (or double-click it), then press the new shortcut. Escape cancels; Backspace or Delete clears it. Each action holds up to two shortcuts. A shortcut another action uses is reported by name and can be reassigned; keys terminals need (for example Ctrl+C) are refused. Reset to preset puts a row back to the preset the copy was made from.
+- This covers the app's own window commands. Editor and terminal keys, and shortcuts from plugins, are not part of it.
+
 ## Files and editing
 
 - Edit text files with TextMate syntax highlighting and save with ⌘S.
