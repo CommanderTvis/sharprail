@@ -148,8 +148,8 @@ internal static class ProcessModel
         return new(row.Id, row.Kind, row.Label, row.Detail, row.Pid, Math.Round(cpu, 1), memory, history.Trend(row.Id), nodes, canStop, row.Workspace);
     }
 
-    /// <summary>The stop targets at or below <paramref name="id"/>, in tree order; empty for an unknown id.</summary>
-    internal static IReadOnlyList<(string Id, StopTarget Target)> StopsUnder(ProcessSnapshot snapshot, IReadOnlyDictionary<string, StopTarget> stops, string id)
+    /// <summary>The stop targets at or below <paramref name="id"/>, in tree order; empty for an unknown id. With <paramref name="agentChildren"/> off an agent row contributes only itself.</summary>
+    internal static IReadOnlyList<(string Id, StopTarget Target)> StopsUnder(ProcessSnapshot snapshot, IReadOnlyDictionary<string, StopTarget> stops, string id, bool agentChildren = true)
     {
         var found = new List<(string, StopTarget)>();
         bool Walk(ProcessNode node, bool inside)
@@ -157,7 +157,9 @@ internal static class ProcessModel
             inside |= node.Id == id;
             var hit = node.Id == id;
             if (inside && stops.TryGetValue(node.Id, out var target)) found.Add((node.Id, target));
-            foreach (var child in node.Children) hit |= Walk(child, inside);
+            // Without agentChildren an agent's row stands for its own process only: what it forked is stopped by naming it.
+            var below = inside && !agentChildren && node.Kind == "agent" ? false : inside;
+            foreach (var child in node.Children) hit |= Walk(child, below);
             return hit;
         }
         foreach (var group in snapshot.Groups) Walk(group, false);

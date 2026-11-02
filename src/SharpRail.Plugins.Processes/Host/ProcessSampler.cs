@@ -74,10 +74,13 @@ internal sealed class ProcessSampler(IProcessSource source)
     /// Stops the processes and language servers at or below a node of the last snapshot; an id the snapshot does not hold stops nothing,
     /// so a stale or forged id can never name an arbitrary pid. Language servers go through the language service, never a signal.
     /// </summary>
+    /// <summary>Whether stopping an agent row also stops what it forked (the plugin setting); read per stop.</summary>
+    internal Func<bool> StopAgentChildren { get; init; } = () => true;
+
     internal async Task<int> StopAsync(string id, CancellationToken cancellationToken)
     {
         (string Id, StopTarget Target)[] targets;
-        lock (gate) targets = last is null ? [] : [.. ProcessModel.StopsUnder(last, stops, id)];
+        lock (gate) targets = last is null ? [] : [.. ProcessModel.StopsUnder(last, stops, id, StopAgentChildren())];
         await Task.WhenAll(targets.Select(item => item.Target switch
         {
             { Workspace: { } workspace, ServerId: { } server } => source.StopLanguageServerAsync(workspace, server, cancellationToken).AsTask(),

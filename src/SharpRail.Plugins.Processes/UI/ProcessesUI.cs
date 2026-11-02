@@ -9,6 +9,7 @@ public sealed class ProcessesUI : PluginUIModule
     {
         var view = new ProcessesView();
         context.SideTool(new(ProcessesPlugin.Tool, workspace => new ProcessesPanel(context, workspace, view)));
+        context.SettingsSection(new("Processes", ProcessesPlugin.Manifest.Icon, () => new ProcessesSettingsView(context)));
         return null;
     }
 }

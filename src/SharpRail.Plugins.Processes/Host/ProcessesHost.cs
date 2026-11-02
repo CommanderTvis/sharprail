@@ -14,7 +14,7 @@ public sealed class ProcessesHost : PluginHostModule
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
         if (context.Processes is not { } processes) return ValueTask.FromResult<PluginDisposer?>(null);
-        var sampler = new ProcessSampler(new HostSource(context, processes));
+        var sampler = new ProcessSampler(new HostSource(context, processes)) { StopAgentChildren = () => context.Settings<ProcessesSettings>().StopAgentChildren };
         // The embedded adapter runs a handler on the caller's thread, and sampling reads the process table.
         context.Method(ProcessesContract.Snapshot, (_, _, _) => new ValueTask<ProcessSnapshot>(Task.Run(sampler.Sample)));
         context.Method(ProcessesContract.Stop, async (parameters, _, token) => new ProcessStopResult(await sampler.StopAsync(parameters.Id, token)));

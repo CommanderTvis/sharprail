@@ -146,6 +146,12 @@ internal static class ProcessesChecks
         sampler.Sample();
         Require(await sampler.StopAsync("agent:/w/alpha\0t1", default) == 5 && source.Stopped.Count == 5 && source.Stopped.Contains("pid:11") && source.Stopped.Contains("pid:15"), "An agent row stops its process and everything forked from it on the graceful path.");
         source.Stopped.Clear();
+        var ownOnly = new ProcessSampler(source) { StopAgentChildren = () => false };
+        ownOnly.Sample();
+        Require(await ownOnly.StopAsync("agent:/w/alpha\0t1", default) == 1 && source.Stopped.Single() == "pid:11", "With the setting off an agent row stops only its own process.");
+        source.Stopped.Clear();
+        Require(await ownOnly.StopAsync("spawn:12", default) == 3 && source.Stopped.Order().SequenceEqual(["pid:12", "pid:13", "pid:15"]), "A child row named directly still stops itself and what it forked.");
+        source.Stopped.Clear();
         sampler.Sample();
         Require(await sampler.StopAsync(ProcessModel.SpawnedGroup, default) == 1 && source.Stopped.Single() == "pid:21", "Stop group on spawned agents stops every row under it.");
         source.Stopped.Clear();

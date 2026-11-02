@@ -1,0 +1,27 @@
+<StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+            x:Class="SharpRail.Plugins.Processes.UI.ProcessesSettingsView" x:ClassModifier="internal"
+            Name="SettingsProcesses" Spacing="16">
+  <StackPanel.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextTrimming" Value="None" />
+    </Style>
+    <Style Selector="TextBlock.detail">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+  </StackPanel.Styles>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Processes" FontSize="15" FontWeight="SemiBold" />
+    <TextBlock Classes="detail" Text="The Processes pane — turn the plugin itself on or off from Settings › Plugins." />
+  </StackPanel>
+  <CheckBox x:Name="ProcessesStopAgentChildren" AutomationProperties.Name="Stop what an agent started along with it">
+    <StackPanel Spacing="2">
+      <TextBlock Text="Stop what an agent started along with it" />
+      <TextBlock Classes="detail" Text="Stopping a Claude Code or Codex row also stops every process forked from it. Off stops only the agent's own process; stop a child by selecting its row." />
+    </StackPanel>
+  </CheckBox>
+</StackPanel>
