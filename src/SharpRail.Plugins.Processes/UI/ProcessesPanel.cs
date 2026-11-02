@@ -49,7 +49,8 @@ internal sealed class ProcessesPanel : UserControl
         internal readonly Border Row = new();
         internal readonly ContentControl Chevron = new() { Width = 12 };
         internal readonly TextBlock Label = Ui.Text("", Ui.TextBrush), Cpu = Ui.Text("", Ui.Muted), Memory = Ui.Text("", Ui.Muted);
-        internal readonly Sparkline Spark = new() { HorizontalAlignment = HorizontalAlignment.Right };
+        // The trend keeps a gap from the memory figure, which is right-aligned against its column.
+        internal readonly Sparkline Spark = new() { HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(8, 0, 0, 0) };
         internal Grid Grid = null!;
         internal ProcessNode Node = null!;
         internal bool? Open;
@@ -281,7 +282,7 @@ internal sealed class ProcessesPanel : UserControl
     private void ApplyNarrow(RowView view)
     {
         view.Spark.IsVisible = !narrow;
-        view.Grid.ColumnDefinitions[3].Width = narrow ? new GridLength(0) : new GridLength(56);
+        view.Grid.ColumnDefinitions[3].Width = narrow ? new GridLength(0) : new GridLength(64);
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
@@ -296,7 +297,7 @@ internal sealed class ProcessesPanel : UserControl
     private RowView Create(string id)
     {
         var view = new RowView();
-        var grid = new Grid { ColumnDefinitions = new("*,52,68,56") };
+        var grid = new Grid { ColumnDefinitions = new("*,52,68,64") };
         // The name takes what the numbers leave and is cut with an ellipsis; below NarrowWidth the trend column gives its space to the name.
         view.Label.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
         view.Chevron.Margin = new Thickness(0, 0, 4, 0);

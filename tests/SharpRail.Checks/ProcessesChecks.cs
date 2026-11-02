@@ -284,6 +284,11 @@ internal static class ProcessesChecks
         }
         window.Width = 400;
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        // The trend never touches the memory figure: a gap of at least 8 px separates them.
+        var memory = panel.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text is { } label && (label.EndsWith(" KB") || label.EndsWith(" MB")) && text.IsEffectivelyVisible);
+        var spark = panel.GetVisualDescendants().OfType<SharpRail.Plugins.Processes.UI.Sparkline>().First(control => control.IsEffectivelyVisible);
+        var gap = spark.TranslatePoint(default, window)!.Value.X - memory.TranslatePoint(new Point(memory.Bounds.Width, 0), window)!.Value.X;
+        Require(gap >= 8, $"The trend must keep a gap from the memory figure, got {gap}px.");
         var box = panel.GetLogicalDescendants().OfType<CheckBox>().Single();
         box.IsChecked = true; box.IsChecked = false;
         Require(saved.SequenceEqual([true, false]) && !view.AllProjects, "Changing the All projects box tells the plugin so it can keep the choice for the next run.");
