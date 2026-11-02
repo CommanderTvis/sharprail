@@ -180,6 +180,13 @@ public sealed class KeymapBindings
 
     public string ToJson() => root.ToJsonString();
 
+    /// <summary>The preset this one was duplicated from (empty when none): where a row's Reset to preset goes back to.</summary>
+    public string BasedOn
+    {
+        get => root["basedOn"] is JsonValue value && value.TryGetValue<string>(out var name) ? name : "";
+        set => root["basedOn"] = value.Length == 0 ? null : value;
+    }
+
     public KeymapBindings Copy() => new((JsonObject)root.DeepClone());
 
     /// <summary>Every action id the document binds, known or not.</summary>

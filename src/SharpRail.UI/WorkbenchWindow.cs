@@ -192,7 +192,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private bool RunZoomShortcut(KeyEventArgs e)
     {
         // A chat zooms itself: while one has focus the page-zoom chords are its own.
-        if (ZoomChords.FocusOwned(this)) return false;
+        if (ZoomChords.FocusOwned(this) || ActiveKeymap.Recording) return false;
         foreach (var entry in ShortcutCommands())
             if (entry.Shortcut == WindowShortcuts.ZoomIn || entry.Shortcut == WindowShortcuts.ZoomOut || entry.Shortcut == WindowShortcuts.ZoomReset)
                 if (entry.Shortcut.Matches(e) && entry.Enabled()) { entry.Run(); return true; }

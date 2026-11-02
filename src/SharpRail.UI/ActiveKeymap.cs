@@ -16,6 +16,18 @@ public static class ActiveKeymap
     /// <summary>Raised on the UI thread after the active chords changed.</summary>
     public static event Action? Changed;
 
+    private static bool recording;
+
+    /// <summary>
+    /// Whether a keymap recorder holds the keyboard: window chords and the menu bar's key equivalents step aside so the pressed chord
+    /// reaches the recorder instead of running its command.
+    /// </summary>
+    public static bool Recording
+    {
+        get => recording;
+        set { if (recording == value) return; recording = value; Changed?.Invoke(); }
+    }
+
     /// <summary>Which spelling of the command key this client uses.</summary>
     public static KeymapPlatform Platform => OperatingSystem.IsMacOS() ? KeymapPlatform.Mac : KeymapPlatform.Other;
 

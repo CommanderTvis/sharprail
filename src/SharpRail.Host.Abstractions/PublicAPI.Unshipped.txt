@@ -2227,3 +2227,5 @@ static SharpRail.Host.Abstractions.HostStateChange.DeleteKeymap(string! name) ->
 static SharpRail.Host.Abstractions.HostStateChange.RenameKeymap(string! name, string! next) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.SaveKeymap(string! name, string! bindings) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.SelectKeymap(string! name) -> SharpRail.Host.Abstractions.HostStateChange!
+SharpRail.Host.Abstractions.KeymapBindings.BasedOn.get -> string!
+SharpRail.Host.Abstractions.KeymapBindings.BasedOn.set -> void

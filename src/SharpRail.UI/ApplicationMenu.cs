@@ -213,7 +213,7 @@ public static class ApplicationMenu
     /// </summary>
     private static NativeMenuItem Follow(NativeMenuItem item, WindowShortcut shortcut, Window? owner)
     {
-        void Update() => item.Gesture = shortcut.Gesture is { Key: not Key.None } gesture ? gesture : null;
+        void Update() => item.Gesture = !ActiveKeymap.Recording && shortcut.Gesture is { Key: not Key.None } gesture ? gesture : null;
         ActiveKeymap.Changed += Update;
         if (owner is not null) owner.Closed += (_, _) => ActiveKeymap.Changed -= Update;
         return item;

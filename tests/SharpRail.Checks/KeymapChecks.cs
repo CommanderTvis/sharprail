@@ -1,7 +1,10 @@
 using System.Net;
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
 using Microsoft.AspNetCore.Hosting.Server;
@@ -199,6 +202,108 @@ internal static class KeymapChecks
             // Deleting the preset falls back to IntelliJ.
             ActiveKeymap.Set(new HostState { Settings = new HostSettings { ActiveKeymap = "Mine" } });
             Require(window.ShortcutFor(Press(Key.N, command)) == WindowShortcuts.NewWorkspace && window.ShortcutFor(Press(Key.O, command)) == WindowShortcuts.OpenProject, "A missing preset is IntelliJ.");
+        }
+        finally { ActiveKeymap.Set(new HostState()); window.Close(); }
+    }
+
+    /// <summary>Settings › Keymap driven like a user: presets, search, the recorder, conflicts, Reassign, reserved chords, clearing, Reset, delete and narrow layout.</summary>
+    internal static void Page(string root)
+    {
+        var mac = OperatingSystem.IsMacOS();
+        var command = mac ? KeyModifiers.Meta : KeyModifiers.Control;
+        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-keymap-page"), E2E.E2eTerminals.Plain);
+        window.Show();
+        void Until(Func<bool> done, string message)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(15);
+            while (!done() && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+            Require(done(), message);
+        }
+        Until(() => window.WorkspaceMounted && window.Workbench.State.Handshake is not null, "The keymap page window did not mount.");
+        var state = window.Workbench.State;
+        try
+        {
+            window.ShowSettings("Keymap");
+            Until(() => window.OpenSettingsViews.Any(), "Settings did not open.");
+            var settings = window.OpenSettingsViews.Single();
+            T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
+            T? Maybe<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().SingleOrDefault(control => control.Name == name);
+            int Rows() => settings.GetLogicalDescendants().OfType<Border>().Count(border => border.Name?.StartsWith("KeymapRow_") == true);
+            void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            void Record(Key key, KeyModifiers modifiers)
+            {
+                Until(() => Maybe<Border>("KeymapRecorder") is not null, "The recorder did not appear.");
+                Find<Border>("KeymapRecorder").RaiseEvent(Press(key, modifiers));
+            }
+            Require(Find<ComboBox>("KeymapPreset").SelectedItem as string == "IntelliJ" && Rows() == KeymapActions.All.Count, "IntelliJ is selected and every action is listed.");
+            Require(!Find<Button>("KeymapRename").IsEnabled && !Find<Button>("KeymapDelete").IsEnabled && Find<Button>("KeymapDuplicate").IsEnabled, "The built-in preset can be duplicated but not renamed or deleted.");
+            Find<TextBox>("KeymapSearch").Text = "zoom";
+            Until(() => Rows() == 2, "Search narrows the list to the two zoom actions.");
+            Find<TextBox>("KeymapSearch").Text = "";
+            Until(() => Rows() == KeymapActions.All.Count, "Clearing the search lists everything.");
+
+            // Layout: the page never needs more width than a phone gives it.
+            foreach (var width in new[] { 320.0, 900.0 })
+            {
+                settings.Measure(new Size(width, double.PositiveInfinity));
+                Require(settings.DesiredSize.Width <= width + 1, $"The Keymap page overflows at {width} wide.");
+            }
+
+            // A custom preset made from IntelliJ becomes active.
+            var mine = KeymapBindings.IntelliJ(ActiveKeymap.Platform); mine.BasedOn = "IntelliJ";
+            _ = state.ChangeAsync([HostStateChange.SaveKeymap("Mine", mine.ToJson()), HostStateChange.SelectKeymap("Mine")]);
+            Until(() => Maybe<ComboBox>("KeymapPreset")?.SelectedItem as string == "Mine" && Find<Button>("KeymapRename").IsEnabled, "The new preset is selected and editable.");
+            Chords();
+            IReadOnlyList<KeyChord> Chords() => ActiveKeymap.Chords(KeymapActions.ToggleRight);
+
+            // Record a free chord on Toggle right panel.
+            Click(Find<Button>("KeymapEdit_" + KeymapActions.ToggleRight));
+            Record(Key.K, command | KeyModifiers.Shift);
+            Until(() => Chords().Select(chord => chord.Text).SequenceEqual(["Mod+Shift+K"]), "The recorded chord is live in the window.");
+            Require(window.ShortcutFor(Press(Key.K, command | KeyModifiers.Shift)) == WindowShortcuts.ToggleRight, "The recorded chord reaches the command.");
+
+            // Escape cancels and leaves Settings open; Backspace clears.
+            Click(Find<Button>("KeymapEdit_" + KeymapActions.ToggleRight));
+            Record(Key.Escape, KeyModifiers.None);
+            Until(() => Maybe<Border>("KeymapRecorder") is null && window.OpenSettingsViews.Any() && Chords().Count == 1, "Escape cancels the recorder without closing Settings.");
+
+            // Conflict: Toggle left panel takes Toggle right panel's chord; Cancel keeps both, Reassign moves it.
+            Click(Find<Button>("KeymapEdit_" + KeymapActions.ToggleLeft));
+            Record(Key.K, command | KeyModifiers.Shift);
+            Until(() => Maybe<TextBlock>("KeymapConflictText")?.Text?.Contains("Toggle right panel") == true, "The conflict names the other action.");
+            Click(Find<Button>("KeymapConflictCancel"));
+            Until(() => Maybe<TextBlock>("KeymapConflictText") is null, "Cancel dismisses the conflict.");
+            Require(Chords().Count == 1, "Cancel changes nothing.");
+            Click(Find<Button>("KeymapEdit_" + KeymapActions.ToggleLeft));
+            Record(Key.K, command | KeyModifiers.Shift);
+            Until(() => Maybe<Button>("KeymapReassign") is not null, "The conflict offers Reassign.");
+            Click(Find<Button>("KeymapReassign"));
+            Until(() => Chords().Count == 0 && ActiveKeymap.Chords(KeymapActions.ToggleLeft).Select(chord => chord.Text).SequenceEqual(["Mod+Shift+K"]), "Reassign moves the chord.");
+
+            // A terminal's chord is refused with a reason.
+            Click(Find<Button>("KeymapEdit_" + KeymapActions.ToggleRight));
+            Record(Key.C, command);
+            Until(() => Maybe<TextBlock>("KeymapNoticeText") is not null && Chords().Count == 0, "A terminal-reserved chord is refused.");
+
+            // A second chord, then Reset to preset.
+            Click(Find<Button>("KeymapChip_" + KeymapActions.ToggleLeft + "_1"));
+            Record(Key.L, command | KeyModifiers.Alt);
+            Until(() => ActiveKeymap.Chords(KeymapActions.ToggleLeft).Count == 2, "An action takes a second chord.");
+            Until(() => Maybe<Button>("KeymapReset_" + KeymapActions.ToggleLeft) is not null, "A changed row offers Reset to preset.");
+            Click(Find<Button>("KeymapReset_" + KeymapActions.ToggleLeft));
+            Until(() => ActiveKeymap.Chords(KeymapActions.ToggleLeft).Select(chord => chord.Text).SequenceEqual(KeymapBindings.IntelliJ(ActiveKeymap.Platform).Chords(KeymapActions.ToggleLeft, ActiveKeymap.Platform).Select(chord => chord.Text)),
+                "Reset restores the preset's chords.");
+
+            // Clearing with Backspace unbinds.
+            Click(Find<Button>("KeymapEdit_" + KeymapActions.ZoomReset));
+            Record(Key.Back, KeyModifiers.None);
+            Until(() => ActiveKeymap.Chords(KeymapActions.ZoomReset).Count == 0, "Backspace clears the chord.");
+
+            // Deleting the active preset falls back to IntelliJ in the page and the window.
+            _ = state.ChangeAsync([HostStateChange.DeleteKeymap("Mine")]);
+            Until(() => Find<ComboBox>("KeymapPreset").SelectedItem as string == "IntelliJ" && ActiveKeymap.Chords(KeymapActions.ZoomReset).Count == 1, "Deleting the active preset selects IntelliJ everywhere.");
+            Require(!ActiveKeymap.Recording, "No recorder is left holding the keyboard.");
+            settings.Close();
         }
         finally { ActiveKeymap.Set(new HostState()); window.Close(); }
     }

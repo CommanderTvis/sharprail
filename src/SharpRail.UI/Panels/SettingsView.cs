@@ -83,7 +83,7 @@ public sealed partial class SettingsView : UserControl
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Code Intelligence", "code"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Code Intelligence", "code"), ("Line width", "fileText"), ("Layout", "layout"), ("Keymap", "code"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         // Listed only for a host that settles workspaces; an older one has no idle window to set.
@@ -215,6 +215,7 @@ public sealed partial class SettingsView : UserControl
         ["Code Intelligence"] = "Language servers and launchers",
         ["Line width"] = "Code and Markdown columns",
         ["Layout"] = "Presets, panes, file previews",
+        ["Keymap"] = "Shortcuts and keymap presets",
         ["Projects"] = "Recent projects",
         ["Workspaces"] = "When idle workspaces settle",
         ["Terminal"] = OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser() ? "Replayed output" : "Renderer, replayed output",
@@ -268,6 +269,7 @@ public sealed partial class SettingsView : UserControl
             "Highlighting" => HighlightingSettings(),
             "Code Intelligence" => LspSettings(),
             "Layout" => LayoutSettings(),
+            "Keymap" => KeymapSettings(),
             "Projects" => ProjectSettings(),
             "Terminal" => TerminalSettings(),
             "Workspaces" => WorkspaceSettings(),
@@ -322,10 +324,11 @@ public sealed partial class SettingsView : UserControl
     private void SharedChanged(HostState previous, HostState next)
     {
         // Terminal activity and other clients' workspace updates must not replace the open page.
-        if (previous.Settings == next.Settings && previous.Presets.SequenceEqual(next.Presets) && previous.Projects.SequenceEqual(next.Projects)) return;
+        if (previous.Settings == next.Settings && previous.Presets.SequenceEqual(next.Presets) && previous.KeymapPresets.SequenceEqual(next.KeymapPresets) && previous.Projects.SequenceEqual(next.Projects)) return;
         if (section == "Code Intelligence" && (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider || previous.Settings.LanguageServers != next.Settings.LanguageServers || previous.Settings.LspEnabled != next.Settings.LspEnabled || previous.Settings.LanguageLimits != next.Settings.LanguageLimits || previous.Settings.LanguageTools != next.Settings.LanguageTools)) foreach (var refresh in refreshers) refresh();
         else if (section == "Line width") foreach (var refresh in refreshers) refresh();
         // A project joining the recents list (the window's own open lands after it mounts) leaves the other pages alone.
+        else if (section == "Keymap") { EndKeymapRecording(); RefreshSection(); }
         else if (section == "Appearance" && previous.Settings != next.Settings || section == "Layout" && (previous.Settings != next.Settings || !previous.Presets.SequenceEqual(next.Presets)) ||
             section == "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && (previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb || previous.Settings.TerminalKeepAfterExit != next.Settings.TerminalKeepAfterExit ||
                 previous.Settings.TerminalUndoCloseSeconds != next.Settings.TerminalUndoCloseSeconds ||
