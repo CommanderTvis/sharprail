@@ -35,7 +35,7 @@ internal static class ThemeE2E
             "The catalogue must mirror the reference's bundled manifests in manifest order.");
         var dark = Themes.Exact("dark")!;
         var contrast = Themes.Exact("high-contrast-light")!;
-        Require(dark.Label == "Dark" && dark["content"] == Color.Parse("#18181b") && dark["selection"] == Color.FromArgb(0x26, 0x6a, 0xc8, 0xff) &&
+        Require(dark.Label == "Dark" && dark["content"] == Color.Parse("#18181b") && dark["selection"] == Color.FromArgb(0x59, 0x6a, 0xc8, 0xff) &&
             dark.Colors["selectionForeground"] is null && dark.Ansi.Count == 16 && dark.Ansi[1] == Color.Parse("#cd3131"),
             "Manifest colours, eight-digit alpha and nullable foregrounds must parse exactly.");
         Require(contrast.Label == "High Contrast Light" && contrast.IsLight && contrast.IsHighContrast &&
