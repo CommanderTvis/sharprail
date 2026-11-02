@@ -126,22 +126,22 @@ internal static class IntelliJChecks
         Require(logs.Detail.Contains("--eula", StringComparison.Ordinal) && logs.Detail.Contains(review.EulaSha256[..16], StringComparison.Ordinal) && logs.Detail.Contains("--system-path", StringComparison.Ordinal), "Acknowledged native launch lost mandatory arguments.");
         await host.LanguageAsync(new(workspace, Operation: "restart", Server: "intellij", Configuration: JsonSerializer.Serialize(new { useForJavaAndKotlin = true, installationPath = root, settings = new { fixtureExit = true } })));
         Require((await host.LanguageAsync(new(workspace, dependencyLocations.Locations[0].Path, "source", Server: "intellij"))).State == "unavailable", "Restart retained dependency access from an old process.");
-        using var expiryTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        LanguageResult expired;
+        using var exitTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        LanguageResult exited;
         do
         {
-            await Task.Delay(25, expiryTimeout.Token);
-            expired = await host.LanguageAsync(new(workspace, Operation: "status", Server: "intellij"), expiryTimeout.Token);
-        } while (expired.State is "installing" or "initializing" or "ready");
-        Require(expired.State == "expired" && expired.Diagnostics.Count == 0 && expired.Tokens.Count == 0 && expired.Freshness == "unavailable", "Vendor expiry did not invalidate language results: " + expired.State + " " + expired.Detail);
+            await Task.Delay(25, exitTimeout.Token);
+            exited = await host.LanguageAsync(new(workspace, Operation: "status", Server: "intellij"), exitTimeout.Token);
+        } while (exited.State is "installing" or "initializing" or "ready");
+        Require(exited.State == "error" && exited.Diagnostics.Count == 0 && exited.Tokens.Count == 0 && exited.Freshness != "current", "A server exit did not invalidate language results: " + exited.State + " " + exited.Detail);
         var workspaceProblems = await host.LanguageAsync(new(workspace, Operation: "diagnostics"));
-        Require(workspaceProblems.State == "expired" && workspaceProblems.Diagnostics.Count == 0 && workspaceProblems.Freshness != "current", "Workspace Problems hid expiry or retained stale diagnostics.");
+        Require(workspaceProblems.State == "error" && workspaceProblems.Diagnostics.Count == 0 && workspaceProblems.Freshness != "current", "Workspace Problems hid the exit or retained stale diagnostics.");
         var starts = File.ReadAllLines(Path.Combine(workspace, ".tools", "intellij-launches")).Length;
-        for (var n = 0; n < 3; n++) Require((await host.LanguageAsync(new(workspace, Operation: "status", Server: "intellij"))).State == "expired", "Expiry was not retained.");
-        Require(File.ReadAllLines(Path.Combine(workspace, ".tools", "intellij-launches")).Length == starts && Directory.Exists(root), "Expiry restarted automatically or deleted a user installation.");
+        for (var n = 0; n < 3; n++) Require((await host.LanguageAsync(new(workspace, Operation: "status", Server: "intellij"))).State == "error", "The exit was not retained.");
+        Require(File.ReadAllLines(Path.Combine(workspace, ".tools", "intellij-launches")).Length == starts && Directory.Exists(root), "A server exit restarted automatically or deleted a user installation.");
         await host.LanguageAsync(new(workspace, Operation: "stop", Server: "intellij"));
         Directory.Delete(workspace, true);
-        Console.WriteLine("PASS IntelliJ acknowledged native fixture lifecycle, joint dirty buffers, exit-7 invalidation and no automatic restart/deletion of user installation");
+        Console.WriteLine("PASS IntelliJ acknowledged native fixture lifecycle, joint dirty buffers, server-exit invalidation and no automatic restart/deletion of user installation");
     }
 
     internal static async Task Distribution(string fixture)
@@ -209,16 +209,13 @@ internal static class IntelliJChecks
             var options = WorkspaceLanguageConfiguration.Initialization(new(BuildTool: "gradle", ProjectJdk: "/host/project-jdk"), "/workspace", "intellij");
             Require(options["projects"] is JsonArray, "IntelliJ projects must serialize as an array, not an object.");
             Require(options["intellijExtensions"]!.ToString() == "false" && options["defaultSdk"]!.ToString() == "/host/project-jdk" && options["buildTools"]!["file:///workspace"]!.ToString() == "gradle", "IntelliJ initialization advertised unimplemented extensions or lost project settings.");
-            var expiry = new Installation(Path.Combine(root, "expired-managed", "servers", "intellij", IntelliJDistribution.Version), "") { Http = http };
-            var expiredInstallation = IntelliJDistribution.Managed(expiry);
-            Directory.CreateDirectory(expiredInstallation);
-            await File.WriteAllTextAsync(Path.Combine(expiredInstallation, "fixture"), "expired owned artifact");
-            IntelliJDistribution.RecordExpiry(expiry);
-            Require(!Directory.Exists(expiredInstallation) && File.Exists(expiredInstallation + ".expired"), "Managed expiry did not retain refusal and delete the owned artifact.");
-            var beforeExpiry = requests;
-            try { await IntelliJDistribution.PrepareAsync(expiry, default); throw new InvalidOperationException("Expired build was downloaded again."); }
-            catch (LanguageServerExpiredException) { }
-            Require(requests == beforeExpiry, "Expired managed build caused a download loop.");
+            var stale = Path.Combine(root, "stale-managed", "servers", "intellij");
+            Directory.CreateDirectory(stale);
+            var oldBuild = Path.Combine(stale, "263.6379.0-" + fixtureBundle.Platform);
+            await File.WriteAllTextAsync(oldBuild + ".expired", "refused");
+            var current = new Installation(Path.Combine(stale, IntelliJDistribution.Version), "") { Http = http };
+            Require(IntelliJDistribution.Managed(current) != oldBuild && Path.GetFileName(IntelliJDistribution.Managed(current)).StartsWith(IntelliJDistribution.Version, StringComparison.Ordinal),
+                "The released build must install beside, not over, an old marked build.");
             ProjectJdk(root);
             await Protocol(Path.Combine(root, "protocol"));
             await Drafts(Path.Combine(root, "drafts"));
@@ -327,7 +324,7 @@ internal static class IntelliJChecks
     {
         ["bin/" + (OperatingSystem.IsWindows() ? "intellij-server.exe" : "intellij-server")] = "fixture, never executed",
         ["EULA.txt"] = "Fixture terms, no actual license acceptance.",
-        ["product-info.json"] = """{"buildNumber":"263.6379.0","productCode":"ILS"}""",
+        ["product-info.json"] = """{"buildNumber":"263.7084.0","productCode":"ILS"}""",
         ["license/retained-notice.txt"] = "Fixture notice"
     };
 

@@ -11,26 +11,20 @@ internal sealed record IntelliJBundle(string Version, string Platform, Uri Url, 
 
 internal static class IntelliJDistribution
 {
-    internal const string Version = "263.6379.0";
+    internal const string Version = "263.7084.0";
 
-    /// <summary>The pinned build's release day, from its product-info.json majorVersionReleaseDate (20260930).</summary>
-    internal static readonly DateOnly Released = new(2026, 9, 30);
-
-    /// <summary>The EAP agreement ends 30 days after the build's release day (the vendor may end it sooner).</summary>
-    internal static readonly DateOnly Deadline = Released.AddDays(30);
-    internal const string Expired = "JetBrains refused this build (exit 7). Install an authorized newer build and review its terms. Existing Java and Kotlin providers remain available.";
     internal const string CatalogSource = "https://github.com/JetBrains/intellij-lsp.nvim/blob/main/lua/intellij-lsp/server_bundles.lua";
 
     internal static IntelliJBundle Bundle(string platform)
     {
         var hash = platform switch
         {
-            "macos-aarch64" => "443157ce085dae947637594ab883692fa7e952ae0c7d0baa6eb917fc91cabdd1",
-            "macos-x86_64" => "e5fff8dfa0af523db053bb9cad46529f862116616e1e0d7b2cbaed032eddef15",
-            "linux-aarch64" => "7b50afa2d6f08cbd9dc39ccd9bf89c03bb37ff256e25243fc229cf8ec10354ea",
-            "linux-x86_64" => "7529cc733d4a020e1c1369183b2f60e135c85b8f074bbf27d1476a5a7b3839c3",
-            "windows-aarch64" => "dd160805fbec807c4c9c414f04b67457ec441fd3e3d70bd1a85c321d4b8efbb2",
-            "windows-x86_64" => "270d02e08268129022ea5a379ce747f04d91a679213614c597361a7a6d0df41d",
+            "macos-aarch64" => "ea728da71e3511939b4cb8e4af4aa5e4dda6e0ab7c2bdd1830a5d110bdf2bbec",
+            "macos-x86_64" => "3b31cd867ce0e361bfc763ba78cf4fa1dcb1a5324b97c817a0ec045532278420",
+            "linux-aarch64" => "d5df0980acc4eeb35b1e76227caa62639fcda188649064d17b5b0de1077b38c0",
+            "linux-x86_64" => "3842f2f457e29e58cd9c37a97482b28255d598a2ff142075753d947206c0b922",
+            "windows-aarch64" => "2ce197ad10684d55334c5611433c1479ccb574e52d78e41d023e3f2dd0be4704",
+            "windows-x86_64" => "d84629cbdd79d58f021a15a75f05018518398906519a0e830df6f8a8d515e286",
             _ => throw new PlatformNotSupportedException($"No IntelliJ distribution for {platform}.")
         };
         var extension = platform.StartsWith("macos", StringComparison.Ordinal) ? ".sit" : platform.StartsWith("windows", StringComparison.Ordinal) ? ".win.zip" : ".tar.gz";
@@ -44,19 +38,13 @@ internal static class IntelliJDistribution
     internal static string Installation(ILanguageServerInstallation installation) =>
         installation.InstallationPath.Length > 0 ? installation.InstallationPath : Managed(installation);
 
-    /// <summary>The installation to review without downloading; a refused managed build fails fast.</summary>
-    internal static string Existing(ILanguageServerInstallation installation)
-    {
-        var root = Installation(installation);
-        if (File.Exists(root + ".expired")) throw new LanguageServerExpiredException(Expired);
-        return root;
-    }
+    /// <summary>The installation to review without downloading.</summary>
+    internal static string Existing(ILanguageServerInstallation installation) => Installation(installation);
 
     internal static async Task<string> PrepareAsync(ILanguageServerInstallation installation, CancellationToken token)
     {
         if (installation.InstallationPath.Length > 0) return installation.InstallationPath;
         var destination = Managed(installation);
-        if (File.Exists(destination + ".expired")) throw new LanguageServerExpiredException(Expired);
         return await InstallAsync(destination, Bundle(installation.Platform), installation.Http, token);
     }
 
@@ -65,7 +53,6 @@ internal static class IntelliJDistribution
     internal static LanguageServerLaunch Launch(ILanguageServerInstallation installation)
     {
         var root = Installation(installation);
-        if (File.Exists(root + ".expired")) throw new LanguageServerExpiredException(Expired);
         var accepted = installation.AcceptedTerms ?? throw new IOException("IntelliJ terms were not accepted for this artifact.");
         var actual = EulaHash(File.ReadAllBytes(Path.Combine(root, "EULA.txt")));
         if (actual != accepted.TextSha256) throw new IOException("IntelliJ terms changed or were not accepted for this artifact.");
@@ -75,15 +62,6 @@ internal static class IntelliJDistribution
         {
             Environment = new Dictionary<string, string?> { ["IJ_LAUNCHER_DEBUG"] = null, ["INTELLIJ_DATA_SHARING"] = null, ["INTELLIJ_REGION"] = null }
         };
-    }
-
-    internal static void RecordExpiry(ILanguageServerInstallation installation)
-    {
-        if (installation.InstallationPath.Length > 0) return; // Never delete a user-managed installation.
-        var root = Managed(installation);
-        Directory.CreateDirectory(Path.GetDirectoryName(root)!);
-        File.WriteAllText(root + ".expired", Expired);
-        if (Directory.Exists(root)) Directory.Delete(root, true);
     }
 
     internal static async Task<string> InstallAsync(string destination, IntelliJBundle bundle, HttpClient http, CancellationToken token)

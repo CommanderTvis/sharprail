@@ -69,7 +69,7 @@ Each language has its own plugin, enabled by default, and terminal agents reach 
 | Shell | Bash LS |
 | Swift | SourceKit-LS |
 
-Managed servers are downloaded at runtime and pinned, and the IntelliJ server asks you to accept its terms. Dart and
+Managed servers are downloaded at runtime and pinned, and the IntelliJ server asks you to accept its terms. It is licensed by JetBrains: every build has a free 30-day trial, then it needs an IntelliJ IDEA Ultimate subscription. Dart and
 Swift run the SDK's own executable when it is allowed for that server.
 
 ## Notes

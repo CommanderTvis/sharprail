@@ -13,7 +13,7 @@ tags: [plugins, language]
 
 The plugin id is `lsp-intellij`; it ships enabled. Its host half is a `LanguageServerPlugin` whose activation provides the
 `intellij` server (Plugin API H21); it has no UI half, methods, channels or settings of its own. Disabled, the server leaves
-the catalog, its sessions stop and its saved settings are kept. Implementation: IntelliJ Java and Kotlin · JetBrains · optional evaluation provider. The Code Intelligence settings show, in plain short sentences, "Stops working on <date>" (warning colour within 14 days; "Stopped working on <date>" once passed). The date is the pinned build's release day (product-info.json `majorVersionReleaseDate`, 2026-09-30) plus the 30-day EAP term of its agreement: 2026-10-30. It is derived from the pinned build, not read from a user-selected installation, and JetBrains may end the build sooner.
+the catalog, its sessions stop and its saved settings are kept. Implementation: IntelliJ Java and Kotlin · JetBrains · requires a JetBrains license (a free 30-day trial per build, then an IntelliJ IDEA Ultimate subscription).
 
 The spec declares the pinned version, owned files, pinning and its pins, configuration controls, project manifests
 and scope, and any install and launch steps; the shared behaviour is the host's ([language services](../SharpRail.Host.Core/Language/SPEC.md)).
@@ -23,8 +23,7 @@ extraction), its terms review (the EULA bytes and a fingerprint of the whole ins
 launcher (`--stdio --system-path <session directory> --eula <hash prefix>`, launcher debugging variables removed).
 It replaces `java` and `kotlin` when chosen, accepts an installation directory, project JDK and build importer,
 refuses overrides and its protocol arguments in configured ones, reads `jar:`/`jrt:` sources through the public
-`decompile` command, and treats exit 7 as JetBrains refusing the build: a managed installation is then removed and
-marked so it is not downloaded again; a user-selected one is never deleted. The Kotlin plugin keeps its own copy
+`decompile` command, and treats exit 7 like any other server exit (the EAP-era refusal and its `.expired` marker are gone: the released build is licensed through the protocol, not an exit code); a build directory marked `.expired` by an older SharpRail is named by its build number and so never applies to the current build, which installs beside it. The Kotlin plugin keeps its own copy
 of the shared JVM initialization.
 
 

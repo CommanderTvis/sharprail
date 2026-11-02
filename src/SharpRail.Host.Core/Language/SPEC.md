@@ -603,7 +603,7 @@ The host-global provider choice (`standard` or the id of a server that `Replaces
 sessions across all active workspaces while retaining drafts and saved provider settings; it does
 not start replacement servers. Explicit global selection overrides legacy workspace flags. On first
 migration, unanimous explicit legacy choices are preserved; missing or conflicting choices select
-standard providers to avoid broadening an optional evaluation provider's execution implicitly.
+standard providers to avoid broadening an optional licensed provider's execution implicitly.
 Legacy `useForJavaAndKotlin` values remain readable but cannot override the host's choice.
 
 Optional absolute host `installationPath`, absolute `projectJdk` and `buildTool` remain workspace
@@ -618,20 +618,14 @@ offline entitlements are not implemented. Existing providers remain available th
 
 ### Artifact and legal boundary
 
-The official catalog was rechecked on 2026-10-16 and still selects `263.6379.0`. Six platform URLs
-and published SHA-256 values are pinned from
-[JetBrains' catalog](https://github.com/JetBrains/intellij-lsp.nvim/blob/main/lua/intellij-lsp/server_bundles.lua).
-The six pins were previously verified against the independent CDN `.sha256` files. The researched
-macOS aarch64 archive SHA-256 is `443157ce085dae947637594ab883692fa7e952ae0c7d0baa6eb917fc91cabdd1`;
-its exact EULA SHA-256 is `34d850193ee04897094bff4f61396f80e02f21b0a75c22c4cf5f700b265094df`.
-The EULA is JetBrains LSP Extension Public EAP Agreement v1.0, effective July 31, 2026: internal
-evaluation/feedback only, no redistribution, ending at the earliest of 30 days from vendor build
-release, GA, EAP discontinuation or revocation, followed by cessation/deletion. A subscription does
-not extend an expired EAP. No local clock or invented grace period substitutes for vendor enforcement.
-The server's actual release date and current eligibility are not independently established by
-SharpRail; an accessible archive is not proof of authorization. The user reviews the actual artifact's
-terms. No production support, paid activation or independent live revocation guarantee is advertised.
-The provider also publishes `TermsDeadline` (`yyyy-MM-dd`): the pinned build's release day (`product-info.json` `majorVersionReleaseDate`, 2026-09-30) plus the agreement's 30 days, 2026-10-30. Settings show it as "Stops working on <date>" (warning colour within 14 days, "Stopped working on <date>" after). It is derived from the pinned build, not read from a user-selected installation.
+The official catalog (client revision `77dc3e118a38`) was rechecked on 2026-11-02 and selects `263.7084.0`
+(released 2026-10-14 per `product-info.json`). Six platform URLs and published SHA-256 values are pinned from
+[JetBrains' catalog](https://github.com/JetBrains/intellij-lsp.nvim/blob/main/lua/intellij-lsp/server_bundles.lua)
+and were verified against the CDN `.sha256` file beside each archive. The macOS aarch64 archive SHA-256 is
+`ea728da71e3511939b4cb8e4af4aa5e4dda6e0ab7c2bdd1830a5d110bdf2bbec`; its exact EULA (JetBrains User Agreement 2.0,
+effective April 16, 2025) SHA-256 is `cd82e6cdaf2790f1aa1a4e08479828a2cd8d790d14f702f2a6edd884410c9a25`. The build is
+released and licensed by JetBrains: a free 30-day trial per build, then an IntelliJ IDEA Ultimate subscription. The
+server enforces this itself; SharpRail keeps no local clock or entitlement. The user reviews the actual artifact's terms.
 
 Downloads go directly from JetBrains to the workspace host; no server binaries or proprietary
 terms are bundled, mirrored or committed. Apache client attribution and notices remain separate in

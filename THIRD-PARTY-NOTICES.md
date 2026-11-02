@@ -165,7 +165,7 @@ Git ignore highlighting uses TextMateSharp.Grammars' bundled source.ignore gramm
 
 The optional IntelliJ language-service adapter uses published catalog metadata and protocol
 conventions from [JetBrains/intellij-lsp.nvim](https://github.com/JetBrains/intellij-lsp.nvim),
-revision 9cfad18005470e4187090013e08f92ec9e437219, Copyright 2026 JetBrains s.r.o., Apache 2.0.
+revision 77dc3e118a381e59f0d0b3e368e4b3a088280ab7, Copyright 2026 JetBrains s.r.o., Apache 2.0.
 SharpRail independently implements these conventions in C#; no Neovim runtime is included.
 See `licenses/intellij-lsp.nvim.LICENSE.txt` and `licenses/intellij-lsp.nvim.NOTICE.md`.
 The proprietary JetBrains server is a separate product and is not bundled or licensed by this notice.
