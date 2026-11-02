@@ -627,6 +627,9 @@ internal sealed class PtySession : ITerminalProcess
     private readonly Lock writing = new();
     private int reading, disposed;
 
+    // Runs on the read pump right after a poll timed out with nothing to read; a check widens the window it guards.
+    internal static Action<string>? IdlePollHook { get; set; }
+
     public string Id { get; }
     public int Pid => pid;
     public string? CurrentDirectory => exited.Task.IsCompleted || Volatile.Read(ref disposed) != 0 ? null : Posix.ProcessDirectory(pid);
@@ -743,11 +746,14 @@ internal sealed class PtySession : ITerminalProcess
         {
             while (true)
             {
+                // Sampled before polling: the shell wrote everything it wrote before it exited, so a poll that starts
+                // after the exit sees all of it. Sampling after the poll would drop output written during the timeout.
+                var shellGone = exited.Task.IsCompleted;
                 var poll = new Posix.PollFd { Fd = master, Events = Posix.PollIn };
                 var ready = Posix.Poll(ref poll, 1, 50);
                 if (ready < 0 && Marshal.GetLastPInvokeError() == Posix.Eintr) continue;
-                // Background jobs can keep the slave open; after the shell exits, drain what is buffered.
-                if (ready == 0) { if (exited.Task.IsCompleted) break; continue; }
+                // Background jobs can keep the slave open; once the shell has exited and a poll started afterwards finds nothing, the buffer is drained.
+                if (ready == 0) { IdlePollHook?.Invoke(Id); if (shellGone) break; continue; }
                 if (ready < 0) break;
                 var count = Posix.Read(master, buffer, buffer.Length);
                 if (count < 0)
