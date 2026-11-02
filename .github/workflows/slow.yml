@@ -1,0 +1,82 @@
+name: Slow checks
+
+# Suites too slow or too heavy for every push: dispatched by hand (Actions, Slow checks, Run workflow, or
+# `gh workflow run slow.yml -f suite=browser`). The regular CI workflow stays the merge gate.
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Which suite to run
+        type: choice
+        options: [browser, native-macos, all]
+        default: browser
+
+permissions:
+  contents: read
+
+env:
+  # Every tool must come from the mise lock files, with their checksums.
+  MISE_LOCKED: '1'
+
+concurrency:
+  group: slow-${{ github.ref }}-${{ inputs.suite }}
+  cancel-in-progress: true
+
+jobs:
+  # The WASM client in Chromium through Playwright: native selection, browser acceptance (Settings overlay, prose, Mermaid,
+  # PDF), local approval and terminal hover (`scripts/mise run browser check`, see scripts/README.md). Not part of CI.
+  browser:
+    if: inputs.suite == 'browser' || inputs.suite == 'all'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/share/mise
+            ~/.cache/sharprail
+            ~/.cache/ms-playwright
+          key: tools-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.browser.toml', 'mise.browser.lock') }}
+      - run: |
+          git config --global user.name CI
+          git config --global user.email ci@example.invalid
+          git config --global init.defaultBranch main
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: sh scripts/ci-run.sh "Browser checks" sh scripts/mise run browser check
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: slow-browser
+
+  # The real-window Ghostty/Metal modes (they open windows and take focus, so they never run on a developer's machine).
+  # A hosted macOS runner may not give Metal a usable GPU: a failure here can be the runner, read the log before blaming a change.
+  native-macos:
+    if: inputs.suite == 'native-macos' || inputs.suite == 'all'
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      # build-native.sh archives libghostty with Homebrew's llvm-ar.
+      - run: brew install llvm
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/share/mise
+            ~/.cache/sharprail
+          key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
+      - run: |
+          git config --global user.name CI
+          git config --global user.email ci@example.invalid
+          git config --global init.defaultBranch main
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: sh scripts/ci-run.sh "Native terminal" sh scripts/mise run check -- --native-terminal
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: sh scripts/ci-run.sh "Native texture" sh scripts/mise run check -- --native-texture
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: slow-native-macos
