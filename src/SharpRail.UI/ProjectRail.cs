@@ -377,7 +377,8 @@ public sealed partial class WorkbenchWindow
             {
                 if (await Task.Run(async () => await host.GetDiffStatsAsync(worktree.Path, token), token) is { } stats) read[worktree.Path] = stats;
             }
-            catch (OperationCanceledException) { return; }
+            // A superseded refresh cancels the call in flight, which a remote host reports as an RPC status, not as a cancellation.
+            catch (Exception) when (token.IsCancellationRequested) { return; }
             // A badge is a convenience: a workspace whose totals cannot be read simply shows none.
             catch (Exception error) { Console.Error.WriteLine($"Change totals of {worktree.Path} are unavailable: {error.Message}"); }
             if (token.IsCancellationRequested || request != projectRequest) return;
