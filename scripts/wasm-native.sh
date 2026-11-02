@@ -23,7 +23,9 @@ for sdk in "$packs"/Microsoft.NET.Runtime.Emscripten.*.Sdk."$runtime"/*/tools; d
 for python in "$packs"/Microsoft.NET.Runtime.Emscripten.*.Python."$runtime"/*/tools/bin/python3; do [ ! -f "$python" ] || break; done
 for node in "$packs"/Microsoft.NET.Runtime.Emscripten.*.Node."$runtime"/*/tools/bin/node; do [ ! -f "$node" ] || break; done
 for emcache in "$packs"/Microsoft.NET.Runtime.Emscripten.*.Cache."$runtime"/*/tools/emscripten/cache; do [ ! -d "$emcache" ] || break; done
-[ -d "$sdk" ] && [ -f "$python" ] || { echo 'Install the checkout-local wasm-tools workload first.' >&2; exit 1; }
+# The Python pack exists only for Windows and macOS; Linux hosts use the system python3.
+[ -f "$python" ] || python="$(command -v python3 || true)"
+[ -d "$sdk" ] && [ -n "$python" ] && [ -x "$python" ] || { echo 'Install the checkout-local wasm-tools workload first.' >&2; exit 1; }
 export DOTNET_EMSCRIPTEN_LLVM_ROOT="$sdk/bin"
 export DOTNET_EMSCRIPTEN_BINARYEN_ROOT="$sdk"
 export DOTNET_EMSCRIPTEN_NODE_JS="$node"
