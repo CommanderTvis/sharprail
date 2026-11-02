@@ -1509,6 +1509,8 @@ internal static class LanguageChecks
             }
             if (method == "initialized")
                 await Send(new { jsonrpc = "2.0", id = "fixture-format-warning", method = "window/showMessageRequest", @params = new { type = 2, message = "Formatting needs a dialect setting", actions = new[] { new { title = "Don't show again" } } } });
+            if (method == "initialized" && File.Exists(Path.Combine(".tools", "license-hold")))
+                await Send(new { jsonrpc = "2.0", method = "jetbrains/licensing/state", @params = new { featuresDeclined = true, parkedReason = "StartedUnlicensed" } });
             if (method == "initialized" && File.Exists("Fixture.csproj"))
             {
                 await Send(new { jsonrpc = "2.0", method = "$/progress", @params = new { token = "project-import", value = new { kind = "begin", title = "Loading projects" } } });
@@ -1614,6 +1616,19 @@ internal static class LanguageChecks
             {
                 await Send(new { jsonrpc = "2.0", id = "fixture-apply", method = "workspace/applyEdit", @params = new { edit = LanguageCodeActionChecks.Edit(documents.Single().Key, documents.Single().Value.Version, "/*cmd*/") } });
                 result = null;
+            }
+            else if (method.StartsWith("jetbrains/licensing/", StringComparison.Ordinal))
+            {
+                var held = File.Exists(Path.Combine(".tools", "license-hold"));
+                if (method.EndsWith("/trial/startAnonymous", StringComparison.Ordinal) && held)
+                {
+                    File.Delete(Path.Combine(".tools", "license-hold"));
+                    await Send(new { jsonrpc = "2.0", method = "jetbrains/licensing/state", @params = new { activeLicense = new { source = "trial", status = "Valid", product = "intellij-server", daysLeft = 30, validThrough = "2026-12-02" } } });
+                    result = new { isSuccess = true };
+                }
+                else if (method.EndsWith("/state/get", StringComparison.Ordinal))
+                    result = held ? new { featuresDeclined = true, parkedReason = "StartedUnlicensed" } : (object)new { activeLicense = new { source = "trial", status = "Valid", product = "intellij-server", daysLeft = 30, validThrough = "2026-12-02" } };
+                else result = method.EndsWith("/discovery/autoActivate", StringComparison.Ordinal) ? new { activated = false } : null;
             }
             else result = new[] { new { uri, range } };
             await Send(new { jsonrpc = "2.0", id, result });

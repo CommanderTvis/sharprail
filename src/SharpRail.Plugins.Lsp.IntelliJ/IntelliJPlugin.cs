@@ -46,6 +46,10 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         TermsNote = "Uses JetBrains’ standalone server for Java and Kotlin. Download or select an installation, then accept its agreement before starting. " +
             "The server is licensed by JetBrains: every build has a free 30-day trial, then it needs an IntelliJ IDEA Ultimate subscription.",
         ConfigureInitialization = JvmInitialization.Configure,
+        ExperimentalClientCapabilities = IntelliJLicensing.ClientCapabilities,
+        AcceptsShowDocument = true,
+        OnMessage = IntelliJLicensing.OnMessage,
+        ActionAsync = IntelliJLicensing.ActionAsync,
         PrimeWorkspaceAsync = (prime, cancellationToken) => Task.Run(() => IntelliJIndexPrimer.Prime(prime.SourceState, prime.TargetState, cancellationToken), cancellationToken),
         InitializeTimeout = TimeSpan.FromMinutes(15),
         InitializeProgressToken = "sharprail-intellij-init",

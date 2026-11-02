@@ -270,6 +270,11 @@ internal static class Program
             LanguageLimitChecks.Ui(root);
             return;
         }
+        if (args.SequenceEqual(["--intellij-license"]))
+        {
+            IntelliJLicenseChecks.Run().GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--lsp"]))
         {
             LanguageChecks.Run(root).GetAwaiter().GetResult();
@@ -1279,6 +1284,7 @@ internal static class Program
         Gate.Case("project-language-file", () => ProjectLanguageFileChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-language-autostart", () => ProjectLanguageAutostartChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-services", () => LanguageChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("intellij-license", () => IntelliJLicenseChecks.Run().GetAwaiter().GetResult());
         Gate.Case("language-catalog", () => LanguageCatalogChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-on-demand", () => { LanguageOnDemandChecks.Run(root).GetAwaiter().GetResult(); LanguageOnDemandChecks.Lifetime(root).GetAwaiter().GetResult(); LanguageFreshnessChecks.Run(root).GetAwaiter().GetResult(); });
         Gate.Case("language-exit", () => LanguageExitChecks.Run(root).GetAwaiter().GetResult());

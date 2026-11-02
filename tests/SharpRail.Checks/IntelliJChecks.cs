@@ -124,6 +124,27 @@ internal static class IntelliJChecks
         Require(File.ReadAllLines(Path.Combine(workspace, ".tools", "intellij-launches")).Length == 1, "Navigation restarted a warm project session.");
         var logs = await host.LanguageAsync(new(workspace, Operation: "logs", Server: "intellij"));
         Require(logs.Detail.Contains("--eula", StringComparison.Ordinal) && logs.Detail.Contains(review.EulaSha256[..16], StringComparison.Ordinal) && logs.Detail.Contains("--system-path", StringComparison.Ordinal), "Acknowledged native launch lost mandatory arguments.");
+        var refreshed = await host.LanguageAsync(new(workspace, Operation: "action", Server: "intellij", Query: "refresh"));
+        Require(refreshed.State == "ready" && JsonNode.Parse(refreshed.Detail)!["ok"]!.GetValue<bool>(), "The license refresh action did not reach the running server: " + refreshed.State + " " + refreshed.Detail);
+        Require((await host.LanguageAsync(new(workspace, Operation: "action", Server: "intellij", Query: "nonsense"))).State == "error", "An unknown plugin action was not reported.");
+        // An unlicensed server starts but says so, to the settings row and to agents, until a license is activated.
+        Directory.CreateDirectory(Path.Combine(workspace, ".tools"));
+        await File.WriteAllTextAsync(Path.Combine(workspace, ".tools", "license-hold"), "");
+        await host.LanguageAsync(new(workspace, Operation: "restart", Server: "intellij", Configuration: JsonSerializer.Serialize(new { useForJavaAndKotlin = true, installationPath = root })));
+        LanguageResult held;
+        using (var holdTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+            do { await Task.Delay(25, holdTimeout.Token); held = await host.LanguageAsync(new(workspace, Operation: "status", Server: "intellij"), holdTimeout.Token); }
+            while (held.State is "installing" or "initializing" or "ready");
+        Require(held.State == "actionRequired" && held.Detail.Contains("No active license", StringComparison.Ordinal), "An unlicensed server was reported as ready: " + held.State + " " + held.Detail);
+        var silent = await host.LanguageAsync(new(workspace, "Sample.java", "references"));
+        Require(silent.State == "actionRequired" && silent.Locations.Count == 0 && silent.Detail.Contains("license", StringComparison.OrdinalIgnoreCase), "An unlicensed server answered silently instead of saying so.");
+        var heldRow = (await host.LanguageAsync(new(workspace, Operation: "servers"))).Servers.Single(server => server.Id == "intellij");
+        Require(heldRow.State == "actionRequired" && JsonNode.Parse(heldRow.PluginState)!["kind"]!.ToString() == "parked", "The settings row did not receive the license state: " + heldRow.State + " " + heldRow.PluginState);
+        var trial = await host.LanguageAsync(new(workspace, Operation: "action", Server: "intellij", Query: "trial"));
+        Require(trial.State == "ready" && JsonNode.Parse(trial.Detail)!["ok"]!.GetValue<bool>(), "The trial action failed: " + trial.State + " " + trial.Detail);
+        using (var licensedTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+            while ((await host.LanguageAsync(new(workspace, Operation: "status", Server: "intellij"), licensedTimeout.Token)).State != "ready") await Task.Delay(25, licensedTimeout.Token);
+        Require((await host.LanguageAsync(new(workspace, Operation: "servers"))).Servers.Single(server => server.Id == "intellij").PluginState.Contains("\"licensed\"", StringComparison.Ordinal), "A started trial did not release the hold.");
         await host.LanguageAsync(new(workspace, Operation: "restart", Server: "intellij", Configuration: JsonSerializer.Serialize(new { useForJavaAndKotlin = true, installationPath = root, settings = new { fixtureExit = true } })));
         Require((await host.LanguageAsync(new(workspace, dependencyLocations.Locations[0].Path, "source", Server: "intellij"))).State == "unavailable", "Restart retained dependency access from an old process.");
         using var exitTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
