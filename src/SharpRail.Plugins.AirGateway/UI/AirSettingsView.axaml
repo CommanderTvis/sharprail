@@ -13,7 +13,7 @@
   <StackPanel Spacing="16">
     <TextBlock Text="Air Gateway" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
     <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
-               Text="Choose where Codex and Claude Code get their AI: their own accounts, or JetBrains AI governed through your Central CLI. The choice changes only the command that starts each new agent terminal; no agent configuration file is touched, and only Central's local sign-in status is checked automatically (when this page opens, when the window regains focus, and while a sign-in is awaited); signing in or out, listing sources, switching, starting the proxy and updating run only when you press their button." />
+               Text="Choose where Codex and Claude Code get their AI: from their own accounts, or from JetBrains AI through the Central CLI.&#10;&#10;The choice only changes the command that starts each new agent terminal. No agent configuration file is edited.&#10;&#10;SharpRail checks Central's sign-in status on its own when this page opens, when the window regains focus, and while a sign-in is waiting. Everything else (signing in or out, listing sources, switching source, starting the proxy, updating Central) runs only when you press its button." />
     <TextBlock x:Name="AirCentralLine" TextWrapping="Wrap" Text="Checking Central…" />
     <TextBlock x:Name="AirCredits" TextWrapping="Wrap" IsVisible="False" Foreground="{x:Static kit:Ui.TextBrush}" />
     <StackPanel x:Name="AirInstall" Spacing="4" IsVisible="False">
@@ -31,7 +31,7 @@
       <RadioButton x:Name="AirSourceDirect" GroupName="AirSource" Content="Each agent's own account" />
       <TextBlock Margin="28,0,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Codex and Claude Code sign in and bill as you configured them. Central stays out of the way." />
       <RadioButton x:Name="AirSourceCentral" GroupName="AirSource" Content="JetBrains AI through Central" />
-      <TextBlock Margin="28,0,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="The agents below are routed through JetBrains Air and its governance. Applies to terminals started after you choose it; running sessions keep the command they started with." />
+      <TextBlock Margin="28,0,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="The agents below are routed through JetBrains Air and its governance. This applies to terminals you start after choosing it; sessions already running keep their old command." />
     </StackPanel>
     <StackPanel Spacing="4">
       <TextBlock Text="Agents" Foreground="{x:Static kit:Ui.TextBrush}" />
