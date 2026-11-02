@@ -165,7 +165,7 @@ public sealed record CodexSettings
     /// <summary>Hands every launched session SharpRail's MCP server.</summary>
     public bool Mcp { get; init; } = true;
     /// <summary>Attaches launched sessions to the already-running Codex daemon; off launches <c>--no-daemon</c>. SharpRail never starts the daemon.</summary>
-    public bool SharedDaemon { get; init; }
+    public bool SharedDaemon { get; init; } = true;
 }
 
 /// <summary>Whether a launch can attach to the running daemon now; <see cref="Reason"/> says why not, for the fallback notice.</summary>

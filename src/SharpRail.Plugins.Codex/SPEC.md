@@ -18,7 +18,7 @@ invitation is excluded by the SharpRail product contract; a Codex chat component
   Unset defaults persist as empty strings so merged settings updates clear earlier overrides.
   SharpRail wire version 5 covers this and the daemon extension below: mismatched host/UI halves stay dormant
   rather than having the older strict schema silently fall back to defaults.
-- Settings › Codex has "Use the shared Codex daemon" (`SharedDaemon`, host state, default off). Off, every
+- Settings › Codex has "Use the shared Codex daemon" (`SharedDaemon`, host state, default on). Off, every
   UI launch and revival adds `--no-daemon` (standalone). On, a launch attaches with `--remote unix://` only
   when the `daemon` method reports the daemon running at the CLI's own version; SharpRail never starts,
   stops or restarts the daemon. A missing, stopped, mismatched, slow or unqueryable daemon falls back to
