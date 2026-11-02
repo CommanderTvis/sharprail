@@ -42,7 +42,6 @@ public sealed partial class LanguageService : IAsyncDisposable
         internal string StartedBy = LanguageOrigins.Human;
         internal string Configuration = "";
         internal string State = "installing";
-        internal int ExpiryRecorded;
         internal string Detail = "Installing or locating the language server…";
         internal readonly CancellationTokenSource Stop;
         internal readonly CancellationToken Token;
@@ -201,17 +200,10 @@ public sealed partial class LanguageService : IAsyncDisposable
                 {
                     token.ThrowIfCancellationRequested();
                     if (!sessionKey.StartsWith(workspace + "\0", StringComparison.Ordinal)) continue;
-                    if (running.State == "expired")
-                    {
-                        var expiredId = sessionKey[(sessionKey.IndexOf('\0') + 1)..];
-                        results.Add(new("expired", running.Detail, expiredId) { Freshness = "unavailable" });
-                        continue;
-                    }
                     if (!running.Session.IsValueCreated || !running.Session.Value.IsCompletedSuccessfully) continue;
                     try
                     {
                         var inspection = await running.Session.Value.Result.WorkspaceDiagnosticsAsync(token);
-                        if (inspection.State == "expired") RecordExpiry(running, sessionKey, workspace);
                         results.Add(inspection);
                     }
                     catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
@@ -309,10 +301,8 @@ public sealed partial class LanguageService : IAsyncDisposable
                 try { if (drafts.TryGetValue(key, out var saved)) await session.RestoreDraftsAsync(saved, deadline.Token); }
                 catch
                 {
-                    var expired = await session.ObserveExpiryAsync();
                     session.Terminate("restoring unsaved editor buffers failed", failure: true);
                     await session.DisposeAsync();
-                    if (expired) throw new LanguageServerExpiredException(server.Spec.ExpiredDetail);
                     throw;
                 }
                 log.Add("lifecycle", "Initialized; serving this workspace.");
@@ -320,8 +310,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             }
             catch (Exception error)
             {
-                if (error is LanguageTermsRequiredException or LanguageServerExpiredException) { candidate.State = error is LanguageServerExpiredException ? "expired" : "requiresAcceptance"; candidate.Detail = error.Message; }
-                if (error is LanguageServerExpiredException) RecordExpiry(candidate, key, workspace);
+                if (error is LanguageTermsRequiredException) { candidate.State = "requiresAcceptance"; candidate.Detail = error.Message; }
                 log.Add("startup", error.Message);
                 throw;
             }
@@ -344,7 +333,7 @@ public sealed partial class LanguageService : IAsyncDisposable
             var state = entry.State;
             return new(state, entry.Detail, server.Id, request.Version)
             {
-                Freshness = state is "expired" or "requiresAcceptance" ? "unavailable" : "pending"
+                Freshness = state is "requiresAcceptance" ? "unavailable" : "pending"
             };
         }
         try
@@ -358,13 +347,12 @@ public sealed partial class LanguageService : IAsyncDisposable
                 Touch(entry);
                 if (Interlocked.Decrement(ref entry.InFlight) == 0) Pulse();
             }
-            if (result.State == "expired") RecordExpiry(entry, key, workspace);
             foreach (var location in result.Locations)
                 if (Path.IsPathFullyQualified(location.Path)) exposed[(workspace, location.Path)] = true;
             return result;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-        catch (Exception error) { return new(error is LanguageServerExpiredException ? "expired" : error is LanguageTermsRequiredException ? "requiresAcceptance" : "error", error.Message + " Use Retry after resolving the problem.", server.Id, request.Version) { Freshness = "unavailable" }; }
+        catch (Exception error) { return new(error is LanguageTermsRequiredException ? "requiresAcceptance" : "error", error.Message + " Use Retry after resolving the problem.", server.Id, request.Version) { Freshness = "unavailable" }; }
     }
 
     private void RecordExit(string workspace, string server, LanguageExit exit, string startedBy)
@@ -376,22 +364,6 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (exit.Unexpected && Volatile.Read(ref disposed) == 0) DeathObserved?.Invoke(workspace, server, exit.Time, exit.Reason);
     }
 
-    private void RecordExpiry(Entry entry, string key, string workspace)
-    {
-        var server = LanguageServers.Known(key[(key.IndexOf('\0') + 1)..]);
-        entry.State = "expired"; entry.Detail = server?.Spec.ExpiredDetail ?? entry.Detail;
-        if (server is null || Interlocked.Exchange(ref entry.ExpiryRecorded, 1) != 0) return;
-        try
-        {
-            var active = WorkspaceLanguageConfiguration.Parse(entry.Configuration, server.Id);
-            server.Spec.OnExpired(servers.InstallationFor(server, workspace, active.InstallationPath));
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            entry.ExpiryRecorded = 0;
-            logs.GetOrAdd(key, _ => new()).Add("cleanup", error.Message);
-        }
-    }
 
     private LanguageResult ListServers(string workspace, CancellationToken token)
     {
@@ -418,11 +390,10 @@ public sealed partial class LanguageService : IAsyncDisposable
                     var task = entry.Session.Value;
                     if (task.IsCompletedSuccessfully)
                     {
-                        if (task.Result.Expired) RecordExpiry(entry, key, workspace);
-                        state = task.Result.Expired ? "expired" : task.Result.Exited ? "error" : task.Result.NeedsConfiguration ? "actionRequired" : task.Result.IsIndexing ? "initializing" : "ready";
-                        detail = task.Result.Expired ? catalogServer.Spec.ExpiredDetail : task.Result.Exited ? (task.Result.ExitRecord is { } died ? (died.Unexpected ? "Stopped unexpectedly: " : "Stopped: ") + died.Reason : "The server exited; its exit status is still being read.") + " Use Start / Retry to restart." : task.Result.Status;
+                        state = task.Result.Exited ? "error" : task.Result.NeedsConfiguration ? "actionRequired" : task.Result.IsIndexing ? "initializing" : "ready";
+                        detail = task.Result.Exited ? (task.Result.ExitRecord is { } died ? (died.Unexpected ? "Stopped unexpectedly: " : "Stopped: ") + died.Reason : "The server exited; its exit status is still being read.") + " Use Start / Retry to restart." : task.Result.Status;
                     }
-                    else if (task.IsFaulted) { state = task.Exception!.GetBaseException() is LanguageServerExpiredException ? "expired" : task.Exception!.GetBaseException() is LanguageTermsRequiredException ? "requiresAcceptance" : "error"; detail = task.Exception!.GetBaseException().Message; }
+                    else if (task.IsFaulted) { state = task.Exception!.GetBaseException() is LanguageTermsRequiredException ? "requiresAcceptance" : "error"; detail = task.Exception!.GetBaseException().Message; }
                     else if (task.IsCanceled) { state = "stopped"; detail = "Startup was cancelled."; }
                 }
             }
@@ -451,7 +422,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     internal static LanguageServerPresentation Present(LanguageServer server) => new(Name(server), server.Spec.Icon?.Data, server.Spec.Icon?.Format ?? "",
         [.. Enum.GetValues<LanguageServerOptionGroups>().Where(group => group != LanguageServerOptionGroups.None && server.Spec.OptionGroups.HasFlag(group))
             .Select(group => JsonNamingPolicy.CamelCase.ConvertName(group.ToString()))],
-        server.Spec.Replaces, server.Spec.TermsAsync is not null, server.Spec.TermsNote, server.Spec.ReplacesLabel, server.Spec.TermsDeadline);
+        server.Spec.Replaces, server.Spec.TermsAsync is not null, server.Spec.TermsNote, server.Spec.ReplacesLabel);
 
     private static string Name(LanguageServer server) => server.Spec.Name.Length > 0 ? server.Spec.Name : server.Id;
 

@@ -340,18 +340,6 @@ public sealed class LanguageServerSpec
     /// <summary>What the user should know before reviewing the terms, such as an evaluation-only licence and how the vendor ends it.</summary>
     public string TermsNote { get; init; } = "";
 
-    /// <summary>The <c>yyyy-MM-dd</c> date on which the vendor ends this build (the UI shows it prominently), or empty when unknown.</summary>
-    public string TermsDeadline { get; init; } = "";
-
-    /// <summary>The process exit code with which the vendor refuses this build, or <see langword="null"/>.</summary>
-    public int? ExpiredExitCode { get; init; }
-
-    /// <summary>What the host shows once the build expired.</summary>
-    public string ExpiredDetail { get; init; } = "The vendor refused this build.";
-
-    /// <summary>Records an expiry so later launches fail fast, such as by removing a managed installation.</summary>
-    public Action<ILanguageServerInstallation> OnExpired { get; init; } = _ => { };
-
     /// <summary>Fills initialization options from the typed options, the manifests and the server's directories, after <see cref="DefaultInitialization"/>.</summary>
     public Action<ILanguageServerStart, JsonObject> ConfigureInitialization { get; init; } = (_, _) => { };
 
@@ -605,10 +593,6 @@ public sealed class LanguageServerQuestion
     /// <summary>The label shown for each of <see cref="Values"/>, in the same order.</summary>
     public required IReadOnlyList<string> Labels { get; init; }
 }
-
-/// <summary>Thrown by a provider whose server build the vendor refused; the host shows <see cref="LanguageServerSpec.ExpiredDetail"/>.</summary>
-/// <param name="message">What happened.</param>
-public sealed class LanguageServerExpiredException(string message) : IOException(message);
 
 /// <summary>A launch about to start, which <see cref="LanguageServerSpec.ConfigureLaunch"/> may adjust.</summary>
 public sealed class LanguageServerLaunchEdit

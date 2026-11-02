@@ -82,7 +82,7 @@ internal static class LanguageUsage
     /// </summary>
     internal static string CombinedState(string operation, IReadOnlyList<string> states)
     {
-        var state = states.Contains("expired") ? "expired" : states.Contains("requiresAcceptance") ? "requiresAcceptance"
+        var state = states.Contains("requiresAcceptance") ? "requiresAcceptance"
             : states.Any(item => item is "installing" or "initializing") ? "initializing" : states.Contains("error") ? "error"
             : states.Contains("unavailable") ? "unavailable" : "ready";
         return state is "error" or "unavailable" && operation == "workspaceSymbols" && states.Contains("ready") ? "ready" : state;

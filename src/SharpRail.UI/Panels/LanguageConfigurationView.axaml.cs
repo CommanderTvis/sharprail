@@ -44,7 +44,6 @@ internal sealed partial class LanguageConfigurationView : UserControl
         Find<TextBlock>("ProviderNote").Text = presentation?.TermsNote ?? "";
         Find<TextBlock>("ProviderNote").IsVisible = presentation?.TermsNote is { Length: > 0 };
         Find<Button>("ReviewTerms").IsVisible = Find<TextBlock>("TermsStatus").IsVisible = hasTerms;
-        ShowDeadline(presentation?.TermsDeadline ?? "");
         Find<Button>("ReviewTerms").Content = "Review agreement and start " + LanguageServerNameConverter.Display(server.Id) + "…";
         Find<StackPanel>("InstallationOptions").IsVisible = groups.Contains("installation");
         Find<StackPanel>("JvmProjectOptions").IsVisible = groups.Contains("jvmProject");
@@ -197,17 +196,6 @@ internal sealed partial class LanguageConfigurationView : UserControl
         else if (changed) Find<TextBlock>("ConfigurationMessage").Text = "Saved settings changed elsewhere. Reload saved to discard your edits, or Save to replace them.";
     }
 
-    private void ShowDeadline(string deadline)
-    {
-        var text = Find<TextBlock>("TermsDeadline");
-        if (!DateOnly.TryParseExact(deadline, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date)) { text.IsVisible = false; return; }
-        var left = date.DayNumber - DateOnly.FromDateTime(DateTime.Now).DayNumber;
-        text.Text = (left < 0 ? "Stopped working on " : "Stops working on ") + date.ToString("d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
-        if (left <= 14) text.Foreground = SharpRail.Plugins.UI.Kit.Ui.Warning;
-        else text.ClearValue(TextBlock.ForegroundProperty);
-        text.IsVisible = true;
-    }
-
     private void Load()
     {
         loading = true;
@@ -244,7 +232,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         ShowLicense();
         var pending = server.ActiveConfiguration.Length > 0 && server.Configuration != server.ActiveConfiguration;
         Find<Expander>("ConfigurationExpander").Header = pending ? "Workspace settings · restart needed" : "Workspace settings";
-        Find<TextBlock>("ConfigurationMessage").Text = server.State is "error" or "expired" or "disabled" ? server.Detail : pending ? "Saved settings differ from the running server. Restart to apply them." : replaces ? $"Start {LanguageServerNameConverter.Display(server.Id)} after choosing it in Settings → Code Intelligence." : "Applies on next start.";
+        Find<TextBlock>("ConfigurationMessage").Text = server.State is "error" or "disabled" ? server.Detail : pending ? "Saved settings differ from the running server. Restart to apply them." : replaces ? $"Start {LanguageServerNameConverter.Display(server.Id)} after choosing it in Settings → Code Intelligence." : "Applies on next start.";
         Find<Expander>("ActiveConfigurationExpander").IsVisible = server.ActiveConfiguration.Length > 0;
         Find<TextBlock>("ActiveConfiguration").Text = server.ActiveConfiguration.Length > 0 ? Pretty(server.ActiveConfiguration) : "";
     }
@@ -305,7 +293,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
                 Configuration: share ? null : serialized);
             var result = await Task.Run(async () => share && request.Operation == "configure" ? new LanguageResult("ready") : await host.LanguageAsync(request, token), token);
             if (lifetime != current) return;
-            if (result.State is "error" or "disabled" or "unavailable" or "requiresAcceptance" or "expired") { Find<TextBlock>("ConfigurationMessage").Text = result.Detail; return; }
+            if (result.State is "error" or "disabled" or "unavailable" or "requiresAcceptance") { Find<TextBlock>("ConfigurationMessage").Text = result.Detail; return; }
             var saved = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "configuration", Server: server.Id), token), token);
             if (lifetime != current) return;
             server = server with { Configuration = saved.Configuration, ActiveConfiguration = saved.ActiveConfiguration };

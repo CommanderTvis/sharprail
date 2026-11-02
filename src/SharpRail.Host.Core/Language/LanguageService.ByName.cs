@@ -16,7 +16,7 @@ public sealed partial class LanguageService
         if (candidates.Length == 0)
             return search with
             {
-                State = search.State is "initializing" or "requiresAcceptance" or "expired" ? search.State : "notFound",
+                State = search.State is "initializing" or "requiresAcceptance" ? search.State : "notFound",
                 Detail = LanguageUsage.ByNameNotFound(request) + " " + search.Detail,
                 Locations = [],
                 Total = 0,

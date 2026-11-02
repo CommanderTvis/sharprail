@@ -23,7 +23,7 @@ extraction), its terms review (the EULA bytes and a fingerprint of the whole ins
 launcher (`--stdio --system-path <session directory> --eula <hash prefix>`, launcher debugging variables removed).
 It replaces `java` and `kotlin` when chosen, accepts an installation directory, project JDK and build importer,
 refuses overrides and its protocol arguments in configured ones, reads `jar:`/`jrt:` sources through the public
-`decompile` command, and treats exit 7 like any other server exit (the EAP-era refusal and its `.expired` marker are gone: the released build is licensed through the protocol, not an exit code); a build directory marked `.expired` by an older SharpRail is named by its build number and so never applies to the current build, which installs beside it. The Kotlin plugin keeps its own copy
+`decompile` command, and treats every server exit alike (the released build is licensed through the protocol, not an exit code). A build directory marked `.expired` by an older SharpRail carries its own build number, so the marker never applies to the current build, which installs beside it. The Kotlin plugin keeps its own copy
 of the shared JVM initialization.
 
 

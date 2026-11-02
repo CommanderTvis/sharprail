@@ -48,12 +48,6 @@ internal sealed class LanguageConnection : IAsyncDisposable
     internal Func<string, object?>? Configuration { get; set; }
     /// <summary>The server process's id, or null once it has exited.</summary>
     internal int? ProcessId { get { try { return process.HasExited ? null : process.Id; } catch (InvalidOperationException) { return null; } } }
-    internal int? ExitCode => process.HasExited ? process.ExitCode : null;
-    internal async Task<int?> ObserveExitAsync()
-    {
-        await Task.WhenAny(process.WaitForExitAsync(), Task.Delay(250));
-        return ExitCode;
-    }
     internal bool Exited => process.HasExited || reader.IsCompleted;
 
     internal LanguageConnection(ProcessStartInfo start, string workspace, LanguageLog log, string serverId = "", Action<LanguageExit>? onExit = null)

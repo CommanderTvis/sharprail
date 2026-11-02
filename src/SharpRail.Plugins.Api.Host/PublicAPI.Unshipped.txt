@@ -532,8 +532,6 @@ SharpRail.Plugins.Api.Host.ILanguageServerStart.ServerCache.get -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.SessionDirectory.get -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.Workspace.get -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerStart.WorkspaceState.get -> string!
-SharpRail.Plugins.Api.Host.LanguageServerExpiredException
-SharpRail.Plugins.Api.Host.LanguageServerExpiredException.LanguageServerExpiredException(string! message) -> void
 SharpRail.Plugins.Api.Host.LanguageServerIcon
 SharpRail.Plugins.Api.Host.LanguageServerIcon.<Clone>$() -> SharpRail.Plugins.Api.Host.LanguageServerIcon!
 SharpRail.Plugins.Api.Host.LanguageServerIcon.Data.get -> byte[]!
@@ -563,10 +561,6 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.AllowsOverride.get -> bool
 SharpRail.Plugins.Api.Host.LanguageServerSpec.AllowsOverride.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ConfigureInitialization.get -> System.Action<SharpRail.Plugins.Api.Host.ILanguageServerStart!, System.Text.Json.Nodes.JsonObject!>!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ConfigureInitialization.init -> void
-SharpRail.Plugins.Api.Host.LanguageServerSpec.ExpiredDetail.get -> string!
-SharpRail.Plugins.Api.Host.LanguageServerSpec.ExpiredDetail.init -> void
-SharpRail.Plugins.Api.Host.LanguageServerSpec.ExpiredExitCode.get -> int?
-SharpRail.Plugins.Api.Host.LanguageServerSpec.ExpiredExitCode.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Icon.get -> SharpRail.Plugins.Api.Host.LanguageServerIcon?
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Icon.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.InitializeProgressToken.get -> string?
@@ -579,8 +573,6 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.LoadsProjects.get -> System.Func<S
 SharpRail.Plugins.Api.Host.LanguageServerSpec.LoadsProjects.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Name.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.Name.init -> void
-SharpRail.Plugins.Api.Host.LanguageServerSpec.OnExpired.get -> System.Action<SharpRail.Plugins.Api.Host.ILanguageServerInstallation!>!
-SharpRail.Plugins.Api.Host.LanguageServerSpec.OnExpired.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.OnMessage.get -> System.Action<SharpRail.Plugins.Api.Host.ILanguageServerSession!, string!, System.Text.Json.Nodes.JsonNode?>!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.OnMessage.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.OptionGroups.get -> SharpRail.Plugins.Api.Host.LanguageServerOptionGroups
@@ -607,8 +599,6 @@ SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsAsync.get -> System.Func<Shar
 SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsAsync.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsNote.get -> string!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsNote.init -> void
-SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsDeadline.get -> string!
-SharpRail.Plugins.Api.Host.LanguageServerSpec.TermsDeadline.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.WorkspaceFolders.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>!, System.Collections.Generic.IReadOnlyList<string!>!>!
 SharpRail.Plugins.Api.Host.LanguageServerSpec.WorkspaceFolders.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerTerms

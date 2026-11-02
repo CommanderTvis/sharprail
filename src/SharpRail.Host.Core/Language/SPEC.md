@@ -41,8 +41,7 @@ the provider-choice setting (`standard` or the replacing server's id) or, withou
 `useForJavaAndKotlin` option; while it is not chosen it does not start, and while it is the replaced servers stay
 stopped and their drafts move to it. A server with `TermsAsync` is installed and launched by its provider: the
 host never searches PATH for it, records acceptance under `agreements/<server>/<artifact>.json`, and starts it only
-with the exact accepted terms; a vendor refusal (`ExpiredExitCode`) invalidates results, runs `OnExpired` and is
-not restarted automatically. Listings carry each server's presentation (name, icon, option groups, replaced
+with the exact accepted terms. A server that exits is not restarted automatically. Listings carry each server's presentation (name, icon, option groups, replaced
 servers, terms) so the user interface shows what the plugin declares.
 
 The host owns language-server processes and installation storage. Editors and terminal agents
@@ -668,13 +667,7 @@ the acknowledged launcher or reserved arguments. Unsupported IntelliJ extensions
 and run code lenses are disabled. Project JDK/importer and advanced initialization settings persist.
 Workspace/process caches avoid index-lock collisions and are removed when their session is disposed.
 
-The server owns licensing enforcement, as in the official client. Exit 7 is reported as `expired`;
-requests return no diagnostics or semantic tokens, and the retained session/failure prevents
-polling from restarting it. A managed artifact that reports expiry is marked and deleted; its
-same-version automatic download is refused. User installations are preserved. Other disconnections
-remain ordinary errors. Handling exit 7 does not establish subscription/revocation/offline validity
-or detect a vendor revocation that the server does not report. Select existing Java/Kotlin providers
-or configure an authorized newer installation and review its agreement to recover.
+The server owns licensing enforcement, as in the official client (see Licensing and consent above); a server exit is an ordinary error and the retained failure prevents polling from restarting it.
 
 ### Explicit EULA acknowledgement
 

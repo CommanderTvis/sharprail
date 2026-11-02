@@ -34,8 +34,8 @@ internal sealed partial class LanguagePanel : UserControl
         public string ExitDetails => Server.Exit?.Details ?? "";
         public bool IsBusy => Server.State is "installing" or "initializing";
         public bool ShowStatusIcon => !IsBusy;
-        public bool ShowDetail => Expanded || ShowExit || Server.State is "error" or "unavailable" or "installing" or "initializing" or "actionRequired" or "requiresAcceptance" or "expired";
-        public bool ShowLogs => Expanded || ShowExit || Server.State is "error" or "unavailable" or "expired";
+        public bool ShowDetail => Expanded || ShowExit || Server.State is "error" or "unavailable" or "installing" or "initializing" or "actionRequired" or "requiresAcceptance";
+        public bool ShowLogs => Expanded || ShowExit || Server.State is "error" or "unavailable";
         public bool HasSource => Server.Path.Length > 0;
         /// <summary>The plugin's license notice (a trial ending soon, a grace period, a parked server), shown in the row without opening the settings.</summary>
         public string LicenseNotice
@@ -66,7 +66,7 @@ internal sealed partial class LanguagePanel : UserControl
             "installing" => "loader",
             "initializing" => "refresh",
             "stopped" or "disabled" => "close",
-            "error" or "unavailable" or "actionRequired" or "requiresAcceptance" or "expired" => "alertWarning",
+            "error" or "unavailable" or "actionRequired" or "requiresAcceptance" => "alertWarning",
             _ => "checkboxBlankCircle"
         }, Server.State == "ready" ? Ui.Success : Server.State == "error" ? Ui.Danger : Ui.Muted);
         public string StatusDescription => Server.State switch
@@ -88,7 +88,7 @@ internal sealed partial class LanguagePanel : UserControl
         private static bool SamePresentation(LanguageServerPresentation? left, LanguageServerPresentation? right) => left is null || right is null ? left is null && right is null
             : left.Name == right.Name && left.IconFormat == right.IconFormat && (left.Icon ?? []).AsSpan().SequenceEqual(right.Icon ?? [])
             && (left.OptionGroups ?? []).SequenceEqual(right.OptionGroups ?? []) && (left.Replaces ?? []).SequenceEqual(right.Replaces ?? [])
-            && left.HasTerms == right.HasTerms && left.TermsNote == right.TermsNote && left.ReplacesLabel == right.ReplacesLabel && left.TermsDeadline == right.TermsDeadline;
+            && left.HasTerms == right.HasTerms && left.TermsNote == right.TermsNote && left.ReplacesLabel == right.ReplacesLabel;
     }
     private readonly IProjectServices host;
     private readonly SharpRail.UI.State.SharedState? state;

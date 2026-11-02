@@ -142,7 +142,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             // A server with terms is the provider's to install and launch, and starts only once these exact terms were accepted.
             LanguageServerTerms reviewed;
             try { reviewed = await terms(installation, false, token); }
-            catch (IOException error) when (error is not LanguageServerExpiredException) { throw new LanguageTermsRequiredException(server); }
+            catch (IOException) { throw new LanguageTermsRequiredException(server); }
             if (!LanguageTerms.Accepted(directory, server.Id, reviewed)) throw new LanguageTermsRequiredException(server);
             installation.AcceptedTerms = reviewed with { Answers = LanguageTerms.AnswersFor(directory, server.Id, reviewed) };
             // Overrides cannot replace the acknowledged launcher or its mandatory protocol arguments.

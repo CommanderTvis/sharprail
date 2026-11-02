@@ -53,8 +53,6 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     /// <summary>Names why SharpRail is about to end this server, so its exit record explains the death.</summary>
     internal void Terminate(string reason, bool failure = false) => connection.Terminate(reason, failure);
     internal void SampleMemory() => connection.SampleMemory();
-    internal async Task<bool> ObserveExpiryAsync() => server.Spec.ExpiredExitCode is { } code && await connection.ObserveExitAsync() == code;
-    internal bool Expired => server.Spec.ExpiredExitCode is { } code && connection.ExitCode == code;
     private sealed record Document(string Text, int Version, string Owner, long ClientVersion, bool Dirty);
     private sealed record Published(int? Version, LanguageItem[] Items);
 
@@ -153,10 +151,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         }
         catch (Exception failure)
         {
-            var expired = await session.ObserveExpiryAsync();
             session.Terminate("it did not finish starting: " + failure.Message, failure: true);
             await session.DisposeAsync();
-            if (expired) throw new LanguageServerExpiredException(server.Spec.ExpiredDetail);
             throw;
         }
     }
@@ -206,7 +202,6 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             if (connection.Exited)
             {
                 diagnostics.Clear();
-                if (Expired) return new("expired", server.Spec.ExpiredDetail, server.Id, request.Version) { Freshness = "unavailable" };
                 throw new IOException("The language server exited.");
             }
             if (unavailable.Length > 0) return new("actionRequired", unavailable, server.Id, request.Version) { SemanticColoring = SemanticColoring, Freshness = "unavailable", Coverage = projectModel.Description };
@@ -373,12 +368,6 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             if (loading && request.Operation is "definition" or "typeDefinition" or "hover" && answered.State == "ready" && answered.Total == 0 && answered.Locations.Count == 0)
                 return answered with { State = "initializing", Detail = LoadingDetail, Freshness = "partial" };
             return answered;
-        }
-        catch (IOException) when (server.Spec.ExpiredExitCode is not null)
-        {
-            if (!await ObserveExpiryAsync()) throw;
-            diagnostics.Clear();
-            return new("expired", server.Spec.ExpiredDetail, server.Id, request.Version) { Freshness = "unavailable" };
         }
         finally { gate.Release(); }
     }

@@ -108,7 +108,7 @@ public sealed partial class LanguageService
     {
         if (!Path.IsPathFullyQualified(request.Workspace)) return;
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
-        var success = result is not null && result.State is not ("error" or "unavailable" or "disabled" or "unsupported" or "stopped" or "requiresAcceptance" or "expired");
+        var success = result is not null && result.State is not ("error" or "unavailable" or "disabled" or "unsupported" or "stopped" or "requiresAcceptance");
         try
         {
             foreach (var server in ServersUsed(workspace, request, result).Distinct()) usage.Record(workspace, server, success);
