@@ -415,6 +415,10 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             MenuLayoutChecks.Run();
+            var menuRoot = CheckRoot.Create("fixture");
+            Directory.CreateDirectory(menuRoot);
+            File.WriteAllText(Path.Combine(menuRoot, "notes.txt"), "n");
+            MenuLayoutChecks.RealFileMenu(menuRoot);
             return;
         }
         if (args.SequenceEqual(["--terminal-resume-hint"]))
