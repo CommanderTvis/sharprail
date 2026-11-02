@@ -30,6 +30,8 @@ internal sealed class ProcessHostSeam(HostStateStore state) : IProcessHost
 
     public IReadOnlyList<(string Workspace, string ServerId, int Pid)> LanguageServers() => state.Languages.RunningServers();
 
+    public string LanguageServerName(string serverId) => state.Languages.ServerName(serverId);
+
     public async ValueTask StopLanguageServerAsync(string workspace, string serverId, CancellationToken cancellationToken) =>
         await state.Languages.ExecuteAsync(new LanguageRequest(workspace, Operation: "stop", Server: serverId), cancellationToken);
 

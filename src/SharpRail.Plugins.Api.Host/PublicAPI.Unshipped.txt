@@ -913,6 +913,7 @@ static SharpRail.Plugins.Api.Host.RepoHostToolResult.operator !=(SharpRail.Plugi
 static SharpRail.Plugins.Api.Host.RepoHostToolResult.operator ==(SharpRail.Plugins.Api.Host.RepoHostToolResult? left, SharpRail.Plugins.Api.Host.RepoHostToolResult? right) -> bool
 SharpRail.Plugins.Api.Host.IPluginHostContext.Processes.get -> SharpRail.Plugins.Api.Host.IProcessHost?
 SharpRail.Plugins.Api.Host.IProcessHost
+SharpRail.Plugins.Api.Host.IProcessHost.LanguageServerName(string! serverId) -> string!
 SharpRail.Plugins.Api.Host.IProcessHost.LanguageServers() -> System.Collections.Generic.IReadOnlyList<(string! Workspace, string! ServerId, int Pid)>!
 SharpRail.Plugins.Api.Host.IProcessHost.ManageOwned(bool enabled) -> void
 SharpRail.Plugins.Api.Host.IProcessHost.OwnedProcesses() -> System.Collections.Generic.IReadOnlyList<(SharpRail.Plugins.Api.TerminalRef! Terminal, int Pid, string! Description)>!

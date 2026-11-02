@@ -55,7 +55,7 @@ internal static class ProcessesChecks
         if (secondWorkspace) servers.Add(("/w/beta", "python", 32));
         return new FakeSource
         {
-            Inputs = new(terminals, table, servers, [(Tab1, 14, "dev watcher"), (Tab2, 21, "")]),
+            Inputs = new(terminals, table, servers, [(Tab1, 14, "dev watcher"), (Tab2, 21, "")], id => id == "csharp" ? "C# (Roslyn)" : id),
             Cpu = table.ToDictionary(row => row.Item1, _ => TimeSpan.Zero)
         };
     }
@@ -85,8 +85,10 @@ internal static class ProcessesChecks
         Require(snapshot.Groups.Select(group => group.Id).SequenceEqual([ProcessModel.LanguageGroup, ProcessModel.AgentGroup, ProcessModel.SpawnedGroup]), "The top groups must be Language servers, AI agents and daemons, Spawned agents.");
         Require(snapshot.Groups.Select(group => group.Label).SequenceEqual(["Language servers", "AI agents and daemons", "Spawned agents"]), "The group labels changed.");
         var languages = snapshot.Groups[0];
-        Require(languages.Children.Select(node => node.Label).SequenceEqual(["csharp", "typescript"]), "Language servers must list one row per running server.");
+        Require(languages.Children.Select(node => node.Label).SequenceEqual(["C# (Roslyn)", "typescript"]), "Language servers must list one row per running server under the name Code Intelligence shows, or the id when unnamed.");
         Require(languages.Cpu == 61 && languages.MemoryBytes == 61_000_000, "A group's values must be the sum of its rows.");
+        var longLine = Snapshot(new FakeSource { Inputs = new([], [(40, 1, "codex -c " + new string('x', 5000))], [("/w/alpha", "csharp", 40)], []) });
+        Require(longLine.Groups[0].Children.Single().Detail.Length < ProcessModel.DetailCommandLimit + 60, "A tooltip must not carry a whole launch line.");
         var agent = Find(snapshot.Groups, "agent:/w/alpha\0t1");
         Require(agent.Label == "Claude Code" && agent.Pid == 11 && agent.Detail.Contains("pid 11") && agent.Detail.Contains("tab 1"), "The agent row is the agent process below the shell, with pid and tab in its tooltip.");
         Require(snapshot.Groups[1].Children.Count == 1 && snapshot.Groups[1].Children[0].Id == agent.Id, "Only terminals with an agent are in AI agents and daemons.");

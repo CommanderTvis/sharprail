@@ -12,7 +12,8 @@ internal sealed record ProcessInputs(
     IReadOnlyList<TerminalInfo> Terminals,
     IReadOnlyList<(int Pid, int ParentPid, string Command)> Table,
     IReadOnlyList<(string Workspace, string ServerId, int Pid)> Servers,
-    IReadOnlyList<(TerminalRef Terminal, int Pid, string Description)> Owned);
+    IReadOnlyList<(TerminalRef Terminal, int Pid, string Description)> Owned,
+    Func<string, string>? ServerName = null);
 
 /// <summary>What a stop on a row does: end a process, or stop a language server through the language service.</summary>
 internal sealed record StopTarget(int? Pid, string Command, string? Workspace, string? ServerId);
@@ -63,7 +64,7 @@ internal static class ProcessModel
         {
             if (!claimed.Add(pid)) continue;
             var command = table.TryGetValue(pid, out var found) ? found.Command : "";
-            languages.Children.Add(new($"lang:{workspace}\0{server}", "language", server, Describe(pid, workspaceLabel(workspace), command), pid,
+            languages.Children.Add(new($"lang:{workspace}\0{server}", "language", inputs.ServerName?.Invoke(server) ?? server, Describe(pid, workspaceLabel(workspace), command), pid,
                 new(null, command, workspace, server), workspace));
         }
 
@@ -159,8 +160,17 @@ internal static class ProcessModel
         return found;
     }
 
+    /// <summary>The longest command line a tooltip shows; an agent's launch line can run to kilobytes of injected instructions.</summary>
+    internal const int DetailCommandLimit = 160;
+
     private static string Describe(int pid, string where, string command) =>
-        string.Join(" · ", new[] { "pid " + pid.ToString(CultureInfo.InvariantCulture), where, command }.Where(part => part.Length > 0));
+        string.Join(" · ", new[] { "pid " + pid.ToString(CultureInfo.InvariantCulture), where, Shorten(command) }.Where(part => part.Length > 0));
+
+    private static string Shorten(string command)
+    {
+        var line = string.Join(' ', command.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return line.Length <= DetailCommandLimit ? line : line[..DetailCommandLimit].TrimEnd() + "…";
+    }
 
     private static string AgentName(string? kind) => kind switch
     {

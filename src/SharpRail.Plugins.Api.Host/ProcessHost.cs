@@ -21,6 +21,11 @@ public interface IProcessHost
     /// <returns>The running servers.</returns>
     IReadOnlyList<(string Workspace, string ServerId, int Pid)> LanguageServers();
 
+    /// <summary>The name people see for a language server id, such as <c>C# (Roslyn)</c>; the id itself when unknown.</summary>
+    /// <param name="serverId">The server id.</param>
+    /// <returns>The display name.</returns>
+    string LanguageServerName(string serverId);
+
     /// <summary>Stops one language server through the language service's own stop operation; it restarts on next use.</summary>
     /// <param name="workspace">The workspace root.</param>
     /// <param name="serverId">The server id.</param>

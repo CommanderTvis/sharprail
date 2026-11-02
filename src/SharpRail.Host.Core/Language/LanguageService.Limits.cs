@@ -42,6 +42,9 @@ public sealed partial class LanguageService
     private static bool Evictable(Entry entry) => Volatile.Read(ref entry.InFlight) == 0 && Volatile.Read(ref entry.Stopped) == 0 &&
         entry.Session.IsValueCreated && entry.Session.Value is { IsCompletedSuccessfully: true } task && !task.Result.HasEditors;
 
+    /// <summary>The name people see for a server id, the one the Code Intelligence pane shows; the id itself when the server is unknown.</summary>
+    internal string ServerName(string id) => servers.Find(id) is { } server ? Name(server) : id;
+
     /// <summary>The servers whose processes run now: workspace root, server id and pid. It reads in-memory state only.</summary>
     internal IReadOnlyList<(string Workspace, string ServerId, int Pid)> RunningServers() =>
     [

@@ -46,7 +46,8 @@ its own children. The plugin model applies a switch without a restart, so enabli
 `ProcessModel.Build` is a pure function of `ProcessInputs` (terminals with shell pid and agent kind, the process table, running language servers, reported processes), a usage
 function and a `ProcessHistory`. Three top groups, in this order, always present:
 
-- Language servers: one row per running server of the host language service (workspace root, server id, pid), ordered by workspace then id.
+- Language servers: one row per running server of the host language service (workspace root, server id, pid), ordered by workspace then id, labelled with the server's display name (the one the Code Intelligence pane shows, the id when it has none).
+- Tooltips (`Detail`) show the command on one line, cut at 160 characters with an ellipsis; stopping still uses the full recorded command.
 - AI agents and daemons: one row per terminal that carries an agent record. The row is the shallowest descendant of the terminal's shell whose command names the agent
   (`claude`, `codex`, `omp`, looking through an interpreter in the first two tokens), else the shell.
 - Spawned agents: under each terminal a parent row "of Claude Code · tab 3" (or "of Terminal · tab 2" without an agent). Below it every descendant process whose command
