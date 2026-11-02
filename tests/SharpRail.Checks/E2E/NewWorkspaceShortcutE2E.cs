@@ -66,10 +66,11 @@ internal static class NewWorkspaceShortcutE2E
         Press(app.Window, Avalonia.Input.Key.N, Mod | RawInputModifiers.Shift);
         Settle(300);
         Require(Dialogs(app) == 0, "Mod+Shift+N must not open the Create workspace dialog.");
+        // Chords match exactly (the keymap's rule): the old Mod+Alt+N alias no longer opens the dialog either.
         Press(app.Window, Avalonia.Input.Key.N, Mod | RawInputModifiers.Alt);
-        ExpectDialog(app);
-        Escape(app);
-        Console.WriteLine("PASS upstream new-workspace-shortcut.spec.ts: The Mod+Alt+N alias opens the same dialog and Mod+Shift+N does not");
+        Settle(300);
+        Require(Dialogs(app) == 0, "Mod+Alt+N must not open the Create workspace dialog: a chord matches its modifiers exactly.");
+        Console.WriteLine("PASS upstream new-workspace-shortcut.spec.ts: Mod+Shift+N and Mod+Alt+N do not open the dialog (chords match exactly)");
     }
 
     private static void InsideWorkspace(string directory)

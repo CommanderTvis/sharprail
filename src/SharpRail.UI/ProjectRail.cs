@@ -253,7 +253,7 @@ public sealed partial class WorkbenchWindow
             if (e.Source is Visual source && source.GetVisualAncestors().Any(ancestor => ancestor is Control { Name: "WorkspaceTabs" })) e.Handled = true;
         });
         var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
-        var add = Ui.IconButton("add", $"Start work ({Shortcut("N")})", () => _ = CreateWorkspaceDialogAsync());
+        var add = Ui.IconButton("add", $"Start work ({Shortcut(SharpRail.Host.Abstractions.KeymapActions.NewWorkspace)})", () => _ = CreateWorkspaceDialogAsync());
         add.Name = "AddWorkspace";
         add.Width = add.Height = 28; add.Padding = new(7);
         trailing.Children.Add(add);
