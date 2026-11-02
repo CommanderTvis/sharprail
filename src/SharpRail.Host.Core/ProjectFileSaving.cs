@@ -21,8 +21,8 @@ public sealed partial class ProjectServices
             if (utf8.GetByteCount(request.Text) > FileLimits.EditableBytes)
                 throw new IOException($"Editing is limited to files under {FileLimits.EditableBytes >> 20} MiB.");
             var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
-            if (utf8.GetString(bytes) != request.OriginalText)
-                throw new IOException("The file changed on disk. Your edits have been kept; reconcile the changes before saving.");
+            if (!request.Overwrite && utf8.GetString(bytes) != request.OriginalText)
+                throw new HostException(HostErrorCode.FileChangedOnDisk, "The file changed on disk. Your edits have been kept; reconcile the changes before saving.");
             temporary = Path.Combine(Path.GetDirectoryName(path)!, ".sharprail-save-" + Guid.NewGuid().ToString("N"));
             await File.WriteAllBytesAsync(temporary, utf8.GetBytes(request.Text), cancellationToken);
             if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(temporary, File.GetUnixFileMode(path));

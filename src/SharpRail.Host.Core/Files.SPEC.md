@@ -82,7 +82,12 @@ A save names the workspace root it was edited in and the text it started from. I
 the root is neither the session's current workspace nor another checkout of the same project (a buffer kept
 open in a workspace the window left saves to its own checkout, which is how quitting saves every workspace's
 edits), when the file on disk no longer matches that original text (the editor keeps
-the user's edits and reports the conflict), and when the text exceeds the editable limit. The new text is
+the user's edits and the save fails as the named `HostErrorCode.FileChangedOnDisk`, so local and remote
+clients recognise it by code instead of by message), and when the text exceeds the editable limit. A request
+with `Overwrite` (since `HostProtocol.SaveOverwrite`, protocol 17) skips only that comparison: containment,
+symlink, external-file, size and generated-instruction refusals, the temporary file and the check that the
+file did not change during the write all still apply, and a caller that does not set it is unchanged.
+The editor reads the file's current text through `ReadFileAsync`. The new text is
 written to a sibling temporary file with the original's Unix mode, the path and content are checked again,
 and the temporary file is moved over the original. Saves are serialized with the session's other
 mutations.

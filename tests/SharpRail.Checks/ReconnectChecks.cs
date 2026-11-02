@@ -152,6 +152,8 @@ internal static class ReconnectChecks
     {
         try { await action(); return null; }
         catch (RpcException error) { return error.StatusCode; }
+        // A named failure reaches the client as its typed exception, which the transport sent as a failed precondition.
+        catch (HostException) { return StatusCode.FailedPrecondition; }
     }
 
     /// <summary>The host's side of the bargain, driven with explicit request ids.</summary>
@@ -245,11 +247,14 @@ internal static class ReconnectChecks
                 await Failure(async () => await host.ReadContentBytesAsync("README.md", gone)),
                 await Failure(async () => await host.GetGitAsync("--all", scope: "commit")),
                 await Failure(async () => await host.ReadFileAsync("missing.txt")),
-                await Failure(async () => await host.GetGitAsync())
+                await Failure(async () => await host.GetGitAsync()),
+                await Failure(async () => await host.SaveFileAsync(new(repo, "README.md", "not what is on disk\n", "edited\n")))
             ]);
         Require(logs[0].SequenceEqual(logs[1]), "Local and remote hosts name failures differently:\n" + string.Join('\n', logs[0].Zip(logs[1])));
         Require(logs[0][..4].All(line => line == $"{HostErrorCode.UnknownCommit}: Unknown commit: {gone}"), "A vanished commit is named on every read that resolves it: " + string.Join(" | ", logs[0]));
         Require(logs[0][4] == "unnamed failure" && logs[0][5] == "unnamed failure" && logs[0][6] == "ok", "Only named failures carry a code: " + string.Join(" | ", logs[0]));
+        Require(logs[0][7].StartsWith($"{HostErrorCode.FileChangedOnDisk}: The file changed on disk.", StringComparison.Ordinal),
+            "A save over a changed file is a named failure on local and remote hosts: " + logs[0][7]);
         await server.StopAsync();
 
         // No operation refuses with these two yet; a host that does must reach the client with the code intact.

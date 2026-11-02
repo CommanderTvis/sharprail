@@ -3,9 +3,14 @@
              xmlns:kit="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.UI.Editor.CodeDocumentView">
   <Grid RowDefinitions="Auto,*">
-    <Border x:Name="FileDeletedOnDisk" IsVisible="False" BorderThickness="0,0,0,1" Padding="8,4">
-      <TextBlock Text="This file was deleted on disk. What you see is the last version the tab read." FontSize="12" />
-    </Border>
+    <StackPanel>
+      <Border x:Name="FileDeletedOnDisk" IsVisible="False" BorderThickness="0,0,0,1" Padding="8,4">
+        <TextBlock Text="This file was deleted on disk. What you see is the last version the tab read." FontSize="12" />
+      </Border>
+      <Border x:Name="FileChangedOnDisk" IsVisible="False" BorderThickness="0,0,0,1" Padding="8,4">
+        <TextBlock Text="This file changed on disk after you opened it. Saving will ask how to reconcile your edits." FontSize="12" />
+      </Border>
+    </StackPanel>
     <Grid Grid.Row="1">
       <ContentControl x:Name="CodeBody" />
       <ContentControl x:Name="CodeFindBody" ZIndex="1" />

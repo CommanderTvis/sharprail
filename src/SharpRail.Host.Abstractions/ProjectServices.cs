@@ -16,7 +16,8 @@ public record FileTransferEntry(string Path, bool IsDirectory, byte[] Data);
 /// <summary>A bounded upload to a workspace folder, or a private attachment directory when Folder is null.</summary>
 public record FileTransferRequest(string WorkspaceRoot, string? Folder, IReadOnlyList<FileTransferEntry> Entries);
 
-public record FileSaveRequest(string WorkspaceRoot, string Path, string OriginalText, string Text);
+/// <param name="Overwrite">Saves over whatever is on disk instead of failing with <see cref="HostErrorCode.FileChangedOnDisk"/> when it differs from <paramref name="OriginalText"/>; every other refusal still applies.</param>
+public record FileSaveRequest(string WorkspaceRoot, string Path, string OriginalText, string Text, bool Overwrite = false);
 public record ProjectFile(string Path, string Name, bool IsDirectory, bool GitIgnored = false);
 public record SpecDocument(string Id, string Title, string Path, string Parent, string Type)
 {

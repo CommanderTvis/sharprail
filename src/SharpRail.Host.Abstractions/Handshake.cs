@@ -9,7 +9,7 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 16;
+    public const int Current = 17;
 
     /// <summary>
     /// The branch status carries the owning repo hosting plugin's id and the neutral pull request (field 14) instead of GitHub's own
@@ -22,6 +22,8 @@ public static class HostProtocol
 
     /// <summary>Listing any host directory by absolute path, for choosing a host file to attach to an agent.</summary>
     public const int HostDirectoryBrowse = 11;
+    /// <summary>A save can overwrite a file that changed on disk (<c>FileSaveRequest.Overwrite</c>), and one that finds the file changed fails as <c>HostErrorCode.FileChangedOnDisk</c>.</summary>
+    public const int SaveOverwrite = 17;
     /// <summary>The processes agents reported as their own (<c>owned_process_report</c>) in the shared state.</summary>
     public const int OwnedProcesses = 16;
     /// <summary>Pending <c>workspace_emigrate</c> requests in the shared state, answered with a state change.</summary>

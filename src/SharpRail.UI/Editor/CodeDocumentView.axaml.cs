@@ -22,8 +22,12 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
     internal string FilePath => path;
     /// <summary>The workspace root this buffer was opened in and saves to, whichever workspace the window shows.</summary>
     internal string Workspace => workspace;
+    internal bool IsDisposed => disposed;
     internal bool HasPendingChanges => saving || Editor.IsModified;
-    private readonly Border deletedBanner;
+    private readonly Border deletedBanner, changedBanner;
+
+    /// <summary>The file on disk now differs from the text this buffer started from while it has unsaved edits; a banner says so until it is saved or reloaded.</summary>
+    internal bool ChangedOnDisk { get => changedBanner.IsVisible; set => changedBanner.IsVisible = value; }
 
     /// <summary>The file is gone from disk; the buffer stays and a banner says so until the file returns.</summary>
     internal bool DeletedOnDisk { get => deletedBanner.IsVisible; set => deletedBanner.IsVisible = value; }
@@ -41,6 +45,8 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         Editor.IsReadOnly = file.ReadOnly;
         deletedBanner = this.FindControl<Border>("FileDeletedOnDisk")!;
         deletedBanner.Background = Ui.Elevated; deletedBanner.BorderBrush = Ui.Danger;
+        changedBanner = this.FindControl<Border>("FileChangedOnDisk")!;
+        changedBanner.Background = Ui.Elevated; changedBanner.BorderBrush = Ui.Danger;
         this.FindControl<ContentControl>("CodeBody")!.Content = frame;
         if (find)
         {
@@ -60,15 +66,16 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
     }
 
     /// <summary>Saves to this buffer's own workspace; returns why it failed (the buffer keeps its edits) or null.</summary>
-    internal async Task<Exception?> TrySaveAsync()
+    internal async Task<Exception?> TrySaveAsync(bool overwrite = false)
     {
         if (saving || disposed || !Editor.IsModified) return null;
         saving = true;
         var text = Editor.Text;
         try
         {
-            await host.SaveFileAsync(new(workspace, path, original, text));
+            await host.SaveFileAsync(new(workspace, path, original, text, overwrite));
             original = text;
+            if (!disposed) ChangedOnDisk = false;
             if (!disposed)
             {
                 if (Editor.Text == text) Editor.MarkSaved();
@@ -94,7 +101,24 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         if (IsEffectivelyVisible) languageTimer.Start();
     }
 
-    internal void Discard() { Editor.Text = original; UpdateModified(); }
+    internal void Discard() { Editor.Text = original; ChangedOnDisk = false; UpdateModified(); }
+
+    /// <summary>
+    /// Throws away the unsaved edits and shows what is on disk now, after the user confirmed losing them; the read happens off the UI thread.
+    /// </summary>
+    internal async Task ReloadFromDiskAsync()
+    {
+        var file = await host.ReadFileAsync(path);
+        if (disposed) return;
+        var line = Editor.FirstVisibleLine;
+        reloading = true;
+        try { original = file.Text; Editor.Text = file.Text; Editor.MarkSaved(); }
+        finally { reloading = false; }
+        Editor.ScrollToLine(line);
+        ChangedOnDisk = false;
+        saved(file.Text);
+        UpdateModified();
+    }
 
     /// <summary>
     /// Follows a change on disk while the buffer has no unsaved edits. A dirty buffer is kept;
@@ -114,6 +138,7 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
 
     private void UpdateModified()
     {
+        if (!HasPendingChanges && changedBanner.IsVisible) ChangedOnDisk = false;
         if (modified == HasPendingChanges) return;
         modified = HasPendingChanges;
         modifiedChanged();

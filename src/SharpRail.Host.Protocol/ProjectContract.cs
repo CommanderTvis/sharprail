@@ -9,6 +9,7 @@ public sealed class SaveFileRequest
     [ProtoMember(2)] public string Path { get; set; } = "";
     [ProtoMember(3)] public string OriginalText { get; set; } = "";
     [ProtoMember(4)] public string Text { get; set; } = "";
+    [ProtoMember(5)] public bool Overwrite { get; set; }
 }
 
 [ProtoContract]

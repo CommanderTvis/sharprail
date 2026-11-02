@@ -83,6 +83,19 @@ internal static class FileSavingChecks
         File.CreateSymbolicLink(link, path);
         try { await Reject(host, new(root, "link.cs", text, "linked")); }
         finally { File.Delete(link); }
+        try { await host.SaveFileAsync(new(root, "code.cs", original, "stale")); throw new InvalidOperationException("A stale save was accepted."); }
+        catch (HostException error) { Require(error.Code == HostErrorCode.FileChangedOnDisk && error.Message.StartsWith("The file changed on disk.", StringComparison.Ordinal), "A stale save must fail as FileChangedOnDisk, not as: " + error.GetType().Name + " " + error.Message); }
+        await host.SaveFileAsync(new(root, "code.cs", original, "overwritten\n", Overwrite: true));
+        Require(File.ReadAllText(path) == "overwritten\n" && !Directory.EnumerateFiles(root, ".sharprail-save-*").Any(), "An overwriting save did not replace the changed file atomically.");
+        if (!OperatingSystem.IsWindows()) Require(File.GetUnixFileMode(path) == mode, "An overwriting save changed executable permissions.");
+        await Reject(host, new(root, "../outside.txt", "", "outside", true));
+        await Reject(host, new(root, "missing.cs", "", "created", true));
+        await Reject(host, new(Path.Combine(root, "other"), "code.cs", "", "wrong workspace", true));
+        File.CreateSymbolicLink(link, path);
+        try { await Reject(host, new(root, "link.cs", "", "linked", true)); }
+        finally { File.Delete(link); }
+        Require(File.ReadAllText(path) == "overwritten\n", "A refused overwriting save changed the file.");
+        await host.SaveFileAsync(new(root, "code.cs", "overwritten\n", text));
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
         try { await host.SaveFileAsync(new(root, "code.cs", text, "canceled"), canceled.Token); throw new InvalidOperationException("Canceled save accepted."); }
         catch (OperationCanceledException) { }

@@ -184,10 +184,17 @@ public sealed partial class WorkbenchWindow
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
             catch (Exception error) when (RemoteErrors.IsFailedPrecondition(error)) { continue; }
-            if (pending || request != projectRequest || !LiveDocuments().Contains(key)) continue;
-            MarkDeletedOnDisk(key, false);
+            if (request != projectRequest || !LiveDocuments().Contains(key)) continue;
             // Byte-only files read as empty text, so the hash decides whether anything changed.
-            if (file.Info?.Sha256 is { } hash ? hash == current.Info?.Sha256 : file.Text == current.Text && file.ImageData is null) continue;
+            var unchanged = file.Info?.Sha256 is { } hash ? hash == current.Info?.Sha256 : file.Text == current.Text && file.ImageData is null;
+            // Unsaved edits are kept; the tab's editor says the file moved on so the conflict shows before Save is pressed.
+            if (pending)
+            {
+                if (EditableDocument(documentContent.GetValueOrDefault(key)) is { } dirty) dirty.ChangedOnDisk = !unchanged;
+                continue;
+            }
+            MarkDeletedOnDisk(key, false);
+            if (unchanged) continue;
             if (ReloadFileBody(key, tab, file)) continue;
             documents[key] = file; DropDocumentContent(key); refreshed = true;
         }

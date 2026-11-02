@@ -10,6 +10,7 @@ using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Scintilla;
 using SharpRail.UI;
+using SharpRail.UI.Editor;
 using SharpRail.UI.State;
 
 namespace SharpRail.Checks;
@@ -32,12 +33,14 @@ internal static class EditorWorkbenchChecks
             .GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "ModifiedTab").IsVisible;
     private static void Answer(Window window, string label)
     {
-        Pump(() => window.OwnedWindows.OfType<DialogWindow>().Any());
-        var dialog = window.OwnedWindows.OfType<DialogWindow>().Single();
+        Pump(() => window.OwnedWindows.OfType<DialogWindow>().Any(open => open.IsVisible));
+        var dialog = window.OwnedWindows.OfType<DialogWindow>().Single(open => open.IsVisible);
         dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: var text } && text == label)
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Pump(() => !dialog.IsVisible);
     }
+    private static void AwaitConflict(Window window) =>
+        Pump(() => window.OwnedWindows.OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));
     private static void Save(Window window, RawInputModifiers? command = null)
     {
         var chord = command ?? E2E.E2eWorkspace.Command;
@@ -64,10 +67,54 @@ internal static class EditorWorkbenchChecks
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     }
 
+    // The four answers to "the file changed on disk", driven with canned answers instead of dialogs.
+    private static void SaveConflictChoices(string fixture)
+    {
+        var root = Path.Combine(fixture, "save-conflicts"); Directory.CreateDirectory(root);
+        var file = Path.Combine(root, "note.txt");
+        var host = new LocalProjectAdapter(new ProjectServices(root));
+        CodeDocumentView Open(out List<string> log)
+        {
+            File.WriteAllText(file, "one\n");
+            var document = Task.Run(() => host.ReadFileAsync("note.txt").AsTask()).GetAwaiter().GetResult();
+            var view = new CodeDocumentView(document, root, host, () => { }, _ => { }, () => { }, error => throw error, find: false);
+            view.Editor.ReplaceRange(0, view.Editor.Text.Length, "mine\n");
+            File.WriteAllText(file, "theirs\n");
+            log = [];
+            return view;
+        }
+        Task<Exception?> Save(CodeDocumentView view, SaveConflictChoice first, List<string> log, bool confirm = true, SaveConflictChoice? second = null)
+        {
+            var answers = new Queue<SaveConflictChoice>([first, .. second is { } next ? [next] : Array.Empty<SaveConflictChoice>()]);
+            return SaveConflicts.SaveAsync(view, () => { log.Add("ask"); return Task.FromResult(answers.Dequeue()); },
+                () => { log.Add("confirm"); return Task.FromResult(confirm); }, text => { log.Add("compare:" + File.ReadAllText(file).Trim() + "->" + text.Trim()); return Task.CompletedTask; });
+        }
+        Exception? Result(Task<Exception?> task) { Pump(() => task.IsCompleted); return task.GetAwaiter().GetResult(); }
+
+        var view = Open(out var log);
+        var outcome = Result(Save(view, SaveConflictChoice.Cancel, log));
+        Require(outcome is SaveDeclinedException && view.Editor.IsModified && File.ReadAllText(file) == "theirs\n" && log.SequenceEqual(["ask"]),
+            $"Cancel must change nothing: {outcome?.GetType().Name} {outcome?.Message}, modified {view.Editor.IsModified}, disk {File.ReadAllText(file).Trim()}, {string.Join("|", log)}.");
+        Require(view.ChangedOnDisk, "A conflicting save marks the buffer as changed on disk.");
+        view = Open(out log);
+        Require(Result(Save(view, SaveConflictChoice.Compare, log)) is SaveDeclinedException && view.Editor.IsModified && File.ReadAllText(file) == "theirs\n"
+            && log.SequenceEqual(["ask", "compare:theirs->mine"]), "Compare shows disk text against buffer text and keeps the edits: " + string.Join("|", log));
+        view = Open(out log);
+        Require(Result(Save(view, SaveConflictChoice.Overwrite, log)) is null && !view.Editor.IsModified && File.ReadAllText(file) == "mine\n" && !view.ChangedOnDisk, "Overwrite must save the buffer over the disk text.");
+        view = Open(out log);
+        Require(Result(Save(view, SaveConflictChoice.Reload, log, confirm: false, second: SaveConflictChoice.Cancel)) is SaveDeclinedException && view.Editor.Text == "mine\n" && view.Editor.IsModified
+            && log.SequenceEqual(["ask", "confirm", "ask"]), "A declined reload confirmation keeps the edits and asks again: " + string.Join("|", log));
+        view = Open(out log);
+        Require(Result(Save(view, SaveConflictChoice.Reload, log)) is null && view.Editor.Text == "theirs\n" && !view.Editor.IsModified && File.ReadAllText(file) == "theirs\n"
+            && log.SequenceEqual(["ask", "confirm"]), "A confirmed reload shows the disk text as a clean buffer.");
+        Console.WriteLine("PASS save conflict choices: cancel keeps everything, compare diffs disk against buffer, overwrite saves, reload needs confirmation");
+    }
+
     internal static void Run(string fixture)
     {
         if (!OperatingSystem.IsMacOS()) return;
         FileLinkPosition(fixture);
+        SaveConflictChoices(fixture);
         LargeDiff(fixture);
         Limits(fixture);
         var root = Path.Combine(fixture, "editor-workbench"); Directory.CreateDirectory(root);
@@ -123,12 +170,46 @@ internal static class EditorWorkbenchChecks
             Require(File.ReadAllText(Path.Combine(root, "first.cs")) == edited, "Ctrl+S did not save the workbench file.");
             window.KeyTextInput("// conflict\n"); Dispatcher.UIThread.RunJobs();
             File.WriteAllText(Path.Combine(root, "first.cs"), "external change\n");
-            Save(window);
-            Pump(() => window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "WorkspaceError" && (text.Text?.Contains("changed on disk", StringComparison.Ordinal) ?? false)));
-            Require(editor.IsModified && File.ReadAllText(Path.Combine(root, "first.cs")) == "external change\n", "Conflicting save overwrote external edits or lost the buffer.");
+            var firstPath = Path.Combine(root, "first.cs");
+            Save(window); AwaitConflict(window);
+            var question = string.Join(" ", window.OwnedWindows.OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+            Require(question.Contains("first.cs changed on disk", StringComparison.Ordinal), "The conflict dialog did not name the file: " + question);
+            var buttons = window.OwnedWindows.OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<Button>().Select(button => (button.Content as TextBlock)?.Text).ToArray();
+            Require(buttons.SequenceEqual(["Compare", "Reload from disk", "Overwrite file", "Cancel"]), "The conflict dialog actions were: " + string.Join(", ", buttons));
+            Answer(window, "Cancel");
+            Require(editor.IsModified && File.ReadAllText(firstPath) == "external change\n", "Cancel in the conflict dialog changed the file or lost the buffer.");
+            Require(!window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "WorkspaceError" && !string.IsNullOrEmpty(text.Text)), "Cancel in the conflict dialog still reported an error.");
+            Require(window.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "FileChangedOnDisk").IsVisible, "A dirty editor whose file changed did not say so.");
+            // Compare opens the read-only diff of the disk text against the buffer and leaves the edits alone.
+            Save(window); AwaitConflict(window); Answer(window, "Compare");
+            Pump(() => window.Layout.Tabs(group).Any(tab => tab.Kind == "proposed-diff"));
+            Require(editor.IsModified && File.ReadAllText(firstPath) == "external change\n", "Compare changed the file or the buffer.");
+            var diff = window.Layout.Tabs(group).Single(tab => tab.Kind == "proposed-diff");
+            Require(diff.Title.Contains("disk vs. editor", StringComparison.Ordinal), "The compare tab is not titled as disk against editor: " + diff.Title);
+            var unified = SharpRail.UI.TextDiff.Unified("first.cs", "external change\n", editor.Text);
+            Require(unified.Contains("-external change", StringComparison.Ordinal) && unified.Contains("+// conflict", StringComparison.Ordinal), "The compare diff is not disk text against buffer text.");
+            window.Layout.Close(group, diff.Id);
+            Await(window.OpenDocumentAsync("first.cs", true)); editor.Focus();
+            // Reload from disk throws the edits away, but only after a second confirmation; declining returns to the question.
+            Save(window); AwaitConflict(window); Answer(window, "Reload from disk");
+            Answer(window, "Cancel");
+            AwaitConflict(window);
+            Require(editor.IsModified, "Declining the reload confirmation still discarded the edits.");
+            Answer(window, "Reload from disk");
+            Answer(window, "Reload from disk");
+            Pump(() => !editor.IsModified);
+            Require(editor.Text == "external change\n" && File.ReadAllText(firstPath) == "external change\n" && !Dotted(window, "first.cs"), "Reload from disk did not show the disk text as a clean buffer.");
+            // Overwrite saves the buffer over the disk version.
+            window.KeyTextInput("// overwrite\n"); Dispatcher.UIThread.RunJobs();
+            File.WriteAllText(firstPath, "external two\n");
+            Save(window); AwaitConflict(window); Answer(window, "Overwrite file");
+            Pump(() => !editor.IsModified);
+            Require(File.ReadAllText(firstPath) == editor.Text && editor.Text.Contains("// overwrite", StringComparison.Ordinal), "Overwrite file did not write the buffer over the disk text.");
+            edited = editor.Text;
+            window.KeyTextInput("// dirty\n"); Dispatcher.UIThread.RunJobs();
             window.Layout.Close(group, "file:first.cs");
             Answer(window, "Don't Save");
-            Require(window.Layout.Tabs(group).All(tab => tab.Path != "first.cs") && File.ReadAllText(Path.Combine(root, "first.cs")) == "external change\n",
+            Require(window.Layout.Tabs(group).All(tab => tab.Path != "first.cs") && File.ReadAllText(firstPath) == edited,
                 "Don't Save did not close the tab without writing.");
             Await(window.OpenDocumentAsync("second.cs", true)); window.UpdateLayout();
             Editor(window).Focus(); window.KeyTextInput("// saved on close\n"); Dispatcher.UIThread.RunJobs();
@@ -141,16 +222,17 @@ internal static class EditorWorkbenchChecks
             Editor(window).Focus(); window.KeyTextInput("// doomed\n"); Dispatcher.UIThread.RunJobs();
             File.WriteAllText(Path.Combine(root, "second.cs"), "external again\n");
             window.Close(); Answer(window, "Save");
-            Pump(() => window.OwnedWindows.OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveFailedDialog"));
+            AwaitConflict(window);
             var failure = string.Join(" ", window.OwnedWindows.OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
             Require(failure.Contains("second.cs", StringComparison.Ordinal) && failure.Contains("changed on disk", StringComparison.Ordinal),
                 "The save failure dialog did not name the file and the reason: " + failure);
             Answer(window, "Cancel");
             Require(window.IsVisible && Editor(window).IsModified, "Cancelling a failed save closed the window or lost the buffer.");
             window.Layout.Close(group, "file:second.cs"); Answer(window, "Save");
-            Answer(window, "Discard This File");
+            AwaitConflict(window); Answer(window, "Reload from disk");
+            Answer(window, "Reload from disk");
             Pump(() => window.Layout.Tabs(group).All(tab => tab.Path != "second.cs"));
-            Require(File.ReadAllText(Path.Combine(root, "second.cs")) == "external again\n", "Discarding a file that failed to save wrote it.");
+            Require(File.ReadAllText(Path.Combine(root, "second.cs")) == "external again\n", "Reloading a conflicted file at close wrote it.");
             Console.WriteLine("PASS workbench editor preview retention, unsaved dot, save/don't save/cancel prompts, reopening, tab switching, Cmd/Ctrl+S and conflict recovery");
         }
         finally

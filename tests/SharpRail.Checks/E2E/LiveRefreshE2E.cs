@@ -176,12 +176,17 @@ internal static class LiveRefreshE2E
         Until(() => app.Window.WatchRefreshes > reloads);
         Settle(500);
         Require(editor.Text == edited && editor.IsModified, "An editor with unsaved edits must keep them when the file changes on disk.");
+        Require(app.Window.GetLogicalDescendants().OfType<Border>().Any(border => border.Name == "FileChangedOnDisk" && border.IsVisible),
+            "A dirty editor whose file changed on disk must say so before Save is pressed.");
         editor.Focus();
         app.Window.KeyPress(Key.S, Command, PhysicalKey.S, "s");
         app.Window.KeyRelease(Key.S, Command, PhysicalKey.S, "s");
-        Until(() => app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "WorkspaceError" && text.IsVisible &&
-            (text.Text?.Contains("changed on disk", StringComparison.Ordinal) ?? false)));
-        Require(editor.IsModified && File.ReadAllText(path) == "external version\n", "Saving over an external change must report the conflict and keep both versions.");
+        Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));
+        var conflict = app.Window.OwnedWindows.OfType<DialogWindow>().Single(dialog => dialog.Tag as string == "SaveConflictDialog");
+        conflict.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" })
+            .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Until(() => !conflict.IsVisible);
+        Require(editor.IsModified && File.ReadAllText(path) == "external version\n", "Saving over an external change must ask what to do and keep both versions until it is answered.");
         Console.WriteLine("PASS live refresh reloads a clean Scintilla tab and keeps unsaved edits for the save conflict");
         Discard(app, "file:live.txt");
     }

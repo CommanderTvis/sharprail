@@ -8,7 +8,9 @@ public enum HostErrorCode
     /// <summary>The folder to open as a project is not inside a Git repository.</summary>
     NotGit,
     /// <summary>The folder to open as a project is already held as a workspace of another project.</summary>
-    AlreadyOpen
+    AlreadyOpen,
+    /// <summary>A save found different text on disk than the text the editor started from, so the client offers to compare, overwrite or reload.</summary>
+    FileChangedOnDisk
 }
 
 /// <summary>A named host failure; it reaches local and remote clients as this type, so they branch on <see cref="Code"/> instead of text.</summary>

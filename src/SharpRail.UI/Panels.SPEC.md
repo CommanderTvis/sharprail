@@ -298,8 +298,19 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
 - Closing the window or quitting asks about every unsaved editor of every workspace the window retains, listing
   each as file name and workspace. Save writes each buffer to the workspace it was opened in, through the host
   (never the active workspace's); Don't Save discards them; Cancel keeps the window. A save that fails (a file
-  changed or deleted on disk) opens a dialog naming the file, its workspace and the reason, offering Discard This
-  File to go on or Cancel to keep the edits and the window open.
+  deleted on disk, or any other refusal) opens a dialog naming the file, its workspace and the reason, offering
+  Discard This File to go on or Cancel to keep the edits and the window open.
+- A save that fails with `HostErrorCode.FileChangedOnDisk` (Command-S, a plugin's save, Save or Save All on close
+  or quit, whatever the host: the code travels remotely) opens a small dialog titled with the file, saying it
+  changed on disk after it was opened, with Compare, Reload from disk, Overwrite file and Cancel. Compare opens
+  a read-only diff tab of the disk text against the editor buffer and leaves the edits untouched (it closes the
+  dialog and counts as declining the save, so Save asks again, and a close or quit stays open); it is offered only
+  for the window's own workspace. Overwrite file saves again with `FileSaveRequest.Overwrite`. Reload from disk
+  asks a second confirmation, because it discards the edits, then shows the disk text as a clean buffer;
+  declining returns to the question. Cancel keeps everything. With several conflicted files on close or quit,
+  each is asked in turn; a Cancel or Compare keeps the window open with the files already handled saved.
+  The dialog's reads and saves run through the host adapters, never on the UI thread. A dirty editor whose
+  file the watcher saw change shows a banner above its text until it is saved, reloaded or its edits undone.
 - An open tab follows its file through a rename or move, of the file or of a folder above it: its path,
   title, tooltip, highlighting and language-server document (closed under the old path, opened under the
   new one on the next inspection) take the new path, and the persisted layout keeps it. The tab keeps its id,

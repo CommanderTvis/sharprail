@@ -10,7 +10,12 @@ public sealed partial class WorkbenchWindow
     private readonly Dictionary<string, string> proposedDiffs = [];
 
     /// <summary>Opens a read-only diff of a workspace file against text that is not on disk yet (Plugin API W27).</summary>
-    internal async Task OpenProposedDiffAsync(string workspace, string path, string newContent)
+    internal Task OpenProposedDiffAsync(string workspace, string path, string newContent) => OpenProposedDiffAsync(workspace, path, newContent, "proposed");
+
+    /// <summary>A file that changed on disk under an editor with unsaved edits: the disk text against the editor buffer.</summary>
+    internal Task OpenDiskDiffAsync(string workspace, string path, string bufferText) => OpenProposedDiffAsync(workspace, path, bufferText, "disk vs. editor");
+
+    private async Task OpenProposedDiffAsync(string workspace, string path, string newContent, string suffix)
     {
         if (!WorkspaceMounted || atHome || workspace != workspaceRoot) return;
         var relative = path.StartsWith(workspaceRoot + "/", StringComparison.Ordinal) ? path[(workspaceRoot.Length + 1)..] : path;
@@ -21,7 +26,7 @@ public sealed partial class WorkbenchWindow
         if (!WorkspaceMounted || atHome || workspace != workspaceRoot) return;
         var id = "proposed:" + Guid.NewGuid().ToString("N")[..12];
         proposedDiffs[workspaceRoot + ":" + id] = diff;
-        Layout.Open(new(id, relative + " (proposed)", ProposedDiffKind, relative), keep: true);
+        Layout.Open(new(id, relative + $" ({suffix})", ProposedDiffKind, relative), keep: true);
     }
 
     // Nothing is persisted for a proposal, so a restored tab only says so.

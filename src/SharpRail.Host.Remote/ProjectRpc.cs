@@ -245,7 +245,7 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
 
     public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
     {
-        await host.SaveFileAsync(new(request.WorkspaceRoot, request.Path, request.OriginalText, request.Text), token);
+        await host.SaveFileAsync(new(request.WorkspaceRoot, request.Path, request.OriginalText, request.Text, request.Overwrite), token);
         return new SaveFileReply();
     });
 

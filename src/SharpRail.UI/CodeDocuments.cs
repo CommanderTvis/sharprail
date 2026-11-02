@@ -122,7 +122,22 @@ public sealed partial class WorkbenchWindow
     /// <summary>Command-S: saves the focused center group's selected file editor.</summary>
     internal async Task SaveSelectedAsync()
     {
-        if (SaveTarget is { } view) await view.SaveAsync();
+        if (SaveTarget is { } view) await SaveEditorAsync(view);
+    }
+
+    /// <summary>Saves one editor; a file changed on disk opens the Compare / Overwrite / Reload / Cancel question, any other failure goes to the status bar.</summary>
+    internal async Task SaveEditorAsync(CodeDocumentView view)
+    {
+        if (await SaveResolvingAsync(view) is { } error && error is not SaveDeclinedException && !view.IsDisposed) Report(error);
+    }
+
+    private Task<Exception?> SaveResolvingAsync(CodeDocumentView view)
+    {
+        var label = $"{view.FileName}" + (view.Workspace == workspaceRoot ? "" : $" ({state.Label(view.Workspace)})");
+        return SaveConflicts.SaveAsync(view,
+            () => Dialogs.FileChangedOnDisk(this, label, view.Workspace == workspaceRoot && WorkspaceMounted),
+            () => Dialogs.Confirm(this, "Discard your edits?", $"Reloading replaces the unsaved edits in {label} with what is on disk. This cannot be undone.", "Reload from disk", "SaveConflictReloadConfirm"),
+            text => OpenDiskDiffAsync(view.Workspace, view.FilePath, text));
     }
 
     // Returns whether the app may exit with agents still working or reported processes still running.
@@ -163,7 +178,8 @@ public sealed partial class WorkbenchWindow
                     // Each buffer saves to its own workspace; a failure is named and offers discarding that file.
                     foreach (var view in pending)
                     {
-                        if (await view.TrySaveAsync() is not { } error) continue;
+                        if (await SaveResolvingAsync(view) is not { } error) continue;
+                        if (error is SaveDeclinedException) return false;
                         if (!await Dialogs.DiscardUnsaved(this, view.FileName, state.Label(view.Workspace), workbench.RedactError(error.Message))) return false;
                         view.Discard();
                     }

@@ -228,6 +228,35 @@ public static class Dialogs
         return await window.ShowDialog<SaveChoice>(owner);
     }
 
+    /// <summary>
+    /// A save found the file changed on disk. Compare opens a diff and closes this; Overwrite, Reload from disk and Cancel
+    /// are the decisions. Closing the window cancels.
+    /// </summary>
+    internal static async Task<SharpRail.UI.Editor.SaveConflictChoice> FileChangedOnDisk(Window owner, string file, bool canCompare)
+    {
+        var window = Create(file, 520);
+        window.Tag = "SaveConflictDialog";
+        window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
+        var text = window.FindControl<TextBlock>("DialogExplanation")!;
+        text.Text = $"{file} changed on disk after it was opened, so saving would replace someone else's changes."; text.IsVisible = true;
+        var actions = window.FindControl<StackPanel>("DialogActions")!;
+        var cancel = Ui.Button("Cancel", () => window.Close(SharpRail.UI.Editor.SaveConflictChoice.Cancel));
+        cancel.Name = "SaveConflictCancel"; cancel.IsDefault = true;
+        var reload = Ui.Button("Reload from disk", () => window.Close(SharpRail.UI.Editor.SaveConflictChoice.Reload));
+        reload.Name = "SaveConflictReload";
+        var overwrite = Ui.Button("Overwrite file", () => window.Close(SharpRail.UI.Editor.SaveConflictChoice.Overwrite));
+        overwrite.Name = "SaveConflictOverwrite";
+        if (canCompare)
+        {
+            var compare = Ui.Button("Compare", () => window.Close(SharpRail.UI.Editor.SaveConflictChoice.Compare));
+            compare.Name = "SaveConflictCompare";
+            actions.Children.Add(compare);
+        }
+        actions.Children.Add(reload); actions.Children.Add(overwrite); actions.Children.Add(Primary(cancel));
+        window.Opened += (_, _) => cancel.Focus();
+        return await window.ShowDialog<SharpRail.UI.Editor.SaveConflictChoice>(owner);
+    }
+
     /// <summary>A file that could not be saved: the reason, with a way out (discard its edits) besides cancelling the close.</summary>
     public static async Task<bool> DiscardUnsaved(Window owner, string file, string workspace, string reason)
     {

@@ -207,7 +207,7 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
         => (await service.SavePromptImageAsync(new() { Data = data }, Context(cancellationToken))).Path;
 
     public async ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default)
-        => await service.SaveFileAsync(new() { WorkspaceRoot = request.WorkspaceRoot, Path = request.Path, OriginalText = request.OriginalText, Text = request.Text }, Context(cancellationToken));
+        => await service.SaveFileAsync(new() { WorkspaceRoot = request.WorkspaceRoot, Path = request.Path, OriginalText = request.OriginalText, Text = request.Text, Overwrite = request.Overwrite }, Context(cancellationToken));
 
     public async ValueTask ApplyFileActionAsync(FileAction action, CancellationToken cancellationToken = default)
         => await service.ApplyFileActionAsync(new() { Kind = action.Kind, Path = action.Path, To = action.To, WorkspaceRoot = action.WorkspaceRoot }, Context(cancellationToken));
