@@ -40,6 +40,8 @@ internal sealed class LanguageConnection : IAsyncDisposable
     internal Action<string, JsonNode?>? Notification { get; set; }
     internal Func<object[]>? WorkspaceFolders { get; set; }
     internal Func<string, JsonNode?, object?>? ClientRequest { get; set; }
+    /// <summary>Whether the server's <c>window/showDocument</c> requests are answered (the provider opted in).</summary>
+    internal bool AcceptsShowDocument { get; init; }
 
     /// <summary>Answers a server's <c>workspace/applyEdit</c>; without it, or when it returns null, the edit is refused.</summary>
     internal Func<JsonNode?, object?>? ApplyEdit { get; set; }
@@ -292,12 +294,13 @@ internal sealed class LanguageConnection : IAsyncDisposable
             "workspace/workspaceFolders" => WorkspaceFolders?.Invoke() ?? new[] { new { uri = new Uri(workspace + Path.DirectorySeparatorChar).AbsoluteUri, name = Path.GetFileName(workspace) } },
             "workspace/configuration" => (parameters?["items"] as JsonArray ?? []).Select(item => Configuration?.Invoke(item?["section"]?.ToString() ?? "")).ToArray(),
             "window/showMessageRequest" => ClientRequest?.Invoke(method, parameters?.DeepClone()),
+            "window/showDocument" when AcceptsShowDocument => ClientRequest?.Invoke(method, parameters?.DeepClone()),
             "workspace/applyEdit" => ApplyEdit?.Invoke(parameters?.DeepClone()) ?? new { applied = false, failureReason = "Use the editor to apply changes." },
             _ => null
         };
         var known = method is "workspace/workspaceFolders" or "workspace/configuration" or "workspace/applyEdit"
             or "client/registerCapability" or "client/unregisterCapability" or "window/workDoneProgress/create"
-            or "workspace/_roslyn_projectNeedsRestore" or "workspace/semanticTokens/refresh" or "workspace/diagnostic/refresh" or "window/showMessageRequest";
+            or "workspace/_roslyn_projectNeedsRestore" or "workspace/semanticTokens/refresh" or "workspace/diagnostic/refresh" or "window/showMessageRequest" || method == "window/showDocument" && AcceptsShowDocument;
         return known ? SendAsync(new { jsonrpc = "2.0", id, result }, lifetime.Token)
             : SendAsync(new { jsonrpc = "2.0", id, error = new { code = -32601, message = "Unsupported client method" } }, lifetime.Token);
     }

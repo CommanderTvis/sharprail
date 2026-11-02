@@ -44,6 +44,9 @@ public sealed record LanguageServerState(string Id, string Path, string State, s
 
     /// <summary>Seconds since a request last used the server, in the <c>running</c> listing.</summary>
     public long IdleSeconds { get; init; }
+
+    /// <summary>The JSON state the providing plugin published for the running session, or empty; the plugin defines its shape.</summary>
+    public string PluginState { get; init; } = "";
 }
 
 /// <summary>

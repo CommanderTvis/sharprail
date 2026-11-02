@@ -127,7 +127,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (request.Scope.Length > 0 && (request.Operation is not ("references" or "implementation" or "definition" or "typeDefinition" or "workspaceSymbols") ||
             request.Scope is not ("file" or "module" or "workspace" or "all" or "dependencies") || request.Path.Length == 0 && request.Scope is "file" or "module"))
             throw new ArgumentException("Navigation scopes are file, module (when supported), workspace or dependencies (all server results); file/module need a path.");
-        if (request.Configuration is not null && request.Operation is not ("configure" or "restart")) throw new ArgumentException("Configuration is accepted only by configure or restart.");
+        if (request.Configuration is not null && request.Operation is not ("configure" or "restart" or "action")) throw new ArgumentException("Configuration is accepted only by configure or restart.");
         if (request.Operation == "projects") return await ProjectRootsAsync(request, token);
         var provider = Replacing(workspace);
         if (Competing(provider).Any(id => entries.ContainsKey(workspace + "\0" + id) || drafts.ContainsKey(workspace + "\0" + id)))
@@ -148,11 +148,12 @@ public sealed partial class LanguageService : IAsyncDisposable
         LanguageServer? selectedServer = null;
         if (request.Server.Length > 0)
         {
-            if (request.Operation is not ("retry" or "restart" or "stop" or "status" or "configurationSchema" or "configuration" or "configure" or "logs") || request.Path.Length > 0 || request.Text is not null)
+            if (request.Operation is not ("retry" or "restart" or "stop" or "status" or "configurationSchema" or "configuration" or "configure" or "logs" or "action") || request.Path.Length > 0 || request.Text is not null)
                 throw new ArgumentException("Select a server only for path-free lifecycle operations.");
             selectedServer = servers.Find(request.Server)
                 ?? throw new ArgumentException("Unknown language server.");
         }
+        if (request.Operation == "action") return await RunActionAsync(workspace, selectedServer, request, token);
         if (request.Operation == "configurationSchema")
             return selectedServer is null ? throw new ArgumentException("Select a server for its configuration schema.") : LanguageConfigurationCatalog.Read(selectedServer);
         if (request.Operation == "logs")
@@ -439,6 +440,7 @@ public sealed partial class LanguageService : IAsyncDisposable
                 Usage = usage.Get(workspace, id),
                 StartedBy = entries.TryGetValue(key, out var started) ? started.StartedBy : exit?.StartedBy ?? "",
                 Presentation = Present(catalogServer),
+                PluginState = entries.TryGetValue(key, out var stateEntry) && stateEntry.Session.IsValueCreated && stateEntry.Session.Value is { IsCompletedSuccessfully: true } live2 && !live2.Result.Exited ? live2.Result.PluginState : "",
                 Dependencies = servers.ProbeDependencies(catalogServer, workspace)
             });
         }

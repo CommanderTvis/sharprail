@@ -15,14 +15,19 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     private bool projectLoading;
     private readonly ConcurrentDictionary<string, string> registeredCapabilities = new();
     private string projectAction = "";
-    internal bool NeedsConfiguration => projectAction.Length > 0;
+    private string unavailable = "";
+    private string pluginState = "";
+    private string ActionText => unavailable.Length > 0 ? unavailable : projectAction;
+    internal bool NeedsConfiguration => ActionText.Length > 0;
+    /// <summary>The state the providing plugin published through <see cref="ILanguageServerSession.SetState"/> (JSON), or empty.</summary>
+    internal string PluginState => pluginState;
     private readonly TaskCompletionSource projectActionReported = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ConcurrentDictionary<string, string> indexing = new();
     internal bool IsIndexing => projectLoading || !indexing.IsEmpty || projectRestores.Values.Any(task => !task.IsCompleted) || Reloading || Settling;
-    internal string Status => projectAction.Length > 0 ? projectAction : detail;
+    internal string Status => ActionText.Length > 0 ? ActionText : detail;
     /// <summary>What an answer held back while the project graph loads says, with what the server is doing.</summary>
     internal string LoadingDetail => "The project graph is still loading (" + (Reloading ? "reloading projects after watched project files changed" : detail) + "), so this answer could be incomplete; call again. " + projectModel.Description;
-    internal string ProjectDetail => (projectAction.Length > 0 ? projectAction : detail) + ". " + projectModel.Description;
+    internal string ProjectDetail => (ActionText.Length > 0 ? ActionText : detail) + ". " + projectModel.Description;
     private readonly ConcurrentDictionary<string, Task> projectRestores = new();
     private readonly LanguageLog log;
     private object[] ProjectFolders => projectModel.WorkspaceFolders.Select(path => (object)new { uri = UriOf(path + Path.DirectorySeparatorChar), name = Path.GetFileName(path) }).ToArray();
@@ -61,6 +66,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         {
             Notification = OnNotification,
             ClientRequest = OnClientRequest,
+            AcceptsShowDocument = server.Spec.AcceptsShowDocument,
             WorkspaceFolders = () => ProjectFolders,
             ApplyEdit = CaptureEdit,
             Configuration = section => section.Length == 0 ? settings : settings[section] ?? section.Split('.').Aggregate((JsonNode?)settings, (node, key) => node is JsonObject obj ? obj[key] : null)
@@ -91,7 +97,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 capabilities = new
                 {
                     general = new { positionEncodings = new[] { "utf-16" } },
-                    window = new { workDoneProgress = true },
+                    window = server.Spec.AcceptsShowDocument ? (object)new { workDoneProgress = true, showDocument = new { support = true } } : new { workDoneProgress = true },
+                    experimental = server.Spec.ExperimentalClientCapabilities.ToDictionary(name => name, _ => (object)true),
                     workspace = new { applyEdit = true, workspaceEdit = new { documentChanges = true }, executeCommand = new { dynamicRegistration = false }, workspaceFolders = true, configuration = true, didChangeWatchedFiles = new { dynamicRegistration = true, relativePatternSupport = true } },
                     textDocument = new
                     {
@@ -203,6 +210,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 throw new IOException("The language server exited.");
             }
             if (request.Operation is "retry" or "status") return new(NeedsConfiguration ? "actionRequired" : IsIndexing ? "initializing" : "ready", ProjectDetail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Coverage = projectModel.Description, Freshness = NeedsConfiguration || IsIndexing || projectModel.Truncated ? "partial" : "current" };
+            if (unavailable.Length > 0) return new("actionRequired", ProjectDetail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Freshness = "unavailable", Coverage = projectModel.Description };
             if (request.Operation == "workspaceDiagnostics")
             {
                 var coverage = "open documents";
@@ -269,7 +277,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             if (saved && capabilities["textDocumentSync"] is JsonObject synchronization && synchronization["save"] is { } save && save.ToJsonString() != "false")
                 await connection.NotifyAsync("textDocument/didSave", new { textDocument = new { uri }, text }, token);
 
-            var result = new LanguageResult("ready", NeedsConfiguration ? projectAction : detail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Coverage = projectModel.Description };
+            var result = new LanguageResult("ready", NeedsConfiguration ? ActionText : detail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Coverage = projectModel.Description };
             if (request.Operation is "inspect" or "diagnostics" or "fileDiagnostics")
             {
                 var fresh = "pending";
@@ -409,6 +417,11 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         if (method == "client/unregisterCapability")
             foreach (var registration in parameters?["unregisterations"] as JsonArray ?? [])
                 if (registration?["id"] is { } id) registeredCapabilities.TryRemove(id.ToString(), out _);
+        if (method == "window/showDocument")
+        {
+            server.Spec.OnMessage(this, method, parameters);
+            return new { success = true };
+        }
         if (method == "window/showMessageRequest")
         {
             var message = parameters?["message"]?.ToString() ?? "Server requested an action";
@@ -434,6 +447,14 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
 
     Task<JsonNode?> ILanguageServerSession.RequestAsync(string method, object? parameters, CancellationToken token, TimeSpan? timeout) =>
         connection.RequestAsync(method, parameters, token, timeout);
+
+    void ILanguageServerSession.SetState(string? state) =>
+        pluginState = state is { Length: > 16 * 1024 } ? throw new ArgumentException("Plugin state exceeds 16 KiB.") : state ?? "";
+
+    void ILanguageServerSession.SetUnavailable(string? reason) => unavailable = reason ?? "";
+
+    internal Task<JsonNode?> RunActionAsync(string name, JsonNode? arguments, CancellationToken token) =>
+        server.Spec.ActionAsync is { } action ? action(this, name, arguments, token) : throw new ArgumentException("This language server has no actions.");
 
     void ILanguageServerSession.SetProgress(string key, string? message)
     {

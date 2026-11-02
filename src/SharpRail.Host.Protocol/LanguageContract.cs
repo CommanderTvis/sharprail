@@ -59,6 +59,7 @@ public sealed class LanguageServerDto
     [ProtoMember(13)] public string Workspace { get; set; } = "";
     [ProtoMember(14)] public long MemoryBytes { get; set; }
     [ProtoMember(15)] public long IdleSeconds { get; set; }
+    [ProtoMember(16)] public string PluginState { get; set; } = "";
 }
 
 [ProtoContract]

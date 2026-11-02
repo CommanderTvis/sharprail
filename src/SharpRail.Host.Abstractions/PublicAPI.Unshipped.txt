@@ -2080,3 +2080,5 @@ SharpRail.Host.Abstractions.LanguageResult.Actions.get -> System.Collections.Gen
 SharpRail.Host.Abstractions.LanguageResult.Actions.init -> void
 SharpRail.Host.Abstractions.LanguageResult.Edits.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>!
 SharpRail.Host.Abstractions.LanguageResult.Edits.init -> void
+SharpRail.Host.Abstractions.LanguageServerState.PluginState.get -> string!
+SharpRail.Host.Abstractions.LanguageServerState.PluginState.init -> void

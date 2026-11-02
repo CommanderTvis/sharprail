@@ -924,3 +924,11 @@ SharpRail.Plugins.Api.Host.IProcessHost.StopProcessAsync(int pid, string! comman
 SharpRail.Plugins.Api.Host.IProcessHost.Table() -> System.Collections.Generic.IReadOnlyList<(int Pid, int ParentPid, string! Command)>!
 SharpRail.Plugins.Api.Host.IProcessHost.Usage(int pid) -> (System.TimeSpan Cpu, long MemoryBytes)?
 SharpRail.Plugins.Api.Host.IPluginHostContext.ShellEnvironmentAsync(SharpRail.Plugins.Api.TerminalRef! terminal, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ExperimentalClientCapabilities.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ExperimentalClientCapabilities.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.AcceptsShowDocument.get -> bool
+SharpRail.Plugins.Api.Host.LanguageServerSpec.AcceptsShowDocument.init -> void
+SharpRail.Plugins.Api.Host.ILanguageServerSession.SetState(string? state) -> void
+SharpRail.Plugins.Api.Host.ILanguageServerSession.SetUnavailable(string? reason) -> void
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ActionAsync.get -> System.Func<SharpRail.Plugins.Api.Host.ILanguageServerSession!, string!, System.Text.Json.Nodes.JsonNode?, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonNode?>!>?
+SharpRail.Plugins.Api.Host.LanguageServerSpec.ActionAsync.init -> void

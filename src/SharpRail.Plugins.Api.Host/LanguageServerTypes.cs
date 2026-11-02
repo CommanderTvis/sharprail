@@ -394,6 +394,21 @@ public sealed class LanguageServerSpec
     /// <summary>Handles a server notification or request the host does not, such as a progress or restore message; requests are answered with <c>null</c>.</summary>
     public Action<ILanguageServerSession, string, JsonNode?> OnMessage { get; init; } = (_, _, _) => { };
 
+    /// <summary>Names set to <see langword="true"/> under <c>capabilities.experimental</c> in <c>initialize</c>, for servers that gate a feature on one.</summary>
+    public IReadOnlyList<string> ExperimentalClientCapabilities { get; init; } = [];
+
+    /// <summary>
+    /// Whether the client advertises <c>window.showDocument</c> and answers the server's requests with success after passing them to <see cref="OnMessage"/>,
+    /// which opens nothing itself: the plugin decides where the page is shown (for example by publishing it with <see cref="ILanguageServerSession.SetState"/>).
+    /// </summary>
+    public bool AcceptsShowDocument { get; init; }
+
+    /// <summary>
+    /// Runs a plugin-defined action the user or an agent asks for on a running session, such as a sign-in: the action name, its JSON arguments and a
+    /// token that is cancelled when the caller gives up; the JSON result (or an exception message) goes back to the caller. It never starts a server.
+    /// </summary>
+    public Func<ILanguageServerSession, string, JsonNode?, CancellationToken, Task<JsonNode?>>? ActionAsync { get; init; }
+
     /// <summary>URI schemes, with the colon, whose dependency sources <see cref="ReadSourceAsync"/> reads.</summary>
     public IReadOnlyList<string> SourceSchemes { get; init; } = [];
 
@@ -526,6 +541,17 @@ public interface ILanguageServerSession
     /// <param name="timeout">A longer timeout than the host default, or <see langword="null"/>.</param>
     /// <returns>The result.</returns>
     Task<JsonNode?> RequestAsync(string method, object? parameters, CancellationToken cancellationToken, TimeSpan? timeout = null);
+
+    /// <summary>Publishes the plugin's own state for this session (JSON, at most 16 KiB), shown to clients as <c>LanguageServerState.PluginState</c>; <see langword="null"/> clears it.</summary>
+    /// <param name="state">The JSON text, or <see langword="null"/>.</param>
+    void SetState(string? state);
+
+    /// <summary>
+    /// Holds the session's language answers back: while set, every request that would reach the server answers <c>actionRequired</c> with
+    /// <paramref name="reason"/>, so a server that cannot serve (such as an unlicensed one) says so rather than staying silent; <see langword="null"/> clears it.
+    /// </summary>
+    /// <param name="reason">A short sentence for the user and agents, or <see langword="null"/>.</param>
+    void SetUnavailable(string? reason);
 
     /// <summary>Shows a status while the server works, holding navigation results as partial; <see langword="null"/> clears it.</summary>
     /// <param name="key">The status's key.</param>
