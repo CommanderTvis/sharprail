@@ -14,7 +14,9 @@ case "${1:-build}" in
         node tests/SharpRail.Browser.Checks/tailscale.mjs
         "$dotnet" build tests/SharpRail.Checks -c "$configuration" -m:2
         "$dotnet" build src/SharpRail.Browser -c "$configuration" -m:2 -p:BrowserChecks=true
-        (cd src/SharpRail.Browser && pnpm exec playwright install chromium)
+        # pnpm is the mise pin (not on PATH on a plain runner); Linux also needs Chromium's system libraries (apt, via sudo).
+        deps=""; [ "$(uname -s)" != Linux ] || deps="--with-deps"
+        (cd src/SharpRail.Browser && sh "$root/scripts/mise" x -- pnpm exec playwright install chromium $deps)
         node tests/SharpRail.Browser.Checks/selection.mjs
         node tests/SharpRail.Browser.Checks/check.mjs
         node tests/SharpRail.Browser.Checks/local-approval.mjs
