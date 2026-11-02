@@ -33,7 +33,7 @@ internal static class SelectionChecks
             var expectedText = theme.Id switch
             {
                 "light" => Color.FromArgb(56, 107, 87, 255),
-                "dark" => Color.FromArgb(38, 106, 200, 255),
+                "dark" => Color.FromArgb(89, 106, 200, 255),
                 _ => theme["selection"]
             };
             var foreground = theme.Colors["selectionForeground"];
