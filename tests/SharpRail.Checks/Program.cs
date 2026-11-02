@@ -270,6 +270,13 @@ internal static class Program
             LanguageLimitChecks.Ui(root);
             return;
         }
+        if (args.SequenceEqual(["--intellij-license-ui"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            IntelliJLicenseChecks.Ui(root);
+            return;
+        }
         if (args.SequenceEqual(["--intellij-license"]))
         {
             IntelliJLicenseChecks.Run().GetAwaiter().GetResult();

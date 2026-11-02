@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 
+using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.Lsp.IntelliJ;
 
@@ -181,5 +182,52 @@ internal static class IntelliJLicenseChecks
         try { await Run(server, "nonsense"); throw new InvalidOperationException("An unknown license action ran."); }
         catch (ArgumentException) { }
         Console.WriteLine("PASS IntelliJ license state, hold, trial/sign-in/code/license-server/remove actions, cancellation, timeout and environment license against a fake licensing server");
+    }
+
+    /// <summary>The settings block: state, days left, the trial-ending notice, the offered actions and the call a click makes.</summary>
+    internal static void Ui(string fixture)
+    {
+        using var app = new E2E.E2eWorkspace(Path.Combine(fixture, "intellij-license-ui"), openFiles: false);
+        E2E.E2eWorkspace.Until(() => app.State!.Current.Workspaces.Any(item => item.Path == app.Root));
+        var calls = new List<LanguageRequest>();
+        app.Host.LanguageReply = request =>
+        {
+            if (request.Operation != "action") return null;
+            calls.Add(request);
+            return new("ready", """{"ok":true,"message":null}""");
+        };
+        var trial = Licensing(new JsonObject { ["activeLicense"] = new JsonObject { ["source"] = "trial", ["status"] = "Valid", ["product"] = "intellij-server", ["daysLeft"] = 3, ["validThrough"] = "2026-11-05" } });
+        var view = new SharpRail.UI.Panels.LanguageConfigurationView(app.Host, app.Root, new("intellij", "", "ready", "Ready", "263.7084.0") { PluginState = trial });
+        var window = new Avalonia.Controls.Window { Width = 700, Height = 900, Content = view };
+        window.Show(app.Window);
+        try
+        {
+            T Find<T>(string name) where T : Avalonia.Controls.Control => Avalonia.Controls.ControlExtensions.FindControl<T>(view, name)!;
+            Require(Find<Avalonia.Controls.StackPanel>("LicensePanel").IsVisible, "The license block was hidden for a licensed IntelliJ.");
+            Require(Find<Avalonia.Controls.TextBlock>("LicenseState").Text!.Contains("3 days left (valid through 2026-11-05)", StringComparison.Ordinal), "Trial days left were not shown: " + Find<Avalonia.Controls.TextBlock>("LicenseState").Text);
+            Require(Find<Avalonia.Controls.TextBlock>("LicenseNotice") is { IsVisible: true } notice && notice.Text!.Contains("3 days", StringComparison.Ordinal), "A trial ending soon showed no notice.");
+            view.Update(new("intellij", "", "actionRequired", "No active license.", "263.7084.0") { PluginState = Licensing(new JsonObject { ["featuresDeclined"] = true }) });
+            Require(Find<Avalonia.Controls.TextBlock>("LicenseState").Text!.Contains("No active license", StringComparison.Ordinal) && Find<Avalonia.Controls.TextBlock>("LicenseNotice").IsVisible, "An unlicensed server did not say so.");
+            Require(!Find<Avalonia.Controls.Button>("RemoveLicense").IsVisible && Find<Avalonia.Controls.Button>("StartTrial").IsEnabled && Find<Avalonia.Controls.Button>("SignIn").IsEnabled, "Unlicensed actions were not offered.");
+            Find<Avalonia.Controls.Button>("StartTrial").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => calls.Count > 0 && Find<Avalonia.Controls.TextBlock>("ConfigurationMessage").Text == "License updated.");
+            Require(calls[0].Server == "intellij" && calls[0].Query == "trial", "Start trial did not request the trial action.");
+            Find<Avalonia.Controls.TextBox>("ActivationCode").Text = " AB-12 ";
+            Find<Avalonia.Controls.Button>("UseCode").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => calls.Count > 1);
+            Require(calls[1].Query == "code" && JsonNode.Parse(calls[1].Configuration!)!["activationCode"]!.ToString() == " AB-12 ", "The activation code was not sent.");
+            var plain = new SharpRail.UI.Panels.LanguageConfigurationView(app.Host, app.Root, new("typescript", "", "idle", "Fixture", "fixture"));
+            Require(!Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.StackPanel>(plain, "LicensePanel")!.IsVisible, "A server without license state showed a license block.");
+        }
+        finally { window.Close(); }
+        Console.WriteLine("PASS IntelliJ settings license block: state, trial days and notice, unlicensed message, actions and their host calls");
+    }
+
+    private static string Licensing(JsonObject state) => Plugin(IntelliJLicensing.Project(state));
+
+    private static string Plugin(JsonObject view)
+    {
+        view["busy"] = "";
+        return view.ToJsonString();
     }
 }

@@ -69,6 +69,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
             Find<TextBox>("Arguments").IsEnabled = Find<CheckBox>("DefaultArguments").IsChecked != true;
             if (!loading) dirty = true;
         };
+        WireLicense();
         Find<Button>("CloseConfiguration").Click += (_, _) => SettingsWindow?.Close();
         Find<Button>("ReloadConfiguration").Click += async (_, _) => await RefreshSavedAsync(true);
         Find<Button>("SaveConfiguration").Click += async (_, _) => await SaveAsync(false);
@@ -190,6 +191,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
             Find<CheckBox>("DefaultArguments").IsChecked != loadedDefaultArguments;
         var changed = server.Configuration != next.Configuration;
         server = next;
+        ShowLicense();
         if (changed && !dirty && !saving) Load();
         else if (!dirty && !saving) ShowState();
         else if (changed) Find<TextBlock>("ConfigurationMessage").Text = "Saved settings changed elsewhere. Reload saved to discard your edits, or Save to replace them.";
@@ -239,6 +241,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
 
     private void ShowState()
     {
+        ShowLicense();
         var pending = server.ActiveConfiguration.Length > 0 && server.Configuration != server.ActiveConfiguration;
         Find<Expander>("ConfigurationExpander").Header = pending ? "Workspace settings · restart needed" : "Workspace settings";
         Find<TextBlock>("ConfigurationMessage").Text = server.State is "error" or "expired" or "disabled" ? server.Detail : pending ? "Saved settings differ from the running server. Restart to apply them." : replaces ? $"Start {LanguageServerNameConverter.Display(server.Id)} after choosing it in Settings → Code Intelligence." : "Applies on next start.";

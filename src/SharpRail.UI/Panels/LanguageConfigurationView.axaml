@@ -48,6 +48,33 @@
         <Button x:Name="ReviewTerms" Content="Review agreement and start…" HorizontalAlignment="Left" ToolTip.Tip="Saves settings and reviews the agreement before starting." />
         <TextBlock x:Name="TermsDeadline" FontWeight="SemiBold" TextWrapping="Wrap" IsVisible="False" />
         <TextBlock x:Name="TermsStatus" Text="Setup checks the agreement. If it changed, you must accept it again." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+        <StackPanel x:Name="LicensePanel" Spacing="8" IsVisible="False">
+          <TextBlock Text="License" FontWeight="SemiBold" />
+          <TextBlock x:Name="LicenseState" TextWrapping="Wrap" />
+          <TextBlock x:Name="LicenseNotice" TextWrapping="Wrap" FontWeight="SemiBold" IsVisible="False" />
+          <TextBlock x:Name="LicenseMessage" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" IsVisible="False" />
+          <TextBox x:Name="LicensePage" IsReadOnly="True" TextWrapping="Wrap" IsVisible="False" ToolTip.Tip="The sign-in page. It opens in your browser; copy it if it did not." />
+          <WrapPanel x:Name="LicenseActions">
+            <Button x:Name="StartTrial" Content="Start free trial" Margin="0,0,8,8" ToolTip.Tip="Starts the 30-day trial JetBrains gives every build." />
+            <Button x:Name="SignIn" Content="Sign in with JetBrains…" Margin="0,0,8,8" ToolTip.Tip="Opens your browser to sign in to your JetBrains Account." />
+            <Button x:Name="CancelLicense" Content="Cancel" Margin="0,0,8,8" IsVisible="False" />
+            <Button x:Name="RefreshLicense" Content="Refresh" Margin="0,0,8,8" />
+            <Button x:Name="RemoveLicense" Content="Remove license" Margin="0,0,8,8" ToolTip.Tip="Removes the license from this computer's JetBrains license store." />
+            <Button x:Name="SignOut" Content="Sign out" Margin="0,0,8,8" ToolTip.Tip="Signs out of the JetBrains Account." />
+          </WrapPanel>
+          <StackPanel x:Name="Subscriptions" Spacing="4" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="ActivationCode" PlaceholderText="Activation code" AcceptsReturn="True" TextWrapping="Wrap" />
+            <Button x:Name="UseCode" Grid.Column="1" Content="Activate" VerticalAlignment="Top" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="LicenseServer" PlaceholderText="License server, for example https://licenses.example.com" />
+            <WrapPanel Grid.Column="1">
+              <Button x:Name="AddServer" Content="Connect" Margin="0,0,8,0" />
+              <Button x:Name="ReconnectServer" Content="Reconnect" Margin="0,0,8,0" />
+            </WrapPanel>
+          </Grid>
+        </StackPanel>
         <StackPanel x:Name="InstallationOptions" Spacing="8">
           <TextBlock Text="Installation directory on the workspace host" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
