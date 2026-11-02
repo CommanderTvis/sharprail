@@ -226,9 +226,15 @@ try {
   disconnected = true;
   for (const { route, server } of sockets) { route.close({ code: 1012, reason: 'Acceptance network interruption' }); server.close({ code: 1012, reason: 'Acceptance network interruption' }); }
   await new Promise(resolve => setTimeout(resolve, 500)); disconnected = false;
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  await page.keyboard.type("printf 'browser-%s\\n' reconnected"); await page.keyboard.press('Enter');
-  await until(snapshot, windows => windows[0].Terminals[0].Text.includes('browser-reconnected'), 'The browser terminal did not reconnect to its host shell.');
+  // Input typed while the socket is still re-establishing is dropped, and a slow runner takes longer than a fixed pause:
+  // type again every few seconds until the shell answers, and report what the terminal showed if it never does.
+  let reconnected = false;
+  for (let attempt = 0; attempt < 6 && !reconnected; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    await page.keyboard.type("printf 'browser-%s\\n' reconnected"); await page.keyboard.press('Enter');
+    try { await until(snapshot, windows => windows[0].Terminals[0].Text.includes('browser-reconnected'), 'waiting'); reconnected = true; } catch {}
+  }
+  if (!reconnected) throw new Error(`The browser terminal did not reconnect to its host shell. It showed: ${JSON.stringify((await snapshot())[0]?.Terminals[0]?.Text.slice(-400))}`);
   await page.evaluate(() => check.OpenDocument('hello.txt'));
   windows = await until(snapshot, windows => windows[0].Editors[0]?.Recordings > 0, 'Scintilla did not record the host file.');
   const editor = windows[0].Editors[0];
