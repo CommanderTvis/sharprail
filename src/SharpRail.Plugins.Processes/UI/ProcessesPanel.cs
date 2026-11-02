@@ -86,6 +86,7 @@ internal sealed class ProcessesPanel : UserControl
         {
             if (syncing) return;
             this.view.AllProjects = allProjects.IsChecked == true;
+            this.view.Persist?.Invoke(this.view.AllProjects);
             Refilter();
         };
         this.visible = visible ?? (() => IsEffectivelyVisible);

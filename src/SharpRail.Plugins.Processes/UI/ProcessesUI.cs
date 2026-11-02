@@ -7,10 +7,16 @@ public sealed class ProcessesUI : PluginUIModule
 {
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
-        var view = new ProcessesView();
+        var view = new ProcessesView { AllProjects = context.Settings<ProcessesSettings>().ShowAllProjects, Persist = value => _ = SaveAsync(context, value) };
         context.SideTool(new(ProcessesPlugin.Tool, workspace => new ProcessesPanel(context, workspace, view)));
         context.SettingsSection(new("Processes", ProcessesPlugin.Manifest.Icon, () => new ProcessesSettingsView(context)));
         return null;
+    }
+
+    private static async Task SaveAsync(IPluginUIContext context, bool value)
+    {
+        try { await context.UpdateSettingsAsync(context.Settings<ProcessesSettings>() with { ShowAllProjects = value }); }
+        catch (Exception) { context.Notify(PluginNotificationKind.Error, "Couldn't save the Processes pane's choice"); }
     }
 }
 
@@ -18,4 +24,7 @@ public sealed class ProcessesUI : PluginUIModule
 internal sealed class ProcessesView
 {
     internal bool AllProjects { get; set; }
+
+    /// <summary>Called with the new value when the user changes the choice, so the plugin can keep it for the next run.</summary>
+    internal Action<bool>? Persist { get; init; }
 }

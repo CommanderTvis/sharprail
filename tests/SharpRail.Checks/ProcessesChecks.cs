@@ -3,6 +3,8 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
@@ -254,12 +256,16 @@ internal static class ProcessesChecks
             "The filter keeps the project's rows and recomputes group sums and the total.");
 
         var stopped = new List<string>();
-        var view = new ProcessesView();
+        var saved = new List<bool>();
+        var view = new ProcessesView { Persist = saved.Add };
         var panel = new ProcessesPanel(() => Task.FromResult(Mixed()), id => { stopped.Add(id); return Task.CompletedTask; }, message => throw new InvalidOperationException(message), () => true,
             () => new HashSet<string> { "/p/a", "/p/a2" }, view);
         window.Content = panel;
         panel.Apply(Mixed());
         Require(panel.RowCount == 2 + 2 && panel.RowOf("spawn:3") is null, "By default only the pane's own project is shown.");
+        var box = panel.GetLogicalDescendants().OfType<CheckBox>().Single();
+        box.IsChecked = true; box.IsChecked = false;
+        Require(saved.SequenceEqual([true, false]) && !view.AllProjects, "Changing the All projects box tells the plugin so it can keep the choice for the next run.");
         var row = panel.RowOf("spawn:1")!;
         panel.Choose(ProcessModel.SpawnedGroup, false);
         Require(panel.StopTargets(panel.Snapshot!.Groups[1]).SequenceEqual(["spawn:1", "spawn:2"]), "Stop group in a scoped pane names only visible rows.");

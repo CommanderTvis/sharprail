@@ -36,6 +36,9 @@ public sealed record ProcessesSettings
 {
     /// <summary>Whether stopping an agent row also stops every process forked from it; off, only the agent's own process is stopped.</summary>
     public bool StopAgentChildren { get; init; } = true;
+
+    /// <summary>The pane's "All projects" check box as the user left it, kept across restarts; false shows only the pane's own project.</summary>
+    public bool ShowAllProjects { get; init; }
 }
 
 public static class ProcessesContract
