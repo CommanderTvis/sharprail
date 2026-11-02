@@ -17,7 +17,7 @@ namespace SharpRail.Plugins.Agent.UI;
 /// <summary>
 /// SharpRail's instructions as one context entry: a row with the PROJECT chip, the size the host measured and the
 /// appended file's path and a count of the sections, that opens a popup of the sections an agent's sessions get, grouped by source
-/// (SharpRail, then each enabled plugin). Each section is a checkbox with its title and size, and a one-line summary that
+/// (SharpRail, then each enabled plugin). Each section is a checkbox with its title, and a one-line summary that
 /// discloses its text. A checkbox only turns a section on or off in the project's <c>.sharprail/instructions.toml</c>;
 /// no text is editable here.
 /// </summary>
@@ -172,7 +172,7 @@ public sealed partial class InstructionSectionsView : Border
     }
 
     // A section's row: its controls and what they last showed, so a refresh changes only what differs.
-    private sealed class RowParts(StackPanel root, CheckBox check, TextBlock title, TextBlock size, Run description, SelectableTextBlock text, ToggleButton disclosure)
+    private sealed class RowParts(StackPanel root, CheckBox check, TextBlock title, Run description, SelectableTextBlock text, ToggleButton disclosure)
     {
         private string shown = "";
         private string shownText = "";
@@ -196,9 +196,6 @@ public sealed partial class InstructionSectionsView : Border
                 if (section.Text != shownText)
                 {
                     shownText = section.Text;
-                    var tokens = Math.Max(1, (section.Text.Length + 3) / 4);
-                    size.Text = "~" + tokens + " " + TokenAmount.Unit(tokens, false);
-                    ToolTip.SetTip(size, section.Text.Length + " characters, about four to a token");
                     // An open section shows its text at once; a closed one fills it on opening.
                     text.Text = disclosure.IsChecked == true ? section.Text : null;
                 }
@@ -218,9 +215,6 @@ public sealed partial class InstructionSectionsView : Border
         var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         var title = Ui.Text(section.Title, Ui.TextBrush, 13);
         label.Children.Add(title);
-        var size = Ui.Text("", Ui.Hint, 11);
-        size.VerticalAlignment = VerticalAlignment.Center;
-        label.Children.Add(size);
         var check = new CheckBox { Name = "InstructionSectionCheckbox", Tag = section.Id, IsChecked = section.Enabled, Content = label };
         check.Classes.Add("section");
         var open = expanded.Contains(section.Id);
@@ -246,7 +240,7 @@ public sealed partial class InstructionSectionsView : Border
         row.Children.Add(check);
         row.Children.Add(disclosure);
         row.Children.Add(text);
-        var parts = new RowParts(row, check, title, size, description, text, disclosure);
+        var parts = new RowParts(row, check, title, description, text, disclosure);
         check.IsCheckedChanged += (_, _) =>
         {
             if (parts.Updating || check.IsChecked == parts.Enabled) return;
