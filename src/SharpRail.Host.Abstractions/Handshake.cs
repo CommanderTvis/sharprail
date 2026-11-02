@@ -9,10 +9,10 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 17;
+    public const int Current = 18;
 
     /// <summary>Custom keymap presets and the active keymap in the shared state, with their state changes. A host below it keeps none, so a client offers no keymap editing there.</summary>
-    public const int Keymaps = 17;
+    public const int Keymaps = 18;
 
     /// <summary>
     /// The branch status carries the owning repo hosting plugin's id and the neutral pull request (field 14) instead of GitHub's own

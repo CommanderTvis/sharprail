@@ -286,7 +286,14 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         workbench.PluginRegistry.Changed += RepoHostUiChanged;
         Closed += (_, _) => workbench.PluginRegistry.Changed -= RepoHostUiChanged;
         SyncRepoHostUi();
-        if (!OperatingSystem.IsMacOS()) { ToolTip.SetTip(settings, "Settings"); AutomationProperties.SetName(settings, "Settings"); }
+        void SyncSettingsTip()
+        {
+            var chord = ActiveKeymap.Chords(SharpRail.Host.Abstractions.KeymapActions.Settings) is [var first, ..] ? $"Settings ({first.Display(ActiveKeymap.Platform)})" : "Settings";
+            ToolTip.SetTip(settings, chord); AutomationProperties.SetName(settings, chord);
+        }
+        SyncSettingsTip();
+        ActiveKeymap.Changed += SyncSettingsTip;
+        Closed += (_, _) => ActiveKeymap.Changed -= SyncSettingsTip;
         if (OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
         // Linux window managers differ on client-side decorations: the header is the title bar only where LinuxWindowChrome trusts the
         // desktop or the host setting asks for it; elsewhere the system title bar stays and the header sits below it.
@@ -367,7 +374,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         menu.Items.Add(new Separator());
         var window = Ui.Menu("New window", () => NewWindow(), workbench.CanOpenWindows);
         window.Name = "NewWindow";
-        window.InputGesture = WindowShortcuts.NewWindow.Gesture;
+        window.InputGesture = WindowShortcuts.NewWindow.Gesture is { Key: not Key.None } newWindowChord ? newWindowChord : null;
         menu.Items.Add(window);
     }
 

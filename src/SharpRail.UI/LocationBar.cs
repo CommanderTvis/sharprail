@@ -160,7 +160,7 @@ public sealed partial class WorkbenchWindow
         menu.Items.Add(new Separator());
         var create = Ui.IconMenu("New workspace", () => _ = CreateWorkspaceDialogAsync(), ActionIcon.Add, git.IsRepository);
         create.Name = "ScopeWorkspaceNew";
-        create.InputGesture = WindowShortcuts.NewWorkspace.Gesture;
+        create.InputGesture = WindowShortcuts.NewWorkspace.Gesture is { Key: not Avalonia.Input.Key.None } newWorkspaceChord ? newWorkspaceChord : null;
         menu.Items.Add(create);
     }
 

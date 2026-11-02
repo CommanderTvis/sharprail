@@ -117,6 +117,7 @@ public sealed class SharedState : IDisposable
     private void Apply(HostState state)
     {
         Current = state;
+        ActiveKeymap.Set(state);
         var settings = state.Settings;
         Preferences.Theme = settings.Theme.Length > 0 ? settings.Theme : Themes.DefaultId;
         Preferences.ThemeMode = settings.ThemeMode;

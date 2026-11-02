@@ -43,7 +43,7 @@ public static class ApplicationMenu
     [
         Item("About " + AboutInfo.Name, Key.None, KeyModifiers.None, about),
         new NativeMenuItemSeparator(),
-        Item("Settings…", WindowShortcuts.Settings.Gesture, settings),
+        Follow(Item("Settings…", WindowShortcuts.Settings.Gesture, settings), WindowShortcuts.Settings, null),
     ];
 
     private static Window? ActiveWindow() =>
@@ -67,7 +67,7 @@ public static class ApplicationMenu
 
     private static NativeMenu WorkbenchMenus(WorkbenchWindow window, AppCommands commands)
     {
-        NativeMenuItem Shortcut(string header, WindowShortcut shortcut) => Item(header, shortcut.Gesture, () => { if (window.CanRun(shortcut)) window.Run(shortcut); });
+        NativeMenuItem Shortcut(string header, WindowShortcut shortcut) => Follow(Item(header, shortcut.Gesture, () => { if (window.CanRun(shortcut)) window.Run(shortcut); }), shortcut, window);
         var recent = new NativeMenu();
         void FillRecent()
         {
@@ -97,7 +97,7 @@ public static class ApplicationMenu
         NativeMenu edit = Editing(window);
         edit.Items.Add(new NativeMenuItemSeparator());
         // Mod+Z stays Undo's key equivalent; this item shows Ghostty's other undo chord and acts whatever has focus.
-        edit.Items.Add(Item("Undo Close Tab", WindowShortcuts.UndoClose.Gesture, () => window.UndoClose()));
+        edit.Items.Add(Follow(Item("Undo Close Tab", WindowShortcuts.UndoClose.Gesture, () => window.UndoClose()), WindowShortcuts.UndoClose, window));
         edit.Items.Add(new NativeMenuItemSeparator());
         edit.Items.Add(Item("Find", Key.F, Command, () => Edit(window, Key.F, Command, _ => { })));
         edit.Items.Add(new NativeMenuItemSeparator());
@@ -205,6 +205,18 @@ public static class ApplicationMenu
             Item("Delete", Key.None, KeyModifiers.None, () => Edit(window, Key.None, KeyModifiers.None, box => box.SelectedText = "")),
             Item("Select All", Key.A, Command, () => Edit(window, Key.A, Command, box => box.SelectAll())),
         ];
+    }
+
+    /// <summary>
+    /// Keeps a menu item's key equivalent on its command's active chord: the keymap can change while the menu bar is up, and the system
+    /// fires key equivalents itself. The item is edited in place; the owner window's close ends the subscription.
+    /// </summary>
+    private static NativeMenuItem Follow(NativeMenuItem item, WindowShortcut shortcut, Window? owner)
+    {
+        void Update() => item.Gesture = shortcut.Gesture is { Key: not Key.None } gesture ? gesture : null;
+        ActiveKeymap.Changed += Update;
+        if (owner is not null) owner.Closed += (_, _) => ActiveKeymap.Changed -= Update;
+        return item;
     }
 
     private static NativeMenuItem Item(string header, KeyGesture gesture, Action action) => Item(header, gesture.Key, gesture.KeyModifiers, action);

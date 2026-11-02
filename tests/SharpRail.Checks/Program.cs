@@ -330,6 +330,9 @@ internal static class Program
         {
             KeymapChecks.Model();
             KeymapChecks.Host(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            KeymapChecks.Runtime(root);
             Console.WriteLine("PASS keymap checks");
             return;
         }

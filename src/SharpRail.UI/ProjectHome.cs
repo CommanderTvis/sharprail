@@ -173,7 +173,7 @@ public sealed partial class WorkbenchWindow
                 setUp.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
                 buttons.Children.Add(setUp);
             }
-            var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut("N")}).", primary: hasSpecs)
+            var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut(SharpRail.Host.Abstractions.KeymapActions.NewWorkspace)}).", primary: hasSpecs)
             { Name = hasSpecs ? "WelcomeCta" : "WelcomeAction", IsVisible = welcomeGitReady };
             create.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
             var folder = new Panels.WelcomeCard("homeFill", "Work in project folder", "Changes and terminals run directly in your project folder — no isolation.",
@@ -208,7 +208,8 @@ public sealed partial class WorkbenchWindow
         if (welcomeCards is { } cards && cards.IsAttachedToVisualTree()) FillWelcomeCards(cards);
     }
 
-    private static string Shortcut(string key) => (OperatingSystem.IsMacOS() ? "⌘" : "Ctrl+") + key;
+    private static string Shortcut(string action) =>
+        ActiveKeymap.Chords(action) is [var chord, ..] ? chord.Display(ActiveKeymap.Platform) : "no shortcut";
 
     private void UpdateProjectHomeActions()
     {

@@ -1,5 +1,9 @@
 using System.Net;
 
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Threading;
+
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +13,8 @@ using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
+using SharpRail.UI;
+using SharpRail.UI.State;
 
 namespace SharpRail.Checks;
 
@@ -145,5 +151,55 @@ internal static class KeymapChecks
         var reopened = new HostStateStore(localDirectory);
         Require(reopened.Current.KeymapPresets.Select(preset => preset.Name).SequenceEqual(["Newer"]) && reopened.Current.KeymapPresets[0].Bindings == future,
             "Keymap presets survive a restart byte for byte.");
+    }
+
+    private static KeyEventArgs Press(Key key, KeyModifiers modifiers) => new() { RoutedEvent = InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers };
+
+    /// <summary>The active keymap reaching a live window: dispatch, gestures, menu key equivalents, unbinding, fallback, no focus change.</summary>
+    internal static void Runtime(string root)
+    {
+        var mac = OperatingSystem.IsMacOS();
+        var command = mac ? KeyModifiers.Meta : KeyModifiers.Control;
+        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-keymap-runtime"), E2E.E2eTerminals.Plain);
+        window.Show();
+        var until = DateTime.UtcNow.AddSeconds(10);
+        while (!window.WorkspaceMounted && DateTime.UtcNow < until) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+        Require(window.WorkspaceMounted, "The keymap window did not mount.");
+        var menu = ApplicationMenu.Build(window, window.Commands);
+        NativeMenuItem Item(string menuName, string header) =>
+            menu.Items.OfType<NativeMenuItem>().Single(entry => entry.Header == menuName).Menu!.Items.OfType<NativeMenuItem>().Single(entry => entry.Header == header);
+        var focus = window.FocusManager?.GetFocusedElement();
+        try
+        {
+            ActiveKeymap.Set(new HostState());
+            Require(window.ShortcutFor(Press(Key.N, command)) == WindowShortcuts.NewWorkspace, "IntelliJ is the default keymap.");
+            Require(Item("File", "New Workspace").Gesture is { } before && before.Equals(WindowShortcuts.NewWorkspace.Gesture), "The menu shows the active chord.");
+
+            // A custom preset moves New Workspace to Mod+Shift+K and unbinds Open Project.
+            var custom = KeymapBindings.IntelliJ(ActiveKeymap.Platform);
+            var moved = Keymaps.Bind(custom, KeymapActions.NewWorkspace, 0, new KeyChord(KeyMods.Mod | KeyMods.Shift, "K"), ActiveKeymap.Platform);
+            Require(moved.Applied, "bind");
+            var edited = Keymaps.Bind(moved.Bindings, KeymapActions.OpenProject, 0, null, ActiveKeymap.Platform).Bindings;
+            var seen = 0;
+            ActiveKeymap.Changed += () => seen++;
+            ActiveKeymap.Set(new HostState { KeymapPresets = [new("Mine", edited.ToJson())], Settings = new HostSettings { ActiveKeymap = "Mine" } });
+            Require(seen == 1, "A changed keymap raises Changed once.");
+            Require(window.ShortcutFor(Press(Key.K, command | KeyModifiers.Shift)) == WindowShortcuts.NewWorkspace && window.ShortcutFor(Press(Key.N, command)) is null,
+                "The new chord reaches the command and the old one no longer does.");
+            Require(window.ShortcutFor(Press(Key.O, command)) is null, "An unbound command has no chord.");
+            Require(Item("File", "New Workspace").Gesture is { Key: Key.K } && Item("File", "Open Project…").Gesture is null, "Menu key equivalents follow the keymap in place.");
+            ActiveKeymap.Set(new HostState { KeymapPresets = [new("Mine", edited.ToJson())], Settings = new HostSettings { ActiveKeymap = "Mine" } });
+            Require(seen == 1, "An identical snapshot raises nothing.");
+            Require(window.FocusManager?.GetFocusedElement() == focus, "A keymap change does not move focus.");
+
+            // Exact modifiers: the other command key and extra modifiers no longer reach a chord.
+            Require(window.ShortcutFor(Press(Key.B, command | KeyModifiers.Shift)) is null, "Extra modifiers do not match a chord.");
+            Require(window.ShortcutFor(Press(Key.OemPlus, command | KeyModifiers.Shift)) == WindowShortcuts.ZoomIn, "Shifted plus still zooms in.");
+
+            // Deleting the preset falls back to IntelliJ.
+            ActiveKeymap.Set(new HostState { Settings = new HostSettings { ActiveKeymap = "Mine" } });
+            Require(window.ShortcutFor(Press(Key.N, command)) == WindowShortcuts.NewWorkspace && window.ShortcutFor(Press(Key.O, command)) == WindowShortcuts.OpenProject, "A missing preset is IntelliJ.");
+        }
+        finally { ActiveKeymap.Set(new HostState()); window.Close(); }
     }
 }

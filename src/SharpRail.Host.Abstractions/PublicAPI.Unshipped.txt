@@ -2068,7 +2068,6 @@ SharpRail.Host.Abstractions.OwnedProcessInfo.Pid.get -> int
 SharpRail.Host.Abstractions.OwnedProcessInfo.Pid.init -> void
 SharpRail.Host.Abstractions.OwnedProcessInfo.Terminal.get -> SharpRail.Plugins.Api.TerminalRef!
 SharpRail.Host.Abstractions.OwnedProcessInfo.Terminal.init -> void
-const SharpRail.Host.Abstractions.HostProtocol.Current = 17 -> int
 const SharpRail.Host.Abstractions.HostProtocol.SaveOverwrite = 17 -> int
 const SharpRail.Host.Abstractions.HostProtocol.OwnedProcesses = 16 -> int
 override SharpRail.Host.Abstractions.OwnedProcessInfo.Equals(object? obj) -> bool
@@ -2222,7 +2221,8 @@ SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.get -> string!
 SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.init -> void
 SharpRail.Host.Abstractions.HostState.KeymapPresets.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.KeymapPreset!>!
 SharpRail.Host.Abstractions.HostState.KeymapPresets.init -> void
-const SharpRail.Host.Abstractions.HostProtocol.Keymaps = 17 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 18 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Keymaps = 18 -> int
 static SharpRail.Host.Abstractions.HostStateChange.DeleteKeymap(string! name) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.RenameKeymap(string! name, string! next) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.SaveKeymap(string! name, string! bindings) -> SharpRail.Host.Abstractions.HostStateChange!
