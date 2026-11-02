@@ -647,7 +647,7 @@ errors, Retry and Stop without blocking input.
 The Code Intelligence tool is available in the dock tool catalog. Its workspace-scoped pane lists detected, manually added and active
 servers; a dropdown adds other supported servers without starting them. Start/Retry and Stop live in each server row’s
 right-click menu and target that row. Refresh works without an open editor. Workspace Problems shows freshness and coverage and opens diagnostic locations. Background
-polling starts no servers, cancels on detach and rejects results from a previous mount.
+polling starts no servers, cancels on detach and rejects results from a previous mount. A row shows at most 400 characters of the host's detail and the status line likewise, since laying out a thousand-token progress line on every poll stalls the UI thread.
 
 LSP provider identity uses the bundled Material Icon Theme vectors in server rows, add-server
 choices and the Settings rail. Language marks use the theme foreground, independently of

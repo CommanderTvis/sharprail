@@ -367,7 +367,7 @@ with the reason), and `lsp_*` calls then wait on them with the bounded wait.
 A server that loads a project graph (Roslyn) answers from whatever part of it is loaded, so the host
 holds back answers that could be silently incomplete. The graph counts as loading during startup until
 `ProjectLoadedNotification`, while any `$/progress` (such as Roslyn's own restore) or tracked restore
-runs, for `SettleGrace` (2 s) after either ends (the restore's outputs reach the watcher and start a
+runs (a session tracks at most 256 open progress tokens, and its row detail names the first three messages and how many more, so a server that opens a token per project cannot grow the line every poll carries), for `SettleGrace` (2 s) after either ends (the restore's outputs reach the watcher and start a
 reload), and from sending a project-input change (a created or deleted watched file, or a file the
 provider's `IsProjectInput` names, such as `project.assets.json` or a `.csproj`) until the server logs
 its `ProjectReloadedMessage`, at most `ReloadWait` (30 s). While loading:

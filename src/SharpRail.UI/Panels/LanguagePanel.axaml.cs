@@ -37,6 +37,8 @@ internal sealed partial class LanguagePanel : UserControl
         public bool ShowDetail => Expanded || ShowExit || Server.State is "error" or "unavailable" or "installing" or "initializing" or "actionRequired" or "requiresAcceptance";
         public bool ShowLogs => Expanded || ShowExit || Server.State is "error" or "unavailable";
         public bool HasSource => Server.Path.Length > 0;
+        /// <summary>The server's detail as shown: capped, since a host may report thousands of characters while a server loads and text layout of that costs the UI thread on every poll.</summary>
+        public string DetailText => Brief(Server.Detail);
         /// <summary>The plugin's license notice (a trial ending soon, a grace period, a parked server), shown in the row without opening the settings.</summary>
         public string LicenseNotice
         {
@@ -90,6 +92,11 @@ internal sealed partial class LanguagePanel : UserControl
             && (left.OptionGroups ?? []).SequenceEqual(right.OptionGroups ?? []) && (left.Replaces ?? []).SequenceEqual(right.Replaces ?? [])
             && left.HasTerms == right.HasTerms && left.TermsNote == right.TermsNote && left.ReplacesLabel == right.ReplacesLabel;
     }
+    private const int MaxShownDetail = 400;
+
+    /// <summary>A host text capped to what one status line can usefully show.</summary>
+    internal static string Brief(string text) => text.Length <= MaxShownDetail ? text : text[..MaxShownDetail] + "…";
+
     private readonly IProjectServices host;
     private readonly SharpRail.UI.State.SharedState? state;
     private string workspace;
@@ -438,7 +445,7 @@ internal sealed partial class LanguagePanel : UserControl
             var saves = configurations.Where(item => item.Key.Workspace == workspace).ToDictionary(item => item.Key.Server, item => item.Value.Saves);
             var result = await Task.Run(async () => await host.LanguageAsync(request, token), token);
             if (current != lifetime || token.IsCancellationRequested) return;
-            SetStatus(result.State + ": " + result.Detail);
+            SetStatus(Brief(result.State + ": " + result.Detail));
             if (operation == "servers")
             {
                 LanguageServerNameConverter.Remember(result.Servers);

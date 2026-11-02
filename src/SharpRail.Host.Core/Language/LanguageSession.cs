@@ -479,9 +479,22 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         {
             var id = parameters["token"]?.ToJsonString() ?? "progress";
             if (progress["kind"]?.ToString() == "end") indexing.TryRemove(id, out _);
-            else if (progress["kind"]?.ToString() is "begin" or "report") indexing[id] = progress["message"]?.ToString() ?? progress["title"]?.ToString() ?? "Indexing…";
-            detail = indexing.IsEmpty ? "Ready" : string.Join("; ", indexing.Values);
+            // A server that opens a token per project and never ends some of them must not grow this bookkeeping, or the detail every poll carries, without bound.
+            else if (progress["kind"]?.ToString() is "begin" or "report" && (indexing.Count < MaxProgressTokens || indexing.ContainsKey(id))) indexing[id] = progress["message"]?.ToString() ?? progress["title"]?.ToString() ?? "Indexing…";
+            detail = ProgressDetail(indexing);
         }
+    }
+
+    /// <summary>The most progress tokens one session tracks at once.</summary>
+    internal const int MaxProgressTokens = 256;
+    private const int ShownProgressMessages = 3;
+
+    /// <summary>One short line for the open progress tokens: the first few messages (in a stable order) and how many more there are.</summary>
+    internal static string ProgressDetail(IReadOnlyDictionary<string, string> tokens)
+    {
+        if (tokens.Count == 0) return "Ready";
+        var shown = tokens.Values.Order(StringComparer.Ordinal).Take(ShownProgressMessages).Select(message => message.Length > 120 ? message[..120] + "…" : message);
+        return string.Join("; ", shown) + (tokens.Count > ShownProgressMessages ? $" (+{tokens.Count - ShownProgressMessages} more)" : "");
     }
 
     private LanguageItem[] Diagnostics(JsonNode? value, string path) => (value as JsonArray ?? [])

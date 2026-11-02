@@ -66,7 +66,7 @@
             <TextBlock Grid.Column="4" Name="ServerDisclosure" Text="{Binding Disclosure}" Foreground="{x:Static kit:Ui.Muted}" VerticalAlignment="Center" />
             <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" Name="ServerDetails" Spacing="2">
               <TextBlock Name="ServerNeeds" FontSize="12" IsVisible="{Binding ShowNeeds}" Text="{Binding Needs}" Foreground="{x:Static kit:Ui.Danger}" TextWrapping="Wrap" />
-              <TextBlock Name="ServerDetail" FontSize="12" IsVisible="{Binding ShowDetail}" Text="{Binding Server.Detail}" Foreground="{Binding DetailBrush}" TextWrapping="Wrap" />
+              <TextBlock Name="ServerDetail" FontSize="12" IsVisible="{Binding ShowDetail}" Text="{Binding DetailText}" Foreground="{Binding DetailBrush}" TextWrapping="Wrap" />
               <TextBlock Name="ServerNotice" FontSize="12" IsVisible="{Binding HasLicenseNotice}" Text="{Binding LicenseNotice}" Foreground="{x:Static kit:Ui.Warning}" TextWrapping="Wrap" />
               <local:LanguageDependencyList Name="ServerDependencies" OmitMissingText="True" IsVisible="{Binding ShowDependencies}" Dependencies="{Binding Server.Dependencies}" />
               <StackPanel Orientation="Horizontal" Spacing="12" IsVisible="{Binding ShowExit}">

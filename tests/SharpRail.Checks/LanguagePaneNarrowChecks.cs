@@ -28,6 +28,7 @@ internal static class LanguagePaneNarrowChecks
         Hidden(fixture);
         Scrolls(fixture);
         Poll(fixture);
+        Burst(fixture);
     }
 
     /// <summary>A pane taller than its window scrolls and keeps its offset across refreshes (a selected row must not pull itself into view): the wheel over any part of it moves the one vertical ScrollViewer, the last row can be reached, and nothing is wider than the viewport.</summary>
@@ -109,6 +110,57 @@ internal static class LanguagePaneNarrowChecks
             for (var index = 0; index < 3; index++)
                 Require(ReferenceEquals(first[index], servers.ContainerFromIndex(index)), $"An unchanged server row {index} was rebuilt by a poll reply.");
             Console.WriteLine("PASS An unchanged inventory reply keeps the Code Intelligence rows in place");
+        }
+        finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+    }
+
+    /// <summary>
+    /// Starting Roslyn on a many-project solution: every poll carries a row whose detail joins one progress message per project still loading, a plugin state blob and
+    /// changing usage. Each reply is UI-thread work (row replacement, text layout), so the slowest reply must stay inside the frame budget and a reply must not
+    /// grow with the number of tokens the server has open.
+    /// </summary>
+    private static void Burst(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-burst"); Directory.CreateDirectory(root);
+        var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(statePath);
+        using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
+        shared.Start();
+        var pane = new SharpRail.UI.Panels.LanguagePanel(new LocalProjectAdapter(new ProjectServices(root, state)), root, _ => Task.CompletedTask, shared);
+        var window = new Window { Width = 320, Height = 900, Content = pane };
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        window.Show();
+        try
+        {
+            E2E.E2eWorkspace.Until(() => pane.Idle, "The pane's own inventory request did not finish.");
+            var open = Enumerable.Range(0, 5000).ToDictionary(index => "t" + index, index => $"Loading project src/Company.Product.Module{index}/Company.Product.Module{index}.csproj");
+            var line = SharpRail.Host.Core.Language.LanguageSession.ProgressDetail(open);
+            Require(line.Length < 500 && line.EndsWith("(+4997 more)", StringComparison.Ordinal), $"The session's progress detail for 5000 open tokens is {line.Length} characters: {line[..Math.Min(80, line.Length)]}");
+            Require(SharpRail.Host.Core.Language.LanguageSession.ProgressDetail(new Dictionary<string, string>()) == "Ready", "No open token is not Ready.");
+            foreach (var tokens in new[] { 120, 2000 })
+            {
+                var slowest = 0.0; var total = 0.0;
+                for (var round = 0; round < 20; round++)
+                {
+                    var detail = string.Join("; ", Enumerable.Range(0, tokens).Select(index => $"Loading project src/Company.Product.Module{index}/Company.Product.Module{index}.csproj ({round + index % 7}/{tokens})"));
+                    var rows = new[] { "csharp", "typescript", "clangd", "shell", "python" }.Select(id => new LanguageServerState(id, "file.x", id == "csharp" ? "initializing" : "ready", id == "csharp" ? detail : "Ready", "1")
+                    {
+                        PluginState = "{\"kind\":\"info\",\"message\":\"" + new string('x', 2000) + round + "\"}",
+                        Usage = new LanguageUsageSummary(round, round, 0, DateTime.UtcNow.ToString("O")),
+                        Presentation = new("Fake", [1, 2], "svg", [], [])
+                    }).ToArray();
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    pane.ShowInventory(rows);
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    watch.Stop();
+                    slowest = Math.Max(slowest, watch.Elapsed.TotalMilliseconds); total += watch.Elapsed.TotalMilliseconds;
+                }
+                Console.WriteLine($"MEASURE burst with {tokens} open progress tokens: slowest reply {slowest:F0} ms, mean {total / 20:F0} ms");
+                // The mean is the budget (one slow sample is machine noise); the slowest is reported.
+                Require(total / 20 < 100, $"Poll replies with {tokens} open progress tokens took {total / 20:F0} ms on average on the UI thread (slowest {slowest:F0} ms, budget 100 ms).");
+            }
+            Console.WriteLine("PASS A Roslyn start burst keeps the average pane update inside the frame budget");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }
