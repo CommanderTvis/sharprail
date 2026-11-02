@@ -114,6 +114,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             VerticalTabsInProjects = reply.Settings.VerticalTabsInProjects,
             SettleIdleDays = reply.Settings.SettleIdleDays > 0 ? reply.Settings.SettleIdleDays : null,
             WindowDecorations = reply.Settings.WindowDecorations,
+            ActiveKeymap = reply.Settings.ActiveKeymap,
             LanguageServers = reply.Settings.LanguageServers,
             LanguageTools = reply.Settings.LanguageTools,
             LanguageLimits = reply.Settings.LanguageLimits,
@@ -121,6 +122,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             LspEnabled = reply.Settings.LspEnabled
         },
         Presets = reply.Presets.Select(preset => new LayoutPreset(preset.Name, preset.Layout)).ToArray(),
+        KeymapPresets = reply.KeymapPresets.Select(preset => new KeymapPreset(preset.Name, preset.Layout)).ToArray(),
         Projects = reply.Projects.ToArray(),
         RecentProjects = reply.RecentProjects.ToArray(),
         ProjectRecords = reply.ProjectRecords.Select(record => new ProjectRecord(record.Id, record.Path, record.Slug, record.LastOpened)).ToArray(),

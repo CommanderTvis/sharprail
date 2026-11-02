@@ -62,6 +62,8 @@ public sealed record HostSettings
     public string WindowDecorations { get; init; } = "";
     /// <summary>Days without activity after which a workspace settles onto its project's shelf; null never settles.</summary>
     public int? SettleIdleDays { get; init; } = DefaultSettleIdleDays;
+    /// <summary>The active keymap preset's name; empty is the built-in <see cref="Keymaps.BuiltinName"/>, and so is a name that no longer exists.</summary>
+    public string ActiveKeymap { get; init; } = "";
 
     public const int DefaultSettleIdleDays = 7;
     public const string DefaultBellFeatures = "attention,title";
@@ -103,6 +105,8 @@ public sealed record HostState
     public long Revision { get; init; }
     public HostSettings Settings { get; init; } = new();
     public IReadOnlyList<LayoutPreset> Presets { get; init; } = [];
+    /// <summary>The custom keymap presets; the built-in IntelliJ preset is code, not state. An older profile has none.</summary>
+    public IReadOnlyList<KeymapPreset> KeymapPresets { get; init; } = [];
     public IReadOnlyList<string> Projects { get; init; } = [];
     public IReadOnlyList<string> RecentProjects { get; init; } = [];
     /// <summary>One record per open or recent project, in no particular order.</summary>
@@ -230,6 +234,14 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange SavePreset(string name, string layout) => new("preset-save", name, layout);
     public static HostStateChange RenamePreset(string name, string next) => new("preset-rename", name, next);
     public static HostStateChange DeletePreset(string name) => new("preset-delete", name);
+    /// <summary>Creates or replaces a custom keymap preset; the name must be a valid, unused one and never the built-in's, the bindings a <see cref="KeymapBindings"/> document.</summary>
+    public static HostStateChange SaveKeymap(string name, string bindings) => new("keymap-save", name, bindings);
+    /// <summary>Renames a custom keymap preset; the active choice follows it.</summary>
+    public static HostStateChange RenameKeymap(string name, string next) => new("keymap-rename", name, next);
+    /// <summary>Deletes a custom keymap preset; deleting the active one makes the built-in preset active.</summary>
+    public static HostStateChange DeleteKeymap(string name) => new("keymap-delete", name);
+    /// <summary>Makes a keymap preset active for every client; an empty name selects the built-in preset.</summary>
+    public static HostStateChange SelectKeymap(string name) => Setting("keymap", name);
     /// <summary>An empty label restores the directory name.</summary>
     public static HostStateChange Label(string path, string label) => new("workspace-label", path, label);
     /// <summary>Re-points a workspace's review target; an empty ref, or its creation base, restores that base.</summary>

@@ -26,6 +26,7 @@ public sealed partial class HostStateStore : IHostStateService
     {
         public HostSettings Settings { get; set; } = new();
         public List<LayoutPreset> Presets { get; set; } = [];
+        public List<KeymapPreset> KeymapPresets { get; set; } = [];
         public List<string> Projects { get; set; } = [];
         public List<string> RecentProjects { get; set; } = [];
         public List<ProjectRecord> ProjectRecords { get; set; } = [];
@@ -154,6 +155,7 @@ public sealed partial class HostStateStore : IHostStateService
                 {
                     Settings = stored.Settings ?? new(),
                     Presets = stored.Presets ?? [],
+                    KeymapPresets = stored.KeymapPresets ?? [],
                     // Directories stored before the one spelling (ThinkRail #775) are healed here and saved with the next write.
                     Projects = [.. (stored.Projects ?? []).Select(ProjectPaths.Heal)],
                     RecentProjects = [.. (stored.RecentProjects ?? []).Select(ProjectPaths.Heal)],
@@ -518,6 +520,7 @@ public sealed partial class HostStateStore : IHostStateService
             {
                 Settings = snapshot.Settings,
                 Presets = snapshot.Presets.ToList(),
+                KeymapPresets = snapshot.KeymapPresets.ToList(),
                 Projects = snapshot.Projects.ToList(),
                 RecentProjects = snapshot.RecentProjects.ToList(),
                 ProjectRecords = snapshot.ProjectRecords.ToList(),
@@ -574,10 +577,13 @@ public sealed partial class HostStateStore : IHostStateService
                 TerminalUndoCloseSeconds = Math.Clamp(value.Settings.TerminalUndoCloseSeconds, 0, HostSettings.MaxTerminalUndoCloseSeconds),
                 CustomHighlighting = ValidHighlighting(value.Settings.CustomHighlighting) ? value.Settings.CustomHighlighting : "",
                 WindowDecorations = value.Settings.WindowDecorations is "client" or "system" ? value.Settings.WindowDecorations : "",
-                SettleIdleDays = value.Settings.SettleIdleDays is { } days ? Math.Clamp(days, 1, HostSettings.MaxSettleIdleDays) : null
+                SettleIdleDays = value.Settings.SettleIdleDays is { } days ? Math.Clamp(days, 1, HostSettings.MaxSettleIdleDays) : null,
+                ActiveKeymap = value.KeymapPresets.Any(preset => preset is not null && preset.Name == value.Settings.ActiveKeymap) ? value.Settings.ActiveKeymap : ""
             },
             Presets = value.Presets.Where(preset => preset is not null && ValidText(preset.Name) && preset.Layout is { Length: > 0 })
                 .DistinctBy(preset => preset.Name).ToArray(),
+            KeymapPresets = value.KeymapPresets.Where(preset => preset is not null && Keymaps.ValidateName(preset.Name, []) is null && KeymapBindings.IsValid(preset.Bindings))
+                .DistinctBy(preset => preset.Name, StringComparer.OrdinalIgnoreCase).ToArray(),
             Projects = value.Projects.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
             RecentProjects = value.RecentProjects.Where(item => item is not null && ValidPath(item)).Distinct().Take(HostStateChange.RecentLimit).ToArray(),
             WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
@@ -720,6 +726,8 @@ public sealed partial class HostStateStore : IHostStateService
                         => settings with { SettleIdleDays = days },
                     "window-decorations" when value is "auto" or "" => settings with { WindowDecorations = "" },
                     "window-decorations" when value is "client" or "system" => settings with { WindowDecorations = value },
+                    "keymap" when value.Length == 0 || Keymaps.IsBuiltin(value) => settings with { ActiveKeymap = "" },
+                    "keymap" when current.KeymapPresets.Any(preset => preset.Name == value) => settings with { ActiveKeymap = value },
                     "tabs-in-projects" when bool.TryParse(value, out var inProjects) => settings with { VerticalTabsInProjects = inProjects },
                     _ => throw new ArgumentException($"Invalid setting {key}.")
                 };
@@ -739,6 +747,36 @@ public sealed partial class HostStateStore : IHostStateService
             case "preset-delete":
                 return current.Presets.Any(preset => preset.Name == key)
                     ? current with { Presets = current.Presets.Where(preset => preset.Name != key).ToArray() } : current;
+            case "keymap-save":
+                {
+                    var name = key.Trim();
+                    var others = current.KeymapPresets.Where(preset => preset.Name != name).Select(preset => preset.Name);
+                    if (Keymaps.ValidateName(name, others) is { } problem) throw new ArgumentException(problem);
+                    if (!KeymapBindings.IsValid(value)) throw new ArgumentException("The keymap is not valid.");
+                    var presets = current.KeymapPresets.Where(preset => preset.Name != name).ToList();
+                    var position = current.KeymapPresets.ToList().FindIndex(preset => preset.Name == name);
+                    presets.Insert(position >= 0 ? position : presets.Count, new(name, value));
+                    return current with { KeymapPresets = presets };
+                }
+            case "keymap-rename":
+                {
+                    var next = value.Trim();
+                    if (!current.KeymapPresets.Any(preset => preset.Name == key)) return current;
+                    if (Keymaps.ValidateName(next, current.KeymapPresets.Select(preset => preset.Name), except: key) is { } problem) throw new ArgumentException(problem);
+                    return current with
+                    {
+                        KeymapPresets = current.KeymapPresets.Select(preset => preset.Name == key ? preset with { Name = next } : preset).ToArray(),
+                        Settings = current.Settings.ActiveKeymap == key ? current.Settings with { ActiveKeymap = next } : current.Settings
+                    };
+                }
+            case "keymap-delete":
+                return current.KeymapPresets.Any(preset => preset.Name == key)
+                    ? current with
+                    {
+                        KeymapPresets = current.KeymapPresets.Where(preset => preset.Name != key).ToArray(),
+                        Settings = current.Settings.ActiveKeymap == key ? current.Settings with { ActiveKeymap = "" } : current.Settings
+                    }
+                    : current;
             case "workspace-label":
                 if (!ValidPath(key)) throw new ArgumentException("Invalid workspace path.");
                 var labels = current.WorkspaceLabels.ToDictionary();

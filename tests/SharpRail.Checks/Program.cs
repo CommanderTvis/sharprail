@@ -329,6 +329,7 @@ internal static class Program
         if (args.SequenceEqual(["--keymap"]))
         {
             KeymapChecks.Model();
+            KeymapChecks.Host(root).GetAwaiter().GetResult();
             Console.WriteLine("PASS keymap checks");
             return;
         }

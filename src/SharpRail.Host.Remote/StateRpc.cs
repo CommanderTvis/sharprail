@@ -87,6 +87,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             VerticalTabsInProjects = state.Settings.VerticalTabsInProjects,
             SettleIdleDays = state.Settings.SettleIdleDays ?? 0,
             WindowDecorations = state.Settings.WindowDecorations,
+            ActiveKeymap = state.Settings.ActiveKeymap,
             LanguageServers = state.Settings.LanguageServers,
             LanguageTools = state.Settings.LanguageTools,
             LanguageLimits = state.Settings.LanguageLimits,
@@ -94,6 +95,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             LspEnabled = state.Settings.LspEnabled
         },
         Presets = state.Presets.Select(preset => new PresetMessage { Name = preset.Name, Layout = preset.Layout }).ToList(),
+        KeymapPresets = state.KeymapPresets.Select(preset => new PresetMessage { Name = preset.Name, Layout = preset.Bindings }).ToList(),
         Projects = state.Projects.ToList(),
         RecentProjects = state.RecentProjects.ToList(),
         ProjectRecords = state.ProjectRecords.Select(record => new ProjectRecordMessage { Id = record.Id, Path = record.Path, Slug = record.Slug, LastOpened = record.LastOpened }).ToList(),

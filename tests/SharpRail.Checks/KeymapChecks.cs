@@ -1,4 +1,14 @@
+using System.Net;
+
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.Extensions.DependencyInjection;
+
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
+using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
+using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
@@ -76,5 +86,64 @@ internal static class KeymapChecks
         var edited = Keymaps.Bind(newer, KeymapActions.Refresh, 0, free, KeymapPlatform.Other);
         Require(edited.Applied && KeymapBindings.Parse(edited.Bindings.ToJson()).Spellings("FutureAction").SequenceEqual(["Hyper+Q"]) && edited.Bindings.ToJson().Contains("\"future\""), "Unknown bindings survive an edit.");
         Require(KeymapBindings.Parse("not json").Ids.Count() == 0 && !KeymapBindings.IsValid("""{"bindings":{"A":[1]}}""") && KeymapBindings.IsValid("""{"bindings":{"A":["Mod+A"]}}"""), "Malformed documents are tolerated and validated.");
+    }
+
+    private static async Task Rejected(IHostStateService service, HostStateChange change, string message)
+    {
+        try { await service.ChangeAsync([change]); }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException or RpcException) { return; }
+        throw new InvalidOperationException(message);
+    }
+
+    /// <summary>Preset changes through the direct and the WebSocket adapters: validation, selection, renaming, deleting, persistence and older profiles.</summary>
+    internal static async Task Host(string root)
+    {
+        var bindings = KeymapBindings.IntelliJ(KeymapPlatform.Other);
+        bindings.Set(KeymapActions.Refresh, []);
+        var document = bindings.ToJson();
+        var future = """{"version":9,"extra":true,"bindings":{"FutureAction":["Hyper+Q"]}}""";
+
+        // An older profile has no keymap members: no presets, IntelliJ active.
+        var older = Path.Combine(root, "keymap-older");
+        Directory.CreateDirectory(older);
+        File.WriteAllText(Path.Combine(older, HostStateStore.FileName), "{\"Settings\":{},\"Presets\":[]}\n");
+        var oldStore = new HostStateStore(older);
+        Require(oldStore.Current.KeymapPresets.Count == 0 && oldStore.Current.Settings.ActiveKeymap == "", "A profile without keymap members has IntelliJ active.");
+
+        var localDirectory = Path.Combine(root, "keymap-local");
+        var remoteDirectory = Path.Combine(root, "keymap-remote");
+        var local = new LocalStateAdapter(new HostStateStore(localDirectory));
+        await using var server = RemoteServer.Create(root, IPAddress.Loopback, 0, "keymap-test", remoteDirectory);
+        await server.StartAsync();
+        var address = server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        using var remote = new RemoteStateAdapter(new Uri(address), "keymap-test");
+        foreach (var (name, service) in new (string, IHostStateService)[] { ("local", local), ("remote", remote) })
+        {
+            using var watch = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            await using var stream = service.WatchAsync(watch.Token).GetAsyncEnumerator(watch.Token);
+            Require(await stream.MoveNextAsync() && stream.Current.KeymapPresets.Count == 0, $"A {name} watcher starts without keymap presets.");
+            await Rejected(service, HostStateChange.SaveKeymap("IntelliJ", document), $"The {name} host accepted the built-in's name.");
+            await Rejected(service, HostStateChange.SaveKeymap("   ", document), $"The {name} host accepted an empty name.");
+            await Rejected(service, HostStateChange.SaveKeymap("Bad", "[1]"), $"The {name} host accepted a malformed keymap.");
+            await Rejected(service, HostStateChange.SelectKeymap("Missing"), $"The {name} host selected a preset that does not exist.");
+            var saved = await service.ChangeAsync([HostStateChange.SaveKeymap(" Mine ", document), HostStateChange.SaveKeymap("Newer", future)]);
+            Require(saved.KeymapPresets.Select(preset => preset.Name).SequenceEqual(["Mine", "Newer"]), $"The {name} host trims and keeps preset names in order.");
+            await Rejected(service, HostStateChange.SaveKeymap("mine", document), $"The {name} host accepted a name that differs only by case.");
+            Require(KeymapBindings.Parse(saved.KeymapPresets[1].Bindings).Spellings("FutureAction").SequenceEqual(["Hyper+Q"]), $"The {name} host kept unknown bindings.");
+            HostState seen;
+            await service.ChangeAsync([HostStateChange.SelectKeymap("Mine")]);
+            do { Require(await stream.MoveNextAsync(), $"A {name} watcher stopped."); seen = stream.Current; } while (seen.Settings.ActiveKeymap != "Mine");
+            Require(seen.KeymapPresets.Count == 2, $"A {name} watcher receives the selection and the presets.");
+            var renamed = await service.ChangeAsync([HostStateChange.RenameKeymap("Mine", "Renamed")]);
+            Require(renamed.Settings.ActiveKeymap == "Renamed" && renamed.KeymapPresets[0].Name == "Renamed", $"The {name} host moves the selection with a rename.");
+            await Rejected(service, HostStateChange.RenameKeymap("Renamed", "Newer"), $"The {name} host renamed onto another preset.");
+            var deleted = await service.ChangeAsync([HostStateChange.DeleteKeymap("Renamed")]);
+            Require(deleted.Settings.ActiveKeymap == "" && deleted.KeymapPresets.Count == 1, $"Deleting the active preset of the {name} host falls back to IntelliJ.");
+            await service.ChangeAsync([HostStateChange.SelectKeymap("Newer"), HostStateChange.SelectKeymap("intellij")]);
+            Require((await service.GetStateAsync()).Settings.ActiveKeymap == "", $"The {name} host selects the built-in preset by its name.");
+        }
+        var reopened = new HostStateStore(localDirectory);
+        Require(reopened.Current.KeymapPresets.Select(preset => preset.Name).SequenceEqual(["Newer"]) && reopened.Current.KeymapPresets[0].Bindings == future,
+            "Keymap presets survive a restart byte for byte.");
     }
 }

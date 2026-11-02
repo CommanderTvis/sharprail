@@ -11,6 +11,9 @@ public static class HostProtocol
 {
     public const int Current = 17;
 
+    /// <summary>Custom keymap presets and the active keymap in the shared state, with their state changes. A host below it keeps none, so a client offers no keymap editing there.</summary>
+    public const int Keymaps = 17;
+
     /// <summary>
     /// The branch status carries the owning repo hosting plugin's id and the neutral pull request (field 14) instead of GitHub's own
     /// spellings (fields 12 and 13). A client below it reports no review; a host below it reports none to a client at or above it.

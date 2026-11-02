@@ -59,6 +59,8 @@ public sealed class SettingsMessage
     [ProtoMember(13)] public bool? VerticalTabsInProjects { get; set; }
     /// <summary>Always written; zero means never settle. A host that predates settling leaves the default.</summary>
     [ProtoMember(14, IsRequired = true)] public int SettleIdleDays { get; set; } = 7;
+    /// <summary>The active keymap preset's name; empty, from a host that predates keymaps, is the built-in IntelliJ.</summary>
+    [ProtoMember(30)] public string ActiveKeymap { get; set; } = "";
 }
 
 [ProtoContract]
@@ -127,6 +129,8 @@ public sealed class StateReply
     [ProtoMember(29)] public List<TerminalResumeOfferMessage> ResumeOffers { get; set; } = [];
     [ProtoMember(30)] public List<WorkspaceRefMessage> ProjectLanguageHidden { get; set; } = [];
     [ProtoMember(31)] public List<OwnedProcessMessage> OwnedProcesses { get; set; } = [];
+    /// <summary>Custom keymap presets, <see cref="PresetMessage.Layout"/> carrying the bindings document.</summary>
+    [ProtoMember(32)] public List<PresetMessage> KeymapPresets { get; set; } = [];
 }
 
 [ProtoContract]

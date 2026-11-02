@@ -2218,3 +2218,12 @@ static SharpRail.Host.Abstractions.Keymaps.Resolve(System.Collections.Generic.IE
 static SharpRail.Host.Abstractions.Keymaps.ValidateName(string? name, System.Collections.Generic.IEnumerable<string!>! existing, string? except = null) -> string?
 static readonly SharpRail.Host.Abstractions.KeyChord.Keys -> System.Collections.Generic.IReadOnlySet<string!>!
 ~override SharpRail.Host.Abstractions.KeyChord.Equals(object obj) -> bool
+SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.get -> string!
+SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.init -> void
+SharpRail.Host.Abstractions.HostState.KeymapPresets.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.KeymapPreset!>!
+SharpRail.Host.Abstractions.HostState.KeymapPresets.init -> void
+const SharpRail.Host.Abstractions.HostProtocol.Keymaps = 17 -> int
+static SharpRail.Host.Abstractions.HostStateChange.DeleteKeymap(string! name) -> SharpRail.Host.Abstractions.HostStateChange!
+static SharpRail.Host.Abstractions.HostStateChange.RenameKeymap(string! name, string! next) -> SharpRail.Host.Abstractions.HostStateChange!
+static SharpRail.Host.Abstractions.HostStateChange.SaveKeymap(string! name, string! bindings) -> SharpRail.Host.Abstractions.HostStateChange!
+static SharpRail.Host.Abstractions.HostStateChange.SelectKeymap(string! name) -> SharpRail.Host.Abstractions.HostStateChange!
