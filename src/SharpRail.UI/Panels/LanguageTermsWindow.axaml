@@ -13,7 +13,7 @@
       <TextBlock Grid.Row="2" x:Name="TermsNote" Text="Read the provider's usage limits and expiry terms. Acceptance is recorded for this exact installation and does not establish entitlement." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" Margin="0,0,0,16" />
       <TextBox Grid.Row="3" x:Name="TermsText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
                ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Exact installation license agreement" />
-      <StackPanel Grid.Row="4" x:Name="TermsQuestions" Spacing="6" Margin="0,16,0,0" IsVisible="False" />
+      <StackPanel Grid.Row="4" x:Name="TermsQuestions" Spacing="8" Margin="0,16,0,0" IsVisible="False" />
       <CheckBox Grid.Row="5" x:Name="TermsConsent" IsChecked="False" IsEnabled="False" Margin="0,16,0,8">
         <TextBlock Text="I have read and accept this agreement for the artifact shown above." TextWrapping="Wrap" />
       </CheckBox>

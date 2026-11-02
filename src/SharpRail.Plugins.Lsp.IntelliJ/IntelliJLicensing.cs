@@ -93,8 +93,13 @@ internal static class IntelliJLicensing
 
     private static readonly Dictionary<string, string> SourceLabels = new()
     {
-        ["trial"] = "Trial", ["eap"] = "Early Access Program", ["subscription"] = "JetBrains Account", ["activationCode"] = "Activation Code",
-        ["licenseServer"] = "License Server", ["toolbox"] = "JetBrains Toolbox", ["productKeyFile"] = "Product Key File"
+        ["trial"] = "Trial",
+        ["eap"] = "Early Access Program",
+        ["subscription"] = "JetBrains Account",
+        ["activationCode"] = "Activation Code",
+        ["licenseServer"] = "License Server",
+        ["toolbox"] = "JetBrains Toolbox",
+        ["productKeyFile"] = "Product Key File"
     };
 
     private static string ParkedMessage(string? reason) => reason switch
@@ -124,8 +129,11 @@ internal static class IntelliJLicensing
             if (item is JsonObject sub)
                 subscriptions.Add(new JsonObject
                 {
-                    ["assetId"] = Text(sub["assetId"]), ["product"] = Text(sub["product"]), ["licensedTo"] = Text(sub["licensedTo"]),
-                    ["status"] = Text(sub["status"]), ["validThrough"] = Text(sub["validThrough"])
+                    ["assetId"] = Text(sub["assetId"]),
+                    ["product"] = Text(sub["product"]),
+                    ["licensedTo"] = Text(sub["licensedTo"]),
+                    ["status"] = Text(sub["status"]),
+                    ["validThrough"] = Text(sub["validThrough"])
                 });
         view["subscriptions"] = subscriptions;
         var serverError = configured && (ticket == "FailedToRefresh" || Text(server["errorMessage"]) is not null)
