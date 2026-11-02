@@ -1447,7 +1447,7 @@ internal sealed partial class ChatView
             if (entries is not { Count: > 0 } && !(pathFirst && entries is not null))
             {
                 var found = await env.Client.RequestAsync(ChatContract.Files, new ChatFilesParams(workspaceId, query), search.Token);
-                entries = [.. found.Paths.Take(50).Select(path => new MenuEntry("@" + path, "", "@" + TerminalFacts.QuoteAttachPath(path) + " ", from, to))];
+                entries = [.. found.Paths.Take(50).Select(path => new MenuEntry("@" + path, "", "@" + TerminalFacts.QuoteAttachPath(path) + (path.EndsWith('/') ? "" : " "), from, to))];
                 if (entries.Count == 0 && !pathFirst && query.AsSpan().IndexOfAny('/', '\\') >= 0) entries = await CompletePath(query, from, to, search.Token) ?? entries;
             }
             if (search.IsCancellationRequested) return;

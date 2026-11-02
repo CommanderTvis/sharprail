@@ -12,6 +12,7 @@ using SharpRail.Plugins.Chat;
 using SharpRail.Plugins.Chat.UI;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host;
+using SharpRail.Plugins.ClaudeCode.Host.Chat;
 
 namespace SharpRail.Checks;
 
@@ -631,6 +632,20 @@ internal static class ClaudeChatChecks
             Require(gone, "Closing takes the child's whole process group, a grandchild it started included.");
             Require((await fixture.Call(ChatContract.Files, new ChatFilesParams(project, "x"))).Paths is not null && (await fixture.Call(ChatContract.Sessions, new ChatSessionsParams(project))).Sessions is not null,
                 "The sessions and file lookups answer.");
+
+            // The @ mention search ranks files and directories fuzzily, lists the top level for an empty query, and walks a folder that is not a repository.
+            string[] tree = ["src/main.c", "src/my_config.ts", "README.md", "docs/guide/my-notes.md", "MyXargs/myxargs.c"];
+            var byName = ChatFileSearch.Rank(tree, "my", 50);
+            Require(byName.Contains("MyXargs/") && byName.Contains("src/my_config.ts") && !byName.Contains("README.md"), "A mention query matches names, directories included: " + string.Join(", ", byName));
+            Require(ChatFileSearch.Rank(tree, "mcfg", 50).FirstOrDefault() == "src/my_config.ts", "A mention query matches its characters in order.");
+            Require(ChatFileSearch.Rank(tree, "", 50).SequenceEqual(["docs/", "MyXargs/", "src/", "README.md"]), "An empty mention query lists the top level, directories first.");
+            var walked = Path.Combine(directory, "mention-walk-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(walked, "a"));
+            Directory.CreateDirectory(Path.Combine(walked, "node_modules"));
+            File.WriteAllText(Path.Combine(walked, "a", "b.txt"), "");
+            File.WriteAllText(Path.Combine(walked, "node_modules", "x.js"), "");
+            Require(ChatFileSearch.Walk(walked, 100, default).SequenceEqual(["a/b.txt"]), "A folder outside Git is walked without dependency directories.");
+            Directory.Delete(walked, recursive: true);
 
             // Session titles come from the first prompt as one clean line: command wrappers read as the command, caveats and command output are skipped.
             var wrapped = Guid.NewGuid().ToString();

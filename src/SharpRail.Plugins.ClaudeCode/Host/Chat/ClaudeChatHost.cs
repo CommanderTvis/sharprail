@@ -327,12 +327,8 @@ internal sealed class ClaudeChatHost
     private async ValueTask<ChatFileList> FindFilesAsync(ChatFilesParams p, CancellationToken cancellationToken)
     {
         var listing = await context.GitAsync(p.WorkspaceId, ["ls-files", "--cached", "--others", "--exclude-standard"], new GitRunOptions(TimeSpan.FromSeconds(10)), cancellationToken);
-        if (!listing.Ok) return new([]);
-        var query = p.Query.Trim();
-        var paths = listing.Out.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Where(path => query.Length == 0 || path.Contains(query, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(path => Path.GetFileName(path).Contains(query, StringComparison.OrdinalIgnoreCase) ? 0 : 1).ThenBy(path => path.Length)
-            .Take(50);
+        // Outside a Git repository the folder itself is walked, as the terminal does.
+        var paths = await Task.Run(() => ChatFileSearch.Rank(listing.Ok ? listing.Out.Split('\n', StringSplitOptions.RemoveEmptyEntries) : ChatFileSearch.Walk(p.WorkspaceId, 20_000, cancellationToken), p.Query, 50), cancellationToken);
         return new([.. paths]);
     }
 
