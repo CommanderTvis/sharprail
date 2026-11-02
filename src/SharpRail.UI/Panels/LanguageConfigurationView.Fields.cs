@@ -22,7 +22,7 @@ internal sealed partial class LanguageConfigurationView
         if (lifetime is not { } current) return;
         try
         {
-            var result = await host.LanguageAsync(new(workspace, Operation: "configurationSchema", Server: server.Id), current.Token);
+            var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "configurationSchema", Server: server.Id), current.Token), current.Token);
             if (lifetime != current) return;
             if (result.State != "ready" || result.Configuration.Length == 0) return;
             var schema = JsonNode.Parse(result.Configuration)!;

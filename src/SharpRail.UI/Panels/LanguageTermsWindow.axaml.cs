@@ -95,7 +95,7 @@ internal sealed partial class LanguageTermsWindow : Window
         try
         {
             var request = accept ? new LanguageTermsRequest(workspace, server, true, Result!.ArtifactId, Result.EulaSha256) { Answers = Answers() } : new(workspace, server);
-            var result = await host.LanguageTermsAsync(request, token);
+            var result = await Task.Run(async () => await host.LanguageTermsAsync(request, token), token);
             if (token.IsCancellationRequested) return;
             Result = result;
             ShowQuestions(result);

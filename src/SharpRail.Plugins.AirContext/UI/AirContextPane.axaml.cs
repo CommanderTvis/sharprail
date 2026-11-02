@@ -19,8 +19,16 @@ internal sealed partial class AirContextPane : UserControl
     /// <summary>How often a pane waiting for a sign-in terminal probes the CLI; the checks shorten it.</summary>
     internal static TimeSpan SignInPollInterval { get; set; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>Check hook: called on the thread that runs each plugin request, so a check can prove none runs on the UI thread.</summary>
+    internal static Action? RequestObserver { get; set; }
+
+    /// <summary>Runs a plugin request off the UI thread: an embedded host runs the handler on the caller's thread until its first real async step.</summary>
+    internal static async Task<TResult> Request<TParams, TResult>(IPluginUIContext context, PluginMethod<TParams, TResult> method, TParams parameters, CancellationToken token) =>
+        await Task.Run(async () => { RequestObserver?.Invoke(); return await context.RequestAsync(method, parameters, token); }, token);
+
     private readonly IPluginUIContext context;
     private readonly bool account;
+    private bool refreshing;
     private bool checking;
     private DateTime lastProbe;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(3) };
@@ -96,7 +104,7 @@ internal sealed partial class AirContextPane : UserControl
         checking = true; lastProbe = DateTime.UtcNow;
         try
         {
-            var result = await context.RequestAsync(AirContextContract.Workspace, new(workspace, "check"), current.Token);
+            var result = await Request(context, AirContextContract.Workspace, new(workspace, "check"), current.Token);
             if (lifetime == current && !current.IsCancellationRequested) ApplyAccount(result);
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
@@ -153,7 +161,7 @@ internal sealed partial class AirContextPane : UserControl
         checkingConsent = true;
         try
         {
-            var result = await context.RequestAsync(AirContextContract.Consent, new("status"), current.Token);
+            var result = await Request(context, AirContextContract.Consent, new("status"), current.Token);
             if (lifetime == current && !current.IsCancellationRequested && consentWindow is null) ApplyConsent(result);
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
@@ -212,17 +220,20 @@ internal sealed partial class AirContextPane : UserControl
 
     private async Task RefreshWorkspaceAsync()
     {
-        if (contextBusy || lifetime is not { } current) return;
+        // A tick does not start a second read while one is in flight.
+        if (contextBusy || refreshing || lifetime is not { } current) return;
         var target = workspace;
+        refreshing = true;
         try
         {
-            var result = await context.RequestAsync(AirContextContract.Workspace, new(target), current.Token);
+            var result = await Request(context, AirContextContract.Workspace, new(target), current.Token);
             if (lifetime == current && !current.IsCancellationRequested && !contextBusy && target == workspace)
                 ApplyWorkspace(contextFailure is { } failure && result.State is "disabled" or "idle"
                     ? failure with { Enabled = result.Enabled } : result);
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
         catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>(account ? "AccountState" : "ContextState")!.Text = error.Message; }
+        finally { refreshing = false; }
     }
 
     private async void ContextEnableClicked(object? sender, RoutedEventArgs e)
@@ -234,7 +245,7 @@ internal sealed partial class AirContextPane : UserControl
         {
             if (enable && !await ConfirmAsync(owner, current.Token))
             { this.FindControl<CheckBox>("ContextEnabled")!.IsChecked = false; return; }
-            var result = await context.RequestAsync(AirContextContract.Workspace, new(workspace, enable ? "enable" : "disable"), current.Token);
+            var result = await Request(context, AirContextContract.Workspace, new(workspace, enable ? "enable" : "disable"), current.Token);
             if (lifetime != current || current.IsCancellationRequested) return;
             contextFailure = result.State is "error" or "requiresAcceptance" or "unavailable" ? result : null;
             ApplyWorkspace(result);
@@ -270,7 +281,7 @@ internal sealed partial class AirContextPane : UserControl
         contextBusy = true;
         try
         {
-            var result = await context.RequestAsync(AirContextContract.Workspace, new(workspace, operation), current.Token);
+            var result = await Request(context, AirContextContract.Workspace, new(workspace, operation), current.Token);
             if (lifetime != current || current.IsCancellationRequested) return;
             contextFailure = result.State is "error" or "requiresAcceptance" or "unavailable" ? result : null;
             if (account) { if (operation != "login") ApplyAccount(result); }

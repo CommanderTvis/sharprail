@@ -25,8 +25,8 @@ internal sealed partial class LanguageProviderView : UserControl
             var current = lifetime;
             try
             {
-                var catalog = await host.LanguageAsync(new(workspace, Operation: "catalog"), current.Token);
-                var result = await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), current.Token);
+                var catalog = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "catalog"), current.Token), current.Token);
+                var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), current.Token), current.Token);
                 if (lifetime != current) return;
                 LanguageServerNameConverter.Remember(catalog.Servers);
                 var replacing = catalog.Servers.Where(server => server.Presentation?.Replaces is { Count: > 0 }).ToArray();

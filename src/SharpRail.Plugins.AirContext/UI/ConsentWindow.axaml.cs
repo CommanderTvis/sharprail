@@ -55,7 +55,7 @@ internal sealed partial class ConsentWindow : Window
         try
         {
             var request = new ContextConsentRequest(operation, result?.ArtifactId ?? "", result?.TermsSha256 ?? "");
-            var next = await context.RequestAsync(AirContextContract.Consent, request, lifetime.Token);
+            var next = await AirContextPane.Request(context, AirContextContract.Consent, request, lifetime.Token);
             if (lifetime.IsCancellationRequested) return;
             result = next;
             Updated?.Invoke(next);

@@ -29,6 +29,7 @@ internal static class LanguagePaneNarrowChecks
         Scrolls(fixture);
         Poll(fixture);
         Burst(fixture);
+        UiThreadCalls(fixture);
     }
 
     /// <summary>A pane taller than its window scrolls and keeps its offset across refreshes (a selected row must not pull itself into view): the wheel over any part of it moves the one vertical ScrollViewer, the last row can be reached, and nothing is wider than the viewport.</summary>
@@ -163,6 +164,69 @@ internal static class LanguagePaneNarrowChecks
             Console.WriteLine("PASS A Roslyn start burst keeps the average pane update inside the frame budget");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
+    }
+
+    /// <summary>Forwards to a target and records whether each call arrived on the UI thread.</summary>
+    private class Recorder : System.Reflection.DispatchProxy
+    {
+        internal object? Target; internal Func<System.Reflection.MethodInfo, object?[]?, object?>? Fake;
+        internal readonly System.Collections.Concurrent.ConcurrentBag<string> OnUi = [];
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args)
+        {
+            if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess() && method!.Name is "LanguageAsync" or "LanguageTermsAsync" or "RequestAsync")
+                OnUi.Add(method.Name + " " + (args?.FirstOrDefault() is LanguageRequest request ? request.Operation : ""));
+            return Fake is not null ? Fake(method!, args) : method!.Invoke(Target, args);
+        }
+    }
+
+    /// <summary>The Code Intelligence pane, its configuration view and Air Context's section poll the host: none of those calls may run on the UI thread, since an embedded host runs a handler on its caller's thread until its first real async step.</summary>
+    private static void UiThreadCalls(string fixture)
+    {
+        var root = Path.Combine(fixture, "language-ui-thread"); Directory.CreateDirectory(root);
+        var statePath = Path.Combine(root, ".tools", "state"); Directory.CreateDirectory(statePath);
+        var disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
+        var state = new HostStateStore(statePath);
+        using var shared = new SharedState(new LocalStateAdapter(state), new(), state.Current);
+        shared.Start();
+        var projects = System.Reflection.DispatchProxy.Create<IProjectServices, Recorder>();
+        ((Recorder)(object)projects).Target = new LocalProjectAdapter(new ProjectServices(root, state));
+        var plugins = System.Reflection.DispatchProxy.Create<SharpRail.Plugins.Api.UI.IPluginUIContext, Recorder>();
+        var requests = 0;
+        ((Recorder)(object)plugins).Fake = (method, _) =>
+        {
+            if (method.Name == "RequestAsync") Interlocked.Increment(ref requests);
+            var type = method.ReturnType;
+            if (type == typeof(IDisposable)) return null;
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ValueTask<>))
+            {
+                var result = type.GetGenericArguments()[0];
+                var svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1\" height=\"1\"/>";
+                object? value = result == typeof(string) ? svg : result == typeof(byte[]) ? System.Text.Encoding.UTF8.GetBytes(svg) : null;
+                return type.GetConstructor([result])!.Invoke([value]);
+            }
+            return type.IsValueType ? Activator.CreateInstance(type) : null;
+        };
+        var pane = new SharpRail.UI.Panels.LanguagePanel(projects, root, _ => Task.CompletedTask, shared);
+        var air = new SharpRail.Plugins.AirContext.UI.AirContextPane(plugins, root, account: false);
+        var view = new SharpRail.UI.Panels.LanguageConfigurationView(projects, root, new LanguageServerState("fake", "file.x", "idle", "", "1"));
+        var panel = new StackPanel { Children = { pane, air, view } };
+        var window = new Window { Width = 480, Height = 600, Content = panel };
+        var observed = 0;
+        SharpRail.Plugins.AirContext.UI.AirContextPane.RequestObserver = () =>
+        {
+            Interlocked.Increment(ref observed);
+            if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) ((Recorder)(object)plugins).OnUi.Add("AirContext request");
+        };
+        window.Show();
+        try
+        {
+            E2E.E2eWorkspace.Until(() => pane.Idle && Volatile.Read(ref requests) > 0, "The pane and Air Context did not finish their first requests.");
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var onUi = ((Recorder)(object)projects).OnUi.Concat(((Recorder)(object)plugins).OnUi).ToArray();
+            Require(onUi.Length == 0, "Host calls ran on the UI thread: " + string.Join(", ", onUi));
+            Console.WriteLine($"PASS The Code Intelligence pane, its configuration view and Air Context start no host or plugin request on the UI thread ({requests} plugin requests)");
+        }
+        finally { SharpRail.Plugins.AirContext.UI.AirContextPane.RequestObserver = null; window.Close(); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled); }
     }
 
     /// <summary>Hide removes a suggested row behind "1 hidden · Show", persists per project in host state, stops suggesting it, and Show/Unhide bring it back.</summary>

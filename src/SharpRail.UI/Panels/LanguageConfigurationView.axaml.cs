@@ -91,7 +91,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         if (lifetime is not { } current) return;
         try
         {
-            var result = await host.LanguageAsync(new(workspace, Operation: "projectAutostart"), current.Token);
+            var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "projectAutostart"), current.Token), current.Token);
             if (lifetime == current && result.State == "ready")
                 Find<CheckBox>("ProjectAutoStart").IsChecked = JsonSerializer.Deserialize<string[]>(result.Configuration)?.Contains(server.Id) == true;
         }
@@ -130,8 +130,8 @@ internal sealed partial class LanguageConfigurationView : UserControl
         checkbox.IsEnabled = false;
         try
         {
-            await host.LanguageAsync(new(workspace, Operation: "setProjectAutostart", Server: server.Id,
-                Configuration: (checkbox.IsChecked == true).ToString()), current.Token);
+            var request = new LanguageRequest(workspace, Operation: "setProjectAutostart", Server: server.Id, Configuration: (checkbox.IsChecked == true).ToString());
+            await Task.Run(async () => await host.LanguageAsync(request, current.Token), current.Token);
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
         catch (Exception error)
@@ -307,11 +307,11 @@ internal sealed partial class LanguageConfigurationView : UserControl
                     Find<TextBlock>("ConfigurationMessage").Text = $"Select {LanguageServerNameConverter.Display(server.Id)} as the provider before starting it.";
                     return;
                 }
-                var acknowledgement = await host.LanguageTermsAsync(new(workspace, server.Id), token);
+                var acknowledgement = await Task.Run(async () => await host.LanguageTermsAsync(new(workspace, server.Id), token), token);
                 if (lifetime != current || token.IsCancellationRequested) return;
                 if (acknowledgement.Accepted && !forceReview)
                 {
-                    var started = await host.LanguageAsync(new(workspace, Operation: "restart", Server: server.Id), token);
+                    var started = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "restart", Server: server.Id), token), token);
                     if (lifetime == current) Find<TextBlock>("ConfigurationMessage").Text = started.State + ": " + started.Detail;
                     return;
                 }

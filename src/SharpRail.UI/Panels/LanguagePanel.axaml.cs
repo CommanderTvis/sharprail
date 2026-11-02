@@ -420,7 +420,7 @@ internal sealed partial class LanguagePanel : UserControl
             {
                 if (gated.Presentation.Replaces is { Count: > 0 })
                 {
-                    var saved = await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), token);
+                    var saved = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), token), token);
                     if (current != lifetime || token.IsCancellationRequested) return;
                     if (saved.Configuration != gated.Id)
                     {
@@ -428,7 +428,7 @@ internal sealed partial class LanguagePanel : UserControl
                         return;
                     }
                 }
-                var acknowledgement = await host.LanguageTermsAsync(new(workspace, gated.Id), token);
+                var acknowledgement = await Task.Run(async () => await host.LanguageTermsAsync(new(workspace, gated.Id), token), token);
                 if (current != lifetime || token.IsCancellationRequested) return;
                 if (!acknowledgement.Accepted)
                 {

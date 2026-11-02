@@ -61,7 +61,7 @@ internal sealed partial class LogsWindow : Window
         var token = lifetime.Token;
         try
         {
-            var result = await context.RequestAsync(AirContextContract.Workspace, new(workspace, "logs"), token);
+            var result = await AirContextPane.Request(context, AirContextContract.Workspace, new(workspace, "logs"), token);
             if (token.IsCancellationRequested) return;
             var output = this.FindControl<TextBox>("ServerOutput")!;
             if (output.Text != result.Data) output.Text = result.Data;
