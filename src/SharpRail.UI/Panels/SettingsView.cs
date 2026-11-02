@@ -147,6 +147,7 @@ public sealed partial class SettingsView : UserControl
     private void PluginsChanged(PluginTables tables)
     {
         if (tables.HasFlag(PluginTables.SettingsSections) || tables.HasFlag(PluginTables.Roster)) SyncPluginSections();
+        if (tables.HasFlag(PluginTables.KeymapActions) || tables.HasFlag(PluginTables.Active)) RefreshKeymapList();
         if (section == "Highlighting" && (tables.HasFlag(PluginTables.Launchers) || tables.HasFlag(PluginTables.Roster))) RefreshHighlightingAgents();
     }
 

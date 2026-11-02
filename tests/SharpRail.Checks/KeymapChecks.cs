@@ -237,12 +237,12 @@ internal static class KeymapChecks
                 Until(() => Maybe<Border>("KeymapRecorder") is not null, "The recorder did not appear.");
                 Find<Border>("KeymapRecorder").RaiseEvent(Press(key, modifiers));
             }
-            Require(Find<ComboBox>("KeymapPreset").SelectedItem as string == "IntelliJ" && Rows() == KeymapActions.All.Count, "IntelliJ is selected and every action is listed.");
+            Require(Find<ComboBox>("KeymapPreset").SelectedItem as string == "IntelliJ" && Rows() == KeymapActions.All.Count + ActiveKeymap.PluginActions.Count, "IntelliJ is selected and every action, the enabled plugins' included, is listed.");
             Require(!Find<Button>("KeymapRename").IsEnabled && !Find<Button>("KeymapDelete").IsEnabled && Find<Button>("KeymapDuplicate").IsEnabled, "The built-in preset can be duplicated but not renamed or deleted.");
             Find<TextBox>("KeymapSearch").Text = "zoom";
             Until(() => Rows() == 2, "Search narrows the list to the two zoom actions.");
             Find<TextBox>("KeymapSearch").Text = "";
-            Until(() => Rows() == KeymapActions.All.Count, "Clearing the search lists everything.");
+            Until(() => Rows() == KeymapActions.All.Count + ActiveKeymap.PluginActions.Count, "Clearing the search lists everything.");
 
             // Layout: the page never needs more width than a phone gives it.
             foreach (var width in new[] { 320.0, 900.0 })

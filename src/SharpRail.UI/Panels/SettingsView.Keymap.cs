@@ -21,6 +21,8 @@ public sealed partial class SettingsView
     private (string Action, int Slot)? keymapAfterCreate;
     private ConflictPrompt? keymapConflict;
     private string keymapNotice = "";
+    private readonly HashSet<string> keymapCollapsed = [];
+    private HashSet<string> keymapConflicting = [];
 
     private sealed record ConflictPrompt(string Action, int Slot, KeyChord Chord, IReadOnlyList<string> Others);
 
@@ -31,7 +33,7 @@ public sealed partial class SettingsView
     private bool KeymapBuiltinActive => ActiveKeymapName == Keymaps.BuiltinName;
 
     private KeymapBindings KeymapBindingsOf(string name) =>
-        name == Keymaps.BuiltinName ? KeymapBindings.IntelliJ(KeymapPlatform) : Keymaps.Resolve(state.Current.KeymapPresets, name, KeymapPlatform);
+        name == Keymaps.BuiltinName ? KeymapBindings.IntelliJ(KeymapPlatform, KeymapPlugins) : Keymaps.Resolve(state.Current.KeymapPresets, name, KeymapPlatform, KeymapPlugins);
 
     private Control KeymapSettings()
     {
@@ -79,6 +81,17 @@ public sealed partial class SettingsView
         return panel;
     }
 
+    private static IReadOnlyList<KeymapAction> KeymapPlugins => ActiveKeymap.PluginActions;
+
+    /// <summary>The chords an action has in the bindings: the preset's own, else the built-in IntelliJ defaults (the plugins' included).</summary>
+    private static IReadOnlyList<KeyChord> KeymapChordsOf(KeymapBindings bindings, KeymapAction action) =>
+        bindings.Has(action.Id) ? bindings.Chords(action.Id, KeymapPlatform) : KeymapBindings.IntelliJ(KeymapPlatform, KeymapPlugins).Chords(action.Id, KeymapPlatform);
+
+    private bool KeymapMatches(KeymapAction action, KeymapBindings bindings, string query) =>
+        query.Length == 0 || action.Title.Contains(query, StringComparison.OrdinalIgnoreCase) || action.Group.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+        action.PluginName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+        KeymapChordsOf(bindings, action).Any(chord => chord.Display(KeymapPlatform).Contains(query, StringComparison.OrdinalIgnoreCase));
+
     private void RenderKeymapList(Control panel)
     {
         var list = PageControl<StackPanel>(panel, "KeymapActionList");
@@ -89,16 +102,109 @@ public sealed partial class SettingsView
         var source = ReferenceBindings(bindings);
         var supported = state.Supports(HostProtocol.Keymaps);
         var query = keymapSearch.Trim();
-        foreach (var group in KeymapActions.All.GroupBy(action => action.Group))
+        var plugins = KeymapPlugins;
+        var everything = KeymapActions.With(plugins).ToArray();
+
+        // Chords two actions share: the page says so and jumps to the first of them.
+        var shared = everything.SelectMany(action => KeymapChordsOf(bindings, action).Select(chord => (chord, action.Id))).GroupBy(entry => entry.chord)
+            .Where(group => group.Select(entry => entry.Id).Distinct().Count() > 1).ToArray();
+        keymapConflicting = [.. shared.SelectMany(group => group.Select(entry => entry.Id))];
+        var summary = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 8, 0, 0) };
+        var indicator = Ui.Text(shared.Length == 0 ? "No conflicts" : shared.Length == 1 ? "1 shortcut is used twice" : $"{shared.Length} shortcuts are used twice", shared.Length == 0 ? Ui.Muted : Ui.Danger, 12);
+        indicator.Name = "KeymapConflicts"; indicator.VerticalAlignment = VerticalAlignment.Center;
+        summary.Children.Add(indicator);
+        if (shared.Length > 0)
         {
-            var actions = group.Where(action => query.Length == 0 || action.Title.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                bindings.Chords(action.Id, KeymapPlatform).Any(chord => chord.Display(KeymapPlatform).Contains(query, StringComparison.OrdinalIgnoreCase))).ToArray();
-            if (actions.Length == 0) continue;
-            var heading = new TextBlock { Text = group.Key, Classes = { "settings-label" }, Margin = new Thickness(0, 8, 0, 0) };
-            list.Children.Add(heading);
-            foreach (var action in actions) list.Children.Add(KeymapRow(panel, action, bindings, source, supported));
+            var show = Ui.Button("Show", () =>
+            {
+                keymapSelected = shared[0].First().Item2;
+                if (everything.FirstOrDefault(action => action.Id == keymapSelected) is { } first) keymapCollapsed.Remove(KeymapGroupKey(first));
+                keymapSearch = ""; RefreshKeymapList();
+            });
+            show.Name = "KeymapShowConflict";
+            AutomationProperties.SetName(show, "Show the first conflicting action");
+            summary.Children.Add(show);
         }
-        if (list.Children.Count == 0) list.Children.Add(Ui.Text("No action matches " + query + ".", Ui.Muted, 12));
+        list.Children.Add(summary);
+
+        // Built-in groups by area, then one group per plugin action group under a Plugins heading.
+        var builtin = everything.Where(action => !action.IsPlugin).GroupBy(action => action.Group);
+        foreach (var group in builtin) AddKeymapGroup(list, panel, group.Key, "KeymapGroup_" + group.Key.Replace(' ', '_'), group.ToArray(), null, bindings, source, supported, query);
+        var pluginGroups = everything.Where(action => action.IsPlugin).GroupBy(action => (action.Plugin, action.PluginName, action.Group)).ToArray();
+        // A preset keeps the bindings of plugins that are off: listed, unbound from any live action, so people see why a chord is not doing anything.
+        var absent = bindings.Ids.Where(id => id.Contains(':') && everything.All(action => action.Id != id) && bindings.Chords(id, KeymapPlatform).Count > 0).ToArray();
+        if (pluginGroups.Length > 0 || absent.Length > 0)
+        {
+            var heading = new TextBlock { Text = "Plugins", Classes = { "settings-label" }, Margin = new Thickness(0, 16, 0, 0), Name = "KeymapPluginsHeading" };
+            list.Children.Add(heading);
+        }
+        foreach (var group in pluginGroups)
+            AddKeymapGroup(list, panel, group.Key.Group, "KeymapGroup_" + group.Key.Plugin.Replace(':', '_') + "_" + group.Key.Group.Replace(' ', '_'), group.ToArray(), group.Key.Plugin, bindings, source, supported, query);
+        if (absent.Length > 0)
+        {
+            var unavailable = absent.Where(id => query.Length == 0 || id.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (unavailable.Length > 0)
+            {
+                var expanded = query.Length > 0 || !keymapCollapsed.Contains("unavailable");
+                list.Children.Add(KeymapGroupHeader(panel, "Plugin not available", "unavailable", unavailable.Length, expanded, null, "KeymapGroup_Unavailable", null));
+                if (expanded)
+                    foreach (var id in unavailable)
+                    {
+                        var chords = bindings.Chords(id, KeymapPlatform);
+                        var row = new Border { Name = "KeymapRow_" + id, Padding = new Thickness(8, 4), Focusable = true, Tag = id };
+                        var text = $"{id}: {string.Join(", ", chords.Select(chord => chord.Display(KeymapPlatform)))} (plugin not available)";
+                        AutomationProperties.SetName(row, text);
+                        row.Child = Ui.Text(text, Ui.Muted, 12);
+                        list.Children.Add(row);
+                    }
+            }
+        }
+        if (list.Children.Count == 1 && query.Length > 0)
+            list.Children.Add(Ui.Text("No action matches " + query + ".", Ui.Muted, 12));
+    }
+
+    private static string KeymapGroupKey(KeymapAction action) => action.IsPlugin ? action.Plugin + "/" + action.Group : action.Group;
+
+    private void AddKeymapGroup(StackPanel list, Control panel, string title, string name, KeymapAction[] actions, string? pluginId, KeymapBindings bindings, KeymapBindings? source, bool supported, string query)
+    {
+        var visible = actions.Where(action => KeymapMatches(action, bindings, query)).ToArray();
+        if (visible.Length == 0) return;
+        var key = KeymapGroupKey(actions[0]);
+        // Searching opens every group that has a match; otherwise the group is as the user left it.
+        var expanded = query.Length > 0 || !keymapCollapsed.Contains(key);
+        list.Children.Add(KeymapGroupHeader(panel, title, key, visible.Length, expanded, pluginId is null ? null : actions[0].PluginName, name, pluginId,
+            source is not null && actions.Any(action => !KeymapChordsOf(bindings, action).SequenceEqual(source.Has(action.Id) ? source.Chords(action.Id, KeymapPlatform) : [])) ? (bindings, source!, actions) : null, supported));
+        if (expanded)
+            foreach (var action in visible) list.Children.Add(KeymapRow(panel, action, bindings, source, supported));
+    }
+
+    private Control KeymapGroupHeader(Control panel, string title, string key, int count, bool expanded, string? pluginName, string name, string? pluginId,
+        (KeymapBindings Bindings, KeymapBindings Source, KeymapAction[] Actions)? reset = null, bool supported = true)
+    {
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 8, 0, 4) };
+        var toggle = new Button { Name = name, Padding = new Thickness(4), HorizontalContentAlignment = HorizontalAlignment.Left, Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
+        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        content.Children.Add(Ui.Text(expanded ? "▾" : "▸", Ui.Muted, 12));
+        if (pluginId is not null) content.Children.Add(Plugins.PluginIcons.Resolve(window.Workbench.PluginRegistry.Manifests.GetValueOrDefault(pluginId)?.Icon ?? "", window.Workbench.PluginRegistry.Entry(pluginId), Ui.Muted));
+        content.Children.Add(Ui.Text(pluginName is null ? title : $"{pluginName}: {title}", Ui.TextBrush, 13));
+        content.Children.Add(Ui.Text(count.ToString(), Ui.Muted, 12));
+        toggle.Content = content;
+        AutomationProperties.SetName(toggle, $"{(pluginName is null ? title : pluginName + " " + title)}, {count} actions, {(expanded ? "expanded" : "collapsed")}");
+        toggle.Click += (_, _) => { if (!keymapCollapsed.Remove(key)) keymapCollapsed.Add(key); RefreshKeymapList(); };
+        header.Children.Add(toggle);
+        if (reset is { } group)
+        {
+            var button = Ui.Button("Reset group", () =>
+            {
+                var next = group.Bindings;
+                foreach (var action in group.Actions) next = Keymaps.Reset(next, group.Source, action.Id, KeymapPlatform);
+                Share(HostStateChange.SaveKeymap(ActiveKeymapName, next.ToJson()));
+            });
+            button.Name = name + "_Reset"; button.IsEnabled = supported; Grid.SetColumn(button, 1);
+            AutomationProperties.SetName(button, $"Reset {title} to preset");
+            header.Children.Add(button);
+        }
+        return header;
     }
 
     /// <summary>What Reset to preset goes back to: the preset this one was duplicated from, else IntelliJ; null for IntelliJ itself.</summary>
@@ -106,12 +212,12 @@ public sealed partial class SettingsView
     {
         if (KeymapBuiltinActive) return null;
         var basis = current.BasedOn;
-        return basis.Length > 0 && basis != Keymaps.BuiltinName && state.Current.KeymapPresets.Any(preset => preset.Name == basis) ? KeymapBindingsOf(basis) : KeymapBindings.IntelliJ(KeymapPlatform);
+        return basis.Length > 0 && basis != Keymaps.BuiltinName && state.Current.KeymapPresets.Any(preset => preset.Name == basis) ? KeymapBindingsOf(basis) : KeymapBindings.IntelliJ(KeymapPlatform, KeymapPlugins);
     }
 
     private Control KeymapRow(Control panel, KeymapAction action, KeymapBindings bindings, KeymapBindings? source, bool supported)
     {
-        var chords = bindings.Has(action.Id) ? bindings.Chords(action.Id, KeymapPlatform) : KeymapBindings.IntelliJ(KeymapPlatform).Chords(action.Id, KeymapPlatform);
+        var chords = KeymapChordsOf(bindings, action);
         var selected = keymapSelected == action.Id;
         var row = new Border
         {
@@ -124,8 +230,11 @@ public sealed partial class SettingsView
         };
         AutomationProperties.SetName(row, $"{action.Title}: {(chords.Count == 0 ? "no shortcut" : string.Join(", ", chords.Select(chord => chord.Display(KeymapPlatform))))}");
         var layout = new WrapPanel { Orientation = Orientation.Horizontal };
-        var name = Ui.Text(action.Title, Ui.TextBrush);
-        name.MinWidth = 192; name.Margin = new Thickness(0, 0, 8, 0);
+        var name = new StackPanel { MinWidth = 192, Margin = new Thickness(0, 0, 8, 0) };
+        name.Children.Add(Ui.Text(action.Title, Ui.TextBrush));
+        // Where the action comes from: the built-in area, or the plugin that contributed it.
+        name.Children.Add(Ui.Text(action.IsPlugin ? $"{action.Group} · {action.PluginName}" : $"{action.Group} · Built in", Ui.Muted, 11));
+        if (keymapConflicting.Contains(action.Id)) name.Children.Add(Ui.Text("Conflict", Ui.Danger, 11));
         layout.Children.Add(name);
         for (var slot = 0; slot < KeymapBindings.MaxChords; slot++)
         {
@@ -242,8 +351,8 @@ public sealed partial class SettingsView
     {
         var bindings = KeymapBindingsOf(ActiveKeymapName);
         // Materialise IntelliJ's chords for an action the preset never mentioned so editing one slot keeps the other.
-        if (!bindings.Has(actionId)) bindings.Set(actionId, KeymapBindings.IntelliJ(KeymapPlatform).Chords(actionId, KeymapPlatform));
-        var result = Keymaps.Bind(bindings, actionId, slot, chord, KeymapPlatform, reassign);
+        if (!bindings.Has(actionId)) bindings.Set(actionId, KeymapBindings.IntelliJ(KeymapPlatform, KeymapPlugins).Chords(actionId, KeymapPlatform));
+        var result = Keymaps.Bind(bindings, actionId, slot, chord, KeymapPlatform, reassign, KeymapPlugins);
         if (result.Reserved is { } reason)
         {
             keymapNotice = $"{chord?.Display(KeymapPlatform)} cannot be assigned: {reason}";
@@ -267,14 +376,14 @@ public sealed partial class SettingsView
         box.Children.Clear();
         if (keymapConflict is { } conflict)
         {
-            var titles = string.Join(" and ", conflict.Others.Select(id => KeymapActions.Find(id)?.Title ?? id));
+            var titles = string.Join(" and ", conflict.Others.Select(id => KeymapActions.Find(id, KeymapPlugins)?.Title ?? id));
             var message = Ui.Text($"{conflict.Chord.Display(KeymapPlatform)} is already used by {titles}.", Ui.Danger, 12);
             message.TextWrapping = TextWrapping.Wrap; message.Name = "KeymapConflictText";
             box.Children.Add(message);
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
             var reassign = Ui.Button("Reassign", () => { var pending = conflict; keymapConflict = null; ApplyKeymapBinding(pending.Action, pending.Slot, pending.Chord, reassign: true); });
             reassign.Name = "KeymapReassign";
-            AutomationProperties.SetName(reassign, "Reassign the shortcut to " + (KeymapActions.Find(conflict.Action)?.Title ?? conflict.Action));
+            AutomationProperties.SetName(reassign, "Reassign the shortcut to " + (KeymapActions.Find(conflict.Action, KeymapPlugins)?.Title ?? conflict.Action));
             var cancel = Ui.Button("Cancel", () => { keymapConflict = null; RefreshKeymapList(); });
             cancel.Name = "KeymapConflictCancel";
             buttons.Children.Add(reassign); buttons.Children.Add(cancel);
@@ -314,7 +423,7 @@ public sealed partial class SettingsView
             }
         }
         name = name.Trim();
-        var copy = (sourceName == Keymaps.BuiltinName ? KeymapBindings.IntelliJ(KeymapPlatform) : KeymapBindingsOf(sourceName)).Copy();
+        var copy = KeymapBindingsOf(sourceName).Copy();
         copy.BasedOn = sourceName;
         Share(HostStateChange.SaveKeymap(name, copy.ToJson()), HostStateChange.SelectKeymap(name));
         return true;
