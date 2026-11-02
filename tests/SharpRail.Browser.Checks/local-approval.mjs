@@ -134,8 +134,14 @@ try {
   await command('revoke');
   await until(status, value => value?.Error?.includes('revoked'), 'Revocation did not return to the approval flow');
   assert.equal((await fields())[1].Text ?? '', '', 'Internal credentials must not appear in the token field');
-  await submit();
-  await until(() => command('status'), value => value.pending, 'Revoked session did not request fresh consent');
+  // The Connect button can still be laying out after the revoked error appears, so a click may land beside it: click again
+  // until the app asks, and show what the page and the app saw if it never does.
+  let asked = false;
+  for (let attempt = 0; attempt < 5 && !asked; attempt++) {
+    await submit();
+    for (const end = Date.now() + 6000; Date.now() < end && !asked; await new Promise(resolve => setTimeout(resolve, 100))) asked = (await command('status')).pending;
+  }
+  if (!asked) throw new Error(`Revoked session did not request fresh consent. Page: ${JSON.stringify(await status())}; app: ${JSON.stringify(await command('status'))}`);
   await command('allow');
   await until(snapshot, value => value.length > 0, 'Fresh approval did not reconnect');
   await until(status, value => value?.Connected, 'Reapproved browser state did not connect');
