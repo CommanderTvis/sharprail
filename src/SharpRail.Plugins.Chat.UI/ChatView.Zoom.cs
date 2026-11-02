@@ -14,7 +14,7 @@ namespace SharpRail.Plugins.Chat.UI;
 
 /// <summary>
 /// A chat's own zoom, like a terminal's font size and unlike the page zoom: pinch, Ctrl or Cmd with the wheel, and Mod+=, Mod+- and Mod+0
-/// while the chat has focus. The whole chat sits in a layout transform, so the list, panels and composer reflow at the scaled width (layouts are
+/// while the chat has focus. The whole chat sits in a zoom host (laid out at the pane size divided by the zoom, scaled from the top-left, never centred), so the list, panels and composer reflow at the scaled width (layouts are
 /// cached by width, which carries the scale), and hit rectangles, the reading band and selections stay in the chat's own units.
 /// </summary>
 internal sealed partial class ChatView
@@ -23,7 +23,7 @@ internal sealed partial class ChatView
     private static readonly double[] ZoomSteps = [0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5];
     private const int ZoomsKept = 300;
 
-    private LayoutTransformControl zoomHost = null!;
+    private ChatZoomHost zoomHost = null!;
     private Grid content = null!;
     private TextBlock zoomLabel = null!;
     private DispatcherTimer? zoomLabelTimer;
@@ -39,7 +39,7 @@ internal sealed partial class ChatView
     {
         content = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto") };
         zoom = StoredZoom();
-        zoomHost = new LayoutTransformControl { Name = "ChatZoomHost", Child = content, LayoutTransform = new ScaleTransform(zoom, zoom) };
+        zoomHost = new ChatZoomHost { Name = "ChatZoomHost", Child = content, Zoom = zoom };
         zoomLabel = new TextBlock { Name = "ChatZoomLabel", FontSize = 12, Foreground = Ui.TextBrush, Margin = new Thickness(Space.Inset, Space.Gap) };
         var plate = new Border { Background = Ui.Elevated, BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(4), Child = zoomLabel, IsHitTestVisible = false, IsVisible = false, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(Space.Inset), ZIndex = 30, Name = "ChatZoomPlate" };
         zoomPlate = plate;
@@ -93,7 +93,7 @@ internal sealed partial class ChatView
         var next = Math.Clamp(value, MinZoom, MaxZoom);
         if (next == zoom) { ShowZoomLevel(); return; }
         zoom = next;
-        zoomHost.LayoutTransform = new ScaleTransform(zoom, zoom);
+        zoomHost.Zoom = zoom;
         StoreZoom();
         ShowZoomLevel();
     }

@@ -200,6 +200,7 @@ internal static class ClaudeChatUiChecks
         PageZoomSteps();
         ResizeDrag();
         ChatZoom();
+        BottomPinned();
         QuestionStable();
         PastConversations();
         CommandMenu();
@@ -593,6 +594,57 @@ internal static class ClaudeChatUiChecks
 
     // Up/Down recall history only from the first/last visual line: a soft-wrapped draft moves the caret between its wrapped lines first.
     // A finished background command's notice carries one trimmed line of the command, not the whole heredoc.
+    // A short conversation fills its pane: the chat content spans the view and the composer sits on the pane's bottom edge, at every zoom and after a resize.
+    private static void BottomPinned()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        for (var index = 0; index < 4; index++) chat.Snapshot.Add(Item(Sample(index)));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 700, Height = 600, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            void Pinned(string when)
+            {
+                Frame(window); Frame(window);
+                var content = view.GetVisualDescendants().OfType<Grid>().First(grid => grid.RowDefinitions.Count == 6);
+                var top = content.TranslatePoint(default, view)!.Value.Y;
+                var composer = content.Children.OfType<Control>().First(child => Grid.GetRow(child) == 5);
+                var bottom = composer.TranslatePoint(new Point(0, composer.Bounds.Height + composer.Margin.Bottom), view)!.Value.Y;
+                var scaled = content.Bounds.Height * view.Zoom;
+                Require(Math.Abs(top) < 1 && Math.Abs(scaled - view.Bounds.Height) < 2, $"{when}: the chat content must fill the view (top {top:0.#}, height {scaled:0.#} of {view.Bounds.Height:0.#}).");
+                Require(Math.Abs(view.Bounds.Height - bottom) < 2, $"{when}: the composer must sit on the pane's bottom edge (it ends {bottom:0.#} of {view.Bounds.Height:0.#}).");
+            }
+            Pinned("zoom 100%");
+            view.SetZoom(1.25); Pinned("zoom 125%");
+            view.SetZoom(0.8); Pinned("zoom 80%");
+            window.Height = 900; Pinned("after growing");
+            view.SetZoom(1); window.Height = 500; Pinned("after shrinking");
+            window.Content = null; Frame(window); view.SetZoom(1.5); window.Content = new ContentControl { Content = view }; Pinned("remounted zoomed");
+            ((ContentControl)window.Content).Content = null; window.Content = null; Frame(window); window.Content = view; view.SetZoom(1); Pinned("remounted");
+            view.SetZoom(1); window.Height = 600;
+            foreach (var width in new[] { 480, 360, 300, 240 }) { window.Width = width; Pinned($"width {width}"); }
+            window.Width = 700; view.SetZoom(2.5); Pinned("zoom 250%");
+            view.SetZoom(1); window.Width = 700;
+            // A host that measures the chat unbounded and then arranges it narrower than it asked for must not leave it short and centred.
+            window.Content = null; Frame(window); window.Content = new MeasureUnbounded { Child = view }; window.Width = 300; Pinned("measured unbounded, arranged narrow");
+            var unbounded = (MeasureUnbounded)window.Content!; window.Content = null; unbounded.Child = null; Frame(window); window.Content = view; window.Width = 700;
+            for (var index = 4; index < 40; index++) chat.Push(Item(Sample(index)));
+            Pinned("long conversation");
+            window.Height = 700; Pinned("long conversation, taller");
+            view.SetZoom(1.75); Pinned("long conversation, zoomed");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); }
+    }
+
+    private sealed class MeasureUnbounded : Decorator
+    {
+        protected override Size MeasureOverride(Size availableSize) { Child!.Measure(Size.Infinity); return availableSize; }
+        protected override Size ArrangeOverride(Size finalSize) { Child!.Arrange(new Rect(finalSize)); return finalSize; }
+    }
+
     private static void TaskNoticeBounded()
     {
         var command = "python3 - <<'EOF'\n" + string.Join("\n", Enumerable.Range(0, 40).Select(i => $"print('line {i}')")) + "\nEOF";
