@@ -149,10 +149,11 @@ internal static class PromptChecks
         string[] ids =
         [
             visualize, "plugin." + SpecDialectManifest.Manifest.Id + ".spec-tools", "plugin." + BlueprintContract.Manifest.Id + ".blueprint-check",
-            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.workspace-emigrate", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.code-intelligence",
+            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.workspace-emigrate", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.checkout", "core.code-intelligence",
         ];
         var listed = runtime.InstructionSections(ClaudeCodeContract.Id, project);
         Require(listed.Sections.Select(section => section.Id).SequenceEqual(ids), "The sections are not the expected ids in composition order: " + string.Join(", ", listed.Sections.Select(section => section.Id)));
+        Require(listed.Sections.Single(section => section.Id == "core.checkout").Text.StartsWith("This session runs in ", StringComparison.Ordinal), "A session must be told whether it runs in the Default checkout or a worktree workspace.");
         Require(listed.Sections.All(section => section.Enabled && section.Title.Length > 0 && section.Description.Length > 0 && section.Text.Length > 0) && listed.Path == file && !File.Exists(file),
             "Without a file every section is on, titled and described.");
         Require(listed.Sections.All(section => full.Claude.Contains(section.Text.TrimEnd('\n'), StringComparison.Ordinal)), "A listed section's preview is not the text sessions get.");
@@ -226,7 +227,7 @@ internal static class PromptChecks
             }
             return root;
         }
-        string Section(string workspace) => runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, workspace)[CorePrompt.Fixed.Count];
+        string Section(string workspace) => runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.Section, workspace)[CorePrompt.Fixed.Count + 1];
 
         var csharp = Project("csharp",
             ("src/Market/OrderBook.cs", "namespace Market;\n\npublic sealed partial class OrderBook\n{\n    public void Match(Order order)\n    {\n    }\n}\n"),

@@ -297,7 +297,7 @@ fixture plugin under `tests/` is the external plugin these load from disk.
 
 The instructions agent plugins give sessions (Plugin API H20) are composed of sections, each with a stable id: the
 host's own `core.<id>` (`core.terminal-title`, `core.pull-requests`, `core.workspaces`, `core.workspace-emigrate`, `core.parallel-tasks`,
-`core.workspace-cleanup`, `core.push-and-signing`, `core.warm-workspaces`, and `core.code-intelligence` while language
+`core.workspace-cleanup`, `core.push-and-signing`, `core.warm-workspaces`, `core.checkout` (which checkout the session runs in: the project's Default checkout or a worktree workspace, with the Default named for a worktree; nothing without a workspace), and `core.code-intelligence` while language
 services are enabled; `CorePrompt.cs`), then every active plugin's `plugin.<plugin id>.<contribution id>` (for example
 `plugin.visualize.visualize`, `plugin.spec-dialect.spec-tools`, `plugin.blueprint.blueprint-check`,
 `plugin.air-context.tool-guidance`). Only enabled plugins' sections, and only those whose condition holds, are composed

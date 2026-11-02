@@ -141,13 +141,36 @@ internal static class CorePrompt
     }
 
     /// <summary>
+    /// Which checkout the session runs in, so it never has to infer it from the path: the project's Default checkout (the main working tree)
+    /// or a worktree workspace, named with the Default it belongs to. Nothing without a workspace.
+    /// </summary>
+    private static IEnumerable<PromptContribution> Checkout(string workspace, IReadOnlyList<string> projects, Func<string, string?>? worktreesOf)
+    {
+        if (workspace.Length == 0) yield break;
+        static string Trim(string path) => path.TrimEnd('/', '\\');
+        var current = Trim(workspace);
+        string text;
+        if (projects.Any(project => Trim(project) == current))
+            text = $"This session runs in the project's Default checkout (`{workspace}`), the main working tree, not in a worktree workspace. Keep it on the main branch: leave unrelated or parallel work to a worktree workspace (`workspace_create`) and do not switch this checkout's branch for a task.";
+        else
+        {
+            var origin = projects.FirstOrDefault(project => worktreesOf?.Invoke(project) is { } directory && current.StartsWith(Trim(directory) + System.IO.Path.DirectorySeparatorChar, StringComparison.Ordinal));
+            text = $"This session runs in a worktree workspace (`{workspace}`), a separate Git worktree and not the project's Default checkout"
+                + (origin is null ? "" : $" (the Default checkout is `{origin}`; never write there)")
+                + ". Edit, build and commit here; the work reaches the Default checkout only by landing this branch.";
+        }
+        yield return new() { Id = "checkout", Title = "Checkout", Description = "Whether this session runs in the Default checkout or in a worktree workspace.", Text = text, Placement = PromptPlacement.Section };
+    }
+
+    /// <summary>
     /// The host's contributions; <paramref name="languageServicesEnabled"/> reads the Code Intelligence setting,
     /// <paramref name="catalog"/> the servers enabled plugins provide and <paramref name="profile"/> the workspace's languages.
     /// </summary>
     internal static IReadOnlyList<PromptContribution> Contributions(Func<bool> languageServicesEnabled, Func<IReadOnlyList<LanguageServer>>? catalog = null,
-        ProjectLanguageProfile? profile = null, string workspace = "") =>
+        ProjectLanguageProfile? profile = null, string workspace = "", IReadOnlyList<string>? projects = null, Func<string, string?>? worktreesOf = null) =>
     [
         .. Fixed.Select(item => new PromptContribution { Id = item.Id, Title = item.Title, Description = item.Description, Text = item.Text, Placement = PromptPlacement.Section }),
+        .. Checkout(workspace, projects ?? [], worktreesOf),
         new()
         {
             Id = "code-intelligence", Title = "Code intelligence", Description = "Use lsp_navigate and lsp_diagnostics instead of grep; this project's servers.",
