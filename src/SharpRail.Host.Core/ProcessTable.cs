@@ -54,7 +54,9 @@ internal static partial class ProcessTable
         var parts = text[(dash + 1)..].Split(':');
         if (parts.Length is < 2 or > 3 || parts.Any(part => !int.TryParse(part, CultureInfo.InvariantCulture, out _))) return null;
         var numbers = parts.Select(part => int.Parse(part, CultureInfo.InvariantCulture)).ToArray();
-        return parts.Length == 3 ? new(days, numbers[0], numbers[1], numbers[2]) : new(days, 0, numbers[0], numbers[1]);
+        // A garbled field (a huge number) must not take the whole process table, and with it a terminal's close, down.
+        try { return parts.Length == 3 ? new(days, numbers[0], numbers[1], numbers[2]) : new(days, 0, numbers[0], numbers[1]); }
+        catch (ArgumentOutOfRangeException) { return null; }
     }
 
     /// <summary>The process itself and everything below it by parent links (processes already reparented to init are not found).</summary>

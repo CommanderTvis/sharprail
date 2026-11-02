@@ -85,6 +85,9 @@ internal static class ProcessesChecks
 
     private static void Tree()
     {
+        Require(SharpRail.Host.Core.ProcessTable.Elapsed("1-02:03:04") == new TimeSpan(1, 2, 3, 4) && SharpRail.Host.Core.ProcessTable.Elapsed("12:34") == new TimeSpan(0, 12, 34) &&
+            SharpRail.Host.Core.ProcessTable.Elapsed("2147483647:59:59") is null && SharpRail.Host.Core.ProcessTable.Elapsed("99999999-00:00:00") is null && SharpRail.Host.Core.ProcessTable.Elapsed("junk") is null,
+            "ps's elapsed time parses, and a garbled field is unknown instead of throwing out of the whole process table.");
         var snapshot = Snapshot(Fixture(false));
         Require(snapshot.Groups.Select(group => group.Id).SequenceEqual([ProcessModel.LanguageGroup, ProcessModel.AgentGroup, ProcessModel.SpawnedGroup]), "The top groups must be Language servers, AI agents and daemons, Spawned agents.");
         Require(snapshot.Groups.Select(group => group.Label).SequenceEqual(["Language servers", "AI agents and daemons", "Spawned processes"]), "The group labels changed.");
