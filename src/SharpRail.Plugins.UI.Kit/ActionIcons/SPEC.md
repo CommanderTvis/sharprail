@@ -49,3 +49,11 @@ Check mode `--conformance` (and the full suite's `action-icons` case) verifies t
 every meaning has exactly one registry entry, that assets are distinct and shipped, and scans every source file that builds
 menu items: an `Icon =` assignment from `Ui.Icon(` or a string literal fails. Plugin and registry assignments pass. The scan
 sees assignments in files that mention `MenuItem` or `Ui.Menu(`; it does not follow an icon passed through a helper.
+
+## Mixed menus
+
+Fluent shares the icon, shortcut and chevron columns across a menu's rows, but the shared widths only settle after the first
+layout pass. A menu that mixes icon rows, plain rows and a submenu row therefore measures narrower on its first pass than once
+settled, and a popup sized from that pass clips the icons and chevrons. The app re-measures every context menu right after it
+opens (`App.Initialize`), and check mode `--menu-layout` (also in `--ui-smoke`) requires such a menu to be as wide as its
+widest row with the icon and chevron inside the menu padding.

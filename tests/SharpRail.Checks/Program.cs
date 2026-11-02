@@ -386,6 +386,13 @@ internal static class Program
             if (OperatingSystem.IsMacOS()) TerminalFileLinkChecks.RunNativeRenderers();
             return;
         }
+        if (args.SequenceEqual(["--menu-layout"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            MenuLayoutChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--terminal-resume-hint"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

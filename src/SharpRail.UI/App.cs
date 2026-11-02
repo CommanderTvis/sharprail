@@ -41,6 +41,10 @@ public sealed partial class App : Application
         {
             if (e.NameScope.Find<Panel>("PART_ExpandCollapseChevronContainer") is { } chevron) chevron.Margin = new Thickness(2, 0);
         });
+        // Fluent's menu rows share icon, shortcut and chevron columns, which only settle after the first layout pass. A native
+        // popup sized from that pass is narrower than its rows (clipping the icons and chevrons of mixed menus), so measure again.
+        MenuBase.OpenedEvent.AddClassHandler<ContextMenu>((menu, _) =>
+            Avalonia.Threading.Dispatcher.UIThread.Post(menu.InvalidateMeasure, Avalonia.Threading.DispatcherPriority.Render));
         // A window does not inherit its owner's theme variant, and Fluent colours every stock control from it: a dialog,
         // Settings or plugin window would otherwise follow the OS appearance instead of the theme. Workbench windows
         // pass theirs on to owned windows when the theme changes.

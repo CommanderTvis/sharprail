@@ -160,6 +160,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--drawers` | Phone pages: the compact page bar, Settings as a page, and the persistent page hosts and their slide. |
 | `--shell` | Window shell: location bar, application menu and the macOS workbench menu bar, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
 | `--ui` | Headless UI checks and upstream translations without host suites. |
+| `--menu-layout` | Mixed icon, plain and submenu menu rows fit inside the menu padding. |
 | `--design` | Design-system guards and theme translations; `--design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Generated` from `src/SharpRail.UI/Rendering/Design`. Edit the authored sources, not generated C#. |
 | `--zig-deps` | `scripts/zig-deps.lock` matches the Ghostty pins in `mise.toml` and every native build path restores the mirror. |
 | `--lock-script` | `scripts/lock.sh` (the native build scripts' directory lock) takes over a lock whose owner is gone, waits for a live holder and releases on exit. |
