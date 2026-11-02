@@ -8,7 +8,7 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.UI.Editor;
 
-// Quick fixes: the language server's code actions for the caret, in a list at the caret (Alt+Enter, Option+Enter on macOS).
+// Quick fixes: the language server's code actions for the caret, in a list at the caret (Show Quick Fixes in the keymap, Alt+Enter by default).
 internal sealed partial class CodeDocumentView
 {
     private sealed record QuickFixRow(LanguageItem Item)
@@ -25,7 +25,7 @@ internal sealed partial class CodeDocumentView
         var list = this.FindControl<ListBox>("QuickFixItems")!;
         Editor.AddHandler(KeyDownEvent, (_, e) =>
         {
-            if (e.Key != Key.Enter || e.KeyModifiers != KeyModifiers.Alt) return;
+            if (ActiveKeymap.Recording || !ActiveKeymap.Matches(KeymapActions.ShowQuickFixes, e)) return;
             e.Handled = true;
             ShowQuickFixes();
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);

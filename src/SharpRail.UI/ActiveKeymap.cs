@@ -34,8 +34,32 @@ public static class ActiveKeymap
     /// <summary>The chords of one action in the active preset, in order; empty when unbound.</summary>
     public static IReadOnlyList<KeyChord> Chords(string actionId) => chords.GetValueOrDefault(actionId) ?? [];
 
+    private static HostState lastState = new();
+    private static IReadOnlyList<KeymapAction> pluginActions = [];
+
+    /// <summary>The keymap actions the enabled plugins contribute now, in registration order.</summary>
+    public static IReadOnlyList<KeymapAction> PluginActions => pluginActions;
+
     /// <summary>Takes the active preset from a host snapshot; raises <see cref="Changed"/> only when some action's chords differ.</summary>
-    public static void Set(HostState state) => Set(Keymaps.Effective(state.KeymapPresets, state.Settings.ActiveKeymap, Platform));
+    public static void Set(HostState state)
+    {
+        lastState = state;
+        Recompute();
+    }
+
+    /// <summary>
+    /// Takes the plugins' actions (a plugin enabled, disabled or re-registering): their defaults and stored bindings join or leave the live
+    /// chords. The stored bindings stay in the presets either way.
+    /// </summary>
+    public static void SetPluginActions(IReadOnlyList<KeymapAction> actions)
+    {
+        if (pluginActions.SequenceEqual(actions)) return;
+        pluginActions = actions;
+        Recompute();
+    }
+
+    private static void Recompute() =>
+        Set(Keymaps.Effective(lastState.KeymapPresets, lastState.Settings.ActiveKeymap, Platform, pluginActions));
 
     internal static void Set(IReadOnlyDictionary<string, IReadOnlyList<KeyChord>> next)
     {

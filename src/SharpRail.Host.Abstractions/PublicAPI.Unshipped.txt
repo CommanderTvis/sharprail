@@ -2132,13 +2132,11 @@ SharpRail.Host.Abstractions.KeyMods.None = 0 -> SharpRail.Host.Abstractions.KeyM
 SharpRail.Host.Abstractions.KeyMods.Shift = 8 -> SharpRail.Host.Abstractions.KeyMods
 SharpRail.Host.Abstractions.KeymapAction
 SharpRail.Host.Abstractions.KeymapAction.<Clone>$() -> SharpRail.Host.Abstractions.KeymapAction!
-SharpRail.Host.Abstractions.KeymapAction.Deconstruct(out string! Id, out string! Title, out string! Group) -> void
 SharpRail.Host.Abstractions.KeymapAction.Equals(SharpRail.Host.Abstractions.KeymapAction? other) -> bool
 SharpRail.Host.Abstractions.KeymapAction.Group.get -> string!
 SharpRail.Host.Abstractions.KeymapAction.Group.init -> void
 SharpRail.Host.Abstractions.KeymapAction.Id.get -> string!
 SharpRail.Host.Abstractions.KeymapAction.Id.init -> void
-SharpRail.Host.Abstractions.KeymapAction.KeymapAction(string! Id, string! Title, string! Group) -> void
 SharpRail.Host.Abstractions.KeymapAction.Title.get -> string!
 SharpRail.Host.Abstractions.KeymapAction.Title.init -> void
 SharpRail.Host.Abstractions.KeymapActions
@@ -2201,19 +2199,13 @@ static SharpRail.Host.Abstractions.KeyChord.operator ==(SharpRail.Host.Abstracti
 static SharpRail.Host.Abstractions.KeymapAction.operator !=(SharpRail.Host.Abstractions.KeymapAction? left, SharpRail.Host.Abstractions.KeymapAction? right) -> bool
 static SharpRail.Host.Abstractions.KeymapAction.operator ==(SharpRail.Host.Abstractions.KeymapAction? left, SharpRail.Host.Abstractions.KeymapAction? right) -> bool
 static SharpRail.Host.Abstractions.KeymapActions.All.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.KeymapAction!>!
-static SharpRail.Host.Abstractions.KeymapActions.Find(string! id) -> SharpRail.Host.Abstractions.KeymapAction?
-static SharpRail.Host.Abstractions.KeymapBindings.IntelliJ(SharpRail.Host.Abstractions.KeymapPlatform platform) -> SharpRail.Host.Abstractions.KeymapBindings!
 static SharpRail.Host.Abstractions.KeymapBindings.IsValid(string? json) -> bool
 static SharpRail.Host.Abstractions.KeymapBindings.Parse(string? json) -> SharpRail.Host.Abstractions.KeymapBindings!
 static SharpRail.Host.Abstractions.KeymapPreset.operator !=(SharpRail.Host.Abstractions.KeymapPreset? left, SharpRail.Host.Abstractions.KeymapPreset? right) -> bool
 static SharpRail.Host.Abstractions.KeymapPreset.operator ==(SharpRail.Host.Abstractions.KeymapPreset? left, SharpRail.Host.Abstractions.KeymapPreset? right) -> bool
-static SharpRail.Host.Abstractions.Keymaps.Bind(SharpRail.Host.Abstractions.KeymapBindings! bindings, string! actionId, int slot, SharpRail.Host.Abstractions.KeyChord? chord, SharpRail.Host.Abstractions.KeymapPlatform platform, bool reassign = false) -> SharpRail.Host.Abstractions.BindResult!
-static SharpRail.Host.Abstractions.Keymaps.Conflicts(SharpRail.Host.Abstractions.KeymapBindings! bindings, string! actionId, SharpRail.Host.Abstractions.KeyChord chord, SharpRail.Host.Abstractions.KeymapPlatform platform) -> System.Collections.Generic.IReadOnlyList<string!>!
-static SharpRail.Host.Abstractions.Keymaps.Effective(System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapPreset!>! presets, string? active, SharpRail.Host.Abstractions.KeymapPlatform platform) -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.KeyChord>!>!
 static SharpRail.Host.Abstractions.Keymaps.IsBuiltin(string! name) -> bool
 static SharpRail.Host.Abstractions.Keymaps.Reserved(SharpRail.Host.Abstractions.KeyChord chord, SharpRail.Host.Abstractions.KeymapPlatform platform) -> string?
 static SharpRail.Host.Abstractions.Keymaps.Reset(SharpRail.Host.Abstractions.KeymapBindings! bindings, SharpRail.Host.Abstractions.KeymapBindings! source, string! actionId, SharpRail.Host.Abstractions.KeymapPlatform platform) -> SharpRail.Host.Abstractions.KeymapBindings!
-static SharpRail.Host.Abstractions.Keymaps.Resolve(System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapPreset!>! presets, string? active, SharpRail.Host.Abstractions.KeymapPlatform platform) -> SharpRail.Host.Abstractions.KeymapBindings!
 static SharpRail.Host.Abstractions.Keymaps.ValidateName(string? name, System.Collections.Generic.IEnumerable<string!>! existing, string? except = null) -> string?
 static readonly SharpRail.Host.Abstractions.KeyChord.Keys -> System.Collections.Generic.IReadOnlySet<string!>!
 ~override SharpRail.Host.Abstractions.KeyChord.Equals(object obj) -> bool
@@ -2229,3 +2221,33 @@ static SharpRail.Host.Abstractions.HostStateChange.SaveKeymap(string! name, stri
 static SharpRail.Host.Abstractions.HostStateChange.SelectKeymap(string! name) -> SharpRail.Host.Abstractions.HostStateChange!
 SharpRail.Host.Abstractions.KeymapBindings.BasedOn.get -> string!
 SharpRail.Host.Abstractions.KeymapBindings.BasedOn.set -> void
+SharpRail.Host.Abstractions.KeymapAction.Deconstruct(out string! Id, out string! Title, out string! Group, out string! Plugin, out string! PluginName, out System.Collections.Generic.IReadOnlyList<string!>? MacDefaults, out System.Collections.Generic.IReadOnlyList<string!>? OtherDefaults) -> void
+SharpRail.Host.Abstractions.KeymapAction.IsPlugin.get -> bool
+SharpRail.Host.Abstractions.KeymapAction.KeymapAction(string! Id, string! Title, string! Group, string! Plugin = "", string! PluginName = "", System.Collections.Generic.IReadOnlyList<string!>? MacDefaults = null, System.Collections.Generic.IReadOnlyList<string!>? OtherDefaults = null) -> void
+SharpRail.Host.Abstractions.KeymapAction.MacDefaults.get -> System.Collections.Generic.IReadOnlyList<string!>?
+SharpRail.Host.Abstractions.KeymapAction.MacDefaults.init -> void
+SharpRail.Host.Abstractions.KeymapAction.OtherDefaults.get -> System.Collections.Generic.IReadOnlyList<string!>?
+SharpRail.Host.Abstractions.KeymapAction.OtherDefaults.init -> void
+SharpRail.Host.Abstractions.KeymapAction.Plugin.get -> string!
+SharpRail.Host.Abstractions.KeymapAction.Plugin.init -> void
+SharpRail.Host.Abstractions.KeymapAction.PluginName.get -> string!
+SharpRail.Host.Abstractions.KeymapAction.PluginName.init -> void
+const SharpRail.Host.Abstractions.KeymapActions.DocumentSymbols = "DocumentSymbols" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.FindUsages = "FindUsages" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.GoToDeclaration = "GoToDeclaration" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.GoToImplementation = "GoToImplementation" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.GoToTypeDeclaration = "GoToTypeDeclaration" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.LanguageGroup = "Language" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.LanguageServerStart = "LanguageServerStart" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.LanguageServerStatus = "LanguageServerStatus" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.LanguageServerStop = "LanguageServerStop" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.ShowQuickFixes = "ShowQuickFixes" -> string!
+const SharpRail.Host.Abstractions.KeymapActions.WorkspaceProblems = "WorkspaceProblems" -> string!
+static SharpRail.Host.Abstractions.KeymapActions.Find(string! id, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> SharpRail.Host.Abstractions.KeymapAction?
+static SharpRail.Host.Abstractions.KeymapActions.PluginActionId(string! pluginId, string! localId) -> string!
+static SharpRail.Host.Abstractions.KeymapActions.With(System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins) -> System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>!
+static SharpRail.Host.Abstractions.KeymapBindings.IntelliJ(SharpRail.Host.Abstractions.KeymapPlatform platform, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> SharpRail.Host.Abstractions.KeymapBindings!
+static SharpRail.Host.Abstractions.Keymaps.Bind(SharpRail.Host.Abstractions.KeymapBindings! bindings, string! actionId, int slot, SharpRail.Host.Abstractions.KeyChord? chord, SharpRail.Host.Abstractions.KeymapPlatform platform, bool reassign = false, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> SharpRail.Host.Abstractions.BindResult!
+static SharpRail.Host.Abstractions.Keymaps.Conflicts(SharpRail.Host.Abstractions.KeymapBindings! bindings, string! actionId, SharpRail.Host.Abstractions.KeyChord chord, SharpRail.Host.Abstractions.KeymapPlatform platform, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> System.Collections.Generic.IReadOnlyList<string!>!
+static SharpRail.Host.Abstractions.Keymaps.Effective(System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapPreset!>! presets, string? active, SharpRail.Host.Abstractions.KeymapPlatform platform, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.KeyChord>!>!
+static SharpRail.Host.Abstractions.Keymaps.Resolve(System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapPreset!>! presets, string? active, SharpRail.Host.Abstractions.KeymapPlatform platform, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> SharpRail.Host.Abstractions.KeymapBindings!

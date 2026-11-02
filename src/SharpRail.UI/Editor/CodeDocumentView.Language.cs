@@ -108,33 +108,39 @@ internal sealed partial class CodeDocumentView
         WireQuickFixes();
         Editor.ContextMenu = new ContextMenu();
         AddLanguageMenu(Editor.ContextMenu);
-        Editor.AddHandler(KeyDownEvent, async (_, e) =>
+        Editor.AddHandler(KeyDownEvent, (_, e) =>
         {
-            var primary = CommandKeys.Modifier;
-            string? operation = e.Key switch
+            // The chords are the active keymap's; quick fixes have their own handler, which also lists the fixes.
+            if (ActiveKeymap.Recording) return;
+            foreach (var (_, operation, actionId) in LanguageOperations)
             {
-                Key.F12 => e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "references" : "definition",
-                Key.B when e.KeyModifiers == primary => "definition",
-                Key.F7 when e.KeyModifiers == KeyModifiers.Alt => "references",
-                _ => null
-            };
-            if (operation is null) return;
-            e.Handled = true;
-            await RunLanguageAsync(operation);
+                if (operation == "quickFix" || !ActiveKeymap.Matches(actionId, e)) continue;
+                e.Handled = true;
+                RunLanguageOperation(operation);
+                return;
+            }
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         frame.ThemeApplied += () => { foreach (var preview in this.FindControl<ListBox>("LanguageItems")!.GetVisualDescendants().OfType<TextBlock>().Where(control => control.Name == "LanguagePreview")) ColorPreview(preview); _ = InspectLanguageAsync(); };
         this.FindControl<Border>("LanguageResults")!.BorderBrush = Ui.ControlBorder;
         this.FindControl<TextBlock>("LanguageStatus")!.Foreground = Ui.Muted;
     }
 
-    private static readonly (string Label, string Operation)[] NavigationOperations =
-        [("Show Quick Fixes (Alt+Enter)", "quickFix"), ("Go to Declaration (F12)", "definition"), ("Go to Type Declaration", "typeDefinition"), ("Go to Implementation", "implementation"), ("Find Usages (Alt+F7)", "references")];
+    private static readonly (string Label, string Operation, string ActionId)[] NavigationOperations =
+    [
+        ("Show Quick Fixes", "quickFix", KeymapActions.ShowQuickFixes), ("Go to Declaration", "definition", KeymapActions.GoToDeclaration),
+        ("Go to Type Declaration", "typeDefinition", KeymapActions.GoToTypeDeclaration), ("Go to Implementation", "implementation", KeymapActions.GoToImplementation),
+        ("Find Usages", "references", KeymapActions.FindUsages)
+    ];
 
-    private static readonly (string Label, string Operation)[] ServerOperations =
-        [("Document Symbols", "symbols"), ("Workspace Problems", "diagnostics"), ("Language Server Status", "status"), ("Start / Retry Language Server", "retry"), ("Stop Language Server", "stop")];
+    private static readonly (string Label, string Operation, string ActionId)[] ServerOperations =
+    [
+        ("Document Symbols", "symbols", KeymapActions.DocumentSymbols), ("Workspace Problems", "diagnostics", KeymapActions.WorkspaceProblems),
+        ("Language Server Status", "status", KeymapActions.LanguageServerStatus), ("Start / Retry Language Server", "retry", KeymapActions.LanguageServerStart),
+        ("Stop Language Server", "stop", KeymapActions.LanguageServerStop)
+    ];
 
-    /// <summary>The language actions the editor's context menu offers, in its order; the macOS menu bar lists the same ones.</summary>
-    internal static IEnumerable<(string Label, string Operation)> LanguageOperations => NavigationOperations.Concat(ServerOperations);
+    /// <summary>The language actions the editor's context menu offers, in its order, each with its keymap action; the macOS menu bar lists the same ones.</summary>
+    internal static IEnumerable<(string Label, string Operation, string ActionId)> LanguageOperations => NavigationOperations.Concat(ServerOperations);
 
     /// <summary>Whether the last language answer for this file named a running server, as the context menu requires; in memory only.</summary>
     internal bool LanguageAvailable { get; private set; }
@@ -169,14 +175,11 @@ internal sealed partial class CodeDocumentView
                 SetLanguageAvailable(Running(result));
                 if (!Running(result)) return;
                 menu.Items.Add(new Separator { Tag = "lsp" });
-                foreach (var (label, operation) in NavigationOperations)
+                // Built as the menu opens, so each item shows its action's active chord.
+                foreach (var (label, operation, actionId) in LanguageOperations)
                 {
                     var item = operation == "quickFix" ? Ui.IconMenu(label, () => RunLanguageOperation(operation), ActionIcon.QuickFix) : Ui.Menu(label, () => RunLanguageOperation(operation));
-                    item.Name = "Language_" + operation; item.Tag = "lsp"; menu.Items.Add(item);
-                }
-                foreach (var (label, operation) in ServerOperations)
-                {
-                    var item = Ui.Menu(label, () => RunLanguageOperation(operation));
+                    if (ActiveKeymap.Gesture(actionId) is { Key: not Key.None } gesture) item.InputGesture = gesture;
                     item.Name = "Language_" + operation; item.Tag = "lsp"; menu.Items.Add(item);
                 }
             },

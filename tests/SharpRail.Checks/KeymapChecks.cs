@@ -48,7 +48,9 @@ internal static class KeymapChecks
             foreach (var action in KeymapActions.All)
             {
                 var chords = intellij.Chords(action.Id, platform);
-                Require(chords.Count > 0 && chords.Count == intellij.Spellings(action.Id).Count, $"IntelliJ binds {action.Id} on {platform}.");
+                // The workspace problems view and the server controls have no IntelliJ chord that is safe beside a terminal.
+                var unbound = action.Id is KeymapActions.WorkspaceProblems or KeymapActions.LanguageServerStatus or KeymapActions.LanguageServerStart or KeymapActions.LanguageServerStop;
+                Require(intellij.Has(action.Id) && (unbound ? chords.Count == 0 : chords.Count > 0) && chords.Count == intellij.Spellings(action.Id).Count, $"IntelliJ binds {action.Id} on {platform}.");
                 foreach (var each in chords)
                 {
                     Require(Keymaps.Reserved(each, platform) is null || action.Id == KeymapActions.UndoClose, $"IntelliJ's {each} on {platform} must not be terminal-reserved.");

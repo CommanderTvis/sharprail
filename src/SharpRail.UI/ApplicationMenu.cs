@@ -144,10 +144,12 @@ public static class ApplicationMenu
         CodeDocumentView? editor = null;
         var items = CodeDocumentView.LanguageOperations.Select(entry =>
         {
-            // The context menu names a chord in its label; here the gesture shows it.
-            var header = entry.Label.Split(" (")[0];
-            var gesture = entry.Operation switch { "definition" => new KeyGesture(Key.F12), "references" => new KeyGesture(Key.F7, KeyModifiers.Alt), "quickFix" => new KeyGesture(Key.Enter, KeyModifiers.Alt), _ => null };
-            var item = new NativeMenuItem(header) { Gesture = gesture, IsEnabled = false };
+            var item = new NativeMenuItem(entry.Label) { IsEnabled = false };
+            // The key equivalent is the action's active first chord and follows keymap changes in place.
+            void Gesture() => item.Gesture = !ActiveKeymap.Recording && ActiveKeymap.Gesture(entry.ActionId) is { Key: not Key.None } gesture ? gesture : null;
+            Gesture();
+            ActiveKeymap.Changed += Gesture;
+            window.Closed += (_, _) => ActiveKeymap.Changed -= Gesture;
             item.Click += (_, _) => { if (editor is { LanguageAvailable: true } target) target.RunLanguageOperation(entry.Operation); };
             return item;
         }).ToArray();

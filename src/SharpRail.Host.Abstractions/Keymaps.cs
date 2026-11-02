@@ -100,15 +100,29 @@ public readonly record struct KeyChord(KeyMods Mods, string Key)
     }
 }
 
-/// <summary>A command the keymap can bind. The id is stable and persisted; the title and group are for people.</summary>
-public sealed record KeymapAction(string Id, string Title, string Group);
+/// <summary>
+/// A command the keymap can bind. The id is stable and persisted; the title and group are for people. A plugin's action carries the
+/// plugin's id and name (<see cref="IsPlugin"/>), its id is <c>pluginId:localId</c>, and <see cref="MacDefaults"/> and
+/// <see cref="OtherDefaults"/> are the chord spellings the IntelliJ preset gives it on each platform (none when unbound by default).
+/// </summary>
+public sealed record KeymapAction(string Id, string Title, string Group, string Plugin = "", string PluginName = "",
+    IReadOnlyList<string>? MacDefaults = null, IReadOnlyList<string>? OtherDefaults = null)
+{
+    public bool IsPlugin => Plugin.Length > 0;
+}
 
 /// <summary>The commands with bindable chords, in the order the keymap page lists them.</summary>
 public static class KeymapActions
 {
     public const string OpenProject = "OpenProject", NewWindow = "NewWindow", SearchWorkspace = "SearchWorkspace", NewWorkspace = "NewWorkspace",
         Settings = "Settings", ToggleLeft = "ToggleLeft", ToggleRight = "ToggleRight", ZoomIn = "ZoomIn", ZoomOut = "ZoomOut", ZoomReset = "ZoomReset",
-        Refresh = "Refresh", Back = "Back", Forward = "Forward", UndoClose = "UndoClose", RedoClose = "RedoClose";
+        Refresh = "Refresh", Back = "Back", Forward = "Forward", UndoClose = "UndoClose", RedoClose = "RedoClose",
+        GoToDeclaration = "GoToDeclaration", GoToTypeDeclaration = "GoToTypeDeclaration", GoToImplementation = "GoToImplementation",
+        FindUsages = "FindUsages", ShowQuickFixes = "ShowQuickFixes", DocumentSymbols = "DocumentSymbols", WorkspaceProblems = "WorkspaceProblems",
+        LanguageServerStatus = "LanguageServerStatus", LanguageServerStart = "LanguageServerStart", LanguageServerStop = "LanguageServerStop";
+
+    /// <summary>The group of the editor's language-server actions.</summary>
+    public const string LanguageGroup = "Language";
 
     public static IReadOnlyList<KeymapAction> All { get; } =
     [
@@ -127,9 +141,27 @@ public static class KeymapActions
         new(ZoomReset, "Actual size", "View"),
         new(UndoClose, "Reopen closed tab", "Tabs and windows"),
         new(RedoClose, "Close reopened tab", "Tabs and windows"),
+        new(GoToDeclaration, "Go to Declaration", LanguageGroup),
+        new(GoToTypeDeclaration, "Go to Type Declaration", LanguageGroup),
+        new(GoToImplementation, "Go to Implementation", LanguageGroup),
+        new(FindUsages, "Find Usages", LanguageGroup),
+        new(ShowQuickFixes, "Show Quick Fixes", LanguageGroup),
+        new(DocumentSymbols, "Document Symbols", LanguageGroup),
+        new(WorkspaceProblems, "Workspace Problems", LanguageGroup),
+        new(LanguageServerStatus, "Language Server Status", LanguageGroup),
+        new(LanguageServerStart, "Start / Retry Language Server", LanguageGroup),
+        new(LanguageServerStop, "Stop Language Server", LanguageGroup),
     ];
 
-    public static KeymapAction? Find(string id) => All.FirstOrDefault(action => action.Id == id);
+    /// <summary>The built-in action or the plugin action (from <paramref name="plugins"/>) with the id.</summary>
+    public static KeymapAction? Find(string id, IEnumerable<KeymapAction>? plugins = null) =>
+        All.FirstOrDefault(action => action.Id == id) ?? plugins?.FirstOrDefault(action => action.Id == id);
+
+    /// <summary>Every bindable action: the built-in ones, then the plugins' in the order given.</summary>
+    public static IEnumerable<KeymapAction> With(IEnumerable<KeymapAction>? plugins) => plugins is null ? All : All.Concat(plugins);
+
+    /// <summary>The id a plugin's action has in the keymap.</summary>
+    public static string PluginActionId(string pluginId, string localId) => pluginId + ":" + localId;
 }
 
 /// <summary>A custom keymap: the name is its identity (like a layout preset), the bindings a JSON document <see cref="KeymapBindings"/> reads.</summary>
@@ -210,11 +242,15 @@ public sealed class KeymapBindings
     public void Remove(string actionId) => Map.Remove(actionId);
 
     /// <summary>The built-in IntelliJ IDEA keymap for the commands SharpRail has: its macOS keymap on macOS, the Windows/Linux default elsewhere.</summary>
-    public static KeymapBindings IntelliJ(KeymapPlatform platform)
+    public static KeymapBindings IntelliJ(KeymapPlatform platform, IEnumerable<KeymapAction>? plugins = null)
     {
         var bindings = new KeymapBindings(new JsonObject { ["version"] = Version, ["bindings"] = new JsonObject() });
         foreach (var (id, mac, other) in IntelliJTable)
             bindings.Set(id, (platform == KeymapPlatform.Mac ? mac : other).Select(text => KeyChord.TryParse(text, platform, out var chord) ? chord : throw new InvalidOperationException(text)));
+        // A plugin's defaults are the preset's for as long as the plugin is installed and enabled; a spelling this build cannot read is skipped.
+        foreach (var action in plugins ?? [])
+            bindings.Set(action.Id, ((platform == KeymapPlatform.Mac ? action.MacDefaults : action.OtherDefaults) ?? [])
+                .Select(text => KeyChord.TryParse(text, platform, out var chord) ? (KeyChord?)chord : null).OfType<KeyChord>());
         return bindings;
     }
 
@@ -238,6 +274,18 @@ public sealed class KeymapBindings
         (KeymapActions.Forward, ["Mod+CloseBracket"], ["Alt+Right"]),
         (KeymapActions.UndoClose, ["Mod+Shift+T", "Mod+Z"], ["Mod+Shift+T", "Mod+Z"]),
         (KeymapActions.RedoClose, ["Mod+Shift+Z"], ["Mod+Shift+Z"]),
+        // Language: IntelliJ's chords. Go to Declaration keeps F12 where Ctrl+B is the panel toggle (one chord per action); Workspace Problems
+        // (Alt+6) would reach terminals, so it and the server controls have no default.
+        (KeymapActions.GoToDeclaration, ["Mod+B", "F12"], ["F12"]),
+        (KeymapActions.GoToTypeDeclaration, ["Mod+Shift+B"], ["Mod+Shift+B"]),
+        (KeymapActions.GoToImplementation, ["Mod+Alt+B"], ["Mod+Alt+B"]),
+        (KeymapActions.FindUsages, ["Alt+F7", "Shift+F12"], ["Alt+F7", "Shift+F12"]),
+        (KeymapActions.ShowQuickFixes, ["Alt+Enter"], ["Alt+Enter"]),
+        (KeymapActions.DocumentSymbols, ["Mod+F12"], ["Mod+F12"]),
+        (KeymapActions.WorkspaceProblems, [], []),
+        (KeymapActions.LanguageServerStatus, [], []),
+        (KeymapActions.LanguageServerStart, [], []),
+        (KeymapActions.LanguageServerStop, [], []),
     ];
 }
 
@@ -267,19 +315,20 @@ public static class Keymaps
     }
 
     /// <summary>The bindings of the named preset; the built-in, and any name that is gone, resolve to IntelliJ.</summary>
-    public static KeymapBindings Resolve(IEnumerable<KeymapPreset> presets, string? active, KeymapPlatform platform) =>
+    public static KeymapBindings Resolve(IEnumerable<KeymapPreset> presets, string? active, KeymapPlatform platform, IEnumerable<KeymapAction>? plugins = null) =>
         !string.IsNullOrEmpty(active) && !IsBuiltin(active) && presets.FirstOrDefault(preset => preset.Name == active) is { } found
-            ? KeymapBindings.Parse(found.Bindings) : KeymapBindings.IntelliJ(platform);
+            ? KeymapBindings.Parse(found.Bindings) : KeymapBindings.IntelliJ(platform, plugins);
 
     /// <summary>
     /// The chord behind each action for the active preset. An action the preset does not mention keeps IntelliJ's chords, so a preset saved
     /// before an action existed binds it too; an action listed with no chords is deliberately unbound.
     /// </summary>
-    public static IReadOnlyDictionary<string, IReadOnlyList<KeyChord>> Effective(IEnumerable<KeymapPreset> presets, string? active, KeymapPlatform platform)
+    public static IReadOnlyDictionary<string, IReadOnlyList<KeyChord>> Effective(IEnumerable<KeymapPreset> presets, string? active, KeymapPlatform platform,
+        IEnumerable<KeymapAction>? plugins = null)
     {
-        var chosen = Resolve(presets, active, platform);
-        var builtin = KeymapBindings.IntelliJ(platform);
-        return KeymapActions.All.ToDictionary(action => action.Id,
+        var chosen = Resolve(presets, active, platform, plugins);
+        var builtin = KeymapBindings.IntelliJ(platform, plugins);
+        return KeymapActions.With(plugins).ToDictionary(action => action.Id,
             action => chosen.Has(action.Id) ? chosen.Chords(action.Id, platform) : builtin.Chords(action.Id, platform));
     }
 
@@ -305,17 +354,18 @@ public static class Keymaps
         return null;
     }
 
-    /// <summary>The other actions of the bindings that already use the chord.</summary>
-    public static IReadOnlyList<string> Conflicts(KeymapBindings bindings, string actionId, KeyChord chord, KeymapPlatform platform) =>
-        [.. KeymapActions.All.Select(action => action.Id).Where(id => id != actionId && bindings.Chords(id, platform).Contains(chord.Normalized(platform)))];
+    /// <summary>The other known actions (built-in and the given plugins') of the bindings that already use the chord; stored bindings of absent plugins do not count.</summary>
+    public static IReadOnlyList<string> Conflicts(KeymapBindings bindings, string actionId, KeyChord chord, KeymapPlatform platform, IEnumerable<KeymapAction>? plugins = null) =>
+        [.. KeymapActions.With(plugins).Select(action => action.Id).Where(id => id != actionId && bindings.Chords(id, platform).Contains(chord.Normalized(platform)))];
 
     /// <summary>
     /// Sets one of an action's two chord slots (null clears it). A reserved chord is refused; a chord another action uses is refused unless
     /// <paramref name="reassign"/>, which takes it from them. Returns the bindings to store; the input is not modified.
     /// </summary>
-    public static BindResult Bind(KeymapBindings bindings, string actionId, int slot, KeyChord? chord, KeymapPlatform platform, bool reassign = false)
+    public static BindResult Bind(KeymapBindings bindings, string actionId, int slot, KeyChord? chord, KeymapPlatform platform, bool reassign = false,
+        IEnumerable<KeymapAction>? plugins = null)
     {
-        if (KeymapActions.Find(actionId) is null || slot is < 0 or >= KeymapBindings.MaxChords) throw new ArgumentException("Unknown action or slot.");
+        if (KeymapActions.Find(actionId, plugins) is null || slot is < 0 or >= KeymapBindings.MaxChords) throw new ArgumentException("Unknown action or slot.");
         var next = bindings.Copy();
         var current = bindings.Has(actionId) ? [.. bindings.Chords(actionId, platform)] : new List<KeyChord>();
         if (chord is not { } wanted)
@@ -326,7 +376,7 @@ public static class Keymaps
         }
         wanted = wanted.Normalized(platform);
         if (Reserved(wanted, platform) is { } reason) return new(bindings, [], reason);
-        var conflicts = Conflicts(bindings, actionId, wanted, platform);
+        var conflicts = Conflicts(bindings, actionId, wanted, platform, plugins);
         if (conflicts.Count > 0 && !reassign) return new(bindings, conflicts, null);
         foreach (var other in conflicts) next.Set(other, next.Chords(other, platform).Where(existing => existing != wanted));
         current.Remove(wanted);
