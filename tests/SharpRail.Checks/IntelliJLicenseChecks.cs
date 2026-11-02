@@ -190,8 +190,11 @@ internal static class IntelliJLicenseChecks
         using var app = new E2E.E2eWorkspace(Path.Combine(fixture, "intellij-license-ui"), openFiles: false);
         E2E.E2eWorkspace.Until(() => app.State!.Current.Workspaces.Any(item => item.Path == app.Root));
         var calls = new List<LanguageRequest>();
+        string? rowState = null;
         app.Host.LanguageReply = request =>
         {
+            if (request.Operation == "servers" && rowState is not null)
+                return new("ready", "") { Servers = [new("intellij", "", "ready", "Ready", "263.7084.0") { PluginState = rowState, Presentation = new("Java / Kotlin (IntelliJ)") }] };
             if (request.Operation != "action") return null;
             calls.Add(request);
             return new("ready", """{"ok":true,"message":null}""");
@@ -216,6 +219,21 @@ internal static class IntelliJLicenseChecks
             Find<Avalonia.Controls.Button>("UseCode").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => calls.Count > 1);
             Require(calls[1].Query == "code" && JsonNode.Parse(calls[1].Configuration!)!["activationCode"]!.ToString() == " AB-12 ", "The activation code was not sent.");
+            // The Code Intelligence row itself shows the notice, without opening the settings.
+            rowState = trial;
+            var pane = new SharpRail.UI.Panels.LanguagePanel(app.Host, app.Root, _ => Task.CompletedTask, app.Workbench.State);
+            var paneWindow = new Avalonia.Controls.Window { Width = 520, Height = 700, Content = pane };
+            paneWindow.Show();
+            try
+            {
+                E2E.E2eWorkspace.Until(() =>
+                {
+                    if (pane.Idle) pane.RefreshNow();
+                    return Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(pane).OfType<Avalonia.Controls.TextBlock>()
+                        .Any(text => text.Name == "ServerNotice" && text.IsEffectivelyVisible && (text.Text ?? "").Contains("3 days", StringComparison.Ordinal));
+                }, "The Code Intelligence row did not show the trial notice.");
+            }
+            finally { paneWindow.Close(); }
             var plain = new SharpRail.UI.Panels.LanguageConfigurationView(app.Host, app.Root, new("typescript", "", "idle", "Fixture", "fixture"));
             Require(!Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.StackPanel>(plain, "LicensePanel")!.IsVisible, "A server without license state showed a license block.");
         }
