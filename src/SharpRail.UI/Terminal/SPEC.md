@@ -369,7 +369,16 @@ in-process allocation 1.24 → 0.75 MiB/s; host-path allocation 20.0–20.4 → 
 per recorder push in the host, not UI notifications. The compositor
 wraps a leased source texture for each draw and waits for its GPU read to finish;
 this favors bounded memory and explicit ownership over maximum GPU overlap.
-The latest completed target and in-flight readers remain bounded by Ghostty's
+A texture view that is hidden (its own `IsVisible` false) or detached tells Ghostty it is occluded, which stops
+drawing, and after five seconds of staying so asks Ghostty to reclaim its render targets (`Reclaim.patch`): on the render
+thread, every swap-chain target except the last presented one is replaced by a 1x1 target, so each hidden terminal keeps
+one pane-sized IOSurface instead of three. Showing the view again cancels a pending reclaim; the draws that follow
+recreate the targets lazily at the unchanged pixel size, and the kept target is presentable meanwhile, so the first
+composition has a frame. Grid, PTY size (no SIGWINCH), scrollback, screen and cursor state never change, output written
+while hidden is parsed as usual and shows after the next draw, and a hidden view posts no frame notifications. Reclaim is
+idempotent and runs only while the surface is occluded. `--native-surface-memory` measures it (8 terminals at 1400x900:
+IOSurface 523 MB visible, 252 MB with 7 hidden past the delay, 523 MB when shown again) and checks the properties above.
+An ancestor hidden while the view stays attached does not occlude it. The latest completed target and in-flight readers remain bounded by Ghostty's
 three render targets. Resize, remount and disposal must release old targets. The native Ghostty build preserves enlarged scrollback
 page allocations when recycling them, without reducing retained history limits.
 Reusing the latest target must leave a completed frame available to the compositor

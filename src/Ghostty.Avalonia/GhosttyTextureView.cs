@@ -38,6 +38,14 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     private volatile bool shown = true;
     private bool active;
     private bool disposed;
+    // Ghostty gives back a hidden or detached surface's GPU targets once it has stayed so this long; a quick tab flip
+    // finds them untouched. Reclaiming keeps the grid, the PTY and the last presented frame.
+    internal static readonly TimeSpan DefaultReclaimDelay = TimeSpan.FromSeconds(5);
+    private readonly DispatcherTimer reclaimTimer = new() { Interval = DefaultReclaimDelay };
+    private bool occluded;
+    /// <summary>Times the native reclaim was requested (a hide shorter than the delay never counts).</summary>
+    internal int Reclaims { get; private set; }
+    internal TimeSpan ReclaimDelay { get => reclaimTimer.Interval; set => reclaimTimer.Interval = value; }
 
     /// <summary>Scrolls the previous (negative) or next prompt to the top of the view through Ghostty's jump_to_prompt.</summary>
     public void JumpToPrompt(int delta)
@@ -54,6 +62,13 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         source = Native.Enable(terminal.Handle);
         terminal.Exited += (_, code) => Exited?.Invoke(this, code);
         terminal.OpenUrl += (_, url) => _ = OpenUrlAsync(url);
+        reclaimTimer.Tick += (_, _) =>
+        {
+            reclaimTimer.Stop();
+            if (disposed || !occluded) return;
+            Reclaims++;
+            Native.Reclaim(terminal.Handle);
+        };
         frameReady = NotifyFrame;
         frameNotified = FrameNotified;
         firstFrameDrawn = FirstFrameDrawn;
@@ -127,8 +142,19 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         highlightDirty = true;
         if (highlights?.Resolve is not null) highlightTimer.Start();
         Native.Notify(source, frameReady);
-        Native.Visible(terminal.Handle, true);
+        SetOccluded(!IsEffectivelyVisible);
         InvalidateVisual();
+    }
+
+    // Occlusion pauses Ghostty's drawing; staying occluded past the delay frees its GPU targets, and showing the view
+    // again cancels that or redraws at the unchanged size (the last frame stays presentable meanwhile).
+    private void SetOccluded(bool hidden)
+    {
+        if (disposed) return;
+        occluded = hidden;
+        if (hidden) reclaimTimer.Start();
+        else reclaimTimer.Stop();
+        Native.Visible(terminal.Handle, !hidden);
     }
 
     // Ghostty's renderer thread, once per completed frame and under its frame lock: no allocation, and at most one
@@ -259,7 +285,13 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     {
         base.OnPropertyChanged(change);
         if (change.Property == BoundsProperty) Resize();
-        else if (change.Property == IsVisibleProperty && change.GetNewValue<bool>()) { shown = true; InvalidateVisual(); }
+        else if (change.Property == IsVisibleProperty)
+        {
+            var visible = change.GetNewValue<bool>();
+            if (visible) { shown = true; InvalidateVisual(); }
+            // Only this view's own flag is observed: an ancestor hidden while this view stays attached does not occlude it.
+            if (active) SetOccluded(!visible);
+        }
     }
 
     public override void Render(DrawingContext context)
@@ -307,7 +339,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         if (topLevel is Window window) window.PropertyChanged -= WindowChanged;
         settle.Cancel();
         topLevel = null;
-        if (!disposed) Native.Visible(terminal.Handle, false);
+        SetOccluded(true);
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -320,6 +352,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
             fileHover?.Dispose();
             highlights?.Dispose();
             highlightTimer.Stop();
+            reclaimTimer.Stop();
             active = false;
             Native.Stop(source);
             Native.Release(source);

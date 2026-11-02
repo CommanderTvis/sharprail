@@ -18,6 +18,7 @@ public sealed partial class GhosttyTextureView
         [DllImport(Library, EntryPoint = "gav_texture_resize")] internal static extern void Resize(nint view, double width, double height, double scale);
         [DllImport(Library, EntryPoint = "gav_texture_focus")] internal static extern void Focus(nint view, [MarshalAs(UnmanagedType.I1)] bool focused);
         [DllImport(Library, EntryPoint = "gav_texture_visible")] internal static extern void Visible(nint view, [MarshalAs(UnmanagedType.I1)] bool visible);
+        [DllImport(Library, EntryPoint = "gav_texture_reclaim")] internal static extern void Reclaim(nint view);
         [DllImport(Library, EntryPoint = "gav_texture_key")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool Key(nint view, int action, uint keycode, int mods, int consumed,

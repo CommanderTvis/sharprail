@@ -181,6 +181,12 @@ Feed output with `GhosttyTextureView.WriteOutput` (safe against disposal), and r
 The caller owns session lifetime and exit status. Disposing the surface stops its I/O
 thread before releasing callback state; it does not close the caller's PTY.
 
+`Reclaim.patch` (with `reclaim.zig` and `reclaim-surface.zig`, appended to Ghostty's embedded apprt and `Surface.zig`) adds
+`gav_ghostty_reclaim_targets`, wrapped as `gav_texture_reclaim`: a renderer-thread message that, only while the surface is
+occluded, replaces the swap chain's targets other than the last presented one with 1x1 targets. The next draws recreate
+them at the surface size, so no grid, PTY or terminal state changes. `GhosttyTextureView` occludes a hidden or detached
+view and requests the reclaim after five seconds (`DefaultReclaimDelay`), cancelling it on show.
+
 `ExternalIo.patch` adds this backend to pinned Ghostty and exposes its existing
 locked output parser through the C ABI. It creates no subprocess, socket or RPC
 transport. SharpRail's local Metal and Skia factories both attach directly to the
