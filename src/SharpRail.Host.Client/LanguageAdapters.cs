@@ -18,8 +18,12 @@ public sealed partial class RemoteProjectAdapter
     {
         try
         {
-            var reply = await service.LanguageTermsAsync(new() { Workspace = request.Workspace, Server = request.Server, Accept = request.Accept, ArtifactId = request.ArtifactId, EulaSha256 = request.EulaSha256 }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(15)));
-            return new(reply.State, reply.Detail, reply.Version, reply.ArtifactId, reply.EulaSha256, reply.Text, reply.Accepted, reply.AcceptedAtUtc);
+            var reply = await service.LanguageTermsAsync(new() { Workspace = request.Workspace, Server = request.Server, Accept = request.Accept, ArtifactId = request.ArtifactId, EulaSha256 = request.EulaSha256, Answers = request.Answers.ToDictionary(item => item.Key, item => item.Value) }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(15)));
+            return new(reply.State, reply.Detail, reply.Version, reply.ArtifactId, reply.EulaSha256, reply.Text, reply.Accepted, reply.AcceptedAtUtc)
+            {
+                Questions = [.. reply.Questions.Select(item => new LanguageTermsQuestion { Id = item.Id, Prompt = item.Prompt, Values = item.Values, Labels = item.Labels })],
+                Answers = reply.Answers
+            };
         }
         catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return new("unavailable", "This host does not support terms review."); }
         catch (RpcException) when (cancellationToken.IsCancellationRequested) { throw new OperationCanceledException(cancellationToken); }

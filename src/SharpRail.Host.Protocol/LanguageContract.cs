@@ -162,6 +162,16 @@ public sealed class LanguageTermsRequestDto
     [ProtoMember(3)] public string ArtifactId { get; set; } = "";
     [ProtoMember(4)] public string EulaSha256 { get; set; } = "";
     [ProtoMember(5)] public string Server { get; set; } = "";
+    [ProtoMember(6)] public Dictionary<string, string> Answers { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class LanguageTermsQuestionDto
+{
+    [ProtoMember(1)] public string Id { get; set; } = "";
+    [ProtoMember(2)] public string Prompt { get; set; } = "";
+    [ProtoMember(3)] public List<string> Values { get; set; } = [];
+    [ProtoMember(4)] public List<string> Labels { get; set; } = [];
 }
 
 [ProtoContract]
@@ -175,6 +185,8 @@ public sealed class LanguageTermsReply
     [ProtoMember(6)] public string Text { get; set; } = "";
     [ProtoMember(7)] public bool Accepted { get; set; }
     [ProtoMember(8)] public string AcceptedAtUtc { get; set; } = "";
+    [ProtoMember(9)] public List<LanguageTermsQuestionDto> Questions { get; set; } = [];
+    [ProtoMember(10)] public Dictionary<string, string> Answers { get; set; } = [];
 }
 
 public partial interface IProjectRpc

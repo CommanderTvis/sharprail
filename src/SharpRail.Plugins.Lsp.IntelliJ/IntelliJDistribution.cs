@@ -56,11 +56,13 @@ internal static class IntelliJDistribution
         var accepted = installation.AcceptedTerms ?? throw new IOException("IntelliJ terms were not accepted for this artifact.");
         var actual = EulaHash(File.ReadAllBytes(Path.Combine(root, "EULA.txt")));
         if (actual != accepted.TextSha256) throw new IOException("IntelliJ terms changed or were not accepted for this artifact.");
+        if (!accepted.Answers.TryGetValue(IntelliJTerms.Region, out var region) || !accepted.Answers.TryGetValue(IntelliJTerms.DataSharing, out var sharing))
+            throw new IOException("IntelliJ region and data-sharing choices were not recorded for this artifact.");
         Directory.CreateDirectory(installation.SessionDirectory);
         return new(Path.Combine(root, "bin", OperatingSystem.IsWindows() ? "intellij-server.exe" : "intellij-server"),
             ["--stdio", "--system-path", installation.SessionDirectory, "--eula", actual[..16]])
         {
-            Environment = new Dictionary<string, string?> { ["IJ_LAUNCHER_DEBUG"] = null, ["INTELLIJ_DATA_SHARING"] = null, ["INTELLIJ_REGION"] = null }
+            Environment = new Dictionary<string, string?> { ["IJ_LAUNCHER_DEBUG"] = null, ["INTELLIJ_DATA_SHARING"] = sharing, ["INTELLIJ_REGION"] = region }
         };
     }
 

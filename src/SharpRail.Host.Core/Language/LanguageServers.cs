@@ -144,7 +144,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             try { reviewed = await terms(installation, false, token); }
             catch (IOException error) when (error is not LanguageServerExpiredException) { throw new LanguageTermsRequiredException(server); }
             if (!LanguageTerms.Accepted(directory, server.Id, reviewed)) throw new LanguageTermsRequiredException(server);
-            installation.AcceptedTerms = reviewed;
+            installation.AcceptedTerms = reviewed with { Answers = LanguageTerms.AnswersFor(directory, server.Id, reviewed) };
             // Overrides cannot replace the acknowledged launcher or its mandatory protocol arguments.
             if (!server.Spec.AllowsOverride && Options(server.Id) is { Command.Length: > 0 })
                 throw new IOException($"Use the {server.Id} workspace installation directory instead of an executable override.");

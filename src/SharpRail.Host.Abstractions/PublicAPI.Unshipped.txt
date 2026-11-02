@@ -2082,3 +2082,19 @@ SharpRail.Host.Abstractions.LanguageResult.Edits.get -> System.Collections.Gener
 SharpRail.Host.Abstractions.LanguageResult.Edits.init -> void
 SharpRail.Host.Abstractions.LanguageServerState.PluginState.get -> string!
 SharpRail.Host.Abstractions.LanguageServerState.PluginState.init -> void
+SharpRail.Host.Abstractions.LanguageTermsRequest.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Host.Abstractions.LanguageTermsRequest.Answers.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.Questions.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageTermsQuestion!>!
+SharpRail.Host.Abstractions.LanguageTermsResult.Questions.init -> void
+SharpRail.Host.Abstractions.LanguageTermsResult.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Host.Abstractions.LanguageTermsResult.Answers.init -> void
+SharpRail.Host.Abstractions.LanguageTermsQuestion
+SharpRail.Host.Abstractions.LanguageTermsQuestion.LanguageTermsQuestion() -> void
+SharpRail.Host.Abstractions.LanguageTermsQuestion.Id.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsQuestion.Id.init -> void
+SharpRail.Host.Abstractions.LanguageTermsQuestion.Prompt.get -> string!
+SharpRail.Host.Abstractions.LanguageTermsQuestion.Prompt.init -> void
+SharpRail.Host.Abstractions.LanguageTermsQuestion.Values.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Host.Abstractions.LanguageTermsQuestion.Values.init -> void
+SharpRail.Host.Abstractions.LanguageTermsQuestion.Labels.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Host.Abstractions.LanguageTermsQuestion.Labels.init -> void

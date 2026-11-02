@@ -31,6 +31,33 @@ The build importer is the server's own: given `pom.xml` it runs the project's Ma
 `Using Maven: <checkout>/mvnw`), and given a Gradle build it uses the Gradle wrapper's pinned distribution through the
 Tooling API, so a project with a wrapper needs no `mvn` or `gradle` on PATH; one without a wrapper needs them there.
 
+## License and consent
+
+The server licenses itself over `jetbrains/licensing/*` requests and the `jetbrains/licensing/state` push (the client
+advertises `experimental.licensingUi`, which makes the server push whole states and stop its own warnings; it also accepts
+`window/showDocument` for the sign-in page). A build has a free 30-day trial, then needs an IntelliJ IDEA Ultimate
+subscription, an activation code or a license server. The license store belongs to the operating-system user and only the
+server writes it; SharpRail never reads or writes it. The plugin tracks the last state per session, publishes a projection
+(`kind`: `licensed`, `session-expired`, `grace`, `parked`, `unlicensed` or `authenticating`, with the message, source, days left,
+valid-through date, grace deadline, account, license server, subscriptions, a notice and the sign-in page) and, while
+`parked`, `unlicensed` or `authenticating`, holds language answers with "No active license. Activate a license to use Java and
+Kotlin features. Open Settings, Code Intelligence, Java / Kotlin (IntelliJ) to activate a license." A server that never pushes
+a state is not held. The notice reads "The trial ends in N days" at 7 days left or fewer (tomorrow, today), and the grace
+and parked messages as JetBrains words them. A server without any license is offered `discovery/autoActivate` once.
+
+Actions: `refresh` (`state/get`), `trial`, `signIn` (`jba/login`; the server waits up to five minutes in the browser, so the
+request waits six; cancelling it signs out so the server stops waiting; one valid subscription is used at once, several are
+offered through `useSubscription`), `cancelSignIn`, `signOut`, `code` (`activationCode/use`, whitespace removed),
+`serverAdd` (http/https only), `serverReconnect`, `serverRemove` and `removeLicense` (by license source: unuse subscriptions,
+disable the activation code, or remove the license server). A license set by `INTELLIJ_SERVER_LICENSE`,
+`INTELLIJ_SERVER_LICENSE_FILE` or `JETBRAINS_LICENSE_SERVER` overrides the store, so activation actions refuse and say so.
+The Code Intelligence workspace settings show the state, trial days, the notice and the actions, and open the sign-in page
+in the browser of the machine running the UI.
+
+First-start consent: the terms review asks the region (`europe`, `africa`, `americas`, `apac`, `china`, `middle_east`,
+`oceania`) and data sharing (`full`, `anonymous`, `none`), unanswered until chosen. The launch passes them as
+`INTELLIJ_REGION` and `INTELLIJ_DATA_SHARING` next to `--eula <hash prefix>`, and refuses to start without recorded answers.
+
 ## Primed index in new workspaces
 
 Each launch passes `indexDir = <session directory>/index` (unless the workspace's initialization options name one), so

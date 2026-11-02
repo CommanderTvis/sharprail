@@ -613,8 +613,8 @@ terms acknowledgement, including when another workspace first uses the selected 
 
 The provider follows JetBrains' official Neovim client approach, explicitly approved on 2026-10-16:
 user EULA acknowledgement, an unmodified native server over stdio, and vendor-enforced build
-validity. No independent entitlement or revocation service is claimed. Paid-license activation and
-offline entitlements are not implemented. Existing providers remain available through explicit opt-out.
+validity. No independent entitlement or revocation service is claimed. Licensing is the server's own
+(see Licensing below); SharpRail keeps no entitlement of its own. Existing providers remain available through explicit opt-out.
 
 ### Artifact and legal boundary
 
@@ -631,6 +631,24 @@ Downloads go directly from JetBrains to the workspace host; no server binaries o
 terms are bundled, mirrored or committed. Apache client attribution and notices remain separate in
 `licenses/intellij-lsp.nvim.NOTICE.md`. No VS Code process, private licensing patches, credential
 handling, clock changes, trial resets or client impersonation are introduced.
+
+### Licensing and consent (plugin state, actions, terms questions)
+
+A provider can publish a JSON state for its running session (`SetState`, listed in the `servers` inventory as `PluginState`
+and empty for a server that is not running), hold the session's language answers (`SetUnavailable(reason)`: every
+request that would reach the server answers `actionRequired` with the reason, for the settings row, `status` and agents
+alike, instead of staying silent) and offer named actions (`ActionAsync`) that clients run on a running session with the
+`action` language operation (`Server`, `Query` = action name, `Configuration` = JSON arguments; the reply is `ready` with
+the action's JSON in `Detail`, `error` with its message, or `unavailable` when the server is not running; it never starts a
+server and the call is cancelled with the caller). Actions are not exposed to agents. The IntelliJ plugin uses these for
+JetBrains' licensing protocol; its sentences and states are in the plugin's spec.
+
+A provider's terms can carry single-choice questions (`LanguageServerTerms.Questions`) shown in the same review window as
+the agreement. Acceptance requires an offered answer to every question and records them with the acceptance (user state
+under the host's `language/agreements/<server>/<artifact>.json`, never a project directory); an installation whose
+record lacks an answer to a current question, or whose agreement text changed, must be reviewed again. A new build's
+review offers the user's earlier answers, which the user still confirms by accepting. The recorded answers reach the
+launch as `ILanguageServerInstallation.AcceptedTerms.Answers`.
 
 ### Provisioning and execution
 

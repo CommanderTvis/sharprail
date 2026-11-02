@@ -7,8 +7,8 @@ public sealed partial class ProjectRpc
 {
     public ValueTask<LanguageTermsReply> LanguageTermsAsync(LanguageTermsRequestDto request, CallContext context = default) => Execute(async () =>
     {
-        var result = await Host(context).LanguageTermsAsync(new(request.Workspace, request.Server, request.Accept, request.ArtifactId, request.EulaSha256), context.CancellationToken);
-        return new LanguageTermsReply { State = result.State, Detail = result.Detail, Version = result.Version, ArtifactId = result.ArtifactId, EulaSha256 = result.EulaSha256, Text = result.Text, Accepted = result.Accepted, AcceptedAtUtc = result.AcceptedAtUtc };
+        var result = await Host(context).LanguageTermsAsync(new(request.Workspace, request.Server, request.Accept, request.ArtifactId, request.EulaSha256) { Answers = request.Answers }, context.CancellationToken);
+        return new LanguageTermsReply { State = result.State, Detail = result.Detail, Version = result.Version, ArtifactId = result.ArtifactId, EulaSha256 = result.EulaSha256, Text = result.Text, Accepted = result.Accepted, AcceptedAtUtc = result.AcceptedAtUtc, Questions = [.. result.Questions.Select(item => new LanguageTermsQuestionDto { Id = item.Id, Prompt = item.Prompt, Values = [.. item.Values], Labels = [.. item.Labels] })], Answers = result.Answers.ToDictionary(item => item.Key, item => item.Value) };
     });
 
     public ValueTask<LanguageReply> LanguageAsync(LanguageRequestDto request, CallContext context = default) => Execute(async () =>

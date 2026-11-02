@@ -128,10 +128,37 @@ public partial interface IProjectServices
 public sealed record LanguageServerOptions(bool AllowPath = false, string Command = "", string[]? Arguments = null);
 
 /// <summary>User-interface-only terms review/acceptance; acceptance is never a language-agent operation.</summary>
-public sealed record LanguageTermsRequest(string Workspace, string Server, bool Accept = false, string ArtifactId = "", string EulaSha256 = "");
+public sealed record LanguageTermsRequest(string Workspace, string Server, bool Accept = false, string ArtifactId = "", string EulaSha256 = "")
+{
+    /// <summary>The user's answers to the questions shown with the terms, by question id; required, and complete, to accept.</summary>
+    public IReadOnlyDictionary<string, string> Answers { get; init; } = new Dictionary<string, string>();
+}
+
+/// <summary>A single-choice question the provider asks next to its terms; the answer is one of <see cref="Values"/>.</summary>
+public sealed class LanguageTermsQuestion
+{
+    /// <summary>The question's id, the key of its answer.</summary>
+    public string Id { get; init; } = "";
+
+    /// <summary>What is asked.</summary>
+    public string Prompt { get; init; } = "";
+
+    /// <summary>The accepted answers, in display order.</summary>
+    public IReadOnlyList<string> Values { get; init; } = [];
+
+    /// <summary>The label for each of <see cref="Values"/>.</summary>
+    public IReadOnlyList<string> Labels { get; init; } = [];
+}
 
 /// <summary>The exact host installation's terms and recorded acknowledgement; acceptance does not establish entitlement.</summary>
-public sealed record LanguageTermsResult(string State, string Detail = "", string Version = "", string ArtifactId = "", string EulaSha256 = "", string Text = "", bool Accepted = false, string AcceptedAtUtc = "");
+public sealed record LanguageTermsResult(string State, string Detail = "", string Version = "", string ArtifactId = "", string EulaSha256 = "", string Text = "", bool Accepted = false, string AcceptedAtUtc = "")
+{
+    /// <summary>The questions to answer with the terms.</summary>
+    public IReadOnlyList<LanguageTermsQuestion> Questions { get; init; } = [];
+
+    /// <summary>The recorded answers when accepted, otherwise the user's earlier answers to offer again; by question id.</summary>
+    public IReadOnlyDictionary<string, string> Answers { get; init; } = new Dictionary<string, string>();
+}
 
 public partial interface IProjectServices
 {

@@ -932,3 +932,17 @@ SharpRail.Plugins.Api.Host.ILanguageServerSession.SetState(string? state) -> voi
 SharpRail.Plugins.Api.Host.ILanguageServerSession.SetUnavailable(string? reason) -> void
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ActionAsync.get -> System.Func<SharpRail.Plugins.Api.Host.ILanguageServerSession!, string!, System.Text.Json.Nodes.JsonNode?, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonNode?>!>?
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ActionAsync.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Questions.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.LanguageServerQuestion!>!
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Questions.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Plugins.Api.Host.LanguageServerTerms.Answers.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerQuestion
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.LanguageServerQuestion() -> void
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.Id.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.Id.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.Prompt.get -> string!
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.Prompt.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.Values.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.Values.init -> void
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.Labels.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.LanguageServerQuestion.Labels.init -> void

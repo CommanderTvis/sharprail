@@ -12,6 +12,8 @@ namespace SharpRail.Checks;
 
 internal static class IntelliJTermsChecks
 {
+    internal static readonly Dictionary<string, string> Answers = new() { ["region"] = "europe", ["dataSharing"] = "none" };
+
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
 
     internal static string Installation(string root)
@@ -31,11 +33,19 @@ internal static class IntelliJTermsChecks
         var review = await host.LanguageTermsAsync(request);
         Require(review.State == "requiresAcceptance" && !review.Accepted && review.Text.Contains("\r\n", StringComparison.Ordinal) &&
             review.EulaSha256 == IntelliJDistribution.EulaHash(await File.ReadAllBytesAsync(Path.Combine(install, "EULA.txt"))), "Review changed exact terms or preaccepted them.");
+        Require(review.Questions.Select(question => question.Id).SequenceEqual(["region", "dataSharing"]) && review.Answers.Count == 0, "Region and data-sharing questions were not offered with the terms.");
         try { await host.LanguageTermsAsync(request with { Accept = true }); throw new InvalidOperationException("Acceptance did not require reviewed identities."); }
         catch (ArgumentException) { }
         catch (RpcException) when (remote) { }
-        var accepted = await host.LanguageTermsAsync(request with { Accept = true, ArtifactId = review.ArtifactId, EulaSha256 = review.EulaSha256 });
+        try { await host.LanguageTermsAsync(request with { Accept = true, ArtifactId = review.ArtifactId, EulaSha256 = review.EulaSha256, Answers = new Dictionary<string, string> { ["region"] = "europe" } }); throw new InvalidOperationException("Acceptance did not require every answer."); }
+        catch (ArgumentException) { }
+        catch (RpcException) when (remote) { }
+        try { await host.LanguageTermsAsync(request with { Accept = true, ArtifactId = review.ArtifactId, EulaSha256 = review.EulaSha256, Answers = new Dictionary<string, string> { ["region"] = "atlantis", ["dataSharing"] = "none" } }); throw new InvalidOperationException("Acceptance took an answer that was not offered."); }
+        catch (ArgumentException) { }
+        catch (RpcException) when (remote) { }
+        var accepted = await host.LanguageTermsAsync(request with { Accept = true, Answers = Answers, ArtifactId = review.ArtifactId, EulaSha256 = review.EulaSha256 });
         Require(accepted.Accepted && accepted.State == "accepted" && accepted.AcceptedAtUtc.Length > 0, "Explicit synthetic agreement acceptance was not recorded.");
+        Require(accepted.Answers["region"] == "europe" && accepted.Answers["dataSharing"] == "none", "The recorded answers were not returned.");
         var reopened = new HostStateStore(Path.Combine(workspace, ".tools", "state"));
         try
         {
@@ -47,14 +57,14 @@ internal static class IntelliJTermsChecks
         var recordFile = Path.Combine(workspace, ".tools", "state", "language", "agreements", "intellij", accepted.ArtifactId + ".json");
         await File.WriteAllTextAsync(recordFile, "invalid record");
         Require(!(await host.LanguageTermsAsync(request)).Accepted, "A corrupted record counted as acceptance.");
-        accepted = await host.LanguageTermsAsync(request with { Accept = true, ArtifactId = review.ArtifactId, EulaSha256 = review.EulaSha256 });
+        accepted = await host.LanguageTermsAsync(request with { Accept = true, Answers = Answers, ArtifactId = review.ArtifactId, EulaSha256 = review.EulaSha256 });
         Require(accepted.Accepted, "Explicit acceptance did not recover a corrupted record.");
         Require((await host.LanguageTermsAsync(request)).Accepted, "The accepted installation was not ready for an explicit user start.");
         await File.AppendAllTextAsync(Path.Combine(install, "EULA.txt"), "\nChanged fixture terms.");
-        var changed = await host.LanguageTermsAsync(request with { Accept = true, ArtifactId = review.ArtifactId, EulaSha256 = review.EulaSha256 });
+        var changed = await host.LanguageTermsAsync(request with { Accept = true, Answers = Answers, ArtifactId = review.ArtifactId, EulaSha256 = review.EulaSha256 });
         Require(changed.State == "changed" && !changed.Accepted && changed.ArtifactId != review.ArtifactId && changed.EulaSha256 != review.EulaSha256,
             "Changed terms reused an earlier acknowledgement.");
-        accepted = await host.LanguageTermsAsync(request with { Accept = true, ArtifactId = changed.ArtifactId, EulaSha256 = changed.EulaSha256 });
+        accepted = await host.LanguageTermsAsync(request with { Accept = true, Answers = Answers, ArtifactId = changed.ArtifactId, EulaSha256 = changed.EulaSha256 });
         Require(accepted.Accepted, "Changed synthetic terms could not be explicitly acknowledged.");
         await File.AppendAllTextAsync(Path.Combine(install, "bin", "intellij-server"), "changed binary");
         var artifact = await host.LanguageTermsAsync(request);
@@ -62,10 +72,11 @@ internal static class IntelliJTermsChecks
         await File.WriteAllTextAsync(Path.Combine(install, "product-info.json"), """{"productCode":"ILS","buildNumber":"fixture-2"}""");
         var version = await host.LanguageTermsAsync(request);
         Require(version.Version == "fixture-2" && !version.Accepted && version.ArtifactId != artifact.ArtifactId, "A new build inherited acceptance.");
+        Require(version.Answers["region"] == "europe" && version.Answers["dataSharing"] == "none", "A new build did not offer the user's earlier answers.");
         var records = Path.Combine(workspace, ".tools", "state", "language", "agreements", "intellij");
         var blockedRecord = Path.Combine(records, version.ArtifactId + ".json");
         Directory.CreateDirectory(blockedRecord);
-        var failed = await host.LanguageTermsAsync(request with { Accept = true, ArtifactId = version.ArtifactId, EulaSha256 = version.EulaSha256 });
+        var failed = await host.LanguageTermsAsync(request with { Accept = true, Answers = Answers, ArtifactId = version.ArtifactId, EulaSha256 = version.EulaSha256 });
         Require(failed.State == "unavailable" && !failed.Accepted && !Directory.EnumerateFiles(records, "*.partial-*").Any(), "Failed atomic acceptance left a usable record or temporary file.");
         Directory.Delete(blockedRecord);
         try { await host.LanguageAsync(new(workspace, Operation: "acceptEula", Server: "intellij")); throw new InvalidOperationException("Agent language operation accepted terms."); }

@@ -581,7 +581,30 @@ public sealed record LanguageServerSource(string Text, string Language);
 /// <param name="ArtifactId">A fingerprint of the whole installation.</param>
 /// <param name="Text">The terms' text.</param>
 /// <param name="TextSha256">The lowercase hex SHA-256 of the terms' bytes.</param>
-public sealed record LanguageServerTerms(string Installation, string Version, string ArtifactId, string Text, string TextSha256);
+public sealed record LanguageServerTerms(string Installation, string Version, string ArtifactId, string Text, string TextSha256)
+{
+    /// <summary>Questions the user answers next to the terms (such as region or data sharing); acceptance records the answers and is asked again when a question is added.</summary>
+    public IReadOnlyList<LanguageServerQuestion> Questions { get; init; } = [];
+
+    /// <summary>The recorded answers by question id, set by the host in <see cref="ILanguageServerInstallation.AcceptedTerms"/>; empty while reviewing.</summary>
+    public IReadOnlyDictionary<string, string> Answers { get; init; } = new Dictionary<string, string>();
+}
+
+/// <summary>A single-choice question shown with a server's terms (H21): the answer is one of <see cref="Values"/>.</summary>
+public sealed class LanguageServerQuestion
+{
+    /// <summary>The question's id, the key of its answer.</summary>
+    public required string Id { get; init; }
+
+    /// <summary>What is asked.</summary>
+    public required string Prompt { get; init; }
+
+    /// <summary>The accepted answers, in display order.</summary>
+    public required IReadOnlyList<string> Values { get; init; }
+
+    /// <summary>The label shown for each of <see cref="Values"/>, in the same order.</summary>
+    public required IReadOnlyList<string> Labels { get; init; }
+}
 
 /// <summary>Thrown by a provider whose server build the vendor refused; the host shows <see cref="LanguageServerSpec.ExpiredDetail"/>.</summary>
 /// <param name="message">What happened.</param>

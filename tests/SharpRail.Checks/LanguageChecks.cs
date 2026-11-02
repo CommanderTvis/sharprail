@@ -1389,7 +1389,10 @@ internal static class LanguageChecks
             termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.LanguageTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.FindControl<CheckBox>("TermsConsent")!.IsEnabled);
             termsWindow.FindControl<CheckBox>("TermsConsent")!.IsChecked = true;
-            Require(termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled, "Explicit EULA acknowledgement did not enable Accept.");
+            var questionBoxes = termsWindow.FindControl<StackPanel>("TermsQuestions")!.Children.OfType<ComboBox>().ToArray();
+            Require(questionBoxes.Length == 2 && questionBoxes.All(box => box.SelectedIndex < 0) && !termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled, "Accept was enabled before the region and data-sharing questions were answered.");
+            questionBoxes[0].SelectedIndex = 0; questionBoxes[1].SelectedIndex = 2;
+            Require(termsWindow.FindControl<Button>("AcceptTerms")!.IsEnabled, "Explicit EULA acknowledgement with answers did not enable Accept.");
             File.AppendAllText(Path.Combine(termsInstallation, "EULA.txt"), "\nChanged while reviewing.");
             termsWindow.FindControl<Button>("AcceptTerms")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => termsWindow.FindControl<TextBox>("TermsText")!.Text?.Contains("Changed while reviewing", StringComparison.Ordinal) == true);

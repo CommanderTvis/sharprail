@@ -76,7 +76,7 @@ internal static class IntelliJChecks
         await host.LanguageAsync(new(workspace, Operation: "configure", Server: "intellij", Configuration: JsonSerializer.Serialize(new { useForJavaAndKotlin = true, installationPath = root })));
         var review = await host.LanguageTermsAsync(new(workspace, "intellij"));
         Require(!review.Accepted, "A new fixture installation inherited acceptance.");
-        await host.LanguageTermsAsync(new(workspace, "intellij", true, review.ArtifactId, review.EulaSha256));
+        await host.LanguageTermsAsync(new(workspace, "intellij", true, review.ArtifactId, review.EulaSha256) { Answers = IntelliJTermsChecks.Answers });
         async Task<LanguageResult> Ready(LanguageRequest request)
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
@@ -193,11 +193,12 @@ internal static class IntelliJChecks
             try { IntelliJDistribution.Launch(launching); throw new InvalidOperationException("Launch construction bypassed explicit acknowledgement."); }
             catch (IOException) { }
             var review = await LanguageTerms.ReviewAsync(agreementStore, server, launching, new("/workspace", "intellij"), default);
-            await LanguageTerms.ReviewAsync(agreementStore, server, launching, new("/workspace", "intellij", true, review.ArtifactId, review.EulaSha256), default);
+            await LanguageTerms.ReviewAsync(agreementStore, server, launching, new("/workspace", "intellij", true, review.ArtifactId, review.EulaSha256) { Answers = new Dictionary<string, string> { ["region"] = "apac", ["dataSharing"] = "anonymous" } }, default);
             var accepted = await IntelliJTerms.ReadAsync(install, default);
             Require(LanguageTerms.Accepted(agreementStore, "intellij", accepted), "Explicit acknowledgement was not recorded for the exact artifact.");
-            launching.AcceptedTerms = accepted;
+            launching.AcceptedTerms = accepted with { Answers = LanguageTerms.AnswersFor(agreementStore, "intellij", accepted) };
             var start = IntelliJDistribution.Launch(launching);
+            Require(start.Environment["INTELLIJ_REGION"] == "apac" && start.Environment["INTELLIJ_DATA_SHARING"] == "anonymous", "The user's region and data-sharing answers did not reach the launch.");
             Require(start.Arguments.SequenceEqual(new[] { "--stdio", "--system-path", launching.SessionDirectory, "--eula", terms[..16] }), "Public IntelliJ launch protocol differs.");
             Require(start.Environment.TryGetValue("IJ_LAUNCHER_DEBUG", out var debug) && debug is null, "Inherited launcher debugging corrupts stdio.");
             var directories = new LanguageServers(Path.Combine(root, "directories"));

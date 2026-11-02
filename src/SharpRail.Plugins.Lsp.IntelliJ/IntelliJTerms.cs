@@ -10,6 +10,28 @@ namespace SharpRail.Plugins.Lsp.IntelliJ;
 /// <summary>Reads an IntelliJ installation's EULA and fingerprints the whole installation, for the host's terms review.</summary>
 internal static class IntelliJTerms
 {
+    internal const string Region = "region";
+    internal const string DataSharing = "dataSharing";
+
+    /// <summary>The questions JetBrains' clients ask before the first start; the server refuses any region or data-sharing value it does not know.</summary>
+    internal static readonly IReadOnlyList<LanguageServerQuestion> Questions =
+    [
+        new()
+        {
+            Id = Region,
+            Prompt = "Region, for the product terms and data processing rules that apply to you",
+            Values = ["europe", "africa", "americas", "apac", "china", "middle_east", "oceania"],
+            Labels = ["Europe", "Africa", "Americas", "Asia (except Mainland China)", "Mainland China", "Middle East", "Oceania"]
+        },
+        new()
+        {
+            Id = DataSharing,
+            Prompt = "Usage statistics sent to JetBrains (see jetbrains.com/legal/docs/terms/product_data_collection)",
+            Values = ["full", "anonymous", "none"],
+            Labels = ["Send detailed statistics", "Send anonymous statistics", "Don't send"]
+        }
+    ];
+
     internal static async Task<LanguageServerTerms> ReadAsync(string installation, CancellationToken token)
     {
         if (!Path.IsPathFullyQualified(installation) || !Directory.Exists(installation))
@@ -31,7 +53,7 @@ internal static class IntelliJTerms
         var currentProduct = await ReadAsync(installation, "product-info.json", 1024 * 1024, token);
         if (!productBytes.AsSpan().SequenceEqual(currentProduct))
             throw new IOException("The IntelliJ build changed while it was being read. Review it again.");
-        return new(installation, version, artifact, text, eulaHash);
+        return new(installation, version, artifact, text, eulaHash) { Questions = Questions };
     }
 
     private static async Task<byte[]> ReadAsync(string root, string name, int limit, CancellationToken token)
