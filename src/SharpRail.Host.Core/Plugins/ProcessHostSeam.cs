@@ -16,7 +16,7 @@ internal sealed class ProcessHostSeam(HostStateStore state) : IProcessHost
 {
     private OwnedProcesses? Owned => state.Terminals?.Owned;
 
-    public IReadOnlyList<(int Pid, int ParentPid, string Command)> Table() => [.. ProcessTable.Read().Select(row => (row.Pid, row.Ppid, row.Arguments))];
+    public IReadOnlyList<(int Pid, int ParentPid, string Command, TimeSpan? Elapsed)> Table() => [.. ProcessTable.Read().Select(row => (row.Pid, row.Ppid, row.Arguments, row.Elapsed))];
 
     public (TimeSpan Cpu, long MemoryBytes)? Usage(int pid)
     {

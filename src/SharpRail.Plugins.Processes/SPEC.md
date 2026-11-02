@@ -52,8 +52,7 @@ function and a `ProcessHistory`. Three top groups, in this order, always present
 - AI agents and daemons: one row per terminal that carries an agent record. The row is the shallowest descendant of the terminal's shell whose command names the agent
   (`claude`, `codex`, `omp`, looking through an interpreter in the first two tokens), else the shell. Under it hangs every process forked from the agent (agent or not, any depth),
   each nested under the process that forked it, and every process the terminal reported with `owned_process_report`, named by its description. Each pid appears once.
-- Spawned agents: for a terminal without a recognised agent, a parent row "of Terminal · tab 2" with the agent processes below the shell (nested under the nearest one above) and
-  the processes it reported. A terminal with an agent has no row here: its processes are under the agent row.
+- Spawned processes: for a terminal without a recognised agent, a parent row "of Terminal · tab 2" below which hang, nested under the process that forked them, the processes below the shell that have been running at least 10 seconds (`ProcessModel.LongRunning`; a dev server, a watcher, a build; the tooltip adds "up 2m"), any agent process below it whatever its age, and the processes the terminal reported. Commands that come and go in under 10 seconds are not listed, and neither is anything when the system gives no elapsed time (Windows). A terminal with an agent has no row here: its processes are under the agent row.
 
 A group, workspace or parent row shows the sum of everything under it; a process row shows itself plus what is nested below it. The total is the sum of the three groups.
 When the rows of a group come from more than one workspace they sit under collapsible workspace rows labelled with the workspace folder name. Tab labels count the host's terminals

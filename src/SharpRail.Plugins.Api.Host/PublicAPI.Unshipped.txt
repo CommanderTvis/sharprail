@@ -911,7 +911,7 @@ SharpRail.Plugins.Api.Host.IProcessHost.ReleaseOwned(SharpRail.Plugins.Api.Termi
 SharpRail.Plugins.Api.Host.IProcessHost.ReportOwned(SharpRail.Plugins.Api.TerminalRef! terminal, int pid, string? description) -> string!
 SharpRail.Plugins.Api.Host.IProcessHost.StopLanguageServerAsync(string! workspace, string! serverId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 SharpRail.Plugins.Api.Host.IProcessHost.StopProcessAsync(int pid, string! command, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-SharpRail.Plugins.Api.Host.IProcessHost.Table() -> System.Collections.Generic.IReadOnlyList<(int Pid, int ParentPid, string! Command)>!
+SharpRail.Plugins.Api.Host.IProcessHost.Table() -> System.Collections.Generic.IReadOnlyList<(int Pid, int ParentPid, string! Command, System.TimeSpan? Elapsed)>!
 SharpRail.Plugins.Api.Host.IProcessHost.Usage(int pid) -> (System.TimeSpan Cpu, long MemoryBytes)?
 SharpRail.Plugins.Api.Host.IPluginHostContext.ShellEnvironmentAsync(SharpRail.Plugins.Api.TerminalRef! terminal, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
 SharpRail.Plugins.Api.Host.LanguageServerSpec.ExperimentalClientCapabilities.get -> System.Collections.Generic.IReadOnlyList<string!>!

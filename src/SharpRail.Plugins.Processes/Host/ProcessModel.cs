@@ -10,7 +10,7 @@ internal sealed record TerminalInfo(TerminalRef Terminal, int? ShellPid, string?
 /// <summary>Everything one snapshot is built from; the host fills it from the real sources and checks from fakes.</summary>
 internal sealed record ProcessInputs(
     IReadOnlyList<TerminalInfo> Terminals,
-    IReadOnlyList<(int Pid, int ParentPid, string Command)> Table,
+    IReadOnlyList<(int Pid, int ParentPid, string Command, TimeSpan? Elapsed)> Table,
     IReadOnlyList<(string Workspace, string ServerId, int Pid)> Servers,
     IReadOnlyList<(TerminalRef Terminal, int Pid, string Description)> Owned,
     Func<string, string>? ServerName = null);
@@ -34,10 +34,13 @@ internal sealed class ProcessHistory
 }
 
 /// <summary>
-/// The tree (spec, Tree model): Language servers, AI agents and daemons, Spawned agents. Pure: it reads only its inputs and the usage it is given.
+/// The tree (spec, Tree model): Language servers, AI agents and daemons, Spawned processes. Pure: it reads only its inputs and the usage it is given.
 /// </summary>
 internal static class ProcessModel
 {
+    /// <summary>How long a process of a terminal without an agent must have been running to be listed; shorter ones are commands that come and go.</summary>
+    internal static readonly TimeSpan LongRunning = TimeSpan.FromSeconds(10);
+
     internal const string LanguageGroup = "group:language", AgentGroup = "group:agents", SpawnedGroup = "group:spawned";
     private static readonly string[] AgentExecutables = ["claude", "codex", "omp"];
 
@@ -69,7 +72,7 @@ internal static class ProcessModel
         }
 
         var agents = new Row(AgentGroup, "group", "AI agents and daemons", "", null, null, null);
-        var spawned = new Row(SpawnedGroup, "group", "Spawned agents", "", null, null, null);
+        var spawned = new Row(SpawnedGroup, "group", "Spawned processes", "", null, null, null);
         var ownedByTerminal = inputs.Owned.ToLookup(item => item.Terminal);
         foreach (var terminal in inputs.Terminals)
         {
@@ -98,8 +101,11 @@ internal static class ProcessModel
             var reported = ownedByTerminal[terminal.Terminal].Select(item => item.Pid).ToHashSet();
             foreach (var pid in subtree.OrderBy(pid => pid))
             {
-                if (reported.Contains(pid) || !table.TryGetValue(pid, out var row) || root is null && ExecutableOf(row.Command) is null || !claimed.Add(pid)) continue;
-                var node = new Row($"spawn:{pid}", "spawned", Short(row.Command), Describe(pid, workspaceLabel(workspace), row.Command), pid, new(pid, row.Command, null, null), workspace);
+                if (reported.Contains(pid) || !table.TryGetValue(pid, out var row)) continue;
+                // Without an agent, an agent process or anything that has been running a while is listed; short-lived commands are not.
+                if (root is null && ExecutableOf(row.Command) is null && !(row.Elapsed >= LongRunning)) continue;
+                if (!claimed.Add(pid)) continue;
+                var node = new Row($"spawn:{pid}", "spawned", Short(row.Command), Describe(pid, workspaceLabel(workspace), row.Command, row.Elapsed), pid, new(pid, row.Command, null, null), workspace);
                 var above = Ancestors(table, pid).FirstOrDefault(nested.ContainsKey);
                 (above != 0 ? nested[above] : holder).Children.Add(node);
                 nested[pid] = node;
@@ -169,8 +175,10 @@ internal static class ProcessModel
     /// <summary>The longest command line a tooltip shows; an agent's launch line can run to kilobytes of injected instructions.</summary>
     internal const int DetailCommandLimit = 160;
 
-    private static string Describe(int pid, string where, string command) =>
-        string.Join(" · ", new[] { "pid " + pid.ToString(CultureInfo.InvariantCulture), where, Shorten(command) }.Where(part => part.Length > 0));
+    private static string Describe(int pid, string where, string command, TimeSpan? elapsed = null) =>
+        string.Join(" · ", new[] { "pid " + pid.ToString(CultureInfo.InvariantCulture), where, elapsed is { } age ? "up " + Uptime(age) : "", Shorten(command) }.Where(part => part.Length > 0));
+
+    private static string Uptime(TimeSpan age) => age.TotalDays >= 1 ? $"{(int)age.TotalDays}d {age.Hours}h" : age.TotalHours >= 1 ? $"{(int)age.TotalHours}h {age.Minutes}m" : age.TotalMinutes >= 1 ? $"{(int)age.TotalMinutes}m" : $"{(int)age.TotalSeconds}s";
 
     private static string Shorten(string command)
     {
@@ -220,7 +228,7 @@ internal static class ProcessModel
     }
 
     // The parent chain of a pid, nearest first, ending where the table does.
-    private static IEnumerable<int> Ancestors(Dictionary<int, (int Pid, int ParentPid, string Command)> table, int pid)
+    private static IEnumerable<int> Ancestors(Dictionary<int, (int Pid, int ParentPid, string Command, TimeSpan? Elapsed)> table, int pid)
     {
         var seen = new HashSet<int> { pid };
         while (table.TryGetValue(pid, out var row) && seen.Add(row.ParentPid)) { pid = row.ParentPid; yield return pid; }

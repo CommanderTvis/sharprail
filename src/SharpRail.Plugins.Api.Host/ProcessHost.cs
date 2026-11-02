@@ -8,9 +8,9 @@ namespace SharpRail.Plugins.Api.Host;
 /// </summary>
 public interface IProcessHost
 {
-    /// <summary>Every live process of the machine: pid, parent pid and command line. It launches the process lister: call it once per snapshot.</summary>
+    /// <summary>Every live process of the machine: pid, parent pid, command line and how long it has been running (null where the system does not say). It launches the process lister: call it once per snapshot.</summary>
     /// <returns>The rows; empty when the table cannot be read.</returns>
-    IReadOnlyList<(int Pid, int ParentPid, string Command)> Table();
+    IReadOnlyList<(int Pid, int ParentPid, string Command, TimeSpan? Elapsed)> Table();
 
     /// <summary>One process's total processor time and memory (macOS physical footprint, elsewhere working set); null when it is gone.</summary>
     /// <param name="pid">The process id.</param>

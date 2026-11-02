@@ -47,12 +47,14 @@ internal static class ProcessesChecks
     {
         var terminals = new List<TerminalInfo> { new(Tab1, 10, "claude-code", "tab 1"), new(Tab2, 20, null, "tab 2") };
         if (secondWorkspace) terminals.Add(new(Tab3, 40, "codex", "tab 1"));
-        List<(int, int, string)> table =
+        List<(int, int, string, TimeSpan?)> table =
         [
-            (10, 1, "-zsh"), (11, 10, "node /opt/bin/claude --resume"), (12, 11, "claude -p fix chat"), (13, 12, "codex exec lint"), (14, 11, "sleep 600"), (15, 13, "make build"),
-            (20, 1, "-zsh"), (21, 20, "vite --port 5173"), (30, 1, "csharp-ls"), (31, 1, "typescript-language-server --stdio")
+            (10, 1, "-zsh", null), (11, 10, "node /opt/bin/claude --resume", null), (12, 11, "claude -p fix chat", null), (13, 12, "codex exec lint", null), (14, 11, "sleep 600", null), (15, 13, "make build", null),
+            (20, 1, "-zsh", null), (21, 20, "vite --port 5173", null), (30, 1, "csharp-ls", null), (31, 1, "typescript-language-server --stdio", null),
+            // A plain terminal's long-running dev server with its child, and a command that has only just started.
+            (22, 20, "npm run dev", TimeSpan.FromMinutes(2)), (23, 22, "node vite", TimeSpan.FromMinutes(2)), (24, 20, "grep x", TimeSpan.FromSeconds(1))
         ];
-        if (secondWorkspace) table.AddRange([(40, 1, "-zsh"), (41, 40, "codex --model x"), (32, 1, "pyright-langserver")]);
+        if (secondWorkspace) table.AddRange([(40, 1, "-zsh", null), (41, 40, "codex --model x", null), (32, 1, "pyright-langserver", null)]);
         List<(string, string, int)> servers = [("/w/alpha", "csharp", 30), ("/w/alpha", "typescript", 31)];
         if (secondWorkspace) servers.Add(("/w/beta", "python", 32));
         return new FakeSource
@@ -85,11 +87,11 @@ internal static class ProcessesChecks
     {
         var snapshot = Snapshot(Fixture(false));
         Require(snapshot.Groups.Select(group => group.Id).SequenceEqual([ProcessModel.LanguageGroup, ProcessModel.AgentGroup, ProcessModel.SpawnedGroup]), "The top groups must be Language servers, AI agents and daemons, Spawned agents.");
-        Require(snapshot.Groups.Select(group => group.Label).SequenceEqual(["Language servers", "AI agents and daemons", "Spawned agents"]), "The group labels changed.");
+        Require(snapshot.Groups.Select(group => group.Label).SequenceEqual(["Language servers", "AI agents and daemons", "Spawned processes"]), "The group labels changed.");
         var languages = snapshot.Groups[0];
         Require(languages.Children.Select(node => node.Label).SequenceEqual(["C# (Roslyn)", "typescript"]), "Language servers must list one row per running server under the name Code Intelligence shows, or the id when unnamed.");
         Require(languages.Cpu == 61 && languages.MemoryBytes == 61_000_000, "A group's values must be the sum of its rows.");
-        var longLine = Snapshot(new FakeSource { Inputs = new([], [(40, 1, "codex -c " + new string('x', 5000))], [("/w/alpha", "csharp", 40)], []) });
+        var longLine = Snapshot(new FakeSource { Inputs = new([], [(40, 1, "codex -c " + new string('x', 5000), null)], [("/w/alpha", "csharp", 40)], []) });
         Require(longLine.Groups[0].Children.Single().Detail.Length < ProcessModel.DetailCommandLimit + 60, "A tooltip must not carry a whole launch line.");
         var agent = Find(snapshot.Groups, "agent:/w/alpha\0t1");
         Require(agent.Label == "Claude Code" && agent.Pid == 11 && agent.Detail.Contains("pid 11") && agent.Detail.Contains("tab 1"), "The agent row is the agent process below the shell, with pid and tab in its tooltip.");
@@ -99,8 +101,12 @@ internal static class ProcessesChecks
         Require(child.Label == "claude -p fix chat" && child.Children.Single().Id == "spawn:13", "A process nests under the process that forked it, whatever its depth.");
         Require(Find(child.Children, "spawn:13").Children.Single() is { Id: "spawn:15", Label: "make build" }, "Every forked process is listed under the agent, not only agents.");
         Require(agent.Children.Select(node => node.Id).SequenceEqual(["spawn:12", "owned:14"]) && Find(agent.Children, "owned:14").Label == "dev watcher", "A reported process hangs under its agent, named by its description.");
-        Require(Find(snapshot.Groups, "parent:/w/alpha\0t2").Label == "of Terminal · tab 2", "A terminal without an agent still names the starter of what it owns.");
-        Require(snapshot.Groups[1].Cpu == 11 + 12 + 13 + 14 + 15 && snapshot.Groups[2].Cpu == 21 && snapshot.TotalCpu == snapshot.Groups.Sum(group => group.Cpu) && snapshot.TotalMemoryBytes == snapshot.Groups.Sum(group => group.MemoryBytes), "The total is the sum of the groups and no process is counted twice.");
+        var plain = Find(snapshot.Groups, "parent:/w/alpha\0t2");
+        Require(plain.Label == "of Terminal · tab 2", "A terminal without an agent still names the starter of what it owns.");
+        var server = Find(plain.Children, "spawn:22");
+        Require(server.Label == "npm run dev" && server.Detail.Contains("up 2m") && server.Children.Single().Id == "spawn:23" && TryFind(snapshot.Groups, "spawn:24") is null,
+            "A plain terminal lists what has been running a while, nested under its parent, and not a command that has only just started.");
+        Require(snapshot.Groups[1].Cpu == 11 + 12 + 13 + 14 + 15 && snapshot.Groups[2].Cpu == 21 + 22 + 23 && snapshot.TotalCpu == snapshot.Groups.Sum(group => group.Cpu) && snapshot.TotalMemoryBytes == snapshot.Groups.Sum(group => group.MemoryBytes), "The total is the sum of the groups and no process is counted twice.");
         Require(Find(snapshot.Groups, "spawn:12").Cpu == 12 + 13 + 15, "A row includes the spawned agents nested under it.");
 
         var two = Snapshot(Fixture(true));
@@ -155,7 +161,7 @@ internal static class ProcessesChecks
         Require(await ownOnly.StopAsync("spawn:12", default) == 3 && source.Stopped.Order().SequenceEqual(["pid:12", "pid:13", "pid:15"]), "A child row named directly still stops itself and what it forked.");
         source.Stopped.Clear();
         sampler.Sample();
-        Require(await sampler.StopAsync(ProcessModel.SpawnedGroup, default) == 1 && source.Stopped.Single() == "pid:21", "Stop group on spawned agents stops every row under it.");
+        Require(await sampler.StopAsync(ProcessModel.SpawnedGroup, default) == 3 && source.Stopped.Order().SequenceEqual(["pid:21", "pid:22", "pid:23"]), "Stop group on spawned processes stops every row under it.");
         source.Stopped.Clear();
         Require(await sampler.StopAsync("pid:1", default) == 0 && await sampler.StopAsync("spawn:999", default) == 0 && source.Stopped.Count == 0, "An id the snapshot does not hold stops nothing.");
     }
@@ -170,7 +176,7 @@ internal static class ProcessesChecks
         [
             new(ProcessModel.LanguageGroup, "group", "Language servers", "", null, round, 5, [round], [Leaf("lang:a", round), Leaf("lang:b", round)], true),
             new(ProcessModel.AgentGroup, "group", "AI agents and daemons", "", null, round, 5, [round], [], false),
-            new(ProcessModel.SpawnedGroup, "group", "Spawned agents", "", null, round, 5, [round], spawned, true)
+            new(ProcessModel.SpawnedGroup, "group", "Spawned processes", "", null, round, 5, [round], spawned, true)
         ];
         return new(round, groups, round, 15);
     }
@@ -249,7 +255,7 @@ internal static class ProcessesChecks
         ProcessSnapshot Mixed() => new(1,
         [
             new(ProcessModel.LanguageGroup, "group", "Language servers", "", null, 0, 0, [], [], false),
-            new(ProcessModel.SpawnedGroup, "group", "Spawned agents", "", null, 70, 3_000_000, [70], [.. mine, .. other], true)
+            new(ProcessModel.SpawnedGroup, "group", "Spawned processes", "", null, 70, 3_000_000, [70], [.. mine, .. other], true)
         ], 70, 3_000_000);
         var filtered = ProcessesPanel.Filter(Mixed(), new HashSet<string> { "/p/a", "/p/a2" });
         Require(filtered.TotalCpu == 30 && filtered.TotalMemoryBytes == 2_000_000 && filtered.Groups[1].Children.Count == 2 && filtered.Groups[1].Cpu == 30 && filtered.Groups[1].Trend.Count == 3,
