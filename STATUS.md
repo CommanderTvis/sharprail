@@ -163,6 +163,8 @@ fully private vendor state is not established and that scope decision remains pe
 
 ## Upstream tracking
 
+> Ended 2026-11-02: SharpRail no longer tracks CommanderTvis/thinkrail or JetBrains/thinkrail and is the only maintained fork. Nothing below is synced or ported any more; it stays as history.
+
 SharpRail ports two ThinkRail lines, one per SharpRail branch. Both live in the checkout at
 `/Users/commandertvis/IdeaProjects/thinkrail`, which has one remote for each.
 
@@ -184,7 +186,7 @@ hash is gone, find the new base by title with `git log --format='%h %s'`.
 `main` mirrors that shape: the fork's general improvements land as one commit, the Plugin API as
 one commit, and each builtin plugin as its own commit.
 
-The `sync-upstream-specs` skill (`.claude/skills/sync-upstream-specs/SKILL.md`) pulls later
+The `sync-upstream-specs` skill (removed 2026-11-02) pulled later
 changes for the current branch and advances its synced commit.
 
 Synced commit (`main`): specs follow the fork's `30a81cab5` ("The fork describes itself: what it adds, how to
