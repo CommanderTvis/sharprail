@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
+using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
@@ -63,7 +64,8 @@ internal static class BrowserTransportChecks
                     await projects.SaveFileAsync(save, context);
                     throw new InvalidOperationException("A browser save overwrote an externally changed file.");
                 }
-                catch (RpcException error) when (error.StatusCode == StatusCode.FailedPrecondition) { }
+                // A stale save is refused as a precondition failure; the client channel raises it as the typed host failure.
+                catch (Exception error) when (error is RpcException { StatusCode: StatusCode.FailedPrecondition } or HostException { Code: HostErrorCode.FileChangedOnDisk }) { }
             }
             finally { File.Delete(savePath); }
             await using (var deadline = states.WatchAsync(new(), new CallContext(new CallOptions(new Metadata { { "authorization", "Bearer browser-check" } }, deadline: DateTime.UtcNow.AddSeconds(1)))).GetAsyncEnumerator())
