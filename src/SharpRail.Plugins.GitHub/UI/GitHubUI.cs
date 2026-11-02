@@ -12,6 +12,7 @@ public sealed class GitHubUI : PluginUIModule
     {
         context.RepoHostUI(new("Pull request", surface => new GitHubLocationItem(surface), surface => new GitHubReviewSection(surface)));
         context.SettingsSection(new("GitHub", "asset:github.svg", () => new GitHubSettingsPage(context)));
+        context.KeymapAction(new("OpenSettings", "Open GitHub settings", "GitHub", () => context.OpenSettings(UiPages.PluginSection(context.Id))));
         return null;
     }
 }

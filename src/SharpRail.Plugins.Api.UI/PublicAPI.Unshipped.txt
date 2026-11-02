@@ -1037,3 +1037,28 @@ override SharpRail.Plugins.Api.UI.RepoPullRequest.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.RepoPullRequest.ToString() -> string!
 static SharpRail.Plugins.Api.UI.RepoPullRequest.operator !=(SharpRail.Plugins.Api.UI.RepoPullRequest? left, SharpRail.Plugins.Api.UI.RepoPullRequest? right) -> bool
 static SharpRail.Plugins.Api.UI.RepoPullRequest.operator ==(SharpRail.Plugins.Api.UI.RepoPullRequest? left, SharpRail.Plugins.Api.UI.RepoPullRequest? right) -> bool
+SharpRail.Plugins.Api.UI.IPluginUIContext.KeymapAction(SharpRail.Plugins.Api.UI.KeymapActionRegistration! action) -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.KeymapActionRegistration!
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Deconstruct(out string! Id, out string! Title, out string! Group, out System.Action! Run) -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Enabled.get -> System.Func<bool>?
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Enabled.init -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Equals(SharpRail.Plugins.Api.UI.KeymapActionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Group.get -> string!
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Group.init -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Id.get -> string!
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Id.init -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.KeymapActionRegistration(string! Id, string! Title, string! Group, System.Action! Run) -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Mac.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Mac.init -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Other.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Other.init -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Run.get -> System.Action!
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Run.init -> void
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Title.get -> string!
+SharpRail.Plugins.Api.UI.KeymapActionRegistration.Title.init -> void
+override SharpRail.Plugins.Api.UI.KeymapActionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.KeymapActionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.KeymapActionRegistration.ToString() -> string!
+static SharpRail.Plugins.Api.UI.KeymapActionRegistration.operator !=(SharpRail.Plugins.Api.UI.KeymapActionRegistration? left, SharpRail.Plugins.Api.UI.KeymapActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.KeymapActionRegistration.operator ==(SharpRail.Plugins.Api.UI.KeymapActionRegistration? left, SharpRail.Plugins.Api.UI.KeymapActionRegistration? right) -> bool

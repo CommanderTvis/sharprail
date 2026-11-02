@@ -203,6 +203,22 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     {
         foreach (var entry in ShortcutCommands())
             if (entry.Shortcut.Matches(e) && entry.Enabled()) { entry.Run(); return true; }
+        return RunPluginShortcut(e);
+    }
+
+    /// <summary>A chord a plugin's keymap action owns, after the built-in commands: the first enabled match runs; a throwing action is logged, not fatal.</summary>
+    private bool RunPluginShortcut(KeyEventArgs e)
+    {
+        if (ActiveKeymap.Recording) return false;
+        var registry = workbench.PluginRegistry;
+        foreach (var row in registry.KeymapActions)
+        {
+            if (!registry.Active.Contains(row.PluginId) || !ActiveKeymap.Matches(SharpRail.Host.Abstractions.KeymapActions.PluginActionId(row.PluginId, row.Value.Id), e)) continue;
+            if (row.Value.Enabled is { } enabled && !enabled()) continue;
+            try { row.Value.Run(); }
+            catch (Exception error) when (error is not OperationCanceledException) { Console.Error.WriteLine($"Plugin {row.PluginId} keymap action {row.Value.Id} failed: {error.Message}"); }
+            return true;
+        }
         return false;
     }
 

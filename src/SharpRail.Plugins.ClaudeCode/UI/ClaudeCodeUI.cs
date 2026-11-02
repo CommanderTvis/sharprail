@@ -1,4 +1,5 @@
 using SharpRail.Plugins.Agent.UI;
+using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.ClaudeCode.UI.Chat;
 
@@ -53,6 +54,10 @@ public sealed class ClaudeCodeUI : PluginUIModule
                 return panel.Retarget(workspace);
             }
         });
+        context.KeymapAction(new("OpenConfig", "Open Claude Code configuration", "Claude Code", () =>
+        {
+            if (context.Host().ActiveWorkspaceId is { Length: > 0 } workspace) context.RevealTool(workspace, PluginIdentity.ToolId(context.Id, "config"));
+        }));
         context.Launcher(new("claude", "Claude Code", "asset:claude.svg", options =>
         {
             var settings = context.Settings<ClaudeCodeSettings>();

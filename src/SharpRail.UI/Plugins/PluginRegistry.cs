@@ -37,8 +37,9 @@ public enum PluginTables
     TerminalTabActions = 1 << 17,
     Documents = 1 << 18,
     RepoHostUis = 1 << 19,
+    KeymapActions = 1 << 20,
     Contributions = SideTools | SettingsSections | Companions | FileViewers | TabDecorators | Launchers | WorkspaceActions |
-        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections | HeaderItems | TerminalTabActions | Documents | RepoHostUis,
+        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections | HeaderItems | TerminalTabActions | Documents | RepoHostUis | KeymapActions,
     // Registrations whose result a predicate decides; Invalidate re-evaluates them.
     Predicates = Companions | TabDecorators | Launchers | FileIconSlots | DocumentLinkSlots
 }
@@ -72,6 +73,7 @@ public sealed class PluginRegistry
     public IReadOnlyList<PluginRow<Func<string, string, string?>>> DocumentLinkSlots { get; private set; } = [];
     public IReadOnlyList<PluginRow<FileActionRegistration>> FileActions { get; private set; } = [];
     public IReadOnlyList<PluginRow<TerminalTabActionRegistration>> TerminalTabActions { get; private set; } = [];
+    public IReadOnlyList<PluginRow<KeymapActionRegistration>> KeymapActions { get; private set; } = [];
     public IReadOnlyList<PluginRow<SlotSectionRegistration>> SlotSections { get; private set; } = [];
     public IReadOnlyList<PluginRow<HeaderItemRegistration>> HeaderItems { get; private set; } = [];
     public IReadOnlyList<PluginRow<RepoHostUIRegistration>> RepoHostUis { get; private set; } = [];
@@ -120,6 +122,7 @@ public sealed class PluginRegistry
     public void AddRepoHostUi(string pluginId, RepoHostUIRegistration value) { RepoHostUis = [.. RepoHostUis, new(pluginId, value)]; Raise(PluginTables.RepoHostUis); }
     public void AddHeaderItem(string pluginId, HeaderItemRegistration value) { HeaderItems = [.. HeaderItems, new(pluginId, value)]; Raise(PluginTables.HeaderItems); }
     public void AddTerminalTabAction(string pluginId, TerminalTabActionRegistration value) { TerminalTabActions = [.. TerminalTabActions, new(pluginId, value)]; Raise(PluginTables.TerminalTabActions); }
+    public void AddKeymapAction(string pluginId, KeymapActionRegistration value) { KeymapActions = [.. KeymapActions, new(pluginId, value)]; Raise(PluginTables.KeymapActions); }
     public void AddFileAction(string pluginId, FileActionRegistration value) { FileActions = [.. FileActions, new(pluginId, value)]; Raise(PluginTables.FileActions); }
 
     public void AddLaunchContributor(string pluginId, Func<string, AgentLaunchContribution?> value) { LaunchContributors = [.. LaunchContributors, new(pluginId, value)]; Raise(PluginTables.Predicates); }
@@ -173,11 +176,17 @@ public sealed class PluginRegistry
         SlotSections = Drop(SlotSections, row => row.PluginId, PluginTables.SlotSections);
         HeaderItems = Drop(HeaderItems, row => row.PluginId, PluginTables.HeaderItems);
         RepoHostUis = Drop(RepoHostUis, row => row.PluginId, PluginTables.RepoHostUis);
+        KeymapActions = Drop(KeymapActions, row => row.PluginId, PluginTables.KeymapActions);
         if (touched == PluginTables.None) return;
         if (touched.HasFlag(PluginTables.Launchers)) LauncherList = [.. Launchers.Select(row => row.Value)];
         ToolCatalog = BuildToolCatalog();
         Raise(touched);
     }
+
+    /// <summary>The keymap actions of the active plugins in registration order, as the keymap model sees them (id <c>pluginId:Id</c>, defaults per platform).</summary>
+    public IReadOnlyList<SharpRail.Host.Abstractions.KeymapAction> ActiveKeymapActions() =>
+        [.. KeymapActions.Where(row => active.Contains(row.PluginId)).Select(row => new SharpRail.Host.Abstractions.KeymapAction(
+            SharpRail.Host.Abstractions.KeymapActions.PluginActionId(row.PluginId, row.Value.Id), row.Value.Title, row.Value.Group, row.PluginId, Label(row.PluginId), row.Value.Mac, row.Value.Other))];
 
     /// <summary>Re-evaluates a plugin's predicates: readers of the predicate tables refresh what they render.</summary>
     public void Invalidate(string pluginId) => Raise(PluginTables.Predicates);

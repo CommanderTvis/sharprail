@@ -92,6 +92,10 @@ public sealed class CodexUI : PluginUIModule
 
         context.SettingsSection(new("Codex", CodexManifest.Icon, () => CodexSettingsSection.Create(context)));
         context.SideTool(new("config", workspace => CodexPanel.Create(context, workspace)) { Retarget = CodexPanel.Retarget });
+        context.KeymapAction(new("OpenConfig", "Open Codex configuration", "Codex", () =>
+        {
+            if (context.Host().ActiveWorkspaceId is { Length: > 0 } workspace) context.RevealTool(workspace, PluginIdentity.ToolId(context.Id, "config"));
+        }));
 
         context.Launcher(new AgentLauncher(CodexManifest.Id, "Codex", CodexManifest.Icon,
             options => LaunchLine(context, new(true, false)

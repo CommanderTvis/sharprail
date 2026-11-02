@@ -187,6 +187,27 @@ public sealed record TerminalTabActionRegistration(string Id, Func<TerminalTabRe
     public string? Icon { get; init; }
 }
 
+/// <summary>
+/// A command a plugin adds to the keymap (W29): it appears in Settings › Keymap under the plugin's group, can be bound and is
+/// conflict-checked like any built-in action, and runs when its chord is pressed in a workbench window. The keymap stores bindings under
+/// the id <c>pluginId:Id</c>; they stay in the presets while the plugin is disabled, but the action and its chords leave the live keymap.
+/// </summary>
+/// <param name="Id">The action's id within the plugin; stable across versions, because bindings are stored under it.</param>
+/// <param name="Title">The action's name as the keymap page shows it.</param>
+/// <param name="Group">The plugin's group name for the action (for example <c>Git</c>); the page lists a group under the plugin's own name and icon.</param>
+/// <param name="Run">Runs the action on the UI thread, from in-memory facts.</param>
+public sealed record KeymapActionRegistration(string Id, string Title, string Group, Action Run)
+{
+    /// <summary>The default chords on macOS in the IntelliJ preset, spelled <c>Mod+Shift+N</c> (<c>Mod</c> is Command); none leaves the action unbound. At most two.</summary>
+    public IReadOnlyList<string> Mac { get; init; } = [];
+
+    /// <summary>The default chords on every other platform (<c>Mod</c> is Control); none leaves the action unbound. At most two.</summary>
+    public IReadOnlyList<string> Other { get; init; } = [];
+
+    /// <summary>Whether the action applies now; when it returns <see langword="false"/> the chord is not consumed. Null means always.</summary>
+    public Func<bool>? Enabled { get; init; }
+}
+
 /// <summary>Registers a row shown alongside every terminal (W11).</summary>
 /// <param name="Create">Creates the row for one terminal's accessory handle.</param>
 public sealed record TerminalAccessoryRegistration(Func<ITerminalAccessoryApi, Control> Create)

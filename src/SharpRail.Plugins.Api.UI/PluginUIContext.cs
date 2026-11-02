@@ -204,6 +204,14 @@ public interface IPluginUIContext
     /// <param name="action">The item.</param>
     void TerminalTabAction(TerminalTabActionRegistration action);
 
+    /// <summary>
+    /// Contributes an action to the keymap (W29): listed in Settings › Keymap under the registration's group, bindable and
+    /// conflict-checked, with the registration's default chords in the IntelliJ preset. It leaves the live keymap when the plugin is
+    /// disabled; its stored bindings are kept for when the plugin is back.
+    /// </summary>
+    /// <param name="action">The action.</param>
+    void KeymapAction(KeymapActionRegistration action);
+
     /// <summary>Puts text on the clipboard of the active window and confirms with a transient notification (W26).</summary>
     /// <param name="text">The text to copy.</param>
     /// <param name="confirmation">The notification's text; <see langword="null"/> for none.</param>

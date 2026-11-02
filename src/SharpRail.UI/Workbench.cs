@@ -47,6 +47,8 @@ public sealed class Workbench : IDisposable
         AgentsChanged(state.Current, state.Current);
         LoadHighlighting(state.Current.Settings.CustomHighlighting);
         state.Start();
+        // The plugins' keymap actions join and leave the live keymap as plugins are enabled and disabled.
+        PluginRegistry.Changed += tables => { if ((tables & (PluginTables.KeymapActions | PluginTables.Active | PluginTables.Roster)) != 0) ActiveKeymap.SetPluginActions(PluginRegistry.ActiveKeymapActions()); };
         PluginLoader.Start();
         SharpRail.Scintilla.ScintillaEditor.TextSize = profile.Data.Preferences.CodeFontSize;
         SharpRail.Scintilla.ScintillaEditor.TextSizeChosen += RememberTextSize;

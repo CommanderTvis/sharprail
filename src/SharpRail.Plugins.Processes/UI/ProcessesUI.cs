@@ -1,3 +1,4 @@
+using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 
 namespace SharpRail.Plugins.Processes.UI;
@@ -10,7 +11,17 @@ public sealed class ProcessesUI : PluginUIModule
         var view = new ProcessesView { AllProjects = context.Settings<ProcessesSettings>().ShowAllProjects, Persist = value => _ = SaveAsync(context, value) };
         context.SideTool(new(ProcessesPlugin.Tool, workspace => new ProcessesPanel(context, workspace, view)));
         context.SettingsSection(new("Processes", ProcessesPlugin.Manifest.Icon, () => new ProcessesSettingsView(context)));
+        context.KeymapAction(new("OpenProcesses", "Open Processes", "Processes", () => Reveal(context, ProcessesPlugin.Tool))
+        {
+            Mac = ["Mod+Alt+Shift+P"],
+            Other = ["Mod+Alt+Shift+P"]
+        });
         return null;
+    }
+
+    private static void Reveal(IPluginUIContext context, string tool)
+    {
+        if (context.Host().ActiveWorkspaceId is { Length: > 0 } workspace) context.RevealTool(workspace, PluginIdentity.ToolId(context.Id, tool));
     }
 
     private static async Task SaveAsync(IPluginUIContext context, bool value)

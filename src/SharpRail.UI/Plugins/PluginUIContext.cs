@@ -241,6 +241,7 @@ internal sealed class PluginUIContext : IPluginUIContext
 
     public void FileAction(FileActionRegistration action) { Guard(); Registry.AddFileAction(Id, action); }
     public void TerminalTabAction(TerminalTabActionRegistration action) { Guard(); Registry.AddTerminalTabAction(Id, action); }
+    public void KeymapAction(KeymapActionRegistration action) { Guard(); Registry.AddKeymapAction(Id, action); }
     public void CopyText(string text, string? confirmation = null) => Workbench.ActiveWindow?.CopyText(text, confirmation);
 
     public void WorkspaceAction(WorkspaceActionRegistration action)

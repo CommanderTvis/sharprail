@@ -83,11 +83,21 @@ Swift run the SDK's own executable when it is allowed for that server.
 
 [Agents](agents.md) explains how the agent plugins, omp's profile and Air Gateway work.
 
+## Keyboard shortcuts from plugins
+
+A plugin can add actions to Settings › Keymap (`IPluginUIContext.KeymapAction`): each has an id within the plugin, a title, a
+group name of the plugin's choosing, optional default shortcuts for macOS and for other platforms, and the command to run. They
+appear under Plugins in the keymap page, can be bound like any action and are checked for conflicts against all others. Your
+bindings are stored in the keymap preset and survive turning the plugin off: its actions leave the live keymap while it is off
+and return, with your bindings, when it is on again. A custom preset that never mentions an action uses the plugin's default.
+Builtin examples: Open Processes (Ctrl/Cmd+Alt+Shift+P), the Claude Code and Codex configuration panes, and the GitHub and Air
+Gateway settings pages.
+
 ## External plugins
 
 - Install managed plugins under `<stateDir>/plugins/<id>/`, or configure additional plugin paths.
 - External plugins arrive disabled until you enable them.
-- They can contribute side tools, launchers, file viewers, icons, settings and MCP tools through the same API as the
+- They can contribute side tools, launchers, file viewers, icons, settings, keyboard shortcuts and MCP tools through the same API as the
   builtins.
 - Plugin code runs with the host or client's permissions, so install plugins you trust.
 
