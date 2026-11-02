@@ -33,7 +33,6 @@ show its own variant of "Delete".
 | Add | `add` | Scope menus: Add project, New workspace; project menu: Start work |
 | Close | `close` | Project menu: Close project; dock tab menu: Close |
 | OpenFolder | `folderOpen` | Add-project menu: Open project; external workspaces in the switcher |
-| Rename | `pencil` | Unused (the project menu's Rename is plain text) |
 | Home | `homeFill` | Scope menu: Project home; the default workspace in the switcher |
 | Branch | `gitBranch` | Worktree workspaces in the switcher |
 | Check | `check` | Selected theme in Settings |
