@@ -253,7 +253,7 @@ internal sealed class ChatRowLayout : IDisposable
         _ => false
     };
 
-    public void Draw(DrawingContext context, bool hovered, double top = double.NegativeInfinity, double bottom = double.PositiveInfinity, IReadOnlyList<Rect>? marks = null)
+    public void Draw(DrawingContext context, bool hovered, double top = double.NegativeInfinity, double bottom = double.PositiveInfinity, IReadOnlyList<Rect>? marks = null, Rect? wash = null)
     {
         foreach (var plan in plans)
         {
@@ -265,13 +265,17 @@ internal sealed class ChatRowLayout : IDisposable
             }
             plan.Fragment ??= Fragment(plan.Piece, plan.Caret);
             var inside = marks?.Where(mark => mark.Bottom > plan.Top && mark.Top < plan.Top + plan.Height).Select(mark => mark.Translate(new Vector(0, -plan.Top))).ToList();
-            using (context.PushTransform(Matrix.CreateTranslation(0, plan.Top))) plan.Fragment.Draw(context, hovered, double.NegativeInfinity, double.PositiveInfinity, inside);
+            var washInside = wash is { } over && over.Bottom > plan.Top && over.Top < plan.Top + plan.Height ? over.Translate(new Vector(0, -plan.Top)) : (Rect?)null;
+            using (context.PushTransform(Matrix.CreateTranslation(0, plan.Top))) plan.Fragment.Draw(context, hovered, double.NegativeInfinity, double.PositiveInfinity, inside, washInside);
         }
         foreach (var fill in fills) context.DrawRectangle(fill.Brush, fill.Pen, fill.Bounds, fill.Radius, fill.Radius);
         DrawShapes(context);
         if (marks is not null)
             foreach (var mark in marks)
                 if (!plans.Any(plan => mark.Bottom > plan.Top && mark.Top < plan.Top + plan.Height)) context.DrawRectangle(Ui.TextSelection, null, mark);
+        // The hover wash sits under the text, never over it, so hovering does not tint what it highlights.
+        if (wash is { } hit && !plans.Any(plan => hit.Bottom > plan.Top && hit.Top < plan.Top + plan.Height))
+            context.DrawRectangle(new SolidColorBrush(((ISolidColorBrush)Ui.Hover).Color, 0.6), null, hit, 3, 3);
         foreach (var text in texts)
         {
             if (text.HoverOnly && !hovered) continue;

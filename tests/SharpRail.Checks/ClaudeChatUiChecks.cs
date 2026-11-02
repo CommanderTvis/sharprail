@@ -172,6 +172,24 @@ internal static class ClaudeChatUiChecks
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
     }
 
+    // The pixel in the area that is farthest from its top-left pixel (the text's own colour at its core), as the frame holds it.
+    private static uint Extreme(Window window, Rect area)
+    {
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        using var frame = window.CaptureRenderedFrame()!;
+        using var buffer = frame.Lock();
+        var (left, top) = ((int)area.Left, (int)area.Top);
+        uint At(int x, int y) => (uint)System.Runtime.InteropServices.Marshal.ReadInt32(buffer.Address + y * buffer.RowBytes + x * 4);
+        var background = At(left, top);
+        static int Distance(uint a, uint b) => Enumerable.Range(0, 3).Sum(channel => Math.Abs((int)((a >> (channel * 8)) & 0xFF) - (int)((b >> (channel * 8)) & 0xFF)));
+        var best = background;
+        for (var y = top; y < top + (int)area.Height; y++)
+            for (var x = left; x < left + (int)area.Width; x++)
+                if (Distance(At(x, y), background) > Distance(best, background)) best = At(x, y);
+        return best;
+    }
+
     private static void Press(ChatView view, string name) =>
         view.RequestPanel.GetVisualDescendants().OfType<Button>().First(button => button.Name == name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
 
@@ -872,6 +890,7 @@ internal static class ClaudeChatUiChecks
         var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
         chat.Snapshot.Add(Item(new ChatUserItem("u", 1, "a short prompt") { Uuid = "u-1" }));
         chat.Snapshot.Add(Item(new ChatUserItem("long", 2, string.Join(" ", Enumerable.Repeat("a long prompt that folds with Show more", 12)))));
+        chat.Snapshot.Add(Item(new ChatToolItem("tool", 3, "Bash", JsonSerializer.SerializeToElement(new { command = "echo hello world" }), ChatToolState.Done) { Summary = "echo hello world" }));
         var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
         var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
         window.Show();
@@ -895,6 +914,22 @@ internal static class ClaudeChatUiChecks
             window.MouseMove(new Point(origin.X + 5, origin.Y - 4)); Frame(window);
             window.MouseMove(In("u", 300, -1)); window.MouseMove(new Point(origin.X + 1, origin.Y + list.Bounds.Height + 40)); Frame(window);
             Require(list.HoveredHit is null && list.SurfaceCursor is null, "Moving away clears the hover and the cursor.");
+
+            // The hover wash lies under the text: the strongest pixel of a tool header is the same colour hovered or not.
+            var toolRow = list.VisibleRows().First(row => row.Row.Id == "tool");
+            window.MouseMove(new Point(origin.X + 5, origin.Y - 4)); Frame(window);
+            Rect header = default;
+            for (double x = 10; x < 400 && header == default; x += 10)
+            {
+                window.MouseMove(In("tool", x, 10)); Frame(window);
+                if (list.HoveredHit is { Kind: ChatHitKind.Toggle } found2) header = found2.Bounds;
+            }
+            Require(header != default, "The tool header is a click target.");
+            var area = new Rect(origin.X + header.X, origin.Y + list.RowTop("tool") + header.Y, header.Width, header.Height);
+            var hovered = Extreme(window, area);
+            window.MouseMove(new Point(origin.X + 5, origin.Y - 4)); Frame(window);
+            var plain = Extreme(window, area);
+            Require(hovered == plain, $"Hovering a tool call must not tint its text: {hovered:X8} hovered, {plain:X8} not.");
 
             // Rewind and Fork appear on hover, are links like any other, and are reached from the keyboard.
             var prompt = In("u", 200, 10);

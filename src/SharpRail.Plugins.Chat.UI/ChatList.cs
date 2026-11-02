@@ -420,7 +420,7 @@ internal sealed class ChatList : ScrollViewer
             visible.Add((row, i));
             using (context.PushTransform(Matrix.CreateTranslation(0, tops[i])))
             {
-                layout.Draw(context, hovered == i, from - tops[i], to - tops[i], MarksFor(i, layout));
+                layout.Draw(context, hovered == i, from - tops[i], to - tops[i], MarksFor(i, layout), hoverHit is { } washed && washed.RowId == row.Id ? washed.Hit.Bounds.Inflate(2) : null);
                 if (hoverHit is { } over && over.RowId == row.Id) DrawHover(context, over.Hit);
                 if (focusStop is { } stop && row.Id == selectedId && surface.IsFocused)
                     context.DrawRectangle(null, new Pen(Ui.Accent, 1.5), stop.Bounds.Inflate(2), 3, 3);
@@ -446,7 +446,7 @@ internal sealed class ChatList : ScrollViewer
         SchedulePass();
     }
 
-    // ---- hover: the hit under the pointer gets a wash and an underline, and the pointer a hand; only the previous and the current hit are touched
+    // ---- hover: the hit under the pointer gets a wash (drawn under the row's text by the layout) and an underline, and the pointer a hand; only the previous and the current hit are touched
 
     internal int HoverPaints { get; private set; }
 
@@ -461,8 +461,6 @@ internal sealed class ChatList : ScrollViewer
     private void DrawHover(DrawingContext context, ChatHit hit)
     {
         HoverPaints++;
-        var color = ((ISolidColorBrush)Ui.Hover).Color;
-        context.DrawRectangle(new SolidColorBrush(color, 0.6), null, hit.Bounds.Inflate(2), 3, 3);
         if (hit.Kind != ChatHitKind.Toggle) context.DrawLine(new Pen(Ui.Accent, 1), new Point(hit.Bounds.Left, hit.Bounds.Bottom), new Point(hit.Bounds.Right, hit.Bounds.Bottom));
     }
 
