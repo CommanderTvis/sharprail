@@ -938,3 +938,25 @@ SharpRail.Plugins.Api.Host.LanguageServerQuestion.Values.get -> System.Collectio
 SharpRail.Plugins.Api.Host.LanguageServerQuestion.Values.init -> void
 SharpRail.Plugins.Api.Host.LanguageServerQuestion.Labels.get -> System.Collections.Generic.IReadOnlyList<string!>!
 SharpRail.Plugins.Api.Host.LanguageServerQuestion.Labels.init -> void
+SharpRail.Plugins.Api.Host.AgentSession
+SharpRail.Plugins.Api.Host.AgentSession.AgentSession(string! WorkspaceId, string! Id, int Pid, string! Agent, string? Title) -> void
+SharpRail.Plugins.Api.Host.AgentSession.Agent.get -> string!
+SharpRail.Plugins.Api.Host.AgentSession.Agent.init -> void
+SharpRail.Plugins.Api.Host.AgentSession.Id.get -> string!
+SharpRail.Plugins.Api.Host.AgentSession.Id.init -> void
+SharpRail.Plugins.Api.Host.AgentSession.Pid.get -> int
+SharpRail.Plugins.Api.Host.AgentSession.Pid.init -> void
+SharpRail.Plugins.Api.Host.AgentSession.Title.get -> string?
+SharpRail.Plugins.Api.Host.AgentSession.Title.init -> void
+SharpRail.Plugins.Api.Host.AgentSession.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.Host.AgentSession.WorkspaceId.init -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.AgentSessions(System.Func<System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.AgentSession!>!>! source) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.ListAgentSessions() -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.AgentSession!>!
+override SharpRail.Plugins.Api.Host.AgentSession.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.AgentSession.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.AgentSession.ToString() -> string!
+SharpRail.Plugins.Api.Host.AgentSession.<Clone>$() -> SharpRail.Plugins.Api.Host.AgentSession!
+SharpRail.Plugins.Api.Host.AgentSession.Deconstruct(out string! WorkspaceId, out string! Id, out int Pid, out string! Agent, out string? Title) -> void
+SharpRail.Plugins.Api.Host.AgentSession.Equals(SharpRail.Plugins.Api.Host.AgentSession? other) -> bool
+static SharpRail.Plugins.Api.Host.AgentSession.operator !=(SharpRail.Plugins.Api.Host.AgentSession? left, SharpRail.Plugins.Api.Host.AgentSession? right) -> bool
+static SharpRail.Plugins.Api.Host.AgentSession.operator ==(SharpRail.Plugins.Api.Host.AgentSession? left, SharpRail.Plugins.Api.Host.AgentSession? right) -> bool

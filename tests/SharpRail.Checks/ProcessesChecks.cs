@@ -114,6 +114,15 @@ internal static class ProcessesChecks
         var titled = Fixture(false);
         titled.Inputs = titled.Inputs with { Terminals = [new(Tab1, 10, "claude-code", "tab 1", "Fix the build"), titled.Inputs.Terminals[1]] };
         Require(Find(Snapshot(titled).Groups, "agent:/w/alpha\0t1").Label == "Fix the build", "An agent row shows its tab's title, and only an untitled tab falls back to the agent's name.");
+        // A chat's headless child is listed the way ProcessesHost lists it: no shell, the agent process itself, under the chat's title.
+        var chats = Fixture(false);
+        chats.Inputs = chats.Inputs with
+        {
+            Terminals = [.. chats.Inputs.Terminals, new(new("/w/alpha", "chat:c1"), 50, "claude-code", "chat", "Review plan"), new(new("/w/alpha", "chat:c2"), 60, "claude-code", "chat", null)],
+            Table = [.. chats.Inputs.Table, (50, 1, "claude --print", null), (60, 1, "claude --print", null)]
+        };
+        var chatRows = Snapshot(chats).Groups[1].Children;
+        Require(Find(chatRows, "agent:/w/alpha\0chat:c1") is { Label: "Review plan", Pid: 50 } && Find(chatRows, "agent:/w/alpha\0chat:c2").Label == "Claude Code", "A chat session is an agent row under its chat title, and an untitled one under the agent's name.");
         Require(snapshot.Groups[1].Children.Count == 1 && snapshot.Groups[1].Children[0].Id == agent.Id, "Only terminals with an agent are in AI agents and daemons.");
         Require(TryFind(snapshot.Groups, "parent:/w/alpha\0t1") is null && agent.CanStop, "Everything forked from an agent hangs under its own row, with no separate parent row.");
         var child = Find(agent.Children, "spawn:12");

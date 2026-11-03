@@ -118,6 +118,10 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 
     public void SetAgentRecord(TerminalRef terminal, TerminalAgentRecord? record) => runtime.SetAgentRecord(terminal, record);
 
+    public void AgentSessions(Func<IReadOnlyList<AgentSession>> source) => Register(table => table.AgentSessionSources = table.AgentSessionSources.Add(source));
+
+    public IReadOnlyList<AgentSession> ListAgentSessions() => runtime.AgentSessions();
+
     public void OnTerminal(Action<TerminalEvent> handler) => Register(table => table.TerminalObservers = table.TerminalObservers.Add(handler));
 
     public IReadOnlyList<TerminalProcess> Terminals() => runtime.Seams.Terminals?.List() ?? [];

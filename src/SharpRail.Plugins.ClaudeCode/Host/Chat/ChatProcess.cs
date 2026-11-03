@@ -20,6 +20,9 @@ internal sealed class ChatProcess
     private readonly Task reading;
     private int closing;
 
+    /// <summary>The child's process id.</summary>
+    public int Pid => child.Id;
+
     /// <summary>Completes with the exit code once stdout has ended and the child is reaped.</summary>
     public Task<int> Exited { get; }
 

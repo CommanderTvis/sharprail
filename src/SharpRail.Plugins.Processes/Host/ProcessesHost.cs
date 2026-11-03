@@ -71,7 +71,7 @@ public sealed class ProcessesHost : PluginHostModule
             {
                 var index = perWorkspace[shell.Terminal.WorkspaceId] = perWorkspace.GetValueOrDefault(shell.Terminal.WorkspaceId) + 1;
                 return new TerminalInfo(shell.Terminal, shell.Pid, context.AgentRecord(shell.Terminal)?.Kind, $"tab {index}", context.TerminalTitle(shell.Terminal));
-            }).ToArray();
+            }).Concat(context.ListAgentSessions().Select(session => new TerminalInfo(new(session.WorkspaceId, "chat:" + session.Id), session.Pid, session.Agent, "chat", session.Title))).ToArray();
             return new(terminals, processes.Table(), processes.LanguageServers(), processes.OwnedProcesses(), processes.LanguageServerName) { Workers = OperatingSystem.IsBrowser() };
         }
 

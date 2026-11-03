@@ -1004,6 +1004,14 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         return result;
     }
 
+    internal IReadOnlyList<AgentSession> AgentSessions()
+    {
+        var result = new List<AgentSession>();
+        foreach (var (entry, tables) in Active())
+            foreach (var source in tables.AgentSessionSources) Guard(entry.Id, () => result.AddRange(source()));
+        return result;
+    }
+
     private void OnTerminal(TerminalEvent change)
     {
         foreach (var (entry, tables) in Active())

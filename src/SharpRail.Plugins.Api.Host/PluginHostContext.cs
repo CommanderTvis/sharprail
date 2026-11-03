@@ -129,6 +129,16 @@ public interface IPluginHostContext
     /// <returns>The title, or <see langword="null"/> when the tab has none beyond its default.</returns>
     string? TerminalTitle(TerminalRef terminal) => null;
 
+    /// <summary>Registers a source of running agent sessions that are not terminals, such as chats (the Processes pane lists them).</summary>
+    /// <param name="source">Called for each snapshot; returns the sessions running now.</param>
+    void AgentSessions(Func<IReadOnlyList<AgentSession>> source)
+    {
+    }
+
+    /// <summary>Lists the running agent sessions every plugin's source reports.</summary>
+    /// <returns>The sessions.</returns>
+    IReadOnlyList<AgentSession> ListAgentSessions() => [];
+
     /// <summary>Observes terminal lifecycle events: spawned, exited, closed, agent changed (H8).</summary>
     /// <param name="handler">Called with each event.</param>
     void OnTerminal(Action<TerminalEvent> handler);

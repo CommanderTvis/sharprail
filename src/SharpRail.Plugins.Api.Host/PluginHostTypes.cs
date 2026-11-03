@@ -71,6 +71,14 @@ public sealed record TerminalAgentChanged(TerminalRef Terminal, TerminalAgentRec
 /// <param name="Foreground">Whether a program other than the shell emitted the mark.</param>
 public sealed record TerminalPromptChanged(TerminalRef Terminal, bool AtPrompt, int? LastExitCode, bool Foreground) : TerminalEvent(Terminal);
 
+/// <summary>A running agent that is not a terminal's program, such as a chat's headless child.</summary>
+/// <param name="WorkspaceId">The workspace the session belongs to.</param>
+/// <param name="Id">The session's id, unique within the workspace.</param>
+/// <param name="Pid">The agent process's id.</param>
+/// <param name="Agent">The agent kind, as in <see cref="TerminalAgentRecord"/>.</param>
+/// <param name="Title">The title the session's tab shows, or <see langword="null"/> when it has none.</param>
+public sealed record AgentSession(string WorkspaceId, string Id, int Pid, string Agent, string? Title);
+
 /// <summary>A known terminal and its shell's process id.</summary>
 /// <param name="Terminal">The terminal.</param>
 /// <param name="Pid">The shell's process id, or <see langword="null"/> when it has exited.</param>

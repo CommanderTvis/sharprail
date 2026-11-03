@@ -71,6 +71,12 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
             return [.. folder.Items.Select(item => (ChatPush)new ChatItemPush(record.WorkspaceId, record.ChatId, item)), new ChatHeaderPush(record.WorkspaceId, record.ChatId, folder.Header)];
     }
 
+    /// <summary>The running child's process id, or null when none runs.</summary>
+    public int? Pid
+    {
+        get { lock (gate) return process is { } running && !closed ? running.Pid : null; }
+    }
+
     public bool Active
     {
         get { lock (gate) return !closed && folder.Header.Status is not (ChatStatus.Exited or ChatStatus.Failed); }

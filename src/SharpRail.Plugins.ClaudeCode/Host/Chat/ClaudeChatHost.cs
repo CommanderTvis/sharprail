@@ -83,6 +83,7 @@ internal sealed class ClaudeChatHost
 
     public void Register()
     {
+        context.AgentSessions(() => [.. sessions.Values.Where(session => session.Pid is not null).Select(session => new AgentSession(session.Record.WorkspaceId, session.Record.ChatId, session.Pid!.Value, "claude-code", session.Record.Title))]);
         context.Method(ChatContract.Open, (p, _, _) => OpenAsync(p));
         context.Method(ChatContract.Snapshot, (p, _, _) => ValueTask.FromResult<IReadOnlyList<ChatPush>>([new ChatDraftPush(p.WorkspaceId, p.ChatId, drafts.Get(p.WorkspaceId, p.ChatId)), .. sessions.TryGetValue((p.WorkspaceId, p.ChatId), out var session) ? session.Snapshot() : []]));
         context.Method(ChatContract.SetDraft, (p, _, _) => ValueTask.FromResult(drafts.Set(p.WorkspaceId, p.ChatId, p.Text, p.ClientId)));
