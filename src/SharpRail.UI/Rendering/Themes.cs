@@ -42,7 +42,20 @@ public static class Themes
     private const string HexPattern = "^#[0-9a-f]{6}(?:[0-9a-f]{2})?$";
     private const string IdPattern = "^[a-z0-9](?:[a-z0-9._-]{0,63})$";
 
-    public static IReadOnlyList<ThemeManifest> All { get; } = Load();
+    private static IReadOnlyList<ThemeManifest>? all;
+
+    public static IReadOnlyList<ThemeManifest> All => all ??= Load();
+
+    /// <summary>Whether the bundled catalogue can be read: it lives in Avalonia assets, which only a running platform serves.</summary>
+    public static bool CatalogueAvailable
+    {
+        get
+        {
+            if (all is not null) return true;
+            try { return AssetLoader.Exists(new Uri("avares://SharpRail.UI/Assets/theme.schema.json")); }
+            catch (InvalidOperationException) { return false; }
+        }
+    }
 
     /// <summary>The operating system's appearance as the application inherits it; an unreported appearance reads as light.</summary>
     public static string SystemAppearance => Application.Current?.ActualThemeVariant == ThemeVariant.Dark ? "dark" : "light";

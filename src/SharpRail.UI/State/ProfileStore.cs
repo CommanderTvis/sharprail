@@ -251,12 +251,13 @@ public sealed class ProfileStore
         {
             preferences.Theme = Themes.DefaultId;
             preferences.ThemeMode = "system";
-            preferences.SystemThemePair ??= Themes.DerivePair(Themes.DefaultId);
+            if (Themes.CatalogueAvailable) preferences.SystemThemePair ??= Themes.DerivePair(Themes.DefaultId);
         }
         if (!Valid(preferences.Theme)) preferences.Theme = Themes.DefaultId;
         if (preferences.SystemThemePair is { } pair && (!Valid(pair.Light) || !Valid(pair.Dark))) preferences.SystemThemePair = null;
         if (preferences.ThemeMode is not ("fixed" or "system")) preferences.ThemeMode = "system";
-        if (preferences.ThemeMode == "system") preferences.SystemThemePair ??= Themes.DerivePair(preferences.Theme);
+        // Host-only processes have no asset loader; the pair is derived the next time a window loads the profile.
+        if (preferences.ThemeMode == "system" && Themes.CatalogueAvailable) preferences.SystemThemePair ??= Themes.DerivePair(preferences.Theme);
     }
 
     /// <summary>
