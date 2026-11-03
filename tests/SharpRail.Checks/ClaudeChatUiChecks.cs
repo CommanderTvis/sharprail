@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Avalonia;
 using Avalonia.Controls;
@@ -13,6 +14,7 @@ using Avalonia.VisualTree;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Core;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Chat;
 using SharpRail.Plugins.Chat.UI;
@@ -2599,10 +2601,16 @@ internal static class ClaudeChatUiChecks
         Require(Count("terminal") == terminals, "Chat mode starts a chat, not a terminal.");
         // A plugin document's owner hears of its close exactly once: a closed tab, then the window's remaining tabs.
         var closes = new List<string>();
-        app.Workbench.PluginRegistry.AddDocument("claude-code", new("fixture-doc", _ => new TextBlock { Text = "fixture" }) { Closed = props => closes.Add(props.Id) });
+        var renamed = new List<string>();
+        app.Workbench.PluginRegistry.AddDocument("claude-code", new("fixture-doc", _ => new TextBlock { Text = "fixture" }) { Closed = props => closes.Add(props.Id), Rename = (props, title) => renamed.Add(props.Id + "=" + title) });
         Await(app.Window.OpenPluginDocumentAsync(app.Root, "fixture-doc", "a", "A"));
         Await(app.Window.OpenPluginDocumentAsync(app.Root, "fixture-doc", "b", "B"));
         var group = app.Window.Layout.State.Groups.First(item => app.Window.Layout.Tabs(item.Id).Any(tab => tab.Kind == "plugin")).Id;
+        // An agent's set_title from a chat names its document tab and the document's owner, as a user's Rename does.
+        var titled = Task.Run(async () => await new WorkspaceMcpTools(app.State!).Title(new TerminalRef(app.Root, "b")).Call(new JsonObject { ["title"] = "Ship the release" }, default));
+        E2eWorkspace.Until(() => titled.IsCompleted);
+        Require(!titled.GetAwaiter().GetResult().Error, "set_title accepts a chat's identity: " + titled.GetAwaiter().GetResult().Text);
+        E2eWorkspace.Until(() => app.Window.Layout.Tabs(group).Any(tab => tab.Id == "plugin:fixture-doc:b" && tab.Title == "Ship the release") && renamed.SequenceEqual(["b=Ship the release"]));
         app.Window.Layout.Close(group, "plugin:fixture-doc:a");
         E2eWorkspace.Until(() => closes.SequenceEqual(["a"]));
         app.Window.Layout.Close(group, "plugin:fixture-doc:a");

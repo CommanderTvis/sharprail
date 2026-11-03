@@ -90,8 +90,11 @@ public sealed partial class WorkbenchWindow
     }
 
     /// <summary>Terminal tabs take the titles the host holds for them, on a broadcast and when a workspace mounts.</summary>
-    private void ApplyTerminalTitles(HostState host) =>
+    private void ApplyTerminalTitles(HostState host)
+    {
         Layout.TitleTerminals(host.TerminalTitles.ToDictionary(title => (title.Terminal.WorkspaceId, title.Terminal.TabKey), title => title.Title));
+        TitlePluginDocuments(host);
+    }
 
     /// <summary>Tells the user once about each language server that died without being asked to; the host pushes the one-line reason with the shared state.</summary>
     private void NotifyLanguageDeaths(HostState previous, HostState next)

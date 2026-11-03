@@ -318,9 +318,29 @@ public sealed partial class WorkbenchWindow
         if (PluginDocumentOwner(tab) is not { Value.Rename: { } rename } owner) return;
         var result = await Panels.Dialogs.Prompt(this, "Rename " + tab.Title, ("Name", tab.Title));
         if (result is not [var raw] || raw.Trim() is not { Length: > 0 } title || title == tab.Title) return;
+        var id = tab.Path[(tab.Path.IndexOf(':') + 1)..];
         Layout.Retitle(workspace, tab.Id, title);
-        try { rename(new PluginDocumentProps(workspace, tab.Path[(tab.Path.IndexOf(':') + 1)..], title), title); }
+        try { rename(new PluginDocumentProps(workspace, id, title), title); }
         catch (Exception error) { Report(error); }
+        // The host holds the name as the user's, so an agent's set_title does not replace it.
+        await ShareAsync(HostStateChange.TitleTerminal(new TerminalRef(workspace, id), title));
+    }
+
+    /// <summary>A renamable plugin document takes the title the host holds for its id, such as an agent's <c>set_title</c> from a chat.</summary>
+    private void TitlePluginDocuments(HostState host)
+    {
+        foreach (var held in host.TerminalTitles)
+        {
+            var stale = (Layout.State.Workspaces.GetValueOrDefault(held.Terminal.WorkspaceId)?.Documents.Values.SelectMany(tabs => tabs) ?? [])
+                .Where(tab => tab.Kind == PluginDocumentKind && tab.Title != held.Title && tab.Path.IndexOf(':') is var split and >= 0 && tab.Path[(split + 1)..] == held.Terminal.TabKey).ToArray();
+            foreach (var tab in stale)
+            {
+                if (PluginDocumentOwner(tab)?.Value.Rename is not { } rename) continue;
+                Layout.Retitle(held.Terminal.WorkspaceId, tab.Id, held.Title);
+                try { rename(new PluginDocumentProps(held.Terminal.WorkspaceId, held.Terminal.TabKey, held.Title), held.Title); }
+                catch (Exception error) { Report(error); }
+            }
+        }
     }
 
     internal Task OpenPluginDocumentAsync(string workspace, string scheme, string id, string title)
