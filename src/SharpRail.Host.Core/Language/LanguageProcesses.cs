@@ -143,7 +143,7 @@ internal static class LanguageProcesses
     /// </summary>
     internal static int Sweep(string directory)
     {
-        if (!Directory.Exists(directory)) return 0;
+        if (OperatingSystem.IsBrowser() || !Directory.Exists(directory)) return 0;
         var killed = 0;
         using var self = Process.GetCurrentProcess();
         foreach (var file in Directory.EnumerateFiles(directory, "*.pids"))

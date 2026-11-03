@@ -13,7 +13,11 @@ internal sealed record ProcessInputs(
     IReadOnlyList<(int Pid, int ParentPid, string Command, TimeSpan? Elapsed)> Table,
     IReadOnlyList<(string Workspace, string ServerId, int Pid)> Servers,
     IReadOnlyList<(TerminalRef Terminal, int Pid, string Description)> Owned,
-    Func<string, string>? ServerName = null);
+    Func<string, string>? ServerName = null)
+{
+    /// <summary>A browser tab: its language servers are Web Workers and there are no terminals' processes, so only that group is built.</summary>
+    internal bool Workers { get; init; }
+}
 
 /// <summary>What a stop on a row does: end a process, or stop a language server through the language service.</summary>
 internal sealed record StopTarget(int? Pid, string Command, string? Workspace, string? ServerId);
@@ -62,12 +66,12 @@ internal static class ProcessModel
         var children = inputs.Table.ToLookup(row => row.ParentPid, row => row.Pid);
         var claimed = new HashSet<int>();
 
-        var languages = new Row(LanguageGroup, "group", "Language servers", "", null, null, null);
+        var languages = new Row(LanguageGroup, "group", inputs.Workers ? "Language servers · Web Workers" : "Language servers", "", null, null, null);
         foreach (var (workspace, server, pid) in inputs.Servers.OrderBy(item => item.Workspace, StringComparer.Ordinal).ThenBy(item => item.ServerId, StringComparer.Ordinal))
         {
             if (!claimed.Add(pid)) continue;
             var command = table.TryGetValue(pid, out var found) ? found.Command : "";
-            languages.Children.Add(new($"lang:{workspace}\0{server}", "language", inputs.ServerName?.Invoke(server) ?? server, Describe(pid, workspaceLabel(workspace), command), pid,
+            languages.Children.Add(new($"lang:{workspace}\0{server}", "language", inputs.ServerName?.Invoke(server) ?? server, Describe(pid, workspaceLabel(workspace), command, null, inputs.Workers ? "worker" : "pid"), pid,
                 new(null, command, workspace, server), workspace));
         }
 
@@ -122,10 +126,11 @@ internal static class ProcessModel
             if (starter.Children.Count > 0) spawned.Children.Add(starter);
         }
 
-        foreach (var group in new[] { languages, agents, spawned }) Nest(group);
+        Row[] shown = inputs.Workers ? [languages] : [languages, agents, spawned];
+        foreach (var group in shown) Nest(group);
         var stops = new Dictionary<string, StopTarget>(StringComparer.Ordinal);
         var live = new HashSet<string>(StringComparer.Ordinal);
-        var groups = new[] { languages, agents, spawned }.Select(group => Convert(group, usage, history, stops, live, 0)).ToArray();
+        var groups = shown.Select(group => Convert(group, usage, history, stops, live, 0)).ToArray();
         history.Keep(live);
         var totalCpu = groups.Sum(group => group.Cpu);
         var totalMemory = groups.Sum(group => group.MemoryBytes);
@@ -175,8 +180,8 @@ internal static class ProcessModel
     /// <summary>The longest command line a tooltip shows; an agent's launch line can run to kilobytes of injected instructions.</summary>
     internal const int DetailCommandLimit = 160;
 
-    private static string Describe(int pid, string where, string command, TimeSpan? elapsed = null) =>
-        string.Join(" · ", new[] { "pid " + pid.ToString(CultureInfo.InvariantCulture), where, elapsed is { } age ? "up " + Uptime(age) : "", Shorten(command) }.Where(part => part.Length > 0));
+    private static string Describe(int pid, string where, string command, TimeSpan? elapsed = null, string noun = "pid") =>
+        string.Join(" · ", new[] { noun + " " + pid.ToString(CultureInfo.InvariantCulture), where, elapsed is { } age ? "up " + Uptime(age) : "", Shorten(command) }.Where(part => part.Length > 0));
 
     private static string Uptime(TimeSpan age) => age.TotalDays >= 1 ? $"{(int)age.TotalDays}d {age.Hours}h" : age.TotalHours >= 1 ? $"{(int)age.TotalHours}h {age.Minutes}m" : age.TotalMinutes >= 1 ? $"{(int)age.TotalMinutes}m" : $"{(int)age.TotalSeconds}s";
 

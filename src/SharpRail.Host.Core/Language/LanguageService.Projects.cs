@@ -8,6 +8,8 @@ public sealed partial class LanguageService
 
     private async Task<LanguageResult> ProjectRootsAsync(LanguageRequest request, CancellationToken token)
     {
+        // A browser tab runs no language servers; discovery there only fails with PlatformNotSupported.
+        if (OperatingSystem.IsBrowser()) return new("ready", "Language servers do not run in a browser tab.") { Freshness = "unavailable" };
         var detected = await Task.Run(() => ProjectRoots(request with { Offset = 0, Limit = int.MaxValue }, token), token);
         var marks = new List<LanguageProject>(detected.Projects);
         var competing = Competing(Replacing(request.Workspace)).ToHashSet(StringComparer.Ordinal);

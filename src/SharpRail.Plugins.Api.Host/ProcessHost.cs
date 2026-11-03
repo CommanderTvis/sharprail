@@ -12,6 +12,11 @@ public interface IProcessHost
     /// <returns>The rows; empty when the table cannot be read.</returns>
     IReadOnlyList<(int Pid, int ParentPid, string Command, TimeSpan? Elapsed)> Table();
 
+    /// <summary>Reads whatever the next <see cref="Usage"/> calls need before a snapshot samples; a host whose usage is a direct read has nothing to do.</summary>
+    /// <param name="cancellationToken">Cancels the wait.</param>
+    /// <returns>A task that completes when the usage is ready.</returns>
+    ValueTask RefreshAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
     /// <summary>One process's total processor time and memory (macOS physical footprint, elsewhere working set); null when it is gone.</summary>
     /// <param name="pid">The process id.</param>
     /// <returns>The usage, or null.</returns>

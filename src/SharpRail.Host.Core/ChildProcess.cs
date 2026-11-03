@@ -41,6 +41,7 @@ internal static class ChildProcess
         ct.ThrowIfCancellationRequested();
         var budget = timeout < TimeSpan.Zero ? TimeSpan.Zero : timeout > MaxBudget ? MaxBudget : timeout;
         var arguments = args.ToArray();
+        if (file == "git" && GitBackends.Current is { } backend) return RunBackendAsync(backend, workingDirectory, arguments, ct);
         if (OperatingSystem.IsWindows()) return RunPortableAsync(file, workingDirectory, arguments, budget, ct, environment);
         Posix.EnsureSupported();
         var variables = LiveEnvironment(environment);
@@ -55,6 +56,12 @@ internal static class ChildProcess
         })
         { IsBackground = true, Name = "child " + file }.Start();
         return completion.Task;
+    }
+
+    private static async Task<Result> RunBackendAsync(IGitBackend backend, string workingDirectory, string[] arguments, CancellationToken ct)
+    {
+        var done = await backend.RunAsync(workingDirectory, arguments, null, ct);
+        return new(done.ExitCode, done.Output, done.Error);
     }
 
     private static Dictionary<string, string> LiveEnvironment(IReadOnlyDictionary<string, string?>? overrides)

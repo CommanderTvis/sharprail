@@ -93,6 +93,17 @@ internal static class GitRepository
 
     internal static async Task<GitRunResult> RunBoundedAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options, CancellationToken ct, string? input)
     {
+        if (GitBackends.Current is { } backend)
+        {
+            using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            budget.CancelAfter(options?.Timeout ?? TimeSpan.FromSeconds(30));
+            try
+            {
+                var done = await backend.RunAsync(cwd, args, input is null ? null : System.Text.Encoding.UTF8.GetBytes(input), budget.Token);
+                return new(done.ExitCode == 0, System.Text.Encoding.UTF8.GetString(done.Output), done.Error);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return new(false, "", "", GitRunFailure.Timeout); }
+        }
         var start = new ProcessStartInfo("git")
         {
             WorkingDirectory = cwd,

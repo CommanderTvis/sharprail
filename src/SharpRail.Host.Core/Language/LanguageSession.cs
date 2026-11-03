@@ -56,11 +56,11 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     private sealed record Document(string Text, int Version, string Owner, long ClientVersion, bool Dirty);
     private sealed record Published(int? Version, LanguageItem[] Items);
 
-    private LanguageSession(ProcessStartInfo start, string workspace, LanguageServer server, WorkspaceLanguageOptions options, LanguageLog log, Action<LanguageExit>? onExit)
+    private LanguageSession(ProcessStartInfo start, string workspace, LanguageServer server, WorkspaceLanguageOptions options, LanguageLog log, Action<LanguageExit>? onExit, ILanguageProcess? link)
     {
         this.workspace = workspace; this.server = server; this.log = log;
         var settings = WorkspaceLanguageConfiguration.Settings(options, workspace, server.Id);
-        connection = new(start, workspace, log, server.Id, onExit)
+        connection = new(start, workspace, log, server.Id, onExit, link)
         {
             Notification = OnNotification,
             ClientRequest = OnClientRequest,
@@ -72,13 +72,13 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     }
 
     /// <param name="sessionDirectory">The launch's own directory (<see cref="ILanguageServerInstallation.SessionDirectory"/>), removed when the session ends.</param>
-    internal static async Task<LanguageSession> StartAsync(ProcessStartInfo start, string workspace, LanguageServer server, CancellationToken token, WorkspaceLanguageOptions? options = null, LanguageLog? log = null, string? storage = null, Action<LanguageExit>? onExit = null, string? sessionDirectory = null)
+    internal static async Task<LanguageSession> StartAsync(ProcessStartInfo start, string workspace, LanguageServer server, CancellationToken token, WorkspaceLanguageOptions? options = null, LanguageLog? log = null, string? storage = null, Action<LanguageExit>? onExit = null, string? sessionDirectory = null, ILanguageProcess? link = null)
     {
         options ??= new();
         log ??= new();
         var model = LanguageProjectModel.Discover(workspace, server, token, options);
         var initialization = WorkspaceLanguageConfiguration.Initialization(options, workspace, server.Id, model.Manifests, storage ?? "", log, sessionDirectory ?? "");
-        var session = new LanguageSession(start, workspace, server, options, log, onExit) { ownedCache = sessionDirectory };
+        var session = new LanguageSession(start, workspace, server, options, log, onExit, link) { ownedCache = sessionDirectory };
         session.projectModel = model;
         session.projectLoading = server.Spec.ProjectLoadedNotification.Length > 0 && server.Spec.LoadsProjects(initialization) && session.projectModel.Manifests.Length > 0;
         session.StartWatching();

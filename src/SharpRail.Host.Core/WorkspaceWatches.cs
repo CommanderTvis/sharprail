@@ -188,7 +188,8 @@ internal static partial class WorkspaceWatches
         entry.Generation++;
         void Watch(string path, bool recursive, Func<string, bool> relevant, bool workspace)
         {
-            if (entry.Failed || !Directory.Exists(path)) return;
+            // A browser tab's runtime has no file system events: without a watcher the stream only rescans on request.
+            if (OperatingSystem.IsBrowser() || entry.Failed || !Directory.Exists(path)) return;
             var watcher = new FileSystemWatcher(path) { IncludeSubdirectories = recursive, InternalBufferSize = 64 * 1024 };
             entry.Watchers.Add(watcher);
             var id = ++created;

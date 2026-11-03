@@ -68,11 +68,23 @@ internal static class ProcessesChecks
     internal static async Task Run(string root)
     {
         Tree();
+        Workers();
         Sampling();
         await Stopping();
         if (OperatingSystem.IsWindows()) { Console.WriteLine("SKIP processes plugin switch: the checks start sleep and a POSIX shell"); return; }
         await PluginSwitch(Path.Combine(root, "processes-switch"));
         Console.WriteLine("PASS processes: the tree groups language servers, agents and spawned agents with nesting and sums, the trend is capped, sampling happens only when asked, stops take the right path, and disabling the plugin removes owned-process management while enabling keeps it");
+    }
+
+    // A browser tab has no process table: its language servers are Web Workers, the only group, shown with the usage the page read.
+    private static void Workers()
+    {
+        var snapshot = Snapshot(new FakeSource { Inputs = new([], [], [("/workspace/project", "css", 3)], [], id => id == "css" ? "CSS" : id) { Workers = true } });
+        Require(snapshot.Groups is [{ Id: ProcessModel.LanguageGroup, Label: "Language servers · Web Workers" }], "A tab lists only its Web Workers group.");
+        var worker = Find(snapshot.Groups, "lang:/workspace/project\0css");
+        Require(worker is { Label: "CSS", Cpu: 3, MemoryBytes: 3_000_000, CanStop: true } && worker.Detail.StartsWith("worker 3", StringComparison.Ordinal),
+            "A worker row carries its label, its usage and a stop, and is called a worker, not a pid.");
+        Console.WriteLine("PASS processes tab: a browser tab shows its language-server Web Workers with their usage and no agent groups");
     }
 
     // Each pid's CPU percent is its own number, so sums are checkable by addition.

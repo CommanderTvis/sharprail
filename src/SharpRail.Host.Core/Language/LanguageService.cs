@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -81,10 +82,13 @@ public sealed partial class LanguageService : IAsyncDisposable
     {
         token.ThrowIfCancellationRequested();
         if (Volatile.Read(ref disposed) != 0) return new("stopped", "The host is shutting down.");
+        // A browser tab starts no processes, and every other operation that looks for or runs a server ends in PlatformNotSupported.
+        if (OperatingSystem.IsBrowser() && LanguageLinks.InTab is null && request.Operation is not ("configurationSchema" or "configuration" or "configure" or "logs" or "release" or "close" or "catalog"))
+            return new("unavailable", "Language servers do not run in the Playground yet.", Version: request.Version) { Freshness = "unavailable" };
         if (request.Operation == "catalog")
         {
             // Settings shows each server's host tools before anything starts; probing reads files and PATH only, never runs a tool.
-            var probe = Path.IsPathFullyQualified(request.Workspace) && Directory.Exists(request.Workspace);
+            var probe = !OperatingSystem.IsBrowser() && Path.IsPathFullyQualified(request.Workspace) && Directory.Exists(request.Workspace);
             return new("ready", servers.Storage)
             {
                 Servers = servers.Servers.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version)
@@ -283,10 +287,15 @@ public sealed partial class LanguageService : IAsyncDisposable
                 // A workspace just created is still receiving its cloned restore and build outputs; starting without them costs a full restore.
                 candidate.Detail = "Waiting for the workspace's cloned build outputs…";
                 await WorkspaceClone.WhenClonedAsync(workspace, LanguageLimits.CloneWait, deadline.Token);
-                var sessionDirectory = servers.SessionDirectory(server, workspace);
-                var start = await servers.ProvisionAsync(server, workspace, deadline.Token, options, sessionDirectory);
+                // A host with no processes runs the servers it has in its own page, and has no others to start.
+                ILanguageProcess? link = null;
+                if (OperatingSystem.IsBrowser())
+                    link = (LanguageLinks.InTab is { } inTab ? await inTab(server.Id, workspace, deadline.Token) : null)
+                        ?? throw new IOException($"{server.Id} cannot run in the Playground; only servers that run in a browser page can.");
+                var sessionDirectory = link is null ? servers.SessionDirectory(server, workspace) : null;
+                var start = link is null ? await servers.ProvisionAsync(server, workspace, deadline.Token, options, sessionDirectory!) : new ProcessStartInfo();
                 start.Environment[LanguageProcesses.Variable] = processes;
-                if (options.Arguments is not null)
+                if (link is null && options.Arguments is not null)
                 {
                     foreach (var argument in options.Arguments)
                         if (server.Spec.ReservedArguments.Any(reserved => argument == reserved || argument.StartsWith(reserved + "=", StringComparison.Ordinal)))
@@ -297,7 +306,7 @@ public sealed partial class LanguageService : IAsyncDisposable
                     servers.ConfigureCaches(start, server, workspace);
                 }
                 candidate.State = "initializing"; candidate.Detail = "Starting and indexing the workspace…";
-                var session = await LanguageSession.StartAsync(start, workspace, server, deadline.Token, options, log, servers.DirectoryPath, exit => RecordExit(workspace, server.Id, exit, candidate.StartedBy), sessionDirectory);
+                var session = await LanguageSession.StartAsync(start, workspace, server, deadline.Token, options, log, servers.DirectoryPath, exit => RecordExit(workspace, server.Id, exit, candidate.StartedBy), sessionDirectory, link);
                 try { if (drafts.TryGetValue(key, out var saved)) await session.RestoreDraftsAsync(saved, deadline.Token); }
                 catch
                 {

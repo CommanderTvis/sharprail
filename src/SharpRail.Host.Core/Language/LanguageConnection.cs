@@ -10,7 +10,8 @@ namespace SharpRail.Host.Core.Language;
 
 internal sealed class LanguageConnection : IAsyncDisposable
 {
-    private readonly Process process;
+    private readonly ILanguageProcess process;
+    private Process? Os => (process as OsLanguageProcess)?.Process;
     private readonly SemaphoreSlim writing = new(1);
     private readonly ConcurrentDictionary<int, TaskCompletionSource<JsonNode?>> pending = new();
     private readonly CancellationTokenSource lifetime = new();
@@ -50,24 +51,29 @@ internal sealed class LanguageConnection : IAsyncDisposable
     internal int? ProcessId { get { try { return process.HasExited ? null : process.Id; } catch (InvalidOperationException) { return null; } } }
     internal bool Exited => process.HasExited || reader.IsCompleted;
 
-    internal LanguageConnection(ProcessStartInfo start, string workspace, LanguageLog log, string serverId = "", Action<LanguageExit>? onExit = null)
+    internal LanguageConnection(ProcessStartInfo start, string workspace, LanguageLog log, string serverId = "", Action<LanguageExit>? onExit = null, ILanguageProcess? link = null)
     {
         this.workspace = workspace; this.log = log; this.serverId = serverId; this.onExit = onExit;
-        start.WorkingDirectory = workspace;
-        start.UseShellExecute = false;
-        start.RedirectStandardInput = start.RedirectStandardOutput = start.RedirectStandardError = true;
-        start.CreateNoWindow = true;
         log.Add("launch", "Workspace: " + workspace);
-        log.Add("launch", start.FileName + " " + JsonSerializer.Serialize(start.ArgumentList));
-        process = Process.Start(start) ?? throw new IOException("The language server did not start.");
-        LanguageProcesses.Started(process, start);
+        if (link is not null) { process = link; log.Add("launch", "Running in this host's page."); }
+        else
+        {
+            start.WorkingDirectory = workspace;
+            start.UseShellExecute = false;
+            start.RedirectStandardInput = start.RedirectStandardOutput = start.RedirectStandardError = true;
+            start.CreateNoWindow = true;
+            log.Add("launch", start.FileName + " " + JsonSerializer.Serialize(start.ArgumentList));
+            var started = Process.Start(start) ?? throw new IOException("The language server did not start.");
+            process = new OsLanguageProcess(started);
+            LanguageProcesses.Started(started, start);
+        }
         errors = Task.Run(async () =>
         {
             var buffer = new char[2048];
             try
             {
                 int read;
-                while ((read = await process.StandardError.ReadAsync(buffer, lifetime.Token)) > 0)
+                while ((read = await process.Errors.ReadAsync(buffer.AsMemory(), lifetime.Token)) > 0)
                 {
                     var output = new string(buffer, 0, read);
                     log.Add("stderr", output);
@@ -95,7 +101,8 @@ internal sealed class LanguageConnection : IAsyncDisposable
         try
         {
             if (process.HasExited) return;
-            var footprint = LanguageMemory.Footprint(process);
+            if (Os is not { } os) return;
+            var footprint = LanguageMemory.Footprint(os);
             lock (trace) { memoryBytes = footprint; memoryAt = DateTime.UtcNow; }
         }
         catch (Exception error) when (error is InvalidOperationException or NotSupportedException or System.ComponentModel.Win32Exception) { }
@@ -131,7 +138,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
         try
         {
             await process.WaitForExitAsync();
-            LanguageProcesses.Exited(process.Id);
+            if (Os is not null) LanguageProcesses.Exited(process.Id);
             // Output written just before the exit may still be in the pipe; the grace period also covers grandchildren that keep it open.
             await Task.WhenAny(errors, Task.Delay(TimeSpan.FromSeconds(2)));
             var code = process.ExitCode;
@@ -204,14 +211,14 @@ internal sealed class LanguageConnection : IAsyncDisposable
         await writing.WaitAsync(token);
         try
         {
-            await process.StandardInput.BaseStream.WriteAsync(frame, token);
-            await process.StandardInput.BaseStream.FlushAsync(token);
+            await process.Input.WriteAsync(frame, token);
+            await process.Input.FlushAsync(token);
         }
         catch (Exception error)
         {
             // A cancelled or failed write can leave half a frame in the pipe, so the stream cannot be reused.
             Terminate($"a write to its stdin failed or was cancelled ({error.GetType().Name}: {error.Message}), which leaves the JSON-RPC stream unusable", failure: true);
-            try { if (!process.HasExited) process.Kill(true); }
+            try { if (!process.HasExited) process.Kill(); }
             catch (InvalidOperationException) { }
             throw;
         }
@@ -223,7 +230,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
         Exception failure = new IOException("Language server closed its output.");
         try
         {
-            var stream = process.StandardOutput.BaseStream;
+            var stream = process.Output;
             var single = new byte[1];
             while (!lifetime.IsCancellationRequested)
             {
@@ -305,8 +312,8 @@ internal sealed class LanguageConnection : IAsyncDisposable
         Terminate("the connection was disposed without a stated reason");
         lifetime.Cancel();
         // Helpers the server spawned (tsserver, indexers) outlive it and may still write into the workspace; wait for the whole tree.
-        var tree = process.HasExited ? [] : await LanguageProcesses.DescendantsAsync(process.Id);
-        try { if (!process.HasExited) process.Kill(true); }
+        var tree = process.HasExited || Os is null ? [] : await LanguageProcesses.DescendantsAsync(process.Id);
+        try { if (!process.HasExited) process.Kill(); }
         catch (InvalidOperationException) { }
         await Task.WhenAll(reader, errors);
         await process.WaitForExitAsync();
