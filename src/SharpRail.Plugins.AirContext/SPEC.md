@@ -22,6 +22,8 @@ whole. Disabled, the plugin serves no tools, contributes no instructions to agen
 makes no network requests and starts no process; disabling stops running indexing and searches through the activation's disposer, and
 the user's project enablement and consent survive for when it is enabled again.
 
+The tool-guidance item ends, for a session's own workspace, with one line stating whether its project has Air Context enabled ("ENABLED ... you MUST call `context_search` first" or "NOT enabled ... use LSP and text search"), so agents need not check. It is computed once when the session's instructions are composed (`WorkspaceText`, H20), not polled: a later change reaches the next session. The workspace-independent text carries no such line. Sign-in and index readiness are not part of it; `context_status` reports them.
+
 The host half (`Host/`) registers three methods and a channel (`consent`, `workspace`, `changed`), the agent tools, one tool-guidance
 item (H20) and observers of terminal agent changes and workspace removal. The UI half (`UI/`) contributes no side tool; it uses the slot seam (W23) for two sections of core's Code Intelligence pages,
 present exactly while the plugin is enabled. The account section, in Settings › Code Intelligence, holds what is global to the JetBrains

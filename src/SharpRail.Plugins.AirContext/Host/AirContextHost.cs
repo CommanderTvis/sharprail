@@ -38,6 +38,11 @@ public sealed class AirContextHost : PluginHostModule
     /// <summary>The guidance moved verbatim from the Claude Code and Codex instructions; it exists only while the plugin is enabled.</summary>
     internal const string Guidance = "Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. You MUST call `context_search` first, before grep or reading files, for unfamiliar code, feature locations and cross-cutting behavior whenever this workspace's project has it enabled; do not wait for the user to ask. When you brief a subagent, its brief MUST say the same, that it passes `workspace` to every `context_*` call, and that its final report MUST state how many `context_search` calls it made; reject a report with none for code-discovery work. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, say so in your report and continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then MUST use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these SharpRail tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.";
 
+    /// <summary>What a session is told, once when it starts, about whether its project has Air Context on, so it need not check.</summary>
+    internal const string EnabledNow = "Air Context is ENABLED for this project (as of this session's start): you MUST call `context_search` first for unfamiliar code, before grep or reading files; `context_status` is needed only to learn whether indexing or sign-in is ready.";
+
+    internal const string DisabledNow = "Air Context is NOT enabled for this project (as of this session's start): do not call `context_search`; use LSP and targeted text search.";
+
     /// <summary>The workspace a Context tool call targets: its own, or a sibling worktree of the same project that a subagent works in.</summary>
     internal static async ValueTask<string> ResolveWorkspaceAsync(string calling, string? requested, Func<string, ValueTask<HostWorkspace?>> find, Func<string?, ValueTask<IReadOnlyList<HostWorkspace>>> list)
     {
@@ -80,7 +85,7 @@ public sealed class AirContextHost : PluginHostModule
                 return new ContextRuntime(installed.Installation, workspace, log, store.AuthorizeExecutionAsync);
             });
 
-            context.Prompt(new PromptContribution { Id = "tool-guidance", Title = "Air Context search", Description = "When to search the indexed project with Air Context's context tools.", Text = Guidance });
+            context.Prompt(new PromptContribution { Id = "tool-guidance", Title = "Air Context search", Description = "When to search the indexed project with Air Context's context tools.", Text = Guidance, WorkspaceText = workspace => Task.Run(async () => await EnabledAsync(workspace, default)).GetAwaiter().GetResult() ? EnabledNow : DisabledNow });
             context.Method(AirContextContract.Consent, async (request, _, token) => await ConsentAsync(request, token));
             context.Method(AirContextContract.Workspace, async (call, _, token) => await WorkspaceAsync(call, token));
             context.Tool(new PluginTool<ContextSearchParams>("context_search", "context search",

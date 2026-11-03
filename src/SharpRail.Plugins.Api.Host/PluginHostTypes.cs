@@ -231,4 +231,12 @@ public sealed class PromptContribution
     /// must not throw (a throw leaves the text out). <see langword="null"/> always includes the text.
     /// </summary>
     public Func<bool>? When { get; init; }
+
+    /// <summary>
+    /// Text appended after <see cref="Text"/> for the workspace a session starts in, computed once when that session's
+    /// instructions are composed (never polled, so it states the workspace's state at session start). It is called only
+    /// when composing for a workspace, so the workspace-independent text omits it; it must be quick, and null, empty,
+    /// a throw or text that breaks the bounds of <see cref="Text"/> adds nothing. Additive: contributions without it are unchanged.
+    /// </summary>
+    public Func<string, string?>? WorkspaceText { get; init; }
 }

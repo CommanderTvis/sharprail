@@ -960,3 +960,5 @@ SharpRail.Plugins.Api.Host.AgentSession.Deconstruct(out string! WorkspaceId, out
 SharpRail.Plugins.Api.Host.AgentSession.Equals(SharpRail.Plugins.Api.Host.AgentSession? other) -> bool
 static SharpRail.Plugins.Api.Host.AgentSession.operator !=(SharpRail.Plugins.Api.Host.AgentSession? left, SharpRail.Plugins.Api.Host.AgentSession? right) -> bool
 static SharpRail.Plugins.Api.Host.AgentSession.operator ==(SharpRail.Plugins.Api.Host.AgentSession? left, SharpRail.Plugins.Api.Host.AgentSession? right) -> bool
+SharpRail.Plugins.Api.Host.PromptContribution.WorkspaceText.get -> System.Func<string!, string?>?
+SharpRail.Plugins.Api.Host.PromptContribution.WorkspaceText.init -> void

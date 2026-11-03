@@ -47,6 +47,13 @@ internal static partial class AirContextChecks
             "The paragraph moved out of its place in the instructions.");
         Require(Claude(guidance).Contains("You MUST call `context_search` first", StringComparison.Ordinal) && Codex(guidance).Contains("its final report MUST state how many `context_search` calls", StringComparison.Ordinal),
             "The enabled plugin's paragraph is not strict.");
+        string Told(string at = "") => string.Concat(rig.Runtime.PromptTexts(SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.Id, SharpRail.Plugins.Api.Host.PromptPlacement.ToolList, at));
+        Require(Told(workspace).Contains("Air Context is ENABLED for this project", StringComparison.Ordinal) && Told(workspace).Contains("MUST call `context_search` first", StringComparison.Ordinal) && !Told().Contains("ENABLED for this project", StringComparison.Ordinal),
+            "A session in an enabled project was not told Air Context is enabled, or the workspace-independent text was.");
+        await rig.Workspace(workspace, "disable");
+        Require(Told(workspace).Contains("Air Context is NOT enabled for this project", StringComparison.Ordinal) && !Told(workspace).Contains("ENABLED for this project", StringComparison.Ordinal),
+            "A session in a project without Air Context was not told so.");
+        await rig.Workspace(workspace, "enable");
         var index = rig.Tools(workspace).Single(tool => tool.Name == "context_index");
         await index.Call(new(), default);
         await rig.UntilAsync(() => Task.FromResult(latest?.Indexes == 1), "indexing to start");

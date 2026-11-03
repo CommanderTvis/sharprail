@@ -874,7 +874,19 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     internal IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace = "")
     {
         var disabled = workspace.Length > 0 ? Seams.State.ProjectInstructions(workspace).Disabled.ToHashSet(StringComparer.Ordinal) : [];
-        return [.. PromptSections(agent, placement, workspace).Where(item => !disabled.Contains(item.Id)).Select(item => item.Contribution.Text)];
+        return [.. PromptSections(agent, placement, workspace).Where(item => !disabled.Contains(item.Id)).Select(item => WithWorkspaceText(item.Contribution, item.Plugin ?? "host", workspace))];
+    }
+
+    /// <summary>The contribution's text with what it adds for <paramref name="workspace"/>, if anything (H20).</summary>
+    private string WithWorkspaceText(PromptContribution contribution, string owner, string workspace)
+    {
+        if (workspace.Length == 0 || contribution.WorkspaceText is not { } compute) return contribution.Text;
+        string? added = null;
+        Guard(owner, () => added = compute(workspace));
+        if (string.IsNullOrWhiteSpace(added)) return contribution.Text;
+        var text = contribution.Text + " " + added.Trim();
+        try { return CheckPromptText(text); }
+        catch (ArgumentException) { return contribution.Text; }
     }
 
     /// <summary>The full identifier a project's disable-list names: <c>core.&lt;id&gt;</c> or <c>plugin.&lt;plugin&gt;.&lt;id&gt;</c>.</summary>
@@ -919,7 +931,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
                 SourceName = item.SourceName,
                 Title = item.Contribution.Title ?? DefaultTitle(item.Contribution),
                 Description = item.Contribution.Description ?? "",
-                Text = item.Contribution.Text,
+                Text = WithWorkspaceText(item.Contribution, item.Plugin ?? "host", workspace),
                 Enabled = !disabled.Contains(item.Id),
             }).ToArray();
         var known = sections.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
