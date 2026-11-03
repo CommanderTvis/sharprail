@@ -121,7 +121,8 @@
           Inputs="@(AndroidNativeSource)" Outputs="@(AndroidNativeLibrary)">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-tailscale-android.sh&quot; %(NativeAbi.Identity)" />
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../Ghostty.Avalonia/build-android.sh&quot; %(NativeAbi.Identity) &quot;$(GhosttyNativeCache)&quot;" />
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/tool&quot; merman-android" ConsoleToMSBuild="true" StandardOutputImportance="low">
+    <!-- stderr is dropped: a first run installs the tool and mise's progress lines would join the captured directory as extra items. -->
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/tool&quot; merman-android 2&gt;/dev/null" ConsoleToMSBuild="true" StandardOutputImportance="low">
       <Output TaskParameter="ConsoleOutput" PropertyName="MermanAndroidDirectory" />
     </Exec>
     <Copy SourceFiles="$(MermanAndroidDirectory)/jni/%(NativeAbi.Identity)/libmerman_ffi.so"
