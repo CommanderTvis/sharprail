@@ -99,6 +99,9 @@ and the opposite slot picks the lowest-order theme with matching contrast, then 
 Appearance settings page sends mode and the derived pair atomically; a persisted pair is reused later, and
 the fallback is disclosed rather than written back.
 
+System mode is the default everywhere (host settings, profiles and the wire contract). Without a stored pair it uses the
+pair derived from `theme`; a mode other than `fixed` or `system` reads as system.
+
 `WorkbenchWindow.ApplyTheme` runs on startup, on every host settings broadcast and on
 `ActualThemeVariantChanged`. In system mode the window requests the default variant so the OS decides; in
 fixed mode it pins the manifest's variant. Application is atomic from consumers' perspective: all brushes

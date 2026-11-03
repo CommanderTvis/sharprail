@@ -1247,6 +1247,18 @@ internal static class Program
             OmpChecks.RunUi(Path.Combine(root, "omp-ui"));
             return;
         }
+        if (args.SequenceEqual(["--providers"]))
+        {
+            ProvidersChecks.Run(root);
+            Console.WriteLine("PASS providers checks");
+            return;
+        }
+        if (args.SequenceEqual(["--pi"]))
+        {
+            PiChecks.Run(Path.Combine(root, "pi")).GetAwaiter().GetResult();
+            Console.WriteLine("PASS Pi checks");
+            return;
+        }
         if (args.SequenceEqual(["--air-gateway"]))
         {
             AirGatewayChecks.Run(root).GetAwaiter().GetResult();
@@ -1354,6 +1366,8 @@ internal static class Program
         Gate.Case("FileIconsChecks-Host", () => FileIconsChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("codex-host", () => CodexChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("omp-host", () => OmpChecks.RunHost(Path.Combine(root, "omp")).GetAwaiter().GetResult());
+        Gate.Case("providers", () => ProvidersChecks.Run(root));
+        Gate.Case("pi", () => PiChecks.Run(Path.Combine(root, "pi")).GetAwaiter().GetResult());
         Gate.Case("workspace-watch", () => WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult());
         UiChecks.Run(root);
         Gate.Case("resources", () => ResourceChecks.Run(root));

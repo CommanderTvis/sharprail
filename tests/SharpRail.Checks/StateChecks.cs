@@ -56,7 +56,7 @@ internal static class StateChecks
         File.WriteAllText(Path.Combine(profilePath, "profile.json"), System.Text.Json.JsonSerializer.Serialize(new
         {
             Windows = new[] { new { Layout = legacyFrame.State, LastProject = root } },
-            Preferences = new { CustomPresets = new Dictionary<string, SharpRail.UI.Docking.DockState> { ["Old layout"] = legacyFrame.State.Copy() } }
+            Preferences = new { ThemeMode = "fixed", CustomPresets = new Dictionary<string, SharpRail.UI.Docking.DockState> { ["Old layout"] = legacyFrame.State.Copy() } }
         }));
         var restored = new SharpRail.UI.State.ProfileStore(profilePath).Data;
         foreach (var frame in new[] { restored.Windows[0].Layout, restored.Preferences.CustomPresets["Old layout"] })
@@ -85,7 +85,7 @@ internal static class StateChecks
         File.WriteAllText(Path.Combine(splitProfile, "profile.json"), System.Text.Json.JsonSerializer.Serialize(new
         {
             Windows = new[] { new { Layout = splitLayout, LastProject = root } },
-            Preferences = new { CustomPresets = new Dictionary<string, SharpRail.UI.Docking.DockState> { ["Split layout"] = splitLayout.Copy() } }
+            Preferences = new { ThemeMode = "fixed", CustomPresets = new Dictionary<string, SharpRail.UI.Docking.DockState> { ["Split layout"] = splitLayout.Copy() } }
         }));
         var reloaded = new SharpRail.UI.State.ProfileStore(splitProfile).Data;
         foreach (var frame in new[] { reloaded.Windows[0].Layout, reloaded.Preferences.CustomPresets["Split layout"] })
@@ -98,13 +98,16 @@ internal static class StateChecks
                 "Loading a window or preset with a split main column must keep every tab in one group with its tab groups.");
         }
 
+        // Fixed theme mode keeps these stores off the bundled theme catalogue, which needs a running Avalonia platform.
+        Directory.CreateDirectory(Path.Combine(root, "tab-mode-migration"));
+        File.WriteAllText(Path.Combine(root, "tab-mode-migration", "profile.json"), """{ "Preferences": { "ThemeMode": "fixed" } }""");
         var migratedProfile = new SharpRail.UI.State.ProfileStore(Path.Combine(root, "tab-mode-migration"));
         migratedProfile.Data.StateMigrated = true;
         migratedProfile.Data.Preferences.VerticalCenterTabs = true;
         migratedProfile.Data.Preferences.VerticalTabsInProjects = true;
         // The state file already exists: the old all-fields migration must not need to run again.
         Directory.CreateDirectory(migratedProfile.DirectoryPath);
-        File.WriteAllText(Path.Combine(migratedProfile.DirectoryPath, HostStateStore.FileName), "{\"Settings\":{}}\n");
+        File.WriteAllText(Path.Combine(migratedProfile.DirectoryPath, HostStateStore.FileName), "{\"Settings\":{\"ThemeMode\":\"fixed\"}}\n");
         var migratedStore = migratedProfile.OpenState();
         Require(migratedStore.Current.Settings.VerticalCenterTabs == true && migratedStore.Current.Settings.VerticalTabsInProjects == true,
             "An already migrated desktop profile must seed the host's previously unset tab mode.");
@@ -112,7 +115,7 @@ internal static class StateChecks
         Require(migratedProfile.OpenState().Current.Settings.VerticalCenterTabs == false,
             "Local fallback preferences must never overwrite a host's saved tab mode.");
         var fallback = new SharpRail.UI.State.Preferences { VerticalCenterTabs = true, VerticalTabsInProjects = true };
-        using var olderSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), fallback, new HostState());
+        using var olderSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), fallback, new HostState { Settings = new() { ThemeMode = "fixed" } });
         Require(fallback.VerticalCenterTabs && fallback.VerticalTabsInProjects, "Older hosts must retain local tab-mode preferences.");
         var browserPreferences = new SharpRail.UI.State.Preferences();
         using var browserSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(migratedStore), browserPreferences, migratedStore.Current);

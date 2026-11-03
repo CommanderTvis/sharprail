@@ -12,7 +12,7 @@ public sealed record HostSettings
     /// <summary>The bundled icon set's look when <see cref="FileTypeIconsEnabled"/>: empty is plain (decoloured), <c>colored</c> tints it per file kind, <c>material</c> uses Material Icon Theme's own colours.</summary>
     public string FileTypeIconStyle { get; init; } = "";
     public string Theme { get; init; } = "";
-    public string ThemeMode { get; init; } = "fixed";
+    public string ThemeMode { get; init; } = "system";
     public string SystemLight { get; init; } = "";
     public string SystemDark { get; init; } = "";
     public int FileLineWidth { get; init; }

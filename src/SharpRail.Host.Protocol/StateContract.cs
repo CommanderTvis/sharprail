@@ -23,7 +23,7 @@ public sealed class StateChangeRequest
 public sealed class SettingsMessage
 {
     [ProtoMember(1)] public string Theme { get; set; } = "";
-    [ProtoMember(2)] public string ThemeMode { get; set; } = "fixed";
+    [ProtoMember(2)] public string ThemeMode { get; set; } = "system";
     [ProtoMember(3)] public string SystemLight { get; set; } = "";
     [ProtoMember(4)] public string SystemDark { get; set; } = "";
     [ProtoMember(5)] public int FileLineWidth { get; set; }

@@ -13,7 +13,7 @@ public sealed class Preferences
 {
     /// <summary>The fixed theme's manifest id, kept opaque so an unavailable theme survives until another is chosen.</summary>
     public string Theme { get; set; } = Themes.DefaultId;
-    public string ThemeMode { get; set; } = "fixed";
+    public string ThemeMode { get; set; } = "system";
     public SystemThemePair? SystemThemePair { get; set; }
     public int FileLineWidth { get; set; } = LineWidths.FileDefault;
     public bool FileLineWidthBounded { get; set; } = true;
@@ -255,7 +255,8 @@ public sealed class ProfileStore
         }
         if (!Valid(preferences.Theme)) preferences.Theme = Themes.DefaultId;
         if (preferences.SystemThemePair is { } pair && (!Valid(pair.Light) || !Valid(pair.Dark))) preferences.SystemThemePair = null;
-        if (preferences.ThemeMode is not ("fixed" or "system") || preferences.SystemThemePair is null) preferences.ThemeMode = "fixed";
+        if (preferences.ThemeMode is not ("fixed" or "system")) preferences.ThemeMode = "system";
+        if (preferences.ThemeMode == "system") preferences.SystemThemePair ??= Themes.DerivePair(preferences.Theme);
     }
 
     /// <summary>

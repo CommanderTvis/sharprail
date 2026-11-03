@@ -515,7 +515,7 @@ public sealed partial class HostStateStore : IHostStateService
         if (path is null) return;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            if (!WriteInBackground) Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var stored = new Stored
             {
                 Settings = snapshot.Settings,
@@ -541,14 +541,56 @@ public sealed partial class HostStateStore : IHostStateService
                 TerminalTitles = snapshot.TerminalTitles.Where(title => title.Source != TerminalTitleSource.Program).ToList(),
                 WorkspaceCreators = workspaceCreators.Where(entry => snapshot.Workspaces.Any(workspace => workspace.Path == entry.Key)).ToDictionary()
             };
-            var temporary = path + ".tmp";
             var document = JsonSerializer.SerializeToNode(stored, Json)!;
             foreach (var (name, value) in unknownSettings) document[nameof(Stored.Settings)]![name] = value?.DeepClone();
-            File.WriteAllText(temporary, document.ToJsonString(Json));
-            File.Move(temporary, path, overwrite: true);
+            if (WriteInBackground) { WriteLater(document.ToJsonString(Json)); return; }
+            WriteFile(document.ToJsonString(Json));
             LastError = null;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError = error.Message; }
+    }
+
+    /// <summary>
+    /// Writes the state file after the state's lock is released, newest snapshot only. A host whose file system is
+    /// reached through another thread (a browser tab's) must not hold a lock the page's thread also takes while it waits.
+    /// </summary>
+    public bool WriteInBackground { get; set; }
+
+    private readonly Lock writes = new();
+    private string? pendingWrite;
+    private bool writing;
+
+    private void WriteLater(string json)
+    {
+        lock (writes)
+        {
+            pendingWrite = json;
+            if (writing) return;
+            writing = true;
+        }
+        _ = Task.Run(() =>
+        {
+            while (true)
+            {
+                string next;
+                lock (writes)
+                {
+                    if (pendingWrite is null) { writing = false; return; }
+                    next = pendingWrite;
+                    pendingWrite = null;
+                }
+                try { WriteFile(next); LastError = null; }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError = error.Message; }
+            }
+        });
+    }
+
+    private void WriteFile(string json)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path!)!);
+        var temporary = path + ".tmp";
+        File.WriteAllText(temporary, json);
+        File.Move(temporary, path!, overwrite: true);
     }
 
     private static bool ValidPath(string value) => value.Length > 0 && !value.Contains('\0') && Path.IsPathFullyQualified(value);
@@ -566,7 +608,7 @@ public sealed partial class HostStateStore : IHostStateService
             SharprailExcludeDeclined = value.SharprailExcludeDeclined.Where(item => item is not null && ValidPath(item)).Distinct().Order(StringComparer.Ordinal).ToArray(),
             Settings = value.Settings with
             {
-                ThemeMode = value.Settings.ThemeMode is "system" ? "system" : "fixed",
+                ThemeMode = value.Settings.ThemeMode is "fixed" ? "fixed" : "system",
                 Theme = Clean(value.Settings.Theme),
                 SystemLight = light,
                 SystemDark = dark,
