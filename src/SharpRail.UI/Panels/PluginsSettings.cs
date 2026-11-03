@@ -29,6 +29,7 @@ public sealed class PluginsSettings : StackPanel
     private readonly Control none = new Border { Child = Ui.Text("No plugins are installed.", Ui.Hint, 12), IsVisible = false };
     private readonly StackPanel paths = new() { Name = "PluginPaths", Spacing = 4 };
     private readonly TextBlock error = new() { Name = "PluginsError", IsVisible = false, TextWrapping = TextWrapping.Wrap, Foreground = Ui.Danger, FontSize = 12 };
+    private readonly WrapPanel outline = new() { Name = "PluginOutline", Orientation = Orientation.Horizontal, IsVisible = false };
     private string pathsSignature = "\0";
 
     public PluginsSettings(SharedState state, IPluginService? service, Window owner)
@@ -52,6 +53,7 @@ public sealed class PluginsSettings : StackPanel
         rescan.IsEnabled = service is not null;
         Ui.Place(header, rescan, 0, 1);
         Children.Add(header);
+        Children.Add(outline);
         // A long roster (one plugin per language server) realizes only the cards near the viewport and recycles them.
         rows = new PluginCardList(() => new PluginCard(
             entry => _ = Run($"Couldn't retry {entry.Label}", async () => { if (this.service is not null) await this.service.RetryAsync(entry.Id); }),
@@ -118,6 +120,7 @@ public sealed class PluginsSettings : StackPanel
             else cards.Move(at, index);
         }
         none.IsVisible = roster.Count == 0;
+        RefreshOutline();
         RefreshPaths();
     }
 
@@ -125,6 +128,30 @@ public sealed class PluginsSettings : StackPanel
     internal const string Unavailable = "Unavailable";
 
     private static string Section(PluginRosterEntry entry) => entry.Status is PluginStatus.Refused or PluginStatus.Failed ? Unavailable : Category(entry);
+
+    // One link per category heading; it scrolls the list to that heading's first card.
+    private void RefreshOutline()
+    {
+        outline.Children.Clear();
+        foreach (var model in cards.Where(model => model.Heading is not null))
+        {
+            var heading = model.Heading!;
+            var link = Ui.Button(heading, () => ScrollToCategory(heading));
+            link.Name = "PluginOutline_" + heading;
+            link.Margin = new Thickness(0, 0, 8, 8);
+            outline.Children.Add(link);
+        }
+        outline.IsVisible = outline.Children.Count > 1;
+    }
+
+    private void ScrollToCategory(string heading)
+    {
+        var index = cards.ToList().FindIndex(model => model.Heading == heading);
+        if (index < 0) return;
+        rows.ScrollIntoView(index);
+        (TopLevel.GetTopLevel(this) as Layoutable ?? this).UpdateLayout();
+        rows.GetRealizedContainers().OfType<PluginCard>().FirstOrDefault(card => card.Model?.Heading == heading)?.BringIntoView();
+    }
 
     private static string Category(PluginRosterEntry entry) => entry.Category is { Length: > 0 } category ? category.Trim() : PluginCategories.Other;
 

@@ -83,8 +83,8 @@ public sealed partial class SettingsView : UserControl
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Code Intelligence", "code"), ("Line width", "fileText"), ("Layout", "layout"), ("Keymap", "code"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
-            Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", ""), ("Code Intelligence", "code"), ("Line width", ""), ("Layout", "layout"), ("Keymap", "code"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
+            Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, item.Item2.Length == 0 ? IndentedLabel(item.Item1) : Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         // Listed only for a host that settles workspaces; an older one has no idle window to set.
         navigation["Workspaces"].IsVisible = state.SettlingSupported;
@@ -125,6 +125,15 @@ public sealed partial class SettingsView : UserControl
     {
         if (showSectionList is not null && !this.FindControl<Border>("SettingsNavigationPane")!.IsVisible) showSectionList(true);
         else Close();
+    }
+
+    // No icon: the label keeps the column the other rows' labels start at.
+    private static StackPanel IndentedLabel(string label)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        row.Children.Add(Ui.Text(label));
+        row.Margin = new Thickness(PluginsLabelColumn - 12, 0, 0, 0);
+        return row;
     }
 
     private void Navigation(Button button, string key, StackPanel content)
