@@ -131,7 +131,7 @@ internal static class LanguageCodeActionChecks
             view.Editor.RaiseEvent(new ContextRequestedEventArgs());
             E2E.E2eWorkspace.Until(() => view.Editor.ContextMenu!.IsOpen && view.Editor.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Name == "Language_quickFix"));
             var item = view.Editor.ContextMenu!.Items.OfType<MenuItem>().Single(entry => entry.Name == "Language_quickFix");
-            Require(item.Icon is not null && item.Header!.ToString()!.Contains("Alt+Enter", StringComparison.Ordinal), "The context menu's quick-fix item lacked its icon or chord.");
+            Require(item.Icon is not null && item.InputGesture is { Key: Avalonia.Input.Key.Enter, KeyModifiers: Avalonia.Input.KeyModifiers.Alt }, "The context menu's quick-fix item lacked its icon or chord.");
             view.Editor.ContextMenu.Close();
 
             // Away from the diagnostic the server has nothing: a message, no list.
