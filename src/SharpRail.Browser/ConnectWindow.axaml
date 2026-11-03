@@ -26,6 +26,7 @@
         <Button x:Name="ConnectSubmit" Classes="primary" Content="Connect" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
         <Button x:Name="ConnectScan" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
       </StackPanel>
+      <Button x:Name="ConnectTab" Content="Open Playground" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
       <Button x:Name="ConnectTailscale" Content="Connect over Tailscale" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
       <ContentControl x:Name="ConnectTailscaleBody" />
       <Button x:Name="ConnectManualBack" Content="Use an address and token" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" IsVisible="False" />

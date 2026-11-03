@@ -38,6 +38,13 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
     /// <summary>Honoured for a builtin plugin; an external plugin always arrives disabled regardless of this value.</summary>
     public bool EnabledByDefault { get; init; }
 
+    /// <summary>
+    /// The <see cref="HostKind"/>s the plugin cannot run on, such as <see cref="HostKind.PureWeb"/> for one that needs
+    /// a shell or a process. A host of a listed kind refuses the plugin before any of its code loads, naming the kind,
+    /// and its dependents are refused with it; Settings › Plugins shows the reason. Empty means it runs everywhere.
+    /// </summary>
+    public IReadOnlyList<HostKind> UnavailableOn { get; init; } = [];
+
     /// <summary>Other plugins this one is built on, by id and exact wire version; see <see cref="PluginDependency"/>.</summary>
     public IReadOnlyList<PluginDependency> DependsOn { get; init; } = [];
 

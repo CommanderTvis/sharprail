@@ -91,7 +91,7 @@ public sealed class PluginsSettings : StackPanel
         var ids = new HashSet<string>(StringComparer.Ordinal);
         // The host refuses these too; the card only says so up front.
         var pinned = state.Current.ConnectedThroughTailscale ? TailscaleDependence.Protected(roster) : new HashSet<string>();
-        foreach (var group in roster.GroupBy(Category).OrderBy(group => CategoryRank(group.Key)).ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
+        foreach (var group in roster.GroupBy(Section).OrderBy(group => CategoryRank(group.Key)).ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase))
         {
             var first = true;
             foreach (var entry in group.OrderBy(entry => entry.Label, StringComparer.OrdinalIgnoreCase).ThenBy(entry => entry.Id, StringComparer.Ordinal))
@@ -121,12 +121,17 @@ public sealed class PluginsSettings : StackPanel
         RefreshPaths();
     }
 
+    /// <summary>Plugins that cannot run here (refused or failed) gather under their own heading below every working category.</summary>
+    internal const string Unavailable = "Unavailable";
+
+    private static string Section(PluginRosterEntry entry) => entry.Status is PluginStatus.Refused or PluginStatus.Failed ? Unavailable : Category(entry);
+
     private static string Category(PluginRosterEntry entry) => entry.Category is { Length: > 0 } category ? category.Trim() : PluginCategories.Other;
 
     private static int CategoryRank(string category)
     {
         var index = PluginCategories.Order.ToList().IndexOf(category);
-        return index >= 0 ? index : category == PluginCategories.Other ? int.MaxValue : PluginCategories.Order.Count;
+        return index >= 0 ? index : category == Unavailable ? int.MaxValue : category == PluginCategories.Other ? int.MaxValue - 1 : PluginCategories.Order.Count;
     }
 
     /// <summary>The list as shown, top to bottom: <c>PluginCategory_&lt;name&gt;</c> for a heading and <c>PluginRow_&lt;id&gt;</c> for a card.</summary>

@@ -1645,9 +1645,9 @@ internal static class ClaudeChatUiChecks
                 var list = container.GetVisualDescendants().OfType<ListBox>().First(box => box.Name != null && box.Name.EndsWith("List", StringComparison.Ordinal));
                 var items = list.GetVisualDescendants().OfType<ListBoxItem>().Where(item => item.DataContext is not PickRow { Kind: PickRowKind.Header }).ToList();
                 Require(items.Count >= 3 && items.Select(item => Math.Round(item.Bounds.Height)).Distinct().Count() == 1, $"{name} rows are all one height ({string.Join(",", items.Select(item => item.Bounds.Height))}).");
-                var checks = items.Select(item => item.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name == "ChatPopupCheck")).ToList();
-                Require(checks.Count(mark => mark.Text == "\u2713") == 1, $"{name} marks exactly the current value.");
-                var shown = checks.First(mark => mark.Text == "\u2713");
+                var checks = items.Select(item => item.GetVisualDescendants().OfType<Border>().First(mark => mark.Name == "ChatPopupCheck")).ToList();
+                Require(checks.Count(mark => mark.Child is not null) == 1, $"{name} marks exactly the current value.");
+                var shown = checks.First(mark => mark.Child is not null);
                 var current = items[checks.IndexOf(shown)];
                 var currentLabel = current.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name != "ChatPopupCheck" && !string.IsNullOrEmpty(text.Text) && text.Text != "\u2605" && text.Text != "\u2606").Text;
                 Require(currentLabel == (name == "ChatModelPicker" ? "Opus 5.1" : name == "ChatEffortPicker" ? "medium" : "Edit automatically"), $"{name} marks the right row ('{currentLabel}').");
@@ -1749,7 +1749,7 @@ internal static class ClaudeChatUiChecks
                         {
                             var listLeft = list.TranslatePoint(new Point(0, 0), frame)!.Value.X;
                             Require(rowsOf.All(item => Math.Abs(item.TranslatePoint(new Point(0, 0), frame)!.Value.X - listLeft) < 0.5 && item.Bounds.Right <= list.Bounds.Width + 0.5), $"{label}: rows start at the list's left edge and end inside it.");
-                            var first = rowsOf[0].GetVisualDescendants().OfType<TextBlock>().First();
+                            var first = rowsOf[0].GetVisualDescendants().OfType<Control>().First(control => control is TextBlock || control.Name == "ChatPopupCheck");
                             var text = first.TranslatePoint(new Point(0, 0), frame)!.Value.X;
                             foreach (var heading in frame.GetVisualDescendants().OfType<TextBlock>().Where(block => block.Name is { } n && n.EndsWith("Header", StringComparison.Ordinal)))
                                 Require(Math.Abs(heading.TranslatePoint(new Point(0, 0), frame)!.Value.X - text) < 0.5, $"{label}: the header label lines up with the rows' text ({heading.TranslatePoint(new Point(0, 0), frame)!.Value.X} vs {text}).");

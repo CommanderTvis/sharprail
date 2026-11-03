@@ -63,6 +63,7 @@ public sealed partial class WorkbenchWindow
     private async Task CloneProjectAsync()
     {
         var parent = Path.GetDirectoryName(projectRoot.Length > 0 ? projectRoot : workspaceRoot) ?? "";
+        if (parent.Length == 0) parent = workbench.CloneFolder;
         Func<Task<string?>>? pick = remote ? null : async () => FolderPicker is { } custom ? await custom()
             : (await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Clone into", AllowMultiple = false }))
                 .FirstOrDefault()?.TryGetLocalPath();

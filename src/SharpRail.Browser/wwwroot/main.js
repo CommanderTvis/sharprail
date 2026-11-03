@@ -1,5 +1,6 @@
 import { dotnet } from './_framework/dotnet.js';
 const runtime = await dotnet.create();
+globalThis.sharprailRuntime = runtime;
 await runtime.runMain(runtime.getConfig().mainAssemblyName, []);
 const exports = await runtime.getAssemblyExports(runtime.getConfig().mainAssemblyName);
 const { registerEvents } = await import('./sharprail.js');

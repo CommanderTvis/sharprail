@@ -15,6 +15,8 @@ public static class EnvDirenvContract
     public static readonly PluginManifest Manifest = new(Id, "direnv Environment", "terminal-box-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Environment,
+        // Runs direnv on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Gives every terminal and agent the environment of the workspace's .envrc through direnv, including a new worktree's.",
         EnabledByDefault = true,
         DependsOn = [new("env", 1)],

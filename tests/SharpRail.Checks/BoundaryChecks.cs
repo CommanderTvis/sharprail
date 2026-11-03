@@ -73,7 +73,7 @@ internal static class BoundaryChecks
         var projects = new[] { "src", "tests" }.Select(area => Path.Combine(root, area)).Where(Directory.Exists)
             .SelectMany(Directory.EnumerateDirectories).SelectMany(directory => Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories).Where(project => !Path.GetRelativePath(directory, project).Split(Path.DirectorySeparatorChar).Any(part => Generated.Contains(part) || part.StartsWith('.')))).Order(StringComparer.Ordinal).ToArray();
         var rules = Allowed.ToDictionary();
-        foreach (var plugin in new[] { "SpecDialect", "Blueprint", "ClaudeCode", "Discord", "BranchGraph", "Processes", "Visualize", "Codex", "Omp", "AirGateway", "AirContext", "Tailscale", "Epub", "EnvMise", "EnvDirenv", "EnvPython", "EnvJavaScript", "EnvJvm", "Env", "GitHub" })
+        foreach (var plugin in new[] { "SpecDialect", "Blueprint", "ClaudeCode", "Discord", "BranchGraph", "Processes", "Visualize", "Codex", "Omp", "Pi", "Providers", "AirGateway", "AirContext", "Tailscale", "Epub", "EnvMise", "EnvDirenv", "EnvPython", "EnvJavaScript", "EnvJvm", "Env", "GitHub" })
         {
             var contract = "SharpRail.Plugins." + plugin;
             rules[contract] = [Api];
@@ -84,7 +84,9 @@ internal static class BoundaryChecks
             rules[Android] = [.. rules[Android], contract, contract + ".UI"];
             rules[Browser] = [.. rules[Browser], contract, contract + ".UI"];
             rules[Checks] = [.. rules[Checks], contract, contract + ".Host", contract + ".UI"];
-            if (plugin is "ClaudeCode")
+            // A browser tab runs Pi's host in the page (TabPi), so the tab client names its host module.
+            if (plugin is "Pi") rules[Browser] = [.. rules[Browser], contract + ".Host"];
+            if (plugin is "ClaudeCode" or "Pi")
             {
                 rules[contract] = [.. rules[contract], Chat];
                 rules[contract + ".Host"] = [.. rules[contract + ".Host"], Chat];

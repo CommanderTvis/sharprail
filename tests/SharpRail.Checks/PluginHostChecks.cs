@@ -154,6 +154,7 @@ internal static class PluginHostChecks
         ManifestIntake();
         Discovery(Path.Combine(directory, "discovery"));
         await Registry(Path.Combine(directory, "registry"));
+        await HostKinds(Path.Combine(directory, "host-kinds"));
         await Activation(Path.Combine(directory, "activation"));
         await Reconciler(Path.Combine(directory, "reconciler"));
         await Dispatch(Path.Combine(directory, "dispatch"));
@@ -271,6 +272,31 @@ internal static class PluginHostChecks
             "The roster carries the loaded contract's channels.");
         Require(composed.State.Current.Plugins.Count == roster.Count, "The roster rides the host state snapshot.");
         Console.WriteLine("PASS plugin registry: dependency order, cycle refusal, contract-intake refusals, channels on the roster");
+    }
+
+    private static async Task HostKinds(string directory)
+    {
+        static Module Quiet(string id) => new(Contract(id, Say), _ => ValueTask.FromResult<PluginDisposer?>(null));
+        (PluginManifest, PluginHostModule?)[] builtins = [
+            (Manifest("needs-os", true) with { UnavailableOn = [HostKind.PureWeb] }, Quiet("needs-os")),
+            (Manifest("on-needs-os", true, new PluginDependency("needs-os", 1)), Quiet("on-needs-os")),
+            (Manifest("portable", true), Quiet("portable"))
+        ];
+        await using (var web = await Compose(Path.Combine(directory, "web"), builtins, seams => seams with { Kind = HostKind.PureWeb }))
+        {
+            await web.Runtime.Schedule();
+            var roster = (await web.Runtime.ListAsync()).ToDictionary(entry => entry.Id);
+            Require(roster["needs-os"] is { Status: PluginStatus.Refused, Reason: "plugin needs-os is not available in the Playground" },
+                "A plugin listing the host's kind in UnavailableOn is refused, naming the kind: " + roster["needs-os"].Reason);
+            Require(roster["on-needs-os"] is { Status: PluginStatus.Refused, Reason: "depends on needs-os, which is refused" },
+                "A dependent of a plugin refused for the host kind is refused with it.");
+            Require(roster["portable"].Status == PluginStatus.Active, "A plugin that lists no kind still runs on a pure web host.");
+        }
+        await using var native = await Compose(Path.Combine(directory, "native"), builtins);
+        await native.Runtime.Schedule();
+        Require((await native.Runtime.ListAsync()).All(entry => entry.Status == PluginStatus.Active),
+            "The same plugins all run on a host with an operating system.");
+        Console.WriteLine("PASS plugin host kinds: UnavailableOn refuses a plugin and its dependents on a pure web host and nothing on an OS host");
     }
 
     private static async Task Activation(string directory)

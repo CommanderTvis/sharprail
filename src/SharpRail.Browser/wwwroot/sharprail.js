@@ -92,5 +92,9 @@ export function enableWindow(id, enabled) { document.getElementById(id).inert = 
 export function setTitle(_id, title) { document.title = title; }
 
 export function dimNative(id, red, green, blue, alpha) {
-  document.getElementById(id)?.style.setProperty('--sharprail-native-scrim', `rgba(${red},${green},${blue},${alpha})`);
+  const style = document.getElementById(id)?.style;
+  style?.setProperty('--sharprail-native-scrim', `rgba(${red},${green},${blue},${alpha})`);
+  // A native terminal is a page element above the canvas, so it would hide an in-window overlay (Settings) drawn under it:
+  // behind a dimmed workbench it is hidden, as dim as it would be.
+  style?.setProperty('--sharprail-native-visibility', alpha > 0 ? 'hidden' : 'visible');
 }

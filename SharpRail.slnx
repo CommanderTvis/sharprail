@@ -50,6 +50,12 @@
     <Project Path="src/SharpRail.Plugins.Codex/Host/SharpRail.Plugins.Codex.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.Omp/SharpRail.Plugins.Omp.csproj" />
+    <Project Path="src/SharpRail.Plugins.Pi/SharpRail.Plugins.Pi.csproj" />
+    <Project Path="src/SharpRail.Plugins.Pi/Host/SharpRail.Plugins.Pi.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.Pi/UI/SharpRail.Plugins.Pi.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.Providers/SharpRail.Plugins.Providers.csproj" />
+    <Project Path="src/SharpRail.Plugins.Providers/Host/SharpRail.Plugins.Providers.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.Providers/UI/SharpRail.Plugins.Providers.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.Omp/Host/SharpRail.Plugins.Omp.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Omp/UI/SharpRail.Plugins.Omp.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.Discord/Contract/SharpRail.Plugins.Discord.csproj" />

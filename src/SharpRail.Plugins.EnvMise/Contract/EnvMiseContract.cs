@@ -15,6 +15,8 @@ public static class EnvMiseContract
     public static readonly PluginManifest Manifest = new(Id, "mise Environment", "terminal-box-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Environment,
+        // Runs mise on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Gives every terminal and agent the tools and variables of the workspace's mise configuration, including a new worktree's.",
         EnabledByDefault = true,
         DependsOn = [new("env", 1)],

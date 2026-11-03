@@ -31,6 +31,11 @@ internal static class TopbarChromeE2E
         app.Click(settingsButton);
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
+        if (app.Window.Preferences.ThemeMode != "fixed")
+        {
+            app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ThemeMode_fixed"));
+            Until(() => app.Window.Preferences.ThemeMode == "fixed");
+        }
         var original = app.Window.Preferences.Theme;
         var opposite = original == "light" ? "dark" : "light";
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Theme_" + opposite));

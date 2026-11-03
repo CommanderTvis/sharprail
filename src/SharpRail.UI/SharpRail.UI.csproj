@@ -29,6 +29,8 @@
     <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Omp/UI/SharpRail.Plugins.Omp.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Pi/UI/SharpRail.Plugins.Pi.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Providers/UI/SharpRail.Plugins.Providers.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirGateway/UI/SharpRail.Plugins.AirGateway.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirContext/UI/SharpRail.Plugins.AirContext.UI.csproj" />
     <PackageReference Include="bblanchon.PDFium.macOS" />

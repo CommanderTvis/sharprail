@@ -29,6 +29,8 @@ public static class TailscaleContract
     public static readonly PluginManifest Manifest = new(Id, "Tailscale", "asset:tailscale.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Integrations,
+        // Runs the tailscale command line on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Pairs clients on your tailnet without copying IP addresses, ports or session tokens.",
         EnabledByDefault = false,
         Assets = "assets",

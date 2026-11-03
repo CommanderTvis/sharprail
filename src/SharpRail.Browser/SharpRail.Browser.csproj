@@ -67,6 +67,8 @@
     <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Omp/UI/SharpRail.Plugins.Omp.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Pi/UI/SharpRail.Plugins.Pi.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Providers/UI/SharpRail.Plugins.Providers.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirGateway/UI/SharpRail.Plugins.AirGateway.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirContext/UI/SharpRail.Plugins.AirContext.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Tailscale/UI/SharpRail.Plugins.Tailscale.UI.csproj" />
@@ -114,9 +116,9 @@
       <WasmExtraFilesToDeploy Include="@(TailscaleWasmAsset)" TargetPath="tailscale/%(TailscaleWasmAsset.RecursiveDir)%(TailscaleWasmAsset.Filename)%(TailscaleWasmAsset.Extension)" />
     </ItemGroup>
   </Target>
-  <!-- The vendored assets come from the pnpm lockfile, the PDFium pin and the licence files. -->
+  <!-- The vendored assets come from the pnpm lockfile, the PDFium pin, the licence files and the tab's Pi agent sources. -->
   <ItemGroup>
-    <BrowserAssetSource Include="pnpm-lock.yaml;package.json;../../scripts/browser-assets.mjs;../../mise.browser.lock;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/Licenses/**;../SharpRail.Scintilla/Licenses/**;../*/NOTICE.md" />
+    <BrowserAssetSource Include="pnpm-lock.yaml;package.json;tabpi/**;../../scripts/browser-assets.mjs;../../mise.browser.lock;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/Licenses/**;../SharpRail.Scintilla/Licenses/**;../*/NOTICE.md" />
   </ItemGroup>
   <Target Name="StageBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildBrowserNative"
           Inputs="@(BrowserAssetSource)" Outputs="wwwroot/vendor/PDFium-LICENSE">

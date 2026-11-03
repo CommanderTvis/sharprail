@@ -13,6 +13,8 @@ public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
     public static readonly PluginManifest Manifest = new(Id, "JavaScript / TypeScript (TypeScript LS)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.JavaScript,
+        // Runs a language server as a process of the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the JavaScript / TypeScript (TypeScript LS) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

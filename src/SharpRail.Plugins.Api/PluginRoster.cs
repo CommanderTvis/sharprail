@@ -132,3 +132,13 @@ public enum HostPlatform
     /// <summary>Windows.</summary>
     Windows
 }
+
+/// <summary>What a host runs on, which decides the services its plugins can rely on.</summary>
+public enum HostKind
+{
+    /// <summary>A host with an operating system under it: files, processes, shells and sockets.</summary>
+    OperatingSystem,
+
+    /// <summary>A host that lives entirely in a browser tab, with no operating system under it.</summary>
+    PureWeb
+}

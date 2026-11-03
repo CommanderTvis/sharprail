@@ -458,7 +458,7 @@ internal sealed partial class LanguagePanel : UserControl
         catch (OperationCanceledException) when (current != lifetime || current.IsCancellationRequested) { }
         catch (Exception error)
         {
-            if (current == lifetime) SetStatus(error.Message);
+            if (current == lifetime) SetStatus(error.ToString()); // TEMP-DIAG
         }
         finally
         {

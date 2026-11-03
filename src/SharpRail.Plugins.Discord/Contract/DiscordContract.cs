@@ -57,6 +57,8 @@ public static class DiscordPlugin
     public static readonly PluginManifest Manifest = new(Id, "Discord", "discord", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Integrations,
+        // Talks to the Discord app through a local socket of the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Shows what you're working on as Discord Rich Presence.",
         EnabledByDefault = false,
         Assets = "assets",

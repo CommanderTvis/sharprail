@@ -32,7 +32,8 @@ public sealed class BrowserSession() : IDisposable
         Current = this;
         var remembered = HostEndpoint.Load(directory) ?? new HostEndpoint(BrowserInterop.Origin(), "");
         var connect = ShowConnect(remembered);
-        if (remembered is { Token.Length: > 0, Uri: not null }) connect.ConnectNow(remembered.Tailnet);
+        if (remembered is { Tab: true }) connect.OpenTab();
+        else if (remembered is { Token.Length: > 0, Uri: not null }) connect.ConnectNow(remembered.Tailnet);
     }
 
     /// <summary>Leaves the host and forgets its token, keeping the address for the connect screen.</summary>
@@ -61,6 +62,7 @@ public sealed class BrowserSession() : IDisposable
             try
             {
                 endpoint.Save(directory);
+                if (endpoint.Tab) { _ = OpenTabAsync(endpoint, connect); return; }
                 Open(endpoint);
                 connect.Close();
             }
@@ -80,6 +82,41 @@ public sealed class BrowserSession() : IDisposable
         var connect = ShowConnect(endpoint);
         Close();
         if (message is not null) connect.Report(message);
+    }
+
+    private TabHost? tab;
+
+    private async Task OpenTabAsync(HostEndpoint endpoint, ConnectWindow connect)
+    {
+        try
+        {
+            await TabGit.StartAsync("/sharprail", "/workspace", "/home");
+            await TabHost.EnsureProjectAsync();
+            if (disposed) return;
+            OpenTab(endpoint);
+            _ = tab!.EnableDefaultsAsync();
+            connect.Close();
+        }
+        catch (Exception fault)
+        {
+            Close();
+            connect.Report("The tab host could not start: " + fault.Message);
+            Console.Error.WriteLine(fault);
+        }
+    }
+
+    private void OpenTab(HostEndpoint endpoint)
+    {
+        var profile = new ProfileStore(directory, () => BrowserInterop.Load("profile"), json => BrowserInterop.Save("profile", json));
+        tab = new TabHost(profile);
+        var state = new SharedState(tab.States, profile.Data.Preferences, null, tab.Connection);
+        var terminals = new TabTerminals();
+        TerminalFactory factory = launch => new BrowserTerminal(launch, terminals);
+        Endpoint = endpoint;
+        // Its disk is not the browser's, so folders are typed as host paths, not picked with the operating system's chooser; its shell is a simulated bash.
+        workbench = new Workbench(profile, state, factory, remote: true, tab.Session, tab.Plugins, null) { Endpoint = "this tab", CloneFolder = "/workspace", PlaygroundGuide = true, HostLabel = "Playground", ChangeHost = ChangeHost, Notifier = BrowserNotifier.Instance };
+        workbench.WindowOpened += window => window.OpenLink = BrowserInterop.OpenLink;
+        foreach (var entry in profile.Data.Windows.Take(1)) workbench.Open(entry, TabHost.ProjectRoot).Show();
     }
 
     private void Open(HostEndpoint endpoint)
@@ -144,6 +181,8 @@ public sealed class BrowserSession() : IDisposable
         adapters.Clear();
         route?.Dispose();
         route = null;
+        tab?.Dispose();
+        tab = null;
     }
 
     public void Dispose()

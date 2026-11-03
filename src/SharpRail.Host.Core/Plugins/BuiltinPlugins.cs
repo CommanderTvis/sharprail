@@ -50,8 +50,12 @@ using SharpRail.Plugins.Lsp.Swift;
 using SharpRail.Plugins.Lsp.TypeScript;
 using SharpRail.Plugins.Omp;
 using SharpRail.Plugins.Omp.Host;
+using SharpRail.Plugins.Pi;
+using SharpRail.Plugins.Pi.Host;
 using SharpRail.Plugins.Processes;
 using SharpRail.Plugins.Processes.Host;
+using SharpRail.Plugins.Providers;
+using SharpRail.Plugins.Providers.Host;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.Host;
@@ -126,6 +130,8 @@ public static class BuiltinPlugins
         (VisualizeContract.Manifest, new VisualizeHost()),
         (CodexManifest.Manifest, new CodexHost()),
         (OmpManifest.Manifest, new OmpHost()),
+        (PiManifest.Manifest, new PiHost()),
+        (ProvidersManifest.Manifest, new ProvidersHost()),
         (AirGatewayContract.Manifest, new AirGatewayHost()),
         (AirContextContract.Manifest, new AirContextHost()),
         (TailscaleContract.Manifest, new TailscaleHost(tailscale)),

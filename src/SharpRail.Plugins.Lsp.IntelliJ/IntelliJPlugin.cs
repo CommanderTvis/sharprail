@@ -11,6 +11,8 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
     public static readonly PluginManifest Manifest = new(Id, "Java / Kotlin (IntelliJ)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Jvm,
+        // Runs a language server as a process of the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the Java / Kotlin (IntelliJ) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

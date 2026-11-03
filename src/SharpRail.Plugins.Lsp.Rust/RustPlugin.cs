@@ -15,6 +15,8 @@ public sealed class RustPlugin() : LanguageServerPlugin(Id)
     public static readonly PluginManifest Manifest = new(Id, "Rust (rust-analyzer)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Rust,
+        // Runs a language server as a process of the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the Rust (rust-analyzer) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

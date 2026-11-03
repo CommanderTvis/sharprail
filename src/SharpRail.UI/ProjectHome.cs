@@ -86,7 +86,7 @@ public sealed partial class WorkbenchWindow
         SaveProfile();
         UpdateScopeLabels();
         SetBranch("");
-        status.Text = remote ? "Remote" : "Connected";
+        status.Text = remote ? workbench.HostLabel : "Connected";
         ShowReady();
         Layout.SwitchWorkspace("", "");
         surface.RefreshCenterActions();
@@ -141,6 +141,7 @@ public sealed partial class WorkbenchWindow
         welcomeCards = buttons;
         FillWelcomeCards(buttons);
         panel.Children.Add(buttons);
+        if (workbench.PlaygroundGuide) panel.Children.Add(Panels.PlaygroundGuide.Create(CloneProject, () => ShowSettings("Model providers"), url => OpenLink(url)));
         foreach (var child in panel.Children) child.HorizontalAlignment = HorizontalAlignment.Center;
         return panel;
     }

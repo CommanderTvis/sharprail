@@ -1,9 +1,19 @@
 {
   "dependencies": {
+    "@mariozechner/pi-agent-core": "0.73.1",
+    "@mariozechner/pi-ai": "0.73.1",
     "@mermanjs/web": "0.7.0",
-    "restty": "0.3.0"
+    "buffer": "6.0.3",
+    "diff": "9.0.0",
+    "isomorphic-git": "1.44.4",
+    "just-bash": "3.6.0",
+    "restty": "0.3.0",
+    "vscode-css-languageservice": "6.3.2",
+    "vscode-languageserver": "9.0.1",
+    "vscode-languageserver-textdocument": "1.0.12"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "playwright": "1.64.0"
   }
 }

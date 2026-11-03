@@ -169,6 +169,8 @@ public static class AirGatewayContract
     public static readonly PluginManifest Manifest = new(Id, "Air Gateway", "", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Agents,
+        // Runs Central's command line on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Starts Codex and Claude Code through JetBrains Air Gateway with the Central CLI, per launch, or leaves them on their own accounts.",
         EnabledByDefault = false,
         Host = "SharpRail.Plugins.AirGateway.Host.dll",

@@ -42,6 +42,8 @@ public static class AirContextContract
     public static readonly PluginManifest Manifest = new(Id, "Air Context", "asset:air.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Agents,
+        // Runs Air Context's command line on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Semantic code search through JetBrains Air Context; indexing is cloud processing that you enable per project.",
         EnabledByDefault = false,
         Assets = "assets",

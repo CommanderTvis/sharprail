@@ -337,6 +337,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             {
                 var wanted = Enabled(entry, settings);
                 if (entry is { State: PluginStatus.Failed } && !wanted) (entry.State, entry.Reason) = (PluginStatus.Disabled, null);
+                if (entry.State is not (PluginStatus.Active or PluginStatus.Refused) && entry.Manifest.UnavailableOn.Contains(Seams.Kind))
+                    (entry.State, entry.Reason) = (PluginStatus.Refused, $"plugin {entry.Id} is not available {KindName(Seams.Kind)}");
                 if (entry.State == PluginStatus.Refused) { desired[entry.Id] = false; continue; }
                 var blocker = entry.Manifest.DependsOn.Select(dependency => Blocker(dependency, desired)).FirstOrDefault(reason => reason is not null);
                 desired[entry.Id] = wanted && blocker is null;
@@ -378,6 +380,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         settings.TryGetValue(entry.Id, out var space) && space.ValueKind == JsonValueKind.Object && space.TryGetProperty("enabled", out var flag)
             ? flag.ValueKind == JsonValueKind.True
             : entry.Origin == PluginOrigin.Builtin && entry.Manifest.EnabledByDefault;
+
+    private static string KindName(HostKind kind) => kind == HostKind.PureWeb ? "in the Playground" : "on this host";
 
     // Why a dependency keeps its dependent off, or null when it is usable: known, not failed or refused, at the
     // declared wire version, and itself desired this pass.

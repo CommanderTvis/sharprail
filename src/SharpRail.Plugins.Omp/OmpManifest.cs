@@ -11,6 +11,8 @@ public static class OmpManifest
     public static readonly PluginManifest Manifest = new(Id, "omp", Icon, "0.1.0", PluginApi.Generation, OmpContract.WireVersion)
     {
         Category = PluginCategories.Agents,
+        // Runs the omp CLI as a process on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Runs the omp coding agent in the terminal with SharpRail's MCP tools and shows its context files.",
         Support = PluginSupportLevels.Early,
         EnabledByDefault = false,

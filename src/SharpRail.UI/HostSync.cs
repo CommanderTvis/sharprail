@@ -207,7 +207,7 @@ public sealed partial class WorkbenchWindow
     {
         if (!connected)
         {
-            if (remote && status.Text is "Remote" or "Connected") status.Text = "Reconnecting";
+            if (remote && (status.Text == workbench.HostLabel || status.Text == "Connected")) status.Text = "Reconnecting";
             return;
         }
         var generation = state.Generation;

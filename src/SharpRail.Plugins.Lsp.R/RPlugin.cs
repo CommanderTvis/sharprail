@@ -13,6 +13,8 @@ public sealed class RPlugin() : LanguageServerPlugin(Id)
     public static readonly PluginManifest Manifest = new(Id, "R (languageserver)", "asset:Icon.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.R,
+        // Runs a language server as a process of the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the R (languageserver) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

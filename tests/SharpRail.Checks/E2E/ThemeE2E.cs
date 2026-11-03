@@ -58,7 +58,7 @@ internal static class ThemeE2E
         string target;
         using (var app = new E2eWorkspace(directory))
         {
-            var settings = Open(app);
+            var settings = OpenFixed(app);
             var options = Options(settings);
             Require(options.Length == Themes.All.Count && options.Length > 1, "Appearance must expose every discovered theme.");
             original = Active(settings).Id;
@@ -73,7 +73,7 @@ internal static class ThemeE2E
         {
             Require(reloaded.Window.Preferences.Theme == target && Ui.Theme.Id == target && reloaded.Window.ActualThemeVariant == Variant(target),
                 "A fresh window must restore the selected theme from disk.");
-            var settings = Open(reloaded);
+            var settings = OpenFixed(reloaded);
             reloaded.Click(Option(settings, "Theme_" + original));
             Require(Ui.Theme.Id == original && reloaded.Window.ActualThemeVariant == Variant(original), "The original theme must remain selectable after reload.");
             Escape(settings);
@@ -94,7 +94,7 @@ internal static class ThemeE2E
             ThemeManifest fixedTheme;
             using (var app = new E2eWorkspace(directory))
             {
-                var settings = Open(app);
+                var settings = OpenFixed(app);
                 fixedTheme = Active(settings);
                 var initialLight = Themes.All.First(theme => theme.IsLight && theme.Contrast == fixedTheme.Contrast);
                 alternateLight = Themes.All.First(theme => theme.IsLight && theme != initialLight);
@@ -171,7 +171,7 @@ internal static class ThemeE2E
             application.RequestedThemeVariant = ThemeVariant.Light;
             using var app = new E2eWorkspace(endpoint, token, directory, directory + "-page-profile", directory);
             Until(() => app.Window.WorkspaceMounted);
-            var settings = Open(app);
+            var settings = OpenFixed(app);
             var fixedTheme = Active(settings);
             var initialLight = Themes.All.First(theme => theme.IsLight && theme.Contrast == fixedTheme.Contrast);
             var alternateLight = Themes.All.First(theme => theme.IsLight && theme != initialLight);
@@ -222,7 +222,7 @@ internal static class ThemeE2E
     private static void HighContrastTabs(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "theme-contrast-tabs"));
-        var settings = Open(app);
+        var settings = OpenFixed(app);
         var original = Active(settings);
         var highContrast = Options(settings).Select(option => (ThemeManifest)option.Tag!).First(theme => theme.IsHighContrast);
         app.Click(Option(settings, "Theme_" + highContrast.Id));
@@ -262,7 +262,7 @@ internal static class ThemeE2E
             Require(Pixel(frame, middle, scale) == Ui.Over(Ui.PrimarySoft.Color, Ui.Sidebar.Color) && Pixel(frame, edge, scale) == highContrast["accent"],
                 $"The selected tab in {group} must paint its surface and edge marker.");
         }
-        settings = Open(app);
+        settings = OpenFixed(app);
         app.Click(Option(settings, "Theme_" + original.Id));
         Escape(settings);
         Console.WriteLine("PASS upstream: selected workspace tabs keep their surface and edge marker in high contrast");
@@ -272,7 +272,7 @@ internal static class ThemeE2E
     {
         var directory = Path.Combine(root, "theme-legacy");
         Directory.CreateDirectory(directory);
-        foreach (var (stored, theme, mode) in new[] { ("dark", "dark", "fixed"), ("light", "light", "fixed"), ("system", "dark", "system"), ("", "dark", "fixed") })
+        foreach (var (stored, theme, mode) in new[] { ("dark", "dark", "system"), ("light", "light", "system"), ("system", "dark", "system"), ("", "dark", "system") })
         {
             File.WriteAllText(Path.Combine(directory, "profile.json"), $$$"""{"Preferences":{"Theme":"{{{stored}}}"}}""");
             var migrated = new ProfileStore(directory).Data.Preferences;
@@ -282,8 +282,8 @@ internal static class ThemeE2E
         }
         File.WriteAllText(Path.Combine(directory, "profile.json"), """{"Preferences":{"Theme":"future-theme","ThemeMode":"system"}}""");
         var opaque = new ProfileStore(directory).Data.Preferences;
-        Require(opaque.Theme == "future-theme" && opaque.ThemeMode == "fixed" && Themes.Resolve(opaque, "light") is { Fallback: true, Theme.Id: "dark" },
-            "An unknown theme id must stay opaque, resolve to the default, and system mode needs a pair.");
+        Require(opaque.Theme == "future-theme" && opaque.ThemeMode == "system" && opaque.SystemThemePair is not null,
+            "An unknown theme id must stay opaque and system mode gets a derived pair.");
         Console.WriteLine("PASS legacy dark/light/system profiles migrate to theme ids, mode and pair");
     }
 
@@ -348,6 +348,18 @@ internal static class ThemeE2E
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OpenSettingsViews.Any(window => window.IsVisible));
         return app.Window.OpenSettingsViews.Single(window => window.IsVisible);
+    }
+
+    /// <summary>Opens Settings in fixed mode: system is the default, and the fixed list only shows there.</summary>
+    private static SettingsView OpenFixed(E2eWorkspace app)
+    {
+        var settings = Open(app);
+        if (app.Window.Preferences.ThemeMode != "fixed")
+        {
+            app.Click(Option(settings, "ThemeMode_fixed"));
+            Until(() => app.Window.Preferences.ThemeMode == "fixed");
+        }
+        return settings;
     }
 
     private static void Escape(SettingsView settings)

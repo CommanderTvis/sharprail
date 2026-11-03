@@ -66,6 +66,14 @@ public sealed class Workbench : IDisposable
     public Terminal.TerminalFactory Terminals { get; }
     /// <summary>The host's terminal catalog: which terminal tabs every window of every client shows.</summary>
     public ITerminalCatalogService TerminalTabs { get; }
+    /// <summary>Whether this host runs shells; a browser tab's own host does not, so no terminal is offered.</summary>
+    public bool HasTerminals { get; init; } = true;
+    /// <summary>What the top bar's host chip says while connected to a remote host; a browser tab's own host says so.</summary>
+    public string HostLabel { get; init; } = "Remote";
+    /// <summary>Whether Welcome shows the Playground's first steps: a browser tab's own host, where a person starts from nothing.</summary>
+    public bool PlaygroundGuide { get; init; }
+    /// <summary>The folder the clone dialog offers while no project is open; empty leaves the field blank.</summary>
+    public string CloneFolder { get; init; } = "";
     /// <summary>The latest catalog snapshot; null until the host has answered.</summary>
     public TerminalCatalog? TerminalCatalog { get; private set; }
     /// <summary>Completes with the first snapshot (true), or once the host turns out to keep no catalog (false).</summary>

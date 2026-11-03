@@ -15,6 +15,8 @@ public static class EnvJvmContract
     public static readonly PluginManifest Manifest = new(Id, "JVM Environment", "terminal-box-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Jvm,
+        // Runs JDK tooling on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Points JAVA_HOME and PATH at the JDK a workspace's .sdkmanrc or .java-version (jenv) chooses, in every terminal and agent.",
         EnabledByDefault = true,
         DependsOn = [new("env", 1)],

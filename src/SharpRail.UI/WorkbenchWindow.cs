@@ -114,7 +114,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Layout.Changed += UpdateActiveChangeRows;
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
-        surface = new DockSurface(Layout, RenderContent, build: false) { CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid() };
+        surface = new DockSurface(Layout, RenderContent, build: false) { NewTerminals = workbench.HasTerminals, CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid() };
         if (workbench.Compact) WireDrawers();
         AttachButtons = OperatingSystem.IsAndroid() || workbench.Compact;
         WireSharedAttachments();
@@ -747,7 +747,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// <summary>An embedded host cannot disconnect, so its healthy state shows no indicator.</summary>
     private void ShowReady()
     {
-        if (remote) SetStatus("Remote");
+        if (remote) SetStatus(workbench.HostLabel);
         else
         {
             statusDot.IsVisible = status.IsVisible = false;

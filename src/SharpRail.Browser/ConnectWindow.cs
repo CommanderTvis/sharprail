@@ -60,6 +60,12 @@ public sealed partial class ConnectWindow : Window
         scan.IsVisible = false;
         submit.Click += (_, _) => { if (attempt is null) _ = ConnectAsync(); else Abandon(); };
         Closed += (_, _) => { closed = true; Abandon(); };
+        this.FindControl<Button>("ConnectTab")!.Click += (_, _) =>
+        {
+            if (closed || completed) return;
+            completed = true;
+            Connected?.Invoke(HostEndpoint.InTab);
+        };
         var tailscale = this.FindControl<Button>("ConnectTailscale")!;
         tailscale.Click += (_, _) => ShowTailscale(autoConnect: false);
         this.FindControl<Button>("ConnectManualBack")!.Click += (_, _) =>
@@ -67,6 +73,7 @@ public sealed partial class ConnectWindow : Window
             this.FindControl<ContentControl>("ConnectTailscaleBody")!.Content = null;
             this.FindControl<StackPanel>("ConnectManual")!.IsVisible = true;
             tailscale.IsVisible = true;
+            this.FindControl<Button>("ConnectTab")!.IsVisible = true;
             this.FindControl<Button>("ConnectManualBack")!.IsVisible = false;
         };
         Refresh();
@@ -77,6 +84,14 @@ public sealed partial class ConnectWindow : Window
     {
         if (tailnet) ShowTailscale(autoConnect: true);
         else _ = ConnectAsync();
+    }
+
+    /// <summary>Reopens the host that runs in this tab, as the last visit did.</summary>
+    public void OpenTab()
+    {
+        if (closed || completed) return;
+        completed = true;
+        Connected?.Invoke(HostEndpoint.InTab);
     }
 
     // The node and its download live in tailscale.js, imported only from here on.
@@ -94,6 +109,7 @@ public sealed partial class ConnectWindow : Window
         };
         this.FindControl<StackPanel>("ConnectManual")!.IsVisible = false;
         this.FindControl<Button>("ConnectTailscale")!.IsVisible = false;
+        this.FindControl<Button>("ConnectTab")!.IsVisible = false;
         this.FindControl<ContentControl>("ConnectTailscaleBody")!.Content = view;
         this.FindControl<Button>("ConnectManualBack")!.IsVisible = true;
     }

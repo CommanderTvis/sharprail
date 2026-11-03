@@ -22,8 +22,12 @@ using SharpRail.Plugins.GitHub;
 using SharpRail.Plugins.GitHub.UI;
 using SharpRail.Plugins.Omp;
 using SharpRail.Plugins.Omp.UI;
+using SharpRail.Plugins.Pi;
+using SharpRail.Plugins.Pi.UI;
 using SharpRail.Plugins.Processes;
 using SharpRail.Plugins.Processes.UI;
+using SharpRail.Plugins.Providers;
+using SharpRail.Plugins.Providers.UI;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.UI;
@@ -46,6 +50,8 @@ public static class BuiltinPlugins
         (VisualizeContract.Manifest, () => new VisualizeUI()),
         (CodexManifest.Manifest, () => new CodexUI()),
         (OmpManifest.Manifest, () => new OmpUI()),
+        (PiManifest.Manifest, () => new PiUI()),
+        (ProvidersManifest.Manifest, () => new ProvidersUI()),
         (AirGatewayContract.Manifest, () => new AirGatewayUI()),
         (AirContextContract.Manifest, () => new AirContextUI()),
         (TailscaleContract.Manifest, () => new TailscaleUI()),

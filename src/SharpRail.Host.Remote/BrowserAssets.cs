@@ -4,8 +4,11 @@ using Microsoft.Net.Http.Headers;
 
 namespace SharpRail.Host.Remote;
 
-internal static class BrowserAssets
+internal static partial class BrowserAssets
 {
+    [System.Text.RegularExpressions.GeneratedRegex(@"\.[A-Za-z0-9]{10}\.(js|wasm|dll|dat|blat|mjs)$")]
+    private static partial System.Text.RegularExpressions.Regex Fingerprinted { get; }
+
     internal static void Map(WebApplication app, string root)
     {
         var files = new PhysicalFileProvider(Path.GetFullPath(root));
@@ -16,6 +19,12 @@ internal static class BrowserAssets
         {
             context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin";
             context.Response.Headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+            // Only files whose name carries a content hash (dotnet.<hash>.wasm) and the versioned /tailscale tree may be kept; the rest of
+            // /_framework (dotnet.native.js, avalonia.js), the entry scripts and the vendored bundles are revalidated on every load, or a
+            // browser pairs an older script with a newer module ("memory import has fewer pages than declared").
+            var path = context.Request.Path;
+            if (!path.StartsWithSegments("/tailscale") && !Fingerprinted.IsMatch(path.Value ?? ""))
+                context.Response.Headers.CacheControl = "no-cache";
             await next(context);
         });
         app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });

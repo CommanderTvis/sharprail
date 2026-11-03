@@ -15,6 +15,8 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
     public static readonly PluginManifest Manifest = new(Id, "C# (Roslyn)", "asset:Icon.png", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.CSharp,
+        // Runs a language server as a process of the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the C# (Roslyn) language server to code intelligence.",
         EnabledByDefault = true,
         Assets = "assets",

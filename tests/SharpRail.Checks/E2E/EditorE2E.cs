@@ -162,6 +162,11 @@ internal static class EditorE2E
         var mount = ThemeCatalog.All.First(theme => theme.IsLight).Id;
         Require(ThemeCatalog.All.Any(theme => theme.IsHighContrast), "The catalogue must include a high-contrast theme.");
         var settings = OpenSettings(app);
+        if (app.Window.Preferences.ThemeMode != "fixed")
+        {
+            app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ThemeMode_fixed"));
+            Until(() => app.Window.Preferences.ThemeMode == "fixed");
+        }
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Theme_" + mount));
         CloseSettings(settings);
         var editor = OpenEditor(app, "notes.txt");

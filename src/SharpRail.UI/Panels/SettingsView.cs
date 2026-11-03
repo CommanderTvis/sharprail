@@ -152,6 +152,10 @@ public sealed partial class SettingsView : UserControl
     private const double PluginsIconCentre = 12 + 16 / 2.0;
     private const double PluginsLabelColumn = 12 + 16 + 8;
 
+    // Plugins whose pages configure the app itself, not an add-on: they are listed with the core sections, not under Plugins.
+    private static readonly HashSet<string> CoreSectionPlugins = ["providers"];
+    private readonly List<Button> coreSectionButtons = [];
+
     // Plugin sections follow core's; a section whose plugin leaves takes its page with it.
     private void SyncPluginSections()
     {
@@ -162,6 +166,8 @@ public sealed partial class SettingsView : UserControl
         pluginSectionsSignature = signature;
         foreach (var key in navigation.Keys.Where(key => key.StartsWith("plugin:", StringComparison.Ordinal)).ToArray())
             navigation.Remove(key);
+        foreach (var old in coreSectionButtons) navigationList.Children.Remove(old);
+        coreSectionButtons.Clear();
         // Plugin pages are grouped under Plugins, indented behind a rule, as the fork's settings navigation does.
         var group = navigationList.Children.OfType<Grid>().FirstOrDefault(child => child.Name == "PluginSettingsNavigation");
         if (group is null)
@@ -182,7 +188,7 @@ public sealed partial class SettingsView : UserControl
         }
         var groupList = (StackPanel)group.Children[1];
         groupList.Children.Clear();
-        group.IsVisible = sections.Count > 0;
+        group.IsVisible = sections.Any(row => !CoreSectionPlugins.Contains(row.PluginId));
         foreach (var row in sections)
         {
             var key = SectionKey(row);
@@ -191,7 +197,12 @@ public sealed partial class SettingsView : UserControl
             content.Children.Add(PluginIcons.Resolve(row.Value.Icon, registry.Entry(row.PluginId), Ui.Muted));
             content.Children.Add(Ui.Text(row.Value.Label));
             Navigation(button, key, content);
-            groupList.Children.Add(button);
+            if (CoreSectionPlugins.Contains(row.PluginId))
+            {
+                navigationList.Children.Insert(navigationList.Children.IndexOf(navigation["Plugins"]), button);
+                coreSectionButtons.Add(button);
+            }
+            else groupList.Children.Add(button);
         }
         if (section.StartsWith("plugin:", StringComparison.Ordinal) && !navigation.ContainsKey(section)) ShowSection("Plugins");
         else PaintNavigation();

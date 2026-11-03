@@ -99,9 +99,28 @@ public static class PluginIcons
     /// <summary>The bundled glyph a Remix name maps to, or the puzzle glyph.</summary>
     public static string Glyph(string? name) => name is not null && Remix.TryGetValue(name, out var glyph) ? glyph : Fallback;
 
+    /// <summary>
+    /// A mark the app carries itself, for a plugin whose host has no plugin directory to read its asset from (a browser tab's).
+    /// It is the same drawing as the plugin's asset.
+    /// </summary>
+    private static byte[]? Bundled(string? pluginId)
+    {
+        if (pluginId != "pi") return null;
+        using var input = Avalonia.Platform.AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Brands/pi.svg"));
+        using var buffer = new MemoryStream();
+        input.CopyTo(buffer);
+        return buffer.ToArray();
+    }
+
     /// <summary>A control for the icon; an asset is drawn once read, with the supplied fallback if unavailable.</summary>
     public static Control Resolve(string? name, PluginRosterEntry? entry, IBrush? color = null, double size = 16, string fallbackGlyph = Fallback)
     {
+        if (name?.StartsWith(AssetPrefix, StringComparison.Ordinal) == true && Bundled(entry?.Id) is { } mark)
+        {
+            var bundled = new AssetIcon(name, fallbackGlyph, color, size);
+            bundled.Show(mark, color ?? Ui.TextBrush, size);
+            return bundled;
+        }
         // A plugin without an icon keeps the slot, so its label lines up with the other rows.
         if (string.IsNullOrEmpty(name)) return new Border { Width = size, Height = size };
         if (name is null || !name.StartsWith(AssetPrefix, StringComparison.Ordinal) || entry?.Assets is not { } assets || ReadAsset is not { } read)

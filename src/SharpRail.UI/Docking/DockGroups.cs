@@ -444,11 +444,14 @@ public sealed partial class DockSurface
         actions.Children.Add(overflow);
         if (!group.Folded)
         {
-            var terminal = Ui.IconButton("terminal", "New terminal in this group", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); });
-            terminal.Name = "NewTerminal_" + group.Id;
-            terminal.IsVisible = selected?.IsTool != true;
-            updates.Add(() => terminal.IsVisible = Session.Selected(group.Id)?.IsTool != true);
-            actions.Children.Add(terminal);
+            if (NewTerminals)
+            {
+                var terminal = Ui.IconButton("terminal", "New terminal in this group", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); });
+                terminal.Name = "NewTerminal_" + group.Id;
+                terminal.IsVisible = selected?.IsTool != true;
+                updates.Add(() => terminal.IsVisible = Session.Selected(group.Id)?.IsTool != true);
+                actions.Children.Add(terminal);
+            }
             if (group.Region == "center")
             {
                 var extra = new StackPanel { Orientation = Orientation.Horizontal };
@@ -608,7 +611,7 @@ public sealed partial class DockSurface
             item.Name = "ShowTool_" + tool.Id.Replace(':', '_');
             yield return item;
         }
-        if (Session.State.Groups.FirstOrDefault(item => item.Id == group.Id) is { Tools.Count: > 0 } tools)
+        if (NewTerminals && Session.State.Groups.FirstOrDefault(item => item.Id == group.Id) is { Tools.Count: > 0 } tools)
         {
             var below = Ui.Menu("New terminal pane below", () => { Session.NewTerminal(tools.Id); FocusGroup(Session.View.FocusedGroup, focusContent: true); }, CanCreate(tools));
             below.Name = "NewTerminalBelow_" + group.Id;

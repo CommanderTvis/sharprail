@@ -114,9 +114,11 @@ internal sealed partial class PluginCard : Border
         Text(dependents, model.Dependents.Count > 0 ? $"Also used by {string.Join(", ", model.Dependents)}. Disabling turns them off too." : null);
         retry.IsVisible = entry.Status == Status.Failed;
         AutomationProperties.SetName(toggle, entry.Label + " enabled");
-        Set(toggle, entry.Status != Status.Disabled);
-        toggle.IsEnabled = model.Locked is null;
-        ToolTip.SetTip(toggle, model.Locked);
+        // A refused or failed plugin cannot run here: its switch shows off and stays disabled (a failed one keeps Retry).
+        var refused = troubled;
+        Set(toggle, entry.Status != Status.Disabled && !refused);
+        toggle.IsEnabled = model.Locked is null && !refused;
+        ToolTip.SetTip(toggle, refused ? entry.Reason : model.Locked);
     }
 
     private void Set(ToggleSwitch target, bool value)

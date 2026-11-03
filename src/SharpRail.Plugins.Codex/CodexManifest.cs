@@ -11,6 +11,8 @@ public static class CodexManifest
     public static readonly PluginManifest Manifest = new(Id, "Codex", Icon, "0.1.0", PluginApi.Generation, CodexContract.WireVersion)
     {
         Category = PluginCategories.Agents,
+        // Runs the codex CLI as a process on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Runs OpenAI Codex in the terminal with live status and SharpRail's MCP tools.",
         EnabledByDefault = false,
         Host = "SharpRail.Plugins.Codex.Host.dll",

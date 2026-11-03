@@ -98,6 +98,15 @@ internal sealed class BrowserWindow : IWindowImpl
     internal void SetWindow(Window window)
     {
         Window = window;
+        // A dialog sized to its content grows when the content does (a line that appears once something is typed);
+        // the DOM surface is sized only by Resize, and layout is measured against the old surface size.
+        if (window is not WorkbenchWindow)
+            window.LayoutUpdated += (_, _) =>
+            {
+                if (!dialog || !shown || window.SizeToContent == SizeToContent.Manual) return;
+                var wanted = window.DesiredSize.Height;
+                if (wanted > 0 && Math.Abs(wanted - requested.Height) > 1) Resize(new Size(requested.Width, wanted), WindowResizeReason.Layout);
+            };
         BrowserInterop.SetWorkbench(id, window is WorkbenchWindow);
         BrowserInterop.PlaceWindow(id, requested.Width, requested.Height, dialog, shown);
         QueueWorkbenchSize();

@@ -46,6 +46,8 @@ public sealed partial class DockSurface : Grid
     public event Action<IReadOnlyDictionary<string, Control>>? NestedStripsChanged;
     private readonly Dictionary<string, Control> nestedStrips = [];
     private readonly Dictionary<string, Action> activeTabUpdates = [];
+    /// <summary>Whether strips offer New terminal; a host with no shells leaves it out.</summary>
+    public bool NewTerminals { get; set; } = true;
     /// <summary>Extra strip actions after New terminal in a center group, given the group's id.</summary>
     public Func<string, IEnumerable<Control>>? CenterActions { get; set; }
     /// <summary>Recreates every center group's <see cref="CenterActions"/>, leaving tabs and the rest of the strip in place.</summary>

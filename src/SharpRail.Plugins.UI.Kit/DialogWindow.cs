@@ -38,6 +38,9 @@ public sealed partial class DialogWindow : Window
             }
             var fields = this.FindControl<StackPanel>("DialogFields")!;
             fields.IsVisible = fields.IsVisible && fields.Children.Count > 0;
+            // The browser's embedded window sizes to its content once; a dialog whose content grows afterwards (a typed path, an error) would spill past its card.
+            if (OperatingSystem.IsBrowser() && Content is Control root)
+                LayoutUpdated += (_, _) => { if (Math.Abs(root.DesiredSize.Height - Bounds.Height) is > 0.5 and < 4000) Height = root.DesiredSize.Height; };
             if (Owner is IDialogOwner workbench)
             {
                 var undim = workbench.Dim();

@@ -28,6 +28,26 @@ for (const name of ['merman_wasm.js', 'merman_wasm_bg.wasm'])
   await fs.copyFile(path.join(project, 'node_modules/@mermanjs/web/pkg', name), path.join(vendor, name));
 
 await fs.copyFile(path.join(project, 'node_modules/@mermanjs/web/LICENSE'), path.join(vendor, 'Merman-LICENSE'));
+// The tab host's Git: isomorphic-git's self-contained UMD bundle and jsdiff's ES modules.
+await fs.copyFile(path.join(project, 'node_modules/isomorphic-git/index.umd.min.js'), path.join(vendor, 'isomorphic-git.js'));
+// isomorphic-git expects a Buffer global in the page; the `buffer` package is bundled into one module that sets it.
+execFileSync(path.join(project, 'node_modules/.bin/esbuild'), ['--bundle', '--format=esm', '--minify', `--outfile=${path.join(vendor, 'buffer.js')}`, '--log-level=warning'],
+  { input: "import { Buffer } from 'buffer';\nglobalThis.Buffer ??= Buffer;\n", cwd: project });
+await fs.copyFile(path.join(project, 'node_modules/buffer/LICENSE'), path.join(vendor, 'Buffer-LICENSE'));
+// The tab host's Pi agent: pi-agent-core and pi-ai bundled with the tab's file and Git tools (pi-ai carries every provider
+// SDK; the tab only speaks HTTP to them, so the Mistral SDK is stubbed) and just-bash, its shell (gzip is stubbed: no node:zlib).
+execFileSync(path.join(project, 'node_modules/.bin/esbuild'), ['tabpi/agent.mjs', '--bundle', '--format=esm', '--platform=browser', '--minify',
+  '--alias:@mistralai/mistralai=./tabpi/mistral-stub.mjs', '--alias:node:zlib=./tabpi/zlib-stub.mjs', '--define:process.env.NODE_ENV="production"', `--define:PI_VERSION=${JSON.stringify(JSON.stringify(JSON.parse(await fs.readFile(path.join(project, 'node_modules/@mariozechner/pi-agent-core/package.json'), 'utf8')).version))}`, `--outfile=${path.join(vendor, 'tabpi.js')}`, '--log-level=warning'], { cwd: project });
+await fs.copyFile(path.join(project, 'node_modules/just-bash/LICENSE'), path.join(vendor, 'JustBash-LICENSE')).catch(() => {});
+// The tab host's CSS language server runs in a Web Worker: vscode-css-languageservice behind the LSP, as one classic script.
+execFileSync(path.join(project, 'node_modules/.bin/esbuild'), ['tabpi/csslsp.mjs', '--bundle', '--format=iife', '--platform=browser', '--minify', `--outfile=${path.join(vendor, 'csslsp.js')}`, '--log-level=warning'], { cwd: project });
+for (const [name, license] of [['VscodeCssLanguageservice', 'vscode-css-languageservice'], ['VscodeLanguageserver', 'vscode-languageserver'], ['VscodeLanguageserverTextdocument', 'vscode-languageserver-textdocument']])
+  await fs.copyFile(path.join(project, 'node_modules', license, 'LICENSE.md'), path.join(vendor, `${name}-LICENSE`)).catch(() => {});
+await fs.copyFile(path.join(project, 'node_modules/@mariozechner/pi-agent-core/LICENSE'), path.join(vendor, 'PiAgentCore-LICENSE')).catch(() => {});
+await fs.copyFile(path.join(project, 'node_modules/isomorphic-git/http/web/index.js'), path.join(vendor, 'isomorphic-git-http.js'));
+await fs.copyFile(path.join(project, 'node_modules/isomorphic-git/LICENSE.md'), path.join(vendor, 'IsomorphicGit-LICENSE'));
+await fs.cp(path.join(project, 'node_modules/diff/libesm'), path.join(vendor, 'diff'), { recursive: true });
+await fs.copyFile(path.join(project, 'node_modules/diff/LICENSE'), path.join(vendor, 'Diff-LICENSE'));
 await fs.cp(path.join(project, 'node_modules/restty/dist'), path.join(vendor, 'restty'), { recursive: true });
 await fs.copyFile(path.join(project, 'node_modules/restty/LICENSE'), path.join(vendor, 'Restty-LICENSE'));
 await fs.copyFile(path.join(await fs.realpath(path.join(project, 'node_modules/restty')), '../text-shaper/LICENSE'), path.join(vendor, 'TextShaper-LICENSE'));

@@ -42,6 +42,9 @@ public sealed record PluginHostSeams
     /// <summary>Settings namespaces, plugin roots, the roster and agent records.</summary>
     public required HostStateStore State { get; init; }
 
+    /// <summary>What this host runs on; a plugin whose manifest lists the kind in <c>UnavailableOn</c> is refused.</summary>
+    public HostKind Kind { get; init; } = HostKind.OperatingSystem;
+
     /// <summary>The loopback HTTP/1.1 server's base URL, starting it when needed.</summary>
     public Func<string> PublicBaseUrl { get; init; } = () => throw new InvalidOperationException("This host serves no loopback routes.");
 

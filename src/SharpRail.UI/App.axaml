@@ -107,6 +107,10 @@
       <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.BorderBrush}" />
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
     </Style>
+    <!-- A popup is its own window and inherits no font from the one that opened it, so every menu and flyout would fall back to the platform default. The browser and Android views host popups in an overlay instead of a window. -->
+    <Style Selector="PopupRoot, OverlayPopupHost">
+      <Setter Property="FontFamily" Value="{x:Static rendering:Ui.InterfaceFont}" />
+    </Style>
     <Style Selector="FlyoutPresenter.tab-search">
       <Setter Property="Padding" Value="0" />
       <Setter Property="Background" Value="Transparent" />

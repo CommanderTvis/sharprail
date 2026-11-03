@@ -18,6 +18,8 @@ public static class GitHubContract
     public static readonly PluginManifest Manifest = new(Id, "GitHub", "asset:github.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.VersionControl,
+        // Runs the gh command-line tool on the host's operating system, which a browser tab does not have.
+        UnavailableOn = [HostKind.PureWeb],
         Description = "Pull requests and GitHub sign-in for github.com remotes through the gh command-line tool: lookup, open, update, ready, merge and reopen.",
         EnabledByDefault = true,
         Assets = "assets",
