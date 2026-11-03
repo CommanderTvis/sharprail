@@ -313,6 +313,19 @@ public sealed partial class LayoutSession
         });
     }
 
+    /// <summary>Gives a workspace's tab the title the user chose; the id, place and selection stay.</summary>
+    public void Retitle(string workspace, string tabId, string title)
+    {
+        bool Stale(DockTab tab) => tab.Id == tabId && tab.Title != title;
+        if (State.Workspaces.GetValueOrDefault(workspace)?.Documents.Values.Any(tabs => tabs.Any(Stale)) != true) return;
+        Change(state =>
+        {
+            foreach (var tabs in state.Workspaces[workspace].Documents.Values)
+                for (var index = 0; index < tabs.Count; index++)
+                    if (Stale(tabs[index])) tabs[index] = tabs[index] with { Title = title };
+        });
+    }
+
     /// <summary>
     /// Points a workspace's document tab at its file's new path after a rename, keeping its id, place, selection and
     /// preview state; the title becomes the new file name.

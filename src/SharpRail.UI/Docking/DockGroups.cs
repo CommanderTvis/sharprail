@@ -649,6 +649,13 @@ public sealed partial class DockSurface
             rename.Name = "TerminalRename";
             menu.Items.Add(rename);
         }
+        if (tab.Kind == "plugin" && RenameDocument is not null && CanRenameDocument?.Invoke(tab) == true)
+        {
+            var workspace = Session.State.ActiveWorkspace;
+            var rename = Ui.Menu("Rename", () => RenameDocument(workspace, tab));
+            rename.Name = "DocumentRename";
+            menu.Items.Add(rename);
+        }
         if (tab.Kind == "terminal") AddLazyItems(menu, () => TabMenuItems?.Invoke(tab) ?? []);
         if (!tab.IsTool && tab.Kind != "terminal" && tab.Path.Length > 0 && WorkspaceRoot?.Invoke() is { Length: > 0 } root
             && !(Uri.TryCreate(tab.Path, UriKind.Absolute, out var uri) && !uri.IsFile))

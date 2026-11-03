@@ -609,6 +609,10 @@ internal static class ClaudeChatChecks
             effort = await fixture.Call(ChatContract.SetEffort, new ChatSetParams(project, chat, "high"));
             Require(effort.Effort == "high" && Spawns().Length == before + 1, "The restarted child takes the live change again.");
 
+            // A name the user gave the chat is kept with the chat and shown as its header's title.
+            await fixture.Call(ChatContract.SetTitle, new ChatSetParams(project, chat, "  Release notes  "));
+            Require((await fixture.View(chat)).Header.Title == "Release notes", "A renamed chat shows the trimmed name as its title.");
+
             // One session, one child: a second tab cannot resume a session another tab of the workspace is running.
             var runningSession = (await fixture.View(chat)).Header.SessionId!;
             var duplicate = "";

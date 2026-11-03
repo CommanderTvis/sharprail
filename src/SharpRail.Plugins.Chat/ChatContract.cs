@@ -491,6 +491,8 @@ public static class ChatContract
     public static readonly PluginMethod<ChatSetParams, ChatHeader> SetModel = new("chatSetModel");
     public static readonly PluginMethod<ChatSetParams, ChatHeader> SetPermissionMode = new("chatSetPermissionMode");
     public static readonly PluginMethod<ChatSetParams, ChatHeader> SetEffort = new("chatSetEffort");
+    /// <summary>Names the chat (the value, trimmed and non-empty); the host keeps the name with the chat and shows it as the header's title.</summary>
+    public static readonly PluginMethod<ChatSetParams, Ack> SetTitle = new("chatSetTitle");
     public static readonly PluginMethod<ChatAnswerParams, Ack> Answer = new("chatAnswer");
     /// <summary>Answers an <see cref="ChatQuestionItem"/>; the CLI receives the answers as the tool's updated input.</summary>
     public static readonly PluginMethod<ChatAnswerQuestionParams, Ack> AnswerQuestion = new("chatAnswerQuestion");
@@ -530,5 +532,5 @@ public static class ChatContract
     public const int OutputLimit = 16 * 1024;
 
     public static readonly IReadOnlyList<PluginMethodSpec> Methods =
-        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, RunShell, StopShell, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files, CompletePath, SetDraft];
+        [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, SetTitle, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, RunShell, StopShell, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files, CompletePath, SetDraft];
 }

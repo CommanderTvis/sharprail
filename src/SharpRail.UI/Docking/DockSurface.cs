@@ -25,6 +25,9 @@ public sealed partial class DockSurface : Grid
     public event Action? GestureCanceled;
     /// <summary>Requests a shared title change for a terminal tab.</summary>
     public Action<string, DockTab>? RenameTerminal { get; set; }
+    /// <summary>Renames a plugin document's tab; the menu offers it only where <see cref="CanRenameDocument"/> allows.</summary>
+    public Action<string, DockTab>? RenameDocument { get; set; }
+    public Func<DockTab, bool>? CanRenameDocument { get; set; }
     /// <summary>The active workspace's root on the host, which the tab menu's path copies resolve against.</summary>
     public Func<string>? WorkspaceRoot { get; set; }
     /// <summary>Whether a control under a dragged terminal belongs to another workspace or project, where it is never dropped.</summary>

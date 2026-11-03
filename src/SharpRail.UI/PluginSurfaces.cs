@@ -37,6 +37,8 @@ public sealed partial class WorkbenchWindow
         surface.CenterActions = CenterActions;
         surface.TabAdornment = tab => TabAdornment(tab);
         surface.TabMenuItems = tab => TabMenuItems(tab);
+        surface.CanRenameDocument = tab => PluginDocumentOwner(tab)?.Value.Rename is not null;
+        surface.RenameDocument = RenamePluginDocument;
         surface.TabOverlay = tab => workbench.Signals.Strip(Layout.State.ActiveWorkspace, tab);
         Plugins.Changed += PluginsChanged;
         state.Changed += HostStateChanged;
@@ -307,6 +309,19 @@ public sealed partial class WorkbenchWindow
     }
 
     private const string PluginDocumentKind = "plugin";
+
+    private PluginRow<PluginDocumentRegistration>? PluginDocumentOwner(DockTab tab) =>
+        tab.Kind == PluginDocumentKind ? Plugins.Document(tab.Path.Split(':')[0]) : null;
+
+    private async void RenamePluginDocument(string workspace, DockTab tab)
+    {
+        if (PluginDocumentOwner(tab) is not { Value.Rename: { } rename } owner) return;
+        var result = await Panels.Dialogs.Prompt(this, "Rename " + tab.Title, ("Name", tab.Title));
+        if (result is not [var raw] || raw.Trim() is not { Length: > 0 } title || title == tab.Title) return;
+        Layout.Retitle(workspace, tab.Id, title);
+        try { rename(new PluginDocumentProps(workspace, tab.Path[(tab.Path.IndexOf(':') + 1)..], title), title); }
+        catch (Exception error) { Report(error); }
+    }
 
     internal Task OpenPluginDocumentAsync(string workspace, string scheme, string id, string title)
     {

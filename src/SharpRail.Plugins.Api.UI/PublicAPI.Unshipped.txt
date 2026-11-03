@@ -839,6 +839,8 @@ SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Create.init -> void
 SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Deconstruct(out string! Scheme, out System.Func<SharpRail.Plugins.Api.UI.PluginDocumentProps!, Avalonia.Controls.Control!>! Create) -> void
 SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Equals(SharpRail.Plugins.Api.UI.PluginDocumentRegistration? other) -> bool
 SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Icon.get -> string?
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Rename.get -> System.Action<SharpRail.Plugins.Api.UI.PluginDocumentProps!, string!>?
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Rename.init -> void
 SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Icon.init -> void
 SharpRail.Plugins.Api.UI.PluginDocumentRegistration.PluginDocumentRegistration(string! Scheme, System.Func<SharpRail.Plugins.Api.UI.PluginDocumentProps!, Avalonia.Controls.Control!>! Create) -> void
 SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Scheme.get -> string!

@@ -19,7 +19,8 @@ internal static class ChatDocuments
         {
             Icon = agent.Icon,
             // Closing the tab ends the child process; the transcript stays on disk and reopening the chat resumes it.
-            Closed = props => _ = CloseAsync(context, client, props)
+            Closed = props => _ = CloseAsync(context, client, props),
+            Rename = (props, title) => _ = RenameAsync(context, client, props, title)
         });
         return watch;
     }
@@ -30,6 +31,15 @@ internal static class ChatDocuments
         catch (Exception error) when (error is not OperationCanceledException)
         {
             context.Notify(PluginNotificationKind.Error, "Couldn't end the chat's session", ChatErrors.Text(error));
+        }
+    }
+
+    private static async Task RenameAsync(IPluginUIContext context, IChatClient client, PluginDocumentProps props, string title)
+    {
+        try { await client.RequestAsync(ChatContract.SetTitle, new ChatSetParams(props.WorkspaceId, props.Id, title)); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            context.Notify(PluginNotificationKind.Error, "Couldn't rename the chat", ChatErrors.Text(error));
         }
     }
 

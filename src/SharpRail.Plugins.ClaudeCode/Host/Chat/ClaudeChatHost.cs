@@ -114,6 +114,11 @@ internal sealed class ClaudeChatHost
         context.Method(ChatContract.SetModel, async (p, _, _) => await Session(p.WorkspaceId, p.ChatId).SetModelAsync(p.Value));
         context.Method(ChatContract.SetPermissionMode, async (p, _, _) => await Session(p.WorkspaceId, p.ChatId).SetPermissionModeAsync(p.Value));
         context.Method(ChatContract.SetEffort, async (p, _, _) => await Session(p.WorkspaceId, p.ChatId).SetEffortAsync(p.Value));
+        context.Method(ChatContract.SetTitle, (p, _, _) =>
+        {
+            Session(p.WorkspaceId, p.ChatId).SetTitle(p.Value.Trim());
+            return ValueTask.FromResult(new Ack());
+        });
         context.Method(ChatContract.Answer, async (p, _, _) =>
         {
             await Session(p.WorkspaceId, p.ChatId).AnswerAsync(p);

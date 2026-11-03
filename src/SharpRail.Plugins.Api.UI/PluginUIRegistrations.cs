@@ -48,6 +48,12 @@ public sealed record PluginDocumentRegistration(string Scheme, Func<PluginDocume
     /// window closed. Not called when the plugin is deactivated or a workspace switch only unmounts the control.
     /// </summary>
     public Action<PluginDocumentProps>? Closed { get; init; }
+
+    /// <summary>
+    /// When set, the document's tab menu offers Rename. Called on the UI thread with the name the user typed, after the tab has
+    /// taken it, so the plugin can keep the name where it keeps the document; the tab shows the name even if the call throws.
+    /// </summary>
+    public Action<PluginDocumentProps, string>? Rename { get; init; }
 }
 
 /// <summary>Registers a section in Settings (W4).</summary>
