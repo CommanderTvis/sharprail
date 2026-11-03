@@ -350,6 +350,20 @@
           "SharpRail.Plugins.Omp": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.pi": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )",
+          "SharpRail.Plugins.Chat": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.pi.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Pi": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.processes": {
         "type": "Project",
         "dependencies": {
@@ -361,6 +375,19 @@
         "dependencies": {
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
           "SharpRail.Plugins.Processes": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.providers": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.providers.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Providers": "[1.0.0, )"
         }
       },
       "sharprail.plugins.specdialect": {

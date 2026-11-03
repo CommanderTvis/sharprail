@@ -359,7 +359,9 @@
           "SharpRail.Plugins.Lsp.Swift": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.TypeScript": "[1.0.0, )",
           "SharpRail.Plugins.Omp.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Pi.Host": "[1.0.0, )",
           "SharpRail.Plugins.Processes.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Providers.Host": "[1.0.0, )",
           "SharpRail.Plugins.SpecDialect.Host": "[1.0.0, )",
           "SharpRail.Plugins.Tailscale.Host": "[1.0.0, )",
           "SharpRail.Plugins.Visualize.Host": "[1.0.0, )",
@@ -842,6 +844,30 @@
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.pi": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )",
+          "SharpRail.Plugins.Chat": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.pi.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Pi": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.pi.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Chat.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Pi": "[1.0.0, )",
+          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.processes": {
         "type": "Project",
         "dependencies": {
@@ -861,6 +887,28 @@
           "Avalonia": "[12.1.4, )",
           "SharpRail.Plugins.Api.UI": "[1.0.0, )",
           "SharpRail.Plugins.Processes": "[1.0.0, )",
+          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.providers": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.providers.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Providers": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.providers.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Providers": "[1.0.0, )",
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
