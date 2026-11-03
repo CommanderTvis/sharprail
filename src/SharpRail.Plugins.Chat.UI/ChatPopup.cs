@@ -86,19 +86,24 @@ internal static class ChatPopup
         return list;
     }
 
-    /// <summary>The popup's frame: the surface, the border and the corner radius from the tokens, the same padding on every side.</summary>
-    internal static Border Frame(string name, Control child) => new()
+    /// <summary>The popup's frame: the surface, the border and the corner radius from the tokens, the same padding on every side. A popup inherits no font, so the frame sets it.</summary>
+    internal static Border Frame(string name, Control child)
     {
-        Name = name,
-        Background = Surface,
-        BorderBrush = Ui.BorderBrush,
-        BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(6),
-        Padding = ContainerPadding,
-        HorizontalAlignment = HorizontalAlignment.Left,
-        VerticalAlignment = VerticalAlignment.Top,
-        Child = child
-    };
+        var frame = new Border
+        {
+            Name = name,
+            Background = Surface,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = ContainerPadding,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Child = child
+        };
+        Avalonia.Controls.Documents.TextElement.SetFontFamily(frame, Ui.InterfaceFont);
+        return frame;
+    }
 
     /// <summary>A small muted label on the popup surface, its text lined up with the rows' text.</summary>
     internal static TextBlock Header(string name, string text) => new()
@@ -143,14 +148,12 @@ internal static class ChatPopup
         foreach (var flyout in shown.ToArray()) flyout.Hide();
     }
 
-    /// <summary>The fixed-width check column of a row: a mark on the current value, blank space on the others.</summary>
-    internal static TextBlock Check(bool current) => new()
+    /// <summary>The fixed-width check column of a row: a mark on the current value, blank space on the others. The mark is drawn, not a "✓" character: the browser build has no font that carries the glyph.</summary>
+    internal static Border Check(bool current) => new()
     {
         Name = "ChatPopupCheck",
-        Text = current ? "✓" : "",
         Width = CheckWidth,
-        FontSize = 12,
-        Foreground = Ui.Accent,
+        Child = current ? Ui.Icon("check", Ui.Accent, 12) : null,
         VerticalAlignment = VerticalAlignment.Center,
         IsHitTestVisible = false
     };

@@ -1,0 +1,40 @@
+<StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+            x:Class="SharpRail.Plugins.Pi.UI.PiSettingsView" x:ClassModifier="internal"
+            Name="SettingsPi" Spacing="16">
+  <StackPanel.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.detail">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+  </StackPanel.Styles>
+  <StackPanel Spacing="4">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="Pi" FontSize="15" FontWeight="SemiBold" />
+      <Border Background="{x:Static kit:Ui.WarningWash}" CornerRadius="8" Padding="8,0" VerticalAlignment="Center">
+        <TextBlock Text="Early support" FontSize="11" Foreground="{x:Static kit:Ui.Warning}" />
+      </Border>
+    </StackPanel>
+    <TextBlock Classes="detail" Text="Pi chats run the pi coding agent from your system installation over its RPC mode. Model providers and keys are managed in Settings › Model providers." />
+    <TextBlock x:Name="PiVersion" Classes="detail" />
+  </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Command" />
+    <TextBox x:Name="PiCommandInput" PlaceholderText="pi" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="pi command" />
+  </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Model (--model)" />
+    <TextBox x:Name="PiModel" PlaceholderText="Use Pi's default" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="pi model" />
+    <TextBlock Classes="detail" Text="A model pattern or provider/id. A chat's model picker can still change it." />
+  </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Thinking level" />
+    <TextBox x:Name="PiThinking" PlaceholderText="Use Pi's default" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="pi thinking level" />
+    <TextBlock Classes="detail" Text="off, minimal, low, medium, high or xhigh." />
+  </StackPanel>
+</StackPanel>

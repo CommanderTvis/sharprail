@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled></PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <ProjectReference Include="../SharpRail.Plugins.Pi.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.Chat.UI/SharpRail.Plugins.Chat.UI.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+</Project>
