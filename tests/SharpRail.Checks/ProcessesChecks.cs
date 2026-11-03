@@ -111,6 +111,9 @@ internal static class ProcessesChecks
         Require(longLine.Groups[0].Children.Single().Detail.Length < ProcessModel.DetailCommandLimit + 60, "A tooltip must not carry a whole launch line.");
         var agent = Find(snapshot.Groups, "agent:/w/alpha\0t1");
         Require(agent.Label == "Claude Code" && agent.Pid == 11 && agent.Detail.Contains("pid 11") && agent.Detail.Contains("tab 1"), "The agent row is the agent process below the shell, with pid and tab in its tooltip.");
+        var titled = Fixture(false);
+        titled.Inputs = titled.Inputs with { Terminals = [new(Tab1, 10, "claude-code", "tab 1", "Fix the build"), titled.Inputs.Terminals[1]] };
+        Require(Find(Snapshot(titled).Groups, "agent:/w/alpha\0t1").Label == "Fix the build", "An agent row shows its tab's title, and only an untitled tab falls back to the agent's name.");
         Require(snapshot.Groups[1].Children.Count == 1 && snapshot.Groups[1].Children[0].Id == agent.Id, "Only terminals with an agent are in AI agents and daemons.");
         Require(TryFind(snapshot.Groups, "parent:/w/alpha\0t1") is null && agent.CanStop, "Everything forked from an agent hangs under its own row, with no separate parent row.");
         var child = Find(agent.Children, "spawn:12");

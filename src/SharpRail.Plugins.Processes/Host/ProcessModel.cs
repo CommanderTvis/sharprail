@@ -4,8 +4,8 @@ using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.Processes.Host;
 
-/// <summary>A terminal as the model sees it: its shell, the agent the roster records for it (null for none) and its tab label.</summary>
-internal sealed record TerminalInfo(TerminalRef Terminal, int? ShellPid, string? AgentKind, string Tab);
+/// <summary>A terminal as the model sees it: its shell, the agent the roster records for it (null for none) and its tab label and the title the tab shows (null for none).</summary>
+internal sealed record TerminalInfo(TerminalRef Terminal, int? ShellPid, string? AgentKind, string Tab, string? Title = null);
 
 /// <summary>Everything one snapshot is built from; the host fills it from the real sources and checks from fakes.</summary>
 internal sealed record ProcessInputs(
@@ -91,7 +91,7 @@ internal static class ProcessModel
                 if (rootPid is { } pid && claimed.Add(pid))
                 {
                     var command = table.TryGetValue(pid, out var row) ? row.Command : "";
-                    root = new($"agent:{workspace}\0{terminal.Terminal.TabKey}", "agent", name, Describe(pid, $"{terminal.Tab} · {workspaceLabel(workspace)}", command), pid, new(pid, command, null, null), workspace);
+                    root = new($"agent:{workspace}\0{terminal.Terminal.TabKey}", "agent", terminal.Title is { Length: > 0 } title ? title : name, Describe(pid, $"{terminal.Tab} · {workspaceLabel(workspace)}", command), pid, new(pid, command, null, null), workspace);
                     agents.Children.Add(root);
                     subtree = Descendants(children, pid);
                 }

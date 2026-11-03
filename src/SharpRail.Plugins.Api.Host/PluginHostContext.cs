@@ -124,6 +124,11 @@ public interface IPluginHostContext
     /// <param name="record">The record, or <see langword="null"/> to clear it.</param>
     void SetAgentRecord(TerminalRef terminal, TerminalAgentRecord? record);
 
+    /// <summary>Reads the title a terminal's tab shows: a user rename, an agent's title or the program's.</summary>
+    /// <param name="terminal">The terminal.</param>
+    /// <returns>The title, or <see langword="null"/> when the tab has none beyond its default.</returns>
+    string? TerminalTitle(TerminalRef terminal) => null;
+
     /// <summary>Observes terminal lifecycle events: spawned, exited, closed, agent changed (H8).</summary>
     /// <param name="handler">Called with each event.</param>
     void OnTerminal(Action<TerminalEvent> handler);

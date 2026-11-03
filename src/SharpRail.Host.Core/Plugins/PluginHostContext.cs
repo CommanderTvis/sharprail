@@ -113,6 +113,9 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 
     public TerminalAgentRecord? AgentRecord(TerminalRef terminal) => runtime.AgentRecord(terminal);
 
+    public string? TerminalTitle(TerminalRef terminal) =>
+        runtime.Seams.State.Current.TerminalTitles.FirstOrDefault(title => title.Terminal == terminal)?.Title is { Length: > 0 } text ? text : null;
+
     public void SetAgentRecord(TerminalRef terminal, TerminalAgentRecord? record) => runtime.SetAgentRecord(terminal, record);
 
     public void OnTerminal(Action<TerminalEvent> handler) => Register(table => table.TerminalObservers = table.TerminalObservers.Add(handler));

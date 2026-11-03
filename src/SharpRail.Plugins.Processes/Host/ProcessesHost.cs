@@ -70,7 +70,7 @@ public sealed class ProcessesHost : PluginHostModule
             var terminals = shells.Select(shell =>
             {
                 var index = perWorkspace[shell.Terminal.WorkspaceId] = perWorkspace.GetValueOrDefault(shell.Terminal.WorkspaceId) + 1;
-                return new TerminalInfo(shell.Terminal, shell.Pid, context.AgentRecord(shell.Terminal)?.Kind, $"tab {index}");
+                return new TerminalInfo(shell.Terminal, shell.Pid, context.AgentRecord(shell.Terminal)?.Kind, $"tab {index}", context.TerminalTitle(shell.Terminal));
             }).ToArray();
             return new(terminals, processes.Table(), processes.LanguageServers(), processes.OwnedProcesses(), processes.LanguageServerName) { Workers = OperatingSystem.IsBrowser() };
         }
