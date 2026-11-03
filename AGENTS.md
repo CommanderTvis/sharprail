@@ -22,7 +22,7 @@
 - Keep settings, presets, workspace labels, project list/recents and workspace lifecycle in host state (`IHostStateService`): change them through the host and update the UI on broadcast (`HostSync.cs`), never by writing a local copy.
 - Static UI layouts, styles and templates go in compiled `.axaml`; dynamic docking and host/interaction wiring go in C#. Edit authored design sources (`src/SharpRail.UI/Rendering/Design`), not generated C#.
 - Shared UI sources must compile for Android and Browser: desktop-only code goes under `#if !ANDROID && !BROWSER` or in files those projects exclude (see `docs/develop/agent-reference.md`).
-- pi is out of scope; Codex and Claude Code terminal integrations are in scope, so are AI chat components (the Claude Code chat mode over stream-json today, others as they are added), and omp has basic (early) support.
+- Codex and Claude Code terminal integrations are in scope, so are chat modes over Claude Code's stream-json and Pi's RPC mode, sharing one chat view (no other embedded AI chat UI); Pi has early support and omp basic (early) support, and Model providers keeps their API keys.
 
 ## Build, format, check
 

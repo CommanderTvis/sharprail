@@ -238,6 +238,7 @@ names and enum values, unknown members refused).
 | `wireVersion` | incremented when the plugin's methods or channels change, so a separately shipped half can detect drift |
 | `enabledByDefault` | honoured for builtin plugins; an external plugin always arrives disabled |
 | `dependsOn` | other plugins, by id and exact wire version |
+| `unavailableOn` | host kinds the plugin cannot run on (`pureWeb`: a host that lives in a browser tab with no operating system under it). A host of a listed kind refuses the plugin before load, naming the kind, and refuses its dependents with it; empty means everywhere. A plugin that needs a shell, a process or a socket lists `pureWeb` |
 | `host`, `ui` | relative paths of the two entry assemblies; each holds exactly one public concrete `PluginHostModule` / `PluginUIModule` subclass |
 | `assets` | optional directory the host hands the host half (`AssetsDirectory`) and serves to the UI half (`ReadAssetAsync`, W19), for either origin |
 | `contributes` | the statically known parts: side tools with label, icon, default side and whether they need Git; file viewers with extensions, names and read strategy |
@@ -451,7 +452,7 @@ explained.
 ```mermaid
 stateDiagram-v2
     [*] --> known: builtin, in the build · or external, found at start or rescan
-    known --> refused: generation mismatch · missing dependency · cycle
+    known --> refused: generation mismatch · missing dependency · cycle · unavailable on this host kind
     known --> disabled: enable flag off
     known --> active: enabled and activation returned
     known --> failed: enabled and activation threw

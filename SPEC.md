@@ -331,7 +331,7 @@ Settings: Thinkrail dialog proportions and styling, live appearance, separate fi
 and Markdown line widths (draft inputs validated to 40–240 symbols and applied with
 Save or Enter), layout presets and limits,
 custom layout capture/reset and project preferences.
-No inactive controls pretending to configure out-of-scope providers or chat (Claude Code's chat mode excepted).
+No inactive controls pretending to configure out-of-scope providers or chat (the Claude Code and Pi chats, and the Model providers page for Pi and omp, excepted).
 
 Themes: the reference's bundled `*.theme.json` manifests (Dark, Light, High Contrast
 Dark, High Contrast Light) are copied unchanged into `Assets/Themes` and discovered

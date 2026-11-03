@@ -6836,3 +6836,14 @@ The builtin `Processes` plugin ([spec](src/SharpRail.Plugins.Processes/SPEC.md))
 ## 2026-11-02 — IntelliJ released build and license flow
 
 The bundled IntelliJ server moved from the expired EAP build to JetBrains' released, licensed build 263.7084.0 (released 2026-10-14; the six archive SHA-256 values match the catalog and the CDN `.sha256` files). The EAP framing, the date countdown and the exit-7 refusal with its `.expired` marker are gone; an old `263.6379.0-<platform>` directory and its marker stay on disk, unused. Language-server plugins can now publish a JSON state, hold language answers with a reason, run named actions and ask single-choice questions with their terms (Plugin API H21); the IntelliJ plugin uses them for JetBrains' `jetbrains/licensing/*` protocol (trial, browser sign-in, activation code, license server, remove, refresh), the unlicensed message for the settings and agents, and the region and data-sharing answers passed to the launch. Checks: `--intellij-license` (fake licensing server), `--intellij-license-ui`, `--lsp`. Not exercised: the real server, a real sign-in or trial, and the real license store, which only the user may touch.
+
+## 2026-10-27: Pi chat, shared chat view, Model providers
+
+Extracted the Claude Code chat's wire records and drawn view into `SharpRail.Plugins.Chat` and `SharpRail.Plugins.Chat.UI` (a plugin
+describes itself to the view with a `ChatAgent`), added the Pi plugin (chat over `pi --mode rpc`) and the Model providers plugin (API keys
+for Pi's `auth.json` and omp's profile `.env`), and gave manifests `UnavailableOn` so plugins that need an operating system opt out of a pure
+web host (the eleven process-bound builtins now do). Checks run: `--claude-chat-ui`, `--claude-chat-host`, `--claude-code`, `--pi`,
+`--providers`, `--plugins`, `--conformance`. Not run: the full suite, `--claude-chat-e2e`, the Browser and Android builds, any real `pi`
+(the checks use a fixture speaking the RPC protocol), and the Model providers page (no UI check). No pure web host exists yet, so
+`UnavailableOn` has nothing to refuse in practice. Claude chat copy changed in three places: "Assistant" replaces "Claude" in the
+accessibility text and history filter, and "Ran at once, while the assistant was working.".

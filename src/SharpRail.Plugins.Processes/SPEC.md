@@ -68,6 +68,14 @@ shows everything. Groups, their sums and the Total are recomputed from the visib
 controls, scroll, selection and collapse state). Stop selected and Stop group act on visible rows only: a scoped group is stopped through the visible rows below it, never by the group id, which would reach other projects.
 A project with nothing running shows "Nothing running for this project" and the check box stays. The choice is shared by the Processes panes of one run and is not persisted (the plugin has no settings type).
 
+## In a browser tab
+
+The tab has no process table and no terminal processes; its language servers are Web Workers. There `IProcessHost.Table` is empty and the tree has one group, "Language servers · Web Workers",
+whose rows are called workers (`worker 3`) and stop through the language service like any server (the worker is terminated). `Usage` comes from the page: before each sample the plugin calls
+`IProcessHost.RefreshAsync`, which asks every live worker for its usage (`ProcessLinks`, set by the tab host). CPU is the time the worker spent handling messages over wall time, an upper bound
+(each message counts a whole turn of its event loop); memory is its JS heap where the browser reports one (Chromium's `performance.memory`) and zero elsewhere. The owned-process tools and their
+prompt section are not offered, since a tab starts no process an agent could own. The check `--processes` covers the group with fake inputs; the worker read itself needs a browser and is not checked.
+
 ## Sampling
 
 The pane asks; the host never samples on its own. `snapshot` samples at most once per second (a closer call, including a second window's, returns the last sample), so the cost is one

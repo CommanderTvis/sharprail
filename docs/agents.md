@@ -95,6 +95,22 @@ discussion develops.
   default profile.
 - Settings › omp can import your existing sign-in.
 
+## Pi
+
+[Pi](https://github.com/badlogic/pi-mono) has early support, as a chat tab rather than a terminal.
+
+- Start Pi from the agent launcher; the chat runs `pi --mode rpc` from your system installation, in the workspace directory.
+- The chat shows replies, thinking, tool calls with their output, and the model and thinking level, which you can change.
+  Earlier Pi sessions of the directory are listed and can be resumed.
+- Pi asks no permission for its tools, so there is nothing to approve. Rewind, fork and extension dialogs are not available yet.
+- It needs a process on the host, so it is not available in a browser tab.
+
+## Model providers
+
+Settings › Model providers adds the API keys of Pi's and omp's providers, in the file each of them reads (Pi's `auth.json`,
+omp's `sharprail` profile `.env`). You can add a provider that is not listed. Keys are never shown again after they are saved,
+and a Claude subscription sign-in is not offered: Anthropic takes an API key from the Claude Console.
+
 ## Air Gateway
 
 [JetBrains Air Gateway](https://www.jetbrains.com/air/gateway/) can serve Claude Code, Codex and omp instead of
