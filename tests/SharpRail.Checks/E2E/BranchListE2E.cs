@@ -63,6 +63,7 @@ internal static class BranchListE2E
         Until(() => app.Window.GetLogicalDescendants().OfType<Grid>().Any(panel => panel.Name == "ChangesPanel"));
         Control Find(string name) => app.Window.GetLogicalDescendants().OfType<Control>().First(control => control.Name == name);
         Control[] panes = [Find("ProjectsPanel"), Find("FilesPanel"), Find("ChangesPanel")];
+        window.Preferences.ThemeMode = "fixed";
         var original = window.Preferences.Theme;
         var other = ThemeCatalog.All.First(theme => theme.Id != original && theme.IsLight != Ui.Theme.IsLight).Id;
         window.Preferences.Theme = other;

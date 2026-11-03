@@ -36,6 +36,8 @@ internal static class TopbarChromeE2E
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ThemeMode_fixed"));
             Until(() => app.Window.Preferences.ThemeMode == "fixed");
         }
+        Until(() => HeaderColor(header) == Ui.Header.Color);
+        initial = HeaderColor(header);
         var original = app.Window.Preferences.Theme;
         var opposite = original == "light" ? "dark" : "light";
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Theme_" + opposite));
