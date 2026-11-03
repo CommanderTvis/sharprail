@@ -216,7 +216,8 @@ internal static class LanguageChecks
             legacyState.Remove("WorkspaceLanguages");
             await File.WriteAllTextAsync(legacyStatePath, legacyState.ToJsonString());
             var reopenedState = new HostStateStore(stateDirectory);
-            Require(reopenedState.Current.WorkspaceLanguages[root] == snapshot.WorkspaceLanguages[root],
+            // Compared as JSON: the files are read back in directory order, which is filesystem-dependent, so server keys may come back reordered.
+            Require(JsonNode.DeepEquals(JsonNode.Parse(reopenedState.Current.WorkspaceLanguages[root]), JsonNode.Parse(snapshot.WorkspaceLanguages[root])),
                 "An older host rewriting state.json erased persisted workspace LSP settings.");
             var otherHost = new LocalProjectAdapter(new ProjectServices(root, reopenedState));
             await otherHost.LanguageAsync(new(root, Operation: "configure", Server: "clangd", Configuration: """{"compilationDatabasePath":".tools/clangd"}"""));
