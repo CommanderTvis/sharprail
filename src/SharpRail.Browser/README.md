@@ -45,6 +45,14 @@ same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Use HTTPS outside
 clipboard and notification APIs. The browser keeps its token in session storage and view state in local
 storage; Disconnect clears the token. No token is put into a URL.
 
+GitHub Pages: the `Pages` workflow (`.github/workflows/pages.yml`, dispatched by hand) publishes the bundle to
+`https://commandertvis.github.io/sharprail/` as the host-less Playground. Pages cannot set response headers, so the
+workflow adds `coi.js` and `coi-sw.js` from `src/SharpRail.Browser/pages`: the first visit registers a service worker and
+reloads once, after which every response carries the `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`
+headers multithreaded WebAssembly needs. It also drops the pre-compressed `.br`/`.gz` sidecars (Pages compresses itself),
+adds `.nojekyll`, and a `404.html` that sends unknown paths back to `/sharprail/`. All client URLs are relative, so the
+`/sharprail/` base path needs no rewriting. Pages must be set to the GitHub Actions source in the repository settings.
+
 `scripts/mise run browser publish` produces deployment assets under `artifacts/browser`.
 The native solution's `--browser` check exercises authentication, unary RPC, subscriptions and duplex PTYs.
 `scripts/mise run browser check` builds a test-only browser bundle, installs Chromium under `$SHARPRAIL_CACHE_DIR/playwright`

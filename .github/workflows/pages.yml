@@ -1,0 +1,58 @@
+name: Pages
+
+# Deploys the browser client's Playground (the host-less mode, where the tab is its own host) to
+# https://commandertvis.github.io/sharprail/. Dispatched by hand only (`gh workflow run pages.yml`).
+# Pages cannot set response headers, so a service worker (src/SharpRail.Browser/pages) supplies the COOP/COEP
+# headers multithreaded WebAssembly needs.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  # Every tool must come from the mise lock files, with their checksums.
+  MISE_LOCKED: '1'
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/share/mise
+            ~/.cache/sharprail
+          key: tools-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.browser.toml', 'mise.browser.lock') }}
+      - run: sh scripts/ci-run.sh "Publish browser" sh scripts/mise run package:browser
+      - name: Prepare the site for /sharprail/
+        run: |
+          site=artifacts/browser
+          # Pages compresses on its own and does not honour the pre-compressed sidecars.
+          find "$site" -type f \( -name '*.br' -o -name '*.gz' \) -delete
+          touch "$site/.nojekyll"
+          cp src/SharpRail.Browser/pages/coi-sw.js src/SharpRail.Browser/pages/coi.js src/SharpRail.Browser/pages/404.html "$site/"
+          # Every URL in the client is relative, so the base path needs no rewrite; only the worker loads first.
+          sed -i 's|<body>|<body><script src="coi.js"></script>|' "$site/index.html"
+          grep -q 'coi.js' "$site/index.html"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/browser
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: pages
