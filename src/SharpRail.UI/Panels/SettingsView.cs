@@ -822,6 +822,14 @@ public sealed partial class SettingsView : UserControl
     private Control ProjectSettings()
     {
         var panel = Page("ProjectsPage");
+        var group = PageControl<CheckBox>(panel, "GroupWorkspacesUnderCreator");
+        group.IsChecked = state.Preferences.GroupWorkspacesUnderCreator;
+        group.IsCheckedChanged += (_, _) =>
+        {
+            state.Preferences.GroupWorkspacesUnderCreator = group.IsChecked == true;
+            Save();
+            foreach (var open in window.Workbench.Windows) open.ApplyTabLayout();
+        };
         var recent = PageControl<StackPanel>(panel, "RecentProjects");
         foreach (var path in state.Current.Projects)
         {

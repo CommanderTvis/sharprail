@@ -2251,3 +2251,19 @@ static SharpRail.Host.Abstractions.Keymaps.Bind(SharpRail.Host.Abstractions.Keym
 static SharpRail.Host.Abstractions.Keymaps.Conflicts(SharpRail.Host.Abstractions.KeymapBindings! bindings, string! actionId, SharpRail.Host.Abstractions.KeyChord chord, SharpRail.Host.Abstractions.KeymapPlatform platform, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> System.Collections.Generic.IReadOnlyList<string!>!
 static SharpRail.Host.Abstractions.Keymaps.Effective(System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapPreset!>! presets, string? active, SharpRail.Host.Abstractions.KeymapPlatform platform, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.KeyChord>!>!
 static SharpRail.Host.Abstractions.Keymaps.Resolve(System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapPreset!>! presets, string? active, SharpRail.Host.Abstractions.KeymapPlatform platform, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> SharpRail.Host.Abstractions.KeymapBindings!
+override SharpRail.Host.Abstractions.WorkspaceCreatorEntry.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.WorkspaceCreatorEntry.GetHashCode() -> int
+override SharpRail.Host.Abstractions.WorkspaceCreatorEntry.ToString() -> string!
+SharpRail.Host.Abstractions.HostState.WorkspaceCreators.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.WorkspaceCreatorEntry!>!
+SharpRail.Host.Abstractions.HostState.WorkspaceCreators.init -> void
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry.<Clone>$() -> SharpRail.Host.Abstractions.WorkspaceCreatorEntry!
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry.Creator.get -> SharpRail.Plugins.Api.TerminalRef!
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry.Creator.init -> void
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry.Deconstruct(out string! Workspace, out SharpRail.Plugins.Api.TerminalRef! Creator) -> void
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry.Equals(SharpRail.Host.Abstractions.WorkspaceCreatorEntry? other) -> bool
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry.Workspace.get -> string!
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry.Workspace.init -> void
+SharpRail.Host.Abstractions.WorkspaceCreatorEntry.WorkspaceCreatorEntry(string! Workspace, SharpRail.Plugins.Api.TerminalRef! Creator) -> void
+static SharpRail.Host.Abstractions.WorkspaceCreatorEntry.operator !=(SharpRail.Host.Abstractions.WorkspaceCreatorEntry? left, SharpRail.Host.Abstractions.WorkspaceCreatorEntry? right) -> bool
+static SharpRail.Host.Abstractions.WorkspaceCreatorEntry.operator ==(SharpRail.Host.Abstractions.WorkspaceCreatorEntry? left, SharpRail.Host.Abstractions.WorkspaceCreatorEntry? right) -> bool

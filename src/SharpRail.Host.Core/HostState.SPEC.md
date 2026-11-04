@@ -186,7 +186,8 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
 - `PendingEmigrations` holds each `workspace_emigrate` request awaiting the user (`RequestEmigrationAsync`); it rides
   snapshots and remote clients (protocol 12) and is never persisted. `terminal-emigration-answer` (`approve` or
   `deny`) removes a pending request and settles its waiting call; an unknown id changes nothing. The creator of each
-  workspace made through `workspace_create` persists host-side only (`WorkspaceCreators`). See the
+  workspace made through `workspace_create` persists (`WorkspaceCreators`) and rides snapshots and remote clients
+  (additive protobuf member 33), dropping with the workspace, so clients can group by it. See the
   [Workspaces SPEC](Workspaces.SPEC.md).
 - `OwnedProcesses` lists the processes agents reported with `owned_process_report` (terminal, pid, description); it rides
   snapshots and remote clients (protocol 16), is never persisted in `state.json` (the registry keeps its own file) and

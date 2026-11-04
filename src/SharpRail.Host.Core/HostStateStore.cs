@@ -224,7 +224,7 @@ public sealed partial class HostStateStore : IHostStateService
             try { AirContextMigration.Migrate(directory, [.. (legacyContextWorkspaces ?? []).Where(ValidPath).Distinct().Order(StringComparer.Ordinal)]); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError = error.Message; }
         }
-        state = BackfillActivity(Normalize(migrated), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        state = BackfillActivity(Normalize(migrated), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) with { WorkspaceCreators = CreatorEntries() };
         state = state with
         {
             Settings = state.Settings with
@@ -400,10 +400,13 @@ public sealed partial class HostStateStore : IHostStateService
     {
         lock (gate)
         {
+            workspaceCreators.Remove(workspace);
             workspaceCreators[workspace] = creator;
-            Save(state);
+            Publish(state with { WorkspaceCreators = CreatorEntries() }, persist: true);
         }
     }
+
+    private WorkspaceCreatorEntry[] CreatorEntries() => [.. workspaceCreators.Select(entry => new WorkspaceCreatorEntry(entry.Key, entry.Value))];
 
     /// <summary>The terminal that created a workspace through <c>workspace_create</c>, or null for any other workspace.</summary>
     public TerminalRef? WorkspaceCreator(string workspace)

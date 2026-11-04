@@ -35,6 +35,7 @@ public sealed partial class WorkbenchWindow
         };
         surface.NestedStripsChanged += strips => { centerStripsInProjects = new Dictionary<string, Control>(strips); PlaceWorkspaceTabs(); };
         tabLayoutSignature = TabLayoutSignature();
+        Layout.Changed += RefreshRailNesting;
         surface.Rebuild();
     }
 
@@ -44,6 +45,7 @@ public sealed partial class WorkbenchWindow
     /// <summary>Redraws the workbench when this app's tab layout preferences changed, as every window must.</summary>
     internal void ApplyTabLayout()
     {
+        RefreshRailNesting();
         var signature = TabLayoutSignature();
         if (signature == tabLayoutSignature) return;
         tabLayoutSignature = signature;

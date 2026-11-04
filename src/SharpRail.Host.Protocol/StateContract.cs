@@ -131,6 +131,15 @@ public sealed class StateReply
     [ProtoMember(31)] public List<OwnedProcessMessage> OwnedProcesses { get; set; } = [];
     /// <summary>Custom keymap presets, <see cref="PresetMessage.Layout"/> carrying the bindings document.</summary>
     [ProtoMember(32)] public List<PresetMessage> KeymapPresets { get; set; } = [];
+    [ProtoMember(33)] public List<WorkspaceCreatorMessage> WorkspaceCreators { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class WorkspaceCreatorMessage
+{
+    [ProtoMember(1)] public string Path { get; set; } = "";
+    [ProtoMember(2)] public string WorkspaceId { get; set; } = "";
+    [ProtoMember(3)] public string TabKey { get; set; } = "";
 }
 
 [ProtoContract]

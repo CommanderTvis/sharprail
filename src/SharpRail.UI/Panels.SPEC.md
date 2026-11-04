@@ -87,6 +87,12 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   settled ones Keep active, as a hover/focus check or back-arrow button beside the kebab and in the shared
   workspace menu (`AddWorkspaceActions`); Default offers neither. Settling never touches disk. An older host
   keeps its flat registry order with no shelf, chips or settle actions.
+- The per-app preference "Group workspaces under the terminal or chat that created them" (Settings > Projects, off by
+  default) lists a live workspace made by `workspace_create` indented, with a guide line, directly below its creator's
+  workspace, while the creator's terminal or chat tab is still listed there. A creator that is gone, unknown, in
+  another project or on the Settled shelf leaves the workspace in its flat place; nesting is one level per creation
+  link. Creator terminal rows live inside the workspace's tab list, so the group follows that list rather than
+  sitting between its rows. The rail redraws when the preference, a creator or the creator's tab changes.
 - Opening a settled workspace leaves it on the shelf, expands the shelf and pages it far enough to show the
   row, once per selection. The first automatic move (idle rows only, never ones settled by hand) is announced
   once per host endpoint after the count has held still for two seconds: an info toast "Moved N quiet

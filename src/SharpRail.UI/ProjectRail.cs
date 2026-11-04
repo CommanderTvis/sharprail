@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
+using SharpRail.Plugins.Api;
 
 namespace SharpRail.UI;
 
@@ -70,18 +71,27 @@ public sealed partial class WorkbenchWindow
             // Live rows newest created first, then the Settled shelf; an older host keeps its own flat order.
             var partition = PartitionOf(project);
             foreach (var row in partition.Settled) railSettled[row.Workspace.Path] = row;
-            void Add(WorkspaceRecord worktree)
+            var nesting = RailNesting(partition.Live);
+            void Add(WorkspaceRecord worktree, int depth = 0)
             {
                 if (!entry.Rows.TryGetValue(worktree.Path, out var pair))
                     pair = (null, WorkspaceTabsHost(worktree.Path));
                 if (showWorkspaces) pair.Row ??= WorkspaceItem(worktree);
                 else if (pair.Row is not null) { pair.Row = null; railSelection.Remove("workspace:" + worktree.Path); }
-                pair.Tabs.Margin = new Thickness(showWorkspaces ? 40 : 20, 0, 4, 4);
+                var indent = showWorkspaces ? 16 * depth : 0;
+                if (pair.Row is Grid item)
+                {
+                    item.Margin = new Thickness(24 + indent, 0, 0, 0);
+                    if (item.Children.OfType<Border>().FirstOrDefault(child => child.Name == "WorkspaceNestGuide") is { } guide) guide.IsVisible = depth > 0;
+                }
+                pair.Tabs.Margin = new Thickness((showWorkspaces ? 40 : 20) + indent, 0, 4, 4);
                 entry.Rows[worktree.Path] = pair;
                 if (pair.Row is not null) rows.Add(pair.Row);
                 rows.Add(pair.Tabs);
+                foreach (var child in nesting.GetValueOrDefault(worktree.Path) ?? []) Add(child, depth + 1);
             }
-            foreach (var worktree in partition.Live) Add(worktree);
+            var nested = nesting.Values.SelectMany(children => children).Select(child => child.Path).ToHashSet();
+            foreach (var worktree in partition.Live.Where(worktree => !nested.Contains(worktree.Path))) Add(worktree);
             if (showWorkspaces && partition.Settled.Count > 0)
             {
                 var expanded = expandedShelves.Contains(project);
@@ -128,6 +138,62 @@ public sealed partial class WorkbenchWindow
     }
 
     private ScrollViewer? railScroller;
+    private string railNestingSignature = "";
+
+    /// <summary>
+    /// With "Group workspaces under the terminal or chat that created them" on, the live workspaces of a project whose creator tab
+    /// is still listed in the rail, by the creator's workspace. A workspace whose creator is gone, unknown or outside the project's
+    /// live rows stays out and keeps its flat place.
+    /// </summary>
+    private Dictionary<string, List<WorkspaceRecord>> RailNesting(IReadOnlyList<WorkspaceRecord> live)
+    {
+        var nesting = new Dictionary<string, List<WorkspaceRecord>>();
+        if (!Preferences.GroupWorkspacesUnderCreator) return nesting;
+        var creators = state.Current.WorkspaceCreators;
+        foreach (var worktree in live)
+        {
+            if (creators.FirstOrDefault(entry => entry.Workspace == worktree.Path)?.Creator is not { } creator || creator.WorkspaceId == worktree.Path ||
+                live.All(parent => parent.Path != creator.WorkspaceId) || !CreatorListed(creator)) continue;
+            // A creation loop would leave both ends out of every root; the second link stays flat.
+            if (Ancestors(creator.WorkspaceId).Contains(worktree.Path)) continue;
+            if (!nesting.TryGetValue(creator.WorkspaceId, out var children)) nesting[creator.WorkspaceId] = children = [];
+            children.Add(worktree);
+        }
+        return nesting;
+
+        HashSet<string> Ancestors(string path)
+        {
+            var seen = new HashSet<string>();
+            while (seen.Add(path) && nesting.Any(pair => pair.Value.Any(child => child.Path == path)))
+                path = nesting.First(pair => pair.Value.Any(child => child.Path == path)).Key;
+            return seen;
+        }
+    }
+
+    /// <summary>Whether the terminal or chat that created a workspace still has a tab the rail lists.</summary>
+    private bool CreatorListed(TerminalRef creator)
+    {
+        var tabs = Layout.State.Workspaces.GetValueOrDefault(creator.WorkspaceId)?.Documents.Values.SelectMany(items => items) ?? [];
+        if (creator.TabKey.StartsWith("chat:", StringComparison.Ordinal))
+        {
+            var suffix = ":" + creator.TabKey["chat:".Length..];
+            return tabs.Any(tab => tab.Kind == "plugin" && tab.Path.EndsWith(suffix, StringComparison.Ordinal));
+        }
+        return tabs.Any(tab => tab.Kind == "terminal" && tab.Id == creator.TabKey) ||
+            workbench.TerminalCatalog?.Workspaces.GetValueOrDefault(creator.WorkspaceId)?.Any(tab => tab.Key == creator.TabKey) == true;
+    }
+
+    /// <summary>Redraws the rail when the grouping under creators changed: the preference, a creator recorded, or a creator tab opened or closed.</summary>
+    private void RefreshRailNesting()
+    {
+        if (projectsTree is null) return;
+        var signature = Preferences.GroupWorkspacesUnderCreator
+            ? string.Join("\n", state.Current.Projects.SelectMany(project => RailNesting(PartitionOf(project).Live).SelectMany(pair => pair.Value.Select(child => pair.Key + "\t" + child.Path))))
+            : "";
+        if (signature == railNestingSignature) return;
+        railNestingSignature = signature;
+        UpdateRailSelection();
+    }
 
     /// <summary>The topmost rail row reaching into the viewport and where it sits, so a reconcile can keep it still.</summary>
     private (Control Row, double Top)? RailAnchor()
@@ -536,6 +602,8 @@ public sealed partial class WorkbenchWindow
         AutomationProperties.SetName(kebab, "Workspace actions");
         ToolTip.SetTip(kebab, "Workspace actions");
         var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, Margin = new Thickness(24, 0, 0, 0), ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"), Background = Avalonia.Media.Brushes.Transparent };
+        // The line tying a grouped workspace to the creator above it; shown only while it is grouped.
+        item.Children.Add(new Border { Name = "WorkspaceNestGuide", Width = 1, Margin = new Thickness(-8, 0, 0, 0), HorizontalAlignment = HorizontalAlignment.Left, Background = Ui.BorderBrush, IsHitTestVisible = false, IsVisible = false });
         // Settle on a live row, Keep active on a settled one, beside the kebab; never on Default or an older host.
         var settle = new Button
         {

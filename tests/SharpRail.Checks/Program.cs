@@ -345,6 +345,13 @@ internal static class Program
             Console.WriteLine("PASS host state checks");
             return;
         }
+        if (args.SequenceEqual(["--rail-grouping"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.RailGroupingE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
         if (args.SequenceEqual(["--vertical-tabs"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

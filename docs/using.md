@@ -13,6 +13,7 @@
 - Keep each task in its own Git worktree. Create, switch, rename and remove workspaces from Project Home.
 - Start work offers a new worktree on its own branch from a base you pick, or the project folder itself.
 - Claude Code and Codex can create and remove their own worktrees too. See [Agents](agents.md).
+- Settings › Projects can list a workspace an agent created under the terminal or chat that created it (off by default).
 - New worktrees start with your mise, direnv and Python environments applied. Chips under each terminal show what was
   applied.
 

@@ -38,6 +38,8 @@ public sealed class Preferences
     public double VerticalCenterTabsWidth { get; set; } = VerticalTabs.DefaultWidth;
     /// <summary>Legacy Projects-mode value; tabs always live under their workspace.</summary>
     public bool VerticalTabsInProjects { get; set; }
+    /// <summary>Projects lists a workspace made by <c>workspace_create</c> under the terminal or chat that created it, while that tab is listed.</summary>
+    public bool GroupWorkspacesUnderCreator { get; set; }
     /// <summary>How two tabs first shown together are arranged: <c>horizontal</c> columns or <c>vertical</c> rows.</summary>
     public string DefaultPaneDirection { get; set; } = "horizontal";
     /// <summary>Read from profiles that predate window-local defaults.</summary>

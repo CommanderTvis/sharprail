@@ -167,6 +167,8 @@ public sealed record HostState
     /// titles are live only. All are dropped when the terminal closes.
     /// </summary>
     public IReadOnlyList<TerminalTitle> TerminalTitles { get; init; } = [];
+    /// <summary>The terminal or chat whose <c>workspace_create</c> made each workspace, in creation order; persisted, and dropped with the workspace. Clients group a workspace under its creator.</summary>
+    public IReadOnlyList<WorkspaceCreatorEntry> WorkspaceCreators { get; init; } = [];
     /// <summary>
     /// The long-running processes agents reported with <c>owned_process_report</c>, which SharpRail stops when their terminal
     /// closes or it quits. Never persisted here: the host's registry keeps its own file.
@@ -211,6 +213,10 @@ public sealed record TerminalEmigrationRequest(string Id, TerminalRef Terminal, 
 /// <param name="Progress">The host's inline status while it ends the stray owner, or why that failed; empty otherwise.</param>
 public sealed record TerminalResumeOffer(TerminalRef Terminal, string Agent, string SessionId, bool OpenElsewhere = false,
     string OwnerText = "", string QuitConfirmation = "", string Progress = "");
+
+/// <param name="Workspace">The created workspace's path.</param>
+/// <param name="Creator">The terminal tab (a chat's id starts with <c>chat:</c>) whose <c>workspace_create</c> made it.</param>
+public sealed record WorkspaceCreatorEntry(string Workspace, TerminalRef Creator);
 
 /// <param name="Source">Who chose the title; a stronger source's title is never replaced by a weaker one's.</param>
 public sealed record TerminalTitle(TerminalRef Terminal, string Title, TerminalTitleSource Source = TerminalTitleSource.User);

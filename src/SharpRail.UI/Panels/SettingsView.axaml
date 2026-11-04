@@ -370,6 +370,12 @@
       <StackPanel Spacing="8">
         <TextBlock Text="Projects" Classes="settings-heading" />
         <TextBlock Text="The project list is shared by every window and client of this host." Classes="settings-description" />
+        <Border Classes="settings-row">
+          <StackPanel Spacing="4">
+            <CheckBox x:Name="GroupWorkspacesUnderCreator" Content="Group workspaces under the terminal or chat that created them" />
+            <TextBlock Text="A workspace an agent made with workspace_create is listed under that agent's terminal or chat while it is open. Off, every workspace is listed flat. This preference belongs to this app." Classes="settings-description" />
+          </StackPanel>
+        </Border>
         <TextBlock Text="Recent projects" Classes="settings-label" />
         <StackPanel x:Name="RecentProjects" Spacing="8" />
       </StackPanel>

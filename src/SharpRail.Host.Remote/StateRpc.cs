@@ -128,6 +128,8 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         }).ToList(),
         TerminalTitles = state.TerminalTitles.Select(title => new TerminalTitleMessage
         { WorkspaceId = title.Terminal.WorkspaceId, TabKey = title.Terminal.TabKey, Title = title.Title, Source = (int)title.Source }).ToList(),
+        WorkspaceCreators = state.WorkspaceCreators.Select(entry => new WorkspaceCreatorMessage
+        { Path = entry.Workspace, WorkspaceId = entry.Creator.WorkspaceId, TabKey = entry.Creator.TabKey }).ToList(),
         Platform = state.Platform is { } platform ? System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(platform.ToString()) : "",
         ConnectedThroughTailscale = RpcConnection.ThroughTailscale,
         PendingEmigrations = state.PendingEmigrations.Select(request => new TerminalEmigrationMessage
