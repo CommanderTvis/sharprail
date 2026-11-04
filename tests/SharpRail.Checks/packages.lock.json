@@ -261,6 +261,7 @@
         "type": "Project",
         "dependencies": {
           "SharpRail.Host.Abstractions": "[1.0.0, )",
+          "SharpRail.Plugins.Acp.Host": "[1.0.0, )",
           "SharpRail.Plugins.AirContext.Host": "[1.0.0, )",
           "SharpRail.Plugins.AirGateway.Host": "[1.0.0, )",
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
@@ -330,6 +331,16 @@
         "dependencies": {
           "SharpRail.Plugins.Acp": "[1.0.0, )",
           "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.acp.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "SharpRail.Plugins.Acp": "[1.0.0, )",
+          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
+          "SharpRail.Plugins.Chat.UI": "[1.0.0, )",
+          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
       "sharprail.plugins.agent.ui": {
@@ -964,6 +975,7 @@
           "SharpRail.Host.Client": "[1.0.0, )",
           "SharpRail.Host.Core": "[1.0.0, )",
           "SharpRail.Host.Remote": "[1.0.0, )",
+          "SharpRail.Plugins.Acp.UI": "[1.0.0, )",
           "SharpRail.Plugins.AirContext.UI": "[1.0.0, )",
           "SharpRail.Plugins.AirGateway.UI": "[1.0.0, )",
           "SharpRail.Plugins.Api.UI": "[1.0.0, )",

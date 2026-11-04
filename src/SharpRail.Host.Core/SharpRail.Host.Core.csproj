@@ -21,6 +21,7 @@
     <ProjectReference Include="../SharpRail.Plugins.Codex/Host/SharpRail.Plugins.Codex.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Omp/Host/SharpRail.Plugins.Omp.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Pi/Host/SharpRail.Plugins.Pi.Host.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Providers/Host/SharpRail.Plugins.Providers.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirGateway/Host/SharpRail.Plugins.AirGateway.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.AirContext/Host/SharpRail.Plugins.AirContext.Host.csproj" />

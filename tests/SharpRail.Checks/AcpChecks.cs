@@ -104,9 +104,92 @@ internal static class AcpChecks
         Require(mismatch is { AgentVersion: 2 }, "An agent on another protocol version is refused by name.");
     }
 
+    private sealed class FakeTransport(AcpFakeAgent agent) : IAcpTransport
+    {
+        public Stream FromAgent => agent.ClientInput;
+        public Stream ToAgent => agent.ClientOutput;
+        public string ErrorTail => "";
+        public ValueTask DisposeAsync() => agent.DisposeAsync();
+    }
+
+    private static ChatItem[] Items(AcpChatSession session) => [.. session.Snapshot().OfType<ChatItemPush>().Select(push => push.Item)];
+
+    internal static async Task Session()
+    {
+        var agents = new List<AcpFakeAgent>();
+        Func<Task<IAcpTransport>> connect = () =>
+        {
+            var agent = new AcpFakeAgent();
+            agents.Add(agent);
+            return Task.FromResult<IAcpTransport>(new FakeTransport(agent));
+        };
+        await using var session = new AcpChatSession("ws", "chat1", "/work", connect, _ => { }, _ => { });
+        Require(session.Begin() is { Status: ChatStatus.Starting, Cwd: "/work" }, "Begin reports a starting chat in its directory.");
+        await session.StartAsync(null);
+        Require(session.Header is { Status: ChatStatus.Idle, SessionId: "sess-1", PermissionMode: "ask", Title: "Fake agent" } && session.Header.PermissionModes.Select(mode => mode.Key).SequenceEqual(["ask", "code"]), "The session starts idle with the agent's modes and identity.");
+
+        await session.SendAsync("hello", null);
+        await Until(() => session.Header.Status == ChatStatus.Idle && Items(session).OfType<ChatAssistantItem>().Any(item => item.Id == "plan"), "A prompt streams a reply and the chat returns to idle.");
+        var items = Items(session);
+        Require(items.Select(item => item.GetType()).SequenceEqual([typeof(ChatUserItem), typeof(ChatThinkingItem), typeof(ChatAssistantItem), typeof(ChatToolItem), typeof(ChatAssistantItem)]), "A turn folds to the prompt, thought, reply, tool call and plan in order.");
+        Require(items.OfType<ChatAssistantItem>().First() is { Text: "Hi there.", Streaming: false }, "Message chunks meet in one finished reply.");
+        Require(items.OfType<ChatToolItem>().Single() is { State: ChatToolState.Done, FilePath: "a.txt", Name: "Edit a.txt" } tool && tool.Output!.Contains("-old", StringComparison.Ordinal) && tool.Output.Contains("+new", StringComparison.Ordinal), "The tool card keeps its file and shows the diff.");
+        Require(items.OfType<ChatAssistantItem>().Last().Text.Contains("[x] Step one", StringComparison.Ordinal), "The plan shows its entries and their status.");
+
+        await session.SendAsync("ask", null);
+        await Until(() => session.Header.Status == ChatStatus.AwaitingPermission, "A permission request waits for the user.");
+        var request = Items(session).OfType<ChatPermissionItem>().Single();
+        Require(request is { Decision: ChatPermissionDecision.Pending, AlwaysLabel: "Always allow", Title: "Run rm" }, "The request is shown with the agent's own title and its always option.");
+        session.Answer(request.RequestId, true, remember: false);
+        await Until(() => session.Header.Status == ChatStatus.Idle && Items(session).OfType<ChatAssistantItem>().Any(item => item.Text == "outcome once"), "Allow once answers with the allow_once option.");
+        Require(Items(session).OfType<ChatPermissionItem>().Single().Decision == ChatPermissionDecision.Allowed, "The card records the decision.");
+
+        await session.SendAsync("ask", null);
+        await Until(() => session.Header.Status == ChatStatus.AwaitingPermission, "A second request waits.");
+        session.Answer(Items(session).OfType<ChatPermissionItem>().Last().RequestId, false, false);
+        await Until(() => Items(session).OfType<ChatAssistantItem>().Any(item => item.Text == "outcome no"), "A rejection answers with the reject option.");
+        await Until(() => session.Header.Status == ChatStatus.Idle, "The chat is idle after the rejection.");
+
+        await session.SendAsync("ask", null);
+        await Until(() => session.Header.Status == ChatStatus.AwaitingPermission, "A third request waits.");
+        await session.InterruptAsync();
+        await Until(() => Items(session).OfType<ChatAssistantItem>().Any(item => item.Text == "outcome cancelled"), "Cancelling answers a waiting permission as cancelled.");
+        await Until(() => session.Header.Status == ChatStatus.Idle, "The chat is idle after cancelling a request.");
+
+        await session.SendAsync("wait", null);
+        await Until(() => Items(session).OfType<ChatAssistantItem>().Any(item => item.Text == "working"), "A long turn starts.");
+        await session.InterruptAsync();
+        await Until(() => session.Header.Status == ChatStatus.Idle && Items(session).OfType<ChatNoticeItem>().Any(n => n.Category == ChatNoticeKinds.Interrupt), "Interrupt ends the turn with an interrupt marker.");
+
+        // The agent crashes mid-turn: the chat shows it exited, and a new session starts a fresh agent.
+        await session.SendAsync("wait", null);
+        await Until(() => Items(session).OfType<ChatAssistantItem>().Count(item => item.Text == "working") == 2, "The second long turn starts.");
+        await agents[0].KillAsync();
+        await Until(() => session.Header.Status == ChatStatus.Exited, "An agent that ends shows the chat as exited.");
+        Require(Items(session).OfType<ChatNoticeItem>().Any(n => n.Category == ChatNoticeKinds.Failure), "The exit is explained in a failure notice.");
+        Require(!session.Active, "An exited session is not active, so opening the chat again restarts it.");
+        await using var restarted = new AcpChatSession("ws", "chat1", "/work", connect, _ => { }, _ => { });
+        restarted.Begin();
+        await restarted.StartAsync("old-session");
+        Require(restarted.Header.Status == ChatStatus.Idle && restarted.SessionId == "old-session" && Items(restarted).OfType<ChatUserItem>().Single().Text == "earlier question" && Items(restarted).OfType<ChatAssistantItem>().Single().Text == "earlier answer", "A restart resumes the stored session through session/load and shows the replayed conversation.");
+
+        // An agent without loadSession starts a new session instead.
+        await using var plain = new AcpChatSession("ws", "chat2", "/work", () => Task.FromResult<IAcpTransport>(new FakeTransport(new AcpFakeAgent(loadSession: false))), _ => { }, _ => { });
+        plain.Begin();
+        await plain.StartAsync("old-session");
+        Require(plain.SessionId == "sess-1", "Resume falls back to a new session when the agent cannot load one.");
+
+        // An agent on another protocol version fails the chat with its reason.
+        await using var future = new AcpChatSession("ws", "chat3", "/work", () => Task.FromResult<IAcpTransport>(new FakeTransport(new AcpFakeAgent(protocolVersion: 2))), _ => { }, _ => { });
+        future.Begin();
+        await future.StartAsync(null);
+        Require(future.Header is { Status: ChatStatus.Failed, Error: { } reason } && reason.Contains("version 2", StringComparison.Ordinal), "A protocol mismatch fails the chat and says which version the agent speaks.");
+    }
+
     internal static async Task Run(string root)
     {
         Manifest();
         await Protocol();
+        await Session();
     }
 }

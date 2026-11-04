@@ -33,6 +33,7 @@
         "type": "Project",
         "dependencies": {
           "SharpRail.Host.Abstractions": "[1.0.0, )",
+          "SharpRail.Plugins.Acp.Host": "[1.0.0, )",
           "SharpRail.Plugins.AirContext.Host": "[1.0.0, )",
           "SharpRail.Plugins.AirGateway.Host": "[1.0.0, )",
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
@@ -81,6 +82,20 @@
         "type": "Project",
         "dependencies": {
           "protobuf-net": "[2.4.8, )"
+        }
+      },
+      "sharprail.plugins.acp": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )",
+          "SharpRail.Plugins.Chat": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.acp.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Acp": "[1.0.0, )",
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
         }
       },
       "sharprail.plugins.aircontext": {

@@ -1,0 +1,17 @@
+using SharpRail.Plugins.Api;
+using SharpRail.Plugins.Api.Host;
+
+namespace SharpRail.Plugins.Acp.Host;
+
+/// <summary>The ACP plugin's host half: the agent list and the chat sessions over ACP agents' stdio.</summary>
+public sealed class AcpHost : PluginHostModule
+{
+    public override PluginContract Contract => AcpContract.Contract;
+
+    public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
+    {
+        var chats = new AcpChatHost(context);
+        chats.Register();
+        return ValueTask.FromResult<PluginDisposer?>(() => new ValueTask(chats.DisposeAsync()));
+    }
+}

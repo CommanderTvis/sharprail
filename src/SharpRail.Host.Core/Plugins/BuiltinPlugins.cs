@@ -1,3 +1,5 @@
+using SharpRail.Plugins.Acp;
+using SharpRail.Plugins.Acp.Host;
 using SharpRail.Plugins.AirContext;
 using SharpRail.Plugins.AirContext.Host;
 using SharpRail.Plugins.AirGateway;
@@ -131,6 +133,7 @@ public static class BuiltinPlugins
         (CodexManifest.Manifest, new CodexHost()),
         (OmpManifest.Manifest, new OmpHost()),
         (PiManifest.Manifest, new PiHost()),
+        (AcpManifest.Manifest, new AcpHost()),
         (ProvidersManifest.Manifest, new ProvidersHost()),
         (AirGatewayContract.Manifest, new AirGatewayHost()),
         (AirContextContract.Manifest, new AirContextHost()),

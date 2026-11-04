@@ -86,6 +86,10 @@ internal sealed class AcpClient : IAsyncDisposable
     public async Task<string> PromptAsync(string sessionId, JsonArray content, CancellationToken cancellationToken) =>
         (await connection.RequestAsync("session/prompt", new JsonObject { ["sessionId"] = sessionId, ["prompt"] = content }, cancellationToken) as JsonObject)?["stopReason"]?.GetValue<string>() ?? "end_turn";
 
+    /// <summary>session/set_model, an unstable method some agents serve for the models they list; an agent without it answers method-not-found.</summary>
+    public Task<JsonNode?> SetModelAsync(string sessionId, string modelId, CancellationToken cancellationToken) =>
+        connection.RequestAsync("session/set_model", new JsonObject { ["sessionId"] = sessionId, ["modelId"] = modelId }, cancellationToken);
+
     public Task CancelAsync(string sessionId) => connection.NotifyAsync("session/cancel", new JsonObject { ["sessionId"] = sessionId });
 
     public Task<JsonNode?> SetModeAsync(string sessionId, string modeId, CancellationToken cancellationToken) =>

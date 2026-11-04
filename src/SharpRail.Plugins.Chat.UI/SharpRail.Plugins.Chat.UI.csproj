@@ -10,5 +10,6 @@
     <InternalsVisibleTo Include="SharpRail.Checks" />
     <InternalsVisibleTo Include="SharpRail.Plugins.ClaudeCode.UI" />
     <InternalsVisibleTo Include="SharpRail.Plugins.Pi.UI" />
+    <InternalsVisibleTo Include="SharpRail.Plugins.Acp.UI" />
   </ItemGroup>
 </Project>
