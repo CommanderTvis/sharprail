@@ -54,6 +54,8 @@ internal static class ClaudeChatChecks
         MODE=$(echo "$*" | sed -n 's/.*--permission-mode \([^ ]*\).*/\1/p'); [ -z "$MODE" ] && MODE=default
         EFFORT=$(echo "$*" | sed -n 's/.*--effort \([^ ]*\).*/\1/p')
         env | grep -E '^(SHARPRAIL_UI_LAUNCH|THINKRAIL_MCP_URL|CLAUDE_CODE_SSE_PORT)=' | sort >> "$D/env.log"
+        # A check can script a failed start: the exit code and what the child says on stderr.
+        if [ -f "$D/exit" ]; then case "$*" in *stream-json*) [ -f "$D/stderr" ] && cat "$D/stderr" >&2; exit "$(cat "$D/exit")" ;; esac; fi
         emit() { printf '%s\n' "$1"; }
         rid() { echo "$1" | sed 's/.*"request_id":"\([^"]*\)".*/\1/'; }
         ok() { local body="${2:-"{}"}"; emit "{\"type\":\"control_response\",\"response\":{\"subtype\":\"success\",\"request_id\":\"$1\",\"response\":$body}}"; }
@@ -203,7 +205,7 @@ internal static class ClaudeChatChecks
             Directory.CreateDirectory(path);
             Environment.SetEnvironmentVariable(name, path);
         }
-        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); await BashMode(Path.Combine(directory, "bash-mode")); await ChromeOverride(Path.Combine(directory, "chrome")); }
+        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); await BashMode(Path.Combine(directory, "bash-mode")); await ChromeOverride(Path.Combine(directory, "chrome")); await ExitStderr(Path.Combine(directory, "exit-stderr")); }
         finally { foreach (var (name, value) in previous) Environment.SetEnvironmentVariable(name, value); }
     }
 
@@ -242,6 +244,32 @@ internal static class ClaudeChatChecks
             // The two chats start concurrently, so the reopened one is found by its id, not by being the last spawn.
             Require(!lines.Last(line => line.Contains(off, StringComparison.Ordinal)).Contains("--chrome", StringComparison.Ordinal), "A reopened chat keeps its recorded Chrome choice.");
         }
+    }
+
+    // A failed start names what the child said on stderr; a clean exit or a silent child keeps the bare notice.
+    private static async Task ExitStderr(string directory)
+    {
+        Directory.CreateDirectory(Path.Combine(directory, "fake"));
+        var holder = new StateHolder();
+        async Task<(ChatSnapshot View, string[] Errors)> Run(string code, string? stderr)
+        {
+            var script = Path.Combine(directory, "fake");
+            File.WriteAllText(Path.Combine(script, "exit"), code);
+            if (stderr is null) File.Delete(Path.Combine(script, "stderr")); else File.WriteAllText(Path.Combine(script, "stderr"), stderr);
+            var chat = Guid.NewGuid().ToString();
+            await using var fixture = await Start(directory, holder);
+            fixture.Watch(chat);
+            await fixture.Call(ChatContract.Open, new ChatOpenParams(fixture.Project, chat));
+            var view = await fixture.Until(chat, view => view.Header.Status is ChatStatus.Failed or ChatStatus.Exited, "the child to exit");
+            return (view, [.. view.Items.OfType<ChatNoticeItem>().Where(item => item.Level == ChatNoticeLevel.Error).Select(item => item.Text)]);
+        }
+        var (failed, errors) = await Run("1", "\u001b[31mClaude in Chrome is not connected\u001b[0m\n");
+        Require(failed.Header.Status == ChatStatus.Failed && errors.Any(text => text.StartsWith("Claude Code exited with code 1.", StringComparison.Ordinal) && text.Contains("Claude in Chrome is not connected", StringComparison.Ordinal) && !text.Contains('\u001b', StringComparison.Ordinal)),
+            "A non-zero exit puts the child's stderr, without escapes, in the error notice.");
+        var (_, silent) = await Run("1", null);
+        Require(silent.Contains("Claude Code exited with code 1."), "A non-zero exit with no stderr keeps the bare notice.");
+        var (clean, none) = await Run("0", "noise\n");
+        Require(clean.Header.Status == ChatStatus.Exited && none.Length == 0, "A zero exit adds no error notice.");
     }
 
     private static async Task<Fixture> Start(string directory, StateHolder holder, bool chrome = false)

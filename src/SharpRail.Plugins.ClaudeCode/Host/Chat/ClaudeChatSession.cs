@@ -145,6 +145,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         {
             current = record;
             mine = ++generation;
+            stderrTail.Clear();
         }
         var launch = deps.Launch(current, spawn);
         var advisorAt = launch.Arguments.ToList().IndexOf("--advisor");
@@ -179,11 +180,21 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         });
     }
 
+    private const int StderrTailLines = 20;
+    private const int StderrTailChars = 4096;
+    private readonly Queue<string> stderrTail = new();
+
     private void OnError(int mine, string text)
     {
         lock (gate)
         {
             if (mine != generation) return;
+            var clean = ChatFolder.Sanitise(text).TrimEnd();
+            if (clean.Length > 0)
+            {
+                stderrTail.Enqueue(clean);
+                while (stderrTail.Count > StderrTailLines) stderrTail.Dequeue();
+            }
             folder.AddNotice(ChatNoticeLevel.Warning, text);
             ScheduleFlush();
         }
@@ -201,7 +212,9 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
             if (code == 0 || folder.Header.Status == ChatStatus.Exited) folder.SetStatus(ChatStatus.Exited);
             else
             {
-                folder.AddNotice(ChatNoticeLevel.Error, $"Claude Code exited with code {code}.");
+                var detail = string.Join('\n', stderrTail);
+                if (detail.Length > StderrTailChars) detail = detail[^StderrTailChars..];
+                folder.AddNotice(ChatNoticeLevel.Error, $"Claude Code exited with code {code}." + (detail.Length > 0 ? "\n" + detail : ""));
                 folder.SetStatus(ChatStatus.Failed, $"Claude Code exited with code {code}.");
                 ReportStatus("stop_failure");
             }
