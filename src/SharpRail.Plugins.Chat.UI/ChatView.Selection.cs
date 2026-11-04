@@ -1,7 +1,9 @@
 using System.Text.RegularExpressions;
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 
 using SharpRail.Plugins.Agent.UI;
@@ -11,7 +13,7 @@ namespace SharpRail.Plugins.Chat.UI;
 
 internal sealed partial class ChatView
 {
-    private readonly StackPanel selectionRow = new() { Name = "ChatSelectionRow", Orientation = Orientation.Horizontal, IsVisible = false };
+    private readonly WrapPanel selectionRow = new() { Name = "ChatSelectionRow", Orientation = Orientation.Horizontal, IsVisible = false };
     private string? removedMention;
     private IDisposable? selectionWatch;
 
@@ -69,15 +71,29 @@ internal sealed partial class ChatView
                 label = name;
                 tip = $"{selection.Path}, the open file";
             }
-            var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-            content.Children.Add(Ui.Icon("code", Ui.Muted, 12));
-            var text = Ui.Text(label, lighter ? Ui.Hint : Ui.TextBrush, 11);
-            text.Name = "ChatSelectionChipLabel";
-            content.Children.Add(text);
-            if (range is not null) content.Children.Add(Ui.Text(range, Ui.Muted, 11));
+            // The icon, range and close mark keep their size; the label between them gives way, trimmed with an ellipsis (the tooltip has it whole).
+            var content = new DockPanel { LastChildFill = true };
+            var icon = Ui.Icon("code", Ui.Muted, 12);
+            icon.Margin = new Thickness(0, 0, 4, 0);
+            DockPanel.SetDock(icon, Dock.Left);
+            content.Children.Add(icon);
             var remove = Ui.Text("×", Ui.Muted, 11);
             remove.Name = "ChatSelectionChipRemove";
+            remove.Margin = new Thickness(4, 0, 0, 0);
+            DockPanel.SetDock(remove, Dock.Right);
             content.Children.Add(remove);
+            if (range is not null)
+            {
+                var rangeText = Ui.Text(range, Ui.Muted, 11);
+                rangeText.Margin = new Thickness(4, 0, 0, 0);
+                DockPanel.SetDock(rangeText, Dock.Right);
+                content.Children.Add(rangeText);
+            }
+            var text = Ui.Text(label, lighter ? Ui.Hint : Ui.TextBrush, 11);
+            text.Name = "ChatSelectionChipLabel";
+            text.TextTrimming = TextTrimming.CharacterEllipsis;
+            text.TextWrapping = TextWrapping.NoWrap;
+            content.Children.Add(text);
             var chip = TerminalFacts.ChipButton("ChatSelectionChip", content, tip + " \u2014 click to leave out", () =>
             {
                 removedMention = selection.Mention();

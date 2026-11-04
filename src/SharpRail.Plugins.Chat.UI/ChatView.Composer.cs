@@ -29,7 +29,7 @@ internal sealed partial class ChatView
     private Button send = null!;
     private Popup menu = null!;
     private ListBox menuList = null!;
-    private StackPanel attachmentRow = null!;
+    private WrapPanel attachmentRow = null!;
     private readonly List<ChatAttachment> attachments = [];
     private CancellationTokenSource? mentionSearch;
     private int historyAt = -1;
@@ -113,7 +113,7 @@ internal sealed partial class ChatView
             IsLightDismissEnabled = false,
             Child = menuFrame
         };
-        attachmentRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, IsVisible = false };
+        attachmentRow = new WrapPanel { Name = "ChatAttachmentRow", Orientation = Orientation.Horizontal, ItemSpacing = Space.Gap, LineSpacing = Space.Gap, IsVisible = false };
         plusBadge = new Border { Name = "ChatPlusBadge", Width = 6, Height = 6, CornerRadius = new CornerRadius(3), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, IsVisible = false, IsHitTestVisible = false };
         var plusContent = new Grid { Width = 16, Height = 16 };
         plusContent.Children.Add(Ui.Icon("add", Ui.Muted, 14));
@@ -165,7 +165,7 @@ internal sealed partial class ChatView
         inputRow.Children.Add(right);
         ShowShellMode();
         // The chips that are content (the selection, attachments, mentions) sit above the input inside the box.
-        var content = new StackPanel { Name = "ChatContext", Orientation = Orientation.Horizontal, Spacing = Space.Gap, Margin = new Thickness(0, 0, 0, 4), IsVisible = false };
+        var content = new WrapPanel { Name = "ChatContext", Orientation = Orientation.Horizontal, ItemSpacing = Space.Gap, LineSpacing = Space.Gap, Margin = new Thickness(0, 0, 0, 4), IsVisible = false };
         contextRow = content;
         content.Children.Add(selectionRow);
         content.Children.Add(attachmentRow);
@@ -440,7 +440,7 @@ internal sealed partial class ChatView
     private Button pie = null!, history = null!;
     private Button? plus;
     private Border plusBadge = null!;
-    private StackPanel contextRow = null!;
+    private WrapPanel contextRow = null!;
 
     /// <summary>The row of content chips above the input takes room only while it holds one.</summary>
     private void ShowContextRow() => contextRow.IsVisible = selectionRow.IsVisible || attachmentRow.IsVisible;
@@ -877,15 +877,25 @@ internal sealed partial class ChatView
         ShowContextRow();
         foreach (var item in attachments.ToArray())
         {
-            var chip = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+            // Thumbnail and close mark keep their size; the name between them gives way, trimmed with an ellipsis (the chip's tooltip has it whole).
+            var chip = new DockPanel { LastChildFill = true };
             if (item.Kind == "image")
             {
                 var thumb = new Image { Width = 20, Height = 20, Stretch = Stretch.UniformToFill, Name = "ChatAttachmentPreview" };
+                thumb.Margin = new Thickness(0, 0, 4, 0);
+                DockPanel.SetDock(thumb, Dock.Left);
                 chip.Children.Add(thumb);
                 if (item.Data is { } bytes) _ = LoadThumbnail(bytes, thumb);
                 else if (item.Path.Length > 0) _ = LoadThumbnail(item.Path, thumb);
             }
-            chip.Children.Add(Ui.Text(item.Name + "  ×", Ui.Muted, 11));
+            var close = Ui.Text("×", Ui.Muted, 11);
+            close.Margin = new Thickness(6, 0, 0, 0);
+            DockPanel.SetDock(close, Dock.Right);
+            chip.Children.Add(close);
+            var label = Ui.Text(item.Name, Ui.Muted, 11);
+            label.TextTrimming = TextTrimming.CharacterEllipsis;
+            label.TextWrapping = TextWrapping.NoWrap;
+            chip.Children.Add(label);
             var remove = TerminalFacts.ChipButton("ChatAttachment_" + item.Name, chip, "Remove " + (item.Path.Length > 0 ? item.Path : item.Name), () =>
             {
                 attachments.Remove(item);

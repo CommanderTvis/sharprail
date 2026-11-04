@@ -225,6 +225,7 @@ internal static class ClaudeChatUiChecks
         PastConversations();
         CommandMenu();
         HoverAffordance();
+        AttachmentChipsContained();
         PasteImages();
         WrappedHistory();
         DraftSurvivesHistory();
@@ -812,6 +813,37 @@ internal static class ClaudeChatUiChecks
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); }
+    }
+
+    // A long file name and a pasted image in a narrow composer: every chip stays inside the composer (trimmed or wrapped, never cut off at its edge)
+    // and its close mark is inside too, so it can still be reached.
+    private static void AttachmentChipsContained()
+    {
+        var chat = new FakeChat { Header = new ChatHeader(ChatStatus.Idle) };
+        chat.Snapshot.Add(new ChatHeaderPush(Workspace, Chat, chat.Header));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 300, Height = 500, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            view.AddAttachment("/tmp/a-very-long-attachment-file-name-that-cannot-fit-the-narrow-composer-at-all.md");
+            view.AddPasted(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII="), "image/png");
+            Frame(window); Frame(window);
+            var chips = view.GetVisualDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("ChatAttachment_", StringComparison.Ordinal) == true).ToArray();
+            Require(chips.Length == 2, "Both attachment chips are drawn.");
+            var limit = view.Bounds.Width;
+            foreach (var chip in chips)
+            {
+                var left = chip.TranslatePoint(new Point(), view)!.Value.X;
+                Require(left >= 0 && left + chip.Bounds.Width <= limit + 0.5, $"Chip {chip.Name} lies inside the composer ({left}..{left + chip.Bounds.Width} of {limit}).");
+                var close = chip.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == "\u00D7");
+                var closeRight = close.TranslatePoint(new Point(close.Bounds.Width, 0), view)!.Value.X;
+                Require(closeRight <= limit + 0.5, $"Chip {chip.Name} keeps its close mark reachable ({closeRight} of {limit}).");
+            }
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); }
     }
 
     // Paste is the composer's own: an image (or files) on the clipboard becomes an attachment chip with its bytes, by the key, Shift+Insert and
