@@ -39,7 +39,7 @@ internal static class WindowGesturesE2E
         first.Window.MouseMove(start + new Vector(12, 8)); Settle();
         Require(surface.IsDragging, "The first window must have an active tab drag.");
         var epoch = first.Window.Layout.Epoch;
-        Toggle(second, Key.B, PhysicalKey.B);
+        Toggle(second, Key.D1, PhysicalKey.Digit1);
         Require(!second.Window.Layout.State.LeftVisible && first.Window.Layout.State.LeftVisible &&
             surface.IsDragging && first.Window.Layout.Epoch == epoch && !first.Find<Border>("GestureToast").IsVisible && !first.Find<TextBlock>("WorkspaceError").IsVisible,
             $"A second window's layout transition must not cancel or rearrange the first window's drag: second left={second.Window.Layout.State.LeftVisible}, first left={first.Window.Layout.State.LeftVisible}, drag={surface.IsDragging}, epoch={first.Window.Layout.Epoch}/{epoch}, error={first.Find<TextBlock>("WorkspaceError").IsVisible}.");
