@@ -48,10 +48,53 @@ internal static class MenuLayoutChecks
         var chevron = items[^1].GetVisualDescendants().OfType<Control>().First(part => part.Name == "PART_ChevronPath");
         var chevronRight = chevron.TranslatePoint(new Point(chevron.Bounds.Width, 0), menu)!.Value.X;
         Require(chevronRight <= menu.Bounds.Width - menu.Padding.Right, $"Split chevron ends at x={chevronRight:0.#}, past the menu's padded edge {menu.Bounds.Width - menu.Padding.Right:0.#}.");
+        IconsInside("tab menu", menu);
         menu.Close();
         window.Close();
         Console.WriteLine("PASS menu layout: mixed icon, plain and submenu rows fit inside the menu padding");
+        LazyTabMenu();
         BottomPadding();
+    }
+
+    // The terminal tab menu: plugins' rows (an icon among them) are inserted as it opens, after the first measure.
+    private static void LazyTabMenu()
+    {
+        var anchor = new Button { Content = "tab", Width = 80, Height = 24 };
+        var window = new Window { Width = 400, Height = 300, Content = anchor };
+        window.Show();
+        var menu = new ContextMenu();
+        menu.Items.Add(Ui.IconMenu("Close", () => { }, ActionIcon.Close));
+        menu.Items.Add(Ui.Menu("Rename", () => { }));
+        SharpRail.UI.Docking.DockSurface.AddLazyItems(menu, () =>
+        {
+            var copy = Ui.Menu("Copy session ID", () => { });
+            copy.Icon = Ui.Icon("terminal-line", size: 14);
+            return [copy];
+        });
+        menu.Items.Add(Ui.Menu("Move up", () => { }));
+        var split = new MenuItem { Header = "Split" };
+        split.Items.Add(Ui.Menu("Right", () => { }));
+        menu.Items.Add(split);
+        anchor.ContextMenu = menu;
+        menu.Open(anchor);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        IconsInside("terminal tab menu", menu);
+        menu.Close();
+        window.Close();
+        Console.WriteLine("PASS menu layout: the terminal tab menu keeps plugin-inserted icons inside its bounds");
+    }
+
+    private static void IconsInside(string name, ContextMenu menu)
+    {
+        foreach (var item in menu.Items.OfType<MenuItem>().Where(item => item.Icon is not null))
+        {
+            var icon = item.GetVisualDescendants().OfType<ContentControl>().First(part => part.Name == "PART_IconPresenter");
+            var left = icon.TranslatePoint(default, menu)!.Value.X;
+            var right = icon.TranslatePoint(new Point(icon.Bounds.Width, 0), menu)!.Value.X;
+            Require(left >= 0 && right <= menu.Bounds.Width, $"{name}: the icon of '{item.Header}' spans x={left:0.#}..{right:0.#}, outside the menu (0..{menu.Bounds.Width:0.#}).");
+        }
     }
 
     internal static void RealFileMenu(string root)
