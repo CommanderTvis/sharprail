@@ -45,6 +45,8 @@ internal sealed partial class ChatView
         zoomPlate = plate;
         Children.Add(zoomHost);
         Children.Add(plate);
+        // Hit-testable everywhere, so a pinch or zooming wheel over a gap between panels still targets the chat and never falls through to the window's page zoom.
+        Background = Brushes.Transparent;
         ZoomChords.SetOwns(this, true);
         AddHandler(KeyDownEvent, ZoomKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(PointerWheelChangedEvent, (_, e) =>

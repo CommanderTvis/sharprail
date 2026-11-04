@@ -1211,6 +1211,29 @@ internal static class ClaudeChatUiChecks
             view.SetZoom(0.1); Require(view.Zoom == ChatView.MinZoom, "A value outside the range is clamped.");
             Require(InterfaceZoom.Current == page, "Gestures did not touch the page zoom.");
 
+            // A zoom gesture that begins anywhere over the chat stays with the chat: no point of the pane may hit-test past it
+            // to the window, whose pinch handler would then zoom the whole app mid-gesture (at either limit, or over a gap between panels).
+            var leaked = 0;
+            window.AddHandler(InputElement.PointerTouchPadGestureMagnifyEvent, (_, _) => leaked++);
+            foreach (var scale in new[] { ChatView.MinZoom, 1.0, ChatView.MaxZoom })
+            {
+                view.SetZoom(scale);
+                Frame(window); Frame(window);
+                for (var y = 1; y < view.Bounds.Height; y += 7)
+                    for (var x = 1; x < view.Bounds.Width; x += 7)
+                    {
+                        var hit = window.InputHitTest(new Point(x, y)) as Visual;
+                        Require(hit is not null && (hit == view || view.IsVisualAncestorOf(hit)), $"At {scale} the point ({x}, {y}) over the chat hits the chat, not {hit?.GetType().Name ?? "nothing"}.");
+                    }
+                for (var step = 0; step < 6; step++)
+                {
+                    var target = (Visual)window.InputHitTest(new Point(view.Bounds.Width / 2, view.Bounds.Height / 2))!;
+                    ((Avalonia.Interactivity.Interactive)target).RaiseEvent(new PointerDeltaEventArgs(InputElement.PointerTouchPadGestureMagnifyEvent, target, new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true), window, default, 0, new PointerPointProperties(), KeyModifiers.None, new Vector(scale > 1 ? 0.5 : scale < 1 ? -0.5 : 0, 0)));
+                }
+                Require(view.Zoom == scale, $"Pinching past the limit stays clamped at {scale} ({view.Zoom}).");
+            }
+            Require(leaked == 0 && InterfaceZoom.Current == page, $"No pinch step reached the window ({leaked}), and the page zoom stayed ({InterfaceZoom.Current}).");
+
             // Bounded realization at every scale, and the list's width follows the scale.
             foreach (var scale in new[] { 0.7, 1.0, 2.0 })
             {
