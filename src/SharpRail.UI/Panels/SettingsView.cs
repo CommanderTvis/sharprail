@@ -853,20 +853,34 @@ public sealed partial class SettingsView : UserControl
                 ShowSection(section);
             }));
         // Host state: the selection follows the host's broadcast, never the click.
-        var replay = PageControl<StackPanel>(panel, "TerminalReplayChoices");
-        var current = state.Current.Settings.TerminalReplayKb;
-        foreach (var (kb, label, description) in new[]
+        var replay = PageControl<ComboBox>(panel, "TerminalReplayChoices");
+        var replaySizes = new[]
         {
-            (0, "Off", "Reattaching shows an empty screen over the live shell"),
-            (16, "16 KB", "About a screenful"),
-            (HostSettings.DefaultTerminalReplayKb, "64 KB", "A screenful plus scrollback (default)"),
-            (256, "256 KB", "Long scrollback; more memory per terminal"),
-            (HostSettings.MaxTerminalReplayKb, "1 MB", "Maximum")
-        })
-            replay.Children.Add(Choice("TerminalReplay_" + kb, label, description, current == kb, () =>
-            {
-                if (state.Current.Settings.TerminalReplayKb != kb) Share(HostStateChange.Setting("terminal-replay", kb.ToString(CultureInfo.InvariantCulture)));
-            }));
+            (0, "Off: reattaching shows an empty screen over the live shell"),
+            (16, "16 KB: about a screenful"),
+            (HostSettings.DefaultTerminalReplayKb, "64 KB: a screenful plus scrollback (default)"),
+            (256, "256 KB: long scrollback; more memory per terminal"),
+            (HostSettings.MaxTerminalReplayKb, "1 MB: maximum")
+        };
+        replay.ItemsSource = replaySizes.Select(size => size.Item2).ToArray();
+        AutomationProperties.SetName(replay, "Replayed output");
+        var syncingReplay = false;
+        void ShowReplay()
+        {
+            syncingReplay = true;
+            try { replay.SelectedIndex = Array.FindIndex(replaySizes, size => size.Item1 == state.Current.Settings.TerminalReplayKb); }
+            finally { syncingReplay = false; }
+        }
+        ShowReplay();
+        replay.SelectionChanged += (_, _) =>
+        {
+            if (syncingReplay || replay.SelectedIndex < 0) return;
+            var kb = replaySizes[replay.SelectedIndex].Item1;
+            if (state.Current.Settings.TerminalReplayKb != kb) Share(HostStateChange.Setting("terminal-replay", kb.ToString(CultureInfo.InvariantCulture)));
+            // The selection follows the host, not the pick: put it back until the broadcast moves it.
+            ShowReplay();
+        };
+        refreshers.Add(ShowReplay);
         // Host state: the switch and boxes follow the host's broadcast, never the click.
         var programs = PageControl<Switch>(panel, "TerminalNotificationsEnabled");
         programs.IsChecked = state.Current.Settings.TerminalNotificationsEnabled;

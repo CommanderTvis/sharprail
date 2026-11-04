@@ -94,10 +94,12 @@ internal static partial class TerminalHostChecks
         settings.ShowSection("Terminal");
         try
         {
-            Button Choice(int kb) => settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalReplay_" + kb);
-            bool Active(int kb) => Choice(kb).GetLogicalDescendants().OfType<Control>().Count(control => Grid.GetColumn(control) == 1) == 1;
-            Require(new[] { 0, 16, 64, 256, 1024 }.All(kb => Active(kb) == (kb == 64)), "The replay choices must show the host's default.");
-            app.Click(Choice(256));
+            var sizes = new[] { 0, 16, 64, 256, 1024 };
+            // A changed value rebuilds the page, so the box is looked up each time.
+            ComboBox Replay() => settings.GetLogicalDescendants().OfType<ComboBox>().Single(box => box.Name == "TerminalReplayChoices");
+            bool Active(int kb) => Replay().SelectedIndex == Array.IndexOf(sizes, kb);
+            Require(sizes.All(kb => Active(kb) == (kb == 64)), "The replay choices must show the host's default.");
+            Replay().SelectedIndex = Array.IndexOf(sizes, 256);
             E2E.E2eWorkspace.Until(() => app.State!.Current.Settings.TerminalReplayKb == 256 && Active(256) && !Active(64));
             // Another client's change moves the selection here too.
             app.State!.ChangeAsync([HostStateChange.Setting("terminal-replay", "0")]).AsTask().GetAwaiter().GetResult();
@@ -111,6 +113,6 @@ internal static partial class TerminalHostChecks
             E2E.E2eWorkspace.Until(() => Chosen("Close") && !Chosen("Keep"));
         }
         finally { settings.Close(); }
-        Console.WriteLine("PASS terminal replay and exit Settings: the choices show the host's value, a click changes it through the host, and another client's change moves the selection");
+        Console.WriteLine("PASS terminal replay and exit Settings: the choices show the host's value, a pick changes it through the host, and another client's change moves the selection");
     }
 }
