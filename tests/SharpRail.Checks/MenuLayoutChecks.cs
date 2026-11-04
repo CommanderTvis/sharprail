@@ -50,6 +50,21 @@ internal static class MenuLayoutChecks
         Require(chevronRight <= menu.Bounds.Width - menu.Padding.Right, $"Split chevron ends at x={chevronRight:0.#}, past the menu's padded edge {menu.Bounds.Width - menu.Padding.Right:0.#}.");
         IconsInside("tab menu", menu);
         menu.Close();
+        // The Git panel's change menu: plain rows around one Copy path row with the same icon as the tab menu.
+        var changeMenu = new ContextMenu();
+        changeMenu.Items.Add(Ui.Menu("View", () => { }));
+        changeMenu.Items.Add(Ui.IconMenu("Copy path", () => { }, ActionIcon.CopyPath));
+        changeMenu.Items.Add(Ui.Menu("Stage file", () => { }));
+        anchor.ContextMenu = changeMenu;
+        changeMenu.Open(anchor);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        var changeItems = changeMenu.Items.OfType<MenuItem>().ToArray();
+        var changeWidest = changeItems.Max(item => item.DesiredSize.Width);
+        Require(changeItems[1].Icon is not null && changeMenu.Bounds.Width - changeMenu.Padding.Left - changeMenu.Padding.Right >= changeWidest - 0.5,
+            "The change menu's Copy path row must carry an icon and fit inside the menu padding.");
+        changeMenu.Close();
         window.Close();
         Console.WriteLine("PASS menu layout: mixed icon, plain and submenu rows fit inside the menu padding");
         LazyTabMenu();

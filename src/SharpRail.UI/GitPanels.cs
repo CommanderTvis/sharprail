@@ -354,7 +354,7 @@ public sealed partial class WorkbenchWindow
         button.ContextMenu.Items.Add(Ui.Menu("View", () => OpenChanges(change)));
         button.ContextMenu.Items.Add(Ui.Menu("Open as tab", () => _ = OpenDiffAsync(change)));
         button.ContextMenu.Items.Add(Ui.Menu("Jump to file", () => _ = BrowseDocumentAsync(change.Path, true)));
-        button.ContextMenu.Items.Add(Ui.Menu("Copy path", () => _ = CopyChangePathAsync(change.Path)));
+        button.ContextMenu.Items.Add(Ui.IconMenu("Copy path", () => _ = CopyChangePathAsync(change.Path), ActionIcon.CopyPath));
         var canStage = selectedCommit is null && (comparison.Length == 0 || changeScope is "Uncommitted" or "Staged");
         button.ContextMenu.Items.Add(Ui.Menu("Stage file", () => _ = GitActionAsync(new("stage", change.Path)), canStage && change.WorktreeStatus != " "));
         button.ContextMenu.Items.Add(Ui.Menu("Unstage file", () => _ = GitActionAsync(new("unstage", change.Path)), canStage && change.IndexStatus is not (" " or "?")));
