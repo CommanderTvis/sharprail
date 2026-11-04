@@ -35,7 +35,7 @@ internal sealed partial class PdfPreview : UserControl, IResourceBody, IDisposab
     private IDisposable? revisionWatch;
     private byte[]? bytes;
     private double scale = 1;
-    private int renders;
+    private int renders, rasterizing;
     private bool stale, disposed;
 
     public PdfPreview(Func<CancellationToken, Task<byte[]>> read, Func<Action<int>, IDisposable> observe)
@@ -102,6 +102,8 @@ internal sealed partial class PdfPreview : UserControl, IResourceBody, IDisposab
     }
 
     internal bool Loading => loadingText.IsVisible;
+    /// <summary>No read, rasterization or pending re-rasterization is under way, for the checks.</summary>
+    internal bool Idle => loading is null && rasterizing == 0 && !settle.IsEnabled;
     internal bool Released => disposed && bytes is null && shown.Count == 0 && revisionWatch is null;
 
     /// <summary>How many times the pages have been rasterized, for the checks.</summary>
@@ -211,7 +213,10 @@ internal sealed partial class PdfPreview : UserControl, IResourceBody, IDisposab
         if (bytes is not { } source || shown.Count == 0) return;
         var target = scale;
         var density = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-        var rasters = await PdfEngine.RenderAsync(source, target * density);
+        IReadOnlyList<PdfRaster> rasters;
+        rasterizing++;
+        try { rasters = await PdfEngine.RenderAsync(source, target * density); }
+        finally { rasterizing--; }
         // A newer read or zoom has superseded this one.
         if (!ReferenceEquals(source, bytes) || target != scale || rasters.Count != shown.Count) return;
         for (var index = 0; index < rasters.Count; index++)

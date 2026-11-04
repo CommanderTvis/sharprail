@@ -90,7 +90,7 @@ internal static class PdfPreviewChecks
         File.WriteAllBytes(Path.Combine(workspace, "legacy.pdf"), MinimalPdf());
         using var app = new E2eWorkspace(workspace);
         app.Window.Layout.Open(new("viewer:legacy.pdf", "legacy.pdf", "viewer", "legacy.pdf"), keep: true);
-        E2eWorkspace.Until(() => Has(app.Window, "PdfPage") && RasterWidth(app.Window) > 0);
+        Wait(app.Window, "the legacy PDF tab to render its page", () => Rendered(app.Window));
         Require(app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Resources.ResourcePane>().Single().Selected == "sharprail/pdf",
             "A persisted plugin-era viewer tab restores through the core PDF renderer.");
         Console.WriteLine("PASS persisted PDF viewer tabs restore into core preview");
@@ -107,14 +107,14 @@ internal static class PdfPreviewChecks
         app.Window.Width = 1000;
         app.Window.Height = 1100;
         app.Open("portrait.pdf", keep: true);
-        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Image>().Count(image => image.Name == "PdfPage" && image.Source is Bitmap) == 2);
+        Wait(app.Window, "both portrait pages to be rasterized", () => Rendered(app.Window, pageCount: 2));
         var preview = app.Window.GetLogicalDescendants().OfType<PdfPreview>().Single();
         var renders = preview.Renders;
         app.Click(Find<Button>(app.Window, "PdfZoomOut"), freshGesture: false);
         app.Click(Find<Button>(app.Window, "PdfZoomOut"), freshGesture: false);
         app.Click(Find<Button>(app.Window, "PdfZoomOut"), freshGesture: false);
         CheckPage();
-        E2eWorkspace.Until(() => preview.Renders > renders && app.Window.GetLogicalDescendants().OfType<Image>()
+        Wait(app.Window, $"both pages to be rasterized again at scale {preview.Scale} and {density}x", () => preview.Renders > renders && preview.Idle && app.Window.GetLogicalDescendants().OfType<Image>()
             .Where(image => image.Name == "PdfPage").All(image => image.Source is Bitmap bitmap && bitmap.PixelSize.Width == (int)Math.Ceiling(600 * preview.Scale * density)));
         CheckPage();
         Console.WriteLine($"PASS PDF page geometry at {density}x DPI: complete portrait rasters and selection alignment during and after reduced zoom");
@@ -164,11 +164,11 @@ internal static class PdfPreviewChecks
         TaskCompletionSource ready = null!;
         using var app = new E2eWorkspace(workspace, openFiles: false, prepare: host => ready = host.HoldWatch());
         var opening = app.Window.OpenDocumentAsync("built.pdf", true);
-        E2eWorkspace.Until(() => opening.IsCompleted && FirstPageText(app.Window).Contains("Before watch", StringComparison.Ordinal));
+        Wait(app.Window, "the document to open and show \"Before watch\"", () => opening.IsCompleted && Rendered(app.Window, "Before watch"));
         opening.GetAwaiter().GetResult();
         File.WriteAllBytes(target, MinimalPdf("Built before watch"));
         ready.SetResult();
-        E2eWorkspace.Until(() => FirstPageText(app.Window).Contains("Built before watch", StringComparison.Ordinal));
+        Wait(app.Window, "the rewrite made before watch readiness to render", () => Rendered(app.Window, "Built before watch"));
         Console.WriteLine("PASS PDF live preview catches a rewrite between initial read and file-watch readiness");
     }
 
@@ -247,8 +247,9 @@ internal static class PdfPreviewChecks
         try
         {
             window.Show();
-            E2eWorkspace.Settle();
             var first = (PdfTextLayer)pages.Children[0];
+            E2eWorkspace.Until(() => first.Bounds.Height > 0 && scroll.Viewport.Height > 0 && scroll.Extent.Height > scroll.Viewport.Height,
+                $"the eight page layers to be laid out (first {first.Bounds}, viewport {scroll.Viewport}, extent {scroll.Extent})");
             var start = first.TranslatePoint(new Point(20, 60), window)!.Value;
             var below = scroll.TranslatePoint(new Point(100, scroll.Bounds.Height + 30), window)!.Value;
             window.MouseMove(start); window.MouseDown(start, MouseButton.Left); window.MouseMove(below);
@@ -258,8 +259,10 @@ internal static class PdfPreviewChecks
             E2eWorkspace.Settle(100);
             Require(scroll.Offset == stopped, "Releasing a drag stops scrolling.");
             var last = (PdfTextLayer)pages.Children[7];
-            scroll.Offset = new Vector(0, scroll.Extent.Height - scroll.Viewport.Height);
-            E2eWorkspace.Settle();
+            var bottom = scroll.Extent.Height - scroll.Viewport.Height;
+            scroll.Offset = new Vector(0, bottom);
+            E2eWorkspace.Until(() => Math.Abs(scroll.Offset.Y - bottom) < 1,
+                $"the scroller to reach the bottom at {bottom} (offset {scroll.Offset}, extent {scroll.Extent}, viewport {scroll.Viewport})");
             window.UpdateLayout();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             var end = last.TranslatePoint(new Point(90, 60), window)!.Value;
@@ -268,7 +271,7 @@ internal static class PdfPreviewChecks
             window.MouseMove(end); window.MouseDown(end, MouseButton.Left); window.MouseMove(above);
             E2eWorkspace.Until(() => scroll.Offset.Y < 50 && selection.SelectedText.Contains("Page 1", StringComparison.Ordinal));
             scroll.Content = null;
-            E2eWorkspace.Settle();
+            E2eWorkspace.Until(() => TopLevel.GetTopLevel(first) is null, "the page layers to detach from the window");
             var detached = scroll.Offset;
             E2eWorkspace.Settle(100);
             Require(scroll.Offset == detached, "Detaching the selection layer stops its scroll timer.");
@@ -278,10 +281,40 @@ internal static class PdfPreviewChecks
         finally { window.Close(); }
     }
 
+    // Waits for an observable condition and, on a timeout, says what it waited for together with the preview's state.
+    private static void Wait(Control scope, string waitingFor, Func<bool> condition)
+    {
+        try { E2eWorkspace.Until(() => { Dispatcher.UIThread.RunJobs(); return condition(); }, waitingFor); }
+        catch (InvalidOperationException timeout) { throw new InvalidOperationException($"{timeout.Message}\nPDF preview state: {State(scope)}", timeout); }
+    }
+
+    private static string State(Control scope)
+    {
+        var all = scope.GetLogicalDescendants().OfType<Control>().ToArray();
+        var preview = all.OfType<PdfPreview>().FirstOrDefault();
+        var rasters = all.OfType<Image>().Where(image => image.Name == "PdfPage").Select(image => image.Source is Bitmap bitmap ? $"{bitmap.PixelSize.Width}x{bitmap.PixelSize.Height}" : "none");
+        var names = all.Where(item => !string.IsNullOrEmpty(item.Name) && item.Name.StartsWith("Pdf", StringComparison.Ordinal)).Select(item => item.Name + (item.IsEffectivelyVisible ? "" : "(hidden)"));
+        return $"controls [{string.Join(", ", names)}]; loading {preview?.Loading}; idle {preview?.Idle}; scale {preview?.Scale}; renders {preview?.Renders}; text layers {all.OfType<PdfTextLayer>().Count()}; rasters [{string.Join(", ", rasters)}]; first text \"{FirstPageText(scope)}\"";
+    }
+
     private static T Find<T>(Control scope, string name) where T : Control
     {
-        Dispatcher.UIThread.RunJobs(); (TopLevel.GetTopLevel(scope) ?? scope).UpdateLayout();
+        Wait(scope, $"{typeof(T).Name} named {name} to exist exactly once", () =>
+        {
+            (TopLevel.GetTopLevel(scope) ?? scope).UpdateLayout();
+            return scope.GetLogicalDescendants().OfType<T>().Count(item => item.Name == name) == 1;
+        });
         return scope.GetLogicalDescendants().OfType<T>().Single(item => item.Name == name);
+    }
+
+    // Every page has its text layer and its raster, and no read, rasterization or zoom settle is still under way.
+    private static bool Rendered(Control window, string? text = null, int? pageCount = null)
+    {
+        var preview = window.GetLogicalDescendants().OfType<PdfPreview>().FirstOrDefault();
+        var layers = window.GetLogicalDescendants().OfType<PdfTextLayer>().ToArray();
+        var images = window.GetLogicalDescendants().OfType<Image>().Where(image => image.Name == "PdfPage").ToArray();
+        return preview is { Idle: true, Loading: false } && layers.Length > 0 && layers.Length == images.Length && images.All(image => image.Source is Bitmap)
+            && (pageCount is null || layers.Length == pageCount) && (text is null || layers[0].Text.Contains(text, StringComparison.Ordinal));
     }
 
     private static bool Has(Control scope, string name)
@@ -290,7 +323,7 @@ internal static class PdfPreviewChecks
         return scope.GetLogicalDescendants().OfType<Control>().Any(item => item.Name == name && item.IsEffectivelyVisible);
     }
 
-    private static int RasterWidth(Control window) => Find<Image>(window, "PdfPage").Source is Bitmap { PixelSize.Width: var width } ? width : 0;
+    private static int RasterWidth(Control window) => window.GetLogicalDescendants().OfType<Image>().FirstOrDefault(image => image.Name == "PdfPage")?.Source is Bitmap { PixelSize.Width: var width } ? width : 0;
 
     private static string FirstPageText(Control window) => window.GetLogicalDescendants().OfType<PdfTextLayer>().FirstOrDefault()?.Text ?? "";
 
@@ -328,9 +361,10 @@ internal static class PdfPreviewChecks
     {
         var window = app.Window;
         var preview = window.GetLogicalDescendants().OfType<PdfPreview>().Single();
+        Wait(window, "the PDF to be rendered before the tab switch", () => Rendered(window));
         var unzoomed = RasterWidth(window);
         app.Click(Find<Button>(window, "PdfZoomIn"));
-        E2eWorkspace.Until(() => preview.Scale > 1 && RasterWidth(window) > unzoomed && !preview.Loading);
+        Wait(window, $"the zoomed raster to grow past {unzoomed}px", () => preview.Scale > 1 && RasterWidth(window) > unzoomed && preview.Idle);
         var viewport = Find<ScrollViewer>(window, "PdfPreviewScroll");
         viewport.Offset = new Vector(viewport.Offset.X, Math.Max(0, viewport.Extent.Height - viewport.Viewport.Height) / 2);
         var (offset, scale, renders, image) = (viewport.Offset, preview.Scale, preview.Renders, Find<Image>(window, "PdfPage").Source);
@@ -350,16 +384,16 @@ internal static class PdfPreviewChecks
         E2eWorkspace.Until(() => TopLevel.GetTopLevel(preview) is null);
         File.WriteAllBytes(target, MinimalPdf("Hidden edit"));
         app.Open("sample.pdf", keep: true);
-        E2eWorkspace.Until(() => FirstPageText(window).Contains("Hidden edit", StringComparison.Ordinal) && RasterWidth(window) > 0);
+        Wait(window, "the edit made while hidden to show \"Hidden edit\" on return", () => Rendered(window, "Hidden edit"));
         app.Click(Find<Button>(window, "PdfZoomReset"));
         // Closing the tab releases the document, its rasters and its revision watch.
         var tab = app.Find<Button>("Tab_file_sample.pdf").GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true);
         app.Click(tab.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
         E2eWorkspace.Until(() => preview.Released);
         app.Open("sample.pdf", keep: true);
-        E2eWorkspace.Until(() => FirstPageText(window).Contains("Hidden edit", StringComparison.Ordinal) && RasterWidth(window) > 0);
+        Wait(window, "the reopened PDF to show \"Hidden edit\"", () => Rendered(window, "Hidden edit"));
         File.WriteAllBytes(target, MinimalPdf("By hand"));
-        E2eWorkspace.Until(() => FirstPageText(window).Contains("By hand", StringComparison.Ordinal) && RasterWidth(window) > 0);
+        Wait(window, "the reopened PDF to follow the rewrite to \"By hand\"", () => Rendered(window, "By hand"));
         Require(Find<TextBlock>(window, "PdfZoomLevel").Text == "100%", "A reopened PDF starts at 100%.");
         Console.WriteLine("PASS PDF tab switch keeps the document, pages, zoom and scroll; hidden edits reload; closing releases");
     }
@@ -373,17 +407,17 @@ internal static class PdfPreviewChecks
         // A PDF renders through PDFium, and zooming rasterizes it again, larger.
         app.Open("sample.pdf", keep: true);
         E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Kind == "file" && tab.Path == "sample.pdf"));
-        E2eWorkspace.Until(() => Has(window, "PdfPage") && RasterWidth(window) > 0);
+        Wait(window, "sample.pdf to render its page", () => Rendered(window));
         var before = RasterWidth(window);
+        var preview = window.GetLogicalDescendants().OfType<PdfPreview>().Single();
         Require(Find<TextBlock>(window, "PdfZoomLevel").Text == "100%" && Find<TextBlock>(window, "PdfPageCount").Text == "1 page", "The toolbar starts at 100% and counts the page.");
         app.Click(Find<Button>(window, "PdfZoomIn"));
         Require(Find<TextBlock>(window, "PdfZoomLevel").Text != "100%", "Zooming in changes the level.");
-        E2eWorkspace.Until(() => RasterWidth(window) > before);
+        Wait(window, $"the zoomed raster to grow past {before}px", () => RasterWidth(window) > before);
         app.Click(Find<Button>(window, "PdfZoomReset"));
         Require(Find<TextBlock>(window, "PdfZoomLevel").Text == "100%", "Reset returns to 100%.");
-        E2eWorkspace.Until(() => RasterWidth(window) == before);
+        Wait(window, $"the reset raster to return to {before}px", () => RasterWidth(window) == before && preview.Idle);
 
-        var preview = window.GetLogicalDescendants().OfType<PdfPreview>().Single();
         var viewport = Find<ScrollViewer>(window, "PdfPreviewScroll");
         var wheelPoint = viewport.TranslatePoint(new Point(viewport.Bounds.Width / 2, 80), window)!.Value;
         window.MouseWheel(wheelPoint, new Vector(0, -1));
@@ -409,9 +443,10 @@ internal static class PdfPreviewChecks
         for (var index = 0; index < 45; index++) app.Click(Find<Button>(window, "PdfZoomOut"), freshGesture: false);
         Require(preview.Scale == 0.25, "Toolbar zoom is bounded at 25%.");
         app.Click(Find<Button>(window, "PdfZoomReset"));
-        E2eWorkspace.Until(() => RasterWidth(window) == before && preview.Scale == 1);
+        Wait(window, $"the raster to return to {before}px at scale 1", () => RasterWidth(window) == before && preview.Scale == 1 && preview.Idle);
 
         // The image is a picture of the page; the text a reader copies is the layer over it, selected by dragging.
+        Wait(window, "the single page's text layer and raster", () => Rendered(window, "ThinkRail PDF", 1));
         var layer = window.GetLogicalDescendants().OfType<PdfTextLayer>().Single();
         Require(layer.Text.Contains("ThinkRail PDF", StringComparison.Ordinal), "The text layer carries the page's words.");
         var input = TopLevel.GetTopLevel(layer)!;
@@ -429,33 +464,37 @@ internal static class PdfPreviewChecks
 
         // A rewritten PDF shows its new bytes without reopening the tab.
         File.WriteAllBytes(target, MinimalPdf("Recompiled now"));
-        E2eWorkspace.Until(() => FirstPageText(window).Contains("Recompiled now", StringComparison.Ordinal));
+        Wait(window, "the rewritten PDF to show \"Recompiled now\"", () => Rendered(window, "Recompiled now"));
         // The way a compiler does it: the file goes away and comes back under a rename.
         File.Delete(target);
         File.WriteAllBytes(target + ".tmp", MinimalPdf("Second pass"));
         File.Move(target + ".tmp", target);
-        E2eWorkspace.Until(() => FirstPageText(window).Contains("Second pass", StringComparison.Ordinal));
+        Wait(window, "the renamed-in PDF to show \"Second pass\"", () => Rendered(window, "Second pass"));
         // And the toolbar can ask again, for the bytes a watch never told it about.
         File.WriteAllBytes(target, MinimalPdf("By hand"));
         app.Click(Find<Button>(window, "PdfReload"));
-        E2eWorkspace.Until(() => FirstPageText(window).Contains("By hand", StringComparison.Ordinal));
+        Wait(window, "Reload from disk to show \"By hand\"", () => Rendered(window, "By hand"));
 
         TabSwitch(app, target);
         File.WriteAllBytes(target, "not a PDF"u8.ToArray());
-        E2eWorkspace.Until(() => Has(window, "PdfPreviewError"));
+        Wait(window, "the unreadable PDF to show the error", () => Has(window, "PdfPreviewError") && window.GetLogicalDescendants().OfType<PdfPreview>().Single().Idle);
         Require(!Has(window, "PdfToolbar"), "An unreadable PDF replaces its toolbar with an error and retry.");
         app.Click(Find<Button>(window, "PdfRetry"));
-        E2eWorkspace.Until(() => Has(window, "PdfPreviewError"));
+        Wait(window, "the retry of the unreadable PDF to fail again", () => Has(window, "PdfPreviewError") && window.GetLogicalDescendants().OfType<PdfPreview>().Single().Idle);
         File.WriteAllBytes(target, MinimalPdf("Recovered PDF"));
-        E2eWorkspace.Until(() => FirstPageText(window).Contains("Recovered PDF", StringComparison.Ordinal) && RasterWidth(window) > 0);
+        Wait(window, "the recovered PDF to render", () => Rendered(window, "Recovered PDF"));
 
         File.WriteAllBytes(target, PagesPdf(["First page", "Second page"]));
         // A write can reach the watch more than once, and each read replaces the page layers: wait until both pages are
         // rasterized and no read is pending, then take the layers that stay.
-        E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<PdfTextLayer>().Count() == 2 && !preview.Loading
-            && window.GetLogicalDescendants().OfType<Image>().Where(image => image.Name == "PdfPage").All(image => image.Source is not null));
+        Wait(window, "both pages of the rewritten PDF to be shown and rasterized with no read pending", () => Rendered(window, "First page", 2));
         var layers = window.GetLogicalDescendants().OfType<PdfTextLayer>().ToArray();
-        Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Wait(window, "both page layers to be attached and laid out inside the window", () =>
+        {
+            window.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            return layers.All(item => TopLevel.GetTopLevel(item) is not null && item.Bounds.Width > 4 && item.Bounds.Height > 0
+                && item.TranslatePoint(new Point(2, item.Bounds.Height * 0.45), window) is { } at && window.Bounds.Contains(at));
+        });
         var firstPoint = layers[0].TranslatePoint(new Point(2, layers[0].Bounds.Height * 0.45), window)!.Value;
         var lastPoint = layers[1].TranslatePoint(new Point(layers[1].Bounds.Width - 2, layers[1].Bounds.Height * 0.45), window)!.Value;
         window.MouseMove(firstPoint); window.MouseDown(firstPoint, MouseButton.Left);
@@ -478,7 +517,7 @@ internal static class PdfPreviewChecks
             "Select All includes the entire PDF, not just the focused page.");
 
         File.WriteAllBytes(target, PagesPdf(["AB"], unicode: true));
-        E2eWorkspace.Until(() => FirstPageText(window) == "🚀é");
+        Wait(window, "the Unicode PDF to render", () => Rendered(window, pageCount: 1) && FirstPageText(window) == "🚀é");
         var unicodeLayer = window.GetLogicalDescendants().OfType<PdfTextLayer>().Single();
         unicodeLayer.Focus();
         window.KeyPress(Key.A, RawInputModifiers.Control, PhysicalKey.A, null);
@@ -495,10 +534,10 @@ internal static class PdfPreviewChecks
         pane.Select("sharprail/binary");
         Require(pane.Selected == "sharprail/binary", "The binary fallback can be selected.");
         pane.Select("sharprail/pdf");
-        E2eWorkspace.Until(() => Has(window, "PdfPage"));
+        Wait(window, "the PDF renderer to show a page again", () => Rendered(window));
         app.Open("other.pdf", keep: true);
         E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Kind == "file" && tab.Path == "other.pdf"));
-        E2eWorkspace.Until(() => Has(window, "PdfPage"));
+        Wait(window, "other.pdf to render its page", () => Rendered(window, "Other PDF"));
         Console.WriteLine("PASS core PDF preview end to end: render, zoom, selection, live revisions, retry and binary fallback");
     }
 }
