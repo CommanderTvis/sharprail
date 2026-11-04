@@ -1272,6 +1272,12 @@ internal static class Program
             Console.WriteLine("PASS Pi checks");
             return;
         }
+        if (args.SequenceEqual(["--acp"]))
+        {
+            AcpChecks.Run(Path.Combine(root, "acp")).GetAwaiter().GetResult();
+            Console.WriteLine("PASS ACP checks");
+            return;
+        }
         if (args.SequenceEqual(["--air-gateway"]))
         {
             AirGatewayChecks.Run(root).GetAwaiter().GetResult();
@@ -1380,6 +1386,7 @@ internal static class Program
         Gate.Case("codex-host", () => CodexChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("omp-host", () => OmpChecks.RunHost(Path.Combine(root, "omp")).GetAwaiter().GetResult());
         Gate.Case("providers", () => ProvidersChecks.Run(root));
+        Gate.Case("acp", () => AcpChecks.Run(Path.Combine(root, "acp")).GetAwaiter().GetResult());
         Gate.Case("pi", () => PiChecks.Run(Path.Combine(root, "pi")).GetAwaiter().GetResult());
         Gate.Case("workspace-watch", () => WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult());
         UiChecks.Run(root);

@@ -49,6 +49,8 @@
     <Project Path="src/SharpRail.Plugins.Codex/SharpRail.Plugins.Codex.csproj" />
     <Project Path="src/SharpRail.Plugins.Codex/Host/SharpRail.Plugins.Codex.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.Acp/SharpRail.Plugins.Acp.csproj" />
+    <Project Path="src/SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Omp/SharpRail.Plugins.Omp.csproj" />
     <Project Path="src/SharpRail.Plugins.Pi/SharpRail.Plugins.Pi.csproj" />
     <Project Path="src/SharpRail.Plugins.Pi/Host/SharpRail.Plugins.Pi.Host.csproj" />

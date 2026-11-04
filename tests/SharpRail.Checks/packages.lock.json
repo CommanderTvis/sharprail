@@ -318,6 +318,20 @@
           "SharpRail.Host.Protocol": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.acp": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )",
+          "SharpRail.Plugins.Chat": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.acp.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Acp": "[1.0.0, )",
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.agent.ui": {
         "type": "Project",
         "dependencies": {
