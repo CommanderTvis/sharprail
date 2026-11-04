@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace SharpRail.Plugins.Chat.UI;
 
@@ -67,6 +68,8 @@ internal static class ToolCards
                     return new("Grep", $"\"{Str(input, "pattern")}\"" + (options.Count > 0 ? $" ({string.Join(", ", options)})" : ""));
                 }
             case "Task" or "Agent": return new("Agent:", Str(input, "description"));
+            case "Workflow": return new("Workflow", WorkflowName(tool));
+            case "Monitor": return new("Monitor", Words(Str(input, "description") is { Length: > 0 } watched ? watched : Str(input, "command") is { Length: > 0 } watch ? watch : summary));
             case "Skill": return new(Str(input, "skill").TrimStart('/') + " skill", "");
             case "TodoWrite": return new("Update Todos", "");
             case "WebFetch": return new("Web Fetch", Str(input, "url"));
@@ -165,6 +168,58 @@ internal static class ToolCards
     /// <summary>"1 line", "N lines".</summary>
     private static string Plural(int count, string suffix = "") => $"{count} {(count == 1 ? "line" : "lines")}{suffix}";
 
+    /// <summary>What a workflow script's literal <c>export const meta</c> block says; fields it does not give are empty.</summary>
+    internal readonly record struct WorkflowMeta(string Name, string Description, IReadOnlyList<string> Phases);
+
+    private static readonly Regex Quoted = new("""(['"`])(?<v>(?:\\.|(?!\1).)*)\1""", RegexOptions.Singleline);
+
+    /// <summary>The script's meta block as written (a plain object literal with name, description and optional phases), read without running anything.</summary>
+    internal static WorkflowMeta MetaOf(JsonElement input)
+    {
+        var script = Str(input, "script");
+        var at = script.IndexOf("meta", StringComparison.Ordinal);
+        if (at < 0) return new("", "", []);
+        var end = script.IndexOf("\n}", at, StringComparison.Ordinal);
+        var block = script[at..(end < 0 ? Math.Min(script.Length, at + 2000) : end)];
+        string Field(string key) => Regex.Match(block, @"\b" + key + @"\s*:\s*" + Quoted.ToString()) is { Success: true } match ? Regex.Unescape(match.Groups["v"].Value) : "";
+        var phases = new List<string>();
+        if (Regex.Match(block, @"\bphases\s*:\s*\[(?<b>.*?)\]\s*,?\s*(?:\}|\w+\s*:|$)", RegexOptions.Singleline) is { Success: true } list)
+        {
+            var body = list.Groups["b"].Value;
+            var keyed = Regex.Matches(body, @"\b(?:title|name)\s*:\s*" + Quoted.ToString());
+            foreach (Match match in keyed.Count > 0 ? keyed : Quoted.Matches(body)) phases.Add(Regex.Unescape(match.Groups["v"].Value));
+        }
+        return new(Field("name"), Field("description"), phases);
+    }
+
+    /// <summary>The workflow's name: the call's <c>name</c>, else the script's meta name, else empty (the header says "Workflow").</summary>
+    internal static string WorkflowName(ChatToolItem tool) => Str(tool.Input, "name") is { Length: > 0 } name ? name : MetaOf(tool.Input).Name;
+
+    /// <summary>The lines inside an open Workflow card, above the script: description, phases, args, resume and the result summary.</summary>
+    internal static IReadOnlyList<string> WorkflowLines(ChatToolItem tool)
+    {
+        var lines = new List<string>();
+        var meta = MetaOf(tool.Input);
+        if (meta.Description.Length > 0) lines.Add(meta.Description);
+        if (meta.Phases.Count > 0) lines.Add("Phases: " + string.Join(" \u203A ", meta.Phases));
+        if (tool.Input.ValueKind == JsonValueKind.Object && tool.Input.TryGetProperty("args", out var args) && args.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
+            lines.Add("Args: " + Cut(Words(args.ValueKind == JsonValueKind.String ? args.GetString() ?? "" : args.GetRawText()), 200));
+        if (Str(tool.Input, "resumeFromRunId") is { Length: > 0 } run) lines.Add("Resumes run " + run);
+        if (Str(tool.Input, "scriptPath") is { Length: > 0 } path) lines.Add("Script: " + path);
+        if (tool.TaskSummary is { Length: > 0 } summary) lines.Add(summary);
+        return lines;
+    }
+
+    private static bool Background(string name) => name is "Workflow" or "Monitor";
+
+    private static string StatusWord(ChatTaskStatus status) => status switch
+    {
+        ChatTaskStatus.Running => "Running in background",
+        ChatTaskStatus.Done => "Completed",
+        ChatTaskStatus.Failed => "Failed",
+        _ => "Stopped"
+    };
+
     /// <summary>The line under the header that says what the call did, or null when the tool has none (or it has not happened yet).</summary>
     internal static string? Secondary(ChatToolItem tool)
     {
@@ -194,6 +249,9 @@ internal static class ToolCards
                     var count = (tool.Output ?? "").Split('\n').Count(line => line.Trim() is { Length: > 0 } text && text is not ("No matches found" or "No files found"));
                     return count == 0 ? "No matches found" : count == 1 ? "1 line of output" : $"{count} lines of output";
                 }
+            case "Workflow" or "Monitor" when tool.State != ChatToolState.Failed && tool.State != ChatToolState.Denied:
+                return (tool.TaskStatus is { } status ? StatusWord(status) : tool.State == ChatToolState.Done ? "Started in background" : "Starting")
+                    + (tool.TaskId is { Length: > 0 } id ? " \u00B7 task " + id : "");
             case "NotebookEdit":
                 return tool.State switch { ChatToolState.Done => "Success", ChatToolState.Failed => "Failed", _ => "Pending" };
             case "WebFetch":
@@ -216,25 +274,30 @@ internal static class ToolCards
             ? [.. list.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.String).Select(item => item.GetString() ?? "")] : [];
 
     /// <summary>The status dot: blinking while the call is pending, failure for an error or an interrupted call, success otherwise.</summary>
-    internal static Dot StatusOf(ChatToolItem tool) => tool.State switch
-    {
-        ChatToolState.Pending or ChatToolState.Running => Dot.Progress,
-        ChatToolState.Failed => Dot.Failure,
-        ChatToolState.Denied => Dot.Denied,
-        _ => Dot.Success
-    };
+    internal static Dot StatusOf(ChatToolItem tool) => Background(tool.Name) && tool.State is ChatToolState.Done or ChatToolState.Running && tool.TaskStatus is { } task
+        ? task switch { ChatTaskStatus.Running => Dot.Progress, ChatTaskStatus.Done => Dot.Success, ChatTaskStatus.Failed => Dot.Failure, _ => Dot.Denied }
+        : tool.State switch
+        {
+            ChatToolState.Pending or ChatToolState.Running => Dot.Progress,
+            ChatToolState.Failed => Dot.Failure,
+            ChatToolState.Denied => Dot.Denied,
+            _ => Dot.Success
+        };
 
     /// <summary>Whether a card shows an IN row, an OUT row, both or neither, by tool.</summary>
     internal static (bool In, bool Out) Rows(ChatToolItem tool) => tool.Name switch
     {
         "Read" or "Skill" or "TodoWrite" or "ExitPlanMode" or "Edit" or "Write" or "NotebookEdit" or "Grep" or "Glob" or "Search" or "WebFetch" or "WebSearch" or "Artifact" or "SendUserFile" => (false, false),
-        "Task" or "Agent" => (true, false),
+        "Task" or "Agent" => (true, true),
+        "Workflow" or "Monitor" => (true, false),
         _ => (true, true)
     };
 
     /// <summary>The IN row: a command as it is, anything else as indented JSON.</summary>
     internal static string InText(ChatToolItem tool) => tool.Name is "Bash" or "PowerShell" && Str(tool.Input, "command") is { Length: > 0 } command ? command
         : tool.Name is "Task" or "Agent" ? Str(tool.Input, "prompt")
+        : tool.Name == "Workflow" ? (Str(tool.Input, "script") is { Length: > 0 } script ? script : Str(tool.Input, "scriptPath"))
+        : tool.Name == "Monitor" && Str(tool.Input, "command") is { Length: > 0 } watch ? watch
         : tool.Input.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? ""
         : tool.Name.StartsWith("mcp__", StringComparison.Ordinal) && IsSharpRail(tool.Name.Split("__", 3)[1]) && tool.Input.ValueKind == JsonValueKind.Object
             ? JsonSerializer.Serialize(tool.Input.EnumerateObject().Where(property => property.Name != "workspace").ToDictionary(property => property.Name, property => property.Value), Indented)

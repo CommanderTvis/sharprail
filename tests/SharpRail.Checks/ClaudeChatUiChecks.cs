@@ -294,7 +294,7 @@ internal static class ClaudeChatUiChecks
         Is(Tool("mcp__claude-in-chrome__navigate", new { url = "https://a.example/b" }), "Claude in Chrome [Navigate]", "a.example");
         Is(Tool("Mystery", new { a = 1 }, summary: "sum"), "Mystery", "sum");
         Require(ToolCards.InText(Tool("Mystery", new { a = 1 })).Contains("\n") && ToolCards.InText(Tool("Agent", new { prompt = "P" })) == "P" && ToolCards.InText(Tool("Bash", new { command = "c" })) == "c", "IN is pretty JSON, the agent's prompt, or the command.");
-        Require(ToolCards.Rows(Tool("Agent", new { })) == (true, false) && ToolCards.Rows(Tool("Mystery", new { })) == (true, true), "An agent card has IN only; a generic card has IN and OUT.");
+        Require(ToolCards.Rows(Tool("Agent", new { })) == (true, true) && ToolCards.Rows(Tool("Mystery", new { })) == (true, true), "An agent card has IN and its report; a generic card has IN and OUT.");
         Require(ToolCards.StatusOf(Tool("Bash", new { }, ChatToolState.Running)) == ToolCards.Dot.Progress && ToolCards.StatusOf(Tool("Bash", new { }, ChatToolState.Failed)) == ToolCards.Dot.Failure &&
             ToolCards.StatusOf(Tool("Bash", new { })) == ToolCards.Dot.Success, "The dot is progress while pending, failure for an error, success otherwise.");
         Require(ToolCards.ThinkingLabel(new ChatThinkingItem("t", 1, "x") { Streaming = true, Tokens = 12 }) == "Thinking... \u00B7 12 tokens" &&
@@ -311,8 +311,22 @@ internal static class ClaudeChatUiChecks
         Require(longHeight < shortHeight + 60, $"A long IN is clipped to about 60 pixels ({longHeight} against {shortHeight}).");
         var outputCard = Tool("Bash", new { command = "x" }, output: new string('o', 400));
         Require(Height(outputCard, true, out var outHits) > Height(outputCard, false, out _) && outHits.Any(hit => hit.Kind == ChatHitKind.OpenText && hit.Arg == "out"), "A long OUT opens in full.");
-        Require(Height(Tool("Agent", new { description = "d", prompt = "p" }, output: "result"), true, out var agentHits) < Height(Tool("Mystery", new { description = "d", prompt = "p" }, output: "result"), true, out _) &&
-            agentHits.Any(hit => hit.Kind == ChatHitKind.OpenThread), "An agent card has no OUT and offers its thread.");
+        Require(Height(Tool("Agent", new { description = "d", prompt = "p" }, output: "result"), true, out var agentHits) > Height(Tool("Agent", new { description = "d", prompt = "p" }), true, out _) &&
+            agentHits.Any(hit => hit.Kind == ChatHitKind.OpenThread), "An agent card shows its final report as OUT and offers its thread.");
+        Is(Tool("Monitor", new { description = "Watch the build", command = "tail -f log" }, ChatToolState.Done), "Monitor", "Watch the build", "Started in background");
+        Require(ToolCards.InText(Tool("Monitor", new { command = "tail -f log" })) == "tail -f log" && ToolCards.StatusOf(Tool("Monitor", new { })) == ToolCards.Dot.Success, "A monitor's IN is its command.");
+        // Dynamic workflows: a dedicated card, its script collapsed, and nothing wider than a narrow pane.
+        var script = "export const meta = {\n  name: 'audit',\n  description: '" + new string('d', 300) + "',\n  phases: ['One', 'Two']\n}\n" + string.Join("\n", Enumerable.Range(0, 80).Select(i => "await agent('step " + i + "')"));
+        var workflow = new ChatToolItem("wf", 1, "Workflow", JsonSerializer.SerializeToElement(new { script, args = new { path = new string('p', 200) }, resumeFromRunId = "run-1" }), ChatToolState.Done)
+        { TaskId = "tk", TaskStatus = ChatTaskStatus.Done, TaskSummary = "Finished", TaskResult = string.Join("\n", Enumerable.Range(0, 40).Select(i => "finding " + i)) };
+        var closedHeight = Height(workflow, false, out _);
+        var openHeight = Height(workflow, true, out var workflowHits);
+        Require(openHeight > closedHeight && openHeight < closedHeight + 900 && workflowHits.Any(hit => hit.Kind == ChatHitKind.OpenText && hit.Arg == "in"), $"An open workflow card clips its long script and result and opens the script in full ({closedHeight} closed, {openHeight} open).");
+        foreach (var width in new[] { 220.0, 320.0 })
+        {
+            using var narrow = ChatRowLayout.Build(new ChatRow(workflow, 0, 1, true, null), width, true);
+            Require(narrow.OwnHits.All(hit => hit.Bounds.Right <= width + 0.5 && hit.Bounds.Left >= -0.5), $"A workflow card's targets stay inside a {width} pixel pane.");
+        }
     }
 
     // Composer and chrome: Shift+Tab, the pie, the working word, banners, Esc, mention chips and the rewind dialog.

@@ -33,8 +33,54 @@ internal static class ClaudeChatSemanticsChecks
 
     private static object Text(string text) => new[] { new { type = "text", text } };
 
+    // The Workflow tool_use input is the documented one (script, name, args, resumeFromRunId, scriptPath); no real Workflow record is in the repository, so the
+    // tool_result text and the notification are built from the documented task fields (task_started, <task-notification> with task-id, status, summary, result).
+    private const string WorkflowScript = "export const meta = {\n  name: 'audit-routes',\n  description: 'Audit every route handler',\n  phases: ['Discover', 'Audit'],\n}\nphase('Discover')\nreturn 1";
+
+    private static void WorkflowFrames()
+    {
+        static object[] Start(string callId = "toolu_wf") =>
+        [
+            new { type = "assistant", uuid = "wa", message = new { id = "wm", content = new object[] { new { type = "tool_use", id = callId, name = "Workflow", input = new { script = WorkflowScript, args = new { n = 2 } } } } }, parent_tool_use_id = (string?)null },
+            new { type = "system", subtype = "task_started", task_id = "wf1", task_type = "local_workflow", tool_use_id = callId, description = "audit-routes", is_backgrounded = true },
+            User("wr", new[] { new { type = "tool_result", tool_use_id = callId, content = "Running in background" } })
+        ];
+        var folder = new ChatFolder();
+        foreach (var frame in Start()) folder.Apply(Frame(frame));
+        var card = (ChatToolItem)folder.Items.Single(item => item is ChatToolItem);
+        Require(card.TaskId == "wf1" && card.TaskStatus == ChatTaskStatus.Running && card.State == ChatToolState.Done, "A workflow card carries its task id and runs in the background after its tool_result.");
+        Require(ToolCards.Header(card) is { Name: "Workflow", Secondary: "audit-routes" } && ToolCards.MetaOf(card.Input) is { Description: "Audit every route handler", Phases: ["Discover", "Audit"] }
+            && ToolCards.StatusOf(card) == ToolCards.Dot.Progress && ToolCards.Secondary(card) == "Running in background \u00B7 task wf1", "The card reads its name, description and phases from meta, and shows the running status.");
+        Require(ToolCards.InText(card) == WorkflowScript && ToolCards.Rows(card) == (true, false), "The script is the collapsed IN row.");
+        // The notification for that task settles the card and draws no raw row.
+        folder.Apply(Frame(User("wn", Text("<task-notification><task-id>wf1</task-id><tool-use-id>toolu_wf</tool-use-id><status>completed</status><summary>Audit finished</summary><result>3 findings</result></task-notification>"), new { kind = "task-notification" })));
+        card = (ChatToolItem)folder.Items.Single(item => item is ChatToolItem);
+        Require(card is { TaskStatus: ChatTaskStatus.Done, TaskSummary: "Audit finished", TaskResult: "3 findings" } && ToolCards.StatusOf(card) == ToolCards.Dot.Success && ToolCards.Secondary(card) == "Completed \u00B7 task wf1"
+            && !folder.Items.OfType<ChatNoticeItem>().Any() && folder.Header.Tasks.Single().Status == ChatTaskStatus.Done, "A matching notification completes the card with its summary and result and adds no notice.");
+        folder.Apply(Frame(User("wn2", Text("<task-notification><task-id>wf1</task-id><status>failed</status><summary>Boom</summary></task-notification>"), new { kind = "task-notification" })));
+        Require(ToolCards.StatusOf((ChatToolItem)folder.Items.Single(item => item is ChatToolItem)) == ToolCards.Dot.Failure, "A failed notification turns the dot red.");
+        // The notification may find the call by its tool-use id alone, and one nobody started stays a plain notice.
+        var byCall = new ChatFolder();
+        byCall.Apply(Frame(Start("toolu_b")[0]));
+        byCall.Apply(Frame(User("wn3", Text("<task-notification><task-id>zz</task-id><tool-use-id>toolu_b</tool-use-id><status>killed</status><summary>Stopped</summary></task-notification>"), new { kind = "task-notification" })));
+        Require(((ChatToolItem)byCall.Items.Single(item => item is ChatToolItem)).TaskStatus == ChatTaskStatus.Stopped, "A notification names the call by tool-use id when the task is unknown.");
+        var stray = new ChatFolder();
+        stray.Apply(Frame(User("wn4", Text("<task-notification><task-id>nobody</task-id><status>completed</status><summary>Orphan done</summary></task-notification>"), new { kind = "task-notification" })));
+        Require(stray.Items.OfType<ChatNoticeItem>().Single() is { Category: ChatNoticeKinds.TaskNotification, Text: "Orphan done" }, "An unmatched notification is a neat notice.");
+        // A call that arrives after its task_started still picks the task up.
+        var late = new ChatFolder();
+        var lateFrames = Start();
+        late.Apply(Frame(lateFrames[1]));
+        late.Apply(Frame(lateFrames[0]));
+        Require(((ChatToolItem)late.Items.Single(item => item is ChatToolItem)).TaskId == "wf1", "A tool_use after its task_started is linked.");
+        // The name argument wins over the meta name; no meta gives the plain title.
+        Require(ToolCards.Header(new ChatToolItem("x", 1, "Workflow", JsonSerializer.SerializeToElement(new { name = "mine", script = WorkflowScript }), ChatToolState.Running)).Secondary == "mine" &&
+            ToolCards.Header(new ChatToolItem("x", 1, "Workflow", JsonSerializer.SerializeToElement(new { scriptPath = "/p/w.js", resumeFromRunId = "r1" }), ChatToolState.Running)).Secondary == "", "A name argument wins; none is just Workflow.");
+    }
+
     public static void Run()
     {
+        WorkflowFrames();
         var frames = new List<object>
         {
             // 1.6: a human prompt, and the same text from a human origin.

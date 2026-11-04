@@ -251,7 +251,6 @@ internal sealed partial class ChatFolder
                         Background = Flag(message, "is_backgrounded"),
                         Prompt = Str(message, "prompt")
                     });
-                    if (toolUse is not null && items.GetValueOrDefault(toolUse) is ChatToolItem tool) Put(tool with { TaskId = id });
                     return new(Signal.None);
                 }
             case "task_progress":
@@ -370,6 +369,9 @@ internal sealed partial class ChatFolder
     {
         tasks[task.TaskId] = task;
         SetHeader(header => header with { Tasks = [.. tasks.Values] });
+        // The call that started the task shows its status and summary.
+        if (task.ToolUseId is not null && items.GetValueOrDefault(task.ToolUseId) is ChatToolItem tool && (tool.TaskStatus != task.Status || tool.TaskSummary != task.Summary))
+            Put(tool with { TaskId = task.TaskId, TaskStatus = task.Status, TaskSummary = task.Summary });
     }
 
     private static string? TypeLabel(string? type) => type switch
@@ -550,6 +552,7 @@ internal sealed partial class ChatFolder
         if (name == "ToolSearch") return;
         var existing = items.GetValueOrDefault(id) as ChatToolItem;
         var state = existing is { State: ChatToolState.Done or ChatToolState.Failed or ChatToolState.Denied } ? existing.State : ChatToolState.Running;
+        var task = existing is null ? tasks.Values.FirstOrDefault(candidate => candidate.ToolUseId == id) : null;
         Put(new ChatToolItem(id, existing?.Seq ?? Next(), name, input, state)
         {
             Summary = ToolSummary(name, input),
@@ -558,7 +561,10 @@ internal sealed partial class ChatFolder
             Uuid = uuid ?? existing?.Uuid,
             Output = existing?.Output,
             OutputTruncated = existing?.OutputTruncated ?? false,
-            TaskId = existing?.TaskId
+            TaskId = existing?.TaskId ?? task?.TaskId,
+            TaskStatus = existing?.TaskStatus ?? task?.Status,
+            TaskSummary = existing?.TaskSummary ?? task?.Summary,
+            TaskResult = existing?.TaskResult
         });
     }
 

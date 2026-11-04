@@ -105,6 +105,12 @@ public sealed record ChatToolItem(string Id, long Seq, string Name, JsonElement 
     public string? FilePath { get; init; }
     /// <summary>The subagent, workflow or background task this call started, when it started one.</summary>
     public string? TaskId { get; init; }
+    /// <summary>The started task's latest status, kept on the call so its card shows how a background workflow or monitor is doing.</summary>
+    public ChatTaskStatus? TaskStatus { get; init; }
+    /// <summary>The task's summary (its notification's, else the latest progress line).</summary>
+    public string? TaskSummary { get; init; }
+    /// <summary>The task's final result text from its completion notification.</summary>
+    public string? TaskResult { get; init; }
 }
 
 /// <summary>The CLI asking whether a tool may run (a <c>can_use_tool</c> control request), and the answer once given.</summary>

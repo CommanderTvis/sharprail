@@ -753,6 +753,10 @@ internal sealed class ChatRowLayout : IDisposable
             case "TodoWrite":
                 Checklist(input);
                 break;
+            case "Workflow":
+                foreach (var detail in ToolCards.WorkflowLines(tool)) Block(Head(detail, 6, out _), Ui.Muted, 12, indent: 14);
+                if (tool.TaskResult is { Length: > 0 } report) Block(Head(report, PreviewLines, out _), Ui.TextBrush, 12, indent: 14);
+                break;
         }
         var rows = ToolCards.Rows(tool);
         if (rows.In && InTextOf(tool) is { Length: > 0 } inText) Grid("IN", inText, tool.Name is "Bash" or "PowerShell" || tool.Input.ValueKind == JsonValueKind.Object, "in");

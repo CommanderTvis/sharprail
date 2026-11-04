@@ -272,6 +272,7 @@ internal sealed partial class ChatFolder
         var summary = Tag(text, "summary");
         if (summary.Length == 0 || origin is { Subkind: not null }) return false;
         if (origin is not null and not { Kind: "task-notification" }) return false;
+        if (SettleTaskCard(text, summary)) return true;
         var sections = new List<ChatSection>();
         void Add(string label, string value) { if (value.Length > 0) sections.Add(new(label, value)); }
         Add("Task ID", Tag(text, "task-id"));
@@ -286,6 +287,29 @@ internal sealed partial class ChatFolder
         Add("Duration (ms)", Tag(usage, "duration_ms"));
         PutNotice(id, ChatNoticeLevel.Info, summary, ChatNoticeKinds.TaskNotification, sections: sections);
         return true;
+    }
+
+    // A notification for a task whose call has a card ends there: the card takes the status, summary and result. A workflow's or monitor's own card is
+    // the whole report (true, no notice); a subagent's or shell's notice stays. An unmatched notification is always a notice.
+    private bool SettleTaskCard(string text, string summary)
+    {
+        var taskId = Tag(text, "task-id");
+        var toolUse = Tag(text, "tool-use-id");
+        var task = taskId.Length > 0 && tasks.TryGetValue(taskId, out var known) ? known
+            : toolUse.Length > 0 ? tasks.Values.FirstOrDefault(candidate => candidate.ToolUseId == toolUse) : null;
+        var callId = task?.ToolUseId ?? (toolUse.Length > 0 ? toolUse : null);
+        if (callId is null || items.GetValueOrDefault(callId) is not ChatToolItem tool) return false;
+        var status = Tag(text, "status") switch
+        {
+            "completed" => ChatTaskStatus.Done,
+            "failed" => ChatTaskStatus.Failed,
+            "killed" or "stopped" => ChatTaskStatus.Stopped,
+            _ => tool.TaskStatus ?? ChatTaskStatus.Done
+        };
+        var result = Tag(text, "result");
+        if (task is not null) UpsertTask(task with { Status = status, Summary = summary });
+        Put((items.GetValueOrDefault(callId) as ChatToolItem ?? tool) with { TaskStatus = status, TaskSummary = summary, TaskResult = result.Length > 0 ? result : null });
+        return task?.Kind is ChatTaskKind.Workflow or ChatTaskKind.Monitor || tool.Name is "Workflow" or "Monitor";
     }
 
     private bool Wrapped(string id, string text)

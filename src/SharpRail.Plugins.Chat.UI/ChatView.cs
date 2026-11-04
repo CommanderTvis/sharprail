@@ -317,7 +317,8 @@ internal sealed partial class ChatView : Grid, IChatRowActions
     {
         foreach (var task in header.Tasks)
         {
-            if (taskStatus.TryGetValue(task.TaskId, out var before) && before == ChatTaskStatus.Running && task.Status != ChatTaskStatus.Running && task.Kind != ChatTaskKind.Subagent)
+            if (taskStatus.TryGetValue(task.TaskId, out var before) && before == ChatTaskStatus.Running && task.Status != ChatTaskStatus.Running && task.Kind != ChatTaskKind.Subagent
+                && !(task.ToolUseId is { } call && transcript.Item(call) is ChatToolItem { Name: "Workflow" or "Monitor" }))
             {
                 var what = task.Kind switch { ChatTaskKind.Shell => "Background command", ChatTaskKind.Monitor => "Monitor", ChatTaskKind.Workflow => "Workflow", _ => "Background task" };
                 var outcome = task.Status switch { ChatTaskStatus.Done => "finished", ChatTaskStatus.Failed => "failed", _ => "was stopped" };

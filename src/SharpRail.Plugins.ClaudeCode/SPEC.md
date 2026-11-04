@@ -120,8 +120,12 @@ Folding. One folder turns messages into the ordered, id-keyed item list, live an
 and the complete message of a block meet in one item (the nth block of a type in an API message), tool calls are keyed by
 their `tool_use` id, and `parent_tool_use_id` becomes `ParentId`. A tool item carries a one-line summary, the file path of an
 edit or write, its state, and output cut at `ChatContract.OutputLimit` with the whole text served by item detail. The
-`task_started`, `task_progress`, `task_notification` and `task_updated` events become header tasks and the Task call's
-`TaskId`. A `can_use_tool` control request becomes a pending permission item; answering sends the control response with the
+`task_started`, `task_progress`, `task_notification` and `task_updated` events become header tasks and the starting call's
+`TaskId`, `TaskStatus` and `TaskSummary`. A Workflow or Monitor call is a dedicated card: the title is the `name` argument else the script's literal
+`meta.name`, the open card lists `meta.description`, `meta.phases`, args, resume and script path, the script is the collapsed IN row, and the status
+(running in background, completed, failed, stopped) follows the task. A `<task-notification>` that names the task or the call (task id or tool-use id) settles
+that card with its summary and `result` and adds no row for a workflow or monitor; for other tasks it stays a notice, and an unmatched one is always a notice.
+An Agent card also shows the subagent's final report as OUT; its nested activity hangs from it by `parent_tool_use_id`. A `can_use_tool` control request becomes a pending permission item; answering sends the control response with the
 edited or original input and, when remembering, the CLI's own rule suggestions as `updatedPermissions`. A result adds no row: it fills cost, tokens and context in the header (a failed one adds one failure notice); init and the `initialize` answer fill commands, models, agents and
 MCP servers. Prompts are sent with a uuid and the CLI echoes them back (`--replay-user-messages`), so a prompt sent during a turn is queued
 until its echo and rewind and fork have a uuid for every prompt. Changed items are pushed together at most every 16 ms, so a
