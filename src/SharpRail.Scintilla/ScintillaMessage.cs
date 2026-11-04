@@ -1,3 +1,4 @@
+// Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 // Values from Scintilla 5.6.7 include/ScintillaMessages.h.
 
 using System.Diagnostics.CodeAnalysis;

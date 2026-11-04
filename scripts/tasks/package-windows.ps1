@@ -23,7 +23,7 @@ try {
             '-p:PublishReadyToRun=true', '-p:PublishReadyToRunComposite=true', "-p:SharpRailBuildStamp=$stamp", '-o', (Join-Path $output $target[1]))
     }
     Copy-Item 'tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture' (Join-Path $output 'checks/plugin-fixture') -Recurse
-    Copy-Item 'THIRD-PARTY-NOTICES.md', 'licenses', 'WINDOWS.md' $output -Recurse
-    Compress-Archive -Path "$output/client", "$output/host", "$output/licenses", "$output/THIRD-PARTY-NOTICES.md", "$output/WINDOWS.md" -DestinationPath (Join-Path $root "artifacts/SharpRail-$RuntimeIdentifier.zip") -Force
+    Copy-Item 'LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.md', 'licenses', 'WINDOWS.md' $output -Recurse
+    Compress-Archive -Path "$output/client", "$output/host", "$output/licenses", "$output/LICENSE", "$output/NOTICE", "$output/THIRD-PARTY-NOTICES.md", "$output/WINDOWS.md" -DestinationPath (Join-Path $root "artifacts/SharpRail-$RuntimeIdentifier.zip") -Force
 }
 finally { Pop-Location }

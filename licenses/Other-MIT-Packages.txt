@@ -1,0 +1,34 @@
+NuGet packages shipped with SharpRail under the MIT License whose repositories publish no license file
+alongside the package. The copyright holders are those named in each package's .nuspec.
+
+  ExCSS 4.3.1                      Copyright (c) Tyler Brinks              https://github.com/TylerBrinks/ExCSS
+  Tmds.DBus.Protocol 0.94.1        Copyright (c) Tom Deseyn                https://github.com/tmds/Tmds.DBus
+  System.Drawing.Common 6.0.0      Copyright (c) Microsoft Corporation     https://github.com/dotnet/runtime
+  Svg.Controls.Skia.Avalonia,      Copyright (c) Wieslaw Soltes            Svg.Skia-MIT.txt
+  Svg.Model, Svg.Skia
+  MicroCom.Runtime                 Copyright (c) Nikita Tsukanov           MicroCom-MIT.txt
+  Avalonia packages                Copyright (c) AvaloniaUI OU             Avalonia-MIT.txt
+  SkiaSharp, HarfBuzzSharp         Copyright (c) Xamarin, Inc. and Microsoft   SkiaSharp-MIT.txt, HarfBuzzSharp-MIT.txt
+  The .NET runtime and libraries   Copyright (c) .NET Foundation and Contributors   https://github.com/dotnet/runtime
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Svg.Custom 5.2.3 is licensed under the Microsoft Public License: see MS-PL.txt.
+protobuf-net 2.4.8 is licensed under Apache-2.0: see protobuf-net-Apache-2.0.txt and Apache-2.0.txt.
+Markdig 1.4.0 is licensed under BSD-2-Clause: see Markdig-BSD-2-Clause.txt.
+Avalonia.Angle.Windows.Natives (Windows only) is under BSD-3-Clause: see Avalonia.Angle-BSD-3-Clause.txt.

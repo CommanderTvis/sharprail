@@ -1,3 +1,4 @@
+// Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 namespace SharpRail.Scintilla.Core;
 
 /// <summary>Gap buffer (upstream src/SplitVector.h): efficient insertion and deletion near a movable gap.</summary>

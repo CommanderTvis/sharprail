@@ -118,7 +118,7 @@
   </Target>
   <!-- The vendored assets come from the pnpm lockfile, the PDFium pin, the licence files and the tab's Pi agent sources. -->
   <ItemGroup>
-    <BrowserAssetSource Include="pnpm-lock.yaml;package.json;tabpi/**;../../scripts/browser-assets.mjs;../../mise.browser.lock;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/Licenses/**;../SharpRail.Scintilla/Licenses/**;../*/NOTICE.md" />
+    <BrowserAssetSource Include="pnpm-lock.yaml;package.json;tabpi/**;../../scripts/browser-assets.mjs;../../mise.browser.lock;../../LICENSE;../../NOTICE;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/licenses/**;../SharpRail.Scintilla/licenses/**;../*/NOTICE.md" />
   </ItemGroup>
   <Target Name="StageBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildBrowserNative"
           Inputs="@(BrowserAssetSource)" Outputs="wwwroot/vendor/PDFium-LICENSE">

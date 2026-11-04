@@ -15,7 +15,7 @@ public static class AboutInfo
     /// <summary>A new issue on the repository the About screen links to.</summary>
     public const string NewIssue = Repository + "/issues/new";
     public const string Upstream = "https://github.com/JetBrains/thinkrail";
-    public const string License = "Derived from ThinkRail, licensed under the Apache License 2.0. Bundled components keep their own licenses.";
+    public const string License = "Licensed under the PolyForm Shield License 1.0.0. Parts derived from ThinkRail stay under the Apache License 2.0, and bundled components keep their own licenses.";
     public const string NoticesFile = "THIRD-PARTY-NOTICES.md";
     public const string NoticesUrl = Repository + "/blob/main/" + NoticesFile;
 

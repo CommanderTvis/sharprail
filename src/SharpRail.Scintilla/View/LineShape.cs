@@ -12,7 +12,7 @@ internal readonly record struct ShapeCluster(int Start, int End, float Left, flo
 internal readonly record struct ShapeInterval(float Left, float Right);
 
 /// <summary>
-/// A screen line after bidi reordering and HarfBuzz shaping (port of Native/Layout.cxx ShapedLayout).
+/// A screen line after bidi reordering and HarfBuzz shaping (a managed rewrite of the former native SharpRail layout bridge, not Scintilla code).
 /// Immutable and cached by <see cref="LineShaper"/>.
 /// </summary>
 internal sealed class LineShape

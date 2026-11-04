@@ -8,7 +8,8 @@ const project = path.join(root, 'src/SharpRail.Browser');
 const vendor = path.join(project, 'wwwroot/vendor');
 await fs.mkdir(vendor, { recursive: true });
 await fs.cp(path.join(root, 'licenses'), path.join(vendor, 'licenses'), { recursive: true });
-await fs.copyFile(path.join(root, 'THIRD-PARTY-NOTICES.md'), path.join(vendor, 'THIRD-PARTY-NOTICES.md'));
+for (const file of ['LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.md'])
+  await fs.copyFile(path.join(root, file), path.join(vendor, file));
 for (const dependency of ['Ghostty.Avalonia', 'SharpRail.Scintilla'])
   await fs.cp(path.join(root, 'src', dependency, 'licenses'), path.join(vendor, 'licenses', dependency), { recursive: true });
 for (const font of ['Geist-OFL.txt', 'JetBrainsMono-OFL.txt'])

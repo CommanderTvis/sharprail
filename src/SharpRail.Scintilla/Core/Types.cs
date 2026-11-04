@@ -1,3 +1,4 @@
+// Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 // Shared contract types for the managed Scintilla core. Owned by the skeleton; change only by agreement.
 namespace SharpRail.Scintilla.Core;
 

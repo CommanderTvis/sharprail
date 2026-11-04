@@ -1,3 +1,4 @@
+// Derived from Scintilla 5.6.7 (c) 1998-2021 Neil Hodgson; license in licenses/Scintilla.txt.
 // Shared view data set by editor messages (Editing) and read by painting and layout (View).
 // Owned by the skeleton; both wave-3 components may add fields, never change existing ones.
 using SkiaSharp;

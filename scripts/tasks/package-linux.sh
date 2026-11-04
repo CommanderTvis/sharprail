@@ -47,7 +47,8 @@ cp -R "$output/client/." "$payload/"
 # Debug symbols and API documentation do not belong in an image users download.
 find "$payload" \( -name '*.pdb' -o -name '*.xml' \) -type f -delete
 chmod +x "$payload/SharpRail.UI"
-cp THIRD-PARTY-NOTICES.md "$app/usr/share/doc/sharprail/"
+cp LICENSE NOTICE THIRD-PARTY-NOTICES.md "$app/usr/share/doc/sharprail/"
+cp -R licenses "$app/usr/share/doc/sharprail/"
 cp src/SharpRail.Plugins.UI.Kit/Assets/Icons/brand.png "$app/sharprail.png"
 cp "$app/sharprail.png" "$app/.DirIcon"
 cp "$app/sharprail.png" "$app/usr/share/icons/hicolor/96x96/apps/sharprail.png"

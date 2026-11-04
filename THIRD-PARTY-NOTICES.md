@@ -1,5 +1,16 @@
 # Asset provenance
 
+SharpRail's own code is licensed under the PolyForm Shield License 1.0.0 (`LICENSE`; scope and trademark
+exclusions in `NOTICE`). This file records everything that is not that: derived, ported, bundled and
+interoperability-only material. Files derived from third-party code also carry a `Derived from` comment naming
+the upstream, its license and the text in `licenses/`; formats that cannot hold comments (JSON, SVG, binary) are
+named here instead.
+
+Material from ThinkRail (Copyright 2026 JetBrains s.r.o., Apache-2.0, `licenses/Thinkrail-Apache-2.0.txt`) stays
+under Apache-2.0. Every ThinkRail-derived file named below was modified for SharpRail: translated from
+TypeScript to C#, renamed, or reworked for its tools. The upstream repository has no `NOTICE` file.
+
+
 The browser terminal uses [restty](https://github.com/wiedymi/restty) 0.3.0,
 Copyright (c) 2026 Wiedy Mi, MIT, and its bundled text-shaper 0.1.28,
 Copyright (c) 2025 wiedymi, MIT. Their notices are in `licenses/Restty-MIT.txt` and
@@ -46,26 +57,35 @@ the original notice is in
 and accompanies build/publish outputs.
 
 The visual layout follows Thinkrail's original-workspace.png and current
-workspace specification. The logo, custom diff icon and unchanged
-scripts/window-probe.m came from prototypes/ThinkRailNative (Copyright 2026
-JetBrains s.r.o., Apache 2.0; licenses/Thinkrail-Apache-2.0.txt).
+workspace specification. The "TR" monogram (`brand.png`) and scripts/window-probe.m were written by SharpRail's
+author in the fork's `apps/native` prototype (commit 8229ed8c6) and are licensed as SharpRail; the monogram
+remains a ThinkRail mark (see `NOTICE`). The custom file-diff icon is ThinkRail's
+`apps/web/public/custom-icons/file-diff-line.svg` (Apache-2.0; licenses/Thinkrail-Apache-2.0.txt).
 
 The workflow skills in src/SharpRail.Plugins.Agent.Skills are adapted from Thinkrail's
-packages/pi-thinkrail-workflow/skills (Apache 2.0; licenses/Thinkrail-Apache-2.0.txt): the text was
-changed to name SharpRail and the tools Claude Code and Codex sessions have.
+packages/pi-thinkrail-workflow/skills, and spec-graph from packages/spec-graph/skills/spec-graph (Apache 2.0;
+licenses/Thinkrail-Apache-2.0.txt): the text was changed to name SharpRail and the tools Claude Code and Codex
+sessions have, and large parts remain near-verbatim.
+
+The Claude Code plugin's hook scripts and test (`src/SharpRail.Plugins.ClaudeCode/assets/marketplace/claude-plugin/`,
+`hooks.json`, `on-*.sh`, `report-status.sh`, `build-payload.sh` and the hook test) are adapted from the fork's
+`packages/plugin-claude-code` plugin payload (Apache 2.0): SharpRail's endpoints and tool names replace the
+originals, and much of the shell remains near-verbatim.
 
 Mermaid diagrams are laid out by Merman 0.7.0 (https://github.com/Latias94/merman,
 MIT OR Apache-2.0): its released macOS merman-ffi static library is linked into
 libSharpRailMermaid, its released Android merman-ffi shared libraries
-(merman-android-v0.7.0.aar) ship as libSharpRailMermaid.so, and its SVG is drawn with Svg.Skia (MIT). Merman's Rust crate
+(merman-android-v0.7.0.aar) ship as libSharpRailMermaid.so, and its SVG is drawn with Svg.Skia (MIT) and Svg.Custom (MS-PL, licenses/MS-PL.txt). Merman's Rust crate
 dependencies retain their licenses; licenses/Merman-Crates.txt lists each crate
-with its license.
+with its license. Three crates (cssparser, dtoa-short, selectors) are MPL-2.0 and linked unmodified;
+see licenses/Copyleft-Components.md and licenses/MPL-2.0.txt.
 
-The four theme manifests in src/SharpRail.UI/Assets/Themes are copied unchanged
-from Thinkrail's apps/web/src/themes/bundled (Apache 2.0;
-licenses/Thinkrail-Apache-2.0.txt).
+The theme manifests in src/SharpRail.UI/Assets/Themes and `theme.schema.json` are adapted from
+Thinkrail's apps/web/src/themes/bundled (Apache 2.0; licenses/Thinkrail-Apache-2.0.txt): a few values differ from the
+originals.
 
-Core SVG icons in src/SharpRail.Plugins.UI.Kit/Assets/Icons use the original paths from
+The 78 core SVG icons in src/SharpRail.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0 and may not be
+extracted as a standalone icon set. They use the original paths from
 @remixicon/react 4.9.0, including the server glyph for Host settings. The alias map is
 Assets/Icons/sources.json. The custom file-diff SVG comes from ThinkRail's
 apps/web/public/custom-icons/file-diff-line.svg (Apache-2.0). The prototype's brand.png
@@ -75,12 +95,16 @@ Branch Graph's bundled commit and code-file SVG menu glyphs use the same 4.9.0 r
 
 Geist Regular, Medium, SemiBold and Bold came from the reference's bundled assets.
 Geist Book uses the reference native prototype's weight-370 NativeText face;
-its family metadata was renamed to register alongside the other Geist faces.
+its family metadata was renamed to register alongside the other Geist faces. It is a Modified Version under the
+SIL Open Font License; neither OFL declares a Reserved Font Name.
 JetBrains Mono Regular came from the reference's bundled font assets.
 Their SIL Open Font Licenses are in src/SharpRail.Plugins.UI.Kit/Assets/Fonts and are
 included in the published app's Resources directory.
 
-Markdown parsing uses Markdig (BSD-2-Clause). Avalonia, protobuf-net, and other NuGet dependencies retain their package licenses.
+Markdown parsing uses Markdig (BSD-2-Clause). The license texts of the shipped NuGet packages are in `licenses/`:
+Avalonia (Avalonia-MIT.txt), SkiaSharp and HarfBuzzSharp (SkiaSharp-MIT.txt, HarfBuzzSharp-MIT.txt), Svg.Skia,
+Markdig (Markdig-BSD-2-Clause.txt), protobuf-net (protobuf-net-Apache-2.0.txt), Avalonia.Angle on Windows
+(Avalonia.Angle-BSD-3-Clause.txt) and the rest in Other-MIT-Packages.txt.
 The spec dialect plugin parses YAML with YamlDotNet 18.1.0 (MIT);
 see licenses/YamlDotNet.txt.
 The EPUB Reader plugin reads EPUB packages with VersOne.Epub 3.3.6 (Unlicense, https://github.com/vers-one/EpubReader),
@@ -106,8 +130,13 @@ Side resize projection adapts the constraint and delta-distribution rules from
 react-resizable-panels 2.1.9 (Copyright 2023 Brian Vaughn, MIT).
 See licenses/React-Resizable-Panels.txt; no JavaScript runtime is bundled.
 
-The code editor is a managed C# port of parts of Scintilla 5.6.7 (Copyright Neil
-Hodgson and contributors). See src/SharpRail.Scintilla/licenses/Scintilla.txt.
+The code editor is a managed C# port of parts of Scintilla 5.6.7 (Copyright 1998-2021 Neil
+Hodgson and contributors; no Lexilla code). See licenses/Scintilla.txt, the same text as
+src/SharpRail.Scintilla/licenses/Scintilla.txt. Core/ (SplitVector, Partitioning, RunStyles, CellBuffer, UndoHistory,
+ContractionState, Decoration, CharClassify, LineAnnotation, Selection, Document) and Editing/KeyMap are close
+translations of the upstream files they name; Editing/Editor and View/EditView, ViewStyle and ScintillaMessage are
+trimmed adaptations; tests/SharpRail.Checks/ScintillaCore ports Scintilla's test/unit. Text shaping, bidi and the
+Avalonia control are SharpRail's own.
 The editor's drawing uses SkiaSharp 4.148.0, the version Avalonia’s Skia backend
 and Svg.Skia share in this app;
 SkiaSharp, Skia, HarfBuzzSharp and HarfBuzz retain their NuGet package licenses. No Cocoa Scintilla view
@@ -142,8 +171,9 @@ redistributed.
 
 The QR code in Settings › Host is generated with QRCoder 1.8.0 (MIT); see licenses/QRCoder-MIT.txt.
 The Android client reads it through Google Play services' code scanner
-(Xamarin.GooglePlayServices.Code.Scanner 116.1.0.17 bindings, MIT, over Google's ML Kit code scanner,
-which is covered by the Android Software Development Kit License and runs inside Play services); the
+(Xamarin.GooglePlayServices.Code.Scanner 116.1.0.17 bindings, MIT, over Google's ML Kit code scanner;
+the Play services and ML Kit libraries it packages are covered by the Android Software Development Kit License
+and the ML Kit terms); the
 two QR icons come from the same Remix Icon set as the other SVG glyphs.
 Syntax highlighting uses TextMateSharp and TextMateSharp.Grammars 2.0.4 (MIT),
 with their Onigwrap 1.0.11 / Oniguruma native dependency. The engine licence is
@@ -156,6 +186,8 @@ in the embedded grammar resources. Supplementary grammar files under the UI kit'
 - Scala: scala/vscode-scala-syntax, commit 6dbe37fdda3610967e28717b31697e9699865641,
   syntaxes/Scala.tmLanguage.json (MIT; licenses/ScalaGrammar.txt).
 
+The Scala grammar descends from the Scala TextMate bundles that scala/vscode-scala-syntax is based on.
+`gitattributes.json` is SharpRail's own grammar, written for this project.
 Git ignore highlighting uses TextMateSharp.Grammars' bundled source.ignore grammar.
 
 - TOML: tamasfe/taplo, commit 08f343be02ce1b20296470396a42f0fa47820449,
@@ -196,6 +228,9 @@ language server plugin's `Icon.png` or `Icon.svg`. Assets/LanguageIcons/SOURCES.
 licenses/lsp-icon-* retain their applicable repository licenses. These identify integrations
 and do not imply publisher endorsement.
 
+The Discord mark (`Brands/discord.svg`, the Discord plugin's `assets/discord.svg`) is the Simple Icons Discord glyph
+(CC0-1.0, https://simpleicons.org); the GitHub mark is Simple Icons too and the Tailscale icon is from Tailscale's
+press kit (see each plugin's `NOTICE.md`). Discord, GitHub, Claude and Tailscale are trademarks of their owners.
 Plugins settings reuses the bundled Claude and Discord mark silhouettes with their brand colors.
 Their original provenance and licensing remain those of the bundled plugin assets; this
 presentation does not imply affiliation with either vendor.
@@ -209,3 +244,16 @@ upstream `cmd/tsconnect`, with its Go runtime and Go's `wasm_exec.js`. Source, p
 Tailscale license are under `src/SharpRail.Browser/Tailscale.Wasm`; the build serves the Go license and the
 module license notices beside the module under `tailscale/licenses`.
 Tailscale is a trademark of Tailscale Inc.; this integration does not imply endorsement.
+
+Native libraries inside the Ghostty terminal libraries (oniguruma, HarfBuzz, highway, wuffs, spirv-cross, glslang,
+sentry, Dear ImGui, utfcpp, libpng, zlib, simdutf, uucode, the Nerd Fonts Symbols and JetBrains Mono fonts) have their
+license texts in `licenses/Ghostty-Dependencies.txt`. FreeType is used under the FreeType License
+(`licenses/FreeType-FTL.txt`). The Linux AppImage runtime statically links libfuse (LGPL-2.1,
+`licenses/LGPL-2.1.txt`); see `licenses/Copyleft-Components.md`.
+
+Interoperability. SharpRail talks to tools through their public protocols (Language Server Protocol, MCP, JSON-RPC,
+the Claude Code and Codex CLIs' stream and hook formats, the JetBrains Context and intellij-lsp.nvim conventions).
+The IDE bridge in `src/SharpRail.Plugins.ClaudeCode/Host/IdeBridge` implements the MCP/JSON-RPC shapes a `claude` CLI
+expects from an IDE, which Anthropic does not document; as the source comment states, they were read off the CLI
+itself and Anthropic's VS Code and JetBrains extensions, and the checks pin them. The Env plugins' JSON formats come
+from the tools' documentation.
