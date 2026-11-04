@@ -202,7 +202,7 @@ internal static class ClaudeLauncherAction
             // Chat mode opens a conversation tab; presets a chat cannot honour (teleport, free-form flags) still start the terminal.
             if (settings.Mode == ClaudeCodeMode.Chat && chat is not null && ChatLauncher.Handles(args))
             {
-                _ = ChatLauncher.StartAsync(context, chat, workspaceId, args, mode ?? settings.PermissionMode, anchor!);
+                _ = ChatLauncher.StartAsync(context, chat, workspaceId, args, mode ?? settings.PermissionMode, anchor!, advisor, chrome);
                 return;
             }
             var started = ClaudeLaunch.SessionCommand(settings.Command, args, settings.DisableAgentView, settings.AppendSystemPrompt,

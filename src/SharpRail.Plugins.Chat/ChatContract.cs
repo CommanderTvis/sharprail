@@ -384,6 +384,10 @@ public sealed record ChatOpenParams(string WorkspaceId, string ChatId)
     public string? Model { get; init; }
     public string? PermissionMode { get; init; }
     public string? Effort { get; init; }
+    /// <summary>Claude Code only: Chrome tools for this chat; null follows the setting.</summary>
+    public bool? Chrome { get; init; }
+    /// <summary>Claude Code only: the advisor model for this chat; null is the saved one, empty none.</summary>
+    public string? Advisor { get; init; }
 }
 
 public sealed record ChatSendParams(string WorkspaceId, string ChatId, string Text)

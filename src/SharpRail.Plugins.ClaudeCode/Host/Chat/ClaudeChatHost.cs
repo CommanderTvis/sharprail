@@ -200,7 +200,9 @@ internal sealed class ClaudeChatHost
                 Cwd = cwd,
                 Model = p.Model ?? Empty(settings.Model),
                 Effort = p.Effort ?? Empty(settings.Effort),
-                PermissionMode = p.PermissionMode ?? Empty(settings.PermissionMode)
+                PermissionMode = p.PermissionMode ?? Empty(settings.PermissionMode),
+                Chrome = p.Chrome,
+                Advisor = p.Advisor
             };
             record = p.Fork == true && p.ResumeSessionId is { } source ? fresh with { ForkOf = source, SessionId = null } : fresh;
             SaveRecord(record);
@@ -237,6 +239,8 @@ internal sealed class ClaudeChatHost
             Model = source.Model,
             Effort = source.Effort,
             PermissionMode = source.PermissionMode,
+            Chrome = source.Chrome,
+            Advisor = source.Advisor,
             Title = source.Title is { } title ? title + " (fork)" : null,
             ForkOf = source.SessionId ?? source.ChatId,
             ForkBefore = p.Uuid
@@ -375,8 +379,9 @@ internal sealed class ClaudeChatHost
         if (record.Model is { Length: > 0 } model) arguments.AddRange(["--model", model]);
         if (record.Effort is { Length: > 0 } effort) arguments.AddRange(["--effort", effort]);
         if (record.PermissionMode is { Length: > 0 } mode) arguments.AddRange(["--permission-mode", mode]);
-        if (settings.Advisor.Length > 0) arguments.AddRange(["--advisor", settings.Advisor]);
-        if (settings.Chrome) arguments.Add("--chrome");
+        var advisor = record.Advisor ?? settings.Advisor;
+        if (advisor.Length > 0) arguments.AddRange(["--advisor", advisor]);
+        if (record.Chrome ?? settings.Chrome) arguments.Add("--chrome");
         if (settings.AppendSystemPrompt && environment.TryGetValue(ClaudeCodeContract.PromptFileVariable, out var promptFile)) arguments.AddRange(["--append-system-prompt-file", promptFile]);
         arguments.AddRange(["--plugin-dir", hookPluginDirectory]);
         return new ChatLaunch(prefix[0], [.. prefix.Skip(1), .. arguments], environment, cwd);

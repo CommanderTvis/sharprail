@@ -203,11 +203,47 @@ internal static class ClaudeChatChecks
             Directory.CreateDirectory(path);
             Environment.SetEnvironmentVariable(name, path);
         }
-        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); await BashMode(Path.Combine(directory, "bash-mode")); }
+        try { await RunIn(directory); await SharedDraft(Path.Combine(directory, "shared-draft")); await BashMode(Path.Combine(directory, "bash-mode")); await ChromeOverride(Path.Combine(directory, "chrome")); }
         finally { foreach (var (name, value) in previous) Environment.SetEnvironmentVariable(name, value); }
     }
 
-    private static async Task<Fixture> Start(string directory, StateHolder holder)
+    // The launcher's per-run Chrome and advisor choices ride the open params into the chat record, whatever the setting says.
+    private static async Task ChromeOverride(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        var holder = new StateHolder();
+        var argsLog = Path.Combine(directory, "fake", "args.log");
+        string[] Spawns() => File.Exists(argsLog) ? File.ReadAllLines(argsLog) : [];
+        var off = Guid.NewGuid().ToString();
+        var follow = Guid.NewGuid().ToString();
+        await using (var fixture = await Start(directory, holder, chrome: true))
+        {
+            fixture.Watch(off);
+            fixture.Watch(follow);
+            await fixture.Call(ChatContract.Open, new ChatOpenParams(fixture.Project, off) { Chrome = false, Advisor = "" });
+            await fixture.Call(ChatContract.Open, new ChatOpenParams(fixture.Project, follow));
+            await fixture.Until(off, view => view.Header.Status == ChatStatus.Idle, "the chat without Chrome");
+            await fixture.Until(follow, view => view.Header.Status == ChatStatus.Idle, "the chat that follows the setting");
+            Require(Spawns().Count(line => line.Contains("--chrome", StringComparison.Ordinal)) == 1 && !Spawns().Single(line => line.Contains(off, StringComparison.Ordinal)).Contains("--chrome", StringComparison.Ordinal),
+                "With the setting on, a chat opened with Chrome false omits --chrome and one without an override keeps it.");
+        }
+        var on = Guid.NewGuid().ToString();
+        await using (var fixture = await Start(directory, holder, chrome: false))
+        {
+            fixture.Watch(on);
+            fixture.Watch(off);
+            await fixture.Call(ChatContract.Open, new ChatOpenParams(fixture.Project, on) { Chrome = true, Advisor = "opus" });
+            await fixture.Call(ChatContract.Open, new ChatOpenParams(fixture.Project, off));
+            await fixture.Until(on, view => view.Header is { Status: ChatStatus.Idle, Chrome: true }, "the chat with Chrome");
+            await fixture.Until(off, view => view.Header.Status == ChatStatus.Idle, "the reopened chat");
+            var lines = Spawns();
+            Require(lines.Single(line => line.Contains(on, StringComparison.Ordinal)) is var enabled && enabled.Contains("--chrome", StringComparison.Ordinal) && enabled.Contains("--advisor opus", StringComparison.Ordinal),
+                "With the setting off, a chat opened with Chrome true passes --chrome and its advisor.");
+            Require(!lines.Last().Contains("--chrome", StringComparison.Ordinal), "A reopened chat keeps its recorded Chrome choice.");
+        }
+    }
+
+    private static async Task<Fixture> Start(string directory, StateHolder holder, bool chrome = false)
     {
         var project = Path.Combine(directory, "project");
         Directory.CreateDirectory(project);
@@ -227,7 +263,7 @@ internal static class ClaudeChatChecks
             Worktrees = (_, _) => Task.FromResult<IReadOnlyList<WorktreeInfo>>([])
         });
         await runtime.Start();
-        await state.ChangeAsync([HostStateChange.PluginSettings("claude-code", JsonSerializer.Serialize(new { enabled = true, command = fake, mode = "Chat" }))]);
+        await state.ChangeAsync([HostStateChange.PluginSettings("claude-code", JsonSerializer.Serialize(new { enabled = true, command = fake, mode = "Chat", chrome }))]);
         await runtime.Schedule();
         Require((await runtime.ListAsync()).Single().Status == PluginStatus.Active, "The Claude Code host activates with the scripted CLI as its command.");
         return new Fixture { Runtime = runtime, Project = project, Directory = directory };

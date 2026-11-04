@@ -17,7 +17,7 @@ internal static class ChatLauncher
         return words.Length == 0 || words is ["--continue"] or ["--resume"] or ["--resume", "--fork-session"] or ["--model", _];
     }
 
-    public static ChatOpenParams Params(string workspaceId, string chatId, ClaudeCodeSettings settings, string args, string? permissionMode)
+    public static ChatOpenParams Params(string workspaceId, string chatId, ClaudeCodeSettings settings, string args, string? permissionMode, string? advisor = null, bool? chrome = null)
     {
         var words = args.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var model = words is ["--model", var named] ? named : settings.Model;
@@ -25,7 +25,9 @@ internal static class ChatLauncher
         {
             Model = model.Length > 0 ? model : null,
             Effort = settings.Effort.Length > 0 ? settings.Effort : null,
-            PermissionMode = permissionMode is { Length: > 0 } ? permissionMode : null
+            PermissionMode = permissionMode is { Length: > 0 } ? permissionMode : null,
+            Advisor = advisor,
+            Chrome = chrome
         };
     }
 
@@ -39,10 +41,10 @@ internal static class ChatLauncher
         return ValueTask.FromResult(true);
     }
 
-    public static async Task StartAsync(IPluginUIContext context, IChatClient client, string workspaceId, string args, string? permissionMode, Control anchor)
+    public static async Task StartAsync(IPluginUIContext context, IChatClient client, string workspaceId, string args, string? permissionMode, Control anchor, string? advisor = null, bool? chrome = null)
     {
         var settings = context.Settings<ClaudeCodeSettings>();
-        var open = Params(workspaceId, ChatDocuments.NewId(), settings, args, permissionMode);
+        var open = Params(workspaceId, ChatDocuments.NewId(), settings, args, permissionMode, advisor, chrome);
         if (args.StartsWith("--continue", StringComparison.Ordinal) || args.StartsWith("--resume", StringComparison.Ordinal))
         {
             ChatSessionList sessions;

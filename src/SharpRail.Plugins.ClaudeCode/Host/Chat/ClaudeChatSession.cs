@@ -10,6 +10,8 @@ internal sealed record ChatRecord(string WorkspaceId, string ChatId)
     public string? Model { get; init; }
     public string? Effort { get; init; }
     public string? PermissionMode { get; init; }
+    public bool? Chrome { get; init; }
+    public string? Advisor { get; init; }
     public string? Title { get; init; }
     /// <summary>A fork that has not started yet: the session it continues from and the prompt it branches before.</summary>
     public string? ForkOf { get; init; }
