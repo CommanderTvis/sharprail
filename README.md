@@ -96,10 +96,3 @@ install per platform.
 
 The [documentation index](docs/README.md) lists every page. Start with [Install](docs/install.md), [Using SharpRail](docs/using.md)
 and [Agents](docs/agents.md).
-
-## License
-
-SharpRail is source-available under the [PolyForm Shield License 1.0.0](LICENSE): use, modify and redistribute it freely,
-except to provide a product that competes with it. [NOTICE](NOTICE) states what the license does not cover (ThinkRail-derived
-files stay Apache-2.0, third-party components and brand marks keep their own terms), and
-[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) lists them with their license texts in [licenses/](licenses).
