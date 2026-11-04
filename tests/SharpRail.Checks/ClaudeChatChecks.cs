@@ -239,7 +239,8 @@ internal static class ClaudeChatChecks
             var lines = Spawns();
             Require(lines.Single(line => line.Contains(on, StringComparison.Ordinal)) is var enabled && enabled.Contains("--chrome", StringComparison.Ordinal) && enabled.Contains("--advisor opus", StringComparison.Ordinal),
                 "With the setting off, a chat opened with Chrome true passes --chrome and its advisor.");
-            Require(!lines.Last().Contains("--chrome", StringComparison.Ordinal), "A reopened chat keeps its recorded Chrome choice.");
+            // The two chats start concurrently, so the reopened one is found by its id, not by being the last spawn.
+            Require(!lines.Last(line => line.Contains(off, StringComparison.Ordinal)).Contains("--chrome", StringComparison.Ordinal), "A reopened chat keeps its recorded Chrome choice.");
         }
     }
 
