@@ -450,7 +450,10 @@ internal static class PdfPreviewChecks
         E2eWorkspace.Until(() => FirstPageText(window).Contains("Recovered PDF", StringComparison.Ordinal) && RasterWidth(window) > 0);
 
         File.WriteAllBytes(target, PagesPdf(["First page", "Second page"]));
-        E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<PdfTextLayer>().Count() == 2);
+        // A write can reach the watch more than once, and each read replaces the page layers: wait until both pages are
+        // rasterized and no read is pending, then take the layers that stay.
+        E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<PdfTextLayer>().Count() == 2 && !preview.Loading
+            && window.GetLogicalDescendants().OfType<Image>().Where(image => image.Name == "PdfPage").All(image => image.Source is not null));
         var layers = window.GetLogicalDescendants().OfType<PdfTextLayer>().ToArray();
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         var firstPoint = layers[0].TranslatePoint(new Point(2, layers[0].Bounds.Height * 0.45), window)!.Value;
@@ -458,7 +461,8 @@ internal static class PdfPreviewChecks
         window.MouseMove(firstPoint); window.MouseDown(firstPoint, MouseButton.Left);
         window.MouseMove(lastPoint); window.MouseUp(lastPoint, MouseButton.Left);
         Require(layers[0].SelectedText.Contains("First page", StringComparison.Ordinal) && layers[0].SelectedText.Contains("Second page", StringComparison.Ordinal),
-            "A captured drag crosses page boundaries and selects both pages: " + layers[0].SelectedText);
+            "A captured drag crosses page boundaries and selects both pages: " + layers[0].SelectedText
+            + $" [from {firstPoint} to {lastPoint}; layer bounds {layers[0].Bounds} / {layers[1].Bounds}; attached {(TopLevel.GetTopLevel(layers[0]) is not null)}/{(TopLevel.GetTopLevel(layers[1]) is not null)}; layers now {window.GetLogicalDescendants().OfType<PdfTextLayer>().Count()}, same {window.GetLogicalDescendants().OfType<PdfTextLayer>().SequenceEqual(layers)}; text {layers[0].Text.Length}/{layers[1].Text.Length}]");
         window.MouseMove(lastPoint); window.MouseDown(lastPoint, MouseButton.Left);
         window.MouseMove(firstPoint); window.MouseUp(firstPoint, MouseButton.Left);
         Require(layers[1].SelectedText.Contains("First page", StringComparison.Ordinal) && layers[1].SelectedText.Contains("Second page", StringComparison.Ordinal),
