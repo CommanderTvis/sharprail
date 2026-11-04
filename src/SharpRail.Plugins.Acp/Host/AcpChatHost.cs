@@ -132,7 +132,7 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         var cwd = (await context.WorkspaceAsync(p.WorkspaceId, CancellationToken.None))?.Path ?? p.WorkspaceId;
         var record = await Task.Run(() => LoadRecord(p.WorkspaceId, p.ChatId));
         var entry = ListAgents().Agents.FirstOrDefault(agent => agent.Id == record?.AgentId) ?? throw new InvalidOperationException("Choose an ACP agent for this chat first.");
-        var session = new AcpChatSession(p.WorkspaceId, p.ChatId, cwd, () => connect(entry, cwd), Publish, message => context.Log.Warn(message));
+        var session = new AcpChatSession(p.WorkspaceId, p.ChatId, cwd, () => connect(entry, cwd), Publish, message => context.Log.Warn(message), new AcpClientMethods(cwd));
         sessions[(p.WorkspaceId, p.ChatId)] = session;
         if (existing is not null) await existing.DisposeAsync();
         var header = session.Begin();

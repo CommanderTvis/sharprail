@@ -186,10 +186,57 @@ internal static class AcpChecks
         Require(future.Header is { Status: ChatStatus.Failed, Error: { } reason } && reason.Contains("version 2", StringComparison.Ordinal), "A protocol mismatch fails the chat and says which version the agent speaks.");
     }
 
+    // The agent's file and terminal calls through a session whose workspace is a temporary directory: reads and writes stay inside it.
+    internal static async Task ClientMethods(string root)
+    {
+        var workspace = Path.Combine(root, "workspace");
+        var outside = Path.Combine(root, "outside");
+        Directory.CreateDirectory(workspace);
+        Directory.CreateDirectory(outside);
+        File.WriteAllText(Path.Combine(workspace, "a.txt"), "one\ntwo\nthree");
+        File.WriteAllText(Path.Combine(outside, "secret.txt"), "secret");
+        var link = Path.Combine(workspace, "escape");
+        if (!OperatingSystem.IsWindows() && !Directory.Exists(link)) Directory.CreateSymbolicLink(link, outside);
+
+        var methods = new AcpClientMethods(workspace);
+        await using var session = new AcpChatSession("ws", "chat1", workspace, () => Task.FromResult<IAcpTransport>(new FakeTransport(new AcpFakeAgent())), _ => { }, _ => { }, methods);
+        session.Begin();
+        await session.StartAsync(null);
+
+        async Task<string> Ask(string prompt, string expected)
+        {
+            var before = Items(session).OfType<ChatAssistantItem>().Count();
+            await session.SendAsync(prompt, null);
+            await Until(() => session.Header.Status == ChatStatus.Idle && Items(session).OfType<ChatAssistantItem>().Count() > before, expected);
+            return Items(session).OfType<ChatAssistantItem>().Last().Text;
+        }
+
+        Require(await Ask("read " + Path.Combine(workspace, "a.txt"), "The read answers.") == "content one\ntwo\nthree", "The agent reads a workspace file.");
+        Require(await Ask("read a.txt", "The relative read answers.") == "content one\ntwo\nthree", "A relative path is taken against the workspace.");
+        Require((await Ask("read " + Path.Combine(outside, "secret.txt"), "The outside read answers.")).StartsWith("error", StringComparison.Ordinal), "A file outside the workspace is refused.");
+        Require((await Ask("read ../outside/secret.txt", "The dotdot read answers.")).Contains("outside the workspace", StringComparison.Ordinal), "A path that climbs out of the workspace is refused.");
+        if (!OperatingSystem.IsWindows())
+            Require((await Ask("read " + Path.Combine(link, "secret.txt"), "The link read answers.")).Contains("outside the workspace", StringComparison.Ordinal), "A symbolic link inside the workspace cannot lead out of it.");
+        Require(await Ask("write " + Path.Combine(workspace, "new", "b.txt"), "The write answers.") == "written" && File.ReadAllText(Path.Combine(workspace, "new", "b.txt")) == "written", "The agent writes a file inside the workspace.");
+        Require((await Ask("write " + Path.Combine(outside, "evil.txt"), "The outside write answers.")).StartsWith("error", StringComparison.Ordinal) && !File.Exists(Path.Combine(outside, "evil.txt")), "A write outside the workspace is refused and writes nothing.");
+        if (!OperatingSystem.IsWindows())
+            Require(await Ask("run", "The terminal answers.") == "exit 0 output hi", "A terminal runs the command and reports its exit and output.");
+
+        var direct = new JsonObject { ["path"] = "a.txt", ["line"] = 2, ["limit"] = 1 };
+        Require((await methods.HandleAsync("fs/read_text_file", direct, CancellationToken.None))!["content"]!.GetValue<string>() == "two", "line and limit select part of the file.");
+        AcpException? refused = null;
+        try { await methods.HandleAsync("terminal/create", new JsonObject { ["command"] = "echo", ["cwd"] = outside }, CancellationToken.None); } catch (AcpException error) { refused = error; }
+        Require(refused is not null, "A terminal cannot start outside the workspace.");
+        try { await methods.HandleAsync("session/unknown", new JsonObject(), CancellationToken.None); refused = null; } catch (AcpException error) { refused = error; }
+        Require(refused is { Code: AcpException.MethodNotFound }, "An unknown client method is answered as not found.");
+    }
+
     internal static async Task Run(string root)
     {
         Manifest();
         await Protocol();
         await Session();
+        Directory.CreateDirectory(root);
+        await ClientMethods(root);
     }
 }

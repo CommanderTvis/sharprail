@@ -121,6 +121,7 @@ internal sealed class AcpChatSession : IAsyncDisposable, IAcpClientHandler
         await watched.Closed;
         if (Volatile.Read(ref closing) == 1) return;
         SettlePermissions(null);
+        (Methods as IDisposable)?.Dispose();
         lock (gate)
         {
             if (folder.Header.Status is ChatStatus.Failed) return;
@@ -293,6 +294,7 @@ internal sealed class AcpChatSession : IAsyncDisposable, IAcpClientHandler
         SettlePermissions(null);
         if (client is { } active) await active.DisposeAsync();
         if (transport is { } owner) await owner.DisposeAsync();
+        (Methods as IDisposable)?.Dispose();
         lock (gate) { folder.SetStatus(ChatStatus.Exited); FlushNow(); }
     }
 
