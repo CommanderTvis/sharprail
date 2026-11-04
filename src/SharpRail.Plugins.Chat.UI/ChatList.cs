@@ -51,6 +51,7 @@ internal sealed class ChatList : ScrollViewer
     private (string RowId, ChatHit Hit)? hoverHit;
     private ChatHit? focusStop;
     private static readonly Cursor Hand = new(StandardCursorType.Hand);
+    private static readonly Cursor TextCursor = new(StandardCursorType.Ibeam);
     private string? selectedId;
     private (string Id, double Delta)? remembered;
     private (string Id, int Offset)? anchorAt, focusAt;
@@ -455,6 +456,8 @@ internal sealed class ChatList : ScrollViewer
 
     internal Cursor? SurfaceCursor => surface.Cursor;
 
+    internal bool IsTextCursor => ReferenceEquals(surface.Cursor, TextCursor);
+
     /// <summary>The click target keyboard focus is on, if any.</summary>
     internal ChatHit? FocusedStop => focusStop;
 
@@ -476,10 +479,20 @@ internal sealed class ChatList : ScrollViewer
                 next = (row.Id, hit);
             else if (row.Item is ChatToolItem or ChatThinkingItem or ChatActivityItem && local.Y < 24) next = (row.Id, new ChatHit(new Rect(0, 0, width, 22), ChatHitKind.Toggle));
         }
+        var overText = next is null && index >= 0 && point.Y <= tops[^1] && OverText(index, point);
+        surface.Cursor = next is not null ? Hand : selecting || overText ? TextCursor : null;
         if (next?.Item1 == hoverHit?.RowId && next?.Item2 == hoverHit?.Hit) return;
         hoverHit = next;
-        surface.Cursor = next is null ? null : Hand;
         surface.Redraw();
+    }
+
+    private bool OverText(int index, Point point)
+    {
+        var row = rows[index];
+        var layout = LayoutOf(row, (row.Id, row.Revision, (int)Math.Round(width)));
+        var local = new Point(point.X, point.Y - tops[index]);
+        layout.Realize(local.Y - 1, local.Y + 1);
+        return layout.IsOverText(local);
     }
 
     // ---- input

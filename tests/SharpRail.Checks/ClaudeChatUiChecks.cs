@@ -240,6 +240,7 @@ internal static class ClaudeChatUiChecks
         QuestionPreview();
         ToolCardsText();
         Selection();
+        TextCursors();
         SelectionGeometry();
         MarkdownBounded();
         Behaviour();
@@ -1525,6 +1526,52 @@ internal static class ClaudeChatUiChecks
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); }
         Require(ChatRowLayout.Live < 40, "Closing releases the realized layouts.");
+    }
+
+    // The pointer is an I-beam over selectable text (assistant, user, code), a hand over a link and a card header, and stays an I-beam through a drag.
+    private static void TextCursors()
+    {
+        var chat = new FakeChat();
+        chat.Snapshot.Add(Item(new ChatUserItem("u1", 1, "alpha beta gamma")));
+        chat.Snapshot.Add(Item(new ChatAssistantItem("a1", 2, "First paragraph here and a [web](https://x.y) link\n\n```\ncode line one\n```")));
+        chat.Snapshot.Add(Item(new ChatToolItem("t1", 3, "Bash", JsonSerializer.SerializeToElement(new { command = "echo hello" }), ChatToolState.Done) { Summary = "echo hello" }));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            var list = view.List;
+            var origin = list.TranslatePoint(new Point(0, 0), window)!.Value;
+            Point In(string id, double x, double y) => new(origin.X + x, origin.Y + list.RowTop(id) + y);
+            bool Sweep(string id, Func<bool> hit)
+            {
+                var height = list.VisibleRows().First(row => row.Row.Id == id).Height;
+                for (double y = 4; y < height; y += 4)
+                    for (double x = 8; x < 500; x += 6)
+                    {
+                        window.MouseMove(In(id, x, y));
+                        if (hit()) return true;
+                    }
+                return false;
+            }
+            Require(Sweep("u1", () => list.IsTextCursor), "A user message shows the text cursor over its text.");
+            Require(Sweep("a1", () => list.IsTextCursor), "Assistant markdown shows the text cursor over its text.");
+            Require(Sweep("a1", () => list.HoveredHit is { Kind: ChatHitKind.Link } && list.SurfaceCursor is { } && !list.IsTextCursor), "A link keeps the hand.");
+            var height = list.VisibleRows().First(row => row.Row.Id == "a1").Height;
+            var code = false;
+            for (double y = height - 40; y < height && !code; y += 3)
+                for (double x = 12; x < 200 && !code; x += 4) { window.MouseMove(In("a1", x, y)); code = list.IsTextCursor; }
+            Require(code, "A code block shows the text cursor over its text.");
+            window.MouseMove(In("t1", 40, 10));
+            Require(!list.IsTextCursor, "A card header does not show the text cursor.");
+            window.MouseMove(In("u1", 600, 16));
+            Require(!list.IsTextCursor, "Empty space beside the text does not show the text cursor.");
+            window.MouseDown(In("u1", 24, 16), MouseButton.Left); window.MouseMove(In("u1", 600, 300));
+            Require(list.IsTextCursor, "A drag keeps the text cursor even away from the text.");
+            window.MouseUp(In("u1", 600, 300), MouseButton.Left);
+        }
+        finally { window.Close(); }
     }
 
     // Text selection in the drawn list: drags, words, lines, copy text, streaming, and a whole 20,000-row transcript without realizing rows.

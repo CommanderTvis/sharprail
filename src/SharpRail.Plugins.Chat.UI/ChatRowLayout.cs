@@ -129,6 +129,14 @@ internal sealed class ChatRowLayout : IDisposable
         return best;
     }
 
+    /// <summary>Whether a point of the row lies on selectable text that is realized (inside its glyph lines and its clip).</summary>
+    internal bool IsOverText(Point point)
+    {
+        foreach (var part in Parts())
+            if (part.Layout is { } layout && (part.Clip is not { } clip || clip.Contains(point)) && layout.HitTestPoint(new Point(point.X - part.Origin.X, point.Y - part.Origin.Y)).IsInside) return true;
+        return false;
+    }
+
     /// <summary>The rectangles, in the row's coordinates, that cover the realized characters from <paramref name="from"/> to <paramref name="to"/>.</summary>
     internal List<Rect> RangeRects(int from, int to)
     {
