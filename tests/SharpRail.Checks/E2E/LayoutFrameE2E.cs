@@ -236,8 +236,8 @@ internal static class LayoutFrameE2E
             var status = window.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "ConnectionStatus");
             Until(() => status.Text == "Remote");
             window.Focus();
-            window.KeyPress(Key.B, Command, PhysicalKey.B, null); Settle();
-            Require(!window.Layout.State.LeftVisible, "Mod+B must hide the left side over a remote transport.");
+            window.KeyPress(Key.D1, Command, PhysicalKey.Digit1, null); Settle();
+            Require(!window.Layout.State.LeftVisible, "Mod+1 must hide the left side over a remote transport.");
             Task.Run(() => first.StopAsync()).GetAwaiter().GetResult();
             window.KeyPress(Key.F5, RawInputModifiers.None, PhysicalKey.F5, null);
             Until(() => status.Text == "Error");
@@ -249,7 +249,7 @@ internal static class LayoutFrameE2E
                     window.KeyPress(Key.F5, RawInputModifiers.None, PhysicalKey.F5, null); Settle(500);
                 }
                 Require(status.Text == "Remote" && !window.Layout.State.LeftVisible, "The transport must reconnect with the hidden left side intact.");
-                window.KeyPress(Key.B, Command, PhysicalKey.B, null); Settle();
+                window.KeyPress(Key.D1, Command, PhysicalKey.Digit1, null); Settle();
                 Require(window.Layout.State.LeftVisible, "The layout must remain writable after the transport reconnects.");
             }
             finally { Task.Run(() => second.StopAsync()).GetAwaiter().GetResult(); }

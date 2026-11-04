@@ -79,7 +79,7 @@ internal static class KeymapChecks
         var bindings = KeymapBindings.IntelliJ(KeymapPlatform.Other);
         Require(KeyChord.TryParse("Mod+J", KeymapPlatform.Other, out var toggleRight), "parse");
         var clash = Keymaps.Bind(bindings, KeymapActions.ToggleLeft, 0, toggleRight, KeymapPlatform.Other);
-        Require(!clash.Applied && clash.Conflicts.SequenceEqual([KeymapActions.ToggleRight]) && bindings.Chords(KeymapActions.ToggleLeft, KeymapPlatform.Other)[0].Text == "Mod+B", "A taken chord is a conflict that changes nothing.");
+        Require(!clash.Applied && clash.Conflicts.SequenceEqual([KeymapActions.ToggleRight]) && bindings.Chords(KeymapActions.ToggleLeft, KeymapPlatform.Other)[0].Text == "Mod+1", "A taken chord is a conflict that changes nothing.");
         var moved = Keymaps.Bind(bindings, KeymapActions.ToggleLeft, 0, toggleRight, KeymapPlatform.Other, reassign: true);
         Require(moved.Applied && moved.Bindings.Chords(KeymapActions.ToggleRight, KeymapPlatform.Other).Count == 0 && moved.Bindings.Chords(KeymapActions.ToggleLeft, KeymapPlatform.Other)[0] == toggleRight, "Reassign moves the chord.");
         Require(KeyChord.TryParse("Ctrl+C", KeymapPlatform.Other, out var copy) && !Keymaps.Bind(bindings, KeymapActions.ToggleLeft, 0, copy, KeymapPlatform.Other).Applied &&
@@ -90,7 +90,7 @@ internal static class KeymapChecks
         Require(second.Applied && second.Bindings.Chords(KeymapActions.ToggleLeft, KeymapPlatform.Other).Count == 2, "An action takes a second chord.");
         var cleared = Keymaps.Bind(second.Bindings, KeymapActions.ToggleLeft, 0, null, KeymapPlatform.Other);
         Require(cleared.Applied && cleared.Bindings.Chords(KeymapActions.ToggleLeft, KeymapPlatform.Other).SequenceEqual([free]), "Clearing a slot drops that chord.");
-        Require(Keymaps.Reset(cleared.Bindings, bindings, KeymapActions.ToggleLeft, KeymapPlatform.Other).Chords(KeymapActions.ToggleLeft, KeymapPlatform.Other)[0].Text == "Mod+B", "Reset restores the source's chords.");
+        Require(Keymaps.Reset(cleared.Bindings, bindings, KeymapActions.ToggleLeft, KeymapPlatform.Other).Chords(KeymapActions.ToggleLeft, KeymapPlatform.Other)[0].Text == "Mod+1", "Reset restores the source's chords.");
 
         // Tolerance: unknown ids, spellings and top-level members survive an edit; malformed text is an empty preset.
         var newer = KeymapBindings.Parse("""{"version":7,"future":{"x":1},"bindings":{"FutureAction":["Hyper+Q"],"Settings":["Mod+Comma"]}}""");

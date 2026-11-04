@@ -1147,7 +1147,7 @@ internal static class LanguageChecks
             Require(!popup.IsOpen, "Escape did not dismiss usages.");
             window.Width = 800;
             view.Editor.SelectRange(3, 0);
-            view.Editor.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.F12 });
+            view.Editor.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.B, KeyModifiers = SharpRail.Plugins.UI.Kit.CommandKeys.Modifier });
             E2E.E2eWorkspace.Until(() => navigated is not null);
             Require(navigated is { Path: "code.ts", Column: 3 }, "Go to Declaration did not reach the workbench callback.");
             Console.WriteLine("PASS code-document diagnostics, IDEA navigation shortcuts, grouped usages, filtering and narrow popup sizing");

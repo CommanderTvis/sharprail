@@ -78,7 +78,7 @@ internal static class TerminalChromeChecks
         Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "TerminalSurface_" + name));
         var body = app.Find<Control>("TerminalSurface_" + name);
         var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
-        app.Window.KeyPress(Key.B, command, PhysicalKey.B, null); Settle();
+        app.Window.KeyPress(Key.D1, command, PhysicalKey.Digit1, null); Settle();
         var rail = app.Find<Border>("leftRail");
         Require(rail.IsVisible, "Hiding the left side must expose its drop rail.");
         var terminal = app.Find<Button>("Tab_" + name);

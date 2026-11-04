@@ -216,9 +216,9 @@ internal static class LayoutE2E
         using (var app = new E2eWorkspace(directory))
         {
             bottom = app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom");
-            app.Window.KeyPress(Key.B, command, PhysicalKey.B, null); Settle();
+            app.Window.KeyPress(Key.D1, command, PhysicalKey.Digit1, null); Settle();
             Require(!app.Window.Layout.State.LeftVisible && app.Find<Border>("leftRail").IsVisible,
-                "Mod+B must hide the left side and keep its rail.");
+                "Mod+1 must hide the left side and keep its rail.");
             app.Window.KeyPress(Key.J, command, PhysicalKey.J, null); Settle();
             Require(!app.Window.Layout.State.RightVisible && app.Find<Border>("rightRail").IsVisible &&
                 app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") == bottom, "Mod+J must hide the right side without changing the bottom.");
@@ -227,12 +227,12 @@ internal static class LayoutE2E
         {
             Require(!app.Window.Layout.State.LeftVisible && !app.Window.Layout.State.RightVisible && app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") == bottom,
                 "Hidden sides must survive window recreation.");
-            app.Window.KeyPress(Key.B, command, PhysicalKey.B, null);
+            app.Window.KeyPress(Key.D1, command, PhysicalKey.Digit1, null);
             app.Window.KeyPress(Key.J, command, PhysicalKey.J, null); Settle();
             Require(app.Window.Layout.State.LeftVisible && app.Window.Layout.State.RightVisible && app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") == bottom,
                 "The same shortcuts must restore both sides and preserve the bottom.");
         }
-        Console.WriteLine("PASS upstream layout.spec.ts: Mod+B and Mod+J hide and restore local sides without affecting bottom");
+        Console.WriteLine("PASS upstream layout.spec.ts: Mod+1 and Mod+J hide and restore local sides without affecting bottom");
     }
 
     private static void ZoomShortcuts(string root)

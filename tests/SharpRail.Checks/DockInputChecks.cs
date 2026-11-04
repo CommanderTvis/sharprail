@@ -101,15 +101,15 @@ internal static class DockInputChecks
         Pump(() => !window.Layout.Group(right[0].Id).Folded && Find<Grid>("GroupHeader_" + right[0].Id).IsFocused,
             "Unfolding through the rail must return focus to the pane.");
 
-        // Mod+B hides the left side onto its rail and brings it back with focus in the pane.
+        // Mod+1 hides the left side onto its rail and brings it back with focus in the pane.
         Find<Grid>("GroupHeader_" + window.Layout.State.Groups.Single(group => group.Region == "left").Id).Focus();
-        window.KeyPress(Key.B, command, PhysicalKey.B, null);
-        Pump(() => !window.Layout.State.LeftVisible && Find<Button>("Tab_projects").IsFocused, "Mod+B must hide the left side and focus its rail entry.");
-        window.KeyPress(Key.B, command, PhysicalKey.B, null);
+        window.KeyPress(Key.D1, command, PhysicalKey.Digit1, null);
+        Pump(() => !window.Layout.State.LeftVisible && Find<Button>("Tab_projects").IsFocused, "Mod+1 must hide the left side and focus its rail entry.");
+        window.KeyPress(Key.D1, command, PhysicalKey.Digit1, null);
         Pump(() => window.Layout.State.LeftVisible && Focus().GetFocusedElement() is Grid { Name: var name } && name!.StartsWith("GroupHeader_", StringComparison.Ordinal),
-            "Mod+B must show the left side again and focus its pane.");
+            "Mod+1 must show the left side again and focus its pane.");
 
-        // Project Home has its own Projects pane: the same rail entry and Hide, its own visibility, and Mod+B.
+        // Project Home has its own Projects pane: the same rail entry and Hide, its own visibility, and Mod+1.
         var home = window.OpenProjectHomeAsync(window.ProjectRoot);
         Pump(() => home.IsCompleted && window.AtProjectHome && window.GetLogicalDescendants().Any(item => item is Grid { Name: "HomeProjectsPane" }),
             "Project Home must show its own Projects pane.");
@@ -122,9 +122,9 @@ internal static class DockInputChecks
         Pump(() => !window.Layout.State.HomeProjectsVisible && !window.GetLogicalDescendants().Any(item => item is Grid { Name: "HomeProjectsPane" }) &&
             Find<Button>("Tab_projects").IsFocused && window.Layout.State.LeftVisible == leftVisible,
             "Hide must collapse Project Home's pane onto its rail without touching the workspace frame.");
-        window.KeyPress(Key.B, command, PhysicalKey.B, null);
-        Pump(() => window.Layout.State.HomeProjectsVisible && Find<Grid>("HomeProjectsHeader").IsFocused, "Mod+B must restore Project Home's pane and focus it.");
-        Console.WriteLine("PASS edge rails mirror panes, fold/unfold focus, unplaced tools, Mod+B and Project Home's Projects pane");
+        window.KeyPress(Key.D1, command, PhysicalKey.Digit1, null);
+        Pump(() => window.Layout.State.HomeProjectsVisible && Find<Grid>("HomeProjectsHeader").IsFocused, "Mod+1 must restore Project Home's pane and focus it.");
+        Console.WriteLine("PASS edge rails mirror panes, fold/unfold focus, unplaced tools, Mod+1 and Project Home's Projects pane");
     }
 
     internal static void Run(string root)

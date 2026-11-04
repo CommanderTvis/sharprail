@@ -217,7 +217,7 @@ A side tool pane shows a plain 32px header instead of a tab strip: the selected 
 a drag handle for that tool, then an add menu (hidden tools of that side, New terminal pane below) and Hide.
 Terminal and empty side panes keep their strip with Hide in place of the fold button. Hide folds the pane onto
 its rail and moves focus to its entry; unfolding from the rail returns focus to the pane. A folded pane's rail
-entry is its focus endpoint for Ctrl+F6. Mod+B hides or shows the left side the same way.
+entry is its focus endpoint for Ctrl+F6. Mod+1 hides or shows the left side the same way.
 
 On a rail, an entry's upper and lower halves insert before or after it in its pane (reorder, or join from
 anywhere), and each cluster boundary (rail start, between clusters, rail end) creates a pane at that index
@@ -237,7 +237,7 @@ stay allowed. Layouts that already hold such a tab elsewhere (saved or preset) a
 A window at a project's home (`home:` view) replaces the frame's left side and drops its bottom: its left
 rail holds one Projects entry, the pane beside Welcome shows the Projects tool under a plain header with Hide,
 and the left separator resizes it. Its visibility and width are `DockState.HomeProjectsVisible` and
-`HomeProjectsWidth`, independent of the frame's left side; Mod+B, the entry and Hide toggle it, and the side
+`HomeProjectsWidth`, independent of the frame's left side; Mod+1, the entry and Hide toggle it, and the side
 geometry reads them through `GeometryState`. The frame's right side and its rail stay, since the Specs tool
 works at Project Home (upstream shows no right rail there). Project Home places no initial terminal. Moving
 between Project Home and a workspace reparents the one Projects panel between the two hosts without

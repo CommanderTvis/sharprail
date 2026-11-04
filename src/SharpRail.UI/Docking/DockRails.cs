@@ -291,7 +291,7 @@ public sealed partial class DockSurface
         if (Session.ActivateEntry(groupId, tabId) || !shown) FocusGroup(groupId);
     }
 
-    /// <summary>Mod+B: shows or hides the left side, or Project Home's Projects pane, moving focus into what shows or onto its rail.</summary>
+    /// <summary>Mod+1: shows or hides the left side, or Project Home's Projects pane, moving focus into what shows or onto its rail.</summary>
     public void ToggleLeft()
     {
         if (Home)

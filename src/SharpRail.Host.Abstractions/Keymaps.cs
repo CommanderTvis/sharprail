@@ -256,7 +256,7 @@ public sealed class KeymapBindings
 
     // Action, IntelliJ macOS keymap, IntelliJ Default for Windows/Linux. Settings is Cmd+, on macOS (also the macOS convention) and Ctrl+Alt+S
     // elsewhere. Actions IntelliJ has no chord for keep the chord SharpRail already had; where IntelliJ's chord would collide with a terminal
-    // (Alt+1) or the desktop (Ctrl+Alt+Arrow) the existing chord stays.
+    // (Alt+1, so the Project panel is Ctrl+1) or the desktop (Ctrl+Alt+Arrow) the existing chord stays.
     private static readonly (string Id, string[] Mac, string[] Other)[] IntelliJTable =
     [
         (KeymapActions.OpenProject, ["Mod+O"], ["Mod+O"]),
@@ -264,7 +264,7 @@ public sealed class KeymapBindings
         (KeymapActions.SearchWorkspace, ["Mod+Shift+F"], ["Mod+Shift+F"]),
         (KeymapActions.NewWorkspace, ["Mod+N"], ["Mod+N"]),
         (KeymapActions.Settings, ["Mod+Comma"], ["Mod+Alt+S"]),
-        (KeymapActions.ToggleLeft, ["Mod+1"], ["Mod+B"]),
+        (KeymapActions.ToggleLeft, ["Mod+1"], ["Mod+1"]),
         (KeymapActions.ToggleRight, ["Mod+J"], ["Mod+J"]),
         (KeymapActions.ZoomIn, ["Mod+Plus"], ["Mod+Plus"]),
         (KeymapActions.ZoomOut, ["Mod+Minus"], ["Mod+Minus"]),
@@ -274,9 +274,9 @@ public sealed class KeymapBindings
         (KeymapActions.Forward, ["Mod+CloseBracket"], ["Alt+Right"]),
         (KeymapActions.UndoClose, ["Mod+Shift+T", "Mod+Z"], ["Mod+Shift+T", "Mod+Z"]),
         (KeymapActions.RedoClose, ["Mod+Shift+Z"], ["Mod+Shift+Z"]),
-        // Language: IntelliJ's chords. Go to Declaration keeps F12 where Ctrl+B is the panel toggle (one chord per action); Workspace Problems
+        // Language: IntelliJ's chords. Workspace Problems
         // (Alt+6) would reach terminals, so it and the server controls have no default.
-        (KeymapActions.GoToDeclaration, ["Mod+B", "F12"], ["F12"]),
+        (KeymapActions.GoToDeclaration, ["Mod+B", "F12"], ["Mod+B", "F12"]),
         (KeymapActions.GoToTypeDeclaration, ["Mod+Shift+B"], ["Mod+Shift+B"]),
         (KeymapActions.GoToImplementation, ["Mod+Alt+B"], ["Mod+Alt+B"]),
         (KeymapActions.FindUsages, ["Alt+F7", "Shift+F12"], ["Alt+F7", "Shift+F12"]),
@@ -328,8 +328,10 @@ public static class Keymaps
     {
         var chosen = Resolve(presets, active, platform, plugins);
         var builtin = KeymapBindings.IntelliJ(platform, plugins);
+        // A default must not steal a chord the preset itself binds (a preset saved before the default moved).
+        var taken = KeymapActions.With(plugins).Where(action => chosen.Has(action.Id)).SelectMany(action => chosen.Chords(action.Id, platform)).ToHashSet();
         return KeymapActions.With(plugins).ToDictionary(action => action.Id,
-            action => chosen.Has(action.Id) ? chosen.Chords(action.Id, platform) : builtin.Chords(action.Id, platform));
+            action => chosen.Has(action.Id) ? chosen.Chords(action.Id, platform) : builtin.Chords(action.Id, platform).Where(chord => !taken.Contains(chord)).ToList());
     }
 
     /// <summary>The chords the terminal (or the system) needs, which no action may take; the reason, or null.</summary>
