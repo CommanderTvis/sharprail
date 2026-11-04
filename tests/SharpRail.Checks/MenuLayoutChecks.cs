@@ -22,7 +22,8 @@ internal static class MenuLayoutChecks
         window.Show();
         var menu = new ContextMenu();
         menu.Items.Add(Ui.IconMenu("Close", () => { }, ActionIcon.Close));
-        menu.Items.Add(Ui.Menu("Copy absolute path", () => { }));
+        menu.Items.Add(Ui.IconMenu("Copy path", () => { }, ActionIcon.CopyPath));
+        menu.Items.Add(Ui.IconMenu("Copy absolute path", () => { }, ActionIcon.CopyAbsolutePath));
         menu.Items.Add(Ui.Menu("Close group", () => { }));
         var split = new MenuItem { Header = "Split" };
         split.Items.Add(Ui.Menu("Right", () => { }));
@@ -40,6 +41,10 @@ internal static class MenuLayoutChecks
         var icon = items[0].GetVisualDescendants().OfType<ContentControl>().First(part => part.Name == "PART_IconPresenter");
         var iconX = icon.TranslatePoint(default, menu)!.Value.X;
         Require(iconX >= menu.Padding.Left + items[0].Padding.Left - 0.5, $"Close icon starts at x={iconX:0.#}, outside the menu and row padding.");
+        var textX = items.Take(3).Select(item => item.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == (string)item.Header!)
+            .TranslatePoint(default, menu)!.Value.X).ToArray();
+        Require(items[1].Icon is not null && items[2].Icon is not null && textX.All(x => Math.Abs(x - textX[0]) < 0.5),
+            $"Copy path rows must carry icons and align their text with Close (x={string.Join(", ", textX.Select(x => x.ToString("0.#")))}).");
         var chevron = items[^1].GetVisualDescendants().OfType<Control>().First(part => part.Name == "PART_ChevronPath");
         var chevronRight = chevron.TranslatePoint(new Point(chevron.Bounds.Width, 0), menu)!.Value.X;
         Require(chevronRight <= menu.Bounds.Width - menu.Padding.Right, $"Split chevron ends at x={chevronRight:0.#}, past the menu's padded edge {menu.Bounds.Width - menu.Padding.Right:0.#}.");

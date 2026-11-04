@@ -662,9 +662,9 @@ public sealed partial class DockSurface
         {
             // Same labels as the Files tree: Copy path is workspace-relative, Copy absolute path is the host's path.
             var rooted = Path.IsPathRooted(tab.Path);
-            var copyRelative = Ui.Menu("Copy path", () => _ = CopyTextAsync(geometry, rooted ? Path.GetRelativePath(root, tab.Path) : tab.Path));
+            var copyRelative = Ui.IconMenu("Copy path", () => _ = CopyTextAsync(geometry, rooted ? Path.GetRelativePath(root, tab.Path) : tab.Path), ActionIcon.CopyPath);
             copyRelative.Name = "TabCopyRelativePath";
-            var copyAbsolute = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(geometry, rooted ? tab.Path : Path.Combine(root, tab.Path)));
+            var copyAbsolute = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(geometry, rooted ? tab.Path : Path.Combine(root, tab.Path)), ActionIcon.CopyAbsolutePath);
             copyAbsolute.Name = "TabCopyPath";
             menu.Items.Add(copyRelative);
             menu.Items.Add(copyAbsolute);
