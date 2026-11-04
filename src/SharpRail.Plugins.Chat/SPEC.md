@@ -79,6 +79,8 @@ record's `Attachments` stays null (reserved for path-only attachments later).
 
 ## Serving another agent protocol (ACP)
 
+The ACP plugin (`src/SharpRail.Plugins.Acp/SPEC.md`, Early support) implements this mapping; the gaps listed below are the ones it lives with.
+
 An ACP agent needs no view change: its plugin supplies a `ChatAgent` and a host half that serves `ChatContract` over the ACP connection
 (stdio JSON-RPC to the agent process). The mapping:
 

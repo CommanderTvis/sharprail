@@ -1,0 +1,61 @@
+<StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+            x:Class="SharpRail.Plugins.Acp.UI.AcpSettingsView" x:ClassModifier="internal"
+            Name="SettingsAcp" Spacing="16">
+  <StackPanel.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.detail">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+  </StackPanel.Styles>
+  <StackPanel Spacing="4">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="Agent Client Protocol" FontSize="15" FontWeight="SemiBold" />
+      <Border x:Name="AcpEarlyBadge" Background="{x:Static kit:Ui.WarningWash}" CornerRadius="8" Padding="8,0" VerticalAlignment="Center">
+        <TextBlock Text="Early support" FontSize="11" Foreground="{x:Static kit:Ui.Warning}" />
+      </Border>
+    </StackPanel>
+    <TextBlock Classes="detail" Text="Chat with any ACP agent in SharpRail's chat view. The agent is a program that runs on this machine, in the workspace folder, and is not sandboxed: only install agents you trust. Sign-in happens in the agent's own tool; SharpRail never asks for credentials." />
+  </StackPanel>
+  <StackPanel Spacing="8">
+    <TextBlock Classes="heading" Text="Your agents" />
+    <StackPanel x:Name="AcpAgents" Spacing="8" />
+  </StackPanel>
+  <StackPanel Spacing="6">
+    <TextBlock Classes="heading" Text="Add a custom agent" />
+    <TextBox x:Name="AcpName" PlaceholderText="Name" FontSize="12" AutomationProperties.Name="agent name" />
+    <TextBox x:Name="AcpCommand" PlaceholderText="Command, such as /usr/local/bin/my-agent" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="agent command" />
+    <TextBox x:Name="AcpArguments" PlaceholderText="Arguments, separated by spaces" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="agent arguments" />
+    <TextBox x:Name="AcpEnvironment" PlaceholderText="Environment, one NAME=value per line" AcceptsReturn="True" MinHeight="60" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="agent environment" />
+    <TextBox x:Name="AcpDirectory" PlaceholderText="Working directory (blank: the workspace)" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="agent directory" />
+    <Button x:Name="AcpAdd" Content="Add agent" HorizontalAlignment="Left" AutomationProperties.Name="add agent" />
+  </StackPanel>
+  <StackPanel Spacing="8">
+    <TextBlock Classes="heading" Text="Browse the ACP registry" />
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBox x:Name="AcpSearch" PlaceholderText="Search the registry" Width="260" FontSize="12" AutomationProperties.Name="search registry" />
+      <Button x:Name="AcpRefresh" Content="Refresh" AutomationProperties.Name="refresh registry" />
+    </StackPanel>
+    <TextBlock x:Name="AcpRegistryStatus" Classes="detail" />
+    <Border x:Name="AcpConfirm" IsVisible="False" Background="{x:Static kit:Ui.WarningWash}" CornerRadius="8" Padding="12">
+      <StackPanel Spacing="6">
+        <TextBlock x:Name="AcpConfirmTitle" FontWeight="SemiBold" />
+        <TextBlock x:Name="AcpConfirmBody" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button x:Name="AcpConfirmInstall" Content="Confirm and install" AutomationProperties.Name="confirm install" />
+          <Button x:Name="AcpConfirmCancel" Content="Cancel" AutomationProperties.Name="cancel install" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+    <StackPanel x:Name="AcpRegistryList" Spacing="8" />
+  </StackPanel>
+</StackPanel>

@@ -63,6 +63,8 @@ See [Terminal rendering](terminal.md) for how terminals draw.
 
 ## Agents and remote
 
+ACP agents (Early support): see "ACP agents" in `docs/agents.md`.
+
 - [Agents](agents.md) covers the agent panes, worktrees and environments.
 - In the Claude Code chat, a dynamic workflow or monitor is one card: its name, description, phases, status and result, with the script folded away. Its completion updates that card instead of adding a message.
 - [Remote hosts and clients](remote.md) covers working on a host from another desktop or [Android](android.md).

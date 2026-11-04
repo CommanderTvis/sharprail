@@ -322,9 +322,21 @@ internal static class AcpChecks
         Require(package is { Command: "npx", Version: "0.0.34" } && package.Args.SequenceEqual(["-y", "pi-acp@0.0.34"]), "An npx install becomes an entry that runs the pinned package.");
     }
 
+    // The settings page's plain-text forms for arguments and environment.
+    internal static void EntryText()
+    {
+        Require(AcpEntryText.SplitArguments("--flag \"two words\" 'x y' plain").SequenceEqual(["--flag", "two words", "x y", "plain"]), "Quotes keep a space inside one argument.");
+        var env = AcpEntryText.ParseEnvironment("A=1\n\nB=x=y\n=bad\n  C = 3 ");
+        Require(env.Count == 3 && env["A"] == "1" && env["B"] == "x=y" && env["C"] == " 3", "Environment lines are NAME=value; the value keeps everything after the first equals sign.");
+        Require(AcpEntryText.FormatEnvironment(env).Split('\n').Length == 3, "Environment round-trips to lines.");
+        Require(AcpEntryText.CommandLine(new AcpAgentEntry("x", "X", "/a b/agent") { Args = ["--c", "d e"] }) == "\"/a b/agent\" --c \"d e\"", "The shown command line quotes parts with spaces.");
+        Require(AcpEntryText.IdFor("My Agent!") == "custom-my-agent", "A custom agent gets a stable id from its name.");
+    }
+
     internal static async Task Run(string root)
     {
         Manifest();
+        EntryText();
         await Protocol();
         await Session();
         Directory.CreateDirectory(root);
