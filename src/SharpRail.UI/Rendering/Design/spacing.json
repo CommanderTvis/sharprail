@@ -11,7 +11,8 @@
     "LocationIconSlot": { "value": 16, "kind": "size", "reason": "the leading icon column of every header location field, so each caption and its first value element share one left edge" },
     "TreeIndent": { "value": 8, "kind": "step", "reason": "one tree nesting level" },
     "RowInset": { "value": 4, "kind": "step", "reason": "the content padding of a list row, equal on its left and right so the leading icon and the trailing counts sit the same distance from the pane edges" },
-    "ChipGap": { "value": 4, "kind": "step", "reason": "the space after a terminal chip and below its row, so chip rows share one grid" }
+    "ChipGap": { "value": 4, "kind": "step", "reason": "the space after a terminal chip and below its row, so chip rows share one grid" },
+    "CaretGap": { "value": 1, "kind": "size", "reason": "the space a text box's caret keeps from the character before it at the end of the text, drawn by every text box so none sits flush against its last character" }
   },
   "exceptions": [
     { "file": "Docking/DockGroups.cs", "value": "0, 0, 3, 0", "reason": "room for an italic preview title's glyph overhang inside the measured label box" },

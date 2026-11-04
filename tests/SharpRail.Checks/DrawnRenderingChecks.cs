@@ -21,11 +21,53 @@ internal static class DrawnRenderingChecks
         MarkdownChunks();
         MarkdownSelectionChecks.Run();
         Trees();
+        CaretGap();
     }
 
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
+    }
+
+    /// <summary>The columns of a rendered frame that differ from its corner pixel.</summary>
+    private static HashSet<int> InkColumns(Window window)
+    {
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        using var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("Text box did not render.");
+        using var stream = new MemoryStream();
+        frame.Save(stream, Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        stream.Position = 0;
+        using var pixels = SkiaSharp.SKBitmap.Decode(stream);
+        var back = pixels.GetPixel(pixels.Width / 2, pixels.Height / 2 - 20);
+        var columns = new HashSet<int>();
+        for (var x = 0; x < pixels.Width; x++)
+            for (var y = 4; y < 22; y++)
+            {
+                var pixel = pixels.GetPixel(x, y);
+                if (Math.Abs(pixel.Red - back.Red) + Math.Abs(pixel.Green - back.Green) + Math.Abs(pixel.Blue - back.Blue) > 30) { columns.Add(x); break; }
+            }
+        return columns;
+    }
+
+    /// <summary>A single-line text box draws its caret apart from the last character, not flush against it.</summary>
+    internal static void CaretGap()
+    {
+        var box = new TextBox { Text = "1", Width = 120, BorderThickness = new Thickness(0), Padding = new Thickness(8, 4), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left };
+        var window = new Window { Width = 160, Height = 60, Content = box, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            var glyph = InkColumns(window);
+            Require(glyph.Count > 0, "The text box renders its text.");
+            box.Focus(); box.CaretIndex = 1; box.SelectionStart = box.SelectionEnd = 1;
+            var focused = InkColumns(window);
+            var caret = focused.Except(glyph).Where(x => x >= glyph.Min()).ToList();
+            Require(caret.Count > 0, "A focused text box draws a caret.");
+            var gap = caret.Min() - glyph.Max() - 1;
+            Require(gap >= 3, $"The caret sits apart from the last character: gap={gap} px (glyph ends at {glyph.Max()}, caret at {caret.Min()}).");
+        }
+        finally { window.Close(); }
     }
 
     private static void Frame(Window window)

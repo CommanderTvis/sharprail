@@ -67,11 +67,12 @@ internal static class Program
             finally { Directory.Delete(root, true); }
             return;
         }
-        if (args.SequenceEqual(["--drawn-rendering"]) || args.SequenceEqual(["--drawn-trees"]))
+        if (args.SequenceEqual(["--drawn-rendering"]) || args.SequenceEqual(["--drawn-trees"]) || args.SequenceEqual(["--drawn-caret"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             if (args[0] == "--drawn-trees") DrawnRenderingChecks.Trees();
+            else if (args[0] == "--drawn-caret") DrawnRenderingChecks.CaretGap();
             else DrawnRenderingChecks.Run();
             return;
         }
