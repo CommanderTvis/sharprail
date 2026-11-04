@@ -38,8 +38,13 @@ public static class AcpContract
     public static readonly PluginMethod<AcpNoParams, AcpAgentList> Agents = new("agents");
     public static readonly PluginMethod<AcpAgentEntry, AcpAgentList> AddAgent = new("addAgent");
     public static readonly PluginMethod<AcpChooseParams, Ack> Choose = new("chooseAgent");
+    public static readonly PluginMethod<AcpRegistryParams, AcpRegistryView> Registry = new("registry");
+    /// <summary>What installing would download and run: shown to the user before <see cref="Install"/>.</summary>
+    public static readonly PluginMethod<AcpInstallPlanParams, AcpInstallPlan> InstallPlan = new("installPlan");
+    public static readonly PluginMethod<AcpInstallRequest, AcpAgentList> Install = new("install");
+    public static readonly PluginMethod<AcpChooseParams, AcpAgentList> RemoveAgent = new("removeAgent");
 
     /// <summary>The chat contract is shared with the other chat plugins: ACP serves its methods and its updates channel.</summary>
     public static readonly PluginContract Contract = PluginContract.Create<AcpSettings>(AcpManifest.Id, WireVersion,
-        [.. ChatContract.Methods, Agents, AddAgent, Choose], [ChatContract.Updates]);
+        [.. ChatContract.Methods, Agents, AddAgent, Choose, Registry, InstallPlan, Install, RemoveAgent], [ChatContract.Updates]);
 }

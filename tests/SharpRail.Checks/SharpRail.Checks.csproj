@@ -6,6 +6,7 @@
     <ProjectReference Include="../SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../../src/SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />
+    <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Avalonia.Headless" />
     <!-- The Android client builds only with the Android workload; its platform-free endpoint is checked here. -->
     <Compile Include="../../src/SharpRail.Android/EmbeddedTailscaleNetwork.cs" Link="Android/EmbeddedTailscaleNetwork.cs" />

@@ -231,6 +231,97 @@ internal static class AcpChecks
         Require(refused is { Code: AcpException.MethodNotFound }, "An unknown client method is answered as not found.");
     }
 
+    private static string FixtureText() => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "acp-registry.json"));
+
+    // The registry: the captured real JSON (trimmed), its cache with ETag revalidation and offline fallback, and the install confirmation.
+    internal static async Task Registry(string root)
+    {
+        const string mac = "darwin-aarch64";
+        Directory.CreateDirectory(root);
+        var fixture = AcpRegistry.Parse(FixtureText()) ?? throw new InvalidOperationException("acp: The captured registry does not parse.");
+        var view = AcpRegistry.View(fixture, "network", null, null, mac);
+        Require(view.SchemaVersion == "1.0.0" && view.Agents.Select(agent => agent.Id).SequenceEqual(["codex-acp", "fast-agent", "goose", "pi-acp"]), "The captured registry lists its agents by name.");
+        var goose = view.Agents.Single(agent => agent.Id == "goose");
+        Require(goose is { Kinds: ["binary"], Installable: true, Version: "1.57.0", License: "Apache-2.0" } && view.Agents.Single(agent => agent.Id == "pi-acp").Kinds.SequenceEqual(["npx"]) && view.Agents.Single(agent => agent.Id == "fast-agent").Kinds.SequenceEqual(["uvx"]), "Each agent shows its distribution kinds.");
+        Require(view.Agents.Single(agent => agent.Id == "pi-acp").Icon!.EndsWith("pi-acp.svg", StringComparison.Ordinal), "The registry's icon url is kept.");
+        Require(!AcpRegistry.View(fixture, "x", null, null, "plan9-riscv").Agents.Single(agent => agent.Id == "goose").Installable, "A binary-only agent is not installable on a platform it has no archive for.");
+
+        var npx = AcpRegistry.Plan(fixture, "pi-acp", null, mac)!;
+        Require(npx is { Kind: "npx", CommandLine: "npx -y pi-acp@0.0.34", Version: "0.0.34" }, "An npx plan shows the exact command that will run.");
+        var uvx = AcpRegistry.Plan(fixture, "fast-agent", null, mac)!;
+        Require(uvx.CommandLine == "uvx fast-agent-acp==0.10.1 -x", "A uvx plan shows its package pin and arguments.");
+        var binary = AcpRegistry.Plan(fixture, "goose", null, mac)!;
+        Require(binary is { Kind: "binary", Sha256.Length: 64, CommandLine: "./goose acp" } && binary.Source.EndsWith("goose-aarch64-apple-darwin.tar.bz2", StringComparison.Ordinal), "A binary plan shows the archive url, checksum and command.");
+        Require(AcpRegistry.Plan(fixture, "goose", null, "plan9-riscv") is null && AcpRegistry.Plan(fixture, "nope", null, mac) is null, "No plan for an agent or platform the registry does not have.");
+
+        // Cache: first run fetches, a fresh copy is not refetched, a refresh revalidates with the ETag, offline falls back to the copy.
+        var directory = Path.Combine(root, "registry-cache");
+        var calls = new List<(string? ETag, string? Modified)>();
+        var online = true;
+        var clock = DateTimeOffset.Parse("2026-11-04T12:00:00Z");
+        AcpFetch fetch = (url, etag, modified, _) =>
+        {
+            calls.Add((etag, modified));
+            if (!online) throw new HttpRequestException("no network");
+            return Task.FromResult(etag == "\"v1\"" ? new AcpFetchResult(304, null, etag, modified) : new AcpFetchResult(200, FixtureText(), "\"v1\"", "Wed, 04 Nov 2026 12:58:12 GMT"));
+        };
+        var cache = new AcpRegistryCache(directory, fetch, () => clock);
+        var (_, first) = await cache.LoadAsync(false, CancellationToken.None);
+        Require(first is { Source: "network", Note: null } && calls.Count == 1 && calls[0] == (null, null), "The first run fetches the registry without conditions.");
+        clock = clock.AddMinutes(1);
+        var (_, again) = await cache.LoadAsync(false, CancellationToken.None);
+        Require(again.Source == "cache" && calls.Count == 1, "A copy younger than the registry's cache lifetime is not fetched again.");
+        clock = clock.AddMinutes(10);
+        var (_, revalidated) = await cache.LoadAsync(false, CancellationToken.None);
+        Require(revalidated.Source == "network" && calls.Count == 2 && calls[1] == ("\"v1\"", "Wed, 04 Nov 2026 12:58:12 GMT"), "A stale copy is revalidated with If-None-Match and If-Modified-Since, and a 304 keeps it.");
+        online = false;
+        clock = clock.AddHours(1);
+        var (_, offline) = await cache.LoadAsync(false, CancellationToken.None);
+        Require(offline is { Source: "cache", Note: { } note } && note.Contains("earlier", StringComparison.Ordinal) && offline.Agents.Count == 4, "Offline, the cached copy is shown with a note.");
+        var (_, seeded) = await new AcpRegistryCache(Path.Combine(root, "registry-empty"), fetch, () => clock).LoadAsync(false, CancellationToken.None);
+        Require(seeded is { Source: "seed", Note: { } } && seeded.Agents.Count == 2, "With no copy and no network a built-in minimal list stands in, and says so.");
+        online = true;
+        var (_, garbage) = await new AcpRegistryCache(Path.Combine(root, "registry-bad"), (_, _, _, _) => Task.FromResult(new AcpFetchResult(200, "<html>captive portal</html>", null, null)), () => clock).LoadAsync(false, CancellationToken.None);
+        Require(garbage.Source == "seed", "An answer that is not a registry is never cached or shown.");
+
+        // Install: nothing happens without the confirmation of exactly this version; a bad checksum discards the download.
+        var downloads = new List<string>();
+        var archive = Path.Combine(root, "pkg.tar.gz");
+        var source = Path.Combine(root, "pkg");
+        Directory.CreateDirectory(source);
+        File.WriteAllText(Path.Combine(source, "goose"), "#!/bin/sh\nexit 0\n");
+        System.Formats.Tar.TarFile.CreateFromDirectory(source, Path.Combine(root, "pkg.tar"), false);
+        await using (var raw = File.OpenRead(Path.Combine(root, "pkg.tar")))
+        await using (var zipped = File.Create(archive))
+        await using (var gzip = new System.IO.Compression.GZipStream(zipped, System.IO.Compression.CompressionLevel.Fastest)) await raw.CopyToAsync(gzip);
+        var bytes = File.ReadAllBytes(archive);
+        var good = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+        var local = (JsonObject)fixture.DeepClone();
+        var target = (JsonObject)local["agents"]!.AsArray().OfType<JsonObject>().First(agent => agent["id"]!.GetValue<string>() == "goose")["distribution"]!["binary"]![mac]!;
+        target["archive"] = "https://example.invalid/goose.tar.gz";
+        target["sha256"] = good;
+        var installer = new AcpInstaller(Path.Combine(root, "agents"), (url, _) => { downloads.Add(url); return Task.FromResult(bytes); });
+
+        async Task<string> Try(AcpInstallRequest request)
+        {
+            try { await installer.InstallAsync(local, request, mac, CancellationToken.None); return ""; }
+            catch (InvalidOperationException error) { return error.Message; }
+        }
+
+        Require((await Try(new("goose", "binary", "1.57.0", false))).Contains("confirmation", StringComparison.Ordinal) && downloads.Count == 0, "Without a confirmation nothing is downloaded.");
+        Require((await Try(new("goose", "binary", "1.0.0", true))).Contains("review", StringComparison.Ordinal) && downloads.Count == 0, "A confirmation for another version than the registry offers installs nothing.");
+        target["sha256"] = new string('0', 64);
+        Require((await Try(new("goose", "binary", "1.57.0", true))).Contains("checksum", StringComparison.Ordinal) && !Directory.Exists(Path.Combine(root, "agents", "goose", "1.57.0")), "A download that fails its checksum is discarded and nothing is unpacked.");
+        target["sha256"] = good;
+        if (!OperatingSystem.IsWindows())
+        {
+            var entry = await installer.InstallAsync(local, new("goose", "binary", "1.57.0", true), mac, CancellationToken.None);
+            Require(entry is { Origin: "registry", Version: "1.57.0" } && File.Exists(entry.Command) && entry.Command.StartsWith(Path.Combine(root, "agents"), StringComparison.Ordinal) && entry.Args.SequenceEqual(["acp"]), "A confirmed, verified binary is unpacked under the agents directory and becomes an entry.");
+        }
+        var package = await installer.InstallAsync(local, new("pi-acp", "npx", "0.0.34", true), mac, CancellationToken.None);
+        Require(package is { Command: "npx", Version: "0.0.34" } && package.Args.SequenceEqual(["-y", "pi-acp@0.0.34"]), "An npx install becomes an entry that runs the pinned package.");
+    }
+
     internal static async Task Run(string root)
     {
         Manifest();
@@ -238,5 +329,6 @@ internal static class AcpChecks
         await Session();
         Directory.CreateDirectory(root);
         await ClientMethods(root);
+        await Registry(Path.Combine(root, "registry"));
     }
 }

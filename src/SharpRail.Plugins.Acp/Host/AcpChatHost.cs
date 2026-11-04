@@ -24,6 +24,26 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
     private readonly Lock recordsGate = new();
     private readonly Func<AcpAgentEntry, string, Task<IAcpTransport>> connect = connect ?? ((entry, cwd) => Launch(entry, cwd));
 
+    /// <summary>Where the registry copy and installed binaries live; ~/.sharprail/acp unless a check says otherwise.</summary>
+    public string DataDirectory { get; init; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail", "acp");
+    public AcpFetch Fetch { get; init; } = AcpRegistryCache.HttpFetch;
+    public Func<string, CancellationToken, Task<byte[]>> Download { get; init; } = AcpInstaller.HttpDownload;
+
+    private AcpRegistryCache Cache => new(Path.Combine(DataDirectory, "registry"), Fetch);
+
+    public async Task<AcpInstallPlan> PlanAsync(AcpInstallPlanParams p, CancellationToken cancellationToken)
+    {
+        var (root, _) = await Cache.LoadAsync(false, cancellationToken);
+        return AcpRegistry.Plan(root, p.AgentId, p.Kind, AcpRegistry.Platform()) ?? throw new InvalidOperationException("The registry has no such agent for this machine.");
+    }
+
+    public async Task<AcpAgentList> InstallAsync(AcpInstallRequest request, CancellationToken cancellationToken)
+    {
+        var (root, _) = await Cache.LoadAsync(false, cancellationToken);
+        var entry = await new AcpInstaller(Path.Combine(DataDirectory, "agents"), Download).InstallAsync(root, request, AcpRegistry.Platform(), cancellationToken);
+        return AddAgent(entry);
+    }
+
     private static async Task<IAcpTransport> Launch(AcpAgentEntry entry, string cwd) =>
         await ProcessAcpTransport.StartAsync(new AcpLaunch(entry.Command, entry.Args, entry.Env, entry.Cwd.Length > 0 ? entry.Cwd : cwd));
 
@@ -58,6 +78,17 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         }
     }
 
+    public AcpAgentList RemoveAgent(string id)
+    {
+        lock (recordsGate)
+        {
+            var all = context.ReadState<List<AcpAgentEntry>>(AgentsState, []);
+            all.RemoveAll(existing => existing.Id == id);
+            context.WriteState(AgentsState, all);
+            return new(all);
+        }
+    }
+
     private AcpChatSession Session(string workspaceId, string chatId) =>
         sessions.TryGetValue((workspaceId, chatId), out var session) ? session : throw new InvalidOperationException("Unknown chat: " + chatId);
 
@@ -74,6 +105,10 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
     {
         context.Method(AcpContract.Agents, (_, _, _) => ValueTask.FromResult(ListAgents()));
         context.Method(AcpContract.AddAgent, (p, _, _) => ValueTask.FromResult(AddAgent(p)));
+        context.Method(AcpContract.Registry, async (p, _, ct) => (await Cache.LoadAsync(p.Refresh, ct)).View);
+        context.Method(AcpContract.InstallPlan, async (p, _, ct) => await PlanAsync(p, ct));
+        context.Method(AcpContract.Install, async (p, _, ct) => await InstallAsync(p, ct));
+        context.Method(AcpContract.RemoveAgent, (p, _, _) => ValueTask.FromResult(RemoveAgent(p.AgentId)));
         context.Method(AcpContract.Choose, (p, _, _) =>
         {
             SaveRecord(p.WorkspaceId, p.ChatId, record => record with { AgentId = p.AgentId });
