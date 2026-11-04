@@ -85,7 +85,7 @@ public sealed class AirContextHost : PluginHostModule
                 return new ContextRuntime(installed.Installation, workspace, log, store.AuthorizeExecutionAsync);
             });
 
-            context.Prompt(new PromptContribution { Id = "tool-guidance", Title = "Air Context search", Description = "When to search the indexed project with Air Context's context tools.", Text = Guidance, WorkspaceText = workspace => Task.Run(async () => await EnabledAsync(workspace, default)).GetAwaiter().GetResult() ? EnabledNow : DisabledNow });
+            context.Prompt(new PromptContribution { Id = "tool-guidance", Title = "Air Context search", Description = "When to search the indexed project with Air Context's context tools.", Text = Guidance, WorkspaceText = workspace => EnabledInMemory(workspace) ? EnabledNow : DisabledNow });
             context.Method(AirContextContract.Consent, async (request, _, token) => await ConsentAsync(request, token));
             context.Method(AirContextContract.Workspace, async (call, _, token) => await WorkspaceAsync(call, token));
             context.Tool(new PluginTool<ContextSearchParams>("context_search", "context search",
@@ -160,8 +160,37 @@ public sealed class AirContextHost : PluginHostModule
         private static bool ValidPath(string value) => value.Length > 0 && !value.Contains('\0') && Path.IsPathFullyQualified(value);
 
         /// <summary>The project a workspace belongs to, or the workspace itself when no open project knows it.</summary>
-        private async ValueTask<string> ProjectAsync(string workspace, CancellationToken token) =>
-            await context.WorkspaceAsync(workspace, token) is { } known ? Path.TrimEndingDirectorySeparator(Path.GetFullPath(known.ProjectId)) : workspace;
+        private async ValueTask<string> ProjectAsync(string workspace, CancellationToken token)
+        {
+            if (await context.WorkspaceAsync(workspace, token) is not { } known) return workspace;
+            var project = Path.TrimEndingDirectorySeparator(Path.GetFullPath(known.ProjectId));
+            lock (gate) projectOf[workspace] = project;
+            return project;
+        }
+
+        private readonly Dictionary<string, string> projectOf = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Whether the workspace's project is enabled, from memory only: no git, no host round trip, so a prompt can ask it
+        /// synchronously. A workspace no lookup has resolved yet counts by its project's worktrees directory.
+        /// </summary>
+        private bool EnabledInMemory(string workspace)
+        {
+            if (!ValidPath(workspace)) return false;
+            workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace));
+            lock (gate)
+            {
+                if (enabled.Count == 0) return false;
+                if (enabled.Contains(workspace) || projectOf.TryGetValue(workspace, out var known) && enabled.Contains(known)) return true;
+            }
+            foreach (var project in context.Projects())
+            {
+                var worktrees = project.WorktreesDirectory;
+                if (worktrees.Length == 0 || !workspace.StartsWith(Path.TrimEndingDirectorySeparator(worktrees) + Path.DirectorySeparatorChar, StringComparison.Ordinal)) continue;
+                lock (gate) if (enabled.Contains(project.Id)) return true;
+            }
+            return false;
+        }
 
         /// <summary>Whether the workspace's project is enabled; a per-workspace record from before is promoted to its project here.</summary>
         private async ValueTask<bool> EnabledAsync(string workspace, CancellationToken token)

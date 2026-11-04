@@ -145,8 +145,10 @@ internal static partial class AirContextChecks
         var (project, feature, later, other) = (Dir("project"), Dir("worktrees/feature"), Dir("worktrees/later"), Dir("other"));
         var (created, otherCreated) = (Dir("worktrees/created"), Dir("other-worktrees/created"));
         var trees = new List<WorktreeInfo> { new(project, "main", true, false), new(feature, "feature", false, false) };
+        var listings = 0;
         Task<IReadOnlyList<WorktreeInfo>> Worktrees(string path, CancellationToken _)
         {
+            Interlocked.Increment(ref listings);
             lock (trees) return Task.FromResult<IReadOnlyList<WorktreeInfo>>(path == project ? [.. trees] : []);
         }
         using var handler = new Handler(_ => Task.FromResult("fixture"u8.ToArray()));
@@ -171,6 +173,11 @@ internal static partial class AirContextChecks
             Require((await rig.Workspace(project, "enable")).Enabled, "Enabling the Default workspace failed.");
             Require(Enabled(rig.StateDirectory).SequenceEqual([project]), "Enablement was not recorded for the project: " + string.Join(", ", Enabled(rig.StateDirectory)));
             Require((await rig.Workspace(feature)).Enabled, "An existing worktree of the enabled project is not enabled.");
+            // The session-start line is a synchronous lookup from memory: it lists no worktrees (no git) and does not wait.
+            var (before, clock) = (Volatile.Read(ref listings), System.Diagnostics.Stopwatch.StartNew());
+            var told = string.Concat(rig.Runtime.PromptTexts(SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.Id, SharpRail.Plugins.Api.Host.PromptPlacement.ToolList, feature));
+            Require(Volatile.Read(ref listings) == before && clock.ElapsedMilliseconds < 500 && told.Contains("Air Context is ENABLED for this project", StringComparison.Ordinal),
+                $"The prompt lookup listed worktrees ({Volatile.Read(ref listings) - before}) or took {clock.ElapsedMilliseconds} ms, or got the wrong answer.");
             lock (trees) trees.Add(new(later, "later", false, false));
             Require((await rig.Workspace(later)).Enabled, "A worktree created after enabling the project is not enabled.");
             var status = await rig.Tools(later).Single(tool => tool.Name == "context_status").Call(new(), default);
