@@ -9,7 +9,7 @@ using Avalonia.Threading;
 namespace SharpRail.UI.Rendering;
 
 /// <summary>
-/// Draws every text box's caret itself, one <see cref="LayoutRoles.CaretGap"/> clear of the character before it at the end of the text.
+/// Draws every text box's caret itself, <see cref="LayoutRoles.CaretGap"/> clear of the text's layout end (the advance, so a glyph's ink never reaches it; bearings only add) at the end of the text.
 /// Avalonia's presenter paints the caret flush against the last character and seals that drawing, so its own caret is made transparent
 /// and an overlay in the same scrolled panel draws the visible one. The text, selection and input method are the presenter's, untouched.
 /// </summary>
