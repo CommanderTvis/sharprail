@@ -22,6 +22,8 @@ public sealed partial class OverlayHost : UserControl
     private Action? undim;
     private IInputElement? restore;
     private TopLevel? top;
+    // A surface closed just before another opens (a confirmation after a question): focus is still on its way back, so the next remembers that.
+    private static IInputElement? returning;
 
     /// <summary>Dims the workbench behind the surface and returns the undo; unset leaves the scrim invisible.</summary>
     public Func<Action>? Dimmer { get; set; }
@@ -44,7 +46,7 @@ public sealed partial class OverlayHost : UserControl
     {
         Hide();
         this.close = close; this.fit = fit; content = surface;
-        restore = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+        restore = returning ?? TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
         undim = dimmed ? Dimmer?.Invoke() : null;
         presenter.HorizontalAlignment = fit is null ? Avalonia.Layout.HorizontalAlignment.Stretch : Avalonia.Layout.HorizontalAlignment.Center;
         presenter.VerticalAlignment = fit is null ? Avalonia.Layout.VerticalAlignment.Stretch : Avalonia.Layout.VerticalAlignment.Center;
@@ -66,7 +68,13 @@ public sealed partial class OverlayHost : UserControl
         IsVisible = false;
         undim?.Invoke(); undim = null;
         var back = restore as Control; restore = null;
-        if (back is not null) Dispatcher.UIThread.Post(() => { if (back.IsEffectivelyVisible && TopLevel.GetTopLevel(back) is not null) back.Focus(); }, DispatcherPriority.Input);
+        if (back is null) return;
+        returning = back;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (returning == back) returning = null;
+            if (back.IsEffectivelyVisible && TopLevel.GetTopLevel(back) is not null) back.Focus();
+        }, DispatcherPriority.Input);
     }
 
     // Focus that lands behind the surface (a shortcut, a click on the window chrome) is pulled back in.
