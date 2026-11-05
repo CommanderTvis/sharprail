@@ -1,7 +1,5 @@
 using System.Net.WebSockets;
 
-using ProtoBuf;
-
 namespace SharpRail.Host.Protocol;
 
 public enum RpcFrameKind { Open = 1, Data, End, Complete, Cancel, Credit, Ping, Pong }
@@ -18,6 +16,7 @@ public sealed class RpcFrame
     [ProtoMember(8)] public string Detail { get; set; } = "";
     [ProtoMember(9)] public bool Last { get; set; }
 }
+public delegate void RpcSink(ReadOnlySpan<byte> bytes);
 public static class RpcWire
 {
     public const string Subprotocol = "sharprail.rpc.v1";
@@ -27,27 +26,39 @@ public static class RpcWire
     public const int ConnectionBytes = 192 * 1024 * 1024;
     public const int MaxCalls = 64;
     public const int CallWindow = 16;
+    static RpcWire() => RpcCodec.Register();
     public static byte[] Encode<T>(T value)
     {
-        using var stream = new LimitedStream();
-        Serializer.Serialize(stream, value);
-        if (stream.Length > MessageBytes) throw new RpcException(new(StatusCode.ResourceExhausted, "RPC message exceeds the size limit."));
-        return stream.ToArray();
+        if (value is null) return [];
+        var writer = new ProtoWriter(MessageBytes);
+        Writer<T>()(writer, value);
+        return writer.ToArray();
     }
-    private sealed class LimitedStream : MemoryStream
+    /// <summary>The length <see cref="Encode"/> would return, without the size limit and without holding the bytes.</summary>
+    public static long Measure<T>(T value)
     {
-        private void Check(int count)
-        {
-            if (Position + count > MessageBytes) throw new RpcException(new(StatusCode.ResourceExhausted, "RPC message exceeds the size limit."));
-        }
-        public override void Write(byte[] buffer, int offset, int count) { Check(count); base.Write(buffer, offset, count); }
-        public override void Write(ReadOnlySpan<byte> buffer) { Check(buffer.Length); base.Write(buffer); }
-        public override void WriteByte(byte value) { Check(1); base.WriteByte(value); }
+        if (value is null) return 0;
+        var writer = ProtoWriter.Measuring();
+        Writer<T>()(writer, value);
+        return writer.Length;
     }
-    public static T Decode<T>(byte[] bytes)
+    /// <summary>Hands the bytes <see cref="Encode"/> would return to <paramref name="sink"/> in small chunks, without the size limit.</summary>
+    public static void WriteTo<T>(T value, RpcSink sink)
     {
-        using var stream = new MemoryStream(bytes, writable: false);
-        return Serializer.Deserialize<T>(stream);
+        if (value is null) return;
+        var write = Writer<T>();
+        var measuring = ProtoWriter.Measuring();
+        write(measuring, value);
+        var streaming = measuring.Streaming(sink);
+        write(streaming, value);
+        streaming.Flush();
+    }
+    private static Action<ProtoWriter, T> Writer<T>() => RpcMessage<T>.Write ?? throw new NotSupportedException($"{typeof(T)} is not an RPC message.");
+    public static T Decode<T>(ReadOnlySpan<byte> bytes)
+    {
+        var read = RpcMessage<T>.Read ?? throw new NotSupportedException($"{typeof(T)} is not an RPC message.");
+        var reader = new ProtoReader(bytes);
+        return read(ref reader);
     }
     public static async ValueTask<RpcFrame> Receive(WebSocket socket, CancellationToken token)
     {
@@ -58,7 +69,7 @@ public static class RpcWire
             var result = await socket.ReceiveAsync(bytes.AsMemory(length), token);
             if (result.MessageType != WebSocketMessageType.Binary) throw new IOException("The RPC connection closed or sent a nonbinary frame.");
             length += result.Count;
-            if (result.EndOfMessage) return Decode<RpcFrame>(bytes.AsSpan(0, length).ToArray());
+            if (result.EndOfMessage) return Decode<RpcFrame>(bytes.AsSpan(0, length));
             if (length == bytes.Length) throw new IOException("RPC frame exceeds the size limit.");
         }
     }

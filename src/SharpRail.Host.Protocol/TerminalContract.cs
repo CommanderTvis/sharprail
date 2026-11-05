@@ -1,5 +1,3 @@
-using ProtoBuf;
-
 namespace SharpRail.Host.Protocol;
 
 public enum TerminalInputKind { Attach = 0, Data = 1, Resize = 2, Kill = 3 }

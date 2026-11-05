@@ -103,7 +103,7 @@ included in the published app's Resources directory.
 
 Markdown parsing uses Markdig (BSD-2-Clause). The license texts of the shipped NuGet packages are in `licenses/`:
 Avalonia (Avalonia-MIT.txt), SkiaSharp and HarfBuzzSharp (SkiaSharp-MIT.txt, HarfBuzzSharp-MIT.txt), Svg.Skia,
-Markdig (Markdig-BSD-2-Clause.txt), protobuf-net (protobuf-net-Apache-2.0.txt), Avalonia.Angle on Windows
+Markdig (Markdig-BSD-2-Clause.txt), Avalonia.Angle on Windows
 (Avalonia.Angle-BSD-3-Clause.txt) and the rest in Other-MIT-Packages.txt.
 The spec dialect plugin parses YAML with YamlDotNet 18.1.0 (MIT);
 see licenses/YamlDotNet.txt.

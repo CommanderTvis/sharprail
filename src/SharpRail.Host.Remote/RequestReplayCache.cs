@@ -1,7 +1,5 @@
 using System.Security.Cryptography;
 
-using ProtoBuf;
-
 using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Remote;
@@ -27,22 +25,6 @@ public sealed class RequestReplayCache(IHostApplicationLifetime lifetime, int ma
         internal Dictionary<string, Entry> Requests { get; } = new(StringComparer.Ordinal);
         internal long Weight { get; set; }
         internal long Used { get; set; }
-    }
-
-    /// <summary>Counts a reply's serialized bytes without keeping them.</summary>
-    private sealed class Counter : Stream
-    {
-        private long length;
-        public override bool CanRead => false;
-        public override bool CanSeek => false;
-        public override bool CanWrite => true;
-        public override long Length => length;
-        public override long Position { get => length; set => throw new NotSupportedException(); }
-        public override void Flush() { }
-        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-        public override void SetLength(long value) => throw new NotSupportedException();
-        public override void Write(byte[] buffer, int offset, int count) => length += count;
     }
 
     private readonly Dictionary<string, Client> clients = new(StringComparer.Ordinal);
@@ -87,9 +69,7 @@ public sealed class RequestReplayCache(IHostApplicationLifetime lifetime, int ma
                     try
                     {
                         var value = await execute(lifetime.ApplicationStopping);
-                        var size = new Counter();
-                        Serializer.Serialize(size, value);
-                        weight = Math.Max(1, size.Length);
+                        weight = Math.Max(1, RpcWire.Measure(value));
                         return (object)value;
                     }
                     finally { Settle(client, entry, weight); }
@@ -103,9 +83,9 @@ public sealed class RequestReplayCache(IHostApplicationLifetime lifetime, int ma
 
     private static string Fingerprint<TRequest>(TRequest request)
     {
-        using var sha = SHA256.Create();
-        using (var hashing = new CryptoStream(Stream.Null, sha, CryptoStreamMode.Write)) Serializer.Serialize(hashing, request);
-        return Convert.ToHexString(sha.Hash!);
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        RpcWire.WriteTo(request, hash.AppendData);
+        return Convert.ToHexString(hash.GetHashAndReset());
     }
 
     private void Settle(Client client, Entry entry, long weight)

@@ -170,7 +170,7 @@ description = "Run the profiling harness (mise run perf -- self-test)"
 run = "sh performance/run.sh"
 
 [tasks.rpc]
-description = "Regenerate the typed RPC clients and dispatch from the host contracts"
+description = "Regenerate the typed RPC clients, dispatch and payload codec from the host contracts"
 run = "uv run --no-project python scripts/generate-rpc.py"
 
 [tasks.dev]

@@ -1,4 +1,4 @@
-"""Generate typed WebSocket clients and direct dispatch from the host contracts.
+"""Generate typed WebSocket clients, direct dispatch and the protobuf payload codec from the host contracts.
 Run with: uv run --no-project python scripts/generate-rpc.py
 """
 from pathlib import Path
@@ -55,3 +55,109 @@ server += '''            default: throw new RpcException(new(StatusCode.Unimplem
 '''
 (root / 'src/SharpRail.Host.Protocol/RpcServices.Generated.cs').write_text(client.rstrip())
 (root / 'src/SharpRail.Host.Remote/RpcDispatch.Generated.cs').write_text(server.rstrip())
+
+# The payload codec: one Write and one Read per [ProtoContract] class, byte-compatible with the
+# protobuf-net 2.4 encoding the protocol started with (see the Host.Protocol SPEC's codec section).
+protocol = root / 'src/SharpRail.Host.Protocol'
+sources = {path: path.read_text() for path in sorted(protocol.glob('*.cs')) if not path.name.endswith('.Generated.cs')}
+enums = {name for source in sources.values() for name in re.findall(r'public enum (\w+)', source)}
+member_pattern = re.compile(r'^\s*\[ProtoMember\((\d+)(, IsRequired = true)?\)(?:, System\.ComponentModel\.DefaultValue\(([^)]*)\))?\] '
+                            r'public (\S+(?:, \S+)?) (\w+) \{ get; set; \}(?: = [^;]+;)?$')
+messages = {}
+for path, source in sources.items():
+    found = re.findall(r'\[ProtoContract\]\npublic sealed class (\w+)(;| \{ \}|\n\{\n(.*?)\n\})', source, re.S)
+    if len(found) != source.count('[ProtoContract]'):
+        raise SystemExit(f'{path.name}: a [ProtoContract] is not directly followed by "public sealed class Name"')
+    parsed = 0
+    for name, _, body in found:
+        members = []
+        for line in body.splitlines():
+            if '[ProtoMember' not in line:
+                continue
+            match = member_pattern.match(line)
+            if not match:
+                raise SystemExit(f'{path.name}: unsupported member declaration: {line.strip()}')
+            tag, required, default, kind, member = match.groups()
+            members.append((int(tag), bool(required), default, kind, member))
+        if len({tag for tag, *_ in members}) != len(members):
+            raise SystemExit(f'{name}: duplicate field number')
+        messages[name] = sorted(members)
+        parsed += len(members)
+    if parsed != source.count('[ProtoMember'):
+        raise SystemExit(f'{path.name}: parsed {parsed} members of {source.count("[ProtoMember")}')
+
+def classify(kind):
+    bare = kind.removesuffix('?')
+    nullable = kind.endswith('?')
+    if bare in ('string', 'byte[]'):
+        return bare, None
+    if bare in ('int', 'long', 'bool'):
+        return ('nullable ' if nullable else '') + bare, None
+    if bare in enums and not nullable:
+        return 'enum', bare
+    if bare in messages:
+        return 'message', bare
+    item = re.fullmatch(r'List<(\w+)>', kind)
+    if item and item[1] == 'string':
+        return 'strings', None
+    if item and item[1] in messages:
+        return 'messages', item[1]
+    if kind == 'Dictionary<string, string>':
+        return 'map', None
+    raise SystemExit(f'unsupported wire type {kind}')
+
+writes = {'int': 'Int32', 'long': 'Int64', 'bool': 'Bool'}
+codec = header + '#nullable enable\n\nnamespace SharpRail.Host.Protocol;\n\ninternal static class RpcCodec\n{\n    internal static void Register()\n    {\n'
+for name in messages:
+    codec += f'        RpcMessage<{name}>.Write = Write{name};\n'
+    codec += f'        RpcMessage<{name}>.Read = static (ref ProtoReader reader) => Read{name}(ref reader, null);\n'
+codec += '    }\n'
+for name, members in messages.items():
+    write = f'\n    private static void Write{name}(ProtoWriter writer, {name} value)\n    {{\n'
+    read = f'\n    private static {name} Read{name}(ref ProtoReader reader, {name}? value)\n    {{\n        value ??= new();\n'
+    if not members:
+        write += '    }\n'
+        read += '        while (reader.Next()) reader.Skip();\n        return value;\n    }\n'
+        codec += write + read
+        continue
+    read += '        while (reader.Next())\n        {\n            switch (reader.Field)\n            {\n'
+    for tag, required, default, kind, member in members:
+        shape, target = classify(kind)
+        field, local = f'value.{member}', f'field{tag}'
+        if (required or default is not None) and shape not in ('int', 'long', 'bool'):
+            raise SystemExit(f'{name}.{member}: IsRequired and DefaultValue are only supported on int, long and bool')
+        if shape in ('int', 'long', 'bool'):
+            omitted = default if default is not None else 'false' if shape == 'bool' else '0'
+            condition = '' if required else f'if ({field}) ' if omitted == 'false' else f'if (!{field}) ' if omitted == 'true' else f'if ({field} != {omitted}) '
+            write += f'        {condition}writer.{writes[shape]}({tag}, {field});\n'
+            read += f'                case {tag}: {field} = reader.{writes[shape]}(); break;\n'
+        elif shape.startswith('nullable '):
+            method = writes[shape.removeprefix('nullable ')]
+            write += f'        if ({field} is {{ }} {local}) writer.{method}({tag}, {local});\n'
+            read += f'                case {tag}: {field} = reader.{method}(); break;\n'
+        elif shape == 'enum':
+            write += f'        if ({field} != 0) writer.Int32({tag}, (int){field});\n'
+            read += f'                case {tag}: {field} = ({target})reader.Int32(); break;\n'
+        elif shape == 'string':
+            write += f'        if ({field} is {{ }} {local}) writer.String({tag}, {local});\n'
+            read += f'                case {tag}: {field} = reader.String(); break;\n'
+        elif shape == 'byte[]':
+            write += f'        if ({field} is {{ }} {local}) writer.Bytes({tag}, {local});\n'
+            read += f'                case {tag}: {field} = reader.Bytes({field}); break;\n'
+        elif shape == 'message':
+            write += f'        if ({field} is {{ }} {local})\n        {{\n            var start = writer.BeginMessage({tag});\n            Write{target}(writer, {local});\n            writer.EndMessage(start);\n        }}\n'
+            read += f'                case {tag}:\n                {{\n                    var outer = reader.Enter();\n                    {field} = Read{target}(ref reader, {field});\n                    reader.Leave(outer);\n                    break;\n                }}\n'
+        elif shape == 'strings':
+            write += f'        if ({field} is {{ }} {local})\n            foreach (var item in {local}) writer.String({tag}, item ?? throw new ArgumentNullException(nameof(value), "A repeated RPC string is null."));\n'
+            read += f'                case {tag}: ({field} ??= new()).Add(reader.String()); break;\n'
+        elif shape == 'messages':
+            write += f'        if ({field} is {{ }} {local})\n            foreach (var item in {local})\n            {{\n                var start = writer.BeginMessage({tag});\n                if (item is not null) Write{target}(writer, item);\n                writer.EndMessage(start);\n            }}\n'
+            read += f'                case {tag}:\n                {{\n                    var outer = reader.Enter();\n                    ({field} ??= new()).Add(Read{target}(ref reader, null));\n                    reader.Leave(outer);\n                    break;\n                }}\n'
+        else:
+            write += f'        if ({field} is {{ }} {local})\n            foreach (var (key, item) in {local})\n            {{\n                var start = writer.BeginMessage({tag});\n                if (key.Length > 0) writer.String(1, key);\n                if (!string.IsNullOrEmpty(item)) writer.String(2, item);\n                writer.EndMessage(start);\n            }}\n'
+            read += f'                case {tag}:\n                {{\n                    var (key, item) = reader.StringEntry();\n                    ({field} ??= new())[key] = item;\n                    break;\n                }}\n'
+    write += '    }\n'
+    read += '                default: reader.Skip(); break;\n            }\n        }\n        return value;\n    }\n'
+    codec += write + read
+codec += '}\n'
+(protocol / 'RpcCodec.Generated.cs').write_text(codec.rstrip())

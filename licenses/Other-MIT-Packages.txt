@@ -29,6 +29,5 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTI
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Svg.Custom 5.2.3 is licensed under the Microsoft Public License: see MS-PL.txt.
-protobuf-net 2.4.8 is licensed under Apache-2.0: see protobuf-net-Apache-2.0.txt and Apache-2.0.txt.
 Markdig 1.4.0 is licensed under BSD-2-Clause: see Markdig-BSD-2-Clause.txt.
 Avalonia.Angle.Windows.Natives (Windows only) is under BSD-3-Clause: see Avalonia.Angle-BSD-3-Clause.txt.

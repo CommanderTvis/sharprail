@@ -291,7 +291,7 @@ public sealed class RpcStream : IAsyncDisposable
                 throw Cancelled();
             }
             T value;
-            try { value = ProtoBuf.Serializer.Deserialize<T>(bytes); }
+            try { value = RpcWire.Decode<T>(bytes.GetBuffer().AsSpan(0, (int)bytes.Length)); }
             finally { peer.Release(bytes.Capacity); bytes.Dispose(); }
             yield return value;
             if (!completed)

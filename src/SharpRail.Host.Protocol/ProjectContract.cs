@@ -1,5 +1,3 @@
-using ProtoBuf;
-
 namespace SharpRail.Host.Protocol;
 
 [ProtoContract]

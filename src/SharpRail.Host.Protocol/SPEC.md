@@ -20,7 +20,8 @@ project: local adapters call Core directly, with no serialization.
   serialized projection. Client and Remote adapters map between the two, and both
   directions must stay consistent with the public abstraction. A DTO is never
   exposed to the UI.
-- Allowed deps: protobuf-net and the .NET WebSocket/channel APIs.
+- Allowed deps: the .NET WebSocket/channel APIs. No serializer package: the payload codec is generated
+  (see Payload codec).
 - Forbidden: any reference to Core, Remote, Client, the UI or Avalonia. Contracts
   describe host behavior and compatibility, never the launcher or deployment
   that supplies it.
@@ -81,8 +82,9 @@ project: local adapters call Core directly, with no serialization.
 
 ## Decisions
 
-- Code-first contracts rather than `.proto` files: C# interfaces are the schema,
-  shared by the server and the client proxies, so there is no generation step.
+- Code-first contracts rather than `.proto` files: C# interfaces and `[ProtoContract]` classes are the
+  schema, shared by the server and the client proxies, so there is no `.proto` compilation;
+  `scripts/generate-rpc.py` derives the clients, the dispatch table and the payload codec from them.
 - RPC adapters implement these interfaces directly, so missing or mistyped methods fail compilation;
   no separate string-keyed method registry needs synchronization with the wire contract.
 - Snapshots, not deltas. Every state reply and broadcast is the complete
@@ -143,6 +145,9 @@ project: local adapters call Core directly, with no serialization.
 
 - Adding a field means a new `ProtoMember` number; numbers are never reused or
   renumbered, and defaults must read as the old behavior for an older peer.
+- After any contract change, `scripts/mise run rpc` regenerates the codec, and `--rpc-codec --update`
+  refreshes the golden records the change made stale. Records of unchanged types keep protobuf-net's
+  bytes, so the check keeps proving compatibility with peers built before the codec was replaced.
 - Wire data is untrusted: the host validates roots, paths and state changes; a
   client validates nothing it could not also receive from a peer of another
   version.
@@ -191,6 +196,57 @@ calls as Unavailable; subscriptions reconnect through their owners and mutations
 Domain error metadata survives the transport. The backing buffers belong to their call and are released
 on consumption, completion or cancellation. Network clients and servers must both support this wire
 protocol; the old HTTP/2 gRPC wire format is not accepted.
+
+### Payload codec
+
+Messages are protobuf, encoded and decoded by `RpcCodec.Generated.cs`: one write and one read method per
+`[ProtoContract]` class, emitted by `scripts/generate-rpc.py` and registered once per message type, with
+the hand-written wire primitives in `ProtoWire.cs`. It replaced protobuf-net 2.4.8, whose runtime type
+model compiles serializers with dynamic code and reflection (Reflection.Emit, `MakeGenericType`,
+`Activator`, `Type.GetType`). That cannot run under NativeAOT, which the host, the remote host and the
+desktop app are moving to, and would fail on the first RPC frame. The generated codec uses neither
+reflection nor dynamic code, so it also suits the Browser (WebAssembly) and Android builds that share
+this project. A NativeAOT publish of these sources reports no trim or AOT warnings.
+
+Besides encoding a message into one array under the message limit, the codec can measure a message's
+encoded length, or hand its exact bytes to a sink in small chunks. Both work without the limit and
+without holding the message: measuring counts and records each sub-message's length, and streaming
+writes the value a second time with those lengths known. The remote host's replay cache fingerprints
+and weighs requests and replies this way, because a replayed upload may approach the message limit
+and holding a second copy of it would bypass the connection's byte budget.
+
+The encoding is byte-compatible with protobuf-net 2.4.8, because a remote host and the app ship
+independently. The protocol version and the `sharprail.rpc.v1` subprotocol stayed the same. The
+`[ProtoContract]` and `[ProtoMember]` attributes are now this project's own and remain the schema. These
+are the rules the generator follows; all of them were observed from protobuf-net:
+
+- Fields are written in ascending field number, whatever the declaration order. Integers, booleans
+  and enums are varints. A negative `int` or enum takes the ten-byte sign-extended form.
+- Strings and byte arrays are written whenever they are non-null, including when empty. A null is
+  omitted. Integers, booleans and enums are omitted at zero or false. `IsRequired` members are always
+  written, and a `DefaultValue` member is omitted when it equals that default. A nullable scalar is
+  written whenever it has a value. A missing field leaves the constructor's initializer in place.
+- A nested message is written whenever it is non-null, even when empty. Repeated messages and strings
+  repeat their field. A null element of a message list is written as an empty message, and a null
+  element of a string list refuses to encode.
+- A `Dictionary<string, string>` is a repeated entry message (key 1, value 2). An empty key or value
+  inside an entry is omitted, and a missing one reads as empty. A repeated key keeps the last value.
+- On read: unknown fields of every wire type, groups included, are skipped. A scalar that repeats keeps
+  its last value, a repeated nested message merges, a list appends, and repeated byte arrays
+  concatenate. Undefined enum values pass through. Integers also accept the fixed32 and fixed64 wire
+  types. Sub-messages may arrive length-delimited or as groups. Malformed input fails the call: a
+  truncated field, a varint too large for its member, a boolean other than 0 or 1, a mismatched wire
+  type for a string, bytes, message or list, field number 0, or an unbalanced group.
+
+The `--rpc-codec` check holds the proof (`tests/SharpRail.Checks/Fixtures/rpc-codec/golden.jsonl`). The
+golden records were captured from protobuf-net 2.4.8 before it was removed, for every contract type: the
+default instance, every member set, zeros and empties, and negatives with nulls. Each record also has
+size-boundary and edge samples and hand-built decode-only inputs. A record holds the sample as JSON,
+protobuf-net's bytes for it, what protobuf-net decoded from those bytes (or that it refused), and its
+re-encoding of that decode. The check requires the generated codec to reproduce each of these exactly.
+It also requires every contract type to round-trip built samples, including one whose strings and byte
+arrays span several streaming chunks, with measuring and streaming agreeing with the encoded bytes, and
+every service method to carry only contract types.
 
 Client file transfers carry relative entry names, directory flags and raw byte arrays in a bounded
 unary upload. An optional folder distinguishes workspace imports from private attachments; replies

@@ -31,8 +31,7 @@ The platform choice belongs to Core's process backend, not to the wire protocol.
   Listener shutdown allows five seconds for connections to drain, then aborts remaining transport calls.
   Embedded listeners resolve configuration from the executable directory without file reload watchers;
   the current workspace's appsettings files do not configure or delay serving.
-- Allowed deps: Core, Protocol, Abstractions, ASP.NET Core/Kestrel,
-  protobuf-net.
+- Allowed deps: Core, Protocol, Abstractions, ASP.NET Core/Kestrel.
 - Forbidden: the UI or Avalonia; product behavior in the adapters. An RPC
   method maps DTOs to and from Core calls and translates expected failures to
   status codes, nothing more; behavior lives in Core so local and remote paths
@@ -100,7 +99,9 @@ dependencies from such a call.
   `x-sharprail-client` and `x-sharprail-request` runs once per pair, detached from the call so a dropped
   connection cannot abandon it half done (it ends with the host instead); a replay of the pair awaits and
   returns the same outcome, success or failure. The request's method and serialized bytes are its
-  fingerprint: an id reused with another payload is `InvalidArgument`. Each call's `x-sharprail-resume`
+  fingerprint: an id reused with another payload is `InvalidArgument`. The bytes are hashed and replies
+  weighed as the codec streams or measures them, never held whole, so a replayed upload costs no second
+  copy outside the connection's byte budget. Each call's `x-sharprail-resume`
   names the client's still-unresolved ids and every other settled result is released. A client may hold
   512 requests (`ResourceExhausted` beyond) and 16 MiB of serialized replies; a reply over that budget is
   not kept and a replay of it is `FailedPrecondition`, never a second run. At most 64 clients are
