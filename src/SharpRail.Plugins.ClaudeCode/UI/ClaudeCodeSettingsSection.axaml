@@ -30,7 +30,7 @@
     <StackPanel Spacing="4">
       <TextBlock Classes="heading" Text="Presentation" />
       <ComboBox x:Name="ClaudeMode" HorizontalAlignment="Stretch" AutomationProperties.Name="Claude Code presentation" />
-      <TextBlock Text="Terminal runs Claude Code's own interface in a terminal tab. Chat drives it headless and shows the conversation in an editor tab; presets a chat cannot honour, such as teleport and custom arguments, still start the terminal." />
+      <TextBlock Text="Chat shows the conversation in an editor tab. Teleport and custom arguments always use a terminal." />
     </StackPanel>
     <StackPanel Spacing="4">
       <TextBlock Classes="heading" Text="Default effort" />
