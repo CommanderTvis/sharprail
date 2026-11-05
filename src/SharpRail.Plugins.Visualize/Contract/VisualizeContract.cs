@@ -13,8 +13,8 @@ namespace SharpRail.Plugins.Visualize;
 public sealed record TerminalVisualization(string Title, JsonElement Args, int Revision)
 {
     /// <summary>
-    /// Whether the caller was no live terminal (a chat's child, for one): the UI half shows such a drawing in a document
-    /// tab of its own instead of beside a terminal. A drawing adopted by a terminal is never detached.
+    /// Whether the caller was neither a live terminal nor an open companion-hosting tab (a chat's child whose tab is closed, for one): the UI half shows such a drawing in a document
+    /// tab of its own instead of beside its tab. A drawing adopted by a terminal is never detached.
     /// </summary>
     public bool Detached { get; init; }
 }
@@ -38,6 +38,9 @@ public sealed record SelectionReport(string WorkspaceId, string TabKey, int Revi
     public string? Text { get; init; }
 }
 
+/// <summary>A chat tab (a document that hosts companions) opened or closed: while one is open its key gets a pane, not a tab.</summary>
+public sealed record HostingReport(string WorkspaceId, string TabKey, bool Present);
+
 public sealed record Ack(bool Ok);
 
 public static class VisualizeContract
@@ -47,9 +50,10 @@ public static class VisualizeContract
     public static readonly PluginMethod<RenderReport, Ack> Report = new("report");
     public static readonly PluginMethod<VisualizationsQuery, VisualizationsChanged> Get = new("get");
     public static readonly PluginMethod<SelectionReport, Ack> Select = new("select");
+    public static readonly PluginMethod<HostingReport, Ack> Hosting = new("hosting");
     public static readonly PluginChannel<VisualizationsChanged> Changed = PluginChannel<VisualizationsChanged>.State("changed", Get, "workspaceId");
 
-    public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Report, Get, Select], [Changed]);
+    public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Report, Get, Select, Hosting], [Changed]);
 
     public static readonly PluginManifest Manifest = new(Id, "Visualize", "bar-chart-box-line", "0.1.0", PluginApi.Generation, 1)
     {

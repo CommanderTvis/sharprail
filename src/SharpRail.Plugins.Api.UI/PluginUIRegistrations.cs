@@ -54,6 +54,12 @@ public sealed record PluginDocumentRegistration(string Scheme, Func<PluginDocume
     /// taken it, so the plugin can keep the name where it keeps the document; the tab shows the name even if the call throws.
     /// </summary>
     public Action<PluginDocumentProps, string>? Rename { get; init; }
+
+    /// <summary>
+    /// When true, the document's body is also a companion host (W6): companions registered for terminals are offered beside
+    /// it in an embedded split, keyed by the workspace and the document's id (<see cref="CompanionHost.TabKey"/>).
+    /// </summary>
+    public bool HostsCompanions { get; init; }
 }
 
 /// <summary>Registers a section in Settings (W4).</summary>
@@ -95,6 +101,12 @@ public sealed record CompanionRegistration(string Kind, string Title, string Ico
 {
     /// <summary>A per-instance title, such as a document's heading; <see langword="null"/> falls back to <see cref="Title"/>. Re-evaluated on <see cref="IPluginUIContext.Invalidate"/>.</summary>
     public Func<CompanionHost, string?>? InstanceTitle { get; init; }
+
+    /// <summary>
+    /// Called on the UI thread when a document that hosts companions (<see cref="PluginDocumentRegistration.HostsCompanions"/>) mounts
+    /// (<see langword="true"/>) or its tab goes away (<see langword="false"/>). Terminals are not reported.
+    /// </summary>
+    public Action<CompanionHost, bool>? HostChanged { get; init; }
 }
 
 /// <summary>The icon or adornment a tab decorator returns for one tab (W8).</summary>

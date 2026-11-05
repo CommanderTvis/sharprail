@@ -19,7 +19,7 @@ public sealed class VisualizeHost : PluginHostModule
             payload => context.Publish(VisualizeContract.Changed, payload),
             (workspaceId, tabKey) => context.AgentRecord(new TerminalRef(workspaceId, tabKey))?.SessionId,
             new Persistence(context),
-            // A chat's child holds a token but runs no terminal: its drawings open as a tab of their own.
+            // A chat's child holds a token but runs no terminal: its drawings open as a tab of their own unless its chat tab hosts a pane.
             (workspaceId, tabKey) => context.Terminals().Any(item => item.Terminal.WorkspaceId == workspaceId && item.Terminal.TabKey == tabKey));
 
         context.Method(VisualizeContract.Report, (report, _, _) =>
@@ -30,6 +30,11 @@ public sealed class VisualizeHost : PluginHostModule
         context.Method(VisualizeContract.Select, (report, _, _) =>
         {
             Store.ReportSelection(report.WorkspaceId, report.TabKey, report.Revision, report.Text);
+            return ValueTask.FromResult(new Ack(true));
+        });
+        context.Method(VisualizeContract.Hosting, (report, _, _) =>
+        {
+            Store.SetHosting(report.WorkspaceId, report.TabKey, report.Present);
             return ValueTask.FromResult(new Ack(true));
         });
         context.Method(VisualizeContract.Get, (query, _, _) => ValueTask.FromResult(Store.ForWorkspace(query.WorkspaceId)));

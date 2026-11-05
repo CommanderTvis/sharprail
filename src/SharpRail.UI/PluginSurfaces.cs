@@ -69,7 +69,10 @@ public sealed partial class WorkbenchWindow
                 preview.RefreshSpecLinks();
         if ((tables & (PluginTables.TerminalAccessories | PluginTables.Companions)) != 0)
             foreach (var control in documentContent.Values.ToArray())
+            {
                 if (control is Terminal.TerminalView terminal) AttachPluginTerminal(terminal);
+                else if (control is CompanionDocument document) AttachCompanionDocument(document);
+            }
     }
 
     // The composed catalog: core's tools stay owned by the layout; plugin tools follow the roster, withheld without Git when they need it.
@@ -364,6 +367,7 @@ public sealed partial class WorkbenchWindow
             pluginDocuments.Remove(key);
             try { registration.Closed?.Invoke(props); }
             catch (Exception error) { Console.Error.WriteLine($"Plugin document {registration.Scheme} failed to close: {error.Message}"); }
+            if (registration.HostsCompanions) NotifyCompanionHost(new CompanionHost(props.WorkspaceId, props.Id), false);
         }
     }
 
@@ -375,9 +379,73 @@ public sealed partial class WorkbenchWindow
         if (Plugins.Document(scheme) is not { } owner) return Ui.Text($"This document needs the plugin that owns \"{scheme}\".", Ui.Muted, 12);
         var props = new PluginDocumentProps(workspaceRoot, split < 0 ? "" : tab.Path[(split + 1)..], tab.Title);
         var content = Mount(owner.PluginId, () => owner.Value.Create(props));
-        documentContent[key] = content;
         pluginDocuments[key] = (owner.Value, props);
+        if (owner.Value.HostsCompanions)
+        {
+            var hostRef = new CompanionHost(props.WorkspaceId, props.Id);
+            var document = new CompanionDocument(owner.PluginId, hostRef, content);
+            documentContent[key] = document;
+            NotifyCompanionHost(hostRef, true);
+            AttachCompanionDocument(document);
+            return document;
+        }
+        documentContent[key] = content;
         return content;
+    }
+
+    // Companions learn that a document can host them (a chat tab opened or closed); terminals are never reported.
+    private void NotifyCompanionHost(CompanionHost host, bool present)
+    {
+        foreach (var companion in Plugins.Companions)
+        {
+            if (companion.Value.HostChanged is not { } changed) continue;
+            try { changed(host, present); }
+            catch (Exception error) { Console.Error.WriteLine("Plugin companion host notice failed: " + error.Message); }
+        }
+    }
+
+    /// <summary>Whether a tab of this window is a document that hosts companions with this workspace and id.</summary>
+    internal bool HoldsCompanionDocument(CompanionHost host) =>
+        Layout.State.Workspaces.GetValueOrDefault(host.WorkspaceId)?.Documents.Values.SelectMany(tabs => tabs)
+            .Any(tab => tab.Kind == PluginDocumentKind && PluginDocumentOwner(tab) is { Value.HostsCompanions: true } && tab.Path.EndsWith(":" + host.TabKey, StringComparison.Ordinal)) == true;
+
+    private void AttachCompanionDocument(CompanionDocument document)
+    {
+        var hostRef = document.Host;
+        foreach (var child in document.Accessories.Children.ToArray()) document.Accessories.Children.Remove(child);
+        var available = Plugins.Companions.Where(row => Safely(() => row.Value.IsAvailable(hostRef))).ToArray();
+        if (available.Length > 0)
+        {
+            var bar = new StackPanel { Name = "DocumentCompanions", Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0) };
+            foreach (var companion in available)
+            {
+                var title = (companion.Value.InstanceTitle is { } instance ? Safely(() => instance(hostRef)) : null) ?? companion.Value.Title;
+                var button = Chips.Button("DocumentCompanion_" + companion.PluginId + "_" + companion.Value.Kind, Chips.Label(title), title,
+                    () => ToggleCompanion(document, companion.PluginId, companion.Value.Kind));
+                button.Margin = Chips.Gap;
+                bar.Children.Add(button);
+            }
+            document.Accessories.Children.Add(bar);
+        }
+        var open = slot.Companions.GetValueOrDefault(hostRef.WorkspaceId + "\n" + hostRef.TabKey);
+        var shown = open is null ? null : available.FirstOrDefault(row => row.PluginId + ":" + row.Value.Kind == open);
+        if (shown is null) document.Companion = null;
+        else if (!Equals((document.Companion as CompanionPane)?.Tag, shown))
+        {
+            var pane = new CompanionPane(Mount(shown.PluginId, () => shown.Value.Create(hostRef)),
+                () => ToggleCompanion(document, shown.PluginId, shown.Value.Kind));
+            pane.Tag = shown;
+            document.Companion = pane;
+        }
+    }
+
+    private void ToggleCompanion(CompanionDocument document, string pluginId, string kind)
+    {
+        var key = document.Host.WorkspaceId + "\n" + document.Host.TabKey;
+        if (slot.Companions.GetValueOrDefault(key) == pluginId + ":" + kind) slot.Companions.Remove(key);
+        else slot.Companions[key] = pluginId + ":" + kind;
+        SaveProfile();
+        AttachCompanionDocument(document);
     }
 
     private void RefreshViewers()
@@ -457,6 +525,11 @@ public sealed partial class WorkbenchWindow
         if (documentContent.GetValueOrDefault(companionHost.WorkspaceId + ":" + companionHost.TabKey) is Terminal.TerminalView terminal)
         {
             AttachPluginTerminal(terminal);
+        }
+        else if (documentContent.FirstOrDefault(pair => pair.Value is CompanionDocument held && held.Host == companionHost) is { Value: CompanionDocument document, Key: var documentKey })
+        {
+            NoteTabActivity(companionHost.WorkspaceId, documentKey[(companionHost.WorkspaceId.Length + 1)..]);
+            AttachCompanionDocument(document);
         }
     }
 

@@ -169,6 +169,11 @@ and roster registration still precede reconciliation, preserving dormant tools a
   A plugin's focus request selects that companion in every window holding the named terminal, including when another window is active.
   Selecting a companion changes the embedded pane, preserving keyboard focus in the terminal or
   active window, as the fork's embedded-pane state action does.
+  A plugin document registered with `HostsCompanions` (the chat tabs) is a companion host too: its body is wrapped in
+  the same split (frame, splitter, close button, width and chip strip) and the selection is keyed by workspace plus the
+  document id, so it survives restarts when the id does. The companions registered for terminals are offered there
+  through the same `IsAvailable`/`Create` calls with the document id as the tab key; each registration's optional
+  `HostChanged` hears when such a body mounts and when its tab goes away (terminals are never reported).
 - File viewers (W7) are consulted by the document open path and by tab restoration; a viewer with read
   strategy `None` gets no text read, and a tab whose viewer has gone shows a placeholder offering to open the
   file as text.

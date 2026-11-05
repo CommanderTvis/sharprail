@@ -258,7 +258,7 @@ internal sealed class PluginUIContext : IPluginUIContext
     public void FocusCompanion(CompanionHost host, string kind)
     {
         foreach (var window in Workbench.Windows.ToArray())
-            if (window.TerminalTabs().Any(workspace => workspace.Workspace == host.WorkspaceId && workspace.Tabs.Any(tab => tab.Id == host.TabKey)))
+            if (window.TerminalTabs().Any(workspace => workspace.Workspace == host.WorkspaceId && workspace.Tabs.Any(tab => tab.Id == host.TabKey)) || window.HoldsCompanionDocument(host))
                 window.FocusCompanion(host, Id, kind);
     }
 

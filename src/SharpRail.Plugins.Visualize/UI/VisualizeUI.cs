@@ -49,6 +49,12 @@ public sealed class VisualizeUI : PluginUIModule
             }
         }
 
+        async Task ReportHosting(CompanionHost host, bool present)
+        {
+            try { await context.RequestAsync(VisualizeContract.Hosting, new HostingReport(host.WorkspaceId, host.TabKey, present)); }
+            catch (Exception failure) when (failure is PluginCallException or OperationCanceledException) { }
+        }
+
         void Show(string workspaceId, string tabKey, string title)
         {
             if (tabs.Contains((workspaceId, tabKey))) return;
@@ -67,7 +73,7 @@ public sealed class VisualizeUI : PluginUIModule
             }
         }
 
-        // A chat has no terminal to be a companion of, and a workspace may hold chats alone: watch every workspace.
+        // A chat whose tab is closed has no pane, and a workspace may hold chats alone: watch every workspace.
         void WatchAll(PluginHostProjection host)
         {
             foreach (var workspace in host.Workspaces.Values.SelectMany(workspaces => workspaces)) Watch(workspace.Id);
@@ -98,7 +104,9 @@ public sealed class VisualizeUI : PluginUIModule
 
         context.Companion(new CompanionRegistration(Kind, "Visualization", "bar-chart-box-line", Available, host => new VisualizationPane(context, drawings, host))
         {
-            InstanceTitle = host => drawings.Get(host)?.Title
+            InstanceTitle = host => drawings.Get(host)?.Title,
+            // A chat tab that hosts companions tells the host half, so its calls draw a pane there instead of a tab.
+            HostChanged = (host, present) => _ = ReportHosting(host, present)
         });
         return () =>
         {

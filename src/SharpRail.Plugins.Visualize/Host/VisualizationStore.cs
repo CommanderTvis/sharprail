@@ -15,7 +15,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     internal const string StateName = "visualizations";
 
     internal const string ToolDescription =
-        "Render a rich visualization in the SharpRail workbench, in a live view beside this terminal (in a Visualization tab when you run in a chat) — " +
+        "Render a rich visualization in the SharpRail workbench, in a live view beside this terminal or chat (in a Visualization tab when your chat has none open) — " +
         "instead of ASCII art or a plain markdown table. Four kinds, chosen by `type`: 'diagram' renders a " +
         "mermaid diagram (set `mermaid` to raw mermaid source of any kind — flowchart, sequenceDiagram, " +
         "classDiagram, stateDiagram, erDiagram, gantt); 'svg' renders hand-written SVG (set `svg` to a " +
@@ -59,10 +59,11 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     /// <summary>What a client reported for a revision: no error when it rendered.</summary>
     private sealed record Verdict(int Revision, string? Error);
     private Func<string, string, string?> sessionOf = (_, _) => null;
+    private readonly HashSet<(string Workspace, string Tab)> hosting = [];
     private Func<string, string, bool> isTerminal = (_, _) => true;
     private IPersistence persisted = new Nowhere();
 
-    /// <param name="terminalLookup">Whether a workspace and tab key name a live terminal; a caller that is none (a chat) gets a detached drawing. Unset, every caller is a terminal.</param>
+    /// <param name="terminalLookup">Whether a workspace and tab key name a live terminal; a caller that is none (a chat) gets a detached drawing unless its tab is a reported companion host. Unset, every caller is a terminal.</param>
     internal void Connect(Action<VisualizationsChanged>? publisher, Func<string, string, string?>? sessionLookup, IPersistence? persistence = null, Func<string, string, bool>? terminalLookup = null)
     {
         lock (gate)
@@ -72,6 +73,17 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
             isTerminal = terminalLookup ?? ((_, _) => true);
             if (persistence is not null) persisted = persistence;
         }
+    }
+
+    /// <summary>A companion-hosting tab (a chat's) is open or gone: while open, its caller's drawing is a pane of that tab, not a tab of its own.</summary>
+    internal void SetHosting(string workspaceId, string tabKey, bool present)
+    {
+        lock (gate) { if (present) hosting.Add((workspaceId, tabKey)); else hosting.Remove((workspaceId, tabKey)); }
+    }
+
+    private bool Hosts(string workspaceId, string tabKey)
+    {
+        lock (gate) return hosting.Contains((workspaceId, tabKey));
     }
 
     /// <summary>
@@ -236,7 +248,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
     {
         if (arguments.ShapeError() is { } shape) return new PluginToolResult(shape) { IsError = true };
         // Asked of the host outside the gate: its terminal list has a lock of its own.
-        var detached = !isTerminal(owner.WorkspaceId, owner.TabKey);
+        var detached = !isTerminal(owner.WorkspaceId, owner.TabKey) && !Hosts(owner.WorkspaceId, owner.TabKey);
         TerminalVisualization? previous;
         Verdict? previousVerdict;
         TerminalVisualization visualization;

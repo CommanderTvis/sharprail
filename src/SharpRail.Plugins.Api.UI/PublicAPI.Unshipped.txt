@@ -199,6 +199,8 @@ SharpRail.Plugins.Api.UI.CompanionRegistration.Create.get -> System.Func<SharpRa
 SharpRail.Plugins.Api.UI.CompanionRegistration.Create.init -> void
 SharpRail.Plugins.Api.UI.CompanionRegistration.Deconstruct(out string! Kind, out string! Title, out string! Icon, out System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, bool>! IsAvailable, out System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, Avalonia.Controls.Control!>! Create) -> void
 SharpRail.Plugins.Api.UI.CompanionRegistration.Equals(SharpRail.Plugins.Api.UI.CompanionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.CompanionRegistration.HostChanged.get -> System.Action<SharpRail.Plugins.Api.UI.CompanionHost!, bool>?
+SharpRail.Plugins.Api.UI.CompanionRegistration.HostChanged.init -> void
 SharpRail.Plugins.Api.UI.CompanionRegistration.Icon.get -> string!
 SharpRail.Plugins.Api.UI.CompanionRegistration.Icon.init -> void
 SharpRail.Plugins.Api.UI.CompanionRegistration.InstanceTitle.get -> System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, string?>?
@@ -851,6 +853,8 @@ static SharpRail.Plugins.Api.UI.PluginDocumentRegistration.operator !=(SharpRail
 static SharpRail.Plugins.Api.UI.PluginDocumentRegistration.operator ==(SharpRail.Plugins.Api.UI.PluginDocumentRegistration? left, SharpRail.Plugins.Api.UI.PluginDocumentRegistration? right) -> bool
 SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Closed.get -> System.Action<SharpRail.Plugins.Api.UI.PluginDocumentProps!>?
 SharpRail.Plugins.Api.UI.PluginDocumentRegistration.Closed.init -> void
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.HostsCompanions.get -> bool
+SharpRail.Plugins.Api.UI.PluginDocumentRegistration.HostsCompanions.init -> void
 SharpRail.Plugins.Api.UI.AgentLauncher.Open.get -> System.Func<string!, SharpRail.Plugins.Api.UI.LauncherCommandOptions!, System.Threading.Tasks.ValueTask<bool>>?
 SharpRail.Plugins.Api.UI.AgentLauncher.Open.init -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.OpenTextDiffAsync(string! workspaceId, string! path, string! newContent) -> System.Threading.Tasks.ValueTask
