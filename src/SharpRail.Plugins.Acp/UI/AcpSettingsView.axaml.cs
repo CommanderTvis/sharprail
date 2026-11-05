@@ -15,7 +15,6 @@ internal sealed partial class AcpSettingsView : StackPanel
     private readonly TextBlock status;
     private readonly TextBox search;
     private AcpRegistryView? registry;
-    private AcpInstallPlan? pending;
 
     internal AcpSettingsView(IPluginUIContext context)
     {
@@ -51,16 +50,6 @@ internal sealed partial class AcpSettingsView : StackPanel
         };
         this.FindControl<Button>("AcpRefresh")!.Click += (_, _) => LoadRegistry(true);
         search.TextChanged += (_, _) => RenderRegistry();
-        var confirm = this.FindControl<Border>("AcpConfirm")!;
-        this.FindControl<Button>("AcpConfirmCancel")!.Click += (_, _) => { pending = null; confirm.IsVisible = false; };
-        this.FindControl<Button>("AcpConfirmInstall")!.Click += (_, _) =>
-        {
-            if (pending is not { } plan) return;
-            confirm.IsVisible = false;
-            pending = null;
-            // The confirmation names exactly the version and distribution the user saw; the host refuses it if the registry moved on.
-            _ = RunAsync(() => context.RequestAsync(AcpContract.Install, new AcpInstallRequest(plan.AgentId, plan.Kind, plan.Version, true)).AsTask(), RenderAgents, "Couldn't install the agent");
-        };
         AttachedToVisualTree += (_, _) =>
         {
             _ = RunAsync(() => context.RequestAsync(AcpContract.Agents, new AcpNoParams()).AsTask(), RenderAgents, "Couldn't list the agents");
@@ -98,7 +87,6 @@ internal sealed partial class AcpSettingsView : StackPanel
             {
                 icons = set.Svgs;
                 RenderAgents(new AcpAgentList(configured));
-                RenderRegistry();
             });
         });
 
@@ -155,6 +143,8 @@ internal sealed partial class AcpSettingsView : StackPanel
             var remove = Quiet("AcpAgentRemove_" + agent.Id, "Remove", () => _ = RunAsync(() => context.RequestAsync(AcpContract.RemoveAgent, new AcpChooseParams("", "", agent.Id)).AsTask(), RenderAgents, "Couldn't remove the agent"));
             agents.Children.Add(RegistryRow.Create("AcpAgent_" + agent.Id, StatusIcon("check", Ui.Success, "Ready to chat"), AcpIconFor(agent.Id), title, disclosure, remove, details));
         }
+        // What is configured decides each registry row's Install, Installed or Update.
+        RenderRegistry();
     }
 
     /// <summary>The agent's mark: its registry icon once the host has one, the generic ACP glyph until then and for any agent the registry has no icon for (custom ones).</summary>
@@ -198,12 +188,12 @@ internal sealed partial class AcpSettingsView : StackPanel
         }
     }
 
-    private void ShowPlan(AcpInstallPlan plan)
+    /// <summary>Asks in the overlay over this window; the install is requested for exactly the version and distribution the dialog showed.</summary>
+    private async void ShowPlan(AcpInstallPlan plan)
     {
-        pending = plan;
-        this.FindControl<TextBlock>("AcpConfirmTitle")!.Text = $"Install {plan.Name} {plan.Version}?";
-        this.FindControl<TextBlock>("AcpConfirmBody")!.Text =
-            $"Source: {plan.Source}\nRuns: {plan.CommandLine}\n{(plan.Sha256 is { } sha ? "SHA-256: " + sha + "\n" : "")}{(plan.License is { } license ? "License: " + license + "\n" : "")}{(plan.Repository is { } repository ? "Repository: " + repository + "\n" : "")}{plan.Note}{(plan.NotRecommended is null ? "" : "\n\n" + AcpInstallPlan.NotRecommendedLine)}";
-        this.FindControl<Border>("AcpConfirm")!.IsVisible = true;
+        if (TopLevel.GetTopLevel(this) is not Window owner) return;
+        if (!await AcpInstallConfirm.ShowAsync(owner, plan)) return;
+        // The host refuses the request if the registry moved on since the plan was made.
+        await RunAsync(() => context.RequestAsync(AcpContract.Install, new AcpInstallRequest(plan.AgentId, plan.Kind, plan.Version, true)).AsTask(), RenderAgents, "Couldn't install the agent");
     }
 }

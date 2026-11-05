@@ -438,10 +438,24 @@ internal static class AcpChecks
         Require(!SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(null) && !SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(" ") && SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(GoodIcon), "Without an icon the generic glyph is drawn: custom agents, rejected, missing or not yet fetched icons.");
     }
 
+    // The install confirmation shows the same facts as before in the overlay dialog: name and version, source, command, checksum, license, repository, the plain explanation and the not-recommended line.
+    internal static void Confirmation()
+    {
+        var fixture = AcpRegistry.Parse(FixtureText())!;
+        var goose = AcpRegistry.Plan(fixture, "goose", null, "darwin-aarch64")!;
+        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Title(goose) == "Install goose 1.57.0?", "The dialog is titled with the agent and version.");
+        var facts = SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(goose);
+        Require(facts.Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "SHA-256", "License", "Repository"]) && facts[1].Value == "./goose acp", "A binary install lists source, command, checksum, license and repository.");
+        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "License", "Repository"]), "Facts the registry does not give are left out.");
+        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(goose).Contains("SHA-256", StringComparison.Ordinal) && !SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(goose).Contains(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "The explanation says what is verified, with no warning for a normal entry.");
+        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).EndsWith(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "A not-recommended agent adds the warning line.");
+    }
+
     internal static async Task Run(string root)
     {
         Manifest();
         Rows();
+        Confirmation();
         EntryText();
         Logo();
         await Protocol();
