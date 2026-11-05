@@ -21,6 +21,7 @@ using SharpRail.Plugins.Chat.UI;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.UI.Chat;
 using SharpRail.Plugins.UI.Kit;
+using SharpRail.UI.Plugins;
 
 namespace SharpRail.Checks;
 
@@ -244,6 +245,36 @@ internal static class ClaudeChatUiChecks
         SelectionGeometry();
         MarkdownBounded();
         Behaviour();
+        CompanionSplit();
+    }
+
+    // A chat tab's body is a companion host like a terminal's: the chat stays the left column and the pane takes the right one, the close button folds it away and a later open restores the width.
+    private static void CompanionSplit()
+    {
+        var chat = new FakeChat();
+        chat.Snapshot.Add(Item(new ChatUserItem("u1", 1, "Hello")));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var document = new CompanionDocument("claude-code", new SharpRail.Plugins.Api.UI.CompanionHost(Workspace, Chat), view);
+        var window = new Window { Width = 1000, Height = 700, Content = document, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            ContentControl Frame_() => document.GetVisualDescendants().OfType<ContentControl>().Single(control => control.Name == "DocumentCompanion");
+            Require(document.Name == "PluginMount_claude-code" && !Frame_().IsVisible && document.Companion is null && view.Bounds.Width >= 990, "A chat tab embeds the companion frame, closed, with the chat taking the whole body.");
+            var closed = 0;
+            document.Companion = new CompanionPane(new TextBlock { Text = "drawing" }, () => { closed++; document.Companion = null; });
+            Frame(window); Frame(window);
+            var width = Frame_().Bounds.Width;
+            Require(Frame_().IsVisible && width > 300 && view.Bounds.Width > 300 && view.Bounds.Width + width < 1005 && view.IsEffectivelyVisible, $"A visualization arriving shows the pane beside the conversation ({width} next to {view.Bounds.Width}).");
+            document.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "CompanionClose").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Frame(window);
+            Require(closed == 1 && !Frame_().IsVisible && document.Companion is null && view.Bounds.Width >= 990, "The pane's close button folds it back, leaving the chat the whole body.");
+            document.Companion = new CompanionPane(new TextBlock { Text = "drawing" }, () => document.Companion = null);
+            Frame(window); Frame(window);
+            Require(Frame_().IsVisible && Math.Abs(Frame_().Bounds.Width - width) < 2, "Reopening restores the pane's width.");
+        }
+        finally { window.Close(); }
     }
 
     private static ChatToolItem Tool(string name, object input, ChatToolState state = ChatToolState.Done, string? output = null, string? summary = null) =>

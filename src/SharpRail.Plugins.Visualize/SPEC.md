@@ -91,9 +91,17 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   `VisualizationCard.SelectedText`: diagram labels or card text) through `select` after each pointer release or key
   when it changed. A publish for another
   terminal of the same workspace leaves an open pane, and its zoom, alone.
-- A caller that is no live terminal (a chat's child: its MCP token names the chat id as its tab key) is detected by
-  the host at call time against the host's terminal list (`TerminalVisualization.Detached`, default false, so old
-  payloads and adopted drawings are terminal ones; a tab that adopts a drawing clears it). Such a drawing is not a
+- A chat's child (its MCP token names the chat id as its tab key) is drawn like a terminal while the chat's tab is
+  open: a chat tab is a companion host (the Chat plugin registers its document with `HostsCompanions`), the app reports
+  the open and the close of such a tab to the companion's `HostChanged`, and the UI half passes that to the host half
+  with the `hosting` method. The host half keeps those (workspace, chat id) pairs; a pair is host-side state only, so a
+  host restart forgets it until the tab mounts again. The drawing is then a companion pane inside the chat tab (same
+  split, close button, resizable width, title chip and per-chat view state as a terminal's) and the tool answers
+  "in SharpRail".
+- A caller that is neither a live terminal nor an open companion-hosting tab (a chat whose tab is closed or not yet
+  mounted, or any other token holder) is detected by the host at call time against the host's terminal list and its
+  hosting pairs (`TerminalVisualization.Detached`, default false, so old payloads and adopted drawings are terminal
+  ones; a tab that adopts a drawing clears it). Such a drawing is not a
   companion: the UI half registers the `visualization` document scheme and, when a detached drawing's revision
   arrives while it watches (it watches every workspace, not only those with terminals), opens one editor tab per
   workspace and key titled with the drawing's title at that moment. The tab renders the same pane, bound live to
@@ -103,7 +111,7 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   tab (layout restore brings the tabs back, the pane shows "No visualization" until the store answers or if it
   holds nothing, e.g. after a host restart, since a chat has no agent session record to persist under). The seam
   opens tabs only in the active window's workspace, so a drawing made in another workspace waits until it is active.
-  The tool's answer then says "in a Visualization tab" where a terminal is told "in SharpRail". Agents that run
+  The tool's answer then says "in a Visualization tab" where a pane is told "in SharpRail". Agents that run
   without a terminal and without a token still get "only available from a terminal".
 - The plugin contract carries terminal visualizations, workspace updates and render reports
   between its host and UI halves.
@@ -140,7 +148,7 @@ companion while another window is active and leave unrelated terminals without a
 The focused checks cover `visualize_read` (nothing shown, diagram, comparison, failed parse, selection, another
 terminal's and no terminal's call, over the runtime's MCP table), shape/schema fields, revisions, whole-workspace snapshots and streams, timeout,
 cancellation, immediate embedded reports, refusal/rollback and revision reuse, session binding/adoption,
-workspace removal and host restart, and detached (chat) callers: the flag and both answers, adoption by a terminal clearing it. Headless local and WebSocket RPC windows cover diagram/comparison companion
+workspace removal and host restart, and chat callers: the flag and both answers, a registered chat tab being a pane host and its close returning to a tab, adoption by a terminal clearing it. The chat view inside the companion frame (pane arriving, close, reopen at the same width) is a headless Claude chat UI check; the chip and the window wiring (`FocusCompanion`, the layout key) need real windows and are not covered. Headless local and WebSocket RPC windows cover diagram/comparison companion
 mounting, title, toolbar/wheel zoom bounds, theme navigation retention, close/reopen and rollback.
 The WebSocket RPC fixture's terminals now run on that remote host's PTYs: their emitted HTTP MCP URL lists
 and calls visualize, refuses unknown tokens and returns renderer refusals. Both local and WebSocket RPC

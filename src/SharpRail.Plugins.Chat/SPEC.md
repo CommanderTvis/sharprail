@@ -120,6 +120,7 @@ workspace, never by the view.
 - Model and mode discovery assume the header carries the lists; ACP's session config options (with categories and values) would need
   the host half to flatten them into models, effort and modes.
 - Authentication (`authenticate`, agent auth methods) has no contract method; a host half would surface it as a Failure notice.
+- A chat tab registers its document with `HostsCompanions`, so the app embeds companion panes (the `visualize` live view, for one) beside the conversation as it does for a terminal; the chat view itself knows nothing of them.
 
 ## Checks
 

@@ -191,6 +191,20 @@ internal static class VisualizeChecks
             await other.RunTool(chat, Comparison("D"));
             Require(other.AdoptForSession("w1", "t5", "sess-4") is { Detached: false } && other.Get("w1", "t5") is { Detached: false },
                 "A tab that adopts a chat's drawing is a terminal, so the drawing is shown beside it.");
+            // A chat whose tab hosts companions gets a pane: not detached and told "SharpRail"; once the tab is gone, or for another chat, the tab fallback returns.
+            var hosted = new VisualizationStore(TimeSpan.FromMilliseconds(20));
+            hosted.Connect(null, (_, _) => null, new Memory(), (_, tab) => tab == "t1");
+            hosted.SetHosting("w1", "chat-1", true);
+            var shown = await hosted.RunTool(chat, Comparison("E"));
+            Require(hosted.Get("w1", "chat-1") is { Detached: false } && shown.Text.StartsWith("Rendered \"Comparison\" in SharpRail (revision 1)", StringComparison.Ordinal), "A chat with an open companion-hosting tab is drawn beside it: " + shown.Text);
+            var elsewhere = await hosted.RunTool(new TerminalRef("w1", "chat-2"), Comparison("F"));
+            Require(hosted.Get("w1", "chat-2") is { Detached: true } && elsewhere.Text.Contains("a Visualization tab", StringComparison.Ordinal), "A chat that is not registered stays a tab.");
+            hosted.SetHosting("w2", "chat-1", true);
+            await hosted.RunTool(new TerminalRef("w3", "chat-1"), Comparison("G"));
+            Require(hosted.Get("w3", "chat-1") is { Detached: true }, "A host is registered per workspace.");
+            hosted.SetHosting("w1", "chat-1", false);
+            var closedTab = await hosted.RunTool(chat, Comparison("H"));
+            Require(hosted.Get("w1", "chat-1") is { Detached: true, Revision: 2 } && closedTab.Text.Contains("a Visualization tab", StringComparison.Ordinal), "Closing the chat tab returns its next drawing to a tab.");
         }
     }
 
