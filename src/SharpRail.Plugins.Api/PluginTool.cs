@@ -18,7 +18,7 @@ public sealed record PluginToolResult(string Text)
     /// <summary>Marks <see cref="Text"/> as an error message rather than a normal result.</summary>
     public bool IsError { get; init; }
 
-    /// <summary>Structured detail alongside <see cref="Text"/>, serialized with <see cref="PluginJson.Options"/>.</summary>
+    /// <summary>Structured detail alongside <see cref="Text"/> for an in-process caller; it is neither serialized nor sent to the MCP caller.</summary>
     public object? Details { get; init; }
 }
 
