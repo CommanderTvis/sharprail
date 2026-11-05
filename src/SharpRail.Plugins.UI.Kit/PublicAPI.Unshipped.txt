@@ -629,3 +629,15 @@ SharpRail.Plugins.UI.Kit.ActionIcon.QuickFix = 14 -> SharpRail.Plugins.UI.Kit.Ac
 SharpRail.Plugins.UI.Kit.ActionIcon.CopyAbsolutePath = 15 -> SharpRail.Plugins.UI.Kit.ActionIcon
 static SharpRail.Plugins.UI.Kit.TabNames.Quote(string? title) -> string!
 SharpRail.Plugins.UI.Kit.TabNames
+SharpRail.Plugins.UI.Kit.IDialogOwner.Present(Avalonia.Controls.Control! card, System.Action! dismiss, double width, double height, bool sheet) -> System.Action?
+SharpRail.Plugins.UI.Kit.DialogWindow.InWindow.get -> bool
+SharpRail.Plugins.UI.Kit.DialogWindow.InWindow.set -> void
+SharpRail.Plugins.UI.Kit.DialogWindow.Surface.get -> Avalonia.Controls.Control?
+SharpRail.Plugins.UI.Kit.DialogWindow.Host.get -> Avalonia.Controls.Window?
+SharpRail.Plugins.UI.Kit.DialogWindow.InOverlay.get -> bool
+SharpRail.Plugins.UI.Kit.DialogWindow.IsVisible.get -> bool
+SharpRail.Plugins.UI.Kit.DialogWindow.ShowDialog(Avalonia.Controls.Window! owner) -> System.Threading.Tasks.Task!
+SharpRail.Plugins.UI.Kit.DialogWindow.ShowDialog<T>(Avalonia.Controls.Window! owner) -> System.Threading.Tasks.Task<T>!
+SharpRail.Plugins.UI.Kit.DialogWindow.Close() -> void
+SharpRail.Plugins.UI.Kit.DialogWindow.Close(object? dialogResult) -> void
+static SharpRail.Plugins.UI.Kit.DialogWindow.On(Avalonia.Controls.Window! owner) -> System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Window!>!

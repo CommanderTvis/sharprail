@@ -7,7 +7,7 @@
       <RadioButton x:Name="Product" Content="This project" GroupName="BlueprintSource" />
       <RadioButton x:Name="Spec" Content="A document" GroupName="BlueprintSource" />
     </StackPanel>
-    <TextBox x:Name="Brief" AcceptsReturn="True" MinHeight="76" TextWrapping="Wrap"
+    <TextBox x:Name="Brief" AcceptsReturn="True" MinHeight="76" MaxHeight="240" TextWrapping="Wrap"
              PlaceholderText="I want an app to control my lightbulbs." />
     <TextBlock x:Name="ProductNote" IsVisible="False" TextWrapping="Wrap"
                Text="The agent reads this project — its build files, entrypoints and configuration — and writes down the decisions it is already living by, each one a control you can change." />

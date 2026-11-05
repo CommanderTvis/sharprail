@@ -33,15 +33,19 @@
   <LayoutTransformControl LayoutTransform="{DynamicResource InterfaceZoom}">
   <Border x:Name="DialogCard" Margin="24" Padding="16" CornerRadius="8" BorderThickness="1"
           Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
-    <StackPanel x:Name="DialogBody" Spacing="16">
+    <!-- Heading and actions stay in view; the fields scroll when the window is too short for them. -->
+    <Grid x:Name="DialogBody" RowDefinitions="Auto,*,Auto">
       <StackPanel Spacing="4">
         <TextBlock x:Name="DialogHeading" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
         <TextBlock x:Name="DialogExplanation" IsVisible="False" TextWrapping="Wrap" FontSize="14"
                    Foreground="{x:Static rendering:Ui.Muted}" />
       </StackPanel>
-      <StackPanel x:Name="DialogFields" Spacing="8" />
-      <StackPanel x:Name="DialogActions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" />
-    </StackPanel>
+      <ScrollViewer x:Name="DialogFieldsScroll" Grid.Row="1" Margin="0,16,0,0" HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto" IsVisible="{Binding #DialogFields.IsVisible}">
+        <StackPanel x:Name="DialogFields" Spacing="8" />
+      </ScrollViewer>
+      <StackPanel x:Name="DialogActions" Grid.Row="2" Margin="0,16,0,0" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" />
+    </Grid>
   </Border>
   </LayoutTransformControl>
 </Window>

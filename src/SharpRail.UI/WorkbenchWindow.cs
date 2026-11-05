@@ -141,7 +141,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         // App zoom chords win over whatever has focus, a terminal included: on the way down, before a renderer encodes them.
         AddHandler(KeyDownEvent, (_, e) => { if (RunZoomShortcut(e)) e.Handled = true; }, RoutingStrategies.Tunnel);
         // Settings in the overlay is modal: the workbench commands behind it stay out of reach.
-        AddHandler(KeyDownEvent, (_, e) => { if (openSettings is null && workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
+        AddHandler(KeyDownEvent, (_, e) => { if (openSettings is null && dialogsOpen == 0 && workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
         Deactivated += (_, _) => workbench.Commands.Deactivated();
         Activated += (_, _) => { if (toolContent.ContainsKey("review")) RequestBranchStatus(true, force: true); };
@@ -151,7 +151,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             foreach (var content in documentContent.Values)
                 if (content is Terminal.TerminalView { IsEffectivelyVisible: true } view && TopLevel.GetTopLevel(view) == this) workbench.Signals.ClearBell(view.Launch.SessionId);
         };
-        AddHandler(KeyDownEvent, (_, e) => { if ((openSettings is null || WindowShortcuts.Settings.Matches(e)) && RunShortcut(e)) e.Handled = true; }, RoutingStrategies.Bubble);
+        AddHandler(KeyDownEvent, (_, e) => { if (dialogsOpen == 0 && (openSettings is null || WindowShortcuts.Settings.Matches(e)) && RunShortcut(e)) e.Handled = true; }, RoutingStrategies.Bubble);
     }
 
     /// <summary>The command behind each window chord; <see cref="WindowShortcuts"/> owns the chords.</summary>
@@ -927,9 +927,11 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     }
 
     /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>
-    public Action Dim()
+    public Action Dim() => Dim(0);
+
+    private Action Dim(int zIndex)
     {
-        var scrim = new Border { Background = Ui.Overlay };
+        var scrim = new Border { Background = Ui.Overlay, ZIndex = zIndex };
         Grid.SetRowSpan(scrim, 4);
         root.Children.Add(scrim);
 #if BROWSER
@@ -938,6 +940,27 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 #else
         return () => root.Children.Remove(scrim);
 #endif
+    }
+
+    private int dialogsOpen;
+
+    /// <summary>
+    /// Hosts a dialog card in a layer of its own above the workbench and Settings, so dialogs stack. The card is clamped to
+    /// the window (its height shrinks first, and its body scrolls), and while it is open the window's commands stay out of reach.
+    /// </summary>
+    public Action? Present(Control card, Action dismiss, double width, double height, bool sheet)
+    {
+        var level = 50 + 2 * dialogsOpen;
+        var host = new OverlayHost { ZIndex = level, Dimmer = () => Dim(level - 1) };
+        Grid.SetRowSpan(host, 4);
+        root.Children.Add(host);
+        dialogsOpen++;
+        host.Show(card, dismiss, size =>
+        {
+            card.MaxHeight = Math.Max(0, size.Height - 16);
+            return new(sheet ? size.Width : Math.Min(width, Math.Max(0, size.Width - 16)), height);
+        }, vertical: sheet ? Avalonia.Layout.VerticalAlignment.Bottom : null);
+        return () => { host.Hide(); root.Children.Remove(host); dialogsOpen--; };
     }
 
     private string settingsSection = "Appearance";

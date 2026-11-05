@@ -234,7 +234,7 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
 - `RowActivation.OnActivate` activates a list or tree row on a mouse's press and on a finger's tap, since a
   finger's press also begins a scroll.
   Dialogs close on Escape or the platform close chord without referencing the app assembly.
-- `IDialogOwner.Dim` is how `DialogWindow` dims the window that owns it; `DialogWindow.Create(title, width)` is the
+- `IDialogOwner.Dim` is how `DialogWindow` dims the window that owns it, and `IDialogOwner.Present` hosts the card in that window's overlay for a dialog with `InWindow` set (see the Panels spec); `DialogWindow.Create(title, width)` is the
   standard card the app's `Dialogs` and `MermaidDialog` build on.
 - `MarkdownPreview.LineOffset`, `ScrollToLine` and `SourceAt` address the rendered document by one-based source
   line: the offset a top-level block (or chunk) starts at, optionally a share of its height into it and optionally

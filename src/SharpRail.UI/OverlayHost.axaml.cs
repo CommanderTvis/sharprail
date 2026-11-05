@@ -9,7 +9,7 @@ using Avalonia.VisualTree;
 namespace SharpRail.UI;
 
 /// <summary>
-/// A top layer over the workbench for one in-window surface at a time (Settings): a scrim that blocks the content behind it,
+/// A top layer over the workbench for one in-window surface (Settings, or a dialog; each dialog gets its own, stacked by ZIndex): a scrim that blocks the content behind it,
 /// Tab confined to the surface, Escape closing it, and focus returned to where it was when the surface goes. It replaces an
 /// owned window, whose re-ordering on the macOS native backend made it flicker when the owner was clicked.
 /// </summary>
@@ -40,7 +40,7 @@ public sealed partial class OverlayHost : UserControl
     /// Shows <paramref name="surface"/>, replacing any current one. <paramref name="fit"/> maps the host's size to the surface's
     /// (it is centred); without it the surface fills the host. <paramref name="close"/> is what Escape does.
     /// </summary>
-    public void Show(Control surface, Action close, Func<Size, Size>? fit = null, bool dimmed = true)
+    public void Show(Control surface, Action close, Func<Size, Size>? fit = null, bool dimmed = true, Avalonia.Layout.VerticalAlignment? vertical = null)
     {
         Hide();
         this.close = close; this.fit = fit; content = surface;
@@ -48,6 +48,7 @@ public sealed partial class OverlayHost : UserControl
         undim = dimmed ? Dimmer?.Invoke() : null;
         presenter.HorizontalAlignment = fit is null ? Avalonia.Layout.HorizontalAlignment.Stretch : Avalonia.Layout.HorizontalAlignment.Center;
         presenter.VerticalAlignment = fit is null ? Avalonia.Layout.VerticalAlignment.Stretch : Avalonia.Layout.VerticalAlignment.Center;
+        if (vertical is { } alignment) presenter.VerticalAlignment = alignment;
         presenter.Content = surface;
         IsVisible = true;
         Fit();
@@ -72,6 +73,8 @@ public sealed partial class OverlayHost : UserControl
     private void Refocus(object? sender, RoutedEventArgs e)
     {
         if (content is null || e.Source is not Visual source || source == content || content.IsVisualAncestorOf(source) || this.IsVisualAncestorOf(source)) return;
+        // Focus inside a surface stacked above this one (a dialog over Settings) is where it belongs.
+        if (source.FindAncestorOfType<OverlayHost>() is { } other && other.ZIndex > ZIndex) return;
         Dispatcher.UIThread.Post(() => content?.Focus(), DispatcherPriority.Input);
     }
 

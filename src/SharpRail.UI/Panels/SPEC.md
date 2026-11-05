@@ -47,6 +47,15 @@ agents merely by opening Settings. Static controls live in the compiled page tem
   it adds no gap. Standard dialogs use a 448px card.
 - Buttons are 32px tall; the confirming action is the solid primary (`primary` class: `PrimaryFill`,
   `PrimaryFillHover` on hover, `OnPrimary` label), others are outlined in the text colour.
+- A dialog opts into the window overlay with `DialogWindow.InWindow`: `Dialogs.CloneProject`, `Confirm`, `Prompt`, `PathName`
+  and the Blueprint draft dialog do. Over a workbench window they are not owned windows but content in a layer of the
+  window's own (`WorkbenchWindow.Present`, one `OverlayHost` per dialog, stacked above Settings), so clicking the owner
+  cannot re-order or re-create them, which is what made the owned Clone repository dialog flicker on macOS. The scrim takes
+  every press, so a click outside does nothing. Escape and Mod+W close, focus returns to the control that had it, and the
+  window's commands stay out of reach while one is open. The layer clamps the card to the window (height first, then
+  width): the heading and the actions stay in view and the fields scroll in between, so no dialog can outgrow the window.
+  Callers keep `Opened`, `Closed`, `Close(result)` and `ShowDialog<T>`. Without a hosting owner (no window, or a dialog
+  owned by another dialog) they fall back to an owned window. The other dialogs stay owned windows until moved the same way.
 - Escape closes as a dismissal. `Dialogs.Confirm` focuses Cancel initially; `Dialogs.Prompt` and
   `Dialogs.HostPath` focus their first field; `Dialogs.AskToSave` focuses Save.
 - `Dialogs.HostPath` is the Open project by path dialog: it says the path belongs to the computer
