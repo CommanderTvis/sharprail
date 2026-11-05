@@ -48,11 +48,13 @@ public sealed partial class WorkbenchWindow
         Layout.Changed += () => decorationSignature = DecorationSignature();
         Layout.SelectionChanged += _ => { workbench.RaiseProjectionChanged(); EmitActivated(); };
         Layout.Focused += workbench.RaiseProjectionChanged;
+        Layout.SetLanguageAvailable(LanguageSupport.Available);
         SyncPluginTools();
     }
 
     private void PluginsChanged(PluginTables tables)
     {
+        if ((tables & PluginTables.Roster) != 0) Layout.SetLanguageAvailable(LanguageSupport.Available);
         if ((tables & (PluginTables.Roster | PluginTables.Active | PluginTables.Manifests | PluginTables.SideTools)) != 0) { SyncPluginTools(); ResolveRailDefaults(); }
         if ((tables & (PluginTables.Roster | PluginTables.Active | PluginTables.TabDecorators | PluginTables.FileIconSlots)) != 0) RefreshDecorations();
         if (tables.HasFlag(PluginTables.WorkspaceActions)) surface.RefreshCenterActions();

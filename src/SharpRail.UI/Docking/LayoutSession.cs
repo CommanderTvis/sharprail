@@ -37,9 +37,10 @@ public sealed partial class LayoutSession
     /// <summary>Every tool this layout can name and restore: core's, then the extra ones the workbench composes in.</summary>
     public IReadOnlyList<DockToolInfo> Tools => [.. tools.Where(tool => IsToolAvailable(tool.Id))];
     private bool gitAvailable = true;
+    private bool languageAvailable = true;
     // A plugin's tool is shown only while its plugin offers it: a hidden or unknown one keeps its saved slot but has no tab, strip entry or drawer.
     public bool IsToolAvailable(string id) => tools.FirstOrDefault(tool => tool.Id == id) is { } known
-        ? !known.Hidden && (gitAvailable || !known.RequiresGit)
+        ? !known.Hidden && (gitAvailable || !known.RequiresGit) && (languageAvailable || id != "lsp")
         : !catalogKnown || PluginIdentity.ParseToolId(id) is null;
     // False until the workbench has composed any plugin tool, so a saved plugin tab is not dropped from the layout before the catalog arrives.
     private bool catalogKnown;
@@ -48,6 +49,14 @@ public sealed partial class LayoutSession
     {
         if (gitAvailable == available) return;
         gitAvailable = available;
+        ToolsChanged?.Invoke();
+        Changed?.Invoke();
+    }
+    /// <summary>Whether the host has language servers; without any, the Code Intelligence tool has no tab, strip entry or drawer.</summary>
+    public void SetLanguageAvailable(bool available)
+    {
+        if (languageAvailable == available) return;
+        languageAvailable = available;
         ToolsChanged?.Invoke();
         Changed?.Invoke();
     }

@@ -88,6 +88,7 @@ public sealed partial class SettingsView : UserControl
         SyncPluginSections();
         // Listed only for a host that settles workspaces; an older one has no idle window to set.
         navigation["Workspaces"].IsVisible = state.SettlingSupported;
+        navigation["Code Intelligence"].IsVisible = LanguageSupport.Available;
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
 #if !ANDROID && !BROWSER
         if (window.Workbench.Listener is { } listener) listener.Changed += ListenerChanged;
@@ -147,7 +148,8 @@ public sealed partial class SettingsView : UserControl
     private void PluginsChanged(PluginTables tables)
     {
         if (tables.HasFlag(PluginTables.SettingsSections) || tables.HasFlag(PluginTables.Roster)) SyncPluginSections();
-        if (tables.HasFlag(PluginTables.KeymapActions) || tables.HasFlag(PluginTables.Active)) RefreshKeymapList();
+        if (tables.HasFlag(PluginTables.Roster)) navigation["Code Intelligence"].IsVisible = LanguageSupport.Available;
+        if (tables.HasFlag(PluginTables.KeymapActions) || tables.HasFlag(PluginTables.Active) || tables.HasFlag(PluginTables.Roster)) RefreshKeymapList();
         if (section == "Highlighting" && (tables.HasFlag(PluginTables.Launchers) || tables.HasFlag(PluginTables.Roster))) RefreshHighlightingAgents();
     }
 

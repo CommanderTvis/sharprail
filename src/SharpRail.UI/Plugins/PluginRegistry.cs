@@ -94,6 +94,7 @@ public sealed class PluginRegistry
     public void SetRoster(IReadOnlyList<PluginRosterEntry> roster)
     {
         Roster = roster;
+        LanguageSupport.Update(roster);
         ToolCatalog = BuildToolCatalog();
         Raise(PluginTables.Roster);
     }

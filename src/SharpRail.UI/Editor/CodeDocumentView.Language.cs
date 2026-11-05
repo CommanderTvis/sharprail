@@ -111,7 +111,7 @@ internal sealed partial class CodeDocumentView
         Editor.AddHandler(KeyDownEvent, (_, e) =>
         {
             // The chords are the active keymap's; quick fixes have their own handler, which also lists the fixes.
-            if (ActiveKeymap.Recording) return;
+            if (ActiveKeymap.Recording || !LanguageSupport.Available) return;
             foreach (var (_, operation, actionId) in LanguageOperations)
             {
                 if (operation == "quickFix" || !ActiveKeymap.Matches(actionId, e)) continue;
@@ -167,7 +167,7 @@ internal sealed partial class CodeDocumentView
     internal void AddLanguageMenu(ContextMenu menu) =>
         // The menu opens only once the status lookup has added or removed its language items.
         MenuFill.FillBeforeOpening(menu, Editor,
-            async token => await host.LanguageAsync(new(workspace, LanguageSourceServer.Length > 0 ? "" : path, "status", Server: LanguageSourceServer), token),
+            async token => !LanguageSupport.Available ? new LanguageResult("unavailable", "") : await host.LanguageAsync(new(workspace, LanguageSourceServer.Length > 0 ? "" : path, "status", Server: LanguageSourceServer), token),
             result =>
             {
                 RemoveLanguageItems(menu);
@@ -193,6 +193,13 @@ internal sealed partial class CodeDocumentView
     private async Task InspectLanguageAsync()
     {
         if (disposed || languageBusy || languageRequest is not null || !IsEffectivelyVisible || this.FindControl<Popup>("LanguagePopup")!.IsOpen) return;
+        if (!LanguageSupport.Available)
+        {
+            // No server can answer: the editor shows its plain colors and asks the host nothing.
+            SetLanguageAvailable(false);
+            if (firstColorsPending) await RevealCodeColorsAsync();
+            return;
+        }
         languageBusy = true;
         try
         {

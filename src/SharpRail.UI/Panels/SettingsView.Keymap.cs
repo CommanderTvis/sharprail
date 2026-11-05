@@ -128,7 +128,7 @@ public sealed partial class SettingsView
         list.Children.Add(summary);
 
         // Built-in groups by area, then one group per plugin action group under a Plugins heading.
-        var builtin = everything.Where(action => !action.IsPlugin).GroupBy(action => action.Group);
+        var builtin = everything.Where(action => !action.IsPlugin && (LanguageSupport.Available || action.Group != KeymapActions.LanguageGroup)).GroupBy(action => action.Group);
         foreach (var group in builtin) AddKeymapGroup(list, panel, group.Key, "KeymapGroup_" + group.Key.Replace(' ', '_'), group.ToArray(), null, bindings, source, supported, query);
         var pluginGroups = everything.Where(action => action.IsPlugin).GroupBy(action => (action.Plugin, action.PluginName, action.Group)).ToArray();
         // A preset keeps the bindings of plugins that are off: listed, unbound from any live action, so people see why a chord is not doing anything.
