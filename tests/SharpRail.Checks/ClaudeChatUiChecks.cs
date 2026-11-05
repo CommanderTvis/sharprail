@@ -360,6 +360,18 @@ internal static class ClaudeChatUiChecks
             using var narrow = ChatRowLayout.Build(new ChatRow(workflow, 0, 1, true, null), width, true);
             Require(narrow.OwnHits.All(hit => hit.Bounds.Right <= width + 0.5 && hit.Bounds.Left >= -0.5), $"A workflow card's targets stay inside a {width} pixel pane.");
         }
+        // Workflow components: the open card lists phases and agents; a live update changes only the open card's height, never the collapsed one's.
+        var agentsBefore = new[] { new ChatWorkflowAgent(0, "find-routes", ChatAgentState.Done) { Phase = "Discover", Result = "12 routes", DurationMs = 3000 }, new ChatWorkflowAgent(1, "audit-a", ChatAgentState.Running) { Phase = "Audit", Activity = "Read routes.cs" } };
+        var running = new ChatToolItem("wf2", 1, "Workflow", JsonSerializer.SerializeToElement(new { script }), ChatToolState.Done)
+        { TaskId = "tk2", TaskStatus = ChatTaskStatus.Running, WorkflowPhases = ["Discover", "Audit"], WorkflowAgents = agentsBefore };
+        var bare = running with { WorkflowPhases = null, WorkflowAgents = null };
+        var runningClosed = Height(running, false, out _);
+        var runningOpen = Height(running, true, out _);
+        Require(runningOpen > Height(bare, true, out _) && Math.Abs(runningClosed - Height(bare, false, out _)) < 1, $"An open workflow card lists its agents ({runningOpen}); collapsed it is one line like before ({runningClosed}).");
+        var updated = running with { WorkflowAgents = [agentsBefore[0], agentsBefore[1] with { State = ChatAgentState.Failed, Error = "Timed out" }, new ChatWorkflowAgent(2, "audit-b", ChatAgentState.Queued) { Phase = "Audit" }] };
+        Require(Math.Abs(Height(updated, false, out _) - runningClosed) < 30 && Height(updated, true, out _) > runningOpen, "A new agent grows the open card only.");
+        using (var many = ChatRowLayout.Build(new ChatRow(updated, 0, 1, true, null), 220, true))
+            Require(many.OwnHits.All(hit => hit.Bounds.Right <= 220.5), "The agent rows stay inside a narrow pane.");
     }
 
     // Composer and chrome: Shift+Tab, the pie, the working word, banners, Esc, mention chips and the rewind dialog.

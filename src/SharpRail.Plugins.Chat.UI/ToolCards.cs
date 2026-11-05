@@ -201,13 +201,41 @@ internal static class ToolCards
         var lines = new List<string>();
         var meta = MetaOf(tool.Input);
         if (meta.Description.Length > 0) lines.Add(meta.Description);
-        if (meta.Phases.Count > 0) lines.Add("Phases: " + string.Join(" \u203A ", meta.Phases));
+        if (meta.Phases.Count > 0 && tool.WorkflowAgents is not { Count: > 0 }) lines.Add("Phases: " + string.Join(" \u203A ", meta.Phases));
         if (tool.Input.ValueKind == JsonValueKind.Object && tool.Input.TryGetProperty("args", out var args) && args.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
             lines.Add("Args: " + Cut(Words(args.ValueKind == JsonValueKind.String ? args.GetString() ?? "" : args.GetRawText()), 200));
         if (Str(tool.Input, "resumeFromRunId") is { Length: > 0 } run) lines.Add("Resumes run " + run);
         if (Str(tool.Input, "scriptPath") is { Length: > 0 } path) lines.Add("Script: " + path);
         if (tool.TaskSummary is { Length: > 0 } summary) lines.Add(summary);
         return lines;
+    }
+
+    /// <summary>The compact line of a workflow with agent progress: how many agents are done, any that failed, and the running ones by label. Null without agents.</summary>
+    internal static string? WorkflowProgress(ChatToolItem tool)
+    {
+        if (tool.WorkflowAgents is not { Count: > 0 } agents) return null;
+        var done = agents.Count(agent => agent.State == ChatAgentState.Done);
+        var failed = agents.Count(agent => agent.State == ChatAgentState.Failed);
+        var line = $"{done} of {agents.Count} agents done" + (failed > 0 ? $", {failed} failed" : "");
+        var running = agents.Where(agent => agent.State == ChatAgentState.Running).Select(agent => Cut(Words(agent.Label), 28)).ToList();
+        if (running.Count > 0 && tool.TaskStatus is null or ChatTaskStatus.Running)
+            line += " \u00B7 running: " + string.Join(", ", running.Take(3)) + (running.Count > 3 ? $" +{running.Count - 3}" : "");
+        return line;
+    }
+
+    /// <summary>The status mark and text of one agent row: running, done, failed or waiting.</summary>
+    internal static (string Mark, string Text) AgentRow(ChatWorkflowAgent agent, bool live)
+    {
+        var mark = agent.State switch { ChatAgentState.Done => "\u2713", ChatAgentState.Failed => "\u2717", ChatAgentState.Queued => "\u25CB", _ => live ? "\u25D0" : "\u25CB" };
+        var detail = agent.State switch
+        {
+            ChatAgentState.Failed => agent.Error ?? agent.Result,
+            ChatAgentState.Done => agent.Result,
+            ChatAgentState.Queued => "waiting",
+            _ => agent.Activity
+        };
+        var time = agent.DurationMs is { } ms ? " (" + (ms < 1000 ? ms + " ms" : ms < 60_000 ? (ms / 1000.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " s" : $"{ms / 60_000} min {ms / 1000 % 60} s") + ")" : "";
+        return (mark, Cut(Words(agent.Label), 60) + (detail is { Length: > 0 } ? ": " + Cut(Words(detail), 120) : "") + time);
     }
 
     private static bool Background(string name) => name is "Workflow" or "Monitor";
@@ -250,8 +278,13 @@ internal static class ToolCards
                     return count == 0 ? "No matches found" : count == 1 ? "1 line of output" : $"{count} lines of output";
                 }
             case "Workflow" or "Monitor" when tool.State != ChatToolState.Failed && tool.State != ChatToolState.Denied:
-                return (tool.TaskStatus is { } status ? StatusWord(status) : tool.State == ChatToolState.Done ? "Started in background" : "Starting")
-                    + (tool.TaskId is { Length: > 0 } id ? " \u00B7 task " + id : "");
+                {
+                    var word = tool.TaskStatus is { } status ? StatusWord(status) : tool.State == ChatToolState.Done ? "Started in background" : "Starting";
+                    var progress = tool.Name == "Workflow" ? WorkflowProgress(tool) : null;
+                    // While it runs the progress line says more than "Running in background"; once it ends the outcome leads.
+                    if (progress is not null) word = tool.TaskStatus is null or ChatTaskStatus.Running ? progress : word + " \u00B7 " + progress;
+                    return word + (tool.TaskId is { Length: > 0 } id ? " \u00B7 task " + id : "");
+                }
             case "NotebookEdit":
                 return tool.State switch { ChatToolState.Done => "Success", ChatToolState.Failed => "Failed", _ => "Pending" };
             case "WebFetch":

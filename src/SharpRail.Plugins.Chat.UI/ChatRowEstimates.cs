@@ -20,7 +20,7 @@ internal static class ChatRowEstimates
             ChatUserItem user => ChatRowLayout.IsEmpty(user) ? 0 : 16 + Lines(user.Text, columns - 4, row.Expanded ? int.MaxValue : 3) * ProseLine + (user.Queued ? 16 : 0) + (user.Attachments is { Count: > 0 } ? 18 : 0),
             ChatAssistantItem assistant => Markdown(assistant.Text, columns),
             ChatThinkingItem thinking => row.Expanded ? 24 + Lines(thinking.Text, columns, int.MaxValue) * 17 : 26,
-            ChatToolItem tool => 28 + (row.Expanded ? 8 + Lines(tool.Output ?? "", columns, 40) * CodeLine : 0),
+            ChatToolItem tool => 28 + (row.Expanded ? 8 + Lines(tool.Output ?? "", columns, 40) * CodeLine + (tool.WorkflowAgents is { } agents ? agents.Count * 17 + (tool.WorkflowPhases?.Count ?? 0) * 15 : 0) : 0),
             ChatActivityItem activity => 28 + (row.Expanded ? activity.Steps.Count * 17 : 0),
             ChatPermissionItem => 150,
             ChatNoticeItem notice => 8 + Lines(notice.Text, columns, int.MaxValue) * 17,

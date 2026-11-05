@@ -794,6 +794,7 @@ internal sealed class ChatRowLayout : IDisposable
                 break;
             case "Workflow":
                 foreach (var detail in ToolCards.WorkflowLines(tool)) Block(Head(detail, 6, out _), Ui.Muted, 12, indent: 14);
+                WorkflowAgents(tool);
                 if (tool.TaskResult is { Length: > 0 } report) Block(Head(report, PreviewLines, out _), Ui.TextBrush, 12, indent: 14);
                 break;
         }
@@ -830,6 +831,33 @@ internal sealed class ChatRowLayout : IDisposable
     } is { } field && permission.Input.TryGetProperty(field, out var value) && value.ValueKind == JsonValueKind.String ? field : null;
 
     private static string Prefixed(string prefix, string text) => prefix + text.Replace("\n", "\n" + prefix);
+
+    // The agents of a workflow under their phases, one line each: a status mark, the label, what it last did or its result, and how long it took.
+    private void WorkflowAgents(ChatToolItem tool)
+    {
+        if (tool.WorkflowAgents is not { Count: > 0 } agents) return;
+        var live = tool.TaskStatus is null or ChatTaskStatus.Running;
+        void Rows(IEnumerable<ChatWorkflowAgent> group, double indent)
+        {
+            foreach (var agent in group)
+            {
+                var (mark, text) = ToolCards.AgentRow(agent, live);
+                var brush = agent.State switch { ChatAgentState.Done => Ui.Success, ChatAgentState.Failed => Ui.Danger, ChatAgentState.Running when live => Ui.Accent, _ => Ui.Muted };
+                Place(Make(mark, brush, 12, 14, maxLines: 1), left + indent, y, selectable: false);
+                Block(text, agent.State == ChatAgentState.Failed ? Ui.Danger : Ui.TextBrush, 12, indent: indent + 16, maxLines: 2);
+            }
+        }
+        var phases = tool.WorkflowPhases ?? [];
+        Rows(agents.Where(agent => agent.Phase is null or "" || !phases.Contains(agent.Phase)), 14);
+        foreach (var phase in phases)
+        {
+            var group = agents.Where(agent => agent.Phase == phase).ToList();
+            var done = group.Count(agent => agent.State == ChatAgentState.Done);
+            Block(group.Count == 0 ? phase : $"{phase} \u00B7 {done} of {group.Count}", Ui.Muted, 11, indent: 14, bold: true, maxLines: 1);
+            Rows(group, 22);
+        }
+        y += 2;
+    }
 
     private void Checklist(JsonElement input)
     {

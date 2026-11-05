@@ -76,6 +76,52 @@ internal static class ClaudeChatSemanticsChecks
         // The name argument wins over the meta name; no meta gives the plain title.
         Require(ToolCards.Header(new ChatToolItem("x", 1, "Workflow", JsonSerializer.SerializeToElement(new { name = "mine", script = WorkflowScript }), ChatToolState.Running)).Secondary == "mine" &&
             ToolCards.Header(new ChatToolItem("x", 1, "Workflow", JsonSerializer.SerializeToElement(new { scriptPath = "/p/w.js", resumeFromRunId = "r1" }), ChatToolState.Running)).Secondary == "", "A name argument wins; none is just Workflow.");
+        // Workflow components: the shape of workflow_progress is read from the CLI's bundled event code (workflow_phase, workflow_agent, workflow_log entries), not from a live run.
+        static object Phase(int index, string title) => new { type = "workflow_phase", index, title, kind = "phase" };
+        static object AgentEntry(int index, string label, string phase, string state, object? extra = null) => new Dictionary<string, object?>
+        {
+            ["type"] = "workflow_agent",
+            ["index"] = index,
+            ["label"] = label,
+            ["phaseIndex"] = phase == "Discover" ? 0 : 1,
+            ["phaseTitle"] = phase,
+            ["state"] = state,
+            ["queuedAt"] = 1000L,
+            ["startedAt"] = state == "start" ? null : 1100L,
+            ["lastProgressAt"] = 4100L,
+            ["lastToolName"] = state == "progress" ? "Read" : null,
+            ["lastToolSummary"] = state == "progress" ? "Read routes.cs" : null,
+            ["resultPreview"] = state == "done" ? "12 routes" : null,
+            ["error"] = state == "error" ? "Timed out" : null
+        };
+        static object Progress(object[]? entries) => entries is null
+            ? new { type = "system", subtype = "task_progress", task_id = "wf1", tool_use_id = "toolu_wf", description = "Audit", usage = new { total_tokens = 1, tool_uses = 1, duration_ms = 5 }, summary = "Working" }
+            : new { type = "system", subtype = "task_progress", task_id = "wf1", tool_use_id = "toolu_wf", description = "Audit", usage = new { total_tokens = 1, tool_uses = 1, duration_ms = 5 }, summary = "Working", workflow_progress = entries };
+        var live = new ChatFolder();
+        foreach (var frame in Start()) live.Apply(Frame(frame));
+        var seq = live.Items.Single().Seq;
+        live.Apply(Frame(Progress([Phase(0, "Discover"), Phase(1, "Audit"), AgentEntry(0, "find-routes", "Discover", "done"), AgentEntry(1, "audit-a", "Audit", "progress"), AgentEntry(2, "audit-b", "Audit", "start")])));
+        var shown = (ChatToolItem)live.Items.Single();
+        Require(shown.Seq == seq && shown.WorkflowPhases is ["Discover", "Audit"] && shown.WorkflowAgents is [{ State: ChatAgentState.Done, Result: "12 routes", DurationMs: 3000 }, { State: ChatAgentState.Running, Activity: "Read routes.cs" }, { State: ChatAgentState.Queued }],
+            "Progress adds the phases and agents to the same card.");
+        Require(ToolCards.WorkflowProgress(shown) == "1 of 3 agents done \u00B7 running: audit-a" && ToolCards.Secondary(shown) == "1 of 3 agents done \u00B7 running: audit-a \u00B7 task wf1", "The collapsed line counts done agents and names the running ones.");
+        // A message without the array (throttled) keeps the agents; the next one replaces them, with a failure.
+        live.Apply(Frame(Progress(null)));
+        Require(((ChatToolItem)live.Items.Single()).WorkflowAgents is { Count: 3 }, "A progress message without components keeps the card's agents.");
+        live.Apply(Frame(Progress([Phase(0, "Discover"), Phase(1, "Audit"), AgentEntry(0, "find-routes", "Discover", "done"), AgentEntry(1, "audit-a", "Audit", "error"), AgentEntry(2, "audit-b", "Audit", "progress")])));
+        shown = (ChatToolItem)live.Items.Single();
+        Require(live.Items.Count == 1 && shown.WorkflowAgents is [_, { State: ChatAgentState.Failed, Error: "Timed out" }, { State: ChatAgentState.Running }]
+            && ToolCards.WorkflowProgress(shown) == "1 of 3 agents done, 1 failed \u00B7 running: audit-b" && ToolCards.AgentRow(shown.WorkflowAgents![1], true) == ("\u2717", "audit-a: Timed out (3 s)"), "Updates replace the agents in place and a failed agent shows its error.");
+        live.Apply(Frame(User("wn", Text("<task-notification><task-id>wf1</task-id><tool-use-id>toolu_wf</tool-use-id><status>completed</status><summary>Done</summary></task-notification>"), new { kind = "task-notification" })));
+        shown = (ChatToolItem)live.Items.Single();
+        Require(shown.WorkflowAgents!.Count == 3 && ToolCards.Secondary(shown) == "Completed \u00B7 1 of 3 agents done, 1 failed \u00B7 task wf1", "Completion keeps the components and leads with the outcome.");
+        // A card made after its progress picks the components up.
+        var early = new ChatFolder();
+        var earlyFrames = Start();
+        early.Apply(Frame(earlyFrames[1]));
+        early.Apply(Frame(Progress([AgentEntry(0, "a", "Discover", "progress")])));
+        early.Apply(Frame(earlyFrames[0]));
+        Require(((ChatToolItem)early.Items.Single(item => item is ChatToolItem)).WorkflowAgents is { Count: 1 }, "A tool_use after its progress carries the agents.");
     }
 
     public static void Run()

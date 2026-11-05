@@ -111,6 +111,25 @@ public sealed record ChatToolItem(string Id, long Seq, string Name, JsonElement 
     public string? TaskSummary { get; init; }
     /// <summary>The task's final result text from its completion notification.</summary>
     public string? TaskResult { get; init; }
+    /// <summary>For a Workflow call: its phases in order, from the progress the CLI streams. Null when none arrived.</summary>
+    public IReadOnlyList<string>? WorkflowPhases { get; init; }
+    /// <summary>For a Workflow call: the agents its script has spawned so far, in spawn order. Null when no progress arrived.</summary>
+    public IReadOnlyList<ChatWorkflowAgent>? WorkflowAgents { get; init; }
+}
+
+public enum ChatAgentState { Queued, Running, Done, Failed }
+
+/// <summary>One agent a workflow spawned, from a <c>workflow_progress</c> entry.</summary>
+public sealed record ChatWorkflowAgent(int Index, string Label, ChatAgentState State)
+{
+    public string? Phase { get; init; }
+    /// <summary>What a running agent last did (its last tool and what it touched).</summary>
+    public string? Activity { get; init; }
+    /// <summary>A finished agent's result, cut short.</summary>
+    public string? Result { get; init; }
+    public string? Error { get; init; }
+    /// <summary>How long the agent ran, once it finished and the CLI named both times.</summary>
+    public long? DurationMs { get; init; }
 }
 
 /// <summary>The CLI asking whether a tool may run (a <c>can_use_tool</c> control request), and the answer once given.</summary>

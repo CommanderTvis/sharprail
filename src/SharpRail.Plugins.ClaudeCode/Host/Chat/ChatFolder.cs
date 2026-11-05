@@ -266,6 +266,7 @@ internal sealed partial class ChatFolder
                         ToolUses = (int?)Long(usage, "tool_uses") ?? task.ToolUses,
                         DurationMs = Long(usage, "duration_ms") ?? task.DurationMs
                     });
+                    FoldWorkflowProgress(task, message);
                     return new(Signal.None);
                 }
             case "task_notification":
@@ -564,7 +565,9 @@ internal sealed partial class ChatFolder
             TaskId = existing?.TaskId ?? task?.TaskId,
             TaskStatus = existing?.TaskStatus ?? task?.Status,
             TaskSummary = existing?.TaskSummary ?? task?.Summary,
-            TaskResult = existing?.TaskResult
+            TaskResult = existing?.TaskResult,
+            WorkflowPhases = existing?.WorkflowPhases ?? (task is null ? null : workflows.GetValueOrDefault(task.TaskId).Phases),
+            WorkflowAgents = existing?.WorkflowAgents ?? (task is null ? null : workflows.GetValueOrDefault(task.TaskId).Agents)
         });
     }
 
