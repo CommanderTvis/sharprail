@@ -129,6 +129,7 @@ internal static class MenuLayoutChecks
         Dispatcher.UIThread.RunJobs();
         var rows = menu.Items.OfType<MenuItem>().ToArray();
         var needed = rows.Max(row => row.DesiredSize.Width) + menu.Padding.Left + menu.Padding.Right + menu.BorderThickness.Left + menu.BorderThickness.Right;
+        needed = Math.Min(needed, menu.MaxWidth);
         Console.WriteLine($"{name}: born {born():0.#}, widest row needs {needed:0.#}");
         Require(born() >= needed - 0.5, $"{name}: the popup is born {born():0.#} wide but its widest row needs {needed:0.#}.");
     }

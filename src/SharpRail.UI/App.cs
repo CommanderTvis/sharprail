@@ -110,15 +110,18 @@ public sealed partial class App : Application
     internal static void SettleMenuWidth(ContextMenu menu)
     {
         menu.MinWidth = 0;
+        // Settle under the width the menu may actually take, so a menu its style caps (or the window narrows) wraps at the cap.
+        if (!menu.IsOpen) return;
+        var limit = Math.Min(menu.MaxWidth, TopLevel.GetTopLevel(menu) is { } top ? Math.Max(0, top.ClientSize.Width - 16) : double.PositiveInfinity);
         var width = -1.0;
         for (var pass = 0; pass < 6; pass++)
         {
             menu.InvalidateMeasure();
-            menu.Measure(Size.Infinity);
+            menu.Measure(new Size(limit, double.PositiveInfinity));
             if (Math.Abs(menu.DesiredSize.Width - width) < 0.01) break;
             width = menu.DesiredSize.Width;
         }
-        menu.MinWidth = Math.Ceiling(menu.DesiredSize.Width);
+        menu.MinWidth = Math.Min(Math.Ceiling(menu.DesiredSize.Width), limit);
     }
 
     // The icon presenter is 16 wide with a 12 margin: the room a row's icon needs in the icon column from the first pass.
