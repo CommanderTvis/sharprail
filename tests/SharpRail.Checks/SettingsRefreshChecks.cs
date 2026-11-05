@@ -61,6 +61,28 @@ internal static class SettingsRefreshChecks
                 settings.GetLogicalDescendants().OfType<StackPanel>().Single(control => control.Name == "WindowDecorationChoices").Children.Count == (LinuxWindowChrome.Available ? 3 : 0),
                 "The window decorations choices follow the host's broadcast on Linux and are absent elsewhere.");
             window.Workbench.State.ChangeAsync(HostStateChange.Setting("window-decorations", "auto")).GetAwaiter().GetResult();
+            // The theme selectors follow the host's state: after the user's own pick and after another client's write.
+            string Shown(string slot) => settings.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == $"SystemTheme_{slot}_trigger")
+                .GetLogicalDescendants().OfType<TextBlock>().First().Text!;
+            void Host(string why, params HostStateChange[] changes)
+            {
+                var revision = window.Workbench.State.Current.Revision;
+                var task = window.Workbench.State.ChangeAsync(changes);
+                Until(() => task.IsCompleted && window.Workbench.State.Current.Revision > revision);
+                task.GetAwaiter().GetResult();
+            }
+            Host("system mode", HostStateChange.Setting("theme-mode", "system"), HostStateChange.Setting("system-light", "light"), HostStateChange.Setting("system-dark", "dark"));
+            settings.ShowSection("Appearance");
+            Until(() => Shown("light") == "Light" && Shown("dark") == "Dark");
+            var option = settings.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "SystemTheme_light_trigger").ContextMenu!.Items.OfType<MenuItem>()
+                .Single(item => item.Name == "SystemTheme_light_option_minimal-light");
+            option.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+            Until(() => window.Workbench.State.Current.Settings.SystemLight == "minimal-light");
+            Until(() => Shown("light") == "Minimal Light");
+            Require(Shown("light") == "Minimal Light", "The light theme selector must show the chosen theme after the pick.");
+            Host("other client", HostStateChange.Setting("system-dark", "minimal-dark"));
+            Until(() => Shown("dark") == "Minimal Dark");
+            Require(Shown("dark") == "Minimal Dark" && Shown("light") == "Minimal Light", "The theme selectors must follow another client's write.");
             Console.WriteLine("PASS Settings retain pages through terminal broadcasts and refresh relevant changes");
         }
         finally { settings.Close(); window.Close(); }

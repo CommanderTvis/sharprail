@@ -389,7 +389,22 @@ public sealed partial class SettingsView : UserControl
             error.Text = "The host could not save this change: " + failure.Message; error.IsVisible = true;
             RefreshSection();
         }
-        finally { themeChanging = false; GateThemeControls(); }
+        finally { themeChanging = false; GateThemeControls(); SyncThemeControls(); }
+    }
+
+    private string shownTheme = "";
+
+    private string ThemeSignature()
+    {
+        var preferences = state.Preferences;
+        var pair = preferences.SystemThemePair ?? Themes.DerivePair(preferences.Theme);
+        return $"{preferences.ThemeMode}|{preferences.Theme}|{pair.Light}|{pair.Dark}";
+    }
+
+    /// <summary>The theme controls show the host's state: once a change settles, a page still drawn from older state is redrawn.</summary>
+    private void SyncThemeControls()
+    {
+        if (section == "Appearance" && shownTheme != ThemeSignature()) RefreshSection();
     }
 
     private void GateThemeControls()
@@ -418,6 +433,7 @@ public sealed partial class SettingsView : UserControl
         var preferences = state.Preferences;
         var system = preferences.ThemeMode == "system";
         var pair = preferences.SystemThemePair ?? Themes.DerivePair(preferences.Theme);
+        shownTheme = ThemeSignature();
         var modes = PageControl<StackPanel>(panel, "ThemeModeChoices");
         foreach (var (mode, label, description) in new[]
         {
