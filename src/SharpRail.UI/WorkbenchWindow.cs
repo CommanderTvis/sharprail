@@ -477,7 +477,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             // The Language panel is workspace-keyed only inside itself, so one instance serves every workspace and project.
             var languagePanel = toolContent.GetValueOrDefault("lsp") as Panels.LanguagePanel;
             toolContent.Clear();
-            if (languagePanel is not null) { languagePanel.Retarget(workspaceRoot); toolContent["lsp"] = languagePanel; }
+            // The switch made every retained pane inert (see OpenWorkspaceAsync); Files, Changes, Review and plugin panes restore themselves, this one only here.
+            if (languagePanel is not null) { languagePanel.Retarget(workspaceRoot); languagePanel.IsHitTestVisible = true; toolContent["lsp"] = languagePanel; }
             if (filesPanel is not null) toolContent["files"] = filesPanel;
             if (changesPanel is not null) toolContent["changes"] = changesPanel;
             if (reviewPanel is not null) { toolContent["review"] = reviewPanel; reviewPanel.IsHitTestVisible = true; }
@@ -541,7 +542,16 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             if (request == projectRequest && !placeholderShown) ShowSwitchPlaceholder(target);
             (failed ?? Report)(error);
         }
-        finally { if (request == projectRequest) switchingWorkspace = false; projectGate.Release(); }
+        finally
+        {
+            if (request == projectRequest)
+            {
+                switchingWorkspace = false;
+                // A switch that failed or was refused after making the panes inert must not leave the Code Intelligence pane unclickable and unscrollable.
+                if (toolContent.GetValueOrDefault("lsp") is { IsHitTestVisible: false } inert) inert.IsHitTestVisible = true;
+            }
+            projectGate.Release();
+        }
         if (request == projectRequest && WorkspaceMounted)
         {
             await RenderSwitchAsync();
