@@ -2267,3 +2267,19 @@ SharpRail.Host.Abstractions.WorkspaceCreatorEntry.Workspace.init -> void
 SharpRail.Host.Abstractions.WorkspaceCreatorEntry.WorkspaceCreatorEntry(string! Workspace, SharpRail.Plugins.Api.TerminalRef! Creator) -> void
 static SharpRail.Host.Abstractions.WorkspaceCreatorEntry.operator !=(SharpRail.Host.Abstractions.WorkspaceCreatorEntry? left, SharpRail.Host.Abstractions.WorkspaceCreatorEntry? right) -> bool
 static SharpRail.Host.Abstractions.WorkspaceCreatorEntry.operator ==(SharpRail.Host.Abstractions.WorkspaceCreatorEntry? left, SharpRail.Host.Abstractions.WorkspaceCreatorEntry? right) -> bool
+SharpRail.Host.Abstractions.CodeIntelligenceLog
+SharpRail.Host.Abstractions.CodeIntelligenceLog.Operation
+SharpRail.Host.Abstractions.CodeIntelligenceLog.Operation.Cancel(string! reason, params (string! Key, object? Value)[]! fields) -> void
+SharpRail.Host.Abstractions.CodeIntelligenceLog.Operation.Fail(System.Exception! error, params (string! Key, object? Value)[]! fields) -> void
+SharpRail.Host.Abstractions.CodeIntelligenceLog.Operation.Id.get -> string!
+SharpRail.Host.Abstractions.CodeIntelligenceLog.Operation.Succeed(string! outcome = "ok", params (string! Key, object? Value)[]! fields) -> void
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.Begin(string! name, params (string! Key, object? Value)[]! fields) -> SharpRail.Host.Abstractions.CodeIntelligenceLog.Operation!
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.Error(string! evt, System.Exception! error, params (string! Key, object? Value)[]! fields) -> void
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.Flush() -> void
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.Info(string! evt, params (string! Key, object? Value)[]! fields) -> void
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.NewId() -> string!
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.Path.get -> string!
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.Path.set -> void
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.StillWaitingAfter.get -> System.TimeSpan
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.StillWaitingAfter.set -> void
+static SharpRail.Host.Abstractions.CodeIntelligenceLog.Warn(string! evt, params (string! Key, object? Value)[]! fields) -> void

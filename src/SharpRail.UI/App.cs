@@ -98,6 +98,7 @@ public sealed partial class App : Application
             }
             else StartDesktop(desktop, null);
             IdleMemoryTrim.Start();
+            UiLagWatchdog.Start();
         }
 #endif
         base.OnFrameworkInitializationCompleted();

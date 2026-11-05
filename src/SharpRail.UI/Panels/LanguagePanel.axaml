@@ -25,6 +25,7 @@
       <TextBlock Text="Diagnostics, navigation and refactoring." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       <TextBlock x:Name="LifetimeNote" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock x:Name="Status" Text="Reading language servers…" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" Margin="0,4" />
+    <Button x:Name="RetryRead" Content="Retry" Classes="link" IsVisible="False" HorizontalAlignment="Left" />
     <ListBox x:Name="Servers" AutoScrollToSelectedItem="False" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
       <ListBox.Styles>
         <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>

@@ -91,6 +91,7 @@ public sealed partial class LanguageService
                 await EvictAsync(victim, $"the {(victim.ServerId == entry.ServerId ? "running " + entry.ServerId + " server cap" : "language server memory budget")} needed room for {entry.ServerId} in {entry.Workspace}");
                 continue;
             }
+            CodeIntelligenceLog.Info("host.slot-wait", ("workspace", entry.Workspace), ("server", entry.ServerId));
             entry.State = "initializing"; entry.Detail = WaitingForSlot;
             logs.GetOrAdd(entry.Workspace + "\0" + entry.ServerId, _ => new()).Add("lifecycle", WaitingForSlot);
             // A slot frees when a server stops or goes idle; the periodic enforcement also pulses, so a missed pulse costs one period.

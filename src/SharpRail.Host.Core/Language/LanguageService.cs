@@ -78,7 +78,23 @@ public sealed partial class LanguageService : IAsyncDisposable
     /// <summary>The user's host-wide tool paths from host state (JSON of executable name to path), honoured by probes and launches.</summary>
     internal Func<string> ToolPaths { set => servers.ToolPaths = value; }
 
+    // Operations the Code Intelligence pane and the lifecycle make; per-keystroke editor operations are not logged.
+    private static bool Lifecycle(string operation) => operation is "servers" or "retry" or "restart" or "stop" or "release" or "configure" or "configuration" or "configurationSchema" or "projects" or "catalog" or "logs" or "status" or "setProjectHidden" or "javaKotlinProvider";
+
     public async ValueTask<LanguageResult> ExecuteAsync(LanguageRequest request, CancellationToken token = default)
+    {
+        if (!Lifecycle(request.Operation)) return await ExecuteCoreAsync(request, token);
+        var call = CodeIntelligenceLog.Begin("host.language", ("operation", request.Operation), ("workspace", request.Workspace), ("server", request.Server), ("origin", request.Origin));
+        try
+        {
+            var result = await ExecuteCoreAsync(request, token);
+            call.Succeed("ok", ("state", result.State));
+            return result;
+        }
+        catch (Exception error) { call.Fail(error); throw; }
+    }
+
+    private async ValueTask<LanguageResult> ExecuteCoreAsync(LanguageRequest request, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         if (Volatile.Read(ref disposed) != 0) return new("stopped", "The host is shutting down.");
@@ -278,10 +294,12 @@ public sealed partial class LanguageService : IAsyncDisposable
         {
             var log = logs.GetOrAdd(key, _ => new());
             log.Add("lifecycle", "Starting " + server.Id + ".");
+            var startLog = CodeIntelligenceLog.Begin("host.server-start", ("workspace", workspace), ("server", server.Id), ("requestedBy", candidate.StartedBy), ("operation", request.Operation));
             try
             {
                 // Waiting for a slot does not count against the startup deadline.
                 await AcquireSlotAsync(candidate, candidate.Token);
+                CodeIntelligenceLog.Info("host.server-slot", ("workspace", workspace), ("server", server.Id));
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(candidate.Token);
                 deadline.CancelAfter(TimeSpan.FromMinutes(15));
                 // A workspace just created is still receiving its cloned restore and build outputs; starting without them costs a full restore.
@@ -315,12 +333,14 @@ public sealed partial class LanguageService : IAsyncDisposable
                     throw;
                 }
                 log.Add("lifecycle", "Initialized; serving this workspace.");
+                startLog.Succeed("ready", ("workspace", workspace), ("server", server.Id));
                 return session;
             }
             catch (Exception error)
             {
                 if (error is LanguageTermsRequiredException) { candidate.State = "requiresAcceptance"; candidate.Detail = error.Message; }
                 log.Add("startup", error.Message);
+                startLog.Fail(error, ("state", candidate.State));
                 throw;
             }
         }, candidate.Token));
@@ -369,6 +389,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         var use = usage.Get(workspace, server);
         exit = exit with { StartedBy = startedBy, Details = $"Started by: {startedBy}\n" + (use is null ? "Agent calls: none\n" : $"Agent calls: {use.Calls} ({use.Successes} ok, {use.Failures} failed), last {use.LastUsed}\n") + exit.Details };
         exits.Set(workspace, server, exit);
+        CodeIntelligenceLog.Info("host.server-exit", ("workspace", workspace), ("server", server), ("startedBy", startedBy), ("unexpected", exit.Unexpected), ("reason", exit.Reason));
         ExitObserved?.Invoke(workspace, server, exit);
         if (exit.Unexpected && Volatile.Read(ref disposed) == 0) DeathObserved?.Invoke(workspace, server, exit.Time, exit.Reason);
     }
@@ -545,15 +566,20 @@ public sealed partial class LanguageService : IAsyncDisposable
     {
         var queue = new Queue<string>(); queue.Enqueue(workspace);
         var visited = 0;
-        while (queue.Count > 0 && visited++ < 5000)
+        var scan = CodeIntelligenceLog.Begin("host.inventory-scan", ("workspace", workspace));
+        try
         {
-            var directory = queue.Dequeue();
-            foreach (var file in Directory.EnumerateFiles(directory))
-                if (servers.Detect(file) is { } server) yield return (Path.GetRelativePath(workspace, file), server);
-            foreach (var child in Directory.EnumerateDirectories(directory))
-                if (Path.GetFileName(child) is not (".git" or ".tools" or ".bench" or "node_modules" or "bin" or "obj" or "target" or ".venv" or "vendor" or ".gradle" or ".dart_tool")
-                    && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0) queue.Enqueue(child);
+            while (queue.Count > 0 && visited++ < 5000)
+            {
+                var directory = queue.Dequeue();
+                foreach (var file in Directory.EnumerateFiles(directory))
+                    if (servers.Detect(file) is { } server) yield return (Path.GetRelativePath(workspace, file), server);
+                foreach (var child in Directory.EnumerateDirectories(directory))
+                    if (Path.GetFileName(child) is not (".git" or ".tools" or ".bench" or "node_modules" or "bin" or "obj" or "target" or ".venv" or "vendor" or ".gradle" or ".dart_tool")
+                        && (File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0) queue.Enqueue(child);
+            }
         }
+        finally { scan.Succeed("ok", ("directories", visited)); }
     }
 
     internal async Task SuspendAsync()
@@ -610,6 +636,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     {
         // A second stop waits for the first: an entry already removed from the map is still stopping, and callers must not return before its exit record is written.
         stopping[entry] = 0;
+        CodeIntelligenceLog.Info("host.server-stop", ("workspace", entry.Workspace), ("server", entry.ServerId), ("startedBy", entry.StartedBy), ("reason", reason));
         if (Interlocked.Exchange(ref entry.Stopped, 1) != 0) { await entry.StopDone.Task; stopping.TryRemove(entry, out _); return; }
         try
         {

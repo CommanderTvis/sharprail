@@ -82,6 +82,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         session.projectModel = model;
         session.projectLoading = server.Spec.ProjectLoadedNotification.Length > 0 && server.Spec.LoadsProjects(initialization) && session.projectModel.Manifests.Length > 0;
         session.StartWatching();
+        var initializing = CodeIntelligenceLog.Begin("host.initialize", ("workspace", workspace), ("server", server.Id));
         try
         {
             var result = await session.connection.RequestAsync("initialize", new
@@ -130,6 +131,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                     }
                 }
             }, token, server.Spec.InitializeTimeout);
+            initializing.Succeed("answered");
             session.capabilities = result?["capabilities"]?.DeepClone() ?? new JsonObject();
             if (session.capabilities["positionEncoding"]?.ToString() is { } encoding && encoding != "utf-16")
                 throw new IOException("The server selected an unsupported position encoding: " + encoding);
@@ -138,12 +140,18 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             if (session.projectLoading)
             {
                 session.log.Add("project", "Loading project graph. " + session.projectModel.Description);
-                var completed = await Task.WhenAny(session.projectInitialized.Task, session.projectActionReported.Task).WaitAsync(TimeSpan.FromMinutes(3), token);
-                if (completed == session.projectActionReported.Task) throw new IOException("Project initialization needs configuration: " + session.projectAction);
-                if (!session.projectRestores.IsEmpty) await Task.WhenAll(session.projectRestores.Values).WaitAsync(token);
-                session.projectLoading = false;
-                session.detail = "Project graph loaded";
-                session.log.Add("project", session.projectModel.Description);
+                var graph = CodeIntelligenceLog.Begin("host.project-graph", ("workspace", workspace), ("server", server.Id));
+                try
+                {
+                    var completed = await Task.WhenAny(session.projectInitialized.Task, session.projectActionReported.Task).WaitAsync(TimeSpan.FromMinutes(3), token);
+                    if (completed == session.projectActionReported.Task) throw new IOException("Project initialization needs configuration: " + session.projectAction);
+                    if (!session.projectRestores.IsEmpty) await Task.WhenAll(session.projectRestores.Values).WaitAsync(token);
+                    session.projectLoading = false;
+                    session.detail = "Project graph loaded";
+                    session.log.Add("project", session.projectModel.Description);
+                    graph.Succeed("loaded");
+                }
+                catch (Exception graphFailure) { graph.Fail(graphFailure); throw; }
             }
             // Files that changed while the graph loaded are reported now that the server has registered its watchers.
             session.ServeWatched();
@@ -151,6 +159,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         }
         catch (Exception failure)
         {
+            initializing.Fail(failure);
             session.Terminate("it did not finish starting: " + failure.Message, failure: true);
             await session.DisposeAsync();
             throw;

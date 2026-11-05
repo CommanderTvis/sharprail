@@ -30,6 +30,7 @@ internal static class LanguagePaneNarrowChecks
         Poll(fixture);
         Burst(fixture);
         UiThreadCalls(fixture);
+        LanguageLifecycleLogChecks.Run(fixture);
     }
 
     /// <summary>A pane taller than its window scrolls and keeps its offset across refreshes (a selected row must not pull itself into view): the wheel over any part of it moves the one vertical ScrollViewer, the last row can be reached, and nothing is wider than the viewport.</summary>

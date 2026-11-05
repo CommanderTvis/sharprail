@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
@@ -8,6 +9,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
+
+using Log = SharpRail.Host.Abstractions.CodeIntelligenceLog;
 
 namespace SharpRail.UI.Panels;
 
@@ -120,6 +123,10 @@ internal sealed partial class LanguagePanel : UserControl
     // Servers hidden in this project (host state, per project); shown again only while showHidden is on.
     private IReadOnlySet<string> hidden = new HashSet<string>();
     private bool showHidden;
+    /// <summary>How long a read of the inventory or a stop may take before the pane shows an error with Retry; a start may take longer (a first start installs the server).</summary>
+    internal static TimeSpan ReadTimeout { get; set; } = TimeSpan.FromSeconds(20);
+    internal static TimeSpan StartTimeout { get; set; } = TimeSpan.FromSeconds(120);
+    private long lastScrollLog;
     private const int QuietPolls = 10;
     private int quietTicks;
     private bool pollSoon;
@@ -129,6 +136,14 @@ internal sealed partial class LanguagePanel : UserControl
         this.host = host; this.workspace = workspace; this.navigate = navigate; this.state = state;
         AvaloniaXamlLoader.Load(this);
         Name = "LspPanel";
+        Log.Info("pane.created", ("workspace", workspace));
+        this.FindControl<Button>("RetryRead")!.Click += (_, _) => { Log.Info("pane.retry-clicked", ("workspace", this.workspace)); ShowRetry(false); RefreshNow(); };
+        this.FindControl<ScrollViewer>("PaneScroll")!.ScrollChanged += (_, _) =>
+        {
+            if (Environment.TickCount64 - lastScrollLog < 250) return;
+            lastScrollLog = Environment.TickCount64;
+            LogLayout("scroll");
+        };
         LanguageDependencyList.SetHostState(this, state);
         AddHandler(LanguageDependencyList.StatusEvent, (_, e) => SetStatus(e.Text));
         this.FindControl<SharpRail.Plugins.UI.Kit.PathLine>("Workspace")!.Path = workspace;
@@ -182,8 +197,58 @@ internal sealed partial class LanguagePanel : UserControl
             foreach (var view in CurrentViews()) _ = view.ReloadAsync();
             _ = RunAsync("servers");
         }
-        AttachedToVisualTree += (_, _) => { lifetime = new(); if (state is not null) { hidden = HiddenIn(state.Current); state.Changed += ConfigurationChanged; } timer.Start(); _ = RunAsync("servers"); };
-        DetachedFromVisualTree += (_, _) => { if (state is not null) state.Changed -= ConfigurationChanged; foreach (var view in configurations.Values) view.SettingsWindow?.Close(); busyOn = null; timer.Stop(); lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
+        AttachedToVisualTree += (_, _) => { Log.Info("pane.attached", ("workspace", this.workspace)); LogLayout("attached"); lifetime = new(); if (state is not null) { hidden = HiddenIn(state.Current); state.Changed += ConfigurationChanged; } timer.Start(); _ = RunAsync("servers"); };
+        DetachedFromVisualTree += (_, _) => { Log.Info("pane.detached", ("workspace", this.workspace), ("busy", busyOn is not null)); if (state is not null) state.Changed -= ConfigurationChanged; foreach (var view in configurations.Values) view.SettingsWindow?.Close(); busyOn = null; timer.Stop(); lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property.Name == nameof(IsEffectivelyVisible)) Log.Info(IsEffectivelyVisible ? "pane.shown" : "pane.hidden", ("workspace", workspace));
+        else if (change.Property == IsHitTestVisibleProperty || change.Property == IsEnabledProperty)
+            Log.Info("pane.state", ("property", change.Property.Name), ("value", change.NewValue), ("workspace", workspace), ("setBy", Callers()));
+    }
+
+    private static string Callers() => string.Join('<', new System.Diagnostics.StackTrace(2, false).GetFrames().Select(frame => frame.GetMethod()).Where(method => method is not null)
+        .Select(method => method!.DeclaringType?.Name + "." + method.Name).Take(5));
+
+    /// <summary>The nearest ancestor that makes this pane inert (not hit-test visible or disabled), as the log names it.</summary>
+    private string BlockedBy()
+    {
+        for (var ancestor = this.GetVisualParent(); ancestor is not null; ancestor = ancestor.GetVisualParent())
+            if (ancestor is InputElement { IsHitTestVisible: false } or InputElement { IsEnabled: false }) return ancestor.GetType().Name + "#" + (ancestor as StyledElement)?.Name;
+        return "none";
+    }
+
+    private void LogLayout(string why)
+    {
+        var scroll = this.FindControl<ScrollViewer>("PaneScroll")!;
+        Log.Info("pane.layout", ("why", why), ("size", $"{Bounds.Width:0}x{Bounds.Height:0}"), ("viewport", $"{scroll.Viewport.Width:0}x{scroll.Viewport.Height:0}"),
+            ("extent", $"{scroll.Extent.Width:0}x{scroll.Extent.Height:0}"), ("offsetY", (long)scroll.Offset.Y), ("rows", items.Count),
+            ("hitTest", IsHitTestVisible), ("enabled", IsEnabled), ("visible", IsEffectivelyVisible), ("blockedBy", BlockedBy()));
+    }
+
+    private void ShowRetry(bool shown) => this.FindControl<Button>("RetryRead")!.IsVisible = shown;
+
+    /// <summary>One host call of this pane: logged with its correlation id and duration, and bounded so a call that never completes surfaces as a <see cref="TimeoutException"/> instead of an endless wait.</summary>
+    private async Task<T> HostCall<T>(string method, string parent, TimeSpan timeout, CancellationToken token, Func<CancellationToken, Task<T>> call)
+    {
+        var operation = Log.Begin("pane.rpc", ("method", method), ("workspace", workspace), ("parent", parent), ("timeoutMs", (long)timeout.TotalMilliseconds));
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(token);
+        try
+        {
+            var result = await Task.Run(() => call(linked.Token), linked.Token).WaitAsync(timeout, token);
+            operation.Succeed();
+            return result;
+        }
+        catch (TimeoutException)
+        {
+            linked.Cancel();
+            var error = new TimeoutException($"The host did not answer {method} within {timeout.TotalSeconds:0} s.");
+            operation.Fail(error, ("timeout", true));
+            throw error;
+        }
+        catch (Exception error) { operation.Fail(error); throw; }
     }
 
     /// <summary>True when no host request of this pane is in flight. The pane keeps itself fresh (on mount, on host broadcasts and every few seconds while visible), so there is no Refresh button.</summary>
@@ -206,6 +271,8 @@ internal sealed partial class LanguagePanel : UserControl
     internal void Retarget(string next)
     {
         if (next == workspace) return;
+        Log.Info("pane.retarget", ("from", workspace), ("to", next), ("busy", busyOn is not null));
+        ShowRetry(false);
         foreach (var view in configurations.Values) view.SettingsWindow?.Close();
         workspace = next;
         if (state is not null)
@@ -246,7 +313,7 @@ internal sealed partial class LanguagePanel : UserControl
         {
             if (hide && row.IsRunning) await RunAsync("stop", row.Server);
             var request = new LanguageRequest(workspace, Operation: "setProjectHidden", Server: row.Server.Id, Configuration: hide ? "true" : "false");
-            var result = await Task.Run(async () => await host.LanguageAsync(request, current.Token), current.Token);
+            var result = await HostCall("setProjectHidden", "", ReadTimeout, current.Token, async t => await host.LanguageAsync(request, t));
             // Apply on the UI thread even when the caller had no dispatcher context.
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -258,7 +325,7 @@ internal sealed partial class LanguagePanel : UserControl
             });
         }
         catch (OperationCanceledException) when (current != lifetime || current.IsCancellationRequested) { }
-        catch (Exception error) { Dispatcher.UIThread.Post(() => { if (current == lifetime) SetStatus("Couldn't change hidden servers: " + error.Message); }); }
+        catch (Exception error) { Dispatcher.UIThread.Post(() => { if (current == lifetime) SetStatus("Couldn't change hidden servers: " + Brief(error.Message)); }); }
     }
 
     private void SetStatus(string text)
@@ -413,6 +480,9 @@ internal sealed partial class LanguagePanel : UserControl
             return;
         }
         busyOn = current;
+        var timeout = operation is "retry" ? StartTimeout : ReadTimeout;
+        var refresh = Log.Begin("pane.refresh", ("operation", operation), ("workspace", workspace), ("server", target?.Id ?? selected?.Id ?? ""));
+        string outcome = "ok";
         try
         {
             var token = current.Token;
@@ -420,7 +490,7 @@ internal sealed partial class LanguagePanel : UserControl
             {
                 if (gated.Presentation.Replaces is { Count: > 0 })
                 {
-                    var saved = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), token), token);
+                    var saved = await HostCall("javaKotlinProvider", refresh.Id, timeout, token, async t => await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), t));
                     if (current != lifetime || token.IsCancellationRequested) return;
                     if (saved.Configuration != gated.Id)
                     {
@@ -428,7 +498,7 @@ internal sealed partial class LanguagePanel : UserControl
                         return;
                     }
                 }
-                var acknowledgement = await Task.Run(async () => await host.LanguageTermsAsync(new(workspace, gated.Id), token), token);
+                var acknowledgement = await HostCall("terms", refresh.Id, timeout, token, async t => await host.LanguageTermsAsync(new(workspace, gated.Id), t));
                 if (current != lifetime || token.IsCancellationRequested) return;
                 if (!acknowledgement.Accepted)
                 {
@@ -443,8 +513,9 @@ internal sealed partial class LanguagePanel : UserControl
             }
             var request = new LanguageRequest(workspace, Operation: operation, Server: operation is "retry" or "stop" ? (target ?? selected)!.Id : "");
             var saves = configurations.Where(item => item.Key.Workspace == workspace).ToDictionary(item => item.Key.Server, item => item.Value.Saves);
-            var result = await Task.Run(async () => await host.LanguageAsync(request, token), token);
-            if (current != lifetime || token.IsCancellationRequested) return;
+            var result = await HostCall(operation, refresh.Id, timeout, token, async t => await host.LanguageAsync(request, t));
+            if (current != lifetime || token.IsCancellationRequested) { outcome = "superseded"; return; }
+            ShowRetry(false);
             SetStatus(Brief(result.State + ": " + result.Detail));
             if (operation == "servers")
             {
@@ -453,15 +524,23 @@ internal sealed partial class LanguagePanel : UserControl
                 inventorySaves = saves;
                 RefreshRows(selected?.Id);
                 if (result.State == "ready") SetStatus("");
+                LogLayout("data");
             }
         }
-        catch (OperationCanceledException) when (current != lifetime || current.IsCancellationRequested) { }
+        catch (OperationCanceledException) when (current != lifetime || current.IsCancellationRequested) { outcome = "cancelled"; }
         catch (Exception error)
         {
-            if (current == lifetime) SetStatus(error.ToString()); // TEMP-DIAG
+            outcome = error is TimeoutException ? "timeout" : "error";
+            refresh.Fail(error);
+            if (current == lifetime)
+            {
+                SetStatus(error is TimeoutException ? Brief(error.Message + " Retry to ask again.") : Brief("Couldn't reach the language services: " + error.GetType().Name + ": " + error.Message));
+                ShowRetry(true);
+            }
         }
         finally
         {
+            refresh.Succeed(outcome);
             // After a retarget the new lifetime owns the button and the queue; this request only lets go of what is still its own.
             if (busyOn == current) busyOn = null;
             if (operation != "servers") pollSoon = true;
