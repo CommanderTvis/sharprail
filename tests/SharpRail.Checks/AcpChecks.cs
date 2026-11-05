@@ -451,11 +451,31 @@ internal static class AcpChecks
         Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).EndsWith(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "A not-recommended agent adds the warning line.");
     }
 
+    // The launcher: a left click starts the default agent, the right-click menu lists every agent with the default marked.
+    internal static void Launcher()
+    {
+        var one = new AcpAgentEntry("a", "A", "a");
+        var two = new AcpAgentEntry("b", "B", "b");
+        var three = new AcpAgentEntry("c", "C", "c");
+        var launcher = typeof(SharpRail.Plugins.Acp.UI.AcpLauncher);
+        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("b", [one, two, three]) is { Kind: "start", Agent.Id: "b" }, "A default that is configured starts at once, without the picker.");
+        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("", [one, two, three]) is { Kind: "ask", Agent: null }, "With no default and several agents the picker opens.");
+        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("", [one]) is { Kind: "start", Agent.Id: "a" }, "With no default the only agent starts.");
+        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("gone", [one, two]) is { Kind: "ask" } && SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("gone", [one]) is { Kind: "start", Agent.Id: "a" }, "A removed default falls back to today's behaviour.");
+        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("a", []) is { Kind: "none" }, "With no agent at all there is nothing to start.");
+        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("gone", [one]) && !SharpRail.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("a", [one]) && !SharpRail.Plugins.Acp.UI.AcpLauncher.DefaultIsMissing("", [one]), "Only a set default that no agent has counts as removed.");
+        var menu = SharpRail.Plugins.Acp.UI.AcpLauncher.MenuEntries("b", [one, two, three]);
+        Require(menu.Select(entry => entry.Agent.Id).SequenceEqual(["a", "b", "c"]) && menu.Where(entry => entry.IsDefault).Select(entry => entry.Agent.Id).SequenceEqual(["b"]), "The right-click menu lists every agent in order with the default marked.");
+        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.MenuEntries("gone", [one, two]).All(entry => !entry.IsDefault) && new SharpRail.Plugins.Acp.AcpSettings().DefaultAgent == "", "A removed default marks nothing, and no default is the empty string.");
+        Require(launcher.IsSealed || launcher.IsAbstract, "The launcher decisions are static.");
+    }
+
     internal static async Task Run(string root)
     {
         Manifest();
         Rows();
         Confirmation();
+        Launcher();
         EntryText();
         Logo();
         await Protocol();

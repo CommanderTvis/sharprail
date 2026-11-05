@@ -36,13 +36,48 @@ public sealed class AcpUI : PluginUIModule
             };
             AutomationProperties.SetName(button, Label);
             ToolTip.SetTip(button, Label);
-            button.Click += (_, _) => _ = ChooseAsync(context, button, workspace);
+            var menu = new ContextMenu { Name = "AcpLaunchMenu", Placement = PlacementMode.BottomEdgeAlignedLeft };
+            // A touch screen has no right click: a tap opens the menu, which lists every agent.
+            if (OperatingSystem.IsAndroid()) button.Click += (_, _) => menu.Open(button);
+            else
+            {
+                ToolTip.SetTip(button, Label + " (right-click to choose an agent)");
+                button.Click += (_, _) => _ = LaunchAsync(context, button, workspace);
+            }
+            menu.Opening += (_, _) => _ = FillMenuAsync(context, menu, workspace);
+            _ = FillMenuAsync(context, menu, workspace);
+            button.ContextMenu = menu;
             return button;
         }));
         return () => selections.Dispose();
     }
 
-    private static async Task ChooseAsync(IPluginUIContext context, Button anchor, string workspace)
+    /// <summary>Fills the right-click menu with every configured agent, the default marked, and a way to the settings. It shows the last list at once and refreshes while it opens.</summary>
+    private static async Task FillMenuAsync(IPluginUIContext context, ContextMenu menu, string workspace)
+    {
+        AcpAgentList list;
+        try { list = await Task.Run(() => context.RequestAsync(AcpContract.Agents, new AcpNoParams()).AsTask()); }
+        catch (Exception error) when (error is not OperationCanceledException) { return; }
+        var icons = await CachedIconsAsync(context);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var defaultId = context.Settings<AcpSettings>().DefaultAgent;
+            menu.Items.Clear();
+            foreach (var (agent, isDefault) in AcpLauncher.MenuEntries(defaultId, list.Agents))
+            {
+                var item = new MenuItem { Name = "AcpLaunch_" + agent.Id, Header = isDefault ? agent.Name + " (default)" : agent.Name, Icon = AcpGlyph.For(icons.GetValueOrDefault(agent.Id), 14) };
+                item.Click += (_, _) => _ = StartAsync(context, workspace, agent);
+                menu.Items.Add(item);
+            }
+            if (list.Agents.Count > 0) menu.Items.Add(new Separator());
+            var settings = new MenuItem { Name = "AcpLaunch_settings", Header = "ACP settings" };
+            settings.Click += (_, _) => context.OpenSettings(UiPages.PluginSection(AcpManifest.Id));
+            menu.Items.Add(settings);
+        });
+    }
+
+    /// <summary>A left click: the default agent starts at once. Without a usable default it is the picker, or the only agent when there is just one.</summary>
+    private static async Task LaunchAsync(IPluginUIContext context, Button anchor, string workspace)
     {
         AcpAgentList list;
         try { list = await Task.Run(() => context.RequestAsync(AcpContract.Agents, new AcpNoParams()).AsTask()); }
@@ -51,10 +86,12 @@ public sealed class AcpUI : PluginUIModule
             context.Notify(PluginNotificationKind.Error, "Couldn't list ACP agents", error.Message);
             return;
         }
+        var choice = AcpLauncher.Resolve(context.Settings<AcpSettings>().DefaultAgent, list.Agents);
+        if (choice is { Kind: "start", Agent: { } agent }) { await StartAsync(context, workspace, agent); return; }
         var icons = await CachedIconsAsync(context);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            if (list.Agents.Count == 0)
+            if (choice.Kind == "none")
             {
                 context.Notify(PluginNotificationKind.Info, "No ACP agent yet", "Add an agent in Settings under ACP.");
                 return;

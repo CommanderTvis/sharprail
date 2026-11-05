@@ -55,6 +55,25 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   that directory. The registry's `preview` channel is ignored.
 - Entries for agents SharpRail supports directly (a small id list in `AcpRegistry`: Claude and Pi adapters) get a Not recommended tag with the
   reason, sort after the others, and say so in the install confirmation. They stay installable. Manually added agents are never flagged.
+- Icons: the registry gives each agent an `icon`, an https url of a 16x16 monochrome SVG on the registry's own host that uses `currentColor`.
+  `AcpIconCache` (the host half, under `~/.sharprail/acp/registry/icons`, one `.svg` and one `.json` of validators per agent id) fetches only
+  urls that are https, on the registry's host and default port, with no credentials, with no redirect followed, a 10 second timeout and a 64 KB
+  cap, and revalidates with the ETag like the registry (a copy younger than 12 hours is not refetched). `AcpIconRules` refuses a document that is
+  not well-formed SVG XML, declares a doctype, contains `script`, `foreignObject`, `image`, animation or embedding elements, an event handler, an
+  `href` that is not a `#fragment`, or a CSS `url()` or `@import` that is not a fragment; an icon that turns unsafe is dropped with its old copy.
+  Ids that are not plain file names are skipped. The UI asks the host (`icons`, never with urls) after the list is shown and draws the SVG with
+  the theme's text colour for `currentColor` (hard-coded colours stay); until then, with no icon, for a rejected one and for custom agents it
+  draws the generic ACP glyph. The New ACP chat menus read icons from disk only. The chat header keeps the plugin's own icon.
+- Settings layout: the agents and the registry use the `RegistryRow` of the UI kit, the row shape of the language servers in Code Intelligence
+  (status, icon, title, settings and action columns, details under the title). Each registry row says Install, Update or Installed, or that the
+  agent is not available on this machine, and the search filters by name, description and id. That page's own rows are bound to its data and stay
+  as they are.
+- Install confirmation: the plan is shown in the in-window dialog (`DialogWindow`), over the window that has the Install button, with the name
+  and version, source, command, checksum, license, repository and the explanation; Escape and Cancel install nothing.
+- Default agent: `AcpSettings.DefaultAgent` (the plugin's settings, written through `UpdateSettingsAsync`) names the agent a click on the New ACP chat
+  button starts. Without a usable default the click is as before: the only agent, or the picker. A default whose agent was removed is kept and
+  ignored (the settings say so), so adding it back restores it. Right-click lists every agent in order with the default marked, and ACP settings;
+  on a touch screen a tap opens that menu. This is the split of the Claude Code launcher.
 - Custom agents: command, arguments, environment and working directory typed in the settings page; adding one is the confirmation.
 - Credentials: SharpRail never shows a field for them. An agent that needs sign-in fails the session with a notice naming its
   `authMethods`; the user signs in with the agent's own tool.
@@ -68,7 +87,7 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   registry (that registry is keyed by a terminal tab).
 - `authenticate` as buttons or links in the chat: the method is implemented in the client but the chat contract has no authentication call, so it
   is only listed in a notice. Sign-in in the settings page is not offered.
-- Registry icons are not drawn; the `preview` channel, the registry's `extensions` and per-agent `website` links are not used.
+- The `preview` channel, the registry's `extensions` and per-agent `website` links are not used.
 - Permission option labels other than the agent's "always" label (the contract has no option list), a plan record (plans are text), embedded
   resource, audio and resource-link prompts from the composer (images and file attachments are sent when the agent allows them), images in
   agent output, `session/list` and `session/fork`, the agent's `mcpServers` (none are passed), steering or queuing a message while a turn
@@ -81,5 +100,5 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
 `--acp`: the manifest and Early support label; framing, version negotiation, session new, prompt streaming, cancel, load and crash against the
 in-process fake agent (`tests/SharpRail.Checks/AcpFakeAgent.cs`); the folded transcript; permission answers and cancellation; fs and terminal
 methods and their confinement (including a symbolic link and `..`); registry parsing against the fixture, the cache, offline fallback and
-seed; install confirmation, version mismatch, checksum failure and unpacking; the settings page's text forms. Checks never launch a real agent
+seed; registry icons (url rules, unsafe SVGs, size cap, cache and offline, the generic glyph); the row model and search; the install confirmation facts; the launcher's default, removed default and menu; install confirmation, version mismatch, checksum failure and unpacking; the settings page's text forms. Checks never launch a real agent
 or download from the registry.

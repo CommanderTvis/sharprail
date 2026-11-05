@@ -24,6 +24,13 @@ internal sealed partial class AcpSettingsView : StackPanel
         registryList = this.FindControl<StackPanel>("AcpRegistryList")!;
         status = this.FindControl<TextBlock>("AcpRegistryStatus")!;
         search = this.FindControl<TextBox>("AcpSearch")!;
+        defaultAgent = this.FindControl<ComboBox>("AcpDefaultAgent")!;
+        defaultNote = this.FindControl<TextBlock>("AcpDefaultNote")!;
+        defaultAgent.SelectionChanged += (_, _) =>
+        {
+            if (settingDefault || defaultAgent.SelectedItem is not ComboBoxItem { Tag: string id }) return;
+            _ = RunAsync(async () => { await context.UpdateSettingsAsync(new AcpSettings { DefaultAgent = id }); return 0; }, _ => { }, "Couldn't save the default agent");
+        };
         var name = this.FindControl<TextBox>("AcpName")!;
         var command = this.FindControl<TextBox>("AcpCommand")!;
         var arguments = this.FindControl<TextBox>("AcpArguments")!;
@@ -50,8 +57,10 @@ internal sealed partial class AcpSettingsView : StackPanel
         };
         this.FindControl<Button>("AcpRefresh")!.Click += (_, _) => LoadRegistry(true);
         search.TextChanged += (_, _) => RenderRegistry();
+        DetachedFromVisualTree += (_, _) => { settingsWatch?.Dispose(); settingsWatch = null; };
         AttachedToVisualTree += (_, _) =>
         {
+            settingsWatch ??= context.OnSettings<AcpSettings>(_ => RenderDefault());
             _ = RunAsync(() => context.RequestAsync(AcpContract.Agents, new AcpNoParams()).AsTask(), RenderAgents, "Couldn't list the agents");
             if (registry is null) LoadRegistry(false);
         };
@@ -97,9 +106,31 @@ internal sealed partial class AcpSettingsView : StackPanel
         return block;
     }
 
+    /// <summary>The default-agent choice: Ask each time, then every configured agent. A default that was removed shows as Ask, stays saved, and the note says so.</summary>
+    private void RenderDefault()
+    {
+        var current = context.Settings<AcpSettings>().DefaultAgent;
+        settingDefault = true;
+        try
+        {
+            defaultAgent.Items.Clear();
+            defaultAgent.Items.Add(new ComboBoxItem { Content = "Ask each time", Tag = "" });
+            foreach (var agent in configured) defaultAgent.Items.Add(new ComboBoxItem { Content = agent.Name, Tag = agent.Id });
+            var missing = AcpLauncher.DefaultIsMissing(current, configured);
+            defaultAgent.SelectedIndex = missing || current.Length == 0 ? 0 : 1 + configured.ToList().FindIndex(agent => agent.Id == current);
+            defaultNote.IsVisible = missing;
+            defaultNote.Text = missing ? "The agent chosen before is no longer in the list. The button asks until you choose another." : "";
+        }
+        finally { settingDefault = false; }
+    }
+
     private readonly HashSet<string> expanded = [];
     private IReadOnlyDictionary<string, string> icons = new Dictionary<string, string>();
     private IReadOnlyList<AcpAgentEntry> configured = [];
+    private readonly ComboBox defaultAgent;
+    private readonly TextBlock defaultNote;
+    private bool settingDefault;
+    private IDisposable? settingsWatch;
 
     private static Control Quiet(string name, string label, Action click)
     {
@@ -143,6 +174,7 @@ internal sealed partial class AcpSettingsView : StackPanel
             var remove = Quiet("AcpAgentRemove_" + agent.Id, "Remove", () => _ = RunAsync(() => context.RequestAsync(AcpContract.RemoveAgent, new AcpChooseParams("", "", agent.Id)).AsTask(), RenderAgents, "Couldn't remove the agent"));
             agents.Children.Add(RegistryRow.Create("AcpAgent_" + agent.Id, StatusIcon("check", Ui.Success, "Ready to chat"), AcpIconFor(agent.Id), title, disclosure, remove, details));
         }
+        RenderDefault();
         // What is configured decides each registry row's Install, Installed or Update.
         RenderRegistry();
     }

@@ -26,6 +26,12 @@
     </StackPanel>
     <TextBlock Classes="detail" Text="Chat with any ACP agent in SharpRail's chat view. The agent is a program that runs on this machine, in the workspace folder, and is not sandboxed: only install agents you trust. Sign-in happens in the agent's own tool; SharpRail never asks for credentials." />
   </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Classes="heading" Text="Default agent" />
+    <TextBlock Classes="detail" Text="A click on the New ACP chat button starts this agent at once. Right-click the button to start another. With none chosen, the button asks." />
+    <ComboBox x:Name="AcpDefaultAgent" MinWidth="260" HorizontalAlignment="Left" FontSize="12" AutomationProperties.Name="default agent" />
+    <TextBlock x:Name="AcpDefaultNote" Classes="detail" IsVisible="False" />
+  </StackPanel>
   <StackPanel Spacing="8">
     <TextBlock Classes="heading" Text="Your agents" />
     <TextBlock Classes="detail" Text="The agents the New ACP chat button can start." />
