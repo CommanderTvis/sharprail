@@ -46,12 +46,12 @@ jobs:
           # Every URL in the client is relative, so the base path needs no rewrite; only the worker loads first.
           sed -i 's|<body>|<body><script src="coi.js"></script>|' "$site/index.html"
           grep -q 'coi.js' "$site/index.html"
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: artifacts/browser
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
       - if: failure()
         uses: ./.github/actions/diagnostics
         with:
