@@ -1206,9 +1206,35 @@ internal static class ClaudeChatUiChecks
             var offset = view.List.Scroller!.Offset;
             window.MouseWheel(new Point(300, 300), new Vector(0, -1), RawInputModifiers.None); Frame(window);
             Require(view.Zoom == 1, "A plain wheel only scrolls.");
-            view.MagnifyZoom(0.3); Require(view.Zoom == 1.3, $"A pinch magnifies by its delta ({view.Zoom}).");
+            view.MagnifyZoom(0.3); Require(Math.Abs(view.Zoom - 1.3) < 1e-9, $"A pinch magnifies by its delta ({view.Zoom}).");
             view.MagnifyZoom(50); Require(view.Zoom == ChatView.MaxZoom, "The zoom stops at its largest.");
+            view.EndZoomGesture();
             view.MagnifyZoom(-0.99); Require(view.Zoom == ChatView.MinZoom, "And at its smallest.");
+            view.EndZoomGesture();
+
+            // Linear pinch: the result depends only on the cumulative scale, not on how many events carried it, and halves compose.
+            double Pinched(int events, double total)
+            {
+                view.EndZoomGesture(); view.SetZoom(1);
+                for (var i = 1; i <= events; i++) view.RaiseEvent(new PinchEventArgs(1 + (total - 1) * i / events, default));
+                var result = view.Zoom; view.RaiseEvent(new PinchEndedEventArgs()); return result;
+            }
+            var three = Pinched(3, 1.5); var thirty = Pinched(30, 1.5);
+            Require(Math.Abs(three - 1.5) < 1e-9 && Math.Abs(thirty - 1.5) < 1e-9, $"A pinch to 1.5 gives 1.5 in 3 events ({three}) and in 30 ({thirty}).");
+            double Magnified(int events, double total)
+            {
+                view.EndZoomGesture(); view.SetZoom(1);
+                for (var i = 0; i < events; i++) view.MagnifyZoom(total / events);
+                var result = view.Zoom; view.EndZoomGesture(); return result;
+            }
+            Require(Math.Abs(Magnified(3, 0.5) - Magnified(30, 0.5)) < 1e-9 && Math.Abs(Magnified(3, 0.5) - 1.5) < 1e-9, "Magnify increments of any size add up to the same zoom.");
+            view.SetZoom(1); view.EndZoomGesture();
+            for (var i = 0; i < 10; i++) view.MagnifyZoom(0.01);
+            Require(Math.Abs(view.Zoom - 1.1) < 1e-9, $"Tiny increments are not rounded away ({view.Zoom}).");
+            view.EndZoomGesture(); view.SetZoom(1);
+            view.MagnifyZoom(0.25); view.EndZoomGesture(); view.MagnifyZoom(0.25); view.EndZoomGesture();
+            Require(Math.Abs(view.Zoom - 1.5625) < 1e-9, $"Two half pinches compose from the zoom the first leaves ({view.Zoom}).");
+            view.EndZoomGesture();
             view.SetZoom(0.1); Require(view.Zoom == ChatView.MinZoom, "A value outside the range is clamped.");
             Require(InterfaceZoom.Current == page, "Gestures did not touch the page zoom.");
 
@@ -1218,7 +1244,7 @@ internal static class ClaudeChatUiChecks
             window.AddHandler(InputElement.PointerTouchPadGestureMagnifyEvent, (_, _) => leaked++);
             foreach (var scale in new[] { ChatView.MinZoom, 1.0, ChatView.MaxZoom })
             {
-                view.SetZoom(scale);
+                view.EndZoomGesture(); view.SetZoom(scale);
                 Frame(window); Frame(window);
                 for (var y = 1; y < view.Bounds.Height; y += 7)
                     for (var x = 1; x < view.Bounds.Width; x += 7)
@@ -1232,6 +1258,7 @@ internal static class ClaudeChatUiChecks
                     ((Avalonia.Interactivity.Interactive)target).RaiseEvent(new PointerDeltaEventArgs(InputElement.PointerTouchPadGestureMagnifyEvent, target, new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true), window, default, 0, new PointerPointProperties(), KeyModifiers.None, new Vector(scale > 1 ? 0.5 : scale < 1 ? -0.5 : 0, 0)));
                 }
                 Require(view.Zoom == scale, $"Pinching past the limit stays clamped at {scale} ({view.Zoom}).");
+                view.EndZoomGesture();
             }
             Require(leaked == 0 && InterfaceZoom.Current == page, $"No pinch step reached the window ({leaked}), and the page zoom stayed ({InterfaceZoom.Current}).");
 

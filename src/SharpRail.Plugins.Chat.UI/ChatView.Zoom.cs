@@ -56,18 +56,12 @@ internal sealed partial class ChatView
             e.Handled = true;
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(PointerTouchPadGestureMagnifyEvent, (_, e) => { MagnifyZoom(e.Delta.X); e.Handled = true; });
-        if (OperatingSystem.IsAndroid())
-        {
-            GestureRecognizers.Add(new PinchGestureRecognizer());
-            double? pinchStart = null;
-            AddHandler(PinchEvent, (_, e) => { pinchStart ??= zoom; SetZoom(Snap(pinchStart.Value * e.Scale)); e.Handled = true; });
-            AddHandler(PinchEndedEvent, (_, _) => pinchStart = null);
-        }
+        if (OperatingSystem.IsAndroid()) GestureRecognizers.Add(new PinchGestureRecognizer());
+        AddHandler(PinchEvent, (_, e) => { PinchZoom(e.Scale); e.Handled = true; });
+        AddHandler(PinchEndedEvent, (_, _) => EndZoomGesture());
     }
 
     private Border zoomPlate = null!;
-
-    private static double Snap(double value) => Math.Round(Math.Clamp(value, MinZoom, MaxZoom) * 20) / 20;
 
     private double StoredZoom()
     {
@@ -104,9 +98,44 @@ internal sealed partial class ChatView
     internal void StepZoom(int step) => SetZoom(step == 0 ? 1
         : step > 0 ? ZoomSteps.FirstOrDefault(factor => factor > zoom + 0.001, zoom) : ZoomSteps.LastOrDefault(factor => factor < zoom - 0.001, zoom));
 
-    internal void WheelZoom(double lines) => SetZoom(Snap(ZoomGesture.ForWheel(zoom, lines)));
+    internal void WheelZoom(double lines) => SetZoom(ZoomGesture.ForWheel(zoom, lines));
 
-    internal void MagnifyZoom(double delta) => SetZoom(Snap(zoom * (1 + delta)));
+    // A pinch is measured against the zoom it began at, and the running zoom is never rounded (the label rounds for display), so the same
+    // finger travel gives the same zoom however it is split into events. Avalonia's PinchEvent carries the cumulative scale of the gesture; the macOS
+    // magnify event carries the increment of each event, which adds up to the cumulative scale.
+    private double? gestureBase;
+    private double gestureScale = 1;
+    private DispatcherTimer? gestureIdle;
+
+    /// <summary>One cumulative pinch scale (1 at the start of the gesture).</summary>
+    internal void PinchZoom(double scale)
+    {
+        if (!double.IsFinite(scale) || scale <= 0) return;
+        gestureBase ??= zoom;
+        gestureScale = scale;
+        SetZoom(gestureBase.Value * scale);
+    }
+
+    /// <summary>One trackpad magnify increment; the gesture ends when the increments stop.</summary>
+    internal void MagnifyZoom(double delta)
+    {
+        if (!double.IsFinite(delta)) return;
+        var start = gestureBase ??= zoom;
+        gestureScale = Math.Clamp(gestureScale + delta, MinZoom / start, MaxZoom / start);
+        SetZoom(start * gestureScale);
+        gestureIdle?.Stop();
+        gestureIdle = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        gestureIdle.Tick += (_, _) => EndZoomGesture();
+        gestureIdle.Start();
+    }
+
+    /// <summary>Ends the pinch in progress, so the next one starts from the zoom it leaves.</summary>
+    internal void EndZoomGesture()
+    {
+        gestureIdle?.Stop();
+        gestureBase = null;
+        gestureScale = 1;
+    }
 
     private void ShowZoomLevel()
     {
