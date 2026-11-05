@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
@@ -41,23 +42,14 @@ public sealed partial class App : Application
         {
             if (e.NameScope.Find<Panel>("PART_ExpandCollapseChevronContainer") is { } chevron) chevron.Margin = new Thickness(2, 0);
         });
+        // A row with an icon reserves the icon column on its own, so the first pass already sizes the popup around the icon instead
+        // of waiting for the shared column to settle (an unsettled column leaves icons outside the menu).
+        TemplatedControl.TemplateAppliedEvent.AddClassHandler<MenuItem>((item, _) => ReserveIconColumn(item));
+        MenuItem.IconProperty.Changed.AddClassHandler<MenuItem>((item, _) => ReserveIconColumn(item));
         // Fluent's menu rows share icon, shortcut and chevron columns, which only settle after the first layout pass. A native
         // popup sized from that pass is narrower than its rows (clipping the icons and chevrons of mixed menus), so measure again.
-        // The popup root is re-measured with the menu and once more after that pass, since rows that gain icons or items as the
-        // menu opens (a terminal tab's plugin rows) settle their shared columns only then.
         MenuBase.OpenedEvent.AddClassHandler<ContextMenu>((menu, _) =>
-        {
-            void Remeasure()
-            {
-                menu.InvalidateMeasure();
-                TopLevel.GetTopLevel(menu)?.InvalidateMeasure();
-            }
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
-                Remeasure();
-                Avalonia.Threading.Dispatcher.UIThread.Post(Remeasure, Avalonia.Threading.DispatcherPriority.Background);
-            }, Avalonia.Threading.DispatcherPriority.Render);
-        });
+            Avalonia.Threading.Dispatcher.UIThread.Post(menu.InvalidateMeasure, Avalonia.Threading.DispatcherPriority.Render));
         // A window does not inherit its owner's theme variant, and Fluent colours every stock control from it: a dialog,
         // Settings or plugin window would otherwise follow the OS appearance instead of the theme. Workbench windows
         // pass theirs on to owned windows when the theme changes.
@@ -95,6 +87,13 @@ public sealed partial class App : Application
         }
 #endif
         base.OnFrameworkInitializationCompleted();
+    }
+
+    // The icon presenter is 16 wide with a 12 margin: the room a row's icon needs in the icon column from the first pass.
+    private static void ReserveIconColumn(MenuItem item)
+    {
+        var column = item.GetVisualDescendants().OfType<Grid>().SelectMany(grid => grid.ColumnDefinitions).FirstOrDefault(definition => definition.SharedSizeGroup == "MenuItemIcon");
+        if (column is not null) column.MinWidth = item.Icon is null ? 0 : 28;
     }
 
 #if !ANDROID && !BROWSER

@@ -56,7 +56,7 @@ internal static class MenuLayoutChecks
         BottomPadding();
     }
 
-    // The terminal tab menu: plugins' rows (an icon among them) are inserted as it opens, after the first measure.
+    // The terminal tab menu: plugins' rows (an icon among them) arrive as it opens, after the first measure.
     private static void LazyTabMenu()
     {
         var anchor = new Button { Content = "tab", Width = 80, Height = 24 };
@@ -65,18 +65,21 @@ internal static class MenuLayoutChecks
         var menu = new ContextMenu();
         menu.Items.Add(Ui.IconMenu("Close", () => { }, ActionIcon.Close));
         menu.Items.Add(Ui.Menu("Rename", () => { }));
-        SharpRail.UI.Docking.DockSurface.AddLazyItems(menu, () =>
-        {
-            var copy = Ui.Menu("Copy session ID", () => { });
-            copy.Icon = Ui.Icon("terminal-line", size: 14);
-            return [copy];
-        });
         menu.Items.Add(Ui.Menu("Move up", () => { }));
         var split = new MenuItem { Header = "Split" };
         split.Items.Add(Ui.Menu("Right", () => { }));
         menu.Items.Add(split);
         anchor.ContextMenu = menu;
         menu.Open(anchor);
+        // The popup is sized from this first pass, before the shared icon column has settled across the rows.
+        (TopLevel.GetTopLevel(menu) as Avalonia.Layout.Layoutable)?.UpdateLayout();
+        IconsInside("terminal tab menu, first pass", menu);
+        // A plugin row with an icon arriving once the popup is already sized.
+        var copy = Ui.Menu("Copy session ID", () => { });
+        copy.Icon = Ui.Icon("terminal", size: 14);
+        menu.Items.Insert(2, copy);
+        (TopLevel.GetTopLevel(menu) as Avalonia.Layout.Layoutable)?.UpdateLayout();
+        IconsInside("terminal tab menu, late row", menu);
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
@@ -88,12 +91,17 @@ internal static class MenuLayoutChecks
 
     private static void IconsInside(string name, ContextMenu menu)
     {
+        var rows = menu.Items.OfType<MenuItem>().ToArray();
+        var inner = menu.Bounds.Width - menu.Padding.Left - menu.Padding.Right - menu.BorderThickness.Left - menu.BorderThickness.Right;
+        var widest = rows.Max(row => row.DesiredSize.Width);
+        Require(inner >= widest - 0.5, $"{name}: the menu is {inner:0.#} wide inside its padding but its widest row needs {widest:0.#}.");
         foreach (var item in menu.Items.OfType<MenuItem>().Where(item => item.Icon is not null))
         {
             var icon = item.GetVisualDescendants().OfType<ContentControl>().First(part => part.Name == "PART_IconPresenter");
             var left = icon.TranslatePoint(default, menu)!.Value.X;
             var right = icon.TranslatePoint(new Point(icon.Bounds.Width, 0), menu)!.Value.X;
-            Require(left >= 0 && right <= menu.Bounds.Width, $"{name}: the icon of '{item.Header}' spans x={left:0.#}..{right:0.#}, outside the menu (0..{menu.Bounds.Width:0.#}).");
+            var text = item.GetVisualDescendants().OfType<TextBlock>().First(part => part.Text == (string)item.Header!).TranslatePoint(default, menu)!.Value.X;
+            Require(left >= 0 && right <= menu.Bounds.Width && right <= text + 0.5, $"{name}: the icon of '{item.Header}' spans x={left:0.#}..{right:0.#}, outside the menu (0..{menu.Bounds.Width:0.#}).");
         }
     }
 
