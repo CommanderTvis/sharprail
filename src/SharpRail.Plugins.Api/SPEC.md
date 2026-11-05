@@ -397,7 +397,8 @@ External plugins are discovered and refused. When the host starts, it lists `<st
 in `HostState.PluginPaths`, reads each manifest, and refuses a manifest that does not parse, an id that does not
 match its directory, or an API generation that differs. A valid external plugin arrives disabled. Enabling it
 refuses it: a missing or refused dependency gives that reason first, and otherwise the reason is "External
-plugins are not supported in this version." Turning it off returns it to disabled. No external assembly loads,
+plugins are not supported in this version." Its switch in Settings › Plugins stays on, and turning it off returns
+it to disabled. No external assembly loads,
 and the plugin file read serves only the external plugin's assets. This keeps the host and the app free of
 dynamic code loading, so both can be published as NativeAOT, until external plugins can run isolated from
 SharpRail's processes.

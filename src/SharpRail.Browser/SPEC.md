@@ -84,8 +84,8 @@ positions, colors and draw order while reducing managed/native transitions. Rows
 composition, complex text, selection, contrast correction, decorations or hovered links use the shared drawing path.
 The native path also scans cells, resolves ordinary/inverse/faint colors and draws background runs,
 so the managed interpreter does not process each cell of a common ASCII row. Browser checks
-compare the batched and shared paths pixel for pixel. Runtime-loaded plugins remain supported;
-the browser keeps its untrimmed managed runtime.
+compare the batched and shared paths pixel for pixel. The browser keeps its untrimmed managed
+runtime, since JSON reflection needs it.
 
 Release Build and Publish use hybrid WASM AOT for the assemblies in `BrowserAotAssemblies`
 (`BrowserAot.targets`) and their shared generic instances; other assemblies remain interpreted.
@@ -93,7 +93,7 @@ This is not NativeAOT. The build fails when the selected or compiled set differs
 Debug remains interpreted; SharpRailBrowserAot=false explicitly opts out for diagnostics. The pinned
 SDK requires the linker pipeline for Publish, but every resolved managed assembly is rooted and
 uses copy mode, with IL stripping disabled. A mandatory SHA-256 comparison verifies every linked
-assembly against its original bytes. JSON reflection and runtime-loaded managed plugins remain enabled.
+assembly against its original bytes. JSON reflection remains enabled.
 Copy mode still performs trim analysis, so only this browser copy-only configuration disables the
 trim analyzer and linker trim-analysis warnings; ordinary warnings and referenced-project analyzers
 remain enabled. Build guards reject trimming, IL stripping, disabled reflection or a non-hybrid runtime,
@@ -112,7 +112,7 @@ and verify both selected and compiled AOT assembly sets. SDK upgrades must retai
 | SharpRail.Host.Protocol, SharpRail.Host.Client, System.Text.Json | Every host RPC message is serialized and dispatched through them. |
 | System.Runtime.InteropServices.JavaScript | Terminal output and every other JS interop call cross it. |
 
-Everything else stays interpreted: plugins (cold, loaded on demand, many), the host core, XAML
+Everything else stays interpreted: plugins (cold, activated on demand, many), the host core, XAML
 loading, Fluent theme, SVG, YAML/TOML, XML and data serialization, and TextMateSharp.Grammars
 (6.7 MB of grammar data with little code). Measured on 2026-10-21 (Apple Silicon, headless
 Chromium, `restty.mjs --perf` and `--prose`) against the earlier CoreLib/Avalonia.Base-only set:
@@ -129,8 +129,8 @@ with a 3-second first-frame budget. It checks every block has an exact measured 
 controls and preserves the exact scroll extent while scrolling. On the measured Chromium/macOS
 run, first frame fell from 13.33 seconds interpreted to 0.88 seconds with selective AOT; the extent
 remained 128,067 DIP. This is a focused local acceptance result, not a cross-device latency guarantee.
-Normal published-bundle acceptance also opens restored prose and Mermaid, Settings and an external
-managed plugin performing a typed JSON round trip; test-only exports must be absent.
+Normal published-bundle acceptance also opens restored prose and Mermaid, Settings and the Branch
+graph builtin plugin performing a typed JSON request; test-only exports must be absent.
 The measured native runtime is 37,902,293 bytes, versus 11,605,717 interpreted. Gzip level 9 yields
 11,398,782 bytes and Brotli quality 11 yields 7,923,255 bytes; these are historical runtime-only
 compression measurements. Clipboard images are uploaded to the host before their path is pasted into a shell.
@@ -153,8 +153,8 @@ are published by atomic rename. The original
 bundle remains deployable. Compression adds bundling CPU time and disk space, avoiding
 compression CPU on every request. The standalone host negotiates fresh sidecars at original
 URLs, preserving MIME types, COOP/COEP, HEAD and conditional caching with encoding variation.
-Other deployment servers must implement equivalent sidecar serving. Managed assembly preservation,
-selective AOT and runtime plugin loading retain their existing policies. Unfingerprinted assets
+Other deployment servers must implement equivalent sidecar serving. Managed assembly preservation
+and selective AOT retain their existing policies. Unfingerprinted assets
 retain normal conditional caching.
 
 The 2026-10-16 macOS Release Publish verified byte-identical preservation of 249 managed

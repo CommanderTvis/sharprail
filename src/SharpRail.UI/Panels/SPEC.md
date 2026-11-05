@@ -239,7 +239,9 @@ could not save this change: …” inline and re-renders from host state.
 
 - Plugins (`PluginsSettings.cs`) lists every roster row of the host this window is connected to: icon, label, the
   version of an external plugin, origin, status, description, a contribution summary, the reason of a failed or
-  refused row (an external plugin switched on is refused, since external plugins do not run), and the enabled plugins that depend on it. The switch disables at once (the host cascades
+  refused row (an external plugin switched on is refused, since external plugins do not run), and the enabled plugins that depend on it.
+  A failed or refused row's switch shows off and cannot be used, except a refused row still switched on in host
+  state: its switch shows on, so the user can turn it off. The switch disables at once (the host cascades
   dependents off) and enables after a “Also turn on …?” confirmation when disabled dependencies must come too,
   sent as one batch. Failed rows offer Retry; Rescan re-reads the plugin roots; the External plugin directories
   editor adds and removes roots as one `plugin-paths` change each. The card list is virtualized: only cards near

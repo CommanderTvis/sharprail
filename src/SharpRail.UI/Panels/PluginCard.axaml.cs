@@ -14,7 +14,7 @@ namespace SharpRail.UI.Panels;
 /// One roster entry on Settings › Plugins, kept per plugin id for the page's life: a roster change updates it in place
 /// and raises <see cref="Changed"/>, so the list never replaces an item and its realized card is redrawn where it is.
 /// </summary>
-internal sealed class PluginCardModel(PluginRosterEntry entry, IReadOnlyList<string> dependents, string signature, string? heading, string? locked = null)
+internal sealed class PluginCardModel(PluginRosterEntry entry, IReadOnlyList<string> dependents, string signature, string? heading, string? locked = null, bool switchedOn = false)
 {
     /// <summary>The category this card opens in the list, or null when the card follows another of the same category.</summary>
     internal string? Heading { get; private set; } = heading;
@@ -23,11 +23,13 @@ internal sealed class PluginCardModel(PluginRosterEntry entry, IReadOnlyList<str
     internal string Signature { get; private set; } = signature;
     /// <summary>Why this client may not turn the plugin off, or null when it may.</summary>
     internal string? Locked { get; private set; } = locked;
+    /// <summary>Whether the host state still has this refused plugin switched on.</summary>
+    internal bool SwitchedOn { get; private set; } = switchedOn;
     internal event Action? Changed;
 
-    internal void Update(PluginRosterEntry next, IReadOnlyList<string> nextDependents, string nextSignature, string? nextHeading, string? nextLocked = null)
+    internal void Update(PluginRosterEntry next, IReadOnlyList<string> nextDependents, string nextSignature, string? nextHeading, string? nextLocked = null, bool nextSwitchedOn = false)
     {
-        Entry = next; Dependents = nextDependents; Heading = nextHeading; Locked = nextLocked;
+        Entry = next; Dependents = nextDependents; Heading = nextHeading; Locked = nextLocked; SwitchedOn = nextSwitchedOn;
         if (Signature == nextSignature) return;
         Signature = nextSignature;
         Changed?.Invoke();
@@ -115,7 +117,8 @@ internal sealed partial class PluginCard : Border
         retry.IsVisible = entry.Status == Status.Failed;
         AutomationProperties.SetName(toggle, entry.Label + " enabled");
         // A refused or failed plugin cannot run here: its switch shows off and stays disabled (a failed one keeps Retry).
-        var refused = troubled;
+        // A refused plugin still switched on in host state shows on, so the user can turn it off.
+        var refused = troubled && !model.SwitchedOn;
         Set(toggle, entry.Status != Status.Disabled && !refused);
         toggle.IsEnabled = model.Locked is null && !refused;
         ToolTip.SetTip(toggle, refused ? entry.Reason : model.Locked);

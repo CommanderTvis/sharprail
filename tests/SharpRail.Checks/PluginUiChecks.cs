@@ -387,12 +387,17 @@ internal static class PluginUiChecks
         Require(loader.Registry.Roster.Where(entry => entry.Origin == PluginOrigin.Builtin && entry.Id != "fixture").All(entry => entry.Category is { Length: > 0 }),
             "Every shipped builtin plugin declares a category.");
 
-        // Enabling an external plugin refuses it with a plain reason and loads nothing; its switch then stays off.
+        // Enabling an external plugin refuses it with a plain reason and loads nothing; its switch stays on so it can be turned off.
         Find<ToggleSwitch>(Page().Card("removable")!, "PluginToggle").IsChecked = true;
         E2eWorkspace.Until(() => Page().Card("removable") is { } refused && Texts(refused).Contains(PluginHostChecks.ExternalRefusal, StringComparison.Ordinal));
         var refusedToggle = Find<ToggleSwitch>(Page().Card("removable")!, "PluginToggle");
-        Require(refusedToggle is { IsChecked: false, IsEnabled: false } && !loader.Registry.Active.Contains("removable"),
-            "A refused external plugin's switch shows off and cannot be used, and nothing mounts.");
+        Require(refusedToggle is { IsChecked: true, IsEnabled: true } && !loader.Registry.Active.Contains("removable"),
+            "A refused external plugin that is switched on keeps a usable switch, and nothing mounts.");
+        refusedToggle.IsChecked = false;
+        E2eWorkspace.Until(() => app.Workbench.State.Current.Plugins.Single(entry => entry.Id == "removable").Status == PluginStatus.Disabled &&
+            app.Workbench.State.Current.PluginSettings["removable"].GetProperty("enabled").ValueKind == JsonValueKind.False);
+        E2eWorkspace.Until(() => Find<ToggleSwitch>(Page().Card("removable")!, "PluginToggle") is { IsChecked: false, IsEnabled: true } &&
+            !Texts(Page().Card("removable")!).Contains(PluginHostChecks.ExternalRefusal, StringComparison.Ordinal));
         settings.Close();
 
         // A tool of a disabled plugin has no tab, strip entry or placeholder until the plugin is on.

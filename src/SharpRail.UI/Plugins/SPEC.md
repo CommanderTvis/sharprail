@@ -222,7 +222,8 @@ list builtin UI halves with another wire version or a throwing activation and pu
 activation outside `Activate` refused. The fixture plugin, composed as a check-only builtin on both sides, then
 runs end to end through the real host, once in process and once remote over WebSocket RPC, beside two external
 plugins in the host's state directory: one built for another generation, and one listed as external and
-disabled, refused with its plain reason when switched on, its switch then off and unusable, and nothing mounted.
+disabled, refused with its plain reason when switched on with nothing mounted, its switch still on, and back to
+disabled once switched off from its card.
 The fixture's dormant tool placeholder turns live with the tab instance kept; its side tool, Settings section
 (with a settings update reaching the host half) and file viewer mount; a call and a state subscription
 round-trip; every contribution goes after disabling it from Settings › Plugins; and Rescan drops an external

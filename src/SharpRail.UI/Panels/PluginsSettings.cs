@@ -77,7 +77,8 @@ public sealed class PluginsSettings : StackPanel
     {
         // Terminal activity and other unrelated broadcasts leave the roster and the roots as they were.
         if (previous.Plugins.SequenceEqual(next.Plugins) && previous.PluginPaths.SequenceEqual(next.PluginPaths)
-            && previous.ConnectedThroughTailscale == next.ConnectedThroughTailscale) return;
+            && previous.ConnectedThroughTailscale == next.ConnectedThroughTailscale
+            && previous.Plugins.Select(entry => SwitchedOn(previous, entry)).SequenceEqual(next.Plugins.Select(entry => SwitchedOn(next, entry)))) return;
         Refresh();
     }
 
@@ -104,9 +105,10 @@ public sealed class PluginsSettings : StackPanel
                 first = false;
                 var dependents = entry.Status != PluginStatus.Disabled ? PluginRegistry.ActiveDependents(entry.Id, roster).Select(id => Label(id, roster)).ToArray() : [];
                 var locked = entry.Status != PluginStatus.Disabled && pinned.Contains(entry.Id) ? TailscaleDependence.Refusal : null;
-                var signature = System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" + string.Join(",", dependents) + "\n" + heading + "\n" + locked;
-                if (models.TryGetValue(entry.Id, out var model)) model.Update(entry, dependents, signature, heading, locked);
-                else models[entry.Id] = model = new PluginCardModel(entry, dependents, signature, heading, locked);
+                var switchedOn = SwitchedOn(state.Current, entry);
+                var signature = System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" + string.Join(",", dependents) + "\n" + heading + "\n" + locked + "\n" + switchedOn;
+                if (models.TryGetValue(entry.Id, out var model)) model.Update(entry, dependents, signature, heading, locked, switchedOn);
+                else models[entry.Id] = model = new PluginCardModel(entry, dependents, signature, heading, locked, switchedOn);
                 desired.Add(model);
             }
         }
@@ -124,6 +126,12 @@ public sealed class PluginsSettings : StackPanel
         RefreshOutline();
         RefreshPaths();
     }
+
+    /// <summary>Whether <paramref name="entry"/> is refused while its stored <c>enabled</c> flag is on.</summary>
+    private static bool SwitchedOn(HostState current, PluginRosterEntry entry) =>
+        entry.Status == PluginStatus.Refused && current.PluginSettings.TryGetValue(entry.Id, out var space) &&
+        space.ValueKind == System.Text.Json.JsonValueKind.Object && space.TryGetProperty("enabled", out var flag) &&
+        flag.ValueKind == System.Text.Json.JsonValueKind.True;
 
     /// <summary>Plugins that cannot run here (refused or failed) gather under their own heading below every working category.</summary>
     internal const string Unavailable = "Unavailable";
