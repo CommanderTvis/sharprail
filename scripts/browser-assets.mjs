@@ -39,6 +39,8 @@ await fs.copyFile(path.join(project, 'node_modules/buffer/LICENSE'), path.join(v
 // SDK; the tab only speaks HTTP to them, so the Mistral SDK is stubbed) and just-bash, its shell (gzip is stubbed: no node:zlib).
 execFileSync(path.join(project, 'node_modules/.bin/esbuild'), ['tabpi/agent.mjs', '--bundle', '--format=esm', '--platform=browser', '--minify',
   '--alias:@mistralai/mistralai=./tabpi/mistral-stub.mjs', '--alias:node:zlib=./tabpi/zlib-stub.mjs', '--define:process.env.NODE_ENV="production"', `--define:PI_VERSION=${JSON.stringify(JSON.stringify(JSON.parse(await fs.readFile(path.join(project, 'node_modules/@mariozechner/pi-agent-core/package.json'), 'utf8')).version))}`, `--outfile=${path.join(vendor, 'tabpi.js')}`, '--log-level=warning'], { cwd: project });
+// The version alone, so asking for it (Pi's status, on every start) does not fetch the agent bundle above.
+await fs.writeFile(path.join(vendor, 'tabpi-version.js'), `export const version = ${JSON.stringify(JSON.parse(await fs.readFile(path.join(project, 'node_modules/@mariozechner/pi-agent-core/package.json'), 'utf8')).version)};\n`);
 await fs.copyFile(path.join(project, 'node_modules/just-bash/LICENSE'), path.join(vendor, 'JustBash-LICENSE')).catch(() => {});
 // The tab host's CSS language server runs in a Web Worker: vscode-css-languageservice behind the LSP, as one classic script.
 execFileSync(path.join(project, 'node_modules/.bin/esbuild'), ['tabpi/csslsp.mjs', '--bundle', '--format=iife', '--platform=browser', '--minify', `--outfile=${path.join(vendor, 'csslsp.js')}`, '--log-level=warning'], { cwd: project });

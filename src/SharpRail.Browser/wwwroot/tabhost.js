@@ -60,7 +60,7 @@ export async function save() {
 
 /** The version of the Pi bundled into the page. */
 export async function piVersion() {
-  return (await import('./vendor/tabpi.js')).version;
+  return (await import('./vendor/tabpi-version.js')).version;
 }
 
 /** Starts Pi in this tab for a workspace; returns the conversation's id. */
