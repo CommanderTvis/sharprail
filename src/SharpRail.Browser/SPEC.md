@@ -141,7 +141,20 @@ The 2026-10-16 inspection of SDK 10.0.401/runtime 10.0.12 found Release already 
 the `browser` task for build, run, publish and checks. Selective hybrid AOT, preserved IL/reflection,
 SIMD, WASM exception handling and threads remain enabled. The SDK uses native compile `-Oz`,
 Release link `-O2`, native stripping and wasm-opt; the pinned native terminal uses ReleaseFast
-and native C/C++ bridges use `-O2`. Those compiler policies are retained. The standalone
+and native C/C++ bridges use `-O2`. Those compiler policies are retained.
+Release also runs the post-link wasm-opt pass at `-Oz` (`WasmOptConfigurationFlags`; the SDK's emcc link stays
+`-O2`) and sets `WasmDebugLevel=0`, which drops the unused browser-debugger component from the native runtime and the
+`.pdb` files from the boot config (Chromium and Firefox download every listed `.pdb` at start). On the 2026-11-05
+Release build `-Oz` took `dotnet.native.wasm` from 63.9 MB to 53.2 MB raw and 18.80 MB to 17.39 MB gzip level 9
+(`-Os`: 18.51 MB). Pages serves gzip only, so the file is the largest single transfer. Not measured: the speed cost of
+`-Oz` in the AOT hot paths.
+Rejected after inspection: trimming (the preserved-assembly policy above is what keeps JSON reflection, plugin loading
+and XAML working, and a trimmed set cannot be proven without a browser run), `InvariantGlobalization` (saves one
+0.8 MB ICU shard but changes culture and normalization behavior) and lazy-loading plugin assemblies (all plugins
+total 4.3 MB gzip and are referenced statically). Pi's JavaScript (`vendor/tabpi.js`, 0.58 MB gzip) is a dynamic
+import fetched when Pi first starts. Its status request, which the Pi plugin sends at every start, used to import it
+for the version number; it now reads the one-line `vendor/tabpi-version.js`. The Tailscale node is fetched only on
+download. The standalone
 `host` task now also defaults to Release, with the existing configuration override.
 
 This project uses the plain WASM SDK rather than the Blazor static-web-assets pipeline.
