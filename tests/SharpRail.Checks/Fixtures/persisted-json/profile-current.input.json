@@ -1,0 +1,63 @@
+{
+  "Preferences": {
+    "Theme": "sharprail-light",
+    "ThemeMode": "system",
+    "SystemThemePair": { "Light": "sharprail-light", "Dark": "sharprail-dark" },
+    "FileLineWidth": 120,
+    "FileLineWidthBounded": true,
+    "MarkdownLineWidth": 90,
+    "MarkdownLineWidthBounded": false,
+    "CustomPresets": {},
+    "FontSize": 13,
+    "CodeFontSize": 12.5,
+    "Zoom": 1,
+    "ChangesSingle": false,
+    "TerminalRenderer": "texture",
+    "SecureInputForPasswords": true,
+    "PreviewTabs": true,
+    "VerticalCenterTabs": false,
+    "VerticalCenterTabsWidth": 220,
+    "VerticalTabsInProjects": false,
+    "GroupWorkspacesUnderCreator": false,
+    "DefaultPaneDirection": "horizontal"
+  },
+  "Windows": [
+    {
+      "Layout": {
+        "Schema": 1,
+        "ActiveProject": "$ROOT/project",
+        "Center": { "GroupId": "center-1", "Axis": "horizontal", "Ratio": 0.5 },
+        "Groups": [ { "Id": "center-1", "Region": "center", "Tools": [], "Folded": false, "Weight": 1 } ],
+        "Workspaces": {
+          "$ROOT/project-ws": {
+            "Documents": { "center-1": [ { "Id": "terminal:1", "Title": "Terminal ✳", "Kind": "terminal" } ] },
+            "Selected": { "center-1": "terminal:1" }
+          }
+        },
+        "ActiveWorkspace": "$ROOT/project-ws"
+      },
+      "DefaultPreset": "balanced",
+      "LastProject": "$ROOT/project-ws",
+      "LastProjectRoot": "$ROOT/project",
+      "LastAtHome": false,
+      "Companions": { "$ROOT/project-ws\nterminal:1": "claude-code:chat" }
+    },
+    {
+      "Layout": { "Schema": 1 },
+      "DefaultPreset": "",
+      "LastProject": "relative",
+      "LastProjectRoot": "",
+      "LastAtHome": true,
+      "Companions": {}
+    }
+  ],
+  "CollapsedProjects": [],
+  "CollapsedRemotes": [],
+  "GitSelections": {},
+  "FilesTrees": {},
+  "MergePreferences": {},
+  "PluginPreferences": { "remote:host|plugin:pi:model": "é" },
+  "StateMigrated": true,
+  "SettledShelfNotices": [],
+  "UnknownTopLevel": "ignored"
+}

@@ -1,0 +1,93 @@
+{
+  "Preferences": {
+    "Theme": "sharprail-dark",
+    "ThemeMode": "fixed",
+    "SystemThemePair": { "Light": "sharprail-light", "Dark": "sharprail-dark" },
+    "FileLineWidth": 100,
+    "FileLineWidthBounded": false,
+    "MarkdownLineWidth": 80,
+    "MarkdownLineWidthBounded": true,
+    "CustomPresets": {
+      "Wide éditeur": {
+        "Schema": 1,
+        "ActiveProject": "$ROOT/project",
+        "Center": { "GroupId": "center-1", "Axis": "horizontal", "Ratio": 0.5 },
+        "Groups": [ { "Id": "center-1", "Region": "center", "Tools": [], "Folded": false, "Weight": 1 } ],
+        "LeftWidth": 0.25
+      }
+    },
+    "FontSize": 15,
+    "CodeFontSize": 13,
+    "Zoom": 1.1,
+    "ChangesSingle": true,
+    "TerminalRenderer": "skia",
+    "SecureInputForPasswords": false,
+    "PreviewTabs": false,
+    "VerticalCenterTabs": true,
+    "VerticalCenterTabsWidth": 240,
+    "VerticalTabsInProjects": true,
+    "GroupWorkspacesUnderCreator": true,
+    "DefaultPaneDirection": "vertical",
+    "DefaultPreset": "focus"
+  },
+  "Layout": {
+    "Schema": 1,
+    "ActiveProject": "$ROOT/project",
+    "DefaultProjectPanes": { "OpenTools": [ "files" ], "FoldedGroups": [ "left-1" ], "SelectedTools": { "left-1": "files" }, "LeftVisible": true, "RightVisible": false, "HomeProjectsVisible": true },
+    "ProjectPanes": { "$ROOT/project": { "OpenTools": [ "changes" ], "FoldedGroups": [], "SelectedTools": {}, "LeftVisible": false, "RightVisible": true, "HomeProjectsVisible": false } },
+    "Center": {
+      "GroupId": "",
+      "Axis": "vertical",
+      "Ratio": 0.4,
+      "First": { "GroupId": "center-1", "Axis": "horizontal", "Ratio": 0.5 },
+      "Second": { "GroupId": "center-2", "Axis": "horizontal", "Ratio": 0.5 }
+    },
+    "Groups": [
+      { "Id": "center-1", "Region": "center", "Tools": [], "Folded": false, "Weight": 1 },
+      { "Id": "center-2", "Region": "center", "Tools": [], "Folded": false, "Weight": 1 },
+      { "Id": "left-1", "Region": "left", "Tools": [ { "Id": "files", "Title": "Files", "Kind": "tool" } ], "Folded": true, "Weight": 0.7 }
+    ],
+    "Workspaces": {
+      "$ROOT/project": {
+        "Documents": {
+          "center-1": [ { "Id": "doc-1", "Title": "README.md", "Kind": "file", "Path": "README.md", "Preview": true }, { "Id": "doc-2", "Title": "café.cs", "Kind": "file", "Path": "src/café.cs" } ],
+          "center-2": [ { "Id": "diff-1", "Title": "Diff", "Kind": "diff", "Path": "a.txt", "Scope": "all", "Comparison": "main" } ]
+        },
+        "Panes": { "center-1": [ { "Id": "pane-1", "TabIds": [ "doc-1", "doc-2" ], "Direction": "vertical", "Weights": [ 0.3, 0.7 ] } ] },
+        "Selected": { "center-1": "doc-2", "center-2": "diff-1" },
+        "BeforeToolByTabId": {},
+        "TerminalsShared": true,
+        "FocusedCenter": "center-1",
+        "FocusedGroup": "center-1",
+        "FocusedAuxiliary": { "left": "left-1" }
+      }
+    },
+    "ToolRestore": { "files": "left-1" },
+    "ToolRestorePositions": { "files": 0 },
+    "ActiveWorkspace": "$ROOT/project",
+    "LeftVisible": true,
+    "RightVisible": false,
+    "LeftWidth": 0.2,
+    "RightWidth": 0.3,
+    "SideLimit": 5,
+    "HomeProjectsVisible": false,
+    "HomeProjectsWidth": 0.25
+  },
+  "LastProject": "$ROOT/project",
+  "LastProjectRoot": "$ROOT/project",
+  "LastAtHome": true,
+  "Projects": [ "$ROOT/project", "relative/is-dropped" ],
+  "RecentProjects": [ "$ROOT/project", "$ROOT/older" ],
+  "WorkspaceLabels": { "$ROOT/project": "Main ✳", "not-absolute": "dropped" },
+  "CollapsedProjects": [ "$ROOT/older" ],
+  "CollapsedRemotes": [ "origin" ],
+  "GitSelections": {
+    "$ROOT/project": { "Target": "main", "Scope": "Commit", "Commit": { "Sha": "0123456789abcdef0123456789abcdef01234567", "ShortSha": "", "Subject": "Fix <thing> & stuff", "Author": "Jürgen", "CommittedAt": "2026-11-05T10:00:00Z" } },
+    "$ROOT/older": { "Target": "dev", "Scope": "Bogus", "Commit": null }
+  },
+  "FilesTrees": { "$ROOT/project": { "Expanded": [ "src", "src/deep" ], "ChangedCollapsed": [ "docs" ] } },
+  "MergePreferences": { "$ROOT/project": "squash|true" },
+  "PluginPreferences": { "local|plugin:claude-code:mode": "plan" },
+  "StateMigrated": false,
+  "SettledShelfNotices": [ "local" ]
+}

@@ -1,0 +1,78 @@
+{
+  "Settings": {
+    "FileTypeIconsEnabled": true,
+    "FileTypeIconStyle": "",
+    "Theme": "sharprail-dark",
+    "ThemeMode": "fixed",
+    "SystemLight": "sharprail-light",
+    "SystemDark": "sharprail-dark",
+    "FileLineWidth": 100,
+    "FileLineWidthBounded": false,
+    "MarkdownLineWidth": 80,
+    "MarkdownLineWidthBounded": true,
+    "TerminalReplayKb": 64,
+    "TerminalKeepAfterExit": false,
+    "TerminalUndoCloseSeconds": 5,
+    "ShellIntegrationEnabled": true,
+    "NotificationsEnabled": true,
+    "TerminalNotificationsEnabled": true,
+    "TerminalOptionAsAlt": false,
+    "BellFeatures": "attention,title",
+    "LspEnabled": true,
+    "JavaKotlinProvider": "standard",
+    "LanguageServers": "",
+    "LanguageTools": "",
+    "LanguageLimits": "",
+    "CustomHighlighting": "",
+    "VerticalCenterTabs": true,
+    "VerticalTabsInProjects": true,
+    "WindowDecorations": "",
+    "SettleIdleDays": 7,
+    "ActiveKeymap": ""
+  },
+  "Presets": [
+    {
+      "Name": "Wide \u00E9diteur",
+      "Layout": "{\u0022Schema\u0022:1,\u0022ActiveProject\u0022:\u0022$ROOT/project\u0022,\u0022DefaultProjectPanes\u0022:null,\u0022ProjectPanes\u0022:{},\u0022Center\u0022:{\u0022GroupId\u0022:\u0022center-1\u0022,\u0022Axis\u0022:\u0022horizontal\u0022,\u0022Ratio\u0022:0.5,\u0022First\u0022:null,\u0022Second\u0022:null,\u0022IsLeaf\u0022:true},\u0022Groups\u0022:[{\u0022Id\u0022:\u0022center-1\u0022,\u0022Region\u0022:\u0022center\u0022,\u0022Tools\u0022:[],\u0022Folded\u0022:false,\u0022Weight\u0022:1}],\u0022Workspaces\u0022:{},\u0022ToolRestore\u0022:{},\u0022ToolRestorePositions\u0022:{},\u0022ActiveWorkspace\u0022:\u0022\u0022,\u0022LeftVisible\u0022:true,\u0022RightVisible\u0022:true,\u0022LeftWidth\u0022:0.25,\u0022RightWidth\u0022:0.28,\u0022SideLimit\u0022:6,\u0022HomeProjectsVisible\u0022:true,\u0022HomeProjectsWidth\u0022:0.22}"
+    }
+  ],
+  "KeymapPresets": [],
+  "Projects": [
+    "$ROOT/project"
+  ],
+  "RecentProjects": [
+    "$ROOT/project",
+    "$ROOT/older"
+  ],
+  "ProjectRecords": [
+    {
+      "Id": "2a22155f-55c6-498c-9359-63bdb13c85bd",
+      "Path": "$ROOT/project",
+      "Slug": "project",
+      "LastOpened": 1793919309658
+    },
+    {
+      "Id": "902e6ac5-9211-4856-97c0-85e9d1bcc5bf",
+      "Path": "$ROOT/older",
+      "Slug": "older",
+      "LastOpened": 1793919309658
+    }
+  ],
+  "SharprailExcludeDeclined": [],
+  "WorkspaceLanguages": {},
+  "ProjectLanguageAutostart": {},
+  "ProjectLanguageHidden": {},
+  "WorkspaceLabels": {
+    "$ROOT/project": "Main \u2733"
+  },
+  "ProjectLabels": {},
+  "UnreadWorkspaces": {},
+  "WorkspaceBases": {},
+  "WorkspaceDiffBases": {},
+  "Workspaces": [],
+  "PluginSettings": {},
+  "PluginPaths": [],
+  "TerminalAgents": [],
+  "TerminalTitles": [],
+  "WorkspaceCreators": {}
+}

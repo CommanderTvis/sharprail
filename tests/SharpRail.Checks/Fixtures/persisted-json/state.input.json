@@ -1,0 +1,79 @@
+{
+  "Settings": {
+    "FileTypeIconsEnabled": false,
+    "FileTypeIconStyle": "colored",
+    "Theme": "sharprail-dark",
+    "ThemeMode": "fixed",
+    "SystemLight": "sharprail-light",
+    "SystemDark": "sharprail-dark",
+    "FileLineWidth": 100,
+    "FileLineWidthBounded": false,
+    "MarkdownLineWidth": 80,
+    "MarkdownLineWidthBounded": true,
+    "TerminalReplayKb": 128,
+    "TerminalKeepAfterExit": true,
+    "TerminalUndoCloseSeconds": 30,
+    "ShellIntegrationEnabled": false,
+    "NotificationsEnabled": false,
+    "TerminalNotificationsEnabled": true,
+    "TerminalOptionAsAlt": true,
+    "BellFeatures": "system,title",
+    "LspEnabled": true,
+    "JavaKotlinProvider": "standard",
+    "LanguageServers": "{\"csharp\":{\"command\":\"/opt/roslyn <lsp> & 'co'\",\"disabled\":true},\"python\":{\"arguments\":[\"--stdio\"]}}",
+    "LanguageTools": "{\"go\":\"/usr/local/bin/go\",\"node\":\"/opt/nöde/bin/node\"}",
+    "LanguageLimits": "{\"idleMinutes\":15,\"memoryMb\":4096}",
+    "CustomHighlighting": "",
+    "VerticalCenterTabs": true,
+    "VerticalTabsInProjects": false,
+    "WindowDecorations": "client",
+    "SettleIdleDays": 14,
+    "ActiveKeymap": "Mine",
+    "FutureSetting": { "nested": [1, "two", null, true], "text": "café ✳ <b>&amp;</b>" },
+    "FutureFlag": false
+  },
+  "Presets": [
+    { "Name": "Wide éditeur", "Layout": "{\"Schema\":1,\"LeftWidth\":0.25}" }
+  ],
+  "KeymapPresets": [
+    { "Name": "Mine", "Bindings": "{\"bindings\":{\"editor.save\":[\"Ctrl+S\",\"Ctrl+Alt+S\"]}}" }
+  ],
+  "Projects": [ "$ROOT/project" ],
+  "RecentProjects": [ "$ROOT/project", "$ROOT/older" ],
+  "ProjectRecords": [
+    { "Id": "p-1", "Path": "$ROOT/project", "Slug": "project", "LastOpened": 1780000000000 },
+    { "Id": "p-2", "Path": "$ROOT/older", "Slug": "older", "LastOpened": 1770000000000 }
+  ],
+  "SharprailExcludeDeclined": [ "$ROOT/project" ],
+  "WorkspaceLanguages": {
+    "$ROOT/project": "{\"csharp\":{\"autoStart\":true}}"
+  },
+  "ProjectLanguageAutostart": { "$ROOT/project": "[\"csharp\",\"python\"]" },
+  "ProjectLanguageHidden": { "$ROOT/project": "[\"rust\"]" },
+  "WorkspaceLabels": { "$ROOT/project-ws": "Feature 日本 ✳" },
+  "ProjectLabels": { "$ROOT/project": "Renamed project" },
+  "UnreadWorkspaces": { "$ROOT/project-ws": "blocked" },
+  "WorkspaceBases": { "$ROOT/project-ws": "main" },
+  "WorkspaceDiffBases": { "$ROOT/project-ws": "develop" },
+  "Workspaces": [
+    { "Id": "w-default", "ProjectRoot": "$ROOT/project", "Kind": "default", "Path": "$ROOT/project", "Branch": "main", "BaseBranch": "main", "InitialTerminalPending": false, "LastActiveAt": 1780000000500, "SettledOverride": null, "SettledAt": null },
+    { "Id": "w-feature", "ProjectRoot": "$ROOT/project", "Kind": "managed", "Path": "$ROOT/project-ws", "Branch": "feature/ü", "BaseBranch": "main", "InitialTerminalPending": true, "LastActiveAt": 1780000000600, "SettledOverride": "active", "SettledAt": 1780000000700 }
+  ],
+  "PluginSettings": {
+    "file-icons": { "enabled": false },
+    "claude-code": { "enabled": true, "mode": "plan", "nested": { "list": [1, 2.5, "xé"], "flag": null } },
+    "processes": { "columns": [ "pid", "name" ] }
+  },
+  "PluginPaths": [ "$ROOT/plugins" ],
+  "TerminalAgents": [
+    { "Terminal": { "WorkspaceId": "$ROOT/project-ws", "TabKey": "terminal:1" }, "Record": { "Kind": "claude", "Command": "claude --resume", "SessionId": "s-1", "Cwd": "$ROOT/project-ws", "Model": "opus", "Effort": "high", "LaunchedByUi": true } },
+    { "Terminal": { "WorkspaceId": "$ROOT/project", "TabKey": "terminal:2" }, "Record": { "Kind": "codex", "Command": "codex", "SessionId": null, "Cwd": null, "Model": null, "Effort": null, "LaunchedByUi": null } }
+  ],
+  "TerminalTitles": [
+    { "Terminal": { "WorkspaceId": "$ROOT/project-ws", "TabKey": "terminal:1" }, "Title": "Fixing <tests> & \"quotes\"", "Source": 1 },
+    { "Terminal": { "WorkspaceId": "$ROOT/project", "TabKey": "terminal:2" }, "Title": "Mine", "Source": 0 }
+  ],
+  "WorkspaceCreators": {
+    "$ROOT/project-ws": { "WorkspaceId": "$ROOT/project", "TabKey": "terminal:2" }
+  }
+}

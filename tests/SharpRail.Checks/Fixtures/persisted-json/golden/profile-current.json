@@ -1,0 +1,202 @@
+{
+  "Preferences": {
+    "FontSize": 13,
+    "CodeFontSize": 12.5,
+    "Zoom": 1,
+    "ChangesSingle": false,
+    "TerminalRenderer": "texture",
+    "SecureInputForPasswords": true,
+    "PreviewTabs": true,
+    "VerticalCenterTabs": false,
+    "VerticalCenterTabsWidth": 220,
+    "VerticalTabsInProjects": false,
+    "GroupWorkspacesUnderCreator": false,
+    "DefaultPaneDirection": "horizontal"
+  },
+  "Windows": [
+    {
+      "Layout": {
+        "Schema": 1,
+        "ActiveProject": "$ROOT/project",
+        "DefaultProjectPanes": null,
+        "ProjectPanes": {},
+        "Center": {
+          "GroupId": "center-1",
+          "Axis": "horizontal",
+          "Ratio": 0.5,
+          "First": null,
+          "Second": null,
+          "IsLeaf": true
+        },
+        "Groups": [
+          {
+            "Id": "center-1",
+            "Region": "center",
+            "Tools": [],
+            "Folded": false,
+            "Weight": 1
+          }
+        ],
+        "Workspaces": {
+          "$ROOT/project-ws": {
+            "Documents": {
+              "center-1": [
+                {
+                  "Id": "terminal:1",
+                  "Title": "Terminal \u2733",
+                  "Kind": "terminal",
+                  "Path": "",
+                  "Preview": false,
+                  "Scope": "",
+                  "Comparison": "",
+                  "IsTool": false
+                }
+              ]
+            },
+            "Panes": {},
+            "Selected": {
+              "center-1": "terminal:1"
+            },
+            "BeforeToolByTabId": {},
+            "TerminalsShared": false,
+            "FocusedCenter": "",
+            "FocusedGroup": "",
+            "FocusedAuxiliary": {}
+          }
+        },
+        "ToolRestore": {},
+        "ToolRestorePositions": {},
+        "ActiveWorkspace": "$ROOT/project-ws",
+        "LeftVisible": true,
+        "RightVisible": true,
+        "LeftWidth": 0.18,
+        "RightWidth": 0.28,
+        "SideLimit": 6,
+        "HomeProjectsVisible": true,
+        "HomeProjectsWidth": 0.22
+      },
+      "DefaultPreset": "balanced",
+      "LastProject": "$ROOT/project-ws",
+      "LastProjectRoot": "$ROOT/project",
+      "LastAtHome": false,
+      "Companions": {
+        "$ROOT/project-ws\nterminal:1": "claude-code:chat"
+      }
+    },
+    {
+      "Layout": {
+        "Schema": 1,
+        "ActiveProject": "",
+        "DefaultProjectPanes": null,
+        "ProjectPanes": {},
+        "Center": {
+          "GroupId": "df7fa864f7fd4b9c994430aec8b5d36e",
+          "Axis": "horizontal",
+          "Ratio": 0.5,
+          "First": null,
+          "Second": null,
+          "IsLeaf": true
+        },
+        "Groups": [
+          {
+            "Id": "df7fa864f7fd4b9c994430aec8b5d36e",
+            "Region": "center",
+            "Tools": [],
+            "Folded": false,
+            "Weight": 1
+          },
+          {
+            "Id": "a467cfb3574846968715050ba6d12f11",
+            "Region": "left",
+            "Tools": [
+              {
+                "Id": "projects",
+                "Title": "Projects",
+                "Kind": "tool",
+                "Path": "",
+                "Preview": false,
+                "Scope": "",
+                "Comparison": "",
+                "IsTool": true
+              }
+            ],
+            "Folded": false,
+            "Weight": 1
+          },
+          {
+            "Id": "6491b9cc01ca4bfe90950c7aa6162bbc",
+            "Region": "right",
+            "Tools": [
+              {
+                "Id": "plugin:spec-dialect:specs",
+                "Title": "Specs",
+                "Kind": "tool",
+                "Path": "",
+                "Preview": false,
+                "Scope": "",
+                "Comparison": "",
+                "IsTool": true
+              },
+              {
+                "Id": "files",
+                "Title": "Files",
+                "Kind": "tool",
+                "Path": "",
+                "Preview": false,
+                "Scope": "",
+                "Comparison": "",
+                "IsTool": true
+              }
+            ],
+            "Folded": false,
+            "Weight": 1.25
+          },
+          {
+            "Id": "b755d9bf9fce4ff4b18cd04e9a58104e",
+            "Region": "right",
+            "Tools": [
+              {
+                "Id": "review",
+                "Title": "Review",
+                "Kind": "tool",
+                "Path": "",
+                "Preview": false,
+                "Scope": "",
+                "Comparison": "",
+                "IsTool": true
+              }
+            ],
+            "Folded": false,
+            "Weight": 1
+          }
+        ],
+        "Workspaces": {},
+        "ToolRestore": {},
+        "ToolRestorePositions": {},
+        "ActiveWorkspace": "",
+        "LeftVisible": true,
+        "RightVisible": true,
+        "LeftWidth": 0.18,
+        "RightWidth": 0.28,
+        "SideLimit": 6,
+        "HomeProjectsVisible": true,
+        "HomeProjectsWidth": 0.22
+      },
+      "DefaultPreset": "balanced",
+      "LastProject": "",
+      "LastProjectRoot": "",
+      "LastAtHome": true,
+      "Companions": {}
+    }
+  ],
+  "CollapsedProjects": [],
+  "CollapsedRemotes": [],
+  "GitSelections": {},
+  "FilesTrees": {},
+  "MergePreferences": {},
+  "PluginPreferences": {
+    "remote:host|plugin:pi:model": "\u00E9"
+  },
+  "StateMigrated": true,
+  "SettledShelfNotices": []
+}

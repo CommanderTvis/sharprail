@@ -113,6 +113,11 @@ internal static class Program
             RpcCodecChecks.Run(update: args.Length == 2);
             return;
         }
+        if (args.SequenceEqual(["--persisted-json"]) || args.SequenceEqual(["--persisted-json", "--update"]))
+        {
+            PersistedJsonChecks.Run(root, update: args.Length == 2).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--file-transfer-actions"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -1341,6 +1346,7 @@ internal static class Program
         Gate.Case("open-world", CheckOpenWorld);
         Gate.Case("websocket-flow", () => WebSocketFlowChecks.Run().GetAwaiter().GetResult());
         Gate.Case("rpc-codec", () => RpcCodecChecks.Run(update: false));
+        Gate.Case("persisted-json", () => PersistedJsonChecks.Run(root, update: false).GetAwaiter().GetResult());
         Gate.Case("browser-transport", () => BrowserTransportChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("context-consent", () => AirContextChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("air-context-lifecycle", () => AirContextChecks.Lifecycle(root).GetAwaiter().GetResult());

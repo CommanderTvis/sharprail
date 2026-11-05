@@ -1,0 +1,212 @@
+{
+  "Settings": {
+    "FileTypeIconsEnabled": false,
+    "FileTypeIconStyle": "colored",
+    "Theme": "sharprail-dark",
+    "ThemeMode": "fixed",
+    "SystemLight": "sharprail-light",
+    "SystemDark": "sharprail-dark",
+    "FileLineWidth": 100,
+    "FileLineWidthBounded": false,
+    "MarkdownLineWidth": 80,
+    "MarkdownLineWidthBounded": true,
+    "TerminalReplayKb": 128,
+    "TerminalKeepAfterExit": true,
+    "TerminalUndoCloseSeconds": 30,
+    "ShellIntegrationEnabled": false,
+    "NotificationsEnabled": false,
+    "TerminalNotificationsEnabled": true,
+    "TerminalOptionAsAlt": true,
+    "BellFeatures": "system,title",
+    "LspEnabled": true,
+    "JavaKotlinProvider": "standard",
+    "LanguageServers": "{\u0022csharp\u0022:{\u0022command\u0022:\u0022/opt/roslyn \\u003Clsp\\u003E \\u0026 \\u0027co\\u0027\u0022},\u0022python\u0022:{\u0022arguments\u0022:[\u0022--stdio\u0022]}}",
+    "LanguageTools": "{\u0022go\u0022:\u0022/usr/local/bin/go\u0022,\u0022node\u0022:\u0022/opt/n\u00F6de/bin/node\u0022}",
+    "LanguageLimits": "{\u0022idleMinutes\u0022:15,\u0022memoryMb\u0022:4096}",
+    "CustomHighlighting": "",
+    "VerticalCenterTabs": true,
+    "VerticalTabsInProjects": false,
+    "WindowDecorations": "client",
+    "SettleIdleDays": 14,
+    "ActiveKeymap": "Mine",
+    "FutureSetting": {
+      "nested": [
+        1,
+        "two",
+        null,
+        true
+      ],
+      "text": "caf\u00E9 \u2733 \u003Cb\u003E\u0026amp;\u003C/b\u003E"
+    },
+    "FutureFlag": false
+  },
+  "Presets": [
+    {
+      "Name": "Wide \u00E9diteur",
+      "Layout": "{\u0022Schema\u0022:1,\u0022LeftWidth\u0022:0.25}"
+    }
+  ],
+  "KeymapPresets": [
+    {
+      "Name": "Mine",
+      "Bindings": "{\u0022bindings\u0022:{\u0022editor.save\u0022:[\u0022Ctrl\u002BS\u0022,\u0022Ctrl\u002BAlt\u002BS\u0022]}}"
+    }
+  ],
+  "Projects": [
+    "$ROOT/project"
+  ],
+  "RecentProjects": [
+    "$ROOT/project",
+    "$ROOT/older"
+  ],
+  "ProjectRecords": [
+    {
+      "Id": "p-1",
+      "Path": "$ROOT/project",
+      "Slug": "project",
+      "LastOpened": 1780000000000
+    },
+    {
+      "Id": "p-2",
+      "Path": "$ROOT/older",
+      "Slug": "older",
+      "LastOpened": 1770000000000
+    }
+  ],
+  "SharprailExcludeDeclined": [
+    "$ROOT/project"
+  ],
+  "WorkspaceLanguages": {
+    "$ROOT/project": "{\u0022csharp\u0022:{\u0022autoStart\u0022:true}}"
+  },
+  "ProjectLanguageAutostart": {
+    "$ROOT/project": "[\u0022csharp\u0022,\u0022python\u0022]"
+  },
+  "ProjectLanguageHidden": {
+    "$ROOT/project": "[\u0022rust\u0022]"
+  },
+  "WorkspaceLabels": {
+    "$ROOT/project-ws": "Feature \u65E5\u672C \u2733",
+    "$ROOT/project": "Labelled \u2733 \u003Cagain\u003E"
+  },
+  "ProjectLabels": {
+    "$ROOT/project": "Renamed project"
+  },
+  "UnreadWorkspaces": {
+    "$ROOT/project-ws": "blocked"
+  },
+  "WorkspaceBases": {
+    "$ROOT/project-ws": "main"
+  },
+  "WorkspaceDiffBases": {
+    "$ROOT/project-ws": "develop"
+  },
+  "Workspaces": [
+    {
+      "Id": "w-default",
+      "ProjectRoot": "$ROOT/project",
+      "Kind": "default",
+      "Path": "$ROOT/project",
+      "Branch": "main",
+      "BaseBranch": "main",
+      "InitialTerminalPending": false,
+      "LastActiveAt": 1780000000500,
+      "SettledOverride": null,
+      "SettledAt": null
+    },
+    {
+      "Id": "w-feature",
+      "ProjectRoot": "$ROOT/project",
+      "Kind": "managed",
+      "Path": "$ROOT/project-ws",
+      "Branch": "feature/\u00FC",
+      "BaseBranch": "main",
+      "InitialTerminalPending": true,
+      "LastActiveAt": 1780000000600,
+      "SettledOverride": "active",
+      "SettledAt": 1780000000700
+    }
+  ],
+  "PluginSettings": {
+    "claude-code": {
+      "enabled": true,
+      "mode": "plan",
+      "nested": {
+        "list": [
+          1,
+          2.5,
+          "x\u00E9"
+        ],
+        "flag": null
+      }
+    },
+    "processes": {
+      "columns": [
+        "pid",
+        "name"
+      ]
+    },
+    "lsp-csharp": {
+      "enabled": false
+    }
+  },
+  "PluginPaths": [
+    "$ROOT/plugins"
+  ],
+  "TerminalAgents": [
+    {
+      "Terminal": {
+        "WorkspaceId": "$ROOT/project-ws",
+        "TabKey": "terminal:1"
+      },
+      "Record": {
+        "Kind": "claude",
+        "Command": "claude --resume",
+        "SessionId": "s-1",
+        "Cwd": "$ROOT/project-ws",
+        "Model": "opus",
+        "Effort": "high",
+        "LaunchedByUi": true
+      }
+    },
+    {
+      "Terminal": {
+        "WorkspaceId": "$ROOT/project",
+        "TabKey": "terminal:2"
+      },
+      "Record": {
+        "Kind": "codex",
+        "Command": "codex",
+        "SessionId": null,
+        "Cwd": null,
+        "Model": null,
+        "Effort": null,
+        "LaunchedByUi": null
+      }
+    }
+  ],
+  "TerminalTitles": [
+    {
+      "Terminal": {
+        "WorkspaceId": "$ROOT/project-ws",
+        "TabKey": "terminal:1"
+      },
+      "Title": "Fixing \u003Ctests\u003E \u0026 \u0022quotes\u0022",
+      "Source": 1
+    },
+    {
+      "Terminal": {
+        "WorkspaceId": "$ROOT/project",
+        "TabKey": "terminal:2"
+      },
+      "Title": "Mine",
+      "Source": 0
+    }
+  ],
+  "WorkspaceCreators": {
+    "$ROOT/project-ws": {
+      "WorkspaceId": "$ROOT/project",
+      "TabKey": "terminal:2"
+    }
+  }
+}

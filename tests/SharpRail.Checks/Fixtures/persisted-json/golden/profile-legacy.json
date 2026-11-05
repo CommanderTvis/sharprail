@@ -1,0 +1,267 @@
+{
+  "Preferences": {
+    "Theme": "sharprail-dark",
+    "ThemeMode": "fixed",
+    "SystemThemePair": {
+      "Light": "sharprail-light",
+      "Dark": "sharprail-dark"
+    },
+    "FileLineWidth": 100,
+    "FileLineWidthBounded": false,
+    "MarkdownLineWidth": 80,
+    "MarkdownLineWidthBounded": true,
+    "CustomPresets": {
+      "Wide \u00E9diteur": {
+        "Schema": 1,
+        "ActiveProject": "$ROOT/project",
+        "DefaultProjectPanes": null,
+        "ProjectPanes": {},
+        "Center": {
+          "GroupId": "center-1",
+          "Axis": "horizontal",
+          "Ratio": 0.5,
+          "First": null,
+          "Second": null,
+          "IsLeaf": true
+        },
+        "Groups": [
+          {
+            "Id": "center-1",
+            "Region": "center",
+            "Tools": [],
+            "Folded": false,
+            "Weight": 1
+          }
+        ],
+        "Workspaces": {},
+        "ToolRestore": {},
+        "ToolRestorePositions": {},
+        "ActiveWorkspace": "",
+        "LeftVisible": true,
+        "RightVisible": true,
+        "LeftWidth": 0.25,
+        "RightWidth": 0.28,
+        "SideLimit": 6,
+        "HomeProjectsVisible": true,
+        "HomeProjectsWidth": 0.22
+      }
+    },
+    "FontSize": 15,
+    "CodeFontSize": 13,
+    "Zoom": 1.1,
+    "ChangesSingle": true,
+    "TerminalRenderer": "skia",
+    "SecureInputForPasswords": false,
+    "PreviewTabs": false,
+    "VerticalCenterTabs": true,
+    "VerticalCenterTabsWidth": 240,
+    "VerticalTabsInProjects": true,
+    "GroupWorkspacesUnderCreator": true,
+    "DefaultPaneDirection": "vertical"
+  },
+  "Windows": [
+    {
+      "Layout": {
+        "Schema": 1,
+        "ActiveProject": "$ROOT/project",
+        "DefaultProjectPanes": {
+          "OpenTools": [
+            "files"
+          ],
+          "FoldedGroups": [
+            "left-1"
+          ],
+          "SelectedTools": {
+            "left-1": "files"
+          },
+          "LeftVisible": true,
+          "RightVisible": false,
+          "HomeProjectsVisible": true
+        },
+        "ProjectPanes": {
+          "$ROOT/project": {
+            "OpenTools": [],
+            "FoldedGroups": [],
+            "SelectedTools": {},
+            "LeftVisible": false,
+            "RightVisible": true,
+            "HomeProjectsVisible": false
+          }
+        },
+        "Center": {
+          "GroupId": "center-1",
+          "Axis": "horizontal",
+          "Ratio": 0.5,
+          "First": null,
+          "Second": null,
+          "IsLeaf": true
+        },
+        "Groups": [
+          {
+            "Id": "center-1",
+            "Region": "center",
+            "Tools": [],
+            "Folded": false,
+            "Weight": 1
+          },
+          {
+            "Id": "left-1",
+            "Region": "left",
+            "Tools": [
+              {
+                "Id": "files",
+                "Title": "Files",
+                "Kind": "tool",
+                "Path": "",
+                "Preview": false,
+                "Scope": "",
+                "Comparison": "",
+                "IsTool": true
+              }
+            ],
+            "Folded": true,
+            "Weight": 0.7
+          }
+        ],
+        "Workspaces": {
+          "$ROOT/project": {
+            "Documents": {
+              "center-1": [
+                {
+                  "Id": "doc-1",
+                  "Title": "README.md",
+                  "Kind": "file",
+                  "Path": "README.md",
+                  "Preview": true,
+                  "Scope": "",
+                  "Comparison": "",
+                  "IsTool": false
+                },
+                {
+                  "Id": "doc-2",
+                  "Title": "caf\u00E9.cs",
+                  "Kind": "file",
+                  "Path": "src/caf\u00E9.cs",
+                  "Preview": false,
+                  "Scope": "",
+                  "Comparison": "",
+                  "IsTool": false
+                },
+                {
+                  "Id": "diff-1",
+                  "Title": "Diff",
+                  "Kind": "diff",
+                  "Path": "a.txt",
+                  "Preview": false,
+                  "Scope": "all",
+                  "Comparison": "main",
+                  "IsTool": false
+                }
+              ]
+            },
+            "Panes": {
+              "center-1": [
+                {
+                  "Id": "pane-1",
+                  "TabIds": [
+                    "doc-1",
+                    "doc-2"
+                  ],
+                  "Direction": "vertical",
+                  "Weights": [
+                    0.3,
+                    0.7
+                  ]
+                }
+              ]
+            },
+            "Selected": {
+              "center-1": "doc-2"
+            },
+            "BeforeToolByTabId": {},
+            "TerminalsShared": true,
+            "FocusedCenter": "center-1",
+            "FocusedGroup": "center-1",
+            "FocusedAuxiliary": {
+              "left": "left-1"
+            }
+          }
+        },
+        "ToolRestore": {
+          "files": "left-1"
+        },
+        "ToolRestorePositions": {
+          "files": 0
+        },
+        "ActiveWorkspace": "$ROOT/project",
+        "LeftVisible": true,
+        "RightVisible": false,
+        "LeftWidth": 0.2,
+        "RightWidth": 0.3,
+        "SideLimit": 5,
+        "HomeProjectsVisible": false,
+        "HomeProjectsWidth": 0.25
+      },
+      "DefaultPreset": "focus",
+      "LastProject": "$ROOT/project",
+      "LastProjectRoot": "$ROOT/project",
+      "LastAtHome": true,
+      "Companions": {}
+    }
+  ],
+  "CollapsedProjects": [
+    "$ROOT/older"
+  ],
+  "CollapsedRemotes": [
+    "origin"
+  ],
+  "GitSelections": {
+    "$ROOT/project": {
+      "Target": "main",
+      "Scope": "Commit",
+      "Commit": {
+        "Sha": "0123456789abcdef0123456789abcdef01234567",
+        "ShortSha": "0123456",
+        "Subject": "Fix \u003Cthing\u003E \u0026 stuff",
+        "Author": "J\u00FCrgen",
+        "CommittedAt": "2026-11-05T10:00:00Z"
+      }
+    },
+    "$ROOT/older": {
+      "Target": "dev",
+      "Scope": "All changes",
+      "Commit": null
+    }
+  },
+  "FilesTrees": {
+    "$ROOT/project": {
+      "Expanded": [
+        "src",
+        "src/deep"
+      ],
+      "ChangedCollapsed": [
+        "docs"
+      ]
+    }
+  },
+  "MergePreferences": {
+    "$ROOT/project": "squash|true"
+  },
+  "PluginPreferences": {
+    "local|plugin:claude-code:mode": "plan"
+  },
+  "StateMigrated": false,
+  "SettledShelfNotices": [
+    "local"
+  ],
+  "Projects": [
+    "$ROOT/project"
+  ],
+  "RecentProjects": [
+    "$ROOT/project",
+    "$ROOT/older"
+  ],
+  "WorkspaceLabels": {
+    "$ROOT/project": "Main \u2733"
+  }
+}
