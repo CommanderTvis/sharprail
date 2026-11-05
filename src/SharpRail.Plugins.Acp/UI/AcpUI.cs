@@ -55,7 +55,7 @@ public sealed class AcpUI : PluginUIModule
         {
             if (list.Agents.Count == 0)
             {
-                context.Notify(PluginNotificationKind.Info, "No ACP agent yet (Early support)", "Add an agent in Settings, ACP.");
+                context.Notify(PluginNotificationKind.Info, "No ACP agent yet (Early support)", "Add an agent in Settings under ACP.");
                 return;
             }
             var menu = new ContextMenu { Name = "AcpAgentMenu", Placement = PlacementMode.BottomEdgeAlignedLeft, PlacementTarget = anchor };

@@ -356,7 +356,7 @@ internal sealed class PluginUIContext : IPluginUIContext
     }
 
     public void Notify(PluginNotificationKind kind, string title, string? description = null) =>
-        Workbench.ActiveWindow?.Notify(kind == PluginNotificationKind.Error, description is null ? title : title + " — " + description);
+        Workbench.ActiveWindow?.Notify(kind == PluginNotificationKind.Error, description is null ? title : (title.EndsWith('.') || title.EndsWith(':') ? title : title + ".") + " " + description);
 
     public IDisposable Prompt(PluginPrompt prompt)
     {

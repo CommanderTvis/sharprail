@@ -24,6 +24,11 @@
 - Shared UI sources must compile for Android and Browser: desktop-only code goes under `#if !ANDROID && !BROWSER` or in files those projects exclude (see `docs/develop/agent-reference.md`).
 - Codex and Claude Code terminal integrations are in scope, so are chat modes over Claude Code's stream-json, Pi's RPC mode and the Agent Client Protocol (ACP, early support), sharing one chat view (no other embedded AI chat UI); Pi has early support and omp basic (early) support, and Model providers keeps their API keys.
 
+## User-facing text
+
+- Anything a user reads in the app (toasts, labels, errors, settings text, README and docs prose) uses simple grammar: short sentences, plain words, active voice.
+- Use em dashes and semicolons sparingly. Prefer a full stop or a colon. Do not join a notification title and its message with a dash.
+
 ## Build, format, check
 
 - Toolchains come from mise (`scripts/mise`), installed on first use into mise's own data directory, which all worktrees share; there is no bootstrap step. `dotnet` below is the pinned SDK on PATH: a SharpRail terminal gets it from the mise plugin, elsewhere prefix `scripts/mise x --`. `scripts/tool <name>` prints where a pinned tool lives. `global.json` must name the version `mise.toml` pins.
