@@ -91,5 +91,5 @@ internal static class LanguageExecutables
 /// <summary>What a server would run, for Settings and the status operation; computed without starting or installing anything.</summary>
 internal sealed record ExecutableResolution(string State, string Source, string Path, string Version, string Pinning, string Warning, string Message, bool PathCapable, bool AllowPath)
 {
-    internal string ToJson() => System.Text.Json.JsonSerializer.Serialize(this, System.Text.Json.JsonSerializerOptions.Web);
+    internal string ToJson() => System.Text.Json.JsonSerializer.Serialize(this, HostJson.Web.Info<ExecutableResolution>());
 }

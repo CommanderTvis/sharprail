@@ -207,7 +207,7 @@ internal sealed class ProjectLanguageCache(string directory, Func<string, Cancel
         try
         {
             var path = FilePath(workspace);
-            return File.Exists(path) ? JsonSerializer.Deserialize<ProjectLanguageProfile>(File.ReadAllText(path)) : null;
+            return File.Exists(path) ? JsonSerializer.Deserialize(File.ReadAllText(path), HostJson.Default.ProjectLanguageProfile) : null;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or NotSupportedException) { return null; }
     }
@@ -216,6 +216,6 @@ internal sealed class ProjectLanguageCache(string directory, Func<string, Cancel
     {
         var path = FilePath(workspace);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, JsonSerializer.Serialize(profile));
+        File.WriteAllText(path, JsonSerializer.Serialize(profile, HostJson.Default.ProjectLanguageProfile));
     }
 }

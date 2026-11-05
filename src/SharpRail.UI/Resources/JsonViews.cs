@@ -48,7 +48,7 @@ internal static class JsonModel
                 case JsonValueKind.Object:
                     text.Append('{');
                     foreach (var member in element.EnumerateObject().OrderBy(member => member.Name, StringComparer.Ordinal))
-                    { text.Append(JsonSerializer.Serialize(member.Name)).Append(':'); Write(member.Value); text.Append(','); }
+                    { text.Append(JsonSerializer.Serialize(member.Name, AppJson.Default.String)).Append(':'); Write(member.Value); text.Append(','); }
                     text.Append('}');
                     break;
                 case JsonValueKind.Array:
@@ -56,7 +56,7 @@ internal static class JsonModel
                     foreach (var item in element.EnumerateArray()) { Write(item); text.Append(','); }
                     text.Append(']');
                     break;
-                case JsonValueKind.String: text.Append(JsonSerializer.Serialize(element.GetString())); break;
+                case JsonValueKind.String: text.Append(JsonSerializer.Serialize(element.GetString(), AppJson.Default.String)); break;
                 default: text.Append(element.GetRawText()); break;
             }
         }

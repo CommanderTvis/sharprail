@@ -61,6 +61,11 @@ presets belong to the UI.
 - Settings in the file that this host does not know are kept verbatim and written back on every save, so
   an older host does not erase a newer host's settings. Mutation keys remain closed; new keys require
   protocol-version gating by clients.
+- The file's JSON comes from source-generated metadata (`HostJson`), never reflection, so the host can be
+  published as NativeAOT; the bytes are those the reflection serializer wrote (PascalCase names, enums as
+  numbers, nulls written, indented), pinned by the `--persisted-json` goldens. Generated deserialization gives
+  an absent init-only member its type's default, so a settings property with a default (`HostSettings`) is
+  settable rather than init-only: a file from an older host still reads every default.
 - `installation.json` beside the state file holds the directory's identity (`Installation.EnsureIn`,
   surfaced as `HostStateStore.InstallationId`): a UUID created exclusively on first use, so racing first
   launches agree on one id. A malformed file is reported and never replaced; a memory-only store has none.

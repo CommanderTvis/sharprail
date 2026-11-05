@@ -10,7 +10,12 @@ namespace SharpRail.UI.Panels;
 
 internal sealed partial class LanguageConfigurationView : UserControl
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = AppJson.Resolving(new(JsonSerializerDefaults.Web) { WriteIndented = true });
+
+    /// <summary>A workspace's server configuration as the view saves it, in the host's <c>WorkspaceLanguageOptions</c> shape.</summary>
+    internal sealed record LanguageConfigurationDraft(string InstallationPath, string ProjectJdk, string BuildTool, bool AutoStart, string[]? Arguments,
+        JsonElement InitializationOptions, JsonElement Settings, string[]? IncludePaths, string[]? CompilerFlags, string CompilationDatabasePath);
+
     private readonly IProjectServices host;
     private readonly string workspace;
     private LanguageServerState server;
@@ -93,7 +98,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         {
             var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "projectAutostart"), current.Token), current.Token);
             if (lifetime == current && result.State == "ready")
-                Find<CheckBox>("ProjectAutoStart").IsChecked = JsonSerializer.Deserialize<string[]>(result.Configuration)?.Contains(server.Id) == true;
+                Find<CheckBox>("ProjectAutoStart").IsChecked = JsonSerializer.Deserialize(result.Configuration, AppJson.Default.StringArray)?.Contains(server.Id) == true;
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
         catch (Exception error) { if (lifetime == current) Find<TextBlock>("ConfigurationMessage").Text = error.Message; }
@@ -107,7 +112,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         {
             var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "projectLanguageFile", Server: server.Id), current.Token), current.Token);
             if (lifetime != current || result.State != "ready") return;
-            var status = JsonSerializer.Deserialize<JsonElement>(result.Configuration);
+            var status = JsonSerializer.Deserialize(result.Configuration, AppJson.Default.JsonElement);
             var origin = status.GetProperty("origin").GetString();
             var diagnostics = status.GetProperty("diagnostics").EnumerateArray().Select(item => item.GetString()).ToArray();
             var share = Find<CheckBox>("ShareWithProject");
@@ -237,7 +242,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         Find<TextBlock>("ActiveConfiguration").Text = server.ActiveConfiguration.Length > 0 ? Pretty(server.ActiveConfiguration) : "";
     }
 
-    private static string Pretty(string json) => JsonSerializer.Serialize(JsonSerializer.Deserialize<JsonElement>(json), Json);
+    private static string Pretty(string json) => JsonSerializer.Serialize(JsonSerializer.Deserialize(json, AppJson.Default.JsonElement), AppJson.Info<JsonElement>(Json));
     private string[] Lines(string name) => (Find<TextBox>(name).Text ?? "").Split('\n').Select(line => line.TrimEnd('\r')).Where(line => line.Length > 0).ToArray();
     private async Task SaveAsync(bool restart, bool acceptanceReviewed = false, bool forceReview = false)
     {
@@ -266,23 +271,21 @@ internal sealed partial class LanguageConfigurationView : UserControl
                 Find<TextBlock>("ConfigurationMessage").Text = $"Select {LanguageServerNameConverter.Display(server.Id)} as the provider in Settings → Code Intelligence before starting it.";
                 return;
             }
-            var options = new
-            {
-                installationPath = Find<TextBox>("InstallationPath").Text ?? "",
-                projectJdk = Find<TextBox>("ProjectJdk").Text ?? "",
-                buildTool = Find<ComboBox>("BuildTool").SelectedItem?.ToString() is { } selectedImporter && selectedImporter != "Automatic" ? selectedImporter : "",
-                autoStart = Find<CheckBox>("AutoStart").IsChecked == true,
-                arguments = Find<CheckBox>("DefaultArguments").IsChecked == true ? null : Lines("Arguments"),
-                initializationOptions = JsonSerializer.Deserialize<JsonElement>(Find<TextBox>("InitializationOptions").Text ?? "{}"),
-                settings = JsonSerializer.Deserialize<JsonElement>(Find<TextBox>("ServerSettings").Text ?? "{}"),
-                includePaths = compilerFlags ? Lines("IncludePaths") : null,
-                compilerFlags = compilerFlags ? Lines("CompilerFlags") : null,
-                compilationDatabasePath = Find<TextBox>("CompilationDatabase").Text ?? ""
-            };
+            var options = new LanguageConfigurationDraft(
+                InstallationPath: Find<TextBox>("InstallationPath").Text ?? "",
+                ProjectJdk: Find<TextBox>("ProjectJdk").Text ?? "",
+                BuildTool: Find<ComboBox>("BuildTool").SelectedItem?.ToString() is { } selectedImporter && selectedImporter != "Automatic" ? selectedImporter : "",
+                AutoStart: Find<CheckBox>("AutoStart").IsChecked == true,
+                Arguments: Find<CheckBox>("DefaultArguments").IsChecked == true ? null : Lines("Arguments"),
+                InitializationOptions: JsonSerializer.Deserialize(Find<TextBox>("InitializationOptions").Text ?? "{}", AppJson.Default.JsonElement),
+                Settings: JsonSerializer.Deserialize(Find<TextBox>("ServerSettings").Text ?? "{}", AppJson.Default.JsonElement),
+                IncludePaths: compilerFlags ? Lines("IncludePaths") : null,
+                CompilerFlags: compilerFlags ? Lines("CompilerFlags") : null,
+                CompilationDatabasePath: Find<TextBox>("CompilationDatabase").Text ?? "");
             var token = current.Token;
             var reviewBeforeRestart = restart && hasTerms && !acceptanceReviewed;
             var share = Find<CheckBox>("ShareWithProject").IsChecked == true;
-            var serialized = JsonSerializer.Serialize(options, Json);
+            var serialized = JsonSerializer.Serialize(options, AppJson.Info<LanguageConfigurationDraft>(Json));
             if (share)
             {
                 var shared = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "saveProjectLanguageFile", Server: server.Id, Configuration: serialized), token), token);

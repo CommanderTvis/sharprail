@@ -135,7 +135,7 @@ public sealed class SharedState : IDisposable
         {
             try
             {
-                if (JsonSerializer.Deserialize<DockState>(preset.Layout) is not { } layout) continue;
+                if (JsonSerializer.Deserialize(preset.Layout, AppJson.Default.DockState) is not { } layout) continue;
                 layout.MigrateLegacyTools();
                 layout.RemoveBottomZone();
                 layout.MergeCenter();
@@ -150,7 +150,7 @@ public sealed class SharedState : IDisposable
     {
         var preset = layout.Copy();
         preset.ActiveProject = ""; preset.DefaultProjectPanes = null; preset.ProjectPanes.Clear();
-        return JsonSerializer.Serialize(preset);
+        return JsonSerializer.Serialize(preset, AppJson.Default.DockState);
     }
 
     public void Dispose() => lifetime.Cancel();

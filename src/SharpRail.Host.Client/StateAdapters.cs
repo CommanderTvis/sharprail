@@ -138,7 +138,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         WorkspaceBases = reply.Bases.ToDictionary(entry => entry.Path, entry => entry.Reference),
         WorkspaceDiffBases = reply.DiffBases.ToDictionary(entry => entry.Path, entry => entry.Reference),
         Workspaces = reply.Workspaces.Select(WorkspaceMessages.Map).ToArray(),
-        PluginSettings = reply.PluginSettings.ToDictionary(space => space.Id, space => JsonSerializer.Deserialize<JsonElement>(space.Json)),
+        PluginSettings = reply.PluginSettings.ToDictionary(space => space.Id, space => JsonSerializer.Deserialize(space.Json, PluginJson.TypeInfo<JsonElement>())),
         PluginPaths = reply.PluginPaths.ToArray(),
         Plugins = PluginWire.Map(reply.Plugins),
         TerminalAgents = reply.TerminalAgents.Select(agent => new TerminalAgent(new(agent.WorkspaceId, agent.TabKey), new(agent.Kind, agent.Command)

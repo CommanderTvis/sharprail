@@ -126,7 +126,7 @@ internal static class LanguageMcpResponse
                 var length = item.ToJsonString(Json).Length + 1;
                 if (length > remaining) break;
                 remaining -= length;
-                values.Add(item);
+                values.Add((JsonNode)item);
             }
             var more = offset + values.Count < total;
             response[name] = values;

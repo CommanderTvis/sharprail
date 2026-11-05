@@ -110,7 +110,7 @@ internal sealed class LanguageExitStore(string directory)
     private string Path => System.IO.Path.Combine(directory, "exits.json");
     internal static string Key(string workspace, string server) => workspace + "\0" + server;
 
-    private sealed record Entry(string Workspace, string Server, LanguageExit Exit);
+    internal sealed record Entry(string Workspace, string Server, LanguageExit Exit);
 
     internal LanguageExit? Get(string workspace, string server)
     {
@@ -146,7 +146,7 @@ internal sealed class LanguageExitStore(string directory)
         try
         {
             if (File.Exists(Path))
-                foreach (var entry in JsonSerializer.Deserialize<List<Entry>>(File.ReadAllText(Path)) ?? [])
+                foreach (var entry in JsonSerializer.Deserialize(File.ReadAllText(Path), HostJson.Default.ListLanguageExitEntry) ?? [])
                     if (entry.Exit is not null) entries[Key(entry.Workspace, entry.Server)] = entry.Exit;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { }
@@ -159,7 +159,7 @@ internal sealed class LanguageExitStore(string directory)
         {
             Directory.CreateDirectory(directory);
             var temporary = Path + ".tmp";
-            File.WriteAllText(temporary, JsonSerializer.Serialize(all.Select(pair => { var parts = pair.Key.Split('\0'); return new Entry(parts[0], parts[1], pair.Value); })));
+            File.WriteAllText(temporary, JsonSerializer.Serialize(all.Select(pair => { var parts = pair.Key.Split('\0'); return new Entry(parts[0], parts[1], pair.Value); }).ToList(), HostJson.Default.ListLanguageExitEntry));
             File.Move(temporary, Path, true);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }

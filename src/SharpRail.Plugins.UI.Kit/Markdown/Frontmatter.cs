@@ -129,7 +129,7 @@ public static partial class Frontmatter
         if (!Quoted(trimmed)) return trimmed;
         var inner = trimmed[1..^1];
         if (trimmed[0] != '"') return inner.Replace("''", "'", StringComparison.Ordinal);
-        try { return System.Text.Json.JsonSerializer.Deserialize<string>(trimmed) ?? ""; }
+        try { return System.Text.Json.JsonSerializer.Deserialize(trimmed, KitJson.Default.String) ?? ""; }
         catch (System.Text.Json.JsonException) { return inner; }
     }
 

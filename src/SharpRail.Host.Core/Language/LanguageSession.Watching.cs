@@ -113,7 +113,7 @@ internal sealed partial class LanguageSession
         if (changes.Count == 0) return;
         if (server.Spec.ProjectReloadedMessage.Length > 0 && changes.Values.Any(change => change.Type != 2 || server.Spec.IsProjectInput(change.Path)))
             Interlocked.Exchange(ref reloadRequested, DateTime.UtcNow.Ticks);
-        await connection.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = changes.Select(change => new { uri = change.Key, type = change.Value.Type }).ToArray() }, token);
+        await connection.NotifyAsync("workspace/didChangeWatchedFiles", new JsonObject { ["changes"] = new JsonArray([.. changes.Select(change => (JsonNode)new JsonObject { ["uri"] = change.Key, ["type"] = change.Value.Type })]) }, token);
         // An open document keeps the server's view of the file, so one edited on disk is resynchronized here: otherwise
         // files that depend on it report phantom errors (a member "does not exist") until it is diagnosed itself.
         foreach (var (uri, change) in changes)

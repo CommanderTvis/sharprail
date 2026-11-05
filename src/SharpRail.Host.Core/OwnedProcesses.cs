@@ -19,7 +19,7 @@ public sealed class OwnedProcesses
     /// <summary>One reported process; <see cref="Started"/> is the process's own start time (UTC).</summary>
     public sealed record Entry(TerminalRef Terminal, int Pid, string Command, string Description, DateTime Started);
 
-    private sealed class Stored
+    internal sealed class Stored
     {
         public int HostPid { get; set; }
         public DateTime HostStarted { get; set; }
@@ -27,7 +27,7 @@ public sealed class OwnedProcesses
     }
 
     private static readonly TimeSpan StartTolerance = TimeSpan.FromSeconds(1);
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = HostJson.Resolving(new() { WriteIndented = true });
     private readonly Lock gate = new();
     private readonly List<Entry> entries = [];
     private readonly string? directory;
@@ -146,7 +146,7 @@ public sealed class OwnedProcesses
         {
             try
             {
-                var stored = await Task.Run(() => JsonSerializer.Deserialize<Stored>(File.ReadAllText(path), Json));
+                var stored = await Task.Run(() => JsonSerializer.Deserialize(File.ReadAllText(path), Json.Info<Stored>()));
                 if (stored is not null && StartOf(stored.HostPid) is { } host && Near(host, stored.HostStarted)) continue;
                 foreach (var entry in stored?.Entries ?? []) await StopAsync(entry);
                 File.Delete(path);
@@ -220,7 +220,7 @@ public sealed class OwnedProcesses
             Directory.CreateDirectory(directory!);
             var stored = new Stored { HostPid = Environment.ProcessId, HostStarted = StartOf(Environment.ProcessId) ?? DateTime.UtcNow, Entries = entries };
             var temp = file + ".tmp";
-            File.WriteAllText(temp, JsonSerializer.Serialize(stored, Json));
+            File.WriteAllText(temp, JsonSerializer.Serialize(stored, Json.Info<Stored>()));
             File.Move(temp, file, true);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Trace.WriteLine("Owned-process file not saved: " + error.Message); }

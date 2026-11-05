@@ -9,7 +9,7 @@ namespace SharpRail.Host.Core.Language;
 /// <summary>The host's record of terms a user accepted, per server and installation fingerprint (H21); the provider only reads the terms.</summary>
 internal static class LanguageTerms
 {
-    private sealed record Acceptance(string ArtifactId, string Version, string EulaSha256, string AcceptedAtUtc, Dictionary<string, string>? Answers = null);
+    internal sealed record Acceptance(string ArtifactId, string Version, string EulaSha256, string AcceptedAtUtc, Dictionary<string, string>? Answers = null);
 
     private static string Record(string storage, string server, string artifact) => Path.Combine(storage, "agreements", server, artifact + ".json");
 
@@ -18,7 +18,7 @@ internal static class LanguageTerms
     private static Acceptance? Read(string record)
     {
         if (!File.Exists(record)) return null;
-        try { return JsonSerializer.Deserialize<Acceptance>(File.ReadAllText(record)); }
+        try { return JsonSerializer.Deserialize(File.ReadAllText(record), HostJson.Default.Acceptance); }
         catch (JsonException) { return null; }
     }
 
@@ -76,7 +76,7 @@ internal static class LanguageTerms
             var temporary = record + ".partial-" + Guid.NewGuid().ToString("N");
             try
             {
-                await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(new Acceptance(terms.ArtifactId, terms.Version, terms.TextSha256, timestamp, terms.Questions.ToDictionary(question => question.Id, question => request.Answers[question.Id]))), token);
+                await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(new Acceptance(terms.ArtifactId, terms.Version, terms.TextSha256, timestamp, terms.Questions.ToDictionary(question => question.Id, question => request.Answers[question.Id])), HostJson.Default.Acceptance), token);
                 token.ThrowIfCancellationRequested();
                 File.Move(temporary, record, true);
             }

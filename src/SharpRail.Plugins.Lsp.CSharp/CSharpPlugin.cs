@@ -114,6 +114,6 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
             .Where(path => Path.IsPathFullyQualified(path) && session.Contains(path)).Distinct().ToArray();
         if (paths.Length == 0) return;
         var key = string.Join("\n", paths.Order(StringComparer.Ordinal));
-        session.Track(key, "project restore", token => session.RequestAsync("workspace/_roslyn_restore", new { projectFilePaths = paths }, token, TimeSpan.FromMinutes(3)));
+        session.Track(key, "project restore", token => session.RequestAsync("workspace/_roslyn_restore", new JsonObject { ["projectFilePaths"] = new JsonArray([.. paths.Select(path => (JsonNode?)path)]) }, token, TimeSpan.FromMinutes(3)));
     }
 }

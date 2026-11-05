@@ -223,14 +223,14 @@ public sealed partial class DockSurface : Grid
         structure.ActiveProject = ""; structure.DefaultProjectPanes = null; structure.ProjectPanes = [];
         // A phone shows one side at a time as a page, which moves without redrawing the others.
         if (Drawers) { structure.LeftVisible = false; structure.RightVisible = false; }
-        return (Home ? "home:" : "") + JsonSerializer.Serialize(structure);
+        return (Home ? "home:" : "") + JsonSerializer.Serialize(structure, AppJson.Default.DockState);
     }
 
     // Selection is left out: an unchanged group applies it through its selection update.
     private string GroupSignature(string id)
     {
         var tabs = Session.Tabs(id);
-        return JsonSerializer.Serialize(new { Tabs = tabs, Tools = tabs.Where(tab => tab.IsTool).Select(tab => Session.Tool(tab.Id)), Panes = Session.View.Panes.GetValueOrDefault(id) });
+        return JsonSerializer.Serialize(new GroupSignature(tabs, [.. tabs.Where(tab => tab.IsTool).Select(tab => Session.Tool(tab.Id))], Session.View.Panes.GetValueOrDefault(id)), AppJson.Default.GroupSignature);
     }
 
     private Control BuildTrackedGroup(DockGroup group)

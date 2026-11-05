@@ -7,7 +7,7 @@ namespace SharpRail.Host.Core;
 
 public sealed partial class HostStateStore
 {
-    private sealed record LanguageMetadata(string Workspace, string Server, string Configuration);
+    internal sealed record LanguageMetadata(string Workspace, string Server, string Configuration);
 
     private string? LanguageMetadataPath(string workspace, string server) => DirectoryPath is null ? null :
         Path.Combine(DirectoryPath, "language", "workspaces", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(workspace))), server + ".json");
@@ -23,7 +23,7 @@ public sealed partial class HostStateStore
                 foreach (var directory in Directory.EnumerateDirectories(root).Where(path => Path.GetFileName(path) is { Length: 64 } name && name.All(Uri.IsHexDigit)))
                     foreach (var file in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly))
                     {
-                        var entry = JsonSerializer.Deserialize<LanguageMetadata>(File.ReadAllText(file))
+                        var entry = JsonSerializer.Deserialize(File.ReadAllText(file), HostJson.Default.LanguageMetadata)
                             ?? throw new JsonException("Invalid workspace language metadata.");
                         if (string.IsNullOrEmpty(entry.Workspace) || string.IsNullOrEmpty(entry.Server) || string.IsNullOrEmpty(entry.Configuration) || !Path.IsPathFullyQualified(entry.Workspace) || Language.LanguageServers.Known(entry.Server) is null ||
                             file != LanguageMetadataPath(entry.Workspace, entry.Server)) throw new JsonException("Invalid workspace language metadata identity.");
@@ -53,7 +53,7 @@ public sealed partial class HostStateStore
                 var temporary = file + "." + Guid.NewGuid().ToString("N") + ".tmp";
                 try
                 {
-                    File.WriteAllText(temporary, JsonSerializer.Serialize(new LanguageMetadata(workspace, id, after[id]!.ToJsonString())));
+                    File.WriteAllText(temporary, JsonSerializer.Serialize(new LanguageMetadata(workspace, id, after[id]!.ToJsonString()), HostJson.Default.LanguageMetadata));
                     File.Move(temporary, file, overwrite: true);
                 }
                 finally { if (File.Exists(temporary)) File.Delete(temporary); }

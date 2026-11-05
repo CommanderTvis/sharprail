@@ -24,7 +24,7 @@ public sealed partial class HostStateStore
                 ?? throw new ArgumentException("Choose a registered project workspace.");
             // The local list, once it exists, overrides the project file; its first change starts from the file's choices.
             selected = state.ProjectLanguageAutostart.TryGetValue(project, out var local)
-                ? JsonSerializer.Deserialize<string[]>(local) ?? []
+                ? JsonSerializer.Deserialize(local, HostJson.Default.StringArray) ?? []
                 : shared;
             if (request.Operation == "setProjectAutostart")
             {
@@ -33,11 +33,11 @@ public sealed partial class HostStateStore
                 selected = (enabled ? selected.Append(request.Server) : selected.Where(id => id != request.Server))
                     .Distinct().Order(StringComparer.Ordinal).ToArray();
                 var projects = state.ProjectLanguageAutostart.ToDictionary();
-                projects[project] = JsonSerializer.Serialize(selected);
+                projects[project] = JsonSerializer.Serialize(selected, HostJson.Default.StringArray);
                 Publish(state with { ProjectLanguageAutostart = projects }, persist: true);
             }
         }
-        if (request.Operation != "prepareAgent") return new("ready") { Configuration = JsonSerializer.Serialize(selected) };
+        if (request.Operation != "prepareAgent") return new("ready") { Configuration = JsonSerializer.Serialize(selected, HostJson.Default.StringArray) };
         // A server the user hid in this project is never started for agents.
         var hidden = HiddenLanguageServers(project);
         selected = [.. selected.Where(id => !hidden.Contains(id))];
@@ -66,7 +66,7 @@ public sealed partial class HostStateStore
 
     /// <summary>The server ids the user hid in <paramref name="project"/>'s Code Intelligence pane.</summary>
     internal IReadOnlySet<string> HiddenLanguageServers(string project) =>
-        Current.ProjectLanguageHidden.TryGetValue(project, out var json) ? (JsonSerializer.Deserialize<string[]>(json) ?? []).ToHashSet(StringComparer.Ordinal) : new HashSet<string>();
+        Current.ProjectLanguageHidden.TryGetValue(project, out var json) ? (JsonSerializer.Deserialize(json, HostJson.Default.StringArray) ?? []).ToHashSet(StringComparer.Ordinal) : new HashSet<string>();
 
     /// <summary>
     /// Reads (<c>projectHidden</c>) or changes (<c>setProjectHidden</c>, <c>Configuration</c> "true" or "false") the servers the user
@@ -81,18 +81,18 @@ public sealed partial class HostStateStore
         {
             // An unregistered folder is its own project, as the pane treats it.
             var project = state.Workspaces.FirstOrDefault(item => item.Path == workspace)?.ProjectRoot ?? workspace;
-            hidden = state.ProjectLanguageHidden.TryGetValue(project, out var json) ? JsonSerializer.Deserialize<string[]>(json) ?? [] : [];
+            hidden = state.ProjectLanguageHidden.TryGetValue(project, out var json) ? JsonSerializer.Deserialize(json, HostJson.Default.StringArray) ?? [] : [];
             if (request.Operation == "setProjectHidden")
             {
                 if (LanguageServers.Known(request.Server) is null) throw new ArgumentException("Unknown language server.");
                 if (!bool.TryParse(request.Configuration, out var hide)) throw new ArgumentException("Choose true or false for hiding.");
                 hidden = (hide ? hidden.Append(request.Server) : hidden.Where(id => id != request.Server)).Distinct().Order(StringComparer.Ordinal).ToArray();
                 var projects = state.ProjectLanguageHidden.ToDictionary();
-                if (hidden.Length > 0) projects[project] = JsonSerializer.Serialize(hidden);
+                if (hidden.Length > 0) projects[project] = JsonSerializer.Serialize(hidden, HostJson.Default.StringArray);
                 else projects.Remove(project);
                 Publish(state with { ProjectLanguageHidden = projects }, persist: true);
             }
         }
-        return ValueTask.FromResult(new LanguageResult("ready") { Configuration = JsonSerializer.Serialize(hidden) });
+        return ValueTask.FromResult(new LanguageResult("ready") { Configuration = JsonSerializer.Serialize(hidden, HostJson.Default.StringArray) });
     }
 }

@@ -15,7 +15,7 @@ internal static class CustomHighlighting
     internal static event Action? Changed;
 
     internal static CustomGrammar[] Read(string json) => string.IsNullOrWhiteSpace(json)
-        ? [] : JsonSerializer.Deserialize<CustomGrammar[]>(json) ?? [];
+        ? [] : JsonSerializer.Deserialize(json, KitJson.Default.CustomGrammarArray) ?? [];
 
     internal static CustomGrammar Import(string json, string patterns)
     {

@@ -86,14 +86,13 @@ public sealed partial class WorkbenchWindow
             else
             {
                 var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
-                var signature = System.Text.Json.JsonSerializer.Serialize(Layout.State.Center.Leaves().Select(group => new
-                {
-                    Group = group,
-                    Tabs = view?.Documents.GetValueOrDefault(group),
-                    Decorations = view?.Documents.GetValueOrDefault(group)?.Select(tab => TabDecorationSignature(tab, workspace)),
-                    Selected = view?.Selected.GetValueOrDefault(group),
-                    Panes = view?.Panes.GetValueOrDefault(group)
-                })) + System.Text.Json.JsonSerializer.Serialize(TerminalsOutsidePreview(workspace).Select(tab => new { Tab = tab, Decoration = TabDecorationSignature(tab, workspace) }));
+                var signature = System.Text.Json.JsonSerializer.Serialize(Layout.State.Center.Leaves().Select(group => new PreviewGroupSignature(
+                    group,
+                    view?.Documents.GetValueOrDefault(group),
+                    view?.Documents.GetValueOrDefault(group)?.Select(tab => TabDecorationSignature(tab, workspace)).ToArray(),
+                    view?.Selected.GetValueOrDefault(group),
+                    view?.Panes.GetValueOrDefault(group))).ToArray(), AppJson.Default.PreviewGroupSignatureArray) +
+                    System.Text.Json.JsonSerializer.Serialize(TerminalsOutsidePreview(workspace).Select(tab => new PreviewTerminalSignature(tab, TabDecorationSignature(tab, workspace))).ToArray(), AppJson.Default.PreviewTerminalSignatureArray);
                 if (workspaceTabPreviewSignatures.GetValueOrDefault(workspace) == signature) continue;
                 workspaceTabPreviewSignatures[workspace] = signature;
                 host.Content = WorkspaceTabsPreview(workspace);

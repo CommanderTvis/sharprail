@@ -136,6 +136,11 @@ a theme id) migrate to system mode. Saving writes a temporary file and moves it 
 write leaves the previous profile intact; the window reports the failure once while its live state stays
 usable. Legacy single-window fields are read into the first `Windows` entry and cleared.
 
+The profile is read and written with source-generated metadata (`AppJson`), never reflection, in the bytes
+the reflection serializer wrote; the `--persisted-json` goldens pin a legacy and a current profile and the
+legacy profile's migration. Shared preferences stop being written once migrated through a metadata modifier on
+the generated resolver.
+
 Shared fields migrate once: `OpenState` seeds the local host's `state.json` from the profile's pre-host
 fields and clears them only after the state file is written, so a failed migration never loses data. A
 remote host keeps its own state in `SHARPRAIL_STATE_DIR`. The local terminal service saves recorded screens

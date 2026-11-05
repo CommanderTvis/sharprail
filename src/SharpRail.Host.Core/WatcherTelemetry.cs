@@ -87,7 +87,7 @@ internal sealed class WatcherTelemetry : EventSource
             {
                 foreach (var root in WorkspaceWatches.Accounting().Roots)
                     Log.Snapshot(root.Root, root.Generation, root.Failed ? "failed" : root.RetryPending ? "retry" : "retained",
-                        System.Text.Json.JsonSerializer.Serialize(root.Instances), System.Text.Json.JsonSerializer.Serialize(root.Leases));
+                        System.Text.Json.JsonSerializer.Serialize(root.Instances, HostJson.Default.IReadOnlyListWatchInstance), System.Text.Json.JsonSerializer.Serialize(root.Leases, HostJson.Default.IReadOnlyListWatchLease));
             });
     }
 

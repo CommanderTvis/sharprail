@@ -59,7 +59,7 @@ internal static class IntelliJLicensing
                 _ = Task.Run(async () =>
                 {
                     // A server holding no license looks for one in the environment, Toolbox or a product key file, once.
-                    try { await session.RequestAsync(Prefix + "discovery/autoActivate", new { }, CancellationToken.None, Timeouts.Medium); }
+                    try { await session.RequestAsync(Prefix + "discovery/autoActivate", new JsonObject(), CancellationToken.None, Timeouts.Medium); }
                     catch (Exception error) when (error is IOException or OperationCanceledException or TimeoutException) { }
                 });
             }
@@ -212,13 +212,13 @@ internal static class IntelliJLicensing
 
     private static async Task EndWaitAsync(ILanguageServerSession session)
     {
-        try { await session.RequestAsync(Prefix + "jba/logout", new { }, CancellationToken.None, Timeouts.Short); }
+        try { await session.RequestAsync(Prefix + "jba/logout", new JsonObject(), CancellationToken.None, Timeouts.Short); }
         catch (Exception error) when (error is IOException or OperationCanceledException or TimeoutException) { }
     }
 
     private static async Task<JsonNode?> RunAsync(ILanguageServerSession session, Tracker tracker, string name, Func<string, string> argument, CancellationToken token)
     {
-        Task<JsonNode?> Send(string method, object? parameters, TimeSpan timeout) => session.RequestAsync(Prefix + method, parameters ?? new { }, token, timeout);
+        Task<JsonNode?> Send(string method, JsonObject? parameters, TimeSpan timeout) => session.RequestAsync(Prefix + method, parameters ?? new JsonObject(), token, timeout);
         string? Authenticated() { lock (tracker.Gate) return tracker.State?["jbaLicensingState"]?["authenticationStatus"]?.ToString(); }
         try
         {
@@ -239,7 +239,7 @@ internal static class IntelliJLicensing
                     return await SignInAsync(tracker, Send);
                 case "useSubscription":
                     var asset = argument("assetId");
-                    await Send("subscriptions/use", new { assetId = asset }, Timeouts.Short);
+                    await Send("subscriptions/use", new JsonObject { ["assetId"] = asset }, Timeouts.Short);
                     return Active(tracker) is { } chosen && chosen["source"]?.ToString() == "subscription" && chosen["status"]?.ToString() == "Valid" && chosen["assetId"]?.ToString() == asset
                         ? Result(true) : Result(false, "Couldn't activate a subscription from this JetBrains Account. Try again.");
                 case "cancelSignIn":
@@ -248,14 +248,14 @@ internal static class IntelliJLicensing
                     return Result(true);
                 case "code":
                     var code = Clean(argument("activationCode"));
-                    if (await Send("activationCode/use", new { activationCode = code }, Timeouts.Medium) is not JsonValue accepted || !accepted.TryGetValue<bool>(out var ok) || !ok)
+                    if (await Send("activationCode/use", new JsonObject { ["activationCode"] = code }, Timeouts.Medium) is not JsonValue accepted || !accepted.TryGetValue<bool>(out var ok) || !ok)
                         return Result(false, "That activation code isn't valid. Check the code and try again.");
                     if (Authenticated() == "Authenticated") await Send("jba/logout", null, Timeouts.Short);
                     return Result(true);
                 case "serverAdd":
                     var address = argument("serverAddress").Trim();
                     if (!ValidServerUrl(address)) return Result(false, "A license server URL starts with http:// or https://.");
-                    return ServerOutcome(await Send("licenseServer/add", new { serverAddress = address }, Timeouts.Browser));
+                    return ServerOutcome(await Send("licenseServer/add", new JsonObject { ["serverAddress"] = address }, Timeouts.Browser));
                 case "serverReconnect":
                     return ServerOutcome(await Send("licenseServer/reconnect", null, Timeouts.Browser));
                 case "serverRemove":
@@ -293,7 +293,7 @@ internal static class IntelliJLicensing
         return Result(false, message ?? "Couldn't activate with the license server. Check the server and try again.");
     }
 
-    private static async Task<JsonNode?> SignInAsync(Tracker tracker, Func<string, object?, TimeSpan, Task<JsonNode?>> send)
+    private static async Task<JsonNode?> SignInAsync(Tracker tracker, Func<string, JsonObject?, TimeSpan, Task<JsonNode?>> send)
     {
         var reply = await send("jba/login", null, Timeouts.Browser);
         var status = reply?["status"]?.ToString();
@@ -310,7 +310,7 @@ internal static class IntelliJLicensing
                     return Result(false, "No licenses available for activation were found in the JetBrains Account.");
                 }
                 if (valid.Count > 1) return Result(false, "Signed in. Choose which subscription to use.");
-                await send("subscriptions/use", new { assetId = valid[0]["assetId"]?.ToString() }, Timeouts.Short);
+                await send("subscriptions/use", new JsonObject { ["assetId"] = valid[0]["assetId"]?.ToString() }, Timeouts.Short);
                 return Active(tracker) is { } active && active["status"]?.ToString() == "Valid" ? Result(true) : Result(false, "Couldn't activate a subscription from this JetBrains Account. Try again.");
             case "NoLicenses": return Result(false, "No licenses available for activation were found in the JetBrains Account.");
             case "LicenseCheckFailed": return Result(false, "Couldn't check licenses in the JetBrains Account. Try again.");

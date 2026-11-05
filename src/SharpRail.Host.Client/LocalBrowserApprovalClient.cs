@@ -20,7 +20,7 @@ public static class LocalBrowserApprovalClient
         using var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
         using var response = await client.PostAsync(new Uri(address, "/browser/connect"), null, cancellationToken);
         response.EnsureSuccessStatusCode();
-        var reply = await response.Content.ReadFromJsonAsync<LocalBrowserApprovalReply>(cancellationToken);
+        var reply = await response.Content.ReadFromJsonAsync(LocalBrowserApprovalJson.Default.LocalBrowserApprovalReply, cancellationToken);
         if (string.IsNullOrEmpty(reply?.Token)) throw new IOException("The host did not return a browser credential.");
         return reply.Token;
     }

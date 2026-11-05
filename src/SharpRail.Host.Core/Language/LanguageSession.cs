@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core.Language;
@@ -30,7 +32,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     internal string ProjectDetail => (ActionText.Length > 0 ? ActionText : detail) + ". " + projectModel.Description;
     private readonly ConcurrentDictionary<string, Task> projectRestores = new();
     private readonly LanguageLog log;
-    private object[] ProjectFolders => projectModel.WorkspaceFolders.Select(path => (object)new { uri = UriOf(path + Path.DirectorySeparatorChar), name = Path.GetFileName(path) }).ToArray();
+    private JsonArray ProjectFolders => [.. projectModel.WorkspaceFolders.Select(path => (JsonNode)new JsonObject { ["uri"] = UriOf(path + Path.DirectorySeparatorChar), ["name"] = Path.GetFileName(path) })];
     private readonly string workspace;
     private readonly LanguageServer server;
     private readonly SemaphoreSlim gate = new(1);
@@ -85,48 +87,58 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         var initializing = CodeIntelligenceLog.Begin("host.initialize", ("workspace", workspace), ("server", server.Id));
         try
         {
-            var result = await session.connection.RequestAsync("initialize", new
+            var result = await session.connection.RequestAsync("initialize", new JsonObject
             {
-                processId = Environment.ProcessId,
-                clientInfo = new { name = "SharpRail", version = "1.0" },
-                rootUri = UriOf(workspace + Path.DirectorySeparatorChar),
-                initializationOptions = initialization,
-                workDoneToken = server.Spec.InitializeProgressToken,
-                workspaceFolders = session.ProjectFolders,
-                capabilities = new
+                ["processId"] = Environment.ProcessId,
+                ["clientInfo"] = new JsonObject { ["name"] = "SharpRail", ["version"] = "1.0" },
+                ["rootUri"] = UriOf(workspace + Path.DirectorySeparatorChar),
+                ["initializationOptions"] = initialization.DeepClone(),
+                ["workDoneToken"] = server.Spec.InitializeProgressToken,
+                ["workspaceFolders"] = session.ProjectFolders,
+                ["capabilities"] = new JsonObject
                 {
-                    general = new { positionEncodings = new[] { "utf-16" } },
-                    window = server.Spec.AcceptsShowDocument ? (object)new { workDoneProgress = true, showDocument = new { support = true } } : new { workDoneProgress = true },
-                    experimental = server.Spec.ExperimentalClientCapabilities.ToDictionary(name => name, _ => (object)true),
-                    workspace = new { applyEdit = true, workspaceEdit = new { documentChanges = true }, executeCommand = new { dynamicRegistration = false }, workspaceFolders = true, configuration = true, didChangeWatchedFiles = new { dynamicRegistration = true, relativePatternSupport = true } },
-                    textDocument = new
+                    ["general"] = new JsonObject { ["positionEncodings"] = new JsonArray("utf-16") },
+                    ["window"] = server.Spec.AcceptsShowDocument
+                        ? new JsonObject { ["workDoneProgress"] = true, ["showDocument"] = new JsonObject { ["support"] = true } }
+                        : new JsonObject { ["workDoneProgress"] = true },
+                    ["experimental"] = new JsonObject(server.Spec.ExperimentalClientCapabilities.Select(name => KeyValuePair.Create(name, (JsonNode?)true))),
+                    ["workspace"] = new JsonObject
                     {
-                        references = new { dynamicRegistration = true },
-                        codeAction = new
+                        ["applyEdit"] = true,
+                        ["workspaceEdit"] = new JsonObject { ["documentChanges"] = true },
+                        ["executeCommand"] = new JsonObject { ["dynamicRegistration"] = false },
+                        ["workspaceFolders"] = true,
+                        ["configuration"] = true,
+                        ["didChangeWatchedFiles"] = new JsonObject { ["dynamicRegistration"] = true, ["relativePatternSupport"] = true }
+                    },
+                    ["textDocument"] = new JsonObject
+                    {
+                        ["references"] = new JsonObject { ["dynamicRegistration"] = true },
+                        ["codeAction"] = new JsonObject
                         {
-                            dynamicRegistration = true,
-                            isPreferredSupport = true,
-                            disabledSupport = true,
-                            dataSupport = true,
-                            resolveSupport = new { properties = new[] { "edit" } },
-                            codeActionLiteralSupport = new { codeActionKind = new { valueSet = new[] { "", "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports", "source.fixAll" } } }
+                            ["dynamicRegistration"] = true,
+                            ["isPreferredSupport"] = true,
+                            ["disabledSupport"] = true,
+                            ["dataSupport"] = true,
+                            ["resolveSupport"] = new JsonObject { ["properties"] = new JsonArray("edit") },
+                            ["codeActionLiteralSupport"] = new JsonObject { ["codeActionKind"] = new JsonObject { ["valueSet"] = new JsonArray("", "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports", "source.fixAll") } }
                         },
-                        synchronization = new { didSave = true },
-                        publishDiagnostics = new { versionSupport = true, relatedInformation = true },
-                        diagnostic = new { dynamicRegistration = false, relatedDocumentSupport = false },
-                        definition = new { linkSupport = true },
-                        typeDefinition = new { linkSupport = true },
-                        implementation = new { linkSupport = true },
-                        documentSymbol = new { hierarchicalDocumentSymbolSupport = true },
-                        semanticTokens = new
+                        ["synchronization"] = new JsonObject { ["didSave"] = true },
+                        ["publishDiagnostics"] = new JsonObject { ["versionSupport"] = true, ["relatedInformation"] = true },
+                        ["diagnostic"] = new JsonObject { ["dynamicRegistration"] = false, ["relatedDocumentSupport"] = false },
+                        ["definition"] = new JsonObject { ["linkSupport"] = true },
+                        ["typeDefinition"] = new JsonObject { ["linkSupport"] = true },
+                        ["implementation"] = new JsonObject { ["linkSupport"] = true },
+                        ["documentSymbol"] = new JsonObject { ["hierarchicalDocumentSymbolSupport"] = true },
+                        ["semanticTokens"] = new JsonObject
                         {
-                            requests = new { full = true },
-                            formats = new[] { "relative" },
-                            tokenTypes = new[] { "namespace", "type", "class", "enum", "interface", "struct", "typeParameter", "parameter", "variable", "property", "field", "delegate", "enumMember", "event", "function", "method", "macro", "keyword", "modifier", "comment", "string", "number", "regexp", "operator", "decorator" },
-                            tokenModifiers = new[] { "declaration", "definition", "readonly", "static", "deprecated", "abstract", "async", "modification", "documentation", "defaultLibrary" },
-                            augmentsSyntaxTokens = false,
-                            overlappingTokenSupport = false,
-                            multilineTokenSupport = false
+                            ["requests"] = new JsonObject { ["full"] = true },
+                            ["formats"] = new JsonArray("relative"),
+                            ["tokenTypes"] = new JsonArray("namespace", "type", "class", "enum", "interface", "struct", "typeParameter", "parameter", "variable", "property", "field", "delegate", "enumMember", "event", "function", "method", "macro", "keyword", "modifier", "comment", "string", "number", "regexp", "operator", "decorator"),
+                            ["tokenModifiers"] = new JsonArray("declaration", "definition", "readonly", "static", "deprecated", "abstract", "async", "modification", "documentation", "defaultLibrary"),
+                            ["augmentsSyntaxTokens"] = false,
+                            ["overlappingTokenSupport"] = false,
+                            ["multilineTokenSupport"] = false
                         }
                     }
                 }
@@ -135,8 +147,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             session.capabilities = result?["capabilities"]?.DeepClone() ?? new JsonObject();
             if (session.capabilities["positionEncoding"]?.ToString() is { } encoding && encoding != "utf-16")
                 throw new IOException("The server selected an unsupported position encoding: " + encoding);
-            await session.connection.NotifyAsync("initialized", new { }, token);
-            await session.connection.NotifyAsync("workspace/didChangeConfiguration", new { settings = WorkspaceLanguageConfiguration.Settings(options, workspace, server.Id) }, token);
+            await session.connection.NotifyAsync("initialized", new JsonObject(), token);
+            await session.connection.NotifyAsync("workspace/didChangeConfiguration", new JsonObject { ["settings"] = WorkspaceLanguageConfiguration.Settings(options, workspace, server.Id) }, token);
             if (session.projectLoading)
             {
                 session.log.Add("project", "Loading project graph. " + session.projectModel.Description);
@@ -186,7 +198,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             var path = ProjectServices.Contain(workspace, draft.Path); var uri = UriOf(path);
             var document = new Document(draft.Text!, ++nextDocumentVersion, draft.DocumentId, draft.Version, true);
             documents[uri] = document;
-            await connection.NotifyAsync("textDocument/didOpen", new { textDocument = new { uri, languageId = LanguageServers.LanguageId(path, server), version = document.Version, text = document.Text } }, token);
+            await connection.NotifyAsync("textDocument/didOpen", new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri, ["languageId"] = LanguageServers.LanguageId(path, server), ["version"] = document.Version, ["text"] = document.Text } }, token);
         }
         HasDrafts = documents.Values.Any(value => value.Dirty); HasEditors = documents.Values.Any(value => value.Owner.Length > 0);
     }
@@ -220,7 +232,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 var coverage = "open documents";
                 if (capabilities["diagnosticProvider"] is JsonObject provider && provider["workspaceDiagnostics"]?.GetValue<bool>() == true)
                 {
-                    var report = await connection.RequestAsync("workspace/diagnostic", new { identifier = provider["identifier"]?.ToString(), previousResultIds = Array.Empty<object>() }, token);
+                    var report = await connection.RequestAsync("workspace/diagnostic", new JsonObject { ["identifier"] = provider["identifier"]?.ToString(), ["previousResultIds"] = new JsonArray() }, token);
                     foreach (var file in report?["items"] as JsonArray ?? [])
                         if (file?["uri"]?.ToString() is { } reportUri && file["kind"]?.ToString() == "full" && Relative(reportUri) is { } reportPath)
                             diagnostics[reportUri] = new(file["version"]?.GetValue<int>(), Diagnostics(file["items"], reportPath));
@@ -240,7 +252,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             {
                 if (documents.TryGetValue(uri, out var closed) && closed.Owner == request.DocumentId)
                 {
-                    await connection.NotifyAsync("textDocument/didClose", new { textDocument = new { uri } }, token);
+                    await connection.NotifyAsync("textDocument/didClose", TextDocument(uri), token);
                     documents.Remove(uri); diagnostics.TryRemove(uri, out _);
                     HasDrafts = documents.Values.Any(value => value.Dirty); HasEditors = documents.Values.Any(value => value.Owner.Length > 0);
                 }
@@ -260,7 +272,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             {
                 document = new(text, ++nextDocumentVersion, request.Text is null ? "" : request.DocumentId, request.Version, request.Dirty);
                 documents[uri] = document;
-                await connection.NotifyAsync("textDocument/didOpen", new { textDocument = new { uri, languageId = dependency?.Language ?? LanguageServers.LanguageId(path, server), version = document.Version, text } }, token);
+                await connection.NotifyAsync("textDocument/didOpen", new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri, ["languageId"] = dependency?.Language ?? LanguageServers.LanguageId(path, server), ["version"] = document.Version, ["text"] = text } }, token);
             }
             else if (document.Text != text)
             {
@@ -270,16 +282,13 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 var sync = capabilities["textDocumentSync"];
                 var kind = sync is JsonObject ? sync["change"]?.GetValue<int>() ?? 0 : sync?.GetValue<int>() ?? 0;
                 if (kind == 0) throw new IOException("The server does not support document changes.");
-                object[] contentChanges = kind == 2
-                    ? [new { range = new { start = new { line = 0, character = 0 }, end = End(old) }, text }]
-                    : [new { text }];
-                await connection.NotifyAsync("textDocument/didChange", new { textDocument = new { uri, version = document.Version }, contentChanges }, token);
+                await connection.NotifyAsync("textDocument/didChange", DidChange(uri, document.Version, kind, old, text), token);
             }
             else if (request.Text is not null)
                 documents[uri] = document = document with { Owner = request.DocumentId, ClientVersion = request.Version, Dirty = request.Dirty };
             HasDrafts = documents.Values.Any(value => value.Dirty); HasEditors = documents.Values.Any(value => value.Owner.Length > 0);
             if (saved && capabilities["textDocumentSync"] is JsonObject synchronization && synchronization["save"] is { } save && save.ToJsonString() != "false")
-                await connection.NotifyAsync("textDocument/didSave", new { textDocument = new { uri }, text }, token);
+                await connection.NotifyAsync("textDocument/didSave", new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri }, ["text"] = text }, token);
 
             var result = new LanguageResult("ready", NeedsConfiguration ? ActionText : detail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Coverage = projectModel.Description };
             if (request.Operation is "inspect" or "diagnostics" or "fileDiagnostics")
@@ -288,7 +297,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 LanguageItem[] items = [];
                 if (capabilities["diagnosticProvider"] is JsonObject provider)
                 {
-                    var report = await connection.RequestAsync("textDocument/diagnostic", new { textDocument = new { uri }, identifier = provider["identifier"]?.ToString() }, token);
+                    var report = await connection.RequestAsync("textDocument/diagnostic", new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri }, ["identifier"] = provider["identifier"]?.ToString() }, token);
                     if (report?["kind"]?.ToString() == "full")
                     {
                         items = Diagnostics(report["items"], request.Path); fresh = "current";
@@ -296,7 +305,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                     }
                     if (request.Operation == "diagnostics" && provider["workspaceDiagnostics"]?.GetValue<bool>() == true)
                     {
-                        var workspaceReport = await connection.RequestAsync("workspace/diagnostic", new { identifier = provider["identifier"]?.ToString(), previousResultIds = Array.Empty<object>() }, token);
+                        var workspaceReport = await connection.RequestAsync("workspace/diagnostic", new JsonObject { ["identifier"] = provider["identifier"]?.ToString(), ["previousResultIds"] = new JsonArray() }, token);
                         foreach (var file in workspaceReport?["items"] as JsonArray ?? [])
                             if (file?["uri"]?.ToString() is { } reportUri && file["kind"]?.ToString() == "full" && Relative(reportUri) is { } reportPath)
                                 diagnostics[reportUri] = new(file["version"]?.GetValue<int>(), Diagnostics(file["items"], reportPath));
@@ -319,7 +328,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                     result = result with { Diagnostics = [], Freshness = "pending", Detail = LoadingDetail };
                 if (request.Operation == "inspect" && capabilities["semanticTokensProvider"] is JsonObject semantic && semantic["full"] is { } full && full.ToJsonString() != "false")
                 {
-                    var tokens = await connection.RequestAsync("textDocument/semanticTokens/full", new { textDocument = new { uri } }, token);
+                    var tokens = await connection.RequestAsync("textDocument/semanticTokens/full", TextDocument(uri), token);
                     result = result with { Tokens = Semantic(tokens?["data"], semantic["legend"]?["tokenTypes"], semantic["legend"]?["tokenModifiers"], request.Path) };
                 }
                 return result;
@@ -350,7 +359,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             {
                 if ((capabilities["documentSymbolProvider"] is null || capabilities["documentSymbolProvider"]!.ToJsonString() == "false") && !registeredCapabilities.Values.Contains("textDocument/documentSymbol"))
                     return result with { State = "unsupported", Detail = "Symbol-selected navigation requires a document outline. Use an explicit position." };
-                var outline = await connection.RequestAsync("textDocument/documentSymbol", new { textDocument = new { uri } }, token);
+                var outline = await connection.RequestAsync("textDocument/documentSymbol", TextDocument(uri), token);
                 // An exact qualified name wins; otherwise a simple or partly qualified name matches the end of the outline name.
                 var selections = SymbolSelections(outline).ToArray();
                 var exact = selections.Any(item => item.Name == request.Query);
@@ -369,9 +378,9 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 var position = matches[0].Range!["start"]!;
                 request = request with { Line = position["line"]!.GetValue<int>(), Column = position["character"]!.GetValue<int>() };
             }
-            object parameters = request.Operation == "workspaceSymbols" ? new { query = request.Query }
-                : request.Operation == "references" ? new { textDocument = new { uri }, position = new { line = request.Line, character = request.Column }, context = new { includeDeclaration = true } }
-                : new { textDocument = new { uri }, position = new { line = request.Line, character = request.Column } };
+            var parameters = request.Operation == "workspaceSymbols" ? new JsonObject { ["query"] = request.Query }
+                : new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri }, ["position"] = Position(request.Line, request.Column) };
+            if (request.Operation == "references") parameters["context"] = new JsonObject { ["includeDeclaration"] = true };
             var locations = await connection.RequestAsync(method, parameters, token);
             var answered = await NavigationResultAsync(result, locations, request, token);
             if (loading && request.Operation is "definition" or "typeDefinition" or "hover" && answered.State == "ready" && answered.Total == 0 && answered.Locations.Count == 0)
@@ -393,8 +402,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         if (kind == 0) return;
         var document = open with { Text = text, Version = ++nextDocumentVersion };
         documents[uri] = document; diagnostics.TryRemove(uri, out _);
-        object[] contentChanges = kind == 2 ? [new { range = new { start = new { line = 0, character = 0 }, end = End(open.Text) }, text }] : [new { text }];
-        await connection.NotifyAsync("textDocument/didChange", new { textDocument = new { uri, version = document.Version }, contentChanges }, token);
+        await connection.NotifyAsync("textDocument/didChange", DidChange(uri, document.Version, kind, open.Text, text), token);
     }
 
     private static async Task<string> ReadAsync(string path, CancellationToken token)
@@ -405,7 +413,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         return text;
     }
 
-    private object? OnClientRequest(string method, JsonNode? parameters)
+    private JsonNode? OnClientRequest(string method, JsonNode? parameters)
     {
         if (method == "client/registerCapability") Register(parameters);
         if (method == "client/unregisterCapability") Unregister(parameters);
@@ -418,7 +426,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         if (method == "window/showDocument")
         {
             server.Spec.OnMessage(this, method, parameters);
-            return new { success = true };
+            return new JsonObject { ["success"] = true };
         }
         if (method == "window/showMessageRequest")
         {
@@ -444,7 +452,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
         capabilities["executeCommandProvider"]?["commands"] is JsonArray commands && commands.Any(value => value?.ToString() == command);
 
     Task<JsonNode?> ILanguageServerSession.RequestAsync(string method, object? parameters, CancellationToken token, TimeSpan? timeout) =>
-        connection.RequestAsync(method, parameters, token, timeout);
+        connection.RequestAsync(method, parameters as JsonNode ?? (parameters is null ? null : JsonSerializer.SerializeToNode(parameters, PluginJson.TypeInfo(parameters.GetType()))), token, timeout);
 
     void ILanguageServerSession.SetState(string? state) =>
         pluginState = state is { Length: > 16 * 1024 } ? throw new ArgumentException("Plugin state exceeds 16 KiB.") : state ?? "";
@@ -556,11 +564,17 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
     private static LanguageItem Item(string path, JsonNode range, string text, string kind, string source)
         => new(path, range["start"]!["line"]!.GetValue<int>(), range["start"]!["character"]!.GetValue<int>(),
             range["end"]!["line"]!.GetValue<int>(), range["end"]!["character"]!.GetValue<int>(), text, kind, source);
-    private static object End(string text)
+    private static JsonObject End(string text) => Position(text.Count(character => character == '\n'), text.Length - (text.LastIndexOf('\n') + 1));
+    private static JsonObject Position(int line, int character) => new() { ["line"] = line, ["character"] = character };
+    private static JsonObject TextDocument(string uri) => new() { ["textDocument"] = new JsonObject { ["uri"] = uri } };
+
+    private static JsonObject DidChange(string uri, int version, int kind, string old, string text) => new()
     {
-        var line = text.Count(character => character == '\n');
-        return new { line, character = text.Length - (text.LastIndexOf('\n') + 1) };
-    }
+        ["textDocument"] = new JsonObject { ["uri"] = uri, ["version"] = version },
+        ["contentChanges"] = new JsonArray(kind == 2
+            ? new JsonObject { ["range"] = new JsonObject { ["start"] = Position(0, 0), ["end"] = End(old) }, ["text"] = text }
+            : new JsonObject { ["text"] = text })
+    };
     private static string UriOf(string path) => new Uri(path).AbsoluteUri;
 
     public async ValueTask DisposeAsync()

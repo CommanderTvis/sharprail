@@ -1,11 +1,14 @@
 using System.Text.Json;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core.Language;
 
 internal static class LanguageConfigurationCatalog
 {
+    internal sealed record Description(string Provider, string Version, string Source, string Website, string Repository, string RepositoryLabel, IReadOnlyList<LanguageSettingField> Fields);
+
     /// <summary>The configuration controls and provenance a known server declares.</summary>
     internal static LanguageResult Read(string id) =>
         Read(LanguageServers.Known(id) ?? throw new ArgumentException("Unknown language server."));
@@ -19,7 +22,7 @@ internal static class LanguageConfigurationCatalog
         var (website, repository, repositoryLabel) = (spec.Website, spec.Repository, spec.RepositoryLabel);
         return new("ready", "SharpRail pins managed LSP versions so these configuration controls match the server’s configuration structure. Custom executables and servers on PATH may use another version. SDK-bundled servers follow the installed toolchain. Unset fields retain server defaults.", server.Id)
         {
-            Configuration = JsonSerializer.Serialize(new { provider = server.Implementation, version = server.Version, source, website, repository, repositoryLabel, fields }, JsonSerializerOptions.Web)
+            Configuration = JsonSerializer.Serialize(new Description(server.Implementation, server.Version, source, website, repository, repositoryLabel, fields), HostJson.Web.Info<Description>())
         };
     }
 }

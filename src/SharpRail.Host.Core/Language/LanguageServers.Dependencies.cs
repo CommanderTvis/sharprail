@@ -18,7 +18,7 @@ internal sealed partial class LanguageServers
     internal Func<string> ToolPaths { get; set; } = () => "";
 
     internal static Dictionary<string, string> ParseTools(string json) => string.IsNullOrWhiteSpace(json) ? new(StringComparer.Ordinal)
-        : JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new(StringComparer.Ordinal);
+        : JsonSerializer.Deserialize(json, HostJson.Default.DictionaryStringString) ?? new(StringComparer.Ordinal);
 
     // The tool paths parsed from the last host settings text; parsed again only when that text changes.
     private sealed record ParsedTools(string Json, IReadOnlyDictionary<string, string> Tools);

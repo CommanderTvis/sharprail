@@ -87,7 +87,7 @@ public sealed class JavaPlugin() : LanguageServerPlugin(Id)
     {
         const string command = "java.project.listSourcePaths";
         if (!session.SupportsCommand(command)) return [];
-        var response = await session.RequestAsync("workspace/executeCommand", new { command, arguments = Array.Empty<string>() }, token);
+        var response = await session.RequestAsync("workspace/executeCommand", new System.Text.Json.Nodes.JsonObject { ["command"] = command, ["arguments"] = new System.Text.Json.Nodes.JsonArray() }, token);
         if (response?["status"]?.GetValue<bool>() != true || response["data"] is not System.Text.Json.Nodes.JsonArray paths) return [];
         return [.. paths.Take(500).Select(item => item?["path"]?.ToString() ?? "").Where(Path.IsPathFullyQualified)];
     }

@@ -78,7 +78,7 @@ public sealed record LanguageUsageSummary(int Calls, int Successes, int Failures
 public sealed record LanguageExit(string Time, string Reason, bool Unexpected, string Initiator, int? ExitCode, string Signal, int UptimeSeconds, long MemoryBytes, string Details)
 {
     /// <summary>Who started the process that ended: "human", "config", "workspace creation" or "agent".</summary>
-    public string StartedBy { get; init; } = "";
+    public string StartedBy { get; set; } = "";
 }
 
 /// <summary>A detected build root or provider-reported directory role; State identifies provenance without asserting complete import or package ownership.</summary>

@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Avalonia.Rendering.Composition;
 using Avalonia.Threading;
@@ -53,7 +53,7 @@ internal static class StartupPhases
             while (flushed < count)
             {
                 var (name, timestamp) = Pending[flushed++];
-                Console.WriteLine("SHARPRAIL_PERF " + JsonSerializer.Serialize(new { milestone = name, timestamp, frequency = Stopwatch.Frequency, status = "ok" }));
+                Console.WriteLine("SHARPRAIL_PERF " + new JsonObject { ["milestone"] = name, ["timestamp"] = timestamp, ["frequency"] = Stopwatch.Frequency, ["status"] = "ok" }.ToJsonString());
             }
         }
     }
@@ -122,14 +122,14 @@ public sealed partial class WorkbenchWindow
             if (!emitted.Add(milestone)) return;
             var at = timestamp ?? Stopwatch.GetTimestamp();
             StartupPhases.Flush();
-            Console.WriteLine("SHARPRAIL_PERF " + JsonSerializer.Serialize(new
+            Console.WriteLine("SHARPRAIL_PERF " + new JsonObject
             {
-                milestone,
-                timestamp = at,
-                frequency = Stopwatch.Frequency,
-                status,
-                detail
-            }));
+                ["milestone"] = milestone,
+                ["timestamp"] = at,
+                ["frequency"] = Stopwatch.Frequency,
+                ["status"] = status,
+                ["detail"] = detail
+            }.ToJsonString());
         }
     }
 }

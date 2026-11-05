@@ -82,7 +82,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
     private static async Task<LanguageServerSource> ReadSourceAsync(ILanguageServerSession session, string uri, CancellationToken token)
     {
         if (!session.SupportsCommand("decompile")) throw new IOException("The server does not advertise dependency source retrieval.");
-        var response = await session.RequestAsync("workspace/executeCommand", new { command = "decompile", arguments = new[] { uri } }, token);
+        var response = await session.RequestAsync("workspace/executeCommand", new System.Text.Json.Nodes.JsonObject { ["command"] = "decompile", ["arguments"] = new System.Text.Json.Nodes.JsonArray(uri) }, token);
         if (response?["code"] is not System.Text.Json.Nodes.JsonValue code || !code.TryGetValue<string>(out var text)) throw new IOException("The server returned no dependency source.");
         if (text.Length > 1_048_576) throw new IOException("Dependency source exceeds the 1 Mi character limit.");
         return new(text, response["language"]?.ToString() ?? "java");

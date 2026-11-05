@@ -175,7 +175,7 @@ internal static class ArtifactInstaller
         var marker = Path.Combine(root, ".sharprail-artifact.json");
         if (File.Exists(marker))
         {
-            if (JsonSerializer.Deserialize<Dictionary<string, string>>(await File.ReadAllTextAsync(marker, token))?.GetValueOrDefault("sha256") == artifact.Sha256) return;
+            if (JsonSerializer.Deserialize(await File.ReadAllTextAsync(marker, token), HostJson.Default.DictionaryStringString)?.GetValueOrDefault("sha256") == artifact.Sha256) return;
             throw new IOException($"The {artifact.Server} installation at {root} does not match the pinned artifact. Remove it and Retry.");
         }
         if (Directory.Exists(root)) Directory.Delete(root, true);
@@ -190,7 +190,7 @@ internal static class ArtifactInstaller
                 throw new IOException($"{artifact.Server} download failed verification: SHA-256 does not match the pinned value. Nothing was installed.");
             Directory.CreateDirectory(staging);
             await ExtractAsync(archive, staging, artifact, token);
-            await File.WriteAllTextAsync(Path.Combine(staging, ".sharprail-artifact.json"), JsonSerializer.Serialize(new Dictionary<string, string> { ["sha256"] = artifact.Sha256, ["url"] = artifact.Url }), token);
+            await File.WriteAllTextAsync(Path.Combine(staging, ".sharprail-artifact.json"), JsonSerializer.Serialize(new Dictionary<string, string> { ["sha256"] = artifact.Sha256, ["url"] = artifact.Url }, HostJson.Default.DictionaryStringString), token);
             token.ThrowIfCancellationRequested();
             Directory.Move(staging, root);
             if (!OperatingSystem.IsWindows())

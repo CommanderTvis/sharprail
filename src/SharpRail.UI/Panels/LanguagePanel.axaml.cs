@@ -294,7 +294,7 @@ internal sealed partial class LanguagePanel : UserControl
     private string ProjectOf(HostState current) => current.Workspaces.FirstOrDefault(item => item.Path == workspace)?.ProjectRoot ?? workspace;
 
     private IReadOnlySet<string> HiddenIn(HostState current) => current.ProjectLanguageHidden.TryGetValue(ProjectOf(current), out var json)
-        ? (System.Text.Json.JsonSerializer.Deserialize<string[]>(json) ?? []).ToHashSet() : new HashSet<string>();
+        ? (System.Text.Json.JsonSerializer.Deserialize(json, AppJson.Default.StringArray) ?? []).ToHashSet() : new HashSet<string>();
 
     private async void HideClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -318,7 +318,7 @@ internal sealed partial class LanguagePanel : UserControl
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (current != lifetime) return;
-                hidden = (System.Text.Json.JsonSerializer.Deserialize<string[]>(result.Configuration) ?? []).ToHashSet();
+                hidden = (System.Text.Json.JsonSerializer.Deserialize(result.Configuration, AppJson.Default.StringArray) ?? []).ToHashSet();
                 if (hidden.Count == 0) showHidden = false;
                 RefreshRows();
                 SetStatus(hide ? $"{row} is hidden in this project." : "");

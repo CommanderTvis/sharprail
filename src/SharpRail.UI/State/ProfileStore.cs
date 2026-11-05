@@ -154,12 +154,12 @@ public sealed class ProfileStore
         writing = new JsonSerializerOptions
         {
             WriteIndented = true,
-            TypeInfoResolver = new DefaultJsonTypeInfoResolver { Modifiers = { SkipMigrated } }
+            TypeInfoResolver = AppJson.Default.WithAddedModifier(SkipMigrated)
         };
         try
         {
             var json = read is not null ? read() : File.Exists(path) ? File.ReadAllText(path) : null;
-            Data = json is null ? new() : JsonSerializer.Deserialize<Profile>(json) ?? new();
+            Data = json is null ? new() : JsonSerializer.Deserialize(json, AppJson.Default.Profile) ?? new();
             Data.Preferences ??= new(); Data.CollapsedProjects ??= []; Data.CollapsedRemotes ??= []; Data.Windows ??= [];
             Data.Windows.RemoveAll(window => window is null);
             if (Data.Windows.Count == 0)
@@ -293,7 +293,7 @@ public sealed class ProfileStore
                 MarkdownLineWidth = preferences.MarkdownLineWidth,
                 MarkdownLineWidthBounded = preferences.MarkdownLineWidthBounded
             },
-            Presets = preferences.CustomPresets.Select(entry => new LayoutPreset(entry.Key, JsonSerializer.Serialize(entry.Value))).ToArray(),
+            Presets = preferences.CustomPresets.Select(entry => new LayoutPreset(entry.Key, JsonSerializer.Serialize(entry.Value, AppJson.Default.DockState))).ToArray(),
             Projects = Data.LegacyProjects ?? [],
             RecentProjects = Data.LegacyRecentProjects ?? [],
             WorkspaceLabels = Data.LegacyWorkspaceLabels ?? []
@@ -316,7 +316,7 @@ public sealed class ProfileStore
     {
         try
         {
-            var json = JsonSerializer.Serialize(Data, writing);
+            var json = JsonSerializer.Serialize(Data, AppJson.Info<Profile>(writing));
             if (persist is not null) { persist(json); LastError = null; return; }
             lock (writeGate)
             {

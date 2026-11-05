@@ -17,11 +17,11 @@ internal sealed partial class LanguageSession
     private ConcurrentQueue<JsonNode>? commandEdits;
 
     // Edits a server sends with workspace/applyEdit while its command runs belong to the action being applied.
-    private object? CaptureEdit(JsonNode? parameters)
+    private JsonNode? CaptureEdit(JsonNode? parameters)
     {
         if (commandEdits is not { } queue || parameters?["edit"] is not { } edit) return null;
         queue.Enqueue(edit);
-        return new { applied = true };
+        return new JsonObject { ["applied"] = true };
     }
 
     private bool Provides(string provider, string method)
@@ -35,10 +35,14 @@ internal sealed partial class LanguageSession
             return result with { State = "unsupported", Detail = $"{server.Id} does not support code actions." };
         if (request.Operation == "applyCodeAction") return await ApplyCodeActionAsync(result, request, uri, document, token);
 
-        var caret = new { line = request.Line, character = request.Column };
         var context = diagnostics.TryGetValue(uri, out var published) && (published.Version is null || published.Version == document.Version)
             ? published.Items.Where(item => item.Raw.Length > 0 && Covers(item, request.Line, request.Column)).Select(item => JsonNode.Parse(item.Raw)!).ToArray() : [];
-        var response = await connection.RequestAsync("textDocument/codeAction", new { textDocument = new { uri }, range = new { start = caret, end = caret }, context = new { diagnostics = context } }, token);
+        var response = await connection.RequestAsync("textDocument/codeAction", new JsonObject
+        {
+            ["textDocument"] = new JsonObject { ["uri"] = uri },
+            ["range"] = new JsonObject { ["start"] = Position(request.Line, request.Column), ["end"] = Position(request.Line, request.Column) },
+            ["context"] = new JsonObject { ["diagnostics"] = new JsonArray(context) }
+        }, token);
 
         var usable = new List<(JsonNode Action, bool Preferred, bool Quickfix)>();
         foreach (var entry in response as JsonArray ?? [])

@@ -85,5 +85,8 @@ public static partial class Frontmatter
 
     private static string WriteScalar(string value) => value.Length > 0 && value.All(character => char.IsLetterOrDigit(character) || character is ' ' or '_' or '-' or '.' or '/')
         && value == value.Trim() && !new[] { "true", "false", "null", "~", "yes", "no" }.Contains(value, StringComparer.OrdinalIgnoreCase)
-        && !value.StartsWith('-') ? value : JsonSerializer.Serialize(value, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+        && !value.StartsWith('-') ? value : JsonSerializer.Serialize(value, RelaxedString);
+
+    private static readonly System.Text.Json.Serialization.Metadata.JsonTypeInfo<string> RelaxedString =
+        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<string>)new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping, TypeInfoResolver = KitJson.Default }.GetTypeInfo(typeof(string));
 }

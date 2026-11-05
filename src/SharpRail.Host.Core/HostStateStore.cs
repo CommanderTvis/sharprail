@@ -22,7 +22,7 @@ public sealed partial class HostStateStore : IHostStateService
 
     public const string FileName = "state.json";
 
-    private sealed class Stored
+    internal sealed class Stored
     {
         public HostSettings Settings { get; set; } = new();
         public List<LayoutPreset> Presets { get; set; } = [];
@@ -51,7 +51,7 @@ public sealed partial class HostStateStore : IHostStateService
         public Dictionary<string, TerminalRef> WorkspaceCreators { get; set; } = [];
     }
 
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = HostJson.Resolving(new() { WriteIndented = true });
     private readonly Lock gate = new();
     private readonly string? path;
     internal string? DirectoryPath => path is null ? null : Path.GetDirectoryName(path);
@@ -141,7 +141,7 @@ public sealed partial class HostStateStore : IHostStateService
             if (path is not null && File.Exists(path))
             {
                 var text = File.ReadAllText(path);
-                var stored = JsonSerializer.Deserialize<Stored>(text, Json) ?? new();
+                var stored = JsonSerializer.Deserialize(text, Json.Info<Stored>()) ?? new();
                 legacyContextWorkspaces = stored.ContextWorkspaces;
                 foreach (var (workspace, creator) in stored.WorkspaceCreators ?? [])
                     if (creator?.WorkspaceId is { Length: > 0 } && creator.TabKey is { Length: > 0 } && Directory.Exists(workspace)) workspaceCreators[workspace] = creator;
@@ -217,7 +217,7 @@ public sealed partial class HostStateStore : IHostStateService
             Directory.EnumerateFiles(Path.Combine(directory, AirContextMigration.LegacyDirectory), "*", SearchOption.AllDirectories).Any();
         var airExplicit = migrated.PluginSettings.TryGetValue(AirContextContract.Id, out var airSettings) && airSettings.ValueKind == JsonValueKind.Object && airSettings.TryGetProperty("enabled", out _);
         if (!airExplicit && (airContextHidden || usedAirContext))
-            migrated = migrated with { PluginSettings = new Dictionary<string, JsonElement>(migrated.PluginSettings) { [AirContextContract.Id] = JsonSerializer.SerializeToElement(new { enabled = !airContextHidden }) } };
+            migrated = migrated with { PluginSettings = new Dictionary<string, JsonElement>(migrated.PluginSettings) { [AirContextContract.Id] = JsonSerializer.SerializeToElement(new JsonObject { ["enabled"] = !airContextHidden }, HostJson.Default.JsonObject) } };
         migrated = MigrateDisabledLanguageServers(migrated);
         if (directory is not null && (legacyContextWorkspaces is not null || Directory.Exists(Path.Combine(directory, AirContextMigration.LegacyDirectory))))
         {
@@ -313,7 +313,7 @@ public sealed partial class HostStateStore : IHostStateService
                 next = Visible(Publish(next, persist: true));
             }
             foreach (var answer in changes.Where(change => change.Kind == "terminal-resume-answer"))
-                if (JsonSerializer.Deserialize<TerminalRef>(answer.Key ?? "") is { } answered) ResumeAnswered?.Invoke(answered, answer.Value);
+                if (JsonSerializer.Deserialize(answer.Key ?? "", HostJson.Default.TerminalRef) is { } answered) ResumeAnswered?.Invoke(answered, answer.Value);
             foreach (var answer in changes.Where(change => change.Kind == "terminal-emigration-answer"))
                 if (emigrationAnswers.TryRemove(answer.Key ?? "", out var waiting)) waiting.TrySetResult(answer.Value == "approve");
             if (previous.Settings.LspEnabled && !next.Settings.LspEnabled && languages is { } languageService)
@@ -479,7 +479,7 @@ public sealed partial class HostStateStore : IHostStateService
         lock (gate)
         {
             var namespaces = state.PluginSettings.ToDictionary();
-            namespaces[id] = JsonSerializer.SerializeToElement(value);
+            namespaces[id] = JsonSerializer.SerializeToElement(value, HostJson.Default.JsonElement);
             Publish(state with { PluginSettings = namespaces }, persist: true);
         }
     }
@@ -544,7 +544,7 @@ public sealed partial class HostStateStore : IHostStateService
                 TerminalTitles = snapshot.TerminalTitles.Where(title => title.Source != TerminalTitleSource.Program).ToList(),
                 WorkspaceCreators = workspaceCreators.Where(entry => snapshot.Workspaces.Any(workspace => workspace.Path == entry.Key)).ToDictionary()
             };
-            var document = JsonSerializer.SerializeToNode(stored, Json)!;
+            var document = JsonSerializer.SerializeToNode(stored, Json.Info<Stored>())!;
             foreach (var (name, value) in unknownSettings) document[nameof(Stored.Settings)]![name] = value?.DeepClone();
             if (WriteInBackground) { WriteLater(document.ToJsonString(Json)); return; }
             WriteFile(document.ToJsonString(Json));
@@ -639,7 +639,7 @@ public sealed partial class HostStateStore : IHostStateService
                 value.WorkspaceBases.GetValueOrDefault(entry.Key) != entry.Value).ToDictionary(),
             PluginSettings = value.PluginSettings.Where(entry => PluginIdentity.IsPluginId(entry.Key) && entry.Value.ValueKind == JsonValueKind.Object &&
                 (!entry.Value.TryGetProperty("enabled", out var enabled) || enabled.ValueKind is JsonValueKind.True or JsonValueKind.False))
-            .ToDictionary(entry => entry.Key, entry => JsonSerializer.SerializeToElement(entry.Value)),
+            .ToDictionary(entry => entry.Key, entry => JsonSerializer.SerializeToElement(entry.Value, HostJson.Default.JsonElement)),
             PluginPaths = value.PluginPaths.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
             Plugins = [],
             TerminalAgents = value.TerminalAgents.Where(agent => agent?.Terminal is { WorkspaceId: { } workspace, TabKey: { Length: > 0 } } && ValidPath(workspace) &&
@@ -720,7 +720,7 @@ public sealed partial class HostStateStore : IHostStateService
         switch (change.Kind)
         {
             case "terminal-resume-answer":
-                if (value is not ("resume" or "fresh" or "quit") || JsonSerializer.Deserialize<TerminalRef>(key) is null)
+                if (value is not ("resume" or "fresh" or "quit") || JsonSerializer.Deserialize(key, HostJson.Default.TerminalRef) is null)
                     throw new ArgumentException("A resume answer names a terminal and is resume, fresh or quit.");
                 return current;
             case "terminal-emigration-answer":
@@ -728,7 +728,7 @@ public sealed partial class HostStateStore : IHostStateService
                 return current.PendingEmigrations.Any(pending => pending.Id == key)
                     ? current with { PendingEmigrations = current.PendingEmigrations.Where(pending => pending.Id != key).ToArray() } : current;
             case "terminal-title":
-                var terminal = JsonSerializer.Deserialize<TerminalRef>(key) ?? throw new ArgumentException("A terminal is required.");
+                var terminal = JsonSerializer.Deserialize(key, HostJson.Default.TerminalRef) ?? throw new ArgumentException("A terminal is required.");
                 if (string.IsNullOrWhiteSpace(terminal.WorkspaceId) || string.IsNullOrWhiteSpace(terminal.TabKey) ||
                     string.IsNullOrWhiteSpace(value) || value.Length > TerminalTab.MaxTitleLength)
                     throw new ArgumentException("A terminal and a nonempty title of at most 1000 characters are required.");
@@ -891,7 +891,7 @@ public sealed partial class HostStateStore : IHostStateService
                 return ApplyPluginSettings(current, key, value);
             case "plugin-paths":
                 string[] paths;
-                try { paths = JsonSerializer.Deserialize<string[]>(value) ?? throw new JsonException(); }
+                try { paths = JsonSerializer.Deserialize(value, HostJson.Default.StringArray) ?? throw new JsonException(); }
                 catch (JsonException) { throw new ArgumentException("Plugin paths must be a JSON array of directories."); }
                 if (!paths.All(item => item is not null && ValidPath(item))) throw new ArgumentException("Plugin paths must be absolute directories.");
                 paths = paths.Distinct().ToArray();
@@ -916,12 +916,12 @@ public sealed partial class HostStateStore : IHostStateService
         }
         var namespaces = current.PluginSettings.ToDictionary();
         var merged = patch is null ? new JsonObject() : Merge(namespaces.GetValueOrDefault(id), patch);
-        var element = JsonSerializer.SerializeToElement(merged);
+        var element = JsonSerializer.SerializeToElement(merged, HostJson.Default.JsonObject);
         if (patch is not null && PluginNamespaceValidator is { } validate) element = validate(id, element);
         namespaces[id] = element;
         if (patch?["enabled"]?.GetValue<bool>() == false && PluginDependents is { } dependents)
             foreach (var dependent in dependents(id))
-                namespaces[dependent] = JsonSerializer.SerializeToElement(Merge(namespaces.GetValueOrDefault(dependent), new JsonObject { ["enabled"] = false }));
+                namespaces[dependent] = JsonSerializer.SerializeToElement(Merge(namespaces.GetValueOrDefault(dependent), new JsonObject { ["enabled"] = false }), HostJson.Default.JsonObject);
         var changed = namespaces.Count != current.PluginSettings.Count || namespaces.Any(entry =>
             !current.PluginSettings.TryGetValue(entry.Key, out var previous) || !JsonElement.DeepEquals(previous, entry.Value));
         return changed ? current with { PluginSettings = namespaces } : current;
@@ -929,7 +929,7 @@ public sealed partial class HostStateStore : IHostStateService
 
     private static JsonObject Merge(JsonElement existing, JsonObject patch)
     {
-        var merged = existing.ValueKind == JsonValueKind.Object ? JsonSerializer.SerializeToNode(existing)!.AsObject() : new JsonObject();
+        var merged = existing.ValueKind == JsonValueKind.Object ? JsonSerializer.SerializeToNode(existing, HostJson.Default.JsonElement)!.AsObject() : new JsonObject();
         foreach (var (name, member) in patch)
         {
             if (member is null) merged.Remove(name);

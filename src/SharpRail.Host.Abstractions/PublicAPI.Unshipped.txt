@@ -472,31 +472,31 @@ SharpRail.Host.Abstractions.HostProtocol
 SharpRail.Host.Abstractions.HostSettings
 SharpRail.Host.Abstractions.HostSettings.<Clone>$() -> SharpRail.Host.Abstractions.HostSettings!
 SharpRail.Host.Abstractions.HostSettings.CustomHighlighting.get -> string!
-SharpRail.Host.Abstractions.HostSettings.CustomHighlighting.init -> void
+SharpRail.Host.Abstractions.HostSettings.CustomHighlighting.set -> void
 SharpRail.Host.Abstractions.HostSettings.Equals(SharpRail.Host.Abstractions.HostSettings? other) -> bool
 SharpRail.Host.Abstractions.HostSettings.FileLineWidth.get -> int
 SharpRail.Host.Abstractions.HostSettings.FileLineWidth.init -> void
 SharpRail.Host.Abstractions.HostSettings.FileLineWidthBounded.get -> bool
-SharpRail.Host.Abstractions.HostSettings.FileLineWidthBounded.init -> void
+SharpRail.Host.Abstractions.HostSettings.FileLineWidthBounded.set -> void
 SharpRail.Host.Abstractions.HostSettings.HostSettings() -> void
 SharpRail.Host.Abstractions.HostSettings.MarkdownLineWidth.get -> int
 SharpRail.Host.Abstractions.HostSettings.MarkdownLineWidth.init -> void
 SharpRail.Host.Abstractions.HostSettings.MarkdownLineWidthBounded.get -> bool
-SharpRail.Host.Abstractions.HostSettings.MarkdownLineWidthBounded.init -> void
+SharpRail.Host.Abstractions.HostSettings.MarkdownLineWidthBounded.set -> void
 SharpRail.Host.Abstractions.HostSettings.NotificationsEnabled.get -> bool
-SharpRail.Host.Abstractions.HostSettings.NotificationsEnabled.init -> void
+SharpRail.Host.Abstractions.HostSettings.NotificationsEnabled.set -> void
 SharpRail.Host.Abstractions.HostSettings.SystemDark.get -> string!
-SharpRail.Host.Abstractions.HostSettings.SystemDark.init -> void
+SharpRail.Host.Abstractions.HostSettings.SystemDark.set -> void
 SharpRail.Host.Abstractions.HostSettings.SystemLight.get -> string!
-SharpRail.Host.Abstractions.HostSettings.SystemLight.init -> void
+SharpRail.Host.Abstractions.HostSettings.SystemLight.set -> void
 SharpRail.Host.Abstractions.HostSettings.TerminalReplayKb.get -> int
-SharpRail.Host.Abstractions.HostSettings.TerminalReplayKb.init -> void
+SharpRail.Host.Abstractions.HostSettings.TerminalReplayKb.set -> void
 SharpRail.Host.Abstractions.HostSettings.TerminalKeepAfterExit.get -> bool
 SharpRail.Host.Abstractions.HostSettings.TerminalKeepAfterExit.init -> void
 SharpRail.Host.Abstractions.HostSettings.Theme.get -> string!
-SharpRail.Host.Abstractions.HostSettings.Theme.init -> void
+SharpRail.Host.Abstractions.HostSettings.Theme.set -> void
 SharpRail.Host.Abstractions.HostSettings.ThemeMode.get -> string!
-SharpRail.Host.Abstractions.HostSettings.ThemeMode.init -> void
+SharpRail.Host.Abstractions.HostSettings.ThemeMode.set -> void
 SharpRail.Host.Abstractions.HostSettings.VerticalCenterTabs.get -> bool?
 SharpRail.Host.Abstractions.HostSettings.VerticalCenterTabs.init -> void
 SharpRail.Host.Abstractions.HostSettings.VerticalTabsInProjects.get -> bool?
@@ -1308,7 +1308,7 @@ virtual SharpRail.Host.Abstractions.WorktreeInfo.EqualityContract.get -> System.
 virtual SharpRail.Host.Abstractions.WorktreeInfo.Equals(SharpRail.Host.Abstractions.WorktreeInfo? other) -> bool
 virtual SharpRail.Host.Abstractions.WorktreeInfo.PrintMembers(System.Text.StringBuilder! builder) -> bool
 SharpRail.Host.Abstractions.HostSettings.SettleIdleDays.get -> int?
-SharpRail.Host.Abstractions.HostSettings.SettleIdleDays.init -> void
+SharpRail.Host.Abstractions.HostSettings.SettleIdleDays.set -> void
 SharpRail.Host.Abstractions.SettledOverrides
 SharpRail.Host.Abstractions.WorkspaceRecord.LastActiveAt.get -> long?
 SharpRail.Host.Abstractions.WorkspaceRecord.LastActiveAt.init -> void
@@ -1326,9 +1326,9 @@ static SharpRail.Host.Abstractions.WorkspaceAction.Unsettle(string! id) -> Sharp
 const SharpRail.Host.Abstractions.HostProtocol.FileTypeIcons = 7 -> int
 const SharpRail.Host.Abstractions.HostProtocol.FileTypeIconStyle = 14 -> int
 SharpRail.Host.Abstractions.HostSettings.FileTypeIconStyle.get -> string!
-SharpRail.Host.Abstractions.HostSettings.FileTypeIconStyle.init -> void
+SharpRail.Host.Abstractions.HostSettings.FileTypeIconStyle.set -> void
 SharpRail.Host.Abstractions.HostSettings.FileTypeIconsEnabled.get -> bool
-SharpRail.Host.Abstractions.HostSettings.FileTypeIconsEnabled.init -> void
+SharpRail.Host.Abstractions.HostSettings.FileTypeIconsEnabled.set -> void
 override SharpRail.Host.Abstractions.LanguageFileResult.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.LanguageFileResult.GetHashCode() -> int
 override SharpRail.Host.Abstractions.LanguageFileResult.ToString() -> string!
@@ -1352,9 +1352,9 @@ SharpRail.Host.Abstractions.FileDocument.ReadOnly.init -> void
 SharpRail.Host.Abstractions.FileDocument.ReadOnlyNotice.get -> string?
 SharpRail.Host.Abstractions.FileDocument.ReadOnlyNotice.init -> void
 SharpRail.Host.Abstractions.HostSettings.LanguageServers.get -> string!
-SharpRail.Host.Abstractions.HostSettings.LanguageServers.init -> void
+SharpRail.Host.Abstractions.HostSettings.LanguageServers.set -> void
 SharpRail.Host.Abstractions.HostSettings.LspEnabled.get -> bool
-SharpRail.Host.Abstractions.HostSettings.LspEnabled.init -> void
+SharpRail.Host.Abstractions.HostSettings.LspEnabled.set -> void
 SharpRail.Host.Abstractions.HostState.WorkspaceLanguages.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.WorkspaceLanguages.init -> void
 SharpRail.Host.Abstractions.IProjectServices.LanguageAsync(SharpRail.Host.Abstractions.LanguageRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.LanguageResult!>
@@ -1590,7 +1590,7 @@ SharpRail.Host.Abstractions.LanguageItem.Container.init -> void
 SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.get -> bool
 SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.init -> void
 SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.get -> string!
-SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.init -> void
+SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.set -> void
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.init -> void
 SharpRail.Host.Abstractions.HostState.ProjectLanguageHidden.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
@@ -1598,7 +1598,7 @@ SharpRail.Host.Abstractions.HostState.ProjectLanguageHidden.init -> void
 SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.init -> void
 SharpRail.Host.Abstractions.HostSettings.WindowDecorations.get -> string!
-SharpRail.Host.Abstractions.HostSettings.WindowDecorations.init -> void
+SharpRail.Host.Abstractions.HostSettings.WindowDecorations.set -> void
 SharpRail.Host.Abstractions.HostState.LanguageDeaths.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.LanguageDeaths.init -> void
 SharpRail.Host.Abstractions.LanguageExit
@@ -1630,7 +1630,7 @@ SharpRail.Host.Abstractions.LanguageExit.Initiator.init -> void
 SharpRail.Host.Abstractions.LanguageExit.Reason.get -> string!
 SharpRail.Host.Abstractions.LanguageExit.Reason.init -> void
 SharpRail.Host.Abstractions.LanguageExit.StartedBy.get -> string!
-SharpRail.Host.Abstractions.LanguageExit.StartedBy.init -> void
+SharpRail.Host.Abstractions.LanguageExit.StartedBy.set -> void
 SharpRail.Host.Abstractions.LanguageExit.Time.get -> string!
 SharpRail.Host.Abstractions.LanguageExit.Time.init -> void
 SharpRail.Host.Abstractions.LanguageExit.Unexpected.get -> bool
@@ -1774,7 +1774,7 @@ SharpRail.Host.Abstractions.LanguageServerPresentation.LanguageServerPresentatio
 SharpRail.Host.Abstractions.LanguageServerPresentation.ReplacesLabel.get -> string!
 SharpRail.Host.Abstractions.LanguageServerPresentation.ReplacesLabel.init -> void
 SharpRail.Host.Abstractions.HostSettings.LanguageTools.get -> string!
-SharpRail.Host.Abstractions.HostSettings.LanguageTools.init -> void
+SharpRail.Host.Abstractions.HostSettings.LanguageTools.set -> void
 SharpRail.Host.Abstractions.LanguageServerState.Dependencies.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageDependencyState!>?
 SharpRail.Host.Abstractions.LanguageServerState.Dependencies.init -> void
 SharpRail.Host.Abstractions.LanguageDependencyState
@@ -1811,9 +1811,9 @@ override SharpRail.Host.Abstractions.TerminalSignal.GetHashCode() -> int
 override SharpRail.Host.Abstractions.TerminalSignal.ToString() -> string!
 SharpRail.Host.Abstractions.HostSettings.Bell(string! feature) -> bool
 SharpRail.Host.Abstractions.HostSettings.BellFeatures.get -> string!
-SharpRail.Host.Abstractions.HostSettings.BellFeatures.init -> void
+SharpRail.Host.Abstractions.HostSettings.BellFeatures.set -> void
 SharpRail.Host.Abstractions.HostSettings.TerminalNotificationsEnabled.get -> bool
-SharpRail.Host.Abstractions.HostSettings.TerminalNotificationsEnabled.init -> void
+SharpRail.Host.Abstractions.HostSettings.TerminalNotificationsEnabled.set -> void
 SharpRail.Host.Abstractions.HostSettings.TerminalOptionAsAlt.get -> bool
 SharpRail.Host.Abstractions.HostSettings.TerminalOptionAsAlt.init -> void
 SharpRail.Host.Abstractions.ITerminalCatalogService.WatchSignalsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<SharpRail.Host.Abstractions.TerminalSignal!>!
@@ -1850,7 +1850,7 @@ static SharpRail.Host.Abstractions.HostSettings.NormalizeBellFeatures(string! va
 static SharpRail.Host.Abstractions.TerminalSignal.operator !=(SharpRail.Host.Abstractions.TerminalSignal? left, SharpRail.Host.Abstractions.TerminalSignal? right) -> bool
 static SharpRail.Host.Abstractions.TerminalSignal.operator ==(SharpRail.Host.Abstractions.TerminalSignal? left, SharpRail.Host.Abstractions.TerminalSignal? right) -> bool
 SharpRail.Host.Abstractions.HostSettings.LanguageLimits.get -> string!
-SharpRail.Host.Abstractions.HostSettings.LanguageLimits.init -> void
+SharpRail.Host.Abstractions.HostSettings.LanguageLimits.set -> void
 SharpRail.Host.Abstractions.LanguageServerState.Workspace.get -> string!
 SharpRail.Host.Abstractions.LanguageServerState.Workspace.init -> void
 SharpRail.Host.Abstractions.LanguageServerState.MemoryBytes.get -> long
@@ -1862,13 +1862,13 @@ SharpRail.Host.Abstractions.TerminalAttachRequest.Program.init -> void
 SharpRail.Host.Abstractions.TerminalPrefill.Program.get -> bool
 SharpRail.Host.Abstractions.TerminalPrefill.Program.init -> void
 SharpRail.Host.Abstractions.HostSettings.TerminalUndoCloseSeconds.get -> int
-SharpRail.Host.Abstractions.HostSettings.TerminalUndoCloseSeconds.init -> void
+SharpRail.Host.Abstractions.HostSettings.TerminalUndoCloseSeconds.set -> void
 const SharpRail.Host.Abstractions.HostSettings.DefaultTerminalUndoCloseSeconds = 5 -> int
 const SharpRail.Host.Abstractions.HostSettings.MaxTerminalUndoCloseSeconds = 600 -> int
 SharpRail.Host.Abstractions.ITerminalCatalogService.CloseTabForUndoAsync(string! workspaceRoot, string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.TerminalCatalog!>
 const SharpRail.Host.Abstractions.HostProtocol.ShellIntegration = 10 -> int
 SharpRail.Host.Abstractions.HostSettings.ShellIntegrationEnabled.get -> bool
-SharpRail.Host.Abstractions.HostSettings.ShellIntegrationEnabled.init -> void
+SharpRail.Host.Abstractions.HostSettings.ShellIntegrationEnabled.set -> void
 SharpRail.Host.Abstractions.TerminalAttachRequest.DirectoryFrom.get -> string?
 SharpRail.Host.Abstractions.TerminalAttachRequest.DirectoryFrom.init -> void
 SharpRail.Host.Abstractions.TerminalCommand
@@ -2210,7 +2210,7 @@ static SharpRail.Host.Abstractions.Keymaps.ValidateName(string? name, System.Col
 static readonly SharpRail.Host.Abstractions.KeyChord.Keys -> System.Collections.Generic.IReadOnlySet<string!>!
 ~override SharpRail.Host.Abstractions.KeyChord.Equals(object obj) -> bool
 SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.get -> string!
-SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.init -> void
+SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.set -> void
 SharpRail.Host.Abstractions.HostState.KeymapPresets.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.KeymapPreset!>!
 SharpRail.Host.Abstractions.HostState.KeymapPresets.init -> void
 const SharpRail.Host.Abstractions.HostProtocol.Current = 18 -> int

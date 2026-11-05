@@ -92,7 +92,7 @@ internal static class PluginJsonChecks
 
     // Source generation assigns every init-only property from the JSON, its type's default when the member is
     // absent, so an initializer on one never applies; a settable property keeps it.
-    private static string? LostDefault(JsonTypeInfo info)
+    internal static string? LostDefault(JsonTypeInfo info)
     {
         if (info.Kind != JsonTypeInfoKind.Object || info.Type.IsAbstract) return null;
         var constructor = info.Type.GetConstructors().OrderBy(candidate => candidate.GetParameters().Length).FirstOrDefault();

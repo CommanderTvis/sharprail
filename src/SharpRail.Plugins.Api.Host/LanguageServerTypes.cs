@@ -524,7 +524,7 @@ public interface ILanguageServerSession
 
     /// <summary>Sends a request to the server.</summary>
     /// <param name="method">The LSP method.</param>
-    /// <param name="parameters">Its parameters, serialized as JSON.</param>
+    /// <param name="parameters">Its parameters: a <see cref="JsonNode"/>, or a value whose type a registered <see cref="PluginJson"/> context names (an anonymous object has no metadata and fails).</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <param name="timeout">A longer timeout than the host default, or <see langword="null"/>.</param>
     /// <returns>The result.</returns>

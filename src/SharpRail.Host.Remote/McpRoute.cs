@@ -63,23 +63,25 @@ public sealed class LoopbackServer(PtyTerminalService? terminals, HostStateStore
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0, endpoint => endpoint.Protocols = HttpProtocols.Http1));
         var app = builder.Build();
-        app.MapPost("/mcp/{token}", async (HttpContext context, string token) =>
-        {
-            if (terminals?.McpOwner(token) is not { } owner) return Results.NotFound();
-            JsonNode? message;
-            try { message = await JsonNode.ParseAsync(context.Request.Body, cancellationToken: context.RequestAborted); }
-            catch (JsonException) { return Results.Text("""{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}""", "application/json"); }
-            var tools = Plugins?.McpTools(owner.Terminal, owner.Workspace) ?? [];
-            if (workspaceTools is not null) tools = [workspaceTools.Create(owner.Workspace, owner.Terminal), workspaceTools.Title(owner.Terminal), workspaceTools.Delete(owner.Workspace), workspaceTools.Emigrate(owner.Terminal), .. tools];
-            if (state is not null) tools = [.. tools, .. LanguageMcpTools.Create(state, owner.Workspace)];
-            var (status, body) = await McpServer.HandleAsync(message, tools, context.RequestAborted);
-            return body is null ? Results.StatusCode(status) : Results.Text(body.ToJsonString(), "application/json", statusCode: status);
-        });
+        app.MapPost("/mcp/{token}", async context => await (await McpAsync(context, (string)context.Request.RouteValues["token"]!)).ExecuteAsync(context));
         // Every tool is request/response, so there is no SSE stream to open and no session to end.
-        app.MapMethods("/mcp/{token}", ["GET", "DELETE"], () => Results.StatusCode(StatusCodes.Status405MethodNotAllowed));
-        app.Map("/plugin/{id}", (HttpContext context, string id) => ServeAsync(context, id, ""));
-        app.Map("/plugin/{id}/{**subpath}", (HttpContext context, string id, string? subpath) => ServeAsync(context, id, subpath ?? ""));
+        app.MapMethods("/mcp/{token}", ["GET", "DELETE"], context => Results.StatusCode(StatusCodes.Status405MethodNotAllowed).ExecuteAsync(context));
+        app.Map("/plugin/{id}", context => ServeAsync(context, (string)context.Request.RouteValues["id"]!, ""));
+        app.Map("/plugin/{id}/{**subpath}", context => ServeAsync(context, (string)context.Request.RouteValues["id"]!, context.Request.RouteValues["subpath"] as string ?? ""));
         return app;
+    }
+
+    private async Task<IResult> McpAsync(HttpContext context, string token)
+    {
+        if (terminals?.McpOwner(token) is not { } owner) return Results.NotFound();
+        JsonNode? message;
+        try { message = await JsonNode.ParseAsync(context.Request.Body, cancellationToken: context.RequestAborted); }
+        catch (JsonException) { return Results.Text("""{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}""", "application/json"); }
+        var tools = Plugins?.McpTools(owner.Terminal, owner.Workspace) ?? [];
+        if (workspaceTools is not null) tools = [workspaceTools.Create(owner.Workspace, owner.Terminal), workspaceTools.Title(owner.Terminal), workspaceTools.Delete(owner.Workspace), workspaceTools.Emigrate(owner.Terminal), .. tools];
+        if (state is not null) tools = [.. tools, .. LanguageMcpTools.Create(state, owner.Workspace)];
+        var (status, body) = await McpServer.HandleAsync(message, tools, context.RequestAborted);
+        return body is null ? Results.StatusCode(status) : Results.Text(body.ToJsonString(), "application/json", statusCode: status);
     }
 
     private async Task ServeAsync(HttpContext context, string id, string subpath)

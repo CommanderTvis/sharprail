@@ -234,11 +234,8 @@ public sealed partial class DockSurface
     private string SectionsSignature()
     {
         var (sections, open) = Sections();
-        return JsonSerializer.Serialize(new
-        {
-            Open = open.Tab?.Id,
-            Sections = sections.Select(section => new { section.Tab.Id, Group = section.Group?.Id, Title = Session.ToolTitle(section.Tab) })
-        });
+        return JsonSerializer.Serialize(new DrawerSignature(open.Tab?.Id, [.. sections.Select(section => new DrawerSectionSignature(section.Tab.Id, section.Group?.Id, Session.ToolTitle(section.Tab)))]),
+            AppJson.Default.DrawerSignature);
     }
 
     private Control BuildSections()

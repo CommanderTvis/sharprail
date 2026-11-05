@@ -39,14 +39,14 @@ internal sealed class LanguageConnection : IAsyncDisposable
     internal const int StderrLines = 200, MessageCapacity = 60;
     internal LanguageExit? ExitRecord { get; private set; }
     internal Action<string, JsonNode?>? Notification { get; set; }
-    internal Func<object[]>? WorkspaceFolders { get; set; }
-    internal Func<string, JsonNode?, object?>? ClientRequest { get; set; }
+    internal Func<JsonArray>? WorkspaceFolders { get; set; }
+    internal Func<string, JsonNode?, JsonNode?>? ClientRequest { get; set; }
     /// <summary>Whether the server's <c>window/showDocument</c> requests are answered (the provider opted in).</summary>
     internal bool AcceptsShowDocument { get; init; }
 
     /// <summary>Answers a server's <c>workspace/applyEdit</c>; without it, or when it returns null, the edit is refused.</summary>
-    internal Func<JsonNode?, object?>? ApplyEdit { get; set; }
-    internal Func<string, object?>? Configuration { get; set; }
+    internal Func<JsonNode?, JsonNode?>? ApplyEdit { get; set; }
+    internal Func<string, JsonNode?>? Configuration { get; set; }
     /// <summary>The server process's id, or null once it has exited.</summary>
     internal int? ProcessId { get { try { return process.HasExited ? null : process.Id; } catch (InvalidOperationException) { return null; } } }
     internal bool Exited => process.HasExited || reader.IsCompleted;
@@ -62,7 +62,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
             start.UseShellExecute = false;
             start.RedirectStandardInput = start.RedirectStandardOutput = start.RedirectStandardError = true;
             start.CreateNoWindow = true;
-            log.Add("launch", start.FileName + " " + JsonSerializer.Serialize(start.ArgumentList));
+            log.Add("launch", start.FileName + " " + JsonSerializer.Serialize(start.ArgumentList, HostJson.Default.CollectionString));
             var started = Process.Start(start) ?? throw new IOException("The language server did not start.");
             process = new OsLanguageProcess(started);
             LanguageProcesses.Started(started, start);
@@ -161,7 +161,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
         }
     }
 
-    internal async Task<JsonNode?> RequestAsync(string method, object? parameters, CancellationToken token, TimeSpan? timeout = null)
+    internal async Task<JsonNode?> RequestAsync(string method, JsonNode? parameters, CancellationToken token, TimeSpan? timeout = null)
     {
         if (Exited) throw new IOException("Language server stopped. " + errorTail);
         var id = Interlocked.Increment(ref nextId);
@@ -173,7 +173,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
         deadline.CancelAfter(timeout ?? TimeSpan.FromSeconds(45));
         try
         {
-            await SendAsync(new { jsonrpc = "2.0", id, method, @params = parameters }, deadline.Token);
+            await SendAsync(writer => { writer.WriteNumber("id", id); writer.WriteString("method", method); Write(writer, "params", parameters); }, deadline.Token);
             return await completion.Task.WaitAsync(deadline.Token);
         }
         catch (OperationCanceledException)
@@ -183,7 +183,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
             {
                 using var cancel = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
                 cancel.CancelAfter(TimeSpan.FromSeconds(1));
-                try { await NotifyAsync("$/cancelRequest", new { id }, cancel.Token); }
+                try { await NotifyAsync("$/cancelRequest", new JsonObject { ["id"] = id }, cancel.Token); }
                 catch (Exception error) when (error is IOException or OperationCanceledException) { }
             }
             throw;
@@ -191,23 +191,38 @@ internal sealed class LanguageConnection : IAsyncDisposable
         finally { pending.TryRemove(id, out _); inflight.TryRemove(id, out _); }
     }
 
-    internal Task NotifyAsync(string method, object? parameters, CancellationToken token)
+    internal Task NotifyAsync(string method, JsonNode? parameters, CancellationToken token)
         => Notify(method, parameters, token);
 
-    private Task Notify(string method, object? parameters, CancellationToken token)
+    private Task Notify(string method, JsonNode? parameters, CancellationToken token)
     {
         Trace($"-> notify {method}");
-        return SendAsync(new { jsonrpc = "2.0", method, @params = parameters }, token);
+        return SendAsync(writer => { writer.WriteString("method", method); Write(writer, "params", parameters); }, token);
     }
 
-    private async Task SendAsync(object message, CancellationToken token)
+    private static void Write(Utf8JsonWriter writer, string name, JsonNode? value)
     {
-        var body = JsonSerializer.SerializeToUtf8Bytes(message);
+        writer.WritePropertyName(name);
+        if (value is null) writer.WriteNullValue();
+        else value.WriteTo(writer);
+    }
+
+    private async Task SendAsync(Action<Utf8JsonWriter> members, CancellationToken token)
+    {
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("jsonrpc", "2.0");
+            members(writer);
+            writer.WriteEndObject();
+        }
+        var body = buffer.WrittenMemory;
         // Header and body leave in one write, so a frame is never half in the pipe between two writes.
         var header = Encoding.ASCII.GetBytes($"Content-Length: {body.Length}\r\n\r\n");
         var frame = new byte[header.Length + body.Length];
         header.CopyTo(frame, 0);
-        body.CopyTo(frame, header.Length);
+        body.Span.CopyTo(frame.AsSpan(header.Length));
         await writing.WaitAsync(token);
         try
         {
@@ -290,20 +305,27 @@ internal sealed class LanguageConnection : IAsyncDisposable
     private Task AnswerAsync(JsonNode id, string method, JsonNode? parameters)
     {
         if (method is "workspace/_roslyn_projectNeedsRestore" or "client/registerCapability" or "client/unregisterCapability") ClientRequest?.Invoke(method, parameters?.DeepClone());
-        object? result = method switch
+        JsonNode? result = method switch
         {
-            "workspace/workspaceFolders" => WorkspaceFolders?.Invoke() ?? new[] { new { uri = new Uri(workspace + Path.DirectorySeparatorChar).AbsoluteUri, name = Path.GetFileName(workspace) } },
-            "workspace/configuration" => (parameters?["items"] as JsonArray ?? []).Select(item => Configuration?.Invoke(item?["section"]?.ToString() ?? "")).ToArray(),
+            "workspace/workspaceFolders" => WorkspaceFolders?.Invoke() ?? new JsonArray(new JsonObject { ["uri"] = new Uri(workspace + Path.DirectorySeparatorChar).AbsoluteUri, ["name"] = Path.GetFileName(workspace) }),
+            "workspace/configuration" => new JsonArray([.. (parameters?["items"] as JsonArray ?? []).Select(item => Configuration?.Invoke(item?["section"]?.ToString() ?? "")?.DeepClone())]),
             "window/showMessageRequest" => ClientRequest?.Invoke(method, parameters?.DeepClone()),
             "window/showDocument" when AcceptsShowDocument => ClientRequest?.Invoke(method, parameters?.DeepClone()),
-            "workspace/applyEdit" => ApplyEdit?.Invoke(parameters?.DeepClone()) ?? new { applied = false, failureReason = "Use the editor to apply changes." },
+            "workspace/applyEdit" => ApplyEdit?.Invoke(parameters?.DeepClone()) ?? new JsonObject { ["applied"] = false, ["failureReason"] = "Use the editor to apply changes." },
             _ => null
         };
         var known = method is "workspace/workspaceFolders" or "workspace/configuration" or "workspace/applyEdit"
             or "client/registerCapability" or "client/unregisterCapability" or "window/workDoneProgress/create"
             or "workspace/_roslyn_projectNeedsRestore" or "workspace/semanticTokens/refresh" or "workspace/diagnostic/refresh" or "window/showMessageRequest" || method == "window/showDocument" && AcceptsShowDocument;
-        return known ? SendAsync(new { jsonrpc = "2.0", id, result }, lifetime.Token)
-            : SendAsync(new { jsonrpc = "2.0", id, error = new { code = -32601, message = "Unsupported client method" } }, lifetime.Token);
+        return known ? SendAsync(writer => { Write(writer, "id", id); Write(writer, "result", result); }, lifetime.Token)
+            : SendAsync(writer =>
+            {
+                Write(writer, "id", id);
+                writer.WriteStartObject("error");
+                writer.WriteNumber("code", -32601);
+                writer.WriteString("message", "Unsupported client method");
+                writer.WriteEndObject();
+            }, lifetime.Token);
     }
 
     public async ValueTask DisposeAsync()

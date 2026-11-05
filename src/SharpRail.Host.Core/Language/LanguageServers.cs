@@ -70,7 +70,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
     {
         var settings = configuration?.Invoke();
         return string.IsNullOrWhiteSpace(settings) ? null :
-            JsonSerializer.Deserialize<Dictionary<string, LanguageServerOptions>>(settings, JsonSerializerOptions.Web)?.GetValueOrDefault(id);
+            JsonSerializer.Deserialize(settings, HostJson.Web.Info<Dictionary<string, LanguageServerOptions>>())?.GetValueOrDefault(id);
     }
 
     private static readonly ConditionalWeakTable<LanguageServerSpec, LanguageServer> Views = new();
@@ -322,7 +322,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         var config = Path.Combine(directory, "servers.json");
         if (!File.Exists(config)) return null;
         using var json = JsonDocument.Parse(File.ReadAllText(config));
-        return json.RootElement.TryGetProperty(id, out var entry) ? entry.Deserialize<LanguageServerOptions>(JsonSerializerOptions.Web) : null;
+        return json.RootElement.TryGetProperty(id, out var entry) ? entry.Deserialize(HostJson.Web.Info<LanguageServerOptions>()) : null;
     }
 
     private static async Task<FileStream> InstallationLock(string path, CancellationToken token)

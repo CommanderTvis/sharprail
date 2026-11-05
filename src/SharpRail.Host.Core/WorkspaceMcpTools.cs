@@ -51,8 +51,11 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
                 await state.ChangeAsync([HostStateChange.Label(catalog.SuggestedPath, description)], CancellationToken.None);
                 if (terminal is not null) state.RecordWorkspaceCreator(catalog.SuggestedPath, terminal);
                 var started = languages.Length == 0 ? [] : await state.StartRequestedLanguagesAsync(catalog.SuggestedPath, languages, token);
-                return (JsonSerializer.Serialize(new { path = catalog.SuggestedPath, branch, description, languageServers = started.Count == 0 ? null : started.Select(row => new { server = row.Server, state = row.State, detail = row.Detail }).ToArray() },
-                    new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull }), false);
+                var reply = new JsonObject { ["path"] = catalog.SuggestedPath };
+                if (branch is not null) reply["branch"] = branch;
+                reply["description"] = description;
+                if (started.Count > 0) reply["languageServers"] = new JsonArray([.. started.Select(row => (JsonNode)new JsonObject { ["server"] = row.Server, ["state"] = row.State, ["detail"] = row.Detail })]);
+                return (reply.ToJsonString(), false);
             }
             finally { creation.Release(); }
         });
@@ -163,13 +166,13 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
             if (!approved) return ("Refused: the user denied moving this terminal. Nothing changed; keep working where you are or in the target's path.", true);
             // The reply must reach the agent before its process ends, so the move starts after it is sent.
             LastEmigration = Task.Run(() => MoveAsync(request, record), CancellationToken.None);
-            return (JsonSerializer.Serialize(new
+            return (new JsonObject
             {
-                status = "approved",
-                from = terminal!.WorkspaceId,
-                to = target,
-                next = $"This session ends in about {Math.Ceiling(EmigrationGrace.TotalSeconds)} seconds and is relaunched, resumed under the same session id, in this same tab with {target} as its working directory and SharpRail workspace. End your turn now without further tool calls; the resumed session continues the work there."
-            }), false);
+                ["status"] = "approved",
+                ["from"] = terminal!.WorkspaceId,
+                ["to"] = target,
+                ["next"] = $"This session ends in about {Math.Ceiling(EmigrationGrace.TotalSeconds)} seconds and is relaunched, resumed under the same session id, in this same tab with {target} as its working directory and SharpRail workspace. End your turn now without further tool calls; the resumed session continues the work there."
+            }.ToJsonString(), false);
         });
 
     // Why a terminal may not move into a target, or null when every guard holds; the target becomes its registry path.

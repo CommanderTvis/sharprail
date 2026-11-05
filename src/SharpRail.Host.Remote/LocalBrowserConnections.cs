@@ -88,7 +88,7 @@ public sealed class LocalBrowserConnections(Func<string, CancellationToken, Task
                     grants.Add(token, origin);
                 }
                 Changed?.Invoke();
-                await context.Response.WriteAsJsonAsync(new LocalBrowserApprovalReply(token), timeout.Token);
+                await context.Response.WriteAsJsonAsync(new LocalBrowserApprovalReply(token), LocalBrowserApprovalJson.Default.LocalBrowserApprovalReply, cancellationToken: timeout.Token);
             }
             catch (OperationCanceledException) when (timeout.IsCancellationRequested)
             {

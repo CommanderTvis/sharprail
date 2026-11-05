@@ -11,16 +11,16 @@ public sealed partial class HostStateStore
     {
         if (LanguageServers.Known(id) is null) throw new ArgumentException("Unknown language server.");
         if (value.Length > 16 * 1024) throw new ArgumentException("Language server settings are too large.");
-        var options = JsonSerializer.Deserialize<LanguageServerOptions>(value, JsonSerializerOptions.Web)
+        var options = JsonSerializer.Deserialize(value, HostJson.Web.Info<LanguageServerOptions>())
             ?? throw new ArgumentException("Language server settings are required.");
         if (options.Command is null || options.Command.Contains('\0') || options.Arguments?.Any(arg => arg is null || arg.Contains('\0')) == true)
             throw new ArgumentException("Launcher command and arguments cannot contain null values or NUL characters.");
         if (options.Arguments is not null && string.IsNullOrWhiteSpace(options.Command))
             throw new ArgumentException("Set an executable override before customizing its arguments.");
         var settings = string.IsNullOrWhiteSpace(current) ? new Dictionary<string, LanguageServerOptions>() :
-            JsonSerializer.Deserialize<Dictionary<string, LanguageServerOptions>>(current, JsonSerializerOptions.Web)!;
+            JsonSerializer.Deserialize(current, HostJson.Web.Info<Dictionary<string, LanguageServerOptions>>())!;
         settings[id] = options;
-        return JsonSerializer.Serialize(settings, JsonSerializerOptions.Web);
+        return JsonSerializer.Serialize(settings, HostJson.Web.Info<Dictionary<string, LanguageServerOptions>>());
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public sealed partial class HostStateStore
             plugins ??= current.PluginSettings.ToDictionary();
             var plugin = "lsp-" + id;
             if (!disabled || plugins.TryGetValue(plugin, out var existing) && existing.ValueKind == JsonValueKind.Object && existing.TryGetProperty("enabled", out _)) continue;
-            plugins[plugin] = JsonSerializer.SerializeToElement(new { enabled = false });
+            plugins[plugin] = JsonSerializer.SerializeToElement(new System.Text.Json.Nodes.JsonObject { ["enabled"] = false }, HostJson.Default.JsonObject);
         }
         return plugins is null ? current : current with
         {
@@ -62,7 +62,7 @@ public sealed partial class HostStateStore
         if (path.Length > 4096 || path.Contains('\0') || path.Length > 0 && !Path.IsPathFullyQualified(path)) throw new ArgumentException("Choose an absolute path to the executable.");
         var tools = LanguageServers.ParseTools(current);
         if (path.Length == 0) tools.Remove(executable); else tools[executable] = path;
-        return tools.Count == 0 ? "" : JsonSerializer.Serialize(new SortedDictionary<string, string>(tools, StringComparer.Ordinal));
+        return tools.Count == 0 ? "" : JsonSerializer.Serialize(new SortedDictionary<string, string>(tools, StringComparer.Ordinal), HostJson.Default.SortedDictionaryStringString);
     }
 }
 public sealed partial class HostStateStore
@@ -83,7 +83,7 @@ public sealed partial class HostStateStore
             var file = LanguageMetadataPath(workspace, server);
             if (file is not null && File.Exists(file))
             {
-                var entry = JsonSerializer.Deserialize<LanguageMetadata>(File.ReadAllText(file))
+                var entry = JsonSerializer.Deserialize(File.ReadAllText(file), HostJson.Default.LanguageMetadata)
                     ?? throw new JsonException("Invalid workspace language metadata.");
                 var values = System.Text.Json.Nodes.JsonNode.Parse(settings)!.AsObject();
                 if (entry.Workspace != workspace || entry.Server != server) throw new JsonException("Invalid workspace language metadata identity.");

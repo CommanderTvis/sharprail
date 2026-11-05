@@ -15,12 +15,12 @@ public sealed class TerminalCatalogStore
 {
     public const string FileName = "catalog.json";
 
-    private sealed class Stored
+    internal sealed class Stored
     {
         public Dictionary<string, List<TerminalTab>> Workspaces { get; set; } = [];
     }
 
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = HostJson.Resolving(new() { WriteIndented = true });
     private readonly Lock gate = new();
     private readonly string? path;
     private readonly List<Channel<TerminalCatalog>> watchers = [];
@@ -39,7 +39,7 @@ public sealed class TerminalCatalogStore
         {
             if (path is null || !File.Exists(path)) return;
             Loaded = true;
-            var stored = JsonSerializer.Deserialize<Stored>(File.ReadAllText(path), Json);
+            var stored = JsonSerializer.Deserialize(File.ReadAllText(path), Json.Info<Stored>());
             foreach (var (root, tabs) in stored?.Workspaces ?? [])
             {
                 if (string.IsNullOrEmpty(root) || tabs is null) continue;
@@ -165,7 +165,7 @@ public sealed class TerminalCatalogStore
         if (path is null) return;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporary = path + ".tmp";
-        File.WriteAllText(temporary, JsonSerializer.Serialize(new Stored { Workspaces = snapshot.Workspaces.ToDictionary(entry => entry.Key, entry => entry.Value.ToList()) }, Json));
+        File.WriteAllText(temporary, JsonSerializer.Serialize(new Stored { Workspaces = snapshot.Workspaces.ToDictionary(entry => entry.Key, entry => entry.Value.ToList()) }, Json.Info<Stored>()));
         File.Move(temporary, path, overwrite: true);
     }
 

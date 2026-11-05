@@ -263,7 +263,7 @@ public static class SettingValueDialog
         {
             Validate();
             if (!submit.IsEnabled) return;
-            result = (key.Trim(), KeyChoices() is not null ? JsonSerializer.SerializeToElement(choice) : Compose(shape, text, on, items));
+            result = (key.Trim(), KeyChoices() is not null ? JsonSerializer.SerializeToElement(choice, KitJson.Default.String) : Compose(shape, text, on, items));
             window.Close();
         };
         actions.Children.Add(submit);
@@ -278,9 +278,9 @@ public static class SettingValueDialog
 
     private static JsonElement Compose(ValueShape shape, string text, bool on, IReadOnlyList<string> items) => shape switch
     {
-        ValueShape.Switch => JsonSerializer.SerializeToElement(on),
-        ValueShape.Number => JsonSerializer.SerializeToElement(Parse(text)),
-        ValueShape.List => JsonSerializer.SerializeToElement(items.Select(item => item.Trim()).Where(item => item.Length > 0).ToArray()),
-        _ => JsonSerializer.SerializeToElement(text)
+        ValueShape.Switch => JsonSerializer.SerializeToElement(on, KitJson.Default.Boolean),
+        ValueShape.Number => JsonSerializer.SerializeToElement(Parse(text), KitJson.Default.Double),
+        ValueShape.List => JsonSerializer.SerializeToElement(items.Select(item => item.Trim()).Where(item => item.Length > 0).ToArray(), KitJson.Default.StringArray),
+        _ => JsonSerializer.SerializeToElement(text, KitJson.Default.String)
     };
 }

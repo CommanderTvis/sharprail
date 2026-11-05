@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization.Metadata;
+using System.Text.RegularExpressions;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.UI.State;
@@ -17,6 +20,15 @@ internal static class PersistedJsonChecks
 
     internal static async Task Run(string root, bool update)
     {
+        var lost = new List<string>();
+        foreach (var context in new System.Text.Json.Serialization.JsonSerializerContext[] { HostJson.Default, SharpRail.UI.AppJson.Default, SharpRail.Plugins.UI.Kit.KitJson.Default, SharpRail.Host.Protocol.LocalBrowserApprovalJson.Default })
+        {
+            var seen = new HashSet<Type>();
+            foreach (var generated in context.GetType().GetProperties().Where(property => property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(JsonTypeInfo<>)))
+                Walk(context, generated.PropertyType.GetGenericArguments()[0], seen, lost);
+        }
+        Require(lost.Count == 0, "Every type the host and app contexts reach keeps its initializers:\n" + string.Join('\n', lost));
+
         var outputs = new SortedDictionary<string, string>(StringComparer.Ordinal);
         await State(Path.Combine(root, "persisted-state"), outputs);
         LegacyProfile(Path.Combine(root, "persisted-legacy-profile"), outputs);
@@ -29,8 +41,9 @@ internal static class PersistedJsonChecks
             if (source is not null) { Directory.CreateDirectory(source); File.WriteAllText(Path.Combine(source, name), text); continue; }
             var golden = Path.Combine(AppContext.BaseDirectory, Fixtures, "golden", name);
             if (!File.Exists(golden)) { failures.Add($"{name}: no golden copy; run --persisted-json --update and review the fixture diff"); continue; }
-            var expected = File.ReadAllText(golden);
-            if (expected != text) failures.Add($"{name}: written bytes differ from the golden copy at offset {FirstDifference(expected, text)}\n--- expected\n{expected}\n--- written\n{text}");
+            var expected = Stable(File.ReadAllText(golden));
+            var written = Stable(text);
+            if (expected != written) failures.Add($"{name}: written bytes differ from the golden copy at offset {FirstDifference(expected, written)}\n--- expected\n{expected}\n--- written\n{written}");
         }
         if (failures.Count > 0) throw new InvalidOperationException("Persisted JSON checks failed:\n" + string.Join("\n", failures));
         Console.WriteLine(source is not null ? $"Wrote {outputs.Count} golden files to {source}" : $"PASS persisted json: {outputs.Count} written files match their golden copies byte for byte");
@@ -73,6 +86,17 @@ internal static class PersistedJsonChecks
         outputs["profile-current.json"] = Output(written.Last(), root);
     }
 
+    // Generated deserialization assigns an init-only property its type's default when the member is absent, so a type
+    // whose init-only property has an initializer would read older files differently from the reflection serializer.
+    private static void Walk(System.Text.Json.Serialization.JsonSerializerContext context, Type type, HashSet<Type> seen, List<string> lost)
+    {
+        if (!seen.Add(type) || context.GetTypeInfo(type) is not { } info) return;
+        if (PluginJsonChecks.LostDefault(info) is { } property) lost.Add($"{context.GetType().Name}: {type.FullName}.{property}");
+        foreach (var member in info.Properties) Walk(context, member.PropertyType, seen, lost);
+        if (info.ElementType is { } element) Walk(context, element, seen, lost);
+        if (Nullable.GetUnderlyingType(type) is { } underlying) Walk(context, underlying, seen, lost);
+    }
+
     // The fixture's paths live under a placeholder root whose folders exist, since the stores drop records of folders that are gone.
     private static string Prepare(string directory)
     {
@@ -85,6 +109,15 @@ internal static class PersistedJsonChecks
     private static string Input(string name, string root) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, Fixtures, name)).Replace(Root, root, StringComparison.Ordinal);
 
     private static string Output(string text, string root) => text.Replace(root, Root, StringComparison.Ordinal).ReplaceLineEndings("\n");
+
+    // Identities the stores mint (a project record for a migrated path, a fresh layout's group ids) are random and
+    // time-stamped, so they are compared as placeholders.
+    private static string Stable(string text)
+    {
+        text = Regex.Replace(text, "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "$$UUID");
+        text = Regex.Replace(text, "(\"Id\": \"\\$UUID\",\\s+\"Path\": \"[^\"]*\",\\s+\"Slug\": \"[^\"]*\",\\s+\"LastOpened\": )\\d+", "${1}0");
+        return Regex.Replace(text, "(?<![0-9a-f])[0-9a-f]{32}(?![0-9a-f])", "$$HEX");
+    }
 
     private static int FirstDifference(string expected, string written)
     {

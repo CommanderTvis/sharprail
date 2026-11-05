@@ -8,29 +8,29 @@ namespace SharpRail.Host.Abstractions;
 public sealed record HostSettings
 {
     /// <summary>Whether clients use the bundled file-type icons instead of generic file glyphs.</summary>
-    public bool FileTypeIconsEnabled { get; init; } = true;
+    public bool FileTypeIconsEnabled { get; set; } = true;
     /// <summary>The bundled icon set's look when <see cref="FileTypeIconsEnabled"/>: empty is plain (decoloured), <c>colored</c> tints it per file kind, <c>material</c> uses Material Icon Theme's own colours.</summary>
-    public string FileTypeIconStyle { get; init; } = "";
-    public string Theme { get; init; } = "";
-    public string ThemeMode { get; init; } = "system";
-    public string SystemLight { get; init; } = "";
-    public string SystemDark { get; init; } = "";
+    public string FileTypeIconStyle { get; set; } = "";
+    public string Theme { get; set; } = "";
+    public string ThemeMode { get; set; } = "system";
+    public string SystemLight { get; set; } = "";
+    public string SystemDark { get; set; } = "";
     public int FileLineWidth { get; init; }
-    public bool FileLineWidthBounded { get; init; } = true;
+    public bool FileLineWidthBounded { get; set; } = true;
     public int MarkdownLineWidth { get; init; }
-    public bool MarkdownLineWidthBounded { get; init; } = true;
+    public bool MarkdownLineWidthBounded { get; set; } = true;
     /// <summary>How much recent output a terminal opened from now on keeps for replay, in KiB; zero keeps none.</summary>
-    public int TerminalReplayKb { get; init; } = DefaultTerminalReplayKb;
+    public int TerminalReplayKb { get; set; } = DefaultTerminalReplayKb;
     /// <summary>Whether a terminal whose shell exits keeps its tab with an exit notice; off closes the tab like Ghostty.</summary>
     public bool TerminalKeepAfterExit { get; init; }
     /// <summary>How long a terminal tab the user closed keeps its session for undo, in seconds; zero disables undo.</summary>
-    public int TerminalUndoCloseSeconds { get; init; } = DefaultTerminalUndoCloseSeconds;
+    public int TerminalUndoCloseSeconds { get; set; } = DefaultTerminalUndoCloseSeconds;
     /// <summary>Whether shells the host starts from now on load Ghostty's shell integration (prompt marks and working directory).</summary>
-    public bool ShellIntegrationEnabled { get; init; } = true;
+    public bool ShellIntegrationEnabled { get; set; } = true;
     /// <summary>Whether clients raise desktop notifications when a terminal's agent needs the user while they are away.</summary>
-    public bool NotificationsEnabled { get; init; } = true;
+    public bool NotificationsEnabled { get; set; } = true;
     /// <summary>Whether programs in terminals may raise desktop notifications (OSC 9, OSC 777), like Ghostty's desktop-notifications.</summary>
-    public bool TerminalNotificationsEnabled { get; init; } = true;
+    public bool TerminalNotificationsEnabled { get; set; } = true;
     /// <summary>Whether the macOS Option key acts as Alt (an ESC prefix) in terminals, like Ghostty's macos-option-as-alt; off, Option composes characters.</summary>
     public bool TerminalOptionAsAlt { get; init; }
     /// <summary>
@@ -38,19 +38,19 @@ public sealed record HostSettings
     /// sound), <c>attention</c> (request attention while the app is unfocused) and <c>title</c> (a bell on the tab until it is
     /// viewed), or <c>none</c>.
     /// </summary>
-    public string BellFeatures { get; init; } = DefaultBellFeatures;
+    public string BellFeatures { get; set; } = DefaultBellFeatures;
     /// <summary>Whether editor and agent language services are enabled on this host.</summary>
-    public bool LspEnabled { get; init; } = true;
+    public bool LspEnabled { get; set; } = true;
     /// <summary>Host-wide Java/Kotlin provider: standard or intellij; empty migrates legacy workspace choices.</summary>
-    public string JavaKotlinProvider { get; init; } = "";
+    public string JavaKotlinProvider { get; set; } = "";
     /// <summary>Host-wide launcher overrides keyed by language-server id, stored as JSON.</summary>
-    public string LanguageServers { get; init; } = "";
+    public string LanguageServers { get; set; } = "";
     /// <summary>Host-wide paths of the tools language servers need (go, node, java...), keyed by executable name, stored as JSON; absent tools are found on PATH.</summary>
-    public string LanguageTools { get; init; } = "";
+    public string LanguageTools { get; set; } = "";
     /// <summary>Limits on running language servers (idle timeout, memory budget, per-server caps) as JSON; empty uses the defaults.</summary>
-    public string LanguageLimits { get; init; } = "";
+    public string LanguageLimits { get; set; } = "";
     /// <summary>Custom TextMate grammars and filename patterns, as a JSON array shared with clients.</summary>
-    public string CustomHighlighting { get; init; } = "";
+    public string CustomHighlighting { get; set; } = "";
     /// <summary>Whether centre tabs use a vertical strip; null keeps an older client's preference.</summary>
     public bool? VerticalCenterTabs { get; init; }
     /// <summary>Whether the vertical strip lives in Projects; null keeps an older client's preference.</summary>
@@ -59,11 +59,11 @@ public sealed record HostSettings
     /// How Linux clients frame their window: empty is automatic, <c>client</c> merges the header into the title bar, <c>system</c> keeps the
     /// window manager's. Other platforms ignore it.
     /// </summary>
-    public string WindowDecorations { get; init; } = "";
+    public string WindowDecorations { get; set; } = "";
     /// <summary>Days without activity after which a workspace settles onto its project's shelf; null never settles.</summary>
-    public int? SettleIdleDays { get; init; } = DefaultSettleIdleDays;
+    public int? SettleIdleDays { get; set; } = DefaultSettleIdleDays;
     /// <summary>The active keymap preset's name; empty is the built-in <see cref="Keymaps.BuiltinName"/>, and so is a name that no longer exists.</summary>
-    public string ActiveKeymap { get; init; } = "";
+    public string ActiveKeymap { get; set; } = "";
 
     public const int DefaultSettleIdleDays = 7;
     public const string DefaultBellFeatures = "attention,title";
@@ -255,7 +255,7 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     /// <summary>Remembers that a project keeps its <c>.sharprail</c> directory in the repository, so it is not offered a local exclusion again.</summary>
     public static HostStateChange DeclineSharprailExclude(string projectRoot) => new("sharprail-exclude-declined", projectRoot);
     /// <summary>Persists the title of a terminal tab for every client.</summary>
-    public static HostStateChange TitleTerminal(TerminalRef terminal, string title) => new("terminal-title", JsonSerializer.Serialize(terminal), title);
+    public static HostStateChange TitleTerminal(TerminalRef terminal, string title) => new("terminal-title", JsonSerializer.Serialize(terminal, HostAbstractionsJson.Default.TerminalRef), title);
     /// <summary>Marks a workspace unread for a reason (blocked, failed, done or manual); a stronger reason already recorded stays.</summary>
     public static HostStateChange MarkUnread(string path, string reason) => new("workspace-unread", path, reason);
     /// <summary>Marks a workspace read. By hand it keeps a blocked agent's mark; <paramref name="seen"/> clears every mark.</summary>
@@ -272,10 +272,10 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     /// <summary>Answers a pending <see cref="HostState.PendingEmigrations"/> request; an unknown or answered id changes nothing.</summary>
     public static HostStateChange AnswerEmigration(string id, bool approved) => new("terminal-emigration-answer", id, approved ? "approve" : "deny");
     /// <summary>Answers a revived tab's <see cref="HostState.ResumeOffers"/> entry: resume its session, or start a fresh one.</summary>
-    public static HostStateChange AnswerResume(TerminalRef terminal, bool resume) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal), resume ? "resume" : "fresh");
+    public static HostStateChange AnswerResume(TerminalRef terminal, bool resume) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal, HostAbstractionsJson.Default.TerminalRef), resume ? "resume" : "fresh");
     /// <summary>Answers a resume offer by ending its stray owner process, then resuming; the host re-checks that the process is still a stray owner.</summary>
-    public static HostStateChange QuitOwnerAndResume(TerminalRef terminal) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal), "quit");
-    public static HostStateChange PluginPaths(IReadOnlyList<string> paths) => new("plugin-paths", Value: JsonSerializer.Serialize(paths));
+    public static HostStateChange QuitOwnerAndResume(TerminalRef terminal) => new("terminal-resume-answer", JsonSerializer.Serialize(terminal, HostAbstractionsJson.Default.TerminalRef), "quit");
+    public static HostStateChange PluginPaths(IReadOnlyList<string> paths) => new("plugin-paths", Value: JsonSerializer.Serialize(paths, HostAbstractionsJson.Default.IReadOnlyListString));
 }
 
 public interface IHostStateService

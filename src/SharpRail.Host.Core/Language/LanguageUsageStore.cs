@@ -16,7 +16,7 @@ internal sealed class LanguageUsageStore(string directory)
     private Dictionary<string, LanguageUsageSummary>? counts;
     private string Path => System.IO.Path.Combine(directory, "usage.json");
 
-    private sealed record Entry(string Workspace, string Server, LanguageUsageSummary Usage);
+    internal sealed record Entry(string Workspace, string Server, LanguageUsageSummary Usage);
 
     internal LanguageUsageSummary? Get(string workspace, string server)
     {
@@ -54,7 +54,7 @@ internal sealed class LanguageUsageStore(string directory)
         try
         {
             if (File.Exists(Path))
-                foreach (var entry in JsonSerializer.Deserialize<List<Entry>>(File.ReadAllText(Path)) ?? [])
+                foreach (var entry in JsonSerializer.Deserialize(File.ReadAllText(Path), HostJson.Default.ListLanguageUsageEntry) ?? [])
                     if (entry.Usage is not null) counts[entry.Workspace + "\0" + entry.Server] = entry.Usage;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { }
@@ -67,7 +67,7 @@ internal sealed class LanguageUsageStore(string directory)
         {
             Directory.CreateDirectory(directory);
             var temporary = Path + ".tmp";
-            File.WriteAllText(temporary, JsonSerializer.Serialize(all.Select(pair => { var parts = pair.Key.Split('\0'); return new Entry(parts[0], parts[1], pair.Value); })));
+            File.WriteAllText(temporary, JsonSerializer.Serialize(all.Select(pair => { var parts = pair.Key.Split('\0'); return new Entry(parts[0], parts[1], pair.Value); }).ToList(), HostJson.Default.ListLanguageUsageEntry));
             File.Move(temporary, Path, true);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }

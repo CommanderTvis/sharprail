@@ -104,7 +104,7 @@ public sealed partial class SettingsView
     {
         return Task.Run(async () =>
         {
-            var json = JsonSerializer.Serialize(definitions);
+            var json = JsonSerializer.Serialize(definitions, SharpRail.Plugins.UI.Kit.KitJson.Default.CustomGrammarArray);
             if (json.Length > 2 * 1024 * 1024) throw new ArgumentException("Custom highlighting exceeds the 2 Mi character limit. Remove a grammar first.");
             await state.ChangeAsync(HostStateChange.Setting("custom-highlighting", json));
         }, lifetime.Token);

@@ -50,7 +50,7 @@ public static class TerminalRelay
             Access = FileAccess.Write,
             UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite
         });
-        JsonSerializer.Serialize(stream, connection);
+        JsonSerializer.Serialize(stream, connection, AppJson.Default.Connection);
         return path;
     }
 
@@ -64,7 +64,7 @@ public static class TerminalRelay
             return 1;
         }
         Connection connection;
-        try { connection = JsonSerializer.Deserialize<Connection>(File.ReadAllBytes(path)) ?? throw new InvalidDataException(); }
+        try { connection = JsonSerializer.Deserialize(File.ReadAllBytes(path), AppJson.Default.Connection) ?? throw new InvalidDataException(); }
         finally { File.Delete(path); }
         return RunAsync(connection, output).GetAwaiter().GetResult();
     }

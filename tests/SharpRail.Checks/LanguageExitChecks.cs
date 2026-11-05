@@ -81,7 +81,7 @@ internal static class LanguageExitChecks
         {
             for (var round = 0; round < 4; round++)
             {
-                var result = await connection.RequestAsync("flood", new { round }, CancellationToken.None, TimeSpan.FromSeconds(30));
+                var result = await connection.RequestAsync("flood", new System.Text.Json.Nodes.JsonObject { ["round"] = round }, CancellationToken.None, TimeSpan.FromSeconds(30));
                 Require(result?["round"]?.GetValue<int>() == round, "The flooding server's answer was lost in round " + round);
                 Require(!connection.Exited, "The flooding server connection died in round " + round);
             }

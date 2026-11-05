@@ -17,7 +17,9 @@ public static class HeadlessLanguageMcp
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host token is required.", nameof(token));
         var expected = SHA256.HashData(Encoding.UTF8.GetBytes("Bearer " + token));
         var languageTools = LanguageMcpTools.Create(state, Path.GetFullPath(workspace));
-        app.MapPost("/mcp", async (HttpContext context) =>
+        app.MapPost("/mcp", async context => await (await HandleAsync(context)).ExecuteAsync(context));
+
+        async Task<IResult> HandleAsync(HttpContext context)
         {
             var supplied = SHA256.HashData(Encoding.UTF8.GetBytes(context.Request.Headers.Authorization.ToString()));
             if (!CryptographicOperations.FixedTimeEquals(expected, supplied)) return Results.Unauthorized();
@@ -27,6 +29,6 @@ public static class HeadlessLanguageMcp
             // Read per request, so a plugin turned off stops serving its tools at once.
             var (status, response) = await McpServer.HandleAsync(message, [.. plugins.McpTools(null, Path.GetFullPath(workspace)), .. languageTools], context.RequestAborted);
             return response is null ? Results.StatusCode(status) : Results.Text(response.ToJsonString(), "application/json", statusCode: status);
-        });
+        }
     }
 }

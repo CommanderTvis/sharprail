@@ -8,11 +8,11 @@ namespace SharpRail.Host.Core.Language;
 
 internal static class WorkspaceLanguageConfiguration
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
+    private static readonly JsonSerializerOptions Json = HostJson.Resolving(new(JsonSerializerDefaults.Web) { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow });
     internal static WorkspaceLanguageOptions Parse(string json, string server)
     {
         if (json.Length > 16 * 1024) throw new ArgumentException("Workspace language configuration is limited to 16 KiB.");
-        var options = JsonSerializer.Deserialize<WorkspaceLanguageOptions>(json, Json) ?? throw new ArgumentException("Configuration must be an object.");
+        var options = JsonSerializer.Deserialize(json, Json.Info<WorkspaceLanguageOptions>()) ?? throw new ArgumentException("Configuration must be an object.");
         foreach (var values in new[] { options.Arguments, options.IncludePaths, options.CompilerFlags })
             if (values?.Any(value => value is null || value.Contains('\0')) == true) throw new ArgumentException("Configuration arguments cannot contain null or NUL.");
         if (options.CompilationDatabasePath is null || options.CompilationDatabasePath.Contains('\0')) throw new ArgumentException("Invalid compilation database path.");
@@ -35,7 +35,7 @@ internal static class WorkspaceLanguageConfiguration
         return options;
     }
 
-    internal static string Serialize(WorkspaceLanguageOptions options) => JsonSerializer.Serialize(options, Json);
+    internal static string Serialize(WorkspaceLanguageOptions options) => JsonSerializer.Serialize(options, Json.Info<WorkspaceLanguageOptions>());
     internal static string Expand(string value, string workspace) => value.Replace("${workspaceFolder}", workspace, StringComparison.Ordinal);
     private static string FullPath(string value, string workspace) => Path.GetFullPath(Expand(value, workspace), workspace);
 

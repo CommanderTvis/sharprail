@@ -67,7 +67,7 @@ public sealed partial class SettingsView
             PageControl<TextBlock>(panel, "LspServerHeading").Text = id;
             var json = state.Current.Settings.LanguageServers;
             var options = string.IsNullOrWhiteSpace(json) ? new() :
-                JsonSerializer.Deserialize<Dictionary<string, LanguageServerOptions>>(json, JsonSerializerOptions.Web)?.GetValueOrDefault(id) ?? new LanguageServerOptions();
+                JsonSerializer.Deserialize(json, AppJson.Info<Dictionary<string, LanguageServerOptions>>(AppJson.Web))?.GetValueOrDefault(id) ?? new LanguageServerOptions();
             allowPath.IsChecked = options.AllowPath;
             defaultArguments.IsChecked = options.Arguments is null;
             arguments.IsEnabled = options.Arguments is not null;
@@ -139,7 +139,7 @@ public sealed partial class SettingsView
             save.IsEnabled = false;
             try
             {
-                var json = JsonSerializer.Serialize(options, JsonSerializerOptions.Web);
+                var json = JsonSerializer.Serialize(options, AppJson.Info<LanguageServerOptions>(AppJson.Web));
                 await Task.Run(async () => await state.ChangeAsync(HostStateChange.Setting("language-server:" + id, json)), lifetime.Token);
                 if (lifetime.IsCancellationRequested) return;
                 message.Foreground = Ui.Muted; message.Text = "Saved. Applies on the next Start / Retry.";

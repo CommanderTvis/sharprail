@@ -61,6 +61,12 @@ visible with source-unavailable explanations. Read access requires the exact URI
 current workspace/provider session and an explicit source server; restart invalidates the grant.
 Virtual sources reject edits and arbitrary URI/command execution. No filesystem extraction occurs.
 
+Messages to a server are JSON-RPC written from JSON nodes, never from reflected objects, so the host stays
+NativeAOT-publishable. A provider plugin's request parameters are a `JsonNode`, or a value whose type a
+registered `PluginJson` context names; an anonymous object has no metadata and fails. The host's own files
+(exit records, usage counts, terms acceptances, project profiles, artifact markers) and the configuration JSON
+it answers keep the bytes the reflection serializer wrote, from source-generated metadata with the same options.
+
 Document synchronization accepts full editor drafts and emits the server's full or incremental
 change form. Each editor has a stable identity and increasing version. Different dirty drafts for
 one URI are rejected; branches never share mutable document state. Disk requests use an active

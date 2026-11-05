@@ -145,6 +145,8 @@ dependencies from such a call.
   `POST /mcp/<token>`, where `GET` and `DELETE` answer 405, since every tool is request/response and there
   is no SSE stream or session, and `/plugin/<id>/<subpath>` for any method, which reaches the plugin
   runtime's route dispatch and answers 404 for an unknown, disabled or routeless plugin.
+- Every route is a request delegate that reads its route values itself: minimal-API delegate binding is
+  reflection-based and would keep the host from NativeAOT. The same holds for the headless `POST /mcp`.
 - The terminal relay no longer starts MCP itself; the app's relay starts the loopback server it is given.
 - The route token is the per-terminal identity `PtyTerminalService` mints and stamps into the shell as
   `THINKRAIL_MCP_URL`; it resolves to that terminal's workspace root and nothing else. An unknown or closed
@@ -227,6 +229,8 @@ endpoints and the HTTP Host must be loopback; the Origin must be a canonical HTT
 origin. Missing/null, nonlocal and malformed origins are rejected before any prompt or CORS
 permission. OPTIONS preflight returns only the validated origin and never asks for consent.
 Standalone servers without an app window retain token authentication and offer no approval endpoint.
+The reply is `{"token":...}`, written and read with the web defaults from the Protocol's source-generated
+`LocalBrowserApprovalJson`.
 
 `HostListener` owns one `LocalBrowserConnections` generation per Start/Stop. The app supplies an
 asynchronous consent callback; no window or handler means deny. One request can await consent
