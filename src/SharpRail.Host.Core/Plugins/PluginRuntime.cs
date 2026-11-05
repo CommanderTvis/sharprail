@@ -752,9 +752,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     }
 
     private static bool InAssets(string directory, string? assets, string path) =>
-        assets is not null && path.Length > 0 && !path.Contains('\0') && !Path.IsPathRooted(path) &&
-        Path.GetFullPath(Path.Combine(directory, path)).StartsWith(
-            Path.GetFullPath(Path.Combine(directory, assets)).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+        assets is not null && Contained(directory, assets) is { } root && Contained(directory, path) is { } file &&
+        file.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal);
 
     // A path under the plugin's directory, refusing anything that escapes it, a symbolic link included.
     private static string? Contained(string root, string path)

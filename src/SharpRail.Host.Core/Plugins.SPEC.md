@@ -283,8 +283,7 @@ still holds the terminal ([Terminals.SPEC.md](Terminals.SPEC.md#decisions)). Ter
 Each rule above is pinned in `tests/SharpRail.Checks/PluginHostChecks.cs`, run against both the in-process
 runtime and a remote host: manifest refusals (strict shape, id against directory, generation naming both
 numbers), discovery (valid, unreadable and missing manifests, a missing root, a symlinked plugin directory
-refused), registry (dependency order, cycle refusal, contract-intake refusals, an unchanged active plugin left
-alone by a rescan versus a changed one reset), activation (lifecycle, a throwing activation failing the plugin,
+refused), registry (dependency order, cycle refusal, contract-intake refusals, channels on the roster), activation (lifecycle, a throwing activation failing the plugin,
 the two staleness cases, drain before dispose, both bounded timeouts), reconciler (start enable, external
 non-auto-enable, settings disable, cascade, a dependent not activating in the pass its dependency fails,
 failed-not-retried-until-retry, coalesced scheduling), dispatch (unknown plugin, unknown method, disabled, a

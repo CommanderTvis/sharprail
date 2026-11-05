@@ -707,6 +707,13 @@ internal static class PluginHostChecks
         await composed.Enable("outsider", false);
         await composed.Enable("leaning", false);
 
+        // An assets directory naming the plugin directory itself serves nothing.
+        InstallExternal(plugins, "rooted", manifest => manifest with { Assets = "." });
+        await composed.Runtime.RescanAsync();
+        Require(await composed.Runtime.ReadFileAsync("rooted", "rooted.Host.dll") is null && await composed.Runtime.ReadFileAsync("rooted", "assets/icon.svg") is null,
+            "An external plugin whose assets directory is its own root serves no file.");
+        Directory.Delete(Path.Combine(plugins, "rooted"), recursive: true);
+
         // A rescan re-reads a changed manifest; nothing is loaded either way.
         var manifestPath = Path.Combine(plugins, "outsider", PluginManifest.FileName);
         File.WriteAllText(manifestPath, File.ReadAllText(manifestPath).Replace("\"1.0.0\"", "\"1.0.1\""));
