@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.Plugins.UI.Kit;
+using SharpRail.UI.Docking;
 
 namespace SharpRail.Checks;
 
@@ -16,8 +17,30 @@ namespace SharpRail.Checks;
 /// </summary>
 internal static class MenuLayoutChecks
 {
+    // The tab menu's "Show beside" rows: none offers nothing, one stays a flat row, several share one submenu of titles.
+    private static void ShowWithGrouping()
+    {
+        static DockSurface.ShowWithOffer Offer(string title) => new("ShowWith_" + title, "Show beside", title, () => { });
+        static ContextMenu Build(params string[] titles)
+        {
+            var menu = new ContextMenu();
+            DockSurface.AddShowWith(menu, titles.Select(Offer).ToArray());
+            return menu;
+        }
+        Require(Build().Items.Count == 0, "No companion offers no Show beside row.");
+        var one = Build("Orchestrator").Items.OfType<MenuItem>().ToArray();
+        Require(one.Length == 1 && (string?)one[0].Header == "Show beside Orchestrator" && one[0].Items.Count == 0, "One companion keeps a flat Show beside row.");
+        foreach (var count in new[] { 2, 3 })
+        {
+            var rows = Build(new[] { "Orchestrator", "Task board", "Notes" }.Take(count).ToArray()).Items.OfType<MenuItem>().ToArray();
+            Require(rows.Length == 1 && (string?)rows[0].Header == "Show beside" && rows[0].Items.OfType<MenuItem>().Select(item => (string?)item.Header)
+                .SequenceEqual(new[] { "Orchestrator", "Task board", "Notes" }.Take(count)), $"{count} companions share one Show beside submenu of their titles.");
+        }
+    }
+
     internal static void Run()
     {
+        ShowWithGrouping();
         var anchor = new Button { Content = "tab", Width = 80, Height = 24 };
         var window = new Window { Width = 400, Height = 300, Content = anchor };
         window.Show();

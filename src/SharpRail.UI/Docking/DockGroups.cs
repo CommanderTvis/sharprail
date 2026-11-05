@@ -698,15 +698,15 @@ public sealed partial class DockSurface
             {
                 // The neighbours rather than every tab: twenty "show beside" rows is a menu nobody reads.
                 var defaultDirection = CenterTabs?.Invoke().DefaultPaneDirection ?? "horizontal";
+                var offers = new List<ShowWithOffer>();
                 foreach (var neighbour in new[] { position - 1, position + 1 }.Where(index => index >= 0 && index < members.Count).Select(index => members[index]))
                 {
                     if (neighbour.IsTool || pane?.TabIds.Contains(neighbour.Id) == true) continue;
                     var direction = Session.PaneFor(group.Id, neighbour.Id)?.Direction ?? defaultDirection;
-                    var item = Ui.Menu($"{(direction == "vertical" ? "Show under" : "Show beside")} {Session.ToolTitle(neighbour)}",
-                        () => Session.GroupTabs(group.Id, tab.Id, neighbour.Id, direction));
-                    item.Name = "ShowWith_" + neighbour.Id.Replace(':', '_').Replace('/', '_');
-                    menu.Items.Add(item);
+                    offers.Add(new("ShowWith_" + neighbour.Id.Replace(':', '_').Replace('/', '_'), direction == "vertical" ? "Show under" : "Show beside",
+                        Session.ToolTitle(neighbour), () => Session.GroupTabs(group.Id, tab.Id, neighbour.Id, direction)));
                 }
+                AddShowWith(menu, offers);
             }
             if (pane is not null)
             {
@@ -877,5 +877,31 @@ public sealed partial class DockSurface
         }, DispatcherPriority.Loaded);
         trigger.Flyout = flyout;
         flyout.ShowAt(trigger);
+    }
+
+    internal sealed record ShowWithOffer(string Name, string Verb, string Title, Action Run);
+
+    /// <summary>One neighbour gets a flat "Show beside X" row; several share one "Show beside" submenu of their titles, so the tab menu stays short.</summary>
+    internal static void AddShowWith(ContextMenu menu, IReadOnlyList<ShowWithOffer> offers)
+    {
+        if (offers.Count == 1)
+        {
+            var only = Ui.Menu($"{offers[0].Verb} {offers[0].Title}", offers[0].Run);
+            only.Name = offers[0].Name;
+            menu.Items.Add(only);
+        }
+        else if (offers.Count > 1)
+        {
+            // Mixed directions cannot share one verb, so each child then names its own.
+            var verbs = offers.Select(offer => offer.Verb).Distinct().ToArray();
+            var parent = new MenuItem { Name = "ShowWithMenu", Header = verbs.Length == 1 ? verbs[0] : "Show with" };
+            foreach (var offer in offers)
+            {
+                var child = Ui.Menu(verbs.Length == 1 ? offer.Title : $"{offer.Verb["Show ".Length..]} {offer.Title}", offer.Run);
+                child.Name = offer.Name;
+                parent.Items.Add(child);
+            }
+            menu.Items.Add(parent);
+        }
     }
 }

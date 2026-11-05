@@ -404,7 +404,8 @@ Ambiguous basenames show their folder on a dimmed second line.
   keeps its direction and its members' proportions, the newcomer taking an equal share; membership is
   exclusive. A member dropped inside its own run reorders the pane, a drop past it takes the member out, and
   a drop that changes nothing is refused. Making a pane is a vertical-strip gesture: the band between a
-  row's insertion quarters, or "Show beside/under <neighbour>" for the immediate neighbours in the tab menu.
+  row's insertion quarters, or "Show beside/under <neighbour>" for the immediate neighbours in the tab menu (one neighbour is a flat row; two share
+  one "Show beside" submenu of their titles).
   Managing one works in either orientation ("Move up/left in this group", "Stack this group" / "Put this
   group in columns", "Show on its own"). Selecting any member shows the whole pane; its dividers commit weights when a drag ends.
 - Each centre group's strip renders nested under the
