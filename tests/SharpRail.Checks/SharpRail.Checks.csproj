@@ -3,8 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/SharpRail.UI/SharpRail.UI.csproj" />
     <ProjectReference Include="../../src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
-    <ProjectReference Include="../SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" ReferenceOutputAssembly="false" />
-    <ProjectReference Include="../SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" />
+    <ProjectReference Include="../SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" />
     <ProjectReference Include="../../src/SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />
     <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Avalonia.Headless" />

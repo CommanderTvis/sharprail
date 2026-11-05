@@ -15,6 +15,18 @@ public sealed record Ping(string Message);
 
 public static class FixtureContract
 {
+    public static readonly PluginManifest Manifest = new("fixture", "Fixture", "puzzle-2-line", "1.0.0", PluginApi.Generation, 1)
+    {
+        Host = "SharpRail.PluginFixture.Host.dll",
+        Ui = "SharpRail.PluginFixture.UI.dll",
+        Assets = "assets",
+        Contributes = new()
+        {
+            SideTools = [new("board", "Fixture board", "puzzle-2-line", PluginToolSide.Right)],
+            FileViewers = [new() { Extensions = ["fixture"], Names = [], Read = PluginFileRead.Text }]
+        }
+    };
+
     public static readonly PluginMethod<EchoParams, EchoResult> Echo = new("echo");
     public static readonly PluginMethod<CounterParams, CounterState> Counter = new("counter");
     public static readonly PluginMethod<CounterParams, CounterState> Bump = new("bump");

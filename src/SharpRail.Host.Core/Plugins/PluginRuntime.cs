@@ -19,6 +19,9 @@ namespace SharpRail.Host.Core.Plugins;
 /// </summary>
 public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 {
+    /// <summary>Why an external plugin is refused when enabled: no external plugin code runs in the host.</summary>
+    internal const string ExternalUnsupported = "External plugins are not supported in this version.";
+
     private sealed record Subscriber(string PluginId, string Channel, JsonElement? Key, string ClientKey, Channel<object?> Queue);
 
     private readonly Lock gate = new();
@@ -221,8 +224,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         return Roster();
     }
 
-    // An unchanged manifest whose entry assembly is unchanged keeps its module, state and activation; anything
-    // else drops the module so the next pass loads and activates the new one.
+    // An unchanged manifest keeps its state; a changed one returns to disabled, so the next pass decides again.
     private async Task UpsertAsync(PluginManifest manifest, string directory)
     {
         PluginEntry? existing;
@@ -239,32 +241,22 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             lock (gate) registry.Add(new PluginEntry(manifest, PluginOrigin.External) { Directory = directory });
             return;
         }
-        var same = existing.Directory == directory && Same(existing.Manifest, manifest) && existing.State != PluginStatus.Refused &&
-            (existing.Module is null || HostHash(directory, manifest) == existing.Hash);
+        var same = existing.Directory == directory && Same(existing.Manifest, manifest) && existing.State != PluginStatus.Refused;
         existing.Directory = directory;
         if (same) return;
         await DeactivateAsync(existing);
         lock (gate)
         {
             existing.Manifest = manifest;
-            existing.Module = null;
-            existing.Hash = null;
             existing.State = PluginStatus.Disabled;
             existing.Reason = null;
-            existing.DependencyRefused = false;
+            existing.PassRefused = false;
             validatedNamespaces.Remove(existing.Id);
         }
     }
 
     private static bool Same(PluginManifest left, PluginManifest right) =>
         JsonSerializer.Serialize(left, PluginJson.Options) == JsonSerializer.Serialize(right, PluginJson.Options);
-
-    private static string? HostHash(string directory, PluginManifest manifest)
-    {
-        if (manifest.Host is not { } host) return null;
-        try { return PluginLoadContext.Hash(Path.Combine(directory, host)); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
-    }
 
     public async ValueTask<IReadOnlyList<PluginRosterEntry>> RetryAsync(string id, CancellationToken cancellationToken = default)
     {
@@ -331,8 +323,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             (order, cycle) = registry.TopologicalOrder();
             foreach (var entry in cycle.Where(entry => entry.State != PluginStatus.Refused))
                 (entry.State, entry.Reason) = (PluginStatus.Refused, "part of a dependency cycle");
-            foreach (var entry in order.Where(entry => entry.DependencyRefused))
-                (entry.State, entry.Reason, entry.DependencyRefused) = (PluginStatus.Disabled, null, false);
+            foreach (var entry in order.Where(entry => entry.PassRefused))
+                (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Disabled, null, false);
             foreach (var entry in order)
             {
                 var wanted = Enabled(entry, settings);
@@ -343,7 +335,12 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
                 var blocker = entry.Manifest.DependsOn.Select(dependency => Blocker(dependency, desired)).FirstOrDefault(reason => reason is not null);
                 desired[entry.Id] = wanted && blocker is null;
                 if (wanted && blocker is not null && entry.State is not (PluginStatus.Active or PluginStatus.Failed))
-                    (entry.State, entry.Reason, entry.DependencyRefused) = (PluginStatus.Refused, blocker, true);
+                    (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, blocker, true);
+                else if (wanted && entry.Origin == PluginOrigin.External)
+                {
+                    desired[entry.Id] = false;
+                    (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, ExternalUnsupported, true);
+                }
             }
         }
         Publish();
@@ -370,7 +367,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             lock (gate)
                 if (entry.State == PluginStatus.Disabled && Enabled(entry, settings) &&
                     entry.Manifest.DependsOn.Select(dependency => Blocker(dependency, desired)).FirstOrDefault(reason => reason is not null) is { } blocker)
-                    (entry.State, entry.Reason, entry.DependencyRefused) = (PluginStatus.Refused, blocker, true);
+                    (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, blocker, true);
             Publish();
         }
         Publish();
@@ -398,25 +395,18 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     private async Task ActivateAsync(PluginEntry entry)
     {
+        if (entry.Origin == PluginOrigin.External)
+        {
+            lock (gate) (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, ExternalUnsupported, true);
+            return;
+        }
         var module = entry.Module;
         if (module is null)
         {
-            if (entry.Manifest.Host is null) { lock (gate) (entry.State, entry.Reason) = (PluginStatus.Active, null); return; }
-            if (entry.Origin == PluginOrigin.Builtin || entry.Directory is null)
-            {
-                lock (gate) (entry.State, entry.Reason) = (PluginStatus.Failed, $"plugin {entry.Id} has no host module registered");
-                return;
-            }
-            try
-            {
-                var (loaded, hash) = await Task.Run(() => PluginLoadContext.LoadHost(entry.Directory, entry.Manifest.Host));
-                lock (gate) (entry.Module, entry.Hash) = (module = loaded, hash);
-            }
-            catch (Exception error)
-            {
-                lock (gate) (entry.State, entry.Reason) = (PluginStatus.Failed, $"failed to load {entry.Id}: {error.Message}");
-                return;
-            }
+            lock (gate) (entry.State, entry.Reason) = entry.Manifest.Host is null
+                ? (PluginStatus.Active, null)
+                : (PluginStatus.Failed, $"plugin {entry.Id} has no host module registered");
+            return;
         }
         var contract = module.Contract;
         if (PluginRegistry.ContractIntake(contract, entry.Id) is { } refused)
@@ -631,8 +621,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         finally { tables.Leave(); }
     }
 
-    // Params are the declared type in process; anything else (a JSON element from the wire, an equivalent type
-    // from another load context) deserializes strictly into it, and a failure names the offending path.
+    // Params are the declared type in process; anything else (a JSON element from the wire, an anonymous or
+    // equivalent object) deserializes strictly into it, and a failure names the offending path.
     private static object Convert(Type type, object? value, Func<string, Exception> invalid)
     {
         if (value is not null && type.IsInstanceOfType(value)) return value;
@@ -751,7 +741,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         lock (gate)
             root = registry.Get(id) switch
             {
-                { Origin: PluginOrigin.External, Directory: { } directory } => directory,
+                // An external plugin's code is never served, only its assets.
+                { Origin: PluginOrigin.External, Directory: { } directory } external when InAssets(directory, external.Manifest.Assets, path) => directory,
                 { Origin: PluginOrigin.Builtin } => Path.Combine(Seams.BuiltinDirectory, id),
                 _ => null
             };
@@ -759,6 +750,11 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         try { return await File.ReadAllBytesAsync(file, cancellationToken); }
         catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return null; }
     }
+
+    private static bool InAssets(string directory, string? assets, string path) =>
+        assets is not null && path.Length > 0 && !path.Contains('\0') && !Path.IsPathRooted(path) &&
+        Path.GetFullPath(Path.Combine(directory, path)).StartsWith(
+            Path.GetFullPath(Path.Combine(directory, assets)).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.Ordinal);
 
     // A path under the plugin's directory, refusing anything that escapes it, a symbolic link included.
     private static string? Contained(string root, string path)

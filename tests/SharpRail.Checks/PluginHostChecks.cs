@@ -22,8 +22,8 @@ namespace SharpRail.Checks;
 
 /// <summary>
 /// The host's plugin runtime: manifest intake, discovery, the registry and reconciler, activation ids, drain and
-/// bounded disposal, dispatch, settings namespaces, tools, terminals, and the external fixture plugin installed
-/// from disk and driven through the direct adapter and a real WebSocket RPC host.
+/// bounded disposal, dispatch, settings namespaces, tools, terminals, the fixture plugin composed as a check-only
+/// builtin and driven through the direct adapter and a real WebSocket RPC host, and external plugins discovered and refused.
 /// </summary>
 internal static class PluginHostChecks
 {
@@ -167,33 +167,31 @@ internal static class PluginHostChecks
         await External(Path.Combine(directory, "external"));
         await ExternalFiles(Path.Combine(directory, "external-files"));
         await Terminals(Path.Combine(directory, "terminals"));
-        Console.WriteLine("PASS plugin host: generation pin, manifests, discovery, registry, activation ids, drain, reconciler, dispatch, settings, tools, tool guidance, terminals and the external fixture locally and over WebSocket RPC");
+        Console.WriteLine("PASS plugin host: generation pin, manifests, discovery, registry, activation ids, drain, reconciler, dispatch, settings, tools, tool guidance, terminals, the fixture plugin and external refusal locally and over WebSocket RPC");
     }
 
-    private static string FixtureSource()
-    {
-        var source = Path.Combine(AppContext.BaseDirectory, "plugin-fixture", "fixture");
-        Require(File.Exists(Path.Combine(source, PluginManifest.FileName)) && File.Exists(Path.Combine(source, "SharpRail.PluginFixture.Host.dll")),
-            $"The fixture plugin is missing from {source}; build tests/SharpRail.PluginFixture.");
-        return source;
-    }
+    internal const string ExternalRefusal = "External plugins are not supported in this version.";
 
-    internal static string Install(string pluginsRoot, string name = "fixture", Func<string, string>? manifest = null)
+    /// <summary>The fixture plugin's host half, composed as a builtin the way the host composes its own.</summary>
+    internal static (PluginManifest, PluginHostModule?) Fixture() => (SharpRail.PluginFixture.FixtureContract.Manifest, new SharpRail.PluginFixture.FixtureHost());
+
+    /// <summary>
+    /// Writes an external plugin directory under <paramref name="pluginsRoot"/>: a manifest named after
+    /// <paramref name="id"/>, an asset, and a host assembly the host must neither load nor serve.
+    /// </summary>
+    internal static string InstallExternal(string pluginsRoot, string id, Func<PluginManifest, PluginManifest>? change = null)
     {
-        var target = Path.Combine(pluginsRoot, name);
-        Directory.CreateDirectory(target);
-        var source = FixtureSource();
-        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        var target = Path.Combine(pluginsRoot, id);
+        Directory.CreateDirectory(Path.Combine(target, "assets"));
+        var manifest = new PluginManifest(id, "External " + id, "puzzle-2-line", "1.0.0", PluginApi.Generation, 1)
         {
-            var destination = Path.Combine(target, Path.GetRelativePath(source, file));
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            File.Copy(file, destination, overwrite: true);
-        }
-        if (manifest is not null)
-        {
-            var path = Path.Combine(target, PluginManifest.FileName);
-            File.WriteAllText(path, manifest(File.ReadAllText(path)));
-        }
+            Host = id + ".Host.dll",
+            Ui = id + ".UI.dll",
+            Assets = "assets"
+        };
+        File.WriteAllText(Path.Combine(target, PluginManifest.FileName), JsonSerializer.Serialize(change?.Invoke(manifest) ?? manifest, PluginJson.Options));
+        File.WriteAllText(Path.Combine(target, "assets", "icon.svg"), "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"/>");
+        File.WriteAllBytes(Path.Combine(target, id + ".Host.dll"), [0x4d, 0x5a, 0, 0]);
         return target;
     }
 
@@ -225,13 +223,13 @@ internal static class PluginHostChecks
         Directory.CreateDirectory(Path.Combine(root, "broken"));
         File.WriteAllText(Path.Combine(root, "broken", PluginManifest.FileName), "{ not json");
         Directory.CreateDirectory(Path.Combine(root, "empty"));
-        Install(root);
+        InstallExternal(root, "outsider");
         var outside = Path.Combine(directory, "outside");
-        Install(directory, "outside");
+        InstallExternal(directory, "outside");
         File.CreateSymbolicLink(Path.Combine(root, "linked"), outside);
         File.WriteAllText(Path.Combine(root, "loose-file"), "");
         var found = PluginDiscovery.Discover([root, Path.Combine(directory, "missing-root")]).ToDictionary(item => Path.GetFileName(item.Directory));
-        Require(found["fixture"].Manifest?.Id == "fixture", "A valid manifest under a directory named after its id is discovered.");
+        Require(found["outsider"].Manifest?.Id == "outsider", "A valid manifest under a directory named after its id is discovered.");
         Require(found["broken"].Refused?.StartsWith("invalid manifest:", StringComparison.Ordinal) == true, "An unreadable manifest is refused, not skipped: " + found["broken"].Refused);
         Require(found["empty"].Refused?.StartsWith("cannot read sharprail-plugin.json", StringComparison.Ordinal) == true, "A directory with no manifest is refused, not skipped.");
         Require(found["linked"].Refused?.Contains("symbolic link", StringComparison.Ordinal) == true && found["linked"].Manifest is null,
@@ -677,61 +675,74 @@ internal static class PluginHostChecks
     private static async Task External(string directory)
     {
         var plugins = Path.Combine(directory, "local", "plugins");
-        Install(plugins);
+        InstallExternal(plugins, "outsider");
+        InstallExternal(plugins, "fixture");
         await using var loopback = new LoopbackServer(null);
-        await using var composed = await Compose(Path.Combine(directory, "local"), [], seams => seams with { PublicBaseUrl = () => loopback.BaseUrl });
+        await using var composed = await Compose(Path.Combine(directory, "local"),
+            [Fixture(), (Manifest("leaning", false, new PluginDependency("outsider", 1)), Answering("leaning"))],
+            seams => seams with { PublicBaseUrl = () => loopback.BaseUrl });
         loopback.Plugins = composed.Runtime;
+        await Refusal("local", new LocalPluginAdapter(composed.Runtime), new LocalStateAdapter(composed.State));
+        Require((await composed.Row("__refused:fixture")) is { Status: PluginStatus.Refused, Reason: "plugin fixture is already a builtin plugin" },
+            "An external directory claiming a builtin's id is refused.");
         await Exercise("local", new LocalPluginAdapter(composed.Runtime), new LocalStateAdapter(composed.State));
 
-        Require(AppDomain.CurrentDomain.GetAssemblies().Count(assembly => assembly.GetName().Name == "SharpRail.Plugins.Api") == 1,
-            "A shared assembly shipped in a plugin directory is not loaded a second time.");
         using (var http = new HttpClient())
         {
             var hello = await http.GetAsync(loopback.BaseUrl + "/plugin/fixture/hello");
             Require(hello.StatusCode == HttpStatusCode.OK && await hello.Content.ReadAsStringAsync() == "hello", "An active plugin's route is served on the loopback server.");
             Require((await http.GetAsync(loopback.BaseUrl + "/plugin/nobody/hello")).StatusCode == HttpStatusCode.NotFound, "An unknown plugin's route is 404.");
+            Require((await http.GetAsync(loopback.BaseUrl + "/plugin/outsider/hello")).StatusCode == HttpStatusCode.NotFound, "An external plugin's route is 404.");
             await composed.Enable("fixture", false);
             Require((await http.GetAsync(loopback.BaseUrl + "/plugin/fixture/hello")).StatusCode == HttpStatusCode.NotFound, "A disabled plugin's route is 404.");
             await composed.Enable("fixture");
         }
 
-        // An unchanged rescan leaves the active plugin alone; a changed manifest reloads it.
-        var counter = PluginJson.Convert<CounterReply>(await composed.Call("fixture", "bump", new { workspace = "rescan" }));
-        await composed.Runtime.RescanAsync();
-        Require((await composed.Row("fixture")).Status == PluginStatus.Active, "Rescanning an unchanged plugin leaves it active.");
-        var manifestPath = Path.Combine(plugins, "fixture", PluginManifest.FileName);
+        // A builtin built on an external plugin cannot run either, and says which plugin holds it back.
+        await composed.Enable("leaning");
+        Require((await composed.Row("leaning")) is { Status: PluginStatus.Refused, Reason: "depends on outsider, which is off" }, "A builtin on an external plugin that is off is refused.");
+        await composed.Enable("outsider");
+        Require((await composed.Row("leaning")) is { Status: PluginStatus.Refused, Reason: "depends on outsider, which is refused" } &&
+            (await composed.Row("outsider")).Reason == ExternalRefusal, "A builtin on a refused external plugin is refused with it.");
+        await composed.Enable("outsider", false);
+        await composed.Enable("leaning", false);
+
+        // A rescan re-reads a changed manifest; nothing is loaded either way.
+        var manifestPath = Path.Combine(plugins, "outsider", PluginManifest.FileName);
         File.WriteAllText(manifestPath, File.ReadAllText(manifestPath).Replace("\"1.0.0\"", "\"1.0.1\""));
         await composed.Runtime.RescanAsync();
-        await Until(async () => (await composed.Row("fixture")) is { Status: PluginStatus.Active, Version: "1.0.1" }, "the changed manifest to reload");
-        Require(PluginJson.Convert<CounterReply>(await composed.Call("fixture", "counter", new { workspace = "rescan" })).Value == counter.Value,
-            "Plugin state survives replacing the plugin.");
+        Require((await composed.Row("outsider")) is { Status: PluginStatus.Disabled, Version: "1.0.1" }, "A rescan shows a changed external manifest, still disabled.");
 
-        Install(plugins, "elder", text => text.Replace("\"fixture\"", "\"elder\"").Replace("\"apiGeneration\": 1", "\"apiGeneration\": 2"));
-        Install(plugins, "needy", text => text.Replace("\"fixture\"", "\"needy\"").Replace("\"wireVersion\": 1,", "\"wireVersion\": 1, \"dependsOn\": [{ \"id\": \"absent\", \"wireVersion\": 1 }],"));
+        InstallExternal(plugins, "elder", manifest => manifest with { ApiGeneration = 2 });
+        InstallExternal(plugins, "needy", manifest => manifest with { DependsOn = [new("absent", 1)] });
         await composed.Runtime.RescanAsync();
         var elder = await composed.Row("__refused:elder");
         Require(elder is { Status: PluginStatus.Refused, Reason: "plugin elder declares apiGeneration 2, host expects 1" }, "A plugin built for another generation is refused, naming both.");
         await composed.Enable("needy");
         Require((await composed.Row("needy")) is { Status: PluginStatus.Refused, Reason: "depends on absent, which is not installed" }, "An external plugin's missing dependency is refused.");
         var elderManifest = Path.Combine(plugins, "elder", PluginManifest.FileName);
-        File.WriteAllText(elderManifest, File.ReadAllText(elderManifest).Replace("\"apiGeneration\": 2", "\"apiGeneration\": 1"));
+        File.WriteAllText(elderManifest, File.ReadAllText(elderManifest).Replace("\"apiGeneration\":2", "\"apiGeneration\":1"));
         var roster = await composed.Runtime.RescanAsync();
         Require(roster.All(entry => entry.Id != "__refused:elder") && roster.Single(entry => entry.Id == "elder").Status == PluginStatus.Disabled,
             "A rescan promotes a fixed manifest out of refused, arriving disabled.");
         await composed.Enable("elder");
-        Require((await composed.Row("elder")).Status == PluginStatus.Refused, "A host half whose contract names another id is refused.");
+        Require((await composed.Row("elder")) is { Status: PluginStatus.Refused, Reason: ExternalRefusal }, "An enabled external plugin is refused, not loaded.");
         Directory.Delete(Path.Combine(plugins, "elder"), recursive: true);
         Require((await composed.Runtime.RescanAsync()).All(entry => entry.Id != "elder"), "A plugin removed from disk leaves the roster on rescan.");
+        Require(AppDomain.CurrentDomain.GetAssemblies().All(assembly => assembly.GetName().Name is not ("outsider.Host" or "elder.Host" or "needy.Host")),
+            "No external plugin assembly is loaded into the host.");
 
         var remoteState = Path.Combine(directory, "remote");
-        Install(Path.Combine(remoteState, "plugins"));
-        await using var server = RemoteServer.Create(directory, IPAddress.Loopback, 0, "plugin-token", remoteState);
+        InstallExternal(Path.Combine(remoteState, "plugins"), "outsider");
+        await using var server = RemoteServer.Create(directory, IPAddress.Loopback, 0, "plugin-token", remoteState,
+            plugins: seams => seams with { Builtins = [.. seams.Builtins, Fixture()] });
         await server.StartAsync();
         try
         {
             var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
             using var remotePlugins = new RemotePluginAdapter(address, "plugin-token");
             using var remoteState2 = new RemoteStateAdapter(address, "plugin-token");
+            await Refusal("remote", remotePlugins, remoteState2);
             await Exercise("remote", remotePlugins, remoteState2);
             using var stranger = new RemotePluginAdapter(address, "wrong-token");
             try
@@ -742,18 +753,38 @@ internal static class PluginHostChecks
             catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.Unauthenticated) { }
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS external fixture plugin: shared assemblies from the default context, route on the loopback server, rescan reload and promotion, generation and dependency refusals");
+        Console.WriteLine("PASS external plugins: refused when enabled without loading, assets only served, builtin id clash, dependents refused, rescan, generation and dependency refusals");
     }
 
-    // The same scenario through the direct adapter and a WebSocket RPC host: install from disk arrives disabled, enable,
+    // An external plugin arrives disabled, is refused when enabled without loading any code, serves only its assets,
+    // and turning it off returns it to disabled.
+    private static async Task Refusal(string mode, IPluginService plugins, IHostStateService state)
+    {
+        await Until(async () => (await plugins.ListAsync()).Any(entry => entry.Id == "outsider"), mode + " discovery");
+        Require((await plugins.ListAsync()).Single(entry => entry.Id == "outsider") is { Status: PluginStatus.Disabled, Origin: PluginOrigin.External, Version: "1.0.0", Assets: "assets" },
+            $"{mode}: an installed external plugin arrives disabled with its manifest.");
+        await state.ChangeAsync([HostStateChange.PluginEnabled("outsider", true)]);
+        await Until(async () => (await plugins.ListAsync()).Single(entry => entry.Id == "outsider").Status == PluginStatus.Refused, mode + " refusal");
+        Require((await plugins.ListAsync()).Single(entry => entry.Id == "outsider").Reason == ExternalRefusal, $"{mode}: an enabled external plugin is refused with a plain reason.");
+        Require((await Fails(() => plugins.CallAsync(new("outsider", "echo", new { text = "x" }, "client")).AsTask(), "A refused plugin must fail.")).Error == PluginCallError.Disabled,
+            $"{mode}: a refused external plugin answers Disabled.");
+        Require(await plugins.ReadFileAsync("outsider", "assets/icon.svg") is { Length: > 0 }, $"{mode}: an external plugin's assets are readable.");
+        Require(await plugins.ReadFileAsync("outsider", "outsider.Host.dll") is null && await plugins.ReadFileAsync("outsider", PluginManifest.FileName) is null &&
+            await plugins.ReadFileAsync("outsider", "assets/../outsider.Host.dll") is null, $"{mode}: nothing outside an external plugin's assets is served.");
+        await state.ChangeAsync([HostStateChange.PluginEnabled("outsider", false)]);
+        await Until(async () => (await plugins.ListAsync()).Single(entry => entry.Id == "outsider").Status == PluginStatus.Disabled, mode + " turning off");
+        Console.WriteLine($"PASS {mode} external plugin: arrives disabled, refused when enabled, assets only, off again");
+    }
+
+    // The same scenario through the direct adapter and a WebSocket RPC host: the composed fixture arrives disabled, enable,
     // call, channel publish and snapshot, bad params naming the path, settings namespaces, disable, the file read.
     private static async Task Exercise(string mode, IPluginService plugins, IHostStateService state)
     {
         await Until(async () => (await plugins.ListAsync()).Any(entry => entry.Id == "fixture"), mode + " discovery");
         var row = (await plugins.ListAsync()).Single(entry => entry.Id == "fixture");
-        Require(row is { Status: PluginStatus.Disabled, Origin: PluginOrigin.External, Ui: "SharpRail.PluginFixture.UI.dll", Assets: "assets", Label: "Fixture" } &&
+        Require(row is { Status: PluginStatus.Disabled, Origin: PluginOrigin.Builtin, Assets: "assets", Label: "Fixture" } &&
             row.Contributes.SideTools.Single() is { Tool: "board", DefaultSide: PluginToolSide.Right } && row.Contributes.FileViewers.Single().Extensions.SequenceEqual(["fixture"]),
-            $"{mode}: an installed external plugin arrives disabled with its manifest contributions.");
+            $"{mode}: the fixture arrives disabled with its manifest contributions.");
         Require((await state.GetStateAsync()).Plugins.Any(entry => entry.Id == "fixture"), $"{mode}: the roster rides the state snapshot.");
         Require((await state.GetStateAsync()).Platform is not null, $"{mode}: the snapshot names the host platform.");
         Require((await Fails(() => plugins.CallAsync(new("fixture", "echo", new { text = "x" }, "client")).AsTask(), "A disabled plugin must fail.")).Error == PluginCallError.Disabled,
@@ -827,15 +858,12 @@ internal static class PluginHostChecks
             Require(ended, $"{mode}: cancelling a subscription ends it as cancelled, not as a dropped transport.");
         }
 
-        var manifest = await plugins.ReadFileAsync("fixture", PluginManifest.FileName);
-        Require(manifest is not null && Encoding.UTF8.GetString(manifest).Contains("\"fixture\"", StringComparison.Ordinal), $"{mode}: the plugin file read returns the file.");
-        Require(await plugins.ReadFileAsync("fixture", "assets/icon.svg") is { Length: > 0 }, $"{mode}: assets are readable.");
-        Require(await plugins.ReadFileAsync("fixture", "SharpRail.PluginFixture.Host.dll") is { Length: > 0 }, $"{mode}: the plugin's assemblies are readable.");
+        Require(await plugins.ReadFileAsync("fixture", "assets/icon.svg") is { Length: > 0 }, $"{mode}: staged assets are readable.");
         Require(await plugins.ReadFileAsync("fixture", "../../state.json") is null && await plugins.ReadFileAsync("fixture", "/etc/hosts") is null,
             $"{mode}: the file read refuses paths escaping the plugin directory.");
         Require(await plugins.ReadFileAsync("fixture", "missing.txt") is null && await plugins.ReadFileAsync("nobody", "x") is null, $"{mode}: a missing file reads as null.");
         Require((await plugins.RescanAsync()).Single(entry => entry.Id == "fixture").Status == PluginStatus.Active, $"{mode}: rescan answers the roster.");
-        Console.WriteLine($"PASS {mode} external fixture plugin: install from disk, enable, call, keyed channel and snapshot, strict params, namespaces, disable and re-enable, file read");
+        Console.WriteLine($"PASS {mode} fixture plugin: arrives disabled, enable, call, keyed channel and snapshot, strict params, namespaces, disable and re-enable, file read");
     }
 
     // An active plugin's exact absolute files read and save through the ordinary project service, locally and
@@ -926,11 +954,9 @@ internal static class PluginHostChecks
 
         await using var pty = new PtyTerminalService("/bin/sh");
         await using var loopback = new LoopbackServer(pty);
-        await using var composed = await Compose(Path.Combine(directory, "local"), [(Manifest("reviver", true), Reviver())],
+        await using var composed = await Compose(Path.Combine(directory, "local"), [(Manifest("reviver", true), Reviver()), Fixture()],
             seams => seams with { Terminals = pty, PublicBaseUrl = () => loopback.BaseUrl });
         loopback.Plugins = composed.Runtime;
-        Install(Path.Combine(directory, "local", "plugins"));
-        await composed.Runtime.RescanAsync();
         await composed.Enable("fixture");
         _ = loopback.BaseUrl;
         context!.SetAgentRecord(tab, agent);

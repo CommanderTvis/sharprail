@@ -65,8 +65,11 @@ try {
     const prose = '# Plain prose benchmark\n\n' + Array.from({ length: 1024 }, (_, index) => 'Paragraph ' + index + '. ' + Array(5).fill('A readable paragraph explains the behavior of a workspace, its files, and the controls used to navigate between documents.').join(' ')).join('\n\n');
     await fs.writeFile(path.join(fixture, 'prose.md'), prose.replace('\n\n', '\n\n' + String.fromCharCode(96).repeat(3) + 'mermaid\nflowchart LR\nA[AotDiagram] --> B[Browser]\n' + String.fromCharCode(96).repeat(3) + '\n\n'));
   }
-  await fs.cp(path.join(root, 'tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture/fixture'), path.join(scratch, 'state/plugins/fixture'), { recursive: true });
-  if (process.env.SHARPRAIL_BROWSER_BUNDLE) await fs.writeFile(path.join(scratch, 'state/state.json'), JSON.stringify({ PluginSettings: { fixture: { enabled: true } } }));
+  // An external plugin is discovered and listed, but refused when enabled: no external code runs in the host or the app.
+  const outsider = path.join(scratch, 'state/plugins/outsider');
+  await fs.mkdir(path.join(outsider, 'assets'), { recursive: true });
+  await fs.writeFile(path.join(outsider, 'sharprail-plugin.json'), JSON.stringify({ id: 'outsider', label: 'Outsider', icon: 'puzzle-2-line', version: '1.0.0', apiGeneration: 1, wireVersion: 1, host: 'outsider.Host.dll', ui: 'outsider.UI.dll', assets: 'assets' }));
+  await fs.writeFile(path.join(outsider, 'assets/icon.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"/>');
   const browserPort = await port();
   const address = `http://127.0.0.1:${browserPort}`;
   host = spawn(process.env.DOTNET ?? 'dotnet', ['src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll'], {
@@ -86,12 +89,12 @@ try {
   page.on('websocket', socket => {
     socket.on('framesent', ({ payload }) => {
       const text = Buffer.from(payload).toString('utf8');
-      if (text.includes('fixture') && text.includes('counter')) publishedPluginRequest = true;
+      if (text.includes('branch-graph') && text.includes('projectId')) publishedPluginRequest = true;
     });
     socket.on('framereceived', ({ payload }) => {
       const text = Buffer.from(payload).toString('utf8');
       if (text.includes('# Plain prose benchmark')) proseDeliveredAt ??= performance.now();
-      if (text.includes(fixture) && text.includes('\"value\":0')) publishedPluginReply = true;
+      if (text.includes('\"commits\"') && text.includes('\"hasMore\"')) publishedPluginReply = true;
     });
   });
   // The shared Skia pixel/input suite exercises the actual loading fallback.
@@ -114,8 +117,8 @@ try {
       const layout = { Center: { GroupId: 'center' }, Groups: [
         { Id: 'center', Region: 'center' },
         { Id: 'projects', Region: 'left', Tools: [{ Id: 'projects', Title: 'Projects', Kind: 'tool' }] },
-        { Id: 'fixture', Region: 'right', Tools: [{ Id: 'plugin:fixture:board', Title: 'Fixture board', Kind: 'tool' }] }
-      ], ActiveWorkspace: fixture, Workspaces: { [fixture]: { Documents: { center: [tab] }, Selected: { center: tab.Id, fixture: 'plugin:fixture:board' }, FocusedCenter: 'center' } } };
+        { Id: 'graph', Region: 'right', Tools: [{ Id: 'plugin:branch-graph:graph', Title: 'Branch graph', Kind: 'tool' }] }
+      ], ActiveWorkspace: fixture, Workspaces: { [fixture]: { Documents: { center: [tab] }, Selected: { center: tab.Id, graph: 'plugin:branch-graph:graph' }, FocusedCenter: 'center' } } };
       localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
       const OriginalWorker = globalThis.Worker;
       globalThis.Worker = class extends OriginalWorker {
@@ -140,7 +143,7 @@ try {
     assert.equal(await page.locator('#window-bar').count(), 0);
     assert.equal(await page.locator('.sharprail-workbench').evaluate(element => element.getBoundingClientRect().top), 0);
     assert.match(await page.evaluate(async () => (await import('./sharprail.js')).renderMermaid('flowchart LR\nA[Published] --> B[Host]', '{}')), /<svg.*Published/s);
-    await until(() => Promise.resolve(publishedPluginRequest && publishedPluginReply), Boolean, 'The normal bundle did not mount the external managed plugin and complete its typed JSON request');
+    await until(() => Promise.resolve(publishedPluginRequest && publishedPluginReply), Boolean, 'The normal bundle did not mount a builtin plugin and complete its typed JSON request');
     await page.waitForFunction(() => globalThis.publishedMermaid === true);
     await until(async () => {
       const pixels = await page.screenshot({ clip: { x: 450, y: 400, width: 250, height: 300 } });
@@ -271,15 +274,12 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForFunction(async () => JSON.parse(await check.SettingsText()).length === 0);
   console.log('PASS browser modal plugin settings and keyboard dismissal');
-  await page.evaluate(() => check.EnablePlugin('fixture'));
-  await until(snapshot, windows => windows[0].Plugins.includes('fixture'), 'The browser did not load the external managed plugin UI.');
-  await page.evaluate(() => check.OpenSettings('plugin:fixture:fixture'));
-  await until(() => page.evaluate(async () => JSON.parse(await check.SettingsText())), texts => texts.includes('hello'), 'The external plugin settings did not mount.');
-  await page.evaluate(() => check.ClickSettingsButton('FixtureGreet'));
-  await until(() => page.evaluate(async () => JSON.parse(await check.SettingsText())), texts => texts.includes('hey'), 'The external plugin could not update host settings.');
-  assert.match(await fs.readFile(path.join(scratch, 'state/state.json'), 'utf8'), /hey/);
-  await page.keyboard.press('Escape');
-  console.log('PASS browser external assembly loading, plugin UI activation and host settings persistence');
+  await page.evaluate(() => check.EnablePlugin('outsider'));
+  await page.evaluate(() => check.EnablePlugin('epub'));
+  await until(snapshot, windows => windows[0].Plugins.includes('epub'), 'The browser did not activate a plugin that was off.');
+  await until(() => fs.readFile(path.join(scratch, 'state/state.json'), 'utf8'), text => /"outsider"/.test(text) && /"epub"/.test(text), 'The host did not persist the plugin choices.');
+  assert.ok(!(await snapshot())[0].Plugins.includes('outsider'), 'An enabled external plugin must stay refused, with nothing mounted.');
+  console.log('PASS browser plugin UI activation, host settings persistence and external plugin refusal');
 
   const watched = JSON.parse(await page.evaluate(() => check.CheckWatchedReplay()));
   assert.equal(watched.Watching, true);

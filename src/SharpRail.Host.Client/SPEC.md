@@ -88,7 +88,7 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   status codes stay transport failures, except that a call or subscription the caller
   cancels ends with `OperationCanceledException`, as locally. A subscription ends with
   an exception when the transport drops, and the caller resubscribes and re-reads its snapshot. Plugin
-  file reads accept messages up to 256 MiB, since a UI half's assemblies arrive whole.
+  file reads accept messages up to 256 MiB.
 - Remote host-state snapshots map plugin namespaces back to `JsonElement` objects,
   the roster, agent records and the platform (null when the host sent none).
 

@@ -20,8 +20,6 @@ stamp="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
 # composite would assume its own version-bubble layouts; keep this harness versionable.
 "$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true --no-restore \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/checks
-# The fixture plugin builds straight into the checks' build output; the plugin checks install it from beside the executable.
-cp -R tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture artifacts/checks/
 if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
   bundle=artifacts/SharpRail.app
   mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"

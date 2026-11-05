@@ -237,8 +237,6 @@ SharpRail.Plugins.Api.PluginRosterEntry.Reason.get -> string?
 SharpRail.Plugins.Api.PluginRosterEntry.Reason.init -> void
 SharpRail.Plugins.Api.PluginRosterEntry.Status.get -> SharpRail.Plugins.Api.PluginStatus
 SharpRail.Plugins.Api.PluginRosterEntry.Status.init -> void
-SharpRail.Plugins.Api.PluginRosterEntry.Ui.get -> string?
-SharpRail.Plugins.Api.PluginRosterEntry.Ui.init -> void
 SharpRail.Plugins.Api.PluginRosterEntry.Version.get -> string!
 SharpRail.Plugins.Api.PluginRosterEntry.Version.init -> void
 SharpRail.Plugins.Api.PluginRosterEntry.WireVersion.get -> int

@@ -156,7 +156,6 @@ internal static class PluginWire
             },
             Channels = entry.Channels.ToDictionary(channel => channel.Name,
                 channel => new PluginRosterChannel(Parse(channel.Kind, PluginChannelKind.Event), Optional(channel.Snapshot), channel.Key.ToArray())),
-            Ui = Optional(entry.Ui),
             Assets = Optional(entry.Assets)
         }).ToArray();
 }

@@ -1,5 +1,4 @@
 using System.Net;
-using System.Runtime.Loader;
 using System.Text.Json;
 
 using Avalonia;
@@ -25,9 +24,10 @@ using SharpRail.UI.State;
 namespace SharpRail.Checks;
 
 // The app's plugin runtime: the registry's rules on constructed rosters, the dependency walks Settings › Plugins
-// uses, the loader and context against builtin modules on a stand-in host, and the fixture plugin installed from disk
-// and driven end to end through the real host, in process and remote. Translates the fork's registry, loader,
-// context and PluginsSettings tests and its external-plugin end-to-end spec.
+// uses, the loader and context against builtin modules on a stand-in host, and the fixture plugin composed as a
+// check-only builtin and driven end to end through the real host, in process and remote, beside external plugins
+// that are listed and refused. Translates the fork's registry, loader, context and PluginsSettings tests and its
+// external-plugin end-to-end spec.
 internal static class PluginUiChecks
 {
     private static void Require(bool condition, string message)
@@ -301,9 +301,10 @@ internal static class PluginUiChecks
         return window.GetLogicalDescendants().OfType<Control>().Any(item => item.Name == name && item.IsEffectivelyVisible);
     }
 
-    // The fork's external-plugin.spec.ts against a real host: the fixture plugin installed from disk into the host's
-    // state directory, beside a copy built for another generation and one that is later deleted. Run once with the
-    // app's own in-process runtime and once against a remote host over WebSocket RPC.
+    // The fork's external-plugin.spec.ts against a real host: the fixture plugin composed as a builtin on both sides,
+    // beside external plugins in the host's state directory, one built for another generation and one that is refused
+    // when enabled and later deleted. Run once with the app's own in-process runtime and once against a remote host
+    // over WebSocket RPC.
     private static void Fixture(string root, bool remote)
     {
         var mode = remote ? "remote" : "local";
@@ -311,24 +312,24 @@ internal static class PluginUiChecks
         var profileRoot = Path.Combine(root, "profile");
         var stateDirectory = remote ? Path.Combine(root, "host") : profileRoot;
         var plugins = Path.Combine(stateDirectory, "plugins");
-        Require(File.Exists(Path.Combine(AppContext.BaseDirectory, "plugin-fixture", "fixture", "SharpRail.PluginFixture.UI.dll")),
-            "The fixture plugin's UI half was not built into plugin-fixture/fixture.");
-        PluginHostChecks.Install(plugins);
-        PluginHostChecks.Install(plugins, "broken", text => text.Replace("\"id\": \"fixture\"", "\"id\": \"broken\"").Replace("\"apiGeneration\": 1", "\"apiGeneration\": 999"));
-        PluginHostChecks.Install(plugins, "removable", text => text.Replace("\"id\": \"fixture\"", "\"id\": \"removable\""));
+        PluginHostChecks.InstallExternal(plugins, "broken", manifest => manifest with { ApiGeneration = 999 });
+        PluginHostChecks.InstallExternal(plugins, "removable");
+        IReadOnlyList<(PluginManifest, Func<PluginUIModule>)> uiPlugins =
+            [.. BuiltinPlugins.All, (SharpRail.PluginFixture.FixtureContract.Manifest, () => new SharpRail.PluginFixture.UI.FixtureUI())];
         Directory.CreateDirectory(workspace);
         File.WriteAllText(Path.Combine(workspace, "sample.fixture"), "fixture-viewer-text");
         File.WriteAllText(Path.Combine(workspace, "notes.txt"), "plain-text-fixture\n");
 
         const string token = "plugin-fixture";
-        var server = remote ? RemoteServer.Create(workspace, IPAddress.Loopback, 0, token, stateDirectory) : null;
+        var server = remote ? RemoteServer.Create(workspace, IPAddress.Loopback, 0, token, stateDirectory,
+            plugins: seams => seams with { Builtins = [.. seams.Builtins, PluginHostChecks.Fixture()] }) : null;
         if (server is not null) Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();
         try
         {
             using var app = server is null
-                ? new E2eWorkspace(workspace, profileRoot: profileRoot)
+                ? new E2eWorkspace(workspace, profileRoot: profileRoot, hostPlugins: [.. SharpRail.Host.Core.Plugins.BuiltinPlugins.All, PluginHostChecks.Fixture()], uiPlugins: uiPlugins)
                 : new E2eWorkspace(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()),
-                    token, workspace, profileRoot, workspace, plugins: true);
+                    token, workspace, profileRoot, workspace, plugins: true, uiPlugins: uiPlugins);
             if (remote)
             {
                 E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
@@ -340,7 +341,7 @@ internal static class PluginUiChecks
         {
             if (server is not null) Task.Run(async () => { await server.StopAsync(); await server.DisposeAsync(); }).GetAwaiter().GetResult();
         }
-        Console.WriteLine($"PASS {mode} fixture plugin end to end: install from disk, enable, settings update, contributions, call and channel, disable, refusal and rescan");
+        Console.WriteLine($"PASS {mode} fixture plugin end to end: enable, settings update, contributions, call and channel, disable, external refusal and rescan");
     }
 
     private static void FixtureScenario(E2eWorkspace app, string plugins)
@@ -350,17 +351,19 @@ internal static class PluginUiChecks
         var disableIcons = app.Workbench.State.ChangeAsync(HostStateChange.Setting("file-type-icons", "false"));
         E2eWorkspace.Until(() => disableIcons.IsCompleted && !app.Workbench.State.Current.Settings.FileTypeIconsEnabled);
         disableIcons.GetAwaiter().GetResult();
-        // The fixture and its refused/removable copies join the builtin plugins.
-        E2eWorkspace.Until(() => loader.Registry.Roster.Count(entry => entry.Origin == PluginOrigin.External) == 3);
+        // The external plugins, refused or removable, join the builtin plugins and the fixture.
+        E2eWorkspace.Until(() => loader.Registry.Roster.Count(entry => entry.Origin == PluginOrigin.External) == 2 && loader.Registry.Roster.Any(entry => entry.Id == "fixture"));
 
         // The roster lists a discovered external plugin as disabled, with its version and origin; a refused one names both generations.
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
         var settings = window.OpenSettingsViews.Single();
-        var row = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture")!;
+        SharpRail.UI.Panels.PluginsSettings Page() => settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single();
+        var row = Page().Card("removable")!;
         static string Texts(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
         Require(Texts(row).Contains("external", StringComparison.Ordinal) && Texts(row).Contains("v1.0.0", StringComparison.Ordinal) &&
-            Texts(row).Contains("disabled", StringComparison.Ordinal), "The fixture's row must show external, its version and disabled: " + Texts(row));
+            Texts(row).Contains("disabled", StringComparison.Ordinal), "An external plugin's row must show external, its version and disabled: " + Texts(row));
+        Require(Texts(Page().Card("fixture")!).Contains("builtin", StringComparison.Ordinal), "The composed fixture is listed as builtin: " + Texts(Page().Card("fixture")!));
         // An early plugin wears its support badge on the card; a fully supported one does not.
         var ompRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("omp")!;
         Require(ompRow.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "PluginSupport").IsVisible && Texts(ompRow).Contains("Early support", StringComparison.Ordinal),
@@ -381,7 +384,15 @@ internal static class PluginUiChecks
         Require(At("PluginCategory_Python") < At("PluginRow_lsp-python") && At("PluginRow_lsp-python") < At("PluginRow_env-python") && At("PluginRow_env-python") < At("PluginCategory_R"),
             "The Python language server and the Python environment plugin share the Python group: " + string.Join(", ", names.Take(40)));
         Require(At("PluginCategory_Other") < At("PluginRow_fixture") && At("PluginRow_fixture") > 0, "A plugin with no category is listed under Other.");
-        Require(loader.Registry.Roster.Where(entry => entry.Origin == PluginOrigin.Builtin).All(entry => entry.Category is { Length: > 0 }), "Every builtin plugin declares a category.");
+        Require(loader.Registry.Roster.Where(entry => entry.Origin == PluginOrigin.Builtin && entry.Id != "fixture").All(entry => entry.Category is { Length: > 0 }),
+            "Every shipped builtin plugin declares a category.");
+
+        // Enabling an external plugin refuses it with a plain reason and loads nothing; its switch then stays off.
+        Find<ToggleSwitch>(Page().Card("removable")!, "PluginToggle").IsChecked = true;
+        E2eWorkspace.Until(() => Page().Card("removable") is { } refused && Texts(refused).Contains(PluginHostChecks.ExternalRefusal, StringComparison.Ordinal));
+        var refusedToggle = Find<ToggleSwitch>(Page().Card("removable")!, "PluginToggle");
+        Require(refusedToggle is { IsChecked: false, IsEnabled: false } && !loader.Registry.Active.Contains("removable"),
+            "A refused external plugin's switch shows off and cannot be used, and nothing mounts.");
         settings.Close();
 
         // A tool of a disabled plugin has no tab, strip entry or placeholder until the plugin is on.
@@ -390,9 +401,8 @@ internal static class PluginUiChecks
             window.Layout.State.Groups.All(group => window.Layout.Tabs(group.Id).All(item => item.Id != "plugin:fixture:board")),
             "A disabled plugin's tool is unavailable and listed in no group.");
         Require(!Has(window, "Tab_plugin_fixture_board") && !Has(window, "PluginToolDormant") && !Has(window, "PluginToolOpenSettings"), "A disabled plugin's tool draws nothing.");
-        var assemblies = AppDomain.CurrentDomain.GetAssemblies().Count(assembly => assembly.GetName().Name == "SharpRail.Plugins.Api");
 
-        // Enabling from Settings › Plugins mounts the UI half read from disk through the host.
+        // Enabling from Settings › Plugins mounts the UI half.
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
         settings = window.OpenSettingsViews.Single();
@@ -424,10 +434,6 @@ internal static class PluginUiChecks
         window.Layout.RestoreTool("plugin:fixture:board");
         E2eWorkspace.Until(() => Has(window, "FixtureBoard"));
         Require(Has(window, "Tab_plugin_fixture_board"), "Enabling the plugin brings its tool tab back in its saved place.");
-        var fixtureAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(assembly => assembly.GetName().Name == "SharpRail.PluginFixture.UI");
-        Require(AssemblyLoadContext.GetLoadContext(fixtureAssembly) != AssemblyLoadContext.Default, "The external UI half loads into its own context.");
-        Require(AppDomain.CurrentDomain.GetAssemblies().Count(assembly => assembly.GetName().Name == "SharpRail.Plugins.Api") == assemblies,
-            "A shared assembly shipped in the plugin directory must not load a second time.");
 
         // A state subscription round-trips through the host half: snapshot, then the push a bump publishes.
         E2eWorkspace.Until(() => Find<TextBlock>(window, "FixtureCounter").Text == "0");

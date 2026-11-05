@@ -67,9 +67,6 @@ public sealed record PluginRosterEntry(string Id, string Label, string Icon, str
     /// <summary>The loaded contract's channels by name; empty until the host half is loaded, and for a plugin without one.</summary>
     public IReadOnlyDictionary<string, PluginRosterChannel> Channels { get; init; } = new Dictionary<string, PluginRosterChannel>();
 
-    /// <summary>For an external plugin with a UI half, the manifest's UI assembly path, readable through the plugin file read.</summary>
-    public string? Ui { get; init; }
-
     /// <summary>The manifest's assets directory, when declared, for either origin.</summary>
     public string? Assets { get; init; }
 }

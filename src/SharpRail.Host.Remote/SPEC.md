@@ -128,12 +128,13 @@ dependencies from such a call.
 ## Plugins
 
 - `RemoteServer.Create` composes a `PluginRuntime` from the state directory (external plugins under
-  `<stateDir>/plugins`), the state store, the host's `PtyTerminalService` and the loopback server, starts it
+  `<stateDir>/plugins` are listed and refused), the state store, the host's `PtyTerminalService` and the loopback server, starts it
   before the first client can call, and disposes it first when the host stops, before the loopback server and
   the terminals. `PluginRpc` maps `IPluginRpc` onto it; a `PluginCallException` becomes the status code the
   contract names, and subscription streams end on application stopping.
-- The host serves every plugin file a client asks for through `ReadFileAsync`, contained in the plugin's
-  directory, so a remote host's external UI halves and assets reach the local app.
+- The host serves plugin assets a client asks for through `ReadFileAsync`, contained in the plugin's
+  directory (for an external plugin, its assets directory only), so a remote host's plugin icons reach the
+  local app.
 
 ## Loopback server: MCP and plugin routes
 

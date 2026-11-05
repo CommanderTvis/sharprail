@@ -101,7 +101,6 @@ internal static class PluginWire
             Snapshot = channel.Value.Snapshot ?? "",
             Key = channel.Value.Key.ToList()
         }).ToList(),
-        Ui = entry.Ui ?? "",
         Assets = entry.Assets ?? ""
     }).ToList();
 }

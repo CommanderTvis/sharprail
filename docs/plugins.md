@@ -95,10 +95,9 @@ Gateway settings pages.
 
 ## External plugins
 
-- Install managed plugins under `<stateDir>/plugins/<id>/`, or configure additional plugin paths.
-- External plugins arrive disabled until you enable them.
-- They can contribute side tools, launchers, file viewers, icons, settings, keyboard shortcuts and MCP tools through the same API as the
-  builtins.
-- Plugin code runs with the host or client's permissions, so install plugins you trust.
+- SharpRail finds plugins under `<stateDir>/plugins/<id>/` and in any extra plugin paths you add.
+- It lists them in Settings › Plugins, but it does not run them yet. Turning one on shows "External plugins are not supported in this version."
+- External plugins will run again once they can run apart from SharpRail's own processes. Until then, the host and the app load no code at
+  run time, so both can be built as NativeAOT.
 
 The [Plugin API contract](../src/SharpRail.Plugins.Api/SPEC.md) documents the extension points and installation format.

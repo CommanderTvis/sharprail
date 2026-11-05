@@ -7,8 +7,8 @@ using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.PluginFixture.UI;
 
-// The UI half's own copy of the fixture contract: an external UI half never references its host half's assembly,
-// and the payloads cross as JSON, so the two copies interoperate.
+// The UI half's own copy of the fixture contract: the UI half never references its host half's assembly, and the
+// payloads cross as JSON, so the two copies interoperate.
 public sealed record FixtureSettings { public string Greeting { get; init; } = "hello"; }
 public sealed record EchoParams(string Text);
 public sealed record EchoResult(string Text, string Greeting);

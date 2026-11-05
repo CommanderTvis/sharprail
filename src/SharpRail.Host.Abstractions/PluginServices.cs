@@ -25,6 +25,6 @@ public interface IPluginService
     ValueTask<object?> CallAsync(PluginCallRequest request, CancellationToken cancellationToken = default);
     /// <summary>Yields every publish on a known plugin's channel that reaches this client, until cancelled; turning the plugin off and on does not end it.</summary>
     IAsyncEnumerable<object?> SubscribeAsync(PluginSubscription subscription, CancellationToken cancellationToken = default);
-    /// <summary>Reads a file of a plugin's directory, contained in it: an external UI assembly, a sibling assembly or an asset. Null when missing.</summary>
+    /// <summary>Reads a builtin plugin's staged file, or a file in an external plugin's assets directory, contained in it. Null when missing.</summary>
     ValueTask<byte[]?> ReadFileAsync(string id, string path, CancellationToken cancellationToken = default);
 }

@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit.Editor;
 using SharpRail.UI.Notifications;
@@ -30,16 +31,19 @@ public sealed class Workbench : IDisposable
     private int highlightingVersion;
     private bool disposed;
 
-    /// <summary>Without a <paramref name="terminalTabs"/> catalog, terminal tabs are shared by this workbench's windows only.</summary>
+    /// <summary>
+    /// Without a <paramref name="terminalTabs"/> catalog, terminal tabs are shared by this workbench's windows only; without
+    /// <paramref name="pluginModules"/>, the builtin plugins' UI halves are the ones composed.
+    /// </summary>
     public Workbench(ProfileStore profile, SharedState state, Terminal.TerminalFactory terminals, bool remote, Func<IProjectServices>? sessions, IPluginService? plugins = null,
-        ITerminalCatalogService? terminalTabs = null)
+        ITerminalCatalogService? terminalTabs = null, IReadOnlyList<(PluginManifest, Func<PluginUIModule>)>? pluginModules = null)
     {
         Commands = new AppCommands(this);
         Profile = profile; State = state; Terminals = terminals; Remote = remote; this.sessions = sessions; Plugins = plugins;
         TerminalTabs = terminalTabs ?? new Host.Core.MemoryTerminalCatalog();
         _ = Task.Run(WatchTerminalsAsync);
         _ = Task.Run(WatchSignalsAsync);
-        PluginLoader = new(this);
+        PluginLoader = new(this, pluginModules);
         WorkspaceWatches = new(this, sessions);
         state.Changed += (_, _) => ProjectionChanged?.Invoke();
         state.Changed += HighlightingChanged;

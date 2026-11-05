@@ -75,9 +75,11 @@ internal sealed class E2eWorkspace : IDisposable
 
     /// <summary>
     /// A remote client of a real WebSocket RPC host at <paramref name="endpoint"/>, restoring <paramref name="startPath"/>;
-    /// with <paramref name="plugins"/> it reaches the host's plugin runtime as the app does.
+    /// with <paramref name="plugins"/> it reaches the host's plugin runtime as the app does, composing <paramref name="uiPlugins"/>
+    /// instead of the builtin UI halves when given.
     /// </summary>
-    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null, Action<ProfileStore>? prepare = null, bool compact = false)
+    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null, Action<ProfileStore>? prepare = null, bool compact = false,
+        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null)
     {
         Root = root;
         var profile = new ProfileStore(profileRoot);
@@ -92,17 +94,23 @@ internal sealed class E2eWorkspace : IDisposable
         Terminals = terminals ?? new();
         var first = true;
         Workbench = new(profile, new SharedState(service, profile.Data.Preferences), Terminals.Factory, true,
-            () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins, Terminals.Catalog)
+            () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins, Terminals.Catalog, uiPlugins)
         { Endpoint = endpoint.ToString(), Compact = compact };
         Window = latest = Workbench.Open(profile.Data.Windows[0], startPath);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();
     }
 
+    /// <summary>
+    /// A workbench on its own in-process host, as the app composes it; <paramref name="hostPlugins"/> and <paramref name="uiPlugins"/>
+    /// replace the builtin plugins' halves when given.
+    /// </summary>
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
         Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
         Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null, bool embedded = false,
-        bool pluginTerminals = false, Func<IProjectServices, IProjectServices>? wrap = null)
+        bool pluginTerminals = false, Func<IProjectServices, IProjectServices>? wrap = null,
+        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, SharpRail.Plugins.Api.Host.PluginHostModule?)>? hostPlugins = null,
+        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -125,7 +133,14 @@ internal sealed class E2eWorkspace : IDisposable
         var server = loopback = new LoopbackServer(null, State);
         // As in the app, plugins can see the host's terminals (process table, revive hooks) when a check asks for it.
         var hosted = pluginTerminals && terminals is null ? new E2eTerminals(new PtyTerminalService("/bin/sh")) : null;
-        pluginRuntime = new PluginRuntime(new() { StateDirectory = profile.DirectoryPath, State = State, PublicBaseUrl = () => server.BaseUrl, Terminals = hosted?.HostService });
+        pluginRuntime = new PluginRuntime(new()
+        {
+            StateDirectory = profile.DirectoryPath,
+            State = State,
+            PublicBaseUrl = () => server.BaseUrl,
+            Terminals = hosted?.HostService,
+            Builtins = hostPlugins ?? SharpRail.Host.Core.Plugins.BuiltinPlugins.All
+        });
         loopback.Plugins = pluginRuntime;
         pluginRuntime.Start();
         var allowsExternalFile = (Func<string, string, bool>)pluginRuntime.AllowsExternalFile;
@@ -140,7 +155,7 @@ internal sealed class E2eWorkspace : IDisposable
         var first = true;
         Workbench = new(profile, new SharedState(state?.Invoke(service) ?? service, profile.Data.Preferences, State.Current), Terminals.Factory, false,
             () => { if (!first) return new E2eHost(Services()); first = false; return Host; },
-            plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime), Terminals.Catalog)
+            plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime), Terminals.Catalog, uiPlugins)
         {
             Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null,
             Notifier = notifier,

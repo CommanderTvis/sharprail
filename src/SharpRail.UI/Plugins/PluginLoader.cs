@@ -89,23 +89,23 @@ public sealed class PluginLoader : IDisposable
         catch (Exception error) { Console.Error.WriteLine("Plugin reconcile failed: " + error); }
         if (stopped) return;
         // Queue even when already on the dispatcher: activating UI halves must not extend window construction.
-        await Dispatcher.UIThread.InvokeAsync(ReconcileAsync, DispatcherPriority.Background);
+        await Dispatcher.UIThread.InvokeAsync(Reconcile, DispatcherPriority.Background);
     }
 
-    private async Task ReconcileAsync()
+    private void Reconcile()
     {
         var roster = Registry.Roster;
         foreach (var id in activations.Keys.ToArray())
-            if (roster.FirstOrDefault(entry => entry.Id == id) is not { Status: PluginStatus.Active } entry || activations[id].Entry.Ui != entry.Ui)
+            if (roster.FirstOrDefault(entry => entry.Id == id) is not { Status: PluginStatus.Active })
                 Unmount(id);
         foreach (var entry in roster.Where(entry => entry.Status == PluginStatus.Active && !activations.ContainsKey(entry.Id)))
         {
             if (stopped) return;
-            await MountAsync(entry);
+            Mount(entry);
         }
     }
 
-    private async Task MountAsync(PluginRosterEntry entry)
+    private void Mount(PluginRosterEntry entry)
     {
         try
         {
@@ -120,11 +120,10 @@ public sealed class PluginLoader : IDisposable
                 }
                 module = builtin.Load();
             }
-            else if (entry.Ui is not null)
+            else if (entry.Origin == PluginOrigin.External)
             {
-                if (Service is not { } service) return;
-                var type = await Task.Run(() => ExternalPlugins.LoadAsync(service, entry));
-                module = (PluginUIModule)Activator.CreateInstance(type)!;
+                Console.Error.WriteLine($"Plugin {entry.Id} stays dormant: external plugins are not supported in this version.");
+                return;
             }
             var current = Registry.Entry(entry.Id);
             if (stopped || current is not { Status: PluginStatus.Active }) return;

@@ -76,11 +76,11 @@ internal sealed class PluginEntry(PluginManifest manifest, PluginOrigin origin)
     public PluginOrigin Origin { get; } = origin;
     public string? Directory { get; set; }
     public PluginHostModule? Module { get; set; }
-    public string? Hash { get; set; }
     public PluginStatus State { get; set; } = PluginStatus.Disabled;
     public string? Reason { get; set; }
-    // Refused for a dependency in the last pass, rather than for its manifest, contract or a cycle: each pass decides again.
-    public bool DependencyRefused { get; set; }
+    // Refused by the last pass, for a dependency or as an external plugin, rather than for its manifest, contract or a
+    // cycle: each pass decides again.
+    public bool PassRefused { get; set; }
     public ActivationTables? Activation { get; set; }
     public string Id => Manifest.Id;
     public int WireVersion => Module?.Contract.WireVersion ?? Manifest.WireVersion;
@@ -95,7 +95,6 @@ internal sealed class PluginEntry(PluginManifest manifest, PluginOrigin origin)
         Contributes = Manifest.Contributes,
         Channels = Module?.Contract.Channels.ToDictionary(channel => channel.Name, channel => new PluginRosterChannel(channel.Kind, channel.Snapshot, channel.Key.ToArray()))
             ?? new Dictionary<string, PluginRosterChannel>(),
-        Ui = Origin == PluginOrigin.External ? Manifest.Ui : null,
         Assets = Manifest.Assets
     };
 }

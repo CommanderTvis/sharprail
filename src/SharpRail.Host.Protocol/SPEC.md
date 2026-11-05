@@ -72,8 +72,8 @@ project: local adapters call Core directly, with no serialization.
 - Plugins: the roster (`ListAsync`, `RescanAsync`, `RetryAsync`), one generic
   `CallAsync` (plugin id, method name, params JSON → result JSON, `null` for a null
   result), one generic server-streamed `SubscribeAsync` (plugin id, channel, optional
-  key JSON → payload JSON, never a replay) and `ReadFileAsync` (a file of the
-  plugin's directory, `Found` false when missing). JSON is always `PluginJson.Options`;
+  key JSON → payload JSON, never a replay) and `ReadFileAsync` (a plugin asset,
+  `Found` false when missing). JSON is always `PluginJson.Options`;
   roster enums travel as its camelCase names and absent strings as empty. A failed
   call maps one to one: `Unknown` is `NotFound`, `Disabled` is `FailedPrecondition`,
   `InvalidParams` is `InvalidArgument` and `Failed` is `Unknown`, the message riding

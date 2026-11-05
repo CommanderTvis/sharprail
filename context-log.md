@@ -6847,3 +6847,12 @@ web host (the eleven process-bound builtins now do). Checks run: `--claude-chat-
 (the checks use a fixture speaking the RPC protocol), and the Model providers page (no UI check). No pure web host exists yet, so
 `UnavailableOn` has nothing to refuse in practice. Claude chat copy changed in three places: "Assistant" replaces "Claude" in the
 accessibility text and history filter, and "Ran at once, while the assistant was working.".
+
+## 2026-11-05 — External plugins discovered and refused (branch nativeaot)
+
+The host and the app no longer load external plugin assemblies: the host's load context, the app's external UI
+loader and the roster's UI assembly field are gone. External plugins are still discovered, listed and validated;
+switching one on refuses it with "External plugins are not supported in this version." The fixture plugin is now a
+check-only builtin the checks compose on both sides. Checks run: `--plugins`, `--plugins-settings`, `--conformance`.
+Not run: the full suite and the browser check (`tests/SharpRail.Browser.Checks/check.mjs`, retargeted to the Branch
+graph and Epub builtins plus an external refusal; only `node --check` was run).

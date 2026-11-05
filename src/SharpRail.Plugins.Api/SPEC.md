@@ -16,8 +16,9 @@ Upstream: plugin-adoption.md @ 4737df6d (CommanderTvis fork)
 
 Plugins add features to SharpRail without building them into every host and window. A plugin can
 provide host operations, terminal integrations, settings and UI surfaces. It has a manifest plus
-a host half, a UI half, or both. Builtin and separately installed plugins receive the same
-capabilities, and either can be enabled or disabled without restarting.
+a host half, a UI half, or both. Builtin plugins are compiled into the app and the remote host, and
+each can be enabled or disabled without restarting. Separately installed plugins are discovered and
+listed, but refused until they can run isolated from SharpRail's processes.
 
 ```mermaid
 flowchart TB
@@ -36,7 +37,7 @@ communicate; it does not implement the runtimes themselves.
 Read [when to use a plugin](#when-something-should-be-a-plugin) and [stability](#stability) first.
 The remaining sections are the detailed authoring contract: names, capabilities, lifecycle and
 failure rules. Exact signatures belong in generated API documentation and analyzer baselines.
-The builtin Specs plugin and an external fixture exercise these same boundaries.
+The builtin Specs plugin and a check-only fixture plugin exercise these same boundaries.
 
 ## Responsibility
 
@@ -69,6 +70,12 @@ defining it.
 
 Capability parity is deliberate. Most of the features this contract is measured against are external work, so
 a capability restricted to builtin plugins would be unavailable to almost every consumer it has.
+
+External plugins do not run in this version. The host discovers them and lists them in the roster, and refuses
+one that is enabled, with the reason "External plugins are not supported in this version." Neither the host nor
+the app loads an external assembly, so both are free of dynamic code loading and can be published as
+NativeAOT. External plugins come back once they can run isolated from SharpRail's processes; until then, the
+manifest format and the capabilities stay as described here.
 
 ## Stability
 
@@ -179,12 +186,11 @@ flowchart LR
     HC --> HA
     HC --> AH
     HC --> PBH
-    HC -.->|"host assembly, loaded by path"| IP
+    HC -.->|"manifest and assets, read only"| IP
     PBH --> AH
     UI --> AU
     UI --> K
     UI --> PBU
-    UI -.->|"UI assembly, read through the host"| IP
     PBU --> AU
     PBU --> K
 ```
@@ -239,7 +245,7 @@ names and enum values, unknown members refused).
 | `enabledByDefault` | honoured for builtin plugins; an external plugin always arrives disabled |
 | `dependsOn` | other plugins, by id and exact wire version |
 | `unavailableOn` | host kinds the plugin cannot run on (`pureWeb`: a host that lives in a browser tab with no operating system under it). A host of a listed kind refuses the plugin before load, naming the kind, and refuses its dependents with it; empty means everywhere. A plugin that needs a shell, a process or a socket lists `pureWeb` |
-| `host`, `ui` | relative paths of the two entry assemblies; each holds exactly one public concrete `PluginHostModule` / `PluginUIModule` subclass |
+| `host`, `ui` | relative paths of the two entry assemblies; each holds exactly one public concrete `PluginHostModule` / `PluginUIModule` subclass. An external plugin's are never loaded in this version |
 | `assets` | optional directory the host hands the host half (`AssetsDirectory`) and serves to the UI half (`ReadAssetAsync`, W19), for either origin |
 | `contributes` | the statically known parts: side tools with label, icon, default side and whether they need Git; file viewers with extensions, names and read strategy |
 | `pi` | ThinkRail's agent block; parsed so a shared manifest reads, and ignored, since SharpRail has no in-process agent |
@@ -266,21 +272,19 @@ flowchart LR
         B2["referenced by SharpRail.UI, listed in its builtin array"]
     end
     subgraph i["external · installed by the user"]
-        I1["loaded by path into a plugin load context on the host"]
-        I2["read through the host, loaded into a plugin load context in the app"]
+        I1["manifest read and listed; refused when enabled"]
     end
     MAN --> B1
     MAN --> I1
     HOST --> B1
-    HOST --> I1
     UIH --> B2
-    UIH --> I2
 ```
 
 Both paths hand the halves the same contexts. A builtin plugin is a set of projects (contract, host half, UI
 half) under `src/`, with its own `SPEC.md`; its host half may not reference `SharpRail.Host.*`, and its UI half
 may not reference `SharpRail.UI`, which project references make checkable rather than conventional. An external
 plugin is a directory holding the manifest, the built assemblies with their own dependencies, and any assets.
+SharpRail reads its manifest and its assets, and never loads its assemblies into the host or the app.
 
 ### The shared UI runtime
 
@@ -288,11 +292,9 @@ A UI half cannot carry its own copy of Avalonia, the API or the kit, because two
 process are two sets of types: a `Control` from the plugin's copy is not a `Control` to the app. Three rules
 follow, replacing the fork's window registry and stylesheet rules.
 
-Every external plugin assembly loads into its own collectible-off `AssemblyLoadContext`. The context resolves
-the shared assemblies (the .NET framework, Avalonia and its dependencies, SkiaSharp, the three API assemblies
-and the UI kit) from the default context, so types unify, and loads everything else from the plugin's own
-directory. A plugin's build references those shared assemblies without copying them (`Private="false"` /
-`ExcludeAssets="runtime"`); a copy shipped anyway is ignored rather than loaded.
+Every UI half is compiled into the app through the builtin array, so it binds to the app's own Avalonia, API
+assemblies and kit, and types unify. Nothing loads an assembly into the app at runtime: an external UI half
+is not loaded at all, since a separate copy of the UI runtime is what isolation from the app would need.
 
 A plugin styles itself with the kit's brushes and fonts (`Ui`), which are what a theme change rewrites. A
 plugin that writes literal colours will stop following theme changes, and nothing will report it.
@@ -307,16 +309,16 @@ documented in the kit's own spec.
 
 Discovery reads one directory, `<stateDir>/plugins`, plus any extra roots in `HostState.PluginPaths`. Projects,
 worktrees, and repository checkouts are never scanned, so a cloned repository cannot place executable code in a
-host. A plugin is code in the host process and in the app.
+host. A builtin plugin is code in the host process and in the app; an external plugin's code runs in neither.
 
 A discovered plugin is listed in Settings › Plugins as installed and off, with its label, version, any manifest
-problems, and its declared contributions. Enabling it is the roster toggle and an explicit per-plugin action.
-Nothing enables an external plugin automatically, including a project, a settings change from another client,
-or an upgrade.
+problems, and its declared contributions. Enabling it refuses it with its reason, and nothing loads. Nothing
+enables an external plugin automatically, including a project, a settings change from another client, or an
+upgrade.
 
 There is no sandbox. A host half runs in the host process with its privileges and without crash isolation,
-and a UI half runs in the app. A fault can take down the host or the app, and a malicious plugin has access to
-the user's machine. The trust model is the install decision plus the enable toggle.
+and a UI half runs in the app, so a fault can take down the host or the app. A builtin plugin is trusted as
+part of the build. An external plugin is not run until it can run isolated from SharpRail's processes.
 
 ### Depending on another plugin
 
@@ -331,8 +333,7 @@ A dependency is declared in the manifest and grants three things.
   dependent-first in both runtimes. A cycle is refused at load.
 - Types. The dependent may reference the dependency's contract project. For a builtin dependency that is a
   project reference; for an external one it is a copy of the contract the dependent's author vendors, where the
-  wire version makes drift visible. Because payloads cross load contexts as JSON, two copies of a contract
-  interoperate.
+  wire version makes drift visible. Because payloads cross as JSON, two copies of a contract interoperate.
 - Calls. The dependent may invoke the dependency's declared methods and subscribe to its channels through
   `Dependency(contract)`. In the app this is the ordinary plugin call path. On the host the runtime dispatches
   in process.
@@ -380,11 +381,11 @@ UI context alone, which is what allows it to live outside this repository.
    and a build error rather than a review comment.
 2. The public-API listings and `GenerateDocumentationFile` (see Stability) fail the build on an unlisted or
    undocumented public symbol.
-3. The checks pin `PluginApi.Generation`, load the fixture plugin from a temporary plugin root, and assert that
-   a shared assembly shipped in a plugin directory is not loaded a second time.
-4. Plugin checks live in `tests/SharpRail.Checks` beside the other host and UI checks; the fixture plugin's
-   projects live under `tests/` and build into a plugin directory the checks install from disk, since that is
-   the path almost every plugin in scope takes.
+3. The checks pin `PluginApi.Generation`, and assert that an external plugin in a temporary plugin root is
+   listed, refused when enabled with its reason, and loads no code.
+4. Plugin checks live in `tests/SharpRail.Checks` beside the other host and UI checks. The fixture plugin's
+   projects live under `tests/`, and the checks compose them as a check-only builtin on both sides, so every
+   capability path runs as it does for a shipped plugin. The fixture never ships in the app.
 
 ## Loading, composition, the enable gate
 
@@ -392,12 +393,14 @@ Builtin plugins are composed statically in both runtimes: a literal array of hos
 `SharpRail.Host.Core/Plugins/BuiltinPlugins.cs`, and a literal array of manifest plus UI half in
 `SharpRail.UI/Plugins/BuiltinPlugins.cs`. Both begin with the spec dialect plugin.
 
-External plugins are discovered and then loaded from disk. When the host starts, it lists `<stateDir>/plugins`
-and every root in `HostState.PluginPaths`, reads each manifest, and refuses an id that does not match its
-directory or an API generation that differs. For each enabled plugin it loads the host assembly into a plugin
-load context and serves the UI assembly, its sibling assemblies and any assets through the plugin file read. A
-manifest that does not parse, a missing entry, an assembly without exactly one module type, or a throwing load
-marks the plugin failed or refused with its reason, and the host continues.
+External plugins are discovered and refused. When the host starts, it lists `<stateDir>/plugins` and every root
+in `HostState.PluginPaths`, reads each manifest, and refuses a manifest that does not parse, an id that does not
+match its directory, or an API generation that differs. A valid external plugin arrives disabled. Enabling it
+refuses it: a missing or refused dependency gives that reason first, and otherwise the reason is "External
+plugins are not supported in this version." Turning it off returns it to disabled. No external assembly loads,
+and the plugin file read serves only the external plugin's assets. This keeps the host and the app free of
+dynamic code loading, so both can be published as NativeAOT, until external plugins can run isolated from
+SharpRail's processes.
 
 Extra roots are host state rather than a separate file, so they are validated, broadcast, and editable from
 Settings like anything else, and a plugin found in one still arrives disabled.
@@ -422,7 +425,8 @@ installing a plugin does not need a restart either, but nothing watches the dire
 executable code would reload on every partial write.
 
 UI activation runs from the app's plugin runtime once the workbench has its host. Each plugin whose roster row
-is active and whose wire version matches is loaded, from the builtin array or through the host, and activated.
+is active and whose wire version matches is taken from the builtin array and activated; an external row stays
+dormant even if a host reports it active.
 Manifests from the roster are always known, so the tool catalog knows every plugin tool, active or not, and a disabled plugin's tool can be hidden
 without its saved slot being lost.
 
@@ -434,7 +438,9 @@ flowchart TB
     gen -->|no| refused["roster: refused, with the reason"]
     gen -->|yes| dep{"dependencies present, enabled, same wire version?"}
     dep -->|no| refused
-    dep -->|yes| act["activate, dependencies first"]
+    dep -->|yes| ext{"builtin?"}
+    ext -->|no, external| refused
+    ext -->|yes| act["activate, dependencies first"]
     act -->|returned| active["roster: active"]
     act -->|threw| failed["roster: failed · dependents refused"]
     active --> serve["serve clients"]
@@ -452,7 +458,7 @@ explained.
 ```mermaid
 stateDiagram-v2
     [*] --> known: builtin, in the build · or external, found at start or rescan
-    known --> refused: generation mismatch · missing dependency · cycle · unavailable on this host kind
+    known --> refused: generation mismatch · missing dependency · cycle · unavailable on this host kind · external and enabled
     known --> disabled: enable flag off
     known --> active: enabled and activation returned
     known --> failed: enabled and activation threw
@@ -461,7 +467,7 @@ stateDiagram-v2
     active --> failed: reactivation threw
     failed --> active: retried and activation returned
     failed --> disabled: toggled off
-    refused --> disabled: rescan, once the cause is fixed on disk
+    refused --> disabled: rescan, once the cause is fixed on disk · an external plugin toggled off
 ```
 
 Every transition is live and publishes the roster. None of them requires a restart, including recovery from
@@ -469,8 +475,8 @@ Every transition is live and publishes the roster. None of them requires a resta
 
 ## Enabling and disabling at runtime
 
-Every plugin can be turned on and off while the app runs. There is no restart of the host and no restart of the
-app, for builtin and external plugins alike.
+Every builtin plugin can be turned on and off while the app runs. There is no restart of the host and no restart
+of the app.
 
 ### One reconciler, not a toggle handler
 
@@ -513,8 +519,8 @@ turning a plugin off and on again is not a reset.
 
 ### Enabling, host side
 
-The assembly is loaded if it is not already resident, then activation runs and its registrations take effect
-immediately. If activation throws, the row becomes `failed` with the reason, desired state stays on so the user
+Activation runs and its registrations take effect immediately: a builtin plugin's code is already in the
+process, and an external plugin is refused instead. If activation throws, the row becomes `failed` with the reason, desired state stays on so the user
 can see that it is enabled and broken, and the Settings row offers a retry that triggers another reconcile.
 
 ### The app runs the same reconcile
@@ -523,9 +529,8 @@ The roster is the contract between the host and the app. The app's runtime treat
 `HostState` snapshot as desired state, and the set of activated UI halves as actual state. Reconnecting after a
 dropped connection is therefore not a special case.
 
-Disabling unmounts a plugin's contributions and drops its registrations. It does not unload the assembly: load
-contexts are not collectible here, so re-enabling re-activates without loading anything again and the memory
-is not reclaimed. A user toggling repeatedly pays for each updated version they load.
+Disabling unmounts a plugin's contributions and drops its registrations. Nothing is unloaded, since every UI
+half is compiled into the app, so re-enabling re-activates without loading anything.
 
 One rule makes this safe in Avalonia: every contribution's control is created by the plugin's factory inside a
 host control the runtime owns per plugin and per mount, and removing a plugin removes those host controls, so
@@ -559,9 +564,8 @@ disabled error, which the runtime treats as expected during teardown rather than
 
 ### What is hot, and what is not
 
-Enabling and disabling are hot for every plugin. Installing is hot after a rescan. Updating a plugin in place
-is hot as well: both runtimes key a plugin's load context by the content hash of its entry assembly, so changed
-bytes load into a new context; the previous context stays resident, which is the cost of not restarting.
+Enabling and disabling are hot for every builtin plugin. Installing, updating or removing an external plugin
+shows in the roster after a rescan; it stays refused when enabled.
 
 Two things are deliberately not hot. A running shell keeps the environment it was given at start, since there is
 no way to restamp a live process, so a plugin's environment contribution reaches only shells started after it.
@@ -590,8 +594,8 @@ There is one generic method and one generic stream, not a WebSocket RPC service 
 key → payloads). Over WebSocket RPC the params, results and payloads are JSON bytes written with `PluginJson.Options`. In
 the app's own host the call is direct, with no serialization, as with every other host service: params and
 results stay objects, and `PluginJson.Convert` turns a value into the declared type, passing an instance of
-that type through untouched and converting anything else (a JSON element from the wire, or an equivalent type
-from another load context) through JSON.
+that type through untouched and converting anything else (a JSON element from the wire, or an equivalent
+object) through JSON.
 
 A state channel names a snapshot method and its key fields, mapping the channel's scope onto that method's
 params. This is architecture Decision 8 expressed in types: a channel keyed per workspace or per terminal needs
@@ -627,8 +631,8 @@ roster.
 The one-time core edit covers: `IPluginService` in `Host.Abstractions` and its WebSocket RPC contract; the roster,
 `PluginSettings`, `PluginPaths`, `TerminalAgents` and `Platform` on `HostState`, with the `plugin-settings`
 and `plugin-paths` changes; and the `plugin:` tool ids the layout accepts. Carrying label, icon, and
-contributions on the roster is what lets the app know an external plugin's contributions without loading its
-code. Status alone encodes enablement.
+contributions on the roster is what lets the app list an external plugin and its contributions without loading
+its code. Status alone encodes enablement.
 
 A plugin's declared methods have one implementation and two callers: the app, through `IPluginService`, and a
 dependent plugin's host half, in process.
@@ -856,7 +860,8 @@ the layout.
 
 Contributing into another plugin's surfaces, and cross-plugin UI composition; optional dependencies and version
 ranges; any registry, marketplace, installer, updater, or signature check, since installing is a copy into a
-directory; sandboxing or crash isolation; unloading a disabled plugin's assemblies; compatibility shims for an
+directory; sandboxing or crash isolation, and so running external plugins at all; loading any assembly at
+runtime, in the host or the app; compatibility shims for an
 older generation; plugin centre-tab kinds, layout intents, and layout modes; plugin-defined theme tokens; a host
 event bus; core agent-kind detection; a generic settings form rendered by core, since a plugin has the kit and
 can ship a real section; native menu contributions; runtime validation of results and pushes; and an

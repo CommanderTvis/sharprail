@@ -13,10 +13,10 @@ Upstream: packages/server/src/plugins/SPEC.md @ 4737df6d (CommanderTvis fork)
 
 ## Responsibility
 
-Turns plugin host halves (builtin, from `BuiltinPlugins.All`; or external, from
-`<stateDir>/plugins/<id>/sharprail-plugin.json` plus every root in `HostState.PluginPaths`) into one running
+Turns the builtin plugin host halves (`BuiltinPlugins.All`) and the external plugins it discovers
+(`<stateDir>/plugins/<id>/sharprail-plugin.json` plus every root in `HostState.PluginPaths`) into one running
 `PluginRuntime`: a roster the host publishes on its shared state, a method/channel/route dispatcher, the MCP
-tools a terminal's agent sees, the plugin file read the app loads UI halves and assets through, and the
+tools a terminal's agent sees, the plugin file read the app reads assets through, and the
 terminal, workspace and settings fan-out every active plugin's host context subscribed to. `PluginRuntime` is
 the composition root and implements `IPluginService`; every other file in `Plugins/` is a leaf it wires
 together. The contract it implements is [the plugin API](../SharpRail.Plugins.Api/SPEC.md).
@@ -41,12 +41,12 @@ implemented here and never redeclared.
 | `PluginHostContext.cs` | `IPluginHostContext` for one activation, with the live activation compare |
 | `PluginRegistry.cs` | entries, activation tables with the drain counter, topological order, contract intake |
 | `PluginDiscovery.cs` | manifest intake and the scan of plugin roots |
-| `PluginLoadContext.cs` | the external host half's load context, keyed by directory and content hash |
 | `WorkspaceFileWatcher.cs` | one activation's coalescing lease on the shared workspace watcher pool (`OnFilesChanged`); idempotent admission, released on removal, project close and deactivation |
 | `BuiltinPlugins.cs` | Builtin plugin manifests and their optional host modules; PDF preview and file icons are core functionality |
 
 The runtime runs where the host runs: in the app's process for its own host, inside `SharpRail.Host.Remote` for a
-remote host. A remote client never runs a host half.
+remote host. A remote client never runs a host half. Only builtin host halves run: an external plugin is listed
+and refused, and nothing here loads an assembly at runtime, which keeps the host publishable as NativeAOT.
 
 ## Shared chat contract
 
@@ -73,16 +73,18 @@ entry takes its place; the reverse (valid to invalid) tears down any live activa
 a refused placeholder the same way. `Failed` is terminal until `RetryAsync(id)` moves it back to `Disabled`, or until its settings turn it off: the
 reconciler never retries a failed plugin on its own, so one plugin's crash cannot become a retry storm.
 
-Upserting an unchanged manifest (a rescan re-discovering an active plugin whose directory is untouched) is a
-no-op beyond refreshing its directory: module, state and activation stay. Only a genuinely different manifest, or
-a different content hash of an entry assembly, drops the stale module and resets the state to `Disabled` so the
-reconciler loads and activates the new one on its next pass. Dropping the module unconditionally would leave an
-active entry with no module that the reconciler never touches again, answering `Unknown` from then on.
+Upserting an unchanged manifest (a rescan re-discovering an external plugin whose directory is untouched) is a
+no-op beyond refreshing its directory. A genuinely different manifest resets the state to `Disabled`, so the
+next pass decides again.
 
 The reconciler computes, per plugin, `desired = explicit PluginSettings[id].enabled ?? (builtin ?
 manifest.EnabledByDefault : false)`, ANDed with every dependency being known, not failed or refused, at the
 declared wire version, and itself desired, computed dependency-first over the registry's topological order so a
-dependency's desiredness is resolved before its dependent reads it. External plugins never auto-enable. Changing a builtin's
+dependency's desiredness is resolved before its dependent reads it. External plugins never auto-enable. An
+enabled external plugin is never desired: after the dependency check, which gives its reason first, the pass
+marks it `Refused` with "External plugins are not supported in this version." Like a dependency refusal, this
+one is decided again on every pass, so turning the plugin off returns it to `Disabled`. Activation refuses an
+external entry the same way, so no path reaches its code. Changing a builtin's
 `EnabledByDefault` needs no migration: profiles with an explicit stored `enabled` keep it, profiles without one
 follow the new default. Renaming a builtin's id moves its stored namespace in `HostStateStore` once at load (Air Governance's `air-governance` became `air-gateway`; see HostState.SPEC.md); plugin RPC routes are keyed by the id, so old and new ids never share a route.
 A plugin whose manifest lists the host's kind (`PluginHostSeams.Kind`, default
@@ -151,22 +153,18 @@ Manifest intake refuses, each with a reason naming the plugin: JSON that does no
 `PluginManifest` (the reason names the path), an id that is not a plugin id or differs from the directory name,
 and an `ApiGeneration` other than `PluginApi.Generation` (naming the declared and the host's generation).
 
-## The external load seam
+## No external code
 
-An external host half loads into a `PluginLoadContext`, one per plugin directory and content hash of the entry
-assembly. The context resolves the shared assemblies (the framework, the API assemblies, and anything already
-loaded in the default context by the same name) from the default context, so the plugin's `PluginHostModule`
-is the host's type, and resolves everything else from the plugin's own directory. A changed entry assembly
-hashes differently and loads into a new context; the previous context stays resident, since contexts here are
-not collectible. The entry assembly must expose exactly one public concrete `PluginHostModule` subclass with a
-public parameterless constructor; zero, several, or a throwing constructor marks the plugin failed with that
-reason. The module's `Contract.Id` must equal the manifest id.
+External plugins have no load seam. The host never loads an external host half, and the app never receives an
+external UI half: both stay free of dynamic code loading so they can be published as NativeAOT, until external
+plugins can run isolated from SharpRail's processes. A builtin module's `Contract.Id` must still equal its
+manifest id.
 
 The plugin file read serves a requested path under the plugin's own directory and refuses anything that would
-escape it, including through a symbolic link. It is how the app reads an external UI assembly, its sibling
-assemblies, and the assets of either origin. A builtin plugin's assets are staged at `plugins/<id>/<assets>`
-under the host's output directory and served the same way, so a manifest-only builtin needs no host half to
-serve its assets.
+escape it, including through a symbolic link. A builtin plugin's assets are staged at `plugins/<id>/<assets>`
+under the host's output directory and served from there, so a manifest-only builtin needs no host half to serve
+its assets. For an external plugin it serves only paths inside the manifest's assets directory, so its icon can
+show in Settings while its assemblies and everything else stay unread.
 
 ## Settings namespaces
 
@@ -293,9 +291,12 @@ failed-not-retried-until-retry, coalesced scheduling), dispatch (unknown plugin,
 validation error naming the path, a subscription surviving disable and enable), settings (two namespaces
 surviving separate writes, an invalid namespace refusing the batch, defaults filled alongside `enabled`),
 tools (arguments validated before the run, a running call counted toward the drain), the file read (round trip,
-containment, missing file), and the whole composition (discovery then disabled, settings enable then a method
-answers, a route serving, rescan promoting a fixed manifest, shutdown running disposers dependents-first). The
-fixture plugin under `tests/` is the external plugin these load from disk.
+containment, missing file, an external plugin's assets only), external plugins (arriving disabled, refused when
+enabled with the plain reason and no assembly loaded, off again when turned off, a directory claiming a
+builtin's id, a builtin depending on one refused with it, a rescan promoting a fixed manifest, a missing
+dependency named), and the whole composition (the fixture disabled at first, settings enable then a method
+answers, a route serving, shutdown running disposers dependents-first). The fixture plugin under `tests/` is
+composed as a check-only builtin; it never ships.
 
 ## Agent instruction sections
 
@@ -363,8 +364,9 @@ save without depending on any plugin id.
 - Workspace auto-naming hints.
 - `WorkspaceUpdated` for a branch switch: the host learns of workspace changes only from the published
   workspace lists and labels, so it fires on creation, removal and relabelling.
-- Serving a plugin's static assets on its HTTP route, as the fork did for its web bundle; the app reads UI
-  assemblies and assets through `ReadFileAsync` instead.
+- Serving a plugin's static assets on its HTTP route, as the fork did for its web bundle; the app reads assets
+  through `ReadFileAsync` instead.
+- Loading an external plugin's host half, in process or isolated: external plugins are listed and refused.
 
 The builtin factory accepts the Tailscale plugin's serving bridge from composition. Its host module owns
 bootstrap pairing and grants; Core only constructs it alongside the other builtins. Ordinary plugin

@@ -101,7 +101,7 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   know about; features record the version that introduced them beside it (`ChangeWritePath` 2,
   `RequestReplay` 3). Version 0 means a host that predates the handshake.
 - `IPluginService` is the host's plugin runtime: the roster (also on every `HostState` snapshot), rescan and
-  retry, the generic plugin call and channel subscription, and reads of a plugin directory's files. Payloads
+  retry, the generic plugin call and channel subscription, and reads of a plugin's assets. Payloads
   are typed objects in process and JSON elements after the wire; plugin settings namespaces and extra plugin
   roots are host state, changed through `HostStateChange.PluginSettings`/`PluginEnabled`/`PluginPaths`. See
   `src/SharpRail.Plugins.Api/SPEC.md`.

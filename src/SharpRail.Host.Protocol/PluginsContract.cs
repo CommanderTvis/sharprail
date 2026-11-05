@@ -55,7 +55,6 @@ public sealed class PluginRosterMessage
     [ProtoMember(11)] public List<PluginSideToolMessage> SideTools { get; set; } = [];
     [ProtoMember(12)] public List<PluginFileViewerMessage> FileViewers { get; set; } = [];
     [ProtoMember(13)] public List<PluginChannelMessage> Channels { get; set; } = [];
-    [ProtoMember(14)] public string Ui { get; set; } = "";
     [ProtoMember(15)] public string Assets { get; set; } = "";
     [ProtoMember(16)] public string Category { get; set; } = "";
     [ProtoMember(17)] public string Support { get; set; } = "";

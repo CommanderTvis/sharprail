@@ -27,9 +27,9 @@ active workspace and editor, opening, revealing, notifying) act on the app's act
 - The registry (`PluginRegistry.cs`, `PluginIcons.cs`) references the API assemblies and the UI kit. It is a
   pure leaf: no `Workbench`, `WorkbenchWindow`, `SharedState`, docking or host reference, so any of them can
   read it back without a cycle.
-- The loader (`PluginLoader.cs`, `BuiltinPlugins.cs`, `ExternalPlugins.cs`, `PluginUIContext.cs`,
-  `EditorEvents.cs`) references the registry, the API assemblies, `IPluginService`, `SharedState`, the
-  profile, and the workbench's own operations it binds context members to. Only `Workbench` creates it.
+- The loader (`PluginLoader.cs`, `BuiltinPlugins.cs`, `PluginUIContext.cs`, `EditorEvents.cs`) references the registry, the API assemblies, `IPluginService`, `SharedState`, the
+  profile, and the workbench's own operations it binds context members to. Only `Workbench` creates it, with
+  the builtin array unless its composer hands it another list (the checks add their fixture this way).
 
 ## Boundary
 
@@ -40,8 +40,7 @@ required scope is absent. Payloads that are themselves collections retain their 
 
 - Owns: the registry (manifests and roster, the active set, one append-only, plugin-tagged list per
   contribution kind, and the read selectors the workbench consumes) and the loader (the builtin array, the
-  external assembly load and refusal path, the `IPluginUIContext` binding, the editor-event emitter, and the
-  roster-to-activation reconciler).
+  `IPluginUIContext` binding, the editor-event emitter, and the roster-to-activation reconciler).
 - The workbench reads registered contributions and icons and controls plugin loading through
   the runtime boundary; it does not reach into individual plugins.
 - Forbidden: the registry reaching into the loader, `SharedState`, the host, or any window. Every live host or
@@ -94,13 +93,10 @@ and roster registration still precede reconciliation, preserving dormant tools a
 - Builtin UI halves are a literal array in `BuiltinPlugins.cs`: a manifest and a factory for its
   `PluginUIModule` per plugin, including Spec Dialect, Blueprint, Claude Code and Discord. The manifests are registered before any roster arrives,
   so a persisted `plugin:<id>:<tool>` tab renders its placeholder with the right label and icon.
-- An external UI half loads through the host: `IPluginService.ReadFileAsync(id, entry.Ui)` returns the entry
-  assembly's bytes, which load into a `PluginLoadContext` keyed by plugin id and content hash. The context
-  resolves the shared assemblies (the framework, Avalonia and its dependencies, SkiaSharp, the API assemblies,
-  the kit) from the default context and fetches any other assembly it asks for as
-  `<directory of the entry>/<name>.dll` through the same read, off the UI thread. The assembly must expose
-  exactly one public concrete `PluginUIModule` subclass with a public parameterless constructor. Loading
-  never blocks the UI thread; activation runs on it.
+- No assembly loads into the app at runtime. An external plugin's UI half is never loaded: the host refuses an
+  enabled external plugin, and an external row a host reports active anyway stays dormant and logged. This keeps
+  the app free of dynamic code loading, so it can be published as NativeAOT, until external plugins can run
+  isolated from SharpRail's processes. Activation runs on the UI thread.
 - A plugin declares its contributions synchronously, during `Activate`. An activation guard is open only while
   `Activate` runs (closed in a `finally`, so a throwing activation still closes it), and every registration
   member checks it first and throws otherwise. This is what makes `RemovePlugin(id)` a complete cleanup: a
@@ -113,8 +109,7 @@ and roster registration still precede reconciliation, preserving dormant tools a
   for the same id that a rapid toggle would otherwise trigger.
 - A failed activation, or a wire-version mismatch, leaves the plugin out of the active set: dormant, logged, not
   thrown at the caller. For a builtin plugin the mismatch check compares its array manifest's `WireVersion` with
-  the roster row's before anything loads. An external plugin is trusted, since its assembly and the manifest
-  behind the roster row come from the same directory. A broken plugin degrades to inert placeholders instead
+  the roster row's before anything loads. A broken plugin degrades to inert placeholders instead
   of taking the reconciler down and blocking every other plugin.
 - `Settings<T>()` and `Host().AppSettings` read from the latest `HostState` snapshot through one projection;
   `UpdateSettingsAsync` sends a `plugin-settings` change and completes when a snapshot carrying the new value
@@ -224,12 +219,14 @@ Both walks are pure functions over the roster, and the checks call them directly
 `tests/SharpRail.Checks/PluginUiChecks.cs`: the registry's removal and ordering rules on a fake roster; the two
 dependency walks; the loader against builtin modules on a stand-in host (`E2E/FakePluginHost.cs`), which alone can
 list builtin UI halves with another wire version or a throwing activation and push off-scope channel values;
-activation outside `Activate` refused. The fixture plugin then runs end to end through the real host, once in
-process and once remote over WebSocket RPC: installed from disk beside a refused and a removable copy, a dormant tool
-placeholder turning live with the tab instance kept, its UI half loaded through the host, its side tool,
-Settings section (with a settings update reaching the host half) and file viewer mounted, a call and a state
-subscription round-tripping, every contribution gone after disabling it from Settings › Plugins, Rescan dropping
-a plugin deleted from disk, and a shared assembly in the plugin directory not loaded twice.
+activation outside `Activate` refused. The fixture plugin, composed as a check-only builtin on both sides, then
+runs end to end through the real host, once in process and once remote over WebSocket RPC, beside two external
+plugins in the host's state directory: one built for another generation, and one listed as external and
+disabled, refused with its plain reason when switched on, its switch then off and unusable, and nothing mounted.
+The fixture's dormant tool placeholder turns live with the tab instance kept; its side tool, Settings section
+(with a settings update reaching the host half) and file viewer mount; a call and a state subscription
+round-trip; every contribution goes after disabling it from Settings › Plugins; and Rescan drops an external
+plugin deleted from disk.
 
 ## Implementation notes
 

@@ -319,6 +319,21 @@
           "SharpRail.Host.Protocol": "[1.0.0, )"
         }
       },
+      "sharprail.pluginfixture.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
+      "sharprail.pluginfixture.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.4, )",
+          "SharpRail.Plugins.Api": "[1.0.0, )",
+          "SharpRail.Plugins.Api.UI": "[1.0.0, )",
+          "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.acp": {
         "type": "Project",
         "dependencies": {

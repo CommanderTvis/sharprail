@@ -38,7 +38,6 @@ stamp="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
 # The packaged gate combines checks with the client's shipped components, so the checks publish apart and non-composite.
 "$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true --no-restore \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o "$output/checks"
-cp -R tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture "$output/checks/"
 
 app="$output/AppDir"
 payload="$app/usr/lib/sharprail"

@@ -9,7 +9,8 @@ status: implemented
 
 The browser runs the same workbench as the desktop remote client. Feature parity is the contract: projects
 and workspaces, docking and windows, files and editable source, resource previews, Git and Review,
-terminal sharing and agent integrations, settings, and builtin and compatible external plugin UI.
+terminal sharing and agent integrations, settings, and builtin plugin UI. External plugins are listed and
+refused, as in the desktop app.
 Workspace files, Git, native processes, plugin hosts and shells run exclusively on the connected host.
 The browser contributes connection, browser window surfaces, view-state persistence and platform services.
 
