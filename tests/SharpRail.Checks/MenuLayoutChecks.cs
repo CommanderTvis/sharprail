@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -29,10 +30,12 @@ internal static class MenuLayoutChecks
         split.Items.Add(Ui.Menu("Right", () => { }));
         menu.Items.Add(split);
         anchor.ContextMenu = menu;
-        menu.Open(anchor);
+        var born = Born(menu);
+        RequestContext(anchor);
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
+        BornWideEnough("tab menu with submenu chevron", menu, born);
 
         var items = menu.Items.OfType<MenuItem>().ToArray();
         var widest = items.Max(item => item.DesiredSize.Width);
@@ -84,17 +87,20 @@ internal static class MenuLayoutChecks
         var split = new MenuItem { Header = "Split" };
         split.Items.Add(Ui.Menu("Right", () => { }));
         menu.Items.Add(split);
+        // A plugin's row arrives while the menu opens, before the popup is shown.
+        menu.Opening += (_, _) =>
+        {
+            var copy = Ui.Menu("Copy session ID", () => { });
+            copy.Icon = Ui.Icon("terminal", size: 14);
+            menu.Items.Insert(2, copy);
+        };
         anchor.ContextMenu = menu;
-        menu.Open(anchor);
+        var born = Born(menu);
+        RequestContext(anchor);
         // The popup is sized from this first pass, before the shared icon column has settled across the rows.
         (TopLevel.GetTopLevel(menu) as Avalonia.Layout.Layoutable)?.UpdateLayout();
+        BornWideEnough("terminal tab menu with a plugin row inserted at Opening", menu, born);
         IconsInside("terminal tab menu, first pass", menu);
-        // A plugin row with an icon arriving once the popup is already sized.
-        var copy = Ui.Menu("Copy session ID", () => { });
-        copy.Icon = Ui.Icon("terminal", size: 14);
-        menu.Items.Insert(2, copy);
-        (TopLevel.GetTopLevel(menu) as Avalonia.Layout.Layoutable)?.UpdateLayout();
-        IconsInside("terminal tab menu, late row", menu);
         Dispatcher.UIThread.RunJobs();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
@@ -102,6 +108,29 @@ internal static class MenuLayoutChecks
         menu.Close();
         window.Close();
         Console.WriteLine("PASS menu layout: the terminal tab menu keeps plugin-inserted icons inside its bounds");
+    }
+
+    // The width the menu holds right after Opened fires, before the deferred re-measure: what a native popup is sized from.
+    // What a right click does: the context request raises Opening and then opens the menu (ContextMenu.Open alone raises no Opening).
+    private static void RequestContext(Control anchor) =>
+        anchor.RaiseEvent(new Avalonia.Input.ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent, Source = anchor });
+
+    private static Func<double> Born(ContextMenu menu)
+    {
+        var width = double.NaN;
+        menu.Opened += (_, _) => width = Math.Max(menu.Width is var w && !double.IsNaN(w) ? w : 0, menu.MinWidth);
+        return () => width;
+    }
+
+    private static void BornWideEnough(string name, ContextMenu menu, Func<double> born)
+    {
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        var rows = menu.Items.OfType<MenuItem>().ToArray();
+        var needed = rows.Max(row => row.DesiredSize.Width) + menu.Padding.Left + menu.Padding.Right + menu.BorderThickness.Left + menu.BorderThickness.Right;
+        Console.WriteLine($"{name}: born {born():0.#}, widest row needs {needed:0.#}");
+        Require(born() >= needed - 0.5, $"{name}: the popup is born {born():0.#} wide but its widest row needs {needed:0.#}.");
     }
 
     private static void IconsInside(string name, ContextMenu menu)

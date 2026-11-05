@@ -50,6 +50,20 @@ public sealed partial class App : Application
         // popup sized from that pass is narrower than its rows (clipping the icons and chevrons of mixed menus), so measure again.
         MenuBase.OpenedEvent.AddClassHandler<ContextMenu>((menu, _) =>
             Avalonia.Threading.Dispatcher.UIThread.Post(menu.InvalidateMeasure, Avalonia.Threading.DispatcherPriority.Render));
+        // A native popup keeps the frame it is born with, so the menu's width must already be the settled one when it opens:
+        // settle the shared columns synchronously as it opens (Opened runs inside Open, before the popup's first layout pass, with the menu styled; Opening runs while it is detached and measures 0) (and whenever rows arrive or change their icon) and pin it as MinWidth.
+        Control.ContextMenuProperty.Changed.AddClassHandler<Control>((_, change) =>
+        {
+            if (change.NewValue is ContextMenu menu && SizedMenus.TryAdd(menu, menu))
+            {
+                menu.Opened += (_, _) => SettleMenuWidth(menu);
+                if (menu.Items is System.Collections.Specialized.INotifyCollectionChanged items) items.CollectionChanged += (_, _) => SettleMenuWidth(menu);
+            }
+        });
+        MenuItem.IconProperty.Changed.AddClassHandler<MenuItem>((item, _) =>
+        {
+            if (item.Parent is ContextMenu menu) SettleMenuWidth(menu);
+        });
         // A window does not inherit its owner's theme variant, and Fluent colours every stock control from it: a dialog,
         // Settings or plugin window would otherwise follow the OS appearance instead of the theme. Workbench windows
         // pass theirs on to owned windows when the theme changes.
@@ -87,6 +101,24 @@ public sealed partial class App : Application
         }
 #endif
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ContextMenu, ContextMenu> SizedMenus = [];
+
+    // Measures the menu with no width limit until its desired width stops changing (the shared icon, shortcut and chevron
+    // columns need a second pass), then makes that the minimum width so the popup frame is big enough from the start.
+    internal static void SettleMenuWidth(ContextMenu menu)
+    {
+        menu.MinWidth = 0;
+        var width = -1.0;
+        for (var pass = 0; pass < 6; pass++)
+        {
+            menu.InvalidateMeasure();
+            menu.Measure(Size.Infinity);
+            if (Math.Abs(menu.DesiredSize.Width - width) < 0.01) break;
+            width = menu.DesiredSize.Width;
+        }
+        menu.MinWidth = Math.Ceiling(menu.DesiredSize.Width);
     }
 
     // The icon presenter is 16 wide with a 12 margin: the room a row's icon needs in the icon column from the first pass.
