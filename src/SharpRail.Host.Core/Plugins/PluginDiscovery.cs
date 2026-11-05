@@ -14,7 +14,7 @@ public static class PluginDiscovery
     public static (PluginManifest? Manifest, string? Refused) ReadManifest(string json, string? directoryName)
     {
         PluginManifest? manifest;
-        try { manifest = JsonSerializer.Deserialize<PluginManifest>(json, PluginJson.Options); }
+        try { manifest = PluginJson.Deserialize<PluginManifest>(json); }
         catch (JsonException error) { return (null, "invalid manifest: " + PluginErrors.Describe(error)); }
         if (manifest is null) return (null, "invalid manifest: $: expected an object");
         if (!PluginIdentity.IsPluginId(manifest.Id)) return (null, $"invalid manifest: $.id: \"{manifest.Id}\" is not a plugin id");

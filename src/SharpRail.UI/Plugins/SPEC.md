@@ -92,7 +92,10 @@ and roster registration still precede reconciliation, preserving dormant tools a
 
 - Builtin UI halves are a literal array in `BuiltinPlugins.cs`: a manifest and a factory for its
   `PluginUIModule` per plugin, including Spec Dialect, Blueprint, Claude Code and Discord. The manifests are registered before any roster arrives,
-  so a persisted `plugin:<id>:<tool>` tab renders its placeholder with the right label and icon.
+  so a persisted `plugin:<id>:<tool>` tab renders its placeholder with the right label and icon. Beside it,
+  `BuiltinPlugins.Contracts` lists their contracts, whose JSON contexts the loader registers with `PluginJson`
+  when it is built: a UI half may read its settings or call a method before anything has created its contract,
+  as in an app connected only to a remote host.
 - No assembly loads into the app at runtime. An external plugin's UI half is never loaded: the host refuses an
   enabled external plugin, and an external row a host reports active anyway stays dormant and logged. This keeps
   the app free of dynamic code loading, so it can be published as NativeAOT, until external plugins can run

@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
+using SharpRail.Plugins.Api;
+
 namespace SharpRail.Plugins.SpecDialect;
 
 public sealed record SpecGrepParams([property: Description("Regex or substring to search for within spec files.")] string Pattern)
@@ -78,3 +80,13 @@ public sealed record SpecUpdateParams([property: Description("Id of the spec to 
     public Dictionary<string, IReadOnlyList<string>>? AddList { get; init; }
     public Dictionary<string, IReadOnlyList<string>>? RemoveList { get; init; }
 }
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<SpecSliceDirection>), typeof(PluginJson.EnumConverter<SpecEdgeKind>), typeof(PluginJson.EnumConverter<SpecType>), typeof(PluginJson.EnumConverter<SpecStatus>)])]
+[JsonSerializable(typeof(SpecGrepParams))]
+[JsonSerializable(typeof(SpecGetParams))]
+[JsonSerializable(typeof(SpecDeleteParams))]
+[JsonSerializable(typeof(SpecValidateParams))]
+[JsonSerializable(typeof(SpecGraphToolParams))]
+[JsonSerializable(typeof(SpecCreateParams))]
+[JsonSerializable(typeof(SpecUpdateParams))]
+internal sealed partial class SpecHostJson : JsonSerializerContext;

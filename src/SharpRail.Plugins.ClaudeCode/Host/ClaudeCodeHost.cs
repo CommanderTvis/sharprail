@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using System.Text.Json.Serialization.Metadata;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -14,6 +15,8 @@ namespace SharpRail.Plugins.ClaudeCode.Host;
 public sealed class ClaudeCodeHost : PluginHostModule
 {
     public override PluginContract Contract => ClaudeCodeContract.Contract;
+
+    public override IJsonTypeInfoResolver Json => Chat.ClaudeCodeHostJson.Default;
 
     public override async ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {

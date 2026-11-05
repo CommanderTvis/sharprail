@@ -130,10 +130,10 @@ SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspacesAsync(string? projectId 
 SharpRail.Plugins.Api.Host.IPluginHostContext.WriteState<T>(string! name, T value) -> void
 SharpRail.Plugins.Api.Host.IPluginHostContext.WriteTerminal(SharpRail.Plugins.Api.TerminalRef! terminal, string! data) -> void
 SharpRail.Plugins.Api.Host.IPluginLogger
-SharpRail.Plugins.Api.Host.IPluginLogger.Debug(string! message, object? fields = null) -> void
-SharpRail.Plugins.Api.Host.IPluginLogger.Error(string! message, object? fields = null) -> void
-SharpRail.Plugins.Api.Host.IPluginLogger.Info(string! message, object? fields = null) -> void
-SharpRail.Plugins.Api.Host.IPluginLogger.Warn(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.Host.IPluginLogger.Debug(string! message, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? fields = null) -> void
+SharpRail.Plugins.Api.Host.IPluginLogger.Warn(string! message, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? fields = null) -> void
+SharpRail.Plugins.Api.Host.IPluginLogger.Info(string! message, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? fields = null) -> void
+SharpRail.Plugins.Api.Host.IPluginLogger.Error(string! message, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? fields = null) -> void
 SharpRail.Plugins.Api.Host.PluginCall
 SharpRail.Plugins.Api.Host.PluginCall.<Clone>$() -> SharpRail.Plugins.Api.Host.PluginCall!
 SharpRail.Plugins.Api.Host.PluginCall.ClientKey.get -> string!
@@ -287,6 +287,7 @@ static SharpRail.Plugins.Api.Host.WorkspaceRemoved.operator ==(SharpRail.Plugins
 static SharpRail.Plugins.Api.Host.WorkspaceUpdated.operator !=(SharpRail.Plugins.Api.Host.WorkspaceUpdated? left, SharpRail.Plugins.Api.Host.WorkspaceUpdated? right) -> bool
 static SharpRail.Plugins.Api.Host.WorkspaceUpdated.operator ==(SharpRail.Plugins.Api.Host.WorkspaceUpdated? left, SharpRail.Plugins.Api.Host.WorkspaceUpdated? right) -> bool
 virtual SharpRail.Plugins.Api.Host.PluginDisposer.Invoke() -> System.Threading.Tasks.ValueTask
+virtual SharpRail.Plugins.Api.Host.PluginHostModule.Json.get -> System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver?
 virtual SharpRail.Plugins.Api.Host.TerminalEvent.EqualityContract.get -> System.Type!
 virtual SharpRail.Plugins.Api.Host.TerminalEvent.Equals(SharpRail.Plugins.Api.Host.TerminalEvent? other) -> bool
 virtual SharpRail.Plugins.Api.Host.TerminalEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool

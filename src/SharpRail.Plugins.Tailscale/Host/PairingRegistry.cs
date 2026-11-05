@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace SharpRail.Plugins.Tailscale.Host;
 
@@ -93,3 +94,7 @@ internal sealed class PairingRegistry(IReadOnlyList<ApprovedDevice> restored, Ac
         foreach (var key in pending.Where(entry => entry.Value.Expires <= Now).Select(entry => entry.Key).ToArray()) pending.Remove(key);
     }
 }
+
+[JsonSerializable(typeof(ApprovedDevice[]))]
+[JsonSerializable(typeof(IReadOnlyList<ApprovedDevice>))]
+internal sealed partial class TailscaleHostJson : JsonSerializerContext;

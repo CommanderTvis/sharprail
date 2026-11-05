@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Chat;
 
@@ -6,18 +8,18 @@ namespace SharpRail.Plugins.Acp;
 public sealed record AcpSettings
 {
     /// <summary>The agent a new chat starts, by entry id; blank asks the user.</summary>
-    public string DefaultAgent { get; init; } = "";
+    public string DefaultAgent { get; set; } = "";
 }
 
 /// <summary>An agent the user can chat with: how to start it. Registry installs fill <see cref="Version"/> and <see cref="Source"/>; custom agents leave them blank.</summary>
 public sealed record AcpAgentEntry(string Id, string Name, string Command)
 {
-    public IReadOnlyList<string> Args { get; init; } = [];
-    public IReadOnlyDictionary<string, string> Env { get; init; } = new Dictionary<string, string>();
+    public IReadOnlyList<string> Args { get; set; } = [];
+    public IReadOnlyDictionary<string, string> Env { get; set; } = new Dictionary<string, string>();
     /// <summary>The directory the agent runs in; blank is the workspace.</summary>
-    public string Cwd { get; init; } = "";
+    public string Cwd { get; set; } = "";
     /// <summary>"custom" or "registry".</summary>
-    public string Origin { get; init; } = "custom";
+    public string Origin { get; set; } = "custom";
     public string? Version { get; init; }
     public string? Description { get; init; }
     /// <summary>Whether the agent is offered by the launcher. A turned-off agent stays configured.</summary>
@@ -79,5 +81,21 @@ public static class AcpContract
 
     /// <summary>The chat contract is shared with the other chat plugins: ACP serves its methods and its updates channel.</summary>
     public static readonly PluginContract Contract = PluginContract.Create<AcpSettings>(AcpManifest.Id, WireVersion,
-        [.. ChatContract.Methods, Agents, AddAgent, Choose, Registry, InstallPlan, Install, RemoveAgent, Icons], [ChatContract.Updates]);
+        [.. ChatContract.Methods, Agents, AddAgent, Choose, Registry, InstallPlan, Install, RemoveAgent, Icons], [ChatContract.Updates],
+        AcpJson.Default, ChatContract.Json);
 }
+
+[JsonSerializable(typeof(AcpSettings))]
+[JsonSerializable(typeof(AcpNoParams))]
+[JsonSerializable(typeof(AcpAgentList))]
+[JsonSerializable(typeof(AcpAgentEntry))]
+[JsonSerializable(typeof(AcpChooseParams))]
+[JsonSerializable(typeof(Ack))]
+[JsonSerializable(typeof(AcpRegistryParams))]
+[JsonSerializable(typeof(AcpRegistryView))]
+[JsonSerializable(typeof(AcpInstallPlanParams))]
+[JsonSerializable(typeof(AcpInstallPlan))]
+[JsonSerializable(typeof(AcpInstallRequest))]
+[JsonSerializable(typeof(AcpIconParams))]
+[JsonSerializable(typeof(AcpIconSet))]
+internal sealed partial class AcpJson : JsonSerializerContext;

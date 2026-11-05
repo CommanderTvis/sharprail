@@ -1,7 +1,7 @@
 #nullable enable
 abstract SharpRail.Plugins.Api.PluginToolDefinition.RunAsync(object! parameters, SharpRail.Plugins.Api.PluginToolContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.PluginToolResult!>
-const SharpRail.Plugins.Api.PluginApi.Generation = 1 -> int
 const SharpRail.Plugins.Api.PluginIdentity.IdPattern = "^[a-z0-9]+(?:-[a-z0-9]+)*$" -> string!
+const SharpRail.Plugins.Api.PluginApi.Generation = 2 -> int
 const SharpRail.Plugins.Api.PluginManifest.FileName = "sharprail-plugin.json" -> string!
 override SharpRail.Plugins.Api.HostProject.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.HostProject.GetHashCode() -> int
@@ -109,6 +109,7 @@ SharpRail.Plugins.Api.PluginChannelSpec.PayloadType.get -> System.Type!
 SharpRail.Plugins.Api.PluginChannelSpec.Snapshot.get -> string?
 SharpRail.Plugins.Api.PluginContract
 SharpRail.Plugins.Api.PluginContract.Channels.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>!
+SharpRail.Plugins.Api.PluginContract.Json.get -> System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>!
 SharpRail.Plugins.Api.PluginContract.Id.get -> string!
 SharpRail.Plugins.Api.PluginContract.Methods.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>!
 SharpRail.Plugins.Api.PluginContract.SettingsType.get -> System.Type?
@@ -117,10 +118,10 @@ SharpRail.Plugins.Api.PluginContributions
 SharpRail.Plugins.Api.PluginContributions.<Clone>$() -> SharpRail.Plugins.Api.PluginContributions!
 SharpRail.Plugins.Api.PluginContributions.Equals(SharpRail.Plugins.Api.PluginContributions? other) -> bool
 SharpRail.Plugins.Api.PluginContributions.FileViewers.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginFileViewerContribution!>!
-SharpRail.Plugins.Api.PluginContributions.FileViewers.init -> void
+SharpRail.Plugins.Api.PluginContributions.FileViewers.set -> void
 SharpRail.Plugins.Api.PluginContributions.PluginContributions() -> void
 SharpRail.Plugins.Api.PluginContributions.SideTools.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginSideToolContribution!>!
-SharpRail.Plugins.Api.PluginContributions.SideTools.init -> void
+SharpRail.Plugins.Api.PluginContributions.SideTools.set -> void
 SharpRail.Plugins.Api.PluginDependency
 SharpRail.Plugins.Api.PluginDependency.<Clone>$() -> SharpRail.Plugins.Api.PluginDependency!
 SharpRail.Plugins.Api.PluginDependency.Deconstruct(out string! Id, out int WireVersion) -> void
@@ -137,14 +138,16 @@ SharpRail.Plugins.Api.PluginFileViewerContribution
 SharpRail.Plugins.Api.PluginFileViewerContribution.<Clone>$() -> SharpRail.Plugins.Api.PluginFileViewerContribution!
 SharpRail.Plugins.Api.PluginFileViewerContribution.Equals(SharpRail.Plugins.Api.PluginFileViewerContribution? other) -> bool
 SharpRail.Plugins.Api.PluginFileViewerContribution.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginFileViewerContribution.Extensions.init -> void
+SharpRail.Plugins.Api.PluginFileViewerContribution.Extensions.set -> void
 SharpRail.Plugins.Api.PluginFileViewerContribution.Names.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginFileViewerContribution.Names.init -> void
+SharpRail.Plugins.Api.PluginFileViewerContribution.Names.set -> void
 SharpRail.Plugins.Api.PluginFileViewerContribution.PluginFileViewerContribution() -> void
 SharpRail.Plugins.Api.PluginFileViewerContribution.Read.get -> SharpRail.Plugins.Api.PluginFileRead
-SharpRail.Plugins.Api.PluginFileViewerContribution.Read.init -> void
+SharpRail.Plugins.Api.PluginFileViewerContribution.Read.set -> void
 SharpRail.Plugins.Api.PluginIdentity
 SharpRail.Plugins.Api.PluginJson
+SharpRail.Plugins.Api.PluginJson.EnumConverter<TEnum>
+SharpRail.Plugins.Api.PluginJson.EnumConverter<TEnum>.EnumConverter() -> void
 SharpRail.Plugins.Api.PluginManifest
 SharpRail.Plugins.Api.PluginManifest.<Clone>$() -> SharpRail.Plugins.Api.PluginManifest!
 SharpRail.Plugins.Api.PluginManifest.ApiGeneration.get -> int
@@ -152,10 +155,10 @@ SharpRail.Plugins.Api.PluginManifest.ApiGeneration.init -> void
 SharpRail.Plugins.Api.PluginManifest.Assets.get -> string?
 SharpRail.Plugins.Api.PluginManifest.Assets.init -> void
 SharpRail.Plugins.Api.PluginManifest.Contributes.get -> SharpRail.Plugins.Api.PluginContributions!
-SharpRail.Plugins.Api.PluginManifest.Contributes.init -> void
+SharpRail.Plugins.Api.PluginManifest.Contributes.set -> void
 SharpRail.Plugins.Api.PluginManifest.Deconstruct(out string! Id, out string! Label, out string! Icon, out string! Version, out int ApiGeneration, out int WireVersion) -> void
 SharpRail.Plugins.Api.PluginManifest.DependsOn.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginDependency!>!
-SharpRail.Plugins.Api.PluginManifest.DependsOn.init -> void
+SharpRail.Plugins.Api.PluginManifest.DependsOn.set -> void
 SharpRail.Plugins.Api.PluginManifest.Description.get -> string?
 SharpRail.Plugins.Api.PluginManifest.Description.init -> void
 SharpRail.Plugins.Api.PluginManifest.EnabledByDefault.get -> bool
@@ -191,14 +194,14 @@ SharpRail.Plugins.Api.PluginPiBlock
 SharpRail.Plugins.Api.PluginPiBlock.<Clone>$() -> SharpRail.Plugins.Api.PluginPiBlock!
 SharpRail.Plugins.Api.PluginPiBlock.Equals(SharpRail.Plugins.Api.PluginPiBlock? other) -> bool
 SharpRail.Plugins.Api.PluginPiBlock.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginPiBlock.Extensions.init -> void
+SharpRail.Plugins.Api.PluginPiBlock.Extensions.set -> void
 SharpRail.Plugins.Api.PluginPiBlock.ModifiesSystemPrompt.get -> bool
 SharpRail.Plugins.Api.PluginPiBlock.ModifiesSystemPrompt.init -> void
 SharpRail.Plugins.Api.PluginPiBlock.PluginPiBlock() -> void
 SharpRail.Plugins.Api.PluginPiBlock.ReachesSubagents.get -> bool
 SharpRail.Plugins.Api.PluginPiBlock.ReachesSubagents.init -> void
 SharpRail.Plugins.Api.PluginPiBlock.Skills.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.PluginPiBlock.Skills.init -> void
+SharpRail.Plugins.Api.PluginPiBlock.Skills.set -> void
 SharpRail.Plugins.Api.PluginRosterChannel
 SharpRail.Plugins.Api.PluginRosterChannel.<Clone>$() -> SharpRail.Plugins.Api.PluginRosterChannel!
 SharpRail.Plugins.Api.PluginRosterChannel.Deconstruct(out SharpRail.Plugins.Api.PluginChannelKind Kind, out string? Snapshot, out System.Collections.Generic.IReadOnlyList<string!>! Key) -> void
@@ -328,9 +331,9 @@ static SharpRail.Plugins.Api.HostWorkspace.operator ==(SharpRail.Plugins.Api.Hos
 static SharpRail.Plugins.Api.PluginChannel<TPayload>.Event(string! name) -> SharpRail.Plugins.Api.PluginChannel<TPayload>!
 static SharpRail.Plugins.Api.PluginChannel<TPayload>.State<TParams>(string! name, SharpRail.Plugins.Api.PluginMethod<TParams, System.Collections.Generic.IReadOnlyList<TPayload>!>! snapshot, params System.Collections.Generic.IReadOnlyList<string!>! key) -> SharpRail.Plugins.Api.PluginChannel<TPayload>!
 static SharpRail.Plugins.Api.PluginChannel<TPayload>.State<TParams>(string! name, SharpRail.Plugins.Api.PluginMethod<TParams, TPayload>! snapshot, params System.Collections.Generic.IReadOnlyList<string!>! key) -> SharpRail.Plugins.Api.PluginChannel<TPayload>!
-static SharpRail.Plugins.Api.PluginContract.Create(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>! channels) -> SharpRail.Plugins.Api.PluginContract!
-static SharpRail.Plugins.Api.PluginContract.Create<TSettings>(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>! channels) -> SharpRail.Plugins.Api.PluginContract!
 static SharpRail.Plugins.Api.PluginContributions.operator !=(SharpRail.Plugins.Api.PluginContributions? left, SharpRail.Plugins.Api.PluginContributions? right) -> bool
+static SharpRail.Plugins.Api.PluginContract.Create(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>! channels, params System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>! json) -> SharpRail.Plugins.Api.PluginContract!
+static SharpRail.Plugins.Api.PluginContract.Create<TSettings>(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>! channels, params System.Collections.Generic.IReadOnlyList<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver!>! json) -> SharpRail.Plugins.Api.PluginContract!
 static SharpRail.Plugins.Api.PluginContributions.operator ==(SharpRail.Plugins.Api.PluginContributions? left, SharpRail.Plugins.Api.PluginContributions? right) -> bool
 static SharpRail.Plugins.Api.PluginDependency.operator !=(SharpRail.Plugins.Api.PluginDependency? left, SharpRail.Plugins.Api.PluginDependency? right) -> bool
 static SharpRail.Plugins.Api.PluginDependency.operator ==(SharpRail.Plugins.Api.PluginDependency? left, SharpRail.Plugins.Api.PluginDependency? right) -> bool
@@ -345,6 +348,15 @@ static SharpRail.Plugins.Api.PluginIdentity.Route(string! id, string! subpath = 
 static SharpRail.Plugins.Api.PluginIdentity.StateFile(string! id, string! name) -> string!
 static SharpRail.Plugins.Api.PluginIdentity.ToolId(string! id, string! tool) -> string!
 static SharpRail.Plugins.Api.PluginJson.Convert<T>(object? value) -> T
+static SharpRail.Plugins.Api.PluginJson.ToElement(object? value) -> System.Text.Json.JsonElement
+static SharpRail.Plugins.Api.PluginJson.TypeInfo(System.Type! type) -> System.Text.Json.Serialization.Metadata.JsonTypeInfo!
+static SharpRail.Plugins.Api.PluginJson.TypeInfo<T>() -> System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>!
+static SharpRail.Plugins.Api.PluginJson.Serialize<T>(T value) -> string!
+static SharpRail.Plugins.Api.PluginJson.SerializeToElement<T>(T value) -> System.Text.Json.JsonElement
+static SharpRail.Plugins.Api.PluginJson.SerializeToUtf8Bytes<T>(T value) -> byte[]!
+static SharpRail.Plugins.Api.PluginJson.Register(System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver! resolver) -> void
+static SharpRail.Plugins.Api.PluginJson.Deserialize<T>(System.Text.Json.JsonElement element) -> T?
+static SharpRail.Plugins.Api.PluginJson.Deserialize<T>(string! json) -> T?
 static SharpRail.Plugins.Api.PluginJson.Options.get -> System.Text.Json.JsonSerializerOptions!
 static SharpRail.Plugins.Api.PluginManifest.operator !=(SharpRail.Plugins.Api.PluginManifest? left, SharpRail.Plugins.Api.PluginManifest? right) -> bool
 static SharpRail.Plugins.Api.PluginManifest.operator ==(SharpRail.Plugins.Api.PluginManifest? left, SharpRail.Plugins.Api.PluginManifest? right) -> bool
@@ -454,9 +466,9 @@ const SharpRail.Plugins.Api.PluginCategories.VersionControl = "Version Control" 
 static SharpRail.Plugins.Api.PluginCategories.Order.get -> System.Collections.Generic.IReadOnlyList<string!>!
 SharpRail.Plugins.Api.InstructionSection
 SharpRail.Plugins.Api.InstructionSection.Description.get -> string!
-SharpRail.Plugins.Api.InstructionSection.Description.init -> void
+SharpRail.Plugins.Api.InstructionSection.Description.set -> void
 SharpRail.Plugins.Api.InstructionSection.Enabled.get -> bool
-SharpRail.Plugins.Api.InstructionSection.Enabled.init -> void
+SharpRail.Plugins.Api.InstructionSection.Enabled.set -> void
 SharpRail.Plugins.Api.InstructionSection.Id.get -> string!
 SharpRail.Plugins.Api.InstructionSection.Id.init -> void
 SharpRail.Plugins.Api.InstructionSection.InstructionSection() -> void
@@ -470,16 +482,16 @@ SharpRail.Plugins.Api.InstructionSection.Title.get -> string!
 SharpRail.Plugins.Api.InstructionSection.Title.init -> void
 SharpRail.Plugins.Api.InstructionSectionList
 SharpRail.Plugins.Api.InstructionSectionList.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.InstructionSectionList.Diagnostics.init -> void
+SharpRail.Plugins.Api.InstructionSectionList.Diagnostics.set -> void
 SharpRail.Plugins.Api.InstructionSectionList.IgnoredEditsPath.get -> string?
 SharpRail.Plugins.Api.InstructionSectionList.IgnoredEditsPath.init -> void
 SharpRail.Plugins.Api.InstructionSectionList.InstructionSectionList() -> void
 SharpRail.Plugins.Api.InstructionSectionList.Path.get -> string!
-SharpRail.Plugins.Api.InstructionSectionList.Path.init -> void
+SharpRail.Plugins.Api.InstructionSectionList.Path.set -> void
 SharpRail.Plugins.Api.InstructionSectionList.Sections.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.InstructionSection!>!
-SharpRail.Plugins.Api.InstructionSectionList.Sections.init -> void
+SharpRail.Plugins.Api.InstructionSectionList.Sections.set -> void
 SharpRail.Plugins.Api.InstructionSectionList.UnknownDisabled.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Plugins.Api.InstructionSectionList.UnknownDisabled.init -> void
+SharpRail.Plugins.Api.InstructionSectionList.UnknownDisabled.set -> void
 SharpRail.Plugins.Api.InstructionSectionQuery
 SharpRail.Plugins.Api.InstructionSectionQuery.InstructionSectionQuery() -> void
 SharpRail.Plugins.Api.InstructionSectionQuery.WorkspaceId.get -> string!
@@ -499,7 +511,7 @@ SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.init -> void
 SharpRail.Plugins.Api.PluginManifest.Support.get -> string?
 SharpRail.Plugins.Api.PluginManifest.Support.init -> void
 SharpRail.Plugins.Api.PluginManifest.UnavailableOn.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostKind>!
-SharpRail.Plugins.Api.PluginManifest.UnavailableOn.init -> void
+SharpRail.Plugins.Api.PluginManifest.UnavailableOn.set -> void
 SharpRail.Plugins.Api.PluginRosterEntry.Support.get -> string?
 SharpRail.Plugins.Api.PluginRosterEntry.Support.init -> void
 SharpRail.Plugins.Api.PluginSupportLevels

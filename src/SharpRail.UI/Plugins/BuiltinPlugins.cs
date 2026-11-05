@@ -62,4 +62,17 @@ public static class BuiltinPlugins
         (GitHubContract.Manifest, () => new GitHubUI()),
         (EnvContract.Manifest, () => new EnvUI())
     ];
+
+    /// <summary>
+    /// The contracts of the plugins above, whose JSON contexts the loader registers before any UI half runs: a UI
+    /// half may read its settings before it touches a descriptor, and an app connected only to a remote host
+    /// creates no host half that would register them.
+    /// </summary>
+    public static IReadOnlyList<PluginContract> Contracts =>
+    [
+        SpecDialectContract.Contract, BlueprintContract.Contract, ClaudeCodeContract.Contract, DiscordContract.Contract, BranchGraphContract.Contract,
+        ProcessesContract.Contract, VisualizeContract.Contract, CodexContract.Contract, OmpContract.Contract, PiContract.Contract, AcpContract.Contract,
+        ProvidersContract.Contract, AirGatewayContract.Contract, AirContextContract.Contract, TailscaleContract.Contract, EpubContract.Contract,
+        GitHubContract.Contract, EnvContract.Contract
+    ];
 }

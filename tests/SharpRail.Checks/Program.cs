@@ -773,6 +773,7 @@ internal static class Program
         if (args.SequenceEqual(["--plugins"]))
         {
             PluginHostChecks.Run(root).GetAwaiter().GetResult();
+            PluginJsonChecks.Run(root).GetAwaiter().GetResult();
             SpecDialectChecks.Run(root).GetAwaiter().GetResult();
             BlueprintChecks.Run(root).GetAwaiter().GetResult();
             ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
@@ -1203,6 +1204,11 @@ internal static class Program
             E2E.MarkdownAlertsE2E.Run(e2e);
             E2E.MarkdownDocumentE2E.Run(e2e);
             MarkdownHtmlTableChecks.Run();
+            return;
+        }
+        if (args.SequenceEqual(["--plugin-json"]))
+        {
+            PluginJsonChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--plugins-settings"]))

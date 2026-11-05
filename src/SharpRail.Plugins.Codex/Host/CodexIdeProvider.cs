@@ -46,7 +46,7 @@ internal sealed class CodexIdeProvider : IDisposable
         catch (Exception error) when (error is IOException or ArgumentException or UnauthorizedAccessException) { Warn(error); }
     }
 
-    private void Warn(Exception error) => context.Log.Warn("Codex IDE context connection failed", new { error = error.Message });
+    private void Warn(Exception error) => context.Log.Warn("Codex IDE context connection failed", new Dictionary<string, string> { ["error"] = error.Message });
 
     private static string SocketPath()
     {

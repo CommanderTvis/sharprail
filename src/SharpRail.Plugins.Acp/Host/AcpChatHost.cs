@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -239,3 +240,7 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         return new([.. paths]);
     }
 }
+
+[JsonSerializable(typeof(Dictionary<string, AcpChatRecord>))]
+[JsonSerializable(typeof(List<AcpAgentEntry>))]
+internal sealed partial class AcpHostJson : JsonSerializerContext;

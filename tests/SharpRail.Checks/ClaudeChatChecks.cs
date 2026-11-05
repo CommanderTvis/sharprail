@@ -154,7 +154,7 @@ internal static class ClaudeChatChecks
 
         public void Watch(string chatId)
         {
-            var updates = Runtime.SubscribeAsync(new("claude-code", "chatUpdates", new { workspaceId = Project, chatId }, "chat-client"), Stop.Token);
+            var updates = Runtime.SubscribeAsync(new("claude-code", "chatUpdates", new ChatKey(Project, chatId), "chat-client"), Stop.Token);
             _ = Task.Run(async () =>
             {
                 try { await foreach (var payload in updates) Pushes.Enqueue(PluginJson.Convert<ChatPush>(payload!)); }
@@ -406,6 +406,7 @@ internal static class ClaudeChatChecks
             store.Save();
             Require(saved.Keys.All(key => key.StartsWith("other\0", StringComparison.Ordinal)) && saved.Count == 1, "A removed workspace's drafts are dropped and the drop is saved.");
         }
+        PluginJson.Register(SharpRail.Plugins.ClaudeCode.Host.Chat.ClaudeCodeHostJson.Default);
         var json = JsonSerializer.Serialize(saved, PluginJson.Options);
         var back = JsonSerializer.Deserialize<Dictionary<string, SharpRail.Plugins.ClaudeCode.Host.Chat.StoredDraft>>(json, PluginJson.Options)!;
         using var reloaded = new SharpRail.Plugins.ClaudeCode.Host.Chat.ChatDrafts(() => back, _ => { }, _ => { }, _ => { });

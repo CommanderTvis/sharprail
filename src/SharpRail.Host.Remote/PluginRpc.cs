@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Host.Protocol;
@@ -20,13 +21,13 @@ public sealed class PluginRpc(PluginRuntime plugins, IHostApplicationLifetime li
     public async ValueTask<PluginCallReply> CallAsync(PluginCallMessage request, CallContext context = default)
     {
         JsonElement parameters;
-        try { parameters = request.ParamsJson.Length == 0 ? default : JsonSerializer.Deserialize<JsonElement>(request.ParamsJson); }
+        try { parameters = request.ParamsJson.Length == 0 ? default : JsonSerializer.Deserialize(request.ParamsJson, PluginJson.TypeInfo<JsonElement>()); }
         catch (JsonException error) { throw Map(new PluginCallException(PluginCallError.InvalidParams, "Params are not JSON: " + error.Message)); }
         try
         {
             var result = await plugins.CallAsync(new(request.PluginId, request.Method,
                 parameters.ValueKind == JsonValueKind.Undefined ? null : parameters, request.ClientKey), context.CancellationToken);
-            return new() { ResultJson = PluginWire.Json(result) };
+            return new() { ResultJson = PluginWire.Json(result, plugins.ResultTypeInfo(request.PluginId, request.Method)) };
         }
         catch (PluginCallException error) { throw Map(error); }
     }
@@ -35,16 +36,17 @@ public sealed class PluginRpc(PluginRuntime plugins, IHostApplicationLifetime li
     {
         // Streams end with the host so a graceful shutdown does not wait for subscribers.
         using var call = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
-        object? key = request.KeyJson.Length == 0 ? null : JsonSerializer.Deserialize<JsonElement>(request.KeyJson);
+        object? key = request.KeyJson.Length == 0 ? null : JsonSerializer.Deserialize(request.KeyJson, PluginJson.TypeInfo<JsonElement>());
         IAsyncEnumerable<object?> pushes;
         try { pushes = plugins.SubscribeAsync(new(request.PluginId, request.Channel, key, request.ClientKey), call.Token); }
         catch (PluginCallException error) { throw Map(error); }
+        var payload = plugins.PayloadTypeInfo(request.PluginId, request.Channel);
         await using var reader = pushes.GetAsyncEnumerator(call.Token);
         while (true)
         {
             try { if (!await reader.MoveNextAsync()) yield break; }
             catch (OperationCanceledException) when (lifetime.ApplicationStopping.IsCancellationRequested) { yield break; }
-            yield return new() { PayloadJson = PluginWire.Json(reader.Current) };
+            yield return new() { PayloadJson = PluginWire.Json(reader.Current, payload) };
         }
     }
 
@@ -62,7 +64,10 @@ public sealed class PluginRpc(PluginRuntime plugins, IHostApplicationLifetime li
 
 internal static class PluginWire
 {
-    internal static byte[] Json(object? value) => JsonSerializer.SerializeToUtf8Bytes(value, value?.GetType() ?? typeof(object), PluginJson.Options);
+    // A value is written as its contract's declared type when known: its runtime type may be a compiler-made
+    // collection or a derived type that needs its base's discriminator.
+    internal static byte[] Json(object? value, JsonTypeInfo? declared = null) =>
+        value is null ? "null"u8.ToArray() : JsonSerializer.SerializeToUtf8Bytes(value, declared ?? PluginJson.TypeInfo(value.GetType()));
 
     private static string Name<T>(T value) where T : struct, Enum => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
 

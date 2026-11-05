@@ -149,9 +149,9 @@ internal static class CodexE2E
 
         public void Settings(object settings)
         {
-            var json = JsonSerializer.Serialize(settings, SharpRail.Plugins.Api.PluginJson.Options);
+            var json = JsonSerializer.Serialize(settings);
             _ = App.Workbench.State.ChangeAsync(HostStateChange.PluginSettings(CodexManifest.Id, json));
-            E2eWorkspace.Until(() => JsonSerializer.SerializeToElement(settings, SharpRail.Plugins.Api.PluginJson.Options).EnumerateObject()
+            E2eWorkspace.Until(() => JsonSerializer.SerializeToElement(settings).EnumerateObject()
                 .All(member => App.Workbench.State.Current.PluginSettings.GetValueOrDefault(CodexManifest.Id) is { ValueKind: JsonValueKind.Object } stored &&
                     stored.TryGetProperty(member.Name, out var value) && value.GetRawText() == member.Value.GetRawText()));
         }

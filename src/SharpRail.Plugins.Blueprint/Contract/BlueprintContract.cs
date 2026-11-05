@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.Blueprint;
@@ -25,7 +27,7 @@ public static class BlueprintContract
     public static readonly PluginMethod<BlueprintScope, BlueprintAck> DiscardEdits = new("discardEdits");
     public static readonly PluginChannel<BlueprintChangedPayload> Changed = PluginChannel<BlueprintChangedPayload>.State("changed", Get, "workspaceId");
     public static readonly PluginContract Contract = PluginContract.Create<BlueprintSettings>(Id, 1,
-        [Open, SetAuthor, Close, Get, Select, Edit, ConfirmEdits, DiscardEdits], [Changed]);
+        [Open, SetAuthor, Close, Get, Select, Edit, ConfirmEdits, DiscardEdits], [Changed], BlueprintJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "Blueprint", "pencil-ruler-2", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Documents,
@@ -37,3 +39,15 @@ public static class BlueprintContract
         Contributes = new() { FileViewers = [new() { Names = [File], Read = PluginFileRead.None }] }
     };
 }
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<BlueprintControlKind>), typeof(PluginJson.EnumConverter<BlueprintAgentId>), typeof(PluginJson.EnumConverter<BlueprintPhase>)])]
+[JsonSerializable(typeof(BlueprintSettings))]
+[JsonSerializable(typeof(BlueprintOpen))]
+[JsonSerializable(typeof(BlueprintOpened))]
+[JsonSerializable(typeof(BlueprintSetAuthor))]
+[JsonSerializable(typeof(BlueprintAck))]
+[JsonSerializable(typeof(BlueprintScope))]
+[JsonSerializable(typeof(BlueprintChangedPayload))]
+[JsonSerializable(typeof(BlueprintSelect))]
+[JsonSerializable(typeof(BlueprintTextEdit))]
+internal sealed partial class BlueprintJson : JsonSerializerContext;

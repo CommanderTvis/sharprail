@@ -98,8 +98,9 @@ AOT puts requirements on code that crosses the boundary or is serialized:
 - Every serialized type is described at build time: plugin method and channel payloads, settings, state, and the
   manifest. Builtin contracts carry generated `System.Text.Json` metadata, and `PluginJson.Options` uses it
   rather than reflection.
-- The input schema of a builtin tool is generated at build time from its parameters record instead of reflected
-  at registration.
+- The input schema of a builtin tool is derived from its parameters record's generated metadata instead of
+  reflected at registration; only a property's `[Description]` is read, through the attribute provider the
+  generator emits.
 - The proxies and the dispatcher are generated (see [Calls across the boundary](#calls-across-the-boundary)).
 - `PluginJson.Convert` keeps passing an instance of the declared type through untouched. Converting across load
   contexts stops occurring on the trusted side, since there is only one context.
@@ -110,9 +111,9 @@ host give the authoritative list):
 1. The WebSocket RPC payload codec is protobuf-net, which builds serializers at run time. Host, remote host and
    clients all use it. It is replaced by a codec generated at build time that keeps the wire bytes compatible, since
    a remote host and the app ship independently.
-2. `PluginJson.Options` and its users have no generated metadata. The sites that serialize by runtime type
-   (`GetType()`, `Deserialize(type, …)`, `GetTypeInfo`, the reflected tool schema) become a closed set of
-   registered types or `JsonElement`.
+2. `PluginJson.Options` resolves only from the generated contexts plugins declare (the Plugin API's
+   [JSON metadata](SPEC.md#json-metadata)); its runtime-typed sites (`GetType()`, `Deserialize(type, …)`,
+   `GetTypeInfo`, the tool schema) resolve through them, and the wire writes declared types.
 3. A few reflection sites outside plugin loading: host settings read by reflection, and reflection bindings by
    string path in the kit.
 4. The desktop app embeds the host and ASP.NET Core, so it inherits the first two. The host's endpoints are

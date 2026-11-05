@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Chat;
 
@@ -15,11 +17,11 @@ public sealed record PiStatus(bool Installed, string Command)
 public sealed record PiSettings
 {
     /// <summary>The executable; the system installation on PATH by default.</summary>
-    public string Command { get; init; } = "pi";
+    public string Command { get; set; } = "pi";
     /// <summary><c>--model</c>: a pattern or <c>provider/id</c>; blank uses Pi's default.</summary>
-    public string Model { get; init; } = "";
+    public string Model { get; set; } = "";
     /// <summary>The thinking level a new chat starts with; blank uses Pi's default.</summary>
-    public string Thinking { get; init; } = "";
+    public string Thinking { get; set; } = "";
 }
 
 public static class PiThinking
@@ -38,5 +40,10 @@ public static class PiContract
 
     /// <summary>The chat contract is shared with the other chat plugins: Pi serves its methods and its updates channel.</summary>
     public static readonly PluginContract Contract = PluginContract.Create<PiSettings>(PiManifest.Id, WireVersion,
-        [.. ChatContract.Methods, Status], [ChatContract.Updates]);
+        [.. ChatContract.Methods, Status], [ChatContract.Updates], PiJson.Default, ChatContract.Json);
 }
+
+[JsonSerializable(typeof(PiSettings))]
+[JsonSerializable(typeof(PiNoParams))]
+[JsonSerializable(typeof(PiStatus))]
+internal sealed partial class PiJson : JsonSerializerContext;

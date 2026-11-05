@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.AirContext.Host;
@@ -30,7 +28,7 @@ public static class AirContextMigration
         if (workspaces.Count == 0 || File.Exists(state)) return;
         Directory.CreateDirectory(Path.GetDirectoryName(state)!);
         var temporary = state + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        File.WriteAllBytes(temporary, JsonSerializer.SerializeToUtf8Bytes(new ContextWorkspaces([.. workspaces]), PluginJson.Options));
+        File.WriteAllBytes(temporary, PluginJson.SerializeToUtf8Bytes(new ContextWorkspaces([.. workspaces])));
         File.Move(temporary, state, overwrite: true);
     }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.GitHub;
@@ -14,7 +16,7 @@ public static class GitHubContract
     public const string Id = "github";
 
     public static readonly PluginMethod<GitHubSignInQuery, GitHubSignIn> SignIn = new("signIn");
-    public static readonly PluginContract Contract = PluginContract.Create<GitHubSettings>(Id, 1, [SignIn], []);
+    public static readonly PluginContract Contract = PluginContract.Create<GitHubSettings>(Id, 1, [SignIn], [], GitHubJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "GitHub", "asset:github.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.VersionControl,
@@ -27,3 +29,8 @@ public static class GitHubContract
         Ui = "SharpRail.Plugins.GitHub.UI.dll"
     };
 }
+
+[JsonSerializable(typeof(GitHubSettings))]
+[JsonSerializable(typeof(GitHubSignInQuery))]
+[JsonSerializable(typeof(GitHubSignIn))]
+internal sealed partial class GitHubJson : JsonSerializerContext;

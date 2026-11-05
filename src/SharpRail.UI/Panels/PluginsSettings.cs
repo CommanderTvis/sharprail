@@ -106,7 +106,7 @@ public sealed class PluginsSettings : StackPanel
                 var dependents = entry.Status != PluginStatus.Disabled ? PluginRegistry.ActiveDependents(entry.Id, roster).Select(id => Label(id, roster)).ToArray() : [];
                 var locked = entry.Status != PluginStatus.Disabled && pinned.Contains(entry.Id) ? TailscaleDependence.Refusal : null;
                 var switchedOn = SwitchedOn(state.Current, entry);
-                var signature = System.Text.Json.JsonSerializer.Serialize(entry, PluginJson.Options) + "\n" + string.Join(",", dependents) + "\n" + heading + "\n" + locked + "\n" + switchedOn;
+                var signature = PluginJson.Serialize(entry) + "\n" + string.Join(",", dependents) + "\n" + heading + "\n" + locked + "\n" + switchedOn;
                 if (models.TryGetValue(entry.Id, out var model)) model.Update(entry, dependents, signature, heading, locked, switchedOn);
                 else models[entry.Id] = model = new PluginCardModel(entry, dependents, signature, heading, locked, switchedOn);
                 desired.Add(model);

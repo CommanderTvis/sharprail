@@ -81,7 +81,8 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   ends in a detach. `Grid` follows the replies; a host that reports none leaves it at the requested size. A
   chunk that only changes the grid is passed to the reader empty.
 - The local plugin adapter passes params, results and payloads through as objects.
-  The remote one writes them as JSON with `PluginJson.Options` and returns
+  The remote one writes them as JSON with `PluginJson.Options`, by the value's runtime type, which a
+  registered context must name, and returns
   `JsonElement`s (null for JSON `null`), so callers read every value with
   `PluginJson.Convert`. It maps `NotFound`, `FailedPrecondition`, `InvalidArgument`
   and `Unknown` back to the same `PluginCallException` a local call throws; other

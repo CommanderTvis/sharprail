@@ -291,9 +291,9 @@ public sealed record ClaudeContextItem(string Name, string Source, long Tokens);
 /// <summary>What <c>claude -p /context</c> reported for a fresh session started the way a tab starts.</summary>
 public sealed record ClaudeContextBreakdown(string Model, long Used, long Window, IReadOnlyList<ClaudeContextCategory> Categories)
 {
-    public IReadOnlyList<ClaudeContextItem> McpTools { get; init; } = [];
-    public IReadOnlyList<ClaudeContextItem> MemoryFiles { get; init; } = [];
-    public IReadOnlyList<ClaudeContextItem> Skills { get; init; } = [];
+    public IReadOnlyList<ClaudeContextItem> McpTools { get; set; } = [];
+    public IReadOnlyList<ClaudeContextItem> MemoryFiles { get; set; } = [];
+    public IReadOnlyList<ClaudeContextItem> Skills { get; set; } = [];
     /// <summary>
     /// What the <c>--append-system-prompt-file</c> files cost: the "System prompt" difference against the same run without
     /// them, since <c>/context</c> does not list them; null when the run appends none or the bare run failed.
@@ -329,15 +329,15 @@ public sealed record ClaudeCodeStatusPush(string WorkspaceId, string TabKey, Age
 /// <summary>The plugin's settings namespace. Every member has a default, so a bare enable validates.</summary>
 public sealed record ClaudeCodeSettings
 {
-    public string Command { get; init; } = "claude";
-    public string Model { get; init; } = "";
-    public string Effort { get; init; } = "";
-    public bool DisableAgentView { get; init; } = true;
-    public bool AppendSystemPrompt { get; init; } = true;
+    public string Command { get; set; } = "claude";
+    public string Model { get; set; } = "";
+    public string Effort { get; set; } = "";
+    public bool DisableAgentView { get; set; } = true;
+    public bool AppendSystemPrompt { get; set; } = true;
     /// <summary>The <c>--permission-mode</c> SharpRail launches with; empty adds no flag, so Claude's own default applies.</summary>
-    public string PermissionMode { get; init; } = "";
+    public string PermissionMode { get; set; } = "";
     /// <summary>The <c>--advisor</c> model SharpRail launches with; empty adds no flag, so Claude's own <c>advisorModel</c> applies.</summary>
-    public string Advisor { get; init; } = "";
+    public string Advisor { get; set; } = "";
     /// <summary>Adds <c>--chrome</c> to every SharpRail launch; off adds nothing, so the CLI's own Chrome setting applies.</summary>
     public bool Chrome { get; init; }
     /// <summary>How a SharpRail launch is presented: the CLI's terminal UI, or the chat view driven over stream-json.</summary>
@@ -461,5 +461,50 @@ public static class ClaudeCodeContract
         [.. ChatContract.Methods, ConfigGet, Account, SystemPromptGet, InstructionsList, InstructionsSet, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
             MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, PermissionModesGet, SelectionChanged, DocumentClosed,
             AtMention, ActionReply, StatusSnapshot, ContextUsageGet],
-        [Status, IdeAction, ContextUsage, InstructionsChanged, ChatContract.Updates]);
+        [Status, IdeAction, ContextUsage, InstructionsChanged, ChatContract.Updates], ClaudeCodeJson.Default, ChatContract.Json);
 }
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<ClaudeConfigScope>), typeof(PluginJson.EnumConverter<ClaudeWritableScope>), typeof(PluginJson.EnumConverter<ClaudeContextKind>), typeof(PluginJson.EnumConverter<ClaudeCapabilityKind>), typeof(PluginJson.EnumConverter<ClaudeUsageSeverity>), typeof(PluginJson.EnumConverter<ClaudeProblemSeverity>), typeof(PluginJson.EnumConverter<ClaudeFileTemplate>), typeof(PluginJson.EnumConverter<ClaudeMcpTransport>), typeof(PluginJson.EnumConverter<ClaudeHookEvent>), typeof(PluginJson.EnumConverter<ClaudeDiffKind>), typeof(PluginJson.EnumConverter<IdeActionKind>), typeof(PluginJson.EnumConverter<ClaudeCodeStatus>), typeof(PluginJson.EnumConverter<AgentTodoStatus>), typeof(PluginJson.EnumConverter<ClaudeCodeMode>)])]
+[JsonSerializable(typeof(ClaudeCodeSettings))]
+[JsonSerializable(typeof(AccountParams))]
+[JsonSerializable(typeof(ClaudeAccount))]
+[JsonSerializable(typeof(ClaudeApplyRequest))]
+[JsonSerializable(typeof(ClaudeEditPlan))]
+[JsonSerializable(typeof(ClaudeEditRequest))]
+[JsonSerializable(typeof(ContextUsageParams))]
+[JsonSerializable(typeof(ClaudeContextUsage))]
+[JsonSerializable(typeof(IdeActionReply))]
+[JsonSerializable(typeof(Ack))]
+[JsonSerializable(typeof(IdeAtMention))]
+[JsonSerializable(typeof(IdeAtMentionResult))]
+[JsonSerializable(typeof(IdeDocumentClosed))]
+[JsonSerializable(typeof(IdeSelectionChanged))]
+[JsonSerializable(typeof(InstructionSectionQuery))]
+[JsonSerializable(typeof(InstructionSectionList))]
+[JsonSerializable(typeof(InstructionSectionToggle))]
+[JsonSerializable(typeof(MarketplacePlanParams))]
+[JsonSerializable(typeof(CommandPlan))]
+[JsonSerializable(typeof(MarketplaceRunParams))]
+[JsonSerializable(typeof(CommandOutput))]
+[JsonSerializable(typeof(NoParams))]
+[JsonSerializable(typeof(PermissionModesResult))]
+[JsonSerializable(typeof(SystemPromptFile))]
+[JsonSerializable(typeof(PluginMoveParams))]
+[JsonSerializable(typeof(PluginMovePlanParams))]
+[JsonSerializable(typeof(CommandsPlan))]
+[JsonSerializable(typeof(PluginUninstallParams))]
+[JsonSerializable(typeof(PluginUninstallPlanParams))]
+[JsonSerializable(typeof(ReadFileParams))]
+[JsonSerializable(typeof(FileContent))]
+[JsonSerializable(typeof(StatusSnapshotParams))]
+[JsonSerializable(typeof(IReadOnlyList<ClaudeCodeStatusPush>))]
+[JsonSerializable(typeof(ClaudeCodeStatusPush))]
+[JsonSerializable(typeof(WorkspaceParams))]
+[JsonSerializable(typeof(ClaudeConfigSnapshot))]
+[JsonSerializable(typeof(McpListResult))]
+[JsonSerializable(typeof(WriteFileParams))]
+[JsonSerializable(typeof(FileWriteResult))]
+[JsonSerializable(typeof(IdeActionRequest))]
+[JsonSerializable(typeof(ContextUsageChanged))]
+[JsonSerializable(typeof(InstructionSectionsChanged))]
+internal sealed partial class ClaudeCodeJson : JsonSerializerContext;

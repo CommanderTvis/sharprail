@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
@@ -68,7 +68,16 @@ internal sealed class IdeActions(IPluginUIContext context) : IDisposable
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or PluginCallException) { return null; }
     }
 
-    private async Task<object> RunAsync(IdeActionRequest request)
+    // An action's reply, written as PluginJson writes a record: a null member is left out.
+    private static JsonObject Reply(params (string Name, JsonNode? Value)[] members)
+    {
+        var reply = new JsonObject();
+        foreach (var (name, value) in members)
+            if (value is not null) reply[name] = value;
+        return reply;
+    }
+
+    private async Task<JsonObject> RunAsync(IdeActionRequest request)
     {
         var workspaceId = request.WorkspaceId;
         var parameters = request.Params;
@@ -82,47 +91,42 @@ internal sealed class IdeActions(IPluginUIContext context) : IDisposable
                 { Preview = parameters.Preview == true, Line = await LineOfAsync(workspaceId, path, parameters.StartText) }) is not { } file)
                     throw new InvalidOperationException("The session's workspace is not open in a SharpRail window");
                 Track(workspaceId, file, wasOpen);
-                return new { success = true };
+                return Reply(("success", true));
             case IdeActionKind.OpenDiff:
                 // Claude Code's openDiff proposes unsaved content for review, which diff tabs cannot show: they read both
                 // sides from Git. Opening the file is the honest subset; the CLI then asks in its own terminal.
                 var target = parameters.NewPath ?? parameters.OldPath ?? throw new InvalidOperationException("openDiff needs a file path");
                 var targetOpen = Find(workspaceId, target) is not null;
                 Track(workspaceId, await context.Editors.OpenAsync(workspaceId, Relative(workspaceId, target)), targetOpen, parameters.TabName);
-                return new { success = true, diffShown = false };
+                return Reply(("success", true), ("diffShown", false));
             case IdeActionKind.GetOpenEditors:
                 var active = context.Editors.Active?.Id;
-                return new
-                {
-                    tabs = context.Editors.List(workspaceId).Where(editor => editor.Kind is EditorKind.File or EditorKind.ExternalFile).Select(editor => new
-                    {
-                        uri = "file://" + Absolute(workspaceId, editor.Path),
-                        isActive = editor.Id == active,
-                        label = editor.Path.Split('/')[^1],
-                        isDirty = editor.Dirty
-                    }).ToArray()
-                };
+                return Reply(("tabs", new JsonArray([.. context.Editors.List(workspaceId).Where(editor => editor.Kind is EditorKind.File or EditorKind.ExternalFile).Select(editor => Reply(
+                    ("uri", "file://" + Absolute(workspaceId, editor.Path)),
+                    ("isActive", editor.Id == active),
+                    ("label", editor.Path.Split('/')[^1]),
+                    ("isDirty", editor.Dirty)))])));
             case IdeActionKind.CheckDocumentDirty:
                 return Find(workspaceId, parameters.Path) is { } inspected
-                    ? new { success = true, filePath = parameters.Path, isDirty = inspected.Dirty, isUntitled = false }
-                    : new { success = false, message = "Document not open: " + parameters.Path };
+                    ? Reply(("success", true), ("filePath", parameters.Path), ("isDirty", inspected.Dirty), ("isUntitled", false))
+                    : Reply(("success", false), ("message", "Document not open: " + parameters.Path));
             case IdeActionKind.SaveDocument:
-                if (Find(workspaceId, parameters.Path) is not { } saved) return new { success = false, message = "Document not open: " + parameters.Path };
+                if (Find(workspaceId, parameters.Path) is not { } saved) return Reply(("success", false), ("message", "Document not open: " + parameters.Path));
                 if (saved.Dirty) await context.Editors.SaveAsync(saved.Id);
-                return new { success = true, filePath = parameters.Path, saved = saved.Dirty && !context.Editors.IsDirty(saved.Id) };
+                return Reply(("success", true), ("filePath", parameters.Path), ("saved", saved.Dirty && !context.Editors.IsDirty(saved.Id)));
             case IdeActionKind.CloseTab:
                 // The CLI names the tab it asked openDiff for, or a file by its absolute path. Only a tab Claude itself opened
                 // closes, by that exact name: a tab the user had open, or a same-named file elsewhere, stays.
                 var name = parameters.TabName ?? "";
-                if (!opened.TryGetValue(workspaceId, out var ours) || !ours.TryGetValue(name, out var id)) return new { closed = 0 };
+                if (!opened.TryGetValue(workspaceId, out var ours) || !ours.TryGetValue(name, out var id)) return Reply(("closed", 0));
                 Forget(id);
-                if (!context.Editors.List(workspaceId).Any(editor => editor.Id == id)) return new { closed = 0 };
+                if (!context.Editors.List(workspaceId).Any(editor => editor.Id == id)) return Reply(("closed", 0));
                 context.Editors.Close(id);
-                return new { closed = 1 };
+                return Reply(("closed", 1));
             case IdeActionKind.CloseAllDiffTabs:
                 // The CLI sends this whenever a prompt is submitted, meaning the diff tabs its openDiff opened. openDiff opens
                 // none here, so every diff or Changes tab is the user's own and stays open.
-                return new { closed = 0 };
+                return Reply(("closed", 0));
             default:
                 throw new InvalidOperationException($"Unsupported IDE action: {request.Kind}");
         }
@@ -131,7 +135,7 @@ internal sealed class IdeActions(IPluginUIContext context) : IDisposable
     public async Task HandleAsync(IdeActionRequest request)
     {
         IdeActionResult result;
-        try { result = new(true) { Value = JsonSerializer.SerializeToElement(await RunAsync(request), PluginJson.Options) }; }
+        try { result = new(true) { Value = PluginJson.SerializeToElement(await RunAsync(request)) }; }
         catch (Exception error) when (error is not OperationCanceledException) { result = new(false) { Error = error.Message }; }
         try { await context.RequestAsync(ClaudeCodeContract.ActionReply, new IdeActionReply(request.Id, result)); }
         catch (Exception error) when (error is PluginCallException or InvalidOperationException) { }

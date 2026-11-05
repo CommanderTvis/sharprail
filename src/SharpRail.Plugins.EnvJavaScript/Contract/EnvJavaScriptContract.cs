@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.EnvJavaScript;
@@ -11,7 +13,7 @@ public static class EnvJavaScriptContract
     /// <summary>The id of this plugin's workspace environment step, which the Env policy orders.</summary>
     public const string StepId = "javascript";
 
-    public static readonly PluginContract Contract = PluginContract.Create<EnvJavaScriptSettings>(Id, 1, [], []);
+    public static readonly PluginContract Contract = PluginContract.Create<EnvJavaScriptSettings>(Id, 1, [], [], EnvJavaScriptJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "JavaScript Environment", "terminal-box-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.JavaScript,
@@ -23,3 +25,6 @@ public static class EnvJavaScriptContract
         Host = "SharpRail.Plugins.EnvJavaScript.Host.dll"
     };
 }
+
+[JsonSerializable(typeof(EnvJavaScriptSettings))]
+internal sealed partial class EnvJavaScriptJson : JsonSerializerContext;

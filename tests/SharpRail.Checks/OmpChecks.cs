@@ -295,10 +295,10 @@ internal static class OmpChecks
             E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
             void Settings(object settings)
             {
-                var json = JsonSerializer.Serialize(settings, SharpRail.Plugins.Api.PluginJson.Options);
+                var json = JsonSerializer.Serialize(settings);
                 _ = app.Workbench.State.ChangeAsync(HostStateChange.PluginSettings(OmpManifest.Id, json));
                 E2eWorkspace.Until(() => app.Workbench.State.Current.PluginSettings.GetValueOrDefault(OmpManifest.Id) is { ValueKind: JsonValueKind.Object } stored &&
-                    JsonSerializer.SerializeToElement(settings, SharpRail.Plugins.Api.PluginJson.Options).EnumerateObject().All(member => stored.TryGetProperty(member.Name, out var value) && value.GetRawText() == member.Value.GetRawText()));
+                    JsonSerializer.SerializeToElement(settings).EnumerateObject().All(member => stored.TryGetProperty(member.Name, out var value) && value.GetRawText() == member.Value.GetRawText()));
             }
             Settings(new { command = fake, model = "@smol", approvalMode = "write", advisor = true });
             _ = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled(OmpManifest.Id, true));

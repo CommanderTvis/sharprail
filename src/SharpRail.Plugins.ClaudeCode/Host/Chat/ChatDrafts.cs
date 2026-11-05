@@ -155,3 +155,7 @@ internal sealed class ChatDrafts : IDisposable
         Save();
     }
 }
+
+[JsonSerializable(typeof(Dictionary<string, StoredDraft>))]
+[JsonSerializable(typeof(Dictionary<string, ChatRecord>))]
+internal sealed partial class ClaudeCodeHostJson : JsonSerializerContext;

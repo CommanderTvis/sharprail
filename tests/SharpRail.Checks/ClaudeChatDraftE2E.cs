@@ -33,7 +33,7 @@ internal static class ClaudeChatDraftE2E
         public IDisposable Subscribe(ChatKey key, Action<ChatPush> handler)
         {
             var stop = new CancellationTokenSource();
-            var updates = runtime.SubscribeAsync(new("claude-code", ChatContract.Updates.Name, new { workspaceId = key.WorkspaceId, chatId = key.ChatId }, caller), stop.Token);
+            var updates = runtime.SubscribeAsync(new("claude-code", ChatContract.Updates.Name, key, caller), stop.Token);
             _ = Task.Run(async () =>
             {
                 try

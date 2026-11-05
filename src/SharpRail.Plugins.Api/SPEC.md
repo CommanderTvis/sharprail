@@ -136,7 +136,8 @@ parameter, or widening a return is a breaking change and has to come with a gene
   types, for the UI entry.
 - Forbidden: any `SharpRail.Host.*` or `SharpRail.UI` project, ASP.NET Core, WebSocket RPC or protobuf types,
   Avalonia in the root or host entry, and any runtime beyond identity helpers and name builders
-  (`PluginJson.Convert` and `PluginTool<T>.RunAsync` are the two conversions they need). The UI kit is a
+  (`PluginJson`, the registry of generated JSON metadata with its conversions, and `PluginTool<T>.RunAsync` are
+  the exceptions they need). The UI kit is a
   separate assembly ([SPEC.md](../SharpRail.Plugins.UI.Kit/SPEC.md)), since controls here would make it a
   dependency of every host half.
 - Dependents: `SharpRail.Host.Abstractions` references the root entry, because `HostState` carries the roster
@@ -618,6 +619,40 @@ sequenceDiagram
 
 An event channel is documented as lossy and has no snapshot. It exists for host-to-client requests that time
 out on their own. Plugin channels are never replayed.
+
+### JSON metadata
+
+Every type a plugin exchanges through `PluginJson` is serialized from metadata the `System.Text.Json` source
+generator writes at build time, never by reflection, so the host, the remote host and the app can be published
+as NativeAOT. A plugin declares a `JsonSerializerContext` naming its types and passes it as the last argument of
+`PluginContract.Create`: each method's params and result, each channel's payload and the settings type. A plugin
+merging a shared contract's methods passes that contract's context too (the chat plugins pass
+`ChatContract.Json`). A host half whose state files or tool parameters live outside the contract project names a
+second context as `PluginHostModule.Json`. Nested types need no listing; the generator follows properties,
+elements and derived types.
+
+`PluginJson.Options` combines every registered context. Creating a contract registers its contexts, the host
+runtime registers `PluginHostModule.Json` when it loads the plugin, and the app registers every builtin
+contract's contexts before any UI half runs, since a UI half may read its settings before touching a descriptor.
+A context may be registered at any time: the options are rebuilt with it rather than amended, because the
+serializer remembers a type it once failed to find. A type no registered context names fails with a
+`NotSupportedException` naming it, and contract intake refuses a plugin whose declared types are not covered.
+Calls go through `PluginJson.Serialize`, `Deserialize`, `SerializeToElement` and `TypeInfo`, the
+`JsonTypeInfo` overloads that need no reflection.
+
+The JSON keeps the shape it had under reflection, because settings, state files and the wire cross versions:
+
+- Enums are camelCase strings and numbers are refused. The generator cannot apply a naming policy to an enum, so
+  a context names a `PluginJson.EnumConverter<TEnum>` per enum its types reach, in its
+  `JsonSourceGenerationOptions.Converters`; an enum without one fails rather than being written as a number.
+- Generated deserialization assigns every init-only property in the object initializer, its type's default when
+  the member is absent, so an initializer on one never applies. A property with an initializer (a settings
+  default, an optional list, a manifest's `dependsOn`) is settable instead.
+- `PluginJson.Convert` passes an instance of the declared type through untouched and converts anything else by
+  its runtime type, which a context must name. Anonymous objects have no generated metadata and cannot cross;
+  logger fields are a string map.
+- A tool's input schema is derived from its parameters type's generated metadata; `[Description]` on a property
+  is read through the attribute provider the generator emits.
 
 Params are validated at dispatch. Over the wire, validation is strict deserialization into the method's params
 record with `PluginJson.Options`: required constructor parameters, nullable annotations and unknown members are

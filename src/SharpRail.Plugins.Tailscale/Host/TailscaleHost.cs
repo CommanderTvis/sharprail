@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -10,6 +11,7 @@ namespace SharpRail.Plugins.Tailscale.Host;
 public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHostModule
 {
     public override PluginContract Contract => TailscaleContract.Contract;
+    public override IJsonTypeInfoResolver Json => TailscaleHostJson.Default;
     internal TailscaleNetwork Network { get; init; } = new();
     internal int PairingPort { get; init; } = TailscaleContract.DiscoveryPort;
 
@@ -120,7 +122,7 @@ public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHost
         }
         else { http.Response.StatusCode = 404; http.Response.Close(); return; }
         http.Response.ContentType = "application/json";
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(response, response.GetType(), PluginJson.Options);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(response, PluginJson.TypeInfo(response.GetType()));
         http.Response.ContentLength64 = bytes.Length;
         await http.Response.OutputStream.WriteAsync(bytes, timeout.Token);
         http.Response.Close();

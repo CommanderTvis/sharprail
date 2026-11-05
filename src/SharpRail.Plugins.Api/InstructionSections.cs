@@ -19,29 +19,29 @@ public sealed class InstructionSection
     public required string Title { get; init; }
 
     /// <summary>One line on what the section tells the agent; may be empty.</summary>
-    public string Description { get; init; } = "";
+    public string Description { get; set; } = "";
 
     /// <summary>The text as the next session in the workspace would get it, read-only.</summary>
     public required string Text { get; init; }
 
     /// <summary>Whether the project leaves the section on.</summary>
-    public bool Enabled { get; init; } = true;
+    public bool Enabled { get; set; } = true;
 }
 
 /// <summary>The sections an agent's sessions in one workspace get, and the project file that turns sections off.</summary>
 public sealed class InstructionSectionList
 {
     /// <summary>The absolute path of the project's <c>.sharprail/instructions.toml</c>, which may not exist yet.</summary>
-    public string Path { get; init; } = "";
+    public string Path { get; set; } = "";
 
     /// <summary>The sections, the host's first, then each plugin's in composition order.</summary>
-    public IReadOnlyList<InstructionSection> Sections { get; init; } = [];
+    public IReadOnlyList<InstructionSection> Sections { get; set; } = [];
 
     /// <summary>Disabled identifiers no current section has (a plugin that is off or gone); kept in the file, ignored.</summary>
-    public IReadOnlyList<string> UnknownDisabled { get; init; } = [];
+    public IReadOnlyList<string> UnknownDisabled { get; set; } = [];
 
     /// <summary>Problems reading the file; a broken file turns nothing off and refuses changes until fixed.</summary>
-    public IReadOnlyList<string> Diagnostics { get; init; } = [];
+    public IReadOnlyList<string> Diagnostics { get; set; } = [];
 
     /// <summary>
     /// Where a copy of the user's earlier hand edits to the generated instructions was kept, once SharpRail stopped

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 using SharpRail.Plugins.Api;
 
@@ -148,7 +149,7 @@ public sealed record ChatPermissionItem(string Id, long Seq, string RequestId, s
     public bool AlwaysScoped { get; init; }
     /// <summary>The destination the CLI suggested, one of <see cref="ChatPermissionDestinations"/>.</summary>
     public string? DefaultDestination { get; init; }
-    public IReadOnlyList<ChatDestination> Destinations { get; init; } = [];
+    public IReadOnlyList<ChatDestination> Destinations { get; set; } = [];
 }
 
 public sealed record ChatDestination(string Key, string Label, string Tooltip);
@@ -240,7 +241,7 @@ public sealed record ChatNoticeItem(string Id, long Seq, ChatNoticeLevel Level, 
     public string? Label { get; init; }
     /// <summary>The body shown when the row is opened: a peer message, a compaction summary, a multi-line command result.</summary>
     public string? Detail { get; init; }
-    public IReadOnlyList<ChatSection> Sections { get; init; } = [];
+    public IReadOnlyList<ChatSection> Sections { get; set; } = [];
     /// <summary>For a <see cref="ChatNoticeKinds.BashOutput"/> card: the command the user ran; null for output the CLI recorded without its input.</summary>
     public string? Command { get; init; }
     /// <summary>For a <see cref="ChatNoticeKinds.BashOutput"/> card: the command is still running, and <see cref="ChatContract.StopShell"/> ends it.</summary>
@@ -263,7 +264,7 @@ public sealed record ChatCommand(string Name, string? Description = null, string
     /// <summary>Where it comes from: built-in, a skill, a plugin or a project command; null when the CLI does not say.</summary>
     public string? Source { get; init; }
     /// <summary>The menu section: "Slash Commands" for everything the CLI reports; the view defines the built-in sections.</summary>
-    public string Section { get; init; } = "Slash Commands";
+    public string Section { get; set; } = "Slash Commands";
 }
 
 public sealed record ChatModel(string Id, string Label)
@@ -274,7 +275,7 @@ public sealed record ChatModel(string Id, string Label)
     /// <summary>The model family (opus, sonnet, haiku), when it can be told from the id.</summary>
     public string? Family { get; init; }
     /// <summary>The effort levels this model accepts, as the CLI reports them; empty when it reports none (or the model has no effort).</summary>
-    public IReadOnlyList<string> Efforts { get; init; } = [];
+    public IReadOnlyList<string> Efforts { get; set; } = [];
 }
 
 public sealed record ChatMcpServer(string Name, string Status);
@@ -338,13 +339,13 @@ public sealed record ChatHeader(ChatStatus Status)
     /// <summary>The rate-limit banner, or null; <see cref="ChatBanner.Key"/> is what a dismissal is remembered by.</summary>
     public ChatBanner? Banner { get; init; }
     /// <summary>The permission modes the session offers, in menu order, with the extension's labels.</summary>
-    public IReadOnlyList<ChatMode> PermissionModes { get; init; } = [];
-    public IReadOnlyList<ChatCommand> Commands { get; init; } = [];
-    public IReadOnlyList<ChatModel> Models { get; init; } = [];
-    public IReadOnlyList<string> Agents { get; init; } = [];
-    public IReadOnlyList<ChatMcpServer> McpServers { get; init; } = [];
-    public IReadOnlyList<ChatTask> Tasks { get; init; } = [];
-    public ChatUsage Usage { get; init; } = new();
+    public IReadOnlyList<ChatMode> PermissionModes { get; set; } = [];
+    public IReadOnlyList<ChatCommand> Commands { get; set; } = [];
+    public IReadOnlyList<ChatModel> Models { get; set; } = [];
+    public IReadOnlyList<string> Agents { get; set; } = [];
+    public IReadOnlyList<ChatMcpServer> McpServers { get; set; } = [];
+    public IReadOnlyList<ChatTask> Tasks { get; set; } = [];
+    public ChatUsage Usage { get; set; } = new();
     /// <summary>The <c>--advisor</c> model the child was launched with; null when none.</summary>
     public string? Advisor { get; init; }
     /// <summary>Whether the child was launched with <c>--chrome</c>.</summary>
@@ -475,7 +476,7 @@ public sealed record ChatForked(string ChatId)
 public sealed record ChatRewindPreview(bool CanRewind)
 {
     public string? Error { get; init; }
-    public IReadOnlyList<string> FilesChanged { get; init; } = [];
+    public IReadOnlyList<string> FilesChanged { get; set; } = [];
     public int? Insertions { get; init; }
     public int? Deletions { get; init; }
 }
@@ -562,4 +563,39 @@ public static class ChatContract
 
     public static readonly IReadOnlyList<PluginMethodSpec> Methods =
         [Open, Snapshot, Send, Interrupt, Close, SetModel, SetPermissionMode, SetEffort, SetTitle, Answer, AnswerQuestion, Dequeue, EditQueued, SendQueuedNow, RunShell, StopShell, Rewind, RewindPreview, Fork, StopTask, ItemDetail, Sessions, Files, CompletePath, SetDraft];
+
+    /// <summary>The JSON metadata of every type above; a plugin merging these methods combines it into its own contract's context.</summary>
+    public static IJsonTypeInfoResolver Json => ChatJson.Default;
 }
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<ChatStatus>), typeof(PluginJson.EnumConverter<ChatToolState>), typeof(PluginJson.EnumConverter<ChatNoticeLevel>), typeof(PluginJson.EnumConverter<ChatTaskKind>), typeof(PluginJson.EnumConverter<ChatTaskStatus>), typeof(PluginJson.EnumConverter<ChatPermissionDecision>)])]
+[JsonSerializable(typeof(ChatOpenParams))]
+[JsonSerializable(typeof(ChatHeader))]
+[JsonSerializable(typeof(ChatKey))]
+[JsonSerializable(typeof(IReadOnlyList<ChatPush>))]
+[JsonSerializable(typeof(ChatPush))]
+[JsonSerializable(typeof(Ack))]
+[JsonSerializable(typeof(ChatSendParams))]
+[JsonSerializable(typeof(ChatSetParams))]
+[JsonSerializable(typeof(ChatAnswerParams))]
+[JsonSerializable(typeof(ChatAnswerQuestionParams))]
+[JsonSerializable(typeof(ChatQueuedParams))]
+[JsonSerializable(typeof(ChatEditQueuedParams))]
+[JsonSerializable(typeof(ChatShellParams))]
+[JsonSerializable(typeof(ChatRewindParams))]
+[JsonSerializable(typeof(ChatRewindPreview))]
+[JsonSerializable(typeof(ChatForked))]
+[JsonSerializable(typeof(ChatTaskParams))]
+[JsonSerializable(typeof(ChatDetailParams))]
+[JsonSerializable(typeof(ChatDetail))]
+[JsonSerializable(typeof(ChatSessionsParams))]
+[JsonSerializable(typeof(ChatSessionList))]
+[JsonSerializable(typeof(ChatFilesParams))]
+[JsonSerializable(typeof(ChatFileList))]
+[JsonSerializable(typeof(ChatPathParams))]
+[JsonSerializable(typeof(ChatPathList))]
+[JsonSerializable(typeof(ChatSetDraftParams))]
+[JsonSerializable(typeof(ChatDraft))]
+[JsonSerializable(typeof(ChatSnapshot))]
+[JsonSerializable(typeof(ChatItem))]
+internal sealed partial class ChatJson : JsonSerializerContext;

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.EnvJvm;
@@ -11,7 +13,7 @@ public static class EnvJvmContract
     /// <summary>The id of this plugin's workspace environment step, which the Env policy orders.</summary>
     public const string StepId = "jvm";
 
-    public static readonly PluginContract Contract = PluginContract.Create<EnvJvmSettings>(Id, 1, [], []);
+    public static readonly PluginContract Contract = PluginContract.Create<EnvJvmSettings>(Id, 1, [], [], EnvJvmJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "JVM Environment", "terminal-box-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Jvm,
@@ -23,3 +25,6 @@ public static class EnvJvmContract
         Host = "SharpRail.Plugins.EnvJvm.Host.dll"
     };
 }
+
+[JsonSerializable(typeof(EnvJvmSettings))]
+internal sealed partial class EnvJvmJson : JsonSerializerContext;

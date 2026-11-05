@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.BranchGraph;
@@ -23,7 +25,7 @@ public static class BranchGraphContract
 {
     public static readonly PluginMethod<GitGraphParams, GitGraph> Graph = new("graph");
     public static readonly PluginMethod<GitPatchParams, GitPatch> Patch = new("patch");
-    public static readonly PluginContract Contract = PluginContract.Create(BranchGraphPlugin.Id, 1, [Graph, Patch], []);
+    public static readonly PluginContract Contract = PluginContract.Create(BranchGraphPlugin.Id, 1, [Graph, Patch], [], BranchGraphJson.Default);
 }
 
 public static class BranchGraphPlugin
@@ -44,3 +46,9 @@ public static class BranchGraphPlugin
         }
     };
 }
+
+[JsonSerializable(typeof(GitGraphParams))]
+[JsonSerializable(typeof(GitGraph))]
+[JsonSerializable(typeof(GitPatchParams))]
+[JsonSerializable(typeof(GitPatch))]
+internal sealed partial class BranchGraphJson : JsonSerializerContext;

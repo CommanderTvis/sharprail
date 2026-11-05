@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using SharpRail.Plugins.Api;
 
@@ -53,7 +54,7 @@ public static class VisualizeContract
     public static readonly PluginMethod<HostingReport, Ack> Hosting = new("hosting");
     public static readonly PluginChannel<VisualizationsChanged> Changed = PluginChannel<VisualizationsChanged>.State("changed", Get, "workspaceId");
 
-    public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Report, Get, Select, Hosting], [Changed]);
+    public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Report, Get, Select, Hosting], [Changed], VisualizeJson.Default);
 
     public static readonly PluginManifest Manifest = new(Id, "Visualize", "bar-chart-box-line", "0.1.0", PluginApi.Generation, 1)
     {
@@ -64,3 +65,11 @@ public static class VisualizeContract
         Ui = "SharpRail.Plugins.Visualize.UI.dll"
     };
 }
+
+[JsonSerializable(typeof(RenderReport))]
+[JsonSerializable(typeof(Ack))]
+[JsonSerializable(typeof(VisualizationsQuery))]
+[JsonSerializable(typeof(VisualizationsChanged))]
+[JsonSerializable(typeof(SelectionReport))]
+[JsonSerializable(typeof(HostingReport))]
+internal sealed partial class VisualizeJson : JsonSerializerContext;

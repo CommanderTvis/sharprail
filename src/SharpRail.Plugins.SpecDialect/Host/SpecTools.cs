@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using SharpRail.Plugins.Api;
@@ -13,7 +12,7 @@ internal static partial class SpecTools
     private static SpecIndex Index(string cwd) => Indexes.GetOrAdd(cwd, root => new(root));
     private static PluginToolResult Error(string message) => new("Error: " + message) { IsError = true, Details = new { Error = message } };
     private static PluginToolResult Result(string text, object details) => new(text) { Details = details };
-    private static string EnumName<T>(T value) => JsonSerializer.SerializeToElement(value, PluginJson.Options).GetString()!;
+    private static string EnumName<T>(T value) => PluginJson.SerializeToElement(value).GetString()!;
 
     public static IReadOnlyList<PluginToolDefinition> All { get; } =
     [

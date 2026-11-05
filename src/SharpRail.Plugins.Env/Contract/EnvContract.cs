@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.Env;
@@ -22,7 +24,7 @@ public static class EnvContract
 
     public static readonly PluginMethod<EnvChipsQuery, EnvChipsChanged> Get = new("get");
     public static readonly PluginChannel<EnvChipsChanged> Changed = PluginChannel<EnvChipsChanged>.State("changed", Get, "workspaceId");
-    public static readonly PluginContract Contract = PluginContract.Create<EnvSettings>(Id, 1, [Get], [Changed]);
+    public static readonly PluginContract Contract = PluginContract.Create<EnvSettings>(Id, 1, [Get], [Changed], EnvJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "Environment", "stack-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Environment,
@@ -32,3 +34,8 @@ public static class EnvContract
         Ui = "SharpRail.Plugins.Env.UI.dll"
     };
 }
+
+[JsonSerializable(typeof(EnvSettings))]
+[JsonSerializable(typeof(EnvChipsQuery))]
+[JsonSerializable(typeof(EnvChipsChanged))]
+internal sealed partial class EnvJson : JsonSerializerContext;

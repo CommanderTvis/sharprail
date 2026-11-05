@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
@@ -53,7 +51,7 @@ internal sealed partial class BlueprintPane : UserControl
 
     private void Edit(BlueprintEditTarget target, string text) => Run(() => context.RequestAsync(BlueprintContract.Edit, new(workspace, target, text)));
     private void Changed(string id) { if (id == workspace) Render(); }
-    private string Signature() => JsonSerializer.Serialize(state?.Changes, PluginJson.Options);
+    private string Signature() => PluginJson.Serialize(state?.Changes);
 
     private MarkdownPreview Preview(string text, string blockId)
     {
@@ -108,7 +106,7 @@ internal sealed partial class BlueprintPane : UserControl
         {
             if (blocks.TryGetValue(block.Id, out var existing) && block is BlueprintProse prose && existing.Control is BlueprintEditable editable)
             { if (existing.Block != block) editable.Update(prose.Text); blocks[block.Id] = (block, editable); }
-            else if (!blocks.TryGetValue(block.Id, out existing) || JsonSerializer.Serialize(existing.Block, PluginJson.Options) != JsonSerializer.Serialize(block, PluginJson.Options))
+            else if (!blocks.TryGetValue(block.Id, out existing) || PluginJson.Serialize(existing.Block) != PluginJson.Serialize(block))
             {
                 Control control = block switch
                 {

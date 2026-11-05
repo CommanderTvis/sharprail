@@ -1,12 +1,13 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.PluginFixture;
 
-public sealed record FixtureSettings { public string Greeting { get; init; } = "hello"; }
+public sealed record FixtureSettings { public string Greeting { get; set; } = "hello"; }
 public sealed record EchoParams(string Text);
 public sealed record EchoResult(string Text, string Greeting);
 public sealed record CounterParams(string Workspace);
@@ -32,7 +33,7 @@ public static class FixtureContract
     public static readonly PluginMethod<CounterParams, CounterState> Bump = new("bump");
     public static readonly PluginChannel<CounterState> CounterChannel = PluginChannel<CounterState>.State("counter", Counter, "workspace");
     public static readonly PluginChannel<Ping> Pings = PluginChannel<Ping>.Event("pings");
-    public static readonly PluginContract Contract = PluginContract.Create<FixtureSettings>("fixture", 1, [Echo, Counter, Bump], [CounterChannel, Pings]);
+    public static readonly PluginContract Contract = PluginContract.Create<FixtureSettings>("fixture", 1, [Echo, Counter, Bump], [CounterChannel, Pings], FixtureJson.Default);
 }
 
 public sealed class FixtureHost : PluginHostModule
@@ -66,3 +67,12 @@ public sealed class FixtureHost : PluginHostModule
     private static string StateName(string workspace) =>
         "counter-" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(workspace)))[..12];
 }
+
+[JsonSerializable(typeof(FixtureSettings))]
+[JsonSerializable(typeof(EchoParams))]
+[JsonSerializable(typeof(EchoResult))]
+[JsonSerializable(typeof(CounterParams))]
+[JsonSerializable(typeof(CounterState))]
+[JsonSerializable(typeof(Ping))]
+[JsonSerializable(typeof(int))]
+internal sealed partial class FixtureJson : JsonSerializerContext;

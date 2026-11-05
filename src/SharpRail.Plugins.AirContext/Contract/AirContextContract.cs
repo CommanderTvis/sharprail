@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.AirContext;
@@ -37,7 +39,7 @@ public static class AirContextContract
     public static readonly PluginMethod<ContextCall, ContextOutcome> Workspace = new("workspace");
     public static readonly PluginChannel<ContextOutcome> Changed = PluginChannel<ContextOutcome>.State("changed", Workspace, "workspaceId");
 
-    public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Consent, Workspace], [Changed]);
+    public static readonly PluginContract Contract = PluginContract.Create(Id, 1, [Consent, Workspace], [Changed], AirContextJson.Default);
 
     public static readonly PluginManifest Manifest = new(Id, "Air Context", "asset:air.svg", "0.1.0", PluginApi.Generation, 1)
     {
@@ -51,3 +53,11 @@ public static class AirContextContract
         Ui = "SharpRail.Plugins.AirContext.UI.dll"
     };
 }
+
+[JsonSerializable(typeof(ContextConsentRequest))]
+[JsonSerializable(typeof(ContextConsentResult))]
+[JsonSerializable(typeof(ContextCall))]
+[JsonSerializable(typeof(ContextOutcome))]
+[JsonSerializable(typeof(ContextWorkspaces))]
+[JsonSerializable(typeof(ContextProjects))]
+internal sealed partial class AirContextJson : JsonSerializerContext;

@@ -153,19 +153,19 @@ public sealed record CodexCreatedInstructions(string Path)
 
 public sealed record CodexSettings
 {
-    public string Command { get; init; } = "codex";
-    public string Model { get; init; } = "";
-    public string Effort { get; init; } = "";
+    public string Command { get; set; } = "codex";
+    public string Model { get; set; } = "";
+    public string Effort { get; set; } = "";
     /// <summary>Tells sessions SharpRail launches that they run in SharpRail; POSIX shells only.</summary>
-    public bool AppendSystemPrompt { get; init; } = true;
+    public bool AppendSystemPrompt { get; set; } = true;
     /// <summary>One of <see cref="CodexLaunch.PermissionModes"/>' ids; anything else adds no flags.</summary>
-    public string PermissionMode { get; init; } = "default";
+    public string PermissionMode { get; set; } = "default";
     /// <summary>Starts launcher-created Codex sessions by issuing <c>/ide on</c>.</summary>
     public bool IdeContext { get; init; }
     /// <summary>Hands every launched session SharpRail's MCP server.</summary>
-    public bool Mcp { get; init; } = true;
+    public bool Mcp { get; set; } = true;
     /// <summary>Attaches launched sessions to the already-running Codex daemon; off launches <c>--no-daemon</c>. SharpRail never starts the daemon.</summary>
-    public bool SharedDaemon { get; init; } = true;
+    public bool SharedDaemon { get; set; } = true;
 }
 
 /// <summary>Whether a launch can attach to the running daemon now; <see cref="Reason"/> says why not, for the fallback notice.</summary>
@@ -199,5 +199,30 @@ public static class CodexContract
     public static readonly PluginChannel<InstructionSectionsChanged> InstructionsChanged = PluginChannel<InstructionSectionsChanged>.Event("instructionsChanged");
 
     public static readonly PluginContract Contract = PluginContract.Create<CodexSettings>(CodexManifest.Id, WireVersion,
-        [IdeReply, Account, Models, Daemon, ConfigGet, SetValue, CreateInstructions, InstallHooks, StatusSnapshot, SystemPromptGet, InstructionsList, InstructionsSet], [IdeRequest, Status, InstructionsChanged]);
+        [IdeReply, Account, Models, Daemon, ConfigGet, SetValue, CreateInstructions, InstallHooks, StatusSnapshot, SystemPromptGet, InstructionsList, InstructionsSet], [IdeRequest, Status, InstructionsChanged],
+        CodexJson.Default);
 }
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<CodexDaemonMode>), typeof(PluginJson.EnumConverter<CodexValueShape>), typeof(PluginJson.EnumConverter<CodexInstructionsTarget>), typeof(PluginJson.EnumConverter<CodexStatus>), typeof(PluginJson.EnumConverter<CodexPlanStatus>), typeof(PluginJson.EnumConverter<CodexScope>), typeof(PluginJson.EnumConverter<CodexWritableScope>), typeof(PluginJson.EnumConverter<CodexInstructionsScope>)])]
+[JsonSerializable(typeof(CodexSettings))]
+[JsonSerializable(typeof(CodexIdeReply))]
+[JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(CodexNoParams))]
+[JsonSerializable(typeof(CodexAccount))]
+[JsonSerializable(typeof(IReadOnlyList<CodexModel>))]
+[JsonSerializable(typeof(CodexDaemonState))]
+[JsonSerializable(typeof(CodexConfigParams))]
+[JsonSerializable(typeof(CodexConfigSnapshot))]
+[JsonSerializable(typeof(CodexSetValueParams))]
+[JsonSerializable(typeof(CodexCreateInstructionsParams))]
+[JsonSerializable(typeof(CodexCreatedInstructions))]
+[JsonSerializable(typeof(CodexWorkspaceParams))]
+[JsonSerializable(typeof(IReadOnlyList<CodexStatusPush>))]
+[JsonSerializable(typeof(CodexStatusPush))]
+[JsonSerializable(typeof(CodexSystemPromptFile))]
+[JsonSerializable(typeof(InstructionSectionQuery))]
+[JsonSerializable(typeof(InstructionSectionList))]
+[JsonSerializable(typeof(InstructionSectionToggle))]
+[JsonSerializable(typeof(CodexIdeRequest))]
+[JsonSerializable(typeof(InstructionSectionsChanged))]
+internal sealed partial class CodexJson : JsonSerializerContext;

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.Blueprint.Host;
@@ -31,3 +33,7 @@ internal static class BlueprintCheck
 
     private static string Count(int n, string noun) => $"{n} {noun}{(n == 1 ? "" : "s")}";
 }
+
+[JsonSerializable(typeof(BlueprintCheckParams))]
+[JsonSerializable(typeof(Dictionary<string, PersistedBlueprint>))]
+internal sealed partial class BlueprintHostJson : JsonSerializerContext;

@@ -25,8 +25,10 @@ public sealed record PluginToolResult(string Text)
 /// <summary>
 /// One tool, registered by a host half and served on the per-terminal MCP surface: an agent running in a
 /// SharpRail terminal lists and calls it through the terminal's MCP token. Declare tools as
-/// <see cref="PluginTool{TParams}"/>; the runtime derives the MCP input schema from
-/// <see cref="ParametersType"/> and validates arguments by strict deserialization before running the tool.
+/// <see cref="PluginTool{TParams}"/>; the runtime derives the MCP input schema from the source-generated metadata
+/// of <see cref="ParametersType"/>, which the plugin's context must name (a property's
+/// <see cref="System.ComponentModel.DescriptionAttribute"/> becomes its description), and validates arguments by
+/// strict deserialization before running the tool.
 /// </summary>
 public abstract class PluginToolDefinition
 {

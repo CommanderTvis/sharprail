@@ -299,10 +299,10 @@ public sealed partial class PluginRuntime
 
     private sealed class HostLog(PluginRuntime runtime, string scope) : IPluginLogger
     {
-        public void Debug(string message, object? fields = null) => runtime.Log(scope, "debug", message, fields);
-        public void Info(string message, object? fields = null) => runtime.Log(scope, "info", message, fields);
-        public void Warn(string message, object? fields = null) => runtime.Log(scope, "warn", message, fields);
-        public void Error(string message, object? fields = null) => runtime.Log(scope, "error", message, fields);
+        public void Debug(string message, IReadOnlyDictionary<string, string>? fields = null) => runtime.Log(scope, "debug", message, fields);
+        public void Info(string message, IReadOnlyDictionary<string, string>? fields = null) => runtime.Log(scope, "info", message, fields);
+        public void Warn(string message, IReadOnlyDictionary<string, string>? fields = null) => runtime.Log(scope, "warn", message, fields);
+        public void Error(string message, IReadOnlyDictionary<string, string>? fields = null) => runtime.Log(scope, "error", message, fields);
     }
 
     private async ValueTask PrepareEnvironment(TerminalRef terminal, CancellationToken cancellationToken)

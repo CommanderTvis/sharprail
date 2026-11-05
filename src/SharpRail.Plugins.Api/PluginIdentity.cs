@@ -11,7 +11,7 @@ public static class PluginApi
     /// plugin loads, naming the plugin, the generation it declares and this one, rather than allowed to
     /// half-load. Incremented with any breaking change to the three API assemblies.
     /// </summary>
-    public const int Generation = 1;
+    public const int Generation = 2;
 }
 
 /// <summary>

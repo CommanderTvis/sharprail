@@ -14,10 +14,10 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 {
     private sealed class Logger(PluginRuntime runtime, string id) : IPluginLogger
     {
-        public void Debug(string message, object? fields = null) => runtime.Log(id, "debug", message, fields);
-        public void Info(string message, object? fields = null) => runtime.Log(id, "info", message, fields);
-        public void Warn(string message, object? fields = null) => runtime.Log(id, "warn", message, fields);
-        public void Error(string message, object? fields = null) => runtime.Log(id, "error", message, fields);
+        public void Debug(string message, IReadOnlyDictionary<string, string>? fields = null) => runtime.Log(id, "debug", message, fields);
+        public void Info(string message, IReadOnlyDictionary<string, string>? fields = null) => runtime.Log(id, "info", message, fields);
+        public void Warn(string message, IReadOnlyDictionary<string, string>? fields = null) => runtime.Log(id, "warn", message, fields);
+        public void Error(string message, IReadOnlyDictionary<string, string>? fields = null) => runtime.Log(id, "error", message, fields);
     }
 
     private sealed class DependencyHandle(PluginRuntime runtime, PluginHostContext owner, string id) : IPluginDependencyHandle
@@ -77,6 +77,7 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
     public void Tool(PluginToolDefinition definition)
     {
         if (!Live) return;
+        PluginJson.TypeInfo(definition.ParametersType);
         if (runtime.ToolClash(definition.Name, tables) is { } owner)
         {
             runtime.Log(Id, "warn", $"tool {definition.Name} was refused: the name is already registered by {owner}", null);
@@ -176,8 +177,9 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 
     public T ReadState<T>(string name, T fallback)
     {
+        var type = PluginJson.TypeInfo<T>();
         if (StatePath(name) is not { } path) return fallback;
-        try { return JsonSerializer.Deserialize<T>(File.ReadAllText(path), PluginJson.Options) ?? fallback; }
+        try { return JsonSerializer.Deserialize(File.ReadAllText(path), type) ?? fallback; }
         catch (Exception error) when (error is IOException or JsonException or UnauthorizedAccessException) { return fallback; }
     }
 
@@ -187,7 +189,7 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
         var path = StatePath(name) ?? throw new InvalidOperationException("This host keeps no state directory.");
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        File.WriteAllBytes(temporary, JsonSerializer.SerializeToUtf8Bytes(value, PluginJson.Options));
+        File.WriteAllBytes(temporary, PluginJson.SerializeToUtf8Bytes(value));
         File.Move(temporary, path, overwrite: true);
     }
 

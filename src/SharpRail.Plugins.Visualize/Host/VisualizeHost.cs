@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization.Metadata;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
@@ -11,6 +13,8 @@ public sealed class VisualizeHost : PluginHostModule
     internal const string Guidance = "`visualize`: Mermaid diagrams, hand-written SVG (theme colours via currentColor/var(--fg|--bg|--accent)) or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view; `visualize_read` returns what it shows and what the user selected.";
 
     public override PluginContract Contract => VisualizeContract.Contract;
+
+    public override IJsonTypeInfoResolver Json => VisualizeHostJson.Default;
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {

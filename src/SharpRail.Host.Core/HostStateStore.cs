@@ -337,7 +337,7 @@ public sealed partial class HostStateStore : IHostStateService
     {
         lock (gate)
         {
-            if (JsonSerializer.Serialize(roster, PluginJson.Options) == JsonSerializer.Serialize(state.Plugins, PluginJson.Options)) return;
+            if (PluginJson.Serialize(roster) == PluginJson.Serialize(state.Plugins)) return;
             Publish(state with { Plugins = roster.ToArray() }, persist: false);
         }
     }

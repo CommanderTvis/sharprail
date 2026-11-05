@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization.Metadata;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
@@ -7,6 +9,8 @@ namespace SharpRail.Plugins.Acp.Host;
 public sealed class AcpHost : PluginHostModule
 {
     public override PluginContract Contract => AcpContract.Contract;
+
+    public override IJsonTypeInfoResolver Json => AcpHostJson.Default;
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {

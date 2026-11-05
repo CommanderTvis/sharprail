@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 
 namespace SharpRail.Plugins.AirContext.Host;
 
@@ -32,3 +33,8 @@ public sealed record ContextIndexParams
     [Description("Absolute directory of the SharpRail workspace to use: pass it when working in another worktree of this project (e.g. a subagent); defaults to the calling workspace.")]
     public string? Workspace { get; init; }
 }
+
+[JsonSerializable(typeof(ContextSearchParams))]
+[JsonSerializable(typeof(ContextStatusParams))]
+[JsonSerializable(typeof(ContextIndexParams))]
+internal sealed partial class AirContextHostJson : JsonSerializerContext;

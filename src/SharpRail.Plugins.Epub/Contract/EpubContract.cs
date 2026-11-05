@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.Epub;
@@ -36,7 +38,7 @@ public static class EpubContract
     public const string LinePrefix = "line/";
     public static readonly PluginMethod<EpubOpen, EpubBook> Open = new("open");
     public static readonly PluginMethod<EpubResourceQuery, EpubResource> Resource = new("resource");
-    public static readonly PluginContract Contract = PluginContract.Create<EpubSettings>(Id, 1, [Open, Resource], []);
+    public static readonly PluginContract Contract = PluginContract.Create<EpubSettings>(Id, 1, [Open, Resource], [], EpubJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "EPUB Reader", "book-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Documents,
@@ -47,3 +49,10 @@ public static class EpubContract
         Contributes = new() { FileViewers = [new() { Extensions = ["epub"], Read = PluginFileRead.None }] }
     };
 }
+
+[JsonSerializable(typeof(EpubSettings))]
+[JsonSerializable(typeof(EpubOpen))]
+[JsonSerializable(typeof(EpubBook))]
+[JsonSerializable(typeof(EpubResourceQuery))]
+[JsonSerializable(typeof(EpubResource))]
+internal sealed partial class EpubJson : JsonSerializerContext;

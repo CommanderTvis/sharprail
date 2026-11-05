@@ -64,7 +64,15 @@ public static class ProvidersContract
     public static readonly PluginMethod<SetProviderKeyParams, ProvidersReport> SetKey = new("setKey");
     public static readonly PluginMethod<RemoveProviderKeyParams, ProvidersReport> RemoveKey = new("removeKey");
 
-    public static readonly PluginContract Contract = PluginContract.Create<ProvidersSettings>(ProvidersManifest.Id, WireVersion, [List, SetKey, RemoveKey], []);
+    public static readonly PluginContract Contract = PluginContract.Create<ProvidersSettings>(ProvidersManifest.Id, WireVersion, [List, SetKey, RemoveKey], [], ProvidersJson.Default);
 }
 
 public sealed record ProvidersSettings;
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<ProviderAgent>), typeof(PluginJson.EnumConverter<ProviderSource>)])]
+[JsonSerializable(typeof(ProvidersSettings))]
+[JsonSerializable(typeof(ProvidersParams))]
+[JsonSerializable(typeof(ProvidersReport))]
+[JsonSerializable(typeof(SetProviderKeyParams))]
+[JsonSerializable(typeof(RemoveProviderKeyParams))]
+internal sealed partial class ProvidersJson : JsonSerializerContext;

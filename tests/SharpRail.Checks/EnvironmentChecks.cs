@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 using SharpRail.Host.Abstractions;
@@ -25,8 +26,11 @@ namespace SharpRail.Checks;
 // workspace environment pipeline, with fake tools on PATH (neither mise nor direnv is a prerequisite of the checks), trust inherited from the default
 // workspace only for identical configuration, a slow tool never holding a shell up, and a real shell started with
 // the result.
-internal static class EnvironmentChecks
+internal static partial class EnvironmentChecks
 {
+    [JsonSerializable(typeof(ProbeSettings))]
+    private sealed partial class EnvironmentJson : JsonSerializerContext;
+
     private const string Mise = """
         #!/bin/sh
         trust="$FAKE_TOOLS_STATE/trust-mise"
@@ -66,7 +70,7 @@ internal static class EnvironmentChecks
 
     private sealed class ProbeHost : PluginHostModule
     {
-        public static readonly PluginContract ProbeContract = PluginContract.Create<ProbeSettings>("probe-env-step", 1, [], []);
+        public static readonly PluginContract ProbeContract = PluginContract.Create<ProbeSettings>("probe-env-step", 1, [], [], EnvironmentJson.Default);
         public static readonly PluginManifest Manifest = new("probe-env-step", "Probe", "stack-line", "0.1.0", PluginApi.Generation, 1)
         {
             Category = PluginCategories.Environment,

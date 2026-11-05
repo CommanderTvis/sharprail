@@ -97,7 +97,7 @@ public static class CodexPanel
             try
             {
                 var next = await call();
-                var key = await Task.Run(() => JsonSerializer.Serialize(next, PluginJson.Options));
+                var key = await Task.Run(() => PluginJson.Serialize(next));
                 Dispatcher.UIThread.Post(() => { if (revision != generation) return; snapshot = next; snapshotKey = key; error = null; Render(); });
             }
             catch (Exception failure)

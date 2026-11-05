@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
@@ -25,12 +26,19 @@ namespace SharpRail.Checks;
 /// bounded disposal, dispatch, settings namespaces, tools, terminals, the fixture plugin composed as a check-only
 /// builtin and driven through the direct adapter and a real WebSocket RPC host, and external plugins discovered and refused.
 /// </summary>
-internal static class PluginHostChecks
+internal static partial class PluginHostChecks
 {
+    [JsonSerializable(typeof(Note))]
+    [JsonSerializable(typeof(EchoReply))]
+    [JsonSerializable(typeof(CounterReply))]
+    [JsonSerializable(typeof(ProbeSettings))]
+    [JsonSerializable(typeof(EnabledSettings))]
+    private sealed partial class PluginHostJson : JsonSerializerContext;
+
     private sealed record Note(string Text);
     private sealed record EchoReply(string Text, string Greeting);
     private sealed record CounterReply(string Workspace, int Value);
-    private sealed record ProbeSettings { public int Size { get; init; } = 3; }
+    private sealed record ProbeSettings { public int Size { get; set; } = 3; }
     private sealed class EnabledSettings { public bool Enabled { get; init; } }
 
     private static readonly PluginMethod<Note, Note> Say = new("say");
@@ -43,7 +51,10 @@ internal static class PluginHostChecks
         public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context) => activate(context);
     }
 
-    private static PluginContract Contract(string id, params PluginMethodSpec[] methods) => PluginContract.Create(id, 1, methods, [Notes]);
+    private static PluginContract Contract(string id, params PluginMethodSpec[] methods) => PluginContract.Create(id, 1, methods, [Notes], PluginHostJson.Default);
+
+    // A value as a client puts it on the wire; an anonymous object has no generated metadata of its own.
+    private static JsonElement Wire(object value) => JsonSerializer.SerializeToElement(value);
 
     private static Module Answering(string id, Action<IPluginHostContext>? also = null, PluginDisposer? disposer = null) => new(Contract(id, Say, Other), context =>
     {
@@ -150,7 +161,7 @@ internal static class PluginHostChecks
     internal static async Task Run(string root)
     {
         var directory = Path.Combine(root, "plugins-host");
-        Require(PluginApi.Generation == 1, "PluginApi.Generation changed; a breaking change must bump it deliberately and update this pin.");
+        Require(PluginApi.Generation == 2, "PluginApi.Generation changed; a breaking change must bump it deliberately and update this pin.");
         ManifestIntake();
         Discovery(Path.Combine(directory, "discovery"));
         await Registry(Path.Combine(directory, "registry"));
@@ -198,7 +209,7 @@ internal static class PluginHostChecks
 
     private static void ManifestIntake()
     {
-        const string valid = """{"id":"tidy","label":"Tidy","icon":"puzzle-2-line","version":"1.0.0","apiGeneration":1,"wireVersion":1}""";
+        const string valid = """{"id":"tidy","label":"Tidy","icon":"puzzle-2-line","version":"1.0.0","apiGeneration":2,"wireVersion":1}""";
         var (manifest, refused) = PluginDiscovery.ReadManifest(valid, "tidy");
         Require(manifest is { Id: "tidy", WireVersion: 1, EnabledByDefault: false } && refused is null, "A well-formed manifest is accepted: " + refused);
         var withTool = valid.Replace("}", ""","contributes":{"sideTools":[{"tool":"t","label":"T","icon":"i","defaultSide":"left","requiresGit":true}],"fileViewers":[]}}""");
@@ -207,12 +218,12 @@ internal static class PluginHostChecks
         Require(unknown is not null && unknown.Contains("bogus", StringComparison.Ordinal), "An unknown manifest member is refused, naming its path: " + unknown);
         var mistyped = PluginDiscovery.ReadManifest(valid.Replace("\"wireVersion\":1", "\"wireVersion\":\"one\""), "tidy").Refused;
         Require(mistyped is not null && mistyped.Contains("$.wireVersion", StringComparison.Ordinal), "A mistyped member is refused naming its path: " + mistyped);
-        var missing = PluginDiscovery.ReadManifest("""{"id":"tidy","icon":"i","version":"1","apiGeneration":1,"wireVersion":1}""", "tidy").Refused;
+        var missing = PluginDiscovery.ReadManifest("""{"id":"tidy","icon":"i","version":"1","apiGeneration":2,"wireVersion":1}""", "tidy").Refused;
         Require(missing is not null && missing.Contains("label", StringComparison.OrdinalIgnoreCase), "A missing required member is refused: " + missing);
         var moved = PluginDiscovery.ReadManifest(valid, "elsewhere").Refused;
         Require(moved == "plugin id \"tidy\" does not match its directory \"elsewhere\"", "An id must equal its directory name: " + moved);
-        var generation = PluginDiscovery.ReadManifest(valid.Replace("\"apiGeneration\":1", "\"apiGeneration\":2"), "tidy").Refused;
-        Require(generation == "plugin tidy declares apiGeneration 2, host expects 1", "A generation mismatch names the plugin and both generations: " + generation);
+        var generation = PluginDiscovery.ReadManifest(valid.Replace("\"apiGeneration\":2", "\"apiGeneration\":3"), "tidy").Refused;
+        Require(generation == "plugin tidy declares apiGeneration 3, host expects 2", "A generation mismatch names the plugin and both generations: " + generation);
         var id = PluginDiscovery.ReadManifest(valid.Replace("\"tidy\"", "\"Not An Id\""), null).Refused;
         Require(id is not null && id.Contains("not a plugin id", StringComparison.Ordinal), "A malformed id is refused: " + id);
         Console.WriteLine("PASS plugin manifests: strict shape naming the path, id against directory, generation naming both numbers");
@@ -249,9 +260,9 @@ internal static class PluginHostChecks
             (Manifest("trunk", true), Recording("trunk")),
             (Manifest("loop-a", true, new PluginDependency("loop-b", 1)), Recording("loop-a")),
             (Manifest("loop-b", true, new PluginDependency("loop-a", 1)), Recording("loop-b")),
-            (Manifest("ghostly", true), new Module(PluginContract.Create("ghostly", 1, [Say], [PluginChannel<Note>.State("state", ghost)]), _ => ValueTask.FromResult<PluginDisposer?>(null))),
-            (Manifest("twice", true), new Module(PluginContract.Create("twice", 1, [Say, Say], []), _ => ValueTask.FromResult<PluginDisposer?>(null))),
-            (Manifest("owns-enabled", true), new Module(PluginContract.Create<EnabledSettings>("owns-enabled", 1, [], []), _ => ValueTask.FromResult<PluginDisposer?>(null))),
+            (Manifest("ghostly", true), new Module(PluginContract.Create("ghostly", 1, [Say], [PluginChannel<Note>.State("state", ghost)], PluginHostJson.Default), _ => ValueTask.FromResult<PluginDisposer?>(null))),
+            (Manifest("twice", true), new Module(PluginContract.Create("twice", 1, [Say, Say], [], PluginHostJson.Default), _ => ValueTask.FromResult<PluginDisposer?>(null))),
+            (Manifest("owns-enabled", true), new Module(PluginContract.Create<EnabledSettings>("owns-enabled", 1, [], [], PluginHostJson.Default), _ => ValueTask.FromResult<PluginDisposer?>(null))),
             (Manifest("misnamed", true), new Module(Contract("someone-else", Say), _ => ValueTask.FromResult<PluginDisposer?>(null)))
         ]);
         await composed.Runtime.Schedule();
@@ -517,7 +528,7 @@ internal static class PluginHostChecks
     private static async Task Settings(string directory)
     {
         var seen = new List<ProbeSettings>();
-        var probe = new Module(PluginContract.Create<ProbeSettings>("probe", 1, [Say], []), context =>
+        var probe = new Module(PluginContract.Create<ProbeSettings>("probe", 1, [Say], [], PluginHostJson.Default), context =>
         {
             context.OnSettings<ProbeSettings>(value => { lock (seen) seen.Add(value); });
             context.Method(Say, (note, _, _) => ValueTask.FromResult(note with { Text = context.Settings<ProbeSettings>().Size.ToString() }));
@@ -754,15 +765,15 @@ internal static class PluginHostChecks
         await composed.Runtime.RescanAsync();
         Require((await composed.Row("outsider")) is { Status: PluginStatus.Disabled, Version: "1.0.1" }, "A rescan shows a changed external manifest, still disabled.");
 
-        InstallExternal(plugins, "elder", manifest => manifest with { ApiGeneration = 2 });
+        InstallExternal(plugins, "elder", manifest => manifest with { ApiGeneration = 3 });
         InstallExternal(plugins, "needy", manifest => manifest with { DependsOn = [new("absent", 1)] });
         await composed.Runtime.RescanAsync();
         var elder = await composed.Row("__refused:elder");
-        Require(elder is { Status: PluginStatus.Refused, Reason: "plugin elder declares apiGeneration 2, host expects 1" }, "A plugin built for another generation is refused, naming both.");
+        Require(elder is { Status: PluginStatus.Refused, Reason: "plugin elder declares apiGeneration 3, host expects 2" }, "A plugin built for another generation is refused, naming both.");
         await composed.Enable("needy");
         Require((await composed.Row("needy")) is { Status: PluginStatus.Refused, Reason: "depends on absent, which is not installed" }, "An external plugin's missing dependency is refused.");
         var elderManifest = Path.Combine(plugins, "elder", PluginManifest.FileName);
-        File.WriteAllText(elderManifest, File.ReadAllText(elderManifest).Replace("\"apiGeneration\":2", "\"apiGeneration\":1"));
+        File.WriteAllText(elderManifest, File.ReadAllText(elderManifest).Replace("\"apiGeneration\":3", "\"apiGeneration\":2"));
         var roster = await composed.Runtime.RescanAsync();
         Require(roster.All(entry => entry.Id != "__refused:elder") && roster.Single(entry => entry.Id == "elder").Status == PluginStatus.Disabled,
             "A rescan promotes a fixed manifest out of refused, arriving disabled.");
@@ -807,7 +818,7 @@ internal static class PluginHostChecks
         await state.ChangeAsync([HostStateChange.PluginEnabled("outsider", true)]);
         await Until(async () => (await plugins.ListAsync()).Single(entry => entry.Id == "outsider").Status == PluginStatus.Refused, mode + " refusal");
         Require((await plugins.ListAsync()).Single(entry => entry.Id == "outsider").Reason == ExternalRefusal, $"{mode}: an enabled external plugin is refused with a plain reason.");
-        Require((await Fails(() => plugins.CallAsync(new("outsider", "echo", new { text = "x" }, "client")).AsTask(), "A refused plugin must fail.")).Error == PluginCallError.Disabled,
+        Require((await Fails(() => plugins.CallAsync(new("outsider", "echo", Wire(new { text = "x" }), "client")).AsTask(), "A refused plugin must fail.")).Error == PluginCallError.Disabled,
             $"{mode}: a refused external plugin answers Disabled.");
         Require(await plugins.ReadFileAsync("outsider", "assets/icon.svg") is { Length: > 0 }, $"{mode}: an external plugin's assets are readable.");
         Require(await plugins.ReadFileAsync("outsider", "outsider.Host.dll") is null && await plugins.ReadFileAsync("outsider", PluginManifest.FileName) is null &&
@@ -828,7 +839,7 @@ internal static class PluginHostChecks
             $"{mode}: the fixture arrives disabled with its manifest contributions.");
         Require((await state.GetStateAsync()).Plugins.Any(entry => entry.Id == "fixture"), $"{mode}: the roster rides the state snapshot.");
         Require((await state.GetStateAsync()).Platform is not null, $"{mode}: the snapshot names the host platform.");
-        Require((await Fails(() => plugins.CallAsync(new("fixture", "echo", new { text = "x" }, "client")).AsTask(), "A disabled plugin must fail.")).Error == PluginCallError.Disabled,
+        Require((await Fails(() => plugins.CallAsync(new("fixture", "echo", Wire(new { text = "x" }), "client")).AsTask(), "A disabled plugin must fail.")).Error == PluginCallError.Disabled,
             $"{mode}: a disabled plugin answers Disabled.");
         Require((await Fails(() => plugins.CallAsync(new("nobody", "echo", null, "client")).AsTask(), "An unknown plugin must fail.")).Error == PluginCallError.Unknown,
             $"{mode}: an unknown plugin answers Unknown.");
@@ -838,11 +849,11 @@ internal static class PluginHostChecks
         var active = (await state.GetStateAsync()).Plugins.Single(entry => entry.Id == "fixture");
         Require(active.Channels["counter"] is { Kind: PluginChannelKind.State, Snapshot: "counter", Key: ["workspace"] } && active.Channels["pings"].Kind == PluginChannelKind.Event,
             $"{mode}: an active plugin's channels reach the roster.");
-        var echo = PluginJson.Convert<EchoReply>(await plugins.CallAsync(new("fixture", "echo", new { text = "hi" }, "client")));
+        var echo = PluginJson.Convert<EchoReply>(await plugins.CallAsync(new("fixture", "echo", Wire(new { text = "hi" }), "client")));
         Require(echo == new EchoReply("hi", "hello"), $"{mode}: a method answers with default settings.");
-        Require((await Fails(() => plugins.CallAsync(new("fixture", "shout", new { text = "x" }, "client")).AsTask(), "An unknown method must fail.")).Error == PluginCallError.Unknown,
+        Require((await Fails(() => plugins.CallAsync(new("fixture", "shout", Wire(new { text = "x" }), "client")).AsTask(), "An unknown method must fail.")).Error == PluginCallError.Unknown,
             $"{mode}: an unknown method answers Unknown.");
-        var invalid = await Fails(() => plugins.CallAsync(new("fixture", "echo", new { text = 5 }, "client")).AsTask(), "Bad params must fail.");
+        var invalid = await Fails(() => plugins.CallAsync(new("fixture", "echo", Wire(new { text = 5 }), "client")).AsTask(), "Bad params must fail.");
         Require(invalid.Error == PluginCallError.InvalidParams && invalid.Message.Contains("$.text", StringComparison.Ordinal), $"{mode}: bad params name the path: {invalid.Message}");
 
         await state.ChangeAsync([HostStateChange.PluginSettings("fixture", """{"greeting":"hey"}""")]);
@@ -850,7 +861,7 @@ internal static class PluginHostChecks
         var spaces = (await state.GetStateAsync()).PluginSettings;
         Require(spaces["fixture"].GetProperty("greeting").GetString() == "hey" && spaces["fixture"].GetProperty("enabled").GetBoolean() &&
             spaces["neighbour"].GetProperty("kept").GetBoolean(), $"{mode}: two namespaces written separately both survive.");
-        Require(PluginJson.Convert<EchoReply>(await plugins.CallAsync(new("fixture", "echo", new { text = "hi" }, "client"))).Greeting == "hey",
+        Require(PluginJson.Convert<EchoReply>(await plugins.CallAsync(new("fixture", "echo", Wire(new { text = "hi" }), "client"))).Greeting == "hey",
             $"{mode}: a settings change reaches the host half.");
         try
         {
@@ -860,29 +871,29 @@ internal static class PluginHostChecks
         catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
 
         var workspace = "workspace-" + mode;
-        await using (var mine = new Pushes(plugins.SubscribeAsync(new("fixture", "counter", new { workspace }, "client"))))
-        await using (var others = new Pushes(plugins.SubscribeAsync(new("fixture", "counter", new { workspace = "elsewhere" }, "client"))))
+        await using (var mine = new Pushes(plugins.SubscribeAsync(new("fixture", "counter", Wire(new { workspace }), "client"))))
+        await using (var others = new Pushes(plugins.SubscribeAsync(new("fixture", "counter", Wire(new { workspace = "elsewhere" }), "client"))))
         {
             CounterReply bumped = new("", 0);
             object? pushed = null;
             // A remote subscription registers when its stream starts; bump until it is listening.
             for (var attempt = 0; attempt < 40 && pushed is null; attempt++)
             {
-                bumped = PluginJson.Convert<CounterReply>(await plugins.CallAsync(new("fixture", "bump", new { workspace }, "client")));
+                bumped = PluginJson.Convert<CounterReply>(await plugins.CallAsync(new("fixture", "bump", Wire(new { workspace }), "client")));
                 try { pushed = await mine.Next("counter", 250); } catch (TimeoutException) { }
             }
             Require(pushed is not null && PluginJson.Convert<CounterReply>(pushed) == bumped, $"{mode}: a publish reaches the matching keyed subscription.");
-            var snapshot = PluginJson.Convert<CounterReply>(await plugins.CallAsync(new("fixture", "counter", new { workspace }, "client")));
+            var snapshot = PluginJson.Convert<CounterReply>(await plugins.CallAsync(new("fixture", "counter", Wire(new { workspace }), "client")));
             Require(snapshot == bumped, $"{mode}: the snapshot method returns the published state.");
             Require(await others.Silent(), $"{mode}: a keyed publish skips a subscription for another key.");
 
             await state.ChangeAsync([HostStateChange.PluginEnabled("fixture", false)]);
             await Until(async () => (await plugins.ListAsync()).Single(entry => entry.Id == "fixture").Status == PluginStatus.Disabled, mode + " disable");
-            Require((await Fails(() => plugins.CallAsync(new("fixture", "echo", new { text = "x" }, "client")).AsTask(), "A disabled plugin must fail.")).Error == PluginCallError.Disabled,
+            Require((await Fails(() => plugins.CallAsync(new("fixture", "echo", Wire(new { text = "x" }), "client")).AsTask(), "A disabled plugin must fail.")).Error == PluginCallError.Disabled,
                 $"{mode}: disabling stops dispatch.");
             await state.ChangeAsync([HostStateChange.PluginEnabled("fixture", true)]);
             await Until(async () => (await plugins.ListAsync()).Single(entry => entry.Id == "fixture").Status == PluginStatus.Active, mode + " re-enable");
-            var again = PluginJson.Convert<CounterReply>(await plugins.CallAsync(new("fixture", "bump", new { workspace }, "client")));
+            var again = PluginJson.Convert<CounterReply>(await plugins.CallAsync(new("fixture", "bump", Wire(new { workspace }), "client")));
             Require(PluginJson.Convert<CounterReply>(await mine.Next("after re-enabling")) == again && again.Value == bumped.Value + 1,
                 $"{mode}: a subscription survives disable and enable, and state survives the toggle.");
         }

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 using SharpRail.Plugins.Api;
@@ -19,10 +20,10 @@ public static class AirSources
 /// <summary>The plugin's settings namespace: which source is chosen, and for which agents.</summary>
 public sealed record AirSettings
 {
-    public string Source { get; init; } = AirSources.Direct;
-    public bool ClaudeCode { get; init; } = true;
-    public bool Codex { get; init; } = true;
-    public bool Omp { get; init; } = true;
+    public string Source { get; set; } = AirSources.Direct;
+    public bool ClaudeCode { get; set; } = true;
+    public bool Codex { get; set; } = true;
+    public bool Omp { get; set; } = true;
 }
 
 /// <param name="Probe">Asks <c>central status</c> for the sign-in and proxy rows; without it only the binary and its version are read.</param>
@@ -164,7 +165,7 @@ public static class AirGatewayContract
     public static readonly PluginChannel<AirStatus> Changed = PluginChannel<AirStatus>.State("status", Status);
 
     public static readonly PluginContract Contract = PluginContract.Create<AirSettings>(Id, 1,
-        [Status, SignIn, SignOut, StartProxy, Update, AccessSources, SwitchAccess], [Changed]);
+        [Status, SignIn, SignOut, StartProxy, Update, AccessSources, SwitchAccess], [Changed], AirGatewayJson.Default);
 
     public static readonly PluginManifest Manifest = new(Id, "Air Gateway", "", "0.1.0", PluginApi.Generation, 1)
     {
@@ -177,3 +178,12 @@ public static class AirGatewayContract
         Ui = "SharpRail.Plugins.AirGateway.UI.dll"
     };
 }
+
+[JsonSerializable(typeof(AirSettings))]
+[JsonSerializable(typeof(AirStatusParams))]
+[JsonSerializable(typeof(AirStatus))]
+[JsonSerializable(typeof(AirActionParams))]
+[JsonSerializable(typeof(AirOutcome))]
+[JsonSerializable(typeof(AirAccessList))]
+[JsonSerializable(typeof(AirSwitchParams))]
+internal sealed partial class AirGatewayJson : JsonSerializerContext;

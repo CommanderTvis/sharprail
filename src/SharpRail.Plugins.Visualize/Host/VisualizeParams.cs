@@ -1,4 +1,7 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
+
+using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.Visualize.Host;
 
@@ -72,3 +75,9 @@ public sealed record VisualizeParams(
 
 /// <summary>visualize_read takes nothing: the runtime binds it to the calling terminal's view.</summary>
 public sealed record VisualizeReadParams;
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<VisualizationType>)])]
+[JsonSerializable(typeof(VisualizeParams))]
+[JsonSerializable(typeof(VisualizeReadParams))]
+[JsonSerializable(typeof(Dictionary<string, Dictionary<string, TerminalVisualization>>))]
+internal sealed partial class VisualizeHostJson : JsonSerializerContext;

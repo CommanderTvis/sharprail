@@ -959,10 +959,10 @@ internal static class CodexChecks
 
         private sealed class Quiet : IPluginLogger
         {
-            public void Debug(string message, object? fields = null) { }
-            public void Info(string message, object? fields = null) { }
-            public void Warn(string message, object? fields = null) { }
-            public void Error(string message, object? fields = null) { }
+            public void Debug(string message, IReadOnlyDictionary<string, string>? fields = null) { }
+            public void Info(string message, IReadOnlyDictionary<string, string>? fields = null) { }
+            public void Warn(string message, IReadOnlyDictionary<string, string>? fields = null) { }
+            public void Error(string message, IReadOnlyDictionary<string, string>? fields = null) { }
         }
     }
 

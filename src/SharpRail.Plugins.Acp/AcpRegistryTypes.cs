@@ -5,12 +5,12 @@ public sealed record AcpRegistryAgent(string Id, string Name, string Version, st
 {
     public string? Repository { get; init; }
     public string? Website { get; init; }
-    public IReadOnlyList<string> Authors { get; init; } = [];
+    public IReadOnlyList<string> Authors { get; set; } = [];
     public string? License { get; init; }
     public string? LicenseUrl { get; init; }
     public string? Icon { get; init; }
     /// <summary>The distribution kinds on offer: "npx", "uvx" and "binary".</summary>
-    public IReadOnlyList<string> Kinds { get; init; } = [];
+    public IReadOnlyList<string> Kinds { get; set; } = [];
     /// <summary>Whether the agent can run on this machine: it has an npx or uvx entry, or a binary for this platform.</summary>
     public bool Installable { get; init; }
     /// <summary>Why using this adapter is discouraged (SharpRail supports the agent directly); null for a normal entry.</summary>
@@ -43,9 +43,9 @@ public sealed record AcpInstallPlan(string AgentId, string Name, string Version,
     public string Verification { get; init; } = "";
 
     /// <summary>Where the code comes from: the package name or the archive URL.</summary>
-    public string Source { get; init; } = "";
+    public string Source { get; set; } = "";
     /// <summary>The command line SharpRail will run, as it would be typed.</summary>
-    public string CommandLine { get; init; } = "";
+    public string CommandLine { get; set; } = "";
     /// <summary>The archive's SHA-256 when the registry gives one; a binary without it is installed unverified and the plan says so.</summary>
     public string? Sha256 { get; init; }
     public string? Repository { get; init; }

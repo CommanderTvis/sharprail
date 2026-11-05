@@ -107,6 +107,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | Mode | Covers |
 | --- | --- |
 | `--plugins-settings` | Settings › Plugins with a long roster: virtualized, recycled cards; broadcasts update in place; toggles; every builtin plugin draws its icon. |
+| `--plugin-json` | Every builtin plugin's declared types, contexts and tool parameters have source-generated JSON metadata, enums as camelCase strings, no initializer lost (also run by `--plugins`). |
 | `--plugins`, `--codex`, `--codex-terminals`, `--omp`, `--pi`, `--acp`, `--providers`, `--claude-code`, `--claude-chat-ui`, `--claude-chat-host`, `--claude-chat-e2e`, `--specs`, `--branch-graph`, `--processes` | Plugin runtime and each builtin plugin. |
 | `--github` (planned with the plugin) | `GitHub` against a fake `gh`: recognition, lookup, open/update, merge, sign-in page, and the off case (no segment, no `gh`, push still works). |
 | `--environment` | `Env` and its dependents (mise, direnv, Python, JavaScript, JVM) through the host's pipeline with fake `mise` and `direnv` on PATH: step order by id (unknown ids last), the cascade and the plain environment while `Env` is off, trust inherited only for identical configuration, token never forwarded, slow-tool budget and last-good fallback, and a real shell started with the result (`--case environment` in the gate). |

@@ -26,7 +26,7 @@ internal static class ClaudeChatSemanticsChecks
 
     private static JsonElement Frame(object value) => JsonSerializer.SerializeToElement(value);
 
-    private static string Json(IEnumerable<ChatItem> items) => JsonSerializer.Serialize(items.ToArray(), PluginJson.Options);
+    private static string Json(IEnumerable<ChatItem> items) => JsonSerializer.Serialize<IReadOnlyList<ChatItem>>(items.ToArray(), PluginJson.Options);
 
     private static object User(string uuid, object content, object? origin = null, bool synthetic = false, string? parent = null) =>
         new { type = "user", uuid, message = new { role = "user", content }, origin, isSynthetic = synthetic ? (bool?)true : null, parent_tool_use_id = parent };

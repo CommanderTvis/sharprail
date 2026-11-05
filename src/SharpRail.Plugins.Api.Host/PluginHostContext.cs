@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization.Metadata;
+
 namespace SharpRail.Plugins.Api.Host;
 
 /// <summary>
@@ -60,7 +62,8 @@ public interface IPluginHostContext
 
     /// <summary>
     /// Registers a tool on the per-terminal MCP surface (H4). While the plugin is disabled the tool is absent
-    /// from listings and calls; a call already running finishes.
+    /// from listings and calls; a call already running finishes. Its parameters type must be named by a
+    /// registered context (<see cref="PluginHostModule.Json"/>); otherwise registering it throws.
     /// </summary>
     /// <param name="definition">The tool, usually a <see cref="PluginTool{TParams}"/>.</param>
     void Tool(PluginToolDefinition definition);
@@ -203,7 +206,7 @@ public interface IPluginHostContext
     void OnSettings<T>(Action<T> handler) where T : class;
 
     /// <summary>Reads JSON state at <see cref="PluginIdentity.StateFile"/> under the host state directory (H14).</summary>
-    /// <typeparam name="T">The state's type.</typeparam>
+    /// <typeparam name="T">The state's type, named by the contract's context or <see cref="PluginHostModule.Json"/>.</typeparam>
     /// <param name="name">The state file name.</param>
     /// <param name="fallback">Returned when the file is missing or does not parse.</param>
     /// <returns>The state, or <paramref name="fallback"/>.</returns>
@@ -213,7 +216,7 @@ public interface IPluginHostContext
     /// Writes JSON state at <see cref="PluginIdentity.StateFile"/> under the host state directory, atomically
     /// (H14). It survives the plugin being disabled or replaced.
     /// </summary>
-    /// <typeparam name="T">The state's type.</typeparam>
+    /// <typeparam name="T">The state's type, named by the contract's context or <see cref="PluginHostModule.Json"/>.</typeparam>
     /// <param name="name">The state file name.</param>
     /// <param name="value">The value, serialized with <see cref="PluginJson.Options"/>.</param>
     void WriteState<T>(string name, T value);
@@ -416,6 +419,13 @@ public abstract class PluginHostModule
 {
     /// <summary>The plugin's wire contract; its id must equal the manifest's.</summary>
     public abstract PluginContract Contract { get; }
+
+    /// <summary>
+    /// The source-generated metadata of the types only the host half exchanges through <see cref="PluginJson"/>:
+    /// its state files and its tools' parameters. <see langword="null"/> when the contract's context covers them.
+    /// The runtime registers it when it loads the plugin.
+    /// </summary>
+    public virtual IJsonTypeInfoResolver? Json => null;
 
     /// <summary>Activates the plugin. A throw marks the plugin failed with the exception's message, and its dependents refused.</summary>
     /// <param name="context">This activation's context.</param>

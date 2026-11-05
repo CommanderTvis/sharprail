@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.SpecDialect;
@@ -29,7 +31,7 @@ public static class SpecDialectContract
     /// <summary><c>plugin.spec-dialect.graph</c>: the workspace's spec graph, read from its worktree; an unknown workspace fails.</summary>
     public static readonly PluginMethod<SpecGraphParams, SpecGraphSnapshot> Graph = new("graph");
 
-    public static readonly PluginContract Contract = PluginContract.Create(Id, WireVersion, [Graph], []);
+    public static readonly PluginContract Contract = PluginContract.Create(Id, WireVersion, [Graph], [], SpecDialectJson.Default);
 }
 
 public static class SpecDialectManifest
@@ -48,3 +50,7 @@ public static class SpecDialectManifest
         Contributes = new() { SideTools = [new(Tool, "Specs", "book-open", PluginToolSide.Right)] }
     };
 }
+
+[JsonSerializable(typeof(SpecGraphParams))]
+[JsonSerializable(typeof(SpecGraphSnapshot))]
+internal sealed partial class SpecDialectJson : JsonSerializerContext;

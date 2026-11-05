@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization.Metadata;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 
@@ -7,6 +9,8 @@ namespace SharpRail.Plugins.Providers.Host;
 public sealed class ProvidersHost : PluginHostModule
 {
     public override PluginContract Contract => ProvidersContract.Contract;
+
+    public override IJsonTypeInfoResolver Json => ProvidersHostJson.Default;
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {

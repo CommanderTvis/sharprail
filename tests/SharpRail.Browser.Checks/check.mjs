@@ -68,7 +68,7 @@ try {
   // An external plugin is discovered and listed, but refused when enabled: no external code runs in the host or the app.
   const outsider = path.join(scratch, 'state/plugins/outsider');
   await fs.mkdir(path.join(outsider, 'assets'), { recursive: true });
-  await fs.writeFile(path.join(outsider, 'sharprail-plugin.json'), JSON.stringify({ id: 'outsider', label: 'Outsider', icon: 'puzzle-2-line', version: '1.0.0', apiGeneration: 1, wireVersion: 1, host: 'outsider.Host.dll', ui: 'outsider.UI.dll', assets: 'assets' }));
+  await fs.writeFile(path.join(outsider, 'sharprail-plugin.json'), JSON.stringify({ id: 'outsider', label: 'Outsider', icon: 'puzzle-2-line', version: '1.0.0', apiGeneration: 2, wireVersion: 1, host: 'outsider.Host.dll', ui: 'outsider.UI.dll', assets: 'assets' }));
   await fs.writeFile(path.join(outsider, 'assets/icon.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"/>');
   const browserPort = await port();
   const address = `http://127.0.0.1:${browserPort}`;

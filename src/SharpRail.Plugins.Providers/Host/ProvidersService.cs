@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace SharpRail.Plugins.Providers.Host;
 
@@ -208,3 +209,6 @@ internal sealed class ProvidersService(ProviderFiles files)
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 }
+
+[JsonSerializable(typeof(List<CustomProvider>))]
+internal sealed partial class ProvidersHostJson : JsonSerializerContext;

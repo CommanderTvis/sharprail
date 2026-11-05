@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 using SharpRail.Plugins.Api;
@@ -22,11 +23,11 @@ public sealed record DiscordStatusParams;
 
 public sealed record DiscordSettings
 {
-    public string ApplicationId { get; init; } = DiscordValues.ThinkRailApplicationId;
+    public string ApplicationId { get; set; } = DiscordValues.ThinkRailApplicationId;
     /// <summary>Projects that never reach Discord at all, not even as an anonymous "working on something".</summary>
-    public IReadOnlyList<string> BlockedProjectIds { get; init; } = [];
+    public IReadOnlyList<string> BlockedProjectIds { get; set; } = [];
     /// <summary>Whether the file name is published alongside the project name.</summary>
-    public bool ShareFileName { get; init; } = true;
+    public bool ShareFileName { get; set; } = true;
 }
 
 public static partial class DiscordValues
@@ -47,7 +48,7 @@ public static class DiscordContract
     public static readonly PluginMethod<DiscordStatusParams, DiscordStatus> Status = new("status");
     public static readonly PluginChannel<DiscordStatus> StatusChannel = PluginChannel<DiscordStatus>.State("status", Status);
     public static readonly PluginContract Contract =
-        PluginContract.Create<DiscordSettings>(DiscordPlugin.Id, 1, [Presence, Status], [StatusChannel]);
+        PluginContract.Create<DiscordSettings>(DiscordPlugin.Id, 1, [Presence, Status], [StatusChannel], DiscordJson.Default);
 }
 
 public static class DiscordPlugin
@@ -66,3 +67,10 @@ public static class DiscordPlugin
         Ui = "SharpRail.Plugins.Discord.UI.dll"
     };
 }
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<DiscordConnectionState>)])]
+[JsonSerializable(typeof(DiscordSettings))]
+[JsonSerializable(typeof(DiscordPresenceParams))]
+[JsonSerializable(typeof(DiscordStatusParams))]
+[JsonSerializable(typeof(DiscordStatus))]
+internal sealed partial class DiscordJson : JsonSerializerContext;

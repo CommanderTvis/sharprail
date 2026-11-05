@@ -5,23 +5,23 @@ public interface IPluginLogger
 {
     /// <summary>Logs a debug message.</summary>
     /// <param name="message">The message.</param>
-    /// <param name="fields">Structured fields, serialized with <see cref="PluginJson.Options"/>.</param>
-    void Debug(string message, object? fields = null);
+    /// <param name="fields">Structured fields, written after the message as a JSON object.</param>
+    void Debug(string message, IReadOnlyDictionary<string, string>? fields = null);
 
     /// <summary>Logs an informational message.</summary>
     /// <param name="message">The message.</param>
-    /// <param name="fields">Structured fields, serialized with <see cref="PluginJson.Options"/>.</param>
-    void Info(string message, object? fields = null);
+    /// <param name="fields">Structured fields, written after the message as a JSON object.</param>
+    void Info(string message, IReadOnlyDictionary<string, string>? fields = null);
 
     /// <summary>Logs a warning.</summary>
     /// <param name="message">The message.</param>
-    /// <param name="fields">Structured fields, serialized with <see cref="PluginJson.Options"/>.</param>
-    void Warn(string message, object? fields = null);
+    /// <param name="fields">Structured fields, written after the message as a JSON object.</param>
+    void Warn(string message, IReadOnlyDictionary<string, string>? fields = null);
 
     /// <summary>Logs an error.</summary>
     /// <param name="message">The message.</param>
-    /// <param name="fields">Structured fields, serialized with <see cref="PluginJson.Options"/>.</param>
-    void Error(string message, object? fields = null);
+    /// <param name="fields">Structured fields, written after the message as a JSON object.</param>
+    void Error(string message, IReadOnlyDictionary<string, string>? fields = null);
 }
 
 /// <summary>

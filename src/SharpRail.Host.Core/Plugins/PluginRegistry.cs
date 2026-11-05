@@ -154,7 +154,8 @@ internal sealed class PluginRegistry
 
     /// <summary>
     /// What <see cref="PluginContract"/>'s shape cannot rule out: duplicate names, a snapshot method the
-    /// contract does not declare, a settings type claiming <c>enabled</c>, and a contract for another id.
+    /// contract does not declare, a declared type its JSON context does not cover, a settings type claiming
+    /// <c>enabled</c>, and a contract for another id.
     /// </summary>
     public static string? ContractIntake(PluginContract contract, string manifestId)
     {
@@ -166,9 +167,29 @@ internal sealed class PluginRegistry
         foreach (var state in contract.Channels.Where(channel => channel.Kind == PluginChannelKind.State))
             if (contract.Methods.All(method => method.Name != state.Snapshot))
                 return $"plugin {contract.Id} channel \"{state.Name}\" names unknown snapshot method \"{state.Snapshot}\"";
+        foreach (var type in DeclaredTypes(contract))
+            if (Uncovered(type) is { } missing) return $"plugin {contract.Id} declares {type.Name}, which has no JSON metadata: {missing}";
         if (contract.SettingsType is { } settings &&
             PluginJson.Options.GetTypeInfo(settings).Properties.Any(property => property.Name == "enabled"))
             return $"plugin {contract.Id} settings type may not declare \"enabled\"";
         return null;
+    }
+
+    /// <summary>Every type a contract exchanges: method params and results, channel payloads and the settings type.</summary>
+    public static IEnumerable<Type> DeclaredTypes(PluginContract contract) =>
+        contract.Methods.SelectMany(method => new[] { method.ParamsType, method.ResultType })
+            .Concat(contract.Channels.Select(channel => channel.PayloadType))
+            .Concat(contract.SettingsType is { } settings ? [settings] : [])
+            .Distinct();
+
+    /// <summary>Why <see cref="PluginJson.Options"/> cannot serialize <paramref name="type"/>, or null when it can.</summary>
+    public static string? Uncovered(Type type)
+    {
+        try
+        {
+            PluginJson.TypeInfo(type);
+            return null;
+        }
+        catch (NotSupportedException error) { return error.Message; }
     }
 }

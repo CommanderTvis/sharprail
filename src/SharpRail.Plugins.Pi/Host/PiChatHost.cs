@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -167,3 +168,6 @@ internal sealed class PiChatHost(IPluginHostContext context, Func<string>? sessi
         return new([.. paths]);
     }
 }
+
+[JsonSerializable(typeof(Dictionary<string, PiChatRecord>))]
+internal sealed partial class PiHostJson : JsonSerializerContext;

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization.Metadata;
+
 namespace SharpRail.Plugins.Api;
 
 /// <summary>
@@ -119,9 +121,10 @@ public sealed class PluginChannel<TPayload> : PluginChannelSpec
 /// </summary>
 public sealed class PluginContract
 {
-    private PluginContract(string id, int wireVersion, IReadOnlyList<PluginMethodSpec> methods, IReadOnlyList<PluginChannelSpec> channels, Type? settingsType)
+    private PluginContract(string id, int wireVersion, IReadOnlyList<PluginMethodSpec> methods, IReadOnlyList<PluginChannelSpec> channels, Type? settingsType, IReadOnlyList<IJsonTypeInfoResolver> json)
     {
-        Id = id; WireVersion = wireVersion; Methods = methods; Channels = channels; SettingsType = settingsType;
+        Id = id; WireVersion = wireVersion; Methods = methods; Channels = channels; SettingsType = settingsType; Json = json;
+        foreach (var context in json) PluginJson.Register(context);
     }
 
     /// <summary>The plugin's id; every method and channel name is namespaced under it.</summary>
@@ -143,30 +146,47 @@ public sealed class PluginContract
     /// </summary>
     public Type? SettingsType { get; }
 
+    /// <summary>
+    /// The source-generated contexts holding the metadata of every type the contract exchanges: each method's params
+    /// and result, each channel's payload and the settings type, with a <see cref="PluginJson.EnumConverter{TEnum}"/>
+    /// for each enum they reach. Creating the contract registers them with <see cref="PluginJson"/>, and the host
+    /// runtime refuses to load a plugin whose contract names a type they do not cover.
+    /// </summary>
+    public IReadOnlyList<IJsonTypeInfoResolver> Json { get; }
+
     /// <summary>Declares a contract whose settings namespace is <typeparamref name="TSettings"/>.</summary>
     /// <typeparam name="TSettings">The settings record; a parameterless instance holds the defaults.</typeparam>
     /// <param name="id">The plugin's id.</param>
     /// <param name="wireVersion">The contract's wire version.</param>
     /// <param name="methods">The request methods.</param>
     /// <param name="channels">The channels.</param>
+    /// <param name="json">The source-generated contexts naming every type the contract exchanges (<see cref="Json"/>): usually the plugin's one, plus a shared contract's whose methods it merges.</param>
     /// <returns>The contract.</returns>
     /// <example>
     /// <code>
     /// public static readonly PluginContract Contract = PluginContract.Create&lt;TodoSettings&gt;(
-    ///     "todo-board", 1, [List], [PluginChannel&lt;string[]&gt;.State("todos", List)]);
+    ///     "todo-board", 1, [List], [PluginChannel&lt;string[]&gt;.State("todos", List)], TodoJson.Default);
+    ///
+    /// [JsonSerializable(typeof(TodoSettings))]
+    /// [JsonSerializable(typeof(ListTodos))]
+    /// [JsonSerializable(typeof(string[]))]
+    /// internal sealed partial class TodoJson : JsonSerializerContext;
     /// </code>
     /// </example>
-    public static PluginContract Create<TSettings>(string id, int wireVersion, IReadOnlyList<PluginMethodSpec> methods, IReadOnlyList<PluginChannelSpec> channels)
-        where TSettings : class, new() => new(id, wireVersion, methods, channels, typeof(TSettings));
+    public static PluginContract Create<TSettings>(string id, int wireVersion, IReadOnlyList<PluginMethodSpec> methods, IReadOnlyList<PluginChannelSpec> channels,
+        params IReadOnlyList<IJsonTypeInfoResolver> json)
+        where TSettings : class, new() => new(id, wireVersion, methods, channels, typeof(TSettings), json);
 
     /// <summary>Declares a contract with no settings namespace beyond the core-owned enable flag.</summary>
     /// <param name="id">The plugin's id.</param>
     /// <param name="wireVersion">The contract's wire version.</param>
     /// <param name="methods">The request methods.</param>
     /// <param name="channels">The channels.</param>
+    /// <param name="json">The source-generated contexts naming every type the contract exchanges (<see cref="Json"/>); none for a contract that exchanges nothing.</param>
     /// <returns>The contract.</returns>
-    public static PluginContract Create(string id, int wireVersion, IReadOnlyList<PluginMethodSpec> methods, IReadOnlyList<PluginChannelSpec> channels) =>
-        new(id, wireVersion, methods, channels, null);
+    public static PluginContract Create(string id, int wireVersion, IReadOnlyList<PluginMethodSpec> methods, IReadOnlyList<PluginChannelSpec> channels,
+        params IReadOnlyList<IJsonTypeInfoResolver> json) =>
+        new(id, wireVersion, methods, channels, null, json);
 }
 
 /// <summary>

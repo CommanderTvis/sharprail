@@ -57,7 +57,7 @@ internal sealed class PluginUIContext : IPluginUIContext
     {
         var lifetime = new CancellationTokenSource();
         var spec = (pluginId == Id ? entry : Registry.Entry(pluginId))?.Channels.GetValueOrDefault(name);
-        var scopeJson = scope is null ? (JsonElement?)null : JsonSerializer.SerializeToElement(scope, PluginJson.Options);
+        var scopeJson = scope is null ? (JsonElement?)null : PluginJson.ToElement(scope);
         _ = Dispatcher.UIThread.InvokeAsync(async () =>
         {
             while (!lifetime.IsCancellationRequested && !activation.Closed)
@@ -96,7 +96,7 @@ internal sealed class PluginUIContext : IPluginUIContext
         {
             try
             {
-                var result = await service.CallAsync(new(pluginId, snapshot, scope ?? new { }, loader.ClientKey), lifetime.Token);
+                var result = await service.CallAsync(new(pluginId, snapshot, scope ?? EmptyParams, loader.ClientKey), lifetime.Token);
                 if (!typeof(System.Collections.IEnumerable).IsAssignableFrom(typeof(TPayload)) && result is JsonElement { ValueKind: JsonValueKind.Array } rows)
                     foreach (var row in rows.EnumerateArray()) Deliver(row);
                 else if (result is System.Collections.IEnumerable list && result is not TPayload && result is not string)
@@ -125,10 +125,13 @@ internal sealed class PluginUIContext : IPluginUIContext
         }
     }
 
+    // The params of a snapshot method a subscription gives no scope.
+    private static readonly JsonElement EmptyParams = JsonElement.Parse("{}");
+
     internal static bool MatchesScope(object? payload, IReadOnlyList<string> keys, JsonElement scope)
     {
         if (payload is null || scope.ValueKind != JsonValueKind.Object) return true;
-        var element = payload as JsonElement? ?? JsonSerializer.SerializeToElement(payload, PluginJson.Options);
+        var element = PluginJson.ToElement(payload);
         if (element.ValueKind != JsonValueKind.Object) return true;
         return keys.All(key => !scope.TryGetProperty(key, out var wanted) ||
             (element.TryGetProperty(key, out var actual) && actual.GetRawText() == wanted.GetRawText()));
@@ -142,11 +145,11 @@ internal sealed class PluginUIContext : IPluginUIContext
         if (state.PluginSettings.GetValueOrDefault(Id) is { ValueKind: JsonValueKind.Object } stored)
             foreach (var property in stored.EnumerateObject().Where(property => property.Name != "enabled"))
                 namespaceObject[property.Name] = JsonNode.Parse(property.Value.GetRawText());
-        try { return PluginJson.Convert<T>(JsonSerializer.SerializeToElement(namespaceObject)); }
+        try { return PluginJson.Convert<T>(PluginJson.SerializeToElement(namespaceObject)); }
         catch (JsonException error)
         {
-            Log.Warn("Settings do not match the contract; using defaults.", new { error = error.Message });
-            return PluginJson.Convert<T>(JsonSerializer.SerializeToElement(new JsonObject()));
+            Log.Warn("Settings do not match the contract; using defaults.", new Dictionary<string, string> { ["error"] = error.Message });
+            return PluginJson.Convert<T>(PluginJson.SerializeToElement(new JsonObject()));
         }
     }
 
@@ -165,7 +168,7 @@ internal sealed class PluginUIContext : IPluginUIContext
 
     public async ValueTask UpdateSettingsAsync<T>(T settings) where T : class
     {
-        var written = JsonSerializer.SerializeToElement(settings, PluginJson.Options);
+        var written = PluginJson.SerializeToElement(settings);
         var arrived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         bool Carries(HostState state) => state.PluginSettings.GetValueOrDefault(Id) is { ValueKind: JsonValueKind.Object } stored &&
             written.EnumerateObject().All(member => stored.TryGetProperty(member.Name, out var value) && value.GetRawText() == member.Value.GetRawText());
@@ -401,13 +404,13 @@ internal sealed class PluginUIContext : IPluginUIContext
 
     private sealed class Logger(string id) : IPluginUILogger
     {
-        public void Debug(string message, object? fields = null) => Write("debug", message, fields);
-        public void Info(string message, object? fields = null) => Write("info", message, fields);
-        public void Warn(string message, object? fields = null) => Write("warn", message, fields);
-        public void Error(string message, object? fields = null) => Write("error", message, fields);
+        public void Debug(string message, IReadOnlyDictionary<string, string>? fields = null) => Write("debug", message, fields);
+        public void Info(string message, IReadOnlyDictionary<string, string>? fields = null) => Write("info", message, fields);
+        public void Warn(string message, IReadOnlyDictionary<string, string>? fields = null) => Write("warn", message, fields);
+        public void Error(string message, IReadOnlyDictionary<string, string>? fields = null) => Write("error", message, fields);
 
-        private void Write(string level, string message, object? fields) =>
-            Console.Error.WriteLine($"[plugin:{id}] {level}: {message}{(fields is null ? "" : " " + JsonSerializer.Serialize(fields, PluginJson.Options))}");
+        private void Write(string level, string message, IReadOnlyDictionary<string, string>? fields) =>
+            Console.Error.WriteLine($"[plugin:{id}] {level}: {message}{(fields is null ? "" : " " + PluginJson.Serialize(fields))}");
     }
 
     private sealed class EditorsApi(PluginUIContext context) : IPluginEditors

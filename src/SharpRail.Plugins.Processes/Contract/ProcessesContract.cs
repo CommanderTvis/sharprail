@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.Processes;
@@ -35,7 +37,7 @@ public sealed record OwnedProcessReleaseParams(int Pid);
 public sealed record ProcessesSettings
 {
     /// <summary>Whether stopping an agent row also stops every process forked from it; off, only the agent's own process is stopped.</summary>
-    public bool StopAgentChildren { get; init; } = true;
+    public bool StopAgentChildren { get; set; } = true;
 
     /// <summary>The pane's "All projects" check box as the user left it, kept across restarts; false shows only the pane's own project.</summary>
     public bool ShowAllProjects { get; init; }
@@ -46,7 +48,7 @@ public static class ProcessesContract
     /// <summary>Samples now (at most once a second; a closer call returns the last sample). Only a visible pane calls it, so nothing samples while it is hidden.</summary>
     public static readonly PluginMethod<ProcessSnapshotParams, ProcessSnapshot> Snapshot = new("snapshot");
     public static readonly PluginMethod<ProcessStopParams, ProcessStopResult> Stop = new("stop");
-    public static readonly PluginContract Contract = PluginContract.Create<ProcessesSettings>(ProcessesPlugin.Id, 1, [Snapshot, Stop], []);
+    public static readonly PluginContract Contract = PluginContract.Create<ProcessesSettings>(ProcessesPlugin.Id, 1, [Snapshot, Stop], [], ProcessesJson.Default);
 }
 
 public static class ProcessesPlugin
@@ -70,3 +72,12 @@ public static class ProcessesPlugin
         }
     };
 }
+
+[JsonSerializable(typeof(ProcessesSettings))]
+[JsonSerializable(typeof(ProcessSnapshotParams))]
+[JsonSerializable(typeof(ProcessSnapshot))]
+[JsonSerializable(typeof(ProcessStopParams))]
+[JsonSerializable(typeof(ProcessStopResult))]
+[JsonSerializable(typeof(OwnedProcessReportParams))]
+[JsonSerializable(typeof(OwnedProcessReleaseParams))]
+internal sealed partial class ProcessesJson : JsonSerializerContext;

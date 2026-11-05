@@ -414,10 +414,10 @@ SharpRail.Plugins.Api.UI.IPluginUIContext.WatchHost<T>(System.Func<SharpRail.Plu
 SharpRail.Plugins.Api.UI.IPluginUIContext.WatchWorkspaceAsync(string! workspaceId) -> System.Threading.Tasks.ValueTask
 SharpRail.Plugins.Api.UI.IPluginUIContext.WorkspaceAction(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration! action) -> void
 SharpRail.Plugins.Api.UI.IPluginUILogger
-SharpRail.Plugins.Api.UI.IPluginUILogger.Debug(string! message, object? fields = null) -> void
-SharpRail.Plugins.Api.UI.IPluginUILogger.Error(string! message, object? fields = null) -> void
-SharpRail.Plugins.Api.UI.IPluginUILogger.Info(string! message, object? fields = null) -> void
-SharpRail.Plugins.Api.UI.IPluginUILogger.Warn(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUILogger.Debug(string! message, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? fields = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUILogger.Warn(string! message, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? fields = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUILogger.Info(string! message, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? fields = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUILogger.Error(string! message, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? fields = null) -> void
 SharpRail.Plugins.Api.UI.ITerminalAccessoryApi
 SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.Focus() -> void
 SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.ReadScreenTailAsync(int lines) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!

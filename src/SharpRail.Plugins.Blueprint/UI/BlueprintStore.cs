@@ -38,13 +38,13 @@ internal sealed class BlueprintStore(IPluginUIContext context) : IDisposable
             graphs[workspace] = graph.Nodes;
             Changed?.Invoke(workspace);
         }
-        catch (Exception error) { if (!disposed && Known(workspace)) context.Log.Warn("Could not read Blueprint's spec links", new { Workspace = workspace, error.Message }); }
+        catch (Exception error) { if (!disposed && Known(workspace)) context.Log.Warn("Could not read Blueprint's spec links", new Dictionary<string, string> { ["workspace"] = workspace, ["message"] = error.Message }); }
     }
 
     private async Task Watch(string workspace)
     {
         try { await context.WatchWorkspaceAsync(workspace); }
-        catch (Exception error) { context.Log.Warn("Could not watch Blueprint's workspace", new { Workspace = workspace, error.Message }); }
+        catch (Exception error) { context.Log.Warn("Could not watch Blueprint's workspace", new Dictionary<string, string> { ["workspace"] = workspace, ["message"] = error.Message }); }
     }
 
     public void Set(string workspace, BlueprintState? state)

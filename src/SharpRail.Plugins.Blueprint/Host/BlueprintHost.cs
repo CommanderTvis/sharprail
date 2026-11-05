@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization.Metadata;
+
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.SpecDialect;
@@ -7,6 +9,8 @@ namespace SharpRail.Plugins.Blueprint.Host;
 public sealed class BlueprintHost : PluginHostModule
 {
     public override PluginContract Contract => BlueprintContract.Contract;
+
+    public override IJsonTypeInfoResolver Json => BlueprintHostJson.Default;
 
     /// <summary>The list item about <c>blueprint_check</c> in the instructions agent plugins give sessions (H20).</summary>
     internal const string Guidance = "`blueprint_check`: you MUST call it to verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.";

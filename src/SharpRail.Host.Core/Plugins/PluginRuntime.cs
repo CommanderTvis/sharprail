@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading.Channels;
 
 using SharpRail.Host.Abstractions;
@@ -103,13 +104,9 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         lock (gate) return registry.All.Select(entry => entry.Roster()).ToArray();
     }
 
-    internal void Log(string scope, string level, string message, object? fields)
+    internal void Log(string scope, string level, string message, IReadOnlyDictionary<string, string>? fields)
     {
-        if (fields is not null)
-        {
-            try { message += " " + JsonSerializer.Serialize(fields, fields.GetType(), PluginJson.Options); }
-            catch (Exception error) when (error is JsonException or NotSupportedException) { }
-        }
+        if (fields is not null) message += " " + PluginJson.Serialize(fields);
         Seams.Log(scope, level, message);
     }
 
@@ -256,7 +253,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     }
 
     private static bool Same(PluginManifest left, PluginManifest right) =>
-        JsonSerializer.Serialize(left, PluginJson.Options) == JsonSerializer.Serialize(right, PluginJson.Options);
+        PluginJson.Serialize(left) == PluginJson.Serialize(right);
 
     public async ValueTask<IReadOnlyList<PluginRosterEntry>> RetryAsync(string id, CancellationToken cancellationToken = default)
     {
@@ -409,6 +406,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             return;
         }
         var contract = module.Contract;
+        if (module.Json is { } json) PluginJson.Register(json);
         if (PluginRegistry.ContractIntake(contract, entry.Id) is { } refused)
         {
             lock (gate) (entry.State, entry.Reason) = (PluginStatus.Refused, refused);
@@ -492,7 +490,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         PluginContract? contract;
         lock (gate) contract = registry.Get(id)?.Module?.Contract;
         if (contract is null) return merged;
-        var rest = JsonSerializer.SerializeToNode(merged)!.AsObject();
+        var rest = JsonObject.Create(merged.Clone()) ?? throw new ArgumentException($"plugin {id} settings must be an object");
         var enabled = rest["enabled"]?.DeepClone();
         rest.Remove("enabled");
         JsonObject normalized;
@@ -505,13 +503,14 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         {
             try
             {
-                var value = rest.Deserialize(type, PluginJson.Options) ?? throw new JsonException("expected an object", "$", null, null);
-                normalized = JsonSerializer.SerializeToNode(value, type, PluginJson.Options)!.AsObject();
+                var info = PluginJson.TypeInfo(type);
+                var value = rest.Deserialize(info) ?? throw new JsonException("expected an object", "$", null, null);
+                normalized = JsonSerializer.SerializeToNode(value, info)!.AsObject();
             }
             catch (JsonException error) { throw new ArgumentException($"plugin {id} settings {PluginErrors.Describe(error)}"); }
         }
         if (enabled is not null) normalized["enabled"] = enabled;
-        return JsonSerializer.SerializeToElement(normalized);
+        return PluginJson.SerializeToElement(normalized);
     }
 
     // A namespace written before its contract loaded is checked once it does; an invalid one falls back to
@@ -530,8 +529,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         {
             Log(id, "warn", $"{error.Message}; using the defaults", null);
             var reset = new JsonObject();
-            if (stored.TryGetProperty("enabled", out var enabled)) reset["enabled"] = JsonSerializer.SerializeToNode(enabled);
-            Seams.State.ReplacePluginSettings(id, ValidateNamespace(id, JsonSerializer.SerializeToElement(reset)));
+            if (stored.TryGetProperty("enabled", out var enabled)) reset["enabled"] = JsonNode.Parse(enabled.GetRawText());
+            Seams.State.ReplacePluginSettings(id, ValidateNamespace(id, PluginJson.SerializeToElement(reset)));
         }
     }
 
@@ -540,10 +539,11 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     internal static T SettingsOf<T>(JsonElement space) where T : class
     {
-        var rest = space.ValueKind == JsonValueKind.Object ? JsonSerializer.SerializeToNode(space)!.AsObject() : [];
+        var rest = space.ValueKind == JsonValueKind.Object ? JsonObject.Create(space.Clone())! : [];
         rest.Remove("enabled");
-        try { return rest.Deserialize<T>(PluginJson.Options) ?? new JsonObject().Deserialize<T>(PluginJson.Options)!; }
-        catch (JsonException) { return new JsonObject().Deserialize<T>(PluginJson.Options)!; }
+        var type = PluginJson.TypeInfo<T>();
+        try { return rest.Deserialize(type) ?? new JsonObject().Deserialize(type)!; }
+        catch (JsonException) { return new JsonObject().Deserialize(type)!; }
     }
 
     // Shared state: settings observers, workspace lifecycle and the reconcile a settings change asks for.
@@ -621,16 +621,33 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         finally { tables.Leave(); }
     }
 
-    // Params are the declared type in process; anything else (a JSON element from the wire, an anonymous or
-    // equivalent object) deserializes strictly into it, and a failure names the offending path.
+    // Params are the declared type in process; anything else (a JSON element from the wire, or a type another
+    // context names) deserializes strictly into it, and a failure names the offending path. A type with no
+    // generated metadata is a programming error, not invalid params.
     private static object Convert(Type type, object? value, Func<string, Exception> invalid)
     {
         if (value is not null && type.IsInstanceOfType(value)) return value;
+        var info = PluginJson.TypeInfo(type);
         JsonElement element;
-        try { element = value as JsonElement? ?? JsonSerializer.SerializeToElement(value, value?.GetType() ?? typeof(object), PluginJson.Options); }
-        catch (Exception error) when (error is JsonException or NotSupportedException) { throw invalid("$: " + error.Message); }
-        try { return element.Deserialize(type, PluginJson.Options) ?? throw invalid("$: expected an object, not null"); }
+        try { element = PluginJson.ToElement(value); }
+        catch (JsonException error) { throw invalid("$: " + error.Message); }
+        try { return element.Deserialize(info) ?? throw invalid("$: expected an object, not null"); }
         catch (JsonException error) { throw invalid(PluginErrors.Describe(error)); }
+    }
+
+    /// <summary>
+    /// The JSON metadata a method's result is written with on the wire: its declared result type, since a
+    /// handler's runtime value may be a collection or a derived type no context names. Null for an unknown method.
+    /// </summary>
+    public JsonTypeInfo? ResultTypeInfo(string pluginId, string method)
+    {
+        lock (gate) return registry.Get(pluginId)?.Module?.Contract.Methods.FirstOrDefault(declared => declared.Name == method)?.ResultType is { } type ? PluginJson.TypeInfo(type) : null;
+    }
+
+    /// <summary>The JSON metadata a channel's payloads are written with on the wire: its declared payload type. Null for an unknown channel.</summary>
+    public JsonTypeInfo? PayloadTypeInfo(string pluginId, string channel)
+    {
+        lock (gate) return registry.Get(pluginId)?.Module?.Contract.Channels.FirstOrDefault(declared => declared.Name == channel)?.PayloadType is { } type ? PluginJson.TypeInfo(type) : null;
     }
 
     public IAsyncEnumerable<object?> SubscribeAsync(PluginSubscription subscription, CancellationToken cancellationToken = default)
@@ -645,7 +662,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
                 null => null,
                 JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined } => null,
                 JsonElement element => element.Clone(),
-                var value => JsonSerializer.SerializeToElement(value, value.GetType(), PluginJson.Options)
+                var value => PluginJson.ToElement(value)
             };
             var subscriber = new Subscriber(subscription.PluginId, subscription.Channel, key, subscription.ClientKey, System.Threading.Channels.Channel.CreateUnbounded<object?>());
             subscribers.Add(subscriber);
@@ -689,7 +706,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
                 if (subscriber.PluginId != id || subscriber.Channel != channelName) return false;
                 if (target is not null && subscriber.ClientKey != target.ClientKey) return false;
                 if (keyed is null || subscriber.Key is not { ValueKind: JsonValueKind.Object } key) return true;
-                payloadJson ??= JsonSerializer.SerializeToElement(payload, payload?.GetType() ?? typeof(object), PluginJson.Options);
+                payloadJson ??= payload is null || channel is null ? PluginJson.ToElement(payload) : JsonSerializer.SerializeToElement(payload, PluginJson.TypeInfo(channel.PayloadType));
                 return keyed.All(field => !key.TryGetProperty(field, out var wanted) ||
                     payloadJson.Value.ValueKind == JsonValueKind.Object && payloadJson.Value.TryGetProperty(field, out var actual) && JsonElement.DeepEquals(wanted, actual));
             }).ToArray();
@@ -958,7 +975,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             async (arguments, cancellationToken) =>
             {
                 object parameters;
-                try { parameters = Convert(tool.ParametersType, JsonSerializer.SerializeToElement(arguments), error => new ArgumentException(error)); }
+                try { parameters = Convert(tool.ParametersType, PluginJson.SerializeToElement(arguments), error => new ArgumentException(error)); }
                 catch (ArgumentException error) { return ($"Invalid arguments for {tool.Name} — {error.Message}", true); }
                 active.Tables.Enter();
                 try
@@ -972,7 +989,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     private static JsonObject Schema(Type type)
     {
         // A parameter's [Description] is what the agent reads about it.
-        var schema = PluginJson.Options.GetJsonSchemaAsNode(type, new JsonSchemaExporterOptions
+        var schema = PluginJson.TypeInfo(type).GetJsonSchemaAsNode(new JsonSchemaExporterOptions
         {
             TreatNullObliviousAsNonNullable = true,
             TransformSchemaNode = (context, node) =>

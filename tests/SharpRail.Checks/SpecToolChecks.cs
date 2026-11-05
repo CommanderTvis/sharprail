@@ -27,7 +27,7 @@ internal static class SpecToolChecks
         await runtime.Start();
         var tools = runtime.McpTools(null, project).ToDictionary(tool => tool.Name);
         async Task<(string Text, bool Error)> Call(string name, object parameters) =>
-            await tools[name].Call(JsonSerializer.SerializeToNode(parameters, PluginJson.Options)!.AsObject(), CancellationToken.None);
+            await tools[name].Call(JsonSerializer.SerializeToNode(parameters)!.AsObject(), CancellationToken.None);
         async Task<string> Success(string name, object parameters)
         {
             var reply = await Call(name, parameters);

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using Avalonia.Controls;
 using Avalonia.Layout;
 
@@ -9,7 +11,7 @@ namespace SharpRail.PluginFixture.UI;
 
 // The UI half's own copy of the fixture contract: the UI half never references its host half's assembly, and the
 // payloads cross as JSON, so the two copies interoperate.
-public sealed record FixtureSettings { public string Greeting { get; init; } = "hello"; }
+public sealed record FixtureSettings { public string Greeting { get; set; } = "hello"; }
 public sealed record EchoParams(string Text);
 public sealed record EchoResult(string Text, string Greeting);
 public sealed record CounterParams(string Workspace);
@@ -23,11 +25,14 @@ public static class FixtureContract
     public static readonly PluginMethod<CounterParams, CounterState> Bump = new("bump");
     public static readonly PluginChannel<CounterState> CounterChannel = PluginChannel<CounterState>.State("counter", Counter, "workspace");
     public static readonly PluginChannel<Ping> Pings = PluginChannel<Ping>.Event("pings");
-    public static readonly PluginContract Contract = PluginContract.Create<FixtureSettings>("fixture", 1, [Echo, Counter, Bump], [CounterChannel, Pings]);
+    public static readonly PluginContract Contract = PluginContract.Create<FixtureSettings>("fixture", 1, [Echo, Counter, Bump], [CounterChannel, Pings], FixtureJson.Default);
 }
 
 public sealed class FixtureUI : PluginUIModule
 {
+    // The checks compose this half outside the app's builtin contracts, and it reads its settings before touching a descriptor.
+    static FixtureUI() => PluginJson.Register(FixtureJson.Default);
+
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
         context.SideTool(new("board", workspace => Board(context, workspace)));
@@ -95,3 +100,12 @@ public sealed class FixtureUI : PluginUIModule
         return panel;
     }
 }
+
+[JsonSerializable(typeof(FixtureSettings))]
+[JsonSerializable(typeof(EchoParams))]
+[JsonSerializable(typeof(EchoResult))]
+[JsonSerializable(typeof(CounterParams))]
+[JsonSerializable(typeof(CounterState))]
+[JsonSerializable(typeof(Ping))]
+[JsonSerializable(typeof(int))]
+internal sealed partial class FixtureJson : JsonSerializerContext;

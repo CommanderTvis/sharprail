@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Avalonia;
 using Avalonia.Controls;
@@ -28,7 +29,7 @@ namespace SharpRail.Checks;
 // check-only builtin and driven end to end through the real host, in process and remote, beside external plugins
 // that are listed and refused. Translates the fork's registry, loader, context and PluginsSettings tests and its
 // external-plugin end-to-end spec.
-internal static class PluginUiChecks
+internal static partial class PluginUiChecks
 {
     private static void Require(bool condition, string message)
     {
@@ -37,7 +38,7 @@ internal static class PluginUiChecks
 
     internal static void Run(string root)
     {
-        Require(PluginApi.Generation == 1, "PluginApi.Generation changed; bump it deliberately and update this pin.");
+        Require(PluginApi.Generation == 2, "PluginApi.Generation changed; bump it deliberately and update this pin.");
         RegistryRules();
         DependencyWalks();
         Icons();
@@ -182,8 +183,14 @@ internal static class PluginUiChecks
     private sealed record Scope(string Workspace);
     private sealed record Count(string Workspace, int Value);
 
+    [JsonSerializable(typeof(Scope))]
+    [JsonSerializable(typeof(Count[]))]
+    [JsonSerializable(typeof(IReadOnlyList<Count>))]
+    private sealed partial class PluginUiJson : JsonSerializerContext;
+
     private static void Loader(string root)
     {
+        PluginJson.Register(PluginUiJson.Default);
         Directory.CreateDirectory(root);
         var profile = new ProfileStore(root + "-profile");
         var store = profile.OpenState();
@@ -250,8 +257,8 @@ internal static class PluginUiChecks
         var snapshot = host.Calls.Last(call => call.Method == "count");
         Require(JsonSerializer.SerializeToElement(snapshot.Params, PluginJson.Options).GetProperty("workspace").GetString() == "/w1" && snapshot.ClientKey == loader.ClientKey,
             "The snapshot is requested with the scope as params and this app's client key.");
-        host.Push("probe", "count", new { workspace = "/w2", value = 7 });
-        host.Push("probe", "count", new { workspace = "/w1", value = 3 });
+        host.Push("probe", "count", new Count("/w2", 7));
+        host.Push("probe", "count", new Count("/w1", 3));
         E2eWorkspace.Until(() => counts.Contains(3));
         Require(!counts.Contains(7), "A push whose key fields differ from the scope must be dropped.");
         subscription.Dispose();
@@ -371,7 +378,7 @@ internal static class PluginUiChecks
         var codexRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("codex")!;
         Require(!codexRow.GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "PluginSupport").IsVisible, "A fully supported plugin wears no support badge.");
         var refusedRow = settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("__refused:broken")!;
-        Require(Texts(refusedRow).Contains("999", StringComparison.Ordinal) && Texts(refusedRow).Contains("expects 1", StringComparison.Ordinal),
+        Require(Texts(refusedRow).Contains("999", StringComparison.Ordinal) && Texts(refusedRow).Contains("expects 2", StringComparison.Ordinal),
             "A refused row names the plugin's generation and the host's: " + Texts(refusedRow));
 
         // Plugins are grouped under category headings: builtin categories in their fixed order, plugins without one under Other last,
@@ -480,7 +487,7 @@ internal static class PluginUiChecks
         Require(!Has(window, "PluginToolDormant") && window.Layout.State.Groups.Any(group => group.Tools.Any(item => item.Id == "plugin:fixture:board")),
             "Disabling hides the tool without a placeholder and keeps its slot.");
         var disabled = false;
-        try { Task.Run(() => app.Workbench.Plugins!.CallAsync(new("fixture", "echo", new { text = "hi" }, loader.ClientKey)).AsTask()).GetAwaiter().GetResult(); }
+        try { Task.Run(() => app.Workbench.Plugins!.CallAsync(new("fixture", "echo", JsonSerializer.SerializeToElement(new { text = "hi" }), loader.ClientKey)).AsTask()).GetAwaiter().GetResult(); }
         catch (PluginCallException error) when (error.Error == PluginCallError.Disabled) { disabled = true; }
         Require(disabled, "A disabled plugin's method reports disabled.");
 

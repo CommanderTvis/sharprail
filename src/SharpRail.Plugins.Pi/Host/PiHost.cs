@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json.Serialization.Metadata;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -9,6 +10,8 @@ namespace SharpRail.Plugins.Pi.Host;
 public sealed class PiHost : PluginHostModule
 {
     public override PluginContract Contract => PiContract.Contract;
+
+    public override IJsonTypeInfoResolver Json => PiHostJson.Default;
 
     internal static async Task<PiStatus> ReadStatusAsync(string command)
     {

@@ -11,6 +11,9 @@ namespace SharpRail.Plugins.Tailscale;
 public sealed class TailscaleClient : IDisposable
 {
     private static readonly object pairingFiles = new();
+
+    // The pairing files and the host's replies are read here before any plugin contract is created.
+    static TailscaleClient() => PluginJson.Register(TailscaleJson.Default);
     private readonly HttpClient http;
     private readonly Func<string, CancellationToken, Task<Uri>> bootstrap;
     private readonly Func<CancellationToken, Task<IReadOnlyList<TailscalePeer>>> peers;
@@ -58,7 +61,7 @@ public sealed class TailscaleClient : IDisposable
                 var uri = await bootstrap(peer.Address, timeout.Token);
                 using var reply = await http.GetAsync(new Uri(uri, "sharprail"), timeout.Token);
                 reply.EnsureSuccessStatusCode();
-                var info = await reply.Content.ReadFromJsonAsync<TailscaleHostInfo>(PluginJson.Options, timeout.Token);
+                var info = await reply.Content.ReadFromJsonAsync(PluginJson.TypeInfo<TailscaleHostInfo>(), timeout.Token);
                 return info is null ? null : new TailscalePeer(info.Name, peer.Address);
             }
             catch (Exception error) when (error is IOException or HttpRequestException or OperationCanceledException or JsonException) { return null; }
@@ -80,7 +83,7 @@ public sealed class TailscaleClient : IDisposable
             request.Headers.Add("X-SharpRail-Pairing", pairing.Token);
             using var response = await http.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
-            var reply = await response.Content.ReadFromJsonAsync<TailscalePairReply>(PluginJson.Options, cancellationToken) ?? throw new IOException("The host sent an empty pairing reply.");
+            var reply = await response.Content.ReadFromJsonAsync(PluginJson.TypeInfo<TailscalePairReply>(), cancellationToken) ?? throw new IOException("The host sent an empty pairing reply.");
             switch (reply.State)
             {
                 case "approved":
@@ -97,7 +100,7 @@ public sealed class TailscaleClient : IDisposable
 
     public static TailscaleRemembered? Load(string path)
     {
-        try { return File.Exists(path) ? JsonSerializer.Deserialize<TailscaleRemembered>(File.ReadAllText(path), PluginJson.Options) : null; }
+        try { return File.Exists(path) ? PluginJson.Deserialize<TailscaleRemembered>(File.ReadAllText(path)) : null; }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { return null; }
     }
 
@@ -118,7 +121,7 @@ public sealed class TailscaleClient : IDisposable
             {
                 var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
                 if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-                using (var stream = new FileStream(temporary, options)) JsonSerializer.Serialize(stream, pairing, PluginJson.Options);
+                using (var stream = new FileStream(temporary, options)) JsonSerializer.Serialize(stream, pairing, PluginJson.TypeInfo<TailscaleRemembered>());
                 File.Move(temporary, path, overwrite: true);
             }
             finally { File.Delete(temporary); }

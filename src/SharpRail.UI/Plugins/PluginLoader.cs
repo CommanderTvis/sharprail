@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
@@ -26,6 +24,7 @@ public sealed class PluginLoader : IDisposable
     {
         this.workbench = workbench;
         this.builtins = builtins ?? BuiltinPlugins.All;
+        foreach (var json in BuiltinPlugins.Contracts.SelectMany(contract => contract.Json)) PluginJson.Register(json);
     }
 
     public PluginRegistry Registry { get; } = new();
@@ -73,7 +72,7 @@ public sealed class PluginLoader : IDisposable
 
     private void ApplyRoster(IReadOnlyList<PluginRosterEntry> roster, bool force)
     {
-        var signature = JsonSerializer.Serialize(roster, PluginJson.Options);
+        var signature = PluginJson.Serialize(roster);
         if (!force && signature == rosterSignature) return;
         rosterSignature = signature;
         Registry.SetRoster(roster);

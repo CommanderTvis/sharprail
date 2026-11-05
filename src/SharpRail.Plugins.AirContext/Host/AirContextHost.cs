@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -27,6 +28,8 @@ public sealed class AirContextHost : PluginHostModule
     internal static Fixtures? Override { get; set; }
 
     public override PluginContract Contract => AirContextContract.Contract;
+
+    public override IJsonTypeInfoResolver Json => AirContextHostJson.Default;
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {

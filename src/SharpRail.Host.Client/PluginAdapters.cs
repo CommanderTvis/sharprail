@@ -109,12 +109,12 @@ public sealed class RemotePluginAdapter : IPluginService, IDisposable
 
 internal static class PluginWire
 {
-    internal static byte[] Json(object? value) => JsonSerializer.SerializeToUtf8Bytes(value, value?.GetType() ?? typeof(object), PluginJson.Options);
+    internal static byte[] Json(object? value) => value is null ? "null"u8.ToArray() : JsonSerializer.SerializeToUtf8Bytes(value, PluginJson.TypeInfo(value.GetType()));
 
     internal static object? Value(byte[] json)
     {
         if (json.Length == 0) return null;
-        var element = JsonSerializer.Deserialize<JsonElement>(json);
+        var element = JsonSerializer.Deserialize(json, PluginJson.TypeInfo<JsonElement>());
         return element.ValueKind == JsonValueKind.Null ? null : element;
     }
 

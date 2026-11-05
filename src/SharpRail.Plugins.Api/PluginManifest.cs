@@ -43,10 +43,10 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
     /// a shell or a process. A host of a listed kind refuses the plugin before any of its code loads, naming the kind,
     /// and its dependents are refused with it; Settings › Plugins shows the reason. Empty means it runs everywhere.
     /// </summary>
-    public IReadOnlyList<HostKind> UnavailableOn { get; init; } = [];
+    public IReadOnlyList<HostKind> UnavailableOn { get; set; } = [];
 
     /// <summary>Other plugins this one is built on, by id and exact wire version; see <see cref="PluginDependency"/>.</summary>
-    public IReadOnlyList<PluginDependency> DependsOn { get; init; } = [];
+    public IReadOnlyList<PluginDependency> DependsOn { get; set; } = [];
 
     /// <summary>
     /// The host half's assembly, relative to the plugin directory, holding exactly one public concrete
@@ -69,7 +69,7 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
     public string? Assets { get; init; }
 
     /// <summary>The statically known parts of what the plugin contributes: side tools and file viewers.</summary>
-    public PluginContributions Contributes { get; init; } = new();
+    public PluginContributions Contributes { get; set; } = new();
 
     /// <summary>
     /// Agent resources the ThinkRail manifest format declares for pi sessions. SharpRail has no in-process
@@ -92,10 +92,10 @@ public sealed record PluginDependency(string Id, int WireVersion);
 public sealed record PluginPiBlock
 {
     /// <summary>Extension entries for pi's resource loader.</summary>
-    public IReadOnlyList<string> Extensions { get; init; } = [];
+    public IReadOnlyList<string> Extensions { get; set; } = [];
 
     /// <summary>Skill directories for pi's resource loader.</summary>
-    public IReadOnlyList<string> Skills { get; init; } = [];
+    public IReadOnlyList<string> Skills { get; set; } = [];
 
     /// <summary>Whether the extensions and skills also reach delegated sub-agent sessions.</summary>
     public bool ReachesSubagents { get; init; }
@@ -108,10 +108,10 @@ public sealed record PluginPiBlock
 public sealed record PluginContributions
 {
     /// <summary>Side tools rendered under <c>plugin:&lt;id&gt;:&lt;tool&gt;</c> layout ids.</summary>
-    public IReadOnlyList<PluginSideToolContribution> SideTools { get; init; } = [];
+    public IReadOnlyList<PluginSideToolContribution> SideTools { get; set; } = [];
 
     /// <summary>File viewers, consulted in registration order when a file opens.</summary>
-    public IReadOnlyList<PluginFileViewerContribution> FileViewers { get; init; } = [];
+    public IReadOnlyList<PluginFileViewerContribution> FileViewers { get; set; } = [];
 }
 
 /// <summary>The rail side a plugin side tool is placed on when it is first revealed.</summary>
@@ -149,11 +149,11 @@ public enum PluginFileRead
 public sealed record PluginFileViewerContribution
 {
     /// <summary>Claimed extensions without the dot, compared case-insensitively.</summary>
-    public IReadOnlyList<string> Extensions { get; init; } = [];
+    public IReadOnlyList<string> Extensions { get; set; } = [];
 
     /// <summary>Claimed exact file names, such as <c>BLUEPRINT.md</c>.</summary>
-    public IReadOnlyList<string> Names { get; init; } = [];
+    public IReadOnlyList<string> Names { get; set; } = [];
 
     /// <summary>The read strategy the open path uses before the viewer mounts.</summary>
-    public PluginFileRead Read { get; init; } = PluginFileRead.Text;
+    public PluginFileRead Read { get; set; } = PluginFileRead.Text;
 }

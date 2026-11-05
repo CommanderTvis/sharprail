@@ -179,8 +179,10 @@ schema is enforced from its next write. A namespace found invalid when the store
 with one warning.
 
 Contract intake catches what `PluginContract.Create` cannot: duplicate method or channel names, a state channel
-naming a snapshot method the contract does not declare, and a settings type with a member serialized as
-`enabled`. It runs for builtin and external plugins alike, when the contract loads.
+naming a snapshot method the contract does not declare, a declared type (params, result, payload or settings)
+that no registered JSON context covers, and a settings type with a member serialized as `enabled`. It runs for
+builtin and external plugins alike, when the contract loads, after registering the host half's own context
+(`PluginHostModule.Json`).
 
 Disabling a plugin cascades, as the fork's settings update does: the change batch that writes `enabled: false`
 into a namespace writes it into every transitive dependent's namespace too (`HostStateStore.PluginDependents`,
@@ -200,6 +202,11 @@ look the method up in; it answers `Disabled`. The handler call is counted toward
 dependent's in-process call (`Dependency(...).RequestAsync`) takes the same path without waiting for the
 runtime's startup, since it may run inside the first reconcile.
 
+Over WebSocket RPC a result is written as its method's declared result type and a payload as its channel's
+declared payload type (`ResultTypeInfo`, `PayloadTypeInfo`), not as the value's runtime type: a handler's value
+may be a compiler-made collection no context names, and a derived record needs its polymorphic base's
+discriminator.
+
 `SubscribeAsync` registers at once, before the first item is read. It accepts any channel a known plugin's loaded
 contract declares, and any channel of a known plugin whose contract has not loaded yet, regardless of enablement, and
 yields every later publish on it that is broadcast or addressed to the subscriber's client key, and, for a keyed
@@ -212,7 +219,10 @@ counts toward its drain; a disabled or unknown plugin answers 404.
 ## Tools
 
 An active plugin's tools join the per-terminal MCP table. `tools/list` includes them
-with an input schema generated from the parameters record (`JsonSchemaExporter` with `PluginJson.Options`);
+with an input schema derived from the parameters record's generated metadata (`JsonSchemaExporter` over its
+`JsonTypeInfo` in `PluginJson.Options`; a property's `[Description]` is read through the attribute provider the
+generator emits, a member lookup the trimmer keeps). Registering a tool whose parameters type no context covers
+throws, failing the activation;
 `tools/call` deserializes the arguments strictly, runs the tool with the token's terminal and workspace as its
 `PluginToolContext`, and counts the run toward the activation's drain. A tool name clashing with core's or
 another active plugin's is refused at registration with a logged reason. Disabling a plugin removes its tools
@@ -296,7 +306,11 @@ enabled with the plain reason and no assembly loaded, off again when turned off,
 builtin's id, a builtin depending on one refused with it, a rescan promoting a fixed manifest, a missing
 dependency named), and the whole composition (the fixture disabled at first, settings enable then a method
 answers, a route serving, shutdown running disposers dependents-first). The fixture plugin under `tests/` is
-composed as a check-only builtin; it never ships.
+composed as a check-only builtin; it never ships. `PluginJsonChecks` (`--plugin-json`, also part of `--plugins`)
+walks every builtin plugin's declared types, its contexts' types and the manifest down to their leaves and fails
+on a type without generated metadata, an enum without a `PluginJson.EnumConverter`, or an init-only property
+whose initializer generated deserialization would drop; it activates the plugins with tools and checks their
+schemas.
 
 ## Agent instruction sections
 

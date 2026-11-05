@@ -190,7 +190,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             ClaudeContextUsage result;
             try { result = await context.RequestAsync(ClaudeCodeContract.ContextUsageGet, new ContextUsageParams(workspaceId) { TabKey = tabKey, Refresh = refresh }); }
             catch (Exception failure) when (failure is not OperationCanceledException) { result = new(false) { Error = ClaudeParts.ErrorText(failure), Breakdown = contextUsage?.Breakdown }; }
-            var key = JsonSerializer.Serialize(result.Breakdown, PluginJson.Options);
+            var key = PluginJson.Serialize(result.Breakdown);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (mine != usageGeneration) return;
@@ -226,7 +226,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
                 });
                 return;
             }
-            var key = JsonSerializer.Serialize(result, PluginJson.Options);
+            var key = PluginJson.Serialize(result);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (mine != generation) return;
@@ -240,7 +240,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             try
             {
                 var listed = await context.RequestAsync(ClaudeCodeContract.McpList, new WorkspaceParams(workspaceId) { TabKey = tabKey });
-                var capabilitiesKey = JsonSerializer.Serialize(listed.Capabilities, PluginJson.Options);
+                var capabilitiesKey = PluginJson.Serialize(listed.Capabilities);
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (mine != generation) return;

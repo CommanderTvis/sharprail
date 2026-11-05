@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.EnvMise;
@@ -11,7 +13,7 @@ public static class EnvMiseContract
     /// <summary>The id of this plugin's workspace environment step, which the Env policy orders.</summary>
     public const string StepId = "mise";
 
-    public static readonly PluginContract Contract = PluginContract.Create<EnvMiseSettings>(Id, 1, [], []);
+    public static readonly PluginContract Contract = PluginContract.Create<EnvMiseSettings>(Id, 1, [], [], EnvMiseJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "mise Environment", "terminal-box-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Environment,
@@ -23,3 +25,6 @@ public static class EnvMiseContract
         Host = "SharpRail.Plugins.EnvMise.Host.dll"
     };
 }
+
+[JsonSerializable(typeof(EnvMiseSettings))]
+internal sealed partial class EnvMiseJson : JsonSerializerContext;

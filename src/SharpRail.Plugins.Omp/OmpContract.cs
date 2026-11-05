@@ -66,15 +66,15 @@ public sealed record OmpSignInResult(bool Success, string Message);
 public sealed record OmpSettings
 {
     /// <summary>The executable; the system installation on PATH by default.</summary>
-    public string Command { get; init; } = "omp";
+    public string Command { get; set; } = "omp";
     /// <summary><c>--model</c>: a model id, <c>provider/model</c> or <c>@role</c>; blank uses omp's default.</summary>
-    public string Model { get; init; } = "";
+    public string Model { get; set; } = "";
     /// <summary><c>--approval-mode</c>: <c>always-ask</c>, <c>always-ask-cached</c>, <c>write</c> or <c>yolo</c>; blank uses omp's configuration.</summary>
-    public string ApprovalMode { get; init; } = "";
+    public string ApprovalMode { get; set; } = "";
     /// <summary><c>--advisor</c>.</summary>
     public bool Advisor { get; init; }
     /// <summary>Launch with SharpRail's profile, whose MCP file names SharpRail's server.</summary>
-    public bool Mcp { get; init; } = true;
+    public bool Mcp { get; set; } = true;
     /// <summary>Keep omp's own language servers; off passes <c>--no-lsp</c> so sessions use SharpRail's.</summary>
     public bool OwnCodeIntelligence { get; init; }
 }
@@ -90,5 +90,15 @@ public static class OmpContract
     public static readonly PluginMethod<OmpNoParams, OmpSignInResult> ImportSignIn = new("importSignIn");
 
     public static readonly PluginContract Contract = PluginContract.Create<OmpSettings>(OmpManifest.Id, WireVersion,
-        [Status, Context, CreateContextFile, ImportSignIn], []);
+        [Status, Context, CreateContextFile, ImportSignIn], [], OmpJson.Default);
 }
+
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<OmpContextScope>), typeof(PluginJson.EnumConverter<OmpContextTarget>)])]
+[JsonSerializable(typeof(OmpSettings))]
+[JsonSerializable(typeof(OmpNoParams))]
+[JsonSerializable(typeof(OmpStatus))]
+[JsonSerializable(typeof(OmpWorkspaceParams))]
+[JsonSerializable(typeof(OmpContextSnapshot))]
+[JsonSerializable(typeof(OmpCreateParams))]
+[JsonSerializable(typeof(OmpSignInResult))]
+internal sealed partial class OmpJson : JsonSerializerContext;

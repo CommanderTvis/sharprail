@@ -235,7 +235,7 @@ internal sealed class VisualizationStore(TimeSpan? verdictTimeout = null)
         {
             var revision = (byTerminal.GetValueOrDefault((workspaceId, tabKey))?.Revision ?? 0) + 1;
             var title = string.IsNullOrEmpty(parameters.Title) ? parameters.Type switch { VisualizationType.Comparison => "Comparison", VisualizationType.Svg => "SVG", VisualizationType.Markdown => "Markdown", _ => "Diagram" } : parameters.Title;
-            var visualization = new TerminalVisualization(title, JsonSerializer.SerializeToElement(parameters, PluginJson.Options), revision) { Detached = detached };
+            var visualization = new TerminalVisualization(title, PluginJson.SerializeToElement(parameters), revision) { Detached = detached };
             byTerminal[(workspaceId, tabKey)] = visualization;
             if (sessionOf(workspaceId, tabKey) is { } sessionId) RememberForSession(workspaceId, sessionId, visualization);
             publish?.Invoke(Snapshot(workspaceId));

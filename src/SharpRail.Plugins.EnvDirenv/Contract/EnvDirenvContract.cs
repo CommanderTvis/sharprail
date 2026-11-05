@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.EnvDirenv;
@@ -11,7 +13,7 @@ public static class EnvDirenvContract
     /// <summary>The id of this plugin's workspace environment step, which the Env policy orders.</summary>
     public const string StepId = "direnv";
 
-    public static readonly PluginContract Contract = PluginContract.Create<EnvDirenvSettings>(Id, 1, [], []);
+    public static readonly PluginContract Contract = PluginContract.Create<EnvDirenvSettings>(Id, 1, [], [], EnvDirenvJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "direnv Environment", "terminal-box-line", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Environment,
@@ -23,3 +25,6 @@ public static class EnvDirenvContract
         Host = "SharpRail.Plugins.EnvDirenv.Host.dll"
     };
 }
+
+[JsonSerializable(typeof(EnvDirenvSettings))]
+internal sealed partial class EnvDirenvJson : JsonSerializerContext;

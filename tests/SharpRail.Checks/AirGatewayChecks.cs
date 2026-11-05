@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
@@ -28,8 +29,11 @@ namespace SharpRail.Checks;
 // The Air Gateway builtin plugin against a fake `central`, ported from the fork's e2e/fixtures/bin/central: the
 // fork's version/status/login/access/proxy surface, with `add`/`remove` for the claude-code and codex agents in
 // place of its pi extension. The real CLI is never run, and every path lives under a throwaway HOME.
-internal static class AirGatewayChecks
+internal static partial class AirGatewayChecks
 {
+    [JsonSerializable(typeof(AirSettings))]
+    private sealed partial class AirGatewayJson : JsonSerializerContext;
+
     private const string Sentinel = "E2E_CENTRAL_CHILD_SENTINEL";
     private const string Original = "{\"theme\":\"dark\"}\n";
 
@@ -576,7 +580,7 @@ internal static class AirGatewayChecks
 
     private sealed class Recorder(Action<IPluginHostContext> activated) : PluginHostModule
     {
-        public override PluginContract Contract { get; } = PluginContract.Create<AirSettings>("agents", 1, [], []);
+        public override PluginContract Contract { get; } = PluginContract.Create<AirSettings>("agents", 1, [], [], AirGatewayJson.Default);
         public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context) { activated(context); return ValueTask.FromResult<PluginDisposer?>(null); }
     }
 

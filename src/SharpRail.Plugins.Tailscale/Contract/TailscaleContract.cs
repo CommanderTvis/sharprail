@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Plugins.Tailscale;
@@ -25,7 +27,7 @@ public static class TailscaleContract
     public static readonly PluginMethod<TailscaleStatusParams, TailscaleStatus> Refresh = new("refresh");
     public static bool IsUnavailable(TailscaleStatus status) => status.Detail.StartsWith("Pairing unavailable", StringComparison.Ordinal);
     public static readonly PluginChannel<TailscaleStatus> Changed = PluginChannel<TailscaleStatus>.State("status", Status);
-    public static readonly PluginContract Contract = PluginContract.Create<TailscaleSettings>(Id, 1, [Status, Decide, Revoke, Refresh], [Changed]);
+    public static readonly PluginContract Contract = PluginContract.Create<TailscaleSettings>(Id, 1, [Status, Decide, Revoke, Refresh], [Changed], TailscaleJson.Default);
     public static readonly PluginManifest Manifest = new(Id, "Tailscale", "asset:tailscale.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Category = PluginCategories.Integrations,
@@ -38,3 +40,13 @@ public static class TailscaleContract
         Ui = "SharpRail.Plugins.Tailscale.UI.dll"
     };
 }
+
+[JsonSerializable(typeof(TailscaleSettings))]
+[JsonSerializable(typeof(TailscaleStatusParams))]
+[JsonSerializable(typeof(TailscaleDecision))]
+[JsonSerializable(typeof(TailscaleRevoke))]
+[JsonSerializable(typeof(TailscaleStatus))]
+[JsonSerializable(typeof(TailscaleHostInfo))]
+[JsonSerializable(typeof(TailscalePairReply))]
+[JsonSerializable(typeof(TailscaleRemembered))]
+internal sealed partial class TailscaleJson : JsonSerializerContext;

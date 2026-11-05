@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json.Serialization;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
@@ -13,14 +14,17 @@ using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Checks;
 
-internal static class HostListenerChecks
+internal static partial class HostListenerChecks
 {
+    [JsonSerializable(typeof(Counter))]
+    private sealed partial class HostListenerJson : JsonSerializerContext;
+
     private sealed record Counter(int Value);
     private sealed class Probe : PluginHostModule
     {
         private static readonly PluginMethod<Counter, Counter> Next = new("next");
         public int Activations, Disposals, Calls;
-        public override PluginContract Contract => PluginContract.Create("listener-probe", 1, [Next], []);
+        public override PluginContract Contract => PluginContract.Create("listener-probe", 1, [Next], [], HostListenerJson.Default);
         public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
         {
             Activations++;
