@@ -50,6 +50,9 @@ internal sealed partial class CodeDocumentView
     internal Func<LanguageItem, Task>? NavigateLanguage { get; set; }
     internal string LanguageSourceServer { get; set; } = "";
 
+    /// <summary>Whether a server this host can run owns this file (a dependency source always counts); otherwise the editor offers nothing language-related.</summary>
+    private bool ServesLanguage => LanguageSourceServer.Length > 0 || LanguageSupport.Serves(path);
+
     private void WireLanguage()
     {
         languageTimer.Tick += async (_, _) => await InspectLanguageAsync();
@@ -111,7 +114,7 @@ internal sealed partial class CodeDocumentView
         Editor.AddHandler(KeyDownEvent, (_, e) =>
         {
             // The chords are the active keymap's; quick fixes have their own handler, which also lists the fixes.
-            if (ActiveKeymap.Recording || !LanguageSupport.Available) return;
+            if (ActiveKeymap.Recording || !ServesLanguage) return;
             foreach (var (_, operation, actionId) in LanguageOperations)
             {
                 if (operation == "quickFix" || !ActiveKeymap.Matches(actionId, e)) continue;
@@ -167,7 +170,7 @@ internal sealed partial class CodeDocumentView
     internal void AddLanguageMenu(ContextMenu menu) =>
         // The menu opens only once the status lookup has added or removed its language items.
         MenuFill.FillBeforeOpening(menu, Editor,
-            async token => !LanguageSupport.Available ? new LanguageResult("unavailable", "") : await host.LanguageAsync(new(workspace, LanguageSourceServer.Length > 0 ? "" : path, "status", Server: LanguageSourceServer), token),
+            async token => !ServesLanguage ? new LanguageResult("unavailable", "") : await host.LanguageAsync(new(workspace, LanguageSourceServer.Length > 0 ? "" : path, "status", Server: LanguageSourceServer), token),
             result =>
             {
                 RemoveLanguageItems(menu);
@@ -193,9 +196,9 @@ internal sealed partial class CodeDocumentView
     private async Task InspectLanguageAsync()
     {
         if (disposed || languageBusy || languageRequest is not null || !IsEffectivelyVisible || this.FindControl<Popup>("LanguagePopup")!.IsOpen) return;
-        if (!LanguageSupport.Available)
+        if (!ServesLanguage)
         {
-            // No server can answer: the editor shows its plain colors and asks the host nothing.
+            // No server owns this file here: the editor shows its plain colors and asks the host nothing.
             SetLanguageAvailable(false);
             if (firstColorsPending) await RevealCodeColorsAsync();
             return;

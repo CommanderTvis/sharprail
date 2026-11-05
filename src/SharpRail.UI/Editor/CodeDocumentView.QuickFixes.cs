@@ -25,7 +25,7 @@ internal sealed partial class CodeDocumentView
         var list = this.FindControl<ListBox>("QuickFixItems")!;
         Editor.AddHandler(KeyDownEvent, (_, e) =>
         {
-            if (ActiveKeymap.Recording || !LanguageSupport.Available || !ActiveKeymap.Matches(KeymapActions.ShowQuickFixes, e)) return;
+            if (ActiveKeymap.Recording || !ServesLanguage || !ActiveKeymap.Matches(KeymapActions.ShowQuickFixes, e)) return;
             e.Handled = true;
             ShowQuickFixes();
         }, Avalonia.Interactivity.RoutingStrategies.Tunnel);

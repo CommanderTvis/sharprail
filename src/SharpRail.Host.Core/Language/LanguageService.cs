@@ -102,6 +102,9 @@ public sealed partial class LanguageService : IAsyncDisposable
         // It serves only the servers its page runs itself, so with none in the catalog nothing reaches a file, a probe or a launch.
         if (OperatingSystem.IsBrowser() && (LanguageLinks.InTab is null || servers.Servers.Count == 0) && request.Operation is not ("configurationSchema" or "configuration" or "configure" or "logs" or "release" or "close" or "catalog"))
             return new("unavailable", "Language servers are not available in the Playground.", Version: request.Version) { Freshness = "unavailable" };
+        // A file no server of this host owns is answered before anything else looks at the workspace.
+        if (OperatingSystem.IsBrowser() && request.Path.Length > 0 && request.Server.Length == 0 && !LanguageSession.IsVirtual(request.Path) && servers.Detect(request.Path) is null)
+            return new("unsupported", "No language server is configured for this file type.", Version: request.Version) { Freshness = "unavailable" };
         if (request.Operation == "catalog")
         {
             // Settings shows each server's host tools before anything starts; probing reads files and PATH only, never runs a tool.

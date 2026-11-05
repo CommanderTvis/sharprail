@@ -93,7 +93,15 @@ internal static class CorePrompt
         var path = workspace.Length > 0 ? workspace : Placeholder;
         string Call(string fields) => "`{" + fields + ", \"workspace\": \"" + Escape(path) + "\"}`";
         var text = new System.Text.StringBuilder();
-        if (shown.Length > 0)
+        // A host that provides only some of the servers (a browser tab) names them and says the rest do not exist there.
+        if (catalog is not null && catalog.Count < LanguageServers.Catalog.Count)
+        {
+            text.Append("This host provides only these language servers: ")
+                .Append(string.Join(", ", catalog.Select(server => "`" + server.Id + "` (" + Name(server) + ": " + string.Join(" ", server.Extensions.Take(4)) + ")")))
+                .Append(". The rules above apply to files these servers own. Any other file type has no language server on this host: use grep and Read for it, and say so in your report.\n\n");
+            shown = [];
+        }
+        else if (shown.Length > 0)
         {
             text.Append("This project's language servers, by file count; ").Append(Call("\"operation\": \"retry\", \"server\": \"<id>\"").Insert(1, "lsp_status ")).Append(" starts one:\n");
             foreach (var (files, server) in shown)

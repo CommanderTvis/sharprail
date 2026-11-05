@@ -301,27 +301,34 @@ internal static class PluginHostChecks
     private static async Task LanguageServersByHostKind(string directory)
     {
         static bool Mentions(IEnumerable<string> texts) => texts.Any(text => text.Contains("lsp_navigate", StringComparison.Ordinal) || text.Contains("lsp_diagnostics", StringComparison.Ordinal));
+        static bool Partial(IEnumerable<string> texts) => texts.Any(text => text.Contains("This host provides only these language servers", StringComparison.Ordinal));
         var builtins = BuiltinPlugins.LanguageServerEntries;
         await using (var web = await Compose(Path.Combine(directory, "web"), builtins, seams => seams with { Kind = HostKind.PureWeb }))
         {
             await web.Runtime.Schedule();
             var roster = await web.Runtime.ListAsync();
-            Require(roster.Count == builtins.Count && roster.All(entry => entry.Status == PluginStatus.Refused), "A pure web host refuses every language server plugin: " + string.Join(", ", roster.Where(entry => entry.Status != PluginStatus.Refused).Select(entry => entry.Id)));
-            Require(web.State.LanguageCatalog.Count == 0, "A pure web host's catalog has no language server.");
-            Require(LanguageMcpTools.Create(web.State, directory).Count == 0, "A pure web host registers no lsp_* MCP tool.");
-            Require(!Mentions(web.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory)), "A pure web host's agents are not told about language servers.");
+            Require(roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).SequenceEqual(["lsp-css"]), "A pure web host runs only the CSS language server: " + string.Join(", ", roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id)));
+            Require(roster.Where(entry => entry.Id != "lsp-css").All(entry => entry.Status == PluginStatus.Refused), "A pure web host refuses every other language server plugin.");
+            Require(web.State.LanguageCatalog.Select(server => server.Id).SequenceEqual(["css"]), "A pure web host's catalog lists only css.");
+            Require(LanguageMcpTools.Create(web.State, directory).Count == 3, "A pure web host with a server keeps the lsp_* MCP tools.");
+            var prompt = web.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory);
+            Require(Mentions(prompt) && Partial(prompt) && !prompt.Any(text => text.Contains("NEVER conclude a file type has no LSP", StringComparison.Ordinal)), "A pure web host's agents are told which servers exist and that others do not.");
             SharpRail.UI.LanguageSupport.Update(roster);
-            Require(!SharpRail.UI.LanguageSupport.Available, "The UI leaves out its language features when the host refused every language server plugin.");
+            Require(SharpRail.UI.LanguageSupport.Available && SharpRail.UI.LanguageSupport.Serves("src/site.css") && SharpRail.UI.LanguageSupport.Serves("a.SCSS"), "The UI keeps its language features for CSS files.");
+            Require(!SharpRail.UI.LanguageSupport.Serves("Program.cs") && !SharpRail.UI.LanguageSupport.Serves("app.ts") && !SharpRail.UI.LanguageSupport.Serves("README.md"), "The UI offers no language feature for a file no available server owns.");
+            SharpRail.UI.LanguageSupport.Update([.. roster.Select(entry => entry with { Status = PluginStatus.Refused })]);
+            Require(!SharpRail.UI.LanguageSupport.Available, "With every server refused, the UI has no Code Intelligence.");
         }
         await using var native = await Compose(Path.Combine(directory, "native"), builtins);
         await native.Runtime.Schedule();
         var active = await native.Runtime.ListAsync();
-        Require(active.Any(entry => entry.Status == PluginStatus.Active) && native.State.LanguageCatalog.Count > 0, "A host with an operating system keeps its language servers.");
+        Require(active.Any(entry => entry.Status == PluginStatus.Active) && native.State.LanguageCatalog.Count > 1, "A host with an operating system keeps its language servers.");
         Require(LanguageMcpTools.Create(native.State, directory).Select(tool => tool.Name).Order().SequenceEqual(["lsp_diagnostics", "lsp_navigate", "lsp_status"]), "A host with an operating system keeps the lsp_* MCP tools.");
-        Require(Mentions(native.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory)), "A host with an operating system still tells agents about language servers.");
+        var nativePrompt = native.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory);
+        Require(Mentions(nativePrompt) && !Partial(nativePrompt), "A host with an operating system tells agents about its full catalog.");
         SharpRail.UI.LanguageSupport.Update(active);
-        Require(SharpRail.UI.LanguageSupport.Available, "The UI keeps its language features on a host that runs language servers.");
-        Console.WriteLine("PASS language servers by host kind: a pure web host has no server, no lsp_* tool, no prompt text and no UI feature; an OS host keeps them");
+        Require(SharpRail.UI.LanguageSupport.Available && SharpRail.UI.LanguageSupport.Serves("Program.cs"), "The UI keeps its language features on a host that runs language servers.");
+        Console.WriteLine("PASS language servers by host kind: a pure web host runs only CSS, offers features only for CSS files and tells agents so; an OS host keeps everything");
     }
 
     private static async Task Activation(string directory)
