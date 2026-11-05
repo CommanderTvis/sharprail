@@ -242,7 +242,7 @@ internal static class FileDropChecks
             Press(Find("PathBrowserHome"));
             Until(() => Location().Text == Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
             // Navigate back to the workspace by folders, then pick a file inside it.
-            browser.Close(null); Dispatcher.UIThread.RunJobs();
+            browser.Dismiss(null); Dispatcher.UIThread.RunJobs();
             Item("TerminalAttachHostPath").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             browser = WorkspaceFixture.Dialog(app, "PathBrowserDialog");
             Until(() => Location().Text == app.Root);

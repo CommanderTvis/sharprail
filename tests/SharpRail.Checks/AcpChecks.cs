@@ -47,7 +47,7 @@ internal static class AcpChecks
     {
         var manifest = AcpManifest.Manifest;
         Require(manifest.Id == "acp" && !manifest.EnabledByDefault, "ACP is a builtin that is off by default.");
-        Require(manifest.Support == PluginSupportLevels.Early && manifest.Label.Contains("Early support", StringComparison.Ordinal) && manifest.Description!.StartsWith("Early support", StringComparison.Ordinal), "ACP carries the Early support label in its name and description.");
+        Require(manifest.Support == PluginSupportLevels.Early && manifest.Label == "ACP" && manifest.Description!.StartsWith("Early support", StringComparison.Ordinal), "ACP is named ACP and carries the Early support level and description.");
         Require(manifest.UnavailableOn.SequenceEqual([HostKind.PureWeb]), "A host without processes does not offer ACP.");
         Require(ChatContract.Methods.All(method => AcpContract.Contract.Methods.Contains(method)), "ACP serves every chat method.");
     }

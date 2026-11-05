@@ -146,7 +146,7 @@ internal static class PaneRetentionChecks
         Settle();
         var selected = dialog.Window.GetLogicalDescendants().OfType<ToggleButton>().Single(button => button.Name == "WsTargetWorktree");
         var other = dialog.Window.GetLogicalDescendants().OfType<ToggleButton>().Single(button => button.Name == "WsTargetDefault");
-        dialog.Window.MouseMove(other.TranslatePoint(new Point(other.Bounds.Width / 2, other.Bounds.Height / 2), dialog.Window)!.Value);
+        app.Window.MouseMove(other.TranslatePoint(new Point(other.Bounds.Width / 2, other.Bounds.Height / 2), app.Window)!.Value);
         Settle();
         var selectedFrame = selected.GetVisualDescendants().OfType<ContentPresenter>().Single(frame => frame.Name == "PART_ContentPresenter");
         var hoveredFrame = other.GetVisualDescendants().OfType<ContentPresenter>().Single(frame => frame.Name == "PART_ContentPresenter");
