@@ -208,10 +208,10 @@ internal sealed partial class ChatView
         // Below the box, outside it: plain controls with only a hover wash. The "+" and the context pie at the left, a quiet usage line between,
         // and the model, effort and mode as plain text at the right.
         hint = new TextBlock { Name = "ChatHint", FontSize = 11, Foreground = Ui.Hint, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1, Margin = new Thickness(Space.Gap, 0) };
-        var leftGroup = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Space.Gap, VerticalAlignment = VerticalAlignment.Center };
+        var leftGroup = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Space.Gap, VerticalAlignment = VerticalAlignment.Top };
         leftGroup.Children.Add(plus);
         leftGroup.Children.Add(pie);
-        chips.VerticalAlignment = VerticalAlignment.Center;
+        chips.VerticalAlignment = VerticalAlignment.Top;
         chips.HorizontalAlignment = HorizontalAlignment.Right;
         var footer = new Grid { Name = "ChatFooter", Margin = new Thickness(Space.Inset, 0), ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = Space.Gap };
         Grid.SetColumn(hint, 1);

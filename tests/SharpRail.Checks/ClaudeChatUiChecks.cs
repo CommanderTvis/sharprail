@@ -599,6 +599,11 @@ internal static class ClaudeChatUiChecks
                 static double Box(Control chip, Control panel) => chip.TranslatePoint(new Point(0, 0), panel)!.Value.X;
                 if (rows.Count < 2) continue;
                 wrapped = true;
+                // The "+" and the context pie sit on the first chips row, not centred against the wrapped block.
+                var firstTop = rows[0][0].TranslatePoint(new Point(0, 0), view)!.Value.Y;
+                var left = view.GetVisualDescendants().OfType<Button>().First(candidate => candidate.Name == "ChatPlus").GetVisualParent()!.GetVisualChildren().OfType<Button>().ToList();
+                Require(left.Count == 2 && left.All(button => Math.Abs(button.TranslatePoint(new Point(0, 0), view)!.Value.Y - firstTop) <= 2),
+                    $"The plus and the context meter align to the first footer row at {width}px (tops {string.Join(",", left.Select(button => button.TranslatePoint(new Point(0, 0), view)!.Value.Y.ToString("0.#")))}, first row {firstTop:0.#}).");
                 var edges = rows.Select(row => Box(row[0], panel) + 0d).ToList();
                 var contents = rows.Select(row => Content(row[0], panel)).ToList();
                 Require(edges.All(edge => Math.Abs(edge - edges[0]) <= 0.5) && contents.All(edge => Math.Abs(edge - contents[0]) <= 0.5),
@@ -611,6 +616,12 @@ internal static class ClaudeChatUiChecks
                 break;
             }
             Require(wrapped, "The footer chips wrap at some narrow width, so the row edges can be compared.");
+            // Wide: one line, and the "+" and the pie still share the chips' top.
+            window.Width = 900; Frame(window); Frame(window); Frame(window);
+            var wide = view.GetVisualDescendants().OfType<WrapPanel>().First(candidate => candidate.Name == "ChatChips");
+            var wideTop = wide.TranslatePoint(new Point(0, 0), view)!.Value.Y;
+            var plusTop = view.GetVisualDescendants().OfType<Button>().First(candidate => candidate.Name == "ChatPlus").TranslatePoint(new Point(0, 0), view)!.Value.Y;
+            Require(Math.Abs(wideTop - plusTop) <= 2, $"At a wide width the single-line footer keeps the plus and the chips on one top ({plusTop:0.#} vs {wideTop:0.#}).");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); }
