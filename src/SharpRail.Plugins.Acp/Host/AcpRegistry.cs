@@ -28,6 +28,13 @@ internal static class AcpRegistry
     private static IReadOnlyList<string> Kinds(JsonObject? distribution) =>
         [.. new[] { "npx", "uvx", "binary" }.Where(kind => distribution?[kind] is JsonObject)];
 
+    /// <summary>Registry agent ids (exact match) that SharpRail supports directly, with the reason shown on the entry. Add a line to extend.</summary>
+    internal static readonly IReadOnlyDictionary<string, string> NotRecommendedAgents = new Dictionary<string, string>
+    {
+        ["claude-acp"] = "Claude Code has its own chat in SharpRail. Use that instead.",
+        ["pi-acp"] = "Pi has its own chat in SharpRail. Use that instead."
+    };
+
     public static AcpRegistryView View(JsonObject root, string source, string? fetchedAt, string? note, string platform)
     {
         var agents = (root["agents"] as JsonArray ?? []).OfType<JsonObject>().Where(agent => AcpFolder.Str(agent, "id").Length > 0).Select(agent =>
@@ -43,10 +50,11 @@ internal static class AcpRegistry
                 LicenseUrl = Optional(agent, "license_url"),
                 Icon = Optional(agent, "icon"),
                 Kinds = kinds,
-                Installable = kinds.Any(kind => kind != "binary") || distribution?["binary"]?[platform] is JsonObject
+                Installable = kinds.Any(kind => kind != "binary") || distribution?["binary"]?[platform] is JsonObject,
+                NotRecommended = NotRecommendedAgents.GetValueOrDefault(AcpFolder.Str(agent, "id"))
             };
         });
-        return new AcpRegistryView([.. agents.OrderBy(agent => agent.Name, StringComparer.OrdinalIgnoreCase)], source) { SchemaVersion = Optional(root, "version"), FetchedAt = fetchedAt, Note = note };
+        return new AcpRegistryView([.. agents.OrderBy(agent => agent.NotRecommended is not null).ThenBy(agent => agent.Name, StringComparer.OrdinalIgnoreCase)], source) { SchemaVersion = Optional(root, "version"), FetchedAt = fetchedAt, Note = note };
     }
 
     private static string? Optional(JsonObject node, string name) => AcpFolder.Str(node, name) is { Length: > 0 } text ? text : null;
@@ -62,7 +70,7 @@ internal static class AcpRegistry
         var chosen = kind ?? new[] { "npx", "uvx", "binary" }.FirstOrDefault(candidate => candidate == "binary" ? distribution["binary"]?[platform] is JsonObject : distribution[candidate] is JsonObject);
         var name = AcpFolder.Str(agent, "name");
         var version = AcpFolder.Str(agent, "version");
-        var plan = new AcpInstallPlan(agentId, name, version, chosen ?? "") { Repository = Optional(agent, "repository"), License = Optional(agent, "license") };
+        var plan = new AcpInstallPlan(agentId, name, version, chosen ?? "") { Repository = Optional(agent, "repository"), License = Optional(agent, "license"), NotRecommended = NotRecommendedAgents.GetValueOrDefault(agentId) };
         switch (chosen)
         {
             case "npx" or "uvx" when distribution[chosen] is JsonObject package:

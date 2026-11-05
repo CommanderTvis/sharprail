@@ -131,8 +131,17 @@ internal sealed partial class AcpSettingsView : StackPanel
         foreach (var agent in registry.Agents.Where(agent => query.Length == 0 || agent.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || agent.Description.Contains(query, StringComparison.OrdinalIgnoreCase) || agent.Id.Contains(query, StringComparison.OrdinalIgnoreCase)))
         {
             var row = new StackPanel { Spacing = 2, Name = "AcpRegistryAgent_" + agent.Id };
-            row.Children.Add(Text($"{agent.Name}  v{agent.Version}  ({string.Join(", ", agent.Kinds)})"));
+            var title = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8 };
+            title.Children.Add(Text($"{agent.Name}  v{agent.Version}  ({string.Join(", ", agent.Kinds)})"));
+            if (agent.NotRecommended is { } reason)
+            {
+                var tag = new Border { Name = "AcpNotRecommended_" + agent.Id, Background = Ui.WarningWash, CornerRadius = new Avalonia.CornerRadius(8), Padding = new Avalonia.Thickness(8, 0), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Child = new TextBlock { Text = "Not recommended", FontSize = 11, Foreground = Ui.Warning } };
+                ToolTip.SetTip(tag, reason);
+                title.Children.Add(tag);
+            }
+            row.Children.Add(title);
             row.Children.Add(Text(agent.Description, detail: true));
+            if (agent.NotRecommended is { } why) row.Children.Add(Text(why, detail: true));
             var install = new Button { Content = agent.Installable ? "Install…" : "Not available on this machine", IsEnabled = agent.Installable, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left };
             install.Click += (_, _) => _ = RunAsync(() => context.RequestAsync(AcpContract.InstallPlan, new AcpInstallPlanParams(agent.Id)).AsTask(), ShowPlan, "Couldn't prepare the install");
             row.Children.Add(install);
@@ -145,7 +154,7 @@ internal sealed partial class AcpSettingsView : StackPanel
         pending = plan;
         this.FindControl<TextBlock>("AcpConfirmTitle")!.Text = $"Install {plan.Name} {plan.Version}?";
         this.FindControl<TextBlock>("AcpConfirmBody")!.Text =
-            $"Source: {plan.Source}\nRuns: {plan.CommandLine}\n{(plan.Sha256 is { } sha ? "SHA-256: " + sha + "\n" : "")}{(plan.License is { } license ? "License: " + license + "\n" : "")}{(plan.Repository is { } repository ? "Repository: " + repository + "\n" : "")}{plan.Note}";
+            $"Source: {plan.Source}\nRuns: {plan.CommandLine}\n{(plan.Sha256 is { } sha ? "SHA-256: " + sha + "\n" : "")}{(plan.License is { } license ? "License: " + license + "\n" : "")}{(plan.Repository is { } repository ? "Repository: " + repository + "\n" : "")}{plan.Note}{(plan.NotRecommended is null ? "" : "\n\n" + AcpInstallPlan.NotRecommendedLine)}";
         this.FindControl<Border>("AcpConfirm")!.IsVisible = true;
     }
 }

@@ -13,6 +13,8 @@ public sealed record AcpRegistryAgent(string Id, string Name, string Version, st
     public IReadOnlyList<string> Kinds { get; init; } = [];
     /// <summary>Whether the agent can run on this machine: it has an npx or uvx entry, or a binary for this platform.</summary>
     public bool Installable { get; init; }
+    /// <summary>Why using this adapter is discouraged (SharpRail supports the agent directly); null for a normal entry.</summary>
+    public string? NotRecommended { get; init; }
 }
 
 /// <summary>The registry as the settings page lists it.</summary>
@@ -31,6 +33,9 @@ public sealed record AcpRegistryParams(bool Refresh);
 /// <summary>What installing an agent would download and run, shown for confirmation before anything is fetched or started.</summary>
 public sealed record AcpInstallPlan(string AgentId, string Name, string Version, string Kind)
 {
+    /// <summary>The line the confirmation shows when <see cref="NotRecommended"/> is set.</summary>
+    public const string NotRecommendedLine = "SharpRail supports this agent directly. Installing the ACP adapter is not recommended.";
+
     /// <summary>Where the code comes from: the package name or the archive URL.</summary>
     public string Source { get; init; } = "";
     /// <summary>The command line SharpRail will run, as it would be typed.</summary>
@@ -40,6 +45,8 @@ public sealed record AcpInstallPlan(string AgentId, string Name, string Version,
     public string? Repository { get; init; }
     public string? License { get; init; }
     public string? Note { get; init; }
+    /// <summary>Set when SharpRail supports the agent directly; the confirmation says so, the install is still allowed.</summary>
+    public string? NotRecommended { get; init; }
 }
 
 public sealed record AcpInstallPlanParams(string AgentId, string? Kind = null);

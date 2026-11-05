@@ -53,6 +53,8 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   registry. A binary is downloaded over https only, checked against the registry's SHA-256 (a mismatch discards it; a missing checksum is
   said so in the plan), unpacked with the platform's `tar` into `~/.sharprail/acp/agents/<id>/<version>/` and its command must stay inside
   that directory. The registry's `preview` channel is ignored.
+- Entries for agents SharpRail supports directly (a small id list in `AcpRegistry`: Claude and Pi adapters) get a Not recommended tag with the
+  reason, sort after the others, and say so in the install confirmation. They stay installable. Manually added agents are never flagged.
 - Custom agents: command, arguments, environment and working directory typed in the settings page; adding one is the confirmation.
 - Credentials: SharpRail never shows a field for them. An agent that needs sign-in fails the session with a notice naming its
   `authMethods`; the user signs in with the agent's own tool.

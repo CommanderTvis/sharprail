@@ -257,12 +257,16 @@ internal static class AcpChecks
         Directory.CreateDirectory(root);
         var fixture = AcpRegistry.Parse(FixtureText()) ?? throw new InvalidOperationException("acp: The captured registry does not parse.");
         var view = AcpRegistry.View(fixture, "network", null, null, mac);
-        Require(view.SchemaVersion == "1.0.0" && view.Agents.Select(agent => agent.Id).SequenceEqual(["codex-acp", "fast-agent", "goose", "pi-acp"]), "The captured registry lists its agents by name.");
+        Require(view.SchemaVersion == "1.0.0" && view.Agents.Select(agent => agent.Id).SequenceEqual(["codex-acp", "fast-agent", "goose", "claude-acp", "pi-acp"]), "The captured registry lists its agents by name.");
         var goose = view.Agents.Single(agent => agent.Id == "goose");
         Require(goose is { Kinds: ["binary"], Installable: true, Version: "1.57.0", License: "Apache-2.0" } && view.Agents.Single(agent => agent.Id == "pi-acp").Kinds.SequenceEqual(["npx"]) && view.Agents.Single(agent => agent.Id == "fast-agent").Kinds.SequenceEqual(["uvx"]), "Each agent shows its distribution kinds.");
         Require(view.Agents.Single(agent => agent.Id == "pi-acp").Icon!.EndsWith("pi-acp.svg", StringComparison.Ordinal), "The registry's icon url is kept.");
         Require(!AcpRegistry.View(fixture, "x", null, null, "plan9-riscv").Agents.Single(agent => agent.Id == "goose").Installable, "A binary-only agent is not installable on a platform it has no archive for.");
 
+        Require(view.Agents.Where(agent => agent.NotRecommended is not null).Select(agent => agent.Id).SequenceEqual(["claude-acp", "pi-acp"]) && view.Agents.Single(agent => agent.Id == "goose").NotRecommended is null && view.Agents.Single(agent => agent.Id == "codex-acp").NotRecommended is null, "Only the Claude and Pi adapters are flagged, and they sort last.");
+        Require(AcpRegistry.Plan(fixture, "claude-acp", null, mac)!.NotRecommended is { Length: > 0 } && AcpRegistry.Plan(fixture, "pi-acp", null, mac)!.NotRecommended!.StartsWith("Pi ", StringComparison.Ordinal) && AcpRegistry.Plan(fixture, "goose", null, mac)!.NotRecommended is null, "The install confirmation carries the not-recommended flag.");
+        var custom = AcpRegistry.View(new JsonObject { ["agents"] = new JsonArray(new JsonObject { ["id"] = "my-claude", ["name"] = "Claude", ["version"] = "1", ["description"] = "mine", ["distribution"] = new JsonObject { ["npx"] = new JsonObject { ["package"] = "x" } } }) }, "x", null, null, mac);
+        Require(custom.Agents.Single().NotRecommended is null, "Matching is by exact id, so another agent named Claude is not flagged.");
         var npx = AcpRegistry.Plan(fixture, "pi-acp", null, mac)!;
         Require(npx is { Kind: "npx", CommandLine: "npx -y pi-acp@0.0.34", Version: "0.0.34" }, "An npx plan shows the exact command that will run.");
         var uvx = AcpRegistry.Plan(fixture, "fast-agent", null, mac)!;
@@ -294,7 +298,7 @@ internal static class AcpChecks
         online = false;
         clock = clock.AddHours(1);
         var (_, offline) = await cache.LoadAsync(false, CancellationToken.None);
-        Require(offline is { Source: "cache", Note: { } note } && note.Contains("earlier", StringComparison.Ordinal) && offline.Agents.Count == 4, "Offline, the cached copy is shown with a note.");
+        Require(offline is { Source: "cache", Note: { } note } && note.Contains("earlier", StringComparison.Ordinal) && offline.Agents.Count == 5, "Offline, the cached copy is shown with a note.");
         var (_, seeded) = await new AcpRegistryCache(Path.Combine(root, "registry-empty"), fetch, () => clock).LoadAsync(false, CancellationToken.None);
         Require(seeded is { Source: "seed", Note: { } } && seeded.Agents.Count == 2, "With no copy and no network a built-in minimal list stands in, and says so.");
         online = true;

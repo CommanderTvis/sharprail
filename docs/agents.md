@@ -102,7 +102,8 @@ Any agent that speaks the [Agent Client Protocol](https://agentclientprotocol.co
 
 - Settings › ACP lists your agents, lets you add a custom one (command, arguments, environment, working directory) and browses the public
   ACP registry. Installing from the registry first shows where the code comes from, its version and the exact command, and needs your
-  confirmation for each agent and each version; a binary is checked against the registry's checksum.
+  confirmation for each agent and each version; a binary is checked against the registry's checksum. Claude and Pi adapters are tagged Not recommended because SharpRail supports those agents
+  directly. You can still install them.
 - Start a chat with the ACP button in the workspace's tab strip and choose an agent. It runs in the workspace folder; it can read and write
   files and run commands there, and every permission it asks for is shown to you.
 - Sign in with the agent's own tool; SharpRail never asks for credentials. See `src/SharpRail.Plugins.Acp/SPEC.md` for what is not supported yet.
