@@ -41,7 +41,7 @@ internal static class SpecsPanelE2E
         app.Click(cta);
         var dialog = Dialog(app, "NewWorkspaceDialog");
         dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
 
         File.WriteAllText(Path.Combine(bare, "SPEC.md"), "---\nid: goal\ntype: goal-and-requirements\ntitle: Goal\n---\n");
         Until(() => HasWelcome(app) && Text(app.Find<Button>("WelcomeCta")).Contains("Create workspace", StringComparison.Ordinal));

@@ -310,8 +310,8 @@ internal static class ClaudeCodeChecks
         window.Close();
         E2eWorkspace.Until(() => !app.Window.OpenSettingsViews.Any());
         var compose = SettingValueDialog.ShowAsync(app.Window, new("ClaudeCheck", "model", JsonSerializer.SerializeToElement("sonnet"), ["model"], "Review change"));
-        E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
-        var composer = app.Window.OwnedWindows.Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
+        E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
+        var composer = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
         var value = composer.GetLogicalDescendants().OfType<TextBox>().Single(control => control.Name == "ClaudeCheckValueText");
         value.Text = "opus";
         app.Click(composer.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeCheckValueContinue"), freshGesture: false);
@@ -393,7 +393,7 @@ internal static class ClaudeCodeChecks
     /// </summary>
     private static void SuggestedSettingValues(E2eWorkspace app)
     {
-        Window Composer() => app.Window.OwnedWindows.Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
+        Window Composer() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog"));
         T Named<T>(string name) where T : Control => Composer().GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         (string Key, JsonElement Value)? Compose(string key, JsonElement? value, Action fill)
         {
@@ -402,7 +402,7 @@ internal static class ClaudeCodeChecks
                 Suggestions = ClaudeSettingSuggestions.For,
                 ShapeFor = ClaudeSettingSuggestions.ShapeFor
             });
-            E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
+            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeCheckValueDialog")));
             fill();
             E2eWorkspace.Settle();
             app.Click(Named<Button>("ClaudeCheckValueContinue"), freshGesture: false);
@@ -444,8 +444,8 @@ internal static class ClaudeCodeChecks
     {
         // Choosing a scope would ask the host for a plan; this only inspects the options, so no context is needed.
         _ = ReviewDialogs.EditAsync(null!, app.Window, "check", null, new(new SettingEdit("model", JsonSerializer.SerializeToElement("opus")), "Change \"model\""));
-        E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(dialog => Equals(dialog.Tag, "ClaudeEditDialog")));
-        var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "ClaudeEditDialog"));
+        E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(dialog => Equals(dialog.Tag, "ClaudeEditDialog")));
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "ClaudeEditDialog"));
         E2eWorkspace.Settle();
         var options = dialog.GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("ClaudeEditScope_", StringComparison.Ordinal) == true).ToArray();
         Require(options.Length == 3 && options.All(option =>
@@ -458,7 +458,7 @@ internal static class ClaudeCodeChecks
             }) && options.Any(option => option.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Local project settings")),
             "Each scope option carries its scope chip, the third is called local, and its description fits inside the option.");
         dialog.Close();
-        E2eWorkspace.Until(() => !app.Window.OwnedWindows.Any(window => Equals(window.Tag, "ClaudeEditDialog")));
+        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "ClaudeEditDialog")));
         Console.WriteLine("PASS Claude edit scopes: local wording, scope chips, descriptions unclipped");
     }
 
@@ -650,7 +650,7 @@ internal static class ClaudeCodeChecks
             Console.WriteLine("PASS Claude revival: a stray owner is named and offers Quit that process and resume");
             Require(fourthView.QuitResumeOffer(), "The quit button is pressable.");
             Button? quitConfirm = null;
-            E2eWorkspace.Until(() => (quitConfirm = app.Window.OwnedWindows.SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
+            E2eWorkspace.Until(() => (quitConfirm = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
                 .FirstOrDefault(button => button.Name == "QuitSessionOwnerConfirm")) is not null);
             Require(Alive(strayPid) && Alive(strayChild), "Nothing is signalled before the user confirms.");
             app.Click(quitConfirm!);
@@ -841,7 +841,7 @@ internal static class ClaudeCodeChecks
             "Workspace actions follow New terminal under their workspace in Projects.");
 
         int Terminals() => app.Window.Layout.State.Groups.Sum(group => app.Window.Layout.Tabs(group.Id).Count(tab => tab.Kind == "terminal"));
-        Button? CloseConfirmation() => app.Window.OwnedWindows.SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
+        Button? CloseConfirmation() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).SelectMany(window => window.GetLogicalDescendants().OfType<Button>())
             .FirstOrDefault(button => button.Name == "TerminalCloseBusyConfirm");
         // The preassigned id of the last launch, taken out of the arguments the assertions below compare.
         string? launchedId = null;
@@ -911,8 +911,8 @@ internal static class ClaudeCodeChecks
         // Any flags at all: typed into a dialog, they follow the prompt file like a preset's.
         var custom = Launch("custom", () =>
         {
-            E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "ClaudeCustomLaunch")));
-            var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "ClaudeCustomLaunch"));
+            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "ClaudeCustomLaunch")));
+            var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "ClaudeCustomLaunch"));
             dialog.GetLogicalDescendants().OfType<TextBox>().Single(box => box.Name == "ClaudeCustomArguments").Text = "--permission-mode plan --verbose";
             app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ClaudeCustomStart"), freshGesture: false);
         });

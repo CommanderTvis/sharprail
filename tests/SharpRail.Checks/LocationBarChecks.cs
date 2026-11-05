@@ -132,7 +132,7 @@ internal static class LocationBarChecks
         var confirm = Dialog(app);
         Require(Text(confirm).Contains(workspace, StringComparison.Ordinal), "The Remove dialog names the workspace it was opened for.");
         _ = app.Window.OpenProjectHomeAsync(app.Root);
-        Until(() => app.Window.AtProjectHome && app.Window.OwnedWindows.Count == 0);
+        Until(() => app.Window.AtProjectHome && SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Count == 0);
         Settle();
         Require(Directory.Exists(workspace) && WorktreePaths(app).Contains(workspace),
             "A Remove dialog dismissed by a workspace change removes nothing.");

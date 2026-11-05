@@ -138,7 +138,7 @@ internal static class BranchListE2E
         // A real window loses focus to the dialog and dismisses the card; the headless one has to be told.
         Close(app);
         app.Click(Named<Button>(confirm, "BranchDeleteConfirm"));
-        Until(() => !app.Window.OwnedWindows.Any(window => window.IsVisible));
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is SharpRail.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
         Until(() => Git(app.Root, "branch", "--list", "spare-branch").Length == 0);
         Until(() => Row(list, "spare-branch") is null && Row(list, branch) is not null);
         Until(() => app.Find<Button>("ScopeBranch").Flyout is Flyout { IsOpen: true });

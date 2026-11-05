@@ -175,8 +175,8 @@ internal static partial class AirContextChecks
             window.MouseDown(point, Avalonia.Input.MouseButton.Left); window.MouseUp(point, Avalonia.Input.MouseButton.Left);
         }
         string[] EnabledNow() => Enabled(app.State!.DirectoryPath!);
-        var ownedAtStart = window.OwnedWindows.Count;
-        IReadOnlyList<Window> Dialogs() => [.. window.OwnedWindows.Skip(ownedAtStart)];
+        var ownedAtStart = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count;
+        IReadOnlyList<Window> Dialogs() => [.. SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Skip(ownedAtStart)];
         Reveal(app);
         var workspace = app.Window.WorkspaceRoot;
         try

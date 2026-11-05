@@ -30,12 +30,12 @@ internal static class BlueprintWorktreeStartChecks
         }, () => new(true)));
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "WorkspaceDraftBlueprint"));
         app.Click(app.Find<Button>("WorkspaceDraftBlueprint"));
-        Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "BlueprintStart")));
-        var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "BlueprintStart"));
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "BlueprintStart")));
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "BlueprintStart"));
         T Find<T>(string name) where T : Control => dialog.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         Find<TextBox>("Brief").Text = "  A project blueprint launched from another worktree.  ";
         app.Click(Find<Button>("BlueprintStart"));
-        Until(() => !app.Window.OwnedWindows.Contains(dialog) && launches.Count == 1 && app.Window.WorkspaceRoot == project &&
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Contains(dialog) && launches.Count == 1 && app.Window.WorkspaceRoot == project &&
             app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "Blueprint"));
         BlueprintState? State(string workspace)
         {

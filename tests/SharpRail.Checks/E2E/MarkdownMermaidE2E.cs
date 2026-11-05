@@ -67,8 +67,8 @@ internal static class MarkdownMermaidE2E
 
         app.Click(preview.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "MermaidFullscreen"));
         static bool IsFullscreen(DialogWindow window) => window.GetLogicalDescendants().OfType<ScrollViewer>().Any(viewer => viewer.Name == "MermaidPanZoom");
-        Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any(IsFullscreen));
-        var dialog = app.Window.OwnedWindows.OfType<DialogWindow>().Single(IsFullscreen);
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(IsFullscreen));
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single(IsFullscreen);
         Until(() => dialog.GetLogicalDescendants().OfType<Image>().Any(image => image.Source is not null && image.Bounds.Width > 0));
         var detail = dialog.GetLogicalDescendants().OfType<Image>().Single(image => image.Source is not null);
         Control Part(string name) => dialog.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == name);
@@ -128,7 +128,7 @@ internal static class MarkdownMermaidE2E
         Until(() => Level() == "100%" && viewer.Offset == default);
         Console.WriteLine("PASS Mermaid viewer drag pans the zoomed diagram, clamps at its edges and resets");
         dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-        Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
 
         app.Click(app.Find<Button>("MarkdownSourceMode"));
         var source = app.Find<Control>("MarkdownSource");

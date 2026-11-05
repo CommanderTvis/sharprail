@@ -108,7 +108,7 @@ internal static class NavigationChecks
         var flyout = (Flyout)overflow.Flyout!;
         var content = (Control)flyout.Content!;
         var popup = TopLevel.GetTopLevel(content)!;
-        Require(flyout.IsOpen && window.OwnedWindows.Count == 0 && content.Bounds.Width == 288,
+        Require(flyout.IsOpen && SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 0 && content.Bounds.Width == 288,
             "Tab search must be an anchored dropdown rather than an owned dialog.");
         var search = content.GetLogicalDescendants().OfType<TextBox>().Single(item => item.Name == "TabOverflowSearch");
         var placeholder = search.GetVisualDescendants().OfType<TextBlock>().Single(item => item.IsVisible && item.Text == "Find an open tab…");

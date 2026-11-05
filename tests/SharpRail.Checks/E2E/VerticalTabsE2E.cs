@@ -81,8 +81,8 @@ internal static class VerticalTabsE2E
                     app.Window.GetLogicalDescendants().OfType<ContentControl>().Single(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, workspace))
                         .GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceTabPreview" && Equals(button.Tag, terminal.Id));
                 app.ContextAction(button, "Rename");
-                Until(() => app.Window.OwnedWindows.Any(window => window.Title == "Rename terminal"));
-                return app.Window.OwnedWindows.Single(window => window.Title == "Rename terminal");
+                Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window.Title == "Rename terminal"));
+                return SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => window.Title == "Rename terminal");
             }
             var dialog = Rename();
             var input = dialog.GetLogicalDescendants().OfType<TextBox>().Single();

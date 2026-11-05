@@ -59,7 +59,7 @@ internal static class ReviewChecks
         return WorkspaceFixture.Dialog(app, "PrComposeDialog");
     }
 
-    private static bool Open(E2eWorkspace app, string tag) => app.Window.OwnedWindows.Any(window => Equals(window.Tag, tag));
+    private static bool Open(E2eWorkspace app, string tag) => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, tag));
 
     [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
     private static void PullRequests(string parent)

@@ -261,7 +261,7 @@ internal static class DiscordChecks
     private static void Close(WorkbenchWindow window, SettingsView settings)
     {
         settings.Close();
-        E2eWorkspace.Until(() => !window.OwnedWindows.Any());
+        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any());
     }
 
     // Types into the field and moves focus away, which is when the section saves it.

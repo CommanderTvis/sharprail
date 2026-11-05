@@ -20,7 +20,7 @@ internal static class NewWorkspaceShortcutE2E
         InsideWorkspace(Path.Combine(root, "shortcut-workspace"));
     }
 
-    private static int Dialogs(E2eWorkspace app) => app.Window.OwnedWindows.Count(window => Equals(window.Tag, "NewWorkspaceDialog") && window.IsVisible);
+    private static int Dialogs(E2eWorkspace app) => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Count(window => Equals(window.Tag, "NewWorkspaceDialog") && (window is SharpRail.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
 
     private static void ExpectDialog(E2eWorkspace app)
     {
@@ -39,7 +39,7 @@ internal static class NewWorkspaceShortcutE2E
 
     private static void Escape(E2eWorkspace app)
     {
-        Press(app.Window.OwnedWindows.Single(window => Equals(window.Tag, "NewWorkspaceDialog")), Avalonia.Input.Key.Escape);
+        Press(SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "NewWorkspaceDialog")), Avalonia.Input.Key.Escape);
         Until(() => Dialogs(app) == 0);
     }
 

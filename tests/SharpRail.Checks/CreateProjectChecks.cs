@@ -44,8 +44,8 @@ internal static class CreateProjectChecks
         var menu = app.Find<Button>("AddProjectMenu").ContextMenu!;
         menu.Items.OfType<MenuItem>().Single(item => item.Name == "CreateProjectMenu").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         menu.Close();
-        Until(() => app.Window.OwnedWindows.Any(window => window.Title == "Create project"));
-        var dialog = app.Window.OwnedWindows.Single(window => window.Title == "Create project");
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window.Title == "Create project"));
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => window.Title == "Create project");
         T Find<T>(string name) where T : Control => dialog.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         var into = Find<TextBox>("CreateProjectParent");
         var name = Find<TextBox>("CreateProjectName");

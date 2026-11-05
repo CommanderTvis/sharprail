@@ -381,16 +381,16 @@ internal static class MarkdownDocumentE2E
             app.Window.KeyTextInput("Unsaved before closing.\n");
             var group = app.Window.Layout.View.FocusedCenter;
             app.Window.Layout.Close(group, "markdown:README.md");
-            Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
-            var prompt = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
+            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+            var prompt = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
             var cancel = prompt.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" });
             cancel.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Until(() => !prompt.IsVisible);
             Require(app.Tabs.Any(tab => tab.Path == "README.md") && editable.Text.Contains("Unsaved before closing.", StringComparison.Ordinal),
                 "Cancelling a Markdown close must keep its unsaved buffer.");
             app.Window.Layout.Close(group, "markdown:README.md");
-            Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
-            prompt = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
+            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+            prompt = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
             prompt.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Don't Save" })
                 .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Until(() => !app.Tabs.Any(tab => tab.Path == "README.md"));

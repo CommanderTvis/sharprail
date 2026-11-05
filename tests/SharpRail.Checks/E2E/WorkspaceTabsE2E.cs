@@ -81,8 +81,8 @@ internal static class WorkspaceTabsE2E
         var project = app.Window.ProjectRoot;
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddWorkspace" && button.IsEnabled));
         app.Click(app.Find<Button>("AddWorkspace"));
-        Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "NewWorkspaceDialog")));
-        var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "NewWorkspaceDialog"));
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "NewWorkspaceDialog")));
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "NewWorkspaceDialog"));
         Settle(100);
         app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WsCreate"));
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot != project && app.Find<TextBlock>("BranchLabel").Text == name);

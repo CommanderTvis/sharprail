@@ -55,7 +55,7 @@ internal static class SharedTerminalsE2E
             shell.Run("exit 0");
             Until(() => TerminalTabs(a).Length == 1 && TerminalTabs(b).Length == 1);
             Until(() => View(a, initial).IsKeyboardFocusWithin);
-            Require(!a.Window.OwnedWindows.Any() && a.Window.Layout.Tabs(group).Select(tab => tab.Id).SequenceEqual([initial.Id]) &&
+            Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(a.Window).Any() && a.Window.Layout.Tabs(group).Select(tab => tab.Id).SequenceEqual([initial.Id]) &&
                 a.Window.Layout.Selected(group)?.Id == initial.Id && Catalog(host, workspace).SequenceEqual([initial.Id]),
                 "An exited shell's tab must leave its group, the host's catalog and every client without asking, and hand focus to the tab beside it.");
             Console.WriteLine("PASS terminal exit: a shell that exits closes its tab in every client by default, without confirmation, and focus moves on in its group");
@@ -367,7 +367,7 @@ internal static class SharedTerminalsE2E
             Until(() => TerminalTabs(a).Length == 2 && TerminalTabs(b).Length == 2);
             CloseTab(a, TerminalTabs(a)[1]);
             Until(() => TerminalTabs(a).Length == 1 && TerminalTabs(b).Length == 1);
-            Require(!a.Window.OwnedWindows.Any() && Catalog(host, workspace).SequenceEqual([initial.Id]),
+            Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(a.Window).Any() && Catalog(host, workspace).SequenceEqual([initial.Id]),
                 "A terminal closed in one client must leave every client and the host's catalog without asking again.");
             Console.WriteLine("PASS shared terminals: closing a terminal in one client removes it from the other");
 

@@ -58,7 +58,7 @@ internal static class ExternalWorkspaceE2E
             Text(Candidates(dialog).Single(row => Equals(row.Tag, outside))).Contains("outside-branch", StringComparison.Ordinal),
             "The chooser lists unattached worktrees by branch and path and keeps detached ones disabled.");
         app.Click(Candidates(dialog).Single(row => Equals(row.Tag, outside)));
-        Until(() => !app.Window.OwnedWindows.Any() && Active(app, outside) && WorktreePaths(app).Contains(outside));
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Active(app, outside) && WorktreePaths(app).Contains(outside));
         Require(Record(app, outside).Kind == WorkspaceKinds.External && ItemText(app, outside, "WorkspaceBranch") == "outside-branch" &&
             ItemText(app, outside, "WorkspaceName") == "outside" && !Directory.Exists(Path.Combine(outside, ".sharprail")),
             "An attached worktree is an external workspace shown by its directory and branch, left untouched.");

@@ -33,14 +33,14 @@ internal static class EditorWorkbenchChecks
             .GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "ModifiedTab").IsVisible;
     private static void Answer(Window window, string label)
     {
-        Pump(() => window.OwnedWindows.OfType<DialogWindow>().Any(open => open.IsVisible));
-        var dialog = window.OwnedWindows.OfType<DialogWindow>().Single(open => open.IsVisible);
+        Pump(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).OfType<DialogWindow>().Any(open => open.IsVisible));
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).OfType<DialogWindow>().Single(open => open.IsVisible);
         dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: var text } && text == label)
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Pump(() => !dialog.IsVisible);
     }
     private static void AwaitConflict(Window window) =>
-        Pump(() => window.OwnedWindows.OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));
+        Pump(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));
     private static void Save(Window window, RawInputModifiers? command = null)
     {
         var chord = command ?? E2E.E2eWorkspace.Command;
@@ -172,9 +172,9 @@ internal static class EditorWorkbenchChecks
             File.WriteAllText(Path.Combine(root, "first.cs"), "external change\n");
             var firstPath = Path.Combine(root, "first.cs");
             Save(window); AwaitConflict(window);
-            var question = string.Join(" ", window.OwnedWindows.OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+            var question = string.Join(" ", SharpRail.Plugins.UI.Kit.DialogWindow.On(window).OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
             Require(question.Contains("first.cs changed on disk", StringComparison.Ordinal), "The conflict dialog did not name the file: " + question);
-            var buttons = window.OwnedWindows.OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<Button>().Select(button => (button.Content as TextBlock)?.Text).ToArray();
+            var buttons = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<Button>().Select(button => (button.Content as TextBlock)?.Text).ToArray();
             Require(buttons.SequenceEqual(["Compare", "Reload from disk", "Overwrite file", "Cancel"]), "The conflict dialog actions were: " + string.Join(", ", buttons));
             Answer(window, "Cancel");
             Require(editor.IsModified && File.ReadAllText(firstPath) == "external change\n", "Cancel in the conflict dialog changed the file or lost the buffer.");
@@ -223,7 +223,7 @@ internal static class EditorWorkbenchChecks
             File.WriteAllText(Path.Combine(root, "second.cs"), "external again\n");
             window.Close(); Answer(window, "Save");
             AwaitConflict(window);
-            var failure = string.Join(" ", window.OwnedWindows.OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+            var failure = string.Join(" ", SharpRail.Plugins.UI.Kit.DialogWindow.On(window).OfType<DialogWindow>().Single().GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
             Require(failure.Contains("second.cs", StringComparison.Ordinal) && failure.Contains("changed on disk", StringComparison.Ordinal),
                 "The save failure dialog did not name the file and the reason: " + failure);
             Answer(window, "Cancel");

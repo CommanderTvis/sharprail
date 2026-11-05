@@ -105,7 +105,7 @@ internal static class ProjectContextE2E
         app.Click(Entry(fixture, "ProjectMenuCreateWorkspace"), freshGesture: false);
         var dialog = Dialog(app, "NewWorkspaceDialog");
         Press(dialog, Avalonia.Input.Key.Escape);
-        Until(() => !app.Window.OwnedWindows.Any() && Name(fixture).IsFocused);
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(fixture).IsFocused);
 
         var second = IsolatedGit.Repository(Path.Combine(directory, "second-project"));
         AddProject(app, "Open project", second);
@@ -125,10 +125,10 @@ internal static class ProjectContextE2E
         var cancel = confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Cancel");
         Until(() => cancel.IsFocused);
         app.Click(cancel);
-        Until(() => !app.Window.OwnedWindows.Any() && Name(second).IsFocused);
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(second).IsFocused);
         CloseChoice(second);
         Press(Dialog(app), Avalonia.Input.Key.Escape);
-        Until(() => !app.Window.OwnedWindows.Any() && Name(second).IsFocused);
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Name(second).IsFocused);
         // A second window of the app observes the shared project list.
         using var observer = app.NewWindow();
         Until(() => observer.Window.AtProjectHome && HasWelcome(observer) && WelcomeTitle(observer) == "second-project");
@@ -145,7 +145,7 @@ internal static class ProjectContextE2E
         renameInput.Text = "Second   project";
         Until(() => renameInput.IsFocused);
         Press(renameInput, Avalonia.Input.Key.Enter);
-        try { Until(() => !app.Window.OwnedWindows.Any()); }
+        try { Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any()); }
         catch (InvalidOperationException) { throw new InvalidOperationException("Rename dialog stayed: " + string.Join(" | ", rename.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text))); }
         bool Shown(E2eWorkspace client, string text) => Controls(client).OfType<Button>()
             .Any(button => button.Name == "ProjectName" && Equals(button.Tag, second) && AutomationProperties.GetName(button) == text);
@@ -193,7 +193,7 @@ internal static class ProjectContextE2E
         Directory.Delete(deleted, recursive: true);
         CloseChoice(deleted);
         Until(() => !Listed(app, deleted));
-        Require(!app.Window.OwnedWindows.Any(), "Closing a project whose folder is gone does not ask for confirmation.");
+        Require(!SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(), "Closing a project whose folder is gone does not ask for confirmation.");
         Console.WriteLine("PASS project context actions: close/reopen retains repositories and saved tabs across clients and releases terminals");
     }
 }

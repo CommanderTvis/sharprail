@@ -82,7 +82,7 @@ internal static class TerminalsE2E
         app.Click(chrome.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
     }
 
-    private static DialogWindow? Dialog(E2eWorkspace app) => app.Window.OwnedWindows.OfType<DialogWindow>().SingleOrDefault();
+    private static DialogWindow? Dialog(E2eWorkspace app) => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().SingleOrDefault();
 
     private static bool Busy(TerminalView view) => view.IsBusyAsync().AsTask().GetAwaiter().GetResult();
 

@@ -234,12 +234,12 @@ internal static class NewWorkspaceE2E
         Until(() => Picker(dialog).Flyout is Flyout { IsOpen: false });
         Require(dialog.IsVisible, "Escape in the branch picker closes only the picker.");
         Press(dialog, Avalonia.Input.Key.Escape);
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(!WorktreePaths(app).Any(), "Cancelling must not create a workspace.");
 
         dialog = OpenNewWorkspaceDialog(app);
         app.Click(Create(dialog));
-        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1);
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
         var workspace = WorktreePaths(app).Single();
         Until(() => Active(app, workspace));
         Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project" && app.Find<TextBlock>("WorkspaceLabel").Text == "workspace-1",
@@ -259,10 +259,10 @@ internal static class NewWorkspaceE2E
         Require(name.Text == "workspace-1", "The name field starts on the suggestion.");
         name.Text = "Login Rework";
         app.Click(Create(dialog), freshGesture: false);
-        try { Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1); }
+        try { Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1); }
         catch (InvalidOperationException error)
         {
-            var windows = string.Join(", ", app.Window.OwnedWindows.Select(window => window.Title));
+            var windows = string.Join(", ", SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Select(window => window.Title));
             var paths = string.Join(", ", WorktreePaths(app));
             var toast = app.Window.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(control => control.Name == "GestureToastMessage")?.Text;
             throw new InvalidOperationException($"Edited workspace did not settle: owned windows [{windows}], rail worktrees [{paths}], active workspace {app.Window.WorkspaceRoot}, notice {toast}.", error);
@@ -274,7 +274,7 @@ internal static class NewWorkspaceE2E
         Require(Named<TextBox>(dialog, "WsName").Text == "workspace-2", "The next dialog suggests the next free name.");
         Named<TextBox>(dialog, "WsName").Text = "Login Rework!";
         app.Click(Create(dialog), freshGesture: false);
-        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 2);
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 2);
         Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Login Rework!");
         Require(Git(app.Window.WorkspaceRoot, "branch", "--show-current") == "login-rework-2",
             "Names that normalize to an existing branch must receive a unique suffix.");
@@ -288,7 +288,7 @@ internal static class NewWorkspaceE2E
         app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
         Require(Text(Create(dialog)).Contains("Start", StringComparison.Ordinal), "The folder target starts in place.");
         app.Click(Create(dialog), freshGesture: false);
-        Until(() => !app.Window.OwnedWindows.Any() && Active(app, app.Root) && !HasWelcome(app));
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && Active(app, app.Root) && !HasWelcome(app));
         Require(!WorktreePaths(app).Any(), "Starting in the project folder must not create a worktree.");
         Console.WriteLine("PASS upstream new-workspace.spec.ts: folder-mode Start with an empty prompt lands in a fresh chat in the Default workspace");
     }
@@ -298,7 +298,7 @@ internal static class NewWorkspaceE2E
         using var app = OpenFixtureProject(directory);
         var dialog = OpenNewWorkspaceDialog(app);
         Press(dialog, Avalonia.Input.Key.Enter);
-        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1);
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
         Until(() => Active(app, WorktreePaths(app).Single()));
         Console.WriteLine("PASS upstream new-workspace.spec.ts: Enter in the prompt creates; Shift+Enter inserts a newline");
     }
@@ -319,7 +319,7 @@ internal static class NewWorkspaceE2E
         Require(Text(Picker(dialog)).Contains("origin/main", StringComparison.Ordinal), "The default base is the remote default branch.");
         var cached = Git(repo, "rev-parse", "refs/remotes/origin/main");
         app.Click(Create(dialog));
-        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1);
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && WorktreePaths(app).Count() == 1);
         var workspace = WorktreePaths(app).Single();
         Until(() => Active(app, workspace));
         Require(Git(workspace, "rev-parse", "HEAD") == cached,

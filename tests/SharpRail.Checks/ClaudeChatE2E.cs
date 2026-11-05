@@ -183,7 +183,7 @@ internal static class ClaudeChatE2E
             var box = dialog.GetLogicalDescendants().OfType<TextBox>().Single(item => item.Name == "WsPrompt");
             box.Text = text;
             box.Focus();
-            if (enter) app.Window.OwnedWindows.Single().KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+            if (enter) SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single().KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
             else app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WsCreate"), freshGesture: false);
         }
         void Started(string text, int spawns)
@@ -345,7 +345,7 @@ internal static class ClaudeChatE2E
             Require(!view.HistoryOpen, "The history overlay finds the streamed reply and closes on Escape.");
             view.ShowThread("toolu_task");
             E2eWorkspace.Until(() => view.ThreadTranscript is { } thread && thread.Rows.Any(row => row.Item is ChatAssistantItem { Text: "Inside" }));
-            foreach (var owned in app.Window.OwnedWindows.ToArray()) owned.Close();
+            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).ToArray()) owned.Close();
             app.UntilDialogsGone();
 
             // A permission card answered through the view reaches the child.

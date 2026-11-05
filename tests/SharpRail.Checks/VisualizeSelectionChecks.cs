@@ -169,11 +169,11 @@ internal static class VisualizeSelectionChecks
         {
             Until(() => host.GetVisualDescendants().OfType<Image>().Any(control => control.Name == image && Diagram(control) is not null));
             Inspect(name, Diagram(host.GetVisualDescendants().OfType<Image>().First(control => control.Name == image))!, tree);
-            var owned = window.OwnedWindows.Count;
+            var owned = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count;
             host.GetVisualDescendants().OfType<Button>().First(control => control.Name == fullscreen)
                 .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            Until(() => window.OwnedWindows.Count > owned);
-            var dialog = window.OwnedWindows[^1];
+            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count > owned);
+            var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(window)[^1];
             Until(() => dialog.GetVisualDescendants().OfType<Image>().Any(control => control.Name == "DiagramImage" && Diagram(control) is not null));
             Inspect(name + ", full screen", Diagram(dialog.GetVisualDescendants().OfType<Image>().First(control => control.Name == "DiagramImage"))!, tree);
             dialog.Close();

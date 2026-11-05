@@ -114,7 +114,7 @@ internal static class ChangeActionChecks
             "A failed open must say so in a notice with one button.");
         Require(!app.Find<TextBlock>("WorkspaceError").IsVisible && Cards(app).Length == 0, "The notice replaces the error line for a failed open.");
         app.Click(Part<Button>(notice, "NoticeDismiss"));
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(app.Window.ProjectRoot == project, "A failed open must leave the shown project in place.");
         Console.WriteLine("PASS a project that cannot be opened is reported in a single-button notice dialog");
     }

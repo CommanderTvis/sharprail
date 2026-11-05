@@ -40,10 +40,10 @@ internal static class LayoutSettingsE2E
 
     private static void Respond(E2eWorkspace app, SettingsView settings, bool accept)
     {
-        Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
-        var dialog = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
         app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => Label(button, accept ? "Apply layout" : "Cancel")));
-        Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
     }
 
     private static void Review(string root)

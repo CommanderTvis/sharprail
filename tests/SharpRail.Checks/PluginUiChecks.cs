@@ -478,7 +478,7 @@ internal static class PluginUiChecks
         app.Click(Find<Button>(settings, "PluginsRescan"), freshGesture: false);
         E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("removable") is null && settings.GetLogicalDescendants().OfType<SharpRail.UI.Panels.PluginsSettings>().Single().Card("fixture") is not null);
         settings.Close();
-        E2eWorkspace.Until(() => !window.OwnedWindows.Any());
+        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any());
 
         // A tab whose viewer has gone offers to open the file as text.
         window.Layout.Select(window.Layout.View.FocusedCenter, "viewer:sample.fixture");

@@ -60,7 +60,7 @@ internal static class ProjectsE2E
         var finger = app.Window.TouchBegin(point, RawInputModifiers.None);
         app.Window.TouchMove(finger, point + new Vector(0, 30), RawInputModifiers.None);
         app.Window.TouchEnd(finger, point + new Vector(0, 30), RawInputModifiers.None); Settle();
-        Require(app.Window.WorkspaceRoot == workspace && !app.Window.OwnedWindows.Any(), "Scrolling the Projects rail must not open a workspace menu or switch workspaces.");
+        Require(app.Window.WorkspaceRoot == workspace && !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(), "Scrolling the Projects rail must not open a workspace menu or switch workspaces.");
         var surface = app.Window.GetLogicalDescendants().OfType<DockSurface>().Single();
         surface.NestedHoverEnabled = false;
         var group = app.Window.Layout.State.Center.Leaves().First();

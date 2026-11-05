@@ -434,8 +434,8 @@ internal static class ClaudeChatUiChecks
 
             // Rewind: the dialog checks the code, then summarises, with Never mind.
             view.Activate(view.Transcript.Row("u")!, ChatHitKind.Rewind);
-            E2eWorkspace.Until(() => window.OwnedWindows.Any(owned => Equals(owned.Tag, "ChatRewindDialog")));
-            var rewind = window.OwnedWindows.First(owned => Equals(owned.Tag, "ChatRewindDialog"));
+            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatRewindDialog")));
+            var rewind = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).First(owned => Equals(owned.Tag, "ChatRewindDialog"));
             string Summary() => rewind.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name == "DialogExplanation").Text ?? "";
             E2eWorkspace.Until(() => Summary().Contains("1 line will be removed and 3 lines will be added across 2 files:", StringComparison.Ordinal));
             Require(rewind.GetVisualDescendants().OfType<Button>().Any(button => button.Name == "ChatRewindCancel" && Equals((button.Content as TextBlock)?.Text ?? button.Content, "Never mind")) &&
@@ -2484,20 +2484,20 @@ internal static class ClaudeChatUiChecks
             // A subagent's thread opens in a dialog and follows the live transcript.
             view.ShowThread("task");
             Frame(window);
-            Require(view.ThreadTranscript is { } thread && thread.Rows.Select(row => row.Id).SequenceEqual(["act:c1", "c3"]) && window.OwnedWindows.Any(owned => Equals(owned.Tag, "ChatSubagentThread")),
+            Require(view.ThreadTranscript is { } thread && thread.Rows.Select(row => row.Id).SequenceEqual(["act:c1", "c3"]) && SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatSubagentThread")),
                 "The subagent dialog lists the thread's own items at the top level, its reads and searches grouped.");
             chat.Push(Item(new ChatToolItem("c4", 21, "Glob", JsonSerializer.SerializeToElement(new { pattern = "*" }), ChatToolState.Running) { ParentId = "task" }));
             Frame(window);
             Require(view.ThreadTranscript!.Rows.Count == 3, "The dialog follows the thread while it is open.");
-            foreach (var owned in window.OwnedWindows.ToArray()) owned.Close();
+            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Close();
 
             // A clipped output opens in full in a dialog; one the wire cut is fetched first.
             chat.Push(Item(new ChatToolItem("long", 23, "Bash", JsonSerializer.SerializeToElement(new { command = "big" }), ChatToolState.Done) { Output = new string('o', 400), OutputTruncated = true }));
             Frame(window);
             view.Activate(transcript.Row("long")!, ChatHitKind.OpenText, "out");
-            E2eWorkspace.Until(() => window.OwnedWindows.Any(owned => Equals(owned.Tag, "ChatToolText")));
-            Require(window.OwnedWindows.First(owned => Equals(owned.Tag, "ChatToolText")).GetVisualDescendants().OfType<TextBox>().Any(box => box.Name == "ChatToolFullText" && box.Text == "full output"), "The full output opens in a dialog after it is fetched.");
-            foreach (var owned in window.OwnedWindows.ToArray()) owned.Close();
+            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatToolText")));
+            Require(SharpRail.Plugins.UI.Kit.DialogWindow.On(window).First(owned => Equals(owned.Tag, "ChatToolText")).GetVisualDescendants().OfType<TextBox>().Any(box => box.Name == "ChatToolFullText" && box.Text == "full output"), "The full output opens in a dialog after it is fetched.");
+            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Close();
 
             // The model chip changes only once the header confirms it.
             chat.ModelGate = new TaskCompletionSource<ChatHeader>();

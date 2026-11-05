@@ -83,7 +83,7 @@ internal static class FilesE2E
         void Cancel(Window modal)
         {
             app.Click(modal.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" }));
-            Until(() => !app.Window.OwnedWindows.Any());
+            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         }
         void Transfer(string from, string to, bool copy)
         {
@@ -91,7 +91,7 @@ internal static class FilesE2E
             var modal = Dialog(app);
             Named<TextBox>(modal, "PathNameInput").Text = to;
             app.Click(Named<Button>(modal, "PathNameConfirm"));
-            Until(() => !app.Window.OwnedWindows.Any());
+            Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         }
     }
 
@@ -239,7 +239,7 @@ internal static class FilesE2E
         var dialog = Dialog(app);
         Named<TextBox>(dialog, "PathNameInput").Text = "beta.cs";
         app.Click(Named<Button>(dialog, "PathNameConfirm"));
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         view.Editor.Focus();
         Follows("beta.cs", "Files rename");
         Settle(800);
@@ -333,7 +333,7 @@ internal static class FilesE2E
         input.Text = "notes.md";
         Until(() => !error.IsVisible && confirm.IsEnabled);
         app.Click(confirm);
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         var created = Path.Combine("docs", "notes.md");
         Require(File.Exists(Path.Combine(workspace, created)), "New file must create the file inside the folder.");
         Until(() => app.Tabs.Any(tab => tab.Path == created && !tab.Preview));
@@ -350,7 +350,7 @@ internal static class FilesE2E
         var dialog = Dialog(app);
         Named<TextBox>(dialog, "PathNameInput").Text = "assets";
         app.Click(Named<Button>(dialog, "PathNameConfirm"));
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(Directory.Exists(Path.Combine(workspace, "assets")), "New folder beside a file must create it in the file's folder.");
         Node(app, "assets");
 
@@ -361,7 +361,7 @@ internal static class FilesE2E
         Require(input.Text == "draft.txt" && input.SelectionStart == 0 && input.SelectionEnd == 5, "Rename must select the stem so typing keeps the extension.");
         input.Text = "final.txt";
         app.Click(Named<Button>(dialog, "PathNameConfirm"));
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(File.Exists(Path.Combine(workspace, "final.txt")) && !File.Exists(Path.Combine(workspace, "draft.txt")), "Rename must move the file.");
         Node(app, "final.txt");
         Console.WriteLine("PASS fork files.spec.ts: a file row creates a folder beside it, and renames itself");
@@ -395,7 +395,7 @@ internal static class FilesE2E
         var confirm = Dialog(app);
         Require(confirm.Title == "Delete gone-soon.txt?", "Deleting a file asks first.");
         app.Click(Named<Button>(confirm, "FileNodeDeleteConfirm"));
-        Until(() => !app.Window.OwnedWindows.Any() && !File.Exists(disposable));
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && !File.Exists(disposable));
         Until(() => !app.Find<DrawnTree>("FilesTree").Rows.Any(node => node.Tag is ProjectFile { Path: "gone-soon.txt" }));
         app.Open("README.md");
         Console.WriteLine("PASS fork files.spec.ts: deleting a previewed file leaves the workbench interactive");

@@ -52,7 +52,7 @@ internal static class ShellChecks
             WorkspaceFixture.Text(WorkspaceFixture.Named<StackPanel>(single, "WsProjectPicker")).Contains("sample-project", StringComparison.Ordinal),
             "With one open project the dialog names it and offers no picker.");
         WorkspaceFixture.Press(single, Key.Escape);
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
 
         var second = IsolatedGit.Repository(Path.Combine(directory, "second-project"));
         WorkspaceFixture.Git(second, "branch", "only-in-second");
@@ -81,7 +81,7 @@ internal static class ShellChecks
         Settle(200);
         if (!dialog.IsVisible) throw new InvalidOperationException("Escape in the branch list must return to the dialog, not dismiss it.");
         app.Click(WorkspaceFixture.Named<Button>(dialog, "WsCreate"));
-        Until(() => !app.Window.OwnedWindows.Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome && app.Window.ProjectRoot == second);
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome && app.Window.ProjectRoot == second);
         var created = app.Window.WorkspaceRoot;
         Require(created != second && WorkspaceFixture.Git(second, "worktree", "list").Contains(created, StringComparison.Ordinal) &&
             !WorkspaceFixture.Git(first, "worktree", "list").Contains(created, StringComparison.Ordinal),
@@ -359,14 +359,14 @@ internal static class ShellChecks
         foreach (var (header, title) in new[] { ("Clone Repository…", "Clone repository"), ("Create Project…", "Create project") })
         {
             Pick(file, header);
-            Until(() => window.OwnedWindows.Count == 1);
-            var dialog = (Window)window.OwnedWindows[0];
+            Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 1);
+            var dialog = (Window)SharpRail.Plugins.UI.Kit.DialogWindow.On(window)[0];
             Require(dialog.Title == title, $"{header} opens the {title} dialog, opened {dialog.Title}.");
-            dialog.Close(); Until(() => window.OwnedWindows.Count == 0);
+            dialog.Dismiss(); Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
         }
         Pick(file, "New Workspace");
-        Until(() => window.OwnedWindows.Count == 1);
-        ((Window)window.OwnedWindows[0]).Close(); Until(() => window.OwnedWindows.Count == 0);
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 1);
+        SharpRail.Plugins.UI.Kit.DialogWindow.On(window)[0].Dismiss(); Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
 
         // View: the zoom chords' own steps.
         Pick(view, "Actual Size");
@@ -389,7 +389,7 @@ internal static class ShellChecks
         try
         {
             settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "HostTailscaleConnect").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            settings.Close(); Until(() => window.OwnedWindows.Count == 0);
+            settings.Close(); Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Count == 0);
             Pick(windows, "Connect to a Tailscale Host…");
             Require(launches == 2, "The Tailscale item starts the same client as Settings › Host's button.");
         }
@@ -603,8 +603,8 @@ internal static class ShellChecks
         Require(menu is not null, "The status exposes its error menu.");
         var details = menu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Error details…"));
         details.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-        Until(() => app.Window.OwnedWindows.Any());
-        var dialog = app.Window.OwnedWindows.Single();
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single();
         Require(dialog.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Host replied: permission denied for notes.txt"),
             "The details display the actual failure without inventing a connectivity cause.");
         dialog.Close();

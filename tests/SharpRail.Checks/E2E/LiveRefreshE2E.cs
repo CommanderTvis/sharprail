@@ -181,8 +181,8 @@ internal static class LiveRefreshE2E
         editor.Focus();
         app.Window.KeyPress(Key.S, Command, PhysicalKey.S, "s");
         app.Window.KeyRelease(Key.S, Command, PhysicalKey.S, "s");
-        Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));
-        var conflict = app.Window.OwnedWindows.OfType<DialogWindow>().Single(dialog => dialog.Tag as string == "SaveConflictDialog");
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));
+        var conflict = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single(dialog => dialog.Tag as string == "SaveConflictDialog");
         conflict.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" })
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Until(() => !conflict.IsVisible);
@@ -194,8 +194,8 @@ internal static class LiveRefreshE2E
     private static void Discard(E2eWorkspace app, string tab)
     {
         app.Window.Layout.Close(app.Center, tab);
-        Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
-        var dialog = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any());
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
         dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Don't Save" })
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Until(() => app.Tabs.All(item => item.Id != tab));

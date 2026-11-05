@@ -177,8 +177,8 @@ internal static class GitUiChecks
         Pump(() => Commit().IsChecked);
 
         Click(window, Named("AddWorkspace"));
-        Pump(() => window.OwnedWindows.Any(item => Equals(item.Tag, "NewWorkspaceDialog")));
-        var prompt = window.OwnedWindows.Single(item => Equals(item.Tag, "NewWorkspaceDialog"));
+        Pump(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(item => Equals(item.Tag, "NewWorkspaceDialog")));
+        var prompt = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Single(item => Equals(item.Tag, "NewWorkspaceDialog"));
         Click(prompt, Buttons(prompt).Single(button => button.IsDefault));
         Pump(() => window.WorkspaceRoot != root && window.WorkspaceMounted);
         var worktree = window.WorkspaceRoot;
@@ -198,11 +198,11 @@ internal static class GitUiChecks
             item.Name == "ChangesCommit_" + commitId && item.IsChecked));
         Require(Action(Named("ChangesBranch"), "sharprail-fork").IsChecked, "Returning to a workspace lost its target and commit selection.");
         Invoke(Action(Linked(), "Remove worktree…"));
-        var confirmation = window.OwnedWindows.Single(item => item.Title == "Remove worktree?");
+        var confirmation = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Single(item => item.Title == "Remove worktree?");
         confirmation.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         Dispatcher.UIThread.RunJobs(); Require(Directory.Exists(worktree), "Cancelling removal deleted the worktree.");
         Invoke(Action(Linked(), "Remove worktree…"));
-        confirmation = window.OwnedWindows.Single(item => item.Title == "Remove worktree?");
+        confirmation = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Single(item => item.Title == "Remove worktree?");
         Click(confirmation, Buttons(confirmation).Single(button => button.Content is TextBlock { Text: "Remove worktree" }));
         Pump(() => !Directory.Exists(worktree) && !Buttons(window).Any(button => Equals(ToolTip.GetTip(button), worktree)));
         window.Close();

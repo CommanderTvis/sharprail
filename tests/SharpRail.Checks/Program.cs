@@ -997,6 +997,13 @@ internal static class Program
             CreateProjectChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--dialog-overlay"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            DialogOverlayChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--pane-retarget"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

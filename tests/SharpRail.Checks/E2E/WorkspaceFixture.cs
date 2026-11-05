@@ -53,8 +53,8 @@ internal static class WorkspaceFixture
 
     internal static Window Dialog(E2eWorkspace app, string? name = null)
     {
-        Until(() => app.Window.OwnedWindows.Any(window => name is null || Equals(window.Tag, name)));
-        var dialog = app.Window.OwnedWindows.Single(window => name is null || Equals(window.Tag, name));
+        Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => name is null || Equals(window.Tag, name)));
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => name is null || Equals(window.Tag, name));
         Settle(100);
         return dialog;
     }
@@ -69,9 +69,9 @@ internal static class WorkspaceFixture
     internal static string CreateWorkspaceViaDialog(E2eWorkspace app)
     {
         var before = WorktreePaths(app).ToHashSet();
-        var dialog = app.Window.OwnedWindows.SingleOrDefault(window => Equals(window.Tag, "NewWorkspaceDialog")) ?? OpenNewWorkspaceDialog(app);
+        var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).SingleOrDefault(window => Equals(window.Tag, "NewWorkspaceDialog")) ?? OpenNewWorkspaceDialog(app);
         app.Click(Named<Button>(dialog, "WsCreate"));
-        Until(() => !app.Window.OwnedWindows.Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome &&
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome &&
             app.Window.WorkspaceRoot != app.Window.ProjectRoot && !before.Contains(app.Window.WorkspaceRoot));
         var path = app.Window.WorkspaceRoot;
         Until(() => WorktreePaths(app).Contains(path) && app.Find<TextBlock>("BranchLabel").Text == Path.GetFileName(path));

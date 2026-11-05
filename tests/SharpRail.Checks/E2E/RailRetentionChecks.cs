@@ -225,7 +225,7 @@ internal static class RailRetentionChecks
         try
         {
             RemoveWorkspace(app, removed);
-            Until(() => app.Host.GitActionPending && !app.Window.OwnedWindows.Any(window => window.IsVisible));
+            Until(() => app.Host.GitActionPending && !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => window is SharpRail.Plugins.UI.Kit.DialogWindow { InOverlay: true } || window.IsVisible));
             Until(() => ItemText(app, removed, "WorkspaceBranch") == "Removing…");
             Require(!Select(app, removed).IsEnabled, "A workspace being removed must not open or offer its actions.");
             var button = Select(app, survivor);

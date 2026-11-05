@@ -296,7 +296,7 @@ internal static partial class AirContextChecks
             Switch(false);
             E2E.E2eWorkspace.Until(() => !HasAir(owner) && !HasAir(app.Window, "AirContextPane") && !owner.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "ContextSetup" or "ContextEnabled"));
             Require(app.Window.Layout.Tools.All(tool => !tool.Id.StartsWith("plugin:air-context:", StringComparison.Ordinal)), "A side tool appeared.");
-            Require(app.Window.OwnedWindows.Count == 0, "A disabled plugin left a window open.");
+            Require(SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Count == 0, "A disabled plugin left a window open.");
             Switch(true);
             E2E.E2eWorkspace.Until(() => HasAir(owner) && HasAir(app.Window, "AirContextPane"));
         }

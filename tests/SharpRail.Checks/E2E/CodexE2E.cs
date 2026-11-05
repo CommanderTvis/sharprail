@@ -302,8 +302,8 @@ internal static class CodexE2E
 
     private static DialogWindow Dialog(E2eWorkspace app)
     {
-        E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any(window => Equals(window.Tag, "CodexValueDialog")));
-        return app.Window.OwnedWindows.OfType<DialogWindow>().Single(window => Equals(window.Tag, "CodexValueDialog"));
+        E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Any(window => Equals(window.Tag, "CodexValueDialog")));
+        return SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single(window => Equals(window.Tag, "CodexValueDialog"));
     }
 
     private static Control SettingRow(Control panel, string key)
@@ -336,7 +336,7 @@ internal static class CodexE2E
             Require(Equals(One<Button>(dialog, "CodexValueSwitch").Tag, !from) && Texts(One<Button>(dialog, "CodexValueSwitch")).Contains((!from).ToString().ToLowerInvariant(), StringComparison.Ordinal), "the switch flips");
             codex.App.Click(One<Button>(dialog, "CodexValueContinue"), freshGesture: false);
             E2eWorkspace.Until(() => File.ReadAllText(path).Contains($"hooks = {(!from).ToString().ToLowerInvariant()}", StringComparison.Ordinal));
-            E2eWorkspace.Until(() => !codex.App.Window.OwnedWindows.Any());
+            E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
         }
         Toggle(true);
         E2eWorkspace.Until(() => SettingRow(panel, "features.hooks").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "false"));
@@ -346,12 +346,12 @@ internal static class CodexE2E
         var text = Dialog(codex.App);
         Require(One<TextBox>(text, "CodexValueText").Text == "config-link-fixture", "a text value");
         text.Close();
-        E2eWorkspace.Until(() => !codex.App.Window.OwnedWindows.Any());
+        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
         codex.App.Click(One<Button>(SettingRow(panel, "approval_policy"), "CodexSettingChange"));
         var choice = Dialog(codex.App);
         Require(Has(choice, "CodexValueChoice_on-request") && Has(choice, "CodexValueChoice_never"), "an enum key picks from its choices");
         choice.Close();
-        E2eWorkspace.Until(() => !codex.App.Window.OwnedWindows.Any());
+        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
 
         // The source link opens the external file in an editor tab; only the plugin's exact files are readable.
         codex.App.Click(One<Button>(SettingRow(panel, "model"), "CodexOpenSource"));
@@ -730,8 +730,8 @@ internal static class CodexE2E
         Window CustomArguments()
         {
             Menu("custom");
-            E2eWorkspace.Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "CodexCustomLaunch")));
-            return app.Window.OwnedWindows.Single(window => Equals(window.Tag, "CodexCustomLaunch"));
+            E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "CodexCustomLaunch")));
+            return SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single(window => Equals(window.Tag, "CodexCustomLaunch"));
         }
         const string customArguments = "--model custom-model --add-dir '../other project'";
         Launch(() =>
@@ -810,7 +810,7 @@ internal static class CodexE2E
             "settings offer no way to edit SharpRail's instructions");
         app.Window.OpenSettingsViews.Single().Close();
         E2eWorkspace.Until(() => !app.Window.OpenSettingsViews.Any());
-        E2eWorkspace.Until(() => !app.Window.OwnedWindows.Any());
+        E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Launch(() => app.Click(One<Button>(app.Window, "NewCodex")), "-s", "danger-full-access");
         Launch(() => Menu("sandbox-read-only"), "-s", "read-only");
         codex.Settings(new { ideContext = false, permissionMode = "default" });

@@ -30,7 +30,7 @@ internal static class WorkspaceLifecycleE2E
         var cancel = confirm.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" });
         Require(cancel.IsFocused && !Named<Button>(confirm, "WorkspaceForceRemove").IsDefault, "Cancel owns focus; Delete anyway is never an implicit default.");
         app.Click(cancel);
-        Until(() => !app.Window.OwnedWindows.Any());
+        Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(File.ReadAllText(dirty) == "keep until approved\n" && WorktreePaths(app).Contains(path), "Cancelling preserves dirty files and the workspace row.");
         RemoveWorkspace(app, path);
         confirm = Dialog(app);

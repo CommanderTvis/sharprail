@@ -125,8 +125,8 @@ internal static class LanguageProjectChecks
                     Require(edges.All(edge => Math.Abs(edge.Left - edges[0].Left) < 0.5), "The Files tree menu aligns labels differently with and without an icon: " + string.Join(", ", edges.Select(edge => $"{edge.Header}={edge.Left}")));
                     var configure = menu.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeLanguage_csharp");
                     app.Click(configure);
-                    E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<LanguageSettingsWindow>().Any());
-                    var settings = app.Window.OwnedWindows.OfType<LanguageSettingsWindow>().Single();
+                    E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<LanguageSettingsWindow>().Any());
+                    var settings = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<LanguageSettingsWindow>().Single();
                     Require(settings.Title == "C# (Roslyn)" && settings.FindControl<TextBlock>("SettingsWorkspace")!.Text == root, "Folder settings target the wrong provider/workspace or misrepresent their scope.");
                     settings.Close();
                     var plain = (DrawnTreeLabel)app.FileRow("plain"); plain.OpenMenu();
