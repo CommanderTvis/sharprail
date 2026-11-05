@@ -18,12 +18,11 @@ namespace SharpRail.Plugins.Omp.UI;
 public static class OmpPanel
 {
     public static string CodeIntelligenceNote(OmpSettings settings) =>
-        settings.OwnCodeIntelligence ? "Code intelligence: omp (its own language servers)" : "Code intelligence: SharpRail (launched with --no-lsp; use the lsp_* tools)";
+        settings.OwnCodeIntelligence ? "Code intelligence: omp's own language servers" : "Code intelligence: SharpRail's lsp_* tools";
 
     public static string? ProfileNote(OmpSettings settings) => settings.Mcp
-        ? $"Launches use the \"{OmpLaunch.Profile}\" omp profile so SharpRail's MCP server is configured. A profile keeps its own sign-in, settings, " +
-          "sessions and user context files; SharpRail turns off its first-run setup wizard. Governed launches use Central's proxy key; otherwise copy your default omp sign-in below, " +
-          "run /login once in a SharpRail omp tab, or use provider API key variables."
+        ? $"omp runs with its own \"{OmpLaunch.Profile}\" profile and sign-in. Copy your default sign-in below or run /login once in a SharpRail omp tab. " +
+          "Governed launches use Central's proxy key."
         : null;
 
     // Each pane's way to move to another workspace, found from the control the host hands back to Retarget.
