@@ -121,10 +121,41 @@ internal static class PluginsSettingsScrollChecks
         window.Close();
         state.Dispose();
         Console.WriteLine("PASS plugins settings: long roster virtualized and recycled, broadcasts update cards in place, toggles work");
+        CategoryLinkAlignsTop(root);
         AssetIconDecodes(root);
         BuiltinIcons();
         TailscaleLock(root, through: true);
         TailscaleLock(root, through: false);
+    }
+
+    // A category link brings its heading card to the top of the page, not to the bottom edge BringIntoView would leave it at.
+    private static void CategoryLinkAlignsTop(string root)
+    {
+        var profile = new ProfileStore(Path.Combine(root, "plugins-link-profile"));
+        var store = profile.OpenState();
+        var roster = Enumerable.Range(0, 40).Select(index => new PluginRosterEntry($"cat-{index:00}", $"Plugin {index:00}", "puzzle", "1", 1, PluginOrigin.Builtin, PluginStatus.Disabled)
+        {
+            Category = index < 20 ? "Alpha" : "Beta",
+            Description = "A plugin with a description long enough to take some room on the card."
+        }).ToArray();
+        var host = new FakePluginHost(new LocalStateAdapter(store), store.Current, roster);
+        var state = new SharedState(host, profile.Data.Preferences);
+        state.Start();
+        E2eWorkspace.Until(() => state.Current.Plugins.Count == 40);
+        var page = new PluginsSettings(state, null, new Window());
+        var scroller = new ScrollViewer { Content = page };
+        var window = new Window { Width = 800, Height = 600, Content = scroller };
+        window.Show();
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        page.ScrollToCategory("Beta");
+        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        var card = window.GetVisualDescendants().OfType<Border>().First(row => row.Name == "PluginRow" && (string?)row.Tag == "cat-20");
+        var top = card.TranslatePoint(default, scroller)!.Value.Y;
+        var max = scroller.Extent.Height - scroller.Viewport.Height;
+        Require(top is >= -1 and <= 12 || scroller.Offset.Y >= max - 1, $"A category link must bring its heading to the top of the page (top {top:F0}, offset {scroller.Offset.Y:F0} of {max:F0}).");
+        window.Close();
+        state.Dispose();
+        Console.WriteLine($"PASS plugins settings: category link aligns its heading to the top (top {top:F0})");
     }
 
     // Language servers draw PNG marks (up to 256 px): scrolling realizes cards again and again, so a mark is decoded once

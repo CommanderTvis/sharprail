@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
@@ -144,13 +145,22 @@ public sealed class PluginsSettings : StackPanel
         outline.IsVisible = outline.Children.Count > 1;
     }
 
-    private void ScrollToCategory(string heading)
+    /// <summary>Brings the category's first card to the top of the enclosing scroll viewer, or as far as the content allows; BringIntoView alone would leave it at the bottom edge.</summary>
+    internal void ScrollToCategory(string heading)
     {
         var index = cards.ToList().FindIndex(model => model.Heading == heading);
         if (index < 0) return;
         rows.ScrollIntoView(index);
         (TopLevel.GetTopLevel(this) as Layoutable ?? this).UpdateLayout();
-        rows.GetRealizedContainers().OfType<PluginCard>().FirstOrDefault(card => card.Model?.Heading == heading)?.BringIntoView();
+        var card = rows.GetRealizedContainers().OfType<PluginCard>().FirstOrDefault(card => card.Model?.Heading == heading);
+        if (card is null) return;
+        if (this.FindAncestorOfType<ScrollViewer>() is not { } scroller || card.TranslatePoint(default, scroller) is not { } top)
+        {
+            card.BringIntoView();
+            return;
+        }
+        var margin = 8;
+        scroller.Offset = scroller.Offset.WithY(Math.Clamp(scroller.Offset.Y + top.Y - margin, 0, Math.Max(0, scroller.Extent.Height - scroller.Viewport.Height)));
     }
 
     private static string Category(PluginRosterEntry entry) => entry.Category is { Length: > 0 } category ? category.Trim() : PluginCategories.Other;
