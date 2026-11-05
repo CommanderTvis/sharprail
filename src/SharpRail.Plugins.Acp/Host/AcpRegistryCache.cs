@@ -60,6 +60,10 @@ internal sealed class AcpRegistryCache(string directory, AcpFetch fetch, Func<Da
         File.Move(metaTemp, MetaPath, overwrite: true);
     }
 
+    /// <summary>The copy on disk without touching the network; null when there is none.</summary>
+    public async Task<JsonObject?> CachedAsync(CancellationToken cancellationToken) =>
+        await Task.Run(ReadCache, cancellationToken) is { } cached ? AcpRegistry.Parse(cached.Body) : null;
+
     public async Task<(JsonObject Root, AcpRegistryView View)> LoadAsync(bool refresh, CancellationToken cancellationToken)
     {
         var platform = AcpRegistry.Platform();

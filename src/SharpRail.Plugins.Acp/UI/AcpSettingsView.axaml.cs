@@ -84,8 +84,23 @@ internal sealed partial class AcpSettingsView : StackPanel
     private void LoadRegistry(bool refresh)
     {
         status.Text = refresh ? "Refreshing…" : "Loading the registry…";
-        _ = RunAsync(() => context.RequestAsync(AcpContract.Registry, new AcpRegistryParams(refresh)).AsTask(), view => { registry = view; RenderRegistry(); }, "Couldn't read the registry");
+        _ = RunAsync(() => context.RequestAsync(AcpContract.Registry, new AcpRegistryParams(refresh)).AsTask(), view => { registry = view; RenderRegistry(); LoadIcons(refresh); }, "Couldn't read the registry");
     }
+
+    /// <summary>Asks the host for the icons after the list is on screen. The rows show the generic glyph meanwhile, and keep it when no icon comes.</summary>
+    private void LoadIcons(bool refresh) =>
+        _ = Task.Run(async () =>
+        {
+            AcpIconSet set;
+            try { set = await context.RequestAsync(AcpContract.Icons, new AcpIconParams(refresh, false)); }
+            catch (Exception error) when (error is not OperationCanceledException) { return; }
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                icons = set.Svgs;
+                RenderAgents(new AcpAgentList(configured));
+                RenderRegistry();
+            });
+        });
 
     private static TextBlock Text(string text, bool detail = false, bool code = false)
     {
@@ -95,6 +110,7 @@ internal sealed partial class AcpSettingsView : StackPanel
     }
 
     private readonly HashSet<string> expanded = [];
+    private IReadOnlyDictionary<string, string> icons = new Dictionary<string, string>();
     private IReadOnlyList<AcpAgentEntry> configured = [];
 
     private static Control Quiet(string name, string label, Action click)
@@ -141,8 +157,8 @@ internal sealed partial class AcpSettingsView : StackPanel
         }
     }
 
-    /// <summary>The agent's mark: the generic ACP glyph.</summary>
-    private Control AcpIconFor(string id) => AcpGlyph.Create(16);
+    /// <summary>The agent's mark: its registry icon once the host has one, the generic ACP glyph until then and for any agent the registry has no icon for (custom ones).</summary>
+    private Control AcpIconFor(string id) => AcpGlyph.For(icons.GetValueOrDefault(id), 16);
 
     private void RenderRegistry()
     {

@@ -51,6 +51,7 @@ public sealed class AcpUI : PluginUIModule
             context.Notify(PluginNotificationKind.Error, "Couldn't list ACP agents", error.Message);
             return;
         }
+        var icons = await CachedIconsAsync(context);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (list.Agents.Count == 0)
@@ -61,12 +62,19 @@ public sealed class AcpUI : PluginUIModule
             var menu = new ContextMenu { Name = "AcpAgentMenu", Placement = PlacementMode.BottomEdgeAlignedLeft, PlacementTarget = anchor };
             foreach (var agent in list.Agents)
             {
-                var item = new MenuItem { Header = agent.Name };
+                var item = new MenuItem { Header = agent.Name, Icon = AcpGlyph.For(icons.GetValueOrDefault(agent.Id), 14) };
                 item.Click += (_, _) => _ = StartAsync(context, workspace, agent);
                 menu.Items.Add(item);
             }
             menu.Open(anchor);
         });
+    }
+
+    /// <summary>The icons already on disk. The menu never waits for the network: an agent without one shows the generic glyph.</summary>
+    private static async Task<IReadOnlyDictionary<string, string>> CachedIconsAsync(IPluginUIContext context)
+    {
+        try { return (await Task.Run(() => context.RequestAsync(AcpContract.Icons, new AcpIconParams(false, true)).AsTask())).Svgs; }
+        catch (Exception error) when (error is not OperationCanceledException) { return new Dictionary<string, string>(); }
     }
 
     private static async Task StartAsync(IPluginUIContext context, string workspace, AcpAgentEntry agent)

@@ -369,6 +369,75 @@ internal static class AcpChecks
         Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(plan9, none, "goose").Single() is { Status: "unavailable", CanInstall: false }, "An agent with no distribution for this machine cannot be installed.");
     }
 
+    private const string GoodIcon = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><defs><linearGradient id="g"><stop offset="0" stop-color="#fff"/></linearGradient></defs><path fill="currentColor" d="M0 0h16v16H0z"/><circle r="3" fill="url(#g)" stroke="#123456"/></svg>""";
+
+    // Registry icons: untrusted remote SVGs. Only the registry's own https origin is fetched, small plain documents are kept, anything active or external is refused, and a copy on disk is shown offline.
+    internal static async Task Icons(string root)
+    {
+        Directory.CreateDirectory(root);
+        const string registry = AcpRegistry.Url;
+        const string own = "https://cdn.agentclientprotocol.com/registry/v1/latest/goose.svg";
+        Require(AcpIconRules.IsAllowedUrl(own, registry) && AcpIconRules.IsAllowedUrl("https://cdn.agentclientprotocol.com/other/x.svg", registry), "An icon on the registry's own https host is allowed.");
+        foreach (var url in new[] { "http://cdn.agentclientprotocol.com/x.svg", "https://evil.example/x.svg", "https://cdn.agentclientprotocol.com.evil.example/x.svg", "https://user:pw@cdn.agentclientprotocol.com/x.svg", "https://cdn.agentclientprotocol.com:8443/x.svg", "//cdn.agentclientprotocol.com/x.svg", "data:image/svg+xml,<svg/>", "goose.svg", "file:///etc/passwd" })
+            Require(!AcpIconRules.IsAllowedUrl(url, registry), "The icon url " + url + " is refused.");
+        Require(AcpIconRules.IsSafeId("goose") && AcpIconRules.IsSafeId("pi-acp") && !AcpIconRules.IsSafeId("../x") && !AcpIconRules.IsSafeId("a/b") && !AcpIconRules.IsSafeId("") && !AcpIconRules.IsSafeId(".hidden"), "An agent id becomes a file name only when it is plain.");
+
+        Require(AcpIconRules.Reject(GoodIcon) is null, "A plain SVG with currentColor, a fixed colour and a local gradient is accepted.");
+        var unsafeIcons = new Dictionary<string, string>
+        {
+            ["script element"] = """<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>""",
+            ["foreignObject"] = """<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><div/></foreignObject></svg>""",
+            ["image"] = """<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example/a.png"/></svg>""",
+            ["href"] = """<svg xmlns="http://www.w3.org/2000/svg"><use href="https://evil.example/a.svg#x"/></svg>""",
+            ["xlink href"] = """<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="data:image/svg+xml;base64,AAAA"/></svg>""",
+            ["style url"] = """<svg xmlns="http://www.w3.org/2000/svg"><style>path{fill:url(https://evil.example/a.svg#x)}</style><path/></svg>""",
+            ["style import"] = """<svg xmlns="http://www.w3.org/2000/svg"><style>@import 'https://evil.example/a.css';</style></svg>""",
+            ["attribute url"] = """<svg xmlns="http://www.w3.org/2000/svg"><path style="fill:url( http://evil.example/a)"/></svg>""",
+            ["event handler"] = """<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>""",
+            ["doctype"] = """<!DOCTYPE svg [<!ENTITY x "y">]><svg xmlns="http://www.w3.org/2000/svg"/>""",
+            ["not svg"] = """<html><body>captive portal</body></html>""",
+            ["not xml"] = "<svg",
+            ["too large"] = """<svg xmlns="http://www.w3.org/2000/svg"><!--""" + new string('x', AcpIconRules.MaxBytes) + """--></svg>"""
+        };
+        foreach (var (name, svg) in unsafeIcons) Require(AcpIconRules.Reject(svg) is not null, "The icon is refused: " + name + ".");
+
+        var directory = Path.Combine(root, "icons");
+        var calls = new List<(string Url, string? ETag)>();
+        var online = true;
+        var body = GoodIcon;
+        var clock = DateTimeOffset.Parse("2026-11-04T12:00:00Z");
+        AcpFetch fetch = (url, etag, modified, _) =>
+        {
+            calls.Add((url, etag));
+            if (!online) throw new HttpRequestException("no network");
+            return Task.FromResult(etag == "\"i1\"" ? new AcpFetchResult(304, null, etag, modified) : new AcpFetchResult(200, body, "\"i1\"", null));
+        };
+        var cache = new AcpIconCache(directory, fetch, () => clock);
+        var wanted = new[] { ("goose", own), ("evil", "https://evil.example/e.svg"), ("../x", own) };
+        var first = await cache.LoadAsync(wanted, false, false, CancellationToken.None);
+        Require(first.Keys.Single() == "goose" && first["goose"] == GoodIcon && calls.Count == 1, "Only the icon on the registry's host is fetched, under a plain id.");
+        Require((await cache.LoadAsync(wanted, false, true, CancellationToken.None)).ContainsKey("goose") && calls.Count == 1, "A cache-only read never touches the network.");
+        clock = clock.AddHours(1);
+        await cache.LoadAsync(wanted, false, false, CancellationToken.None);
+        Require(calls.Count == 1, "A fresh icon is not fetched again.");
+        clock = clock.AddDays(1);
+        await cache.LoadAsync(wanted, false, false, CancellationToken.None);
+        Require(calls.Count == 2 && calls[1].ETag == "\"i1\"", "A stale icon is revalidated with its ETag.");
+        online = false;
+        clock = clock.AddDays(3);
+        var offline = await new AcpIconCache(directory, fetch, () => clock).LoadAsync(wanted, true, false, CancellationToken.None);
+        Require(offline.ContainsKey("goose"), "Offline, the icon fetched before is still shown.");
+        Require((await new AcpIconCache(Path.Combine(root, "icons-empty"), fetch, () => clock).LoadAsync(wanted, false, false, CancellationToken.None)).Count == 0, "Offline with no copy there is no icon, and the generic glyph stands in.");
+        online = true;
+        body = """<svg xmlns="http://www.w3.org/2000/svg"><script/></svg>""";
+        clock = clock.AddDays(3);
+        Require((await new AcpIconCache(directory, (u, _, m, c) => fetch(u, null, m, c), () => clock).LoadAsync(wanted, true, false, CancellationToken.None)).Count == 0 && !File.Exists(Path.Combine(directory, "goose.svg")), "An icon that turns unsafe is dropped with its old copy.");
+        body = new string('x', AcpIconRules.MaxBytes + 1);
+        Require((await new AcpIconCache(Path.Combine(root, "icons-big"), fetch, () => clock).LoadAsync(wanted, false, false, CancellationToken.None)).Count == 0, "An oversized answer is not kept.");
+
+        Require(!SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(null) && !SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(" ") && SharpRail.Plugins.Acp.UI.AcpGlyph.HasIcon(GoodIcon), "Without an icon the generic glyph is drawn: custom agents, rejected, missing or not yet fetched icons.");
+    }
+
     internal static async Task Run(string root)
     {
         Manifest();
@@ -380,5 +449,6 @@ internal static class AcpChecks
         Directory.CreateDirectory(root);
         await ClientMethods(root);
         await Registry(Path.Combine(root, "registry"));
+        await Icons(Path.Combine(root, "icons"));
     }
 }

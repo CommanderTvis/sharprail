@@ -31,6 +31,17 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
 
     private AcpRegistryCache Cache => new(Path.Combine(DataDirectory, "registry"), Fetch);
 
+    public AcpFetch FetchIcon { get; init; } = AcpIconCache.HttpFetch;
+
+    /// <summary>The icons of the registry's agents. The urls come from the registry copy here, never from the UI.</summary>
+    public async Task<AcpIconSet> IconsAsync(AcpIconParams p, CancellationToken cancellationToken)
+    {
+        var root = p.CacheOnly ? await Cache.CachedAsync(cancellationToken) : (await Cache.LoadAsync(false, cancellationToken)).Root;
+        if (root is null) return new(new Dictionary<string, string>());
+        var wanted = AcpRegistry.View(root, "cache", null, null, AcpRegistry.Platform()).Agents.Where(agent => agent.Icon is not null).Select(agent => (agent.Id, agent.Icon!));
+        return new(await new AcpIconCache(Path.Combine(DataDirectory, "registry", "icons"), FetchIcon).LoadAsync(wanted, p.Refresh, p.CacheOnly, cancellationToken));
+    }
+
     public async Task<AcpInstallPlan> PlanAsync(AcpInstallPlanParams p, CancellationToken cancellationToken)
     {
         var (root, _) = await Cache.LoadAsync(false, cancellationToken);
@@ -106,6 +117,7 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         context.Method(AcpContract.Agents, (_, _, _) => ValueTask.FromResult(ListAgents()));
         context.Method(AcpContract.AddAgent, (p, _, _) => ValueTask.FromResult(AddAgent(p)));
         context.Method(AcpContract.Registry, async (p, _, ct) => (await Cache.LoadAsync(p.Refresh, ct)).View);
+        context.Method(AcpContract.Icons, async (p, _, ct) => await IconsAsync(p, ct));
         context.Method(AcpContract.InstallPlan, async (p, _, ct) => await PlanAsync(p, ct));
         context.Method(AcpContract.Install, async (p, _, ct) => await InstallAsync(p, ct));
         context.Method(AcpContract.RemoveAgent, (p, _, _) => ValueTask.FromResult(RemoveAgent(p.AgentId)));

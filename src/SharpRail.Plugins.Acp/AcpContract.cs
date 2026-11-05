@@ -29,6 +29,12 @@ public sealed record AcpAgentList(IReadOnlyList<AcpAgentEntry> Agents);
 /// <summary>Chooses which agent a chat talks to; sent before the chat is opened.</summary>
 public sealed record AcpChooseParams(string WorkspaceId, string ChatId, string AgentId);
 
+/// <summary>Asks for the registry agents' icons. <paramref name="CacheOnly"/> reads only what is already on disk (for a menu that must open at once).</summary>
+public sealed record AcpIconParams(bool Refresh, bool CacheOnly);
+
+/// <summary>The icons that can be shown, by registry agent id: SVG text that passed the host's checks. An agent without an entry keeps the generic glyph.</summary>
+public sealed record AcpIconSet(IReadOnlyDictionary<string, string> Svgs);
+
 public static class AcpContract
 {
     public const int WireVersion = 1;
@@ -43,8 +49,10 @@ public static class AcpContract
     public static readonly PluginMethod<AcpInstallPlanParams, AcpInstallPlan> InstallPlan = new("installPlan");
     public static readonly PluginMethod<AcpInstallRequest, AcpAgentList> Install = new("install");
     public static readonly PluginMethod<AcpChooseParams, AcpAgentList> RemoveAgent = new("removeAgent");
+    /// <summary>The registry agents' icons, fetched by the host from the registry's own origin and checked there.</summary>
+    public static readonly PluginMethod<AcpIconParams, AcpIconSet> Icons = new("icons");
 
     /// <summary>The chat contract is shared with the other chat plugins: ACP serves its methods and its updates channel.</summary>
     public static readonly PluginContract Contract = PluginContract.Create<AcpSettings>(AcpManifest.Id, WireVersion,
-        [.. ChatContract.Methods, Agents, AddAgent, Choose, Registry, InstallPlan, Install, RemoveAgent], [ChatContract.Updates]);
+        [.. ChatContract.Methods, Agents, AddAgent, Choose, Registry, InstallPlan, Install, RemoveAgent, Icons], [ChatContract.Updates]);
 }

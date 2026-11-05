@@ -16,4 +16,11 @@ internal static class AcpGlyph
 
     public static Control Create(double size = 16, IBrush? color = null) =>
         new ContentControl { Name = "AcpGlyph", Width = size, Height = size, VerticalAlignment = VerticalAlignment.Center, Content = new SvgAsset(Svg, size, color ?? Ui.Muted) };
+
+    /// <summary>Whether there is an icon to draw; without one the generic glyph stands in.</summary>
+    internal static bool HasIcon(string? svg) => !string.IsNullOrWhiteSpace(svg);
+
+    /// <summary>An agent's own icon from the registry, drawn in the theme's text colour where it uses <c>currentColor</c> (a hard-coded colour stays as drawn), or the generic glyph when there is none.</summary>
+    public static Control For(string? svg, double size = 16) =>
+        !HasIcon(svg) ? Create(size) : new ContentControl { Name = "AcpAgentIcon", Width = size, Height = size, VerticalAlignment = VerticalAlignment.Center, Content = new SvgAsset(Encoding.UTF8.GetBytes(svg!), size, Ui.TextBrush) };
 }
