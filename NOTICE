@@ -23,6 +23,13 @@ Trademarks and brand assets (not licensed to you)
   identify the integration, and imply no endorsement. The same applies to the JetBrains, ThinkRail and
   Air names and logos.
 
+Agent Client Protocol logomark
+  The ACP plugin's icon is the Agent Client Protocol logomark from the project's official brand assets
+  (https://agentclientprotocol.com/brand), recoloured to follow the theme text colour and set on a square
+  canvas. The brand page asks only that the mark be shown in pure white or pure black. The ACP name and mark
+  belong to the Agent Client Protocol project (Apache-2.0, https://github.com/agentclientprotocol/agent-client-protocol);
+  they identify the integration and imply no endorsement.
+
 Icon sets
   The Remix Icon SVGs in src/SharpRail.Plugins.UI.Kit/Assets/Icons stay under Remix Icon License 1.0
   (licenses/RemixIcon.txt). Do not extract them as a standalone icon set.

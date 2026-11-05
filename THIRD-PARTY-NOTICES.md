@@ -257,3 +257,6 @@ The IDE bridge in `src/SharpRail.Plugins.ClaudeCode/Host/IdeBridge` implements t
 expects from an IDE, which Anthropic does not document; as the source comment states, they were read off the CLI
 itself and Anthropic's VS Code and JetBrains extensions, and the checks pin them. The Env plugins' JSON formats come
 from the tools' documentation.
+
+The ACP plugin's `assets/acp.svg` is the Agent Client Protocol logomark from its official brand assets
+(https://agentclientprotocol.com/brand), recoloured to currentColor on a square canvas; see NOTICE.

@@ -52,6 +52,23 @@ internal static class AcpChecks
         Require(ChatContract.Methods.All(method => AcpContract.Contract.Methods.Contains(method)), "ACP serves every chat method.");
     }
 
+    // The logomark: the glyph and the plugin's asset are one drawing, a square monochrome document that parses and draws something.
+    internal static void Logo()
+    {
+        var svg = System.Text.Encoding.UTF8.GetString(SharpRail.Plugins.Acp.UI.AcpGlyph.Svg);
+        Require(svg.Contains("viewBox=\"0 -178 576 576\"", StringComparison.Ordinal) && svg.Contains("currentColor", StringComparison.Ordinal) && !svg.Contains("<script", StringComparison.OrdinalIgnoreCase) && !svg.Contains("href", StringComparison.OrdinalIgnoreCase), "The ACP logomark is a square, currentColor SVG with no script or reference.");
+        using var stream = new MemoryStream(SharpRail.Plugins.Acp.UI.AcpGlyph.Svg);
+        using var source = Avalonia.Svg.Skia.SvgSource.LoadFromStream(stream);
+        Require(source.Picture is { CullRect: { Width: > 0, Height: > 0 } }, "The ACP logomark parses and draws a non-empty picture.");
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var asset = Path.Combine(directory.FullName, "src", "SharpRail.Plugins.Acp", "assets", "acp.svg");
+            if (!File.Exists(asset)) continue;
+            Require(File.ReadAllText(asset).Trim() == svg.Trim(), "The plugin's acp.svg is the same drawing as the built-in glyph.");
+            break;
+        }
+    }
+
     internal static async Task Protocol()
     {
         // Framing and the session flow.
@@ -337,6 +354,7 @@ internal static class AcpChecks
     {
         Manifest();
         EntryText();
+        Logo();
         await Protocol();
         await Session();
         Directory.CreateDirectory(root);
