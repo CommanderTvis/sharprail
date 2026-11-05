@@ -345,7 +345,7 @@ internal static class ClaudeChatE2E
             Require(!view.HistoryOpen, "The history overlay finds the streamed reply and closes on Escape.");
             view.ShowThread("toolu_task");
             E2eWorkspace.Until(() => view.ThreadTranscript is { } thread && thread.Rows.Any(row => row.Item is ChatAssistantItem { Text: "Inside" }));
-            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).ToArray()) owned.Close();
+            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).ToArray()) owned.Dismiss();
             app.UntilDialogsGone();
 
             // A permission card answered through the view reaches the child.

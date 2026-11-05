@@ -25,9 +25,21 @@ internal static class DialogShims
     public static void KeyPress(this Window window, Key key, RawInputModifiers modifiers, PhysicalKey physicalKey, string? keySymbol) =>
         HeadlessWindowExtensions.KeyPress(window is DialogWindow { Host: { } host } ? host : window, key, modifiers, physicalKey, keySymbol);
 
+    /// <summary>Whether a dialog is showing, in its overlay or as a window.</summary>
+    public static bool IsShown(this Window window) => window is DialogWindow dialog ? dialog.IsVisible : window.IsVisible;
+
     /// <summary>Closes a dialog whichever way it is shown.</summary>
     public static void Dismiss(this Window window)
     {
         if (window is DialogWindow dialog) dialog.Close(); else window.Close();
+    }
+}
+
+internal static class DialogShimResults
+{
+    /// <summary>Closes a dialog with <paramref name="result"/> whichever way it is shown.</summary>
+    public static void Dismiss(this Window window, object? result)
+    {
+        if (window is DialogWindow dialog) dialog.Close(result); else window.Close(result);
     }
 }

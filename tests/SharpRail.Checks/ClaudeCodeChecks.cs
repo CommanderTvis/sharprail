@@ -457,7 +457,7 @@ internal static class ClaudeCodeChecks
                 return chip is not null && Equals(chip.Tag, scope) && at.Y >= 0 && at.Y + description.Bounds.Height <= option.Bounds.Height + 0.5;
             }) && options.Any(option => option.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Local project settings")),
             "Each scope option carries its scope chip, the third is called local, and its description fits inside the option.");
-        dialog.Close();
+        dialog.Dismiss();
         E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any(window => Equals(window.Tag, "ClaudeEditDialog")));
         Console.WriteLine("PASS Claude edit scopes: local wording, scope chips, descriptions unclipped");
     }

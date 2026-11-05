@@ -183,7 +183,7 @@ internal static partial class AirContextChecks
         {
             E2E.E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<TextBlock>().Any(control => control.Name == "ContextState" && control.Text?.StartsWith("Not enabled", StringComparison.Ordinal) == true));
             Toggle(); E2E.E2eWorkspace.Until(() => Dialogs().Count > 0);
-            var confirmation = Dialogs().Single(); confirmation.Close(false);
+            var confirmation = Dialogs().Single(); confirmation.Dismiss(false);
             E2E.E2eWorkspace.Until(() => Find<CheckBox>(window, "ContextEnabled").IsChecked == false);
             Require(!EnabledNow().Contains(workspace) && runtime is null, "Canceling cloud enablement changed host state or started Context.");
             Toggle(); E2E.E2eWorkspace.Until(() => Dialogs().Count > 0);
@@ -252,7 +252,7 @@ internal static partial class AirContextChecks
             Toggle(); E2E.E2eWorkspace.Until(() => !EnabledNow().Contains(workspace));
             Require(Find<CheckBox>(window, "ContextEnabled").IsChecked == false, "Disabling was not immediately visible.");
         }
-        finally { foreach (var dialog in Dialogs()) dialog.Close(); }
+        finally { foreach (var dialog in Dialogs()) dialog.Dismiss(); }
         Console.WriteLine("PASS Context workspace UI: cloud confirmation/cancel, host enablement, sign-in terminal, explicit indexing, redacted logs and owned stop");
     }
 

@@ -176,7 +176,7 @@ internal static class VisualizeSelectionChecks
             var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(window)[^1];
             Until(() => dialog.GetVisualDescendants().OfType<Image>().Any(control => control.Name == "DiagramImage" && Diagram(control) is not null));
             Inspect(name + ", full screen", Diagram(dialog.GetVisualDescendants().OfType<Image>().First(control => control.Name == "DiagramImage"))!, tree);
-            dialog.Close();
+            dialog.Dismiss();
         }
         finally { window.Close(); }
     }

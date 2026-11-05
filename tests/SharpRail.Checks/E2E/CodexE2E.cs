@@ -750,7 +750,7 @@ internal static class CodexE2E
             "Cancelling custom arguments starts no terminal.");
         var reopened = CustomArguments();
         Require(One<TextBox>(reopened, "CodexCustomArguments").Text == customArguments, "Cancelled edits do not replace the last submitted arguments.");
-        reopened.Close();
+        reopened.Dismiss();
 
         // Start work: the launcher's command with a picked model, the saved permissions and the prompt.
         codex.Settings(new { permissionMode = "full-auto" });

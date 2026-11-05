@@ -78,7 +78,7 @@ internal static class NewWorkspaceE2E
         Require(Named<TextBox>(dialog, "WsName").Text!.StartsWith("workspace-", StringComparison.Ordinal), "The task must not be copied into the workspace name.");
         prompt.CaretIndex = prompt.Text.Length;
         Press(prompt, Key.Enter, RawInputModifiers.Shift);
-        Require(dialog.IsVisible && prompt.Text!.Contains('\n'), "Shift+Enter inserts a newline without submitting.");
+        Require(dialog.IsShown() && prompt.Text!.Contains('\n'), "Shift+Enter inserts a newline without submitting.");
         prompt.Text += "and preserve Unicode: café  ";
         var expected = prompt.Text.Trim();
         app.Click(Named<ToggleButton>(dialog, "WsLauncherNone"), freshGesture: false);
@@ -232,7 +232,7 @@ internal static class NewWorkspaceE2E
         Until(() => Options(options).Any(option => Equals(option.Tag, "main")));
         Press(search, Avalonia.Input.Key.Escape);
         Until(() => Picker(dialog).Flyout is Flyout { IsOpen: false });
-        Require(dialog.IsVisible, "Escape in the branch picker closes only the picker.");
+        Require(dialog.IsShown(), "Escape in the branch picker closes only the picker.");
         Press(dialog, Avalonia.Input.Key.Escape);
         Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any());
         Require(!WorktreePaths(app).Any(), "Cancelling must not create a workspace.");

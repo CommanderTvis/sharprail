@@ -49,7 +49,7 @@ internal static class SearchE2E
         Require(dialog.GetLogicalDescendants().OfType<StackPanel>().Single(panel => panel.Name == "SearchFile").Tag as string == "haystack.txt",
             "Results must be grouped under their file.");
         app.Click(Hits(dialog)[0]);
-        Until(() => !dialog.IsVisible && app.Tabs.Any(tab => tab.Path == "haystack.txt" && !tab.Preview));
+        Until(() => !dialog.IsShown() && app.Tabs.Any(tab => tab.Path == "haystack.txt" && !tab.Preview));
         if (OperatingSystem.IsMacOS())
         {
             ScintillaEditor? Editor() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().SingleOrDefault(editor => editor.IsEffectivelyVisible);
@@ -68,7 +68,7 @@ internal static class SearchE2E
         var status = Named<TextBlock>(dialog, "SearchStatus");
         Until(() => status.IsVisible && status.Text == "No matches");
         Press(dialog, Key.Escape);
-        Until(() => !dialog.IsVisible);
+        Until(() => !dialog.IsShown());
         Console.WriteLine("PASS upstream search.spec.ts: a query with no matches says so, and Escape closes the popup");
     }
 }

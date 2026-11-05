@@ -286,7 +286,7 @@ internal static partial class AirContextChecks
             var reopened = app.Window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
             E2E.E2eWorkspace.Until(() => Equals(Find<Button>(reopened, "ConsentClose").Content, "Done"));
             Require(!Find<Button>(reopened, "ConsentDownload").IsVisible && handler.Requests == 1, "Reopening offered or repeated an unnecessary download.");
-            reopened.Close();
+            reopened.Dismiss();
             // Settings › Plugins is the one switch: with the plugin off its pane is gone, with no placeholder or prompt in its place.
             void Switch(bool enabled)
             {

@@ -79,7 +79,7 @@ internal static class ShellChecks
             list.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "BranchOption" && button.Tag is "only-in-second"));
         WorkspaceFixture.Press(dialog, Key.Escape);
         Settle(200);
-        if (!dialog.IsVisible) throw new InvalidOperationException("Escape in the branch list must return to the dialog, not dismiss it.");
+        if (!dialog.IsShown()) throw new InvalidOperationException("Escape in the branch list must return to the dialog, not dismiss it.");
         app.Click(WorkspaceFixture.Named<Button>(dialog, "WsCreate"));
         Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Any() && app.Window.WorkspaceMounted && !app.Window.AtProjectHome && app.Window.ProjectRoot == second);
         var created = app.Window.WorkspaceRoot;
@@ -282,7 +282,7 @@ internal static class ShellChecks
         Pick(windows, "Zoom");
         Require(dialog.WindowState == WindowState.Normal, "Zoom restores a maximized window.");
         Pick(windows, "Close");
-        Until(() => !dialog.IsVisible);
+        Until(() => !dialog.IsShown());
 
         var workbench = Entry(ApplicationMenu.Build(app.Window, app.Window.Commands), "Window").Menu!;
         app.Open("README.md", true);
@@ -607,7 +607,7 @@ internal static class ShellChecks
         var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).Single();
         Require(dialog.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Host replied: permission denied for notes.txt"),
             "The details display the actual failure without inventing a connectivity cause.");
-        dialog.Close();
+        dialog.Dismiss();
         var retry = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Retry"));
         retry.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         Until(() => !app.Find<TextBlock>("WorkspaceError").IsVisible);

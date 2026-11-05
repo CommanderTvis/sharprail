@@ -30,7 +30,7 @@ internal static class NewWorkspaceShortcutE2E
         var probe = new Avalonia.Controls.Primitives.ToggleButton { Content = "probe", IsChecked = true };
         var fields = Named<StackPanel>(dialog, "DialogFields");
         fields.Children.Add(probe);
-        dialog.UpdateLayout();
+        (dialog is SharpRail.Plugins.UI.Kit.DialogWindow { Surface: { } card } ? card : dialog).UpdateLayout();
         var fill = (probe.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
             .First(presenter => presenter.Name == "PART_ContentPresenter").Background as Avalonia.Media.ISolidColorBrush)?.Color;
         fields.Children.Remove(probe);

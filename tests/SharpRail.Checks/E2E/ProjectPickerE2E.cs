@@ -192,7 +192,7 @@ internal static class ProjectPickerE2E
         Until(() => Named<TextBox>(dialog, "CloneProjectParent").Text == empty);
         app.Click(Named<Button>(dialog, "CloneProjectCreate"), freshGesture: false);
         Until(() => Named<TextBlock>(dialog, "CloneProjectError").IsVisible);
-        Require(Named<TextBlock>(dialog, "CloneProjectError").Text!.Contains("does not exist", StringComparison.Ordinal) && dialog.IsVisible &&
+        Require(Named<TextBlock>(dialog, "CloneProjectError").Text!.Contains("does not exist", StringComparison.Ordinal) && dialog.IsShown() &&
             Directory.GetFileSystemEntries(empty).Length == 0, "A failed clone shows git's reason, keeps the dialog and leaves nothing behind.");
         dialog.Close();
         Console.WriteLine("PASS fork clone-project.spec.ts: a clone that fails reports git's reason and leaves nothing behind");

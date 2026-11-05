@@ -440,7 +440,7 @@ internal static class ClaudeChatUiChecks
             E2eWorkspace.Until(() => Summary().Contains("1 line will be removed and 3 lines will be added across 2 files:", StringComparison.Ordinal));
             Require(rewind.GetVisualDescendants().OfType<Button>().Any(button => button.Name == "ChatRewindCancel" && Equals((button.Content as TextBlock)?.Text ?? button.Content, "Never mind")) &&
                 rewind.GetVisualDescendants().OfType<RadioButton>().First(box => box.Name == "ChatRewindFiles").IsEnabled, "The dialog lists the changed files and offers Never mind.");
-            rewind.Close();
+            rewind.Dismiss();
             Require(ChatView.RewindSummary(new ChatRewindPreview(true)).StartsWith("The code has not changed, so no code will be restored.", StringComparison.Ordinal), "Nothing to restore reads 'has not changed'.");
             Require(ChatView.RewindSummary(new ChatRewindPreview(false) { Error = "no checkpoint" }) == "no checkpoint", "A refusal shows its reason.");
         }
@@ -2489,7 +2489,7 @@ internal static class ClaudeChatUiChecks
             chat.Push(Item(new ChatToolItem("c4", 21, "Glob", JsonSerializer.SerializeToElement(new { pattern = "*" }), ChatToolState.Running) { ParentId = "task" }));
             Frame(window);
             Require(view.ThreadTranscript!.Rows.Count == 3, "The dialog follows the thread while it is open.");
-            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Close();
+            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Dismiss();
 
             // A clipped output opens in full in a dialog; one the wire cut is fetched first.
             chat.Push(Item(new ChatToolItem("long", 23, "Bash", JsonSerializer.SerializeToElement(new { command = "big" }), ChatToolState.Done) { Output = new string('o', 400), OutputTruncated = true }));
@@ -2497,7 +2497,7 @@ internal static class ClaudeChatUiChecks
             view.Activate(transcript.Row("long")!, ChatHitKind.OpenText, "out");
             E2eWorkspace.Until(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).Any(owned => Equals(owned.Tag, "ChatToolText")));
             Require(SharpRail.Plugins.UI.Kit.DialogWindow.On(window).First(owned => Equals(owned.Tag, "ChatToolText")).GetVisualDescendants().OfType<TextBox>().Any(box => box.Name == "ChatToolFullText" && box.Text == "full output"), "The full output opens in a dialog after it is fetched.");
-            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Close();
+            foreach (var owned in SharpRail.Plugins.UI.Kit.DialogWindow.On(window).ToArray()) owned.Dismiss();
 
             // The model chip changes only once the header confirms it.
             chat.ModelGate = new TaskCompletionSource<ChatHeader>();

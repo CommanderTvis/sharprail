@@ -37,7 +37,7 @@ internal static class EditorWorkbenchChecks
         var dialog = SharpRail.Plugins.UI.Kit.DialogWindow.On(window).OfType<DialogWindow>().Single(open => open.IsVisible);
         dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: var text } && text == label)
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-        Pump(() => !dialog.IsVisible);
+        Pump(() => !dialog.IsShown());
     }
     private static void AwaitConflict(Window window) =>
         Pump(() => SharpRail.Plugins.UI.Kit.DialogWindow.On(window).OfType<DialogWindow>().Any(dialog => dialog.Tag as string == "SaveConflictDialog" && dialog.IsVisible));

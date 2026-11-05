@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
+using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Panels;
 
@@ -28,7 +29,8 @@ internal static class DialogOverlayChecks
         Clone(app, window);
         Escape(app, window);
         Clamp(app, window);
-        Console.WriteLine("PASS dialogs open in the window overlay: no owned window, a click outside is inert, Escape closes and returns focus, the result flows, and a tall dialog stays inside the window");
+        Families(window);
+        Console.WriteLine("PASS dialogs open in the window overlay: no owned window, a click outside is inert, Escape closes and returns focus, the result flows, and a tall dialog stays inside the window, and every dialog family behaves alike");
     }
 
     private static DialogWindow Single(Window window) => DialogWindow.On(window).OfType<DialogWindow>().Single();
@@ -122,5 +124,52 @@ internal static class DialogOverlayChecks
         Until(() => task.IsCompleted);
         Require(task.Result && DialogWindow.On(window).Count == 0, "The button at the bottom of an over-tall dialog can be clicked.");
         window.Height = 848;
+    }
+
+    /// <summary>Every dialog family opens in the overlay (no owned window), ignores clicks outside it, and closes on Escape with focus back.</summary>
+    private static void Families(Window window)
+    {
+        window.Height = 848; Settle(100);
+        var anchor = window.GetVisualDescendants().OfType<Button>().First(item => item.Focusable && item.IsEffectivelyVisible && item.IsEffectivelyEnabled);
+        var families = new (string Name, Func<Task> Open)[]
+        {
+            ("Notice", () => Dialogs.Notice(window, "Couldn't open", "The reason.")),
+            ("AskToSave", () => Dialogs.AskToSave(window, "Save changes?", false)),
+            ("Confirm", () => Dialogs.Confirm(window, "Remove?", "Removes it.")),
+            ("Prompt", () => Dialogs.Prompt(window, "Rename", ("Name", "a"))),
+            ("PathName", () => Dialogs.PathName(window, "Rename file", "a.txt", "Rename", _ => false, _ => Task.CompletedTask)),
+            ("HostPath", () => Dialogs.HostPath(window, "/", null, false)),
+            ("CreateProject", () => Dialogs.CreateProject(window, "/", null, (_, _) => Task.FromResult(""))),
+            ("CloneProject", () => Dialogs.CloneProject(window, "/", null, (_, _, _, _) => Task.FromResult(""))),
+            ("FileChangedOnDisk", () => Dialogs.FileChangedOnDisk(window, "a.cs", true)),
+            ("DiscardUnsaved", () => Dialogs.DiscardUnsaved(window, "a.cs", "main", "disk full")),
+            ("SettingValue", () => SettingValueDialog.ShowAsync(window, new SettingValueDialogOptions("Check", "key", null, [], "Save"))),
+            ("PathBrowser", () => new PathBrowserDialog("Choose", "/", (path, _) => Task.FromResult(new PathBrowserFolder(path, path, null, null, []))).ShowAsync(window)),
+            ("ExistingWorktree", () => new ExistingWorktreeDialog(() => Task.FromResult<IReadOnlyList<SharpRail.Host.Abstractions.ExistingWorktree>>([]), _ => throw new InvalidOperationException()).ShowAsync(window)),
+            ("Search", () => new SearchDialog((_, _) => Task.FromResult(new SharpRail.Host.Abstractions.SearchHits([], false))).ShowAsync(window)),
+            ("About", () => { var about = Dialogs.About(window); return Task.CompletedTask; }),
+        };
+        foreach (var (name, open) in families)
+        {
+            anchor.Focus();
+            Until(() => window.FocusManager!.GetFocusedElement() == anchor);
+            var task = open();
+            Until(() => DialogWindow.On(window).Count == 1, name + " opens.");
+            var dialog = Single(window);
+            var closed = 0;
+            dialog.Closed += (_, _) => closed++;
+            Require(dialog.InOverlay && window.OwnedWindows.Count == 0, $"{name} opens in the window overlay, not as an owned window.");
+            Settle(100);
+            var point = new Point(3, 3);
+            window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+            Require(DialogWindow.On(window).Count == 1 && closed == 0 && ReferenceEquals(Single(window), dialog), $"{name} survives a click outside.");
+            // A dialog that put focus nowhere still closes on Escape once its card holds focus.
+            if (dialog.Surface!.GetVisualDescendants().OfType<InputElement>().All(item => !item.IsFocused)) dialog.Surface!.Focus();
+            Single(window).KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Until(() => DialogWindow.On(window).Count == 0, $"{name} closes on Escape.");
+            Until(() => window.FocusManager!.GetFocusedElement() == anchor, $"{name} returns focus.");
+            Require(closed == 1, $"{name} closes once.");
+        }
     }
 }

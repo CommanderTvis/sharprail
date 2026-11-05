@@ -185,7 +185,7 @@ internal static class LiveRefreshE2E
         var conflict = SharpRail.Plugins.UI.Kit.DialogWindow.On(app.Window).OfType<DialogWindow>().Single(dialog => dialog.Tag as string == "SaveConflictDialog");
         conflict.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" })
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-        Until(() => !conflict.IsVisible);
+        Until(() => !conflict.IsShown());
         Require(editor.IsModified && File.ReadAllText(path) == "external version\n", "Saving over an external change must ask what to do and keep both versions until it is answered.");
         Console.WriteLine("PASS live refresh reloads a clean Scintilla tab and keeps unsaved edits for the save conflict");
         Discard(app, "file:live.txt");
