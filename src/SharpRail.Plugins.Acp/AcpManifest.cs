@@ -5,7 +5,7 @@ namespace SharpRail.Plugins.Acp;
 public static class AcpManifest
 {
     public const string Id = "acp";
-    public const string Name = "ACP (Early support)";
+    public const string Name = "ACP";
 
     public static readonly PluginManifest Manifest = new(Id, Name, "asset:acp.svg", "0.1.0", PluginApi.Generation, AcpContract.WireVersion)
     {

@@ -7,7 +7,7 @@ using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.Acp.UI;
 
-/// <summary>Settings › ACP (Early support): the agents you can chat with, a custom-agent form and the registry browser with its install confirmation.</summary>
+/// <summary>Settings › ACP: the agents you can chat with, a custom-agent form and the registry browser with its install confirmation.</summary>
 internal sealed partial class AcpSettingsView : StackPanel
 {
     private readonly IPluginUIContext context;

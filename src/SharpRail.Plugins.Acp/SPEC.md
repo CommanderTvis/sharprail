@@ -2,7 +2,7 @@
 
 Early support for the Agent Client Protocol (https://agentclientprotocol.com): SharpRail is the client, an ACP agent is a child process
 speaking JSON-RPC over stdio, and the conversation is shown in the shared chat view (`src/SharpRail.Plugins.Chat/SPEC.md`, "Serving another
-agent protocol"). Disabled by default; the manifest declares `Support = early`, its label is "ACP (Early support)" and
+agent protocol"). Disabled by default; the manifest declares `Support = early`, its label is "ACP" and
 `UnavailableOn = [pureWeb]`, because an agent is a child process of the host and a browser tab has none. The Android and browser clients reach
 a host's ACP chats through the chat contract like any other client.
 
