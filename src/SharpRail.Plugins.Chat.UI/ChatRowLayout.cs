@@ -10,7 +10,7 @@ using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.Chat.UI;
 
-internal enum ChatHitKind { Toggle, Allow, Deny, Always, Rewind, Fork, OpenDiff, LoadFull, Link, EditInput, OpenThread, OpenText, Pick, OtherText, Submit, CancelAsk, Retry, StopShell }
+internal enum ChatHitKind { Toggle, Allow, Deny, Always, Rewind, Fork, OpenDiff, LoadFull, Link, EditInput, OpenThread, OpenText, Pick, OtherText, Submit, CancelAsk, Retry, StopShell, CopyCode }
 
 internal readonly record struct ChatHit(Rect Bounds, ChatHitKind Kind, string? Arg = null);
 
@@ -38,6 +38,8 @@ internal sealed class ChatRowLayout : IDisposable
     private readonly List<Fill> overlays = [];
     private readonly List<Placed> texts = [];
     private readonly List<ChatHit> hits = [];
+    // A fenced block's copy button and the code it copies, in the block's coordinates.
+    private readonly List<(Rect Bounds, string Code)> copies = [];
     private readonly double left;
     private readonly double inner;
     private double y;
@@ -261,7 +263,7 @@ internal sealed class ChatRowLayout : IDisposable
         _ => false
     };
 
-    public void Draw(DrawingContext context, bool hovered, double top = double.NegativeInfinity, double bottom = double.PositiveInfinity, IReadOnlyList<Rect>? marks = null, Rect? wash = null)
+    public void Draw(DrawingContext context, bool hovered, double top = double.NegativeInfinity, double bottom = double.PositiveInfinity, IReadOnlyList<Rect>? marks = null, Rect? wash = null, string? copied = null)
     {
         foreach (var plan in plans)
         {
@@ -274,7 +276,7 @@ internal sealed class ChatRowLayout : IDisposable
             plan.Fragment ??= Fragment(plan.Piece, plan.Caret);
             var inside = marks?.Where(mark => mark.Bottom > plan.Top && mark.Top < plan.Top + plan.Height).Select(mark => mark.Translate(new Vector(0, -plan.Top))).ToList();
             var washInside = wash is { } over && over.Bottom > plan.Top && over.Top < plan.Top + plan.Height ? over.Translate(new Vector(0, -plan.Top)) : (Rect?)null;
-            using (context.PushTransform(Matrix.CreateTranslation(0, plan.Top))) plan.Fragment.Draw(context, hovered, double.NegativeInfinity, double.PositiveInfinity, inside, washInside);
+            using (context.PushTransform(Matrix.CreateTranslation(0, plan.Top))) plan.Fragment.Draw(context, hovered, double.NegativeInfinity, double.PositiveInfinity, inside, washInside, copied);
         }
         foreach (var fill in fills) context.DrawRectangle(fill.Brush, fill.Pen, fill.Bounds, fill.Radius, fill.Radius);
         DrawShapes(context);
@@ -292,6 +294,30 @@ internal sealed class ChatRowLayout : IDisposable
             else text.Text.Draw(context, text.Origin);
         }
         foreach (var fade in overlays) context.DrawRectangle(fade.Brush, null, fade.Bounds);
+        if (hovered || OperatingSystem.IsAndroid())
+            foreach (var (bounds, code) in copies) DrawCopy(context, bounds, code == copied);
+    }
+
+    // The copy button over a code block's top-right corner: two sheets, or a check for a moment after a copy.
+    private static void DrawCopy(DrawingContext context, Rect box, bool done)
+    {
+        context.DrawRectangle(Ui.Elevated, new Pen(Ui.BorderBrush), box, 4, 4);
+        if (done)
+        {
+            var tick = new StreamGeometry();
+            using (var g = tick.Open())
+            {
+                g.BeginFigure(new Point(box.X + 5, box.Y + 10), false);
+                g.LineTo(new Point(box.X + 9, box.Y + 14));
+                g.LineTo(new Point(box.X + 15, box.Y + 6));
+                g.EndFigure(false);
+            }
+            context.DrawGeometry(null, new Pen(Ui.Accent, 1.6), tick);
+            return;
+        }
+        var pen = new Pen(Ui.Muted, 1.2);
+        context.DrawRectangle(null, pen, new Rect(box.X + 7, box.Y + 4, 8, 9), 1.5, 1.5);
+        context.DrawRectangle(Ui.Elevated, pen, new Rect(box.X + 4, box.Y + 7, 8, 9), 1.5, 1.5);
     }
 
     public void Dispose()
@@ -300,7 +326,7 @@ internal sealed class ChatRowLayout : IDisposable
         foreach (var text in texts) text.Text.Dispose();
         Interlocked.Decrement(ref live);
         Interlocked.Add(ref liveTexts, -texts.Count);
-        texts.Clear(); fills.Clear(); overlays.Clear(); hits.Clear(); geometries.Clear();
+        texts.Clear(); fills.Clear(); overlays.Clear(); hits.Clear(); copies.Clear(); geometries.Clear();
     }
 
     private static int live, liveTexts, built;
@@ -345,9 +371,9 @@ internal sealed class ChatRowLayout : IDisposable
         return bounds;
     }
 
-    private void Boxed(string text, IBrush brush, IBrush background, int maxLines = 0)
+    private void Boxed(string text, IBrush brush, IBrush background, int maxLines = 0, double reserve = 0)
     {
-        var layout = Make(text.Length == 0 ? " " : text, brush, 12, inner - 16, mono: true, maxLines: maxLines);
+        var layout = Make(text.Length == 0 ? " " : text, brush, 12, inner - 16 - reserve, mono: true, maxLines: maxLines);
         fills.Add(new(new Rect(left, y, inner, layout.Height + 12), background, 4, null));
         Place(layout, left + 8, y + 6);
         y += layout.Height + 12 + 2;
@@ -484,7 +510,12 @@ internal sealed class ChatRowLayout : IDisposable
         switch (piece.Kind)
         {
             case Markdown.Kind.Code:
-                Boxed(piece.Text, Ui.TextBrush, Ui.Hover, 0);
+                var boxTop = y;
+                // The right edge is kept free for the copy button, so it never covers code.
+                Boxed(piece.Text, Ui.TextBrush, Ui.Hover, 0, reserve: 24);
+                var button = new Rect(left + inner - 26, boxTop + 4, 20, 20);
+                hits.Add(new(button, ChatHitKind.CopyCode, piece.Text));
+                copies.Add((button, piece.Text));
                 y += Gap - 2;
                 break;
             case Markdown.Kind.Rule:

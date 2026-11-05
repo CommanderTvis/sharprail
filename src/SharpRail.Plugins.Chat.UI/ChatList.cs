@@ -421,7 +421,7 @@ internal sealed class ChatList : ScrollViewer
             visible.Add((row, i));
             using (context.PushTransform(Matrix.CreateTranslation(0, tops[i])))
             {
-                layout.Draw(context, hovered == i, from - tops[i], to - tops[i], MarksFor(i, layout), hoverHit is { } washed && washed.RowId == row.Id ? washed.Hit.Bounds.Inflate(2) : null);
+                layout.Draw(context, hovered == i || focusStop is { Kind: ChatHitKind.CopyCode } && row.Id == selectedId, from - tops[i], to - tops[i], MarksFor(i, layout), hoverHit is { } washed && washed.RowId == row.Id ? washed.Hit.Bounds.Inflate(2) : null, copiedCode);
                 if (hoverHit is { } over && over.RowId == row.Id) DrawHover(context, over.Hit);
                 if (focusStop is { } stop && row.Id == selectedId && surface.IsFocused)
                     context.DrawRectangle(null, new Pen(Ui.Accent, 1.5), stop.Bounds.Inflate(2), 3, 3);
@@ -464,7 +464,7 @@ internal sealed class ChatList : ScrollViewer
     private void DrawHover(DrawingContext context, ChatHit hit)
     {
         HoverPaints++;
-        if (hit.Kind != ChatHitKind.Toggle) context.DrawLine(new Pen(Ui.Accent, 1), new Point(hit.Bounds.Left, hit.Bounds.Bottom), new Point(hit.Bounds.Right, hit.Bounds.Bottom));
+        if (hit.Kind is not (ChatHitKind.Toggle or ChatHitKind.CopyCode)) context.DrawLine(new Pen(Ui.Accent, 1), new Point(hit.Bounds.Left, hit.Bounds.Bottom), new Point(hit.Bounds.Right, hit.Bounds.Bottom));
     }
 
     private void TrackHover(Point point, int index)
@@ -480,6 +480,7 @@ internal sealed class ChatList : ScrollViewer
             else if (row.Item is ChatToolItem or ChatThinkingItem or ChatActivityItem && local.Y < 24) next = (row.Id, new ChatHit(new Rect(0, 0, width, 22), ChatHitKind.Toggle));
         }
         var overText = next is null && index >= 0 && point.Y <= tops[^1] && OverText(index, point);
+        ToolTip.SetTip(surface, next?.Item2.Kind == ChatHitKind.CopyCode ? (copiedCode == next?.Item2.Arg ? "Copied" : "Copy code") : null);
         surface.Cursor = next is not null ? Hand : selecting || overText ? TextCursor : null;
         if (next?.Item1 == hoverHit?.RowId && next?.Item2 == hoverHit?.Hit) return;
         hoverHit = next;
@@ -516,7 +517,7 @@ internal sealed class ChatList : ScrollViewer
             if (hit.Kind == ChatHitKind.Link) pendingLink = (row, hit.Arg);
             else
             {
-                actions.Activate(row, hit.Kind, hit.Arg);
+                Activate(row, hit.Kind, hit.Arg);
                 e.Handled = true;
                 surface.Focus();
                 surface.Redraw();
@@ -714,6 +715,25 @@ internal sealed class ChatList : ScrollViewer
         return builder.ToString();
     }
 
+    private string? copiedCode;
+    private DispatcherTimer? copiedTimer;
+
+    /// <summary>Puts a fenced block's code on the clipboard and shows a check on its button for a moment.</summary>
+    internal async Task CopyCodeAsync(string code)
+    {
+        if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard) return;
+        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, code);
+        copiedCode = code;
+        surface.Redraw();
+        copiedTimer?.Stop();
+        copiedTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1500) };
+        copiedTimer.Tick += (_, _) => { copiedTimer.Stop(); copiedCode = null; surface.Redraw(); };
+        copiedTimer.Start();
+    }
+
+    /// <summary>The code whose button shows the check, if any.</summary>
+    internal string? CopiedCode => copiedCode;
+
     internal async Task CopySelectionAsync()
     {
         var text = await SelectedTextAsync();
@@ -786,7 +806,7 @@ internal sealed class ChatList : ScrollViewer
         }
         if (e.Key is Avalonia.Input.Key.Enter or Avalonia.Input.Key.Space && focusStop is { } focused && index >= 0)
         {
-            actions.Activate(rows[index], focused.Kind, focused.Arg);
+            Activate(rows[index], focused.Kind, focused.Arg);
             e.Handled = true;
             return;
         }
@@ -817,7 +837,11 @@ internal sealed class ChatList : ScrollViewer
         surface.InvalidateArrange();
     }
 
-    internal void Activate(ChatRow row, ChatHitKind kind, string? arg = null) => actions.Activate(row, kind, arg);
+    internal void Activate(ChatRow row, ChatHitKind kind, string? arg = null)
+    {
+        if (kind == ChatHitKind.CopyCode && arg is not null) _ = CopyCodeAsync(arg);
+        else actions.Activate(row, kind, arg);
+    }
 
     // ---- the surface and its accessibility stubs
 

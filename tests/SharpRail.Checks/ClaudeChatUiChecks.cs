@@ -242,6 +242,7 @@ internal static class ClaudeChatUiChecks
         ToolCardsText();
         Selection();
         TextCursors();
+        CodeCopyButton();
         SelectionGeometry();
         MarkdownBounded();
         Behaviour();
@@ -1021,6 +1022,57 @@ internal static class ClaudeChatUiChecks
             Require(list.FocusedStop is { Kind: ChatHitKind.Fork }, "Tab reaches Fork next.");
             window.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null); Frame(window);
             Require(list.FocusedStop is null, "Tab past the last target leaves the row.");
+        }
+        catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
+        finally { window.Close(); }
+    }
+
+    // A fenced block gets a copy button at its top-right corner: a hand over it, the exact code on the clipboard, a check that resets; inline code and other rows get none.
+    private static void CodeCopyButton()
+    {
+        const string code = "first line\n  second line";
+        var chat = new FakeChat();
+        chat.Snapshot.Add(Item(new ChatAssistantItem("a1", 1, "Some `inline` code\n\n```csharp\n" + code + "\n```\n\nafter")));
+        chat.Snapshot.Add(Item(new ChatAssistantItem("a2", 2, "no block, only `inline`")));
+        var view = new ChatView(new ChatEnvironment(chat, TestAgent), Workspace, Chat);
+        var window = new Window { Width = 900, Height = 700, Content = view, Background = Ui.Surface };
+        window.Show();
+        try
+        {
+            Frame(window); Frame(window);
+            var list = view.List;
+            var origin = list.TranslatePoint(new Point(0, 0), window)!.Value;
+            Point In(string id, double x, double y) => new(origin.X + x, origin.Y + list.RowTop(id) + y);
+            bool Find(string id)
+            {
+                var height = list.VisibleRows().First(row => row.Row.Id == id).Height;
+                for (double y = 4; y < height; y += 4)
+                    for (double x = 8; x < 900; x += 6)
+                    {
+                        window.MouseMove(In(id, x, y));
+                        if (list.HoveredHit is { Kind: ChatHitKind.CopyCode }) return true;
+                    }
+                return false;
+            }
+            Require(!Find("a2"), "Inline code gets no copy button.");
+            window.MouseMove(new Point(origin.X + 5, origin.Y - 4)); Frame(window);
+            Require(Find("a1"), "A fenced block has a copy button under the pointer.");
+            Require(list.SurfaceCursor is { } && !list.IsTextCursor, "The copy button shows the pointer, not the text cursor.");
+            var hit = list.HoveredHit!.Value;
+            Require(hit.Bounds.Width <= 24 && hit.Bounds.Height <= 24, "The copy button is small.");
+            var clipboard = window.Clipboard!;
+            Await(Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, "before"));
+            var at = In("a1", hit.Bounds.Center.X, hit.Bounds.Center.Y);
+            window.MouseDown(at, MouseButton.Left); window.MouseUp(at, MouseButton.Left); Frame(window);
+            E2eWorkspace.Until(() => list.CopiedCode is not null);
+            var task = Avalonia.Input.Platform.ClipboardExtensions.TryGetTextAsync(clipboard);
+            Await(task);
+            Require(task.Result == code, "Copy puts exactly the block's code on the clipboard: '" + task.Result + "'.");
+            E2eWorkspace.Until(() => list.CopiedCode is null);
+            Require(list.CopiedCode is null, "The copied feedback resets.");
+            // Away from the block there is no button.
+            window.MouseMove(new Point(origin.X + 5, origin.Y - 4)); Frame(window);
+            Require(list.HoveredHit is null, "Without hover nothing is a target.");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
         finally { window.Close(); }
