@@ -106,6 +106,8 @@ public static class LanguageMcpTools
 
     public static IReadOnlyList<McpServer.McpTool> Create(HostStateStore state, string callingWorkspace)
     {
+        // A host whose plugins provide no language server (a browser tab) offers agents no language tools.
+        if (state.LanguageCatalog.Count == 0) return [];
         return [Tool("lsp_diagnostics", "diagnostics"), Tool("lsp_navigate", "definition"), Tool("lsp_status", "status")];
 
         McpServer.McpTool Tool(string name, string operation) => new(name, name.Replace('_', ' '),

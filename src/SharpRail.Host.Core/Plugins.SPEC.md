@@ -90,6 +90,7 @@ follow the new default. Renaming a builtin's id moves its stored namespace in `H
 A plugin whose manifest lists the host's kind (`PluginHostSeams.Kind`, default
 `OperatingSystem`) in `UnavailableOn` is refused before any of its code loads, with the reason
 `plugin <id> is not available in the Playground`; its dependents follow through the ordinary dependency refusal.
+Every language server plugin lists `PureWeb`, so a browser tab has an empty language catalog: its `lsp_*` MCP tools are not offered, the Code intelligence prompt section is left out, and a language request that reaches the service answers `unavailable` before it touches a file, a probe or a process. The UI reads the same fact from the roster (it leaves out Code Intelligence, the editor's language chords, menu items and quick fixes, and the language keymap group once the host has refused every `lsp-*` plugin). A host with an operating system is unchanged.
 A plugin already active is left alone (the kind never changes during a run). A
 dependency cycle refuses every plugin the topological order could not place (those in the cycle and anything
 transitively depending on them). Activations walk the order forward; deactivations walk it in reverse. Desired

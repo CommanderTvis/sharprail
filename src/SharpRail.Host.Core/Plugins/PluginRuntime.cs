@@ -904,7 +904,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         }
         // Only the section placement carries the Code Intelligence text, so a tool-list read starts no census.
         var profile = workspace.Length > 0 && placement == PromptPlacement.Section ? Seams.State.ProjectLanguages(workspace) : null;
-        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled, () => Seams.State.LanguageCatalog, profile, workspace,
+        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled && Seams.State.LanguageCatalog.Count > 0, () => Seams.State.LanguageCatalog, profile, workspace,
             Projects().Select(project => project.Path).ToArray(), path => Projects().FirstOrDefault(project => project.Path == path)?.WorktreesDirectory).Where(item => Applies(item, "host"))
             .Select(item => (SectionId(null, item.Id), (string?)null, "SharpRail", item));
         var plugins = Active().SelectMany(active => active.Tables.Prompts.Select(item => (active.Entry, item)))

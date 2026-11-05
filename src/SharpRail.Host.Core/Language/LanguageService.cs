@@ -99,8 +99,9 @@ public sealed partial class LanguageService : IAsyncDisposable
         token.ThrowIfCancellationRequested();
         if (Volatile.Read(ref disposed) != 0) return new("stopped", "The host is shutting down.");
         // A browser tab starts no processes, and every other operation that looks for or runs a server ends in PlatformNotSupported.
-        if (OperatingSystem.IsBrowser() && LanguageLinks.InTab is null && request.Operation is not ("configurationSchema" or "configuration" or "configure" or "logs" or "release" or "close" or "catalog"))
-            return new("unavailable", "Language servers do not run in the Playground yet.", Version: request.Version) { Freshness = "unavailable" };
+        // It serves only the servers its page runs itself, so with none in the catalog nothing reaches a file, a probe or a launch.
+        if (OperatingSystem.IsBrowser() && (LanguageLinks.InTab is null || servers.Servers.Count == 0) && request.Operation is not ("configurationSchema" or "configuration" or "configure" or "logs" or "release" or "close" or "catalog"))
+            return new("unavailable", "Language servers are not available in the Playground.", Version: request.Version) { Freshness = "unavailable" };
         if (request.Operation == "catalog")
         {
             // Settings shows each server's host tools before anything starts; probing reads files and PATH only, never runs a tool.
