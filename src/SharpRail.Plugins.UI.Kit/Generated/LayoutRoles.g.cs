@@ -26,5 +26,5 @@ public static class LayoutRoles
     /// <summary>The space after a terminal chip and below its row, so chip rows share one grid.</summary>
     public const double ChipGap = 4;
     /// <summary>The space a text box's caret keeps from the character before it at the end of the text, drawn by every text box so none sits flush against its last character.</summary>
-    public const double CaretGap = 2;
+    public const double CaretGap = 1;
 }

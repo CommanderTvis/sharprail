@@ -65,7 +65,7 @@ internal static class DrawnRenderingChecks
             var caret = focused.Except(glyph).Where(x => x >= glyph.Min()).ToList();
             Require(caret.Count > 0, "A focused text box draws a caret.");
             var gap = caret.Min() - glyph.Max() - 1;
-            Require(gap >= 2, $"The caret sits apart from the last character: gap={gap} px (glyph ends at {glyph.Max()}, caret at {caret.Min()}).");
+            Require(gap >= 1, $"The caret sits apart from the last character: gap={gap} px (glyph ends at {glyph.Max()}, caret at {caret.Min()}).");
         }
         finally { window.Close(); }
     }
