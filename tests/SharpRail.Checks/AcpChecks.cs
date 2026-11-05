@@ -354,9 +354,25 @@ internal static class AcpChecks
         Require(AcpEntryText.IdFor("My Agent!") == "custom-my-agent", "A custom agent gets a stable id from its name.");
     }
 
+    // The settings lists mirror Code Intelligence: one row model per registry entry, a search over name, description and id, and an install status per row.
+    internal static void Rows()
+    {
+        var view = AcpRegistry.View(AcpRegistry.Parse(FixtureText())!, "network", null, null, "darwin-aarch64");
+        var none = new List<AcpAgentEntry>();
+        Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, none, null).Count == 5 && SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, none, "  ").Count == 5, "A blank search lists every registry agent.");
+        Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, none, "GOOSE").Select(row => row.Agent.Id).SequenceEqual(["goose"]) && SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, none, "nothing like it").Count == 0, "The search matches name, description and id without case.");
+        var rows = SharpRail.Plugins.Acp.UI.AcpRows.Registry(view, [new AcpAgentEntry("goose", "goose", "x") { Origin = "registry", Version = "1.57.0" }, new AcpAgentEntry("pi-acp", "Pi", "npx") { Origin = "registry", Version = "0.0.1" }, new AcpAgentEntry("codex-acp", "mine", "x")], null);
+        Require(rows.Single(row => row.Agent.Id == "goose") is { Status: "installed", CanInstall: false, ActionLabel: "Installed" }, "An installed agent of the same version says Installed and offers no button.");
+        Require(rows.Single(row => row.Agent.Id == "pi-acp") is { Status: "update", CanInstall: true, ActionLabel: "Update ▷" }, "Another installed version offers an update.");
+        Require(rows.Single(row => row.Agent.Id == "codex-acp") is { Status: "available", ActionLabel: "Install ▷" }, "A custom agent with the same id is not the registry install.");
+        var plan9 = AcpRegistry.View(AcpRegistry.Parse(FixtureText())!, "network", null, null, "plan9-riscv");
+        Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(plan9, none, "goose").Single() is { Status: "unavailable", CanInstall: false }, "An agent with no distribution for this machine cannot be installed.");
+    }
+
     internal static async Task Run(string root)
     {
         Manifest();
+        Rows();
         EntryText();
         Logo();
         await Protocol();

@@ -94,28 +94,55 @@ internal sealed partial class AcpSettingsView : StackPanel
         return block;
     }
 
+    private readonly HashSet<string> expanded = [];
+    private IReadOnlyList<AcpAgentEntry> configured = [];
+
+    private static Control Quiet(string name, string label, Action click)
+    {
+        var button = new Button { Name = name, Content = label, Classes = { "link" }, Padding = new Avalonia.Thickness(0, 2) };
+        button.Click += (_, _) => click();
+        return button;
+    }
+
+    private static Control StatusIcon(string icon, Avalonia.Media.IBrush color, string description)
+    {
+        var mark = Ui.Icon(icon, color);
+        ToolTip.SetTip(mark, description);
+        Avalonia.Automation.AutomationProperties.SetName(mark, description);
+        return mark;
+    }
+
     private void RenderAgents(AcpAgentList list)
     {
+        configured = list.Agents;
         agents.Children.Clear();
         if (list.Agents.Count == 0) agents.Children.Add(Text("No agent yet. Install one from the registry or add your own below.", detail: true));
         foreach (var agent in list.Agents)
         {
-            var row = new StackPanel { Spacing = 4, Name = "AcpAgent_" + agent.Id };
-            row.Children.Add(Text(agent.Name + (agent.Version is { } version ? "  v" + version : "") + (agent.Origin == "registry" ? "  (registry)" : "  (custom)")));
-            row.Children.Add(Text(AcpEntryText.CommandLine(agent), code: true));
-            var environment = new TextBox { Text = AcpEntryText.FormatEnvironment(agent.Env), AcceptsReturn = true, PlaceholderText = "Environment, one NAME=value per line", FontFamily = Ui.CodeFont, FontSize = 12, MinHeight = 40 };
-            var directory = new TextBox { Text = agent.Cwd, PlaceholderText = "Working directory (blank: the workspace)", FontFamily = Ui.CodeFont, FontSize = 12 };
-            void Save() => _ = RunAsync(() => context.RequestAsync(AcpContract.AddAgent, agent with { Env = AcpEntryText.ParseEnvironment(environment.Text ?? ""), Cwd = directory.Text?.Trim() ?? "" }).AsTask(), _ => { }, "Couldn't save the agent");
-            environment.LostFocus += (_, _) => Save();
-            directory.LostFocus += (_, _) => Save();
-            row.Children.Add(environment);
-            row.Children.Add(directory);
-            var remove = new Button { Content = "Remove", HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left };
-            remove.Click += (_, _) => _ = RunAsync(() => context.RequestAsync(AcpContract.RemoveAgent, new AcpChooseParams("", "", agent.Id)).AsTask(), RenderAgents, "Couldn't remove the agent");
-            row.Children.Add(remove);
-            agents.Children.Add(row);
+            var open = expanded.Contains(agent.Id);
+            var details = new StackPanel { Spacing = 2 };
+            details.Children.Add(Text(AcpEntryText.CommandLine(agent), code: true));
+            if (open)
+            {
+                var environment = new TextBox { Text = AcpEntryText.FormatEnvironment(agent.Env), AcceptsReturn = true, PlaceholderText = "Environment, one NAME=value per line", FontFamily = Ui.CodeFont, FontSize = 12, MinHeight = 40 };
+                var directory = new TextBox { Text = agent.Cwd, PlaceholderText = "Working directory (blank: the workspace)", FontFamily = Ui.CodeFont, FontSize = 12 };
+                void Save() => _ = RunAsync(() => context.RequestAsync(AcpContract.AddAgent, agent with { Env = AcpEntryText.ParseEnvironment(environment.Text ?? ""), Cwd = directory.Text?.Trim() ?? "" }).AsTask(), _ => { }, "Couldn't save the agent");
+                environment.LostFocus += (_, _) => Save();
+                directory.LostFocus += (_, _) => Save();
+                details.Children.Add(environment);
+                details.Children.Add(directory);
+            }
+            var title = Text(agent.Name + (agent.Version is { } version ? "  v" + version : "") + (agent.Origin == "registry" ? "  (registry)" : "  (custom)"));
+            title.TextWrapping = Avalonia.Media.TextWrapping.NoWrap;
+            title.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+            var disclosure = Quiet("AcpAgentDetails_" + agent.Id, open ? "▾" : "▸", () => { if (!expanded.Remove(agent.Id)) expanded.Add(agent.Id); RenderAgents(list); });
+            var remove = Quiet("AcpAgentRemove_" + agent.Id, "Remove", () => _ = RunAsync(() => context.RequestAsync(AcpContract.RemoveAgent, new AcpChooseParams("", "", agent.Id)).AsTask(), RenderAgents, "Couldn't remove the agent"));
+            agents.Children.Add(RegistryRow.Create("AcpAgent_" + agent.Id, StatusIcon("check", Ui.Success, "Ready to chat"), AcpIconFor(agent.Id), title, disclosure, remove, details));
         }
     }
+
+    /// <summary>The agent's mark: the generic ACP glyph.</summary>
+    private Control AcpIconFor(string id) => AcpGlyph.Create(16);
 
     private void RenderRegistry()
     {
@@ -127,25 +154,31 @@ internal sealed partial class AcpSettingsView : StackPanel
             "cache" => "Saved copy from " + registry.FetchedAt,
             _ => "Built-in list"
         } + (registry.Note is { } note ? ". " + note : "");
-        var query = search.Text?.Trim() ?? "";
-        foreach (var agent in registry.Agents.Where(agent => query.Length == 0 || agent.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || agent.Description.Contains(query, StringComparison.OrdinalIgnoreCase) || agent.Id.Contains(query, StringComparison.OrdinalIgnoreCase)))
+        var rows = AcpRows.Registry(registry, configured, search.Text);
+        if (rows.Count == 0) registryList.Children.Add(Text("No agent matches the search.", detail: true));
+        foreach (var model in rows)
         {
-            var row = new StackPanel { Spacing = 2, Name = "AcpRegistryAgent_" + agent.Id };
+            var agent = model.Agent;
             var title = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8 };
-            title.Children.Add(Text($"{agent.Name}  v{agent.Version}  ({string.Join(", ", agent.Kinds)})"));
+            var name = Text(model.Title);
+            name.TextWrapping = Avalonia.Media.TextWrapping.NoWrap;
+            name.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+            title.Children.Add(name);
             if (agent.NotRecommended is { } reason)
             {
                 var tag = new Border { Name = "AcpNotRecommended_" + agent.Id, Background = Ui.WarningWash, CornerRadius = new Avalonia.CornerRadius(8), Padding = new Avalonia.Thickness(8, 0), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Child = new TextBlock { Text = "Not recommended", FontSize = 11, Foreground = Ui.Warning } };
                 ToolTip.SetTip(tag, reason);
                 title.Children.Add(tag);
             }
-            row.Children.Add(title);
-            row.Children.Add(Text(agent.Description, detail: true));
-            if (agent.NotRecommended is { } why) row.Children.Add(Text(why, detail: true));
-            var install = new Button { Content = agent.Installable ? "Install…" : "Not available on this machine", IsEnabled = agent.Installable, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left };
-            install.Click += (_, _) => _ = RunAsync(() => context.RequestAsync(AcpContract.InstallPlan, new AcpInstallPlanParams(agent.Id)).AsTask(), ShowPlan, "Couldn't prepare the install");
-            row.Children.Add(install);
-            registryList.Children.Add(row);
+            var details = new StackPanel { Spacing = 2 };
+            details.Children.Add(Text(agent.Description, detail: true));
+            if (agent.NotRecommended is { } why) details.Children.Add(Text(why, detail: true));
+            details.Children.Add(Text(string.Join(", ", agent.Kinds), detail: true));
+            Control action;
+            if (model.CanInstall) action = Quiet("AcpInstall_" + agent.Id, model.ActionLabel, () => _ = RunAsync(() => context.RequestAsync(AcpContract.InstallPlan, new AcpInstallPlanParams(agent.Id)).AsTask(), ShowPlan, "Couldn't prepare the install"));
+            else action = new TextBlock { Name = "AcpInstalled_" + agent.Id, Text = model.ActionLabel, FontSize = 12, Foreground = Ui.Muted, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+            var mark = model.Status switch { "installed" => StatusIcon("check", Ui.Success, model.StatusText), "update" => StatusIcon("refresh", Ui.Muted, model.StatusText), "unavailable" => StatusIcon("alertWarning", Ui.Muted, model.StatusText), _ => null };
+            registryList.Children.Add(RegistryRow.Create("AcpRegistryAgent_" + agent.Id, mark, AcpIconFor(agent.Id), title, null, action, details));
         }
     }
 
