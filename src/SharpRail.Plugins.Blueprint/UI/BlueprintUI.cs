@@ -52,7 +52,7 @@ public sealed class BlueprintUI : PluginUIModule
         {
             if (TopLevel.GetTopLevel(trigger) is not Window owner) return;
             var dialog = DialogWindow.Create("Draft a blueprint", 560);
-            dialog.Tag = "BlueprintStart"; dialog.InWindow = true;
+            dialog.Tag = "BlueprintStart";
             dialog.FindControl<TextBlock>("DialogExplanation")!.Text = "Start from an idea, or take over something that already exists. Either way you get a workspace with the agent on the left, writing a spec you can change on the right.";
             var fields = new BlueprintStartFields(context, project);
             dialog.FindControl<StackPanel>("DialogFields")!.Children.Add(fields);

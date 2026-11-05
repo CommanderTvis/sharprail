@@ -29,7 +29,7 @@ public sealed class PathBrowserDialog
     private PathBrowserFolder? shown;
     private string? homePath;
 
-    public Window Window { get; }
+    public SharpRail.Plugins.UI.Kit.DialogWindow Window { get; }
 
     public PathBrowserDialog(string title, string start, Func<string, CancellationToken, Task<PathBrowserFolder>> list)
     {

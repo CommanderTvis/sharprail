@@ -47,15 +47,22 @@ agents merely by opening Settings. Static controls live in the compiled page tem
   it adds no gap. Standard dialogs use a 448px card.
 - Buttons are 32px tall; the confirming action is the solid primary (`primary` class: `PrimaryFill`,
   `PrimaryFillHover` on hover, `OnPrimary` label), others are outlined in the text colour.
-- A dialog opts into the window overlay with `DialogWindow.InWindow`: `Dialogs.CloneProject`, `Confirm`, `Prompt`, `PathName`
-  and the Blueprint draft dialog do. Over a workbench window they are not owned windows but content in a layer of the
-  window's own (`WorkbenchWindow.Present`, one `OverlayHost` per dialog, stacked above Settings), so clicking the owner
-  cannot re-order or re-create them, which is what made the owned Clone repository dialog flicker on macOS. The scrim takes
-  every press, so a click outside does nothing. Escape and Mod+W close, focus returns to the control that had it, and the
-  window's commands stay out of reach while one is open. The layer clamps the card to the window (height first, then
-  width): the heading and the actions stay in view and the fields scroll in between, so no dialog can outgrow the window.
-  Callers keep `Opened`, `Closed`, `Close(result)` and `ShowDialog<T>`. Without a hosting owner (no window, or a dialog
-  owned by another dialog) they fall back to an owned window. The other dialogs stay owned windows until moved the same way.
+- Every dialog is content in the window overlay, like Settings. Over a workbench window a `DialogWindow` is not an owned
+  window but a layer of the window's own (`WorkbenchWindow.Present`, one `OverlayHost` per dialog, stacked above Settings
+  and each other), so clicking the owner cannot re-order or re-create it, which is what made the owned Clone repository
+  dialog flicker on macOS. The scrim takes every press, so a click outside does nothing. Escape and Mod+W close, focus goes
+  to the dialog's first control when its code focuses none, focus returns to the control that had it (also when one dialog
+  follows another at once), and the window's commands stay out of reach while one is open. The layer clamps the card to
+  the window (height first, then width): the heading and the actions stay in view and the fields scroll in between, so no
+  dialog can outgrow the window. Callers keep `Opened`, `Closed`, `Close(result)` and `ShowDialog<T>`; on Android the card
+  docks to the bottom edge, and in the browser the dialog is drawn in the page canvas like everything else. This covers
+  Create project, Open by path, Clone repository, Notice, Confirm, Prompt, AskToSave, the save-conflict and
+  discard-unsaved dialogs, the local-browser approval, New workspace, Search, Existing worktree, the path browser, About,
+  the GitHub, Claude Code, Codex, Air Context enable, Blueprint, setting-value and chat dialogs.
+- Native windows that stay: the Mermaid full-screen viewer (`DialogWindow.InWindow = false`: a resizable viewer sized from
+  its window), the Language settings, logs and terms windows and the Air Context consent and logs windows (own `Window`
+  classes, deliberately separate), and a dialog with no owner or an owner that cannot host one (About from the macOS menu
+  with no window). Those use the owned-window path, which in the browser is still placed by `.sharprail-dialog`.
 - Escape closes as a dismissal. `Dialogs.Confirm` focuses Cancel initially; `Dialogs.Prompt` and
   `Dialogs.HostPath` focus their first field; `Dialogs.AskToSave` focuses Save.
 - `Dialogs.HostPath` is the Open project by path dialog: it says the path belongs to the computer

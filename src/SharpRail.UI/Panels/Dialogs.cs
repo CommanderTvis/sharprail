@@ -66,7 +66,6 @@ public static class Dialogs
     public static async Task<string[]?> Prompt(Window owner, string title, params (string Label, string Value)[] fields)
     {
         var window = Create(title, 520);
-        window.InWindow = true;
         var panel = window.FindControl<StackPanel>("DialogFields")!;
         var inputs = new List<TextBox>();
         foreach (var field in fields)
@@ -116,7 +115,6 @@ public static class Dialogs
         Func<string, bool> exists, Func<string, Task> submit, string? explanation = null, bool selectStem = true, bool pathLike = true)
     {
         var window = Create(title, 520);
-        window.InWindow = true;
         if (explanation is not null)
         {
             var description = window.FindControl<TextBlock>("DialogExplanation")!;
@@ -179,7 +177,6 @@ public static class Dialogs
         CancellationToken dismiss = default)
     {
         var window = Create(title, 520);
-        window.InWindow = true;
         window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
         var text = window.FindControl<TextBlock>("DialogExplanation")!;
         text.Text = explanation; text.IsVisible = true;
@@ -296,7 +293,6 @@ public static class Dialogs
         Func<string, string, string, int?, Task<string>> clone)
     {
         var window = Create("Clone repository", 560);
-        window.InWindow = true;
         window.Tag = "CloneProjectDialog";
         var explanation = window.FindControl<TextBlock>("DialogExplanation")!;
         explanation.Text = "Runs git clone into a folder you choose, then opens the clone as a project.";

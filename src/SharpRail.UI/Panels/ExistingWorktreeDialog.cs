@@ -17,7 +17,7 @@ public sealed class ExistingWorktreeDialog
     private int request;
     private bool opening;
 
-    public Window Window { get; }
+    public SharpRail.Plugins.UI.Kit.DialogWindow Window { get; }
 
     public ExistingWorktreeDialog(Func<Task<IReadOnlyList<ExistingWorktree>>> list, Func<string, Task<WorkspaceRecord>> attach)
     {

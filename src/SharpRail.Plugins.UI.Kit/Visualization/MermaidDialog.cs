@@ -22,6 +22,8 @@ public static class MermaidDialog
         window.SizeToContent = SizeToContent.Manual;
         window.Height = Math.Max(360, owner.Bounds.Height * 0.9);
         window.CanResize = true;
+        // A resizable viewer of its own, sized from its window: it stays one.
+        window.InWindow = false;
         var stage = new PanZoomView(diagram, capped: false, text, source) { Height = window.Height - 110 };
         window.FindControl<StackPanel>("DialogFields")!.Children.Add(stage);
         window.SizeChanged += (_, _) => stage.Height = Math.Max(120, window.Bounds.Height - 110);

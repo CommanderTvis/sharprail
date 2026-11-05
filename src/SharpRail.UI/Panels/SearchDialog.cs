@@ -23,7 +23,7 @@ public sealed class SearchDialog
     private readonly DispatcherTimer debounce;
     private CancellationTokenSource? pending;
 
-    public Window Window { get; }
+    public SharpRail.Plugins.UI.Kit.DialogWindow Window { get; }
 
     public SearchDialog(Func<string, CancellationToken, Task<SearchHits>> search)
     {

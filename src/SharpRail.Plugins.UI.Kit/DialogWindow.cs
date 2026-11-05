@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 namespace SharpRail.Plugins.UI.Kit;
 
 /// <summary>A window that dims itself while a dialog it owns is open.</summary>
@@ -30,8 +31,8 @@ public sealed partial class DialogWindow : Window
     private TaskCompletionSource<object?>? completion;
     private Window? host;
 
-    /// <summary>Shows this dialog in its owner's overlay when the owner can host it (the default is an owned window).</summary>
-    public bool InWindow { get; set; }
+    /// <summary>Shows this dialog in its owner's overlay when the owner can host it (the default); false keeps it an owned window.</summary>
+    public bool InWindow { get; set; } = true;
 
     /// <summary>The card as content of the owner's overlay; null while this is an owned window.</summary>
     public Control? Surface { get; private set; }
@@ -40,7 +41,7 @@ public sealed partial class DialogWindow : Window
     public Window? Host => host;
 
     /// <summary>True while shown in an overlay, where the window itself is never shown.</summary>
-    public bool InOverlay => completion is not null;
+    public bool InOverlay => completion is { Task.IsCompleted: false };
 
     /// <summary>The child windows of <paramref name="owner"/> plus the dialogs it hosts in its overlay, oldest first.</summary>
     public static IReadOnlyList<Window> On(Window owner) => [.. owner.OwnedWindows, .. inOverlay.Where(dialog => dialog.host == owner)];
@@ -109,7 +110,14 @@ public sealed partial class DialogWindow : Window
         completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
         inOverlay.Add(this);
         // After the overlay has taken its own focus, so a handler that focuses a field wins.
-        Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (completion is { Task.IsCompleted: false }) OnOpened(EventArgs.Empty); }, Avalonia.Threading.DispatcherPriority.Input);
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (completion is not { Task.IsCompleted: false }) return;
+            OnOpened(EventArgs.Empty);
+            // Escape reaches the card only from inside it, so a dialog whose handler focused nothing gets its first control.
+            if (TopLevel.GetTopLevel(root)?.FocusManager?.GetFocusedElement() is not Avalonia.Visual focused || !root.IsVisualAncestorOf(focused))
+                root.GetVisualDescendants().OfType<InputElement>().FirstOrDefault(item => item.Focusable && item.IsEffectivelyVisible && item.IsEffectivelyEnabled)?.Focus();
+        }, Avalonia.Threading.DispatcherPriority.Input);
         return Result<T>(completion.Task);
     }
 

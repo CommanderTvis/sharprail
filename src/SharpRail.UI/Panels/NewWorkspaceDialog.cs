@@ -46,7 +46,7 @@ public sealed class NewWorkspaceDialog
     private readonly IReadOnlyList<AgentLauncher> launchers;
     private AgentLauncher? launcher;
 
-    public Window Window { get; }
+    public SharpRail.Plugins.UI.Kit.DialogWindow Window { get; }
     /// <summary>The project the workspace will be created in; picking another one loads its branches through <see cref="LoadProject"/>.</summary>
     public string Project { get; private set; }
     /// <summary>Returns a project's branch catalogue, or null when it cannot be used; the dialog then keeps its project.</summary>
