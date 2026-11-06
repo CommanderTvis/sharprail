@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using SharpRail.Plugins.Chat;
@@ -235,7 +234,7 @@ internal sealed class AcpFolder
             }
             output = text.ToString().TrimEnd();
         }
-        var input = update["rawInput"] is { } raw ? JsonSerializer.SerializeToElement(raw) : existing?.Input ?? JsonSerializer.SerializeToElement(new { });
+        var input = update["rawInput"] is { } raw ? AcpLocalJson.Input(raw) : existing?.Input ?? AcpLocalJson.Input(null);
         var truncated = output is { } o && o.Length > ChatContract.OutputLimit;
         if (truncated) full[id] = output!;
         var summary = existing?.Summary ?? (path is { Length: > 0 } ? path : null);
@@ -299,7 +298,7 @@ internal sealed class AcpFolder
         CloseStreaming();
         var title = Str(toolCall, "title");
         var always = options.FirstOrDefault(option => option.Kind == "allow_always");
-        var item = new ChatPermissionItem("p" + ++counter, Next(), requestId, title.Length > 0 ? title : Str(toolCall, "kind"), toolCall["rawInput"] is { } raw ? JsonSerializer.SerializeToElement(raw) : JsonSerializer.SerializeToElement(new { }))
+        var item = new ChatPermissionItem("p" + ++counter, Next(), requestId, title.Length > 0 ? title : Str(toolCall, "kind"), AcpLocalJson.Input(toolCall["rawInput"]))
         {
             Title = title,
             Prompt = title.Length > 0 ? $"Allow \"{title}\"?" : "Allow this action?",

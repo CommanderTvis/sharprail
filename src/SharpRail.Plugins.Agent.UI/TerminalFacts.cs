@@ -26,8 +26,6 @@ public sealed record TerminalTodo(string Content, TerminalTodoStatus Status, str
 /// </summary>
 public static class TerminalFacts
 {
-    private static readonly System.Text.Json.JsonSerializerOptions AttachJson = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-
     /// <summary>A directory, written in full as the terminal shows it, whose middle, not its identifying end, is what a long path loses.</summary>
     public static string? CwdLabel(string? cwd) => SharpRail.Plugins.UI.Kit.PathLine.Label(cwd);
 
@@ -45,7 +43,7 @@ public static class TerminalFacts
 
     /// <summary>Quotes a file reference containing whitespace, quotes or control characters for prompt insertion.</summary>
     public static string QuoteAttachPath(string path) => path.Any(c => char.IsWhiteSpace(c) || char.IsControl(c) || c is '\"' or '\\' or '\'')
-        ? System.Text.Json.JsonSerializer.Serialize(path, AttachJson) : path;
+        ? System.Text.Json.JsonSerializer.Serialize(path, AgentUIJson.Relaxed.String) : path;
 
     /// <summary>Token counts with pi's compact thresholds: 999, 1.2k, 12k, 1.2M, 10M.</summary>
     public static string FormatTokens(long count) => count switch

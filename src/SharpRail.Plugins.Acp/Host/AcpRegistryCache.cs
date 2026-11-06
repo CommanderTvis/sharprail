@@ -42,7 +42,7 @@ internal sealed class AcpRegistryCache(string directory, AcpFetch fetch, Func<Da
         try
         {
             if (!File.Exists(BodyPath) || !File.Exists(MetaPath)) return null;
-            var meta = JsonSerializer.Deserialize<AcpRegistryMeta>(File.ReadAllText(MetaPath));
+            var meta = JsonSerializer.Deserialize(File.ReadAllText(MetaPath), AcpLocalJson.Default.AcpRegistryMeta);
             return meta is null ? null : (File.ReadAllText(BodyPath), meta);
         }
         catch (Exception error) when (error is IOException or JsonException or UnauthorizedAccessException) { return null; }
@@ -55,7 +55,7 @@ internal sealed class AcpRegistryCache(string directory, AcpFetch fetch, Func<Da
         var bodyTemp = BodyPath + ".tmp";
         var metaTemp = MetaPath + ".tmp";
         File.WriteAllText(bodyTemp, body);
-        File.WriteAllText(metaTemp, JsonSerializer.Serialize(meta));
+        File.WriteAllText(metaTemp, JsonSerializer.Serialize(meta, AcpLocalJson.Default.AcpRegistryMeta));
         File.Move(bodyTemp, BodyPath, overwrite: true);
         File.Move(metaTemp, MetaPath, overwrite: true);
     }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SharpRail.Plugins.Tailscale;
 
@@ -7,7 +8,6 @@ public sealed record TailscaleWasmManifest(string Version, string Build, string 
 {
     /// <summary>Cache Storage names start with this; anything else in the origin's caches is never touched.</summary>
     public const string CachePrefix = "sharprail-tailscale-";
-    private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
 
     /// <summary>One cache per build, so a new Tailscale pin or bridge change never reuses an older module.</summary>
     public string CacheName => CachePrefix + Build;
@@ -18,7 +18,7 @@ public sealed record TailscaleWasmManifest(string Version, string Build, string 
     /// <summary>Parses and validates the manifest: same-origin relative paths under <c>tailscale/</c> only.</summary>
     public static TailscaleWasmManifest Parse(string json)
     {
-        var manifest = JsonSerializer.Deserialize<TailscaleWasmManifest>(json, Options)
+        var manifest = JsonSerializer.Deserialize(json, TailscaleWasmJson.Default.TailscaleWasmManifest)
             ?? throw new FormatException("The Tailscale manifest is empty.");
         static bool Safe(string? path) => path is { Length: > 0 } && path.StartsWith("tailscale/", StringComparison.Ordinal) &&
             !path.Contains("..", StringComparison.Ordinal) && !path.Contains("//", StringComparison.Ordinal) && !path.Contains(':', StringComparison.Ordinal);
@@ -170,3 +170,8 @@ public static class TailscalePeers
     public static Uri? LoginUrl(string? value) => Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == "https" &&
         uri.UserInfo.Length == 0 && (uri.Host == "tailscale.com" || uri.Host.EndsWith(".tailscale.com", StringComparison.OrdinalIgnoreCase)) ? uri : null;
 }
+
+/// <summary>Source-generated JSON metadata for the manifest, read with case-insensitive names.</summary>
+[JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
+[JsonSerializable(typeof(TailscaleWasmManifest))]
+internal sealed partial class TailscaleWasmJson : JsonSerializerContext;

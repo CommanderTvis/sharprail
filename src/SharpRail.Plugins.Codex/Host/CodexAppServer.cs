@@ -82,20 +82,20 @@ public sealed partial class CodexAppServer
     {
         try
         {
-            await SendRequestAsync("initialize", new { clientInfo = new { name = "sharprail", title = "SharpRail", version = "0.1.0" } });
-            Send(new { method = "initialized", @params = new { } });
+            await SendRequestAsync("initialize", new JsonObject { ["clientInfo"] = new JsonObject { ["name"] = "sharprail", ["title"] = "SharpRail", ["version"] = "0.1.0" } });
+            Send(new JsonObject { ["method"] = "initialized", ["params"] = new JsonObject() });
         }
         catch (Exception error) { Fail(error); }
     }
 
     /// <summary>A request once initialization has completed; rejects with the connection's failure.</summary>
-    public async Task<JsonElement> RequestAsync(string method, object? parameters = null)
+    public async Task<JsonElement> RequestAsync(string method, JsonObject? parameters = null)
     {
         await ready;
-        return await SendRequestAsync(method, parameters ?? new { });
+        return await SendRequestAsync(method, parameters ?? []);
     }
 
-    private Task<JsonElement> SendRequestAsync(string method, object parameters)
+    private Task<JsonElement> SendRequestAsync(string method, JsonObject parameters)
     {
         TaskCompletionSource<JsonElement> request;
         long id;
@@ -109,18 +109,18 @@ public sealed partial class CodexAppServer
         var timer = new CancellationTokenSource(timeout);
         timer.Token.Register(() => Fail(new TimeoutException($"Codex {method} timed out.")));
         _ = request.Task.ContinueWith(_ => timer.Dispose(), TaskScheduler.Default);
-        try { Send(new { id, method, @params = parameters }); }
+        try { Send(new JsonObject { ["id"] = id, ["method"] = method, ["params"] = parameters }); }
         catch (Exception error) { Fail(error); }
         return request.Task;
     }
 
-    private void Send(object message)
+    private void Send(JsonObject message)
     {
         Exception? failed;
         lock (gate) failed = failure;
         if (failed is not null) throw failed;
         if (child is null) throw new InvalidOperationException("Codex app-server is not running.");
-        var line = JsonSerializer.Serialize(message) + "\n";
+        var line = message.ToJsonString() + "\n";
         lock (child) { child.StandardInput.Write(line); child.StandardInput.Flush(); }
     }
 
@@ -158,7 +158,7 @@ public sealed partial class CodexAppServer
             {
                 // A request from the server (it has an id) is answered; a notification needs nothing.
                 if (message.TryGetPropertyValue("id", out var serverId))
-                    Send(new { id = serverId?.DeepClone(), error = new { code = -32601, message = "Method not supported" } });
+                    Send(new JsonObject { ["id"] = serverId?.DeepClone(), ["error"] = new JsonObject { ["code"] = -32601, ["message"] = "Method not supported" } });
                 return;
             }
             if (message["id"] is not JsonValue idValue || !idValue.TryGetValue<long>(out var id)) return;
@@ -170,7 +170,7 @@ public sealed partial class CodexAppServer
             lock (gate) pending.Remove(id);
             if (message["error"] is JsonObject error)
                 call.TrySetException(new InvalidOperationException(error["message"]?.ToString() ?? "Codex request failed."));
-            else call.TrySetResult(JsonSerializer.SerializeToElement(message["result"]));
+            else call.TrySetResult(CodexHostJson.Element(message["result"]));
         }
         catch (JsonException) { Fail(new InvalidOperationException("Invalid Codex app-server response.")); }
         catch (Exception error) { Fail(error); }

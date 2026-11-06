@@ -735,7 +735,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
             path => OpenSource(path, entry.Origin.KeyPath), actions, entry.DocsUrl, "What this key does, in Claude Code's reference");
     }
 
-    private static string Json(JsonElement value) => JsonSerializer.Serialize(value, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+    private static string Json(JsonElement value) => JsonSerializer.Serialize(value, ClaudeUIJson.Relaxed.JsonElement);
 
     // What the capabilities surface asks of the pane: open a source, review an edit, run one of Claude's commands.
     internal void Open(string path, IReadOnlyList<string>? keyPath) => OpenSource(path, keyPath);

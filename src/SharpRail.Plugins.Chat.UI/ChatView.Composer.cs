@@ -1050,12 +1050,12 @@ internal sealed partial class ChatView
     private const int RecentLimit = 30;
     private ComposerPreferences? composerPreferences;
 
-    private sealed record ComposerPreferences(bool EnterSends, IReadOnlyList<string> Recents, string? Destination = null)
+    internal sealed record ComposerPreferences(bool EnterSends, IReadOnlyList<string> Recents, string? Destination = null)
     {
         public static ComposerPreferences Parse(string? json)
         {
             if (string.IsNullOrEmpty(json)) return new(true, []);
-            try { return System.Text.Json.JsonSerializer.Deserialize<ComposerPreferences>(json) is { } read ? read with { Recents = read.Recents ?? [] } : new(true, []); }
+            try { return System.Text.Json.JsonSerializer.Deserialize(json, ChatUIJson.Default.ComposerPreferences) is { } read ? read with { Recents = read.Recents ?? [] } : new(true, []); }
             catch (System.Text.Json.JsonException) { return new(true, []); }
         }
     }
@@ -1065,7 +1065,7 @@ internal sealed partial class ChatView
     private void SaveComposer(ComposerPreferences next)
     {
         composerPreferences = next;
-        env.ComposerPreference.Set(System.Text.Json.JsonSerializer.Serialize(next));
+        env.ComposerPreference.Set(System.Text.Json.JsonSerializer.Serialize(next, ChatUIJson.Default.ComposerPreferences));
     }
 
     /// <summary>Whether Enter with these modifiers sends: by default Enter sends and Shift+Enter breaks the line; with the option off, Ctrl or Cmd+Enter sends.</summary>

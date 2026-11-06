@@ -157,7 +157,7 @@ internal sealed partial class ChatView
                 break;
             default:
                 if (item.Description is { Length: > 0 } detail) root.Children.Add(Ui.Text(detail, Ui.Muted, 12));
-                var json = JsonSerializer.Serialize(item.Input, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(item.Input, ChatUIJson.Indented.JsonElement);
                 var expander = new Expander { Header = "Details", Content = new TextBlock { Text = json, FontFamily = Ui.CodeFont, FontSize = 11, TextWrapping = TextWrapping.Wrap, Foreground = Ui.Muted }, IsExpanded = false };
                 root.Children.Add(expander);
                 break;
@@ -199,7 +199,7 @@ internal sealed partial class ChatView
         if (commandBox is null || item.Input.ValueKind != JsonValueKind.Object) return null;
         var node = JsonNode.Parse(item.Input.GetRawText())!.AsObject();
         node["command"] = commandBox.Text ?? "";
-        return JsonSerializer.SerializeToElement(node);
+        return JsonSerializer.SerializeToElement(node, ChatUIJson.Default.JsonObject);
     }
 
     private void Reject(ChatPermissionItem item)

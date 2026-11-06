@@ -24,7 +24,7 @@ public static class CodexSkills
 
     private static Dictionary<string, string> ReadStamps()
     {
-        try { return JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(StampsPath())) ?? []; }
+        try { return JsonSerializer.Deserialize(File.ReadAllText(StampsPath()), CodexHostJson.Default.DictionaryStringString) ?? []; }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { return []; }
     }
 
@@ -36,7 +36,7 @@ public static class CodexSkills
             return;
         }
         Directory.CreateDirectory(Path.GetDirectoryName(StampsPath())!);
-        File.WriteAllText(StampsPath(), JsonSerializer.Serialize(stamps.OrderBy(pair => pair.Key, StringComparer.Ordinal).ToDictionary()));
+        File.WriteAllText(StampsPath(), JsonSerializer.Serialize(stamps.OrderBy(pair => pair.Key, StringComparer.Ordinal).ToDictionary(), CodexHostJson.Default.DictionaryStringString));
     }
 
     private static string Installed(string relative) => Path.Combine(Root(), relative.Replace('/', Path.DirectorySeparatorChar));

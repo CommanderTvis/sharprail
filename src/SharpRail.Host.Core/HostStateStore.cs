@@ -58,7 +58,7 @@ public sealed partial class HostStateStore : IHostStateService
     private readonly List<Channel<HostState>> watchers = [];
     // Settings a newer host wrote that this one does not know; written back untouched.
     private readonly Dictionary<string, JsonNode?> unknownSettings = [];
-    private static readonly HashSet<string> KnownSettings = typeof(HostSettings).GetProperties().Select(property => property.Name).ToHashSet();
+    private static readonly HashSet<string> KnownSettings = Json.Info<HostSettings>().Properties.Select(property => property.Name).ToHashSet();
     private HostState state;
     private readonly SemaphoreSlim changesGate = new(1, 1);
     private readonly Dictionary<string, TerminalRef> workspaceCreators = [];

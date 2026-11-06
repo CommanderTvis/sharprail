@@ -17,13 +17,13 @@ internal sealed record ModelPreferences(IReadOnlyList<string> Favorites, IReadOn
         if (string.IsNullOrEmpty(json)) return Empty;
         try
         {
-            var parsed = JsonSerializer.Deserialize<ModelPreferences>(json);
+            var parsed = JsonSerializer.Deserialize(json, ChatUIJson.Default.ModelPreferences);
             return parsed is null ? Empty : parsed with { Favorites = parsed.Favorites ?? [], Recents = parsed.Recents ?? [], Hidden = parsed.Hidden ?? [] };
         }
         catch (JsonException) { return Empty; }
     }
 
-    public string Serialize() => JsonSerializer.Serialize(this);
+    public string Serialize() => JsonSerializer.Serialize(this, ChatUIJson.Default.ModelPreferences);
 
     public ModelPreferences ToggleFavorite(string id) => this with { Favorites = Flip(Favorites, id), Recents = Recents.Where(recent => recent != id).ToList() };
 

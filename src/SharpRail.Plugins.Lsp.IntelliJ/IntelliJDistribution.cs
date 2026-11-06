@@ -2,6 +2,7 @@ using System.Formats.Tar;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using SharpRail.Plugins.Api.Host;
 
@@ -127,7 +128,7 @@ internal static class IntelliJDistribution
         var marker = Path.Combine(destination, ".sharprail-artifact.json");
         if (File.Exists(marker))
         {
-            var saved = JsonSerializer.Deserialize<Installed>(await File.ReadAllTextAsync(marker, token));
+            var saved = JsonSerializer.Deserialize(await File.ReadAllTextAsync(marker, token), IntelliJDistributionJson.Default.Installed);
             if (saved is not null && saved.ArchiveSha256 == bundle.Sha256 && Validate(destination, bundle.Version) == saved.EulaSha256) return destination;
             throw new IOException("IntelliJ installation changed; remove the SharpRail-owned installation before retrying.");
         }
@@ -151,7 +152,7 @@ internal static class IntelliJDistribution
             Directory.CreateDirectory(staging);
             await ExtractAsync(archive, staging, bundle.Url.AbsolutePath.EndsWith(".tar.gz", StringComparison.Ordinal), token);
             var terms = Validate(staging, bundle.Version);
-            await File.WriteAllTextAsync(Path.Combine(staging, ".sharprail-artifact.json"), JsonSerializer.Serialize(new Installed(bundle.Sha256, terms)), token);
+            await File.WriteAllTextAsync(Path.Combine(staging, ".sharprail-artifact.json"), JsonSerializer.Serialize(new Installed(bundle.Sha256, terms), IntelliJDistributionJson.Default.Installed), token);
             token.ThrowIfCancellationRequested();
             Directory.Move(staging, destination);
             return destination;
@@ -163,7 +164,7 @@ internal static class IntelliJDistribution
         }
     }
 
-    private sealed record Installed(string ArchiveSha256, string EulaSha256);
+    internal sealed record Installed(string ArchiveSha256, string EulaSha256);
 
     private static string Validate(string root, string version)
     {
@@ -263,3 +264,7 @@ internal static class IntelliJDistribution
         }
     }
 }
+
+/// <summary>Source-generated JSON metadata, with the serializer's default options, for the marker an installed distribution keeps.</summary>
+[JsonSerializable(typeof(IntelliJDistribution.Installed))]
+internal sealed partial class IntelliJDistributionJson : JsonSerializerContext;

@@ -28,7 +28,7 @@ public sealed record HostEndpoint(string Address, string Token)
         try
         {
             var path = File(directory);
-            return System.IO.File.Exists(path) ? JsonSerializer.Deserialize<HostEndpoint>(System.IO.File.ReadAllText(path)) : null;
+            return System.IO.File.Exists(path) ? JsonSerializer.Deserialize(System.IO.File.ReadAllText(path), AndroidJson.Default.HostEndpoint) : null;
         }
         catch (Exception error) when (error is IOException or JsonException or UnauthorizedAccessException) { return null; }
     }
@@ -36,7 +36,7 @@ public sealed record HostEndpoint(string Address, string Token)
     public void Save(string directory)
     {
         Directory.CreateDirectory(directory);
-        System.IO.File.WriteAllText(File(directory), JsonSerializer.Serialize(this));
+        System.IO.File.WriteAllText(File(directory), JsonSerializer.Serialize(this, AndroidJson.Default.HostEndpoint));
     }
 
     public static void Forget(string directory) => System.IO.File.Delete(File(directory));

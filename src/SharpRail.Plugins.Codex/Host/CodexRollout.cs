@@ -42,7 +42,7 @@ public sealed class CodexRolloutReader
     {
         if (arguments.ValueKind != JsonValueKind.String) return null;
         JsonElement parsed;
-        try { parsed = JsonSerializer.Deserialize<JsonElement>(arguments.GetString()!); }
+        try { parsed = JsonElement.Parse(arguments.GetString()!); }
         catch (JsonException) { return null; }
         if (parsed.ValueKind != JsonValueKind.Object || !parsed.TryGetProperty("plan", out var steps) || steps.ValueKind != JsonValueKind.Array) return null;
         var plan = new List<CodexPlanItem>();
@@ -64,7 +64,7 @@ public sealed class CodexRolloutReader
     private static void Apply(FileState state, string line)
     {
         JsonElement entry;
-        try { entry = JsonSerializer.Deserialize<JsonElement>(line); }
+        try { entry = JsonElement.Parse(line); }
         catch (JsonException) { return; }
         if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("payload", out var payload) || payload.ValueKind != JsonValueKind.Object) return;
         var type = entry.TryGetProperty("type", out var entryType) && entryType.ValueKind == JsonValueKind.String ? entryType.GetString() : null;

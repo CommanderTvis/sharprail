@@ -15,9 +15,7 @@ public static class CodexSettingsSurface
 {
     public delegate void Save(CodexWritableScope scope, IReadOnlyList<string> keyPath, JsonElement? value);
 
-    private static readonly JsonSerializerOptions Display = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-
-    private static string Show(JsonElement value) => JsonSerializer.Serialize(value, Display);
+    private static string Show(JsonElement value) => JsonSerializer.Serialize(value, CodexUIJson.Relaxed.JsonElement);
 
     private static ValueShape? Shape(string key) => CodexConfigDocs.ValueShape(key) switch
     {

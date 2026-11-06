@@ -89,7 +89,7 @@ internal static class ChatPermissions
             node["destination"] = destination;
             return node;
         });
-        return JsonSerializer.SerializeToElement(rewritten.ToArray());
+        return ClaudeJson.Element(new System.Text.Json.Nodes.JsonArray([.. rewritten]));
     }
 
     public static string DenyMessage(ChatAnswerParams answer, string tool)

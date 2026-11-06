@@ -127,7 +127,7 @@ internal static class IntelliJLicensing
         var subscriptions = new JsonArray();
         foreach (var item in jba["availableSubscriptions"] as JsonArray ?? [])
             if (item is JsonObject sub)
-                subscriptions.Add(new JsonObject
+                subscriptions.Add((JsonNode)new JsonObject
                 {
                     ["assetId"] = Text(sub["assetId"]),
                     ["product"] = Text(sub["product"]),

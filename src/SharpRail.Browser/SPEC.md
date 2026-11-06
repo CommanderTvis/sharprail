@@ -85,7 +85,7 @@ composition, complex text, selection, contrast correction, decorations or hovere
 The native path also scans cells, resolves ordinary/inverse/faint colors and draws background runs,
 so the managed interpreter does not process each cell of a common ASCII row. Browser checks
 compare the batched and shared paths pixel for pixel. The browser keeps its untrimmed managed
-runtime, since JSON reflection needs it.
+runtime.
 
 Release Build and Publish use hybrid WASM AOT for the assemblies in `BrowserAotAssemblies`
 (`BrowserAot.targets`) and their shared generic instances; other assemblies remain interpreted.
@@ -93,7 +93,8 @@ This is not NativeAOT. The build fails when the selected or compiled set differs
 Debug remains interpreted; SharpRailBrowserAot=false explicitly opts out for diagnostics. The pinned
 SDK requires the linker pipeline for Publish, but every resolved managed assembly is rooted and
 uses copy mode, with IL stripping disabled. A mandatory SHA-256 comparison verifies every linked
-assembly against its original bytes. JSON reflection remains enabled.
+assembly against its original bytes. JSON reflection remains enabled, though the tab's own JSON (the saved
+endpoint, PDF pages, Git answers, Tailscale status) comes from source-generated metadata or JSON nodes.
 Copy mode still performs trim analysis, so only this browser copy-only configuration disables the
 trim analyzer and linker trim-analysis warnings; ordinary warnings and referenced-project analyzers
 remain enabled. Build guards reject trimming, IL stripping, disabled reflection or a non-hybrid runtime,

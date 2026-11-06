@@ -59,7 +59,8 @@ presets belong to the UI.
   `WatchLifecycleAsync` subscribers: projects opened and closed, workspaces created, updated and removed.
   The stream replays nothing, so a subscriber that needs the present state reads the snapshot.
 - Settings in the file that this host does not know are kept verbatim and written back on every save, so
-  an older host does not erase a newer host's settings. Mutation keys remain closed; new keys require
+  an older host does not erase a newer host's settings. Which settings it knows comes from `HostJson`'s
+  metadata for `HostSettings`, not reflection. Mutation keys remain closed; new keys require
   protocol-version gating by clients.
 - The file's JSON comes from source-generated metadata (`HostJson`), never reflection, so the host can be
   published as NativeAOT; the bytes are those the reflection serializer wrote (PascalCase names, enums as

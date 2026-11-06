@@ -477,7 +477,7 @@ internal sealed partial class ChatFolder
                     else if (kind is "tool_use" && Str(block, "id") is { } toolId && !items.ContainsKey(toolId) && Str(block, "name") != "ToolSearch")
                     {
                         var name = Str(block, "name") ?? "tool";
-                        Put(new ChatToolItem(toolId, Next(), name, JsonSerializer.SerializeToElement(new { }), ChatToolState.Pending) { ParentId = parent });
+                        Put(new ChatToolItem(toolId, Next(), name, ClaudeJson.EmptyObject(), ChatToolState.Pending) { ParentId = parent });
                     }
                     break;
                 }
@@ -538,7 +538,7 @@ internal sealed partial class ChatFolder
                             break;
                         }
                     case "tool_use":
-                        if (Str(block, "id") is { } toolId) ToolUse(toolId, Str(block, "name") ?? "tool", block.TryGetProperty("input", out var input) ? input.Clone() : JsonSerializer.SerializeToElement(new { }), parent, uuid);
+                        if (Str(block, "id") is { } toolId) ToolUse(toolId, Str(block, "name") ?? "tool", block.TryGetProperty("input", out var input) ? input.Clone() : ClaudeJson.EmptyObject(), parent, uuid);
                         break;
                 }
         if (parent is null && body.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object)

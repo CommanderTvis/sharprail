@@ -1,6 +1,7 @@
 using System.Net;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Avalonia.Threading;
 
@@ -43,14 +44,14 @@ internal static partial class TailscaleInterop
 /// <summary>Cache Storage and same-origin fetch for the lazily downloaded module.</summary>
 internal sealed class BrowserTailscaleStore : ITailscaleWasmStore
 {
-    private static string Json(TailscaleWasmManifest manifest) => JsonSerializer.Serialize(new
+    internal static string Json(TailscaleWasmManifest manifest) => new JsonObject
     {
-        version = manifest.Version, build = manifest.Build, module = manifest.Module, exec = manifest.Exec, size = manifest.Size, transferSize = manifest.TransferSize
-    });
+        ["version"] = manifest.Version, ["build"] = manifest.Build, ["module"] = manifest.Module, ["exec"] = manifest.Exec, ["size"] = manifest.Size, ["transferSize"] = manifest.TransferSize
+    }.ToJsonString();
 
     public Task<string> ManifestAsync(CancellationToken cancellationToken) => TailscaleInterop.Call(TailscaleInterop.Manifest).WaitAsync(cancellationToken);
     public async Task<IReadOnlyList<string>> CacheNamesAsync(CancellationToken cancellationToken) =>
-        JsonSerializer.Deserialize<string[]>(await TailscaleInterop.Call(TailscaleInterop.CacheNames).WaitAsync(cancellationToken)) ?? [];
+        JsonSerializer.Deserialize(await TailscaleInterop.Call(TailscaleInterop.CacheNames).WaitAsync(cancellationToken), BrowserJson.Default.StringArray) ?? [];
     public Task DeleteCacheAsync(string name, CancellationToken cancellationToken) => TailscaleInterop.Call(() => TailscaleInterop.DeleteCache(name)).WaitAsync(cancellationToken);
     public Task<bool> IsCachedAsync(TailscaleWasmManifest manifest, CancellationToken cancellationToken) =>
         TailscaleInterop.Call(() => TailscaleInterop.IsCached(Json(manifest))).WaitAsync(cancellationToken);
@@ -74,20 +75,16 @@ internal sealed record BrowserTailscaleStatus(string State, string AuthUrl, bool
 /// <summary>The tab's own userspace node: discovery, pairing HTTP and WebSocket RPC all dial through it.</summary>
 internal sealed class BrowserTailscaleNetwork : ITailscaleClientNetwork
 {
-    private static readonly JsonSerializerOptions Options = new() { PropertyNameCaseInsensitive = true };
     internal static BrowserTailscaleNetwork Instance { get; } = new();
     internal static BrowserTailscaleStore Store { get; } = new();
     internal static TailscaleWasmModule Module { get; } = new(Store);
 
     internal Task StartAsync(CancellationToken cancellationToken) => Module.Manifest is { } manifest
-        ? TailscaleInterop.Call(() => TailscaleInterop.Start(JsonSerializer.Serialize(new
-        {
-            version = manifest.Version, build = manifest.Build, module = manifest.Module, exec = manifest.Exec, size = manifest.Size, transferSize = manifest.TransferSize
-        }), "sharprail-browser")).WaitAsync(cancellationToken)
+        ? TailscaleInterop.Call(() => TailscaleInterop.Start(BrowserTailscaleStore.Json(manifest), "sharprail-browser")).WaitAsync(cancellationToken)
         : throw new IOException("Download Tailscale first.");
 
     internal async Task<BrowserTailscaleStatus> StatusAsync(CancellationToken cancellationToken) =>
-        JsonSerializer.Deserialize<BrowserTailscaleStatus>(await TailscaleInterop.CallSync(TailscaleInterop.Status).WaitAsync(cancellationToken), Options)
+        JsonSerializer.Deserialize(await TailscaleInterop.CallSync(TailscaleInterop.Status).WaitAsync(cancellationToken), BrowserJson.CaseInsensitive.BrowserTailscaleStatus)
         ?? throw new IOException("Tailscale reported no status.");
 
     internal Task LoginAsync(CancellationToken cancellationToken) => TailscaleInterop.Call(TailscaleInterop.Login).WaitAsync(cancellationToken);

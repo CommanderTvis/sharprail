@@ -30,8 +30,8 @@ public sealed record HostEndpoint(string Address, string Token, bool LocalApprov
 
     public static HostEndpoint? Load(string directory)
     {
-        try { return BrowserInterop.Load("endpoint") is { } json ? JsonSerializer.Deserialize<HostEndpoint>(json) : null; }
+        try { return BrowserInterop.Load("endpoint") is { } json ? JsonSerializer.Deserialize(json, BrowserJson.Default.HostEndpoint) : null; }
         catch (JsonException) { return null; }
     }
-    public void Save(string directory) => BrowserInterop.Save("endpoint", JsonSerializer.Serialize(this));
+    public void Save(string directory) => BrowserInterop.Save("endpoint", JsonSerializer.Serialize(this, BrowserJson.Default.HostEndpoint));
 }

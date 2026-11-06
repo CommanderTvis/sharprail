@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using SharpRail.Plugins.Api;
@@ -16,7 +15,6 @@ namespace SharpRail.Plugins.Codex.Host;
 internal sealed class CodexIdeProvider : IDisposable
 {
     private static readonly TimeSpan Deadline = TimeSpan.FromMilliseconds(1200);
-    private static readonly JsonSerializerOptions Wire = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     private sealed class Pending(string workspaceId)
     {
@@ -84,13 +82,21 @@ internal sealed class CodexIdeProvider : IDisposable
             var cwd = Unix.RealPath(root);
             var worktree = Unix.RealPath(target.Path);
             string PathFor(string path) => Path.IsPathRooted(path) ? path : Path.GetRelativePath(cwd, Path.GetFullPath(path, worktree));
-            return JsonSerializer.SerializeToNode(new
+            // Written as the camel-case serializer wrote the records: a missing range or position is null.
+            static JsonObject? Position(CodexIdePosition? at) => at is null ? null : new() { ["line"] = at.Line, ["character"] = at.Character };
+            return new JsonObject
             {
-                openTabs = answer.OpenTabs.Select(file => new { label = file.Label, path = PathFor(file.Path) }),
-                activeFile = answer.ActiveFile is { } active
-                    ? new { label = active.Label, path = PathFor(active.Path), selection = active.Selection, activeSelectionContent = active.ActiveSelectionContent }
+                ["openTabs"] = new JsonArray([.. answer.OpenTabs.Select(file => new JsonObject { ["label"] = file.Label, ["path"] = PathFor(file.Path) })]),
+                ["activeFile"] = answer.ActiveFile is { } active
+                    ? new JsonObject
+                    {
+                        ["label"] = active.Label,
+                        ["path"] = PathFor(active.Path),
+                        ["selection"] = active.Selection is { } selection ? new JsonObject { ["start"] = Position(selection.Start), ["end"] = Position(selection.End) } : null,
+                        ["activeSelectionContent"] = active.ActiveSelectionContent
+                    }
                     : null
-            }, Wire);
+            };
         }
         finally { pending.TryRemove(requestId, out _); }
     }

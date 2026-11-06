@@ -21,13 +21,13 @@ internal sealed partial class TabGit : IGitBackend
     [JSImport("save", "tabhost")]
     private static partial Task SaveScript();
 
-    private sealed record Answer(int Exit, string Out, string Err);
+    internal sealed record Answer(int Exit, string Out, string Err);
 
     /// <summary>Loads the module, restores the saved files into the runtime's file system and starts saving them.</summary>
     public static async Task StartAsync(params string[] roots)
     {
         await (imported ??= JSHost.ImportAsync("tabhost", "../tabhost.js"));
-        await StartScript(JsonSerializer.Serialize(roots));
+        await StartScript(JsonSerializer.Serialize(roots, BrowserJson.Default.StringArray));
         GitBackends.Current = new TabGit();
     }
 
@@ -39,8 +39,8 @@ internal sealed partial class TabGit : IGitBackend
     public async Task<GitBackendResult> RunAsync(string workingDirectory, IReadOnlyList<string> arguments, byte[]? input, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var json = await OnPage(() => RunScript(workingDirectory, JsonSerializer.Serialize(arguments), input is null ? null : Convert.ToBase64String(input))).WaitAsync(cancellationToken);
-        var answer = JsonSerializer.Deserialize<Answer>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+        var json = await OnPage(() => RunScript(workingDirectory, JsonSerializer.Serialize(arguments, BrowserJson.Default.IReadOnlyListString), input is null ? null : Convert.ToBase64String(input))).WaitAsync(cancellationToken);
+        var answer = JsonSerializer.Deserialize(json, BrowserJson.Web.Answer)!;
         return new(answer.Exit, Convert.FromBase64String(answer.Out), answer.Err);
     }
 

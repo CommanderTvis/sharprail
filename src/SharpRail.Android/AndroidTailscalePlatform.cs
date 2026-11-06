@@ -1,4 +1,4 @@
-using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Android.Content;
 using Android.Net;
@@ -39,12 +39,12 @@ internal sealed class AndroidTailscalePlatform : IDisposable
         var defaultRoute = routes.FirstOrDefault(route => route.IsDefaultRoute && route.Gateway is Java.Net.Inet4Address)
             ?? routes.FirstOrDefault(route => route.IsDefaultRoute);
         var gateway = defaultRoute?.Gateway?.HostAddress?.Split('%')[0] ?? "";
-        return JsonSerializer.Serialize(new
+        return new JsonObject
         {
-            interfaces = new[] { new { name, index, mtu = link.Mtu > 0 ? link.Mtu : 1500, addresses } },
-            defaultInterface = name,
-            gateway
-        });
+            ["interfaces"] = new JsonArray(new JsonObject { ["name"] = name, ["index"] = index, ["mtu"] = link.Mtu > 0 ? link.Mtu : 1500, ["addresses"] = new JsonArray([.. addresses.Select(address => (JsonNode)address)]) }),
+            ["defaultInterface"] = name,
+            ["gateway"] = gateway
+        }.ToJsonString();
     }
 
     public void Dispose()

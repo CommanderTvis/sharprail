@@ -97,7 +97,9 @@ The `Mode` setting (Terminal by default, or Chat) says how a SharpRail launch is
 the setting says, and the view chooses by it. The wire is `ChatContract` (in `SharpRail.Plugins.Chat`, merged into `ClaudeCodeContract`): items, a header, three push kinds on the keyed `chatUpdates` state channel (workspace id and chat id), and the
 methods open, snapshot, send, interrupt, close, set model, set permission mode, set effort, answer, rewind, fork, stop task,
 item detail, sessions and files. Chat mode drives Claude Code over its stream-json protocol, as the official VS Code
-extension does. The host half lives in `Host/Chat`.
+extension does. The host half lives in `Host/Chat`. Messages to the CLI are built as JSON nodes and the host's other JSON
+(settings files, hook reports, the panes' JSON text) uses the plugin's own source-generated metadata, never reflection;
+the bytes are those the reflection serializer wrote for the same shapes.
 
 Process. A chat's child is `claude -p --output-format stream-json --verbose --input-format stream-json
 --include-partial-messages --replay-user-messages --permission-prompt-tool=stdio`, plus the settings' model, effort,

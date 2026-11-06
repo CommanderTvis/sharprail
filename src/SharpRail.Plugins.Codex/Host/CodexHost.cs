@@ -138,7 +138,7 @@ public sealed class CodexHost : PluginHostModule
             if (request.Method != "POST") return Text(405, "method not allowed");
             if (context.TerminalForToken(request.Subpath["status/".Length..]) is not { } owner) return Text(404, "unknown terminal");
             JsonElement? body;
-            try { body = JsonSerializer.Deserialize<JsonElement>(request.Body.Span); }
+            try { body = JsonElement.Parse(request.Body.Span); }
             catch (JsonException) { body = null; }
             if (CodexStatusReports.Parse(body) is not { } report || StartedByAnotherAgent(context, owner)) return Text(200, "ignored");
 

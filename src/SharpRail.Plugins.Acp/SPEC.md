@@ -16,6 +16,8 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
 - `initialize` sends `protocolVersion: 1`, the client capabilities (`fs.readTextFile`, `fs.writeTextFile`, `terminal`) and `clientInfo`. An
   agent answering another version is refused by name (`AcpVersionException`). Agent capabilities read: `loadSession`, prompt capabilities
   (`image`, `audio`, `embeddedContext`), `authMethods`, `agentInfo`.
+- Messages to the agent are built as JSON nodes; the registry and icon cache records use the plugin's own
+  source-generated metadata, never reflection, with the bytes the reflection serializer wrote.
 - Session: `session/new` (modes, models and config options of the answer fill the header), `session/load` when the agent advertises
   `loadSession` and the chat has a stored session id (the replayed updates rebuild the transcript; otherwise a new session starts),
   `session/prompt` for a turn, `session/cancel`, `session/set_mode`, `session/set_model`, `session/set_config_option`.

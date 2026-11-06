@@ -83,7 +83,7 @@ internal static partial class ClaudeEdits
         var hooks = Branch(root, HooksKey);
         var groups = hooks[@event] as JsonArray ?? [];
         hooks[@event] = groups;
-        var entry = new JsonObject { ["type"] = "command", ["command"] = command.Trim() };
+        JsonNode entry = new JsonObject { ["type"] = "command", ["command"] = command.Trim() };
         var target = groups.OfType<JsonObject>().FirstOrDefault(group => (Json.String(group["matcher"]) ?? "") == matcher);
         if (target is not null)
         {
@@ -93,7 +93,7 @@ internal static partial class ClaudeEdits
         }
         else
         {
-            var group = new JsonObject();
+            JsonNode group = new JsonObject();
             if (matcher.Length > 0) group["matcher"] = matcher;
             group["hooks"] = new JsonArray(entry);
             groups.Add(group);

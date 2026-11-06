@@ -67,7 +67,7 @@ internal sealed partial class ChatView
     {
         try
         {
-            var all = JsonSerializer.Deserialize<Dictionary<string, double>>(env.ZoomPreference.Get() ?? "{}");
+            var all = JsonSerializer.Deserialize(env.ZoomPreference.Get() ?? "{}", ChatUIJson.Default.DictionaryStringDouble);
             return all is not null && all.TryGetValue(chatId, out var stored) && double.IsFinite(stored) ? Math.Clamp(stored, MinZoom, MaxZoom) : 1;
         }
         catch (JsonException) { return 1; }
@@ -76,11 +76,11 @@ internal sealed partial class ChatView
     private void StoreZoom()
     {
         Dictionary<string, double> all;
-        try { all = JsonSerializer.Deserialize<Dictionary<string, double>>(env.ZoomPreference.Get() ?? "{}") ?? []; }
+        try { all = JsonSerializer.Deserialize(env.ZoomPreference.Get() ?? "{}", ChatUIJson.Default.DictionaryStringDouble) ?? []; }
         catch (JsonException) { all = []; }
         if (zoom == 1) all.Remove(chatId); else all[chatId] = zoom;
         while (all.Count > ZoomsKept) all.Remove(all.Keys.First());
-        env.ZoomPreference.Set(JsonSerializer.Serialize(all));
+        env.ZoomPreference.Set(JsonSerializer.Serialize(all, ChatUIJson.Default.DictionaryStringDouble));
     }
 
     /// <summary>Sets this chat's zoom (clamped), remembers it for this chat id and shows the level for a moment.</summary>

@@ -304,7 +304,7 @@ internal sealed class PiChatSession : IAsyncDisposable
         foreach (var attachment in attachments ?? [])
         {
             if (attachment.Data is { Length: > 0 } data && attachment.MediaType?.StartsWith("image/", StringComparison.Ordinal) == true)
-                images.Add(new JsonObject { ["type"] = "image", ["data"] = Convert.ToBase64String(data), ["mimeType"] = attachment.MediaType });
+                images.Add((JsonNode)new JsonObject { ["type"] = "image", ["data"] = Convert.ToBase64String(data), ["mimeType"] = attachment.MediaType });
             else if (attachment.Path.Length > 0) message.Append("\n\nAttached: ").Append(attachment.Path);
         }
         var command = new JsonObject { ["type"] = "prompt", ["message"] = message.ToString() };

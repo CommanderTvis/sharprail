@@ -131,7 +131,7 @@ internal sealed class AcpIconCache(string directory, AcpFetch fetch, Func<DateTi
         {
             if (!File.Exists(SvgPath(id)) || !File.Exists(MetaPath(id))) return null;
             var svg = File.ReadAllText(SvgPath(id));
-            var meta = JsonSerializer.Deserialize<AcpIconMeta>(File.ReadAllText(MetaPath(id)));
+            var meta = JsonSerializer.Deserialize(File.ReadAllText(MetaPath(id)), AcpLocalJson.Default.AcpIconMeta);
             // A copy that no longer passes the rules (they may have grown) is not shown.
             return meta is null || AcpIconRules.Reject(svg) is not null ? null : (svg, meta);
         }
@@ -144,7 +144,7 @@ internal sealed class AcpIconCache(string directory, AcpFetch fetch, Func<DateTi
         var svgTemp = SvgPath(id) + ".tmp";
         var metaTemp = MetaPath(id) + ".tmp";
         File.WriteAllText(svgTemp, svg);
-        File.WriteAllText(metaTemp, JsonSerializer.Serialize(meta));
+        File.WriteAllText(metaTemp, JsonSerializer.Serialize(meta, AcpLocalJson.Default.AcpIconMeta));
         File.Move(svgTemp, SvgPath(id), overwrite: true);
         File.Move(metaTemp, MetaPath(id), overwrite: true);
     }

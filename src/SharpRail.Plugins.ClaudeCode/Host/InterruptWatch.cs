@@ -57,7 +57,7 @@ internal sealed class InterruptWatch(Func<string, DateTimeOffset, bool>? probe =
         for (var index = lines.Length - 1; index >= 0; index--)
         {
             JsonElement entry;
-            try { entry = JsonSerializer.Deserialize<JsonElement>(lines[index]); }
+            try { entry = JsonElement.Parse(lines[index]); }
             catch (JsonException) { continue; }
             if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.String ||
                 type.GetString() is not ("user" or "assistant")) continue;

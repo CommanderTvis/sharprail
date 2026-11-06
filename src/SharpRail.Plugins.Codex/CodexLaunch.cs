@@ -1,4 +1,3 @@
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -60,9 +59,7 @@ public static partial class CodexLaunch
 
     public static string ShellQuote(string word) => SafeWord().IsMatch(word) ? word : "'" + word.Replace("'", "'\\''") + "'";
 
-    private static readonly JsonSerializerOptions Json = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-
-    private static string ConfigArg(string key, string value) => "-c " + ShellQuote(key + "=" + JsonSerializer.Serialize(value, Json));
+    private static string ConfigArg(string key, string value) => "-c " + ShellQuote(key + "=" + JsonSerializer.Serialize(value, CodexTextJson.Relaxed.String));
 
     // The MCP URL is minted per terminal by core, so it is left for the shell to expand.
     public const string McpOverride = "-c \"mcp_servers.sharprail.url=\\\"$THINKRAIL_MCP_URL\\\"\"" +
@@ -102,7 +99,7 @@ public static partial class CodexLaunch
         {
             // The shell expands the JSON string; a launcher prompt continues it, so Codex gets one override, not two.
             parts.Add("-c " + (options.SystemPrompt is { Length: > 0 } extra
-                ? $"\"developer_instructions=${{{PromptJsonVariable}%\\\"}}\"" + ShellQuote(JsonSerializer.Serialize("\n\n" + extra, Json)[1..])
+                ? $"\"developer_instructions=${{{PromptJsonVariable}%\\\"}}\"" + ShellQuote(JsonSerializer.Serialize("\n\n" + extra, CodexTextJson.Relaxed.String)[1..])
                 : $"\"developer_instructions=${PromptJsonVariable}\""));
         }
         else if (options.SystemPrompt is { Length: > 0 } system) parts.Add(ConfigArg("developer_instructions", system));

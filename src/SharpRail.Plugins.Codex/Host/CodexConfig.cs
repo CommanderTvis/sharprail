@@ -140,7 +140,7 @@ public static partial class CodexConfig
         foreach (var name in HookEvents)
         {
             if (hooks[name] is not JsonArray groups) hooks[name] = groups = [];
-            if (!HasOurHook(groups)) groups.Add(new JsonObject { ["hooks"] = new JsonArray(new JsonObject { ["type"] = "command", ["command"] = HookCommand }) });
+            if (!HasOurHook(groups)) groups.Add((JsonNode)new JsonObject { ["hooks"] = new JsonArray(new JsonObject { ["type"] = "command", ["command"] = HookCommand }) });
         }
         WriteAtomic(HooksPath(), file.ToJsonString(new JsonSerializerOptions(Json) { WriteIndented = true, IndentSize = 2 }) + "\n");
     }
@@ -167,7 +167,7 @@ public static partial class CodexConfig
             foreach (var leaf in Flatten(child, [.. keyPath, key])) yield return leaf;
     }
 
-    private static JsonElement Element(JsonNode? node) => JsonSerializer.SerializeToElement(node);
+    private static JsonElement Element(JsonNode? node) => CodexHostJson.Element(node);
 
     /// <summary>
     /// The configuration a Codex session in <paramref name="worktreePath"/> sees, with instructions discovered from
@@ -225,7 +225,7 @@ public static partial class CodexConfig
             [.. mcpServers.Values], [.. InstructionsOf(worktreePath, cwd, fallbacks), .. launched], projectTrusted, HooksInstalled(), HooksTrusted());
     }
 
-    public static string FormatKeySegment(string segment) => BareKey().IsMatch(segment) ? segment : JsonSerializer.Serialize(segment, Json);
+    public static string FormatKeySegment(string segment) => BareKey().IsMatch(segment) ? segment : JsonSerializer.Serialize(segment, CodexHostJson.Relaxed.String);
 
     private static List<string>? ParseKeySegments(string text)
     {
@@ -236,7 +236,7 @@ public static partial class CodexConfig
             var match = KeySegment().Match(text, at);
             if (!match.Success || match.Index != at) return null;
             segments.Add(match.Groups[1].Success ? match.Groups[1].Value
-                : match.Groups[2].Success ? JsonSerializer.Deserialize<string>("\"" + match.Groups[2].Value + "\"")!
+                : match.Groups[2].Success ? JsonSerializer.Deserialize("\"" + match.Groups[2].Value + "\"", CodexHostJson.Default.String)!
                 : match.Groups[3].Value);
             at = match.Index + match.Length;
             if (match.Groups[4].Value.Length == 0) break;
@@ -298,7 +298,7 @@ public static partial class CodexConfig
             if (header is List<string> path && path.SequenceEqual(table)) start = index + 1;
         }
 
-        var line = value is { } given ? $"{FormatKeySegment(leaf)} = {JsonSerializer.Serialize(given, Json)}" : null;
+        var line = value is { } given ? $"{FormatKeySegment(leaf)} = {JsonSerializer.Serialize(given, CodexHostJson.Relaxed.JsonElement)}" : null;
         string next;
         if (start == -1)
         {

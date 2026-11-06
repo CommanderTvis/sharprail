@@ -51,7 +51,7 @@ internal static class ChatTranscript
             try
             {
                 var meta = Path.ChangeExtension(file, ".meta.json");
-                if (File.Exists(meta)) toolUse = ChatFolder.Str(JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(meta)), "toolUseId");
+                if (File.Exists(meta)) toolUse = ChatFolder.Str(JsonElement.Parse(File.ReadAllText(meta)), "toolUseId");
             }
             catch (Exception error) when (error is IOException or JsonException or UnauthorizedAccessException) { }
             if (toolUse is null) continue;
@@ -73,7 +73,7 @@ internal static class ChatTranscript
 
     private static bool TryParse(string line, out JsonElement message)
     {
-        try { message = JsonSerializer.Deserialize<JsonElement>(line); return message.ValueKind == JsonValueKind.Object; }
+        try { message = JsonElement.Parse(line); return message.ValueKind == JsonValueKind.Object; }
         catch (JsonException) { message = default; return false; }
     }
 }

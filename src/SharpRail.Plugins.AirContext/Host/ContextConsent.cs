@@ -2,6 +2,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 using SharpRail.Plugins.AirContext;
@@ -12,11 +13,11 @@ internal sealed class ContextConsent(string storage, HttpClient http, ContextBun
 {
     private readonly SemaphoreSlim verificationGate = new(1);
     private (long Length, DateTime Modified, bool Valid)? verified;
-    private sealed record Receipt(string ArtifactId, string TermsSha256, string AcceptedAtUtc);
+    internal sealed record Receipt(string ArtifactId, string TermsSha256, string AcceptedAtUtc);
     internal static readonly string[] LegalUrls = [ContextDistribution.TermsUrl,
         "https://www.jetbrains.com/legal/docs/terms/jetbrains-ai-service/",
         "https://www.jetbrains.com/legal/docs/terms/jetbrains-ai-platform/"];
-    internal static string Identity(ContextBundle artifact) => Hash(JsonSerializer.Serialize(artifact));
+    internal static string Identity(ContextBundle artifact) => Hash(JsonSerializer.Serialize(artifact, ContextConsentJson.Default.ContextBundle));
     private static string Hash(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
     private string Record => Path.Combine(storage, "agreements", "context", Identity(bundle) + ".json");
 
@@ -35,7 +36,7 @@ internal sealed class ContextConsent(string storage, HttpClient http, ContextBun
             var temporary = Record + "." + Guid.NewGuid().ToString("N") + ".partial";
             try
             {
-                await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(receipt), token);
+                await File.WriteAllTextAsync(temporary, JsonSerializer.Serialize(receipt, ContextConsentJson.Default.Receipt), token);
                 token.ThrowIfCancellationRequested();
                 File.Move(temporary, Record, true);
             }
@@ -91,7 +92,7 @@ internal sealed class ContextConsent(string storage, HttpClient http, ContextBun
         if (File.Exists(Record))
         {
             Receipt? receipt;
-            try { receipt = JsonSerializer.Deserialize<Receipt>(await File.ReadAllTextAsync(Record, token)); }
+            try { receipt = JsonSerializer.Deserialize(await File.ReadAllTextAsync(Record, token), ContextConsentJson.Default.Receipt); }
             catch (JsonException) { receipt = null; }
             if (receipt is not null && receipt.ArtifactId == result.ArtifactId && receipt.TermsSha256 == result.TermsSha256 && DateTimeOffset.TryParse(receipt.AcceptedAtUtc, out _))
                 result = result with { State = "accepted", AcceptedAtUtc = receipt.AcceptedAtUtc };
@@ -145,3 +146,11 @@ internal sealed class ContextConsent(string storage, HttpClient http, ContextBun
 }
 
 internal sealed class ContextConsentRequiredException() : InvalidOperationException("Review and accept JetBrains Context terms in the user interface before provisioning.");
+
+/// <summary>
+/// Source-generated JSON metadata, with the serializer's default options, for the consent receipt and the artifact
+/// identity it names; the identity hashes these bytes, so they must not change.
+/// </summary>
+[JsonSerializable(typeof(ContextBundle))]
+[JsonSerializable(typeof(ContextConsent.Receipt))]
+internal sealed partial class ContextConsentJson : JsonSerializerContext;

@@ -127,6 +127,9 @@ invitation is excluded by the SharpRail product contract; a Codex chat component
   The disposer cannot tell disabling from host shutdown, so the files may also go when the app quits and
   return on the next start; a second running host is not considered.
 - While another plugin governs Codex launches (an `Account` on its launch contribution, Plugin API H18; Air Gateway with Central chosen and Codex enabled), the Account method returns that source's account instead and never starts the OpenAI account read or `codex app-server`; the tab shows the source's identity, credits and refill time, or its actionable problem. Ungoverned launches are unchanged. The terminal fact chips show session token totals and the plan, not vendor quota, so they are unchanged.
+- App-server and IDE bridge messages are built as JSON nodes, and the configuration, rollouts and skills stamp file
+  use the plugin's own source-generated metadata, never reflection; the bytes are those the reflection serializer
+  wrote for the same shapes (the IDE context keeps its camel-case names).
 - Account and model reads use retained bounded app-server connections. Failures invalidate children
   and pending requests; disable and command changes stop descendants. No credential cache is saved.
   POSIX app-server launches enter a private session/process group through a plugin-owned exec helper.

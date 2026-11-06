@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Net.Sockets;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -14,7 +13,6 @@ internal sealed class Peer : IDisposable
 {
     public const int MaxFrame = 8 * 1024 * 1024;
     private static readonly TimeSpan PartialFrameTimeout = TimeSpan.FromSeconds(5);
-    private static readonly JsonSerializerOptions Json = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     private readonly Socket socket;
     private readonly NetworkStream stream;
@@ -38,7 +36,7 @@ internal sealed class Peer : IDisposable
     public void Send(JsonObject message)
     {
         if (IsClosed) return;
-        var body = JsonSerializer.SerializeToUtf8Bytes(message, Json);
+        var body = JsonSerializer.SerializeToUtf8Bytes(message, CodexHostJson.Relaxed.JsonNode);
         if (body.Length > MaxFrame)
         {
             Dispose();

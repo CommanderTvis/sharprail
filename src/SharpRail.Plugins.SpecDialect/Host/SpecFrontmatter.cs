@@ -83,7 +83,7 @@ internal sealed class SpecFrontmatter(YamlMappingNode mapping, string yaml, stri
 
     private static string Quote(string value) => System.Text.RegularExpressions.Regex.IsMatch(value, "^[A-Za-z_][A-Za-z0-9_./ -]*$") &&
         !new[] { "null", "true", "false", "yes", "no", "on", "off" }.Contains(value.ToLowerInvariant())
-            ? value : JsonSerializer.Serialize(value);
+            ? value : JsonSerializer.Serialize(value, SpecHostJson.Default.String);
     private static string Render(object value) => value is string text ? Quote(text) : "[" + string.Join(", ", ((IReadOnlyList<string>)value).Select(Quote)) + "]";
 
     public (string? Content, string? Error) Update(SpecUpdateParams edit)

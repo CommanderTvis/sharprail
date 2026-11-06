@@ -114,10 +114,13 @@ host give the authoritative list):
 2. `PluginJson.Options` resolves only from the generated contexts plugins declare (the Plugin API's
    [JSON metadata](SPEC.md#json-metadata)); its runtime-typed sites (`GetType()`, `Deserialize(type, …)`,
    `GetTypeInfo`, the tool schema) resolve through them, and the wire writes declared types.
-3. A few reflection sites outside plugin loading: host settings read by reflection, and reflection bindings by
-   string path in the kit.
-4. The desktop app embeds the host and ASP.NET Core, so it inherits the first two. The host's endpoints are
-   minimal APIs on the slim builder, which are AOT-compatible, and Avalonia bindings are compiled by default.
+3. A few reflection sites outside plugin loading: the kit's bindings by string path and its style include by URI.
+   No `System.Text.Json` reflection is left: the host, the app and every builtin plugin serialize from
+   source-generated metadata or JSON nodes.
+4. The desktop app embeds the host and ASP.NET Core, so it inherits the first two. The host's endpoints are plain
+   request delegates that read their route values themselves, since minimal-API delegate binding is
+   reflection-based (see the [remote host](../SharpRail.Host.Remote/SPEC.md)), and Avalonia bindings are compiled
+   by default.
 5. Packages with unknown AOT status: Tomlyn, TextMateSharp and the Avalonia SVG control.
 
 The browser build's hybrid AOT is no evidence either way: it silences trim warnings and keeps the interpreter as a

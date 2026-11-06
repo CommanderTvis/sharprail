@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SharpRail.Plugins.Codex.Host;
 
@@ -48,7 +49,7 @@ public sealed class CodexAccountReader(Func<string> command, TimeSpan? timeout =
         }
         if (stale is not null) await stale.StopAsync();
         var version = await ReadVersionAsync(CodexAppServer.Executable(command()), timeout);
-        var response = await connection.RequestAsync("account/read", new { refreshToken = false });
+        var response = await connection.RequestAsync("account/read", new JsonObject { ["refreshToken"] = false });
         if (!ValidAccount(response, out var account))
         {
             await connection.StopAsync();
@@ -191,7 +192,7 @@ public sealed class CodexModelReader(Func<string> command, TimeSpan? timeout = n
         string? cursor = null;
         do
         {
-            var response = await connection.RequestAsync("model/list", new { cursor, includeHidden = false, limit = 100 });
+            var response = await connection.RequestAsync("model/list", new JsonObject { ["cursor"] = cursor, ["includeHidden"] = false, ["limit"] = 100 });
             if (response.ValueKind != JsonValueKind.Object || !response.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
                 throw new InvalidOperationException("Invalid Codex model catalog.");
             foreach (var model in data.EnumerateArray())

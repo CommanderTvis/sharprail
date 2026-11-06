@@ -9,6 +9,7 @@
     <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Avalonia.Headless" />
     <!-- The Android client builds only with the Android workload; its platform-free endpoint is checked here. -->
+    <Compile Include="../../src/SharpRail.Android/AndroidJson.cs" Link="Android/AndroidJson.cs" />
     <Compile Include="../../src/SharpRail.Android/EmbeddedTailscaleNetwork.cs" Link="Android/EmbeddedTailscaleNetwork.cs" />
     <Compile Include="../../src/SharpRail.Android/HostEndpoint.cs" Link="Android/HostEndpoint.cs" />
     <Compile Include="../../src/SharpRail.Android/TouchClicks.cs" Link="Android/TouchClicks.cs" />

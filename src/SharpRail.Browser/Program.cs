@@ -16,6 +16,6 @@ MermaidRenderer.PlatformRender = async (source, options) =>
     try { return new(await BrowserInterop.RenderMermaid(source, options), null); }
     catch (JSException error) { return new(null, error.Message); }
 };
-PdfPlatform.Read = async bytes => JsonSerializer.Deserialize<PdfPlatformPage[]>(await BrowserInterop.ReadPdf(Convert.ToBase64String(bytes)))!;
-PdfPlatform.Render = async (bytes, scale) => JsonSerializer.Deserialize<PdfPlatformRaster[]>(await BrowserInterop.RenderPdf(Convert.ToBase64String(bytes), scale))!;
+PdfPlatform.Read = async bytes => JsonSerializer.Deserialize(await BrowserInterop.ReadPdf(Convert.ToBase64String(bytes)), BrowserJson.Default.PdfPlatformPageArray)!;
+PdfPlatform.Render = async (bytes, scale) => JsonSerializer.Deserialize(await BrowserInterop.RenderPdf(Convert.ToBase64String(bytes), scale), BrowserJson.Default.PdfPlatformRasterArray)!;
 new BrowserSession().Start();

@@ -228,7 +228,7 @@ internal sealed class PiFolder
                 ["name"] = Str(line, "toolName"),
                 ["arguments"] = line.TryGetProperty("args", out var args) ? JsonNode.Parse(args.GetRawText()) : new JsonObject()
             };
-            AddCall(JsonSerializer.SerializeToElement(started));
+            AddCall(JsonSerializer.SerializeToElement(started, PiLocalJson.Default.JsonObject));
             existing = Get<ChatToolItem>(id);
             if (existing is null) return;
         }

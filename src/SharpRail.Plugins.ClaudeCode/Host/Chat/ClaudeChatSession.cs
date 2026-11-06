@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace SharpRail.Plugins.ClaudeCode.Host.Chat;
 
@@ -164,7 +165,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         {
             try
             {
-                var response = await ControlAsync(mine, new { subtype = "initialize" });
+                var response = await ControlAsync(mine, new JsonObject { ["subtype"] = "initialize" });
                 lock (gate)
                 {
                     if (mine != generation) return;
@@ -236,7 +237,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     private async Task OnLineAsync(int mine, string line)
     {
         JsonElement message;
-        try { message = JsonSerializer.Deserialize<JsonElement>(line); }
+        try { message = JsonElement.Parse(line); }
         catch (JsonException) { return; }
         if (message.ValueKind != JsonValueKind.Object) return;
         string? refusal = null;
@@ -266,7 +267,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
             }
         }
         if (refusedId is not null)
-            await WriteAsync(new { type = "control_response", response = new { subtype = "error", request_id = refusedId, error = refusal } });
+            await WriteAsync(new JsonObject { ["type"] = "control_response", ["response"] = new JsonObject { ["subtype"] = "error", ["request_id"] = refusedId, ["error"] = refusal } });
     }
 
     private void Fold(JsonElement message)
@@ -302,7 +303,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     {
         if (!message.TryGetProperty("response", out var body) || ChatFolder.Str(body, "request_id") is not { } id || !controls.Remove(id, out var pending)) return;
         if (ChatFolder.Str(body, "subtype") == "error") pending.TrySetException(new InvalidOperationException(ChatFolder.Str(body, "error") ?? "Claude Code refused the request."));
-        else pending.TrySetResult(body.TryGetProperty("response", out var result) ? result.Clone() : JsonSerializer.SerializeToElement(new { }));
+        else pending.TrySetResult(body.TryGetProperty("response", out var result) ? result.Clone() : ClaudeJson.EmptyObject());
     }
 
     // A request from the CLI. Only can_use_tool is ours to answer; anything else is refused so the CLI does not wait.
@@ -312,7 +313,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         if (id is null || !message.TryGetProperty("request", out var request)) return (null, null);
         if (ChatFolder.Str(request, "subtype") != "can_use_tool") return (id, "Not supported by SharpRail's chat.");
         var tool = ChatFolder.Str(request, "tool_name") ?? "tool";
-        var input = request.TryGetProperty("input", out var raw) ? raw.Clone() : JsonSerializer.SerializeToElement(new { });
+        var input = request.TryGetProperty("input", out var raw) ? raw.Clone() : ClaudeJson.EmptyObject();
         if (tool == "AskUserQuestion")
         {
             folder.AddQuestion(id, input, ChatFolder.Str(request, "tool_use_id") is { } askUse ? folder.Item(askUse)?.ParentId : null, ChatFolder.Str(request, "tool_use_id"));
@@ -372,14 +373,16 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         if (header is not null) deps.Push(new ChatHeaderPush(record.WorkspaceId, record.ChatId, header));
     }
 
-    private Task WriteAsync(object message)
+    private Task WriteAsync(JsonObject message)
     {
         ChatProcess? target;
         lock (gate) target = process;
-        return target is null ? Task.FromException(new InvalidOperationException("Claude Code is not running.")) : target.WriteAsync(JsonSerializer.Serialize(message), lifetime.Token);
+        return target is null ? Task.FromException(new InvalidOperationException("Claude Code is not running.")) : target.WriteAsync(message.ToJsonString(), lifetime.Token);
     }
 
-    private async Task<JsonElement> ControlAsync(int mine, object request)
+    private static JsonObject TextBlock(string text) => new() { ["type"] = "text", ["text"] = text };
+
+    private async Task<JsonElement> ControlAsync(int mine, JsonObject request)
     {
         var id = "sr-" + Interlocked.Increment(ref controlSequence);
         var pending = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -390,13 +393,13 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         }
         try
         {
-            await WriteAsync(new { type = "control_request", request_id = id, request });
+            await WriteAsync(new JsonObject { ["type"] = "control_request", ["request_id"] = id, ["request"] = request });
             return await pending.Task.WaitAsync(ControlTimeout, lifetime.Token);
         }
         finally { lock (gate) controls.Remove(id); }
     }
 
-    private Task<JsonElement> ControlAsync(object request)
+    private Task<JsonElement> ControlAsync(JsonObject request)
     {
         int mine;
         lock (gate) mine = generation;
@@ -409,14 +412,18 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         if (attachments?.FirstOrDefault(attachment => attachment.Data is { Length: > ChatAttachment.MaxDataBytes }) is { } tooBig)
             throw new InvalidOperationException($"{tooBig.Name} is larger than {ChatAttachment.MaxDataBytes / (1024 * 1024)} MB, which is the most one attachment may be.");
         // Images and PDFs the UI sent as bytes go out as content blocks; anything else is a path the CLI reads, mentioned as @path.
-        var blocks = new List<object>();
+        var blocks = new List<JsonNode>();
         var mentions = new List<string>();
         foreach (var attachment in attachments ?? [])
         {
             if (attachment.Data is { Length: > 0 } data)
             {
                 var type = attachment.MediaType is { Length: > 0 } declared ? declared : "application/octet-stream";
-                blocks.Add(new { type = type.StartsWith("image/", StringComparison.Ordinal) ? "image" : "document", source = new { type = "base64", media_type = type, data = Convert.ToBase64String(data) } });
+                blocks.Add(new JsonObject
+                {
+                    ["type"] = type.StartsWith("image/", StringComparison.Ordinal) ? "image" : "document",
+                    ["source"] = new JsonObject { ["type"] = "base64", ["media_type"] = type, ["data"] = Convert.ToBase64String(data) }
+                });
             }
             else if (attachment.Path.Length > 0) mentions.Add("@" + attachment.Path);
         }
@@ -439,11 +446,11 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
             }
             ScheduleFlush();
         }
-        var content = new List<object>(blocks);
-        if (prompt.Length > 0 || content.Count == 0) content.Insert(0, new { type = "text", text = prompt });
+        var content = new List<JsonNode>(blocks);
+        if (prompt.Length > 0 || content.Count == 0) content.Insert(0, TextBlock(prompt));
         // Each command is its input and its output as blocks of their own, ahead of the prompt, as the CLI writes them.
-        content.InsertRange(0, attached.SelectMany(entry => new object[] { new { type = "text", text = $"<bash-input>{entry.Command}</bash-input>" }, new { type = "text", text = entry.Block() } }));
-        try { await WriteAsync(new { type = "user", uuid, message = new { role = "user", content }, parent_tool_use_id = (string?)null }); }
+        content.InsertRange(0, attached.SelectMany(entry => new[] { TextBlock($"<bash-input>{entry.Command}</bash-input>"), TextBlock(entry.Block()) }));
+        try { await WriteAsync(new JsonObject { ["type"] = "user", ["uuid"] = uuid, ["message"] = new JsonObject { ["role"] = "user", ["content"] = new JsonArray([.. content]) }, ["parent_tool_use_id"] = null }); }
         catch
         {
             // The model never got them: they ride the next send instead.
@@ -542,7 +549,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
             foreach (var question in folder.Items.OfType<ChatQuestionItem>().Where(item => item.Decision == ChatPermissionDecision.Pending))
                 folder.DecideQuestion(question.RequestId, ChatPermissionDecision.Denied, null);
         }
-        return ControlAsync(new { subtype = "interrupt" }).ContinueWith(task =>
+        return ControlAsync(new JsonObject { ["subtype"] = "interrupt" }).ContinueWith(task =>
         {
             lock (gate)
             {
@@ -560,7 +567,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     /// <summary>Switches the model; the header changes only when the CLI's answer arrives.</summary>
     public async Task<ChatHeader> SetModelAsync(string model)
     {
-        await ControlAsync(new { subtype = "set_model", model });
+        await ControlAsync(new JsonObject { ["subtype"] = "set_model", ["model"] = model });
         lock (gate)
         {
             record = record with { Model = model };
@@ -573,7 +580,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
 
     public async Task<ChatHeader> SetPermissionModeAsync(string mode)
     {
-        await ControlAsync(new { subtype = "set_permission_mode", mode });
+        await ControlAsync(new JsonObject { ["subtype"] = "set_permission_mode", ["mode"] = mode });
         lock (gate)
         {
             record = record with { PermissionMode = mode };
@@ -593,11 +600,11 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     {
         try
         {
-            await ControlAsync(new { subtype = "apply_flag_settings", settings = new { effortLevel = effort } });
+            await ControlAsync(new JsonObject { ["subtype"] = "apply_flag_settings", ["settings"] = new JsonObject { ["effortLevel"] = effort } });
             string? applied = effort;
             try
             {
-                var settings = await ControlAsync(new { subtype = "get_settings" });
+                var settings = await ControlAsync(new JsonObject { ["subtype"] = "get_settings" });
                 applied = settings.ValueKind == JsonValueKind.Object && settings.TryGetProperty("applied", out var found) ? ChatFolder.Str(found, "effort") : effort;
             }
             catch (InvalidOperationException) { }
@@ -660,7 +667,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
     public async Task<ChatRewindPreview> RewindPreviewAsync(string uuid)
     {
         JsonElement answer;
-        try { answer = await ControlAsync(new { subtype = "rewind_files", user_message_id = uuid, dry_run = true }); }
+        try { answer = await ControlAsync(new JsonObject { ["subtype"] = "rewind_files", ["user_message_id"] = uuid, ["dry_run"] = true }); }
         catch (InvalidOperationException error) { return new ChatRewindPreview(false) { Error = error.Message }; }
         var can = answer.ValueKind == JsonValueKind.Object && answer.TryGetProperty("canRewind", out var found) && found.ValueKind == JsonValueKind.True;
         var files = answer.ValueKind == JsonValueKind.Object && answer.TryGetProperty("filesChanged", out var changed) && changed.ValueKind == JsonValueKind.Array
@@ -685,7 +692,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         if (files)
         {
             JsonElement rewound;
-            try { rewound = await ControlAsync(new { subtype = "rewind_files", user_message_id = uuid }); }
+            try { rewound = await ControlAsync(new JsonObject { ["subtype"] = "rewind_files", ["user_message_id"] = uuid }); }
             catch (InvalidOperationException error) { throw new InvalidOperationException("Failed to rewind code: " + error.Message); }
             if (rewound.ValueKind == JsonValueKind.Object && rewound.TryGetProperty("canRewind", out var can) && can.ValueKind == JsonValueKind.False)
                 throw new InvalidOperationException("Failed to rewind code: " + (ChatFolder.Str(rewound, "error") ?? "No file checkpoint found"));
@@ -702,11 +709,11 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         await RestartAsync(spawn, transcript, uuid);
     }
 
-    public Task StopTaskAsync(string taskId) => ControlAsync(new { subtype = "stop_task", task_id = taskId });
+    public Task StopTaskAsync(string taskId) => ControlAsync(new JsonObject { ["subtype"] = "stop_task", ["task_id"] = taskId });
 
     public async Task AnswerAsync(ChatAnswerParams answer)
     {
-        object body;
+        JsonObject body;
         lock (gate)
         {
             if (folder.Item("p:" + answer.RequestId) is not ChatPermissionItem { Decision: ChatPermissionDecision.Pending } permission) return;
@@ -714,39 +721,46 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
             {
                 var updated = answer.UpdatedInput ?? permission.Input;
                 if (answer.Remember == true && permission.Suggestions is { } suggestions)
-                    body = new { behavior = "allow", updatedInput = updated, updatedPermissions = ChatPermissions.WithDestination(suggestions, answer.Destination) };
+                    body = new JsonObject { ["behavior"] = "allow", ["updatedInput"] = ClaudeJson.Node(updated), ["updatedPermissions"] = ClaudeJson.Node(ChatPermissions.WithDestination(suggestions, answer.Destination)) };
                 else if (permission.ToolName == "ExitPlanMode" && answer.PlanMode is { Length: > 0 } planMode)
-                    body = new { behavior = "allow", updatedInput = updated, updatedPermissions = new[] { new { type = "setMode", mode = planMode, destination = "session" } } };
-                else body = new { behavior = "allow", updatedInput = updated };
+                    body = new JsonObject
+                    {
+                        ["behavior"] = "allow",
+                        ["updatedInput"] = ClaudeJson.Node(updated),
+                        ["updatedPermissions"] = new JsonArray(new JsonObject { ["type"] = "setMode", ["mode"] = planMode, ["destination"] = "session" })
+                    };
+                else body = new JsonObject { ["behavior"] = "allow", ["updatedInput"] = ClaudeJson.Node(updated) };
             }
-            else body = new { behavior = "deny", message = ChatPermissions.DenyMessage(answer, permission.ToolName) };
+            else body = new JsonObject { ["behavior"] = "deny", ["message"] = ChatPermissions.DenyMessage(answer, permission.ToolName) };
             folder.Decide(answer.RequestId, answer.Allow ? ChatPermissionDecision.Allowed : ChatPermissionDecision.Denied);
             AfterPermission();
         }
-        await WriteAsync(new { type = "control_response", response = new { subtype = "success", request_id = answer.RequestId, response = body } });
+        await WriteAsync(new JsonObject { ["type"] = "control_response", ["response"] = new JsonObject { ["subtype"] = "success", ["request_id"] = answer.RequestId, ["response"] = body } });
     }
 
     public async Task AnswerQuestionAsync(ChatAnswerQuestionParams answer)
     {
-        object body;
+        JsonObject body;
         lock (gate)
         {
             if (folder.Item("q:" + answer.RequestId) is not ChatQuestionItem { Decision: ChatPermissionDecision.Pending } || folder.QuestionInput(answer.RequestId) is not { } input) return;
             if (answer.Cancelled == true || answer.Answers is null)
             {
-                body = new { behavior = "deny", message = ChatPermissions.Rejected };
+                body = new JsonObject { ["behavior"] = "deny", ["message"] = ChatPermissions.Rejected };
                 folder.DecideQuestion(answer.RequestId, ChatPermissionDecision.Denied, null);
             }
             else
             {
                 // The CLI hands the tool its own questions back with the answers keyed by question text.
-                var questions = input.TryGetProperty("questions", out var original) ? original : JsonSerializer.SerializeToElement(Array.Empty<object>());
-                body = new { behavior = "allow", updatedInput = new { questions, answers = answer.Answers } };
+                var questions = input.TryGetProperty("questions", out var original) ? original : ClaudeJson.EmptyArray();
+                var answers = new JsonObject();
+                foreach (var (question, chosen) in answer.Answers) answers[question] = chosen;
+                body = new JsonObject { ["behavior"] = "allow", ["updatedInput"] = new JsonObject { ["questions"] = ClaudeJson.Node(questions), ["answers"] = answers } };
                 folder.DecideQuestion(answer.RequestId, ChatPermissionDecision.Allowed, answer.Answers);
             }
             AfterPermission();
         }
-        await WriteAsync(new { type = "control_response", response = new { subtype = "success", request_id = answer.RequestId, response = body } });
+        await WriteAsync(new JsonObject { ["type"] = "control_response", ["response"] = new JsonObject { ["subtype"] = "success", ["request_id"] = answer.RequestId, ["response"] = body } });
     }
 
     /// <summary>Cancels a queued message in the CLI and drops its item; refuses when the CLI has already taken it up.</summary>
@@ -757,7 +771,7 @@ internal sealed class ClaudeChatSession(ChatRecord initial, ChatDeps deps)
         ChatUserItem item;
         lock (gate)
             item = folder.Item(itemId) as ChatUserItem is { Queued: true, Uuid: not null } queued ? queued : throw new InvalidOperationException("That message is not queued.");
-        var response = await ControlAsync(new { subtype = "cancel_async_message", message_uuid = item.Uuid });
+        var response = await ControlAsync(new JsonObject { ["subtype"] = "cancel_async_message", ["message_uuid"] = item.Uuid });
         if (!(response.ValueKind == JsonValueKind.Object && response.TryGetProperty("cancelled", out var cancelled) && cancelled.ValueKind == JsonValueKind.True))
             throw new InvalidOperationException("Claude Code has already taken that message up.");
         lock (gate)

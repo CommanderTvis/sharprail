@@ -201,9 +201,9 @@ internal sealed class AcpChatSession : IAsyncDisposable, IAcpClientHandler
         foreach (var attachment in attachments ?? [])
         {
             if (attachment.Data is { Length: > 0 } data && attachment.MediaType?.StartsWith("image/", StringComparison.Ordinal) == true && agent is { Image: true })
-                content.Add(new JsonObject { ["type"] = "image", ["data"] = Convert.ToBase64String(data), ["mimeType"] = attachment.MediaType });
+                content.Add((JsonNode)new JsonObject { ["type"] = "image", ["data"] = Convert.ToBase64String(data), ["mimeType"] = attachment.MediaType });
             else if (attachment.Path.Length > 0)
-                content.Add(new JsonObject { ["type"] = "resource_link", ["name"] = attachment.Name, ["uri"] = new Uri(Path.GetFullPath(attachment.Path, cwd)).AbsoluteUri });
+                content.Add((JsonNode)new JsonObject { ["type"] = "resource_link", ["name"] = attachment.Name, ["uri"] = new Uri(Path.GetFullPath(attachment.Path, cwd)).AbsoluteUri });
         }
         var active = client ?? throw new InvalidOperationException("The agent is not running.");
         var id = sessionId ?? throw new InvalidOperationException("The agent has no session yet.");

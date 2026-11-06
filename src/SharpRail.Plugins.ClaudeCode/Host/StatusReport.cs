@@ -15,7 +15,7 @@ internal static class StatusReports
     public static StatusDelivery? Parse(ReadOnlySpan<byte> body)
     {
         JsonElement root;
-        try { root = JsonSerializer.Deserialize<JsonElement>(body); }
+        try { root = JsonElement.Parse(body); }
         catch (JsonException) { return null; }
         if (root.ValueKind != JsonValueKind.Object || String(root, "event") is not { } @event) return null;
         // An event this version does not know moves nothing; a newer hook must not shift a badge by accident.

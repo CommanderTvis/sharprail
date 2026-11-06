@@ -33,6 +33,10 @@ internal static partial class AirContextChecks
         var bytes = "SharpRail fake Context executable; never run"u8.ToArray();
         var bundle = new ContextBundle("fixture", "fixture", new("https://download.jetbrains.com/sharprail-fixture"),
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        // The artifact identity a stored consent names hashes these bytes; a serializer change must not re-ask every user.
+        Require(ContextConsent.Identity(bundle) == Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+            "{\"Version\":\"fixture\",\"Platform\":\"fixture\",\"Url\":\"https://download.jetbrains.com/sharprail-fixture\",\"Sha256\":\"" + bundle.Sha256 + "\"}"))),
+            "The Context artifact identity no longer hashes the bytes earlier consents recorded.");
         using var handler = new Handler(async token => { await Task.Delay(50, token); return bytes; });
         using var http = new HttpClient(handler);
         try

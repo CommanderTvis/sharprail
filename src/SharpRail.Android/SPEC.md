@@ -14,7 +14,8 @@ is the connect screen, and the one page it replaces is Settings › Host.
 
 - Owns: `MainApplication` (starts Avalonia and installs the windowing platform before any activity exists),
   `MainActivity` (the single activity), `ClientSession` (connect screen or workbench, never both),
-  `ConnectWindow`, `HostEndpoint` (`host.json`), the Android half of `SettingsView` (`HostSettings.cs`),
+  `ConnectWindow`, `HostEndpoint` (`host.json`, written from source-generated metadata like the embedded node's
+  status it reads), the Android half of `SettingsView` (`HostSettings.cs`),
   `Windowing/` and the project's native-library build hook.
 - Forbidden: an embedded host, a local PTY, a terminal relay child or a served endpoint; a second copy of
   workbench sources; behaviour that only Android has outside this folder, other than a platform test in the

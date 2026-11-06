@@ -294,7 +294,7 @@ internal sealed class ClaudeChatHost
             for (var lines = 0; lines < 200 && reader.ReadLine() is { } line; lines++)
             {
                 if (!line.Contains("\"type\":\"user\"", StringComparison.Ordinal)) continue;
-                var message = JsonSerializer.Deserialize<JsonElement>(line);
+                var message = JsonElement.Parse(line);
                 if (ChatFolder.Str(message, "type") != "user" || message.TryGetProperty("isMeta", out var meta) && meta.ValueKind == JsonValueKind.True) continue;
                 if (!message.TryGetProperty("message", out var body) || !body.TryGetProperty("content", out var content)) continue;
                 var text = content.ValueKind == JsonValueKind.String ? content.GetString()

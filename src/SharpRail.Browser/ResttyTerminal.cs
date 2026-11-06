@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Channels;
 
 using Avalonia.Browser;
@@ -179,20 +180,20 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITer
     private static string ThemeJson()
     {
         var colors = TerminalTheme.Colors();
-        static object? Color(Avalonia.Media.Color? color) => color is { } c ? new { r = c.R, g = c.G, b = c.B } : null;
-        return JsonSerializer.Serialize(new
+        static JsonObject? Color(Avalonia.Media.Color? color) => color is { } c ? new JsonObject { ["r"] = c.R, ["g"] = c.G, ["b"] = c.B } : null;
+        return new JsonObject
         {
-            raw = new { },
-            colors = new
+            ["raw"] = new JsonObject(),
+            ["colors"] = new JsonObject
             {
-                background = Color(colors.Background),
-                foreground = Color(colors.Foreground),
-                cursor = Color(colors.Cursor),
-                selectionBackground = Color(colors.SelectionBackground),
-                selectionForeground = Color(colors.SelectionForeground),
-                palette = colors.Ansi.Select(c => Color(c)).ToArray()
+                ["background"] = Color(colors.Background),
+                ["foreground"] = Color(colors.Foreground),
+                ["cursor"] = Color(colors.Cursor),
+                ["selectionBackground"] = Color(colors.SelectionBackground),
+                ["selectionForeground"] = Color(colors.SelectionForeground),
+                ["palette"] = new JsonArray([.. colors.Ansi.Select(c => (JsonNode?)Color(c))])
             }
-        });
+        }.ToJsonString();
     }
     private void UpdateResumeHint() => Dispatcher.UIThread.Post(() =>
     {

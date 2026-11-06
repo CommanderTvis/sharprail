@@ -333,10 +333,8 @@ internal static class ToolCards
         : tool.Name == "Monitor" && Str(tool.Input, "command") is { Length: > 0 } watch ? watch
         : tool.Input.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? ""
         : tool.Name.StartsWith("mcp__", StringComparison.Ordinal) && IsSharpRail(tool.Name.Split("__", 3)[1]) && tool.Input.ValueKind == JsonValueKind.Object
-            ? JsonSerializer.Serialize(tool.Input.EnumerateObject().Where(property => property.Name != "workspace").ToDictionary(property => property.Name, property => property.Value), Indented)
-        : JsonSerializer.Serialize(tool.Input, Indented);
-
-    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+            ? JsonSerializer.Serialize(tool.Input.EnumerateObject().Where(property => property.Name != "workspace").ToDictionary(property => property.Name, property => property.Value), ChatUIJson.Indented.DictionaryStringJsonElement)
+        : JsonSerializer.Serialize(tool.Input, ChatUIJson.Indented.JsonElement);
 
     /// <summary>A text longer than 250 characters or over three lines is clipped to 60 pixels and opens in full on a click.</summary>
     internal static bool Openable(string text) => text.Length > 250 || Lines(text) > 3;

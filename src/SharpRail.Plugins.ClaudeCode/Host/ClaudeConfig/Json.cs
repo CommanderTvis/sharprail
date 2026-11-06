@@ -21,7 +21,7 @@ internal static class Json
 
     public static bool IsTrue(JsonNode? value) => value is JsonValue scalar && scalar.GetValueKind() == JsonValueKind.True;
 
-    public static JsonElement Element(JsonNode? value) => value is null ? JsonSerializer.SerializeToElement<object?>(null) : JsonSerializer.SerializeToElement(value);
+    public static JsonElement Element(JsonNode? value) => ClaudeJson.Element(value);
 
     /// <summary>JavaScript's <c>JSON.stringify(value, null, indent)</c>: two-space or the file's own indent, non-ASCII kept.</summary>
     public static string Stringify(JsonNode? value, string indent = "  ")
@@ -44,10 +44,8 @@ internal static class Json
         return System.Text.Encoding.UTF8.GetString(buffer.ToArray());
     }
 
-    private static readonly JsonSerializerOptions CompactOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
-
     /// <summary>JavaScript's <c>JSON.stringify(value)</c>: one line, non-ASCII kept.</summary>
-    public static string Compact(JsonElement value) => JsonSerializer.Serialize(value, CompactOptions);
+    public static string Compact(JsonElement value) => JsonSerializer.Serialize(value, ClaudeJson.Relaxed.JsonElement);
 
     /// <summary>A copy of a value, so placing it in a second tree does not detach it from the first.</summary>
     public static JsonNode? Clone(JsonNode? value) => value?.DeepClone();

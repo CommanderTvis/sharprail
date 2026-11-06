@@ -89,4 +89,5 @@ public sealed record SpecUpdateParams([property: Description("Id of the spec to 
 [JsonSerializable(typeof(SpecGraphToolParams))]
 [JsonSerializable(typeof(SpecCreateParams))]
 [JsonSerializable(typeof(SpecUpdateParams))]
+[JsonSerializable(typeof(string))]
 internal sealed partial class SpecHostJson : JsonSerializerContext;

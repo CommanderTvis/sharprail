@@ -1,6 +1,6 @@
 using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 using SharpRail.Plugins.Api.Host;
 
@@ -80,7 +80,7 @@ public static class CodexSystemPrompt
     }
 
     // Like JSON.stringify: only what JSON requires is escaped, so the shell and Codex see the text itself.
-    private static readonly JsonSerializerOptions Relaxed = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    private static JsonTypeInfo<string> Relaxed => CodexHostJson.Relaxed.String;
 
     /// <summary>The file's current text as a JSON string, which the launch line's <c>developer_instructions</c> expands.</summary>
     public static string Json()

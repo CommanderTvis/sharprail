@@ -1,6 +1,7 @@
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using SharpRail.Plugins.Tailscale;
 
@@ -9,7 +10,6 @@ namespace SharpRail.UI.Android;
 /// <summary>The app-private userspace node. Neither the system VPN nor another application's state is used.</summary>
 internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsyncDisposable
 {
-    private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
     private static readonly SemaphoreSlim NativeGate = new(1, 1);
     private static EmbeddedTailscaleNetwork? nativeOwner;
     private readonly Func<string, string, string> native;
@@ -37,7 +37,7 @@ internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsync
             if (!started)
             {
                 Directory.CreateDirectory(stateDirectory);
-                status = await CallAsync("start", JsonSerializer.Serialize(new { stateDirectory, hostname = "sharprail-android" }), cancellationToken);
+                status = await CallAsync("start", new JsonObject { ["stateDirectory"] = stateDirectory, ["hostname"] = "sharprail-android" }.ToJsonString(), cancellationToken);
                 started = true;
             }
             return status!;
@@ -103,13 +103,13 @@ internal sealed class EmbeddedTailscaleNetwork : ITailscaleClientNetwork, IAsync
                 if (networkSnapshot is not null)
                 {
                     var network = await Task.Run(() => native("network", networkSnapshot()));
-                    var result = JsonSerializer.Deserialize<EmbeddedTailscaleStatus>(network, Json);
+                    var result = JsonSerializer.Deserialize(network, AndroidJson.CaseInsensitive.EmbeddedTailscaleStatus);
                     if (!string.IsNullOrEmpty(result?.Error)) throw new IOException(result.Error);
                 }
             }
             else if (nativeOwner != this) throw new IOException("This Tailscale session has been replaced. Reopen the connection screen.");
             var json = await Task.Run(() => native(operation, input));
-            var reply = JsonSerializer.Deserialize<EmbeddedTailscaleStatus>(json, Json) ?? throw new IOException("Tailscale sent no status.");
+            var reply = JsonSerializer.Deserialize(json, AndroidJson.CaseInsensitive.EmbeddedTailscaleStatus) ?? throw new IOException("Tailscale sent no status.");
             if (!string.IsNullOrEmpty(reply.Error)) throw new IOException(reply.Error);
             statusUpdated = Environment.TickCount64;
             return reply;

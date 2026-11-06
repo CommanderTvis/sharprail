@@ -66,6 +66,8 @@ enable indexing. Current terms and an unconditional full executable digest are c
 before every fresh native execution; display-only digest caching never authorizes it.
 Changed terms, missing acknowledgement, corrupt binaries or unavailable validation
 fail closed. No agent operation records consent or enables a workspace.
+The artifact identity is the SHA-256 of the artifact record's JSON, written from source-generated metadata with
+the bytes the reflection serializer wrote, so a recorded consent stays valid across releases (`--context` pins it).
 
 Context enablement is a persisted list of project roots (`HostWorkspace.ProjectId`) owned by the plugin's host half, changed only by the plugin's
 user-interface methods and published on its `changed` channel to every client, for every workspace of the project. A workspace no open

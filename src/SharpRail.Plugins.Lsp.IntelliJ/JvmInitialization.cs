@@ -35,7 +35,7 @@ internal static class JvmInitialization
                 var maven = File.Exists(Path.Combine(workspace, "pom.xml"));
                 var importer = options.BuildTool.Length > 0 ? options.BuildTool : gradle is not null ? "gradle" : maven ? "maven" : "";
                 if (importer == "gradle" && gradle is not null || importer == "maven" && maven)
-                    projects.Add(new JsonObject { ["type"] = importer, ["path"] = new Uri(Path.Combine(workspace, importer == "maven" ? "pom.xml" : gradle ?? "build.gradle.kts")).AbsoluteUri });
+                    projects.Add((JsonNode)new JsonObject { ["type"] = importer, ["path"] = new Uri(Path.Combine(workspace, importer == "maven" ? "pom.xml" : gradle ?? "build.gradle.kts")).AbsoluteUri });
             }
             foreach (var project in projects.OfType<JsonObject>())
                 if (project["type"]?.ToString() is "gradle" or "maven" && !project.ContainsKey("java-home")) project["java-home"] = jdk;

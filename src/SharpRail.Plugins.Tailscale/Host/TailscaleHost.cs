@@ -111,18 +111,17 @@ public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHost
         var remote = http.Request.RemoteEndPoint?.Address;
         var identity = remote is null ? null : await network.PeerAsync(remote, timeout.Token);
         if (identity is null) { http.Response.StatusCode = 403; http.Response.Close(); return; }
-        object response;
-        if (http.Request.HttpMethod == "GET" && http.Request.Url?.AbsolutePath == "/sharprail") response = new TailscaleHostInfo(hostName);
+        byte[] bytes;
+        if (http.Request.HttpMethod == "GET" && http.Request.Url?.AbsolutePath == "/sharprail") bytes = PluginJson.SerializeToUtf8Bytes(new TailscaleHostInfo(hostName));
         else if (http.Request.HttpMethod == "POST" && http.Request.Url?.AbsolutePath == "/sharprail/pair")
         {
             var token = http.Request.Headers["X-SharpRail-Pairing"] ?? "";
             var state = registry.Request(token, identity.Id, identity.Name, identity.User);
             var address = state == "approved" ? await serving.EnsureListening!(hostAddress.ToString(), timeout.Token) : null;
-            response = new TailscalePairReply(state, address);
+            bytes = PluginJson.SerializeToUtf8Bytes(new TailscalePairReply(state, address));
         }
         else { http.Response.StatusCode = 404; http.Response.Close(); return; }
         http.Response.ContentType = "application/json";
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(response, PluginJson.TypeInfo(response.GetType()));
         http.Response.ContentLength64 = bytes.Length;
         await http.Response.OutputStream.WriteAsync(bytes, timeout.Token);
         http.Response.Close();
