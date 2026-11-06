@@ -15,10 +15,11 @@ RUN case "$TARGETARCH" in amd64) rid=linux-x64 ;; arm64) rid=linux-arm64 ;; *) e
     && dotnet publish src/SharpRail.Host.Headless -c Release -r "$rid" --self-contained -p:PublishSingleFile=false -o /out
 
 # runtime-deps carries what a self-contained app needs (libicu, libssl, libstdc++, zlib), and the downloaded .NET SDKs need the same.
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-trixie-slim AS base
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble AS base
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates tzdata \
     && rm -rf /var/lib/apt/lists/* \
+    && (userdel --remove ubuntu 2>/dev/null || true) \
     && useradd --uid 1000 --home-dir /cache/home --no-create-home --shell /usr/sbin/nologin sharprail \
     && mkdir -p /cache/home /cache/managed /cache/state /workspace \
     && chown -R sharprail:sharprail /cache /workspace \
