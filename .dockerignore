@@ -1,0 +1,8 @@
+# The headless image copies only a publish directory (or, for the local target, the sources).
+.git
+**/bin
+**/obj
+**/node_modules
+.bench
+artifacts/*
+!artifacts/headless
