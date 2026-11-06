@@ -26,6 +26,7 @@ public sealed partial class WorkbenchWindow
     {
         surface.CenterTabs = CenterTabsModeNow;
         surface.WorkspaceRoot = () => workspaceRoot;
+        surface.ShowInDirectory = path => _ = RevealInFilesAsync(workspaceRoot, path);
         // Terminal tabs stay in their workspace, so the rail's other workspaces and projects are no drop destination for them.
         surface.ForeignWorkspace = control => control.Name switch
         {

@@ -303,6 +303,9 @@ disabled with `— limited to N` at the side limit). The four corner entries are
 
 File-backed tab menus (editor, Markdown, PDF, image, diff) offer Copy path (workspace-relative) and Copy absolute path, matching
 the Files tree; terminal and tool tabs offer neither. They copy the host-side path through the window clipboard.
+Right after them a file inside the workspace root also offers Show in directory (no icon): it shows the Files pane
+(restoring or unfolding it as needed), lists and expands the file's parent folders, and selects and scrolls the file's
+node into view. It is hidden for tabs without a workspace file and for files outside the root.
 
 Terminal tab context menus include Rename in Projects and side tool strips. The name prompt
 starts with the current title; cancellation, blank and unchanged names leave it alone. Accepted names
@@ -404,8 +407,10 @@ Ambiguous basenames show their folder on a dimmed second line.
   keeps its direction and its members' proportions, the newcomer taking an equal share; membership is
   exclusive. A member dropped inside its own run reorders the pane, a drop past it takes the member out, and
   a drop that changes nothing is refused. Making a pane is a vertical-strip gesture: the band between a
-  row's insertion quarters, or "Show beside/under <neighbour>" for the immediate neighbours in the tab menu (one neighbour is a flat row; two share
-  one "Show beside" submenu of their titles).
+  row's insertion quarters, or "Group with" in the tab menu, which offers every other tab of the strip that can join, in strip order, with its tab
+  icon (one candidate is a flat "Group with <title>" row; several share one "Group with" submenu that scrolls under the
+  window height). Choosing a tab joins its pane, or makes one next to it, whatever the distance in the strip; a tab in the
+  same pane or in a full pane is not offered.
   Managing one works in either orientation ("Move up/left in this group", "Stack this group" / "Put this
   group in columns", "Show on its own"). Selecting any member shows the whole pane; its dividers commit weights when a drag ends.
 - Each centre group's strip renders nested under the

@@ -85,7 +85,7 @@ public sealed partial class WorkbenchWindow
             var inside = folder == workspace.TrimEnd('/', '\\') ? "" : HostPaths.Relative(workspace, folder).Replace('\\', '/');
             if (inside.Length == 0 || inside != folder.Replace('\\', '/'))
             {
-                await RevealFolderAsync(workspace, inside);
+                await RevealInFilesAsync(workspace, inside);
                 return;
             }
             if (await ChooseHostPathAsync(link.Path, "Open file from folder") is not { } picked || workspaceRoot != workspace) return;
@@ -96,8 +96,8 @@ public sealed partial class WorkbenchWindow
         await OpenDocumentAsync(path, true, line: link.Line, raw: true, column: link.Column);
     }
 
-    /// <summary>Shows the Files pane and selects a workspace-relative folder in it ("" is the workspace root), listing its ancestors in the background first.</summary>
-    private async Task RevealFolderAsync(string workspace, string folder)
+    /// <summary>Shows the Files pane and selects a workspace-relative file or folder in it ("" is the workspace root), listing its ancestors in the background first.</summary>
+    internal async Task RevealInFilesAsync(string workspace, string folder)
     {
         var request = projectRequest;
         RevealFiles();
@@ -109,7 +109,7 @@ public sealed partial class WorkbenchWindow
         if (toolContent.GetValueOrDefault("files")?.GetLogicalDescendants().OfType<DrawnTree>().FirstOrDefault() is not { } tree) return;
         foreach (var parent in parents.AsEnumerable().Reverse())
             if (tree.Rows.FirstOrDefault(entry => entry.Tag is ProjectFile { IsDirectory: true } item && item.Path == parent) is { } row) tree.Expand(row, true);
-        if (folder.Length > 0 && tree.Rows.FirstOrDefault(entry => entry.Tag is ProjectFile { IsDirectory: true } item && item.Path == folder) is { } target) tree.Reveal(target);
+        if (folder.Length > 0 && tree.Rows.FirstOrDefault(entry => entry.Tag is ProjectFile item && item.Path == folder) is { } target) tree.Reveal(target);
     }
 
     private Task<IReadOnlyList<Ghostty.Avalonia.TerminalLink>> ResolveTerminalCommits(string workspace, string text, CancellationToken token)

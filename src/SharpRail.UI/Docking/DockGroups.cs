@@ -668,6 +668,14 @@ public sealed partial class DockSurface
             copyAbsolute.Name = "TabCopyPath";
             menu.Items.Add(copyRelative);
             menu.Items.Add(copyAbsolute);
+            // Only a file inside the workspace has a node in the Files tree.
+            var inTree = rooted ? HostPaths.Relative(root, tab.Path) : tab.Path;
+            if (ShowInDirectory is not null && !HostPaths.IsAbsolute(inTree) && inTree != ".." && !inTree.StartsWith("../", StringComparison.Ordinal) && !inTree.StartsWith(@"..\", StringComparison.Ordinal))
+            {
+                var reveal = Ui.Menu("Show in directory", () => ShowInDirectory(inTree.Replace('\\', '/')));
+                reveal.Name = "TabShowInDirectory";
+                menu.Items.Add(reveal);
+            }
         }
         // Removing a group merges its tabs into a neighbour rather than closing them, so the entry shows only where it can act.
         if (RemoveGroupMenuItem(group).IsEnabled) menu.Items.Add(Ui.Menu("Close group", () => RemoveGroup(group.Id)));
@@ -696,17 +704,19 @@ public sealed partial class DockSurface
             menu.Items.Add(new Separator());
             if (vertical)
             {
-                // The neighbours rather than every tab: twenty "show beside" rows is a menu nobody reads.
+                // Every other tab of the strip that can join, in strip order. A target whose pane is full cannot take another member.
                 var defaultDirection = CenterTabs?.Invoke().DefaultPaneDirection ?? "horizontal";
                 var offers = new List<ShowWithOffer>();
-                foreach (var neighbour in new[] { position - 1, position + 1 }.Where(index => index >= 0 && index < members.Count).Select(index => members[index]))
+                foreach (var candidate in members)
                 {
-                    if (neighbour.IsTool || pane?.TabIds.Contains(neighbour.Id) == true) continue;
-                    var direction = Session.PaneFor(group.Id, neighbour.Id)?.Direction ?? defaultDirection;
-                    offers.Add(new("ShowWith_" + neighbour.Id.Replace(':', '_').Replace('/', '_'), direction == "vertical" ? "Show under" : "Show beside",
-                        Session.ToolTitle(neighbour), () => Session.GroupTabs(group.Id, tab.Id, neighbour.Id, direction)));
+                    if (candidate.Id == tab.Id || candidate.IsTool || pane?.TabIds.Contains(candidate.Id) == true) continue;
+                    var targetPane = Session.PaneFor(group.Id, candidate.Id);
+                    if (targetPane is not null && targetPane.TabIds.Count >= DockPane.MaxMembers) continue;
+                    var direction = targetPane?.Direction ?? defaultDirection;
+                    offers.Add(new("GroupWith_" + candidate.Id.Replace(':', '_').Replace('/', '_'), Session.ToolTitle(candidate),
+                        () => Session.GroupTabs(group.Id, tab.Id, candidate.Id, direction), candidate));
                 }
-                AddShowWith(menu, offers);
+                AddGroupWith(menu, offers, TabIcon);
             }
             if (pane is not null)
             {
@@ -879,28 +889,33 @@ public sealed partial class DockSurface
         flyout.ShowAt(trigger);
     }
 
-    internal sealed record ShowWithOffer(string Name, string Verb, string Title, Action Run);
+    internal sealed record ShowWithOffer(string Name, string Title, Action Run, DockTab? Tab = null);
 
-    /// <summary>One neighbour gets a flat "Show beside X" row; several share one "Show beside" submenu of their titles, so the tab menu stays short.</summary>
-    internal static void AddShowWith(ContextMenu menu, IReadOnlyList<ShowWithOffer> offers)
+    /// <summary>One candidate gets a flat "Group with X" row; several share one "Group with" submenu of their titles and tab icons, capped to the window height so a long list scrolls.</summary>
+    internal static void AddGroupWith(ContextMenu menu, IReadOnlyList<ShowWithOffer> offers, Func<DockTab, IBrush, Control?>? tabIcon = null)
     {
         if (offers.Count == 1)
         {
-            var only = Ui.Menu($"{offers[0].Verb} {offers[0].Title}", offers[0].Run);
+            var only = Ui.Menu($"Group with {offers[0].Title}", offers[0].Run);
             only.Name = offers[0].Name;
             menu.Items.Add(only);
         }
         else if (offers.Count > 1)
         {
-            // Mixed directions cannot share one verb, so each child then names its own.
-            var verbs = offers.Select(offer => offer.Verb).Distinct().ToArray();
-            var parent = new MenuItem { Name = "ShowWithMenu", Header = verbs.Length == 1 ? verbs[0] : "Show with" };
+            var parent = new MenuItem { Name = "GroupWithMenu", Header = "Group with" };
             foreach (var offer in offers)
             {
-                var child = Ui.Menu(verbs.Length == 1 ? offer.Title : $"{offer.Verb["Show ".Length..]} {offer.Title}", offer.Run);
+                var child = Ui.Menu(offer.Title, offer.Run);
                 child.Name = offer.Name;
+                if (offer.Tab is not null && tabIcon?.Invoke(offer.Tab, Ui.Muted) is { } icon) child.Icon = icon;
                 parent.Items.Add(child);
             }
+            Avalonia.Controls.Primitives.Popup? popup = null;
+            parent.TemplateApplied += (_, e) => popup = e.NameScope.Find<Avalonia.Controls.Primitives.Popup>("PART_Popup");
+            parent.SubmenuOpened += (_, _) =>
+            {
+                if (popup?.Child is Control child && TopLevel.GetTopLevel(parent) is { } top) child.MaxHeight = Math.Max(120, top.ClientSize.Height - 24);
+            };
             menu.Items.Add(parent);
         }
     }

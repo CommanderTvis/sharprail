@@ -138,7 +138,7 @@ internal static class VerticalTabsE2E
             }
             app.Click(app.Tab("README.md")); Check("markdown_README.md");
             app.Click(app.Tab("notes.txt")); Check("file_notes.txt");
-            app.ContextAction(app.Tab("notes.txt"), "Show beside README.md");
+            app.ContextAction(app.Tab("notes.txt"), "Group with README.md");
             app.Click(app.Tab("README.md")); Check("markdown_README.md");
             app.Click(app.Tab("notes.txt")); Check("file_notes.txt");
         });
@@ -153,7 +153,7 @@ internal static class VerticalTabsE2E
             var menu = app.Tab("notes.txt").ContextMenu!;
             Until(() => menu.IsOpen);
             Require(!menu.Items.OfType<MenuItem>().Any(item => item.Header is string header && header.StartsWith("Split", StringComparison.Ordinal)) &&
-                menu.Items.OfType<MenuItem>().Any(item => item.Header as string == "Show beside README.md"),
+                menu.Items.OfType<MenuItem>().Any(item => item.Header as string == "Group with README.md"),
                 "Projects tabs must offer tab groups and no main column splits.");
             menu.Close();
             var center = app.Center;
@@ -169,7 +169,7 @@ internal static class VerticalTabsE2E
         Case("two tabs shown together render as panes and can be restacked and separated", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
-            app.ContextAction(app.Tab("notes.txt"), "Show beside README.md");
+            app.ContextAction(app.Tab("notes.txt"), "Group with README.md");
             Until(() => app.Window.Layout.PaneFor(app.Center, "file:notes.txt") is not null);
             var pane = app.Find<Grid>("TabPane_" + app.Center);
             var members = pane.GetLogicalDescendants().OfType<Border>().Where(border => border.Name == "PaneMember").ToArray();

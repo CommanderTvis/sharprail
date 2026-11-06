@@ -17,30 +17,77 @@ namespace SharpRail.Checks;
 /// </summary>
 internal static class MenuLayoutChecks
 {
-    // The tab menu's "Show beside" rows: none offers nothing, one stays a flat row, several share one submenu of titles.
-    private static void ShowWithGrouping()
+    // The tab menu's "Group with" rows: none offers nothing, one stays a flat row, several share one submenu of titles in order.
+    private static void GroupWithGrouping()
     {
-        static DockSurface.ShowWithOffer Offer(string title) => new("ShowWith_" + title, "Show beside", title, () => { });
+        static DockSurface.ShowWithOffer Offer(string title) => new("GroupWith_" + title, title, () => { });
         static ContextMenu Build(params string[] titles)
         {
             var menu = new ContextMenu();
-            DockSurface.AddShowWith(menu, titles.Select(Offer).ToArray());
+            DockSurface.AddGroupWith(menu, titles.Select(Offer).ToArray());
             return menu;
         }
-        Require(Build().Items.Count == 0, "No companion offers no Show beside row.");
+        Require(Build().Items.Count == 0, "No candidate offers no Group with row.");
         var one = Build("Orchestrator").Items.OfType<MenuItem>().ToArray();
-        Require(one.Length == 1 && (string?)one[0].Header == "Show beside Orchestrator" && one[0].Items.Count == 0, "One companion keeps a flat Show beside row.");
-        foreach (var count in new[] { 2, 3 })
+        Require(one.Length == 1 && (string?)one[0].Header == "Group with Orchestrator" && one[0].Items.Count == 0, "One candidate keeps a flat Group with row.");
+        foreach (var count in new[] { 2, 15 })
         {
-            var rows = Build(new[] { "Orchestrator", "Task board", "Notes" }.Take(count).ToArray()).Items.OfType<MenuItem>().ToArray();
-            Require(rows.Length == 1 && (string?)rows[0].Header == "Show beside" && rows[0].Items.OfType<MenuItem>().Select(item => (string?)item.Header)
-                .SequenceEqual(new[] { "Orchestrator", "Task board", "Notes" }.Take(count)), $"{count} companions share one Show beside submenu of their titles.");
+            var titles = Enumerable.Range(1, count).Select(index => "Tab " + index).ToArray();
+            var rows = Build(titles).Items.OfType<MenuItem>().ToArray();
+            Require(rows.Length == 1 && rows[0].Name == "GroupWithMenu" && (string?)rows[0].Header == "Group with" && rows[0].Items.OfType<MenuItem>().Select(item => (string?)item.Header)
+                .SequenceEqual(titles), $"{count} candidates share one Group with submenu of their titles in order.");
         }
+    }
+
+    // Choosing a tab that is not a neighbour groups the two, and Show in directory reveals the file in the Files tree: only file tabs offer it, deep files expand their parents, and a folded Files pane opens.
+    internal static void GroupAndReveal(string root)
+    {
+        Directory.CreateDirectory(Path.Combine(root, "group-reveal", "deep", "er", "est"));
+        foreach (var name in new[] { "a.txt", "b.txt", "c.txt", "d.txt", Path.Combine("deep", "er", "est", "z.txt") }) File.WriteAllText(Path.Combine(root, "group-reveal", name), name);
+        using var app = new SharpRail.Checks.E2E.E2eWorkspace(Path.Combine(root, "group-reveal"));
+        SharpRail.Checks.E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
+        foreach (var name in new[] { "a.txt", "b.txt", "c.txt", "d.txt" }) app.Open(name, true);
+        _ = app.Window.OpenDocumentAsync("deep/er/est/z.txt", true);
+        SharpRail.Checks.E2E.E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Path == "deep/er/est/z.txt"));
+        app.Window.Layout.Select(app.Center, "file:a.txt");
+        var tab = app.Tab("a.txt");
+        app.Click(tab, mouseButton: Avalonia.Input.MouseButton.Right);
+        var menu = tab.ContextMenu!;
+        SharpRail.Checks.E2E.E2eWorkspace.Until(() => menu.IsOpen);
+        var submenu = menu.Items.OfType<MenuItem>().Single(item => item.Name == "GroupWithMenu");
+        Require(submenu.Items.OfType<MenuItem>().Select(item => (string?)item.Header).SequenceEqual(new[] { "b.txt", "c.txt", "d.txt", "z.txt" }),
+            "Group with lists every other tab in strip order, not only the neighbours.");
+        Require(menu.Items.OfType<MenuItem>().Any(item => item.Name == "TabShowInDirectory"), "A file tab offers Show in directory.");
+        submenu.Items.OfType<MenuItem>().Single(item => item.Name == "GroupWith_file_c.txt").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        menu.Close();
+        Require(app.Window.Layout.PaneFor(app.Center, "file:a.txt") is { } pane && pane.TabIds.Contains("file:c.txt") && !pane.TabIds.Contains("file:b.txt"),
+            "Choosing a non-neighbour tab groups the two tabs.");
+
+        var filesGroup = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == "files"));
+        app.Window.Layout.Visible(filesGroup.Region, false);
+        var zTab = app.Tab("deep/er/est/z.txt");
+        app.Click(zTab, mouseButton: Avalonia.Input.MouseButton.Right);
+        var zMenu = zTab.ContextMenu!;
+        SharpRail.Checks.E2E.E2eWorkspace.Until(() => zMenu.IsOpen);
+        zMenu.Items.OfType<MenuItem>().Single(item => item.Name == "TabShowInDirectory").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        zMenu.Close();
+        SharpRail.Checks.E2E.E2eWorkspace.Until(() => app.Window.Layout.RegionVisible(filesGroup.Region) && app.Window.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.DrawnTree>()
+            .FirstOrDefault(tree => tree.Name == "FilesTree") is { SelectedItem: SharpRail.Plugins.UI.Kit.DrawnTreeEntry { Tag: SharpRail.Host.Abstractions.ProjectFile { Path: "deep/er/est/z.txt" } } } shown &&
+            shown.Rows.Any(row => row.Id == "deep/er/est" && row.Expanded)); // the single-child chain deep/er/est is one compacted row
+
+        // A document that is not a file has no node: a terminal-style tab with no path offers nothing.
+        app.Window.Layout.Open(new("terminal:menu", "Shell", "terminal"), false);
+        var shell = app.Find<Button>("Tab_terminal_menu");
+        app.Click(shell, mouseButton: Avalonia.Input.MouseButton.Right);
+        SharpRail.Checks.E2E.E2eWorkspace.Until(() => shell.ContextMenu!.IsOpen);
+        Require(!shell.ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name == "TabShowInDirectory"), "A terminal tab does not offer Show in directory.");
+        shell.ContextMenu.Close();
+        Console.WriteLine("PASS menu layout: Group with lists every tab and groups a non-neighbour, Show in directory reveals deep files");
     }
 
     internal static void Run()
     {
-        ShowWithGrouping();
+        GroupWithGrouping();
         var anchor = new Button { Content = "tab", Width = 80, Height = 24 };
         var window = new Window { Width = 400, Height = 300, Content = anchor };
         window.Show();

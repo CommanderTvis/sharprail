@@ -437,6 +437,7 @@ internal static class Program
             Directory.CreateDirectory(menuRoot);
             File.WriteAllText(Path.Combine(menuRoot, "notes.txt"), "n");
             MenuLayoutChecks.RealFileMenu(menuRoot);
+            MenuLayoutChecks.GroupAndReveal(menuRoot);
             return;
         }
         if (args.SequenceEqual(["--terminal-resume-hint"]))
