@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- A console host: no web server, no window. It reaches only Host.Core; BoundaryChecks and the headless check fail on any UI reference. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>sharprail-headless</AssemblyName>
+    <RootNamespace>SharpRail.Host.Headless</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
+  </ItemGroup>
+</Project>
