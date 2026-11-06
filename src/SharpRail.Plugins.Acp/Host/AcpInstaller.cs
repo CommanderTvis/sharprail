@@ -36,13 +36,17 @@ internal sealed class AcpInstaller(string root, Func<string, CancellationToken, 
             var package = (JsonObject)node;
             var spec = AcpFolder.Str(package, "package");
             var args = plan.Kind == "npx" ? new[] { "-y", spec }.Concat(AcpRegistry.Arguments(package)) : new[] { spec }.Concat(AcpRegistry.Arguments(package));
-            return new AcpAgentEntry(plan.AgentId, plan.Name, plan.Kind) { Args = [.. args], Env = AcpRegistry.Environment(package), Origin = "registry", Version = plan.Version, Description = AcpFolder.Str(agent, "description"), Website = Optional(agent, "website"), Repository = plan.Repository, License = plan.License, Source = plan.Source };
+            return new AcpAgentEntry(plan.AgentId, plan.Name, plan.Kind) { Args = [.. args], Env = AcpRegistry.Environment(package), Origin = "registry", Version = plan.Version, Description = AcpFolder.Str(agent, "description"), Website = Optional(agent, "website"), Repository = plan.Repository, License = plan.License, Source = plan.Source, Verification = plan.Verification };
         }
         var target = (JsonObject)node[platform]!;
         var archive = AcpFolder.Str(target, "archive");
+        if (!archive.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("The registry lists a download that is not https, so nothing was downloaded.");
+        // A checksum the registry provides is always checked: one that is not a SHA-256 is a refusal, not a skipped check.
+        if (plan.Sha256 is { } listed && !AcpRegistry.IsSha256(listed)) throw new InvalidOperationException("The registry's checksum is not a valid SHA-256, so nothing was downloaded.");
         var bytes = await download(archive, cancellationToken);
-        if (plan.Sha256 is { } expected && !string.Equals(Convert.ToHexString(SHA256.HashData(bytes)), expected, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("The download does not match the registry's checksum, so it was discarded.");
+        // Checked here, after the download and before anything is written or unpacked.
+        if (plan.Sha256 is { } expected && !CryptographicOperations.FixedTimeEquals(SHA256.HashData(bytes), Convert.FromHexString(expected)))
+            throw new InvalidOperationException("The download does not match the registry's checksum, so it was discarded and nothing was installed.");
         var directory = Path.Combine(root, plan.AgentId, plan.Version);
         var staging = directory + ".partial";
         if (Directory.Exists(staging)) Directory.Delete(staging, recursive: true);
@@ -63,7 +67,7 @@ internal sealed class AcpInstaller(string root, Func<string, CancellationToken, 
         if (!program.StartsWith(Path.GetFullPath(directory) + Path.DirectorySeparatorChar, StringComparison.Ordinal) || !File.Exists(program))
             throw new InvalidOperationException("The archive does not contain the agent's command.");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(program, File.GetUnixFileMode(program) | UnixFileMode.UserExecute);
-        return new AcpAgentEntry(plan.AgentId, plan.Name, program) { Args = AcpRegistry.Arguments(target), Env = AcpRegistry.Environment(target), Origin = "registry", Version = plan.Version, Description = AcpFolder.Str(agent, "description"), Website = Optional(agent, "website"), Repository = plan.Repository, License = plan.License, Source = plan.Source };
+        return new AcpAgentEntry(plan.AgentId, plan.Name, program) { Args = AcpRegistry.Arguments(target), Env = AcpRegistry.Environment(target), Origin = "registry", Version = plan.Version, Description = AcpFolder.Str(agent, "description"), Website = Optional(agent, "website"), Repository = plan.Repository, License = plan.License, Source = plan.Source, Verification = plan.Verification };
     }
 
     private static string? Optional(JsonObject node, string name) => AcpFolder.Str(node, name) is { Length: > 0 } text ? text : null;

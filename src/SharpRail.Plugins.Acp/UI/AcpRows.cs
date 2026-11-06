@@ -69,5 +69,7 @@ internal sealed record AcpAgentDetail(AcpAgentEntry Entry, AcpRegistryAgent? Reg
     public string InstallStatus => !IsRegistry ? "Custom" : Problem is { } problem ? problem : UpdateTo is { } newer ? $"Installed {Entry.Version}. Version {newer} is available." : "Installed";
     /// <summary>Where the program is: the managed file, or the runner (npx, uvx) that fetches the pinned package.</summary>
     public string Location => Path.IsPathRooted(Entry.LaunchCommand()) ? Entry.LaunchCommand() : Entry.LaunchCommand() + " runs the package named above";
+    /// <summary>What was checked when it was installed; an install from before this was recorded says so.</summary>
+    public string Verification => Entry.Verification ?? "Not recorded: this agent was installed before checks were recorded. Reinstall it to see what is verified.";
     public string CommandLine => AcpEntryText.CommandLine(Entry);
 }

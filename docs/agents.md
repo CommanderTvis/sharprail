@@ -100,13 +100,17 @@ discussion develops.
 Any agent that speaks the [Agent Client Protocol](https://agentclientprotocol.com) can be used in the chat view. The plugin is off by default
 (Settings › Plugins › ACP, marked Early support) and is not available in a browser tab.
 
-- Settings › ACP lists your agents, lets you add a custom one (command, arguments, environment, working directory) and browses the public
-  ACP registry. Installing from the registry first shows where the code comes from, its version and the exact command, and needs your
-  confirmation for each agent and each version; a binary is checked against the registry's checksum. Claude and Pi adapters are tagged Not recommended because SharpRail supports those agents
-  directly. You can still install them. The lists look like the language servers in Code Intelligence, and each agent shows its icon from the registry
-  (the generic ACP mark until the icon arrives, when the registry has none, and for agents you add yourself). The install confirmation opens over the
-  window, like other confirmations.
-- Settings › ACP also has a default agent. A click on the ACP button in the workspace's tab strip starts it at once. Right-click the button to list
+- Settings › ACP looks like Code Intelligence: a list of all your agents, registry installs and custom ones together, and a pane that configures
+  the selected one (links, license, status, executable, arguments, environment, working directory, update, reinstall, remove). A dot in the list
+  means the program is missing or its last start failed. Browse registry, at the top of the list, finds and installs agents. Add custom agent opens
+  a popup. Each agent shows its icon from the registry (the generic ACP mark until it arrives, and for agents you add yourself).
+- Agents from the registry are third-party programs that run on this machine with your user's access, and even registry binaries need to be trusted.
+  A checksum shows the file is the one the registry lists. It does not show the agent is safe. Installing first shows where the code comes from,
+  its version, the exact command and what is verified (SHA-256 verified, no checksum from the registry, version pinned, or not pinned), and needs
+  your confirmation for each agent and each version. A binary is checked against the registry's checksum when it has one, and refused on a
+  mismatch. The registry has no signatures. Claude and Pi adapters are tagged Not recommended because SharpRail supports those agents directly.
+  You can still install them.
+- Switch on "Start this agent when the New ACP chat button is clicked" in an agent's pane to make it the default. A click on the ACP button in the workspace's tab strip starts it at once. Right-click the button to list
   every agent, with the default marked, and start any of them. With no default the click asks (or starts the only agent).
 - Start a chat with the ACP button in the workspace's tab strip. It runs in the workspace folder; it can read and write
   files and run commands there, and every permission it asks for is shown to you.

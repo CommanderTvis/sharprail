@@ -416,6 +416,56 @@ internal static class AcpChecks
         Require(SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("n", "x\ny", "", "", "", existing).Errors.Count == 1, "The command is one line.");
     }
 
+    // What the registry ships to verify (checked against the live registry on 2026-11-06: an optional sha256 per binary target, no signature of any kind, every npx and uvx package pinned), and what is done with it.
+    internal static async Task Verification(string root)
+    {
+        Directory.CreateDirectory(root);
+        const string mac = "darwin-aarch64";
+        Require(AcpRegistry.IsPinned("npx", "pi-acp@0.0.34") && AcpRegistry.IsPinned("npx", "@scope/name@1.2.3-beta.1") && AcpRegistry.IsPinned("uvx", "fast-agent-acp==0.10.1"), "Exact versions are pinned.");
+        Require(!AcpRegistry.IsPinned("npx", "pi-acp") && !AcpRegistry.IsPinned("npx", "@scope/name") && !AcpRegistry.IsPinned("npx", "pi-acp@latest") && !AcpRegistry.IsPinned("npx", "pi-acp@^1.2.0") && !AcpRegistry.IsPinned("uvx", "x>=1") && !AcpRegistry.IsPinned("uvx", "x"), "A tag, a range or no version is not pinned.");
+        Require(AcpRegistry.IsSha256(new string('a', 64)) && !AcpRegistry.IsSha256(new string('a', 63)) && !AcpRegistry.IsSha256(new string('g', 64)) && !AcpRegistry.IsSha256(null), "Only 64 hex digits are a SHA-256.");
+
+        var fixture = AcpRegistry.Parse(FixtureText())!;
+        Require(AcpRegistry.Plan(fixture, "goose", null, mac)!.Verification == AcpRegistry.Sha256Verified && AcpRegistry.Plan(fixture, "pi-acp", null, mac)!.Verification == AcpRegistry.Pinned && AcpRegistry.Plan(fixture, "fast-agent", null, mac)!.Verification == AcpRegistry.Pinned, "The plan says what will be verified: SHA-256, or a pinned version.");
+        var loose = (JsonObject)fixture.DeepClone();
+        loose["agents"]!.AsArray().OfType<JsonObject>().First(agent => agent["id"]!.GetValue<string>() == "pi-acp")["distribution"]!["npx"]!["package"] = "pi-acp";
+        var goose = (JsonObject)loose["agents"]!.AsArray().OfType<JsonObject>().First(agent => agent["id"]!.GetValue<string>() == "goose")["distribution"]!["binary"]![mac]!;
+        Require(AcpRegistry.Plan(loose, "pi-acp", null, mac)!.Verification == AcpRegistry.NotPinned, "A package without an exact version says Not pinned.");
+        var good = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData([1, 2, 3])).ToLowerInvariant();
+        goose["archive"] = "https://example.invalid/goose";
+        goose["cmd"] = "goose";
+        goose["sha256"] = new string('0', 64);
+        var downloads = 0;
+        var installer = new AcpInstaller(Path.Combine(root, "agents"), (_, _) => { downloads++; return Task.FromResult(new byte[] { 1, 2, 3 }); });
+        async Task<string> Try()
+        {
+            try { await installer.InstallAsync(loose, new("goose", "binary", "1.57.0", true), mac, CancellationToken.None); return ""; }
+            catch (InvalidOperationException error) { return error.Message; }
+        }
+        var mismatch = await Try();
+        Require(mismatch.Contains("does not match", StringComparison.Ordinal) && mismatch.Contains("nothing was installed", StringComparison.Ordinal) && downloads == 1 && !Directory.Exists(Path.Combine(root, "agents", "goose")), "A checksum mismatch refuses the install after the download and before anything is written.");
+        goose["sha256"] = "not-a-checksum";
+        downloads = 0;
+        Require((await Try()).Contains("not a valid SHA-256", StringComparison.Ordinal) && downloads == 0, "A checksum that is not a SHA-256 is refused before the download, not skipped.");
+        goose["sha256"] = good.ToUpperInvariant();
+        goose["archive"] = "http://example.invalid/goose";
+        Require((await Try()).Contains("not https", StringComparison.Ordinal) && downloads == 0, "A download that is not https is refused.");
+        goose["archive"] = "https://example.invalid/goose";
+        var verified = await installer.InstallAsync(loose, new("goose", "binary", "1.57.0", true), mac, CancellationToken.None);
+        Require(verified.Verification == AcpRegistry.Sha256Verified && verified.Source == "https://example.invalid/goose", "A matching checksum (in either letter case) installs and the entry records SHA-256 verified.");
+        goose.Remove("sha256");
+        var unchecked_ = await installer.InstallAsync(loose, new("goose", "binary", "1.57.0", true), mac, CancellationToken.None);
+        Require(unchecked_.Verification == AcpRegistry.NoChecksum && AcpRegistry.Plan(loose, "goose", null, mac)!.Verification == AcpRegistry.NoChecksum, "With no checksum the install goes ahead as before and says so, in the plan and on the entry.");
+        var pinned = await installer.InstallAsync(fixture, new("pi-acp", "npx", "0.0.34", true), mac, CancellationToken.None);
+        Require(pinned.Verification == AcpRegistry.Pinned, "A pinned package records Version pinned.");
+
+        var plan = AcpRegistry.Plan(fixture, "goose", null, mac)!;
+        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(plan).Contains(AcpInstallPlan.TrustNote, StringComparison.Ordinal) && AcpInstallPlan.TrustNote.Contains("It does not show that the agent is safe.", StringComparison.Ordinal) && SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(plan).Single(fact => fact.Label == "Checked").Value == AcpRegistry.Sha256Verified, "The install confirmation carries the trust notice and what is verified.");
+        Require(AcpInstallPlan.TrustNote.Contains("even registry binaries need to be trusted", StringComparison.OrdinalIgnoreCase) && !AcpInstallPlan.TrustNote.Contains('—'), "The trust notice says registry binaries need to be trusted, in plain words.");
+        var detail = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(verified, null, null);
+        Require(detail.Verification == AcpRegistry.Sha256Verified && new SharpRail.Plugins.Acp.UI.AcpAgentDetail(new AcpAgentEntry("a", "A", "x") { Origin = "registry" }, null, null).Verification.StartsWith("Not recorded", StringComparison.Ordinal), "The detail pane shows what was verified, or that an older install has no record.");
+    }
+
     private const string GoodIcon = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><defs><linearGradient id="g"><stop offset="0" stop-color="#fff"/></linearGradient></defs><path fill="currentColor" d="M0 0h16v16H0z"/><circle r="3" fill="url(#g)" stroke="#123456"/></svg>""";
 
     // Registry icons: untrusted remote SVGs. Only the registry's own https origin is fetched, small plain documents are kept, anything active or external is refused, and a copy on disk is shown offline.
@@ -492,8 +542,8 @@ internal static class AcpChecks
         var goose = AcpRegistry.Plan(fixture, "goose", null, "darwin-aarch64")!;
         Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Title(goose) == "Install goose 1.57.0?", "The dialog is titled with the agent and version.");
         var facts = SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(goose);
-        Require(facts.Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "SHA-256", "License", "Repository"]) && facts[1].Value == "./goose acp", "A binary install lists source, command, checksum, license and repository.");
-        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "License", "Repository"]), "Facts the registry does not give are left out.");
+        Require(facts.Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "Checked", "SHA-256", "License", "Repository"]) && facts[1].Value == "./goose acp" && facts[2].Value == AcpRegistry.Sha256Verified, "A binary install lists source, command, checksum, license and repository.");
+        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).Select(fact => fact.Label).SequenceEqual(["Source", "Runs", "Checked", "License", "Repository"]), "Facts the registry does not give are left out.");
         Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(goose).Contains("SHA-256", StringComparison.Ordinal) && !SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(goose).Contains(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "The explanation says what is verified, with no warning for a normal entry.");
         Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(AcpRegistry.Plan(fixture, "pi-acp", null, "darwin-aarch64")!).EndsWith(AcpInstallPlan.NotRecommendedLine, StringComparison.Ordinal), "A not-recommended agent adds the warning line.");
     }
@@ -533,5 +583,6 @@ internal static class AcpChecks
         await ClientMethods(root);
         await Registry(Path.Combine(root, "registry"));
         await Icons(Path.Combine(root, "icons"));
+        await Verification(Path.Combine(root, "verify"));
     }
 }

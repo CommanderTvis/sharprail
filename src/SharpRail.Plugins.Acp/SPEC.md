@@ -64,13 +64,31 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
   Ids that are not plain file names are skipped. The UI asks the host (`icons`, never with urls) after the list is shown and draws the SVG with
   the theme's text colour for `currentColor` (hard-coded colours stay); until then, with no icon, for a rejected one and for custom agents it
   draws the generic ACP glyph. The New ACP chat menus read icons from disk only. The chat header keeps the plugin's own icon.
-- Settings layout: the agents and the registry use the `RegistryRow` of the UI kit, the row shape of the language servers in Code Intelligence
-  (status, icon, title, settings and action columns, details under the title). Each registry row says Install, Update or Installed, or that the
-  agent is not available on this machine, and the search filters by name, description and id. That page's own rows are bound to its data and stay
-  as they are.
+- Settings layout: Settings > ACP is a master and detail page like Settings > Code Intelligence, built on the UI kit's `MasterDetail` (the
+  narrow list with a divider, a highlighted selected row and a red dot on a row with a problem; that page's own list is private to
+  `SharpRail.UI` and stays as it is). The list holds every configured agent, registry installs and custom ones together by name, each with its
+  icon and a line of tags (Registry or Custom, Not recommended, Update available, Off, Default), and a dot when the host knows something is
+  wrong: the program path does not exist, or the last start of a chat failed (`AcpAgentList.Problems`, kept in memory by the host). A Browse
+  registry entry on top shows the registry browser (`RegistryRow` rows, a search, Install, Update, Installed). Add custom agent sits under the
+  list. The pane of the selected agent shows name, tags, description, version, source, website and repository links (https only), license,
+  install status and location, what was verified, the trust notice for registry agents, a switch to offer it in the launcher, a switch to make
+  it the launcher's default, the executable override with a Use default arguments switch and the arguments one per line (a registry agent), or
+  its command and arguments (a custom agent), environment, working directory, the command line that will run, Update to or Reinstall, and
+  Remove. Fields save when they lose focus. Update and Reinstall keep the user's overrides, working directory and environment. Remove asks in
+  the overlay and deletes a registry install's files under `~/.sharprail/acp/agents/<id>` (nothing outside it). There is no "use the program on
+  PATH" choice: a registry binary has no name to look up, and npx and uvx agents already run through the PATH.
+- Add custom agent: a popup in the overlay with name, command, arguments, environment and working directory. It refuses an empty name or command,
+  a name already in the list, an environment line that is not NAME=value, and a relative working directory; Add selects the new agent.
+- Checks on a download: the registry's schema has an optional `sha256` per binary target and nothing else to verify (no signature, minisign,
+  cosign or digest fields; checked on 2026-11-06: 94 of 131 binary targets carry a checksum, all 24 npx and uvx specs name an exact version).
+  A checksum the registry lists is always checked, after the download and before anything is written or unpacked, with a fixed-time compare;
+  a mismatch, a value that is not 64 hex digits, or a download that is not https refuses the install. The plan, the confirmation, the detail
+  pane and the entry say what applied: SHA-256 verified, No checksum from the registry, Version pinned or Not pinned. Packages get no check
+  beyond the pinned version. No signature scheme exists to implement. `AcpInstallPlan.TrustNote` (checking a checksum shows the file is the one
+  the registry lists, not that the agent is safe) is in the confirmation, at the top of the registry browser and in each registry agent's pane.
 - Install confirmation: the plan is shown in the in-window dialog (`DialogWindow`), over the window that has the Install button, with the name
   and version, source, command, checksum, license, repository and the explanation; Escape and Cancel install nothing.
-- Default agent: `AcpSettings.DefaultAgent` (the plugin's settings, written through `UpdateSettingsAsync`) names the agent a click on the New ACP chat
+- Default agent: a switch in the agent's pane writes `AcpSettings.DefaultAgent` (the plugin's settings, written through `UpdateSettingsAsync`) names the agent a click on the New ACP chat
   button starts. Without a usable default the click is as before: the only agent, or the picker. A default whose agent was removed is kept and
   ignored (the settings say so), so adding it back restores it. Right-click lists every agent in order with the default marked, and ACP settings;
   on a touch screen a tap opens that menu. This is the split of the Claude Code launcher.
@@ -100,5 +118,5 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
 `--acp`: the manifest and Early support label; framing, version negotiation, session new, prompt streaming, cancel, load and crash against the
 in-process fake agent (`tests/SharpRail.Checks/AcpFakeAgent.cs`); the folded transcript; permission answers and cancellation; fs and terminal
 methods and their confinement (including a symbolic link and `..`); registry parsing against the fixture, the cache, offline fallback and
-seed; registry icons (url rules, unsafe SVGs, size cap, cache and offline, the generic glyph); the row model and search; the install confirmation facts; the launcher's default, removed default and menu; install confirmation, version mismatch, checksum failure and unpacking; the settings page's text forms. Checks never launch a real agent
+seed; registry icons (url rules, unsafe SVGs, size cap, cache and offline, the generic glyph); the row model and search; the install confirmation facts; the agent list model, detail model and tags, the add popup's validation, checksum and trust checks, the launcher's default, removed default, turned-off agents and menu; install confirmation, version mismatch, checksum failure and unpacking; the settings page's text forms. Checks never launch a real agent
 or download from the registry.

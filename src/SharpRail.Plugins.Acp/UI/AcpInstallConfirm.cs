@@ -11,12 +11,12 @@ internal static class AcpInstallConfirm
     public static string Title(AcpInstallPlan plan) => $"Install {plan.Name} {plan.Version}?";
 
     /// <summary>What the dialog says in plain words: what the install does, then the not-recommended line when the agent has one.</summary>
-    public static string Explanation(AcpInstallPlan plan) => plan.Note + (plan.NotRecommended is null ? "" : "\n\n" + AcpInstallPlan.NotRecommendedLine);
+    public static string Explanation(AcpInstallPlan plan) => plan.Note + "\n\n" + AcpInstallPlan.TrustNote + (plan.NotRecommended is null ? "" : "\n\n" + AcpInstallPlan.NotRecommendedLine);
 
-    /// <summary>The facts the user is agreeing to, in order: source, command, checksum, license, repository. Absent ones are left out.</summary>
+    /// <summary>The facts the user is agreeing to, in order: source, command, what is checked, checksum, license, repository. Absent ones are left out.</summary>
     public static IReadOnlyList<(string Label, string Value)> Facts(AcpInstallPlan plan)
     {
-        var facts = new List<(string, string)> { ("Source", plan.Source), ("Runs", plan.CommandLine) };
+        var facts = new List<(string, string)> { ("Source", plan.Source), ("Runs", plan.CommandLine), ("Checked", plan.Verification) };
         if (plan.Sha256 is { } sha) facts.Add(("SHA-256", sha));
         if (plan.License is { } license) facts.Add(("License", license));
         if (plan.Repository is { } repository) facts.Add(("Repository", repository));

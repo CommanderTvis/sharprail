@@ -169,7 +169,14 @@ internal sealed partial class AcpSettingsView : StackPanel
         if (detail.Problem is not null) state.Foreground = Ui.Danger;
         state.Name = "AcpInstallStatus";
         panel.Children.Add(state);
-        if (detail.IsRegistry) panel.Children.Add(Text("Location: " + detail.Location, detail: true));
+        if (detail.IsRegistry)
+        {
+            panel.Children.Add(Text("Location: " + detail.Location, detail: true));
+            var checks = Text("Checked: " + detail.Verification, detail: true);
+            checks.Name = "AcpVerification";
+            panel.Children.Add(checks);
+            panel.Children.Add(TrustNotice("AcpTrustNote"));
+        }
 
         var enabled = new CheckBox { Name = "AcpEnabled", Content = "Offer this agent in the New ACP chat button", IsChecked = entry.Enabled };
         enabled.IsCheckedChanged += (_, _) => Edit(item => item with { Enabled = enabled.IsChecked == true });
@@ -223,6 +230,10 @@ internal sealed partial class AcpSettingsView : StackPanel
         return box;
     }
 
+    /// <summary>The permanent trust notice: registry agents are third-party programs, and a checksum does not make one safe.</summary>
+    private static Control TrustNotice(string name) =>
+        new Border { Name = name, Background = Ui.WarningWash, CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 6), Child = new TextBlock { Text = AcpInstallPlan.TrustNote, FontSize = 12, Foreground = Ui.TextBrush, TextWrapping = TextWrapping.Wrap } };
+
     private static Control? Link(string? url, string label)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return null;
@@ -255,6 +266,7 @@ internal sealed partial class AcpSettingsView : StackPanel
         var panel = new StackPanel { Name = "AcpBrowser", Spacing = 8 };
         panel.Children.Add(new TextBlock { Text = "ACP registry", FontSize = 16, FontWeight = FontWeight.SemiBold, Foreground = Ui.TextBrush });
         panel.Children.Add(Text("Agents that speak the Agent Client Protocol, from the public registry.", detail: true));
+        panel.Children.Add(TrustNotice("AcpBrowserTrust"));
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         controls.Children.Add(search);
         var refresh = new Button { Name = "AcpRefresh", Content = "Refresh" };

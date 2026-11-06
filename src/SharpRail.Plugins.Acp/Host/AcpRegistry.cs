@@ -78,7 +78,7 @@ internal static class AcpRegistry
                     var args = Arguments(package);
                     var spec = AcpFolder.Str(package, "package");
                     var line = chosen == "npx" ? new[] { "npx", "-y", spec }.Concat(args) : new[] { "uvx", spec }.Concat(args);
-                    return plan with { Source = spec, CommandLine = string.Join(' ', line), Note = $"Runs the package {spec} from the {(chosen == "npx" ? "npm" : "PyPI")} registry on this machine, in the workspace directory." };
+                    return plan with { Source = spec, CommandLine = string.Join(' ', line), Verification = IsPinned(chosen, spec) ? Pinned : NotPinned, Note = $"Runs the package {spec} from the {(chosen == "npx" ? "npm" : "PyPI")} registry on this machine, in the workspace directory." };
                 }
             case "binary" when (distribution["binary"]?[platform]) is JsonObject target:
                 {
@@ -88,6 +88,7 @@ internal static class AcpRegistry
                         Source = AcpFolder.Str(target, "archive"),
                         CommandLine = string.Join(' ', new[] { AcpFolder.Str(target, "cmd") }.Concat(Arguments(target))),
                         Sha256 = sha,
+                        Verification = sha is null ? NoChecksum : IsSha256(sha) ? Sha256Verified : "The registry's checksum is not a valid SHA-256, so the download will be refused.",
                         Note = sha is null ? "The registry gives no checksum for this download, so it cannot be verified." : "The download is checked against the registry's SHA-256 before it is unpacked."
                     };
                 }
@@ -95,6 +96,25 @@ internal static class AcpRegistry
                 return null;
         }
     }
+
+    /// <summary>The checksum line for a binary: verified when the registry gives a SHA-256, otherwise honest about having none.</summary>
+    public const string Sha256Verified = "SHA-256 verified: the download is checked against the checksum the registry lists before it is unpacked.";
+    public const string NoChecksum = "No checksum from the registry: the download cannot be verified.";
+    public const string Pinned = "Version pinned: the registry names exactly this package version. The registry gives no checksum or signature for packages, so nothing else can be verified.";
+    public const string NotPinned = "Not pinned: the registry does not name an exact package version, so a later version may run. The registry gives no checksum or signature for packages.";
+
+    private static readonly System.Text.RegularExpressions.Regex ExactVersion = new(@"^\d+(\.\d+)*([-+.][0-9A-Za-z.+-]+)?$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>True when a package spec names one exact version: <c>name@1.2.3</c> for npx, <c>name==1.2.3</c> for uvx. A tag such as <c>latest</c> or a range is not pinned.</summary>
+    public static bool IsPinned(string kind, string spec)
+    {
+        if (kind == "uvx") return spec.IndexOf("==", StringComparison.Ordinal) is var at and > 0 && ExactVersion.IsMatch(spec[(at + 2)..]);
+        var split = spec.LastIndexOf('@');
+        return split > 0 && ExactVersion.IsMatch(spec[(split + 1)..]);
+    }
+
+    /// <summary>True for a 64-digit hexadecimal SHA-256.</summary>
+    public static bool IsSha256(string? text) => text is { Length: 64 } && text.All(Uri.IsHexDigit);
 
     public static IReadOnlyList<string> Arguments(JsonObject node) => [.. (node["args"] as JsonArray ?? []).Select(argument => argument?.GetValue<string>() ?? "")];
 

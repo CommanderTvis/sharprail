@@ -33,6 +33,8 @@ public sealed record AcpAgentEntry(string Id, string Name, string Command)
     public string? License { get; init; }
     /// <summary>Where the code comes from: the package spec or the archive url.</summary>
     public string? Source { get; init; }
+    /// <summary>What was checked when it was installed (see <see cref="AcpInstallPlan.Verification"/>); null for an install made before this was recorded.</summary>
+    public string? Verification { get; init; }
 
     /// <summary>The program that starts: the override when there is one.</summary>
     public string LaunchCommand() => CommandOverride.Length > 0 ? CommandOverride : Command;
