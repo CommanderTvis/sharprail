@@ -231,19 +231,23 @@ internal sealed partial class LanguagePanel : UserControl
     private void ShowRetry(bool shown) => this.FindControl<Button>("RetryRead")!.IsVisible = shown;
 
     /// <summary>One host call of this pane: logged with its correlation id and duration, and bounded so a call that never completes surfaces as a <see cref="TimeoutException"/> instead of an endless wait.</summary>
-    private async Task<T> HostCall<T>(string method, string parent, TimeSpan timeout, CancellationToken token, Func<CancellationToken, Task<T>> call)
+    internal async Task<T> HostCall<T>(string method, string parent, TimeSpan timeout, CancellationToken token, Func<CancellationToken, Task<T>> call, bool cancelOnTimeout = true)
     {
         var operation = Log.Begin("pane.rpc", ("method", method), ("workspace", workspace), ("parent", parent), ("timeoutMs", (long)timeout.TotalMilliseconds));
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token);
+        Task<T>? running = null;
         try
         {
-            var result = await Task.Run(() => call(linked.Token), linked.Token).WaitAsync(timeout, token);
+            running = Task.Run(() => call(linked.Token), linked.Token);
+            var result = await running.WaitAsync(timeout, token);
             operation.Succeed();
             return result;
         }
         catch (TimeoutException)
         {
-            linked.Cancel();
+            // Only a read is abandoned: cancelling a start would kill a server that is still loading (IntelliJ and Roslyn can take minutes under load).
+            if (cancelOnTimeout) linked.Cancel();
+            else if (running is not null) _ = running.ContinueWith(task => _ = task.Exception, TaskContinuationOptions.OnlyOnFaulted);
             var error = new TimeoutException($"The host did not answer {method} within {timeout.TotalSeconds:0} s.");
             operation.Fail(error, ("timeout", true));
             throw error;
@@ -513,7 +517,7 @@ internal sealed partial class LanguagePanel : UserControl
             }
             var request = new LanguageRequest(workspace, Operation: operation, Server: operation is "retry" or "stop" ? (target ?? selected)!.Id : "");
             var saves = configurations.Where(item => item.Key.Workspace == workspace).ToDictionary(item => item.Key.Server, item => item.Value.Saves);
-            var result = await HostCall(operation, refresh.Id, timeout, token, async t => await host.LanguageAsync(request, t));
+            var result = await HostCall(operation, refresh.Id, timeout, token, async t => await host.LanguageAsync(request, t), cancelOnTimeout: operation is not "retry");
             if (current != lifetime || token.IsCancellationRequested) { outcome = "superseded"; return; }
             ShowRetry(false);
             SetStatus(Brief(result.State + ": " + result.Detail));
@@ -534,8 +538,17 @@ internal sealed partial class LanguagePanel : UserControl
             refresh.Fail(error);
             if (current == lifetime)
             {
-                SetStatus(error is TimeoutException ? Brief(error.Message + " Retry to ask again.") : Brief("Couldn't reach the language services: " + error.GetType().Name + ": " + error.Message));
-                ShowRetry(true);
+                if (error is TimeoutException && operation is "retry")
+                {
+                    // The start keeps running in the host; the pane's own refresh shows the server when it is ready or failed.
+                    SetStatus("Still starting. A first start can take several minutes. The list updates when it is ready.");
+                    ShowRetry(false);
+                }
+                else
+                {
+                    SetStatus(error is TimeoutException ? Brief(error.Message + " Retry to ask again.") : Brief("Couldn't reach the language services: " + error.GetType().Name + ": " + error.Message));
+                    ShowRetry(true);
+                }
             }
         }
         finally

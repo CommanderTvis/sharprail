@@ -37,6 +37,7 @@ internal static class LanguageLifecycleLogChecks
         {
             Pane(log, throwing: false);
             Pane(log, throwing: true);
+            StartIsNotCancelled(log);
             Watchdog(log);
             Bounded(fixture);
             Console.WriteLine("PASS The Code Intelligence pane times out with Retry, stays usable and logs its lifecycle to a bounded file");
@@ -77,6 +78,31 @@ internal static class LanguageLifecycleLogChecks
             E2E.E2eWorkspace.Until(() => retry.IsVisible && pane.Idle, "Retry did not run a second request that finished.");
         }
         finally { window.Close(); SynchronizationContext.SetSynchronizationContext(previous); }
+    }
+
+    // A start that outlasts the pane's timeout must keep running in the host (cancelling it killed IntelliJ while it was still loading); a read is abandoned.
+    private static void StartIsNotCancelled(string log)
+    {
+        var host = DispatchProxy.Create<IProjectServices, LanguageFakeHost>();
+        var pane = new SharpRail.UI.Panels.LanguagePanel(host, Path.GetDirectoryName(log)!, _ => Task.CompletedTask);
+        // Blocking on the call below would deadlock on the UI thread's context, so run without one like the pane checks do.
+        var previous = SynchronizationContext.Current; SynchronizationContext.SetSynchronizationContext(null);
+        try
+        {
+            foreach (var cancelOnTimeout in new[] { false, true })
+            {
+                CancellationToken seen = default;
+                var timedOut = false;
+                try
+                {
+                    pane.HostCall("test", "", TimeSpan.FromMilliseconds(200), CancellationToken.None, async token => { seen = token; await Task.Delay(1500, CancellationToken.None); return 1; }, cancelOnTimeout).GetAwaiter().GetResult();
+                }
+                catch (TimeoutException) { timedOut = true; }
+                Require(timedOut, "The slow host call did not time out.");
+                Require(seen.IsCancellationRequested == cancelOnTimeout, cancelOnTimeout ? "A read that timed out was not cancelled." : "A start that outlasted the pane's timeout was cancelled in the host.");
+            }
+        }
+        finally { SynchronizationContext.SetSynchronizationContext(previous); }
     }
 
     private static void Watchdog(string log)
