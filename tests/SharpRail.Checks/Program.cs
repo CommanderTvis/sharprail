@@ -196,6 +196,11 @@ internal static class Program
             ManagedLanguageChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--managed-runtimes"]))
+        {
+            ManagedRuntimeChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--project-toml"]))
         {
             ProjectTomlChecks.Run();
