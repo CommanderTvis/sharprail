@@ -418,6 +418,9 @@ when only the cursor moves. Theme, font, geometry, selection and preedit changes
 must invalidate affected rows. Cached native text blobs batch compatible ASCII
 cells while preserving the grid and existing complex-grapheme behavior. Queued
 draw operations retain row resources until released.
+Cells are whole device pixels, the framebuffer is copied to the screen pixel for pixel from a whole-pixel origin, and a face
+narrower than its cells is centred by a whole number of device pixels, so the same letter has the same ink in every column
+at any scale (`--ghostty-skia` compares 'o' and 'c' columns at 1x, 1.25x, 1.5x and 2x).
 The Skia adapter reads live output independently into a bounded queue (128 pieces of at most
 8 KiB) and drains available pieces in one UI dispatch, up to 256 KiB or a cooperative 2 ms
 budget. Invalidations within that dispatch coalesce; small transport packets do not each wait

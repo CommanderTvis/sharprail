@@ -63,6 +63,7 @@ internal static class GhosttySkiaChecks
         CheckHyperlinks();
         CheckPointerShapes();
         CheckZoomedDensity();
+        CheckEvenGlyphInk();
         Osc52Checks.RunSkia();
         CheckView();
         CheckResizeSettles();
@@ -449,6 +450,53 @@ internal static class GhosttySkiaChecks
         var ink = plain.Count(color => color != plain[0]);
         Require(zoomed.Count == plain.Count && zoomed.Zip(plain).Count(pair => pair.First != pair.Second) < ink / 10,
             "a terminal under a zoomed ancestor must rasterize cells at the displayed density instead of resampling them.");
+    }
+
+    // The same glyph in every column must have the same ink: the framebuffer is blitted pixel for pixel, never resampled,
+    // so fractional scales and sizes cannot drop a pixel column out of some cells ("partly too thin" letters).
+    private static void CheckEvenGlyphInk()
+    {
+        foreach (var zoom in new[] { 1.0, 1.25, 1.5, 2.0 })
+        {
+            using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 13, Padding = default };
+            var window = new Window
+            {
+                Width = 641.3,
+                Height = 90.7,
+                Content = new LayoutTransformControl { LayoutTransform = new ScaleTransform(zoom, zoom), Child = view },
+            };
+            window.Show(); Pump();
+            try
+            {
+                const int Columns = 40;
+                view.Write(Encoding.UTF8.GetBytes("\e[?25l" + new string('o', Columns) + "\r\n" + new string('c', Columns))); Pump();
+                using var cells = new CellFonts(EditorChecks.Font, "", 13, zoom);
+                var cellPixels = (int)Math.Round(cells.CellWidth * zoom);
+                using var frame = window.CaptureRenderedFrame()!;
+                var pixels = Pixels(frame);
+                var width = frame.PixelSize.Width;
+                var rowPixels = (int)Math.Round(cells.CellHeight * zoom);
+                var background = pixels[0];
+                foreach (var row in new[] { 0, 1 })
+                {
+                    var ink = new double[width];
+                    for (var y = row * rowPixels; y < (row + 1) * rowPixels; y++)
+                        for (var x = 0; x < width; x++)
+                        {
+                            var c = pixels[y * width + x];
+                            ink[x] += Math.Abs(c.R - background.R) + Math.Abs(c.G - background.G) + Math.Abs(c.B - background.B);
+                        }
+                    var first = Enumerable.Range(0, cellPixels).Select(x => ink[x]).ToArray();
+                    for (var column = 1; column < Columns && (column + 1) * cellPixels <= width; column++)
+                    {
+                        var drift = Enumerable.Range(0, cellPixels).Max(x => Math.Abs(ink[column * cellPixels + x] - first[x]));
+                        Require(drift <= first.Max() * 0.05,
+                            $"row {row} column {column} at zoom {zoom} draws its glyph with different ink than column 0 (max column difference {drift:0} of {first.Max():0}); cells must be blitted at one pixel phase.");
+                    }
+                }
+            }
+            finally { window.Close(); Pump(); }
+        }
     }
 
     private static void CheckClusters()

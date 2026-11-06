@@ -26,12 +26,14 @@ internal sealed class CellFonts : IDisposable
     private readonly List<SKFont> shrunk = [];
     private readonly Dictionary<SKTypeface, HarfBuzzSharp.Font?> shapers = [];
     private readonly string family;
+    private readonly double scale;
     private readonly SKTypeface? supplied;
 
     /// <param name="typeface">A caller-owned face for every style, with bold and italic synthesized; null matches <paramref name="family"/>.</param>
     internal CellFonts(SKTypeface? typeface, string family, double size, double scale)
     {
         this.family = family;
+        this.scale = scale;
         supplied = typeface;
         for (var style = 0; style < 4; style++)
         {
@@ -141,11 +143,15 @@ internal sealed class CellFonts : IDisposable
             shaped = Shape(font, text);
         }
         CellGlyphs? result = shaped is { } run
-            ? new(font, run.Ids, [.. run.Positions.Select(point => new SKPoint(point.X + Math.Max(0, (room - run.Width) / 2), point.Y))])
+            ? new(font, run.Ids, [.. run.Positions.Select(point => new SKPoint(point.X + Centering(room, run.Width), point.Y))])
             : null;
         glyphs[(text, style, span)] = result;
         return result;
     }
+
+    // Centres a narrower face in its cells by a whole number of device pixels: a fractional offset can land every column on a
+    // different side of Skia's quarter-pixel glyph quantization, so the same letter would rasterize differently per column.
+    private float Centering(float room, float width) => (float)(Math.Round(Math.Max(0, (room - width) / 2) * scale) / scale);
 
     private SKFont FontFor(string text, int style)
     {

@@ -90,8 +90,20 @@ internal sealed class TerminalFramebuffer : IDisposable
             }
             target.Restore();
             using var image = surface.Snapshot();
-            canvas.DrawImage(image, new SKRect(0, 0, (float)bounds.Width, (float)bounds.Height),
-                new SKSamplingOptions(SKFilterMode.Nearest));
+            var nearest = new SKSamplingOptions(SKFilterMode.Nearest);
+            var matrix = canvas.TotalMatrix;
+            if (Math.Abs(matrix.ScaleX - nextScale) < 1e-3 && Math.Abs(matrix.ScaleY - nextScale) < 1e-3 && matrix.SkewX == 0 && matrix.SkewY == 0)
+            {
+                // The framebuffer is already at device density: copy it pixel for pixel from a whole-pixel origin. Stretching it to a
+                // fractional destination makes Nearest drop pixel columns, so the same glyph looks thinner in some cells.
+                canvas.Save();
+                canvas.ClipRect(new SKRect(0, 0, (float)bounds.Width, (float)bounds.Height));
+                canvas.SetMatrix(SKMatrix.CreateTranslation((float)Math.Round(matrix.TransX), (float)Math.Round(matrix.TransY)));
+                canvas.DrawImage(image, 0, 0, nearest, null);
+                canvas.Restore();
+                return;
+            }
+            canvas.DrawImage(image, new SKRect(0, 0, (float)bounds.Width, (float)bounds.Height), nearest);
         }
     }
 
