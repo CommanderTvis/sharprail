@@ -13,15 +13,16 @@ if (Test-Path $output) { Remove-Item $output -Recurse -Force }
 Push-Location $root
 try {
     Invoke-Native $dotnet @('build', 'SharpRail.slnx', '-c', 'Release')
-    # One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime and Crossgen packs;
-    # the publishes reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
+    # One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime, ILCompiler and Crossgen
+    # packs; the publishes reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
     Invoke-Native $dotnet @('restore', 'SharpRail.slnx', '-p:SelfContained=true', '-p:PublishReadyToRun=true')
     # The About screen's version stamp, as the nightly names its builds: UTC date and short commit.
     $stamp = "$([DateTime]::UtcNow.ToString('yyyyMMdd'))-$(git rev-parse --short HEAD)"
-    foreach ($target in @(@('src/SharpRail.UI', 'client'), @('src/SharpRail.Host.Remote', 'host'), @('tests/SharpRail.Checks', 'checks'))) {
-        Invoke-Native $dotnet @('publish', $target[0], '-c', 'Release', '-r', $RuntimeIdentifier, '--self-contained', 'true', '--no-restore',
-            '-p:PublishReadyToRun=true', '-p:PublishReadyToRunComposite=true', "-p:SharpRailBuildStamp=$stamp", '-o', (Join-Path $output $target[1]))
-    }
+    $publish = @('-c', 'Release', '-r', $RuntimeIdentifier, '--no-restore', "-p:SharpRailBuildStamp=$stamp")
+    # The client and host are NativeAOT, linked by Visual Studio's C++ linker; the checks stay a JIT program (ReadyToRun).
+    Invoke-Native $dotnet (@('publish', 'src/SharpRail.UI') + $publish + @('-o', (Join-Path $output 'client')))
+    Invoke-Native $dotnet (@('publish', 'src/SharpRail.Host.Remote') + $publish + @('-o', (Join-Path $output 'host')))
+    Invoke-Native $dotnet (@('publish', 'tests/SharpRail.Checks') + $publish + @('--self-contained', 'true', '-p:PublishReadyToRun=true', '-o', (Join-Path $output 'checks')))
     Copy-Item 'LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.md', 'licenses', 'WINDOWS.md' $output -Recurse
     Compress-Archive -Path "$output/client", "$output/host", "$output/licenses", "$output/LICENSE", "$output/NOTICE", "$output/THIRD-PARTY-NOTICES.md", "$output/WINDOWS.md" -DestinationPath (Join-Path $root "artifacts/SharpRail-$RuntimeIdentifier.zip") -Force
 }

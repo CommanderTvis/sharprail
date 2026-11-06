@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -32,7 +31,7 @@ internal sealed partial class Runner(string root, string dotnet)
         foreach (var (project, output) in new[] { ("src/SharpRail.UI", "SharpRail.app/Contents/MacOS"), ("src/SharpRail.Host.Remote", "host") })
         {
             Console.WriteLine("Publishing " + project);
-            var outputText = await Commands.Run(dotnet, ["publish", project, "-c", "Release", "-r", rid, "--self-contained", "true", "-p:PublishReadyToRun=true", "-p:PublishReadyToRunComposite=true", "-o", Path.Combine(BuildDirectory, output)], root);
+            var outputText = await Commands.Run(dotnet, ["publish", project, "-c", "Release", "-r", rid, "-o", Path.Combine(BuildDirectory, output)], root);
             File.WriteAllText(Path.Combine(BuildDirectory, Path.GetFileName(project) + ".publish.log"), outputText);
         }
         File.WriteAllText(Path.Combine(BuildDirectory, "SharpRail.app/Contents/Info.plist"), """
@@ -50,34 +49,20 @@ internal sealed partial class Runner(string root, string dotnet)
             if (name == "plugins") Directory.CreateSymbolicLink(source, "../Resources/plugins");
         }
         await Commands.Run("codesign", ["--force", "--deep", "--sign", "-", Path.Combine(BuildDirectory, "SharpRail.app")]);
-        RequireReadyToRun();
+        RequireNativeAot();
         var artifact = new Artifact(await Commands.Run("git", ["rev-parse", "HEAD"], root), await Commands.Run("git", ["status", "--porcelain=v1"], root),
-            rid, await Commands.Run(dotnet, ["--version"], root), DateTimeOffset.UtcNow.ToString("O"), Hashes(BuildDirectory), PublishedRuntime());
+            rid, await Commands.Run(dotnet, ["--version"], root), DateTimeOffset.UtcNow.ToString("O"), Hashes(BuildDirectory), PublishedRuntime);
         Data.Save(Path.Combine(BuildDirectory, "manifest.json"), artifact);
     }
 
-    private void RequireReadyToRun()
+    private void RequireNativeAot()
     {
-        foreach (var dll in new[] { Path.Combine(Path.GetDirectoryName(Ui)!, "SharpRail.UI.dll"), Path.Combine(Path.GetDirectoryName(Host)!, "SharpRail.Host.Remote.dll") })
-        {
-            using var file = File.OpenRead(dll);
-            using var pe = new PEReader(file);
-            if (pe.PEHeaders.CorHeader?.ManagedNativeHeaderDirectory.Size is not > 0) throw new InvalidDataException("Not ReadyToRun: " + dll);
-        }
+        foreach (var executable in new[] { Ui, Host })
+            if (!File.Exists(executable) || File.Exists(executable + ".dll") || File.Exists(executable + ".deps.json"))
+                throw new InvalidDataException("Not a NativeAOT publish: " + executable);
     }
-    private string PublishedRuntime()
-    {
-        var runtimes = new List<string>();
-        foreach (var deps in new[] { Ui + ".deps.json", Host + ".deps.json" })
-        {
-            using var json = System.Text.Json.JsonDocument.Parse(File.ReadAllText(deps));
-            var pack = json.RootElement.GetProperty("libraries").EnumerateObject().Select(property => property.Name)
-                .Single(name => name.StartsWith("runtimepack.Microsoft.NETCore.App.Runtime.", StringComparison.Ordinal));
-            runtimes.Add(pack);
-        }
-        if (runtimes.Distinct().Count() != 1) throw new InvalidDataException("Published app and host runtime packs differ.");
-        return runtimes[0];
-    }
+    // A NativeAOT binary links the runtime the SDK brings, so the SDK version (Artifact.Sdk) names it.
+    private const string PublishedRuntime = "NativeAOT";
     private static void FreshOutput(string path)
     {
         if (Directory.Exists(path) && Directory.EnumerateFileSystemEntries(path).Any()) throw new IOException("Output directory is not empty: " + path);
@@ -89,10 +74,9 @@ internal sealed partial class Runner(string root, string dotnet)
         var hashes = Hashes(BuildDirectory);
         if (hashes.Count != manifest.Sha256.Count || hashes.Any(pair => !manifest.Sha256.TryGetValue(pair.Key, out var expected) || expected != pair.Value))
             throw new InvalidDataException("Published files changed since the manifest was recorded; publish again.");
-        RequireReadyToRun();
-        var runtime = PublishedRuntime();
-        if (manifest.Runtime.Length > 0 && manifest.Runtime != runtime) throw new InvalidDataException("Runtime provenance differs from published deps.json.");
-        return manifest with { Runtime = runtime };
+        RequireNativeAot();
+        if (manifest.Runtime.Length > 0 && manifest.Runtime != PublishedRuntime) throw new InvalidDataException("Runtime provenance differs from a NativeAOT publish.");
+        return manifest with { Runtime = PublishedRuntime };
     }
     private async Task PrepareProbe()
     {

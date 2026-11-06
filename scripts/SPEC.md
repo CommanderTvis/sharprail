@@ -61,7 +61,7 @@ Caches. Zig's global package cache is shared in the store (it is content-address
 per-build caches, patched source trees and objects stay in the checkout because they embed absolute paths.
 
 Windows x64 and ARM64 use `scripts/mise.cmd run package:windows -- -RuntimeIdentifier <rid>` for
-self-contained ReadyToRun client/host output and `artifacts/SharpRail-win-x64.zip` or
+NativeAOT client/host output (linked by Visual Studio's C++ linker) and `artifacts/SharpRail-win-x64.zip` or
 `artifacts/SharpRail-win-arm64.zip` (ARM64 output is `artifacts/windows-arm64`; it is built on an ARM64 host,
 with natives cached per RID). Published checks are staged alongside the unpacked package and excluded from the
 distribution zip. Publishing refuses to replace executables running from its output directory.
@@ -78,14 +78,12 @@ recipes are no-ops off macOS, and the Ghostty build refuses a runtime identifier
 than the host. The Android builds run on macOS or Linux and accept only `arm64-v8a` and `x86_64`.
 
 `package:macos` removes the previous outputs before publishing so stale files never
-survive into the package, publishes self-contained composite ReadyToRun UI/host and non-composite
-ReadyToRun checks, and keeps exactly one canonical app bundle. Replacing that
+survive into the package, publishes the UI and host as NativeAOT binaries (`NativeAot.props`) and the checks
+as self-contained ReadyToRun, and keeps exactly one canonical app bundle. Replacing that
 bundle while the app runs is the caller's responsibility to rule out first.
-Windows packaging and the profiling publisher use composite ReadyToRun as well. The packaged
-check stage keeps shipped composite components; only newer versions of the same framework
-assembly may replace shipped dependencies. The macOS harness remains non-composite so its
-code can bind to the shipped composite's layouts rather than a separately compiled version
-bubble. Windows checks run beside their own published components and remain composite.
+Windows and Linux packaging and the profiling publisher publish the same NativeAOT binaries. Linux links them
+with the pinned Zig against glibc 2.31 (`scripts/aot-linux-cc.sh`), from a Linux or macOS host. The packaged
+check stage never replaces a shipped file; the checks only add their own.
 
 `dmg` packs that bundle, unchanged and with an Applications shortcut beside it, into a compressed disk
 image (`artifacts/SharpRail.dmg` unless a path is given). The image is ad-hoc signed like the bundle and not

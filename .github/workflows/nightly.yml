@@ -33,6 +33,7 @@ jobs:
             ~/.cache/sharprail
           key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       - run: sh scripts/ci-run.sh "Package macOS" sh scripts/mise run package:macos osx-arm64
+      - run: sh scripts/ci-run.sh "Packaged check macOS" sh scripts/mise run check:packaged -- --packaged
       - run: sh scripts/ci-run.sh "Disk image" sh scripts/mise run dmg "artifacts/${{ steps.stamp.outputs.name }}.dmg"
       - uses: actions/upload-artifact@v7
         with:

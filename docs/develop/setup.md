@@ -40,7 +40,8 @@ managed language servers at runtime, not the build.
 ### macOS (`build`, `dev`, `package:macos`, `check:terminal`)
 
 - `bash` and `curl` (system): `scripts/mise-pinned` downloads mise with them when none is installed.
-- Xcode command-line tools (`xcode-select --install`): `xcrun clang` builds the Merman and notification libraries,
+- Xcode command-line tools (`xcode-select --install`): `xcrun clang` builds the Merman and notification libraries and
+  links the NativeAOT app and host in `package:macos`,
   `xcrun --sdk macosx` supplies Zig's SDK (`src/Ghostty.Avalonia/build-native.sh`), and `codesign` and `hdiutil` sign
   the bundle and make the `dmg`.
 - The Metal toolchain (`xcodebuild -downloadComponent MetalToolchain`): libghostty compiles its Metal shaders.
@@ -53,12 +54,15 @@ managed language servers at runtime, not the build.
 - To run the app: glibc 2.31 or newer, an X11 or XWayland session, `libX11`, `libXcursor`, `libXrandr`, `libXi`,
   `fontconfig` and a GL or software Skia stack ([LINUX.md](../../LINUX.md)).
 - Pack the AppImage on a host of the target architecture (`SHARPRAIL_APPDIR_ONLY=1` assembles the AppDir anywhere).
+  The NativeAOT client links with the pinned Zig against glibc 2.31, so no system C toolchain is needed.
 
 ### Windows (`build`, `package:windows`)
 
 - Windows 10 1809 or later or Windows 11, x64 or ARM64; Git for Windows, Windows PowerShell and `tar.exe`
-  ([WINDOWS.md](../../WINDOWS.md)). No Visual Studio C++ needed: Zig compiles the native libraries
-  (`scripts/windows-native.ps1`).
+  ([WINDOWS.md](../../WINDOWS.md)). Zig compiles the native libraries (`scripts/windows-native.ps1`).
+- `package:windows` only: Visual Studio 2022 or its Build Tools with the C++ build tools for the target
+  architecture (`Microsoft.VisualStudio.Component.VC.Tools.x86.x64` or `.ARM64`) and a Windows SDK; NativeAOT links
+  the client and host with them. `build` and `dev` do not need them.
 - Android builds need macOS or Linux (the NDK pin has no Windows archives).
 
 ### Android (`android`, `package:android`; macOS or Linux)

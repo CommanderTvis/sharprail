@@ -63,7 +63,8 @@ scripts\mise.cmd run package:windows
 ```
 
 The package is `artifacts/SharpRail-win-x64.zip`; unpacked client, host and checks
-are under `artifacts/windows`. On a Windows ARM64 machine run
+are under `artifacts/windows`. The client and host are NativeAOT binaries, so packaging needs Visual Studio 2022 or
+its Build Tools with the C++ build tools for the target architecture and a Windows SDK. On a Windows ARM64 machine run
 `scripts\mise.cmd run package:windows -- -RuntimeIdentifier win-arm64` for `artifacts/SharpRail-win-arm64.zip` and
 `artifacts/windows-arm64`; the bootstrap SDK and Zig compiler match the host, and native caches are per RID.
 The ARM64 package has not been exercised by a CI run yet. Stop executables running from that directory before

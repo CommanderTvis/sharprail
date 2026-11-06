@@ -77,8 +77,9 @@ flowchart LR
 ## The host and the app become NativeAOT
 
 Once no external code loads into SharpRail's own processes, nothing in them needs dynamic assembly loading. The
-host, the remote host and the desktop app are published as real NativeAOT binaries. Today they are JIT with
-ReadyToRun (`PublishAot` is off in `Directory.Build.props`).
+host, the remote host and the desktop app are published as real NativeAOT binaries: every package ships the desktop
+app (with its embedded host) and the remote host that way, and nothing else is NativeAOT (see
+[Packages](#packages-ship-nativeaot-binaries)).
 
 This comes first and does not wait for the isolated runtime. No external plugin exists yet, so external plugins
 stop loading in-process now: they are still discovered and listed, and refused with a reason until the isolated
@@ -137,10 +138,8 @@ Packages, each decided from the two publishes:
   the same model and the same JSON (`--project-toml`).
 - TextMateSharp, Svg.Controls.Skia.Avalonia, Markdig, QRCoder, Avalonia with SkiaSharp and HarfBuzzSharp, and
   ASP.NET Core: no warning from any of them in either publish. Kept, with no trimmer roots and no suppressions.
-- The AOT compiler package the pinned SDK brings (Microsoft.DotNet.ILCompiler 10.0.12) has a high-severity
-  advisory. The SDK pin moves past it before an AOT build ships.
-
-The published binaries were not started, so run-time behaviour under AOT is not yet verified.
+- The AOT compiler package SDK 10.0.401 brought (Microsoft.DotNet.ILCompiler 10.0.12) had a high-severity
+  advisory. The SDK pin moved to 10.0.403, whose compiler (10.0.14) is past it, before the first AOT package.
 
 Every project under `src/` except the Android and Browser heads sets `IsAotCompatible` (`Directory.Build.props`),
 which runs the trim, AOT and single-file analyzers on every build, so a new IL2xxx or IL3xxx fails the build. It
@@ -152,10 +151,44 @@ The analyzers read C# only. Two kinds of code reach the AOT compiler without the
 - XAML compiled to reflection bindings. `--conformance` fails on `x:CompileBindings="False"` or
   `ReflectionBinding` anywhere under `src/`.
 - A collection expression whose target type picks a generic `Add<T>` that needs dynamic code. A `JsonArray`
-  built from `JsonObject` elements did. Only a NativeAOT publish finds this; CI does not run one yet.
+  built from `JsonObject` elements did. Only a NativeAOT publish finds this; every package build runs one, so CI's
+  Linux and Windows package jobs do.
 
 The browser build's hybrid AOT is no evidence either way: it silences trim warnings and keeps the interpreter as a
 fallback. A `pureWeb` host has no external plugins anyway.
+
+### Packages ship NativeAOT binaries
+
+The desktop app and the remote host import `NativeAot.props`, which turns `PublishAot` on and keeps symbol, PDB, XML
+and runtimeconfig files out of the publish. NativeAOT replaced the composite ReadyToRun publish they had. The checks
+stay a JIT program, and so does everything else.
+
+- macOS links with Xcode's clang, then signs the bundle as before.
+- Windows links with Visual Studio's C++ linker (`link.exe` and the Windows SDK, as the CI images carry). The zip
+  still holds a `client` and a `host` payload.
+- Linux links with the pinned Zig (`scripts/aot-linux-cc.sh`) against glibc 2.31, the floor the AppImages promise,
+  whatever glibc the build host has; a runner's own clang would link against its newer glibc. The same command
+  cross-links from macOS. The linked binary needs nothing newer than `GLIBC_2.29`.
+
+Native libraries (Ghostty, SkiaSharp, HarfBuzzSharp, PDFium, Oniguruma, Avalonia's macOS library, Merman and the
+notification library on macOS) and the `plugins`, `terminfo` and `shell-integration` directories sit beside the
+binary, which finds them through its base directory as before. The runtimeconfig options (`DesktopGc.props`) are
+compiled into the binary.
+
+The packaged gate checks the binaries themselves, since the in-process checks cannot load them:
+
+- each payload is NativeAOT: the executable is there, and no managed assembly, runtimeconfig, deps file or runtime
+  library ships; on macOS and Linux the binary carries `System.GC.ConserveMemory`;
+- the shipped remote host (macOS, Windows) starts, answers RPC and refuses a wrong token;
+- on Linux the shipped app runs as a terminal tab's relay against a host terminal. Nothing else of the app runs
+  without a window, so on macOS and Windows the app binary is checked only for its shape.
+
+Measured once, osx-arm64: the app binary is 77 MiB and the bundle 141 MiB; the disk image fell from 123 MiB (composite
+ReadyToRun) to 61 MiB. The remote host is one 37 MiB binary. linux-x64's payload is 108 MiB.
+
+What has run: the macOS remote host (RPC, its MCP tool list and a 651 ms start in the packaged gate); a linux-arm64
+remote host and the linux-arm64 app's terminal relay in an Ubuntu 20.04 container (glibc 2.31). The desktop app's
+window under NativeAOT has not been started by any check; nothing in CI opens it.
 
 ## Processes and sandboxes
 

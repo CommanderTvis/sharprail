@@ -18,25 +18,25 @@ zig = ["0.14.1", "0.16.0"]
 # archives come from Microsoft's release metadata (builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json,
 # which lists SHA-512; the SHA-256 below was computed from archives matching it).
 [tools."http:dotnet"]
-version = "10.0.401"
+version = "10.0.403"
 [tools."http:dotnet".platforms.macos-arm64]
-url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-osx-arm64.tar.gz"
-checksum = "sha256:d143ccec4474dce17d7b778854598137a2599b81828bce51e809897fe8bdf035"
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-osx-arm64.tar.gz"
+checksum = "sha256:826d7ff91fa83b16bccd7edd7822581fe32b5228a4501aabe61d864168129d73"
 [tools."http:dotnet".platforms.macos-x64]
-url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-osx-x64.tar.gz"
-checksum = "sha256:0616332aa0b5edfa19443a9d217d14d086d2e9605d7c72979cf8ebbb494ac792"
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-osx-x64.tar.gz"
+checksum = "sha256:cccca37f1ce3a69f99982b80c9546019d149dd2ad26c4ecc01b3b3ab87abeb0e"
 [tools."http:dotnet".platforms.linux-x64]
-url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-linux-x64.tar.gz"
-checksum = "sha256:137268c8ad939c064ff1ee2a6fdf0899d8725377114ea012fbd1ad5fa2550418"
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-x64.tar.gz"
+checksum = "sha256:cd7224fe8e8ba57c15f1601439ff8785a1a72b54ae5c89dd5302a32dcfbddf18"
 [tools."http:dotnet".platforms.linux-arm64]
-url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-linux-arm64.tar.gz"
-checksum = "sha256:91d3d67f2ed065909bd2e1ba50a37192aff6df15178304939d5b55634d72da6a"
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-linux-arm64.tar.gz"
+checksum = "sha256:21fe1a0963984206bfaeb19968da07e7a61d30c9bc4621b7372a762a30c88679"
 [tools."http:dotnet".platforms.windows-x64]
-url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-win-x64.zip"
-checksum = "sha256:c1b96dea223e1ab2af8a51187e0cc96338d14c68834be1656136be18953cea09"
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip"
+checksum = "sha256:f398979a9cac2dba760771c4e01f16e431dcd6bcfb2213e3e8f5b3d354095cc0"
 [tools."http:dotnet".platforms.windows-arm64]
-url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-win-arm64.zip"
-checksum = "sha256:adfcd206adaa407d45d97a8678b9c36bb83089ba520eda6a97ab5a707c9af583"
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-arm64.zip"
+checksum = "sha256:c8d5a6714ae9561c2c41f00325a8f9b34f80f520263059921a36a141cddf2ca8"
 
 # mise's core Zig has no Windows ARM64 build, so the Windows natives use this archive on both architectures.
 [tools."http:zig-windows"]

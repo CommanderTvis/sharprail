@@ -6,10 +6,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <Optimize>true</Optimize>
+    <!-- The desktop app and the remote host turn NativeAOT on (NativeAot.props); everything else publishes JIT. -->
     <PublishAot>false</PublishAot>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishSingleFile>false</PublishSingleFile>
-    <PublishReadyToRunComposite Condition="'$(PublishReadyToRunComposite)' == ''">true</PublishReadyToRunComposite>
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
     <ServerGarbageCollection>false</ServerGarbageCollection>

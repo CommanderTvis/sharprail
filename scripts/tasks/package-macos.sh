@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
-# `scripts/mise run package:macos [osx-arm64|osx-x64]`: publishes the app, host and checks and builds artifacts/SharpRail.app.
+# `scripts/mise run package:macos [osx-arm64|osx-x64]`: publishes the app and host (NativeAOT, linked by Xcode's clang) and the
+# checks, and builds artifacts/SharpRail.app.
 cd "$(dirname "$0")/../.."
 dotnet_cmd="${DOTNET:-dotnet}"
 rid="${1:-osx-arm64}"
@@ -9,17 +10,14 @@ rid="${1:-osx-arm64}"
 rm -rf artifacts/ui artifacts/host artifacts/checks artifacts/SharpRail.app
 # The About screen's version stamp, as the nightly names its builds: UTC date and short commit.
 stamp="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
-# One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime and Crossgen packs;
-# the publishes below reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
+# One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime, ILCompiler and Crossgen
+# packs; the publishes below reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
 "$dotnet_cmd" restore SharpRail.slnx -p:SelfContained=true -p:PublishReadyToRun=true
-"$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true --no-restore \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -p:SharpRailBuildStamp="$stamp" -o artifacts/ui
-"$dotnet_cmd" publish src/SharpRail.Host.Remote -c Release -r "$rid" --self-contained true --no-restore \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o artifacts/host
-# The packaged gate combines checks with the UI's shipped components. A separate
-# composite would assume its own version-bubble layouts; keep this harness versionable.
+"$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --no-restore -p:SharpRailBuildStamp="$stamp" -o artifacts/ui
+"$dotnet_cmd" publish src/SharpRail.Host.Remote -c Release -r "$rid" --no-restore -o artifacts/host
+# The checks stay a JIT program (ReadyToRun); the packaged gate runs them beside the bundle's native libraries.
 "$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true --no-restore \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/checks
+  -p:PublishReadyToRun=true -o artifacts/checks
 if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
   bundle=artifacts/SharpRail.app
   mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
@@ -52,7 +50,7 @@ if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
 <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
-  # Tahoe rounds windows by the SDK the executable was linked against: the apphost's 15.x stamp keeps the old small corner
+  # Tahoe rounds windows by the SDK the executable was linked against: a 15.x stamp keeps the old small corner
   # radius, so the packaged executable is restamped as built with SDK 26 (the signature is redone below).
   exe="$bundle/Contents/MacOS/SharpRail.UI"
   minos="$(xcrun vtool -show-build "$exe" | awk '/minos/ {print $2; exit}')"

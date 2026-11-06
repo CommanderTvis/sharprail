@@ -60,54 +60,52 @@ internal static class RunnerChecks
     {
         var shipped = Path.Combine(directory, "SharpRail.app", "Contents", "MacOS");
         var staged = Path.Combine(directory, "stage");
+        var executable = OperatingSystem.IsWindows() ? "SharpRail.UI.exe" : "SharpRail.UI";
         foreach (var folder in new[] { shipped, staged })
         {
             Directory.CreateDirectory(Path.Combine(folder, "nested"));
-            File.WriteAllText(Path.Combine(folder, "SharpRail.UI.dll"), "SharpRail.UI 1.0");
-            File.WriteAllText(Path.Combine(folder, "Framework.Abstractions.dll"), "Framework.Abstractions 8.0");
+            File.WriteAllText(Path.Combine(folder, executable), "native app");
+            File.WriteAllText(Path.Combine(folder, "libnative.so"), "native library");
             File.WriteAllText(Path.Combine(folder, "nested", "resource.txt"), "resource");
         }
-        File.WriteAllText(Path.Combine(staged, "SharpRail.Checks.dll"), "SharpRail.Checks 1.0");
-        string[] loaded = [Path.Combine(staged, "SharpRail.UI.dll")];
-        // A fixture assembly is its name and version in text.
+        // A fixture assembly is its name and version in text; anything else is a native file.
         static AssemblyName? Identity(string file) => File.ReadAllText(file).Split(' ') is [var name, var version, ..] && Version.TryParse(version, out var parsed) ? new(name) { Version = parsed } : null;
+        void Ship(string name, string text) => File.WriteAllText(Path.Combine(shipped, name), text);
         void Stage(string name, string text) => File.WriteAllText(Path.Combine(staged, name), text);
-        void Rejects(string message, IEnumerable<string>? assemblies = null)
+        void Rejects(string message)
         {
-            try { PackagedApp.Verify(shipped, staged, assemblies ?? loaded, Identity); }
+            try { PackagedApp.Verify(shipped, staged, "SharpRail.UI", Identity); }
             catch (InvalidOperationException) { return; }
             throw new InvalidOperationException(message);
         }
-        Require(PackagedApp.Verify(shipped, staged, loaded, Identity) is { Identical: 3, Superseded.Count: 0 }, "A stage holding the bundle's own files must pass.");
+        Require(PackagedApp.Verify(shipped, staged, "SharpRail.UI", Identity) == 3, "A stage holding the bundle's own files must pass.");
         var checks = Path.Combine(directory, "checks");
         Directory.CreateDirectory(checks);
-        File.WriteAllText(Path.Combine(checks, "SharpRail.UI.dll"), "SharpRail.UI 2.0 checks-component");
-        File.WriteAllText(Path.Combine(checks, "Framework.Abstractions.dll"), "Framework.Abstractions 8.0 checks-component");
-        File.WriteAllText(Path.Combine(checks, "SharpRail.Checks.r2r.dll"), "composite native image");
-        PackagedApp.AddCheckFiles(checks, staged, Identity);
-        Require(PackagedApp.Verify(shipped, staged, loaded, Identity) is { Identical: 3, Superseded.Count: 0 } &&
-            File.Exists(Path.Combine(staged, "SharpRail.Checks.r2r.dll")), "Staging must preserve shipped product and same-version framework bytes while adding the checks' composite image.");
-        File.WriteAllText(Path.Combine(checks, "Framework.Abstractions.dll"), "Framework.Abstractions 10.0");
-        PackagedApp.AddCheckFiles(checks, staged, Identity);
-        Require(PackagedApp.Verify(shipped, staged, loaded, Identity) is { Identical: 2, Superseded: ["Framework.Abstractions.dll"] },
-            "Staging must retain the permitted newer-framework replacement.");
-        Rejects("A product assembly loaded from elsewhere must fail.", [Path.Combine(directory, "elsewhere", "SharpRail.UI.dll")]);
-        Rejects("An assembly the bundle does not ship must not count as the product.", [Path.Combine(staged, "SharpRail.Checks.dll")]);
-        Stage("Framework.Abstractions.dll", "Framework.Abstractions 10.0");
-        Require(PackagedApp.Verify(shipped, staged, loaded, Identity) is { Identical: 2, Superseded: ["Framework.Abstractions.dll"] },
-            "A newer version of a shipped framework assembly may stand in for it, by name.");
-        Stage("Framework.Abstractions.dll", "Framework.Abstractions 7.0");
-        Rejects("An older framework assembly must fail.");
-        Stage("Framework.Abstractions.dll", "Framework.Other 10.0");
-        Rejects("A different assembly under a shipped name must fail.");
-        Stage("Framework.Abstractions.dll", "Framework.Abstractions 8.0");
-        Stage("SharpRail.UI.dll", "SharpRail.UI 2.0");
-        Rejects("A product assembly that differs from the bundle must fail, whatever its version.");
-        Stage("SharpRail.UI.dll", "SharpRail.UI 1.0");
+        File.WriteAllText(Path.Combine(checks, "SharpRail.Checks.dll"), "SharpRail.Checks 1.0");
+        File.WriteAllText(Path.Combine(checks, "libnative.so"), "the checks' native library");
+        File.WriteAllText(Path.Combine(checks, executable), "the checks' launcher");
+        PackagedApp.AddCheckFiles(checks, staged);
+        Require(PackagedApp.Verify(shipped, staged, "SharpRail.UI", Identity) == 3 && File.Exists(Path.Combine(staged, "SharpRail.Checks.dll")),
+            "Staging must add the checks' own files and keep every shipped file's bytes.");
+        foreach (var (name, text, message) in new[]
+        {
+            ("SharpRail.UI.dll", "SharpRail.UI 1.0", "A shipped managed assembly must fail: the app is NativeAOT."),
+            ("SharpRail.UI.runtimeconfig.json", "{}", "A shipped runtimeconfig.json must fail."),
+            ("libcoreclr.so", "runtime", "A shipped JIT runtime must fail."),
+        })
+        {
+            Ship(name, text);
+            Stage(name, text);
+            Rejects(message);
+            File.Delete(Path.Combine(shipped, name));
+        }
         Stage(Path.Combine("nested", "resource.txt"), "edited");
-        Rejects("A shipped file that is not an assembly must be identical.");
+        Rejects("A shipped file that differs beside the checks must fail.");
         File.Delete(Path.Combine(staged, "nested", "resource.txt"));
         Rejects("A shipped file missing from the stage must fail.");
+        Stage(Path.Combine("nested", "resource.txt"), "resource");
+        File.Delete(Path.Combine(shipped, executable));
+        Rejects("A package without the app's executable must fail.");
         Directory.Delete(shipped, true);
         Rejects("A missing bundle must fail.");
     }

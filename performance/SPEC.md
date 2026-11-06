@@ -166,6 +166,14 @@ clipped SVG labels or page overflow. A preceding batch interrupted by a switch t
 separately and excluded, along with the incompatible v1 baseline. Published runtime lookup appends
 the deps suffix to dotted executable names rather than replacing their final name component.
 
+## NativeAOT packages (2026-11-06)
+
+NativeAOT replaced composite ReadyToRun for the app and the remote host in every package and in the profiling
+publisher (`NativeAot.props`; [Plugin security](../src/SharpRail.Plugins.Api/Security.SPEC.md) gives the reason).
+The shared composite default is gone; the checks publish non-composite ReadyToRun. Measured once, osx-arm64: the
+disk image fell from 123 MiB to 61 MiB and the app binary is 77 MiB. The packaged gate logged a 651 ms start for
+the remote host. No startup or memory comparison was run; the section below is the earlier composite record.
+
 ## Composite ReadyToRun default (2026-10-17)
 
 The shared build properties default to composite when not explicitly overridden.

@@ -238,24 +238,26 @@ executable runs outside a checkout.
 
 ## Packaged gate
 
-`scripts/mise run check:packaged` runs the gate against `artifacts/SharpRail.app`: it stages a copy of the bundle
-under `.bench`, adds from `artifacts/checks` the files the bundle does not ship, and starts the checks from
-the bundle's own directory with `SHARPRAIL_REQUIRE_R2R=1` and `SHARPRAIL_PACKAGED_APP`. Under that variable
-the gate's first case requires each file the bundle ships to sit byte-identical beside the running checks and
-the product assemblies to have loaded from there. The one permitted difference is a newer version of the same
-non-product assembly: the remote host the checks start needs newer `Microsoft.Extensions` abstractions than
-the app ships, and one process can load only one of each, so those are replaced and named in the result
-rather than counted. A product assembly that differs, an older or different assembly, or any other changed
-or missing file fails. Each lane starts its own hosts in-process, so packaged lanes share no artifact host.
-Arguments pass through, so lanes, shards, named cases and the repair loop apply; the stage is removed on exit.
-Staging preserves shipped composite components even when the checks' corresponding assemblies
-have the same version but different ReadyToRun headers. The checks executable adds missing files
-and replaces only newer versions of the same non-product assembly. The macOS checks themselves
-remain non-composite R2R: mixing two composite version bubbles failed in headless
-render-timer initialization in the full packaged gate. Windows checks use only their own
-published component set and remain composite. Same-version
-framework components and product assemblies remain the shipped bytes; verification is not relaxed.
-Runner fixtures cover these staging choices alongside the existing rejection cases.
+`scripts/mise run check:packaged` runs the gate against the package: on macOS `artifacts/SharpRail.app`, on Linux
+the AppImage's payload, and on Windows the zip's `client` and `host` payloads. The app and the remote host ship as
+NativeAOT binaries, so no product assembly ships and the checks stay a JIT program of their own.
+
+On macOS and Linux it stages a copy of the payload under `.bench`, adds from the published checks only the files the
+payload does not ship (a shipped file is never replaced), and starts the checks from there with
+`SHARPRAIL_PACKAGED_APP`. Under that variable the `packaged-app` case requires the payload to be NativeAOT and each
+shipped file to sit byte-identical beside the running checks, so the in-process checks load the shipped native
+libraries. A changed or missing file, a managed assembly, a runtimeconfig or deps file, or a runtime library fails.
+
+`SHARPRAIL_PACKAGED_CLIENT` and `SHARPRAIL_PACKAGED_HOST` name the shipped payloads. `PackagedBinaries` (in
+`--linux`, `--windows`, `--packaged` and the `packaged-binaries` case) requires each to be NativeAOT, on macOS and
+Linux with `System.GC.ConserveMemory` compiled in; starts the shipped remote host where one ships (macOS, Windows) and
+makes RPC calls, one with a wrong token; and on Linux starts the shipped app as a terminal relay against an
+in-process host, which must carry a shell's Unicode output and exit code. Without the variables the relay half runs
+the checks' own relay. The app is never started with a window.
+
+Each lane starts its own hosts in-process, so packaged lanes share no artifact host. Arguments pass through, so
+lanes, shards, named cases and the repair loop apply; the stage is removed on exit. Runner fixtures cover the staging
+and the rejection cases.
 
 ## Adapter parity
 

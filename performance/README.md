@@ -1,6 +1,6 @@
 # macOS startup and initial RAM
 
-This toolkit publishes a separate Release/composite ReadyToRun app and host, launches a reproducible
+This toolkit publishes a separate Release NativeAOT app and host, as the packages ship them, launches a reproducible
 workspace with isolated state, measures startup and RAM, and writes raw observations plus an offline
 HTML report. It does not replace `artifacts/SharpRail.app` or use your normal SharpRail profile.
 
@@ -32,8 +32,8 @@ performance/run.sh self-test
 
 Use a new output directory per run. Outputs default to `artifacts/performance/<command>-<time>/`.
 `publish` uses only `artifacts/performance/build/`. Measurement checks every published-file hash
-against its build manifest and verifies ReadyToRun headers; a changed output requires a new publish.
-The report contains the manifest, source commit/dirty state, SDK/RID and target runtime pack (from each published deps.json), machine, sample statuses and
+against its build manifest and verifies that the output is NativeAOT; a changed output requires a new publish.
+The report contains the manifest, source commit/dirty state, SDK/RID (the SDK names the runtime a NativeAOT binary links), machine, sample statuses and
 per-process memory. Dirty builds are explicitly identified; they are not represented as clean commits.
 
 ## Measurement contract
@@ -104,10 +104,10 @@ The runner does not enforce CPU affinity, desktop quiescence or thermal isolatio
 
 ## Memory settings
 
-The desktop app and the standalone host import `DesktopGc.props`, so every packaged `SharpRail.UI.runtimeconfig.json` and
-`SharpRail.Host.Remote.runtimeconfig.json` carries `System.GC.ConserveMemory=5` and `System.Runtime.TieredPGO=false` (the Server
-and hard-limit settings stay off; Android and Browser do not import it). `check:packaged` fails when a packaged runtimeconfig
-loses them (`--gc-settings` runs only that case). `IdleMemoryTrim` additionally runs one blocking, compacting
+The desktop app and the standalone host import `DesktopGc.props`, so every packaged NativeAOT binary is compiled with
+`System.GC.ConserveMemory=5` (the Server and hard-limit settings stay off; Android and Browser do not import it;
+`System.Runtime.TieredPGO=false` only mattered to the JIT builds). `check:packaged` fails when a packaged macOS or Linux binary
+lacks the setting (`--gc-settings` and `--packaged` check it). `IdleMemoryTrim` additionally runs one blocking, compacting
 `GC.Collect(2, Aggressive)` per idle period (30 s without input and under 5% of a core, never in the first 60 s).
 
 Measured on an Apple-silicon Mac, Release, isolated profile, this checkout as the workspace:

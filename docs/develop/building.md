@@ -11,7 +11,7 @@ Ghostty application is required.
 scripts/mise x -- dotnet run --project src/SharpRail.UI -c Release
 ```
 
-To build the ReadyToRun macOS app bundle:
+To build the macOS app bundle (the app as a NativeAOT binary):
 
 ```sh
 scripts/mise run package:macos

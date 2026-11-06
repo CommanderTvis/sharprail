@@ -1,7 +1,6 @@
 using System.Net;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
 
@@ -81,6 +80,7 @@ internal static class Program
             try
             {
                 CheckOpenWorld();
+                PackagedBinaries.Run(root).GetAwaiter().GetResult();
                 WindowsChecks.RunHost(root).GetAwaiter().GetResult();
                 AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
                 SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
@@ -94,6 +94,7 @@ internal static class Program
             try
             {
                 CheckOpenWorld();
+                PackagedBinaries.Run(root).GetAwaiter().GetResult();
                 LinuxChecks.RunHost(root).GetAwaiter().GetResult();
                 AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
                 SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
@@ -1058,6 +1059,12 @@ internal static class Program
             GcSettingsChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--packaged"]))
+        {
+            PackagedApp.Run();
+            PackagedBinaries.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--startup"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -1348,6 +1355,7 @@ internal static class Program
             return;
         }
         Gate.Case("packaged-app", PackagedApp.Run);
+        Gate.Case("packaged-binaries", () => PackagedBinaries.Run(root).GetAwaiter().GetResult());
         Gate.Case("gc-settings", () => GcSettingsChecks.Run(root));
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
         Gate.Case("action-icons", ActionIconChecks.Run);
@@ -1526,16 +1534,6 @@ internal static class Program
 
     private static void CheckOpenWorld()
     {
-        if (Environment.GetEnvironmentVariable("SHARPRAIL_REQUIRE_R2R") == "1")
-        {
-            foreach (var assembly in new[] { typeof(Program).Assembly, typeof(WorkbenchWindow).Assembly, typeof(ProjectServices).Assembly })
-            {
-                using var file = File.OpenRead(assembly.Location);
-                using var pe = new PEReader(file);
-                Assert(pe.PEHeaders.CorHeader!.ManagedNativeHeaderDirectory.Size > 0,
-                    $"ReadyToRun header missing: {assembly.GetName().Name}");
-            }
-        }
         Assert(RuntimeFeature.IsDynamicCodeSupported && RuntimeFeature.IsDynamicCodeCompiled, "JIT is unavailable.");
         var method = new DynamicMethod("ResearchProbe", typeof(int), Type.EmptyTypes);
         var il = method.GetILGenerator();

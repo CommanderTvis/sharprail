@@ -54,11 +54,17 @@
         "resolved": "1.4.0",
         "contentHash": "lLhaiI/mNDTNzgLqnmknhf4LjgTqOAyjx5+GNz0X3AxYMxUhmFppF2WVMdER+SDqwhE5wUF1pzs/cuLwFxs7xA=="
       },
+      "Microsoft.DotNet.ILCompiler": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "CDQ/+XRT1JT/0u87j9exR1AociehKUzxae4KCOWxCQ1PIKbYS0F8ovxaCrqRlkylGmbhywKxV/zbbrEhWa5NXg=="
+      },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[10.0.12, )",
-        "resolved": "10.0.12",
-        "contentHash": "xi+BDjFpW+Sb+MHFHaH6Y/gV9I8BluFwRXc1QyCdoZbIK26eNiBeFuMTe/FMwc33G1wdHCyDg7CVTmb8OdQrMQ=="
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "YlTamXppEQls6DYWt7RdUuwWDb0lyw/vXCaGeQpLCpsLmfwGuCkOz/vIGgMTV7ECsJcavkCOkxZXv9s8rdAHkQ=="
       },
       "QRCoder": {
         "type": "Direct",
@@ -1101,6 +1107,15 @@
         "resolved": "156.0.8076",
         "contentHash": "Q01czvrzEWcnHA7K3bfGDhenSlrsO21ziWaSVSq8QLLox0ygwpQM23PAhrEn56Js9vrUYWS8z4pioOWC/b9s1Q=="
       },
+      "Microsoft.DotNet.ILCompiler": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "CDQ/+XRT1JT/0u87j9exR1AociehKUzxae4KCOWxCQ1PIKbYS0F8ovxaCrqRlkylGmbhywKxV/zbbrEhWa5NXg==",
+        "dependencies": {
+          "runtime.linux-arm64.Microsoft.DotNet.ILCompiler": "10.0.14"
+        }
+      },
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
         "resolved": "2.1.27548.20260419",
@@ -1138,6 +1153,11 @@
         "type": "Transitive",
         "resolved": "1.0.11",
         "contentHash": "5/WAxSYWfiiPzp1X13qqdqjFmYLKDD/U7Vh3WCkKxWG9BjqdrXnQE5fCKCFJX+xWvuYLTxwZIVWBwBWObViE8g=="
+      },
+      "runtime.linux-arm64.Microsoft.DotNet.ILCompiler": {
+        "type": "Transitive",
+        "resolved": "10.0.14",
+        "contentHash": "isbxZoQqudzmr2SwwjgNE0W/pMa8bQw/6tdL6wxnk+v1/1+aqdLJwrE6RD7wg8pMR07Vz4n1qVSR0AIsM6B1wA=="
       },
       "SkiaSharp.NativeAssets.Linux": {
         "type": "Transitive",
@@ -1176,6 +1196,15 @@
         "resolved": "156.0.8076",
         "contentHash": "Q01czvrzEWcnHA7K3bfGDhenSlrsO21ziWaSVSq8QLLox0ygwpQM23PAhrEn56Js9vrUYWS8z4pioOWC/b9s1Q=="
       },
+      "Microsoft.DotNet.ILCompiler": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "CDQ/+XRT1JT/0u87j9exR1AociehKUzxae4KCOWxCQ1PIKbYS0F8ovxaCrqRlkylGmbhywKxV/zbbrEhWa5NXg==",
+        "dependencies": {
+          "runtime.linux-x64.Microsoft.DotNet.ILCompiler": "10.0.14"
+        }
+      },
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
         "resolved": "2.1.27548.20260419",
@@ -1213,6 +1242,11 @@
         "type": "Transitive",
         "resolved": "1.0.11",
         "contentHash": "5/WAxSYWfiiPzp1X13qqdqjFmYLKDD/U7Vh3WCkKxWG9BjqdrXnQE5fCKCFJX+xWvuYLTxwZIVWBwBWObViE8g=="
+      },
+      "runtime.linux-x64.Microsoft.DotNet.ILCompiler": {
+        "type": "Transitive",
+        "resolved": "10.0.14",
+        "contentHash": "RbHp9HXSvTnYCy1X8LUQmL0LcW++jP8Crqvt6ZjSH2MXqJ7w3FBHS9sUf1iFuCD6ztYdAQNd/QgMpDGZE/aRIA=="
       },
       "SkiaSharp.NativeAssets.Linux": {
         "type": "Transitive",
@@ -1251,6 +1285,15 @@
         "resolved": "156.0.8076",
         "contentHash": "Q01czvrzEWcnHA7K3bfGDhenSlrsO21ziWaSVSq8QLLox0ygwpQM23PAhrEn56Js9vrUYWS8z4pioOWC/b9s1Q=="
       },
+      "Microsoft.DotNet.ILCompiler": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "CDQ/+XRT1JT/0u87j9exR1AociehKUzxae4KCOWxCQ1PIKbYS0F8ovxaCrqRlkylGmbhywKxV/zbbrEhWa5NXg==",
+        "dependencies": {
+          "runtime.osx-arm64.Microsoft.DotNet.ILCompiler": "10.0.14"
+        }
+      },
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
         "resolved": "2.1.27548.20260419",
@@ -1288,6 +1331,11 @@
         "type": "Transitive",
         "resolved": "1.0.11",
         "contentHash": "5/WAxSYWfiiPzp1X13qqdqjFmYLKDD/U7Vh3WCkKxWG9BjqdrXnQE5fCKCFJX+xWvuYLTxwZIVWBwBWObViE8g=="
+      },
+      "runtime.osx-arm64.Microsoft.DotNet.ILCompiler": {
+        "type": "Transitive",
+        "resolved": "10.0.14",
+        "contentHash": "t4T2d4Ye79r1GTjP9JuJHkA874jiKCvdhcsj8HAUD5U2XF8GpjRsT6YSusy67My5V12iydckl0D4qC9iZsmpvQ=="
       },
       "SkiaSharp.NativeAssets.Linux": {
         "type": "Transitive",
@@ -1326,6 +1374,15 @@
         "resolved": "156.0.8076",
         "contentHash": "Q01czvrzEWcnHA7K3bfGDhenSlrsO21ziWaSVSq8QLLox0ygwpQM23PAhrEn56Js9vrUYWS8z4pioOWC/b9s1Q=="
       },
+      "Microsoft.DotNet.ILCompiler": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "CDQ/+XRT1JT/0u87j9exR1AociehKUzxae4KCOWxCQ1PIKbYS0F8ovxaCrqRlkylGmbhywKxV/zbbrEhWa5NXg==",
+        "dependencies": {
+          "runtime.osx-x64.Microsoft.DotNet.ILCompiler": "10.0.14"
+        }
+      },
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
         "resolved": "2.1.27548.20260419",
@@ -1363,6 +1420,11 @@
         "type": "Transitive",
         "resolved": "1.0.11",
         "contentHash": "5/WAxSYWfiiPzp1X13qqdqjFmYLKDD/U7Vh3WCkKxWG9BjqdrXnQE5fCKCFJX+xWvuYLTxwZIVWBwBWObViE8g=="
+      },
+      "runtime.osx-x64.Microsoft.DotNet.ILCompiler": {
+        "type": "Transitive",
+        "resolved": "10.0.14",
+        "contentHash": "2uoolFgVVvr3jIXykcpiPWAnNgSbYcC1Gpr0DeWpTSEew+dHmwX07Fqn9qzcQEiFWO1j+spkdi9iqiQhCU+qJg=="
       },
       "SkiaSharp.NativeAssets.Linux": {
         "type": "Transitive",
@@ -1401,6 +1463,15 @@
         "resolved": "156.0.8076",
         "contentHash": "Q01czvrzEWcnHA7K3bfGDhenSlrsO21ziWaSVSq8QLLox0ygwpQM23PAhrEn56Js9vrUYWS8z4pioOWC/b9s1Q=="
       },
+      "Microsoft.DotNet.ILCompiler": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "CDQ/+XRT1JT/0u87j9exR1AociehKUzxae4KCOWxCQ1PIKbYS0F8ovxaCrqRlkylGmbhywKxV/zbbrEhWa5NXg==",
+        "dependencies": {
+          "runtime.win-arm64.Microsoft.DotNet.ILCompiler": "10.0.14"
+        }
+      },
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
         "resolved": "2.1.27548.20260419",
@@ -1438,6 +1509,11 @@
         "type": "Transitive",
         "resolved": "1.0.11",
         "contentHash": "5/WAxSYWfiiPzp1X13qqdqjFmYLKDD/U7Vh3WCkKxWG9BjqdrXnQE5fCKCFJX+xWvuYLTxwZIVWBwBWObViE8g=="
+      },
+      "runtime.win-arm64.Microsoft.DotNet.ILCompiler": {
+        "type": "Transitive",
+        "resolved": "10.0.14",
+        "contentHash": "li01eqqal7zbSBZig7scq5Mr5TiXrgIh+KzRen1un4k1HdzLj44iauWcgdnzNRtxblxgD/r1KJjWzOBjT05wqA=="
       },
       "SkiaSharp.NativeAssets.Linux": {
         "type": "Transitive",
@@ -1476,6 +1552,15 @@
         "resolved": "156.0.8076",
         "contentHash": "Q01czvrzEWcnHA7K3bfGDhenSlrsO21ziWaSVSq8QLLox0ygwpQM23PAhrEn56Js9vrUYWS8z4pioOWC/b9s1Q=="
       },
+      "Microsoft.DotNet.ILCompiler": {
+        "type": "Direct",
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "CDQ/+XRT1JT/0u87j9exR1AociehKUzxae4KCOWxCQ1PIKbYS0F8ovxaCrqRlkylGmbhywKxV/zbbrEhWa5NXg==",
+        "dependencies": {
+          "runtime.win-x64.Microsoft.DotNet.ILCompiler": "10.0.14"
+        }
+      },
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
         "resolved": "2.1.27548.20260419",
@@ -1513,6 +1598,11 @@
         "type": "Transitive",
         "resolved": "1.0.11",
         "contentHash": "5/WAxSYWfiiPzp1X13qqdqjFmYLKDD/U7Vh3WCkKxWG9BjqdrXnQE5fCKCFJX+xWvuYLTxwZIVWBwBWObViE8g=="
+      },
+      "runtime.win-x64.Microsoft.DotNet.ILCompiler": {
+        "type": "Transitive",
+        "resolved": "10.0.14",
+        "contentHash": "B28xsyrO3PRFGL9yd1lLWdX3/wATFkaxPFM3VmGOFG8pfx7jDeb1Yz09v6n+z0jNEPAlQLqOx2noOXw8aytYNw=="
       },
       "SkiaSharp.NativeAssets.Linux": {
         "type": "Transitive",

@@ -137,8 +137,8 @@ with NU1403. `scripts/mise run restore:update` is the one task that rewrites the
 `PackageReference` or a version in `Directory.Packages.props` and commit the locks with the change. Plain `dotnet`
 outside mise is not locked and updates the files itself. The locks list `osx-arm64;osx-x64;win-x64;win-arm64;linux-x64;linux-arm64`
 (`RuntimeIdentifiers` in `Directory.Build.props`); because a `-r` restore changes the project's RID list, the package
-tasks restore once without `-r` (with `SelfContained` and `PublishReadyToRun`, which also fetches runtime and
-Crossgen packs) and publish with `--no-restore`. Do the same for any new `-r` publish.
+tasks restore once without `-r` (with `SelfContained` and `PublishReadyToRun`, which also fetches runtime, ILCompiler
+and Crossgen packs) and publish with `--no-restore`. Do the same for any new `-r` publish.
 
 Excluded from locking (`RestorePackagesWithLockFile=false`, reason in the project file): `SharpRail.Android` and
 `SharpRail.Browser`, whose restores resolve workload packs and per-RID runtime packs from the installed workload
@@ -191,32 +191,33 @@ scripts/mise run check:packaged
 scripts/mise run dmg
 ```
 
-`package:macos` publishes self-contained Release composite ReadyToRun
-UI/host outputs into `artifacts/ui` and `artifacts/host`, with non-composite R2R
-checks in `artifacts/checks` for staging beside the shipped UI. It also assembles and
+`package:macos` publishes the Release UI and host as NativeAOT binaries into `artifacts/ui` and
+`artifacts/host`, with self-contained ReadyToRun checks in `artifacts/checks` for staging beside the shipped UI. It also assembles and
 ad-hoc signs `artifacts/SharpRail.app`. Publishing removes the previous outputs and app bundle,
 so stop any app using that bundle before replacing it.
 
 `check:packaged [-- check arguments...]` requires the published app and checks.
-It stages a copy under `.bench`, requires ReadyToRun output, forwards arguments
-to the checks executable, and cleans the staging directory on exit. For example:
+It stages a copy under `.bench`, sets the variables that make the gate check and run the shipped NativeAOT binaries
+(`--packaged` runs only that), forwards arguments to the checks executable, and cleans the staging directory on exit.
+For example:
 
 ```sh
 scripts/mise run check:packaged -- --terminals
 ```
 
 `scripts\mise.cmd run package:windows -- -RuntimeIdentifier win-x64|win-arm64` (on Windows) publishes the
-self-contained client, host and checks to `artifacts/windows` (x64, default) or `artifacts/windows-arm64`
+NativeAOT client and host and the self-contained checks to `artifacts/windows` (x64, default) or `artifacts/windows-arm64`
 and packages `artifacts/SharpRail-<rid>.zip`. Build the ARM64 package on a Windows ARM64 machine: the
-SDK, Zig compiler and native cache (`obj/native/<rid>`) follow the host and runtime identifier.
+SDK, Zig compiler and native cache (`obj/native/<rid>`) follow the host and runtime identifier. NativeAOT links with
+Visual Studio's C++ build tools for the target architecture.
 `scripts\mise.cmd run check:packaged -- -RuntimeIdentifier <rid> --windows` runs the packaged Windows gate.
 
 `scripts/mise run package:linux [linux-arm64]` (on Linux of the same architecture; x64 by default) builds, publishes the
-self-contained ReadyToRun client and the checks to `artifacts/linux` and packs the client into
+NativeAOT client (linked by the pinned Zig against glibc 2.31, `scripts/aot-linux-cc.sh`) and the checks to `artifacts/linux` and packs the client into
 `artifacts/SharpRail-linux-x64.AppImage` (`SharpRail-linux-arm64.AppImage` for `linux-arm64`, with the aarch64 appimagetool and runtime): an `AppDir` (`AppRun`, a desktop file, the
 icon, the client under `usr/lib/sharprail`) written as a squashfs image behind the pinned type 2 runtime by the pinned appimagetool
 (`scripts/tool` installs both from checksummed releases). Neither FUSE nor a display is needed to build it. On another host
-`SHARPRAIL_APPDIR_ONLY=1 scripts/mise run package:linux [linux-arm64]` publishes the Linux client (the natives cross-compile with Zig) and stops at
+`SHARPRAIL_APPDIR_ONLY=1 scripts/mise run package:linux [linux-arm64]` publishes the Linux client (the natives cross-compile and the client cross-links with Zig) and stops at
 `artifacts/linux/AppDir`. `scripts/mise run check:packaged -- --linux` unpacks the image with the runtime's own
 `--appimage-extract` (the image for the host's architecture), stages the checks beside a copy of that payload and runs the Linux gate. See [LINUX.md](../LINUX.md).
 

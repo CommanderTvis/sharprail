@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
-# `scripts/mise run package:linux`: publishes the Linux client and checks (self-contained, ReadyToRun) and packs the client into
-# artifacts/SharpRail-linux-x64.AppImage (or, given `linux-arm64`, artifacts/SharpRail-linux-arm64.AppImage) with the pinned appimagetool and type 2 runtime. The native libraries cross-compile with Zig
-# during the build, so the managed publish also works on macOS; appimagetool runs on Linux only. Set SHARPRAIL_APPDIR_ONLY=1
+# `scripts/mise run package:linux`: publishes the Linux client (NativeAOT) and checks (self-contained, ReadyToRun) and packs the client into
+# artifacts/SharpRail-linux-x64.AppImage (or, given `linux-arm64`, artifacts/SharpRail-linux-arm64.AppImage) with the pinned appimagetool and type 2 runtime. The native libraries
+# cross-compile with Zig during the build and the client links with Zig against glibc 2.31 (scripts/aot-linux-cc.sh), so the publish also
+# works on macOS; appimagetool runs on Linux only. Set SHARPRAIL_APPDIR_ONLY=1
 # elsewhere to stop after assembling artifacts/linux/AppDir. With SHARPRAIL_GPG_KEY_ID set (a key in the GPG keyring), the image
 # carries an embedded signature that AppImageLauncher and appimaged verify.
 cd "$(dirname "$0")/../.."
@@ -30,14 +31,13 @@ rm -rf "$output" "$image"
 "$dotnet_cmd" build SharpRail.slnx -c Release
 # The About screen's version stamp, as the nightly names its builds: UTC date and short commit.
 stamp="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
-# One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime and Crossgen packs;
-# the publishes below reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
+# One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime, ILCompiler and Crossgen
+# packs; the publishes below reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
 "$dotnet_cmd" restore SharpRail.slnx -p:SelfContained=true -p:PublishReadyToRun=true
-"$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true --no-restore \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -p:SharpRailBuildStamp="$stamp" -o "$output/client"
-# The packaged gate combines checks with the client's shipped components, so the checks publish apart and non-composite.
+"$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --no-restore -p:SharpRailBuildStamp="$stamp" -o "$output/client"
+# The checks stay a JIT program (ReadyToRun); the packaged gate runs them beside the client's native libraries.
 "$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true --no-restore \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o "$output/checks"
+  -p:PublishReadyToRun=true -o "$output/checks"
 
 app="$output/AppDir"
 payload="$app/usr/lib/sharprail"

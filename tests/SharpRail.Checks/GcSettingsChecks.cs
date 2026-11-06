@@ -25,24 +25,28 @@ internal static class GcSettingsChecks
             var props = File.ReadAllText(Path.Combine(repo, "DesktopGc.props"));
             Require(props.Contains("System.GC.ConserveMemory", StringComparison.Ordinal) && !props.Contains("System.GC.Concurrent", StringComparison.Ordinal), "DesktopGc.props lost its settings.");
         }
-        var client = Environment.GetEnvironmentVariable("SHARPRAIL_PACKAGED_CLIENT");
-        if (client is { Length: > 0 }) VerifyRuntimeConfig(Path.Combine(client, "SharpRail.UI.runtimeconfig.json"));
-        if (Environment.GetEnvironmentVariable("SHARPRAIL_PACKAGED_HOST") is { Length: > 0 } host) VerifyRuntimeConfig(Path.Combine(host, "SharpRail.Host.Remote.runtimeconfig.json"));
+        if (!OperatingSystem.IsWindows())
+        {
+            if (Environment.GetEnvironmentVariable(PackagedBinaries.ClientVariable) is { Length: > 0 } client) VerifyCompiledIn(Path.Combine(client, "SharpRail.UI"));
+            if (Environment.GetEnvironmentVariable(PackagedBinaries.HostVariable) is { Length: > 0 } host) VerifyCompiledIn(Path.Combine(host, "SharpRail.Host.Remote"));
+        }
         IdleTrim();
         Console.WriteLine("PASS gc settings");
     }
 
-    /// <summary>Fails unless the packaged runtimeconfig.json carries the memory settings, so a nightly artifact cannot lose them.</summary>
-    internal static void VerifyRuntimeConfig(string path)
+    /// <summary>
+    /// Fails unless a packaged NativeAOT binary (ELF or Mach-O) carries the memory setting, so a nightly artifact cannot lose it.
+    /// NativeAOT compiles runtimeconfig options into the binary as NUL-terminated names; the GC's own table of setting names
+    /// holds the name once in every binary, so the compiled option is a second occurrence.
+    /// </summary>
+    internal static void VerifyCompiledIn(string binary)
     {
-        Require(File.Exists(path), "No runtimeconfig.json at " + path);
-        using var document = JsonDocument.Parse(File.ReadAllText(path));
-        var options = document.RootElement.GetProperty("runtimeOptions").GetProperty("configProperties");
-        Require(options.TryGetProperty("System.GC.ConserveMemory", out var conserve) && conserve.GetInt32() == 5, path + " lacks System.GC.ConserveMemory=5.");
-        Require(options.TryGetProperty("System.Runtime.TieredPGO", out var pgo) && pgo.ValueKind == JsonValueKind.False, path + " lacks System.Runtime.TieredPGO=false.");
-        Require(!options.TryGetProperty("System.GC.Server", out var server) || server.ValueKind == JsonValueKind.False, path + " turns Server GC on.");
-        Require(!options.TryGetProperty("System.GC.Concurrent", out var concurrent) || concurrent.ValueKind == JsonValueKind.True, path + " turns the concurrent GC off.");
-        Require(!options.EnumerateObject().Any(property => property.Name.StartsWith("System.GC.HeapHardLimit", StringComparison.Ordinal)), path + " sets a hard heap limit.");
+        Require(File.Exists(binary), "No binary at " + binary);
+        var bytes = File.ReadAllBytes(binary).AsSpan();
+        var name = "\0System.GC.ConserveMemory\0"u8;
+        var count = 0;
+        for (int index; (index = bytes.IndexOf(name)) >= 0; bytes = bytes[(index + 1)..]) count++;
+        Require(count >= 2, binary + " was not published with System.GC.ConserveMemory.");
     }
 
     private static void IdleTrim()

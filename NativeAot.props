@@ -1,0 +1,32 @@
+<Project>
+  <!--
+    The desktop app and the remote host (the projects that import this file) publish as NativeAOT in every package; nothing else
+    does (src/SharpRail.Plugins.Api/Security.SPEC.md, NativeAOT section). Packages carry neither the native symbol files nor the
+    PDB, XML and runtimeconfig.json files of referenced projects a publish would otherwise copy beside the binary.
+  -->
+  <PropertyGroup>
+    <PublishAot>true</PublishAot>
+    <PublishTrimmed>true</PublishTrimmed>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+  </PropertyGroup>
+  <!--
+    Linux links with Zig against glibc 2.31 (scripts/aot-linux-cc.sh), from any host. Zig's lld needs the linker script that keeps
+    the runtime's module section (LinkerFlavor lld); the binary is stripped at link, so no objcopy step runs.
+  -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'linux-arm64'">
+    <CppCompilerAndLinker>$(MSBuildThisFileDirectory)scripts/aot-linux-cc.sh</CppCompilerAndLinker>
+    <LinkerFlavor>lld</LinkerFlavor>
+    <StripSymbols>false</StripSymbols>
+    <CompressSymbols>false</CompressSymbols>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'linux-arm64'">
+    <ExtraLinkerArg Include="--strip-all" />
+  </ItemGroup>
+  <Target Name="SharpRailAotPublishNativeOnly" AfterTargets="ComputeResolvedFilesToPublishList" Condition="'$(PublishAot)' == 'true'">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb' or $([System.String]::Copy('%(Filename)%(Extension)').EndsWith('.runtimeconfig.json'))" />
+    </ItemGroup>
+  </Target>
+</Project>
