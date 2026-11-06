@@ -2713,6 +2713,7 @@ internal static class FileIconTable
         ["kdc"] = "image",
         ["key"] = "key",
         ["kl"] = "kl",
+        ["kotlin_builtins"] = "kotlin",
         ["kql"] = "kusto",
         ["kra"] = "image",
         ["ksh"] = "console",

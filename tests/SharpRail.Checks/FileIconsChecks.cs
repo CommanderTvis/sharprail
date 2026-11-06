@@ -94,6 +94,7 @@ internal static partial class FileIconsChecks
     {
         Require(FileTypeIcons.Name("src/Main.kt") == "kotlin" && FileTypeIcons.Name("data.JSON") == "json" && FileTypeIcons.Name("/abs/path/app.tsx") == "react_ts",
             "An extension names the icon, whatever case it arrives in.");
+        Require(FileTypeIcons.Name("kotlin.kotlin_builtins") == "kotlin" && FileTypeIcons.Name("x.kotlin_builtins") == "kotlin", "Kotlin builtins stubs lost the Kotlin icon.");
         Require(FileTypeIcons.Name("vitest.config.ts") == "vitest" && FileTypeIcons.Name("Dockerfile") == "docker" && FileTypeIcons.Name("package.json") == "nodejs",
             "A whole filename wins over its extension.");
         Require(FileTypeIcons.Name("types/api.d.ts") == "typescript-def" && FileTypeIcons.Name("types/api.ts") == "typescript", "A longer extension wins over a shorter one.");

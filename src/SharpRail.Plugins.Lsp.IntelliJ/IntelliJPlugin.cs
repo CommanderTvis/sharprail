@@ -27,7 +27,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         Version = IntelliJVersion,
         Executable = "intellij-server",
         Arguments = ["--stdio"],
-        Extensions = [".java", ".kt", ".kts"],
+        Extensions = [".java", ".kt", ".kts", ".kotlin_builtins"],
         Implementation = "IntelliJ Java and Kotlin · JetBrains · requires a JetBrains license",
         Source = "JetBrains · download.jetbrains.com",
         Website = "https://www.jetbrains.com/help/intellij-vscode/About-instance.html#features",

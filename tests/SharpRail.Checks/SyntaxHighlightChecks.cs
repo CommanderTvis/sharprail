@@ -91,6 +91,7 @@ internal static class SyntaxHighlightChecks
         Require(TextMateHighlighter.Detect("a.tsx") == "source.tsx", "TSX selected the TypeScript grammar.");
         Require(TextMateHighlighter.Detect("a.cpp") == "source.cpp", "C++ selected the C grammar.");
         Require(TextMateHighlighter.Detect("build.kts") == "source.kotlin" && TextMateHighlighter.Detect("build.sbt") == "source.scala", "Script extensions missing.");
+        Require(TextMateHighlighter.Detect("kotlin.kotlin_builtins") == "source.kotlin" && TextMateHighlighter.Detect("x.kotlin_builtins") == "source.kotlin" && TextMateHighlighter.Detect("a.kt") == "source.kotlin", "Kotlin builtins stubs lost the Kotlin grammar.");
         Require(highlighter.Highlight("words", "a.unknown", null, default).All(style => style == 0), "Unknown files should stay plain.");
         const string patch = "--- a/file\n+++ b/file\n@@ -1 +1 @@\n-old\n+new";
         var patchStyles = highlighter.Highlight(patch, "a.patch", null, default);

@@ -35,7 +35,7 @@ internal sealed class TextMateHighlighter
         var name = Path.GetFileName(path);
         if (CustomHighlighting.Detect(path, custom) is { } customScope) return customScope;
         var extension = Path.GetExtension(name).ToLowerInvariant();
-        if (extension is ".kt" or ".kts") return "source.kotlin";
+        if (extension is ".kt" or ".kts" or ".kotlin_builtins") return "source.kotlin";
         if (extension is ".scala" or ".sc" or ".sbt") return "source.scala";
         if (name is ".gitignore" or ".gitignore_global" or ".dockerignore" or ".containerignore" or ".ignore" or ".npmignore" or ".prettierignore" or ".eslintignore" or ".stylelintignore" or ".vscodeignore" or ".helmignore" or ".vercelignore" or ".gcloudignore" or ".rgignore" or ".fdignore") return "source.ignore";
         if (name == ".gitattributes") return "source.gitattributes";

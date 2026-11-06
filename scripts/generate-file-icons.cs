@@ -65,6 +65,7 @@ SortedDictionary<string, string> Lower(string property)
 // and the folder pair. Anything else renders the tinted set, so no name lacks an icon.
 var fileNames = Lower("fileNames");
 var fileExtensions = Lower("fileExtensions");
+fileExtensions["kotlin_builtins"] = "kotlin"; // the IntelliJ server opens the Kotlin standard library as kotlin.kotlin_builtins, a Kotlin-syntax stub
 var material = fileNames.Values.Concat(fileExtensions.Values).GroupBy(icon => icon)
     .OrderByDescending(group => group.Count()).ThenBy(group => group.Key, StringComparer.Ordinal)
     .Take(MaterialCommon).Select(group => group.Key)

@@ -355,6 +355,7 @@ plus pinned MIT Kotlin, Scala, TOML and Fish grammars. Common ignore files use t
 grammar; filename detection includes Dockerfile variants, Makefiles, Git configuration
 dotfiles, Gradle/Kotlin scripts, properties, shell scripts and shell startup dotfiles.
 `.slnx` solution files select the XML grammar.
+`.kotlin_builtins` files, the Kotlin standard library stubs a Kotlin-aware server opens, select the Kotlin grammar and icon.
 Git attributes have a dedicated grammar for paths, macros, attribute flags and assigned values.
 Standalone patches use the bundled diff grammar with distinct inserted/deleted colours. Unknown files
 stay plain. The tokenizer consumes source and returns UTF-8 style indices independently
