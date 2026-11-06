@@ -3,7 +3,7 @@ using SharpRail.Plugins.Isolation;
 namespace SharpRail.Plugins.Runner;
 
 /// <summary>
-/// The plugin runner: <c>SharpRail.PluginRunner probe echo|avalonia-private [--channel &lt;handle&gt;]</c>. The host starts it
+/// The plugin runner: <c>SharpRail.PluginRunner probe echo|avalonia-private|ui-context [--channel &lt;handle&gt;]</c>. The host starts it
 /// with its channel at descriptor 3 (Unix) or the handle <c>--channel</c> names (Windows); it exits when the channel ends.
 /// </summary>
 internal static class Program
@@ -23,8 +23,10 @@ internal static class Program
                 return await EchoProbe.RunAsync(channel);
             case ["probe", RunnerProbe.AvaloniaPrivateMode]:
                 return AvaloniaPrivateProbe.Run();
+            case ["probe", RunnerProbe.UIContextMode]:
+                return await UIContextProbe.RunAsync(channel);
             default:
-                await Console.Error.WriteLineAsync("Usage: SharpRail.PluginRunner probe echo|avalonia-private");
+                await Console.Error.WriteLineAsync("Usage: SharpRail.PluginRunner probe echo|avalonia-private|ui-context");
                 return 2;
         }
     }

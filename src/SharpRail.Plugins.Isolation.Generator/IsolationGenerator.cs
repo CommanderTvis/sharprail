@@ -37,11 +37,11 @@ public sealed class IsolationGenerator : IIncrementalGenerator
 
     private static void Execute(SourceProductionContext output, Compilation compilation, string mode, string space, ImmutableArray<AdditionalText> pendingFiles)
     {
-        var roots = mode switch
+        string[] roots = mode switch
         {
-            "runner" => new[] { HostContext, UIContext },
-            "trusted-host" => new[] { HostContext },
-            "trusted-ui" => new[] { UIContext },
+            "runner" => [HostContext, UIContext],
+            "trusted-host" => [HostContext],
+            "trusted-ui" => [UIContext],
             _ => [],
         };
         if (roots.Length == 0) return;

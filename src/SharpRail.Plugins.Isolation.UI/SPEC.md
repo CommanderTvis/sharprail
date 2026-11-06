@@ -17,7 +17,10 @@ in `SharpRail.Plugins.Isolation`:
 
 - `IsolationUiJsonContext`: the by-value UI API types that cross the channel, with their enum converters. The
   generator's SRI003 rule names a missing one.
-- `PluginUIContextMembers`, generated (`SharpRailIsolation` = `trusted-ui`): the UI context's member table and hash.
+- `PluginUIContextMembers` and `PluginUIContextDispatcher`, generated (`SharpRailIsolation` = `trusted-ui`): the UI
+  context's member table and hash, and the dispatcher that replays a UI-only plugin's calls onto a real
+  `IPluginUIContext`. It rebuilds registrations with delegates that call the plugin back through
+  `IIsolatedCallbacks`; a factory answers the surface `IIsolatedCallbacks.Surface` gives.
 
 ## Boundary
 

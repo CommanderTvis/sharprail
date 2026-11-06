@@ -6,7 +6,7 @@ namespace SharpRail.Plugins.Isolation;
 /// </summary>
 public static class RunnerProbe
 {
-    public const string EchoMode = "echo", AvaloniaPrivateMode = "avalonia-private";
+    public const string EchoMode = "echo", AvaloniaPrivateMode = "avalonia-private", UIContextMode = "ui-context";
     /// <summary>What <c>probe avalonia-private</c> prints when the stub platform registers and resolves.</summary>
     public const string AvaloniaPrivateResolved = "avalonia-private: a stub IWindowingPlatform registered and resolved";
     public const string StandardOutputLine = "probe: standard output", StandardErrorLine = "probe: standard error";
@@ -43,4 +43,9 @@ public static class RunnerProbe
     public static readonly int SpawnChild = IsoMember.Id("probe.spawn-child");
     /// <summary>Exits with the payload's code.</summary>
     public static readonly int Exit = IsoMember.Id("probe.exit");
+    /// <summary>
+    /// <c>probe ui-context</c>: acts as a UI-only plugin through the generated <c>IPluginUIContext</c> proxy on the context
+    /// handle the payload names, then answers what it saw (mirrored reads, pending members) separated by <c>|</c>.
+    /// </summary>
+    public static readonly int RunUIPlugin = IsoMember.Id("probe.run-ui-plugin");
 }

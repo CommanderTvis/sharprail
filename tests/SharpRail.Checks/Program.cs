@@ -121,7 +121,7 @@ internal static class Program
         }
         if (args.SequenceEqual(["--plugin-crossing"]))
         {
-            PluginCrossingChecks.Run();
+            PluginCrossingChecks.Run().GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--persisted-json"]) || args.SequenceEqual(["--persisted-json", "--update"]))
@@ -1381,7 +1381,7 @@ internal static class Program
         Gate.Case("websocket-flow", () => WebSocketFlowChecks.Run().GetAwaiter().GetResult());
         Gate.Case("rpc-codec", () => RpcCodecChecks.Run(update: false));
         Gate.Case("plugin-channel", () => PluginChannelChecks.Run().GetAwaiter().GetResult());
-        Gate.Case("plugin-crossing", PluginCrossingChecks.Run);
+        Gate.Case("plugin-crossing", () => PluginCrossingChecks.Run().GetAwaiter().GetResult());
         Gate.Case("persisted-json", () => PersistedJsonChecks.Run(root, update: false).GetAwaiter().GetResult());
         Gate.Case("browser-transport", () => BrowserTransportChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("context-consent", () => AirContextChecks.Run(root).GetAwaiter().GetResult());

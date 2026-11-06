@@ -20,9 +20,18 @@ reports each as a build error.
 
 A project opts in by importing `Isolation.Generator.props` and setting `SharpRailIsolation`:
 
-- `trusted-host` (`SharpRail.Plugins.Isolation`): the host context's member table.
-- `trusted-ui` (`SharpRail.Plugins.Isolation.UI`): the UI context's member table.
-- `runner` (`SharpRail.Plugins.Runner`): both tables.
+- `trusted-host` (`SharpRail.Plugins.Isolation`): the host context's member table and dispatcher.
+- `trusted-ui` (`SharpRail.Plugins.Isolation.UI`): the UI context's member table and dispatcher.
+- `runner` (`SharpRail.Plugins.Runner`): both tables; for each root context the proxy (`IsolatedPluginUIContext`),
+  the interface of what the runner implements itself (`IPluginUIContextLocal`), the invoker of lent callbacks
+  (`PluginUIContextCallbacks`), and a proxy for each interface a `LocalInRunner` member hands out
+  (`IsolatedPluginPreference`).
+
+Shapes it produces: calls (`Task` and `ValueTask`), one-ways, mirrored reads, `LocalInRunner` members, records split
+into data and callback handles, callbacks that are factories, asynchronous, `void` or synchronous by crossing class,
+and generic members (the trusted side closes them over `JsonObject` or `JsonElement`). Anything else that is not pending
+is SRI002, so the build fails before a wrong proxy exists: handles returned by a call, `Blocking`, a synchronous
+`IDisposable` result, by-name contracts, handles inside records.
 
 The tables go into the project's root namespace, so the runner's and the trusted side's never clash. Both are built
 from the same symbols and the same pending list, so their hashes agree unless one side is stale.
@@ -39,5 +48,5 @@ from the same symbols and the same pending list, so their hashes agree unless on
 ## Checks
 
 `--plugin-crossing` pins both tables' hashes, checks the ids are FNV-1a of the documentation-comment ids, and runs the
-generator on in-memory snippets: a clean one generates code that compiles, and each rule fails a snippet that breaks
-it.
+generator on in-memory snippets: a clean one generates code that compiles without warnings in every mode, and each
+rule fails a snippet that breaks it. It then runs the runner's `probe ui-context` against the generated dispatcher.

@@ -332,7 +332,15 @@ and the generator reads it:
   isolated plugins yet. A new member is never pending by default: it is generated, or listed on purpose. The list
   must be empty before external plugins run isolated in a shipping build.
 
-`SharpRail.Plugins.Isolation.Generator` turns this into one member table per root context: each member's id
+`SharpRail.Plugins.Isolation.Generator` turns this into code. In the plugin process: a proxy per root context that
+implements every member explicitly, default members included; an object for each interface a `LocalInRunner` member
+hands out; an interface listing the members the runner implements itself; and an invoker for the callbacks the
+plugin lent. On the trusted side: a dispatcher per root context that replays each call onto the real context, with
+delegates that call the plugin's callbacks back (a factory's result is the remote surface). A record the plugin passes
+crosses split: its data as JSON members, each callback as a handle. Calls carry the handle of the context they are
+on, one per activation and client, so one runner can serve several clients. Arguments travel as a JSON array in
+`PluginJson.Options`, with nulls written so a record's nullable constructor parameter arrives as `null`. It also
+writes one member table per root context: each member's id
 (FNV-1a 32 of its documentation-comment id), permission, crossing class and whether it is pending, and a hash of the
 whole table. The runner sends the hash of both tables in `Hello`, and the host refuses a runner whose hash differs
 from its own. The table reaches what the non-pending members reach: the interfaces a `LocalInRunner` member hands

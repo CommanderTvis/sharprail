@@ -19,7 +19,7 @@ namespace SharpRail.Checks;
 /// </summary>
 internal static class PluginChannelChecks
 {
-    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
+    internal static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
 
     private static void Require(bool value, string message)
     {
@@ -202,9 +202,9 @@ internal static class PluginChannelChecks
     }
 
     /// <summary>The checks' framework-dependent runner, started through its apphost on this process's runtime.</summary>
-    private sealed record RunnerLaunch(string Program, string DotnetRoot);
+    internal sealed record RunnerLaunch(string Program, string DotnetRoot);
 
-    private static RunnerLaunch? Runner()
+    internal static RunnerLaunch? Runner()
     {
         var shared = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
         var root = Path.GetFullPath(Path.Combine(shared, "..", "..", ".."));
@@ -214,7 +214,7 @@ internal static class PluginChannelChecks
         return new(program, root);
     }
 
-    private static ChildProcessStart Start(RunnerLaunch runner, string mode, ConcurrentQueue<string> log)
+    internal static ChildProcessStart Start(RunnerLaunch runner, string mode, ConcurrentQueue<string> log)
     {
         var home = CheckRoot.Create("plugin-runner");
         var temp = Path.Combine(home, "tmp");
@@ -347,7 +347,7 @@ internal static class PluginChannelChecks
     }
 
     /// <summary>The member tables the runner must have been generated with: the host context's, then the UI context's.</summary>
-    private const string TableHash = SharpRail.Plugins.Isolation.PluginHostContextMembers.Hash + "." + SharpRail.Plugins.Isolation.UI.PluginUIContextMembers.Hash;
+    internal const string TableHash = SharpRail.Plugins.Isolation.PluginHostContextMembers.Hash + "." + SharpRail.Plugins.Isolation.UI.PluginUIContextMembers.Hash;
 
     private static async Task Refusals(RunnerLaunch runner)
     {
