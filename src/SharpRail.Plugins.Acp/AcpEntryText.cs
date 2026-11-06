@@ -47,7 +47,11 @@ public static class AcpEntryText
 
     /// <summary>The line the user sees for an entry: the command and its arguments, quoting arguments that hold spaces.</summary>
     public static string CommandLine(AcpAgentEntry entry) =>
-        string.Join(' ', new[] { entry.Command }.Concat(entry.Args).Select(part => part.Contains(' ') ? "\"" + part + "\"" : part));
+        string.Join(' ', new[] { entry.LaunchCommand() }.Concat(entry.LaunchArgs()).Select(part => part.Contains(' ') ? "\"" + part + "\"" : part));
+
+    /// <summary>One argument per line; blank lines are dropped and a trailing carriage return is not part of the argument.</summary>
+    public static IReadOnlyList<string> ParseLines(string text) =>
+        [.. text.Split('\n').Select(line => line.TrimEnd('\r')).Where(line => line.Trim().Length > 0)];
 
     /// <summary>A stable id for a custom agent from its name.</summary>
     public static string IdFor(string name)

@@ -52,11 +52,15 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
     {
         var (root, _) = await Cache.LoadAsync(false, cancellationToken);
         var entry = await new AcpInstaller(Path.Combine(DataDirectory, "agents"), Download).InstallAsync(root, request, AcpRegistry.Platform(), cancellationToken);
+        // An update or reinstall keeps what the user set on the agent.
+        if (ListAgents().Agents.FirstOrDefault(existing => existing.Id == entry.Id) is { } before)
+            entry = entry with { Enabled = before.Enabled, CommandOverride = before.CommandOverride, UseDefaultArgs = before.UseDefaultArgs, ArgsOverride = before.ArgsOverride, Cwd = before.Cwd, Env = new Dictionary<string, string>(entry.Env).Concat(before.Env).GroupBy(pair => pair.Key).ToDictionary(group => group.Key, group => group.Last().Value) };
+        failures.TryRemove(entry.Id, out _);
         return AddAgent(entry);
     }
 
     private static async Task<IAcpTransport> Launch(AcpAgentEntry entry, string cwd) =>
-        await ProcessAcpTransport.StartAsync(new AcpLaunch(entry.Command, entry.Args, entry.Env, entry.Cwd.Length > 0 ? entry.Cwd : cwd));
+        await ProcessAcpTransport.StartAsync(new AcpLaunch(entry.LaunchCommand(), entry.LaunchArgs(), entry.Env, entry.Cwd.Length > 0 ? entry.Cwd : cwd));
 
     private static string RecordKey(string workspaceId, string chatId) => workspaceId + "\0" + chatId;
 
@@ -74,7 +78,22 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         }
     }
 
+    private readonly ConcurrentDictionary<string, string> failures = new();
+
     public AcpAgentList ListAgents() => new(context.ReadState<List<AcpAgentEntry>>(AgentsState, []));
+
+    /// <summary>The list with what is known to be wrong: a program that is not there, or a start that failed last time.</summary>
+    public AcpAgentList WithProblems(AcpAgentList list)
+    {
+        var problems = new Dictionary<string, string>();
+        foreach (var agent in list.Agents.Where(agent => agent.Enabled))
+        {
+            var program = agent.LaunchCommand();
+            if (Path.IsPathRooted(program) && !File.Exists(program)) problems[agent.Id] = "The program is missing: " + program;
+            else if (failures.TryGetValue(agent.Id, out var failure)) problems[agent.Id] = "The last start failed: " + failure;
+        }
+        return list with { Problems = problems };
+    }
 
     public AcpAgentList AddAgent(AcpAgentEntry entry)
     {
@@ -94,10 +113,25 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         lock (recordsGate)
         {
             var all = context.ReadState<List<AcpAgentEntry>>(AgentsState, []);
+            if (all.FirstOrDefault(existing => existing.Id == id) is { Origin: "registry" } installed) DeleteManaged(installed);
+            failures.TryRemove(id, out _);
             all.RemoveAll(existing => existing.Id == id);
             context.WriteState(AgentsState, all);
             return new(all);
         }
+    }
+
+    /// <summary>Removing a registry install also deletes its unpacked files, but only inside this plugin's agents directory.</summary>
+    private void DeleteManaged(AcpAgentEntry entry)
+    {
+        try
+        {
+            if (!AcpIconRules.IsSafeId(entry.Id)) return;
+            var root = Path.GetFullPath(Path.Combine(DataDirectory, "agents")) + Path.DirectorySeparatorChar;
+            var directory = Path.GetFullPath(Path.Combine(DataDirectory, "agents", entry.Id));
+            if (directory.StartsWith(root, StringComparison.Ordinal) && Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { context.Log.Warn("could not delete the files of " + entry.Id + ": " + error.Message); }
     }
 
     private AcpChatSession Session(string workspaceId, string chatId) =>
@@ -114,13 +148,13 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
 
     public void Register()
     {
-        context.Method(AcpContract.Agents, (_, _, _) => ValueTask.FromResult(ListAgents()));
-        context.Method(AcpContract.AddAgent, (p, _, _) => ValueTask.FromResult(AddAgent(p)));
+        context.Method(AcpContract.Agents, (_, _, _) => ValueTask.FromResult(WithProblems(ListAgents())));
+        context.Method(AcpContract.AddAgent, (p, _, _) => ValueTask.FromResult(WithProblems(AddAgent(p))));
         context.Method(AcpContract.Registry, async (p, _, ct) => (await Cache.LoadAsync(p.Refresh, ct)).View);
         context.Method(AcpContract.Icons, async (p, _, ct) => await IconsAsync(p, ct));
         context.Method(AcpContract.InstallPlan, async (p, _, ct) => await PlanAsync(p, ct));
-        context.Method(AcpContract.Install, async (p, _, ct) => await InstallAsync(p, ct));
-        context.Method(AcpContract.RemoveAgent, (p, _, _) => ValueTask.FromResult(RemoveAgent(p.AgentId)));
+        context.Method(AcpContract.Install, async (p, _, ct) => WithProblems(await InstallAsync(p, ct)));
+        context.Method(AcpContract.RemoveAgent, (p, _, _) => ValueTask.FromResult(WithProblems(RemoveAgent(p.AgentId))));
         context.Method(AcpContract.Choose, (p, _, _) =>
         {
             SaveRecord(p.WorkspaceId, p.ChatId, record => record with { AgentId = p.AgentId });
@@ -186,6 +220,8 @@ internal sealed class AcpChatHost(IPluginHostContext context, Func<AcpAgentEntry
         _ = Task.Run(async () =>
         {
             await session.StartAsync(p.ResumeSessionId ?? record?.SessionId);
+            if (session.Header.Status == ChatStatus.Failed) failures[entry.Id] = session.Header.Error ?? "the agent did not start";
+            else failures.TryRemove(entry.Id, out _);
             if (session.SessionId is { } id) SaveRecord(p.WorkspaceId, p.ChatId, current => current with { SessionId = id });
         });
         return header;

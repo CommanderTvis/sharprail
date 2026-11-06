@@ -47,4 +47,25 @@ internal static class AcpInstallConfirm
         await dialog.ShowDialog(owner);
         return confirmed;
     }
+
+    /// <summary>Asks before an agent is removed. A registry install's unpacked files go with it.</summary>
+    public static async Task<bool> ShowRemoveAsync(Window owner, AcpAgentEntry entry)
+    {
+        var dialog = DialogWindow.Create($"Remove {entry.Name}?", 520);
+        dialog.Tag = "AcpRemoveDialog";
+        dialog.FindControl<TextBlock>("DialogExplanation")!.Text = entry.Origin == "registry"
+            ? "The agent's files are deleted from this computer. Chats that used it keep their history but cannot start it again until you install it again."
+            : "The agent is taken out of the list. The program itself is not deleted.";
+        var confirmed = false;
+        var actions = dialog.FindControl<StackPanel>("DialogActions")!;
+        var cancel = Ui.Button("Cancel", () => dialog.Close());
+        cancel.Name = "AcpRemoveCancel";
+        actions.Children.Add(cancel);
+        var remove = new Button { Name = "AcpRemoveConfirm", Content = Ui.Text("Remove", Ui.TextBrush), Padding = new Thickness(10, 5), Background = Ui.Elevated, BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(4) };
+        remove.Click += (_, _) => { confirmed = true; dialog.Close(); };
+        actions.Children.Add(remove);
+        dialog.Opened += (_, _) => cancel.Focus();
+        await dialog.ShowDialog(owner);
+        return confirmed;
+    }
 }

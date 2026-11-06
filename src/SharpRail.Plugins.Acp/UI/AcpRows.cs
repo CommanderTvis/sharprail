@@ -26,4 +26,48 @@ internal static class AcpRows
                 return new AcpRegistryRowModel(agent, !agent.Installable ? "unavailable" : have is null ? "available" : have.Version == agent.Version ? "installed" : "update");
             })];
     }
+
+    /// <summary>Every configured agent, registry installs and custom ones together, by name. <paramref name="view"/> (when loaded) supplies the Not recommended and Update available tags.</summary>
+    public static IReadOnlyList<AcpAgentRowModel> Agents(IReadOnlyList<AcpAgentEntry> entries, AcpRegistryView? view, IReadOnlyDictionary<string, string> problems, string defaultId) =>
+        [.. entries.OrderBy(entry => entry.Name, StringComparer.OrdinalIgnoreCase).Select(entry =>
+        {
+            var registry = RegistryAgent(entry, view);
+            var tags = new List<string> { entry.Origin == "registry" ? "Registry" : "Custom" };
+            if (registry?.NotRecommended is not null) tags.Add("Not recommended");
+            if (registry is not null && registry.Version != entry.Version) tags.Add("Update available");
+            if (!entry.Enabled) tags.Add("Off");
+            if (defaultId.Length > 0 && entry.Id == defaultId) tags.Add("Default");
+            return new AcpAgentRowModel(entry, tags, problems.GetValueOrDefault(entry.Id));
+        })];
+
+    /// <summary>The registry's own entry for an installed registry agent, when the registry list is loaded.</summary>
+    public static AcpRegistryAgent? RegistryAgent(AcpAgentEntry entry, AcpRegistryView? view) =>
+        entry.Origin == "registry" ? view?.Agents.FirstOrDefault(agent => agent.Id == entry.Id) : null;
+}
+
+/// <summary>One row of the left list: an agent, its small tags and a problem when something is wrong (a status dot).</summary>
+internal sealed record AcpAgentRowModel(AcpAgentEntry Entry, IReadOnlyList<string> Tags, string? Problem)
+{
+    public string Subtitle => string.Join(" · ", Tags);
+    public bool HasDot => Problem is not null;
+}
+
+/// <summary>What the detail pane shows for one agent, read-only parts first.</summary>
+internal sealed record AcpAgentDetail(AcpAgentEntry Entry, AcpRegistryAgent? Registry, string? Problem)
+{
+    public bool IsRegistry => Entry.Origin == "registry";
+    public string Description => Entry.Description ?? Registry?.Description ?? "";
+    public string? Website => Entry.Website ?? Registry?.Website;
+    public string? Repository => Entry.Repository ?? Registry?.Repository;
+    public string? License => Entry.License ?? Registry?.License;
+    public string Version => IsRegistry ? "Version " + (Entry.Version ?? "unknown") : "Custom agent: you provide the program";
+    public string SourceLine => IsRegistry ? "From the ACP registry: " + Entry.Id + (Entry.Source is { } source ? "\nSource: " + source : "") : "Added by you";
+    /// <summary>The newer version the registry offers, when there is one.</summary>
+    public string? UpdateTo => Registry is { } registry && registry.Version != Entry.Version ? registry.Version : null;
+    public bool CanUpdate => IsRegistry && UpdateTo is not null && Registry!.Installable;
+    public bool CanReinstall => IsRegistry && UpdateTo is null && Registry is { Installable: true };
+    public string InstallStatus => !IsRegistry ? "Custom" : Problem is { } problem ? problem : UpdateTo is { } newer ? $"Installed {Entry.Version}. Version {newer} is available." : "Installed";
+    /// <summary>Where the program is: the managed file, or the runner (npx, uvx) that fetches the pinned package.</summary>
+    public string Location => Path.IsPathRooted(Entry.LaunchCommand()) ? Entry.LaunchCommand() : Entry.LaunchCommand() + " runs the package named above";
+    public string CommandLine => AcpEntryText.CommandLine(Entry);
 }

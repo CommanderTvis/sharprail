@@ -20,11 +20,34 @@ public sealed record AcpAgentEntry(string Id, string Name, string Command)
     public string Origin { get; init; } = "custom";
     public string? Version { get; init; }
     public string? Description { get; init; }
+    /// <summary>Whether the agent is offered by the launcher. A turned-off agent stays configured.</summary>
+    public bool Enabled { get; init; } = true;
+    /// <summary>The program to run instead of <see cref="Command"/> (a registry install keeps its own); blank uses <see cref="Command"/>.</summary>
+    public string CommandOverride { get; init; } = "";
+    /// <summary>For a registry agent: true runs the registry's <see cref="Args"/>, false runs <see cref="ArgsOverride"/>. A custom agent's own <see cref="Args"/> are always used.</summary>
+    public bool UseDefaultArgs { get; init; } = true;
+    public IReadOnlyList<string> ArgsOverride { get; init; } = [];
+    /// <summary>What the registry said about the agent when it was installed.</summary>
+    public string? Website { get; init; }
+    public string? Repository { get; init; }
+    public string? License { get; init; }
+    /// <summary>Where the code comes from: the package spec or the archive url.</summary>
+    public string? Source { get; init; }
+
+    /// <summary>The program that starts: the override when there is one.</summary>
+    public string LaunchCommand() => CommandOverride.Length > 0 ? CommandOverride : Command;
+
+    /// <summary>The arguments that start it: a registry agent's override unless it uses the defaults.</summary>
+    public IReadOnlyList<string> LaunchArgs() => Origin == "registry" && !UseDefaultArgs ? ArgsOverride : Args;
 }
 
 public sealed record AcpNoParams;
 
-public sealed record AcpAgentList(IReadOnlyList<AcpAgentEntry> Agents);
+public sealed record AcpAgentList(IReadOnlyList<AcpAgentEntry> Agents)
+{
+    /// <summary>What is wrong with an agent, by id: its program is missing, or its last start failed. Absent when nothing is known to be wrong.</summary>
+    public IReadOnlyDictionary<string, string> Problems { get; init; } = new Dictionary<string, string>();
+}
 
 /// <summary>Chooses which agent a chat talks to; sent before the chat is opened.</summary>
 public sealed record AcpChooseParams(string WorkspaceId, string ChatId, string AgentId);

@@ -36,7 +36,7 @@ internal sealed class AcpInstaller(string root, Func<string, CancellationToken, 
             var package = (JsonObject)node;
             var spec = AcpFolder.Str(package, "package");
             var args = plan.Kind == "npx" ? new[] { "-y", spec }.Concat(AcpRegistry.Arguments(package)) : new[] { spec }.Concat(AcpRegistry.Arguments(package));
-            return new AcpAgentEntry(plan.AgentId, plan.Name, plan.Kind) { Args = [.. args], Env = AcpRegistry.Environment(package), Origin = "registry", Version = plan.Version, Description = AcpFolder.Str(agent, "description") };
+            return new AcpAgentEntry(plan.AgentId, plan.Name, plan.Kind) { Args = [.. args], Env = AcpRegistry.Environment(package), Origin = "registry", Version = plan.Version, Description = AcpFolder.Str(agent, "description"), Website = Optional(agent, "website"), Repository = plan.Repository, License = plan.License, Source = plan.Source };
         }
         var target = (JsonObject)node[platform]!;
         var archive = AcpFolder.Str(target, "archive");
@@ -63,8 +63,10 @@ internal sealed class AcpInstaller(string root, Func<string, CancellationToken, 
         if (!program.StartsWith(Path.GetFullPath(directory) + Path.DirectorySeparatorChar, StringComparison.Ordinal) || !File.Exists(program))
             throw new InvalidOperationException("The archive does not contain the agent's command.");
         if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(program, File.GetUnixFileMode(program) | UnixFileMode.UserExecute);
-        return new AcpAgentEntry(plan.AgentId, plan.Name, program) { Args = AcpRegistry.Arguments(target), Env = AcpRegistry.Environment(target), Origin = "registry", Version = plan.Version, Description = AcpFolder.Str(agent, "description") };
+        return new AcpAgentEntry(plan.AgentId, plan.Name, program) { Args = AcpRegistry.Arguments(target), Env = AcpRegistry.Environment(target), Origin = "registry", Version = plan.Version, Description = AcpFolder.Str(agent, "description"), Website = Optional(agent, "website"), Repository = plan.Repository, License = plan.License, Source = plan.Source };
     }
+
+    private static string? Optional(JsonObject node, string name) => AcpFolder.Str(node, name) is { Length: > 0 } text ? text : null;
 
     // The platform's own tar handles .zip, .tar.gz and .tar.bz2 alike (bsdtar on macOS and Windows 10+, GNU tar on Linux).
     private static async Task ExtractAsync(string file, string directory, CancellationToken cancellationToken)

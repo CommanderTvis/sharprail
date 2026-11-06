@@ -97,7 +97,7 @@ public sealed class AcpUI : PluginUIModule
                 return;
             }
             var menu = new ContextMenu { Name = "AcpAgentMenu", Placement = PlacementMode.BottomEdgeAlignedLeft, PlacementTarget = anchor };
-            foreach (var agent in list.Agents)
+            foreach (var agent in AcpLauncher.Enabled(list.Agents))
             {
                 var item = new MenuItem { Header = agent.Name, Icon = AcpGlyph.For(icons.GetValueOrDefault(agent.Id), 14) };
                 item.Click += (_, _) => _ = StartAsync(context, workspace, agent);

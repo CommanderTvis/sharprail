@@ -369,6 +369,39 @@ internal static class AcpChecks
         Require(SharpRail.Plugins.Acp.UI.AcpRows.Registry(plan9, none, "goose").Single() is { Status: "unavailable", CanInstall: false }, "An agent with no distribution for this machine cannot be installed.");
     }
 
+    // Settings > ACP is a list of every agent (registry installs and custom ones together) with a pane for the selected one.
+    internal static void AgentList()
+    {
+        var view = AcpRegistry.View(AcpRegistry.Parse(FixtureText())!, "network", null, null, "darwin-aarch64");
+        var entries = new List<AcpAgentEntry>
+        {
+            new("pi-acp", "Pi", "npx") { Origin = "registry", Version = "0.0.1", Args = ["-y", "pi-acp@0.0.1"], Description = "pi" },
+            new("goose", "goose", "/x/goose") { Origin = "registry", Version = "1.57.0", Source = "https://example.invalid/goose.tar.bz2", License = "Apache-2.0", Website = "https://goose.example/" },
+            new("custom-zed", "Zed", "/bin/zed") { Enabled = false },
+            new("codex-acp", "Codex", "/x/codex") { Origin = "registry", Version = "2.5.0" }
+        };
+        var problems = new Dictionary<string, string> { ["goose"] = "The program is missing: /x/goose" };
+        var rows = SharpRail.Plugins.Acp.UI.AcpRows.Agents(entries, view, problems, "goose");
+        Require(rows.Select(row => row.Entry.Id).SequenceEqual(new[] { "codex-acp", "goose", "pi-acp", "custom-zed" }), "Registry installs and custom agents are listed together by name.");
+        Require(rows.Single(row => row.Entry.Id == "pi-acp").Tags.SequenceEqual(["Registry", "Not recommended", "Update available"]), "A registry install shows Registry, Not recommended and Update available.");
+        Require(rows.Single(row => row.Entry.Id == "custom-zed").Tags.SequenceEqual(["Custom", "Off"]) && rows.Single(row => row.Entry.Id == "goose").Tags.SequenceEqual(["Registry", "Default"]) && rows.Single(row => row.Entry.Id == "codex-acp").Tags.SequenceEqual(["Registry"]), "Custom agents say Custom, a turned-off agent says Off, the default says Default, a current install has no extra tag.");
+        Require(rows.Where(row => row.HasDot).Select(row => row.Entry.Id).SequenceEqual(["goose"]) && rows.Single(row => row.HasDot).Problem!.Contains("missing", StringComparison.Ordinal), "Only an agent with a problem gets a status dot, and the problem is its tooltip.");
+        Require(SharpRail.Plugins.Acp.UI.AcpRows.Agents(entries, null, problems, "").Single(row => row.Entry.Id == "pi-acp").Tags.SequenceEqual(["Registry"]), "Without the registry list there is no Not recommended or Update available tag.");
+
+        var detail = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[1], SharpRail.Plugins.Acp.UI.AcpRows.RegistryAgent(entries[1], view), problems["goose"]);
+        Require(detail is { IsRegistry: true, License: "Apache-2.0", Website: "https://goose.example/", CanReinstall: true, CanUpdate: false, UpdateTo: null } && detail.Version == "Version 1.57.0" && detail.SourceLine.Contains("example.invalid", StringComparison.Ordinal) && detail.InstallStatus.Contains("missing", StringComparison.Ordinal) && detail.Location == "/x/goose", "The detail of a registry agent shows its version, source, links, license, status and where the program is.");
+        var pi = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[0], SharpRail.Plugins.Acp.UI.AcpRows.RegistryAgent(entries[0], view), null);
+        Require(pi is { CanUpdate: true, CanReinstall: false, UpdateTo: "0.0.34" } && pi.InstallStatus.Contains("0.0.34", StringComparison.Ordinal) && pi.Location.StartsWith("npx ", StringComparison.Ordinal), "An older install offers an update, and an npx agent says what runs it.");
+        var custom = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(entries[2], null, null);
+        Require(custom is { IsRegistry: false, CanUpdate: false, CanReinstall: false, InstallStatus: "Custom" } && custom.SourceLine == "Added by you" && custom.CommandLine == "/bin/zed", "A custom agent has no update or reinstall.");
+
+        var overridden = entries[1] with { CommandOverride = "/other/goose", UseDefaultArgs = false, ArgsOverride = ["acp", "--fast"], Args = ["acp"] };
+        Require(overridden.LaunchCommand() == "/other/goose" && overridden.LaunchArgs().SequenceEqual(["acp", "--fast"]) && entries[1].LaunchCommand() == "/x/goose" && entries[1].LaunchArgs().Count == 0, "An executable override and own arguments replace the registry's; without them the registry's are used.");
+        Require((entries[2] with { UseDefaultArgs = false, ArgsOverride = ["x"], Args = ["own"] }).LaunchArgs().SequenceEqual(["own"]), "A custom agent's own arguments are always used.");
+        Require(AcpEntryText.ParseLines("a\r\n\n b c \n").SequenceEqual(["a", " b c "]), "Arguments are one per line, blank lines dropped.");
+        Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("custom-zed", [entries[2], entries[3]]) is { Kind: "start", Agent.Id: "codex-acp" } && SharpRail.Plugins.Acp.UI.AcpLauncher.MenuEntries("", entries).All(entry => entry.Agent.Enabled), "A turned-off agent is not started from the button, even as the default.");
+    }
+
     private const string GoodIcon = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><defs><linearGradient id="g"><stop offset="0" stop-color="#fff"/></linearGradient></defs><path fill="currentColor" d="M0 0h16v16H0z"/><circle r="3" fill="url(#g)" stroke="#123456"/></svg>""";
 
     // Registry icons: untrusted remote SVGs. Only the registry's own https origin is fetched, small plain documents are kept, anything active or external is refused, and a copy on disk is shown offline.
@@ -474,6 +507,7 @@ internal static class AcpChecks
     {
         Manifest();
         Rows();
+        AgentList();
         Confirmation();
         Launcher();
         EntryText();

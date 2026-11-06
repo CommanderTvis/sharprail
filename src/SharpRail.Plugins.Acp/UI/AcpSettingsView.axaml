@@ -24,36 +24,8 @@
         <TextBlock Text="Early support" FontSize="11" Foreground="{x:Static kit:Ui.Warning}" />
       </Border>
     </StackPanel>
-    <TextBlock Classes="detail" Text="Chat with any ACP agent in SharpRail's chat view. The agent is a program that runs on this machine, in the workspace folder, and is not sandboxed: only install agents you trust. Sign-in happens in the agent's own tool; SharpRail never asks for credentials." />
+    <TextBlock Classes="detail" Text="Chat with any ACP agent in SharpRail's chat view. The agent is a program that runs on this machine, in the workspace folder, and is not sandboxed: only use agents you trust. Sign-in happens in the agent's own tool; SharpRail never asks for credentials." />
   </StackPanel>
-  <StackPanel Spacing="4">
-    <TextBlock Classes="heading" Text="Default agent" />
-    <TextBlock Classes="detail" Text="A click on the New ACP chat button starts this agent at once. Right-click the button to start another. With none chosen, the button asks." />
-    <ComboBox x:Name="AcpDefaultAgent" MinWidth="260" HorizontalAlignment="Left" FontSize="12" AutomationProperties.Name="default agent" />
-    <TextBlock x:Name="AcpDefaultNote" Classes="detail" IsVisible="False" />
-  </StackPanel>
-  <StackPanel Spacing="8">
-    <TextBlock Classes="heading" Text="Your agents" />
-    <TextBlock Classes="detail" Text="The agents the New ACP chat button can start." />
-    <StackPanel x:Name="AcpAgents" Spacing="0" />
-  </StackPanel>
-  <StackPanel Spacing="6">
-    <TextBlock Classes="heading" Text="Add a custom agent" />
-    <TextBox x:Name="AcpName" PlaceholderText="Name" FontSize="12" AutomationProperties.Name="agent name" />
-    <TextBox x:Name="AcpCommand" PlaceholderText="Command, such as /usr/local/bin/my-agent" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="agent command" />
-    <TextBox x:Name="AcpArguments" PlaceholderText="Arguments, separated by spaces" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="agent arguments" />
-    <TextBox x:Name="AcpEnvironment" PlaceholderText="Environment, one NAME=value per line" AcceptsReturn="True" MinHeight="60" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="agent environment" />
-    <TextBox x:Name="AcpDirectory" PlaceholderText="Working directory (blank: the workspace)" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" AutomationProperties.Name="agent directory" />
-    <Button x:Name="AcpAdd" Content="Add agent" HorizontalAlignment="Left" AutomationProperties.Name="add agent" />
-  </StackPanel>
-  <StackPanel Spacing="8">
-    <TextBlock Classes="heading" Text="ACP registry" />
-    <TextBlock Classes="detail" Text="Agents that speak the Agent Client Protocol, from the public registry." />
-    <StackPanel Orientation="Horizontal" Spacing="8">
-      <TextBox x:Name="AcpSearch" PlaceholderText="Search the registry" Width="260" FontSize="12" AutomationProperties.Name="search registry" />
-      <Button x:Name="AcpRefresh" Content="Refresh" AutomationProperties.Name="refresh registry" />
-    </StackPanel>
-    <TextBlock x:Name="AcpRegistryStatus" Classes="detail" />
-    <StackPanel x:Name="AcpRegistryList" Spacing="0" />
-  </StackPanel>
+  <TextBlock x:Name="AcpDefaultNote" Classes="detail" IsVisible="False" />
+  <Border x:Name="AcpMasterHost" />
 </StackPanel>
