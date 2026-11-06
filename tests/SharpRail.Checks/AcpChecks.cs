@@ -402,6 +402,20 @@ internal static class AcpChecks
         Require(SharpRail.Plugins.Acp.UI.AcpLauncher.Resolve("custom-zed", [entries[2], entries[3]]) is { Kind: "start", Agent.Id: "codex-acp" } && SharpRail.Plugins.Acp.UI.AcpLauncher.MenuEntries("", entries).All(entry => entry.Agent.Enabled), "A turned-off agent is not started from the button, even as the default.");
     }
 
+    // The Add custom agent popup validates its form before anything is saved.
+    internal static void CustomForm()
+    {
+        var existing = new List<AcpAgentEntry> { new("custom-mine", "Mine", "/bin/mine") };
+        var ok = SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate(" My Agent ", " /usr/bin/agent ", "--flag \"two words\"", "A=1\nB=x=y", "/work", existing);
+        Require(ok.Entry is { Id: "custom-my-agent", Name: "My Agent", Command: "/usr/bin/agent", Cwd: "/work", Origin: "custom", Enabled: true } entry && entry.Args.SequenceEqual(["--flag", "two words"]) && entry.Env.Count == 2 && ok.Errors.Count == 0, "A valid form becomes a custom entry with the same fields as before.");
+        var none = SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("", "  ", null, null, null, existing);
+        Require(none.Entry is null && none.Errors.Count == 2, "A name and a command are needed.");
+        Require(SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("mine", "x", "", "", "", existing).Errors.Single().Contains("already", StringComparison.Ordinal) && SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("MINE!", "x", "", "", "", existing).Errors.Count == 1, "A name already in the list is refused, so adding never replaces another agent.");
+        var bad = SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("n", "x", "", "A=1\nnot a pair\n=x", "relative/dir", existing);
+        Require(bad.Entry is null && bad.Errors.Count == 3 && bad.Errors[0].Contains("line 2", StringComparison.Ordinal) && bad.Errors[1].Contains("line 3", StringComparison.Ordinal), "Environment lines that are not NAME=value and a relative working directory are refused, each with its reason.");
+        Require(SharpRail.Plugins.Acp.UI.AcpCustomForm.Validate("n", "x\ny", "", "", "", existing).Errors.Count == 1, "The command is one line.");
+    }
+
     private const string GoodIcon = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><defs><linearGradient id="g"><stop offset="0" stop-color="#fff"/></linearGradient></defs><path fill="currentColor" d="M0 0h16v16H0z"/><circle r="3" fill="url(#g)" stroke="#123456"/></svg>""";
 
     // Registry icons: untrusted remote SVGs. Only the registry's own https origin is fetched, small plain documents are kept, anything active or external is refused, and a copy on disk is shown offline.
@@ -508,6 +522,7 @@ internal static class AcpChecks
         Manifest();
         Rows();
         AgentList();
+        CustomForm();
         Confirmation();
         Launcher();
         EntryText();

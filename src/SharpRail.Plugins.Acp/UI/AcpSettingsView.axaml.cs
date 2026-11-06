@@ -31,6 +31,9 @@ internal sealed partial class AcpSettingsView : StackPanel
     private IReadOnlyDictionary<string, string> problems = new Dictionary<string, string>();
     private IReadOnlyDictionary<string, string> icons = new Dictionary<string, string>();
     private IDisposable? settingsWatch;
+    // The agent to select when the next list arrives (one that was just added).
+    private string? selectNext;
+    private string? shownId;
 
     internal AcpSettingsView(IPluginUIContext context)
     {
@@ -107,19 +110,21 @@ internal sealed partial class AcpSettingsView : StackPanel
 
     private void RenderAll(bool rebuildDetail)
     {
-        var current = master.SelectedId;
+        var current = selectNext ?? master.SelectedId;
+        selectNext = null;
         var defaultId = context.Settings<AcpSettings>().DefaultAgent;
         var rows = new List<Control> { MasterDetail.Row(BrowseId, Ui.Icon("box", Ui.TextBrush), "Browse registry", "Find and install agents", null) };
         rows.AddRange(AcpRows.Agents(configured, registry, problems, defaultId).Select(row => MasterDetail.Row(row.Entry.Id, AcpIconFor(row.Entry.Id), row.Entry.Name, row.Subtitle, row.Problem)));
         master.SetRows(rows, current);
         defaultNote.IsVisible = AcpLauncher.DefaultIsMissing(defaultId, configured);
         defaultNote.Text = defaultNote.IsVisible ? "The agent chosen as default is no longer in the list. The New ACP chat button asks until you choose another." : "";
-        if (rebuildDetail || master.SelectedId != current) ShowDetail(master.SelectedId);
+        if (rebuildDetail || master.SelectedId != shownId) ShowDetail(master.SelectedId);
         RenderRegistry();
     }
 
     private void ShowDetail(string? id)
     {
+        shownId = id;
         if (id is null) { master.Detail.Content = null; return; }
         if (id == BrowseId) { master.Detail.Content = browser; return; }
         master.Detail.Content = configured.FirstOrDefault(agent => agent.Id == id) is { } entry ? BuildDetail(entry) : null;
@@ -236,7 +241,14 @@ internal sealed partial class AcpSettingsView : StackPanel
     private void Install(string agentId) =>
         _ = RunAsync(() => context.RequestAsync(AcpContract.InstallPlan, new AcpInstallPlanParams(agentId)).AsTask(), ShowPlan, "Couldn't prepare the install");
 
-    private void AddCustom() => context.Notify(PluginNotificationKind.Info, "Add custom agent", "Not available yet.");
+    /// <summary>The Add custom agent popup, in the overlay. The new agent is selected in the list once the host has saved it.</summary>
+    private async void AddCustom()
+    {
+        if (TopLevel.GetTopLevel(this) is not Window owner) return;
+        if (await AcpCustomForm.ShowAsync(owner, configured) is not { } entry) return;
+        selectNext = entry.Id;
+        await RunAsync(() => context.RequestAsync(AcpContract.AddAgent, entry).AsTask(), list => Apply(list, true), "Couldn't add the agent");
+    }
 
     private Control BuildBrowser()
     {
