@@ -40,7 +40,7 @@ public sealed record AcpInstallPlan(string AgentId, string Name, string Version,
     public const string TrustNote = "Agents from the ACP registry are third-party programs. They run on this machine with your user's access. Even registry binaries need to be trusted. Checking a checksum shows the file is the one the registry lists. It does not show that the agent is safe.";
 
     /// <summary>What can be checked about this install and what was found, in plain words: a verified SHA-256, no checksum, a pinned version or an unpinned one.</summary>
-    public string Verification { get; init; } = "";
+    public string Verification { get; set; } = "";
 
     /// <summary>Where the code comes from: the package name or the archive URL.</summary>
     public string Source { get; set; } = "";

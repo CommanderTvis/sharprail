@@ -23,12 +23,12 @@ public sealed record AcpAgentEntry(string Id, string Name, string Command)
     public string? Version { get; init; }
     public string? Description { get; init; }
     /// <summary>Whether the agent is offered by the launcher. A turned-off agent stays configured.</summary>
-    public bool Enabled { get; init; } = true;
+    public bool Enabled { get; set; } = true;
     /// <summary>The program to run instead of <see cref="Command"/> (a registry install keeps its own); blank uses <see cref="Command"/>.</summary>
-    public string CommandOverride { get; init; } = "";
+    public string CommandOverride { get; set; } = "";
     /// <summary>For a registry agent: true runs the registry's <see cref="Args"/>, false runs <see cref="ArgsOverride"/>. A custom agent's own <see cref="Args"/> are always used.</summary>
-    public bool UseDefaultArgs { get; init; } = true;
-    public IReadOnlyList<string> ArgsOverride { get; init; } = [];
+    public bool UseDefaultArgs { get; set; } = true;
+    public IReadOnlyList<string> ArgsOverride { get; set; } = [];
     /// <summary>What the registry said about the agent when it was installed.</summary>
     public string? Website { get; init; }
     public string? Repository { get; init; }
@@ -50,7 +50,7 @@ public sealed record AcpNoParams;
 public sealed record AcpAgentList(IReadOnlyList<AcpAgentEntry> Agents)
 {
     /// <summary>What is wrong with an agent, by id: its program is missing, or its last start failed. Absent when nothing is known to be wrong.</summary>
-    public IReadOnlyDictionary<string, string> Problems { get; init; } = new Dictionary<string, string>();
+    public IReadOnlyDictionary<string, string> Problems { get; set; } = new Dictionary<string, string>();
 }
 
 /// <summary>Chooses which agent a chat talks to; sent before the chat is opened.</summary>
