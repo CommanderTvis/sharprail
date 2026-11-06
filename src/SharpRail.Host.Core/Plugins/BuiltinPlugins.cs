@@ -121,6 +121,15 @@ public static class BuiltinPlugins
         _ => throw new ArgumentOutOfRangeException(nameof(plugin))
     };
 
+    /// <summary>The plugins a host with no window, terminal or agent runs: the spec graph, Blueprint and the language servers.
+    /// Spec graph and Blueprint are off by default on a desktop; here they are on, unless the host's stored settings say otherwise.</summary>
+    public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Headless =>
+    [
+        (SpecDialectManifest.Manifest with { EnabledByDefault = true }, new SpecDialectHost()),
+        (BlueprintContract.Manifest with { EnabledByDefault = true }, new BlueprintHost()),
+        .. LanguageServerEntries
+    ];
+
     public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Create(TailscaleServing? tailscale) =>
     [
         (SpecDialectManifest.Manifest, new SpecDialectHost()),

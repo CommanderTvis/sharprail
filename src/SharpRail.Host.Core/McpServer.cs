@@ -14,7 +14,8 @@ public static class McpServer
     /// <summary>A host or active plugin tool on the table; it validates its own arguments.</summary>
     public sealed record McpTool(string Name, string Title, string Description, JsonObject InputSchema, Func<JsonObject, CancellationToken, Task<(string Text, bool Error)>> Call);
 
-    public static async Task<(int Status, JsonNode? Body)> HandleAsync(JsonNode? message, IReadOnlyList<McpTool> tools, CancellationToken cancellationToken = default)
+    /// <summary>Answers one request. <paramref name="instructions"/> replaces the initialize text for a host whose tool table differs from a terminal's.</summary>
+    public static async Task<(int Status, JsonNode? Body)> HandleAsync(JsonNode? message, IReadOnlyList<McpTool> tools, CancellationToken cancellationToken = default, string? instructions = null)
     {
         if (message is not JsonObject frame) return Error(null, -32600, "Expected a single JSON-RPC request object.");
         var id = frame["id"]?.DeepClone();
@@ -30,7 +31,7 @@ public static class McpServer
                     ["protocolVersion"] = requested is not null && KnownProtocols.Contains(requested) ? requested : LatestProtocol,
                     ["capabilities"] = new JsonObject { ["tools"] = new JsonObject { ["listChanged"] = false } },
                     ["serverInfo"] = new JsonObject { ["name"] = "sharprail", ["version"] = "1" },
-                    ["instructions"] = Instructions
+                    ["instructions"] = instructions ?? Instructions
                 });
             case "ping":
                 return Result(id, new JsonObject());
