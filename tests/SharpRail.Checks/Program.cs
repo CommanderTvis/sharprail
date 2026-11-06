@@ -278,6 +278,11 @@ internal static class Program
             LanguageFreshnessChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--headless"]))
+        {
+            HeadlessChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--lsp-catalog"]))
         {
             LanguageCatalogChecks.Run(root).GetAwaiter().GetResult();

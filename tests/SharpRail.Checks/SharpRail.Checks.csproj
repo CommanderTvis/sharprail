@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/SharpRail.UI/SharpRail.UI.csproj" />
     <ProjectReference Include="../../src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <!-- Launched as a child process by the headless check; its output lands next to the checks. -->
+    <ProjectReference Include="../../src/SharpRail.Host.Headless/SharpRail.Host.Headless.csproj" />
     <ProjectReference Include="../SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" />
     <ProjectReference Include="../SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" />
     <ProjectReference Include="../../src/SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />

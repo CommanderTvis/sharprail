@@ -12,7 +12,7 @@ namespace SharpRail.Checks;
 internal static class BoundaryChecks
 {
     private const string Abstractions = "SharpRail.Host.Abstractions", Protocol = "SharpRail.Host.Protocol", Core = "SharpRail.Host.Core",
-        Client = "SharpRail.Host.Client", Remote = "SharpRail.Host.Remote", Scintilla = "SharpRail.Scintilla", Ghostty = "Ghostty.Avalonia",
+        Client = "SharpRail.Host.Client", Headless = "SharpRail.Host.Headless", Remote = "SharpRail.Host.Remote", Scintilla = "SharpRail.Scintilla", Ghostty = "Ghostty.Avalonia",
         UI = "SharpRail.UI", Checks = "SharpRail.Checks", Api = "SharpRail.Plugins.Api",
         Chat = "SharpRail.Plugins.Chat", ChatUi = "SharpRail.Plugins.Chat.UI", ApiHost = "SharpRail.Plugins.Api.Host", ApiUi = "SharpRail.Plugins.Api.UI", Kit = "SharpRail.Plugins.UI.Kit", Android = "SharpRail.Android", Browser = "SharpRail.Browser";
 
@@ -23,6 +23,8 @@ internal static class BoundaryChecks
         [Protocol] = [],
         [Core] = [Abstractions, Api, ApiHost, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Client] = [Abstractions, Protocol, Api],
+        // The headless host is a console program over the core: no web server, no UI.
+        [Headless] = [Abstractions, Core, Api, ApiHost, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Remote] = [Abstractions, Protocol, Core, Api, ApiHost, "SharpRail.Plugins.Tailscale"],
         [Scintilla] = [],
         [Ghostty] = [],
@@ -30,7 +32,7 @@ internal static class BoundaryChecks
         // The Android client compiles the UI's sources and reaches what they do, except the serving half.
         [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Browser] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
-        [Checks] = [Abstractions, Protocol, Core, Client, Remote, Scintilla, Ghostty, UI, Android, Api, ApiHost, ApiUi, Kit,
+        [Checks] = [Abstractions, Protocol, Core, Client, Headless, Remote, Scintilla, Ghostty, UI, Android, Api, ApiHost, ApiUi, Kit,
             "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.Plugins.Agent.UI", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI"],
         [Api] = [],
         [ApiHost] = [Api],
