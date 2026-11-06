@@ -6856,3 +6856,15 @@ switching one on refuses it with "External plugins are not supported in this ver
 check-only builtin the checks compose on both sides. Checks run: `--plugins`, `--plugins-settings`, `--conformance`.
 Not run: the full suite and the browser check (`tests/SharpRail.Browser.Checks/check.mjs`, retargeted to the Branch
 graph and Epub builtins plus an external refusal; only `node --check` was run).
+
+## 2026-11-06 — NativeAOT packages (branch nativeaot)
+
+Every package now ships the desktop app and the remote host as NativeAOT binaries (`NativeAot.props`): macOS links
+with Xcode's clang, Windows with the MSVC linker, Linux with the pinned Zig against glibc 2.31
+(`scripts/aot-linux-cc.sh`). The SDK pin moved to 10.0.403 (ILCompiler 10.0.14, past the advisory). The packaged gate
+checks the payloads are NativeAOT, starts the shipped host and, on Linux, the shipped app as a terminal relay
+(`--packaged`, also in `--linux`/`--windows`); ci.yml gained a macOS package job. Sizes: dmg 123 → 61 MiB.
+Checks run: build, format, `--runner`, `--gc-settings`, `--linux`, `--packaged`, `--case boundaries`, perf
+self-test, `package:macos` with `check:packaged -- --linux`, a linux-x64 AppDir cross-build, and a linux-arm64 host
+and app relay in an Ubuntu 20.04 container. Not run: the AOT app with a window on any OS, the Windows package
+(MSVC link, ps1 changes), the Android and Browser builds on the new SDK, `perf diagnose`, the full suite.

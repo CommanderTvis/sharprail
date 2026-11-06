@@ -39,6 +39,7 @@ internal static class PackagedBinaries
             if (directory is null) continue;
             PackagedApp.RequireNativeAot(directory, executable, PackagedApp.Identity);
             if (!OperatingSystem.IsWindows()) GcSettingsChecks.VerifyCompiledIn(Path.Combine(directory, executable));
+            if (OperatingSystem.IsLinux()) RequireGlibcFloor(Path.Combine(directory, executable));
             Console.WriteLine($"PASS packaged {executable}: a NativeAOT binary" + (OperatingSystem.IsWindows() ? "" : " with the desktop GC settings compiled in") + ", no managed assemblies");
         }
         if (host is not null) await Host(root, host);
@@ -46,6 +47,15 @@ internal static class PackagedBinaries
         // The shipped app is started only on Linux, where nothing else of it runs windowless; elsewhere the checks relay.
         if (client is not null && !OperatingSystem.IsLinux()) return;
         await Relay(root, client is null ? Environment.ProcessPath! : Path.Combine(client, "SharpRail.UI"));
+    }
+
+    /// <summary>The AppImages promise glibc 2.31: a Linux binary may need no glibc symbol version newer than that.</summary>
+    private static void RequireGlibcFloor(string binary)
+    {
+        var versions = System.Text.RegularExpressions.Regex.Matches(Encoding.Latin1.GetString(File.ReadAllBytes(binary)), @"GLIBC_2\.(\d+)")
+            .Select(match => int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        Require(versions.Count > 0, binary + " names no glibc version.");
+        Require(versions.Max() <= 31, $"{binary} needs GLIBC_2.{versions.Max()}, newer than the 2.31 the packages promise.");
     }
 
     private static int FreePort()

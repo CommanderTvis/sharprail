@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 using SharpRail.UI;
 
 namespace SharpRail.Checks;

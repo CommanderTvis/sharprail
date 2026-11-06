@@ -171,8 +171,9 @@ the deps suffix to dotted executable names rather than replacing their final nam
 NativeAOT replaced composite ReadyToRun for the app and the remote host in every package and in the profiling
 publisher (`NativeAot.props`; [Plugin security](../src/SharpRail.Plugins.Api/Security.SPEC.md) gives the reason).
 The shared composite default is gone; the checks publish non-composite ReadyToRun. Measured once, osx-arm64: the
-disk image fell from 123 MiB to 61 MiB and the app binary is 77 MiB. The packaged gate logged a 651 ms start for
-the remote host. No startup or memory comparison was run; the section below is the earlier composite record.
+disk image fell from 123 MiB to 61 MiB and the app binary is 77 MiB. One local packaged-gate run started the remote
+host in 651 ms (a single sample). No startup or memory comparison was run; the section below is the earlier
+composite record.
 
 ## Composite ReadyToRun default (2026-10-17)
 
