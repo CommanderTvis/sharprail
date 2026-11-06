@@ -285,9 +285,10 @@ These exist now, used only by the checks (`SharpRail.Plugins.Isolation`, the `Sh
 - The exit is observed by a thread that waits for it (`waitid` without reaping, then `waitpid`; on Windows the process
   handle), so a kill never reaches a recycled pid and the runner is reaped exactly once, also while .NET reaps its
   own children. On Unix that thread kills the runner's process group before it reaps the runner, while the zombie
-  still holds the group's id, so nothing the runner started outlives it, even when it exits on its own. On Windows
-  the job does the same when the host closes it. This replaces the planned `pidfd`/kqueue watch. The runner exits
-  when its channel ends.
+  still holds the group's id, so everything still in that group dies with the runner, even when it exits on its
+  own. A child that starts its own session or group escapes this until `sharprail-confine` denies `setsid` and
+  `setpgid` (pending). On Windows the job takes every process the runner started when the host closes it. This
+  replaces the planned `pidfd`/kqueue watch. The runner exits when its channel ends.
 - What the runner inherits: on macOS only the descriptors the spawn places (`POSIX_SPAWN_CLOEXEC_DEFAULT`); on Linux
   everything above descriptor 3 is closed where glibc has `posix_spawn_file_actions_addclosefrom_np` (2.34 and later,
   so not on the packages' 2.31 baseline; `sharprail-confine` will close them there); on Windows only the handle list.

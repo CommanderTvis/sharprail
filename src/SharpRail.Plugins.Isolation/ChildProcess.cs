@@ -25,8 +25,8 @@ public sealed class ChildProcessStart
 /// <summary>
 /// A plugin runner process. It inherits exactly its channel (descriptor 3 on Unix; on Windows one named-pipe handle,
 /// named by <c>--channel</c>, which this class appends), standard input from the null device and one log pipe for
-/// standard output and error. It leads its own session (Unix) or job (Windows), so nothing it started outlives it: its
-/// group is killed when it exits or is killed, and its job when it is killed or disposed.
+/// standard output and error. It leads its own session (Unix) or job (Windows): its group, which a child can leave, is
+/// killed when it exits or is killed, and its job, which a child cannot leave, when it is killed or disposed.
 /// The exit is observed and the process reaped exactly once, by a thread that waits for it.
 /// </summary>
 public sealed class ChildProcess : IAsyncDisposable
