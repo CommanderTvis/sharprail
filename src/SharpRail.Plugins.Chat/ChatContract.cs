@@ -568,7 +568,7 @@ public static class ChatContract
     public static IJsonTypeInfoResolver Json => ChatJson.Default;
 }
 
-[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<ChatStatus>), typeof(PluginJson.EnumConverter<ChatToolState>), typeof(PluginJson.EnumConverter<ChatNoticeLevel>), typeof(PluginJson.EnumConverter<ChatTaskKind>), typeof(PluginJson.EnumConverter<ChatTaskStatus>), typeof(PluginJson.EnumConverter<ChatPermissionDecision>)])]
+[JsonSourceGenerationOptions(Converters = [typeof(PluginJson.EnumConverter<ChatStatus>), typeof(PluginJson.EnumConverter<ChatToolState>), typeof(PluginJson.EnumConverter<ChatNoticeLevel>), typeof(PluginJson.EnumConverter<ChatTaskKind>), typeof(PluginJson.EnumConverter<ChatTaskStatus>), typeof(PluginJson.EnumConverter<ChatPermissionDecision>), typeof(PluginJson.EnumConverter<ChatAgentState>)])]
 [JsonSerializable(typeof(ChatOpenParams))]
 [JsonSerializable(typeof(ChatHeader))]
 [JsonSerializable(typeof(ChatKey))]
