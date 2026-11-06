@@ -37,6 +37,34 @@ internal static class BlueprintChecks
 {
     private const string Document = "Intro.\n\n!control select language\n= Python — most conventional\n- Haskell — strongest types\n\n!control multi deploy-as\n[x] Docker image — most portable\n[ ] Nix flake — most reproducible\n";
 
+    /// <summary>The companion at 160 to 480 px: text wraps instead of trimming, the toolbar wraps onto lines, nothing is clipped or scrolls sideways.</summary>
+    private static void Narrow(E2eWorkspace app, UserControl pane)
+    {
+        var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().First(viewer => viewer.HorizontalScrollBarVisibility == Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled);
+        foreach (var width in new double[] { 160, 220, 320, 480 })
+        {
+            var previous = pane.Width; pane.Width = width; pane.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
+            app.Window.UpdateLayout(); pane.UpdateLayout();
+            foreach (var block in pane.GetLogicalDescendants().OfType<TextBlock>().Where(block => block.IsEffectivelyVisible && block is not SelectableTextBlock && block.Name is "Brief" or "Phase" or "EditCount" or "ChangeCount"))
+                Require(block.TextTrimming == Avalonia.Media.TextTrimming.None && block.TextWrapping == Avalonia.Media.TextWrapping.Wrap, $"Blueprint text {block.Name} trims at {width} px.");
+            foreach (var button in pane.GetLogicalDescendants().OfType<Button>().Where(button => button.IsEffectivelyVisible && button.Name is "Raw" or "OutlineToggle" or "Confirm" or "Discard"))
+            {
+                var box = button.TranslatePoint(default, pane)!.Value;
+                Require(box.X >= -0.5 && box.X + button.Bounds.Width <= width + 0.5, $"Button {button.Name} leaves the pane at {width} px ({box.X}, {button.Bounds.Width}).");
+            }
+            foreach (var block in pane.GetLogicalDescendants().OfType<SelectableTextBlock>().Where(block => block.IsEffectivelyVisible))
+            {
+                var left = block.TranslatePoint(default, pane)!.Value.X;
+                Require(left + block.Bounds.Width <= width + 0.5, $"Blueprint prose runs past the pane at {width} px.");
+                Require(block.Bounds.Width >= Math.Min(width * 0.4, 60), $"Blueprint prose is squeezed to {block.Bounds.Width} px at {width} px.");
+            }
+            Require(scroll.Extent.Width <= scroll.Viewport.Width + 0.5, $"Blueprint scrolls sideways at {width} px (extent {scroll.Extent.Width}, viewport {scroll.Viewport.Width}).");
+            pane.Width = previous;
+        }
+        app.Window.UpdateLayout();
+        Console.WriteLine("PASS Blueprint wraps its text and toolbar at 160 to 480 px");
+    }
+
     public static void RunUi(string root)
     {
         var project = Path.Combine(root, "blueprint-ui");
@@ -75,6 +103,7 @@ internal static class BlueprintChecks
         Require(ReferenceEquals(pane, app.Find<UserControl>("Blueprint")), "An external write updates the mounted pane in place.");
         File.WriteAllText(Path.Combine(project, "BLUEPRINT.md"), "---\nid: cattery\ntitle: Cattery storefront for selling cats\ntags: [product, cats]\n---\n" + Document);
         Until(() => pane.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FrontmatterValue"));
+        Narrow(app, pane);
         var properties = app.Find<UserControl>("BlueprintProperties");
         properties.Width = 320;
         properties.UpdateLayout();

@@ -115,6 +115,8 @@ there is no recorded session, start a fresh visible author of the recorded agent
 the existing-file instructions. A missing launcher reports which plugin to enable. Never guess a `--continue` session or silently show a detached viewer.
 Raw source is an explicit action inside the companion.
 
+The companion stays readable from 160 px up: its toolbars wrap their items onto lines, body text wraps instead of trimming, padding shrinks below 320 px and nothing scrolls sideways.
+
 The companion hydrates the keyed state, follows file changes and reports reader
 selections through editor events. It renders selectable Markdown, editable properties,
 select dropdowns and checkbox controls. Single choices expose the selected option's

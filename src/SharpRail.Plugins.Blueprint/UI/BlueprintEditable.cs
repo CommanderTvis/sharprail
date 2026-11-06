@@ -27,7 +27,12 @@ internal sealed partial class BlueprintEditable : UserControl
     {
         AvaloniaXamlLoader.Load(this);
         this.text = text; this.multiline = multiline; this.commit = commit;
-        this.render = render ?? (next => Ui.Text(next.Length == 0 ? placeholder : next, next.Length == 0 ? Ui.Hint : Ui.TextBrush));
+        this.render = render ?? (next =>
+        {
+            var line = Ui.Text(next.Length == 0 ? placeholder : next, next.Length == 0 ? Ui.Hint : Ui.TextBrush);
+            line.TextWrapping = Avalonia.Media.TextWrapping.Wrap; line.TextTrimming = Avalonia.Media.TextTrimming.None;
+            return line;
+        });
         Name = name;
         reading = this.FindControl<Border>("Reading")!;
         value = this.FindControl<ContentControl>("Value")!;

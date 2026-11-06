@@ -38,9 +38,25 @@ internal sealed partial class BlueprintPane : UserControl
             var outline = this.FindControl<ScrollViewer>("Outline")!;
             outline.IsVisible = !outline.IsVisible;
         };
+        SizeChanged += (_, e) => Fit(e.NewSize.Width);
         AttachedToVisualTree += (_, _) => { store.Changed += Changed; store.Follow(workspace); Render(); };
         DetachedFromVisualTree += (_, _) => store.Changed -= Changed;
         Render();
+    }
+
+    private static TextBlock Wrapped(TextBlock block)
+    {
+        block.TextWrapping = Avalonia.Media.TextWrapping.Wrap; block.TextTrimming = Avalonia.Media.TextTrimming.None;
+        return block;
+    }
+
+    /// <summary>Padding shrinks with the pane and the outline never takes more than a third of it.</summary>
+    private void Fit(double width)
+    {
+        var gap = width < 320 ? 8 : 16;
+        foreach (var name in new[] { "Header", "Edits", "Changes" }) this.FindControl<Border>(name)!.Padding = new Avalonia.Thickness(gap, 8);
+        document.Margin = new Avalonia.Thickness(gap, 12);
+        this.FindControl<ScrollViewer>("Outline")!.Width = Math.Min(180, Math.Max(80, width / 3));
     }
 
     private async void Run(Func<ValueTask<BlueprintAck>> operation)
@@ -90,9 +106,9 @@ internal sealed partial class BlueprintPane : UserControl
             var message = !store.Loaded(workspace) ? "Loading…" : state is null
                 ? "This workspace has no specification open. The host keeps one only while it is running."
                 : "The spec shows up here as soon as the agent writes it. All of it is yours to change.";
-            document.Children.Add(Ui.Text(message, Ui.Muted));
+            document.Children.Add(Wrapped(Ui.Text(message, Ui.Muted)));
             if (awaiting && state?.AgentId == BlueprintAgentId.Claude && state.Author is BlueprintTerminalAuthor)
-                document.Children.Add(Ui.Text("Claude Code asks to trust the folder on first run. It is the new, empty folder for this spec — answer Yes, I trust this folder in the terminal.", Ui.Muted));
+                document.Children.Add(Wrapped(Ui.Text("Claude Code asks to trust the folder on first run. It is the new, empty folder for this spec. Answer Yes, I trust this folder in the terminal.", Ui.Muted)));
             return;
         }
         var controls = new List<Control>();
@@ -169,7 +185,7 @@ internal sealed partial class BlueprintPane : UserControl
                 BlueprintProseChanged prose => $"{prose.Count} {(prose.Count == 1 ? "passage" : "passages")} rewritten",
                 _ => ""
             };
-            if (change is BlueprintProseChanged or BlueprintControlRemoved) list.Children.Add(Ui.Text(text, Ui.Muted, 12));
+            if (change is BlueprintProseChanged or BlueprintControlRemoved) list.Children.Add(Wrapped(Ui.Text(text, Ui.Muted, 12)));
             else list.Children.Add(Ui.Button(text, () => { if (ControlId(change) is { } id && blocks.GetValueOrDefault(id).Control is { } control) control.BringIntoView(); }));
         }
     }
