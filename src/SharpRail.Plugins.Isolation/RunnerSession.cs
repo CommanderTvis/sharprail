@@ -24,7 +24,7 @@ public static class IsoProtocol
     }
 }
 
-/// <summary>The runner introduces itself. <see cref="ApiTableHash"/> is empty until the member tables exist.</summary>
+/// <summary>The runner introduces itself. <see cref="ApiTableHash"/> names the generated member tables it was built with.</summary>
 public sealed record RunnerHello(int Protocol, int Pid, string Mode, string ApiTableHash = "", string Detail = "");
 
 /// <summary>What the host tells a runner it started.</summary>

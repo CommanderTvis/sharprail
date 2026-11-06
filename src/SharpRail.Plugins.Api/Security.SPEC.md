@@ -18,8 +18,9 @@ out-of-scope list.
 
 ## The two invariants
 
-A UI half has the whole of Avalonia and the same UI kit the app uses, and no access to the computer: no files,
-network, processes, environment or other plugins except through the API.
+A UI half has the whole of Avalonia and the same UI kit the app uses. It runs in its plugin's one process, beside
+the host half, so it reaches the computer exactly as the plugin does: through the API and the plugin's grants, and
+nothing else. No client runs plugin code.
 
 A host half has nothing except the API. It reaches the computer only through capabilities the user granted,
 each scoped as narrowly as the plugin's manifest asked for, and the user is at least informed of every grant.
@@ -35,10 +36,10 @@ already have a direct path in the app's own host and a WebSocket RPC path for a 
 | | trusted runtime | isolated runtime |
 | --- | --- | --- |
 | who | builtin plugins | every external plugin |
-| where | compiled into the host and the app | a sandboxed process per plugin half, both on the host |
+| where | compiled into the host and the app | one sandboxed process per plugin on the host, holding both halves and serving every client |
 | API calls | direct objects, no serialization | generated proxies over the plugin's channel |
 | computer access | ordinary .NET | only granted capabilities, through the broker |
-| UI | the plugin's controls in the app's visual tree | Avalonia in the plugin's UI process on the host, shown by every connected client from streamed pixel tiles |
+| UI | the plugin's controls in the app's visual tree | Avalonia in the plugin's process on the host, shown by every connected client from streamed pixel tiles |
 | unload | not unloaded, as today | the process exits |
 
 Builtin plugins pay nothing for the isolated runtime. Trust follows ownership, as the API spec already says;
@@ -59,10 +60,8 @@ flowchart LR
         BH["builtin host halves"]
         BR["broker · grants · audit"]
     end
-    subgraph pu["plugin UI process · JIT · sandboxed, no grants"]
+    subgraph pp["plugin process · JIT · sandboxed, the plugin's grants"]
         UI["external UI half · Avalonia · kit"]
-    end
-    subgraph ph["plugin host process · JIT · sandboxed"]
         HH["external host half"]
     end
     W --- BU
@@ -210,9 +209,10 @@ WebAssembly workload installs); the Android build is first proven by the nightly
 
 ## Processes and sandboxes
 
-Each half of an external plugin runs in its own process, and both run on the host machine, which is where files and
-processes live. The app never runs external plugin code, wherever it is. Two processes keep the UI invariant
-exact. A single process would give the UI half's code every grant the host half holds.
+An external plugin runs in one process, both halves together, on the host machine, which is where files and processes
+live. That process serves every connected client. The app never runs external plugin code, wherever it is. The UI
+half therefore holds every grant the host half holds: the plugin as a whole has exactly its grants, and a crash or
+hang in either half fails the plugin for every client.
 
 ### The host is the source of truth
 
@@ -363,8 +363,8 @@ The first plugin to run isolated has a UI half only, so the UI half comes first:
 
 ### How each kind of member crosses
 
-- Records, enums and JSON nodes go by value, written with `PluginJson.Options`, the same as plugin method payloads
-  today. A logger's `fields` object is serialized in the plugin process.
+- Records, enums and JSON nodes go by value, through the contexts `PluginJson.Options` combines, as plugin method
+  payloads do today, except that nulls are written. A logger's `fields` object is serialized in the plugin process.
 - Interfaces, abstract classes and delegates the plugin passes in become handles that the trusted side calls back.
   Examples are handlers, providers, predicates, factories, `RepoHostProvider`, `IWorkspaceEnvironmentPolicy`,
   `PluginToolDefinition.RunAsync` and the `LanguageServerSpec` hooks.
@@ -591,8 +591,8 @@ grants, because each can reach the protected set indirectly. The prompts say so 
 presenting these as narrow permissions. `files.secrets` is the only way a plugin reads secret-pattern files
 inside a workspace, and it never reaches the protected set.
 
-The UI invariant holds against these as well. A UI half's own process has no grants. A UI capability that touches
-the computer, such as `ITerminalAccessoryApi.Write`, `ReadFileAsync` or `CopyText`, is covered by the plugin's
+The UI invariant holds against these as well. A UI half shares its plugin's process and grants. A UI capability that
+touches the computer, such as `ITerminalAccessoryApi.Write`, `ReadFileAsync` or `CopyText`, is covered by the plugin's
 permissions exactly like the host capability it resembles.
 
 The isolated runtime adds brokered surfaces that do not exist today: scoped file reads and writes, outbound
@@ -626,8 +626,9 @@ Settings card. Network, process and terminal use also show a live indicator on t
 
 An external UI half runs real Avalonia, with the UI kit, in its sandboxed process on the host. The client owns a
 host control per plugin and per mount, as it already does. In the isolated runtime that host control is a remote
-surface instead of the plugin's control. Each connected client gets one UI process per plugin, hosting all of that
-client's mounts of the plugin, because layout, companions, DPI and theme are per client.
+surface instead of the plugin's control. The plugin's one process serves every connected client: each client gets its
+own remote top-levels and surfaces in it, and its own UI context, because layout, companions, DPI and theme are per
+client. A crash or hang there fails the plugin for every client, with the reason, and retry starts a new process.
 
 Every client is a renderer of this protocol and nothing more: the desktop app, the browser app and Android alike.
 They need no sandbox of their own and run no plugin code. Input latency over a remote host is accepted: a plugin
