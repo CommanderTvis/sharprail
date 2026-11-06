@@ -20,8 +20,8 @@ project: local adapters call Core directly, with no serialization.
   serialized projection. Client and Remote adapters map between the two, and both
   directions must stay consistent with the public abstraction. A DTO is never
   exposed to the UI.
-- Allowed deps: the .NET WebSocket/channel APIs. No serializer package: the payload codec is generated
-  (see Payload codec).
+- Allowed deps: the .NET WebSocket/channel APIs and `SharpRail.Wire` (the protobuf primitives, shared with the plugin
+  channel). No serializer package: the payload codec is generated (see Payload codec).
 - Forbidden: any reference to Core, Remote, Client, the UI or Avalonia. Contracts
   describe host behavior and compatibility, never the launcher or deployment
   that supplies it.
@@ -201,7 +201,10 @@ protocol; the old HTTP/2 gRPC wire format is not accepted.
 
 Messages are protobuf, encoded and decoded by `RpcCodec.Generated.cs`: one write and one read method per
 `[ProtoContract]` class, emitted by `scripts/generate-rpc.py` and registered once per message type, with
-the hand-written wire primitives in `ProtoWire.cs`. It replaced protobuf-net 2.4.8, whose runtime type
+the hand-written wire primitives in `src/SharpRail.Wire/ProtoWire.cs`. Those primitives moved there unchanged so the
+plugin channel (`SharpRail.Plugins.Isolation`) encodes its frames the same way; they stay internal, visible only to
+this project and the isolation project, and `--rpc-codec` passing against the golden records proves the move kept
+every byte. It replaced protobuf-net 2.4.8, whose runtime type
 model compiles serializers with dynamic code and reflection (Reflection.Emit, `MakeGenericType`,
 `Activator`, `Type.GetType`). That cannot run under NativeAOT, which the host, the remote host and the
 desktop app are moving to, and would fail on the first RPC frame. The generated codec uses neither
@@ -217,7 +220,7 @@ and holding a second copy of it would bypass the connection's byte budget.
 
 The encoding is byte-compatible with protobuf-net 2.4.8, because a remote host and the app ship
 independently. The protocol version and the `sharprail.rpc.v1` subprotocol stayed the same. The
-`[ProtoContract]` and `[ProtoMember]` attributes are now this project's own and remain the schema. These
+`[ProtoContract]` and `[ProtoMember]` attributes are now SharpRail's own (in `SharpRail.Wire`) and remain the schema. These
 are the rules the generator follows; all of them were observed from protobuf-net:
 
 - Fields are written in ascending field number, whatever the declaration order. Integers, booleans

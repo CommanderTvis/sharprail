@@ -15,9 +15,15 @@
         }
       },
       "sharprail.host.protocol": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Wire": "[1.0.0, )"
+        }
       },
       "sharprail.plugins.api": {
+        "type": "Project"
+      },
+      "sharprail.wire": {
         "type": "Project"
       }
     },

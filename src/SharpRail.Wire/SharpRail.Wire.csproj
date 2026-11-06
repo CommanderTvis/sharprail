@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <InternalsVisibleTo Include="SharpRail.Host.Protocol" />
+    <InternalsVisibleTo Include="SharpRail.Plugins.Isolation" />
+  </ItemGroup>
+</Project>

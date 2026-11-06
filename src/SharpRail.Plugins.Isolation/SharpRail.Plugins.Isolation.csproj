@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Wire/SharpRail.Wire.csproj" />
+  </ItemGroup>
+</Project>

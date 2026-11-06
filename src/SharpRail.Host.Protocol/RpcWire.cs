@@ -30,7 +30,7 @@ public static class RpcWire
     public static byte[] Encode<T>(T value)
     {
         if (value is null) return [];
-        var writer = new ProtoWriter(MessageBytes);
+        var writer = new ProtoWriter(MessageBytes, static () => new RpcException(new(StatusCode.ResourceExhausted, "RPC message exceeds the size limit.")));
         Writer<T>()(writer, value);
         return writer.ToArray();
     }
@@ -49,7 +49,7 @@ public static class RpcWire
         var write = Writer<T>();
         var measuring = ProtoWriter.Measuring();
         write(measuring, value);
-        var streaming = measuring.Streaming(sink);
+        var streaming = measuring.Streaming(new ProtoSink(sink));
         write(streaming, value);
         streaming.Flush();
     }

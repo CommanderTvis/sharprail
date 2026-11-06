@@ -1,2 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Wire/SharpRail.Wire.csproj" />
+    <Using Include="SharpRail.Wire" />
+  </ItemGroup>
 </Project>

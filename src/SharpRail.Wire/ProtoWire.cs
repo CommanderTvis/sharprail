@@ -1,9 +1,9 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace SharpRail.Host.Protocol;
+namespace SharpRail.Wire;
 
-/// <summary>Marks a wire message; <c>scripts/generate-rpc.py</c> emits its codec into <c>RpcCodec.Generated.cs</c>.</summary>
+/// <summary>Marks a wire message; <c>scripts/generate-rpc.py</c> emits its codec into the owning project's <c>*Codec.Generated.cs</c>.</summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class ProtoContractAttribute : Attribute;
 
@@ -24,6 +24,9 @@ internal static class RpcMessage<T>
 
 internal delegate T ProtoRead<T>(ref ProtoReader reader);
 
+/// <summary>Receives the bytes of a streaming write in small chunks.</summary>
+internal delegate void ProtoSink(ReadOnlySpan<byte> bytes);
+
 /// <summary>
 /// Writes protobuf fields into a growing buffer that refuses to pass a byte limit. A measuring writer only counts
 /// the bytes and records each sub-message's size; its streaming writer replays those sizes, so a second write of
@@ -33,20 +36,23 @@ internal sealed class ProtoWriter
 {
     private const int Chunk = 4096;
     private readonly int limit;
+    private readonly Func<Exception>? exceeded;
     private readonly List<long>? sizes;
-    private readonly RpcSink? sink;
+    private readonly ProtoSink? sink;
     private byte[] buffer;
     private int length;
     private long passed;
     private int replayed;
 
-    internal ProtoWriter(int limit)
+    /// <summary>A writer that throws what <paramref name="exceeded"/> returns once the message would pass <paramref name="limit"/>.</summary>
+    internal ProtoWriter(int limit, Func<Exception> exceeded)
     {
         this.limit = limit;
+        this.exceeded = exceeded;
         buffer = new byte[256];
     }
 
-    private ProtoWriter(List<long> sizes, RpcSink? sink)
+    private ProtoWriter(List<long> sizes, ProtoSink? sink)
     {
         limit = int.MaxValue;
         this.sizes = sizes;
@@ -57,7 +63,7 @@ internal sealed class ProtoWriter
     internal static ProtoWriter Measuring() => new([], null);
 
     /// <summary>A writer for a second write of the value this measuring writer measured.</summary>
-    internal ProtoWriter Streaming(RpcSink target) => new(sizes!, target);
+    internal ProtoWriter Streaming(ProtoSink target) => new(sizes!, target);
 
     private bool Counting => sizes is not null && sink is null;
 
@@ -79,7 +85,7 @@ internal sealed class ProtoWriter
             if (length + count > buffer.Length) Flush();
             return;
         }
-        if ((long)length + count > limit) throw new RpcException(new(StatusCode.ResourceExhausted, "RPC message exceeds the size limit."));
+        if ((long)length + count > limit) throw exceeded!();
         if (length + count <= buffer.Length) return;
         Array.Resize(ref buffer, (int)Math.Min(limit, Math.Max((long)length + count, buffer.Length * 2L)));
     }

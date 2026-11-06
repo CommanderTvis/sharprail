@@ -10,6 +10,8 @@ Detail moved out of `AGENTS.md`. Read the section you need; do not load it whole
 | `src/SharpRail.Host.Core` | Filesystem, project/spec discovery, Git, worktree and PTY terminal implementations (`Posix.cs` holds the libc interop). No Avalonia, Pi or AI dependency. |
 | `src/SharpRail.Host.Core/Plugins` | Plugin runtime (`PluginRuntime` implements `IPluginService`): discovery of `<stateDir>/plugins` and `PluginPaths`, manifest intake, load contexts, registry, reconciler, dispatch, settings namespaces and MCP tools, composed from `PluginHostSeams`. |
 | `src/SharpRail.Host.Protocol` | Typed service contracts, protobuf wire DTOs and reconnectable WebSocket RPC peers; generated client services and the payload codec come from `scripts/generate-rpc.py`. |
+| `src/SharpRail.Wire` | The internal protobuf writer, reader and message registry the generated codecs use, shared by Host.Protocol and the plugin channel through `InternalsVisibleTo`. |
+| `src/SharpRail.Plugins.Isolation` | The plugin channel: `IsoFrame` and its generated codec. No Avalonia. |
 | `src/SharpRail.Host.Remote` | Kestrel HTTP/WebSocket host, authentication and RPC adapters delegating to Core; `WebSocketRpc.cs` and generated dispatch route typed host calls. |
 | `src/SharpRail.Host.Client` | Direct local adapters and WebSocket RPC remote proxies implementing the same host abstractions. Embedded mode uses no sockets or serialization. |
 | `src/SharpRail.Plugins.Api` | Plugin contract, types and identity helpers only. `.Api.Host` and `.Api.UI` carry the host and UI contexts and never reference each other. Every public symbol is documented and listed in `PublicAPI.Unshipped.txt`; `PluginApi.Generation` is pinned by the checks. |

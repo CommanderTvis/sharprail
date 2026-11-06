@@ -361,7 +361,10 @@
         }
       },
       "sharprail.host.protocol": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Wire": "[1.0.0, )"
+        }
       },
       "sharprail.host.remote": {
         "type": "Project",
@@ -1013,6 +1016,9 @@
           "HarfBuzzSharp": "[14.2.1.301, )",
           "SkiaSharp": "[4.148.0, )"
         }
+      },
+      "sharprail.wire": {
+        "type": "Project"
       },
       "Avalonia.Skia": {
         "type": "CentralTransitive",

@@ -70,7 +70,10 @@
         }
       },
       "sharprail.host.protocol": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Wire": "[1.0.0, )"
+        }
       },
       "sharprail.plugins.acp": {
         "type": "Project",
@@ -501,6 +504,9 @@
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
           "SharpRail.Plugins.Visualize": "[1.0.0, )"
         }
+      },
+      "sharprail.wire": {
+        "type": "Project"
       },
       "System.IO.Hashing": {
         "type": "CentralTransitive",

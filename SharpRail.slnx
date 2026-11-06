@@ -7,6 +7,7 @@
     <Project Path="src/SharpRail.Host.Headless/SharpRail.Host.Headless.csproj" />
     <Project Path="src/SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
     <Project Path="src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <Project Path="src/SharpRail.Wire/SharpRail.Wire.csproj" />
     <Project Path="src/SharpRail.Plugins.Agent.UI/SharpRail.Plugins.Agent.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.AirGateway/Contract/SharpRail.Plugins.AirGateway.csproj" />
     <Project Path="src/SharpRail.Plugins.AirGateway/Host/SharpRail.Plugins.AirGateway.Host.csproj" />
@@ -14,6 +15,7 @@
     <Project Path="src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
     <Project Path="src/SharpRail.Plugins.Blueprint/Contract/SharpRail.Plugins.Blueprint.csproj" />
     <Project Path="src/SharpRail.Plugins.Blueprint/Host/SharpRail.Plugins.Blueprint.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
