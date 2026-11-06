@@ -248,11 +248,15 @@ payload does not ship (a shipped file is never replaced), and starts the checks 
 shipped file to sit byte-identical beside the running checks, so the in-process checks load the shipped native
 libraries. A changed or missing file, a managed assembly, a runtimeconfig or deps file, or a runtime library fails.
 
-`SHARPRAIL_PACKAGED_CLIENT` and `SHARPRAIL_PACKAGED_HOST` name the shipped payloads. `PackagedBinaries` (in
-`--linux`, `--windows`, `--packaged` and the `packaged-binaries` case) requires each to be NativeAOT, on macOS and
-Linux with `System.GC.ConserveMemory` compiled in, and on Linux needing no glibc newer than 2.31; starts the shipped remote host where one ships (macOS, Windows) and
-makes RPC calls, one with a wrong token; and on Linux starts the shipped app as a terminal relay against an
-in-process host, which must carry a shell's Unicode output and exit code. Without the variables the relay half runs
+`SHARPRAIL_PACKAGED_CLIENT` and `SHARPRAIL_PACKAGED_HOST` name the shipped payloads and `SHARPRAIL_PACKAGED_CHECKS`
+the checks' own publish. `PackagedBinaries` (in `--linux`, `--windows`, `--packaged` and the `packaged-binaries`
+case) requires each payload to be NativeAOT, on macOS and Linux with `System.GC.ConserveMemory` compiled in, and on
+Linux with no ELF file needing a glibc newer than 2.31. It requires each payload to carry what the checks' publish
+has for it: the `plugins` (but the fixture plugin) and `shell-integration` trees and the process-group helpers, and
+for the app every native library but the JIT runtime's (the `runtimepack` entries of the checks' deps.json) and
+the `terminfo` tree, which a macOS bundle keeps in `Contents/Resources`. It starts the shipped remote host where
+one ships (macOS, Windows) and makes RPC calls, one with a wrong token; and on Linux starts the shipped app as a
+terminal relay against an in-process host, which must carry a shell's Unicode output and exit code. Without the variables the relay half runs
 the checks' own relay. The app is never started with a window.
 
 Each lane starts its own hosts in-process, so packaged lanes share no artifact host. Arguments pass through, so

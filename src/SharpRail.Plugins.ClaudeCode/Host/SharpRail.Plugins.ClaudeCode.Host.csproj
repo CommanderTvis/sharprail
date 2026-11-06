@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
     <ClaudeProcessGroup>$(MSBuildProjectDirectory)/obj/$(Configuration)/native/$(NETCoreSdkRuntimeIdentifier)/$(RuntimeIdentifier)/sharprail-claude-process-group</ClaudeProcessGroup>
+    <ClaudeProcessGroupCompiler>cc</ClaudeProcessGroupCompiler>
+    <ClaudeProcessGroupCompiler Condition="'$(SharpRailLinuxCc)' != ''">$(SharpRailLinuxCc)</ClaudeProcessGroupCompiler>
   </PropertyGroup>
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''">
     <ClaudeProcessGroupArch Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">x86_64</ClaudeProcessGroupArch>
     <ClaudeProcessGroupArch Condition="'$(ClaudeProcessGroupArch)' == '' or '$(RuntimeIdentifier)' == 'osx-arm64'">arm64</ClaudeProcessGroupArch>
     <ClaudeProcessGroupArch Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</ClaudeProcessGroupArch>
@@ -25,8 +27,8 @@
     <None Include="$(ClaudeProcessGroup)" Link="sharprail-claude-process-group" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="BuildClaudeProcessGroup" BeforeTargets="AssignTargetPaths" Condition="'$(OS)' != 'Windows_NT' and '$(DesignTimeBuild)' != 'true'"
-          Inputs="../../SharpRail.Plugins.Codex/Host/native/process-group.c" Outputs="$(ClaudeProcessGroup)">
+          Inputs="../../SharpRail.Plugins.Codex/Host/native/process-group.c;$(MSBuildProjectFullPath)" Outputs="$(ClaudeProcessGroup)">
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(ClaudeProcessGroup)'))" />
-    <Exec Command="cc $(ClaudeProcessGroupFlags) -O2 -Wall -Wextra -Werror &quot;$(MSBuildProjectDirectory)/../../SharpRail.Plugins.Codex/Host/native/process-group.c&quot; -o &quot;$(ClaudeProcessGroup)&quot;" />
+    <Exec Command="$(ClaudeProcessGroupCompiler) $(ClaudeProcessGroupFlags) -O2 -Wall -Wextra -Werror &quot;$(MSBuildProjectDirectory)/../../SharpRail.Plugins.Codex/Host/native/process-group.c&quot; -o &quot;$(ClaudeProcessGroup)&quot;" />
   </Target>
 </Project>

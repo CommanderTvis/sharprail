@@ -82,8 +82,10 @@ survive into the package, publishes the UI and host as NativeAOT binaries (`Nati
 as self-contained ReadyToRun, and keeps exactly one canonical app bundle. Replacing that
 bundle while the app runs is the caller's responsibility to rule out first.
 Windows and Linux packaging and the profiling publisher publish the same NativeAOT binaries. Linux links them
-with the pinned Zig against glibc 2.31 (`scripts/aot-linux-cc.sh`), from a Linux or macOS host. The packaged
-check stage never replaces a shipped file; the checks only add their own.
+with the pinned Zig against glibc 2.31 (`scripts/aot-linux-cc.sh`), from a Linux or macOS host; the process-group
+helpers of the agent plugins compile through the same script. The packaged check stage never replaces a shipped
+file; the checks only add their own, and the gate names the checks' publish so it can require each payload to
+carry what that publish has for it.
 
 `dmg` packs that bundle, unchanged and with an Applications shortcut beside it, into a compressed disk
 image (`artifacts/SharpRail.dmg` unless a path is given). The image is ad-hoc signed like the bundle and not

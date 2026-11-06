@@ -164,23 +164,30 @@ and runtimeconfig files out of the publish. NativeAOT replaced the composite Rea
 stay a JIT program, and so does everything else.
 
 - macOS links with Xcode's clang, then signs the bundle as before.
-- Windows links with Visual Studio's C++ linker (`link.exe` and the Windows SDK, as the CI images carry). The zip
-  still holds a `client` and a `host` payload.
+- Windows links with Visual Studio's C++ linker (`link.exe` and the Windows SDK). Both runner images carry it:
+  `windows-2025`, and `windows-11-arm`, whose Visual Studio has the ARM64 C++ tools. The zip still holds a `client`
+  and a `host` payload.
 - Linux links with the pinned Zig (`scripts/aot-linux-cc.sh`) against glibc 2.31, the floor the AppImages promise,
   whatever glibc the build host has; a runner's own clang would link against its newer glibc. The same command
-  cross-links from macOS. The packaged gate fails a Linux binary that needs a glibc symbol newer than 2.31; the
-  cross-linked binaries needed nothing newer than `GLIBC_2.29`.
+  cross-links from macOS, and the agent plugins' process-group helpers compile through it too; a runner's `cc` would
+  give them `GLIBC_2.34`. The packaged gate fails any ELF file in a Linux payload that needs a glibc symbol newer than
+  2.31. Measured on linux-x64: the app binary needs `GLIBC_2.29`, SkiaSharp `GLIBC_2.27`, the rest less.
 
-Native libraries (Ghostty, SkiaSharp, HarfBuzzSharp, PDFium, Oniguruma, Avalonia's macOS library, Merman and the
-notification library on macOS) and the `plugins`, `terminfo` and `shell-integration` directories sit beside the
-binary, which finds them through its base directory as before. The runtimeconfig options (`DesktopGc.props`) are
-compiled into the binary.
+Native libraries sit beside the binary, which finds them through its base directory as before: Ghostty, SkiaSharp,
+HarfBuzzSharp and Oniguruma everywhere, PDFium on macOS and Linux, and on macOS Avalonia's library, Merman and the
+notification library. So do the process-group helpers (macOS, Linux) and the `plugins` and `shell-integration`
+directories. Ghostty's `terminfo` ships on macOS only, in the bundle's `Contents/Resources`, where `plugins` also
+lives behind a link. The runtimeconfig options (`DesktopGc.props`) are compiled into the binary.
 
 The packaged gate checks the binaries themselves, since the in-process checks cannot load them:
 
 - each payload is NativeAOT: the executable is there, and no managed assembly, runtimeconfig, deps file or runtime
-  library ships; on macOS and Linux the binary carries `System.GC.ConserveMemory`, and on Linux it needs no glibc
-  newer than 2.31;
+  library ships; on macOS and Linux the binary carries `System.GC.ConserveMemory`, and on Linux no ELF file needs a
+  glibc newer than 2.31;
+- each payload carries what the checks' own publish of the same sources has for it: the `plugins` and
+  `shell-integration` trees and the helpers, and for the app every native library but the JIT runtime's and the
+  `terminfo` tree. The checks' staging would otherwise fill a gap with their own copy, so a dropped library or
+  plugin directory would pass;
 - the shipped remote host (macOS, Windows) starts, answers RPC and refuses a wrong token;
 - on Linux the shipped app runs as a terminal tab's relay against a host terminal. Nothing else of the app runs
   without a window, so on macOS and Windows the app binary is checked only for its shape.
@@ -193,7 +200,10 @@ ReadyToRun) to 61 MiB. The remote host is one 37 MiB binary. linux-x64's payload
 
 What has run: the macOS remote host (RPC and its MCP tool list, locally and in the packaged gate); a linux-arm64
 remote host and the linux-arm64 app's terminal relay in an Ubuntu 20.04 container (glibc 2.31). The desktop app's
-window under NativeAOT has not been started by any check; nothing in CI opens it.
+window under NativeAOT has not been started by any check; nothing in CI opens it. No Windows package has been built
+since the switch, so the MSVC link and the Windows gate are first proven by CI. On the new SDK the browser client
+builds (Debug) with `Microsoft.NET.WebAssembly.Threading` pinned to the SDK's runtime (10.0.14, the version its
+WebAssembly workload installs); the Android build is first proven by the nightly.
 
 ## Processes and sandboxes
 

@@ -6868,3 +6868,15 @@ Checks run: build, format, `--runner`, `--gc-settings`, `--linux`, `--packaged`,
 self-test, `package:macos` with `check:packaged -- --linux`, a linux-x64 AppDir cross-build, and a linux-arm64 host
 and app relay in an Ubuntu 20.04 container. Not run: the AOT app with a window on any OS, the Windows package
 (MSVC link, ps1 changes), the Android and Browser builds on the new SDK, `perf diagnose`, the full suite.
+
+## 2026-11-06 — NativeAOT packaging review (branch nativeaot)
+
+An independent review of the two NativeAOT packaging commits. Fixed: the packaged gate now requires each payload to
+carry the native libraries, helpers and `plugins`/`shell-integration`/`terminfo` trees the checks' own publish has
+for it (`SHARPRAIL_PACKAGED_CHECKS`), since the staging filled gaps with the checks' copies; the glibc 2.31 floor
+covers every ELF file in a Linux payload; the Codex and Claude Code process-group helpers compile on Linux through
+`scripts/aot-linux-cc.sh` (they were Mach-O in a macOS cross-build and would need `GLIBC_2.34` from a runner's `cc`);
+`Microsoft.NET.WebAssembly.Threading` follows the SDK's runtime to 10.0.14. Verified unchanged: the SDK archive
+checksums, Visual Studio's ARM64 C++ tools on `windows-11-arm` (probe log), the locks. Checks run: build, format,
+`check:packaged -- --packaged` on macOS (and failing on a payload without a library, a plugin or terminfo), the
+payload rule on the cross-built Linux payload, a Debug browser build. Not run: Windows and Linux packages, Android.

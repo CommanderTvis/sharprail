@@ -26,6 +26,7 @@ internal static class PackagedBinaries
 {
     internal const string HostVariable = "SHARPRAIL_PACKAGED_HOST";
     internal const string ClientVariable = "SHARPRAIL_PACKAGED_CLIENT";
+    internal const string ChecksVariable = "SHARPRAIL_PACKAGED_CHECKS";
 
     private static void Require(bool value, string message)
     { if (!value) throw new InvalidOperationException("Packaged binaries: " + message); }
@@ -34,13 +35,16 @@ internal static class PackagedBinaries
     {
         var client = Environment.GetEnvironmentVariable(ClientVariable) is { Length: > 0 } shippedClient ? shippedClient : null;
         var host = Environment.GetEnvironmentVariable(HostVariable) is { Length: > 0 } shippedHost ? shippedHost : null;
+        var checks = Environment.GetEnvironmentVariable(ChecksVariable) is { Length: > 0 } published ? published : null;
         foreach (var (directory, executable) in new[] { (client, "SharpRail.UI"), (host, "SharpRail.Host.Remote") })
         {
             if (directory is null) continue;
             PackagedApp.RequireNativeAot(directory, executable, PackagedApp.Identity);
+            if (checks is not null) RequireShipped(directory, checks, executable == "SharpRail.UI");
             if (!OperatingSystem.IsWindows()) GcSettingsChecks.VerifyCompiledIn(Path.Combine(directory, executable));
-            if (OperatingSystem.IsLinux()) RequireGlibcFloor(Path.Combine(directory, executable));
-            Console.WriteLine($"PASS packaged {executable}: a NativeAOT binary" + (OperatingSystem.IsWindows() ? "" : " with the desktop GC settings compiled in") + ", no managed assemblies");
+            if (OperatingSystem.IsLinux()) RequireGlibcFloor(directory, executable);
+            Console.WriteLine($"PASS packaged {executable}: a NativeAOT binary" + (OperatingSystem.IsWindows() ? "" : " with the desktop GC settings compiled in") +
+                ", no managed assemblies" + (checks is null ? "" : ", every native library, helper and asset tree it needs"));
         }
         if (host is not null) await Host(root, host);
         if (OperatingSystem.IsWindows()) return;
@@ -49,13 +53,58 @@ internal static class PackagedBinaries
         await Relay(root, client is null ? Environment.ProcessPath! : Path.Combine(client, "SharpRail.UI"));
     }
 
-    /// <summary>The AppImages promise glibc 2.31: a Linux binary may need no glibc symbol version newer than that.</summary>
-    private static void RequireGlibcFloor(string binary)
+    /// <summary>The AppImages promise glibc 2.31: no ELF file in a Linux payload may need a glibc symbol version newer than that.</summary>
+    private static void RequireGlibcFloor(string directory, string executable)
     {
-        var versions = System.Text.RegularExpressions.Regex.Matches(Encoding.Latin1.GetString(File.ReadAllBytes(binary)), @"GLIBC_2\.(\d+)")
-            .Select(match => int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
-        Require(versions.Count > 0, binary + " names no glibc version.");
-        Require(versions.Max() <= 31, $"{binary} needs GLIBC_2.{versions.Max()}, newer than the 2.31 the packages promise.");
+        foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+        {
+            var bytes = File.ReadAllBytes(file);
+            if (!bytes.AsSpan().StartsWith("\u007fELF"u8)) continue;
+            var versions = System.Text.RegularExpressions.Regex.Matches(Encoding.Latin1.GetString(bytes), @"GLIBC_2\.(\d+)")
+                .Select(match => int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+            Require(versions.Count > 0 || Path.GetFileName(file) != executable, file + " names no glibc version.");
+            Require(versions.Count == 0 || versions.Max() <= 31, $"{file} needs GLIBC_2.{versions.Max()}, newer than the 2.31 the packages promise.");
+        }
+    }
+
+    /// <summary>
+    /// Fails unless a payload carries what its binary loads from beside itself, as the checks' publish of the same sources
+    /// lays it out: the plugins and shell-integration trees and the helper programs, and for the app also every native
+    /// library but the JIT runtime's (named by the checks' deps.json) and the terminfo tree, which a macOS bundle keeps in
+    /// Contents/Resources. The checks' own files (fixtures, the fixture plugin, their native test library) are not asked for.
+    /// </summary>
+    private static void RequireShipped(string payload, string checks, bool app)
+    {
+        using var deps = System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(Path.Combine(checks, "SharpRail.Checks.deps.json")));
+        var runtime = deps.RootElement.GetProperty("targets").EnumerateObject().SelectMany(target => target.Value.EnumerateObject())
+            .Where(library => library.Name.StartsWith("runtimepack.", StringComparison.Ordinal) && library.Value.TryGetProperty("native", out _))
+            .SelectMany(library => library.Value.GetProperty("native").EnumerateObject().Select(native => Path.GetFileName(native.Name)))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var resources = Path.Combine(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(payload))!, "Resources");
+        var missing = new List<string>();
+        var required = 0;
+        foreach (var file in Directory.EnumerateFiles(checks, "*", SearchOption.AllDirectories))
+        {
+            var name = Path.GetRelativePath(checks, file).Replace('\\', '/');
+            if (!Needed(name, file)) continue;
+            required++;
+            if (!File.Exists(Path.Combine(payload, name)) && !(OperatingSystem.IsMacOS() && File.Exists(Path.Combine(resources, name)))) missing.Add(name);
+        }
+        Require(required > 0, "the checks' publish at " + checks + " names nothing a payload needs.");
+        Require(missing.Count == 0, $"{payload} lacks {missing.Count} of the {required} files it needs beside its binary: " + string.Join(", ", missing.Take(20)));
+
+        bool Needed(string name, string file)
+        {
+            if (name.StartsWith("plugins/", StringComparison.Ordinal)) return !name.StartsWith("plugins/fixture/", StringComparison.Ordinal);
+            if (name.StartsWith("shell-integration/", StringComparison.Ordinal)) return true;
+            if (name.StartsWith("terminfo/", StringComparison.Ordinal)) return app;
+            if (name.Contains('/', StringComparison.Ordinal)) return false;
+            if (name.StartsWith("sharprail-", StringComparison.Ordinal)) return true;
+            if (!app || name is "libTerminalEvents.dylib" || runtime.Contains(name) || Path.GetExtension(name) is ".pdb" or ".xml" or ".json") return false;
+            // Not a managed assembly, nor the native launcher of one (the checks' own executable).
+            var launched = name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+            return PackagedApp.Identity(file) is null && !File.Exists(Path.Combine(checks, launched + ".dll"));
+        }
     }
 
     private static int FreePort()

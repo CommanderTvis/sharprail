@@ -1,7 +1,7 @@
 #!/bin/sh
 # `scripts/mise run check:packaged [-- args]`: runs the check gate against the packaged app. The checks are staged beside a copy of the
 # bundle's own files, so the native libraries under test are the ones that ship, and the gate runs the shipped NativeAOT binaries
-# (`--packaged` runs only that). On Linux the bundle is the AppImage's payload, extracted from the image itself (`--linux` is the gate
+# (`--packaged` runs only that) and requires each payload to carry what the checks' own publish has for it. On Linux the bundle is the AppImage's payload, extracted from the image itself (`--linux` is the gate
 # to pass).
 set -eu
 cd "$(dirname "$0")/../.."
@@ -24,7 +24,7 @@ if [ "$(uname -s)" = Linux ]; then
   mkdir -p "$stage/run"
   cp -R "$shipped/." "$stage/run/"
   artifacts/linux/checks/SharpRail.Checks --stage-packaged artifacts/linux/checks "$stage/run"
-  export SHARPRAIL_PACKAGED_CLIENT="$PWD/$shipped"
+  export SHARPRAIL_PACKAGED_CLIENT="$PWD/$shipped" SHARPRAIL_PACKAGED_CHECKS="$PWD/artifacts/linux/checks"
   SHARPRAIL_PACKAGED_APP="$PWD/$shipped" "$stage/run/SharpRail.Checks" "$@"
   exit
 fi
@@ -39,7 +39,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 mkdir -p "$stage"
 cp -R "$bundle" "$stage/"
-export SHARPRAIL_PACKAGED_CLIENT="$PWD/$bundle/Contents/MacOS"
+export SHARPRAIL_PACKAGED_CLIENT="$PWD/$bundle/Contents/MacOS" SHARPRAIL_PACKAGED_CHECKS="$PWD/artifacts/checks"
 [ ! -d artifacts/host ] || export SHARPRAIL_PACKAGED_HOST="$PWD/artifacts/host"
 artifacts/checks/SharpRail.Checks --stage-packaged artifacts/checks "$stage/SharpRail.app/Contents/MacOS"
 SHARPRAIL_PACKAGED_APP="$PWD/$bundle" "$stage/SharpRail.app/Contents/MacOS/SharpRail.Checks" "$@"

@@ -27,6 +27,9 @@
     <SharpRailLinuxRid Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'linux-arm64'">$(RuntimeIdentifier)</SharpRailLinuxRid>
     <SharpRailLinuxRid Condition="'$(SharpRailLinuxRid)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'">linux-x64</SharpRailLinuxRid>
     <SharpRailLinuxRid Condition="'$(SharpRailLinuxRid)' == '' and '$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">linux-arm64</SharpRailLinuxRid>
+    <!-- The C compiler of the small Linux helper programs: the pinned Zig against glibc 2.31, as for the NativeAOT link (NativeAot.props). -->
+    <SharpRailLinuxCc Condition="'$(SharpRailLinuxRid)' == 'linux-x64'">sh &quot;$(MSBuildThisFileDirectory)scripts/aot-linux-cc.sh&quot; --target=x86_64-linux-gnu</SharpRailLinuxCc>
+    <SharpRailLinuxCc Condition="'$(SharpRailLinuxRid)' == 'linux-arm64'">sh &quot;$(MSBuildThisFileDirectory)scripts/aot-linux-cc.sh&quot; --target=aarch64-linux-gnu</SharpRailLinuxCc>
     <!-- Recipes that need the manifest's pins ([env] in mise.toml, tools) run under the checkout's pinned mise. -->
     <MiseRun Condition="'$(OS)' != 'Windows_NT'">sh &quot;$(MSBuildThisFileDirectory)scripts/mise&quot; x --</MiseRun>
     <MiseRun Condition="'$(OS)' == 'Windows_NT'">&quot;$(MSBuildThisFileDirectory)scripts\mise.cmd&quot; x --</MiseRun>
