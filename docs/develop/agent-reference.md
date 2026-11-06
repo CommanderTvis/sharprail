@@ -172,7 +172,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--design` | Design-system guards and theme translations; `--design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Generated` from `src/SharpRail.UI/Rendering/Design`. Edit the authored sources, not generated C#. |
 | `--zig-deps` | `scripts/zig-deps.lock` matches the Ghostty pins in `mise.toml` and every native build path restores the mirror. |
 | `--lock-script` | `scripts/lock.sh` (the native build scripts' directory lock) takes over a lock whose owner is gone, waits for a live holder and releases on exit. |
-| `--conformance` | Dependency-boundary checks; public API analyzers validate against `PublicAPI.*.txt` baselines. |
+| `--conformance` | Dependency-boundary checks, and no XAML under `src/` binds by reflection (`x:CompileBindings="False"`, `ReflectionBinding`); public API analyzers validate against `PublicAPI.*.txt` baselines. |
 | `--runner` | The runner itself. |
 | `--headscale` | Opt-in and slow, never in the argument-free suite: a real host and client on two tailnet nodes of a throwaway Headscale. Skips with a message unless `sh scripts/build-headscale-test.sh` has run (`SHARPRAIL_REQUIRE_HEADSCALE=1` fails instead). |
 | `--android` | Android host address parsing and remembered endpoint (the client needs a device: `scripts/mise run android run`). |

@@ -65,6 +65,12 @@ internal static class BoundaryChecks
         var violations = Scan(checkout);
         Require(violations.Count == 0, "Dependency boundaries crossed:\n" + string.Join('\n', violations));
         Console.WriteLine("PASS dependency boundaries: project references and source mentions follow the documented direction");
+        var reflective = Directory.EnumerateFiles(Path.Combine(checkout, "src"), "*.axaml", SearchOption.AllDirectories)
+            .Where(file => !Path.GetRelativePath(checkout, file).Split(Path.DirectorySeparatorChar).Any(part => part is "bin" or "obj"))
+            .Where(file => File.ReadAllText(file) is var text && (text.Contains("x:CompileBindings=\"False\"", StringComparison.Ordinal) || text.Contains("ReflectionBinding", StringComparison.Ordinal)))
+            .Select(file => Path.GetRelativePath(checkout, file)).Order(StringComparer.Ordinal).ToArray();
+        Require(reflective.Length == 0, "XAML binds by reflection, which NativeAOT cannot keep:\n" + string.Join('\n', reflective));
+        Console.WriteLine("PASS XAML bindings: no reflection bindings in src");
     }
 
     /// <summary>The repository gate and the fixtures both enter here.</summary>

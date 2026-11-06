@@ -8,15 +8,16 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.UI.Editor;
 
+/// <summary>One row of the quick fix list, which the view's compiled item template binds to.</summary>
+internal sealed record QuickFixRow(LanguageItem Item)
+{
+    public string Title => Item.Text;
+    public FontWeight Weight => Item.Preview == "preferred" ? FontWeight.SemiBold : FontWeight.Normal;
+}
+
 // Quick fixes: the language server's code actions for the caret, in a list at the caret (Show Quick Fixes in the keymap, Alt+Enter by default).
 internal sealed partial class CodeDocumentView
 {
-    private sealed record QuickFixRow(LanguageItem Item)
-    {
-        public string Title => Item.Text;
-        public FontWeight Weight => Item.Preview == "preferred" ? FontWeight.SemiBold : FontWeight.Normal;
-    }
-
     private CancellationTokenSource? quickFixRequest;
     private long quickFixVersion;
 

@@ -42,7 +42,7 @@
       </ListBox.Styles>
       <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
       <ListBox.ItemTemplate>
-        <DataTemplate x:CompileBindings="False">
+        <DataTemplate x:DataType="local:LanguagePanel+ServerRow">
           <Border Name="ServerRowDivider" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,0,0,1">
           <Border Name="ServerRowSurface" BorderBrush="Transparent" BorderThickness="2,0,0,0" Padding="8,4,0,4">
           <!-- One header line at every width: [status][icon][name][settings][Start/Retry] on fixed-width columns, so status, icon, settings and action line up across rows without a shared-size scope (which would retain every row ever shown); details sit under the name. -->
@@ -100,7 +100,7 @@
     </ListBox>
     <ComboBox x:Name="AddServer" PlaceholderText="Add language server…" HorizontalAlignment="Stretch" BorderThickness="0" Background="Transparent">
       <ComboBox.ItemTemplate>
-        <DataTemplate x:CompileBindings="False">
+        <DataTemplate x:DataType="x:String">
           <StackPanel Orientation="Horizontal" Spacing="8">
             <ContentControl Content="{Binding Converter={StaticResource LanguageMark}}" />
             <TextBlock Text="{Binding Converter={StaticResource LanguageName}}" VerticalAlignment="Center" />

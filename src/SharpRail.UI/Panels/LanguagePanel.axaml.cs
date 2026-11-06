@@ -16,7 +16,7 @@ namespace SharpRail.UI.Panels;
 
 internal sealed partial class LanguagePanel : UserControl
 {
-    private sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false, bool ExitOpen = false, bool Hidden = false)
+    internal sealed record ServerRow(LanguageServerState Server, LanguageConfigurationView ConfigurationView, bool Expanded = false, bool ExitOpen = false, bool Hidden = false)
     {
         private IEnumerable<LanguageDependencyState> MissingDependencies => (Server.Dependencies ?? []).Where(item => item.Required && item.State != "found");
         public bool HasMissing => LanguageDependencyList.HasMissing(Server.Dependencies);

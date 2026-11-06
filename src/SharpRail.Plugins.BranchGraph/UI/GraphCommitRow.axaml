@@ -10,9 +10,9 @@
     <ContextMenu Name="GraphCommitMenu" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}"
                  BorderThickness="1" CornerRadius="6" Padding="4" Foreground="{x:Static kit:Ui.TextBrush}" FontFamily="{x:Static kit:Ui.InterfaceFont}">
       <ContextMenu.Resources>
-        <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
-        <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
-        <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+        <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+        <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+        <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
       </ContextMenu.Resources>
       <MenuItem x:Name="GraphViewChanges" Header="View changes" />
       <Separator />

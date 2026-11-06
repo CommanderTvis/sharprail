@@ -1,4 +1,5 @@
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SharpRail.Plugins.UI.Kit.ControlStyles" x:ClassModifier="internal"
         xmlns:kit="using:SharpRail.Plugins.UI.Kit">
   <Style Selector="ListBox.drawn-tree">
     <Setter Property="Padding" Value="0" />

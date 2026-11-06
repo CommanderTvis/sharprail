@@ -4,11 +4,9 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
-using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -50,9 +48,8 @@ public static partial class Ui
     public static void ApplyResources(Application app)
     {
         app.Resources[SelectionForegroundKey] = SelectionText is { } foreground ? new SolidColorBrush(foreground) : null;
-        var source = new Uri("avares://SharpRail.Plugins.UI.Kit/ControlStyles.axaml");
-        if (!app.Styles.OfType<StyleInclude>().Any(style => style.Source == source))
-            app.Styles.Add(new StyleInclude(source) { Source = source });
+        if (!app.Styles.OfType<ControlStyles>().Any())
+            app.Styles.Add(new ControlStyles());
         // High contrast keeps a 2px resting hairline thumb; other themes hide it until the viewer shows intent.
         app.Resources["QuietScrollThumbRest"] = Theme.IsHighContrast ? Hint : Brushes.Transparent;
         app.Resources["QuietScrollThumbInset"] = new Thickness(Theme.IsHighContrast ? 2 : 0);
@@ -188,9 +185,9 @@ public static partial class Ui
             CornerRadius = new(4)
         };
         foreach (var text in ((Control)button.Content!).GetLogicalDescendants().Prepend((Control)button.Content!).OfType<TextBlock>())
-            text.Bind(TextBlock.ForegroundProperty, new Binding(nameof(button.Foreground)) { Source = button });
+            text.Bind(TextBlock.ForegroundProperty, button.GetObservable(TemplatedControl.ForegroundProperty));
         foreach (var glyph in ((Control)button.Content!).GetLogicalDescendants().Prepend((Control)button.Content!).OfType<Border>())
-            glyph.Bind(Border.BackgroundProperty, new Binding(nameof(button.Foreground)) { Source = button });
+            glyph.Bind(Border.BackgroundProperty, button.GetObservable(TemplatedControl.ForegroundProperty));
         button.Click += (_, _) => action();
         FollowEnabled(button);
         return button;
@@ -238,7 +235,7 @@ public static partial class Ui
             BorderThickness = new(0),
             CornerRadius = new(0)
         };
-        ((Border)button.Content!).Bind(Border.BackgroundProperty, new Binding(nameof(button.Foreground)) { Source = button });
+        ((Border)button.Content!).Bind(Border.BackgroundProperty, button.GetObservable(TemplatedControl.ForegroundProperty));
         ToolTip.SetTip(button, tooltip);
         AutomationProperties.SetName(button, tooltip);
         button.Click += (_, _) => action();

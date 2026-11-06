@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             xmlns:local="using:SharpRail.UI.Panels"
              x:Class="SharpRail.UI.Panels.LanguageConfigurationView"
              Foreground="{x:Static kit:Ui.TextBrush}" FontSize="12">
   <UserControl.Styles>
@@ -125,7 +126,7 @@
       <TextBlock x:Name="ProviderSettingsHelp" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
       <ItemsControl x:Name="ProviderFields">
         <ItemsControl.ItemTemplate>
-          <DataTemplate x:CompileBindings="False">
+          <DataTemplate x:DataType="local:LanguageOptionField">
             <StackPanel Spacing="8" Margin="0,0,0,12">
               <TextBlock Text="{Binding Label}" TextWrapping="Wrap" ToolTip.Tip="{Binding Help}" />
               <TextBlock IsVisible="{Binding Multiline}" Text="One item per line. Clear the input for an empty list. Use the button below for server defaults." FontSize="11" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />

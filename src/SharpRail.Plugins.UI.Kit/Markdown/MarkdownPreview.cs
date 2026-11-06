@@ -5,7 +5,6 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
-using Avalonia.Data;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
@@ -13,6 +12,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Svg.Skia;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using Markdig;
 using Markdig.Extensions.Alerts;
@@ -631,8 +631,11 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             var bitmap = new Bitmap(bytes);
             loadedImages.Add(bitmap);
             var image = new Image { Name = "MarkdownImage", Source = bitmap, Stretch = Stretch.Uniform, MaxHeight = 800 };
-            image.Bind(Image.MaxWidthProperty, new Binding("Bounds.Width")
-            { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(SelectableTextBlock) } });
+            IDisposable? width = null;
+            image.AttachedToVisualTree += (_, _) => width = image.FindAncestorOfType<SelectableTextBlock>() is { } text
+                ? image.Bind(Image.MaxWidthProperty, text.GetObservable(BoundsProperty, bounds => bounds.Width))
+                : null;
+            image.DetachedFromVisualTree += (_, _) => { width?.Dispose(); width = null; };
             holder.Child = image;
             (Content as MarkdownBlockList)?.ContentChanged();
         }

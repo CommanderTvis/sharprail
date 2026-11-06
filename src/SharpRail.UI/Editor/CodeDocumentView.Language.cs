@@ -14,18 +14,19 @@ using SharpRail.Scintilla;
 
 namespace SharpRail.UI.Editor;
 
+/// <summary>One row of the language results list, which the view's compiled item template binds to.</summary>
+internal sealed record LanguagePreviewRow(LanguageItem Item, string Location, string Description, string Code, byte[] Styles,
+    int MatchStart, int MatchLength, bool StartsFile = false, int FileCount = 0)
+{
+    public bool HasDescription => Description.Length > 0;
+    public string FileName => Path.GetFileName(Item.Path);
+    public string Directory => Path.GetDirectoryName(Item.Path) ?? "";
+    public int LineNumber => Item.Line + 1;
+    public override string ToString() => $"{Location} {Description} {Code}";
+}
+
 internal sealed partial class CodeDocumentView
 {
-    private sealed record LanguagePreviewRow(LanguageItem Item, string Location, string Description, string Code, byte[] Styles,
-        int MatchStart, int MatchLength, bool StartsFile = false, int FileCount = 0)
-    {
-        public bool HasDescription => Description.Length > 0;
-        public string FileName => Path.GetFileName(Item.Path);
-        public string Directory => Path.GetDirectoryName(Item.Path) ?? "";
-        public int LineNumber => Item.Line + 1;
-        public override string ToString() => $"{Location} {Description} {Code}";
-    }
-
     private readonly EditorFrame frame;
     private bool firstColorsPending = true;
 
