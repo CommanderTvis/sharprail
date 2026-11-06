@@ -22,13 +22,14 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
 - `IsolationPeer`: one end of the channel, the same code on both sides (`IsolationRole` decides id parity and
   whether descriptors are accepted). `HandleTable` holds what this side lent, with tombstones.
 - `ChildProcess`: spawn with exactly the channel, null standard input and a rate-limited log pipe; exit watch;
-  reaping; kill of the session or job. `RunnerSession`: the host's hold on one runner, with the handshake, and the
+  reaping; kill of the session's group when the runner exits or is killed, or of the job. `RunnerSession`: the host's hold on one runner, with the handshake, and the
   kill on a protocol violation.
 - `RunnerProbe`: the member ids of the runner's `probe echo` mode.
 
 ## Boundary
 
-- References `SharpRail.Wire` only, so no Avalonia and no host. Host.Core will compose it behind
+- References `SharpRail.Wire` only, so no Avalonia and no host. Its internals are visible to the checks, which drive
+  the Unix transport directly. Host.Core will compose it behind
   `PluginHostSeams.Isolation`; nothing in a shipping composition uses it yet.
 - NativeAOT code: no reflection; the handshake records go through a source-generated JSON context.
 - Pending, in the design's terms: generated proxies and member tables (slice 3), the host-mode and UI-mode runner
@@ -36,5 +37,5 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
 
 ## Checks
 
-`--plugin-channel` (also a gate case) covers the codec, protocol violations against the loopback, and the runner's
-`probe echo` and `probe avalonia-private` modes.
+`--plugin-channel` (also a gate case) covers the codec, protocol violations against the loopback, descriptors sent
+beside an unfinished frame on the Unix transport, and the runner's `probe echo` and `probe avalonia-private` modes.

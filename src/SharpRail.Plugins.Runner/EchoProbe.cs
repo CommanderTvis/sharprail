@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -119,6 +120,16 @@ internal static class EchoProbe
         }
         if (member == RunnerProbe.Notes)
             lock (notes) return IsoResult.Of(string.Join(',', notes));
+        if (member == RunnerProbe.SpawnChild)
+        {
+            var start = OperatingSystem.IsWindows()
+                ? new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "ping.exe"), ["-n", "300", "127.0.0.1"])
+                : new ProcessStartInfo("/bin/sh", ["-c", "trap '' HUP INT TERM; exec /bin/sleep 300"]);
+            start.UseShellExecute = false;
+            start.RedirectStandardOutput = true;
+            using var child = Process.Start(start) ?? throw new IsoCallException(IsoError.Failed, "The child did not start.");
+            return IsoResult.Of(child.Id.ToString());
+        }
         if (member == RunnerProbe.Exit)
         {
             Environment.Exit(int.Parse(call.Payload));

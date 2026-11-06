@@ -257,6 +257,7 @@ internal sealed unsafe class UnixFdTransport(SafeFileHandle socket, bool acceptD
     private void Collect(byte* header, byte* control)
     {
         var length = Unix.MsgControlLength(header);
+        var refused = false;
         for (var offset = 0; offset + Unix.CmsgHeader <= length;)
         {
             var (size, level, type) = Unix.ReadCmsg(control + offset);
@@ -266,12 +267,24 @@ internal sealed unsafe class UnixFdTransport(SafeFileHandle socket, bool acceptD
                 var data = (int*)(control + offset + Unix.CmsgHeader);
                 for (var index = 0; index < (size - Unix.CmsgHeader) / sizeof(int); index++)
                 {
+                    if (!acceptDescriptors)
+                    {
+                        Unix.Close(data[index]);
+                        refused = true;
+                        continue;
+                    }
                     // macOS has no MSG_CMSG_CLOEXEC: mark it before anything can spawn.
                     if (Unix.Mac) Unix.CloseOnExec(data[index]);
                     received.Enqueue(data[index]);
                 }
             }
             offset += Unix.CmsgAlign(size);
+        }
+        if (refused) throw new IsolationProtocolException("The plugin sent a descriptor; only the host may send them.");
+        if (received.Count > 2 * IsoWire.FrameDescriptors)
+        {
+            CloseReceived();
+            throw new IsolationProtocolException("The plugin channel carried more descriptors than its frames announced.");
         }
     }
 

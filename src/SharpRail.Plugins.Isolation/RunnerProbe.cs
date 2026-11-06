@@ -39,6 +39,8 @@ public static class RunnerProbe
     public static readonly int Note = IsoMember.Id("probe.note");
     /// <summary>The recorded notes, comma-separated.</summary>
     public static readonly int Notes = IsoMember.Id("probe.notes");
+    /// <summary>Starts a child that sleeps for minutes, ignoring every signal but a kill, and answers its pid.</summary>
+    public static readonly int SpawnChild = IsoMember.Id("probe.spawn-child");
     /// <summary>Exits with the payload's code.</summary>
     public static readonly int Exit = IsoMember.Id("probe.exit");
 }

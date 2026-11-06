@@ -267,10 +267,12 @@ These exist now, used only by the checks (`SharpRail.Plugins.Isolation`, the `Sh
   released or revoked handle answers `Released` or `Denied` with its permission, and only an id never lent on that
   connection is a violation. Each side queues at most 1,024 frames or 32 MiB; a runner that stops reading is cut off.
 - Descriptors travel with a frame as SCM_RIGHTS on Unix; on Windows the host duplicates a handle into the runner,
-  which holds no handle to the host and so cannot send one. Any descriptor the host receives is closed. That, a
-  misnumbered call, a call or release on a never-lent handle, an answer to a call never made, a malformed or
-  oversized frame, an out-of-turn handshake frame or a stream past its credit ends the channel as a protocol
-  violation, and the host kills the runner.
+  which holds no handle to the host and so cannot send one. Any descriptor the host receives is closed as it
+  arrives, even inside a frame that never completes, so a runner cannot fill the host's descriptor table. The runner
+  holds at most two frames' worth (the frame it is reading and the first byte of the next) and ends the channel past
+  that. A descriptor from the runner, a misnumbered call, a call or release on a never-lent handle, an answer to a
+  call never made, a malformed or oversized frame, an out-of-turn handshake frame or a stream past its credit ends
+  the channel as a protocol violation, and the host kills the runner.
 - The handshake is the runner's `Hello` (protocol version, pid, mode), the host's `Init` and the runner's `Ready`. A
   runner that speaks another protocol version is refused.
 - The runner is started with a raw spawn, not `Process.Start`, which can neither place a descriptor nor keep a handle
@@ -282,7 +284,10 @@ These exist now, used only by the checks (`SharpRail.Plugins.Isolation`, the `Sh
   rest.
 - The exit is observed by a thread that waits for it (`waitid` without reaping, then `waitpid`; on Windows the process
   handle), so a kill never reaches a recycled pid and the runner is reaped exactly once, also while .NET reaps its
-  own children. This replaces the planned `pidfd`/kqueue watch. The runner exits when its channel ends.
+  own children. On Unix that thread kills the runner's process group before it reaps the runner, while the zombie
+  still holds the group's id, so nothing the runner started outlives it, even when it exits on its own. On Windows
+  the job does the same when the host closes it. This replaces the planned `pidfd`/kqueue watch. The runner exits
+  when its channel ends.
 - What the runner inherits: on macOS only the descriptors the spawn places (`POSIX_SPAWN_CLOEXEC_DEFAULT`); on Linux
   everything above descriptor 3 is closed where glibc has `posix_spawn_file_actions_addclosefrom_np` (2.34 and later,
   so not on the packages' 2.31 baseline; `sharprail-confine` will close them there); on Windows only the handle list.
@@ -291,7 +296,8 @@ These exist now, used only by the checks (`SharpRail.Plugins.Isolation`, the `Sh
 
 `--plugin-channel` checks all of this against the real runner, framework-dependent from the checks' build: in the
 smoke gate on Linux, and as its own step in the Windows and macOS CI jobs. It asserts that the runner inherits no host
-handle, that its standard input is at end of file and its output reaches the log, and that no runner is left behind,
+handle, that the host closes a runner's descriptor before its frame completes, that a child the runner started dies
+with it, that its standard input is at end of file and its output reaches the log, and that no runner is left behind,
 not even as a zombie. The Windows half is compiled on every platform but first runs in CI.
 
 A plugin process that crashes or exits marks its plugin `failed` with the reason, and retry starts a new process.

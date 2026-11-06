@@ -5,6 +5,8 @@ using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text;
 
+using Microsoft.Win32.SafeHandles;
+
 using SharpRail.Plugins.Isolation;
 
 namespace SharpRail.Checks;
@@ -30,6 +32,11 @@ internal static class PluginChannelChecks
         Console.WriteLine("PASS plugin channel codec: every IsoFrame field round-trips behind its length; oversized and malformed frames are refused");
         await Violations();
         Console.WriteLine("PASS plugin channel protocol: oversized, malformed, misnumbered, unknown and never-lent traffic ends the channel; tombstones answer Released or Denied");
+        if (!OperatingSystem.IsWindows())
+        {
+            Descriptors();
+            Console.WriteLine("PASS plugin channel descriptors: the host closes a runner's descriptor as it arrives, inside an unfinished frame; the runner refuses more than two frames' worth");
+        }
         if (Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin channel runner: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -38,7 +45,7 @@ internal static class PluginChannelChecks
         await Echo(runner);
         Console.WriteLine("PASS plugin runner probe: handshake, stdio, no inherited handles, calls, cancel, deadline, handles, credits, one-way order, descriptor passing, callbacks, clean exit, reaped");
         await Refusals(runner);
-        Console.WriteLine("PASS plugin runner refusals: a sent descriptor, a never-lent handle and a misnumbered call kill the runner; an exit code is captured; nothing is left unreaped");
+        Console.WriteLine("PASS plugin runner refusals: a sent descriptor, a never-lent handle and a misnumbered call kill the runner; an exit code is captured; nothing is left unreaped; a runner's child dies with it");
         await AvaloniaPrivate(runner);
         Console.WriteLine("PASS plugin runner avalonia-private: a stub IWindowingPlatform registers and resolves");
     }
@@ -116,6 +123,43 @@ internal static class PluginChannelChecks
             reply = await Receive(raw);
             Require(reply is { Kind: IsoFrameKind.Pong, Id: 8 }, "A ping must be answered.");
             Require(!peer.Completion.IsCompleted, "Releasing a released handle again is no violation: " + peer.Violation);
+        }
+    }
+
+    /// <summary>Descriptors sent beside a frame that never completes, at the Unix transport.</summary>
+    [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+    private static void Descriptors()
+    {
+        using var devNull = File.OpenHandle("/dev/null");
+        byte[] unfinished = [100, 0, 0, 0, 0];
+
+        var (hostEnd, runnerEnd) = SharpRail.Plugins.Isolation.Native.Unix.OpenSocketPair();
+        using (var host = new UnixFdTransport(new SafeFileHandle(hostEnd, true), acceptDescriptors: false))
+        using (var runner = new UnixFdTransport(new SafeFileHandle(runnerEnd, true), acceptDescriptors: true))
+        {
+            runner.Write(new PreparedFrame(unfinished, [devNull]));
+            Refused(host, "only the host", "The host must refuse a descriptor as it arrives, before its frame completes.");
+        }
+
+        (hostEnd, runnerEnd) = SharpRail.Plugins.Isolation.Native.Unix.OpenSocketPair();
+        using (var host = new UnixFdTransport(new SafeFileHandle(hostEnd, true), acceptDescriptors: false))
+        using (var runner = new UnixFdTransport(new SafeFileHandle(runnerEnd, true), acceptDescriptors: true))
+        {
+            host.Write(new PreparedFrame(unfinished[..4], []));
+            var many = Enumerable.Repeat<SafeHandle>(devNull, IsoWire.FrameDescriptors).ToArray();
+            for (var index = 0; index < 3; index++) host.Write(new PreparedFrame([0], many));
+            Refused(runner, "more descriptors", "The runner must refuse descriptors piling up beyond two frames' worth.");
+        }
+
+        static void Refused(FdTransport transport, string reason, string message)
+        {
+            try
+            {
+                Task.Run(() => transport.Read()).WaitAsync(Patience).GetAwaiter().GetResult();
+                Require(false, message);
+            }
+            catch (TimeoutException) { Require(false, message); }
+            catch (IsolationProtocolException violation) { Require(violation.Message.Contains(reason, StringComparison.OrdinalIgnoreCase), message + " " + violation.Message); }
         }
     }
 
@@ -314,8 +358,8 @@ internal static class PluginChannelChecks
         var others = Enumerable.Range(0, 4).Select(_ => Process.Start(OperatingSystem.IsWindows()
             ? new ProcessStartInfo("cmd.exe", "/c exit 0") { CreateNoWindow = true, UseShellExecute = false }
             : new ProcessStartInfo("/bin/sh", ["-c", "exit 0"]) { UseShellExecute = false })!).ToList();
-        try { await session.Peer.CallAsync(RunnerProbe.Exit, "7"); }
-        catch (IOException) { }
+        var child = int.Parse((await session.Peer.CallAsync(RunnerProbe.SpawnChild, "")).Payload);
+        var exiting = session.Peer.CallAsync(RunnerProbe.Exit, "7");
         foreach (var other in others)
         {
             await other.WaitForExitAsync().WaitAsync(Patience);
@@ -324,8 +368,11 @@ internal static class PluginChannelChecks
         Require(await session.Process.Exited.WaitAsync(Patience) == 7, "The runner's exit code must be captured, not " + session.Process.Exited.Result);
         var pid = session.Process.Pid;
         await session.DisposeAsync();
+        try { await exiting.WaitAsync(Patience); }
+        catch (IOException) { }
         Require(session.Peer.Violation is null, "An exiting runner breaks no protocol rule: " + session.Peer.Violation);
         Gone(pid);
+        await Until(() => Task.FromResult(!Alive(child)), $"Child {child} of a runner that exited on its own must not outlive it.");
     }
 
     private static async Task Killed(RunnerLaunch runner, int member, string payload, string reason)
@@ -369,6 +416,22 @@ internal static class PluginChannelChecks
         }
         var result = OperatingSystem.IsMacOS() ? MacKill(pid, 0) : LinuxKill(pid, 0);
         Require(result != 0 && Marshal.GetLastPInvokeError() == 3, $"Runner {pid} was not reaped.");
+    }
+
+    private static bool Alive(int pid)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                return !process.HasExited;
+            }
+            catch (ArgumentException) { return false; }
+        }
+        if (OperatingSystem.IsMacOS()) return MacKill(pid, 0) == 0;
+        try { return File.ReadAllText($"/proc/{pid}/stat") is var stat && stat[(stat.LastIndexOf(')') + 2)..] is not ['Z', ..]; }
+        catch (IOException) { return false; }
     }
 
     [DllImport("/usr/lib/libSystem.B.dylib", EntryPoint = "kill", SetLastError = true)]
