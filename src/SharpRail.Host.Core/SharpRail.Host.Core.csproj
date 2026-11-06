@@ -58,5 +58,5 @@
     <Content Include="shell-integration/zsh/.zshenv" Link="shell-integration/zsh/.zshenv" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="shell-integration/bash/sharprail.bash" Link="shell-integration/bash/sharprail.bash" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /><InternalsVisibleTo Include="sharprail-headless" /></ItemGroup>
 </Project>
