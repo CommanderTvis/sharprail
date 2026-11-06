@@ -90,6 +90,9 @@
   <Style Selector="Button.quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.quiet:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent" />
   </Style>
+  <Style Selector="Button.value-link:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{x:Static kit:Ui.PrimaryMuted}" />
+  </Style>
   <Style Selector="Button.card:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.card:pressed /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{x:Static kit:Ui.Elevated}" />
     <Setter Property="BorderBrush" Value="{x:Static kit:Ui.PrimaryMuted}" />

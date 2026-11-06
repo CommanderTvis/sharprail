@@ -275,7 +275,7 @@ workspace's composition under `workspaces/`. They are generated, never the user'
 terminal regenerate them, overwriting any hand edit, and they open read-only under SharpRail's notice
 ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections)). Their content is shaped only by turning sections off for a project: the context table shows
 them as one entry, the shared instructions view (Agent UI `InstructionSectionsView`) with the PROJECT chip, the
-appended file's tokens, its path and a muted count (`8 sections · 1 off · Choose…`); the whole row is a button opening a popup (a flyout, so it works on every platform) of the sections Claude's sessions in that workspace get, grouped by
+appended file's tokens, its path and a muted count (`8 sections · 1 off · Choose…`); the whole row is a button opening an in-window overlay dialog, like the settings editor (fixed title and Close, scrolling body, Escape closes), of the sections Claude's sessions in that workspace get, grouped by
 source (SharpRail, then each enabled plugin), each a compact checkbox with title and size and a one-line summary that
 discloses the section's read-only text. Ticking writes the project's `.sharprail/instructions.toml` disable-list through
 the host (`instructionsList`, `instructionsSet`; schema in [Plugins](../SharpRail.Host.Core/Plugins.SPEC.md#agent-instruction-sections));
@@ -335,7 +335,7 @@ The Settings value composer suggests documented values for keys whose value set 
 `modelSettings.*.effortLevel`, `theme`, `tui`, `outputStyle`, `forceLoginMethod`,
 `autoUpdatesChannel` and similar) as chips that fill the text field; the field still saves any
 string, since a newer Claude Code may accept values the table lacks. A `*` segment matches one key
-segment. Keys the schema types as boolean are composed as on/off and written unquoted; unknown keys
+segment. Keys the schema types as boolean are composed as two side-by-side `true` and `false` options (the current one selected, none while unset; arrows move and select) and written unquoted; a setting value that opens the editor is underlined in the link colour with a hand cursor and a focus wash, a read-only one is plain; unknown keys
 keep the free shape switch. Sources, cited per row: the settings JSON schema at
 https://json.schemastore.org/claude-code-settings.json, https://code.claude.com/docs/en/model-config
 and `claude --help` (`--permission-mode` choices). The edit review names its scopes "Your settings",

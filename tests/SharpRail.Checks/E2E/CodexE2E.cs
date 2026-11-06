@@ -330,10 +330,9 @@ internal static class CodexE2E
         {
             codex.App.Click(One<Button>(SettingRow(panel, "features.hooks"), "CodexSettingChange"));
             var dialog = Dialog(codex.App);
-            var toggle = One<Button>(dialog, "CodexValueSwitch");
-            Require(Equals(toggle.Tag, from), "the switch shows the current value");
-            codex.App.Click(toggle, freshGesture: false);
-            Require(Equals(One<Button>(dialog, "CodexValueSwitch").Tag, !from) && Texts(One<Button>(dialog, "CodexValueSwitch")).Contains((!from).ToString().ToLowerInvariant(), StringComparison.Ordinal), "the switch flips");
+            Require(One<ToggleButton>(dialog, "CodexValueSwitch_true").IsChecked == from && One<ToggleButton>(dialog, "CodexValueSwitch_false").IsChecked == !from, "both options show and the current one is selected");
+            codex.App.Click(One<ToggleButton>(dialog, from ? "CodexValueSwitch_false" : "CodexValueSwitch_true"), freshGesture: false);
+            Require(One<ToggleButton>(dialog, "CodexValueSwitch_true").IsChecked == !from, "the other option is selected");
             codex.App.Click(One<Button>(dialog, "CodexValueContinue"), freshGesture: false);
             E2eWorkspace.Until(() => File.ReadAllText(path).Contains($"hooks = {(!from).ToString().ToLowerInvariant()}", StringComparison.Ordinal));
             E2eWorkspace.Until(() => !SharpRail.Plugins.UI.Kit.DialogWindow.On(codex.App.Window).Any());
@@ -392,16 +391,16 @@ internal static class CodexE2E
         var sections = (SharpRail.Plugins.Agent.UI.InstructionSectionsView)One<Control>(panel, "InstructionSections");
         CheckBox? SectionBox(string id) => sections.SectionsPanel.GetLogicalDescendants().OfType<CheckBox>().SingleOrDefault(box => box.Name == "InstructionSectionCheckbox" && Equals(box.Tag, id));
         Require(One<Border>(panel, "InstructionSectionsScopeChip").Tag as string == "project" && !panel.GetLogicalDescendants().OfType<CheckBox>().Any(box => box.Name == "InstructionSectionCheckbox"),
-            "SharpRail's instructions are one compact entry with the PROJECT chip, its sections in a popup");
+            "SharpRail's instructions are one compact entry with the PROJECT chip, its sections in a dialog");
         codex.App.Click(One<Button>(panel, "InstructionSectionsToggle"));
         E2eWorkspace.Until(() => sections.IsOpen && SectionBox("core.push-and-signing") is { IsChecked: true, IsEnabled: true, IsEffectivelyVisible: true });
         Require(!Has(panel, "CodexSystemPromptEditPane") && !sections.SectionsPanel.GetLogicalDescendants().OfType<TextBox>().Any(),
-            "the instructions popup offers no way to edit text");
+            "the instructions dialog offers no way to edit text");
         var instructionsFile = Path.Combine(codex.App.Window.WorkspaceRoot, ".sharprail", "instructions.toml");
         SectionBox("core.push-and-signing")!.IsChecked = false;
         E2eWorkspace.Until(() => File.Exists(instructionsFile) && File.ReadAllText(instructionsFile).Contains("\"core.push-and-signing\"", StringComparison.Ordinal));
         E2eWorkspace.Until(() => SectionBox("core.push-and-signing") is { IsChecked: false, IsEnabled: true });
-        One<Button>(panel, "InstructionSectionsToggle").Flyout!.Hide();
+        DialogWindow.On(codex.App.Window).OfType<DialogWindow>().Single().Close();
         E2eWorkspace.Until(() => !sections.IsOpen && One<TextBlock>(panel, "InstructionSectionsCount").Text?.Contains(" · 1 off", StringComparison.Ordinal) == true);
         File.Delete(instructionsFile);
         var body = One<ScrollViewer>(panel, "Body");

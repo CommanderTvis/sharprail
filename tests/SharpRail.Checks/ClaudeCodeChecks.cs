@@ -211,26 +211,40 @@ internal static class ClaudeCodeChecks
             Sections()!.GetLogicalDescendants().OfType<Border>().Any(chip => chip.Name == "InstructionSectionsScopeChip" && Equals(chip.Tag, "project")) &&
             !Sections()!.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "SHARED WITH THE TEAM"),
             "SharpRail's instructions are a single context entry with the PROJECT chip.");
-        // The row is a button that counts its sections; the checkboxes live only in its popup, never inline in the table.
+        // The row is a button that counts its sections; the checkboxes live only in its dialog, never inline in the table.
         TextBlock SectionCount() => Sections()!.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "InstructionSectionsCount");
         Button SectionsRow() => Sections()!.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "InstructionSectionsToggle");
         var view = (SharpRail.Plugins.Agent.UI.InstructionSectionsView)Sections()!;
         E2eWorkspace.Until(() => SectionCount() is { IsEffectivelyVisible: true, Text: { } count } && count.EndsWith(" sections · Choose…", StringComparison.Ordinal));
-        Require(!Sections()!.GetLogicalDescendants().OfType<CheckBox>().Any() && SectionsRow().Flyout is Flyout && !view.IsOpen,
-            "The entry is one compact row with a section count; its sections open in a popup.");
+        Require(!Sections()!.GetLogicalDescendants().OfType<CheckBox>().Any() && SectionsRow().Flyout is null && !view.IsOpen && DialogWindow.On(app.Window).Count == 0,
+            "The entry is one compact row with a section count; its sections open in a dialog.");
         app.Click(SectionsRow());
         E2eWorkspace.Until(() => view.IsOpen && SectionBox("core.workspaces") is { IsChecked: true, IsEnabled: true, IsEffectivelyVisible: true });
         Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ClaudeSystemPromptEditPane") &&
             !Popup().GetLogicalDescendants().OfType<TextBox>().Any() &&
-            Popup().GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("running sessions keep their instructions", StringComparison.Ordinal) == true) &&
+            Popup().GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("Changes apply to new sessions.", StringComparison.Ordinal) == true) &&
             Popup().GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Text?.Contains(Path.Combine(".sharprail", "instructions.toml"), StringComparison.Ordinal) == true),
-            "The popup lists SharpRail's sections with the shared file and the restart note, and offers no way to edit text.");
+            "The dialog lists SharpRail's sections with the shared file and the restart note, and offers no way to edit text.");
+        // It is an in-window overlay dialog like the settings editor: no popover, a fixed title and Close, a body that scrolls in a short window.
+        var sectionsDialog = DialogWindow.On(app.Window).OfType<DialogWindow>().Single();
+        Require(sectionsDialog.InOverlay && sectionsDialog.Tag is "InstructionSectionsDialog" && sectionsDialog.Surface!.GetVisualAncestors().OfType<Avalonia.Controls.Primitives.Popup>().Count() == 0,
+            "SharpRail's instructions open as an overlay dialog, not a popover.");
+        var normalHeight = app.Window.Height;
+        app.Window.Height = 320;
+        E2eWorkspace.Settle(200);
+        var sectionsScroll = sectionsDialog.GetLogicalDescendants().OfType<ScrollViewer>().Single(viewer => viewer.Name == "DialogFieldsScroll");
+        var sectionsClose = sectionsDialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "InstructionSectionsClose");
+        Require(sectionsScroll.Extent.Height > sectionsScroll.Viewport.Height && sectionsClose.IsEffectivelyVisible &&
+            sectionsClose.TranslatePoint(new Point(0, sectionsClose.Bounds.Height), app.Window)!.Value.Y <= app.Window.Bounds.Height,
+            "A long list scrolls inside a short window and the Close button stays reachable.");
+        app.Window.Height = normalHeight;
+        E2eWorkspace.Settle(200);
         var instructionsFile = Path.Combine(app.Root, ".sharprail", "instructions.toml");
         SectionBox("core.workspaces")!.IsChecked = false;
         E2eWorkspace.Until(() => File.Exists(instructionsFile) && File.ReadAllText(instructionsFile).Contains("\"core.workspaces\"", StringComparison.Ordinal));
         E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: false, IsEnabled: true });
-        SectionsRow().Flyout!.Hide();
-        E2eWorkspace.Until(() => !view.IsOpen && SectionCount().Text?.EndsWith(" sections · 1 off · Choose…", StringComparison.Ordinal) == true);
+        DialogWindow.On(app.Window).OfType<DialogWindow>().Single().KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        E2eWorkspace.Until(() => !view.IsOpen && DialogWindow.On(app.Window).Count == 0 && SectionCount().Text?.EndsWith(" sections · 1 off · Choose…", StringComparison.Ordinal) == true);
         app.Click(SectionsRow());
         E2eWorkspace.Until(() => view.IsOpen && SectionBox("core.workspaces") is { IsEffectivelyVisible: true });
         // Each section is compact: no preview box and no visible identifier, only a summary that discloses the text.
@@ -248,9 +262,10 @@ internal static class ClaudeCodeChecks
         SectionBox("core.workspaces")!.IsChecked = true;
         E2eWorkspace.Until(() => File.ReadAllText(instructionsFile).Contains("disabled = []", StringComparison.Ordinal));
         E2eWorkspace.Until(() => SectionBox("core.workspaces") is { IsChecked: true });
-        SectionsRow().Flyout!.Hide();
+        DialogWindow.On(app.Window).OfType<DialogWindow>().Single().Close();
+        E2eWorkspace.Until(() => !view.IsOpen);
         File.Delete(instructionsFile);
-        Console.WriteLine("PASS instruction sections view: one PROJECT row counting its sections, a popup of compact checkboxes with disclosed text, toggles write .sharprail/instructions.toml");
+        Console.WriteLine("PASS instruction sections view: one PROJECT row counting its sections, a dialog of compact checkboxes with disclosed text, toggles write .sharprail/instructions.toml");
         // The generated file itself opens read-only under a notice that points to the toggles, and the host refuses to save it.
         var promptPath = Path.Combine(GeneratedInstructions.StateDirectory(), ClaudeCodeContract.Id, "thinkrail-prompt-claude.md");
         E2eWorkspace.Until(() => File.Exists(promptPath));
@@ -318,6 +333,7 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Until(() => compose.IsCompleted);
         Require(compose.GetAwaiter().GetResult() is { Key: "model", Value: var composed } && composed.GetString() == "opus",
             "The value composer opens as an owned dialog and returns the edited value for review.");
+        SettingValueLinks(app);
         SuggestedSettingValues(app);
         ScopeChoices(app);
         if (!OperatingSystem.IsWindows()) LaunchedSession(app, directory, launcher);
@@ -387,6 +403,23 @@ internal static class ClaudeCodeChecks
         app.Window.Layout.Close(app.Center, changes.Id);
     }
 
+    /// <summary>A setting value that opens the editor is underlined in the link colour with a hand cursor; a read-only one is plain text.</summary>
+    private static void SettingValueLinks(E2eWorkspace app)
+    {
+        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeSurface_settings"));
+        E2eWorkspace.Settle(500);
+        var links = app.Window.GetLogicalDescendants().OfType<Button>().Where(button => button.Name == "ClaudeSettingChange").ToArray();
+        // The fixture's settings decide whether a value is shown here at all; with none listed there is nothing to colour.
+        foreach (var link in links)
+        {
+            var text = link.GetLogicalDescendants().OfType<TextBlock>().Single();
+            Require(Equals(text.TextDecorations, Avalonia.Media.TextDecorations.Underline) && Equals(text.Foreground, Ui.Accent) && link.Cursor?.ToString() == new Cursor(StandardCursorType.Hand).ToString(),
+                "A clickable setting value is underlined in the link colour with a hand cursor.");
+        }
+        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeSurface_context"));
+        Console.WriteLine($"PASS Claude setting values: {links.Length} clickable value(s) underlined in the link colour, read-only ones are not buttons or underlined");
+    }
+
     /// <summary>
     /// Keys with a documented closed value set offer those values as chips, while the field still saves any string;
     /// a wildcard pattern matches one key segment, and a documented boolean is composed as on/off and written unquoted.
@@ -429,7 +462,14 @@ internal static class ClaudeCodeChecks
         {
             Named<AutoCompleteBox>("ClaudeCheckValueKey").Text = "alwaysThinkingEnabled";
             E2eWorkspace.Settle();
-            app.Click(Named<Button>("ClaudeCheckValueSwitch"), freshGesture: false);
+            // Both options show with none selected while the key is unset; a click selects, arrows move, the continue button follows.
+            Require(Named<ToggleButton>("ClaudeCheckValueSwitch_true").IsChecked == false && Named<ToggleButton>("ClaudeCheckValueSwitch_false").IsChecked == false &&
+                !Named<Button>("ClaudeCheckValueContinue").IsEnabled, "An unset boolean shows both options unselected.");
+            app.Click(Named<ToggleButton>("ClaudeCheckValueSwitch_false"), freshGesture: false);
+            Require(Named<ToggleButton>("ClaudeCheckValueSwitch_false").IsChecked == true && Named<Button>("ClaudeCheckValueContinue").IsEnabled, "Clicking an option selects it.");
+            Named<ToggleButton>("ClaudeCheckValueSwitch_false").Focus();
+            Named<StackPanel>("ClaudeCheckValueSwitch").RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Left });
+            Require(Named<ToggleButton>("ClaudeCheckValueSwitch_true").IsChecked == true && Named<ToggleButton>("ClaudeCheckValueSwitch_false").IsChecked == false, "An arrow key moves the selection.");
         });
         Require(flag is { Key: "alwaysThinkingEnabled", Value.ValueKind: JsonValueKind.True },
             "A documented boolean key is composed as on/off and returned as a JSON boolean.");

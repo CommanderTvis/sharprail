@@ -4,6 +4,8 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 
@@ -71,7 +73,8 @@ public static class SettingValueDialog
         var current = options.CurrentValue;
         var text = current is { ValueKind: JsonValueKind.String or JsonValueKind.Number } scalar
             ? scalar.ValueKind == JsonValueKind.String ? scalar.GetString()! : scalar.GetRawText() : "";
-        var on = current is { ValueKind: JsonValueKind.True };
+        // Null while the setting is unset or not a boolean: both options show and none is selected until one is picked.
+        bool? on = current is { ValueKind: JsonValueKind.True or JsonValueKind.False } flag ? flag.ValueKind == JsonValueKind.True : null;
         var items = current is { ValueKind: JsonValueKind.Array } array ? array.EnumerateArray().Select(item => item.ToString()).ToList() : [""];
         var choice = current is { ValueKind: JsonValueKind.String } chosen ? chosen.GetString()! : "";
 
@@ -92,6 +95,7 @@ public static class SettingValueDialog
             if (KeyChoices() is not null) return choice.Length == 0 ? "Pick a value." : null;
             if (key.Trim().Length == 0) return "A key is needed.";
             if (shape == ValueShape.Number && !double.IsFinite(Parse(text))) return "That is not a number.";
+            if (shape == ValueShape.Switch && on is null) return "Pick true or false.";
             if (shape == ValueShape.Text && text.Length == 0) return "An empty string is probably not what you mean.";
             return null;
         }
@@ -197,14 +201,7 @@ public static class SettingValueDialog
             switch (shape)
             {
                 case ValueShape.Switch:
-                    var toggle = Ui.Button(on ? "true" : "false", () => { });
-                    toggle.Name = prefix + "ValueSwitch";
-                    toggle.Tag = on;
-                    toggle.HorizontalAlignment = HorizontalAlignment.Left;
-                    AutomationProperties.SetName(toggle, "Value");
-                    if (on) toggle.Background = Ui.PrimarySubtle;
-                    toggle.Click += (_, _) => { on = !on; RenderValue(); };
-                    valueArea.Children.Add(toggle);
+                    valueArea.Children.Add(SwitchChoice());
                     break;
                 case ValueShape.List:
                     valueArea.Children.Add(ListEntries());
@@ -230,6 +227,38 @@ public static class SettingValueDialog
                     break;
             }
             Validate();
+        }
+
+        // A boolean shows both options side by side; arrows move between them and select, Tab leaves the group.
+        Control SwitchChoice()
+        {
+            var group = new StackPanel { Name = prefix + "ValueSwitch", Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
+            KeyboardNavigation.SetTabNavigation(group, KeyboardNavigationMode.Once);
+            AutomationProperties.SetName(group, "Value");
+            var segments = new List<ToggleButton>();
+            void Select(bool value)
+            {
+                on = value;
+                for (var i = 0; i < segments.Count; i++) segments[i].IsChecked = (i == 0) == value;
+                Validate();
+            }
+            foreach (var value in new[] { true, false })
+            {
+                var segment = Ui.Segment(prefix + "ValueSwitch_" + (value ? "true" : "false"), value ? "true" : "false");
+                segment.IsChecked = on == value;
+                segment.Click += (_, _) => Select(value);
+                segments.Add(segment);
+                group.Children.Add(segment);
+            }
+            group.KeyDown += (_, e) =>
+            {
+                if (e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down)) return;
+                var next = e.Key is Key.Left or Key.Up ? 0 : 1;
+                Select(next == 0);
+                segments[next].Focus();
+                e.Handled = true;
+            };
+            return group;
         }
 
         Control ListEntries()
@@ -263,7 +292,7 @@ public static class SettingValueDialog
         {
             Validate();
             if (!submit.IsEnabled) return;
-            result = (key.Trim(), KeyChoices() is not null ? JsonSerializer.SerializeToElement(choice, KitJson.Default.String) : Compose(shape, text, on, items));
+            result = (key.Trim(), KeyChoices() is not null ? JsonSerializer.SerializeToElement(choice, KitJson.Default.String) : Compose(shape, text, on == true, items));
             window.Close();
         };
         actions.Children.Add(submit);

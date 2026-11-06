@@ -4,6 +4,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -701,6 +702,8 @@ internal sealed class ClaudeConfigPanel : DockPanel
         Control value;
         if (editable)
         {
+            valueText.TextDecorations = TextDecorations.Underline;
+            valueText.Name = "ClaudeSettingValueLink";
             var change = new Button
             {
                 Name = "ClaudeSettingChange",
@@ -709,9 +712,11 @@ internal sealed class ClaudeConfigPanel : DockPanel
                 MinHeight = 0,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                HorizontalContentAlignment = HorizontalAlignment.Left
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                Cursor = new Cursor(StandardCursorType.Hand)
             };
             change.Classes.Add("quiet");
+            change.Classes.Add("value-link");
             ToolTip.SetTip(change, "Edit");
             change.Click += (_, _) => Compose(entry.Key, entry.Value, knownKeys);
             value = change;

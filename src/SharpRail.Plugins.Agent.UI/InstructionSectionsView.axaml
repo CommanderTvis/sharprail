@@ -43,11 +43,10 @@
       </DockPanel>
     </Button>
     <ContentControl x:Name="InstructionSectionsSource" Margin="30,0,8,4" HorizontalAlignment="Left" />
-    <StackPanel x:Name="InstructionSectionsBody" Margin="12" Spacing="2" Width="420">
-      <TextBlock Text="SharpRail's instructions" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
+    <StackPanel x:Name="InstructionSectionsBody" Spacing="2">
       <TextBlock x:Name="InstructionSectionsIntro" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
       <TextBlock FontSize="11" Foreground="{x:Static kit:Ui.Hint}" TextWrapping="Wrap"
-                 Text="Changes apply to new sessions; running sessions keep their instructions until restarted." />
+                 Text="Changes apply to new sessions." />
       <SelectableTextBlock x:Name="InstructionSectionsPath" FontSize="11" Foreground="{x:Static kit:Ui.Hint}" TextWrapping="Wrap" FontFamily="{x:Static kit:Ui.CodeFont}" />
       <TextBlock x:Name="InstructionSectionsIgnoredEdits" FontSize="12" Foreground="{x:Static kit:Ui.Warning}" TextWrapping="Wrap" IsVisible="False" />
       <TextBlock x:Name="InstructionSectionsDiagnostics" FontSize="12" Foreground="{x:Static kit:Ui.Warning}" TextWrapping="Wrap" IsVisible="False" />

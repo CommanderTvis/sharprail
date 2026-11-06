@@ -16,7 +16,7 @@ namespace SharpRail.Plugins.Agent.UI;
 
 /// <summary>
 /// SharpRail's instructions as one context entry: a row with the PROJECT chip, the size the host measured and the
-/// appended file's path and a count of the sections, that opens a popup of the sections an agent's sessions get, grouped by source
+/// appended file's path and a count of the sections, that opens a dialog of the sections an agent's sessions get, grouped by source
 /// (SharpRail, then each enabled plugin). Each section is a checkbox with its title, and a one-line summary that
 /// discloses its text. A checkbox only turns a section on or off in the project's <c>.sharprail/instructions.toml</c>;
 /// no text is editable here.
@@ -60,35 +60,40 @@ public sealed partial class InstructionSectionsView : Border
         this.FindControl<ContentControl>("InstructionSectionsIcon")!.Content = Ui.Icon("fileText", Ui.Hint, 14);
         this.FindControl<ContentControl>("InstructionSectionsScope")!.Content = ScopedSetting.ScopeChip("project", "InstructionSectionsScopeChip");
         ToolTip.SetTip(this.FindControl<ContentControl>("InstructionSectionsScope")!, "The choices live in the project and apply to everyone who commits and pulls them.");
-        // The sections are chosen in a popup over the panel (a flyout, so it works on every platform), never inline in the table.
+        // The sections are chosen in a dialog over the window, like the Claude settings editor, never inline in the table.
         var row = this.FindControl<Button>("InstructionSectionsToggle")!;
         ((Panel)body.Parent!).Children.Remove(body);
-        var flyout = new Flyout
-        {
-            Placement = PlacementMode.BottomEdgeAlignedLeft,
-            Content = new Border
-            {
-                Background = Ui.Elevated,
-                BorderBrush = Ui.BorderBrush,
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                MaxHeight = 520,
-                Child = new ScrollViewer { Content = body }
-            }
-        };
-        flyout.FlyoutPresenterClasses.Add("chip-card");
-        flyout.Opened += (_, _) => { IsOpen = true; _ = Run(load); };
-        flyout.Closed += (_, _) => IsOpen = false;
-        row.Flyout = flyout;
+        row.Click += (_, _) => _ = ShowDialog();
         ToolTip.SetTip(row, "Choose which of SharpRail's sections new sessions get");
         // The collapsed row counts its sections, so it reads as a list to open; the listing is read off the UI thread.
         _ = Run(load);
     }
 
-    /// <summary>Whether the sections popup is open.</summary>
+    private async Task ShowDialog()
+    {
+        if (IsOpen || TopLevel.GetTopLevel(this) is not Window owner) return;
+        var window = DialogWindow.Create("SharpRail's instructions", 480);
+        window.Tag = "InstructionSectionsDialog";
+        var fields = window.FindControl<StackPanel>("DialogFields")!;
+        fields.Children.Add(body);
+        var close = Ui.Button("Close", () => window.Close());
+        close.Name = "InstructionSectionsClose";
+        close.Classes.Add("primary");
+        window.FindControl<StackPanel>("DialogActions")!.Children.Add(close);
+        IsOpen = true;
+        _ = Run(load);
+        try { await window.ShowDialog(owner); }
+        finally
+        {
+            fields.Children.Remove(body);
+            IsOpen = false;
+        }
+    }
+
+    /// <summary>Whether the sections dialog is open.</summary>
     public bool IsOpen { get; private set; }
 
-    /// <summary>The popup's content: the grouped section checkboxes and the notes about the project's file.</summary>
+    /// <summary>The dialog's content: the grouped section checkboxes and the notes about the project's file.</summary>
     public Control SectionsPanel => body;
 
     /// <summary>Fills the entry's size column and the line under its name, typically the appended file's path.</summary>
@@ -128,7 +133,7 @@ public sealed partial class InstructionSectionsView : Border
     {
         if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => Show(list)); return; }
         this.FindControl<SelectableTextBlock>("InstructionSectionsPath")!.Text = list.Path.Length > 0
-            ? "Turned-off sections are listed in " + list.Path + "; commit it to share the choice with your team."
+            ? "Turned-off sections are listed in " + list.Path + ". Commit it to share the choice."
             : "";
         var ignored = Text("InstructionSectionsIgnoredEdits");
         ignored.IsVisible = list.IgnoredEditsPath is not null;
