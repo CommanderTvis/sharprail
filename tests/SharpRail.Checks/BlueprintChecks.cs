@@ -38,10 +38,13 @@ internal static class BlueprintChecks
     private const string Document = "Intro.\n\n!control select language\n= Python — most conventional\n- Haskell — strongest types\n\n!control multi deploy-as\n[x] Docker image — most portable\n[ ] Nix flake — most reproducible\n";
 
     /// <summary>The companion at 160 to 480 px: text wraps instead of trimming, the toolbar wraps onto lines, nothing is clipped or scrolls sideways.</summary>
-    private static void Narrow(E2eWorkspace app, UserControl pane)
+    private static void Narrow(E2eWorkspace app, UserControl pane, string project)
     {
-        var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().First(viewer => viewer.HorizontalScrollBarVisibility == Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled);
-        foreach (var width in new double[] { 160, 220, 320, 480 })
+        var longText = string.Concat(Enumerable.Repeat("Declarative flow definitions run by a small generic engine. ", 4))[..200];
+        File.WriteAllText(Path.Combine(project, "BLUEPRINT.md"), $"Intro.\n\n!control select generality\n= {longText} — why\n- Short — other\n");
+        Until(() => pane.GetLogicalDescendants().OfType<Button>().Any(b => b.Name == "BlueprintChoice" && (b.Content as TextBlock)?.Text?.StartsWith("Declarative", StringComparison.Ordinal) == true));
+        var scroll = pane.GetLogicalDescendants().OfType<StackPanel>().First(panel => panel.Name == "Document").GetLogicalAncestors().OfType<ScrollViewer>().First();
+        foreach (var width in new double[] { 160, 220, 320, 480, 700 })
         {
             var previous = pane.Width; pane.Width = width; pane.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
             app.Window.UpdateLayout(); pane.UpdateLayout();
@@ -58,11 +61,23 @@ internal static class BlueprintChecks
                 Require(left + block.Bounds.Width <= width + 0.5, $"Blueprint prose runs past the pane at {width} px.");
                 Require(block.Bounds.Width >= Math.Min(width * 0.4, 60), $"Blueprint prose is squeezed to {block.Bounds.Width} px at {width} px.");
             }
+            foreach (var view in pane.GetLogicalDescendants().OfType<UserControl>().Where(view => view.Name == "BlueprintControl"))
+            {
+                var frame = view.GetLogicalDescendants().OfType<Border>().First(border => border.Name == "Frame");
+                var choice = view.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "BlueprintChoice");
+                var card = view.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "Options");
+                var at = choice.TranslatePoint(default, frame)!.Value;
+                Require(at.X >= -0.5 && at.X + choice.Bounds.Width <= frame.Bounds.Width + 0.5, $"The choice leaves its block at {width} px ({at.X}, {choice.Bounds.Width}, block {frame.Bounds.Width}).");
+                Require(Math.Abs(card.Bounds.Width - choice.Bounds.Width) <= 1 && Math.Abs(card.TranslatePoint(default, frame)!.Value.X - at.X) <= 1, $"The card does not match the choice at {width} px ({card.Bounds.Width} against {choice.Bounds.Width}).");
+                Require(view.Bounds.Width <= scroll.Viewport.Width + 0.5, $"The block is wider than the pane at {width} px (view {view.Bounds.Width}, viewport {scroll.Viewport.Width}, pane {pane.Bounds.Width}).");
+            }
             Require(scroll.Extent.Width <= scroll.Viewport.Width + 0.5, $"Blueprint scrolls sideways at {width} px (extent {scroll.Extent.Width}, viewport {scroll.Viewport.Width}).");
             pane.Width = previous;
         }
+        File.WriteAllText(Path.Combine(project, "BLUEPRINT.md"), "An author that reports to nobody, twice.\n\n" + Document["Intro.\n\n".Length..]);
+        Until(() => pane.GetLogicalDescendants().OfType<Control>().Count(control => control.Name == "BlueprintControl") == 2);
         app.Window.UpdateLayout();
-        Console.WriteLine("PASS Blueprint wraps its text and toolbar at 160 to 480 px");
+        Console.WriteLine("PASS Blueprint wraps its text and toolbar at 160 to 700 px");
     }
 
     public static void RunUi(string root)
@@ -101,9 +116,9 @@ internal static class BlueprintChecks
         File.WriteAllText(Path.Combine(project, "BLUEPRINT.md"), "An author that reports to nobody, twice.\n\n" + Document["Intro.\n\n".Length..]);
         Until(() => PaneText().Contains("An author that reports to nobody, twice.", StringComparison.Ordinal));
         Require(ReferenceEquals(pane, app.Find<UserControl>("Blueprint")), "An external write updates the mounted pane in place.");
+        Narrow(app, pane, project);
         File.WriteAllText(Path.Combine(project, "BLUEPRINT.md"), "---\nid: cattery\ntitle: Cattery storefront for selling cats\ntags: [product, cats]\n---\n" + Document);
         Until(() => pane.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FrontmatterValue"));
-        Narrow(app, pane);
         var properties = app.Find<UserControl>("BlueprintProperties");
         properties.Width = 320;
         properties.UpdateLayout();

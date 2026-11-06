@@ -2,13 +2,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SharpRail.Plugins.Blueprint.UI.BlueprintControlView">
   <Border x:Name="Frame" CornerRadius="4" BorderThickness="1" Padding="12,8" Margin="0,12">
-    <StackPanel Spacing="4">
-      <StackPanel Orientation="Horizontal" Spacing="8">
+    <Grid x:Name="Layout" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+      <StackPanel x:Name="Heading" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
         <TextBlock x:Name="Title" FontSize="12" VerticalAlignment="Center" />
         <ContentControl x:Name="Lock" VerticalAlignment="Center" />
-        <Button x:Name="Choice" Padding="8,4" />
       </StackPanel>
-      <StackPanel x:Name="Options" Spacing="4" />
-    </StackPanel>
+      <Button x:Name="Choice" Grid.Column="1" Padding="8,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" />
+      <StackPanel x:Name="Options" Grid.Column="1" Grid.Row="1" Spacing="4" />
+    </Grid>
   </Border>
 </UserControl>

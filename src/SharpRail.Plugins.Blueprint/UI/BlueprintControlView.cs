@@ -22,14 +22,24 @@ internal sealed partial class BlueprintControlView : UserControl
         var locked = this.FindControl<ContentControl>("Lock")!;
         locked.IsVisible = control.Locked;
         locked.Content = Ui.Icon("lock", Ui.Hint, 12);
-        ToolTip.SetTip(locked, "You set this — regeneration keeps it");
+        ToolTip.SetTip(locked, "You set this. Regeneration keeps it.");
         var choice = this.FindControl<Button>("Choice")!;
         var options = this.FindControl<StackPanel>("Options")!;
         choice.IsVisible = control.Kind == BlueprintControlKind.Select;
         choice.IsEnabled = !control.Pending;
         var selected = control.Options.FirstOrDefault(option => control.SelectedIds.Contains(option.Id));
-        choice.Content = selected?.Label ?? "…";
+        choice.Content = new TextBlock { Text = selected?.Label ?? "…", TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis };
         choice.Name = "BlueprintChoice"; choice.Tag = string.Join(' ', control.SelectedIds);
+        // Below about 320 px the title stacks above the control and both take the full width.
+        frame.SizeChanged += (_, e) =>
+        {
+            var narrow = e.NewSize.Width < 320;
+            var heading = this.FindControl<StackPanel>("Heading")!;
+            Grid.SetColumnSpan(heading, narrow ? 2 : 1);
+            Grid.SetRow(choice, narrow ? 1 : 0); Grid.SetColumn(choice, narrow ? 0 : 1); Grid.SetColumnSpan(choice, narrow ? 2 : 1);
+            Grid.SetRow(options, narrow ? 2 : 1); Grid.SetColumn(options, narrow ? 0 : 1); Grid.SetColumnSpan(options, narrow ? 2 : 1);
+            frame.Padding = new Avalonia.Thickness(narrow ? 8 : 12, 8);
+        };
         var menu = new StackPanel();
         foreach (var option in control.Options)
         {
@@ -38,11 +48,13 @@ internal sealed partial class BlueprintControlView : UserControl
             var mark = new ContentControl { Name = "BlueprintOptionCheck", Width = 14, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Margin = new Avalonia.Thickness(0, 2, 0, 0) };
             if (isSelected) mark.Content = ActionIcons.Create(ActionIcon.Check, Ui.TextBrush, 12);
             var label = new StackPanel();
-            label.Children.Add(Ui.Text(option.Label, Ui.TextBrush, 13));
+            var name = Ui.Text(option.Label, Ui.TextBrush, 13);
+            name.TextWrapping = Avalonia.Media.TextWrapping.Wrap; name.TextTrimming = Avalonia.Media.TextTrimming.None;
+            label.Children.Add(name);
             if (option.Axis.Length > 0)
             {
                 var axis = Ui.Text(option.Axis, Ui.Muted, 12);
-                axis.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+                axis.TextWrapping = Avalonia.Media.TextWrapping.Wrap; axis.TextTrimming = Avalonia.Media.TextTrimming.None;
                 label.Children.Add(axis);
             }
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 8 };
