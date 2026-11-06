@@ -12,12 +12,15 @@ namespace SharpRail.Plugins.Api.Host;
 public interface IPluginHostContext
 {
     /// <summary>The plugin's id.</summary>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     string Id { get; }
 
     /// <summary>This activation's logger.</summary>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IPluginLogger Log { get; }
 
     /// <summary>The absolute path of the manifest's assets directory, or <see langword="null"/> when none is declared (H15).</summary>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     string? AssetsDirectory { get; }
 
     /// <summary>
@@ -29,6 +32,7 @@ public interface IPluginHostContext
     /// <typeparam name="TResult">The method's result.</typeparam>
     /// <param name="method">The method, from this plugin's contract.</param>
     /// <param name="handler">Called with the validated params and the calling client.</param>
+    [PluginAmbient]
     void Method<TParams, TResult>(PluginMethod<TParams, TResult> method, Func<TParams, PluginCall, CancellationToken, ValueTask<TResult>> handler);
 
     /// <summary>
@@ -40,6 +44,7 @@ public interface IPluginHostContext
     /// <param name="channel">The channel, from this plugin's contract.</param>
     /// <param name="payload">The payload.</param>
     /// <param name="target">Addresses the publish to the client that made this call.</param>
+    [PluginAmbient]
     void Publish<TPayload>(PluginChannel<TPayload> channel, TPayload payload, PluginCall? target = null);
 
     /// <summary>
@@ -47,10 +52,12 @@ public interface IPluginHostContext
     /// server terminals reach. While the plugin is disabled its route answers 404.
     /// </summary>
     /// <param name="handler">Called for each request under the plugin's route.</param>
+    [PluginPermission("net.loopback.route")]
     void Route(Func<PluginHttpRequest, CancellationToken, ValueTask<PluginHttpResponse>> handler);
 
     /// <summary>The base URL the plugin's route is reachable at from processes on the host machine (H3).</summary>
     /// <returns>The URL of <c>/plugin/&lt;id&gt;</c> on the loopback server, without a trailing slash.</returns>
+    [PluginPermission("net.loopback.route"), PluginCrossing(PluginCrossing.Blocking)]
     string PublicBaseUrl();
 
     /// <summary>
@@ -58,7 +65,8 @@ public interface IPluginHostContext
     /// providers on every absolute file read or save; this is a file allowlist, not directory access.
     /// </summary>
     /// <param name="provider">Returns, synchronously, the absolute paths exposed for a workspace id.</param>
-    void ExternalFiles(Func<string, IReadOnlyList<string>> provider);
+    [PluginPermission("files.external")]
+    void ExternalFiles([PluginCrossing(PluginCrossing.Live)] Func<string, IReadOnlyList<string>> provider);
 
     /// <summary>
     /// Registers a tool on the per-terminal MCP surface (H4). While the plugin is disabled the tool is absent
@@ -66,6 +74,7 @@ public interface IPluginHostContext
     /// registered context (<see cref="PluginHostModule.Json"/>); otherwise registering it throws.
     /// </summary>
     /// <param name="definition">The tool, usually a <see cref="PluginTool{TParams}"/>.</param>
+    [PluginPermission("agent.instructions")]
     void Tool(PluginToolDefinition definition);
 
     /// <summary>
@@ -73,7 +82,8 @@ public interface IPluginHostContext
     /// the environment it was given.
     /// </summary>
     /// <param name="contributor">Called with the spawning terminal; returns variables to add.</param>
-    void TerminalEnvironment(Func<TerminalRef, IReadOnlyDictionary<string, string>> contributor);
+    [PluginPermission("shell.environment")]
+    void TerminalEnvironment([PluginCrossing(PluginCrossing.UnderLock)] Func<TerminalRef, IReadOnlyDictionary<string, string>> contributor);
 
 
     /// <summary>
@@ -82,7 +92,8 @@ public interface IPluginHostContext
     /// Contributions are active only while this plugin is.
     /// </summary>
     /// <param name="contributor">Called with the agent's id (for example <c>claude</c> or <c>codex</c>); returns its contribution or <see langword="null"/>.</param>
-    void AgentLaunch(Func<string, AgentLaunchContribution?> contributor);
+    [PluginPermission("shell.environment")]
+    void AgentLaunch([PluginCrossing(PluginCrossing.Live)] Func<string, AgentLaunchContribution?> contributor);
 
     /// <summary>
     /// The contributions of every active plugin for an agent, in plugin activation order, for the agent's own plugin to
@@ -90,11 +101,13 @@ public interface IPluginHostContext
     /// </summary>
     /// <param name="agentId">The agent's id.</param>
     /// <returns>The contributions, outermost first.</returns>
+    [PluginPermission("shell.environment"), PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId);
 
     /// <summary>Mints, or returns the existing, opaque identity token for a terminal (H6).</summary>
     /// <param name="terminal">The terminal.</param>
     /// <returns>The token, valid until the terminal closes.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Blocking)]
     string TerminalToken(TerminalRef terminal);
 
     /// <summary>
@@ -105,6 +118,7 @@ public interface IPluginHostContext
     /// <param name="terminal">The terminal the environment is for.</param>
     /// <param name="cancellationToken">Cancels the wait.</param>
     /// <returns>The variables, in full.</returns>
+    [PluginPermission("terminal.read")]
     ValueTask<IReadOnlyDictionary<string, string>> ShellEnvironmentAsync(TerminalRef terminal, CancellationToken cancellationToken = default)
     {
         var plain = new Dictionary<string, string>();
@@ -115,69 +129,83 @@ public interface IPluginHostContext
     /// <summary>Resolves a token minted by <see cref="TerminalToken"/> (H6).</summary>
     /// <param name="token">The token.</param>
     /// <returns>Its terminal, or <see langword="null"/> when unknown.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Blocking)]
     TerminalRef? TerminalForToken(string token);
 
     /// <summary>Reads a terminal's persisted, broadcast agent record (H7).</summary>
     /// <param name="terminal">The terminal.</param>
     /// <returns>The record, or <see langword="null"/> when none is set.</returns>
+    [PluginPermission("agent.records"), PluginCrossing(PluginCrossing.Mirrored)]
     TerminalAgentRecord? AgentRecord(TerminalRef terminal);
 
     /// <summary>Sets or clears a terminal's agent record (H7). It is persisted, broadcast, and dropped when the terminal closes.</summary>
     /// <param name="terminal">The terminal.</param>
     /// <param name="record">The record, or <see langword="null"/> to clear it.</param>
+    [PluginPermission("agent.records")]
     void SetAgentRecord(TerminalRef terminal, TerminalAgentRecord? record);
 
     /// <summary>Reads the title a terminal's tab shows: a user rename, an agent's title or the program's.</summary>
     /// <param name="terminal">The terminal.</param>
     /// <returns>The title, or <see langword="null"/> when the tab has none beyond its default.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     string? TerminalTitle(TerminalRef terminal) => null;
 
     /// <summary>Registers a source of running agent sessions that are not terminals, such as chats (the Processes pane lists them).</summary>
     /// <param name="source">Called for each snapshot; returns the sessions running now.</param>
-    void AgentSessions(Func<IReadOnlyList<AgentSession>> source)
+    [PluginPermission("agent.records")]
+    void AgentSessions([PluginCrossing(PluginCrossing.Live)] Func<IReadOnlyList<AgentSession>> source)
     {
     }
 
     /// <summary>Lists the running agent sessions every plugin's source reports.</summary>
     /// <returns>The sessions.</returns>
+    [PluginPermission("agent.records"), PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<AgentSession> ListAgentSessions() => [];
 
     /// <summary>Observes terminal lifecycle events: spawned, exited, closed, agent changed (H8).</summary>
     /// <param name="handler">Called with each event.</param>
+    [PluginPermission("terminal.read")]
     void OnTerminal(Action<TerminalEvent> handler);
 
     /// <summary>Lists the terminals the host currently holds, with their shells' process ids (H8).</summary>
     /// <returns>The terminals.</returns>
+    [PluginPermission("terminal.read", Condition = "only the pids; the tabs are ambient"), PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<TerminalProcess> Terminals();
 
     /// <summary>Resolves the workspace a process belongs to, by its pid or any ancestor's being a terminal shell (H8).</summary>
     /// <param name="pid">The process id.</param>
     /// <returns>The workspace id, or <see langword="null"/> when unknown.</returns>
+    [PluginPermission("terminal.read"), PluginCrossing(PluginCrossing.Blocking)]
     string? WorkspaceForProcess(int pid);
 
     /// <summary>Registers a hook offering a prefill when a shell starts again for a tab that carries an agent record (H9).</summary>
     /// <param name="hook">Called with the terminal and its record; returns a prefill or <see langword="null"/>.</param>
-    void RevivePrefill(Func<TerminalRef, TerminalAgentRecord, RevivePrefill?> hook);
+    [PluginPermission("terminal.input")]
+    void RevivePrefill([PluginCrossing(PluginCrossing.UnderLock)] Func<TerminalRef, TerminalAgentRecord, RevivePrefill?> hook);
 
     /// <summary>Writes into a terminal host-side, bypassing client attachment (H10).</summary>
     /// <param name="terminal">The terminal.</param>
     /// <param name="data">The text, sent as UTF-8.</param>
+    [PluginPermission("terminal.input")]
     void WriteTerminal(TerminalRef terminal, string data);
 
     /// <summary>Lists the host's open projects (H12).</summary>
     /// <returns>The projects.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<HostProject> Projects();
 
     /// <summary>Lists workspaces, from each project's worktrees (H12).</summary>
     /// <param name="projectId">Limits the list to one project.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
     /// <returns>The workspaces.</returns>
+    [PluginAmbient]
     ValueTask<IReadOnlyList<HostWorkspace>> WorkspacesAsync(string? projectId = null, CancellationToken cancellationToken = default);
 
     /// <summary>Reads one workspace (H12).</summary>
     /// <param name="id">The workspace id.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
     /// <returns>The workspace, or <see langword="null"/> when it does not exist.</returns>
+    [PluginAmbient]
     ValueTask<HostWorkspace?> WorkspaceAsync(string id, CancellationToken cancellationToken = default);
 
     /// <summary>Starts watching a workspace's files for this activation, feeding <see cref="OnFilesChanged"/> (H12).
@@ -185,24 +213,29 @@ public interface IPluginHostContext
     /// <param name="id">The workspace id.</param>
     /// <param name="cancellationToken">Cancels starting the watch.</param>
     /// <returns>Completes when the watch is running.</returns>
+    [PluginAmbient]
     ValueTask WatchWorkspaceAsync(string id, CancellationToken cancellationToken = default);
 
     /// <summary>Observes workspace lifecycle events (H12).</summary>
     /// <param name="handler">Called with each event.</param>
+    [PluginAmbient]
     void OnWorkspace(Action<WorkspaceEvent> handler);
 
     /// <summary>Observes coalesced filesystem changes in watched workspaces (H12).</summary>
     /// <param name="handler">Called with each batch.</param>
+    [PluginPermission("files.read")]
     void OnFilesChanged(Action<WorkspaceFilesChanged> handler);
 
     /// <summary>Reads the plugin's settings namespace, validated and with defaults filled (H13).</summary>
     /// <typeparam name="T">The contract's settings type.</typeparam>
     /// <returns>The current settings.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     T Settings<T>() where T : class;
 
     /// <summary>Observes the plugin's settings namespace (H13); not called for the value current at registration.</summary>
     /// <typeparam name="T">The contract's settings type.</typeparam>
     /// <param name="handler">Called with the settings after each change.</param>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     void OnSettings<T>(Action<T> handler) where T : class;
 
     /// <summary>Reads JSON state at <see cref="PluginIdentity.StateFile"/> under the host state directory (H14).</summary>
@@ -210,6 +243,7 @@ public interface IPluginHostContext
     /// <param name="name">The state file name.</param>
     /// <param name="fallback">Returned when the file is missing or does not parse.</param>
     /// <returns>The state, or <paramref name="fallback"/>.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     T ReadState<T>(string name, T fallback);
 
     /// <summary>
@@ -219,6 +253,7 @@ public interface IPluginHostContext
     /// <typeparam name="T">The state's type, named by the contract's context or <see cref="PluginHostModule.Json"/>.</typeparam>
     /// <param name="name">The state file name.</param>
     /// <param name="value">The value, serialized with <see cref="PluginJson.Options"/>.</param>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     void WriteState<T>(string name, T value);
 
     /// <summary>
@@ -227,6 +262,7 @@ public interface IPluginHostContext
     /// holds what JSON state cannot, such as a downloaded executable, and survives the plugin being disabled or
     /// replaced. The directory is not created until the plugin does so.
     /// </summary>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     string? StateDirectory { get; }
 
     /// <summary>
@@ -236,6 +272,7 @@ public interface IPluginHostContext
     /// enabled, so a disabled plugin leaves no trace in the instructions.
     /// </summary>
     /// <param name="text">The item's text, without a leading list marker. It describes the plugin's tools and when to use them.</param>
+    [PluginPermission("agent.instructions")]
     void ToolGuidance(string text);
 
     /// <summary>
@@ -244,6 +281,7 @@ public interface IPluginHostContext
     /// </summary>
     /// <param name="contribution">The contribution.</param>
     /// <exception cref="ArgumentException">The identifier is malformed or already registered by this plugin, or the text is empty, too long or has control characters.</exception>
+    [PluginPermission("agent.instructions")]
     void Prompt(PromptContribution contribution);
 
     /// <summary>
@@ -253,6 +291,7 @@ public interface IPluginHostContext
     /// </summary>
     /// <param name="spec">The server.</param>
     /// <exception cref="ArgumentException">The id is malformed or already provided by an active plugin.</exception>
+    [PluginPermission("language.server")]
     void LanguageServer(LanguageServerSpec spec);
 
     /// <summary>
@@ -265,6 +304,7 @@ public interface IPluginHostContext
     /// with several, the first by plugin id wins.
     /// </summary>
     /// <param name="policy">Orders the steps.</param>
+    [PluginPermission("shell.environment")]
     void WorkspaceEnvironment(IWorkspaceEnvironmentPolicy policy);
 
     /// <summary>
@@ -273,6 +313,7 @@ public interface IPluginHostContext
     /// </summary>
     /// <param name="id">The step id the policy orders by, such as <c>mise</c>.</param>
     /// <param name="step">Edits the workspace's environment.</param>
+    [PluginPermission("shell.environment")]
     void WorkspaceEnvironmentStep(string id, Func<IWorkspaceEnvironmentEdit, CancellationToken, ValueTask> step);
 
     /// <summary>
@@ -280,6 +321,7 @@ public interface IPluginHostContext
     /// reported through <see cref="IWorkspaceEnvironmentEdit.Report"/>, in step order. The list is empty when nothing applies.
     /// </summary>
     /// <param name="handler">Called on a pool thread after each resolution.</param>
+    [PluginPermission("shell.environment")]
     void OnWorkspaceEnvironment(Action<string, IReadOnlyList<WorkspaceEnvironmentFact>> handler);
 
     /// <summary>
@@ -290,6 +332,7 @@ public interface IPluginHostContext
     /// <param name="agent">The agent plugin id.</param>
     /// <param name="placement">Which texts to list.</param>
     /// <returns>The texts, without list markers.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement);
 
     /// <summary>
@@ -301,6 +344,7 @@ public interface IPluginHostContext
     /// <param name="placement">Which texts to list.</param>
     /// <param name="workspace">The workspace's absolute path.</param>
     /// <returns>The texts, without list markers.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement, string workspace) => PromptTexts(agent, placement);
 
     /// <summary>
@@ -313,6 +357,7 @@ public interface IPluginHostContext
     /// <param name="workspace">The workspace's absolute path.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
     /// <returns>The sections and the project file's state.</returns>
+    [PluginPermission("agent.records")]
     ValueTask<InstructionSectionList> InstructionSectionsAsync(string agent, string workspace, CancellationToken cancellationToken = default) =>
         ValueTask.FromResult(new InstructionSectionList());
 
@@ -328,16 +373,19 @@ public interface IPluginHostContext
     /// <param name="cancellationToken">Cancels before the write.</param>
     /// <returns>The listing after the change.</returns>
     /// <exception cref="ArgumentException">The identifier is malformed, or the file is broken and must be fixed by hand first.</exception>
+    [PluginPermission("agent.instructions")]
     ValueTask<InstructionSectionList> SetInstructionSectionAsync(string agent, string workspace, string id, bool enabled, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("This host keeps no instruction settings.");
 
     /// <summary>Observes changes to any project's <c>.sharprail/instructions.toml</c> made through the host or found on disk; the argument is the project root.</summary>
     /// <param name="handler">Called on a background thread.</param>
+    [PluginPermission("agent.records")]
     void OnInstructionSectionsChanged(Action<string> handler) { }
 
     /// <summary>
     /// The host's process facts, language-server processes and owned-process registry (H27), or <see langword="null"/> on a host that has none.
     /// </summary>
+    [PluginPermission("processes.read"), PluginCrossing(PluginCrossing.LocalInRunner)]
     IProcessHost? Processes => null;
 
     /// <summary>
@@ -346,6 +394,7 @@ public interface IPluginHostContext
     /// plugin should call that with its own id instead.
     /// </summary>
     /// <returns>The items, without list markers.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<string> ToolGuidanceSections();
 
     /// <summary>
@@ -357,6 +406,7 @@ public interface IPluginHostContext
     /// <param name="options">Timeout and network access.</param>
     /// <param name="cancellationToken">Kills Git when cancelled.</param>
     /// <returns>The result; a non-zero exit is a result, not an exception.</returns>
+    [PluginPermission("process")]
     ValueTask<GitRunResult> GitAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -365,6 +415,7 @@ public interface IPluginHostContext
     /// second registration by the same plugin is ignored.
     /// </summary>
     /// <param name="provider">The provider.</param>
+    [PluginPermission("repo.host")]
     void RepoHost(RepoHostProvider provider);
 
     /// <summary>
@@ -372,6 +423,7 @@ public interface IPluginHostContext
     /// Handlers run on a pool thread and publish on the plugin's own channels for its UI half.
     /// </summary>
     /// <param name="handler">Receives the status.</param>
+    [PluginPermission("repo.host")]
     void OnBranchStatus(Action<BranchStatusEvent> handler);
 
     /// <summary>
@@ -386,6 +438,7 @@ public interface IPluginHostContext
     /// <param name="cancellationToken">Kills the tool when cancelled.</param>
     /// <exception cref="System.ComponentModel.Win32Exception">The tool is not installed.</exception>
     /// <exception cref="TimeoutException">The deadline passed.</exception>
+    [PluginPermission("process")]
     ValueTask<RepoHostToolResult> RunToolAsync(string tool, string directory, IReadOnlyList<string> args, TimeSpan timeout,
         IReadOnlyDictionary<string, string?>? environment = null, CancellationToken cancellationToken = default);
 
@@ -393,6 +446,7 @@ public interface IPluginHostContext
     /// <param name="contract">The dependency's contract.</param>
     /// <returns>The handle, dispatching in process.</returns>
     /// <exception cref="InvalidOperationException">The contract's plugin is not a declared dependency.</exception>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IPluginDependencyHandle Dependency(PluginContract contract);
 }
 

@@ -57,9 +57,12 @@ public sealed class RunnerSession : IAsyncDisposable
     public IsolationPeer Peer { get; }
     public RunnerHello Hello { get; }
 
-    /// <summary>Starts a runner and completes the handshake within <paramref name="timeout"/>, or kills it and throws.</summary>
+    /// <summary>
+    /// Starts a runner and completes the handshake within <paramref name="timeout"/>, or kills it and throws. With
+    /// <paramref name="apiTableHash"/>, a runner whose generated member tables hash differently is refused.
+    /// </summary>
     public static async Task<RunnerSession> StartAsync(ChildProcessStart start, IsolationPeerOptions options, RunnerInit init, TimeSpan timeout,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, string? apiTableHash = null)
     {
         var process = ChildProcess.Start(start);
         var hello = new TaskCompletionSource<RunnerHello>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -78,6 +81,8 @@ public sealed class RunnerSession : IAsyncDisposable
                         var introduced = IsoProtocol.DecodeHello(frame.Payload);
                         if (introduced.Protocol != IsoProtocol.Version)
                             throw new IsolationProtocolException($"The plugin runner speaks channel protocol {introduced.Protocol}; this host speaks {IsoProtocol.Version}.");
+                        if (apiTableHash is not null && introduced.ApiTableHash != apiTableHash)
+                            throw new IsolationProtocolException($"The plugin runner was built against plugin API table {introduced.ApiTableHash}; this host has {apiTableHash}.");
                         hello.TrySetResult(introduced);
                         return;
                     case IsoFrameKind.Ready when hello.Task.IsCompleted && !ready.Task.IsCompleted:

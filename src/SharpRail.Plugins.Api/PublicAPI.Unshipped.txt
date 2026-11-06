@@ -516,3 +516,23 @@ SharpRail.Plugins.Api.PluginRosterEntry.Support.get -> string?
 SharpRail.Plugins.Api.PluginRosterEntry.Support.init -> void
 SharpRail.Plugins.Api.PluginSupportLevels
 const SharpRail.Plugins.Api.PluginSupportLevels.Early = "early" -> string!
+SharpRail.Plugins.Api.PluginAmbientAttribute
+SharpRail.Plugins.Api.PluginAmbientAttribute.PluginAmbientAttribute() -> void
+SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossing.Blocking = 4 -> SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossing.Live = 2 -> SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossing.LocalInRunner = 5 -> SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossing.Mirrored = 0 -> SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossing.Resolver = 1 -> SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossing.Unavailable = 6 -> SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossing.UnderLock = 3 -> SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossingAttribute
+SharpRail.Plugins.Api.PluginCrossingAttribute.Crossing.get -> SharpRail.Plugins.Api.PluginCrossing
+SharpRail.Plugins.Api.PluginCrossingAttribute.IsolatedShape.get -> string?
+SharpRail.Plugins.Api.PluginCrossingAttribute.IsolatedShape.init -> void
+SharpRail.Plugins.Api.PluginCrossingAttribute.PluginCrossingAttribute(SharpRail.Plugins.Api.PluginCrossing crossing) -> void
+SharpRail.Plugins.Api.PluginPermissionAttribute
+SharpRail.Plugins.Api.PluginPermissionAttribute.Name.get -> string!
+SharpRail.Plugins.Api.PluginPermissionAttribute.PluginPermissionAttribute(string! name) -> void
+SharpRail.Plugins.Api.PluginPermissionAttribute.Condition.get -> string?
+SharpRail.Plugins.Api.PluginPermissionAttribute.Condition.init -> void

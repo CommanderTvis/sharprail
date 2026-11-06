@@ -21,9 +21,11 @@ public sealed record FileViewerProps(string WorkspaceId, string Path, int Revisi
 public sealed record FileViewerRegistration(Func<FileViewerProps, Control> Create)
 {
     /// <summary>Narrows eligibility beyond the manifest's extensions and names, for example to one of two viewers sharing an extension.</summary>
+    [PluginCrossing(PluginCrossing.Resolver)]
     public Func<string, bool>? Matches { get; init; }
 
     /// <summary>Handles the open outright instead of the open path's normal tab; return <see langword="true"/> to take it over.</summary>
+    [PluginCrossing(PluginCrossing.Live)]
     public Func<string, string, bool>? Open { get; init; }
 }
 
@@ -88,6 +90,7 @@ public sealed record SideToolRegistration(string Tool, Func<string, Control> Cre
     /// control to require a separate instance, for example when the new workspace has another data scope the control cannot swap to.
     /// Called on the UI thread: read in-memory state and start background loads, never wait.
     /// </summary>
+    [PluginCrossing(PluginCrossing.Live, IsolatedShape = "called with the surface the tool's factory returned; the plugin process passes its own control")]
     public Func<Control, string, bool>? Retarget { get; init; }
 }
 

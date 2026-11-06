@@ -1,6 +1,7 @@
 namespace SharpRail.Plugins.Api.UI;
 
 /// <summary>The logger handed to a UI half as <see cref="IPluginUIContext.Log"/>, one level per method.</summary>
+[PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
 public interface IPluginUILogger
 {
     /// <summary>Logs a debug message.</summary>
@@ -353,10 +354,12 @@ public sealed record AttentionNotification(string WorkspaceId, string TabKey, st
 }
 
 /// <summary>One client-local preference, namespaced by <see cref="PluginIdentity.PreferenceKey"/> and qualified by host endpoint.</summary>
+[PluginAmbient]
 public interface IPluginPreference
 {
     /// <summary>Reads the value.</summary>
     /// <returns>The value, or <see langword="null"/> when unset.</returns>
+    [PluginCrossing(PluginCrossing.Mirrored)]
     string? Get();
 
     /// <summary>Writes the value.</summary>

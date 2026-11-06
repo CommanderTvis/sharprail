@@ -313,6 +313,46 @@ reflection or emitted code is used. The wire format is internal and carries no s
 existing per-plugin `WireVersion`. C# is the only supported SDK; another language could speak the protocol, but
 that is not supported and gains no rights.
 
+### Classified in source
+
+How a member crosses and what it needs is written on the member, in the root API, so a reader of the API sees it
+and the generator reads it:
+
+- `[PluginAmbient]` or `[PluginPermission("name")]` on every member of `IPluginHostContext` and `IPluginUIContext`,
+  on a member or on its whole type. `Condition` names the case where a permission applies only sometimes, such as
+  `OpenTerminalAsync` with a `Command`, or the pids in `Terminals`.
+- `[PluginCrossing(...)]` on every synchronous member and on every synchronous callback, with one of the classes
+  under [Synchronous members](#synchronous-members): `Mirrored`, `Resolver`, `Live`, `UnderLock`, `Blocking`,
+  `LocalInRunner` or `Unavailable`. A callback's class sits on the delegate parameter or record property.
+  `IsolatedShape` says what a member that cannot cross as it is becomes. Asynchronous members cross as calls and
+  `void` members as one-way messages without an attribute, and so does a synchronous member that returns
+  `IDisposable`, whose handle the plugin process mints.
+- `isolation-pending.txt` beside this spec lists, by documentation-comment id, the members the isolated runtime does
+  not implement yet. The plugin process gets a `NotSupportedException` saying the member is not available to
+  isolated plugins yet. A new member is never pending by default: it is generated, or listed on purpose. The list
+  must be empty before external plugins run isolated in a shipping build.
+
+`SharpRail.Plugins.Isolation.Generator` turns this into one member table per root context: each member's id
+(FNV-1a 32 of its documentation-comment id), permission, crossing class and whether it is pending, and a hash of the
+whole table. The runner sends the hash of both tables in `Hello`, and the host refuses a runner whose hash differs
+from its own. The table reaches what the non-pending members reach: the interfaces a `LocalInRunner` member hands
+out, the delegate properties of records the plugin passes in, and delegate parameters. The build fails on:
+
+| rule | fails when |
+| --- | --- |
+| SRI001 | a member of a root context has no permission or ambient mark; a reached member that is not pending has none; a synchronous member or callback has no crossing class, or a class meant for the other direction; the pending list names a member nothing reaches |
+| SRI002 | a reached signature uses what cannot cross (`Type`, `HttpClient`, a stream, a span, a pointer, a `ref` or `out` parameter, a window, a `Control` other than a factory's result) without an `IsolatedShape`, or a shape the generator does not produce yet and is not pending |
+| SRI003 | a type a non-pending member serializes has no `[JsonSerializable]` in `PluginApiJson`, `IsolationJsonContext` or `IsolationUiJsonContext` (source generators do not chain, so the contexts list each type) |
+| SRI004 | two members of a table share an id |
+| SRI005 | a class implementing a reached interface, the generated proxies included, inherits a default interface member instead of implementing it, so it would answer with the silent default |
+| SRI006 | a tuple element in a reached signature has no name |
+
+The first plugin to run isolated has a UI half only, so the UI half comes first: what a UI-only plugin needs from
+`IPluginUIContext` is generated (`Id`, `Log`, `Settings`, `OnSettings`, `UpdateSettingsAsync`, `Preference`,
+`ReadAssetAsync`, `Host`, `WatchHost`, `SideTool`, `SettingsSection`, `FileViewer`, `HeaderItem`, `Notify`,
+`Invalidate`, `OnReconnect`, and the `Func<..., Control>` factories as surface handles). Every member of
+`IPluginHostContext` and the rest of `IPluginUIContext` is classified and pending.
+
 ### How each kind of member crosses
 
 - Records, enums and JSON nodes go by value, written with `PluginJson.Options`, the same as plugin method payloads
@@ -358,7 +398,7 @@ the same weight as an undocumented symbol.
 ### Synchronous members
 
 A remote call cannot be synchronous for free. Every synchronous member in the API falls into one of four
-patterns.
+patterns, or is one of the two classes after them.
 
 1. Mirrored reads. The plugin runner keeps a local copy, fed by the same streams that drive the observers. A read
    never waits. The members are:
@@ -382,13 +422,25 @@ patterns.
      `decorate`, `IsWorking` and `Adornment`, `AgentLauncher.Availability`, `Models` and `TerminalCommand`,
      `CompanionRegistration.IsAvailable` and `InstanceTitle`, `AttentionNotification.StillNeeded`,
      `KeymapActionRegistration.Enabled`, `SideToolRegistration.Retarget` and `FileViewerRegistration.Open`;
-   - host: `AgentLaunch` contributors, `RevivePrefill`, `PromptContribution.When` and `WorkspaceText`,
+   - host: `AgentLaunch` contributors, `PromptContribution.When` and `WorkspaceText`,
      `ExternalFiles`, `AgentSessions`, and `LanguageServerSpec.ConfigureLaunch`, `ConfigureInitialization` and
      `OnMessage`.
-4. Callbacks under a host lock. `TerminalEnvironment` (H5) runs under the terminal service's lock, and a remote
-   call must never be made while holding a lock. For an isolated plugin, the host calls the contributor before it
+4. Callbacks under a host lock. `TerminalEnvironment` (H5) and `RevivePrefill` run under the terminal service's
+   lock, and a remote call must never be made while holding a lock. For an isolated plugin, the host calls the contributor before it
    takes the lock and applies the result under it. Unconfirmed: that the terminal service can be restructured
    this way without changing the order in which builtin contributions apply.
+
+The other two classes are for synchronous calls from the plugin:
+
+- `Blocking`: a call the plugin process waits on with a short deadline (1 s, 250 ms on the UI thread), throwing
+  `TimeoutException` when it passes. It is for what cannot be mirrored: `TerminalToken`, `TerminalForToken`,
+  `WorkspaceForProcess`, `PublicBaseUrl`, and parts of `IProcessHost`, `IWorkspaceEnvironmentEdit` and the
+  language-server interfaces.
+- `LocalInRunner`: implemented in the plugin process, against what its sandbox allows or what it keeps itself: `Id`,
+  `Log`, `ReadState`, `WriteState`, `StateDirectory`, `AssetsDirectory`, `ReadAssetAsync`, and the observers of
+  mirrored data (`OnSettings`, `WatchHost`, `OnReconnect`). A `LocalInRunner` member that returns an API interface,
+  such as `Preference`, gives the plugin a generated object whose calls name that member and its arguments, so the
+  trusted side finds the same object again.
 
 Plugin-to-plugin dependencies already cross load contexts as JSON. Between isolated plugins they route through the
 host runtime, which checks the dependency declaration as it does today.
@@ -482,6 +534,8 @@ Ambient members need no permission. They are granted by enabling the plugin and 
 - Workspace metadata: project and workspace names, paths and branches, and the projection's terminal tabs and
   roster. This covers `Projects`, `TerminalTitle`, `WorkspacesAsync`, `WorkspaceAsync`, `WatchWorkspaceAsync`, `OnWorkspace`,
   `Host`, `WatchHost`, `OnReconnect` and `OnWorkspaceRemoved`.
+- The instruction texts plugins compose for agents, which the agents read anyway: `PromptTexts` and
+  `ToolGuidanceSections`.
 - UI surfaces: `SideTool`, `Companion`, `FocusCompanion`, `FileViewer`, `SettingsSection`, `SlotSection`,
   `HeaderItem`, `WorkspaceAction`, `TabDecoration`, `FileIconSlot`, `DocumentLinkSlot`, `FileAction`,
   `TerminalTabAction`, `KeymapAction`, `Document`, `RepoHostUI`, `Launcher` (registering it, plus `Launchers` and
@@ -512,7 +566,7 @@ Permissioned members:
 | `terminal.command` | `OpenTerminalAsync` with a `Command`, `AgentLauncher.TerminalCommand` and `Open` | runs commands in new terminals |
 | `terminal.input` | `WriteTerminal`, `ITerminalAccessoryApi.Write` and `HoldInput`, `RevivePrefill` | types into your terminals |
 | `terminal.read` | `ITerminalAccessoryApi.ReadScreenTailAsync`, `OnTerminal`, `Terminals` with pids, `WorkspaceForProcess`, `ShellEnvironmentAsync` (environments carry secrets) | reads your terminals and their environment |
-| `shell.environment` | `TerminalEnvironment`, `AgentLaunch` on either side, `WorkspaceEnvironment`, `WorkspaceEnvironmentStep`, `OnWorkspaceEnvironment`, and every `IWorkspaceEnvironmentEdit` member other than `RunAsync` and `Find` (`Get` reads variables, which carry secrets; `Set`, `PrependPath` and `ShellInit` change them; `Directory`, `DefaultDirectory`, `Edited`, `MatchesDefault`, `Report` and `Log` come with the step) | changes what your shells and agents run |
+| `shell.environment` | `TerminalEnvironment`, `AgentLaunch` and `AgentLaunchContributions` on either side (other plugins' contributions carry environment values), `WorkspaceEnvironment`, `WorkspaceEnvironmentStep`, `OnWorkspaceEnvironment`, and every `IWorkspaceEnvironmentEdit` member other than `RunAsync` and `Find` (`Get` reads variables, which carry secrets; `Set`, `PrependPath` and `ShellInit` change them; `Directory`, `DefaultDirectory`, `Edited`, `MatchesDefault`, `Report` and `Log` come with the step) | changes what your shells and agents run |
 | `agent.instructions` | `Prompt` (H20), `ToolGuidance`, `Tool` (H4), `SetInstructionSectionAsync` | tells your agents what to do |
 | `agent.records` | `AgentRecord`, `SetAgentRecord`, `AgentSessions`, `ListAgentSessions`, `OnInstructionSectionsChanged`, `InstructionSectionsAsync` | reads and labels your agent sessions |
 | `language.server` | `LanguageServer` registration and everything reachable from its hooks, except what runs programs or reaches the network, which also needs `process:` or `net:`. That is `ILanguageServerInstallation` (`Root`, `Platform`, `ServerCache`, `SharedCache`, `InstallationPath`, `SessionDirectory`, `Workspace`, `WorkspaceState`, `FindInstalled`, `AcceptedTerms`), `ILanguageServerStart` (`Expand`, `FullPath`, `Manifests`, `Options`, `ResolveProjectJdk`, `ServerCache`, `SessionDirectory`, `Workspace`, `WorkspaceState`, `Log`), `ILanguageServerSession` (`RequestAsync`, `Contains`, `SupportsCommand`, `SetProgress`, `SetState`, `SetUnavailable`, `Track`, `Workspace`) and `ILanguageServerPrime` (`Source`, `SourceState`, `Target`, `TargetState`). The server's cache, installation, session and workspace-state directories are bind-mounted read-write into the plugin's sandbox under this grant | provides code intelligence |

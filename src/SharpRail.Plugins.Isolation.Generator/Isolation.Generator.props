@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    Imported by the projects the isolation generator writes into; each sets SharpRailIsolation to runner, trusted-host or
+    trusted-ui first. The pending list is one file for all of them (Security.SPEC.md, Calls across the boundary).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)SharpRail.Plugins.Isolation.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <CompilerVisibleProperty Include="SharpRailIsolation" />
+    <CompilerVisibleProperty Include="RootNamespace" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)../SharpRail.Plugins.Api/isolation-pending.txt" Link="isolation-pending.txt" />
+  </ItemGroup>
+</Project>

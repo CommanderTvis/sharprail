@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <SharpRailIsolation>trusted-ui</SharpRailIsolation>
+  </PropertyGroup>
+  <Import Project="../SharpRail.Plugins.Isolation.Generator/Isolation.Generator.props" />
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+  </ItemGroup>
+</Project>

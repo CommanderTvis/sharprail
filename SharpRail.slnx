@@ -16,6 +16,8 @@
     <Project Path="src/SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
+    <Project Path="src/SharpRail.Plugins.Isolation.Generator/SharpRail.Plugins.Isolation.Generator.csproj" />
+    <Project Path="src/SharpRail.Plugins.Isolation.UI/SharpRail.Plugins.Isolation.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.Runner/SharpRail.Plugins.Runner.csproj" />
     <Project Path="src/SharpRail.Plugins.Blueprint/Contract/SharpRail.Plugins.Blueprint.csproj" />
     <Project Path="src/SharpRail.Plugins.Blueprint/Host/SharpRail.Plugins.Blueprint.Host.csproj" />

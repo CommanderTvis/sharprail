@@ -6,9 +6,12 @@
     <!-- Avalonia's [Unstable] platform interfaces and [PrivateApi] locator, for the remote backend: Security.SPEC.md, UI halves. -->
     <AvaloniaAccessUnstablePrivateApis>true</AvaloniaAccessUnstablePrivateApis>
     <NoWarn>$(NoWarn);AVA3001</NoWarn>
+    <SharpRailIsolation>runner</SharpRailIsolation>
   </PropertyGroup>
+  <Import Project="../SharpRail.Plugins.Isolation.Generator/Isolation.Generator.props" />
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Isolation.UI/SharpRail.Plugins.Isolation.UI.csproj" />
     <PackageReference Include="Avalonia" />
   </ItemGroup>
 </Project>

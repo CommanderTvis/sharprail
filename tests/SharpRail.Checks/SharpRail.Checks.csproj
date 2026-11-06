@@ -9,6 +9,10 @@
     <ProjectReference Include="../SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" />
     <ProjectReference Include="../../src/SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />
     <ProjectReference Include="../../src/SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
+    <ProjectReference Include="../../src/SharpRail.Plugins.Isolation.UI/SharpRail.Plugins.Isolation.UI.csproj" />
+    <!-- The isolation generator as a library, so the crossing checks can run its rules on in-memory snippets. -->
+    <ProjectReference Include="../../src/SharpRail.Plugins.Isolation.Generator/SharpRail.Plugins.Isolation.Generator.csproj" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <!-- The plugin runner, framework-dependent, in plugin-runner/ of the build output only; a RID publish leaves it out. -->
     <ProjectReference Include="../../src/SharpRail.Plugins.Runner/SharpRail.Plugins.Runner.csproj" ReferenceOutputAssembly="false" OutputItemType="PluginRunnerOutput" Condition="'$(RuntimeIdentifier)' == ''" />
     <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />

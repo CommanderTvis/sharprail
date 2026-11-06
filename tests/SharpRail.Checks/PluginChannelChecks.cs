@@ -43,9 +43,9 @@ internal static class PluginChannelChecks
             return;
         }
         await Echo(runner);
-        Console.WriteLine("PASS plugin runner probe: handshake, stdio, no inherited handles, calls, cancel, deadline, handles, credits, one-way order, descriptor passing, callbacks, clean exit, reaped");
+        Console.WriteLine("PASS plugin runner probe: handshake with the member tables' hash, stdio, no inherited handles, calls, cancel, deadline, handles, credits, one-way order, descriptor passing, callbacks, clean exit, reaped");
         await Refusals(runner);
-        Console.WriteLine("PASS plugin runner refusals: a sent descriptor, a never-lent handle and a misnumbered call kill the runner; an exit code is captured; nothing is left unreaped; a runner's child dies with it");
+        Console.WriteLine("PASS plugin runner refusals: a runner generated from other member tables, a sent descriptor, a never-lent handle and a misnumbered call kill the runner; an exit code is captured; nothing is left unreaped; a runner's child dies with it");
         await AvaloniaPrivate(runner);
         Console.WriteLine("PASS plugin runner avalonia-private: a stub IWindowingPlatform registers and resolves");
     }
@@ -246,7 +246,7 @@ internal static class PluginChannelChecks
         var log = new ConcurrentQueue<string>();
         // A handle any child could inherit: the runner must not, so the pipe ends once the host drops its copy.
         using var marker = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
-        var session = await RunnerSession.StartAsync(Start(runner, RunnerProbe.EchoMode, log), HostOptions(), new RunnerInit("probe"), Patience);
+        var session = await RunnerSession.StartAsync(Start(runner, RunnerProbe.EchoMode, log), HostOptions(), new RunnerInit("probe"), Patience, apiTableHash: TableHash);
         var peer = session.Peer;
         marker.DisposeLocalCopyOfClientHandle();
         try { Require(await marker.ReadAsync(new byte[1]).AsTask().WaitAsync(TimeSpan.FromSeconds(5)) == 0, "The runner wrote to a handle it must not have."); }
@@ -346,8 +346,18 @@ internal static class PluginChannelChecks
         Gone(pid);
     }
 
+    /// <summary>The member tables the runner must have been generated with: the host context's, then the UI context's.</summary>
+    private const string TableHash = SharpRail.Plugins.Isolation.PluginHostContextMembers.Hash + "." + SharpRail.Plugins.Isolation.UI.PluginUIContextMembers.Hash;
+
     private static async Task Refusals(RunnerLaunch runner)
     {
+        try
+        {
+            await using var stale = await RunnerSession.StartAsync(Start(runner, RunnerProbe.EchoMode, new()), HostOptions(), new RunnerInit("probe"), Patience,
+                apiTableHash: "0000000000000000.0000000000000000");
+            Require(false, "A runner generated from other member tables must be refused.");
+        }
+        catch (IOException refused) when (refused.Message.Contains("plugin API table", StringComparison.Ordinal)) { }
         await Killed(runner, RunnerProbe.SendDescriptor, "", "descriptor");
         await Killed(runner, RunnerProbe.CallHost, "99999", "never lent");
         await Killed(runner, RunnerProbe.BadParity, "", "misnumbered");

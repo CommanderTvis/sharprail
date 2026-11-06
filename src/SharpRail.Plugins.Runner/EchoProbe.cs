@@ -47,7 +47,7 @@ internal static class EchoProbe
         peer.Send(new IsoFrame
         {
             Kind = IsoFrameKind.Hello,
-            Payload = IsoProtocol.Encode(new RunnerHello(IsoProtocol.Version, Environment.ProcessId, "probe " + RunnerProbe.EchoMode, Detail: standardInput))
+            Payload = IsoProtocol.Encode(new RunnerHello(IsoProtocol.Version, Environment.ProcessId, "probe " + RunnerProbe.EchoMode, RunnerTables.Hash, standardInput))
         });
         if (await Task.WhenAny(init.Task, peer.Completion) != init.Task) return 1;
         peer.Send(new IsoFrame { Kind = IsoFrameKind.Ready, Payload = IsoProtocol.Encode(new RunnerReady("probe")) });

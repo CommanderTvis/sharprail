@@ -58,9 +58,11 @@ public interface IPluginEditors
 public interface IPluginUIContext
 {
     /// <summary>The plugin's id.</summary>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     string Id { get; }
 
     /// <summary>This activation's logger.</summary>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IPluginUILogger Log { get; }
 
     /// <summary>Calls one of the plugin's methods on its host half (W1).</summary>
@@ -71,6 +73,7 @@ public interface IPluginUIContext
     /// <param name="cancellationToken">Cancels the call.</param>
     /// <returns>The result.</returns>
     /// <exception cref="PluginCallException">The plugin is disabled on the host, the method is unknown, the params are invalid or the handler failed.</exception>
+    [PluginAmbient]
     ValueTask<TResult> RequestAsync<TParams, TResult>(PluginMethod<TParams, TResult> method, TParams parameters, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -83,17 +86,20 @@ public interface IPluginUIContext
     /// <param name="handler">Called on the UI thread with each payload.</param>
     /// <param name="scope">For a keyed state channel, an object whose JSON properties are the key fields' values.</param>
     /// <returns>Disposing it cancels the subscription.</returns>
+    [PluginAmbient]
     IDisposable Subscribe<TPayload>(PluginChannel<TPayload> channel, Action<TPayload> handler, object? scope = null);
 
     /// <summary>Reads the plugin's settings namespace (W2).</summary>
     /// <typeparam name="T">The contract's settings type.</typeparam>
     /// <returns>The current settings, with defaults filled.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     T Settings<T>() where T : class;
 
     /// <summary>Observes the plugin's settings namespace (W2); not called for the value current at registration.</summary>
     /// <typeparam name="T">The contract's settings type.</typeparam>
     /// <param name="handler">Called on the UI thread with each new value.</param>
     /// <returns>Disposing it stops the observation.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IDisposable OnSettings<T>(Action<T> handler) where T : class;
 
     /// <summary>
@@ -104,10 +110,12 @@ public interface IPluginUIContext
     /// <typeparam name="T">The contract's settings type.</typeparam>
     /// <param name="settings">The new settings; merged field by field into the namespace.</param>
     /// <returns>Completes after the broadcast.</returns>
+    [PluginAmbient]
     ValueTask UpdateSettingsAsync<T>(T settings) where T : class;
 
     /// <summary>Reads the host projection now (W3).</summary>
     /// <returns>The current projection.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     PluginHostProjection Host();
 
     /// <summary>
@@ -119,31 +127,38 @@ public interface IPluginUIContext
     /// <param name="selector">Projects the value to watch.</param>
     /// <param name="listener">Called with the new and previous values.</param>
     /// <returns>Disposing it stops the observation early.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IDisposable WatchHost<T>(Func<PluginHostProjection, T> selector, Action<T, T> listener);
 
     /// <summary>Contributes a Settings section (W4).</summary>
     /// <param name="section">The section.</param>
+    [PluginAmbient]
     void SettingsSection(SettingsSectionRegistration section);
 
     /// <summary>Registers the control for a manifest-declared side tool (W5).</summary>
     /// <param name="registration">The tool's registration.</param>
+    [PluginAmbient]
     void SideTool(SideToolRegistration registration);
 
     /// <summary>Contributes an embedded companion pane for terminals (W6).</summary>
     /// <param name="registration">The companion.</param>
+    [PluginAmbient]
     void Companion(CompanionRegistration registration);
 
     /// <summary>Opens and focuses a companion of this plugin beside a terminal (W6).</summary>
     /// <param name="host">The terminal.</param>
     /// <param name="kind">The companion's kind.</param>
+    [PluginAmbient]
     void FocusCompanion(CompanionHost host, string kind);
 
     /// <summary>Registers a viewer for the manifest's declared file viewers (W7).</summary>
     /// <param name="registration">The viewer.</param>
+    [PluginAmbient]
     void FileViewer(FileViewerRegistration registration);
 
     /// <summary>Registers the control for the plugin's own document scheme (W27).</summary>
     /// <param name="registration">The document.</param>
+    [PluginAmbient]
     void Document(PluginDocumentRegistration registration);
 
     /// <summary>Opens, or focuses, the plugin's document of that scheme and id in the editor area of the workspace's window.</summary>
@@ -151,6 +166,7 @@ public interface IPluginUIContext
     /// <param name="scheme">A scheme this plugin registered.</param>
     /// <param name="id">The document's id; opening the same id again focuses its tab.</param>
     /// <param name="title">The tab's title.</param>
+    [PluginAmbient]
     ValueTask OpenDocumentAsync(string workspaceId, string scheme, string id, string title);
 
     /// <summary>
@@ -160,14 +176,17 @@ public interface IPluginUIContext
     /// <param name="workspaceId">The workspace.</param>
     /// <param name="path">The workspace-relative path (an absolute path inside the workspace is made relative).</param>
     /// <param name="newContent">The proposed contents of the whole file.</param>
+    [PluginAmbient]
     ValueTask OpenTextDiffAsync(string workspaceId, string path, string newContent);
 
     /// <summary>Registers a tab decorator (W8); decorators run in registration order and the first non-null result wins.</summary>
     /// <param name="decorate">Returns a decoration for a tab, or <see langword="null"/>.</param>
-    void TabDecoration(Func<TabRef, TabDecoration?> decorate);
+    [PluginAmbient]
+    void TabDecoration([PluginCrossing(PluginCrossing.Live)] Func<TabRef, TabDecoration?> decorate);
 
     /// <summary>Registers an agent launcher (W9).</summary>
     /// <param name="launcher">The launcher.</param>
+    [PluginAmbient]
     void Launcher(AgentLauncher launcher);
 
     /// <summary>
@@ -176,32 +195,39 @@ public interface IPluginUIContext
     /// command line, so they reach every launcher, start action and resume. Active only while this plugin is.
     /// </summary>
     /// <param name="contributor">Called with the launcher id (for example <c>claude</c> or <c>codex</c>); returns its contribution or <see langword="null"/>.</param>
-    void AgentLaunch(Func<string, AgentLaunchContribution?> contributor);
+    [PluginPermission("shell.environment")]
+    void AgentLaunch([PluginCrossing(PluginCrossing.Live)] Func<string, AgentLaunchContribution?> contributor);
 
     /// <summary>The contributions of every active plugin for an agent, in plugin activation order, outermost first (W22).</summary>
     /// <param name="agentId">The agent's launcher id.</param>
     /// <returns>The contributions.</returns>
+    [PluginPermission("shell.environment"), PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId);
 
     /// <summary>Lists every registered launcher, across plugins (W9).</summary>
     /// <returns>The launchers, in registration order.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.Mirrored)]
     IReadOnlyList<AgentLauncher> Launchers();
 
     /// <summary>Observes the launcher list and invalidated availability/model reads (W9).</summary>
     /// <param name="handler">Called on the UI thread with the list after each change.</param>
     /// <returns>Disposing it stops the observation.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IDisposable OnLaunchersChanged(Action<IReadOnlyList<AgentLauncher>> handler);
 
     /// <summary>Contributes a workspace- or project-scoped start action (W10).</summary>
     /// <param name="action">The action.</param>
+    [PluginAmbient]
     void WorkspaceAction(WorkspaceActionRegistration action);
 
     /// <summary>Contributes an action to the context menus of files and of lines selected in them (W21).</summary>
     /// <param name="action">The action.</param>
+    [PluginAmbient]
     void FileAction(FileActionRegistration action);
 
     /// <summary>Contributes an item to the context menu of terminal tabs (W26).</summary>
     /// <param name="action">The item.</param>
+    [PluginAmbient]
     void TerminalTabAction(TerminalTabActionRegistration action);
 
     /// <summary>
@@ -210,15 +236,18 @@ public interface IPluginUIContext
     /// disabled; its stored bindings are kept for when the plugin is back.
     /// </summary>
     /// <param name="action">The action.</param>
+    [PluginAmbient]
     void KeymapAction(KeymapActionRegistration action);
 
     /// <summary>Puts text on the clipboard of the active window and confirms with a transient notification (W26).</summary>
     /// <param name="text">The text to copy.</param>
     /// <param name="confirmation">The notification's text; <see langword="null"/> for none.</param>
+    [PluginPermission("clipboard.write")]
     void CopyText(string text, string? confirmation = null);
 
     /// <summary>Opens Settings on one of core's pages, or on a plugin's own section, in the active window (W23).</summary>
     /// <param name="page">The page, one of the <see cref="UiPages"/> ids or <see cref="UiPages.PluginSection"/>.</param>
+    [PluginAmbient]
     void OpenSettings(string page);
 
     /// <summary>
@@ -226,6 +255,7 @@ public interface IPluginUIContext
     /// plugin is enabled: a disabled plugin leaves no section and no placeholder.
     /// </summary>
     /// <param name="section">The section.</param>
+    [PluginAmbient]
     void SlotSection(SlotSectionRegistration section);
 
     /// <summary>
@@ -233,6 +263,7 @@ public interface IPluginUIContext
     /// is enabled; a compact (phone) workbench has no header row for it and shows none.
     /// </summary>
     /// <param name="item">The item.</param>
+    [PluginAmbient]
     void HeaderItem(HeaderItemRegistration item);
 
     /// <summary>
@@ -240,18 +271,22 @@ public interface IPluginUIContext
     /// the Review panel. Both exist only while the plugin is enabled; a plain remote shows none.
     /// </summary>
     /// <param name="registration">The registration.</param>
+    [PluginAmbient]
     void RepoHostUI(RepoHostUIRegistration registration);
 
     /// <summary>Contributes a terminal accessory row (W11).</summary>
     /// <param name="registration">The accessory.</param>
+    [PluginAmbient]
     void TerminalAccessory(TerminalAccessoryRegistration registration);
 
     /// <summary>The rows every plugin's terminal accessory offers for a workspace without a terminal (<see cref="TerminalAccessoryRegistration.ForWorkspace"/>), created now.</summary>
     /// <param name="workspaceId">The workspace.</param>
     /// <returns>One control per contributing plugin.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner, IsolatedShape = "a placeholder control in the plugin's tree; the app composites the real chips into its rectangle")]
     IReadOnlyList<Avalonia.Controls.Control> WorkspaceChips(string workspaceId);
 
     /// <summary>Editor operations and events (W12).</summary>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IPluginEditors Editors { get; }
 
     /// <summary>
@@ -261,16 +296,19 @@ public interface IPluginUIContext
     /// <param name="workspaceId">The workspace.</param>
     /// <param name="options">The command to type, the tab key and the target centre group.</param>
     /// <returns>The opened or selected tab's key.</returns>
+    [PluginPermission("terminal.command", Condition = "options.Command is set")]
     ValueTask<string> OpenTerminalAsync(string workspaceId, TerminalOpenOptions? options = null);
 
     /// <summary>Enters a project's Default workspace in the active window (W13).</summary>
     /// <param name="projectId">The project.</param>
     /// <returns>The workspace, or <see langword="null"/> when the project cannot be opened.</returns>
+    [PluginAmbient]
     ValueTask<HostWorkspace?> EnterDefaultWorkspaceAsync(string projectId);
 
     /// <summary>Asks for a file or folder on the host (W13): the system picker for a local host, a path dialog for a remote one.</summary>
     /// <param name="options">The starting workspace and whether to pick a folder.</param>
     /// <returns>The chosen absolute path, or <see langword="null"/> when cancelled.</returns>
+    [PluginAmbient]
     ValueTask<string?> PickFileAsync(FilePickOptions? options = null);
 
     /// <summary>Reads a worktree file's bytes through the host (W14).</summary>
@@ -278,12 +316,14 @@ public interface IPluginUIContext
     /// <param name="path">The workspace-relative path.</param>
     /// <param name="cancellationToken">Cancels the read.</param>
     /// <returns>The file's bytes.</returns>
+    [PluginPermission("files.read")]
     ValueTask<byte[]> ReadFileAsync(string workspaceId, string path, CancellationToken cancellationToken = default);
 
     /// <summary>Reads a file's filesystem revision, bumped on each watched change to it (W14).</summary>
     /// <param name="workspaceId">The workspace.</param>
     /// <param name="path">The workspace-relative path.</param>
     /// <returns>The revision.</returns>
+    [PluginPermission("files.read"), PluginCrossing(PluginCrossing.Mirrored)]
     int FileRevision(string workspaceId, string path);
 
     /// <summary>Observes a file's filesystem revision (W14).</summary>
@@ -291,26 +331,31 @@ public interface IPluginUIContext
     /// <param name="path">The workspace-relative path.</param>
     /// <param name="handler">Called on the UI thread with each new revision.</param>
     /// <returns>Disposing it stops the observation.</returns>
+    [PluginPermission("files.read"), PluginCrossing(PluginCrossing.LocalInRunner)]
     IDisposable ObserveFileRevision(string workspaceId, string path, Action<int> handler);
 
     /// <summary>Keeps a workspace watched so its revisions stay current (W14).</summary>
     /// <param name="workspaceId">The workspace.</param>
     /// <returns>Completes when the watch is running.</returns>
+    [PluginAmbient]
     ValueTask WatchWorkspaceAsync(string workspaceId);
 
     /// <summary>Observes the host connection coming back after a drop (W15).</summary>
     /// <param name="handler">Called on the UI thread after each reconnect.</param>
     /// <returns>Disposing it stops the observation.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IDisposable OnReconnect(Action handler);
 
     /// <summary>Observes workspace removal (W15).</summary>
     /// <param name="handler">Called on the UI thread with each removed workspace's id.</param>
     /// <returns>Disposing it stops the observation.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IDisposable OnWorkspaceRemoved(Action<string> handler);
 
     /// <summary>Reveals a side tool by layout id in the active window, placing and selecting it (W16).</summary>
     /// <param name="workspaceId">The workspace the reveal is for.</param>
     /// <param name="tool">A core tool id or a <see cref="PluginIdentity.ToolId"/>.</param>
+    [PluginAmbient]
     void RevealTool(string workspaceId, string tool);
 
     /// <summary>
@@ -318,23 +363,27 @@ public interface IPluginUIContext
     /// order; the first non-null name wins, and core's generic glyph is the fallback.
     /// </summary>
     /// <param name="resolver">Returns a Remix Icon name or <c>asset:&lt;path&gt;</c> (from this plugin's assets) for a path, or <see langword="null"/>.</param>
-    void FileIconSlot(Func<string, FileIconKind, string?> resolver);
+    [PluginAmbient]
+    void FileIconSlot([PluginCrossing(PluginCrossing.Resolver)] Func<string, FileIconKind, string?> resolver);
 
     /// <summary>
     /// Fills the document-link slot, consulted when a rendered document's link is followed. Resolvers run in
     /// registration order; the first non-null path wins, and core's own resolution is the fallback.
     /// </summary>
     /// <param name="resolver">Maps a workspace id and a link target to a workspace-relative path core can open, or <see langword="null"/>.</param>
-    void DocumentLinkSlot(Func<string, string, string?> resolver);
+    [PluginAmbient]
+    void DocumentLinkSlot([PluginCrossing(PluginCrossing.Resolver)] Func<string, string, string?> resolver);
 
     /// <summary>Scopes the Changes panel of the active window (W18).</summary>
     /// <param name="workspaceId">The workspace.</param>
     /// <param name="scope">The scope.</param>
+    [PluginAmbient]
     void SetDiffScope(string workspaceId, GitDiffScope scope);
 
     /// <summary>Opens a continuous review of one commit in the active workspace.</summary>
     /// <param name="workspaceId">The workspace.</param>
     /// <param name="sha">The full commit id.</param>
+    [PluginAmbient]
     void OpenCommitChanges(string workspaceId, string sha);
 
     /// <summary>Reads a file under the manifest's assets directory through the host (W19).</summary>
@@ -342,23 +391,27 @@ public interface IPluginUIContext
     /// <param name="cancellationToken">Cancels the read.</param>
     /// <returns>The file's bytes.</returns>
     /// <exception cref="InvalidOperationException">The manifest declares no assets.</exception>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     ValueTask<byte[]> ReadAssetAsync(string path, CancellationToken cancellationToken = default);
 
     /// <summary>Opens a client-local preference of this plugin.</summary>
     /// <param name="key">The preference name.</param>
     /// <returns>The preference.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IPluginPreference Preference(string key);
 
     /// <summary>Resolves a handle on a dependency declared in this plugin's manifest, calling over the ordinary plugin call path.</summary>
     /// <param name="contract">The dependency's contract.</param>
     /// <returns>The handle.</returns>
     /// <exception cref="InvalidOperationException">The contract's plugin is not a declared dependency.</exception>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner)]
     IPluginDependencyHandle Dependency(PluginContract contract);
 
     /// <summary>Shows a transient notification in the active window.</summary>
     /// <param name="kind">Information or failure.</param>
     /// <param name="title">The headline.</param>
     /// <param name="description">More detail.</param>
+    [PluginAmbient]
     void Notify(PluginNotificationKind kind, string title, string? description = null);
 
     /// <summary>
@@ -368,6 +421,7 @@ public interface IPluginUIContext
     /// </summary>
     /// <param name="prompt">The text and choices.</param>
     /// <returns>Disposing it takes the prompt down in every window.</returns>
+    [PluginAmbient]
     IDisposable Prompt(PluginPrompt prompt);
 
     /// <summary>
@@ -377,6 +431,7 @@ public interface IPluginUIContext
     /// is shown where the platform has no desktop notifications.
     /// </summary>
     /// <param name="notification">The terminal and what it wants.</param>
+    [PluginPermission("notify")]
     void NotifyAttention(AttentionNotification notification);
 
     /// <summary>
@@ -384,6 +439,7 @@ public interface IPluginUIContext
     /// availability and models, tab decorations, slots) and refreshes what they render. The UI's substitute for
     /// a reactive hook: call it when state those predicates read has changed.
     /// </summary>
+    [PluginAmbient]
     void Invalidate();
 }
 
