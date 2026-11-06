@@ -17,6 +17,35 @@ SharpRail can run without a window. It serves its language, spec and Blueprint t
 }
 ```
 
+That is the exact snippet for Docker. With Apple `container` use a host directory for the cache, because it has no named volumes in this form, and make it writable by uid 1000:
+
+```sh
+mkdir -p ~/.cache/sharprail && chmod 777 ~/.cache/sharprail
+```
+
+```json
+{
+  "mcpServers": {
+    "sharprail": {
+      "command": "container",
+      "args": ["run", "-i", "--rm", "-v", "${PWD}:/workspace", "-v", "/Users/me/.cache/sharprail:/cache", "ghcr.io/commandertvis/sharprail:nightly"]
+    }
+  }
+}
+```
+
+Apple `container` has no `--init` flag and needs absolute host paths for the cache.
+
+### The first start is slow: run `warm` first
+
+A cold cache downloads the pinned .NET SDK (about 650 MB unpacked) and the C# language server. Until that is done, `lsp_*` calls answer `initializing`. The measured cold start inside the container (Apple `container`, arm64) was 100 s to 6.5 min, depending on the network: the SDK download is most of it. With a warm cache the server is ready in about 6 s. Install it before the first session:
+
+```sh
+container run --rm -v ~/.cache/sharprail:/cache ghcr.io/commandertvis/sharprail:nightly warm
+```
+
+`warm` takes server ids (default `csharp`), installs the runtimes and servers into `/cache` and exits. A second run returns at once. Progress is in `/cache/home/.sharprail/logs/code-intelligence.log` (`host.runtime-install`, `host.server-install`, `host.install-command`).
+
 Use `-i` so stdin stays open, and `--init` so SIGTERM and child processes are handled. The image is for linux/amd64 and linux/arm64.
 
 - The `nightly` tag moves. The Container workflow overwrites it on every run. Each run also pushes an immutable `sha-<short commit>` tag.
