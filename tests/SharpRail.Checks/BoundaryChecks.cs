@@ -15,7 +15,8 @@ internal static class BoundaryChecks
         Client = "SharpRail.Host.Client", Headless = "SharpRail.Host.Headless", Remote = "SharpRail.Host.Remote", Scintilla = "SharpRail.Scintilla", Ghostty = "Ghostty.Avalonia",
         UI = "SharpRail.UI", Checks = "SharpRail.Checks", Api = "SharpRail.Plugins.Api",
         Chat = "SharpRail.Plugins.Chat", ChatUi = "SharpRail.Plugins.Chat.UI", ApiHost = "SharpRail.Plugins.Api.Host", ApiUi = "SharpRail.Plugins.Api.UI", Kit = "SharpRail.Plugins.UI.Kit", Android = "SharpRail.Android", Browser = "SharpRail.Browser",
-        Wire = "SharpRail.Wire", Isolation = "SharpRail.Plugins.Isolation", Runner = "SharpRail.Plugins.Runner";
+        Wire = "SharpRail.Wire", Isolation = "SharpRail.Plugins.Isolation", IsolationUi = "SharpRail.Plugins.Isolation.UI",
+        IsolationGenerator = "SharpRail.Plugins.Isolation.Generator", Runner = "SharpRail.Plugins.Runner";
 
     /// <summary>Every project and what it may reach, directly or through a reference. A new project needs its own entry.</summary>
     private static readonly Dictionary<string, string[]> Allowed = new()
@@ -35,7 +36,7 @@ internal static class BoundaryChecks
         [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Browser] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Checks] = [Abstractions, Wire, Protocol, Core, Client, Headless, Remote, Scintilla, Ghostty, UI, Android, Api, ApiHost, ApiUi, Kit,
-            "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.Plugins.Agent.UI", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI", Isolation, Runner],
+            "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.Plugins.Agent.UI", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI", Isolation, IsolationUi, IsolationGenerator, Runner],
         [Api] = [],
         [ApiHost] = [Api],
         [ApiUi] = [Api],
@@ -47,8 +48,10 @@ internal static class BoundaryChecks
         ["SharpRail.PluginFixture.Host"] = [Api, ApiHost],
         ["SharpRail.PluginFixture.UI"] = [Api, ApiUi, Kit],
         // The plugin channel and the process that runs an external plugin (src/SharpRail.Plugins.Api/Security.SPEC.md).
-        [Isolation] = [Wire],
-        [Runner] = [Isolation]
+        [Isolation] = [Wire, Api, ApiHost],
+        [IsolationUi] = [Isolation, Api, ApiUi],
+        [IsolationGenerator] = [],
+        [Runner] = [Isolation, IsolationUi, Api, ApiHost, ApiUi]
     };
 
     private static readonly string[] Generated = ["bin", "obj", "artifacts", "node_modules"];
