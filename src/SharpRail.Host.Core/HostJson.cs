@@ -12,7 +12,7 @@ namespace SharpRail.Host.Core;
 
 /// <summary>
 /// Source-generated JSON metadata for everything the host core persists or answers outside plugin payloads. Its
-/// <see cref="JsonSerializerContext.Default"/> carries the serializer's default options; a site with other options
+/// <see cref="Default"/> carries the serializer's default options; a site with other options
 /// keeps them and resolves its types from this context (<see cref="Resolving"/>), so the bytes stay those the reflection
 /// serializer wrote.
 /// </summary>

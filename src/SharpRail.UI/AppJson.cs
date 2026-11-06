@@ -12,7 +12,7 @@ namespace SharpRail.UI;
 
 /// <summary>
 /// Source-generated JSON metadata for everything the app persists or compares as JSON. Its
-/// <see cref="JsonSerializerContext.Default"/> carries the serializer's default options; a site with other options
+/// <see cref="Default"/> carries the serializer's default options; a site with other options
 /// keeps them and resolves its types from this context (<see cref="Resolving"/>), so the bytes stay those the reflection
 /// serializer wrote.
 /// </summary>
