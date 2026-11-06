@@ -54,10 +54,11 @@
     <NuGetAuditLevel>moderate</NuGetAuditLevel>
     <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
     <!--
-      Everything under src/ except the Android and Browser heads is NativeAOT code: the trim, AOT and single-file analyzers
-      run on every build, so any IL2xxx or IL3xxx fails it (src/SharpRail.Plugins.Api/Security.SPEC.md, NativeAOT section).
+      Everything under src/ except the Android and Browser heads and the plugin runner (the one JIT process, which loads
+      plugin assemblies) is NativeAOT code: the trim, AOT and single-file analyzers run on every build, so any IL2xxx or
+      IL3xxx fails it (src/SharpRail.Plugins.Api/Security.SPEC.md, NativeAOT section).
     -->
-    <SharpRailAotAnalyzed Condition="'$(SharpRailAotAnalyzed)' == '' and $([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/').StartsWith('src/')) and '$(MSBuildProjectName)' != 'SharpRail.Android' and '$(MSBuildProjectName)' != 'SharpRail.Browser'">true</SharpRailAotAnalyzed>
+    <SharpRailAotAnalyzed Condition="'$(SharpRailAotAnalyzed)' == '' and $([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/').StartsWith('src/')) and '$(MSBuildProjectName)' != 'SharpRail.Android' and '$(MSBuildProjectName)' != 'SharpRail.Browser' and '$(MSBuildProjectName)' != 'SharpRail.Plugins.Runner'">true</SharpRailAotAnalyzed>
     <IsAotCompatible Condition="'$(SharpRailAotAnalyzed)' == 'true'">true</IsAotCompatible>
   </PropertyGroup>
   <ItemGroup>

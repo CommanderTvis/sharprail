@@ -8,6 +8,9 @@
     <ProjectReference Include="../SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" />
     <ProjectReference Include="../SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" />
     <ProjectReference Include="../../src/SharpRail.Plugins.Acp/Host/SharpRail.Plugins.Acp.Host.csproj" />
+    <ProjectReference Include="../../src/SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
+    <!-- The plugin runner, framework-dependent, in plugin-runner/ of the build output only; a RID publish leaves it out. -->
+    <ProjectReference Include="../../src/SharpRail.Plugins.Runner/SharpRail.Plugins.Runner.csproj" ReferenceOutputAssembly="false" OutputItemType="PluginRunnerOutput" Condition="'$(RuntimeIdentifier)' == ''" />
     <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Avalonia.Headless" />
     <!-- The Android client builds only with the Android workload; its platform-free endpoint is checked here. -->
@@ -21,6 +24,16 @@
     <Using Include="SharpRail.Plugins.UI.Kit.Markdown" />
     <Using Include="SharpRail.Plugins.UI.Kit.Visualization" />
   </ItemGroup>
+  <Target Name="CopyPluginRunner" AfterTargets="Build" Condition="'$(RuntimeIdentifier)' == ''">
+    <PropertyGroup>
+      <PluginRunnerDirectory>@(PluginRunnerOutput->'%(RootDir)%(Directory)')</PluginRunnerDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <PluginRunnerFile Include="$(PluginRunnerDirectory)**" />
+    </ItemGroup>
+    <Error Condition="'$(PluginRunnerDirectory)' == ''" Text="The plugin runner reference produced no output." />
+    <Copy SourceFiles="@(PluginRunnerFile)" DestinationFiles="@(PluginRunnerFile->'$(OutDir)plugin-runner/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
   <Target Name="BuildTerminalEvents" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(DesignTimeBuild)' != 'true'">
     <MakeDir Directories="$(IntermediateOutputPath)" />
     <Exec Command="clang -dynamiclib -fobjc-arc -Wall -Wextra -Werror -mmacosx-version-min=13.0 &quot;$(MSBuildProjectDirectory)/TerminalEvents.m&quot; &quot;$(MSBuildProjectDirectory)/TextureHandoff.m&quot; -framework AppKit -framework ApplicationServices -framework Carbon -framework IOSurface -framework QuartzCore -framework Metal -o &quot;$(IntermediateOutputPath)libTerminalEvents.dylib&quot;" />

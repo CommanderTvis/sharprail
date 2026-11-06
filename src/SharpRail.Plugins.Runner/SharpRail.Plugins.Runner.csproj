@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>SharpRail.PluginRunner</AssemblyName>
+    <RootNamespace>SharpRail.Plugins.Runner</RootNamespace>
+    <!-- Avalonia's [Unstable] platform interfaces and [PrivateApi] locator, for the remote backend: Security.SPEC.md, UI halves. -->
+    <AvaloniaAccessUnstablePrivateApis>true</AvaloniaAccessUnstablePrivateApis>
+    <NoWarn>$(NoWarn);AVA3001</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+</Project>

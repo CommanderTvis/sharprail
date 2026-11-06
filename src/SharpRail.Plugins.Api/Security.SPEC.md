@@ -91,8 +91,10 @@ by path and the app's reading of UI assemblies through the host all leave SharpR
 plugin runner's job.
 
 The plugin runner is the only JIT process. SharpRail ships it with a self-contained .NET runtime beside its own
-binaries, on every host and app that can run external plugins. The shared assemblies (the API, Avalonia, SkiaSharp
-and the kit) are precompiled with ReadyToRun for it, so that plugin start does not pay for compiling them.
+binaries, on every host and app that can run external plugins. The shared assemblies (the API, Avalonia, SkiaSharp,
+the kit, and the shared chat contract and view, `SharpRail.Plugins.Chat` and `SharpRail.Plugins.Chat.UI`, so an
+external agent plugin can offer the shared chat mode) are precompiled with ReadyToRun for it, so that plugin start
+does not pay for compiling them.
 
 AOT puts requirements on code that crosses the boundary or is serialized:
 
@@ -141,7 +143,8 @@ Packages, each decided from the two publishes:
 - The AOT compiler package SDK 10.0.401 brought (Microsoft.DotNet.ILCompiler 10.0.12) had a high-severity
   advisory. The SDK pin moved to 10.0.403, whose compiler (10.0.14) is past it, before the first AOT package.
 
-Every project under `src/` except the Android and Browser heads sets `IsAotCompatible` (`Directory.Build.props`),
+Every project under `src/` except the Android and Browser heads and the plugin runner (`SharpRail.Plugins.Runner`, the
+one JIT process) sets `IsAotCompatible` (`Directory.Build.props`),
 which runs the trim, AOT and single-file analyzers on every build, so a new IL2xxx or IL3xxx fails the build. It
 also marks those assemblies trimmable, which changes neither head: Android does not trim, and the Browser build
 roots every assembly it links.
@@ -237,16 +240,64 @@ reads an id, path or client key the plugin claims.
 Inside the sandbox a plugin process can read its plugin directory and the runner, read and write its own state
 directory (H19) and a private temporary directory, and use its channel. Nothing else.
 
-Linux uses bubblewrap: new user, mount, PID, network and IPC namespaces, read-only binds of the plugin and runner
-directories, and a seccomp filter. macOS uses a Seatbelt profile generated per plugin (unconfirmed:
+Linux uses Landlock and seccomp, applied by a small helper (`sharprail-confine`, C built with the pinned Zig) that
+then executes the runner: Landlock allows reading the plugin and runner directories and writing only the state and
+temporary directories, and seccomp refuses sockets, other processes' memory, `io_uring` and terminal injection. This
+replaced bubblewrap (namespaces and binds), because Ubuntu 24.04 restricts unprivileged user namespaces through
+AppArmor, and the helper needs no external binary and no privilege. The costs: Linux 5.13 at least, and 6.7 for
+Landlock's network rules (below that, seccomp alone blocks sockets); without PID and mount namespaces a plugin can
+learn which paths exist (`stat`) though it cannot read them; whether it works inside containers is unverified. macOS uses a Seatbelt profile generated per plugin (unconfirmed:
 `sandbox_init` with a generated profile, rather than the App Sandbox, which needs entitlements per binary).
 Windows uses an AppContainer with no capabilities (unconfirmed). A host that cannot apply its sandbox refuses
 external plugins with that as the reason, rather than running them unconfined.
 
+### The channel and the runner process
+
+These exist now, used only by the checks (`SharpRail.Plugins.Isolation`, the `SharpRail.PluginRunner` executable;
+`--plugin-channel`). No external plugin runs through them yet, and no sandbox is applied yet.
+
+- The channel is a Unix stream socket pair, the runner's end placed at descriptor 3, or on Windows one named pipe
+  with a random name, one instance and an access list for the current user, which the host creates and connects
+  end to end before it passes the client handle to the runner (`--channel <handle>`). The runner never opens a pipe
+  by name.
+- Frames are a 4-byte little-endian length and an `IsoFrame` in the same generated protobuf codec as the RPC
+  (`SharpRail.Wire`), at most 4 MiB each. The host allocates odd call ids and the runner even ones. A call gets a
+  reply or a fault, can be cancelled, and can carry a deadline that both sides enforce. One-ways run one at a time in
+  arrival order. A stream sends at most 16 items ahead of the reader's credit. Objects lent across are handles; a
+  released or revoked handle answers `Released` or `Denied` with its permission, and only an id never lent on that
+  connection is a violation. Each side queues at most 1,024 frames or 32 MiB; a runner that stops reading is cut off.
+- Descriptors travel with a frame as SCM_RIGHTS on Unix; on Windows the host duplicates a handle into the runner,
+  which holds no handle to the host and so cannot send one. Any descriptor the host receives is closed. That, a
+  misnumbered call, a call or release on a never-lent handle, an answer to a call never made, a malformed or
+  oversized frame, an out-of-turn handshake frame or a stream past its credit ends the channel as a protocol
+  violation, and the host kills the runner.
+- The handshake is the runner's `Hello` (protocol version, pid, mode), the host's `Init` and the runner's `Ready`. A
+  runner that speaks another protocol version is refused.
+- The runner is started with a raw spawn, not `Process.Start`, which can neither place a descriptor nor keep a handle
+  out of every other child: `posix_spawn` with its own session (no controlling terminal; its pid names the group a
+  kill takes down), or `CreateProcess` with an explicit handle list, suspended until it is in a job that dies with
+  the host. It gets an environment built from scratch (home and temporary directories of its own,
+  `DOTNET_EnableDiagnostics=0`, `LANG`, a minimal `PATH`), standard input from the null device, and one pipe for
+  standard output and error that the host reads into the plugin log at most 64 KiB/s, dropping and counting the
+  rest.
+- The exit is observed by a thread that waits for it (`waitid` without reaping, then `waitpid`; on Windows the process
+  handle), so a kill never reaches a recycled pid and the runner is reaped exactly once, also while .NET reaps its
+  own children. This replaces the planned `pidfd`/kqueue watch. The runner exits when its channel ends.
+- What the runner inherits: on macOS only the descriptors the spawn places (`POSIX_SPAWN_CLOEXEC_DEFAULT`); on Linux
+  everything above descriptor 3 is closed where glibc has `posix_spawn_file_actions_addclosefrom_np` (2.34 and later,
+  so not on the packages' 2.31 baseline; `sharprail-confine` will close them there); on Windows only the handle list.
+  On macOS a socket pair cannot be created close-on-exec, and on Windows the three listed handles are inheritable
+  while the process is created, so a `Process.Start` on another thread in that instant could inherit them.
+
+`--plugin-channel` checks all of this against the real runner, framework-dependent from the checks' build: in the
+smoke gate on Linux, and as its own step in the Windows and macOS CI jobs. It asserts that the runner inherits no host
+handle, that its standard input is at end of file and its output reaches the log, and that no runner is left behind,
+not even as a zombie. The Windows half is compiled on every platform but first runs in CI.
+
 A plugin process that crashes or exits marks its plugin `failed` with the reason, and retry starts a new process.
 Disabling a plugin ends its process after the existing drain, which gives external plugins the real unload that
-non-collectible load contexts never did. Memory and CPU limits apply per process (unconfirmed: cgroups under
-bubblewrap, job objects on Windows, none yet on macOS).
+non-collectible load contexts never did. Memory and CPU limits apply per process (unconfirmed: rlimits under
+`sharprail-confine`, job objects on Windows, none yet on macOS).
 
 ## Calls across the boundary
 
@@ -525,6 +576,12 @@ remain a later option if bandwidth becomes the problem; they would put a command
 - The plugin process runs a remote platform backend built the way Avalonia's previewer and headless backends are:
   it implements the windowing, top-level and popup interfaces and renders with Skia's CPU raster into tiles. No
   Avalonia fork is needed for this.
+- Avalonia hides the interfaces this backend implements from its reference assemblies: implementing
+  `IWindowingPlatform` against them fails with CS0535 and CS9044, which no suppression can turn off. The plugin
+  runner alone compiles against Avalonia's implementation assemblies (`AvaloniaAccessUnstablePrivateApis`). Its only
+  diagnostic is the MSBuild warning AVA3001, which warnings-as-errors does not make an error; the runner suppresses
+  it, and no other project may. The runner's `probe avalonia-private` registers a stub `IWindowingPlatform` through
+  `AvaloniaLocator` and checks that it resolves.
 - The plugin process never touches a GPU or a window.
 - The app forwards input to the plugin, and the plugin hit-tests against its own visual tree. Focus moves in and
   out of the surface with Tab and with clicks.

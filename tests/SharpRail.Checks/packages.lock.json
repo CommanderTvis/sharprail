@@ -675,6 +675,12 @@
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.isolation": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Wire": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.lsp.clangd": {
         "type": "Project",
         "dependencies": {
