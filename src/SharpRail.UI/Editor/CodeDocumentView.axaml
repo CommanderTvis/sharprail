@@ -26,7 +26,7 @@
               <ComboBoxItem Content="Workspace" />
               <ComboBoxItem Content="With dependencies" />
             </ComboBox>
-            <Button x:Name="LanguageHide" Grid.Column="2" Content="Close" />
+            <ContentControl x:Name="LanguageHide" Grid.Column="2" />
           </Grid>
           <TextBlock x:Name="LanguageStatus" Grid.Row="1" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" Margin="12,0,12,8" />
           <TextBox x:Name="LanguageQuery" Grid.Row="2" PlaceholderText="Filter results" Margin="8,0,8,8" AutomationProperties.Name="Filter language results" />

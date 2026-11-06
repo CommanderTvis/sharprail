@@ -611,7 +611,7 @@ the reported position, including read-only dependencies. Static controls live in
 
 Declaration and usages interactions follow IntelliJ's public GotoTargetHandler and
 ShowUsagesAction patterns: a single declaration navigates directly; multiple declarations
-open a caret-anchored chooser. Usages remain in a chooser even for one match. Rows group by
+open a caret-anchored chooser. Its header close control is the shared square cross icon button (tooltip and accessible name "Close"); Escape also closes it. Usages remain in a chooser even for one match. Rows group by
 actual source file, with muted directory, per-file count, aligned line numbers and monospace,
 syntax-colored snippets whose exact returned range is emphasized. No inferred class/module
 groups are shown. Type-to-filter searches loaded results without another server request;

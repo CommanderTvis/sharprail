@@ -1116,6 +1116,12 @@ internal static class LanguageChecks
                 capture.Render(results);
                 capture.Save(CheckRoot.Artifact("lsp-ui", "code-preview.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
             }
+            var closeButton = (Avalonia.Controls.Button)Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.ContentControl>(view, "LanguageHide")!.Content!;
+            Require(closeButton.Content is not string && Avalonia.Controls.ToolTip.GetTip(closeButton) as string == "Close" &&
+                Avalonia.Automation.AutomationProperties.GetName(closeButton) == "Close" && closeButton.Focusable,
+                "The LSP results close control must be a focusable icon button with the Close tooltip and accessible name.");
+            closeButton.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            Require(!popup.IsOpen, "Clicking the close cross did not close the LSP results popup.");
             popup.IsOpen = false;
             view.Editor.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.F12, KeyModifiers = Avalonia.Input.KeyModifiers.Shift });
             E2E.E2eWorkspace.Until(() => popup.IsOpen && list.ItemCount == 3 && Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.TextBlock>(view, "LanguageHeading")!.Text!.StartsWith("Usages", StringComparison.Ordinal));

@@ -69,7 +69,7 @@ internal sealed partial class CodeDocumentView
         {
             if (this.FindControl<Popup>("LanguagePopup")!.IsOpen && scopedOperation.Length > 0) await RunLanguageAsync(scopedOperation, wholeWorkspace: scopedOperation == "workspaceSymbols" && this.FindControl<ComboBox>("LanguageScope")!.SelectedIndex != 0);
         };
-        this.FindControl<Button>("LanguageHide")!.Click += (_, _) => CloseLanguagePopup();
+        this.FindControl<ContentControl>("LanguageHide")!.Content = Ui.IconButton("close", "Close", CloseLanguagePopup);
         this.FindControl<Popup>("LanguagePopup")!.Closed += (_, _) => languageRequest?.Cancel();
         var query = this.FindControl<TextBox>("LanguageQuery")!;
         query.TextChanged += (_, _) =>
