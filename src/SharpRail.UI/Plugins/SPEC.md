@@ -116,7 +116,8 @@ and roster registration still precede reconciliation, preserving dormant tools a
   of taking the reconciler down and blocking every other plugin.
 - `Settings<T>()` and `Host().AppSettings` read from the latest `HostState` snapshot through one projection;
   `UpdateSettingsAsync` sends a `plugin-settings` change and completes when a snapshot carrying the new value
-  arrives.
+  arrives. It refuses settings that name `enabled`: only the user turns a plugin on or off, and `Settings<T>()`
+  never shows that key.
 - Shown terminal keys include terminals displayed beside the selected editor in a pane, with the last-focused
   centre group first. Hidden tabs outside that selected pane do not become the configuration context.
 - The workspace projection includes host-published catalogs and each mounted window's host-resolved

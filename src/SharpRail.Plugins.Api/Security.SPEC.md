@@ -339,7 +339,11 @@ plugin lent. On the trusted side: a dispatcher per root context that replays eac
 delegates that call the plugin's callbacks back (a factory's result is the remote surface). A record the plugin passes
 crosses split: its data as JSON members, each callback as a handle. Calls carry the handle of the context they are
 on, one per activation and client, so one runner can serve several clients. Arguments travel as a JSON array in
-`PluginJson.Options`, with nulls written so a record's nullable constructor parameter arrives as `null`. It also
+`PluginJson.Options`, with nulls written so a record's nullable constructor parameter arrives as `null`. The
+dispatcher trusts none of it: JSON null for a non-nullable reference (a parameter, a record member, or the arguments
+a handle was reached through) is refused as invalid arguments, and a value of the plugin's own type (a type parameter,
+such as the settings object of `UpdateSettingsAsync`) arrives as a JSON object with its null members dropped, as a
+builtin's typed value would be written. It also
 writes one member table per root context: each member's id
 (FNV-1a 32 of its documentation-comment id), permission, crossing class and whether it is pending, and a hash of the
 whole table. The runner sends the hash of both tables in `Hello`, and the host refuses a runner whose hash differs
@@ -360,6 +364,12 @@ The first plugin to run isolated has a UI half only, so the UI half comes first:
 `ReadAssetAsync`, `Host`, `WatchHost`, `SideTool`, `SettingsSection`, `FileViewer`, `HeaderItem`, `Notify`,
 `Invalidate`, `OnReconnect`, and the `Func<..., Control>` factories as surface handles). Every member of
 `IPluginHostContext` and the rest of `IPluginUIContext` is classified and pending.
+
+Until the settings schema below lands, a UI-only plugin's `UpdateSettingsAsync` writes its own namespace
+unvalidated: the host has no contract to check it against. Two things hold already: a settings object that names
+`enabled` is refused for every plugin, so a plugin cannot turn itself or its dependents off or on, and null members
+are dropped, so a write cannot clear a stored value a builtin's write would keep. Checking the keys and values
+against the build-time schema is pending with the host-mode runner, which sends the schema in `Ready`.
 
 ### How each kind of member crosses
 
@@ -398,7 +408,7 @@ isolated runtime, while the trusted runtime keeps them as they are.
 | `ILanguageServerInstallation.Http` | a raw `HttpClient` | an `HttpClient` over a brokered handler, so every request passes the `net:` check |
 | `IRepoHostSurface.Owner` | the app's `Window` | not available; dialogs go through the surface's own methods |
 | `IPluginUIContext.WorkspaceChips`, another plugin's `AgentLauncher.CreateIcon` | controls owned by core or by another plugin | `WorkspaceChips` is consumed only by the chat plugin's environment row, and `CreateIcon` (taking a size and an `IBrush`) by two places that fall back to a named icon. In the isolated runtime both return a placeholder control in the plugin's tree, with the app compositing the real control into that rectangle; `CreateIcon` instead takes a named icon and a colour. Unconfirmed: the placeholder is the reverse direction of a remote surface, and no precedent in Avalonia is known |
-| `PluginToolDefinition.ParametersType`, the settings type behind H13 and W2 | a `System.Type` the trusted side reflects over | a JSON schema generated at build time and sent with the registration; arguments and settings are validated against it, then deserialized in the plugin process |
+| `PluginToolDefinition.ParametersType`, the settings type behind H13 and W2 | a `System.Type` the trusted side reflects over | a JSON schema generated at build time and sent with the registration; arguments and settings are validated against it, then deserialized in the plugin process. Pending: until the host-mode runner sends it, a UI-only plugin's settings are stored unvalidated |
 
 The public-API analyzer is extended so that a new plugin-facing member which cannot cross fails the build, with
 the same weight as an undocumented symbol.

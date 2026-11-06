@@ -108,8 +108,9 @@ public interface IPluginUIContext
     /// converges the same way.
     /// </summary>
     /// <typeparam name="T">The contract's settings type.</typeparam>
-    /// <param name="settings">The new settings; merged field by field into the namespace.</param>
+    /// <param name="settings">The new settings; merged field by field into the namespace. They cannot name <c>enabled</c>.</param>
     /// <returns>Completes after the broadcast.</returns>
+    /// <exception cref="ArgumentException">The settings name <c>enabled</c>; only the user turns a plugin on or off.</exception>
     [PluginAmbient]
     ValueTask UpdateSettingsAsync<T>(T settings) where T : class;
 

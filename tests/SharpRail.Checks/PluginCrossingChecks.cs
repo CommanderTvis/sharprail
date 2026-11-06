@@ -42,6 +42,8 @@ internal static class PluginCrossingChecks
         Console.WriteLine("PASS plugin crossing tables: pinned hashes, ids are FNV-1a of the documentation-comment ids, the UI-only surface is generated and the rest pending");
         Negatives();
         Console.WriteLine("PASS plugin crossing rules: SRI001 to SRI006 each fail a snippet that breaks them, including a stale pending entry; a clean snippet's runner proxies and trusted dispatchers compile without warnings");
+        Untrusted();
+        Console.WriteLine("PASS plugin crossing untrusted arguments: the dispatcher refuses null for a non-nullable parameter, record member and accessor argument, and drops the null members of a settings object");
         if (PluginChannelChecks.Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin crossing round trip: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -136,6 +138,37 @@ internal static class PluginCrossingChecks
         ((HeaderItemRegistration)recorder.Arguments["HeaderItem"]!).Create();
         string[] surfaces = ["surface:board:ws-1", "surface:viewer:notes/a.todo", "surface:settings", "surface:header"];
         Require(surfaces.SequenceEqual(callbacks.Surfaces), "Each factory must run in the runner with the host's arguments: " + string.Join(" | ", callbacks.Surfaces));
+    }
+
+    /// <summary>
+    /// The dispatcher on its own, with payloads a plugin process could send: null where the API takes a value is invalid
+    /// arguments, and a settings object reaches the context without null members, as a builtin's typed value would.
+    /// </summary>
+    private static void Untrusted()
+    {
+        PluginJson.Register(IsolationUiJsonContext.Default);
+        var context = DispatchProxy.Create<IPluginUIContext, UIRecorder>();
+        var recorder = (UIRecorder)(object)context;
+        var callbacks = new PeerCallbacks(() => throw new InvalidOperationException("Nothing here calls the plugin back."));
+        string Send(int member, IsoPayload payload) =>
+            PluginUIContextDispatcher.DispatchAsync(member, payload.Finish(), context, callbacks, default).AsTask().GetAwaiter().GetResult();
+
+        var settings = new JsonObject { ["columns"] = 3, ["title"] = null, ["layout"] = new JsonObject { ["wide"] = null, ["rows"] = 2 } };
+        Send(UIMembers.PluginUIContext_UpdateSettingsAsync, new IsoPayload().Value(settings));
+        Require(recorder.Calls.Contains("UpdateSettingsAsync({\"columns\":3,\"layout\":{\"rows\":2}})"),
+            "A settings object must reach the context without null members: " + string.Join(" | ", recorder.Calls));
+
+        void Refused(string what, int member, IsoPayload payload)
+        {
+            try { Send(member, payload); }
+            catch (IsoCallException error) when (error.Error == IsoError.InvalidParams && error.Message == what + " is missing.") { return; }
+            throw new InvalidOperationException($"Null for {what} must be refused as invalid arguments; the context saw: " + string.Join(" | ", recorder.Calls));
+        }
+        Refused("title", UIMembers.PluginUIContext_Notify, new IsoPayload().Value(PluginNotificationKind.Info).Value<string?>(null).Value("x"));
+        Refused("SideToolRegistration.Tool", UIMembers.PluginUIContext_SideTool, new IsoPayload().Object().Name("tool").Value<string?>(null).Name("create").Handle(1).End());
+        Refused("key", UIMembers.PluginPreference_Set, new IsoPayload().Raw(new IsoPayload().Value<string?>(null).Finish()).Value("wide"));
+        Require(!recorder.Calls.Any(call => call.StartsWith("Notify", StringComparison.Ordinal) || call.StartsWith("SideTool", StringComparison.Ordinal) || call.StartsWith("Preference", StringComparison.Ordinal)),
+            "A refused call must not reach the context: " + string.Join(" | ", recorder.Calls));
     }
 
     private static async ValueTask<IsoResult> Dispatch(IsoCall call, IPluginUIContext target, IIsolatedCallbacks callbacks, CancellationToken token) =>

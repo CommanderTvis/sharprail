@@ -169,6 +169,8 @@ internal sealed class PluginUIContext : IPluginUIContext
     public async ValueTask UpdateSettingsAsync<T>(T settings) where T : class
     {
         var written = PluginJson.SerializeToElement(settings);
+        if (written.ValueKind == JsonValueKind.Object && written.TryGetProperty("enabled", out _))
+            throw new ArgumentException($"Plugin {Id} settings cannot name enabled. Only the user turns a plugin on or off.", nameof(settings));
         var arrived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         bool Carries(HostState state) => state.PluginSettings.GetValueOrDefault(Id) is { ValueKind: JsonValueKind.Object } stored &&
             written.EnumerateObject().All(member => stored.TryGetProperty(member.Name, out var value) && value.GetRawText() == member.Value.GetRawText());

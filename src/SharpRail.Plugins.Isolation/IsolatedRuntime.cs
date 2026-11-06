@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
@@ -163,6 +164,28 @@ public readonly struct IsoArgs
     }
 
     public T Value<T>(int index) => IsoObject.Read<T>(At(index), "argument " + index);
+
+    /// <summary>
+    /// A value of the plugin's own type, which the trusted side replays as a JSON object: null members are dropped at
+    /// every depth, as <see cref="PluginJson.Options"/> writes a typed value, and anything but an object is refused.
+    /// </summary>
+    public JsonObject Node(int index)
+    {
+        var node = At(index) is { ValueKind: JsonValueKind.Object } value ? JsonObject.Create(value)! : throw Invalid($"argument {index} is not an object");
+        DropNulls(node);
+        return node;
+    }
+
+    private static void DropNulls(JsonNode? node)
+    {
+        if (node is JsonObject members)
+        {
+            foreach (var name in members.Where(member => member.Value is null).Select(member => member.Key).ToList()) members.Remove(name);
+            foreach (var member in members) DropNulls(member.Value);
+        }
+        else if (node is JsonArray items)
+            foreach (var item in items) DropNulls(item);
+    }
 
     public long? Handle(int index) => IsoObject.ReadHandle(At(index), "argument " + index);
 

@@ -323,7 +323,7 @@ internal sealed partial class Emitter
                 var accessor = member.Accessor!;
                 text.AppendLine("        var via = args.Nested(0);");
                 var viaArguments = accessor.Symbol is IMethodSymbol accessorMethod
-                    ? "(" + string.Join(", ", accessorMethod.Parameters.Select((parameter, index) => $"via.Value<{Type(parameter.Type)}>({index})")) + ")"
+                    ? "(" + string.Join(", ", accessorMethod.Parameters.Select((parameter, index) => Required($"via.Value<{Type(parameter.Type)}>({index})", parameter.Type, parameter.Name))) + ")"
                     : "";
                 text.AppendLine($"        var owner = target.{Id(accessor.Symbol.Name)}{viaArguments};");
                 owner = "owner";
@@ -349,7 +349,8 @@ internal sealed partial class Emitter
                     if (parameter.Type.NullableAnnotation != NullableAnnotation.Annotated) name += " ?? throw new " + Iso + "IsoCallException(" + Iso + "IsoError.InvalidParams, \"" + parameter.Name + " is missing.\")";
                 }
                 else if (IsSplit(parameter.Type)) text.AppendLine($"        var {name} = {Construct((INamedTypeSymbol)parameter.Type, $"args.Object({position})")};");
-                else text.AppendLine($"        var {name} = args.Value<{Closed(parameter.Type)}>({position});");
+                else if (parameter.Type is ITypeParameterSymbol { HasReferenceTypeConstraint: true }) text.AppendLine($"        var {name} = args.Node({position});");
+                else text.AppendLine($"        var {name} = {Required($"args.Value<{Closed(parameter.Type)}>({position})", parameter.Type, parameter.Name)};");
                 arguments.Add(name);
                 position++;
             }
@@ -372,6 +373,15 @@ internal sealed partial class Emitter
         return text.ToString();
     }
 
+    /// <summary>
+    /// Refuses JSON null for a non-nullable reference type: System.Text.Json does not check the annotation on a value it
+    /// reads alone, so the plugin process could otherwise pass null where the trusted side assumes a value.
+    /// </summary>
+    private static string Required(string expression, ITypeSymbol type, string what) =>
+        type.IsReferenceType && type is not ITypeParameterSymbol && type.NullableAnnotation == NullableAnnotation.NotAnnotated
+            ? $"({expression} ?? throw new {Iso}IsoCallException({Iso}IsoError.InvalidParams, \"{what} is missing.\"))"
+            : expression;
+
     /// <summary>Rebuilds a record the plugin passed: data from JSON, callbacks as proxies over their handles.</summary>
     private string Construct(INamedTypeSymbol record, string source)
     {
@@ -384,7 +394,7 @@ internal sealed partial class Emitter
         string Read(IPropertySymbol property)
         {
             var json = Camel(property.Name);
-            if (property.Type.TypeKind != TypeKind.Delegate) return $"o.Value<{Type(property.Type)}>(\"{json}\")";
+            if (property.Type.TypeKind != TypeKind.Delegate) return Required($"o.Value<{Type(property.Type)}>(\"{json}\")", property.Type, $"{record.Name}.{property.Name}");
             var callback = Find(property);
             if (callback is null || callback.Pending) return "default!";
             var missing = property.Type.NullableAnnotation == NullableAnnotation.Annotated

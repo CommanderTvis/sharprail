@@ -29,7 +29,9 @@ A project opts in by importing `Isolation.Generator.props` and setting `SharpRai
 
 Shapes it produces: calls (`Task` and `ValueTask`), one-ways, mirrored reads, `LocalInRunner` members, records split
 into data and callback handles, callbacks that are factories, asynchronous, `void` or synchronous by crossing class,
-and generic members (the trusted side closes them over `JsonObject` or `JsonElement`). Anything else that is not pending
+and generic members (the trusted side closes them over `JsonObject`, with null members dropped, or `JsonElement`).
+A dispatcher refuses JSON null for a non-nullable reference parameter, record member or accessor argument with
+invalid arguments, since System.Text.Json does not check the annotation on a value it reads alone. Anything else that is not pending
 is SRI002, so the build fails before a wrong proxy exists: handles returned by a call, `Blocking`, a synchronous
 `IDisposable` result, by-name contracts, handles inside records.
 
