@@ -52,6 +52,13 @@ await fs.copyFile(path.join(project, 'node_modules/isomorphic-git/LICENSE.md'), 
 await fs.cp(path.join(project, 'node_modules/diff/libesm'), path.join(vendor, 'diff'), { recursive: true });
 await fs.copyFile(path.join(project, 'node_modules/diff/LICENSE'), path.join(vendor, 'Diff-LICENSE'));
 await fs.cp(path.join(project, 'node_modules/restty/dist'), path.join(vendor, 'restty'), { recursive: true });
+// Restty 0.3.0 shrinks a glyph (both ways, so the bottom bar of "E" falls off) whenever the font's advance exceeds the cell
+// it rounded to a whole pixel, e.g. 8.4 px in an 8 px cell at 14 px. Rounding is below half a pixel, so only shrink for more.
+const chunk = path.join(vendor, 'restty/chunk-c0rcpsc5.js');
+const shrink = 'advancePx > maxWidth && advancePx > 0';
+const source = await fs.readFile(chunk, 'utf8');
+if (source.split(shrink).length !== 3) throw new Error('Restty changed its glyph fit: update the patch in scripts/browser-assets.mjs');
+await fs.writeFile(chunk, source.replaceAll(shrink, 'advancePx > maxWidth + 0.5 && advancePx > 0'));
 await fs.copyFile(path.join(project, 'node_modules/restty/LICENSE'), path.join(vendor, 'Restty-LICENSE'));
 await fs.copyFile(path.join(await fs.realpath(path.join(project, 'node_modules/restty')), '../text-shaper/LICENSE'), path.join(vendor, 'TextShaper-LICENSE'));
 await fs.copyFile(path.join(root, 'src/SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf'), path.join(vendor, 'JetBrainsMono-Regular.ttf'));

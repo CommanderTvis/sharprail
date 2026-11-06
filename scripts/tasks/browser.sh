@@ -24,6 +24,7 @@ case "${1:-build}" in
         mise_browser node tests/SharpRail.Browser.Checks/local-approval.mjs
         mise_browser node tests/SharpRail.Browser.Checks/restty.mjs --hover
         mise_browser node tests/SharpRail.Browser.Checks/restty.mjs --stream
+        mise_browser node tests/SharpRail.Browser.Checks/terminal-glyphs.mjs
         ;;
     run)
         : "${SHARPRAIL_TOKEN:?Set SHARPRAIL_TOKEN to the host session token.}"

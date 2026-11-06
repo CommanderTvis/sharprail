@@ -201,6 +201,14 @@ The default terminal uses restty 0.3.0 with WebGL2. It
 uses the existing host adapter, session lifetime and ordered output; streaming UTF-8
 decoding preserves split characters at the restty string-input boundary. Its canvas
 is hosted by Avalonia's native-control surface, not imported as a shared GPU texture.
+Restty 0.3.0 rounds the cell width to whole pixels and, when the font's advance exceeds that cell, shrinks every glyph
+in both directions; at 14 px and DPR 1 (advance 8.4 px, cell 8 px) a letter lost its last pixel row and "E" read as "F"
+("README" as "RFADMF"), and the same happened at any size or scale whose advance rounds down. `scripts/browser-assets.mjs`
+patches the vendored runtime to shrink only when the advance exceeds the cell by more than half a pixel (the rounding), and
+fails when Restty changes that code. `tests/SharpRail.Browser.Checks/terminal-glyphs.mjs` (in `scripts/mise run browser
+check`) draws E, D and B through the production bridge at DPR 1, 1.25, 1.5, 1.75 and 2 and 10-20 pt, and fails on a glyph
+shorter than its cap height or without its bottom bar; unpatched it fails at 14 pt/DPR 1, 11 pt/DPR 1.25 and 19 pt/DPR 1.5.
+A real Windows Chrome run is not measured.
 Read-only shared terminals also use restty, retain the holder's grid and follow its
 ordered resize notifications without sending input, terminal replies or resizes.
 Wheel events stay inside the terminal's DOM surface after its canvas handlers run, while native
