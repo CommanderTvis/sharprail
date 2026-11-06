@@ -83,12 +83,94 @@ The server reads one JSON-RPC message per line and writes one per line. Logs go 
 | Setting | Meaning |
 | --- | --- |
 | `--workspace <dir>` | The project. Defaults to `SHARPRAIL_ROOT`, then the current directory. |
+| `--arm`, `--disable-tools` | Tool switches, see below. |
 | `SHARPRAIL_STATE_DIR` | Where settings and language server installs live. Defaults to `~/.sharprail/headless`. |
 
 Tools: `lsp_navigate`, `lsp_diagnostics`, `lsp_status`, the `spec_*` tools and `blueprint_check`. Paths are relative to the workspace. The optional `workspace` argument is ignored.
 
 Language servers are downloaded on first use into the state directory. Outside the image, runtimes they need (.NET, Node, a JDK) must already be on the PATH, unless `SHARPRAIL_TOOLCHAINS=managed` is set. The image sets it.
 
-## Not built yet
+## Tool switches and the call log
 
-Tool switches and a call log.
+Both live in one file, `.sharprail/mcp.toml` in the project. Without the file, every tool is offered and nothing is logged or written.
+
+```toml
+version = 1
+
+[tools]
+disable = ["blueprint_check"]        # these tools do not exist for the run
+# allow = ["lsp_navigate"]           # if set, only these exist (disable still wins)
+
+[tools.lsp_navigate]
+operations = ["definition", "references"]   # lsp_navigate and lsp_status only
+[tools.lsp_diagnostics]
+enabled = false
+
+[log]
+enabled = false                      # opt in
+level = "meta"                       # meta | args | full
+max_result_chars = 4000              # full level only
+max_file_kb = 51200                  # the log stops here
+dir = ".sharprail/runs"              # relative to the project
+
+[arms.nolsp]                         # same keys as the top level: tools and log
+tools.disable = ["lsp_navigate", "lsp_diagnostics", "lsp_status"]
+```
+
+Unknown keys, wrong types and unknown operations are errors. The server exits with code 2 and a message such as `.sharprail/mcp.toml:4: tools.disabel: unknown key`. An unknown tool name only gives a warning.
+
+An arm replaces the top-level value of every key it sets. Precedence, lowest to highest: defaults, the top level of the file, the selected arm, environment variables, flags.
+
+| Setting | Environment | Flag |
+| --- | --- | --- |
+| Arm | `SHARPRAIL_ARM` | `--arm <name>` |
+| `tools.disable` | `SHARPRAIL_TOOLS_DISABLE` (comma list) | `--disable-tools <a,b>` |
+| `tools.allow` | `SHARPRAIL_TOOLS_ALLOW` (comma list) | |
+| `log.enabled` | `SHARPRAIL_LOG` (`0` or `1`) | |
+| `log.level` | `SHARPRAIL_LOG_LEVEL` | |
+| `log.dir` | `SHARPRAIL_RUNS_DIR` | |
+
+An empty variable counts as unset. A selected arm that the file does not define is an error.
+
+A switched-off tool is missing from `tools/list` and a call to it fails as an unknown tool. The `initialize` instructions are generated from the tools that exist. Narrowed operations are removed from the schema enum and refused at call time. Tool descriptions are not rewritten, so the `lsp_navigate` text still names operations you removed.
+
+Show the result without starting anything: `sharprail-headless check-config --workspace . --arm nolsp` prints the effective configuration as JSON and exits 0, or 2 for an invalid one. The tool list in it assumes the full roster.
+
+### The call log
+
+With `log.enabled`, each run writes `<dir>/<session>.jsonl`. The session is a UTC timestamp and six hex digits, announced on stderr. This is the one case where SharpRail writes more than shareable configuration into `.sharprail`. Add `.sharprail/runs/` to `.git/info/exclude`, or set `SHARPRAIL_RUNS_DIR` to a separate mount.
+
+Lines have `ev` of `start`, `call` or `end`. Every line has `ts`, `session` and `arm`. A `call` line has `seq`, `tool`, `operation` (language tools), `durationMs`, `isError`, `resultChars`, `resultLines` and `error`. Level `args` adds `args`, each value cut at 500 characters. Level `full` adds `result`, cut at `max_result_chars`. The `start` line has `version`, `configHash`, `toolsOffered` and the effective `config`. The `end` line has `calls`, `errors` and `totalMs`. Lines are queued and written by a background task, so a slow disk never delays a tool. At `max_file_kb` the log stops with one warning on stderr, and the `end` line is still written.
+
+### A/B experiment: language tools on and off
+
+Commit one `.sharprail/mcp.toml` with `[arms.nolsp]` as above, then give the agent two server entries on the same image. Each run uses one of them.
+
+```json
+{
+  "mcpServers": {
+    "sharprail": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--init", "-v", "${PWD}:/workspace", "-v", "sharprail-cache:/cache",
+               "-e", "SHARPRAIL_ARM=lsp", "-e", "SHARPRAIL_LOG=1", "ghcr.io/commandertvis/sharprail:nightly"]
+    }
+  }
+}
+```
+
+Save the second file with `SHARPRAIL_ARM=nolsp` and pass each to its own run with `claude --mcp-config <file> --strict-mcp-config`. Define an `[arms.lsp]` table too, even an empty one, because an undefined arm is an error. Logs land in `.sharprail/runs/` of the project.
+
+Verified offline with the local `claude` CLI (2.1.319): the flags `--mcp-config` and `--strict-mcp-config` exist. Not verified: `${PWD}` expansion in an `--mcp-config` file, and how the agent behaves without the tools.
+
+Comparing the arms with `jq`, one directory of logs per arm:
+
+```sh
+# calls per tool
+jq -r 'select(.ev=="call") | .tool' runs/*.jsonl | sort | uniq -c
+# totals: calls, tool time, errors, bytes returned
+jq -s '[.[]|select(.ev=="call")] | {calls:length, ms:(map(.durationMs)|add), errors:(map(select(.isError))|length), chars:(map(.resultChars)|add)}' runs/*.jsonl
+# error rate per tool
+jq -s '[.[]|select(.ev=="call")] | group_by(.tool) | map({tool:.[0].tool, calls:length, errors:(map(select(.isError))|length)})' runs/*.jsonl
+# slowest ten calls
+jq -s '[.[]|select(.ev=="call")] | sort_by(-.durationMs) | .[:10] | map({tool,operation,durationMs})' runs/*.jsonl
+```

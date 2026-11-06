@@ -18,7 +18,7 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 
 ## Boundary
 
-- Owns `Program.cs` (arguments, configuration, exit codes, composition) and `StdioMcp.cs` (the line protocol).
+- Owns `Program.cs` (arguments, exit codes, composition), `StdioMcp.cs` (the line protocol), `McpConfig.cs`, `ToolSwitches.cs` and `CallLog.cs`.
 - Allowed deps: `SharpRail.Host.Core` and what it reaches. Forbidden: Avalonia, Skia, any UI project, Kestrel or any network
   listener, terminals, per-terminal tokens. `BoundaryChecks` fails on a project reference or source mention, and
   `--headless` fails on any UI or web package in the restore graph, transitive ones included.
@@ -27,7 +27,7 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 
 ## Behaviour
 
-- Command: `sharprail-headless mcp [--workspace <dir>]`. The workspace is `--workspace`, else `SHARPRAIL_ROOT`, else the current directory.
+- Commands: `sharprail-headless mcp|check-config [--workspace <dir>]`. The workspace is `--workspace`, else `SHARPRAIL_ROOT`, else the current directory.
 - State (settings, language server installs and sessions) lives in `SHARPRAIL_STATE_DIR`, else `~/.sharprail/headless`. A store with no
   directory would turn language services off, so there is always one. Two processes on one directory are last-writer-wins.
 - Roster: the spec graph, Blueprint and the language servers, enabled by default. Tools are `lsp_*`, `spec_*` and
@@ -62,6 +62,14 @@ Built from `docker/headless/Dockerfile` by `.github/workflows/container.yml`, pu
 - Tags: `nightly` (overwritten each run) and `sha-<short>`, as multi-arch lists over `-amd64` and `-arm64` tags. arm64 may be missing.
 - No image is pushed unless `scripts/container-smoke.sh` passes on it.
 
+## Tool switches and call log
+
+- `.sharprail/mcp.toml` (`version = 1`, strict: unknown keys, wrong types and unknown operations exit 2 with `file:line: key: message`) holds `tools.disable`, `tools.allow`, `[tools.<name>]` (`enabled`, `operations` for `lsp_navigate` and `lsp_status`), `[log]` and `[arms.<name>]` tables of tools and log. An arm replaces each key it sets.
+- Precedence: defaults, file top level, arm, environment (`SHARPRAIL_ARM`, `SHARPRAIL_TOOLS_DISABLE`, `SHARPRAIL_TOOLS_ALLOW`, `SHARPRAIL_LOG`, `SHARPRAIL_LOG_LEVEL`, `SHARPRAIL_RUNS_DIR`), flags (`--arm`, `--disable-tools`). A selected arm the file lacks is an error.
+- One decorator over the tool table drops switched-off tools (unknown tool for list and call), narrows operations in the schema and at call time, and feeds the log. The initialize instructions are generated from the offered tools.
+- The log is off by default and then nothing is created in `.sharprail`. When on, `<dir>/<session>.jsonl` (default `.sharprail/runs`) gets `start`, `call` and `end` lines from a background writer, flushed per line, bounded by `max_file_kb`. It never fails a call.
+- `check-config` prints the effective configuration as JSON and exits 0, or 2.
+
 ## Not built yet
 
-Tool switches, the call log, `check-config`, `manifest`.
+`manifest`.
