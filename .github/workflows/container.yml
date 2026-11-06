@@ -1,0 +1,170 @@
+name: Container
+
+# Publishes the headless image to ghcr.io/commandertvis/sharprail. Each architecture is published on a native runner, smoke
+# tested, and only then pushed. The manifest job joins whatever was pushed into the multi-arch tag, which every run overwrites.
+# Dispatch by hand with `gh workflow run container.yml -f tag=nightly`, or wait for the nightly schedule.
+on:
+  schedule:
+    # After nightly.yml (03:00).
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Moving tag to overwrite
+        required: false
+        default: nightly
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  # Every tool must come from mise.lock, with its checksum.
+  MISE_LOCKED: '1'
+  TAG: ${{ inputs.tag || 'nightly' }}
+
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: publish (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    # arm64 does not gate the image yet: the manifest job joins whichever architectures were pushed.
+    continue-on-error: ${{ matrix.arch == 'arm64' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            rid: linux-x64
+            runner: ubuntu-24.04
+          - arch: arm64
+            rid: linux-arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/share/mise
+            ~/.cache/sharprail
+          key: tools-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
+      - name: Check the tag
+        run: |
+          case "$TAG" in
+            *[!A-Za-z0-9._-]* | "" | -* | .*) echo "::error::tag must be letters, digits, dot, underscore or dash, and not start with dot or dash"; exit 1 ;;
+          esac
+      - id: names
+        name: Name the image
+        run: |
+          # ghcr.io requires lowercase.
+          image="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          sha="sha-$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
+          {
+            echo "image=$image"
+            echo "sha=$sha"
+            echo "local=sharprail-headless:${{ matrix.arch }}"
+          } >> "$GITHUB_OUTPUT"
+      - run: sh scripts/ci-run.sh "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=false -o artifacts/headless/${{ matrix.rid }}
+      - run: >
+          sh scripts/ci-run.sh "Build image ${{ matrix.arch }}" docker build
+          -f docker/headless/Dockerfile
+          --build-arg PUBLISH_DIR=artifacts/headless/${{ matrix.rid }}
+          --build-arg REVISION="$GITHUB_SHA"
+          --build-arg CREATED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          -t "${{ steps.names.outputs.local }}" .
+      # Nothing is pushed unless the image answers MCP on stdio.
+      - run: sh scripts/ci-run.sh "Smoke test ${{ matrix.arch }}" sh scripts/container-smoke.sh "${{ steps.names.outputs.local }}"
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: push
+        name: Push
+        env:
+          IMAGE: ${{ steps.names.outputs.image }}
+          SHA: ${{ steps.names.outputs.sha }}
+        run: |
+          docker tag "${{ steps.names.outputs.local }}" "$IMAGE:$TAG-${{ matrix.arch }}"
+          docker tag "${{ steps.names.outputs.local }}" "$IMAGE:$SHA-${{ matrix.arch }}"
+          docker push "$IMAGE:$TAG-${{ matrix.arch }}"
+          docker push "$IMAGE:$SHA-${{ matrix.arch }}"
+          # The registry digest is only known after the push.
+          digest=$(docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$IMAGE:$SHA-${{ matrix.arch }}" | grep "^$IMAGE@" | head -n1 | cut -d@ -f2)
+          [ -n "$digest" ] || { echo "::error::no registry digest for the pushed image"; exit 1; }
+          mkdir -p pushed
+          echo "$digest" > "pushed/${{ matrix.arch }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pushed-${{ matrix.arch }}
+          path: pushed/${{ matrix.arch }}
+          if-no-files-found: error
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: publish-${{ matrix.arch }}
+
+  manifest:
+    needs: publish
+    # Runs even when the arm64 leg failed. It fails itself when no architecture was pushed.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: pushed-*
+          path: pushed
+          merge-multiple: true
+        continue-on-error: true
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Join the architectures
+        run: |
+          image="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          sha="sha-$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
+          sources=""
+          archs=""
+          for arch in amd64 arm64; do
+            if [ -s "pushed/$arch" ]; then
+              sources="$sources $image@$(cat "pushed/$arch")"
+              archs="$archs $arch"
+            fi
+          done
+          [ -n "$sources" ] || { echo "::error::no architecture was pushed, so there is no image to tag"; exit 1; }
+          case "$archs" in *amd64*) ;; *) echo "::warning::amd64 was not pushed; the manifest has$archs only" ;; esac
+          case "$archs" in *arm64*) ;; *) echo "::warning::arm64 was not pushed; the manifest has$archs only" ;; esac
+          # shellcheck disable=SC2086
+          docker buildx imagetools create -t "$image:$TAG" -t "$image:$sha" $sources
+          digest=$(docker buildx imagetools inspect "$image:$TAG" --format '{{json .Manifest.Digest}}' | tr -d '"')
+          {
+            echo "### Container image"
+            echo
+            echo "Architectures:$archs"
+            echo
+            echo "| Tag | Digest |"
+            echo "| --- | --- |"
+            echo "| \`$image:$TAG\` (overwritten) | \`$digest\` |"
+            echo "| \`$image:$sha\` | \`$digest\` |"
+            for arch in $archs; do
+              echo "| \`$image:$TAG-$arch\` | \`$(cat "pushed/$arch")\` |"
+            done
+            echo
+            echo "Pull: \`docker pull $image:$TAG\`"
+            echo
+            echo "Pin: \`$image@$digest\`"
+            echo
+            echo "A new package is private until the owner makes it public in the package settings."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: manifest
