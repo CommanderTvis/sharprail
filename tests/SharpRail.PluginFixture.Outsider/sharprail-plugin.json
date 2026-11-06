@@ -1,0 +1,15 @@
+{
+  "id": "outsider-ui",
+  "label": "Outsider",
+  "icon": "puzzle-2-line",
+  "version": "1.0.0",
+  "apiGeneration": 2,
+  "wireVersion": 1,
+  "description": "A check fixture: an external plugin with only a UI half.",
+  "ui": "SharpRail.PluginFixture.Outsider.UI.dll",
+  "assets": "assets",
+  "contributes": {
+    "sideTools": [{ "tool": "board", "label": "Outsider board", "icon": "puzzle-2-line", "defaultSide": "right" }],
+    "fileViewers": [{ "extensions": ["outsider"], "names": [], "read": "text" }]
+  }
+}

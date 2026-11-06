@@ -74,7 +74,8 @@ a capability restricted to builtin plugins would be unavailable to almost every 
 External plugins do not run in this version. The host discovers them and lists them in the roster, and refuses
 one that is enabled, with the reason "External plugins are not supported in this version." Neither the host nor
 the app loads an external assembly, so both are free of dynamic code loading and can be published as
-NativeAOT. External plugins come back once they can run isolated from SharpRail's processes; until then, the
+NativeAOT. External plugins come back once they can run isolated from SharpRail's processes
+([Security.SPEC.md](Security.SPEC.md)); the checks already run one with only a UI half that way. Until then, the
 manifest format and the capabilities stay as described here.
 
 ## Stability
@@ -404,7 +405,8 @@ plugins are not supported in this version." Its switch in Settings › Plugins s
 it to disabled. No external assembly loads,
 and the plugin file read serves only the external plugin's assets. This keeps the host and the app free of
 dynamic code loading, so both can be published as NativeAOT, until external plugins can run isolated from
-SharpRail's processes.
+SharpRail's processes. Behind the isolation seam, which only the checks set, an external plugin with only a UI half
+runs in its own process instead ([where the isolated runtime stands](Security.SPEC.md#where-the-isolated-runtime-stands)).
 
 Extra roots are host state rather than a separate file, so they are validated, broadcast, and editable from
 Settings like anything else, and a plugin found in one still arrives disabled.

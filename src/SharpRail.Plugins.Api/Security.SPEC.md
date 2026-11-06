@@ -253,8 +253,9 @@ external plugins with that as the reason, rather than running them unconfined.
 
 ### The channel and the runner process
 
-These exist now, used only by the checks (`SharpRail.Plugins.Isolation`, the `SharpRail.PluginRunner` executable;
-`--plugin-channel`). No external plugin runs through them yet, and no sandbox is applied yet.
+These exist now (`SharpRail.Plugins.Isolation`, the `SharpRail.PluginRunner` executable; `--plugin-channel`). Only
+the checks run an external plugin through them ([below](#where-the-isolated-runtime-stands)), and no sandbox is
+applied yet.
 
 - The channel is a Unix stream socket pair, the runner's end placed at descriptor 3, or on Windows one named pipe
   with a random name, one instance and an access list for the current user, which the host creates and connects
@@ -308,6 +309,34 @@ A plugin process that crashes or exits marks its plugin `failed` with the reason
 Disabling a plugin ends its process after the existing drain, which gives external plugins the real unload that
 non-collectible load contexts never did. Memory and CPU limits apply per process (unconfirmed: rlimits under
 `sharprail-confine`, job objects on Windows, none yet on macOS).
+
+### Where the isolated runtime stands
+
+An external plugin with a UI half and no host half runs isolated in the checks (`--plugin-isolated-ui`, with the
+outsider fixture installed from disk). Shipping compositions do not run it: the host's seam
+(`PluginHostSeams.Isolation`) and the app's (`Workbench.IsolatedPlugins`) are null in `App.cs` and
+`RemoteServer.Create`, and only the checks set them.
+
+- With the seam, an enabled external plugin with only a UI half is no longer refused. Refusals remain, each with
+  its reason: no seam, no runner, a seam that requires a sandbox (none is applied yet, so only the checks' seam,
+  which requires none, runs plugins), a host half, and a host that keeps no files.
+- The host starts one runner in `plugin` mode for the plugin. The runner loads the UI half in its own
+  `AssemblyLoadContext` before it answers `Ready`: the assemblies the runner ships (the framework, the API, the
+  kit, the chat contract, Avalonia) are shared, and everything else comes from the plugin's directory. An assembly
+  it cannot load fails the plugin with that reason.
+- Each client context is a handle the host lends the runner. Activating the UI half on it answers what `Activate`
+  registered, in order, in the reply, so the client replays the registrations at once with its activation guard
+  open. The client records them in its registry as it does a builtin's; their factories answer a placeholder ("This
+  view is not available yet.") and are never called in the plugin's process until surfaces are streamed.
+- The plugin's settings are mirrored into its process when the context opens and whenever they change, and the
+  client brings the mirror up to date before it answers any call, so a plugin that awaited `UpdateSettingsAsync`
+  reads what it wrote. `Host()`, `WatchHost` and preference reads are not mirrored yet: they throw.
+- The host checks what the plugin sends a client: the call must name a context it lent, its arguments must be under
+  256 Ki characters, and a client that leaves 1,024 calls unread loses its session. The client's generated
+  dispatcher checks the member against the UI member table and the arguments against the API. The host checks only
+  the host half of the runner's tables hash; the client refuses a runner whose UI table differs from its own. The
+  host's own copy of the UI table, so that a remote client parses only checked messages, is pending.
+- Only the in-process host serves sessions; a remote client keeps an external plugin dormant.
 
 ## Calls across the boundary
 

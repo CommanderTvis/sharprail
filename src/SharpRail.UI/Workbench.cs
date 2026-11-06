@@ -116,6 +116,12 @@ public sealed class Workbench : IDisposable
     internal PluginWorkspaceWatches WorkspaceWatches { get; }
     /// <summary>A host this workbench composed for itself and stops when it is disposed.</summary>
     internal IAsyncDisposable? OwnedHost { get; init; }
+    /// <summary>
+    /// Opens an external plugin's UI half, which runs in its own process on the host, as a module for this app: null in
+    /// <c>App.cs</c>, where an external row the host reports active stays dormant, and set only by the checks until
+    /// external plugins are switched on. It gets the roster row, this app's client key and a cancellation.
+    /// </summary>
+    public Func<PluginRosterEntry, string, CancellationToken, Task<PluginUIModule>>? IsolatedPlugins { get; init; }
     /// <summary>The system's notification channel; a workbench without one raises no desktop notifications.</summary>
     public IDesktopNotifier? Notifier { get; init; }
     /// <summary>How long attention requests collect before they are shown as one notification.</summary>

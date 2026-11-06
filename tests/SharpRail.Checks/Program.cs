@@ -124,6 +124,13 @@ internal static class Program
             PluginCrossingChecks.Run().GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--plugin-isolated-ui"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            PluginIsolatedUIChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--persisted-json"]) || args.SequenceEqual(["--persisted-json", "--update"]))
         {
             PersistedJsonChecks.Run(root, update: args.Length == 2).GetAwaiter().GetResult();
@@ -1475,6 +1482,7 @@ internal static class Program
         Gate.Case("settings-terms-ui", () => IntelliJLicenseChecks.SettingsTerms(root));
         Gate.Case("language-code-actions", () => LanguageCodeActionChecks.Run(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
+        Gate.Case("plugin-isolated-ui", () => PluginIsolatedUIChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));
         Gate.Case("file-drop-gestures", FileDropChecks.Gestures);
         Gate.Case("file-manager", FileManagerChecks.Run);

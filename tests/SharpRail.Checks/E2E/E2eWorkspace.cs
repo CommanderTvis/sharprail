@@ -110,7 +110,8 @@ internal sealed class E2eWorkspace : IDisposable
         Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null, bool embedded = false,
         bool pluginTerminals = false, Func<IProjectServices, IProjectServices>? wrap = null,
         IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, SharpRail.Plugins.Api.Host.PluginHostModule?)>? hostPlugins = null,
-        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null)
+        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null,
+        SharpRail.Host.Core.Plugins.Isolation.PluginIsolation? isolation = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -139,7 +140,8 @@ internal sealed class E2eWorkspace : IDisposable
             State = State,
             PublicBaseUrl = () => server.BaseUrl,
             Terminals = hosted?.HostService,
-            Builtins = hostPlugins ?? SharpRail.Host.Core.Plugins.BuiltinPlugins.All
+            Builtins = hostPlugins ?? SharpRail.Host.Core.Plugins.BuiltinPlugins.All,
+            Isolation = isolation
         });
         loopback.Plugins = pluginRuntime;
         pluginRuntime.Start();
@@ -158,6 +160,9 @@ internal sealed class E2eWorkspace : IDisposable
             plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime), Terminals.Catalog, uiPlugins)
         {
             Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null,
+            // As the host's seam: an external plugin's UI half opens on the in-process host only when a check asks for it.
+            IsolatedPlugins = isolation is null ? null : async (entry, client, token) =>
+                await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(pluginRuntime, entry.Id, client, token),
             Notifier = notifier,
             NotificationWindow = TimeSpan.FromMilliseconds(150)
         };

@@ -24,7 +24,11 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
 - `ChildProcess`: spawn with exactly the channel, null standard input and a rate-limited log pipe; exit watch;
   reaping; kill of the session's group when the runner exits or is killed, or of the job. `RunnerSession`: the host's hold on one runner, with the handshake, and the
   kill on a protocol violation.
-- `RunnerProbe`: the member ids of the runner's `probe echo` mode.
+- `RunnerProbe`: the member ids of the runner's `probe echo` mode. `RunnerPlugin`: the members of its `plugin` mode
+  (activate the UI half on a context, dispose it, store a mirrored value) and their arguments.
+- `IsolatedUI.cs`: `IIsolatedUIHost`, which the host implements, opens a client's `IIsolatedUISession` with an
+  external plugin's process: what the activation registered, the later calls on the context in arrival order
+  (`IsoUICall`, answered or one-way), the plugin's callbacks and the mirror.
 - `IsolatedRuntime.cs`: what generated code targets. `IIsolatedRuntime` is the plugin process's way out (calls,
   one-ways, lending a callback, mirrored reads); `IIsolatedCallbacks` is the trusted side's way back (calls,
   one-ways, synchronous callbacks by crossing class, factories as surfaces); `IsoPayload`, `IsoArgs` and `IsoObject`
@@ -37,19 +41,20 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
 ## Boundary
 
 - References `SharpRail.Wire` and the plugin API's host half (`SharpRail.Plugins.Api.Host`, which brings the root
-  API), so no Avalonia and no host. Its internals are visible to the checks, which drive the Unix transport directly. Host.Core will compose it behind
-  `PluginHostSeams.Isolation`; nothing in a shipping composition uses it yet.
+  API), so no Avalonia and no host. Its internals are visible to the checks, which drive the Unix transport directly.
+  Host.Core composes it behind `PluginHostSeams.Isolation`, which no shipping composition sets yet.
 - NativeAOT code: no reflection; the handshake records go through a source-generated JSON context.
 - Pending, in the design's terms: the host dispatcher's members and callback proxies (with the host-mode runner,
   slice 4),
   a copy of the UI member table and argument schemas without Avalonia for the relay (slice 14; today the UI table
-  lives in `SharpRail.Plugins.Isolation.UI`, so the host cannot yet check the UI half of the runner's hash by
-  itself), the UI-mode runner (slice 14), grants and the broker (slices 10 to 13), sandboxes (slices 7 to 9),
+  lives in `SharpRail.Plugins.Isolation.UI`, so the host checks only the host half of the runner's hash and the
+  client the UI half, and the client's dispatcher checks a session's calls against the table), the UI-mode runner (slice 14), grants and the broker (slices 10 to 13), sandboxes (slices 7 to 9),
   packaging (slice 6).
 
 ## Checks
 
 `--plugin-channel` (also a gate case) covers the codec, protocol violations against the loopback, descriptors sent
 beside an unfinished frame on the Unix transport, and the runner's `probe echo` and `probe avalonia-private` modes,
-including the tables' hash in `Hello` and the refusal of a runner with another. `--plugin-crossing` (also a gate
+including the tables' hash in `Hello`, the refusal of a runner with another, and a child of the runner that does not
+hold its channel. `--plugin-isolated-ui` runs the outsider fixture in `plugin` mode through the host and the app. `--plugin-crossing` (also a gate
 case) pins the tables' hashes and drives the generated UI proxy and dispatcher over the real channel.

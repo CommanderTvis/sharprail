@@ -41,6 +41,10 @@ internal sealed class ActivationTables(long id)
     public ImmutableList<Action<JsonElement>> SettingsObservers { get; set; } = [];
     // Dependency subscriptions and workspace watches, released when the activation ends.
     public ImmutableList<IDisposable> Resources { get; set; } = [];
+    /// <summary>An external plugin's runner process, which this activation owns from spawn and ends when it ends.</summary>
+    public Isolation.IsolatedPlugin? Runner { get; set; }
+    /// <summary>Why the runner exited on its own, once it has; the next pass fails the plugin with it.</summary>
+    public string? Exit { get; set; }
     public Dictionary<string, (string Project, IDisposable Lease)> WorkspaceWatches { get; } = new(StringComparer.Ordinal);
     public Lock Registration { get; } = new();
 

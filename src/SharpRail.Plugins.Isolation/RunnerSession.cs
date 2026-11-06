@@ -27,15 +27,21 @@ public static class IsoProtocol
 /// <summary>The runner introduces itself. <see cref="ApiTableHash"/> names the generated member tables it was built with.</summary>
 public sealed record RunnerHello(int Protocol, int Pid, string Mode, string ApiTableHash = "", string Detail = "");
 
-/// <summary>What the host tells a runner it started.</summary>
-public sealed record RunnerInit(string PluginId = "", string Directory = "", string StateDirectory = "", string TempDirectory = "");
+/// <summary>
+/// What the host tells a runner it started. In <c>plugin</c> mode <see cref="Entry"/> is the UI half's assembly and
+/// <see cref="Assets"/> the assets directory, both relative to <see cref="Directory"/>, as the manifest names them.
+/// </summary>
+public sealed record RunnerInit(string PluginId = "", string Directory = "", string StateDirectory = "", string TempDirectory = "", string Entry = "", string Assets = "");
 
-/// <summary>The runner is ready to serve.</summary>
-public sealed record RunnerReady(string Detail = "");
+/// <summary>The runner is ready to serve, or names why it cannot (<see cref="Error"/>), and then exits.</summary>
+public sealed record RunnerReady(string Detail = "", string Error = "");
 
 [JsonSerializable(typeof(RunnerHello))]
 [JsonSerializable(typeof(RunnerInit))]
 [JsonSerializable(typeof(RunnerReady))]
+[JsonSerializable(typeof(UIActivation))]
+[JsonSerializable(typeof(UIMirror))]
+[JsonSerializable(typeof(List<UIRegistration>))]
 internal sealed partial class IsolationJsonContext : JsonSerializerContext;
 
 /// <summary>
@@ -46,16 +52,18 @@ public sealed class RunnerSession : IAsyncDisposable
 {
     private static readonly TimeSpan ExitGrace = TimeSpan.FromSeconds(2);
 
-    private RunnerSession(ChildProcess process, IsolationPeer peer, RunnerHello hello)
+    private RunnerSession(ChildProcess process, IsolationPeer peer, RunnerHello hello, RunnerReady ready)
     {
         Process = process;
         Peer = peer;
         Hello = hello;
+        Ready = ready;
     }
 
     public ChildProcess Process { get; }
     public IsolationPeer Peer { get; }
     public RunnerHello Hello { get; }
+    public RunnerReady Ready { get; }
 
     /// <summary>
     /// Starts a runner and completes the handshake within <paramref name="timeout"/>, or kills it and throws. With
@@ -108,8 +116,8 @@ public sealed class RunnerSession : IAsyncDisposable
             limit.CancelAfter(timeout);
             var introduced = await Handshake(hello.Task, peer, process, limit.Token).ConfigureAwait(false);
             peer.Send(new IsoFrame { Kind = IsoFrameKind.Init, Payload = IsoProtocol.Encode(init) });
-            await Handshake(ready.Task, peer, process, limit.Token).ConfigureAwait(false);
-            return new RunnerSession(process, peer, introduced);
+            var answered = await Handshake(ready.Task, peer, process, limit.Token).ConfigureAwait(false);
+            return new RunnerSession(process, peer, introduced, answered);
         }
         catch
         {

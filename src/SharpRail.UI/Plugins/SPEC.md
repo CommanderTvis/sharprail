@@ -97,7 +97,13 @@ and roster registration still precede reconciliation, preserving dormant tools a
   when it is built: a UI half may read its settings or call a method before anything has created its contract,
   as in an app connected only to a remote host.
 - No assembly loads into the app at runtime. An external plugin's UI half is never loaded: the host refuses an
-  enabled external plugin, and an external row a host reports active anyway stays dormant and logged. This keeps
+  enabled external plugin, and an external row a host reports active anyway stays dormant and logged, unless the
+  workbench has `IsolatedPlugins` (null in `App.cs`, set only by the checks), which opens the UI half running in its
+  own process on the host. Then the row's activation is pending at once, so the next pass sees it, while the
+  session opens off the UI thread; on the UI thread, if the activation is still current, the module the session
+  gives (`RemotePluginUIModule`) activates with the guard open, replaying what the plugin registered. An unmount
+  cancels an opening session, and a session that opens after its activation ended is closed. A session that fails
+  to open leaves the plugin dormant and logged until its row changes. This keeps
   the app free of dynamic code loading, so it can be published as NativeAOT, until external plugins can run
   isolated from SharpRail's processes. Activation runs on the UI thread.
 - A plugin declares its contributions synchronously, during `Activate`. An activation guard is open only while

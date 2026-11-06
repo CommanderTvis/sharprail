@@ -23,10 +23,17 @@ in `SharpRail.Plugins.Isolation`:
   `IIsolatedCallbacks`; a factory answers the surface `IIsolatedCallbacks.Surface` gives. It refuses JSON null
   where the API takes a non-nullable reference, and passes the settings object of `UpdateSettingsAsync` with its
   null members dropped.
+- `RemotePluginUIModule`: an external plugin's UI half as a client holds it. It opens an `IIsolatedUISession`
+  (refusing a runner whose UI table differs), replays the registrations onto the client's real context during
+  `Activate`, then dispatches each later call on the UI thread. Factories answer a placeholder; a resolver answers
+  from its last answer for those arguments, or as if the plugin had none, and asks the plugin in the background,
+  re-evaluating the plugin's predicates when it answers, so the UI thread never waits on the plugin. Before it
+  answers a call it brings the plugin's settings mirror up to date.
 
 ## Boundary
 
 - References `SharpRail.Plugins.Isolation` and `SharpRail.Plugins.Api.UI`; NativeAOT code, no reflection.
 - Host projects never reference it: the host takes no UI dependency. The relay's Avalonia-free copy of the UI table
   is pending (slice 14 of the design).
-- No composition uses it yet; only the checks and the runner reference it.
+- No shipping composition uses it yet: the checks hand `RemotePluginUIModule` to `Workbench.IsolatedPlugins`, and
+  the runner references the generated tables.

@@ -35,6 +35,7 @@
           "SharpRail.Plugins.EnvPython.Host": "[1.0.0, )",
           "SharpRail.Plugins.Epub.Host": "[1.0.0, )",
           "SharpRail.Plugins.GitHub.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Isolation": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.CSharp": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.Clangd": "[1.0.0, )",
           "SharpRail.Plugins.Lsp.Css": "[1.0.0, )",
@@ -291,6 +292,13 @@
           "SharpRail.Plugins.GitHub": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.isolation": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Wire": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.lsp.clangd": {
         "type": "Project",
         "dependencies": {
@@ -492,6 +500,9 @@
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
           "SharpRail.Plugins.Visualize": "[1.0.0, )"
         }
+      },
+      "sharprail.wire": {
+        "type": "Project"
       },
       "System.IO.Hashing": {
         "type": "CentralTransitive",

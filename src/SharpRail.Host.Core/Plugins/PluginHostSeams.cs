@@ -67,6 +67,12 @@ public sealed record PluginHostSeams
 
     public IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Builtins { get; init; } = BuiltinPlugins.All;
 
+    /// <summary>
+    /// The isolated runtime: null in <c>App.cs</c> and <c>RemoteServer.Create</c>, where an enabled external plugin is
+    /// refused, and set only by the checks until external plugins are switched on.
+    /// </summary>
+    public Isolation.PluginIsolation? Isolation { get; init; }
+
     public TimeSpan DrainTimeout { get; init; } = TimeSpan.FromSeconds(5);
     public TimeSpan DisposeTimeout { get; init; } = TimeSpan.FromSeconds(5);
 }

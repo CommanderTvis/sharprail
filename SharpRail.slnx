@@ -108,6 +108,8 @@
     <Project Path="tests/SharpRail.Checks/SharpRail.Checks.csproj" />
     <Project Path="tests/SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" />
     <Project Path="tests/SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" />
+    <Project Path="tests/SharpRail.PluginFixture.Outsider/SharpRail.PluginFixture.Outsider.UI.csproj" />
+    <Project Path="tests/SharpRail.PluginFixture.Outsider.Words/SharpRail.PluginFixture.Outsider.Words.csproj" />
   </Folder>
   <Folder Name="/performance/">
     <Project Path="performance/SharpRail.Performance/SharpRail.Performance.csproj" />

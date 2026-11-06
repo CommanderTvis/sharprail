@@ -24,7 +24,8 @@ internal static class BoundaryChecks
         [Abstractions] = [Api],
         [Wire] = [],
         [Protocol] = [Wire],
-        [Core] = [Abstractions, Api, ApiHost, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        // The host runs an external plugin's runner through the plugin channel (Security.SPEC.md).
+        [Core] = [Abstractions, Api, ApiHost, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Client] = [Abstractions, Protocol, Api],
         // The headless host is a console program over the core: no web server, no UI.
         [Headless] = [Abstractions, Core, Api, ApiHost, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
@@ -36,7 +37,7 @@ internal static class BoundaryChecks
         [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Browser] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Checks] = [Abstractions, Wire, Protocol, Core, Client, Headless, Remote, Scintilla, Ghostty, UI, Android, Api, ApiHost, ApiUi, Kit,
-            "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.Plugins.Agent.UI", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI", Isolation, IsolationUi, IsolationGenerator, Runner],
+            "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.Plugins.Agent.UI", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI", "SharpRail.PluginFixture.Outsider.UI", Isolation, IsolationUi, IsolationGenerator, Runner],
         [Api] = [],
         [ApiHost] = [Api],
         [ApiUi] = [Api],
@@ -47,11 +48,15 @@ internal static class BoundaryChecks
         ["SharpRail.Plugins.Agent.UI"] = [Api, Kit],
         ["SharpRail.PluginFixture.Host"] = [Api, ApiHost],
         ["SharpRail.PluginFixture.UI"] = [Api, ApiUi, Kit],
+        // An external plugin with only a UI half, installed from disk by the checks, and its private dependency.
+        ["SharpRail.PluginFixture.Outsider.UI"] = [Api, ApiUi, Kit, "SharpRail.PluginFixture.Outsider.Words"],
+        ["SharpRail.PluginFixture.Outsider.Words"] = [],
         // The plugin channel and the process that runs an external plugin (src/SharpRail.Plugins.Api/Security.SPEC.md).
         [Isolation] = [Wire, Api, ApiHost],
         [IsolationUi] = [Isolation, Api, ApiUi],
         [IsolationGenerator] = [],
-        [Runner] = [Isolation, IsolationUi, Api, ApiHost, ApiUi]
+        // The runner shares the API, the kit and the chat contract with the plugins it loads.
+        [Runner] = [Isolation, IsolationUi, Api, ApiHost, ApiUi, Kit, Chat, ChatUi]
     };
 
     private static readonly string[] Generated = ["bin", "obj", "artifacts", "node_modules"];

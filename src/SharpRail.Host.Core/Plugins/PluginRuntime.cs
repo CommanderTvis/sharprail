@@ -312,6 +312,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     private async Task ReconcileAsync()
     {
+        await FailExitedAsync();
         IReadOnlyList<PluginEntry> order, cycle;
         Dictionary<string, bool> desired = [];
         var settings = Seams.State.Current.PluginSettings;
@@ -334,10 +335,10 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
                 desired[entry.Id] = wanted && blocker is null;
                 if (wanted && blocker is not null && entry.State is not (PluginStatus.Active or PluginStatus.Failed))
                     (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, blocker, true);
-                else if (wanted && entry.Origin == PluginOrigin.External)
+                else if (wanted && entry.Origin == PluginOrigin.External && ExternalRefusal(entry) is { } refusal)
                 {
                     desired[entry.Id] = false;
-                    (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, ExternalUnsupported, true);
+                    (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, refusal, true);
                 }
             }
         }
@@ -395,7 +396,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     {
         if (entry.Origin == PluginOrigin.External)
         {
-            lock (gate) (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, ExternalUnsupported, true);
+            await ActivateIsolatedAsync(entry);
             return;
         }
         var module = entry.Module;
@@ -466,6 +467,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             tables.WorkspaceWatches.Clear();
         }
         foreach (var resource in tables.Resources) Guard(id, resource.Dispose);
+        if (tables.Runner is { } runner) await runner.DisposeAsync();
         if (!dispose || tables.Disposer is not { } disposer) return;
         try
         {
@@ -1198,6 +1200,8 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             var stopped = order.Reverse().Concat(cycle).Select(entry => (entry.Id, Tables: Stop(entry))).ToArray();
             foreach (var (id, tables) in stopped)
                 if (tables is not null) _ = ReleaseAsync(id, tables, dispose: true);
+            // No runner outlives the host: each process is ended here, not left to the release still draining.
+            await Task.WhenAll(stopped.Select(stop => stop.Tables?.Runner).OfType<Isolation.IsolatedPlugin>().Select(runner => runner.DisposeAsync().AsTask()));
         }
         finally { if (held) passes.Release(); }
         await lifetime.CancelAsync();

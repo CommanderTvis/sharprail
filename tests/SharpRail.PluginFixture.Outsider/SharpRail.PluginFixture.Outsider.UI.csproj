@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The outsider fixture: an external plugin with a UI half and no host half, installed from disk by the checks. Its
+    build output is the plugin's directory: the manifest, this assembly, its private dependency and its assets. The API,
+    the kit and Avalonia are shared with the runner, so they stay out of it.
+  -->
+  <!-- What the kit depends on is shared too, so it is not copied in as the kit's transitive reference. -->
+  <PropertyGroup><DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" Private="false" />
+    <ProjectReference Include="../../src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" Private="false" />
+    <ProjectReference Include="../../src/SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" Private="false" />
+    <ProjectReference Include="../SharpRail.PluginFixture.Outsider.Words/SharpRail.PluginFixture.Outsider.Words.csproj" />
+    <PackageReference Include="Avalonia" />
+    <None Include="sharprail-plugin.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="assets/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

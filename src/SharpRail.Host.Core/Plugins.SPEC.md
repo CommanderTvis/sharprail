@@ -81,10 +81,11 @@ The reconciler computes, per plugin, `desired = explicit PluginSettings[id].enab
 manifest.EnabledByDefault : false)`, ANDed with every dependency being known, not failed or refused, at the
 declared wire version, and itself desired, computed dependency-first over the registry's topological order so a
 dependency's desiredness is resolved before its dependent reads it. External plugins never auto-enable. An
-enabled external plugin is never desired: after the dependency check, which gives its reason first, the pass
-marks it `Refused` with "External plugins are not supported in this version." Like a dependency refusal, this
-one is decided again on every pass, so turning the plugin off returns it to `Disabled`. Activation refuses an
-external entry the same way, so no path reaches its code. Changing a builtin's
+enabled external plugin is desired only behind the isolation seam (`PluginHostSeams.Isolation`, below): after the
+dependency check, which gives its reason first, the pass marks it `Refused` with "External plugins are not supported
+in this version." when the seam is null, which it is in `App.cs` and `RemoteServer.Create`. Like a dependency
+refusal, this one is decided again on every pass, so turning the plugin off returns it to `Disabled`. Activation
+refuses an external entry the same way, so no path reaches its code. Changing a builtin's
 `EnabledByDefault` needs no migration: profiles with an explicit stored `enabled` keep it, profiles without one
 follow the new default. Renaming a builtin's id moves its stored namespace in `HostStateStore` once at load (Air Governance's `air-governance` became `air-gateway`; see HostState.SPEC.md); plugin RPC routes are keyed by the id, so old and new ids never share a route.
 A plugin whose manifest lists the host's kind (`PluginHostSeams.Kind`, default
@@ -159,9 +160,30 @@ and an `ApiGeneration` other than `PluginApi.Generation` (naming the declared an
 
 ## No external code
 
-External plugins have no load seam. The host never loads an external host half, and the app never receives an
-external UI half: both stay free of dynamic code loading so they can be published as NativeAOT, until external
-plugins can run isolated from SharpRail's processes. A builtin module's `Contract.Id` must still equal its
+The host never loads an external assembly, and the app never receives one: both stay free of dynamic code loading
+so they can be published as NativeAOT. An external plugin runs only in its own runner process
+([Security.SPEC.md](../SharpRail.Plugins.Api/Security.SPEC.md)), behind `PluginHostSeams.Isolation`, which only the
+checks set until external plugins are switched on:
+
+- The seam names the runner, what its environment adds, whether a sandbox is required and the start timeout. An
+  enabled external plugin is refused with "This build has no plugin runner." when the runner is missing, "This host
+  cannot sandbox external plugins yet." when the seam requires a sandbox (none is applied yet), "External plugins
+  with a host half are not supported in this version." for a manifest with a host half, and "This host keeps no
+  plugin files." without a state directory.
+- Activating a UI-only external plugin starts one runner process in `plugin` mode
+  (`Plugins/Isolation/IsolatedPlugin.cs`), with `plugin-state/<id>/files` as its home and `plugin-state/<id>/temp`,
+  emptied, as its temporary directory. The runner loads the UI half before it is ready, so an assembly it cannot
+  load fails the plugin with the runner's reason. The activation owns the process from spawn: a superseded
+  activation ends it, and release ends it after the drain, also on shutdown, where every runner is ended before
+  the runtime's disposal completes.
+- A runner that exits on its own records why on its activation and schedules a pass, which fails the plugin with
+  "The plugin's process exited with code N." and releases the activation; retry starts a new process. An exit the
+  host asked for is never a crash, and a late exit of a superseded activation is ignored.
+- `PluginRuntime` is the host's `IIsolatedUIHost`: `OpenAsync(pluginId, clientKey)` activates the UI half on a new
+  context in that process, with the stored settings (without `enabled`) mirrored first, and answers a session with
+  what the activation registered. Later calls on the context queue in arrival order for the client, capped at 1,024
+  unread and 256 Ki characters of arguments each; a client that falls behind loses its session. The settings stay
+  unvalidated, as the spec records, until a host half sends a schema. A builtin module's `Contract.Id` must still equal its
 manifest id.
 
 The plugin file read serves a requested path under the plugin's own directory and refuses anything that would
@@ -383,7 +405,7 @@ save without depending on any plugin id.
   workspace lists and labels, so it fires on creation, removal and relabelling.
 - Serving a plugin's static assets on its HTTP route, as the fork did for its web bundle; the app reads assets
   through `ReadFileAsync` instead.
-- Loading an external plugin's host half, in process or isolated: external plugins are listed and refused.
+- Loading an external plugin's host half, in process or isolated: a plugin with one is listed and refused.
 
 The builtin factory accepts the Tailscale plugin's serving bridge from composition. Its host module owns
 bootstrap pairing and grants; Core only constructs it alongside the other builtins. Ordinary plugin

@@ -121,7 +121,8 @@ public sealed class PluginLoader : IDisposable
             }
             else if (entry.Origin == PluginOrigin.External)
             {
-                Console.Error.WriteLine($"Plugin {entry.Id} stays dormant: external plugins are not supported in this version.");
+                if (workbench.IsolatedPlugins is { } open && Registry.Entry(entry.Id) is { Status: PluginStatus.Active } isolated) MountIsolated(isolated, open);
+                else Console.Error.WriteLine($"Plugin {entry.Id} stays dormant: external plugins are not supported in this version.");
                 return;
             }
             var current = Registry.Entry(entry.Id);
@@ -145,9 +146,48 @@ public sealed class PluginLoader : IDisposable
         }
     }
 
+    // An external plugin's UI half runs on the host: the activation is pending (so the next pass sees it) while its
+    // session opens off the UI thread, and activates on the UI thread with the guard open if it is still current.
+    private void MountIsolated(PluginRosterEntry entry, Func<PluginRosterEntry, string, CancellationToken, Task<PluginUIModule>> open)
+    {
+        var activation = new PluginActivation(entry);
+        activations[entry.Id] = activation;
+        var opening = Task.Run(() => open(entry, ClientKey, activation.Opening.Token));
+        _ = opening.ContinueWith(opened => Dispatcher.UIThread.Post(() =>
+        {
+            if (opened.IsCompletedSuccessfully && opened.Result is var module && (stopped || activation.Closed || !ReferenceEquals(activations.GetValueOrDefault(entry.Id), activation)))
+            {
+                if (module is IAsyncDisposable disposable) _ = disposable.DisposeAsync().AsTask();
+                return;
+            }
+            if (activation.Closed) return;
+            if (!opened.IsCompletedSuccessfully)
+            {
+                Console.Error.WriteLine($"Plugin {entry.Id} stays dormant: {opened.Exception?.GetBaseException().Message ?? "its session did not open"}");
+                return;
+            }
+            try
+            {
+                var context = new PluginUIContext(this, entry, activation);
+                activation.Open = true;
+                try { activation.Disposer = opened.Result.Activate(context); }
+                finally { activation.Open = false; }
+                Registry.SetActive(entry.Id, true);
+            }
+            catch (Exception error)
+            {
+                Console.Error.WriteLine($"Plugin {entry.Id} failed to activate and stays dormant: {error}");
+                if (opened.Result is IAsyncDisposable disposable) _ = disposable.DisposeAsync().AsTask();
+                activation.Close();
+                Registry.RemovePlugin(entry.Id);
+            }
+        }), TaskScheduler.Default);
+    }
+
     private void Unmount(string id)
     {
         if (!activations.Remove(id, out var activation)) return;
+        activation.Opening.Cancel();
         activation.Unmounting = true;
         try { activation.Disposer?.Invoke(); }
         catch (Exception error) { Console.Error.WriteLine($"Plugin {id} failed to dispose cleanly: {error.Message}"); }
@@ -165,6 +205,8 @@ internal sealed class PluginActivation(PluginRosterEntry entry)
     private readonly List<IDisposable> observers = [];
 
     public PluginRosterEntry Entry { get; } = entry;
+    /// <summary>Cancels a session still opening for an external plugin when the activation ends first.</summary>
+    public CancellationTokenSource Opening { get; } = new();
     /// <summary>Open only while <c>Activate</c> runs.</summary>
     public bool Open { get; set; }
     public bool Unmounting { get; set; }
