@@ -44,6 +44,19 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 - Exit 2 with a message on stderr, before any frame, for an unknown command or argument, a workspace that is not a directory, or a
   state directory that cannot be created.
 
+## Container image
+
+Built from `docker/headless/Dockerfile` by `.github/workflows/container.yml`, published as `ghcr.io/commandertvis/sharprail`.
+
+- Contents: the self-contained, untrimmed publish of this project on `dotnet/runtime-deps` (Debian trixie slim), with `git`, `ca-certificates` and `tzdata`.
+- User and paths: uid 1000, `HOME=/cache/home`, `WORKDIR /workspace`, `VOLUME /cache`.
+- Environment: `SHARPRAIL_TOOLCHAINS=managed`, `SHARPRAIL_MANAGED_CACHE=/cache/managed`, `SHARPRAIL_STATE_DIR=/cache/state`, `SHARPRAIL_ROOT=/workspace`, `DOTNET_NOLOGO=1`, `DOTNET_CLI_TELEMETRY_OPTOUT=1`, and git `safe.directory=*` through `GIT_CONFIG_*`.
+- Entry: `ENTRYPOINT ["sharprail-headless"]`, `CMD ["mcp"]`. No wrapper, so stdin and stdout are the process's own. Run with `-i --init`.
+- Exit codes are the ones above: 0 on end of input or SIGTERM, 2 on a configuration error.
+- Labels: OCI source, description, licenses (`PolyForm-Shield-1.0.0`), revision and created.
+- Tags: `nightly` (overwritten each run) and `sha-<short>`, as multi-arch lists over `-amd64` and `-arm64` tags. arm64 may be missing.
+- No image is pushed unless `scripts/container-smoke.sh` passes on it.
+
 ## Not built yet
 
-Runtime provisioning, tool switches, the call log, `warm`, `check-config`, `manifest`, and the container image.
+Tool switches, the call log, `warm`, `check-config`, `manifest`.
