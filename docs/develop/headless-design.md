@@ -297,6 +297,7 @@ ENV HOME=/home/sharprail \
     SHARPRAIL_CACHE_DIR=/cache \
     SHARPRAIL_STATE_DIR=/tmp/sharprail-state \
     SHARPRAIL_OFFLINE=0 \
+    SHARPRAIL_TOOLCHAINS=managed \
     GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0=/workspace \
     DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
 VOLUME ["/cache"]
@@ -332,46 +333,104 @@ Choices and why:
   1 other failure.
 - Healthcheck: none. A stdio server has no port. The client sees `initialize`.
 
-### Language server toolchains and a "minimal" image
+### Runtimes: what the app downloads today and what is missing
 
-The decision was a minimal image with servers installed on demand. The catch (verified in the `Language/SPEC.md`
-table): several managed servers need a toolchain in the container, not just a download.
+Decision: one slim image. The runtimes the servers need are also provisioned on demand into the cache volume, pinned by
+exact version with a SHA-256 per platform artifact, verified before extraction, like the managed servers.
 
-| Needs | Servers |
-| --- | --- |
-| Only a pinned archive | clangd, rust-analyzer, Kotlin LSP |
-| Node/npm (npm graph pinned by lockfile) | TypeScript, Python (Pyright), PHP, CSS, Shell |
-| .NET SDK | C# (Roslyn language server) |
-| JDK 21+ | Java, Scala (plus Coursier) |
-| The language's own SDK | Go, Ruby, R, PowerShell, Swift, Dart |
+What the code does today (verified by reading `LanguageServers*.cs`, `ManagedArtifacts.cs` and the plugins):
 
-Proposal: publish tags, all from one Dockerfile with build args, none `latest` by default in docs.
+- Servers are downloaded and verified. `ProvisionAsync` calls `ArtifactInstaller.InstallAsync` for archives. It checks the
+  64 hex SHA-256 first, downloads from an allow-listed host with `AllowAutoRedirect = false`, hashes the file, extracts
+  to a `.partial-<guid>` directory, writes a `.sharprail-artifact.json` marker, then renames. Formats it can unpack are
+  `gz`, `tar.gz` and (default branch) `zip`. NuGet and npm servers have their own pinned paths.
+- Runtimes are never downloaded. Every runtime is found, not installed: `LanguageServers.ProbeTool` looks at the host-wide
+  tool override (`HostSettings.LanguageTools`), then the tool's home variable (`DOTNET_ROOT`, `JAVA_HOME`), then the
+  hardened `PATH` (`LanguageExecutables.FindOnPath`, absolute entries only, never inside the workspace). A missing one is an
+  `IOException` that tells the user to install it ("Needs node ...").
+- Per server (verified in the plugin files):
 
-| Tag | Adds to base | Covers |
+| Server | Runtime need today | How it finds it |
 | --- | --- | --- |
-| `<v>` (slim) | git | archive servers |
-| `<v>-node` | Node LTS | plus TypeScript, Python, Shell, CSS, PHP |
-| `<v>-dotnet` | .NET SDK | plus C# |
-| `<v>-jvm` | JDK 21 | plus Java, Kotlin builds |
+| C# (Roslyn 5.13.0-1.26507.4) | .NET SDK. `dotnet tool install` at install time, and the server needs an SDK to load MSBuild projects | `Dependencies = dotnet`, `HomeVariable DOTNET_ROOT`; `ConfigureLaunch` sets `DOTNET_ROOT` and prepends it to `PATH` from `FindDotnet()` |
+| TypeScript, Python (Pyright 1.1.414), PHP, CSS, Shell | Node.js 18+ and npm (`npm ci --ignore-scripts` from an embedded lockfile, then `node <package>/<file>`) | `RequireTool("node")`, `RequireTool("npm")` through `ProbeTool` |
+| Java (JDT LS 1.61.0) | JDK 21+ to run the server and for the project's Maven/Gradle import | `RequireTool("java")`, `HomeVariable JAVA_HOME`; `ProjectJava.cs` also reads `JAVA_HOME` and SDKMAN |
+| Kotlin LSP 263.6379.0, IntelliJ server 263.7084.0 | not read: whether they bundle a JRE (assumed yes, since both are JetBrains archives with no `java` dependency declared) | `Pinning.Archive` / `None` with the provider's own launcher |
+| clangd, rust-analyzer | none | pinned archive |
+| Go, Ruby, R, PowerShell, Scala, Swift, Dart | the language's own tool (`go`, `gem`, `Rscript`, `pwsh`, `cs`, SDK) | `RequireTool` |
+| Python itself | not needed to start Pyright. Needed for import resolution of the project's packages (`python.pythonPath` setting) | the user's setting or PATH |
 
-Project build tooling (restore for Roslyn, Gradle for JDT) is also needed for good results. Researchers should build a
-derived image `FROM ghcr.io/.../sharprail:<v>-node` with their project's toolchain. The doc says this plainly.
+So the only runtime downloads are the servers' own archives. No runtime has a pinned entry today. All of them are new.
+
+#### Proposed pinned runtimes
+
+Same shape as a server artifact: id, exact version, SHA-256 per platform, source, allowed hosts. Only linux x64 and arm64
+are needed for the container. The table is what I propose. Sources are from my knowledge of the vendors' download layouts.
+I did not fetch them here, so URLs, availability on both architectures and published checksums must be confirmed at pin time.
+
+| Runtime | Needed by | Proposed source | Publisher checksum | License | amd64 / arm64 |
+| --- | --- | --- | --- | --- | --- |
+| .NET SDK (a pinned 10.0.x, plus the project's `global.json` version when it differs) | C# | `builds.dotnet.microsoft.com/dotnet/Sdk/<v>/dotnet-sdk-<v>-linux-{x64,arm64}.tar.gz` | SHA-512 in the release's `releases.json` | MIT | both |
+| Node.js LTS with npm | TypeScript, Python, PHP, CSS, Shell | `nodejs.org/dist/v<v>/node-v<v>-linux-{x64,arm64}.tar.gz` | `SHASUMS256.txt` (SHA-256, signed) | MIT, plus bundled third-party notices | both |
+| Eclipse Temurin JDK 21 | Java, Scala, Gradle and Maven projects | `github.com/adoptium/temurin21-binaries/releases/download/jdk-<v>/OpenJDK21U-jdk_{x64,aarch64}_linux_hotspot_<v>.tar.gz` | `.sha256.txt` beside each file | GPLv2 with Classpath Exception | both |
+| Python (python-build-standalone, `install_only`) | Pyright import resolution, project tests | `github.com/astral-sh/python-build-standalone/releases/download/<date>/cpython-<v>+<date>-{x86_64,aarch64}-unknown-linux-gnu-install_only.tar.gz` | `SHA256SUMS` | PSF license, with bundled components under their own | both |
+
+All four ship as `tar.gz`, which `ArtifactInstaller` already unpacks. A `tar.xz` or `tar.zst` source would need new
+extraction code, so the table picks `tar.gz` variants. Pin script: a small repo script reads the publisher checksum, checks
+it, and writes our SHA-256 into the table with `Source` recording where the publisher hash came from, the way server
+artifacts do today. A .NET SDK for every `global.json` is not possible. The catalog holds a small set of exact SDK versions
+and a project asks for one by name. A project whose `global.json` names another version gets a clear error that lists the
+pinned ones (and `rollForward` in `global.json` often helps). This is a decision for the user below.
+
+#### Code needed
+
+1. `ManagedRuntimes`, next to `ManagedArtifacts`: the pin table above and `Find(executable)`. It reuses
+   `ArtifactInstaller.InstallAsync` and the per-server install lock, with `runtimes/<id>/<version>-<platform>` under the cache,
+   a `.ready` marker, and a host allow-list per runtime (`nodejs.org`, `builds.dotnet.microsoft.com`, `github.com` and
+   `objects.githubusercontent.com` for the redirect hop). Estimated 300 to 400 lines plus the pins.
+2. Resolution order in `ProbeTool`: tool override, then managed runtime (new), then home variable, then PATH. A policy
+   `[toolchains] source = "managed" | "path" | "managed-then-path"` (host.toml). The headless default is `managed`: the host PATH
+   and home variables are not consulted at all. The desktop default stays `path` so nothing changes for users.
+3. `Needs(...)` stays the error for `path` mode. In `managed` mode a missing runtime is installed on demand during the first
+   tool call (inside the 60 s start wait, so the first call may answer `initializing`) or by `warm`.
+4. A per-run environment for every server process: `PATH` is the managed `bin` directories followed by a fixed minimal
+   system path (`/usr/bin:/bin` for `git`), never the inherited one. Plus `DOTNET_ROOT`, `DOTNET_CLI_HOME`,
+   `DOTNET_NOLOGO`, `DOTNET_SKIP_FIRST_TIME_EXPERIENCE`, `NUGET_PACKAGES=/cache/nuget`, `JAVA_HOME`, `npm_config_cache`,
+   `npm_config_update_notifier=false`, `PYTHONNOUSERSITE`, all under `/cache`. Today `ConfigureLaunch` in the C# plugin sets
+   `DOTNET_ROOT` and `PATH` from `FindDotnet()`, so it needs no change once `FindDotnet` can return the managed SDK.
+   The JDT plugin and `ProjectJava.cs` get the same managed `JAVA_HOME` hook. A small `ILanguageServerInstallation` addition
+   (`ManagedRuntimeEnvironment`) would carry this to plugins, and `PublicAPI.Unshipped.txt` in `Plugins.Api.Host` records it.
+5. `warm` also installs the runtimes the chosen servers need (sections below).
+
+#### What a project's own build needs
+
+Roslyn loads the project's solution and needs restore results (`project.assets.json`). `lsp_diagnostics` and cross-project
+`references` answer `initializing` or wrong until restore finishes (verified in the `--lsp-on-demand` description).
+In the container, `dotnet restore` uses the managed SDK and the cache volume (`NUGET_PACKAGES=/cache/nuget`), so a warm cache
+makes restores offline-capable. Roslyn already asks for restores itself (`OnMessage` in the C# plugin). `warm --restore`
+runs `dotnet restore` for the solution named in `language.toml` or found at the root. It executes the researcher's own
+MSBuild targets, so it is opt-in and documented as such.
 
 ### Size estimates
 
-Not measured. The repo has no container build, and its packaging is AppImage and app bundles, whose sizes are not recorded
-in the docs I read. Rough expectations, to be replaced by slice 4 measurements:
+Not measured. The repo has no container build and the Linux packaging is an AppImage whose size is not in the docs I read.
+Rough expectations, replaced by measurements in the container slice:
 
-| Layer | Estimate |
-| --- | --- |
-| `dotnet/runtime:10.0` base | about 80 to 90 MB compressed |
-| git and certificates | about 30 MB |
-| `sharprail-headless` framework-dependent, with Core and all plugin Host halves, trimmed of UI | about 25 to 40 MB |
-| slim total | about 150 MB |
-| Node layer | about 60 MB compressed |
+| Part | Where it lives | Estimate |
+| --- | --- | --- |
+| `dotnet/runtime:10.0` base | image | about 80 to 90 MB compressed |
+| git and certificates | image | about 30 MB |
+| `sharprail-headless`, framework-dependent, Core plus all plugin Host halves, no UI | image | about 25 to 40 MB |
+| Image total (one slim image) | registry | about 150 MB |
+| .NET SDK | cache volume | about 220 MB download, about 500 MB on disk |
+| Node.js with npm | cache volume | about 30 MB download, about 200 MB on disk |
+| Temurin JDK 21 | cache volume | about 200 MB download, about 330 MB on disk |
+| Python standalone | cache volume | about 40 MB download, about 120 MB on disk |
+| Roslyn server (runtime pack) | cache volume | about 100 MB (not measured) |
+| npm servers | cache volume | about 30 to 100 MB each (not measured) |
 
-The first slice reports the real numbers. Growth from the plugins in Core that headless never uses (Discord, Tailscale,
-Env, agent launchers) is small compared with the base.
+The image stays small because nothing heavy ships in it. The cache volume reaches about 1 GB for a C# run and can reach
+2 GB with all four runtimes. This is a one-time cost per volume, which is why the volume is shared across arms.
 
 ### Multi-arch and CI publishing
 
@@ -386,8 +445,8 @@ Env, agent launchers) is small compared with the base.
   4. Login uses `GITHUB_TOKEN` with `packages: write`. No other secret.
   5. Smoke test before tagging (headless, no GUI): run the image with a fixture workspace, send `initialize` and
      `tools/list`, assert the tool names. Runs on both architectures.
-- Tags: `sha-<short>` always, `nightly` moving, `vX.Y.Z` and `latest` only for a release tag. Suffixes `-node`, `-dotnet`,
-  `-jvm` as above. Research docs tell people to pin a `vX.Y.Z` or a digest.
+- Tags: `sha-<short>` always, `nightly` moving, `vX.Y.Z` and `latest` only for a release tag. There is one image and no variant tags.
+  Research docs tell people to pin a `vX.Y.Z` or a digest.
 - Version mapping: the app version equals the repo version stamped at publish. The image carries OCI labels
   `org.opencontainers.image.revision` (commit) and `.version`. Pinned server versions are in code, so one image
   digest fixes one set of server versions. `sharprail-headless manifest` prints them.
@@ -399,18 +458,23 @@ Env, agent launchers) is small compared with the base.
   extraction (verified, `ManagedArtifacts.cs` `Pinning.Archive`). npm servers use an embedded lockfile with integrity
   hashes (`Pinning.Lockfile`), NuGet servers SHA-512 per package, Go servers `go.sum`. `Pinning.Partial` and `None`
   exist for some servers (Swift and Dart follow the SDK). The doc lists which servers are fully pinned, from the plugins' specs.
+- Managed runtimes (new, section above) are pinned the same way. With `source = "managed"` the whole chain from the image
+  digest to the language server and its runtime is pinned. `sharprail-headless manifest` prints every server and runtime
+  version with its SHA-256, and the run log's `start` event records it.
 - PATH override. `LanguageServerOptions.AllowPath` is per server and defaults to false (verified). For the container the
   doc requires a hard global switch: `host.toml` `[language] allow_path = false` (default in headless, and a project file
   cannot enable it unless `SHARPRAIL_ALLOW_PATH=1` is set in the container env). Needs a small change in
-  `LanguageServers.Resolution.cs`. If `allow_path` is on, the run log records it in the header.
-- Pre-warm: `docker run --rm -v sharprail-cache:/cache -v "$PWD":/workspace ghcr.io/.../sharprail:<v>-node warm`
-  reads `host.toml` and `language.toml` and installs exactly the servers they name, plus everything npm needs. It needs
-  network and exits nonzero if any hash mismatches.
+  `LanguageServers.Resolution.cs`. If `allow_path` is on, the run log records it in the header. `source = "managed"` also
+  stops PATH and home variable lookups for runtimes.
+- Pre-warm: `docker run --rm -v sharprail-cache:/cache -v "$PWD":/workspace ghcr.io/commandertvis/sharprail:<v> warm`
+  reads `host.toml` and `language.toml`, resolves which servers will run, and downloads those servers and the runtimes
+  they need into `/cache`. It needs network and exits nonzero on any hash mismatch. `warm --restore` also fills
+  `/cache/nuget` for a C# solution.
 - Offline rerun: `--network none` plus `SHARPRAIL_OFFLINE=1` (or `[host] offline = true`). Offline mode refuses any download
-  with an error naming the missing artifact and the `warm` command. Needed for offline: the cache volume, the same image
-  tag, and the project's own dependencies (restore results, `node_modules`, Gradle cache) already present in `/workspace`
-  or the derived image. Servers that resolve project dependencies on start (Roslyn, JDT, Metals) will not work offline
-  unless those are present. Assumed, since the specs say they need the real Gradle/Maven prerequisites.
+  with an error naming the missing artifact and the `warm` command. Needed for offline: the cache volume warmed by the same
+  image version, and the project's own dependencies (NuGet cache, `node_modules`, Gradle cache) present in `/workspace`
+  or `/cache`. Servers that resolve project dependencies on start (Roslyn, JDT, Metals) do not work offline without
+  them. Assumed, since the specs say they need the real prerequisites.
 - Mutable per-workspace server state lives under `workspaces/<root-hash>` in the cache. For clean runs the arm scripts
   start from a fresh copy of the cache, or run `docker volume` snapshots. The doc says this. Indexes (gopls, clangd) can
   make a second run faster than the first, which is itself a confound the log header records (`cache_warm = true`).
@@ -435,7 +499,7 @@ Precedence, lowest to highest:
 1. Built-in defaults.
 2. State file (`state.json`). In the container it is per-run and starts empty, so this layer is inert. Desktop users keep it.
 3. Project files in `.sharprail/` (read from `/workspace`).
-4. Container environment: `SHARPRAIL_ARM`, `SHARPRAIL_OFFLINE`, `SHARPRAIL_LOG`, `SHARPRAIL_ALLOW_PATH`, and the generic
+4. Container environment: `SHARPRAIL_ARM`, `SHARPRAIL_OFFLINE`, `SHARPRAIL_TOOLCHAINS`, `SHARPRAIL_LOG`, `SHARPRAIL_ALLOW_PATH`, and the generic
    `SHARPRAIL_SET__<file>.<dotted.key>=<toml value>`.
 5. Command-line flags to `mcp`: `--arm`, `--offline`, `--log`, `--set file.key=value`.
 
@@ -471,6 +535,13 @@ state_dir = ""               # advanced; default from env
 [language]
 enabled = true               # HostSettings.LspEnabled
 allow_path = false           # global off switch for PATH executables
+
+[toolchains]
+source = "managed"           # managed | path | managed-then-path (headless default: managed)
+dotnet = "10.0.x"            # exact pinned SDK version; must be in the image's catalog
+node = ""                    # "" = the catalog's LTS pin
+java = ""
+python = ""
 java_kotlin_provider = ""    # "", "standard", "intellij"
 idle_minutes = 10            # LanguageLimits.idleMinutes
 memory_budget_mb = 0         # 0 = 30% of memory
@@ -607,9 +678,11 @@ call, and as `server` events.
 - `detail = "full"` adds result text, truncated to 4 KiB each. Explicit opt-in only, and `start` records the level so a log can
   never be mistaken for a lighter one.
 - Never logged at any level: environment variables, tokens, anything under `/cache`.
-- The log lives in the project (`.sharprail/runs/`). Docs advise `.gitignore` for it. The host never creates a `.gitignore`
-  there (existing rule in `Language/SPEC.md`: SharpRail writes nothing else into `.sharprail`). The run log is the one
-  exception that is opt-in and written only when enabled. This is a change to that rule and needs the user's agreement.
+- The log lives in the project at `.sharprail/runs/` (decided). It is the one documented exception to the rule that SharpRail
+  writes nothing but shareable configuration into `.sharprail/`, and it applies only when `[log] enabled = true`. The
+  rule text in `Language/SPEC.md` and `Workspaces.SPEC.md` is updated in the same commit as this design. The host still never
+  creates a `.gitignore`. The docs tell researchers to add `.sharprail/runs/` to `.git/info/exclude`, the same advice
+  `Workspaces.SPEC.md` gives for the directory.
 
 ### How switches work
 
@@ -652,60 +725,85 @@ Verified by reading code or specs:
 - Tool registration points: `LanguageMcpTools.Create`, `context.Tool(...)` in plugins, `WorkspaceMcpTools` in the loopback only.
 - Server pinning kinds, the install lease, `AllowPath` default false, TOML helper and 64 KiB limit, `version = 1` convention.
 - A memory-only state store turns language services off.
+- No runtime (.NET, Node, JDK, Python) is downloaded today: servers find them through the tool override, home variable and hardened PATH. `ArtifactInstaller` already verifies, unpacks `gz`, `tar.gz` and `zip`, and installs atomically.
+- `Language/SPEC.md` says the app does not install global SDKs. Managed runtimes live in the private cache and are not global, so this stays true, and the spec gets one sentence when slice 2 lands.
 
 Assumed, each proven by a named slice:
 
 - `PluginRuntime` activates default plugins with `Terminals = null` and no loopback URL (slice 1).
 - Claude Code expands `${PWD}` in `.mcp.json` args and launches with `docker run -i` as expected, and the flags
-  `--mcp-config` and `--strict-mcp-config` behave as used above (slice 3, manual run by the user).
+  `--mcp-config` and `--strict-mcp-config` behave as used above (slice 6, manual run by the user).
 - `safe.directory` through `GIT_CONFIG_*` is enough for a bind-mounted repo (slice 4).
 - A symlinked or overridden `language` directory works with the installer (slice 1 or 4).
-- Sizes in section D (slice 4).
-- Cross-publishing arm64 from one runner is fine (slice 4).
+- Sizes in section D (slice 4 for the image, slice 2 and 7 for runtimes).
+- Cross-publishing arm64 from one runner is fine (slice 5).
+- The runtime download URLs, publisher checksums and arm64 artifacts in the runtime table exist as described (slice 2, at pin time).
+- Roslyn runs on the managed SDK with `DOTNET_ROOT` set, and the SDK is enough for MSBuild project loading (slice 2).
+- Kotlin and IntelliJ bundle a JRE (question 6).
 - Env/flag/toml layering does not clash with the existing `language.toml` precedence (slice 1 tests).
 
 ### Risks
 
-- Toolchain gap. A slim image cannot start Roslyn, Pyright or JDT. Mitigated by the tag family, but a research image per
-  language is real work for researchers. This is the largest practical risk to "it fully works".
+- Runtime provisioning is new code on the critical path. A wrong pin, a vendor URL that moves or a missing arm64 artifact stops a
+  server from starting. Mitigation: pins are checked by `warm` in CI on both architectures, and `manifest` lists them.
+- SDK versions. A project's `global.json` can name an SDK we do not pin. The error lists the pinned ones. The first C# target
+  must use a pinned SDK (this repo pins one in `mise.toml` and `global.json`; the catalog should include it).
+- Cache size reaches 1 to 2 GB and the first run downloads it. Pre-warm hides this from experiments, `start` records cold or warm.
 - Cold start dominates short tasks. The first `lsp_navigate` can wait up to 60 s (`OnDemandStartWait`) and the deadline is 90 s.
-  Pre-warm and the `start` event keep it visible, but the experiment must report it separately.
+  Roslyn also needs a restore. Pre-warm, `warm --restore` and the `start` event keep it visible.
+- Disk writes as a different uid. The cache volume is created by the image user. Bind-mounted `/workspace` can be owned by
+  another uid on Linux hosts. The example uses `--user` when needed.
 - stdout corruption by stray console output. Mitigated by the stdout swap and a check that runs every default plugin.
 - Confounds from instructions, tool descriptions and warm indexes (section A). Documented, not eliminated.
-- Air Context cannot sign in headless. Its `context_search` is a major competitor to LSP for navigation, so an LSP study that
-  wants to compare against it needs a prepared login. Out of scope for v1.
-- Log privacy and the `.sharprail` rule above.
-- Docker on Linux uid mismatch for files the agent writes.
-- Two language servers on the same workspace from two containers (parallel arms on one checkout) will collide. The workflow uses separate worktrees.
+- Log privacy. `meta` is the default and full text needs an explicit level. The `.sharprail/runs/` exception to the directory rule is documented.
+- Two containers on one checkout will collide on server state. The workflow uses separate worktrees.
+- Licensing of redistributed runtimes: nothing is bundled in the image. The runtimes are downloaded by the user's container
+  from the vendors, like the servers. The licenses are listed in `manifest` output and in the docs page.
 
-### Sliced plan (fastest path to the research loop first)
+### Sliced plan (fastest path to the C# experiment first)
 
-Priority order set by the user: stdio entrypoint, container, tool switches and the opt-in call log first. Documented-config
-generation and the larger cleanup come after the first working end-to-end run. Sizes are rough and in focused engineer-days.
+Order set by the user: get the first end-to-end loop working for C# (this repository or a small C# repo) as soon as possible.
+That needs, in order, the stdio entrypoint, runtime provisioning for the .NET SDK, the tool switches and call log, and a
+slim image. Node/TypeScript and then Python follow. Config generation and the cleanup come after the first loop.
+Sizes are rough focused engineer-days. The NativeAOT work is out of scope by the user's instruction.
 
 | # | Slice | Scope | Touches | Tested headlessly by | Size |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Headless stdio MCP | New `SharpRail.Host.Headless` project, `mcp` and `check-config` stubs, composition as in C, stdout discipline, `instructions` override, `SHARPRAIL_CACHE_DIR`, hard `allow_path=false` default, roster limited to LSP + SpecDialect + Blueprint | new project, `McpServer.HandleAsync` (additive parameter), `LanguageServers.Resolution.cs` (global switch), `HostStateStore` language dir | New Checks mode `--headless`: spawn the built exe, send `initialize`, `tools/list`, an `lsp_status` and a `spec_grep` over pipes against a fixture workspace; EOF exits 0; a plugin writing to stdout does not break frames | 3 to 4 |
-| 2 | Tool switches and run log | `mcp.toml` (`[tools]`, `[arms]`, `[log]`), decorator, JSONL events and detail levels, env and flag layer for `arm`, `log` | Headless project only, plus a tiny TOML reader reusing `ProjectToml` | `--headless-switches`: disabled tool absent from `tools/list` and call is unknown; narrowed `operations`; log off writes no file; levels never leak args at `meta` | 3 |
-| 3 | Dockerfile and local image | Dockerfile, `.dockerignore`, `warm` and `manifest`, offline flag, example `.mcp.json` and `docs/headless.md` first version | new files, `scripts/` task `container:build` | Build locally, run `docker run -i` against a fixture with piped JSON, assert tools list and clean stop on stdin close and SIGTERM. Not in the `ci.yml` gate until slice 4 | 3 |
-| 4 | CI publish to ghcr.io | `container.yml`, multi-arch manifest, tags, labels, smoke test on both arms, size measurement | `.github/workflows/container.yml`, a mise task | The workflow's own smoke job (the container check above, no GUI) | 2 |
-| 5 | First end-to-end research run (user) | The user runs the worked example from section A against a real task. `report` command and `jq` recipes polished from what hurts | `docs/headless.md`, optional `report` | Manual by the user: Claude Code against the container, two arms. This validates the `${PWD}` and flag assumptions | 1 plus iteration |
-| 6 | Config schema, host.toml, plugins/*.toml | `ConfigKey` attribute, registry generator, loaders for `host.toml` and `plugins/<id>.toml`, strict mode, precise errors | Core, plugin contract projects (attributes only), Headless | `--config` (parse errors with file and line, unknown key, bad version, precedence), unit-level, no window | 5 |
-| 7 | Docs and schema generation | Markdown and JSON Schema generator, `--config-docs` check that fails on undocumented settings, committed `docs/reference/` | Core, docs, Checks | `--config-docs` | 3 |
-| 8 | Reorganise and cleanup | `ProjectConfig` reader replaces three readers, shared `HostComposition` used by Remote and Headless, optional Core split of unused plugins, remove duplicated headless HTTP route if no longer needed | Core, Remote | existing transport checks plus `--headless` unchanged | 4 to 6 |
+| 1 | Headless stdio MCP | New `SharpRail.Host.Headless` project, `mcp` and `check-config` stubs, composition as in C, stdout discipline, `instructions` override, `SHARPRAIL_CACHE_DIR`, hard `allow_path=false` default, roster limited to LSP + SpecDialect + Blueprint, Air Context off | new project, `McpServer.HandleAsync` (additive parameter), `LanguageServers.Resolution.cs` (global switch), language dir override | `--headless`: spawn the built exe, send `initialize`, `tools/list`, `lsp_status` and `spec_grep` over pipes against a fixture workspace; EOF exits 0; a plugin writing to stdout does not break frames | 3 to 4 |
+| 2 | Runtime provisioner, .NET SDK first | `ManagedRuntimes` with the pinned .NET SDK for linux x64 and arm64, `[toolchains] source`, `ProbeTool` order, clean per-run PATH and cache env, `FindDotnet` returns the managed SDK, `warm` for C#, `NUGET_PACKAGES` under the cache, offline flag | `Host.Core/Language` (new file, `LanguageServers.Dependencies.cs`), `Plugins.Api.Host` (small, `PublicAPI.Unshipped.txt`), pin script | `--runtimes` with a local fake HTTP server serving a tiny fake archive: hash match installs, mismatch installs nothing, redirect to an unlisted host is refused, offline refuses, PATH does not leak (a fake `dotnet` on PATH is ignored). Real download only in the container smoke job | 4 to 5 |
+| 3 | Tool switches and run log | `mcp.toml` (`[tools]`, `[arms]`, `[log]`), decorator, JSONL events and detail levels, env and flag layer for `arm`, `log`, the documented `.sharprail/runs/` exception in the two specs | Headless project, a small TOML reader reusing `ProjectToml`, `Language/SPEC.md`, `Workspaces.SPEC.md` | `--headless-switches`: disabled tool absent from `tools/list` and the call is unknown; narrowed `operations`; log off writes no file; `meta` never leaks args | 3 |
+| 4 | Slim image, local | Dockerfile, `.dockerignore`, `manifest`, example `.mcp.json`, first `docs/headless.md`, a `container:build` task | new files, `scripts/` | Build locally, `docker run -i` with piped JSON, assert tools list and clean stop on EOF and SIGTERM, then `warm` and an `lsp_navigate` on a tiny C# fixture | 3 |
+| 5 | CI publish to ghcr.io | `container.yml`, multi-arch manifest, tags, labels, smoke on amd64 (blocking) and arm64 (non-blocking at first), size measurement | `.github/workflows/container.yml` | the workflow's own smoke job | 2 |
+| 6 | First C# experiment (user) | The user runs the worked example from section A on this repo or a small C# repo, arms LSP on and off, jq comparison. Fixes what hurts | `docs/headless.md`, optional `report` | Manual: Claude Code against the container. Validates the `${PWD}` and flag assumptions | 1 plus iteration |
+| 7 | Node runtime, TypeScript | Pin Node LTS with npm for both architectures, wire npm servers to the managed Node, `warm` for TypeScript | `ManagedRuntimes`, pins | `--runtimes` extended; smoke `lsp_navigate` on a tiny TS fixture | 2 |
+| 8 | Python and JDK runtimes | Pin python-build-standalone (for import resolution and the interpreter setting) and Temurin 21 (Java, Gradle/Maven), `JAVA_HOME` hook for the Java plugin | `ManagedRuntimes`, `JavaPlugin`, `ProjectJava.cs` | same | 3 |
+| 9 | Config schema, host.toml, plugins/*.toml | `ConfigKey` attribute, registry generator, loaders, strict mode, precise errors | Core, plugin contract projects (attributes only), Headless | `--config`: parse errors with file and line, unknown key, bad version, precedence | 5 |
+| 10 | Docs and schema generation | Markdown and JSON Schema generator, `--config-docs` check that fails on undocumented settings, committed `docs/reference/` | Core, docs, Checks | `--config-docs` | 3 |
+| 11 | Reorganise and cleanup | `ProjectConfig` reader replaces three readers, shared `HostComposition` for Remote and Headless, optional Core split of unused plugins | Core, Remote | existing transport checks plus `--headless` unchanged | 4 to 6 |
 
-Dependencies: 2 needs 1, 3 needs 1, 4 needs 3, 5 needs 2 and 4 (or 3 with a locally built image), 6 can start after 2 but waits for
-the first run so the key names are informed by real use, 7 needs 6, 8 is last. Slices 1 to 4 land independently with CI green.
-No slice touches UI code, so the existing UI checks do not apply.
+Dependencies: 2 and 3 need 1 and can proceed in parallel after it. 4 needs 1 and 2. 5 needs 4. 6 needs 3 and 5, or 3 and a locally
+built image. 7 and 8 need 2. 9 can start after 3 but waits for the first loop so key names come from real use. 10 needs 9, 11 is last.
+Slices 1 to 5 land independently with CI green. No slice touches UI code. Slices 2, 7 and 8 touch language resolution, which the
+desktop also uses, so the default `source = "path"` keeps desktop behaviour byte-identical, proven by the existing `--lsp-dependencies` check.
 
-### Decisions needed from the user
+### Decided by the user
 
-1. Tag family: is slim plus `-node`, `-dotnet`, `-jvm` right, or one fat image? Which languages matter first for the study?
-2. Run log location: allow SharpRail to write `.sharprail/runs/` (a new write into `.sharprail`, against the current "writes nothing else there" rule), or default to a separate mount `/runs`?
-3. Env and flags above the project file. OK, so that harness variables win over committed config?
-4. Arm names via `[arms.<name>]` plus `SHARPRAIL_ARM`, versus two plain `.mcp.json` files that only differ in `SHARPRAIL_SET__...` overrides. I propose arms.
-5. Air Context headless: out of scope for v1 (proposed), or support a mounted prepared login?
-6. Registry name and org: `ghcr.io/commandertvis/sharprail` (assumed from the repo URL in `LINUX.md`)?
-7. Should `mcp.toml` hold tool switches and the log together (proposed), or a separate `research.toml` for the log?
-8. Is a second image architecture gate acceptable, i.e. the arm64 smoke job blocking the release tag?
-9. Does the first end-to-end run (slice 5) use a repo of your choice? Which language and which task?
+- One slim image, no variant tags. Runtimes are provisioned on demand into the cache volume, pinned with SHA-256.
+- Run log at `.sharprail/runs/` in the project, opt-in only, as a documented exception to the "nothing else" rule.
+- Air Context is off in version 1. No mounted login.
+- First experiment language is C#, then TypeScript, then Python.
+- Env vars and flags override committed project files.
+- Arms are `[arms.<name>]` in `mcp.toml`, selected by `SHARPRAIL_ARM`. Two `.mcp.json` files that differ only in env overrides also work.
+- `mcp.toml` holds the tool switches and the call log together.
+- Registry name `ghcr.io/commandertvis/sharprail`.
+- The arm64 smoke job is non-blocking at first.
+
+### Open questions
+
+1. .NET SDK catalog. Which exact SDK versions go in the first pins? Proposal: the version `global.json` pins in this repo, plus the
+   current .NET 10 LTS patch. A project that needs another version fails with the list.
+2. Should `warm --restore` exist in version 1, given it runs the project's MSBuild targets? Proposal: yes, opt-in flag.
+3. Is Python needed for the first Python study, or is Pyright without an interpreter acceptable (no third-party import resolution)? Proposal: provision it in slice 8.
+4. Does a `[toolchains]` pin set per image version satisfy "reproducible", or must a project be able to pin its own runtime hashes in `host.toml`? Proposal: image-pinned only.
+5. What task and repository for the first C# run? This repository is large (a solution with many projects) and restore-heavy. A small C# repo gives faster iteration.
+6. Kotlin LSP and the IntelliJ server: please confirm they bundle their own JRE (I assumed so, not verified).

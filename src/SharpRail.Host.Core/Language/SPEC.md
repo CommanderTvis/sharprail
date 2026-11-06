@@ -917,7 +917,8 @@ an agent. Arbitrary agent commands manually typed into a shell have no prelaunch
 client of the project agrees; a remote host reads its own copy) holds the project's portable
 language-server choices, committed and edited by the team and agents. The directory holds only
 shareable configuration: SharpRail writes nothing else into it and never creates a `.gitignore`
-there. Nothing is written until Settings > Code Intelligence saves with "Share with the project"
+there. The one exception is the opt-in headless run log, `.sharprail/runs/`, written only when the project's
+`mcp.toml` enables it ([headless design](../../../docs/develop/headless-design.md)). Nothing is written until Settings > Code Intelligence saves with "Share with the project"
 checked; opening a project, saving workspace-local settings and agent `configure` never create it.
 
 ```toml

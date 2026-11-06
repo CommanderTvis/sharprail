@@ -25,7 +25,7 @@ Add one entry to your project's `.mcp.json`:
 ```
 
 Each Claude Code session starts its own container and talks to it over stdin and stdout. There are no ports and no tokens.
-Language servers are installed on first use into the `sharprail-cache` volume and reused after that.
+Language servers and the runtimes they need (.NET, Node, a JDK, Python) are downloaded on first use into the `sharprail-cache` volume. Each one is pinned to an exact version and checked against a SHA-256 before it is unpacked. The image itself stays small. Run `warm` once with network access, and later runs can use `--network none`.
 
 ## Configure it
 
@@ -41,5 +41,5 @@ Settings live in your project's `.sharprail/` folder, one TOML file per area.
 ## Compare two runs
 
 Turn LSP tools off in one arm with `tools.disable` in `mcp.toml`, switch on the run log, and run the same task twice from the
-same commit. The log lands in `.sharprail/runs/<session>.jsonl`. It is off unless you enable it. See the worked example and
+same commit. The log lands in `.sharprail/runs/<session>.jsonl`. It is off unless you enable it, and it is the only thing SharpRail writes into `.sharprail/` besides your own config edits. Add the folder to `.git/info/exclude`. See the worked example and
 the `jq` recipes in the design page.

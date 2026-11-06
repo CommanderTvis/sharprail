@@ -32,7 +32,8 @@ off and log every call.
 - One implicit workspace. No terminals. Terminal-only tools (`workspace_*`, `set_title`) are not offered.
 - stdout carries MCP frames only. Everything else goes to stderr. End of stdin or SIGTERM stops the host cleanly with exit 0.
 - Exit 2 means a configuration error, printed before any frame is written.
-- The run log is off by default. When on, it records tool, operation, timing, size and outcome, and no argument or result
+- Runtimes the servers need are downloaded on demand into the cache volume, pinned by version and SHA-256, and servers never see the host PATH (`[toolchains] source = "managed"`).
+- The run log is off by default and, when on, is written to `.sharprail/runs/`, the one write into `.sharprail/` besides config. When on, it records tool, operation, timing, size and outcome, and no argument or result
   text unless the detail level says so. See the design for the event schema.
 - Configuration comes from `.sharprail/*.toml`, container environment and flags, in that increasing order of precedence.
   Existing `language.toml`, `instructions.toml` and `workspace.toml` keep every key and meaning.

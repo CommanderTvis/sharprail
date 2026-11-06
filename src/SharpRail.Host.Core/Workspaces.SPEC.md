@@ -175,8 +175,8 @@ forgetting removes its row while leaving the checkout in place. The Default work
   ship as a new file (`workspace_v2.toml`) that the newer SharpRail migrates into only on an explicit
   write, leaving the old file untouched, and readers prefer the highest version they understand. The
   host only reads this file: it writes nothing into `.sharprail/` and never creates a `.gitignore`
-  there (the directory holds shareable configuration only; projects that keep it out of Git use
-  `.git/info/exclude`). Patterns are slash-separated, root-relative globs: `*` and `?` stay in one
+  there (the directory holds shareable configuration only, apart from the opt-in headless run log in
+  `.sharprail/runs/`; projects that keep it out of Git use `.git/info/exclude`). Patterns are slash-separated, root-relative globs: `*` and `?` stay in one
   segment, `**` spans segments, a pattern without `/` matches that name at any depth, one with `/` is
   anchored at the root; `exclude` wins over `include`; absolute, `..` and `.git` patterns are skipped.
   Without the file (or with a malformed, unversioned or unsupported one) nothing is cloned; a bad file
