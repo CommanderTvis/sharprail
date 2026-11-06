@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 using Microsoft.Win32.SafeHandles;
@@ -31,7 +32,7 @@ internal static class EchoProbe
         IsolationPeer? peer = null;
         peer = new IsolationPeer(FdTransport.ForRunner(channel), IsolationRole.Runner, new()
         {
-            Calls = (call, token) => Serve(peer!, call, token),
+            Calls = (call, token) => Serve(peer!, channel, call, token),
             OneWays = call =>
             {
                 if (call.Member != RunnerProbe.Note) return;
@@ -56,7 +57,7 @@ internal static class EchoProbe
         return 0;
     }
 
-    private static async ValueTask<IsoResult> Serve(IsolationPeer peer, IsoCall call, CancellationToken token)
+    private static async ValueTask<IsoResult> Serve(IsolationPeer peer, string? channel, IsoCall call, CancellationToken token)
     {
         var member = call.Member;
         if (member == RunnerProbe.Echo) return IsoResult.Of(call.Payload);
@@ -130,6 +131,20 @@ internal static class EchoProbe
             using var child = Process.Start(start) ?? throw new IsoCallException(IsoError.Failed, "The child did not start.");
             return IsoResult.Of(child.Id.ToString());
         }
+        if (member == RunnerProbe.ChildChannel)
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                // Whether a child would inherit the pipe handle; ping.exe could not show what it holds.
+                if (!GetHandleInformation((nint)long.Parse(channel!), out var flags)) throw new IsoCallException(IsoError.Failed, "The channel handle is not valid.");
+                return IsoResult.Of((flags & 1) == 0 ? "free" : "held");
+            }
+            // Redirecting to descriptor 3 fails in the child unless it inherited the channel.
+            using var child = Process.Start(new ProcessStartInfo("/bin/sh", ["-c", ": >&3"]) { UseShellExecute = false, RedirectStandardError = true })
+                ?? throw new IsoCallException(IsoError.Failed, "The child did not start.");
+            await child.WaitForExitAsync(token);
+            return IsoResult.Of(child.ExitCode == 0 ? "held" : "free");
+        }
         if (member == RunnerProbe.Exit)
         {
             Environment.Exit(int.Parse(call.Payload));
@@ -150,4 +165,8 @@ internal static class EchoProbe
     }
 
     private sealed class Lent;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetHandleInformation(nint handle, out uint flags);
 }

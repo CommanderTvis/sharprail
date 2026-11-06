@@ -41,6 +41,8 @@ public static class RunnerProbe
     public static readonly int Notes = IsoMember.Id("probe.notes");
     /// <summary>Starts a child that sleeps for minutes, ignoring every signal but a kill, and answers its pid.</summary>
     public static readonly int SpawnChild = IsoMember.Id("probe.spawn-child");
+    /// <summary>Starts a child and answers whether it holds the runner's channel: <c>free</c> or <c>held</c>.</summary>
+    public static readonly int ChildChannel = IsoMember.Id("probe.child-channel");
     /// <summary>Exits with the payload's code.</summary>
     public static readonly int Exit = IsoMember.Id("probe.exit");
     /// <summary>

@@ -28,7 +28,7 @@ internal static unsafe class Unix
     internal static int Wnowait => Mac ? 0x20 : 0x01000000;
     // POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSID (| POSIX_SPAWN_CLOEXEC_DEFAULT on macOS).
     internal static short SpawnFlags => (short)(0x04 | 0x08 | (Mac ? 0x0400 | 0x4000 : 0x80));
-    private const ulong Fioclex = 0x20006601;
+    private static ulong Fioclex => Mac ? 0x20006601UL : 0x5451UL;
 
     // struct cmsghdr: socklen_t len, int level, int type on macOS (data aligned to 4); size_t len on Linux (aligned to 8).
     internal static int CmsgHeader => Mac ? 12 : 16;
@@ -67,10 +67,13 @@ internal static unsafe class Unix
         ? ((int)*(uint*)cmsg, *(int*)(cmsg + 4), *(int*)(cmsg + 8))
         : ((int)*(ulong*)cmsg, *(int*)(cmsg + 8), *(int*)(cmsg + 12));
 
-    /// <summary>Marks a descriptor close-on-exec: ioctl FIOCLEX takes no third argument, so the variadic call is safe.</summary>
+    /// <summary>
+    /// Marks a descriptor close-on-exec: ioctl FIOCLEX takes no third argument, so the variadic call is safe, where
+    /// fcntl F_SETFD would pass its flag where Apple's arm64 ABI does not read variadic arguments.
+    /// </summary>
     internal static void CloseOnExec(int fd)
     {
-        if (Mac && Ioctl(fd, Fioclex) != 0) throw new IOException("Could not mark a descriptor close-on-exec: " + LastError());
+        if (Ioctl(fd, Fioclex) != 0) throw new IOException("Could not mark a descriptor close-on-exec: " + LastError());
     }
 
     [DllImport(Libc, EntryPoint = "socketpair", SetLastError = true)] internal static extern int SocketPair(int domain, int type, int protocol, int* fds);

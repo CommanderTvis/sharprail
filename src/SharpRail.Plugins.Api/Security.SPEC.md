@@ -293,11 +293,14 @@ These exist now, used only by the checks (`SharpRail.Plugins.Isolation`, the `Sh
   everything above descriptor 3 is closed where glibc has `posix_spawn_file_actions_addclosefrom_np` (2.34 and later,
   so not on the packages' 2.31 baseline; `sharprail-confine` will close them there); on Windows only the handle list.
   On macOS a socket pair cannot be created close-on-exec, and on Windows the three listed handles are inheritable
-  while the process is created, so a `Process.Start` on another thread in that instant could inherit them.
+  while the process is created, so a `Process.Start` on another thread in that instant could inherit them. The
+  runner's end arrives inheritable, so the runner marks it close-on-exec as it starts (ioctl `FIOCLEX`, because
+  `fcntl` would pass the flag as a variadic argument, which Apple's arm64 calling convention reads from elsewhere) or
+  clears the pipe handle's inherit flag, and a process the runner starts does not hold the channel.
 
 `--plugin-channel` checks all of this against the real runner, framework-dependent from the checks' build: in the
 smoke gate on Linux, and as its own step in the Windows and macOS CI jobs. It asserts that the runner inherits no host
-handle, that the host closes a runner's descriptor before its frame completes, that a child the runner started dies
+handle, that a process the runner starts does not hold the channel, that the host closes a runner's descriptor before its frame completes, that a child the runner started dies
 with it, that its standard input is at end of file and its output reaches the log, and that no runner is left behind,
 not even as a zombie. The Windows half is compiled on every platform but first runs in CI.
 

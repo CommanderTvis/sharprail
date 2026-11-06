@@ -49,9 +49,15 @@ public abstract class FdTransport : IDisposable
         if (OperatingSystem.IsWindows())
         {
             if (!long.TryParse(windowsHandle, out var value)) throw new ArgumentException("The runner needs --channel <handle> on Windows.");
-            var pipe = new NamedPipeClientStream(PipeDirection.InOut, isAsync: true, isConnected: true, new SafePipeHandle((nint)value, true));
+            var handle = new SafePipeHandle((nint)value, true);
+            // The handle was inherited, so it is still inheritable: a process the runner starts must not hold the channel.
+            if (!Windows.SetHandleInformation(handle, Windows.HandleFlagInherit, 0))
+                throw new IOException("Could not keep the plugin channel from being inherited: " + Marshal.GetLastPInvokeError());
+            var pipe = new NamedPipeClientStream(PipeDirection.InOut, isAsync: true, isConnected: true, handle);
             return new StreamFdTransport(pipe, export: null, adopt: true);
         }
+        // Descriptor 3 was inherited without close-on-exec; a process the runner starts must not hold the channel.
+        Unix.CloseOnExec(3);
         return new UnixFdTransport(new SafeFileHandle(3, true), acceptDescriptors: true);
     }
 

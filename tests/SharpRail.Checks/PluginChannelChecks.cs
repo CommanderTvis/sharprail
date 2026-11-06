@@ -43,7 +43,7 @@ internal static class PluginChannelChecks
             return;
         }
         await Echo(runner);
-        Console.WriteLine("PASS plugin runner probe: handshake with the member tables' hash, stdio, no inherited handles, calls, cancel, deadline, handles, credits, one-way order, descriptor passing, callbacks, clean exit, reaped");
+        Console.WriteLine("PASS plugin runner probe: handshake with the member tables' hash, stdio, no inherited handles, a child of the runner does not hold the channel, calls, cancel, deadline, handles, credits, one-way order, descriptor passing, callbacks, clean exit, reaped");
         await Refusals(runner);
         Console.WriteLine("PASS plugin runner refusals: a runner generated from other member tables, a sent descriptor, a never-lent handle and a misnumbered call kill the runner; an exit code is captured; nothing is left unreaped; a runner's child dies with it");
         await AvaloniaPrivate(runner);
@@ -254,6 +254,7 @@ internal static class PluginChannelChecks
 
         Require(session.Hello.Pid == session.Process.Pid && session.Hello.Mode == "probe echo", $"The runner introduced itself wrongly: {session.Hello}");
         Require(session.Hello.Detail == "stdin=eof", "The runner's standard input must be the null device: " + session.Hello.Detail);
+        Require((await peer.CallAsync(RunnerProbe.ChildChannel, "")).Payload == "free", "A process the runner starts must not hold the runner's channel.");
         await Until(() => Task.FromResult(log.Contains(RunnerProbe.StandardOutputLine) && log.Contains(RunnerProbe.StandardErrorLine)),
             "The runner's standard output and error must reach the host's log: " + string.Join(" | ", log));
 
