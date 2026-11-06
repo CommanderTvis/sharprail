@@ -6,7 +6,7 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.UI;
 
 /// <summary>
-/// The keymap this client runs: the active preset's chords per action, set from the host snapshot (<see cref="Set"/>) and read by
+/// The keymap this client runs: the active preset's chords per action, set from the host snapshot (<see cref="Set(HostState)"/>) and read by
 /// <see cref="WindowShortcuts"/>. UI-thread state; a change raises <see cref="Changed"/> so menus re-show their chords in place.
 /// </summary>
 public static class ActiveKeymap
