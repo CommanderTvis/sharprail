@@ -216,7 +216,12 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
                         await File.WriteAllTextAsync(Path.Combine(root, "package-lock.json"), lockfile, token);
                         await RunAsync(Start(RequireTool(server, "npm", workspace), ["ci", "--prefix", root, "--no-audit", "--no-fund", "--ignore-scripts", "--registry", "https://registry.npmjs.org/"]), root, token);
                     }
-                    else if (spec.InstallAsync is { } install) await install(installation, token);
+                    else if (spec.InstallAsync is { } install)
+                    {
+                        var installLog = CodeIntelligenceLog.Begin("host.server-install", ("server", server.Id), ("version", server.Version), ("root", root));
+                        try { await install(installation, token); installLog.Succeed(); }
+                        catch (Exception error) { installLog.Fail(error); throw; }
+                    }
                     await File.WriteAllTextAsync(Path.Combine(root, ".ready"), server.Version, token);
                 }
             }
@@ -342,13 +347,19 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
     {
         start.WorkingDirectory = root; start.UseShellExecute = false;
         start.RedirectStandardOutput = start.RedirectStandardError = true; start.CreateNoWindow = true;
+        var command = Path.GetFileName(start.FileName) + " " + string.Join(' ', start.ArgumentList);
+        var began = Stopwatch.GetTimestamp();
         using var process = Process.Start(start) ?? throw new IOException($"Could not start {start.FileName}.");
         using var stop = token.Register(() => { try { if (!process.HasExited) process.Kill(true); } catch (InvalidOperationException) { } });
         var output = process.StandardOutput.ReadToEndAsync(token);
         var error = process.StandardError.ReadToEndAsync(token);
         await process.WaitForExitAsync(token);
         var result = await output; var problem = await error;
+        CodeIntelligenceLog.Info("host.install-command", ("command", command), ("exitCode", process.ExitCode), ("durationMs", (long)Stopwatch.GetElapsedTime(began).TotalMilliseconds),
+            ("lastOutput", Tail(process.ExitCode == 0 ? result : problem)));
         if (process.ExitCode != 0) throw new IOException($"{Path.GetFileName(start.FileName)} failed: {problem[..Math.Min(problem.Length, 3000)]}");
         return result;
     }
+
+    private static string Tail(string text) => text.Trim() is { Length: > 400 } trimmed ? trimmed[^400..] : text.Trim();
 }

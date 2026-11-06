@@ -75,6 +75,14 @@ public sealed partial class LanguageService : IAsyncDisposable
         sampler = new Timer(_ => _ = EnforceAsync(skipWhenBusy: true), null, EnforcementPeriod, EnforcementPeriod);
     }
 
+    /// <summary>Installs a server and the runtimes it needs into the cache without starting it. Returns false for an unknown server id.</summary>
+    internal async Task<bool> WarmAsync(string serverId, string workspace, CancellationToken token)
+    {
+        if (servers.Find(serverId) is not { } server) return false;
+        await servers.ProvisionAsync(server, workspace, token);
+        return true;
+    }
+
     /// <summary>The user's host-wide tool paths from host state (JSON of executable name to path), honoured by probes and launches.</summary>
     internal Func<string> ToolPaths { set => servers.ToolPaths = value; }
 

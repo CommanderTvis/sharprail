@@ -41,6 +41,11 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 - stdout holds frames only. At start `Console.Out` is redirected to stderr, so a stray print cannot corrupt the stream. Logs go to stderr.
 - End of input, SIGINT or SIGTERM: running calls get 5 s to finish, then are cancelled; plugins stop, then language servers; exit 0.
   A closed stdout counts as a stop.
+- `warm [server ...]` installs the pinned .NET SDK and the named language servers (default `csharp`) into the state directory, without a session.
+  It needs network, prints nothing on stdout, exits 0 when every server is installed and 2 for an unknown server or a failed install.
+  A second `warm` on a filled cache does nothing and returns at once.
+- Installs write to the lifecycle log (`code-intelligence.log`): `host.runtime-install` and `host.server-install` with outcome and duration,
+  `host.install-progress` messages, and `host.install-command` with the command line, exit code, duration and the last output of each installer process.
 - Exit 2 with a message on stderr, before any frame, for an unknown command or argument, a workspace that is not a directory, or a
   state directory that cannot be created.
 
@@ -48,7 +53,7 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 
 Built from `docker/headless/Dockerfile` by `.github/workflows/container.yml`, published as `ghcr.io/commandertvis/sharprail`.
 
-- Contents: the self-contained, untrimmed publish of this project on `dotnet/runtime-deps` (Debian trixie slim), with `git`, `ca-certificates` and `tzdata`.
+- Contents: the self-contained, untrimmed publish of this project on `dotnet/runtime-deps` (Ubuntu noble), with `git`, `ca-certificates` and `tzdata`.
 - User and paths: uid 1000, `HOME=/cache/home`, `WORKDIR /workspace`, `VOLUME /cache`.
 - Environment: `SHARPRAIL_TOOLCHAINS=managed`, `SHARPRAIL_MANAGED_CACHE=/cache/managed`, `SHARPRAIL_STATE_DIR=/cache/state`, `SHARPRAIL_ROOT=/workspace`, `DOTNET_NOLOGO=1`, `DOTNET_CLI_TELEMETRY_OPTOUT=1`, and git `safe.directory=*` through `GIT_CONFIG_*`.
 - Entry: `ENTRYPOINT ["sharprail-headless"]`, `CMD ["mcp"]`. No wrapper, so stdin and stdout are the process's own. Run with `-i --init`.
@@ -59,4 +64,4 @@ Built from `docker/headless/Dockerfile` by `.github/workflows/container.yml`, pu
 
 ## Not built yet
 
-Tool switches, the call log, `warm`, `check-config`, `manifest`.
+Tool switches, the call log, `check-config`, `manifest`.

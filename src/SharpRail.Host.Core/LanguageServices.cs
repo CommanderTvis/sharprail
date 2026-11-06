@@ -72,6 +72,9 @@ public sealed partial class HostStateStore
         if (service is not null) _ = service.CatalogChangedAsync();
     }
 
+    /// <summary>Installs a language server and its pinned runtimes without starting a session; false when no enabled plugin provides the id.</summary>
+    public Task<bool> WarmLanguageServerAsync(string serverId, string workspace, CancellationToken token) => Languages.WarmAsync(serverId, workspace, token);
+
     /// <summary>Ends this host's language processes on shutdown; listeners do not own them.</summary>
     public async ValueTask StopLanguagesAsync()
     {

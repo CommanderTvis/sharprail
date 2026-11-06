@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 
+using SharpRail.Host.Abstractions;
+
 using Tomlyn;
 
 namespace SharpRail.Host.Core.Language;
@@ -199,7 +201,9 @@ internal static class ManagedRuntimes
             await using var lease = await LanguageServers.InstallationLock(root + ".lock", token);
             progress?.Invoke($"Downloading {kind.Name} {pin.Version} ({pin.Platform}) from {new Uri(pin.Url).Host}.");
             var artifact = new ManagedArtifact(pin.Id, pin.Version, pin.Platform, pin.Url, pin.Sha256, pin.Format, pin.Source, pin.Hosts ?? OfficialHosts);
-            await ArtifactInstaller.InstallAsync(artifact, root, http, token);
+            var installLog = CodeIntelligenceLog.Begin("host.runtime-install", ("runtime", kind.Name), ("version", pin.Version), ("root", root));
+            try { await ArtifactInstaller.InstallAsync(artifact, root, http, token); installLog.Succeed(); }
+            catch (Exception error) { installLog.Fail(error); throw; }
             progress?.Invoke($"Installed {kind.Name} {pin.Version} at {root}, SHA-256 verified.");
         }
         finally { gate.Release(); }
