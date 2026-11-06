@@ -5,13 +5,11 @@
 ## Hard rules
 
 - Never push unless the user asks. Preserve the commit-signing presence check; do not change Git configuration to work around a concurrent operation.
-- CI babysitting. Every agent that pushes, or causes pushes or workflow dispatches (`ci.yml`, nightly, any workflow), MUST watch every run they trigger until all jobs finish. A push is not done until CI is green.
-  - Poll with `gh run list` / `gh run view --json`, sleeping at least 60s between polls (Monitor or ScheduleWakeup, never a busy loop).
-  - Read failures with `gh run view --job <id> --log-failed`, filtered by grep; never dump whole logs.
-  - Diagnose, fix, and re-push or re-dispatch, but only where the user's push permission covers it.
-  - If still red, report exactly what and why (flaky/infra versus regression).
-  - Report final run URLs and job conclusions.
-  - Dependabot runs are excluded unless the push changed dependency locks.
+- CI is switched off. The repo workflows (CI, Nightly, Pages, Container, Slow checks, Probe Windows ARM64 Zig) were disabled with `gh workflow disable` on 2026-11-06 after a GitHub billing lock stopped all jobs ("your account is locked due to a billing issue"). Nothing runs on push, so there is no run to watch and no CI result to wait for.
+  - Verify locally before landing: format (`scripts/mise run format`), the focused check modes for what changed, and `--conformance` and `--design` for UI changes. Run the full suite once per batch before a release or a Pages deploy.
+  - Windows, arm64, Android and packaging are not checked by anyone until CI returns: say so in reports when a change touches them.
+  - Turn a workflow back on with `gh workflow enable <name>`; the files stay in `.github/workflows`. Releases, Pages and the container image are published by hand until then.
+  - Do not dispatch workflows. Dependabot runs are GitHub-managed and not affected.
 - Inspect Git status before editing; leave other tasks' changes alone.
 - Reference related GitHub issues in commit messages (`#46`, `Refs #46`), but never with a closing keyword (`Fixes`, `Closes`, `Resolves` and their variants): the user closes issues.
 - Reuse the prepared workspace. For isolation use the SharpRail `workspace_create` tool and work in its path (it does not switch the terminal). `workspace_delete` only workspaces you created, after preserving their work; keep Default, others' workspaces and workspaces with active agents. New workspaces clone the git-ignored paths in `.sharprail/workspace.toml` (schema: `src/SharpRail.Host.Core/Workspaces.SPEC.md`); add an entry only for per-checkout output worth cloning. Build caches never live in the checkout (no `.tools`): they go under the machine-wide `SHARPRAIL_CACHE_DIR` (`mise.toml`), keyed by their inputs and written atomically or under a lock, since every worktree shares them (`scripts/README.md`).
