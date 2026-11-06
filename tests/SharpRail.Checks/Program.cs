@@ -196,6 +196,11 @@ internal static class Program
             ManagedLanguageChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--project-toml"]))
+        {
+            ProjectTomlChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--project-language-file"]))
         {
             ProjectLanguageFileChecks.Run(root).GetAwaiter().GetResult();
@@ -1356,6 +1361,7 @@ internal static class Program
         Gate.Case("global-jvm-provider", () => GlobalJvmProviderChecks.Run(root).GetAwaiter().GetResult());
 
         Gate.Case("managed-language-servers", () => ManagedLanguageChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("project-toml", ProjectTomlChecks.Run);
         Gate.Case("project-language-file", () => ProjectLanguageFileChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-language-autostart", () => ProjectLanguageAutostartChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-services", () => LanguageChecks.Run(root).GetAwaiter().GetResult());

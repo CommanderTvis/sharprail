@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 
 using Tomlyn;
 using Tomlyn.Model;
+using Tomlyn.Serialization;
 using Tomlyn.Syntax;
 
 namespace SharpRail.Host.Core;
@@ -21,7 +22,7 @@ internal static class ProjectToml
     /// <summary>The top-level <c>version</c> when it is an integer, else null.</summary>
     internal static long? VersionOf(JsonObject document) => document["version"] is JsonValue value && value.TryGetValue<long>(out var number) ? number : null;
 
-    internal static JsonObject Parse(string text) => (JsonObject)Convert(TomlSerializer.Deserialize<TomlTable>(text) ?? new TomlTable())!;
+    internal static JsonObject Parse(string text) => (JsonObject)Convert(TomlSerializer.Deserialize(text, ProjectTomlContext.Default.TomlTable) ?? new TomlTable())!;
 
     private static JsonNode? Convert(object? value) => value switch
     {
@@ -85,3 +86,7 @@ internal static class ProjectToml
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 }
+
+/// <summary>Generated TOML metadata for the untyped table every project file is read as.</summary>
+[TomlSerializable(typeof(TomlTable))]
+internal sealed partial class ProjectTomlContext : TomlSerializerContext;

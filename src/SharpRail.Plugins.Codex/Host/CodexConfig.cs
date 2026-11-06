@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 
 using Tomlyn;
 using Tomlyn.Model;
+using Tomlyn.Serialization;
 
 namespace SharpRail.Plugins.Codex.Host;
 
@@ -43,7 +44,7 @@ public static partial class CodexConfig
     }
 
     /// <summary>A TOML document as JSON: tables become objects, dates their text.</summary>
-    public static JsonObject Parse(string text) => (JsonObject)ToNode(TomlSerializer.Deserialize<TomlTable>(text) ?? new TomlTable())!;
+    public static JsonObject Parse(string text) => (JsonObject)ToNode(TomlSerializer.Deserialize(text, CodexTomlContext.Default.TomlTable) ?? new TomlTable())!;
 
     private static JsonNode? ToNode(object? value) => value switch
     {
@@ -377,3 +378,7 @@ public static partial class CodexConfig
     [GeneratedRegex(@"^\s*(#|\[)")]
     private static partial Regex CommentOrHeader();
 }
+
+/// <summary>Generated TOML metadata for the untyped table a Codex config.toml is read as.</summary>
+[TomlSerializable(typeof(TomlTable))]
+internal sealed partial class CodexTomlContext : TomlSerializerContext;
