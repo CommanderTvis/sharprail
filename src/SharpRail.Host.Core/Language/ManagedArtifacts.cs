@@ -291,10 +291,15 @@ internal static class ArtifactInstaller
             using var reader = new TarReader(gzip);
             while (await reader.GetNextEntryAsync(false, token) is { } entry)
             {
-                var path = EntryPath(entry.Name);
+                // Tarballs made with `tar -C dir .` name every entry ./name.
+                var name = entry.Name;
+                while (name.StartsWith("./", StringComparison.Ordinal)) name = name[2..];
+                if (name.Length == 0 || name == ".") continue;
+                var path = EntryPath(name);
                 if (entry.EntryType is TarEntryType.Directory) Directory.CreateDirectory(path);
                 else if (entry.EntryType is TarEntryType.SymbolicLink) links.Add((path, entry.LinkName));
-                else if (entry.EntryType is TarEntryType.RegularFile or TarEntryType.V7RegularFile && entry.DataStream is { } data) await Write(path, data, entry.Length, (int)entry.Mode);
+                // An empty file has no data stream.
+                else if (entry.EntryType is TarEntryType.RegularFile or TarEntryType.V7RegularFile) await Write(path, entry.DataStream ?? Stream.Null, entry.Length, (int)entry.Mode);
                 else if (entry.EntryType is TarEntryType.ExtendedAttributes or TarEntryType.GlobalExtendedAttributes) continue;
                 else throw new IOException("Unsupported archive entry.");
             }

@@ -148,6 +148,12 @@ public interface ILanguageServerInstallation
     /// <returns>Its absolute path, or <see langword="null"/>.</returns>
     string? FindDotnet();
 
+    /// <summary>
+    /// The complete environment for a run whose toolchain is managed by the host (PATH of the managed runtimes, <c>DOTNET_ROOT</c>, cache homes),
+    /// or <see langword="null"/> when tools come from the host machine. A provider applies it over the inherited environment.
+    /// </summary>
+    IReadOnlyDictionary<string, string>? ManagedEnvironment => null;
+
     /// <summary>Runs a process to completion and throws an <see cref="IOException"/> carrying its error output when it fails.</summary>
     /// <param name="executable">The absolute executable path.</param>
     /// <param name="arguments">Its arguments.</param>

@@ -56,6 +56,11 @@ public sealed class CSharpPlugin() : LanguageServerPlugin(Id)
             // ~830 to ~515 MiB physical footprint without changing answers. A value the user exported is kept.
             launch.Environment.TryAdd("DOTNET_gcServer", "0");
             launch.Environment.TryAdd("DOTNET_GCConserveMemory", "7");
+            if (installation.ManagedEnvironment is { } managed)
+            {
+                foreach (var (name, value) in managed) launch.Environment[name] = value;
+                return;
+            }
             if (installation.FindDotnet() is not { } dotnet) return;
             var sdk = Path.GetDirectoryName(dotnet)!;
             launch.Environment["DOTNET_ROOT"] = sdk;

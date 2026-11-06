@@ -188,6 +188,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
                 LanguageExecutables.Reject(found, workspace) is null) installed = found;
             return Start(installed ?? throw new IOException($"PATH is allowed for {server.Id} but no usable {server.Executable} was found on it." + (rejected.Count > 0 ? " " + rejected[0] : "")), server.Arguments);
         }
+        await EnsureRuntimesAsync(server, workspace, token);
         RequireDependencies(server, workspace);
         var gate = installations.GetOrAdd(root, _ => new(1));
         await gate.WaitAsync(token);
@@ -261,6 +262,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         public string? FindTool(string executable) => owner.FindTool(server, executable, workspace);
         public string RequireTool(string executable) => owner.RequireTool(server, executable, workspace);
         public string? FindDotnet() => owner.FindTool(server, "dotnet", workspace);
+        public IReadOnlyDictionary<string, string>? ManagedEnvironment => owner.ManagedEnvironment(workspace);
 
         public string FindInstalled(string name)
         {
@@ -274,6 +276,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
             CancellationToken cancellationToken = default)
         {
             var start = Start(executable, [.. arguments]);
+            Apply(start, owner.ManagedEnvironment(workspace)?.ToDictionary(item => item.Key, item => (string?)item.Value));
             Apply(start, environment);
             return LanguageServers.RunAsync(start, workingDirectory, cancellationToken);
         }
@@ -325,7 +328,7 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
         return json.RootElement.TryGetProperty(id, out var entry) ? entry.Deserialize(HostJson.Web.Info<LanguageServerOptions>()) : null;
     }
 
-    private static async Task<FileStream> InstallationLock(string path, CancellationToken token)
+    internal static async Task<FileStream> InstallationLock(string path, CancellationToken token)
     {
         while (true)
         {

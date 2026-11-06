@@ -209,7 +209,7 @@ every declared tool on the host (answers reused for 30 s; a fresh probe runs bef
 an existing absolute workspace (for Settings): a tool is required
 only for the managed launch, and an install-only tool only until the managed installation exists. A start refuses
 before installing while a required tool is missing, with `Needs <tool> (<name>). <hint> Or choose an existing <tool>
-with Use path…`. SharpRail never downloads these tools or runs a package manager for them. `--lsp-dependencies`
+with Use path…`. By default SharpRail never downloads these tools or runs a package manager for them (see Managed runtimes). `--lsp-dependencies`
 covers the probe with a fake PATH, the refusal, a tool appearing on PATH, and setting, persisting, launching with
 and clearing a path.
 
@@ -238,6 +238,39 @@ lockfile's hash), so a bump never reuses a directory; installed archive files ar
 managed one lacks a version, a SHA-256 or an integrity hash, or when a NuGet or Go module pin is incomplete, or when a partially pinned provider is not
 declared as such; fixtures prove the tamper, redirect, traversal and symbolic-link refusals without any
 download.
+
+### Managed runtimes
+
+The tools servers need can also come from pinned runtimes in the cache, so a slim headless image carries none of them.
+`ManagedRuntimes` holds one entry per runtime kind (the .NET SDK now; Node, a JDK and Python are table entries to
+add) and one pin per version and platform: exact version, URL on an allow-listed host, the SHA-256 the host verifies
+before extraction, and the publisher's SHA-512 recorded beside it. Installation reuses `ArtifactInstaller`: hash
+first, bounded extraction, an atomic move into `runtimes/<id>/<version>-<hash prefix>`, nothing left behind on a
+mismatch, and a repeated install is a no-op. The cache root is the host's language directory, or
+`SHARPRAIL_MANAGED_CACHE` when set to an absolute path (the container points it at `/cache`).
+
+Pins are made with `scripts/pin-dotnet-sdk.py <versions>`, which downloads each archive, requires the publisher's
+SHA-512 from the official release metadata to match, and prints the entries with our SHA-256, so a refresh is
+reviewable. Current .NET SDK pins (linux-x64, linux-arm64, osx-arm64, osx-x64, win-x64): 10.0.401 (this repository's
+`global.json`) and 10.0.403 (the latest 10.0 LTS SDK when pinned, 2026-10-25). A workspace's `global.json` picks the
+pin by its `rollForward` policy; with none, the newest pin is used. When nothing fits, `Needs dotnet` names the version
+the project asks for and the versions that are pinned.
+
+`[toolchains] source` is `path` (the default, so desktop behaviour is unchanged), `managed` or `managed-then-path`.
+`SHARPRAIL_TOOLCHAINS` overrides the setting, and the headless host sets it to `managed`. `LanguageServers.ProbeTool`
+resolves in this order: the user's explicit path, then the managed runtime (only for `managed` and
+`managed-then-path`), then the home variable (`DOTNET_ROOT`), then PATH. `managed` stops after the managed step for
+a tool that has a pinned runtime, so the host's PATH is never consulted for it; a tool no runtime provides yet keeps the
+`path` order. A start installs a missing pinned runtime first (`SHARPRAIL_OFFLINE=1` makes that fail at once, naming
+the missing artifact), and `ManagedRuntimes.WarmAsync` installs every pin of a platform ahead of time for the container
+build and the headless `warm` command, reporting progress through a callback.
+
+Under a managed toolchain every server run gets one environment (`ILanguageServerInstallation.ManagedEnvironment`):
+`PATH` of the managed bin directories plus `/usr/bin:/bin` (not the host PATH, except in `managed-then-path`),
+`DOTNET_ROOT`, and `DOTNET_CLI_HOME`, `NUGET_PACKAGES`, `DOTNET_NOLOGO` and `DOTNET_CLI_TELEMETRY_OPTOUT` under the
+cache. The C# server launches with it, and install-time commands run with it. `--managed-runtimes` proves the
+installer with a fake HTTPS source (matching hash installs atomically, mismatch leaves nothing, repeat and offline
+behave as above), the resolution order, the environment and the shipped pins' shape, with no network.
 
 Host administrators may set `<stateDir>/language/servers.json`, keyed by catalog id, with
 `command` and an `arguments` array to override a launcher, `allowPath: true` to allow PATH for that

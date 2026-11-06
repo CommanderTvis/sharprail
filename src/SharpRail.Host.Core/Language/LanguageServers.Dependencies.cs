@@ -12,7 +12,7 @@ internal sealed record ToolProbe(string State, string Path, string Source, strin
 internal sealed partial class LanguageServers
 {
     private static readonly TimeSpan ProbeLifetime = TimeSpan.FromSeconds(30);
-    private readonly ConcurrentDictionary<(string Workspace, string Executable, string Home, string Override), (DateTime Time, ToolProbe Probe)> probes = new();
+    private readonly ConcurrentDictionary<(string Workspace, string Executable, string Home, string Override, ToolchainSource Source), (DateTime Time, ToolProbe Probe)> probes = new();
 
     /// <summary>The user's host-wide tool paths from host state, as a JSON object of executable name to absolute path.</summary>
     internal Func<string> ToolPaths { get; set; } = () => "";
@@ -34,6 +34,16 @@ internal sealed partial class LanguageServers
         return parsed.Tools;
     }
 
+    /// <summary>The host setting text for <c>[toolchains] source</c>; empty means the default. <c>SHARPRAIL_TOOLCHAINS</c> overrides it.</summary>
+    internal Func<string> ToolchainSetting { get; set; } = () => "";
+
+    internal ToolchainSource Toolchain => Toolchains.Effective(ToolchainSetting());
+
+    /// <summary>The environment of a server run under a managed toolchain, or null when the toolchain is the host's (or the user chose their own tool).</summary>
+    internal IReadOnlyDictionary<string, string>? ManagedEnvironment(string workspace) =>
+        Toolchain is var source && source != ToolchainSource.Path && !ManagedRuntimes.Kinds.SelectMany(kind => kind.Tools).Any(tool => ToolOverride(tool).Length > 0)
+            ? ManagedRuntimes.RunEnvironment(directory, ManagedArtifacts.Platform(), workspace, inheritPath: source == ToolchainSource.ManagedThenPath) : null;
+
     private string ToolOverride(string executable) => CurrentTools().GetValueOrDefault(executable) ?? "";
 
     /// <summary>
@@ -49,18 +59,28 @@ internal sealed partial class LanguageServers
     internal ToolProbe ProbeTool(string executable, string workspace, string homeVariable = "", bool fresh = false)
     {
         var chosen = ToolOverride(executable);
-        var key = (workspace, executable, homeVariable, chosen);
+        var source = Toolchain;
+        var key = (workspace, executable, homeVariable, chosen, source);
         if (!fresh && probes.TryGetValue(key, out var cached) && DateTime.UtcNow - cached.Time < ProbeLifetime) return cached.Probe;
         Interlocked.Increment(ref ProbeRuns);
-        var probe = Probe(executable, workspace, homeVariable, chosen);
+        var probe = Probe(executable, workspace, homeVariable, chosen, source);
         probes[key] = (DateTime.UtcNow, probe);
         return probe;
     }
 
-    private static ToolProbe Probe(string executable, string workspace, string homeVariable, string chosen)
+    private ToolProbe Probe(string executable, string workspace, string homeVariable, string chosen, ToolchainSource source)
     {
         if (chosen.Length > 0)
             return LanguageExecutables.Reject(chosen, workspace) is { } problem ? new("rejected", chosen, "override", problem) : new("found", chosen, "override", "");
+        if (source != ToolchainSource.Path && ManagedRuntimes.KindOf(executable) is { } kind)
+        {
+            var platform = ManagedArtifacts.Platform();
+            if (ManagedRuntimes.FindInstalled(directory, executable, platform, workspace) is { } managed) return new("found", managed, "managed", "");
+            if (source == ToolchainSource.Managed)
+                return new("missing", "", "managed", ManagedRuntimes.Choose(kind.Id, platform, workspace) is { } pin
+                    ? $"The pinned {kind.Name} {pin.Version} is not installed yet. It is downloaded on first start, or run warm."
+                    : ManagedRuntimes.NotPinned(kind, platform, workspace));
+        }
         var file = executable + (OperatingSystem.IsWindows() ? ".exe" : "");
         if (homeVariable.Length > 0 && Environment.GetEnvironmentVariable(homeVariable) is { Length: > 0 } home && Path.IsPathFullyQualified(home))
             foreach (var candidate in new[] { Path.Combine(home, "bin", file), Path.Combine(home, file) })
@@ -86,7 +106,8 @@ internal sealed partial class LanguageServers
 
     private static string Needs(LanguageServerDependency dependency, ToolProbe probe) => probe.State == "rejected"
         ? $"Needs {dependency.Executable}: your path for it cannot run. {probe.Problem} Choose another with Use path… in the language server's row, or clear it, then Retry."
-        : $"Needs {dependency.Executable} ({dependency.Name}). {dependency.InstallHint} Or choose an existing {dependency.Executable} with Use path… in the language server's row, then Retry.";
+        : $"Needs {dependency.Executable} ({dependency.Name}). " + (probe.Source == "managed" ? probe.Problem + " " : "") +
+            $"{dependency.InstallHint} Or choose an existing {dependency.Executable} with Use path… in the language server's row, then Retry.";
 
     /// <summary>
     /// Probes every tool the server declares, without starting or installing anything. A tool is required only for the managed launch:
@@ -107,6 +128,20 @@ internal sealed partial class LanguageServers
             return new LanguageDependencyState(dependency.Executable, dependency.Name, probe.State, probe.Path, probe.Source, dependency.InstallHint, probe.Problem,
                 tools.ContainsKey(dependency.Executable), managed && (!dependency.InstallOnly || !installed));
         })];
+    }
+
+    /// <summary>Under a managed toolchain, installs the pinned runtimes the server's dependencies need (offline: fails at once when the cache lacks one). A runtime nothing pins is left to <see cref="RequireDependencies"/>.</summary>
+    private async Task EnsureRuntimesAsync(LanguageServer server, string workspace, CancellationToken token)
+    {
+        if (Toolchain == ToolchainSource.Path) return;
+        var platform = ManagedArtifacts.Platform();
+        foreach (var dependency in server.Spec.Dependencies)
+            if (ManagedRuntimes.KindOf(dependency.Executable) is { } kind && ToolOverride(dependency.Executable).Length == 0 && ManagedRuntimes.Choose(kind.Id, platform, workspace) is { } pin)
+            {
+                if (Toolchain == ToolchainSource.ManagedThenPath && ProbeTool(dependency.Executable, workspace, dependency.HomeVariable, fresh: true) is { State: "found" }) continue;
+                await ManagedRuntimes.EnsureAsync(directory, pin, managedHttp, null, Toolchains.Offline, token);
+                ForgetProbes();
+            }
     }
 
     /// <summary>Refuses a managed start while a tool it needs is missing, naming the tool instead of failing inside the launch.</summary>

@@ -335,6 +335,7 @@ override SharpRail.Plugins.Api.Host.LanguageSettingField.ToString() -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerInstallation
 SharpRail.Plugins.Api.Host.ILanguageServerInstallation.FetchNuGetAsync(SharpRail.Plugins.Api.Host.LanguageServerNuGetPackage! package, string! feed, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 SharpRail.Plugins.Api.Host.ILanguageServerInstallation.FindDotnet() -> string?
+SharpRail.Plugins.Api.Host.ILanguageServerInstallation.ManagedEnvironment.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
 SharpRail.Plugins.Api.Host.ILanguageServerInstallation.FindInstalled(string! name) -> string!
 SharpRail.Plugins.Api.Host.ILanguageServerInstallation.FindTool(string! executable) -> string?
 SharpRail.Plugins.Api.Host.ILanguageServerInstallation.Platform.get -> string!
