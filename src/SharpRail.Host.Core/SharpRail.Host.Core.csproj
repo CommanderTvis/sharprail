@@ -1,4 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Recycle Bin call on Windows uses source-generated COM and P/Invoke marshalling, which emits unsafe code. -->
+  <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Plugins.Tailscale/Host/SharpRail.Plugins.Tailscale.Host.csproj" />
     <ProjectReference Include="../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" />

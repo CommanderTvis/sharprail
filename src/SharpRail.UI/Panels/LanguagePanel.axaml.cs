@@ -209,8 +209,8 @@ internal sealed partial class LanguagePanel : UserControl
             Log.Info("pane.state", ("property", change.Property.Name), ("value", change.NewValue), ("workspace", workspace), ("setBy", Callers()));
     }
 
-    private static string Callers() => string.Join('<', new System.Diagnostics.StackTrace(2, false).GetFrames().Select(frame => frame.GetMethod()).Where(method => method is not null)
-        .Select(method => method!.DeclaringType?.Name + "." + method.Name).Take(5));
+    private static string Callers() => string.Join('<', new System.Diagnostics.StackTrace(2, false).GetFrames().Select(System.Diagnostics.DiagnosticMethodInfo.Create).Where(method => method is not null)
+        .Select(method => method!.DeclaringTypeName[(method.DeclaringTypeName.LastIndexOfAny(['.', '+']) + 1)..] + "." + method.Name).Take(5));
 
     /// <summary>The nearest ancestor that makes this pane inert (not hit-test visible or disabled), as the log names it.</summary>
     private string BlockedBy()

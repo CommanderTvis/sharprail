@@ -105,23 +105,54 @@ AOT puts requirements on code that crosses the boundary or is serialized:
 - `PluginJson.Convert` keeps passing an instance of the declared type through untouched. Converting across load
   contexts stops occurring on the trusted side, since there is only one context.
 
-What stands in the way, in order of size (from a static audit; an analyzer build and an AOT publish of the remote
-host give the authoritative list):
+An analyzer build and NativeAOT publishes of the remote host and of the desktop app (full trimming) are the
+authority. After the analyzer build was clean, the remote host publish reported one site (the IDE bridge's tool
+list, fixed before the app was published), and the desktop app publish reported only reflection bindings in five
+XAML data templates. Those templates were compiled afterwards; the build and `--conformance` cover them, not a
+second publish. What stood in the way, and how each went:
 
-1. The WebSocket RPC payload codec is protobuf-net, which builds serializers at run time. Host, remote host and
-   clients all use it. It is replaced by a codec generated at build time that keeps the wire bytes compatible, since
-   a remote host and the app ship independently.
+1. The WebSocket RPC payload codec was protobuf-net, which builds serializers at run time. Host, remote host and
+   clients all used it. A codec generated at build time replaced it and keeps the wire bytes, since a remote host
+   and the app ship independently.
 2. `PluginJson.Options` resolves only from the generated contexts plugins declare (the Plugin API's
    [JSON metadata](SPEC.md#json-metadata)); its runtime-typed sites (`GetType()`, `Deserialize(type, …)`,
-   `GetTypeInfo`, the tool schema) resolve through them, and the wire writes declared types.
-3. A few reflection sites outside plugin loading: the kit's bindings by string path and its style include by URI.
-   No `System.Text.Json` reflection is left: the host, the app and every builtin plugin serialize from
+   `GetTypeInfo`, the tool schema) resolve through them, and the wire writes declared types. No
+   `System.Text.Json` reflection is left: the host, the app and every builtin plugin serialize from
    source-generated metadata or JSON nodes.
-4. The desktop app embeds the host and ASP.NET Core, so it inherits the first two. The host's endpoints are plain
+3. The desktop app embeds the host and ASP.NET Core, so it inherits the first two. The host's endpoints are plain
    request delegates that read their route values themselves, since minimal-API delegate binding is
-   reflection-based (see the [remote host](../SharpRail.Host.Remote/SPEC.md)), and Avalonia bindings are compiled
-   by default.
-5. Packages with unknown AOT status: Tomlyn, TextMateSharp and the Avalonia SVG control.
+   reflection-based (see the [remote host](../SharpRail.Host.Remote/SPEC.md)).
+4. Avalonia bindings are all compiled. The kit observes properties directly instead of binding by string path,
+   its control styles are a compiled XAML class instead of a style include by URI, and every data template names
+   its `x:DataType`. The `AVLN3001` note on the kit's front matter editor stays: it only says the file cannot be
+   loaded by URI at run time, which nothing does.
+5. Smaller sites. Helper programs beside the app are found through the app's base directory, since an assembly
+   has no file location in a single-file or AOT binary. The Recycle Bin on Windows uses source-generated COM
+   interop. A diagnostic log names its callers through `DiagnosticMethodInfo`.
+
+Packages, each decided from the two publishes:
+
+- Tomlyn: our use was reflection (`Deserialize<TomlTable>`). Fixed in our use: the project's `.sharprail` files
+  and Codex's `config.toml` read through a generated `TomlSerializerContext` for the untyped table, which gives
+  the same model and the same JSON (`--project-toml`).
+- TextMateSharp, Svg.Controls.Skia.Avalonia, Markdig, QRCoder, Avalonia with SkiaSharp and HarfBuzzSharp, and
+  ASP.NET Core: no warning from any of them in either publish. Kept, with no trimmer roots and no suppressions.
+- The AOT compiler package the pinned SDK brings (Microsoft.DotNet.ILCompiler 10.0.12) has a high-severity
+  advisory. The SDK pin moves past it before an AOT build ships.
+
+The published binaries were not started, so run-time behaviour under AOT is not yet verified.
+
+Every project under `src/` except the Android and Browser heads sets `IsAotCompatible` (`Directory.Build.props`),
+which runs the trim, AOT and single-file analyzers on every build, so a new IL2xxx or IL3xxx fails the build. It
+also marks those assemblies trimmable, which changes neither head: Android does not trim, and the Browser build
+roots every assembly it links.
+
+The analyzers read C# only. Two kinds of code reach the AOT compiler without them:
+
+- XAML compiled to reflection bindings. `--conformance` fails on `x:CompileBindings="False"` or
+  `ReflectionBinding` anywhere under `src/`.
+- A collection expression whose target type picks a generic `Add<T>` that needs dynamic code. A `JsonArray`
+  built from `JsonObject` elements did. Only a NativeAOT publish finds this; CI does not run one yet.
 
 The browser build's hybrid AOT is no evidence either way: it silences trim warnings and keeps the interpreter as a
 fallback. A `pureWeb` host has no external plugins anyway.

@@ -57,8 +57,7 @@ internal static class IdeMcp
     private static JsonObject Tool(string name, string description, JsonObject schema) =>
         new() { ["name"] = name, ["description"] = description, ["inputSchema"] = schema };
 
-    public static JsonArray Tools() =>
-    [
+    public static JsonArray Tools() => new(
         Tool("openFile", "Open a file in the editor, optionally selecting a range matched by text.",
             Schema([("filePath", "string"), ("preview", "boolean"), ("startText", "string"), ("endText", "string"),
                 ("selectToEndOfLine", "boolean"), ("makeFrontmost", "boolean")], ["filePath"])),
@@ -71,6 +70,5 @@ internal static class IdeMcp
         Tool("checkDocumentDirty", "Whether a file has unsaved changes.", Schema([("filePath", "string")], ["filePath"])),
         Tool("saveDocument", "Save a file's unsaved changes.", Schema([("filePath", "string")], ["filePath"])),
         Tool("close_tab", "Close a tab by the name given to openDiff, or by its file's absolute path.", Schema([("tab_name", "string")], ["tab_name"])),
-        Tool("closeAllDiffTabs", "Close every open diff tab.", Schema())
-    ];
+        Tool("closeAllDiffTabs", "Close every open diff tab.", Schema()));
 }

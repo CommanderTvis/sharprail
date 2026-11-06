@@ -24,7 +24,7 @@ public sealed partial class SettingsView
         try
         {
             var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
-            if (Path.GetFileNameWithoutExtension(Environment.ProcessPath) == "dotnet") start.ArgumentList.Add(typeof(App).Assembly.Location);
+            if (Path.GetFileNameWithoutExtension(Environment.ProcessPath) == "dotnet") start.ArgumentList.Add(Path.Combine(AppContext.BaseDirectory, typeof(App).Assembly.GetName().Name + ".dll"));
             start.ArgumentList.Add("--tailscale");
             System.Diagnostics.Process.Start(start)?.Dispose();
         }

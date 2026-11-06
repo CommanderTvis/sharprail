@@ -38,6 +38,12 @@
           "HarfBuzzSharp.NativeAssets.macOS": "14.2.1.301"
         }
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "xi+BDjFpW+Sb+MHFHaH6Y/gV9I8BluFwRXc1QyCdoZbIK26eNiBeFuMTe/FMwc33G1wdHCyDg7CVTmb8OdQrMQ=="
+      },
       "SkiaSharp": {
         "type": "Direct",
         "requested": "[4.148.0, )",

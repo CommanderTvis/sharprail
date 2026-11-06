@@ -55,7 +55,7 @@ public sealed partial class CodexAppServer
         {
             if (!OperatingSystem.IsWindows())
             {
-                start.FileName = Path.Combine(Path.GetDirectoryName(typeof(CodexAppServer).Assembly.Location)!, "sharprail-codex-process-group");
+                start.FileName = Path.Combine(AppContext.BaseDirectory, "sharprail-codex-process-group");
                 start.ArgumentList.Insert(0, ResolveUnixExecutable(executable, start.WorkingDirectory));
             }
             child = Process.Start(start) ?? throw new InvalidOperationException("Could not start Codex app-server.");
