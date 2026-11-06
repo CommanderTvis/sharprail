@@ -93,7 +93,7 @@
   <ItemGroup>
     <WasmOptConfigurationFlags Include="--enable-nontrapping-float-to-int" />
     <!-- The post-link wasm-opt pass otherwise only rewrites features; -Oz shrinks the AOT code, which the transfer size is mostly made of. -->
-    <WasmOptConfigurationFlags Include="-Oz" Condition="'$(Configuration)' == 'Release'" />
+    <WasmOptConfigurationFlags Include="-Oz" Condition="'$(Configuration)' == 'Release' and '$(SharpRailWasmOz)' != 'false'" />
     <NativeFileReference Include="obj/wasm-native/GhosttyAvaloniaVt.a" />
   </ItemGroup>
   <Import Project="BrowserAot.targets" />

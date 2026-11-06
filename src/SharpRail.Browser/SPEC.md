@@ -146,8 +146,13 @@ Release also runs the post-link wasm-opt pass at `-Oz` (`WasmOptConfigurationFla
 `-O2`) and sets `WasmDebugLevel=0`, which drops the unused browser-debugger component from the native runtime and the
 `.pdb` files from the boot config (Chromium and Firefox download every listed `.pdb` at start). On the 2026-11-05
 Release build `-Oz` took `dotnet.native.wasm` from 63.9 MB to 53.2 MB raw and 18.80 MB to 17.39 MB gzip level 9
-(`-Os`: 18.51 MB). Pages serves gzip only, so the file is the largest single transfer. Not measured: the speed cost of
-`-Oz` in the AOT hot paths.
+(`-Os`: 18.51 MB). Pages serves gzip only, so the file is the largest single transfer. The debug-level change alone
+saves about nothing in this file (63.8 MB raw, 18.75 MB gzip without `-Oz`); the gain is `-Oz`, which
+`-p:SharpRailWasmOz=false` turns off for comparisons. Headless Chromium, no network throttling, local server:
+Playground workbench ready 7.1-7.2 s with `-Oz` against 7.3 s without, so `-Oz` costs nothing at start; its cost in
+the AOT hot paths (`restty.mjs --perf`) is not measured. Load times through a throttled gzip-only server mimicking
+Pages (412x915 mobile viewport, CPU 4x): Fast 4G (9 Mbit/s, 170 ms) cold 40.1 s before and 37.3 s after, repeat visit
+13.3 s and 10.4 s; Slow 4G (1.6 Mbit/s, 400 ms) cold 207 s and 194 s, repeat visit 28.9 s and 22.5 s.
 Rejected after inspection: trimming (the preserved-assembly policy above is what keeps JSON reflection, plugin loading
 and XAML working, and a trimmed set cannot be proven without a browser run), `InvariantGlobalization` (saves one
 0.8 MB ICU shard but changes culture and normalization behavior) and lazy-loading plugin assemblies (all plugins
