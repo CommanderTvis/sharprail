@@ -119,9 +119,10 @@ public sealed class Workbench : IDisposable
     /// <summary>
     /// Opens an external plugin's UI half, which runs in its own process on the host, as a module for this app: null in
     /// <c>App.cs</c>, where an external row the host reports active stays dormant, and set only by the checks until
-    /// external plugins are switched on. It gets the roster row, this app's client key and a cancellation.
+    /// external plugins are switched on. It gets the roster row, this app's client key, what to call when the session
+    /// ends on the host's side (the process ended or was replaced) and a cancellation.
     /// </summary>
-    public Func<PluginRosterEntry, string, CancellationToken, Task<PluginUIModule>>? IsolatedPlugins { get; init; }
+    public Func<PluginRosterEntry, string, Action, CancellationToken, Task<PluginUIModule>>? IsolatedPlugins { get; init; }
     /// <summary>The system's notification channel; a workbench without one raises no desktop notifications.</summary>
     public IDesktopNotifier? Notifier { get; init; }
     /// <summary>How long attention requests collect before they are shown as one notification.</summary>

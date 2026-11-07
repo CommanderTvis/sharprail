@@ -147,12 +147,19 @@ public sealed class PluginLoader : IDisposable
     }
 
     // An external plugin's UI half runs on the host: the activation is pending (so the next pass sees it) while its
-    // session opens off the UI thread, and activates on the UI thread with the guard open if it is still current.
-    private void MountIsolated(PluginRosterEntry entry, Func<PluginRosterEntry, string, CancellationToken, Task<PluginUIModule>> open)
+    // session opens off the UI thread, and activates on the UI thread with the guard open if it is still current. A
+    // session the host ends unmounts its activation, so a pass that finds the row active again opens a new one.
+    private void MountIsolated(PluginRosterEntry entry, Func<PluginRosterEntry, string, Action, CancellationToken, Task<PluginUIModule>> open)
     {
         var activation = new PluginActivation(entry);
         activations[entry.Id] = activation;
-        var opening = Task.Run(() => open(entry, ClientKey, activation.Opening.Token));
+        void Ended() => Dispatcher.UIThread.Post(() =>
+        {
+            if (!ReferenceEquals(activations.GetValueOrDefault(entry.Id), activation)) return;
+            Unmount(entry.Id);
+            Schedule();
+        });
+        var opening = Task.Run(() => open(entry, ClientKey, Ended, activation.Opening.Token));
         _ = opening.ContinueWith(opened => Dispatcher.UIThread.Post(() =>
         {
             if (opened.IsCompletedSuccessfully && opened.Result is var module && (stopped || activation.Closed || !ReferenceEquals(activations.GetValueOrDefault(entry.Id), activation)))

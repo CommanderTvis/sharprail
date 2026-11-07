@@ -25,7 +25,9 @@ in `SharpRail.Plugins.Isolation`:
   null members dropped.
 - `RemotePluginUIModule`: an external plugin's UI half as a client holds it. It opens an `IIsolatedUISession`
   (refusing a runner whose UI table differs), replays the registrations onto the client's real context during
-  `Activate`, then dispatches each later call on the UI thread. Factories answer a placeholder; a resolver answers
+  `Activate`, failing the activation if a replayed call would wait rather than hold the UI thread, then dispatches
+  each later call on the UI thread. When the session ends on the host's side it tells its opener, so the client can
+  open a new one with a replaced process. Factories answer a placeholder; a resolver answers
   from its last answer for those arguments, or as if the plugin had none, and asks the plugin in the background,
   re-evaluating the plugin's predicates when it answers, so the UI thread never waits on the plugin. Before it
   answers a call it brings the plugin's settings mirror up to date.

@@ -35,6 +35,8 @@ internal static class PluginIsolatedUIChecks
 
     internal static void Run(string root)
     {
+        Replay();
+        Console.WriteLine("PASS plugin isolated UI replay: an activation's reply that lists a call that waits fails the activation at once instead of holding the UI thread");
         if (PluginChannelChecks.Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin isolated UI: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -43,7 +45,7 @@ internal static class PluginIsolatedUIChecks
         Task.Run(() => Refusals(Path.Combine(root, "isolated-refusals"), runner)).GetAwaiter().GetResult();
         Console.WriteLine("PASS plugin isolated UI refusals: no seam, no runner, a seam that needs a sandbox and a plugin with a host half each refuse an enabled external plugin with a plain reason and start nothing; a UI half that cannot load fails with the runner's reason");
         App(Path.Combine(root, "isolated-app"), runner);
-        Console.WriteLine("PASS plugin isolated UI: installed from disk and enabled, its one runner process activates the UI half; the app's registry holds its side tool, settings section and file viewer, whose views show a placeholder; its settings round-trip through the process across restarts; no plugin assembly or load context is in this process; disabling ends the process, a crash fails the plugin with a reason, retry starts a new process, and shutdown leaves none");
+        Console.WriteLine("PASS plugin isolated UI: installed from disk and enabled, its one runner process activates the UI half; the app's registry holds its side tool, settings section and file viewer, whose views show a placeholder; its settings round-trip through the process across restarts; no plugin assembly or load context is in this process; disabling ends the process, a crash fails the plugin with a reason, retry starts a new process, a process replaced before the app looks opens a new session, and shutdown leaves none");
     }
 
     /// <summary>The fixture's staged directory: the manifest, the UI assembly, its private dependency and its assets.</summary>
@@ -120,10 +122,12 @@ internal static class PluginIsolatedUIChecks
             Require(loader.Registry.Roster.Single(entry => entry.Id == Id) is { Origin: PluginOrigin.External, Status: PluginStatus.Disabled },
                 "The outsider arrives disabled, as every external plugin does.");
 
+            // The count rises once the app has a session with the current process, so it is waited for first: a row still
+            // active from before a replaced process would otherwise pass for the new one.
             int Activate(int activations)
             {
-                E2eWorkspace.Until(() => loader.Registry.Active.Contains(Id) && runtime.RunnerPid(Id) is not null);
                 E2eWorkspace.Until(() => Settings(app) is { } settings && settings["activations"]?.GetValue<int>() == activations);
+                E2eWorkspace.Until(() => loader.Registry.Active.Contains(Id) && runtime.RunnerPid(Id) is not null);
                 return runtime.RunnerPid(Id)!.Value;
             }
 
@@ -160,8 +164,74 @@ internal static class PluginIsolatedUIChecks
             E2eWorkspace.Until(() => retried.IsCompleted);
             pid = Activate(3);
             Require(pid != second && Alive(pid), "Retry starts a new process.");
+
+            // The process is replaced while the app's UI thread is busy, so the app only ever sees the row active: the
+            // ended session unmounts its activation and the app opens one with the new process.
+            var replaced = pid;
+            Task.Run(async () =>
+            {
+                await app.State!.ChangeAsync([HostStateChange.PluginEnabled(Id, false)]);
+                await runtime.Schedule();
+                await app.State!.ChangeAsync([HostStateChange.PluginEnabled(Id, true)]);
+                await runtime.Schedule();
+                var clock = Stopwatch.StartNew();
+                while (Alive(replaced) || runtime.RunnerPid(Id) is null)
+                {
+                    Require(clock.Elapsed < PluginChannelChecks.Patience, "The host must replace the process.");
+                    await Task.Delay(20);
+                }
+            }).GetAwaiter().GetResult();
+            pid = Activate(4);
+            Require(pid != replaced, "The app opens its session with the new process.");
         }
         Require(!Alive(pid), "Shutting the host down ends every runner.");
+    }
+
+    private static void Replay()
+    {
+        var settings = new SharpRail.Plugins.Isolation.IsoPayload().Value(new JsonObject { ["clicks"] = 1 }).Finish();
+        var host = new ReplayHost([new(PluginUIContextMembers.PluginUIContext_UpdateSettingsAsync, settings)]);
+        var module = RemotePluginUIModule.OpenAsync(host, Id, "client", () => { }).GetAwaiter().GetResult();
+        var context = System.Reflection.DispatchProxy.Create<SharpRail.Plugins.Api.UI.IPluginUIContext, Waiting>();
+        var clock = Stopwatch.StartNew();
+        try
+        {
+            module.Activate(context);
+            Require(false, "An activation whose replay waits must fail.");
+        }
+        catch (InvalidOperationException error) when (error.Message.Contains("waits", StringComparison.Ordinal)) { }
+        Require(clock.Elapsed < TimeSpan.FromSeconds(1), "A replay that waits must fail at once.");
+        module.DisposeAsync().AsTask().GetAwaiter().GetResult();
+    }
+
+    /// <summary>A UI context whose every asynchronous member waits forever.</summary>
+    public class Waiting : System.Reflection.DispatchProxy
+    {
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args) =>
+            method!.ReturnType == typeof(ValueTask) ? new ValueTask(new TaskCompletionSource().Task) : null;
+    }
+
+    /// <summary>A host whose plugin's activation lists what it is given.</summary>
+    private sealed class ReplayHost(IReadOnlyList<SharpRail.Plugins.Isolation.UIRegistration> registrations) : SharpRail.Plugins.Isolation.IIsolatedUIHost
+    {
+        public ValueTask<SharpRail.Plugins.Isolation.IIsolatedUISession> OpenAsync(string pluginId, string clientKey, CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult<SharpRail.Plugins.Isolation.IIsolatedUISession>(new Session(registrations));
+
+        private sealed class Session(IReadOnlyList<SharpRail.Plugins.Isolation.UIRegistration> registrations) : SharpRail.Plugins.Isolation.IIsolatedUISession
+        {
+            private readonly System.Threading.Channels.Channel<SharpRail.Plugins.Isolation.IsoUICall> calls = System.Threading.Channels.Channel.CreateUnbounded<SharpRail.Plugins.Isolation.IsoUICall>();
+            public string ApiTableHash => PluginChannelChecks.TableHash;
+            public IReadOnlyList<SharpRail.Plugins.Isolation.UIRegistration> Registrations => registrations;
+            public System.Threading.Channels.ChannelReader<SharpRail.Plugins.Isolation.IsoUICall> Calls => calls.Reader;
+            public ValueTask<string> CallAsync(int member, long handle, string payload, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+            public void OneWay(int member, long handle, string payload) => throw new NotSupportedException();
+            public ValueTask MirrorAsync(int member, string arguments, string json, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+            public ValueTask DisposeAsync()
+            {
+                calls.Writer.TryComplete();
+                return ValueTask.CompletedTask;
+            }
+        }
     }
 
     private static JsonObject? Settings(E2eWorkspace app) =>

@@ -181,8 +181,8 @@ checks set until external plugins are switched on:
   host asked for is never a crash, and a late exit of a superseded activation is ignored.
 - `PluginRuntime` is the host's `IIsolatedUIHost`: `OpenAsync(pluginId, clientKey)` activates the UI half on a new
   context in that process, with the stored settings (without `enabled`) mirrored first, and answers a session with
-  what the activation registered. Later calls on the context queue in arrival order for the client, capped at 1,024
-  unread and 256 Ki characters of arguments each; a client that falls behind loses its session. The settings stay
+  what the activation registered (at most 1,024 registrations). Later calls on the context queue in arrival order
+  for the client, capped at 1,024 unread and 256 Ki characters of arguments each; a client that falls behind loses its session. The settings stay
   unvalidated, as the spec records, until a host half sends a schema. A builtin module's `Contract.Id` must still equal its
 manifest id.
 

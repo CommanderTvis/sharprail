@@ -103,7 +103,9 @@ and roster registration still precede reconciliation, preserving dormant tools a
   session opens off the UI thread; on the UI thread, if the activation is still current, the module the session
   gives (`RemotePluginUIModule`) activates with the guard open, replaying what the plugin registered. An unmount
   cancels an opening session, and a session that opens after its activation ended is closed. A session that fails
-  to open leaves the plugin dormant and logged until its row changes. This keeps
+  to open leaves the plugin dormant and logged until its row changes. A session the host ends (the process ended
+  or was replaced) unmounts its activation and schedules a pass, so a row that is still or again active opens a new
+  session even when the app never saw it leave `active`. This keeps
   the app free of dynamic code loading, so it can be published as NativeAOT, until external plugins can run
   isolated from SharpRail's processes. Activation runs on the UI thread.
 - A plugin declares its contributions synchronously, during `Activate`. An activation guard is open only while

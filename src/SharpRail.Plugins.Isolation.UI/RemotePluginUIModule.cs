@@ -21,6 +21,7 @@ public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
     public const string Placeholder = "This view is not available yet.";
 
     private readonly IIsolatedUISession session;
+    private readonly Action ended;
     private readonly CancellationTokenSource lifetime = new();
     private readonly SemaphoreSlim mirroring = new(1, 1);
     private IPluginUIContext? context;
@@ -30,13 +31,18 @@ public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
     // The UI types the plugin's calls carry, with their enum converters.
     static RemotePluginUIModule() => PluginJson.Register(IsolationUiJsonContext.Default);
 
-    private RemotePluginUIModule(IIsolatedUISession session) => this.session = session;
+    private RemotePluginUIModule(IIsolatedUISession session, Action ended)
+    {
+        this.session = session;
+        this.ended = ended;
+    }
 
     /// <summary>
     /// Opens a session for this client with an active external plugin, refusing a runner whose UI member table differs
-    /// from the one this client dispatches with.
+    /// from the one this client dispatches with. <paramref name="ended"/> hears when the session ends without this
+    /// client closing it: the plugin's process ended or the plugin was turned off.
     /// </summary>
-    public static async Task<RemotePluginUIModule> OpenAsync(IIsolatedUIHost host, string pluginId, string clientKey, CancellationToken cancellationToken = default)
+    public static async Task<RemotePluginUIModule> OpenAsync(IIsolatedUIHost host, string pluginId, string clientKey, Action ended, CancellationToken cancellationToken = default)
     {
         var session = await host.OpenAsync(pluginId, clientKey, cancellationToken).ConfigureAwait(false);
         if (session.ApiTableHash.Split('.') is not [_, var table] || table != PluginUIContextMembers.Hash)
@@ -44,7 +50,7 @@ public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
             await session.DisposeAsync().ConfigureAwait(false);
             throw new InvalidOperationException($"The plugin runner was built against UI member table {session.ApiTableHash}; this app has {PluginUIContextMembers.Hash}.");
         }
-        return new(session);
+        return new(session, ended);
     }
 
     public override PluginDisposer? Activate(IPluginUIContext context)
@@ -52,7 +58,16 @@ public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
         this.context = context;
         var callbacks = new Callbacks(this);
         foreach (var registration in session.Registrations)
-            PluginUIContextDispatcher.DispatchAsync(registration.Member, registration.Payload, context, callbacks, lifetime.Token).AsTask().GetAwaiter().GetResult();
+        {
+            // The UI thread never waits on what the plugin's process sent: a replayed call that would wait fails the activation.
+            var replayed = PluginUIContextDispatcher.DispatchAsync(registration.Member, registration.Payload, context, callbacks, lifetime.Token);
+            if (!replayed.IsCompleted)
+            {
+                lifetime.Cancel();
+                throw new InvalidOperationException("The plugin's activation sent a call that waits; only registrations replay.");
+            }
+            replayed.GetAwaiter().GetResult();
+        }
         mirrored = Settings();
         context.OnSettings<JsonObject>(changed => _ = MirrorSettingsAsync());
         _ = PumpAsync(callbacks);
@@ -84,7 +99,11 @@ public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
                 await Dispatcher.UIThread.InvokeAsync(() => _ = DispatchAsync(call, callbacks));
         }
         catch (OperationCanceledException) { }
-        catch (IOException error) { Console.Error.WriteLine($"Plugin {context?.Id}: {error.Message}"); }
+        catch (IOException error)
+        {
+            Console.Error.WriteLine($"Plugin {context?.Id}: {error.Message}");
+            ended();
+        }
     }
 
     private async Task DispatchAsync(IsoUICall call, Callbacks callbacks)

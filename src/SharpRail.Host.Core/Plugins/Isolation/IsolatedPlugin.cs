@@ -50,6 +50,8 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
 {
     /// <summary>A UI session whose client leaves this many calls unread ends.</summary>
     private const int QueuedCalls = 1024;
+    /// <summary>An activation that registers more than this is refused.</summary>
+    private const int MostRegistrations = 1024;
     /// <summary>A call's arguments larger than this are refused.</summary>
     private const int PayloadChars = 256 * 1024;
 
@@ -118,7 +120,7 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
         {
             var reply = await peer.CallAsync(RunnerPlugin.ActivateUI, RunnerPlugin.Encode(new UIActivation(context, settings)), cancellationToken: cancellationToken).ConfigureAwait(false);
             session.Registrations = RunnerPlugin.DecodeRegistrations(reply.Payload);
-            if (session.Registrations.Any(registration => registration.Payload.Length > PayloadChars))
+            if (session.Registrations.Count > MostRegistrations || session.Registrations.Any(registration => registration.Payload.Length > PayloadChars))
                 throw new IsoCallException(IsoError.InvalidParams, "The plugin registered more than a client takes.");
             return session;
         }
