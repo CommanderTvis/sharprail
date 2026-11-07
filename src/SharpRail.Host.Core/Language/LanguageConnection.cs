@@ -311,7 +311,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
             "workspace/configuration" => new JsonArray([.. (parameters?["items"] as JsonArray ?? []).Select(item => Configuration?.Invoke(item?["section"]?.ToString() ?? "")?.DeepClone())]),
             "window/showMessageRequest" => ClientRequest?.Invoke(method, parameters?.DeepClone()),
             "window/showDocument" when AcceptsShowDocument => ClientRequest?.Invoke(method, parameters?.DeepClone()),
-            "workspace/applyEdit" => ApplyEdit?.Invoke(parameters?.DeepClone()) ?? new JsonObject { ["applied"] = false, ["failureReason"] = "Use the editor to apply changes." },
+            "workspace/applyEdit" => ApplyEdit?.Invoke(parameters?.DeepClone()) ?? new JsonObject { ["applied"] = false, ["failureReason"] = "SharpRail applies server edits only inside a code action the user or agent chose." },
             _ => null
         };
         var known = method is "workspace/workspaceFolders" or "workspace/configuration" or "workspace/applyEdit"

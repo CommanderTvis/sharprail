@@ -1558,6 +1558,8 @@ internal static class LanguageChecks
                         documentSymbolProvider = true,
                         workspaceSymbolProvider = true,
                         codeActionProvider = new { resolveProvider = true },
+                        renameProvider = File.Exists(Path.Combine(".tools", "no-rename")) ? null : (object)new { prepareProvider = true },
+                        documentFormattingProvider = true,
                         executeCommandProvider = new { commands = new[] { "decompile", "java.project.listSourcePaths", "fixture.applyFix" } },
                         semanticTokensProvider = new { full = true, legend = new { tokenTypes = new[] { "variable" }, tokenModifiers = new[] { "static" } } }
                     }
@@ -1620,6 +1622,21 @@ internal static class LanguageChecks
                     ? Enumerable.Range(0, 250).Select(line => new { uri, range = new { start = new { line, character = 0 }, end = new { line, character = 5 } } }).ToArray()
                     : new[] { new { uri, range } };
             }
+            else if (method == "textDocument/prepareRename") result = new { range, placeholder = "broken" };
+            else if (method == "textDocument/rename")
+            {
+                var newName = parameters!["newName"]!.ToString();
+                result = new
+                {
+                    documentChanges = new object[]
+                    {
+                        new { textDocument = new { uri, version = documents[uri].Version }, edits = new object[] { new { range, newText = newName } } },
+                        new { textDocument = new { uri = new Uri(Path.GetFullPath("other.ts")).AbsoluteUri, version = (int?)null }, edits = new object[] { new { range = new { start = new { line = 0, character = 0 }, end = new { line = 0, character = 6 } }, newText = newName } } }
+                    }
+                };
+            }
+            else if (method == "textDocument/formatting")
+                result = documents[uri].Text.Contains("  messy", StringComparison.Ordinal) ? new[] { new { range = new { start = new { line = 0, character = 0 }, end = new { line = 0, character = 8 } }, newText = "messy" } } : [];
             else if (method == "textDocument/codeAction") result = LanguageCodeActionChecks.Offer(uri, documents[uri].Text, documents[uri].Version, parameters!);
             else if (method == "codeAction/resolve") result = LanguageCodeActionChecks.Resolve(documents.Single().Key, documents.Single().Value.Version, parameters!);
             else if (method == "workspace/executeCommand" && parameters?["command"]?.ToString() == "fixture.applyFix")

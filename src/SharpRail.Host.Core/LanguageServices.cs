@@ -107,11 +107,26 @@ public static class LanguageMcpTools
     /// <summary>The deadline of every language tool call; settable for checks.</summary>
     internal static TimeSpan ToolDeadline { get; set; } = LanguageLimits.ToolDeadline;
 
+    /// <summary>The absolute workspace of a call: the terminal's own, or another checkout of the same project.</summary>
+    internal static string ResolveWorkspace(JsonObject arguments, string callingWorkspace)
+    {
+        var workspace = Path.GetFullPath(arguments["workspace"]?.GetValue<string>() ?? callingWorkspace);
+        var calling = Path.TrimEndingDirectorySeparator(Path.GetFullPath(callingWorkspace));
+        if (workspace != calling)
+        {
+            var origin = ProjectServices.KnownCheckout(calling);
+            var target = ProjectServices.KnownCheckout(workspace);
+            if (origin is null || target is null || origin.Value.ProjectRoot != target.Value.ProjectRoot)
+                throw new ArgumentException("Choose a workspace of this terminal's project.");
+        }
+        return workspace;
+    }
+
     public static IReadOnlyList<McpServer.McpTool> Create(HostStateStore state, string callingWorkspace)
     {
         // A host whose plugins provide no language server (a browser tab) offers agents no language tools.
         if (state.LanguageCatalog.Count == 0) return [];
-        return [Tool("lsp_diagnostics", "diagnostics"), Tool("lsp_navigate", "definition"), Tool("lsp_status", "status")];
+        return [Tool("lsp_diagnostics", "diagnostics"), Tool("lsp_navigate", "definition"), Tool("lsp_status", "status"), .. LanguageRefactoringTools.Create(state, callingWorkspace)];
 
         McpServer.McpTool Tool(string name, string operation) => new(name, name.Replace('_', ' '),
             operation switch
@@ -148,16 +163,7 @@ public static class LanguageMcpTools
                 },"additionalProperties":false}
                 """)!.AsObject(), operation), async (arguments, token) =>
             {
-                var workspace = arguments["workspace"]?.GetValue<string>() ?? callingWorkspace;
-                workspace = Path.GetFullPath(workspace);
-                var calling = Path.TrimEndingDirectorySeparator(Path.GetFullPath(callingWorkspace));
-                if (workspace != calling)
-                {
-                    var origin = ProjectServices.KnownCheckout(calling);
-                    var target = ProjectServices.KnownCheckout(workspace);
-                    if (origin is null || target is null || origin.Value.ProjectRoot != target.Value.ProjectRoot)
-                        throw new ArgumentException("Choose a workspace of this terminal's project.");
-                }
+                var workspace = ResolveWorkspace(arguments, callingWorkspace);
                 var offset = arguments["offset"]?.GetValue<int>() ?? 0;
                 var limit = arguments["limit"]?.GetValue<int>() ?? 50;
                 if (offset < 0 || limit is < 1 or > 200) throw new ArgumentException("Use offset >= 0 and limit between 1 and 200.");

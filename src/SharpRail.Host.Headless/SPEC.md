@@ -82,7 +82,7 @@ This is the third host composition, beside the app's own host and the remote hos
 
 ## Tool switches and call log
 
-- `.sharprail/mcp.toml` (`version = 1`, strict: unknown keys, wrong types and unknown operations exit 2 with `file:line: key: message`) holds `tools.disable`, `tools.allow`, `[tools.<name>]` (`enabled`, `operations` for `lsp_navigate` and `lsp_status`), `[log]` and `[arms.<name>]` tables of tools and log. An arm replaces each key it sets.
+- `.sharprail/mcp.toml` (`version = 1`, strict: unknown keys, wrong types and unknown operations exit 2 with `file:line: key: message`) holds `tools.disable`, `tools.allow`, `[tools.<name>]` (`enabled`, `operations` for `lsp_navigate`, `lsp_status`, `lsp_code_actions`, `lsp_rename` and `lsp_format`; removing `apply` makes a refactoring tool read-only), `[log]` and `[arms.<name>]` tables of tools and log. An arm replaces each key it sets.
 - Precedence: defaults, file top level, arm, environment (`SHARPRAIL_ARM`, `SHARPRAIL_TOOLS_DISABLE`, `SHARPRAIL_TOOLS_ALLOW`, `SHARPRAIL_LOG`, `SHARPRAIL_LOG_LEVEL`, `SHARPRAIL_RUNS_DIR`), flags (`--arm`, `--disable-tools`). A selected arm the file lacks is an error.
 - One decorator over the tool table drops switched-off tools (unknown tool for list and call), narrows operations in the schema and at call time, and feeds the log. The initialize instructions are generated from the offered tools.
 - The log is off by default and then nothing is created in `.sharprail`. When on, `<dir>/<session>.jsonl` (default `.sharprail/runs`) gets `start`, `call` and `end` lines from a background writer, flushed per line, bounded by `max_file_kb`. It never fails a call.

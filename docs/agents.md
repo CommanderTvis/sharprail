@@ -69,6 +69,7 @@ Agents reach the language servers through MCP tools.
 
 - `lsp_navigate` finds definitions, references, implementations and symbols.
 - `lsp_diagnostics` reports errors for the files an agent edited.
+- `lsp_code_actions` lists and applies quick fixes and refactorings, `lsp_rename` renames a symbol everywhere and `lsp_format` formats a file. All three preview before they write and only change files inside the workspace.
 - `lsp_status` shows the servers and starts them.
 - Java and Kotlin use IntelliJ's analysis, and other languages use their own servers. See [Plugins](plugins.md).
 

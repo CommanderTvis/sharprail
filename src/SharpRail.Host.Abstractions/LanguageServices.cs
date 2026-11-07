@@ -2,7 +2,21 @@ namespace SharpRail.Host.Abstractions;
 
 /// <summary>A workspace-explicit language request. Positions are zero-based UTF-16; null Text reads disk. Origin is empty for a person using the editor or panes, "config" for a configured autostart and "agent-tool" for an agent's MCP tool call.</summary>
 public sealed record LanguageRequest(string Workspace, string Path = "", string Operation = "inspect", int Line = 0,
-    int Column = 0, string? Text = null, string DocumentId = "", long Version = 0, string Query = "", bool Dirty = false, string Server = "", string Scope = "", IReadOnlyList<string>? Paths = null, int Offset = 0, int Limit = 200, string? Configuration = null, string Origin = "");
+    int Column = 0, string? Text = null, string DocumentId = "", long Version = 0, string Query = "", bool Dirty = false, string Server = "", string Scope = "", IReadOnlyList<string>? Paths = null, int Offset = 0, int Limit = 200, string? Configuration = null, string Origin = "")
+{
+    /// <summary>The end of the range an agent code-action listing covers; -1 means the start.</summary>
+    public int EndLine { get; init; } = -1;
+    public int EndColumn { get; init; } = -1;
+
+    /// <summary>The new name of an agent rename.</summary>
+    public string NewName { get; init; } = "";
+
+    /// <summary>Space or comma separated LSP code-action kinds an agent listing is limited to.</summary>
+    public string Kinds { get; init; } = "";
+
+    /// <summary>An agent listing's id when listing, or the action or plan id when preparing or committing.</summary>
+    public string Id { get; init; } = "";
+}
 
 /// <summary>A location, diagnostic or semantic token. Positions are zero-based UTF-16.</summary>
 public sealed record LanguageItem(string Path, int Line, int Column, int EndLine, int EndColumn,
@@ -84,6 +98,15 @@ public sealed record LanguageExit(string Time, string Reason, bool Unexpected, s
 /// <summary>A detected build root or provider-reported directory role; State identifies provenance without asserting complete import or package ownership.</summary>
 public sealed record LanguageProject(string Root, string Manifest, string Server, string Kind, string State, string Detail);
 
+/// <summary>One code action offered to an agent. <paramref name="Carries"/> is <c>edit</c> (the server sent the edit), <c>command</c> or <c>resolve</c> (the server computes the edit on preview or apply).</summary>
+public sealed record LanguageAction(string Id, string Title, string Kind, bool Preferred, string Carries, IReadOnlyList<string> Files);
+
+/// <summary>One file a planned or applied workspace edit touches; <paramref name="Change"/> is <c>edited</c>, <c>created</c>, <c>deleted</c> or <c>renamed</c> (then <paramref name="NewPath"/> is the target). <paramref name="Edits"/> previews the text edits (<c>Text</c> is the new text, <c>Body</c> the replaced text).</summary>
+public sealed record LanguageChange(string Path, string Change, int EditCount, string NewPath = "", IReadOnlyList<LanguageItem>? Edits = null);
+
+/// <summary>Diagnostics of the touched files before and after an applied edit, matched by code, severity and message.</summary>
+public sealed record LanguageDiagnosticDelta(IReadOnlyList<LanguageItem> Added, IReadOnlyList<LanguageItem> Removed, int Unchanged, string Freshness);
+
 /// <summary>Coverage of one explicitly requested file; skipped and pending files are never reported as checked.</summary>
 public sealed record LanguageFileResult(string Path, string State, string Freshness, string Detail);
 
@@ -108,6 +131,17 @@ public sealed record LanguageResult(string State, string Detail = "", string Ser
 
     /// <summary>Text edits for <c>applyCodeAction</c> in zero-based UTF-16 ranges of each <c>Path</c>; <c>Text</c> is the replacement. Apply every edit of a path against the text the request was made for.</summary>
     public IReadOnlyList<LanguageItem> Edits { get; init; } = [];
+    public IReadOnlyList<LanguageAction> AgentActions { get; init; } = [];
+
+    /// <summary>The files an agent edit would touch (preview) or touched (applied).</summary>
+    public IReadOnlyList<LanguageChange> Changes { get; init; } = [];
+
+    /// <summary>Whether the changes were written to disk.</summary>
+    public bool Applied { get; init; }
+
+    /// <summary>The id of a prepared edit, passed back to commit it.</summary>
+    public string Plan { get; init; } = "";
+    public LanguageDiagnosticDelta? Delta { get; init; }
     public string Freshness { get; init; } = "pending";
     public string Coverage { get; init; } = "open documents";
 

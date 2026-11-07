@@ -94,11 +94,11 @@ internal static partial class HeadlessChecks
         Require(replies[5]["result"] is JsonObject, "A 2 MB request line was not answered.");
 
         var tools = replies[3]["result"]!["tools"]!.AsArray().ToDictionary(tool => tool!["name"]!.GetValue<string>(), tool => tool!);
-        string[] required = ["lsp_diagnostics", "lsp_navigate", "lsp_status", "spec_grep", "spec_get", "spec_graph", "spec_create", "spec_update", "spec_delete", "spec_validate", "blueprint_check"];
+        string[] required = ["lsp_diagnostics", "lsp_navigate", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format", "spec_grep", "spec_get", "spec_graph", "spec_create", "spec_update", "spec_delete", "spec_validate", "blueprint_check"];
         Require(required.All(tools.ContainsKey) && tools.Keys.All(name => name.StartsWith("lsp_", StringComparison.Ordinal) || name.StartsWith("spec_", StringComparison.Ordinal) || name == "blueprint_check"),
             "The headless tool table is not exactly the language, spec and Blueprint tools: " + string.Join(", ", tools.Keys));
         var desktop = LanguageMcpTools.Create(new HostStateStore(Path.Combine(Path.GetDirectoryName(state)!, "desktop-state")), workspace);
-        Require(desktop.Count == 3 && desktop.All(tool => tools[tool.Name]["inputSchema"]!.ToJsonString() == tool.InputSchema.ToJsonString()), "A language tool's schema differs from the desktop's.");
+        Require(desktop.Count == 6 && desktop.All(tool => tools[tool.Name]["inputSchema"]!.ToJsonString() == tool.InputSchema.ToJsonString()), "A language tool's schema differs from the desktop's.");
         Require(replies[9]["error"]?["code"]?.GetValue<int>() == -32602, "A terminal-only tool must not exist headless.");
 
         string Text(int id) => replies[id]["result"]!["content"]![0]!["text"]!.GetValue<string>();
@@ -160,11 +160,12 @@ internal static partial class HeadlessChecks
         level = "args"
 
         [arms.nolsp]
-        tools.disable = ["lsp_navigate", "lsp_diagnostics", "lsp_status"]
+        tools.disable = ["lsp_navigate", "lsp_diagnostics", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format"]
 
         [arms.narrow]
         tools.lsp_diagnostics.enabled = false
         tools.lsp_navigate.operations = ["references", "hover"]
+        tools.lsp_code_actions.operations = ["list", "preview"]
         log.enabled = true
         log.level = "full"
         log.max_result_chars = 50
@@ -218,6 +219,7 @@ internal static partial class HeadlessChecks
         }
         await Invalid("version = 1\n\n[tools]\ndisabel = []\n", ".sharprail/mcp.toml:4: tools.disabel: unknown key");
         await Invalid("version = 1\n[tools.lsp_navigate]\noperations = [\"definition\", \"teleport\"]\n", ".sharprail/mcp.toml:3: tools.lsp_navigate.operations: unknown operation \"teleport\"");
+        await Invalid("version = 1\n[tools.lsp_rename]\noperations = [\"apply\", \"teleport\"]\n", ".sharprail/mcp.toml:3: tools.lsp_rename.operations: unknown operation \"teleport\"");
         await Invalid("version = 2\n", ".sharprail/mcp.toml:1: version:");
         await Invalid("[tools]\n", ".sharprail/mcp.toml:1: version:");
         await Invalid("version = 1\n[log]\nenabled = \"yes\"\n", ".sharprail/mcp.toml:3: log.enabled: must be true or false");
@@ -260,7 +262,8 @@ internal static partial class HeadlessChecks
             host.Send("""{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"lsp_diagnostics","arguments":{"paths":["code.ts"]}}}""");
             host.Send("""{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"lsp_navigate","arguments":{"query":"x"}}}""");
             host.Send("""{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"spec_get","arguments":{"id":"goal","workspace":"/not/logged"}}}""");
-            var early = await host.ReplyAsync([1, 2, 3, 4, 5, 6], TimeSpan.FromSeconds(90));
+            host.Send("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"lsp_code_actions","arguments":{"operation":"apply","id":"ca1.0"}}}""");
+            var early = await host.ReplyAsync([1, 2, 3, 4, 5, 6, 7], TimeSpan.FromSeconds(90));
             var tools = early[2]["result"]!["tools"]!.AsArray().ToDictionary(tool => tool!["name"]!.GetValue<string>(), tool => tool!);
             Require(!tools.ContainsKey("lsp_diagnostics") && tools.ContainsKey("lsp_navigate"), "The narrow arm lists the wrong tools: " + string.Join(", ", tools.Keys));
             var operation = tools["lsp_navigate"]["inputSchema"]!["properties"]!["operation"]!;
@@ -268,6 +271,9 @@ internal static partial class HeadlessChecks
             var instructions = early[1]["result"]!["instructions"]!.GetValue<string>();
             Require(instructions.Contains("lsp_navigate", StringComparison.Ordinal) && !instructions.Contains("lsp_diagnostics", StringComparison.Ordinal), "The instructions must name only offered tools: " + instructions);
             Require(early[3]["result"]!["isError"]?.GetValue<bool>() == true && early[3]["result"]!["content"]![0]!["text"]!.GetValue<string>().Contains("hover, references", StringComparison.Ordinal), "A removed operation must be refused with the allowed ones: " + early[3].ToJsonString());
+            var actions = tools["lsp_code_actions"]["inputSchema"]!["properties"]!["operation"]!["enum"]!.AsArray().Select(item => item!.GetValue<string>());
+            Require(string.Join(',', actions) == "list,preview" && early[7]["result"]!["isError"]?.GetValue<bool>() == true && early[7]["result"]!["content"]![0]!["text"]!.GetValue<string>().Contains("list, preview", StringComparison.Ordinal),
+                "Apply must be removable from lsp_code_actions: " + early[7].ToJsonString());
             Require(early[4]["error"]?["code"]?.GetValue<int>() == -32602, "A switched-off tool must be unknown.");
             Require(early[5]["result"]?["isError"]?.GetValue<bool>() != true, "The default operation, references, was refused: " + early[5].ToJsonString());
             // Enough calls to pass 16 KB: the log stops once, the calls keep working.

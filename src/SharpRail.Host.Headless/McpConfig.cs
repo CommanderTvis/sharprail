@@ -11,15 +11,18 @@ namespace SharpRail.Host.Headless;
 /// <summary>A configuration problem. The message names the file, line and key and is printed on stderr before the process exits with 2.</summary>
 internal sealed class McpConfigException(string message) : Exception(message);
 
-/// <summary>The tools the headless roster offers and the operations the two narrowable ones accept. A headless check keeps these in step with the live tool table.</summary>
+/// <summary>The tools the headless roster offers and the operations the narrowable ones accept. A headless check keeps these in step with the live tool table.</summary>
 internal static class KnownTools
 {
     internal static readonly string[] Names =
-        ["lsp_diagnostics", "lsp_navigate", "lsp_status", "spec_grep", "spec_get", "spec_graph", "spec_create", "spec_update", "spec_delete", "spec_validate", "blueprint_check"];
+        ["lsp_diagnostics", "lsp_navigate", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format", "spec_grep", "spec_get", "spec_graph", "spec_create", "spec_update", "spec_delete", "spec_validate", "blueprint_check"];
 
     internal static readonly IReadOnlyDictionary<string, string[]> Operations = new Dictionary<string, string[]>
     {
         ["lsp_navigate"] = ["hover", "definition", "typeDefinition", "implementation", "references", "symbols", "symbolBody", "workspaceSymbols", "source"],
+        ["lsp_code_actions"] = ["list", "preview", "apply"],
+        ["lsp_rename"] = ["preview", "apply"],
+        ["lsp_format"] = ["preview", "apply"],
         ["lsp_status"] = ["status", "servers", "catalog", "configurationSchema", "configuration", "configure", "retry", "restart", "stop", "logs", "projects"]
     };
 }

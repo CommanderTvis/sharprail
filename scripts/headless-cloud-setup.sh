@@ -75,6 +75,7 @@ grep answers code questions wrongly: it misses implementations, overloads, parti
 - The \`lsp_*\` tools start the language server a file needs, then may report \`initializing\`: wait and call again, NEVER treat that as "no results" and NEVER fall back silently to grep. The first C# start downloads the .NET SDK and the server and can take a minute or more.
 - Only C# has a language server here. For other file types use grep and Read and say so in your report.
 - Name the symbol, no position needed: \`{"operation": "references", "query": "TypeName"}\` (also \`definition\`, \`implementation\`, \`hover\`); \`Type/Member\` narrows a shared name. \`symbols\` with a \`path\` outlines a file, \`symbolBody\` with a \`path\` and \`query\` reads one member. Explicit \`line\` and \`column\` are zero-based. \`lsp_status\` shows the server state.
+- For semantic changes use \`lsp_code_actions\` (list, then preview or apply by id), \`lsp_rename\` (preview, then apply) and \`lsp_format\` instead of hand-editing; a missing capability is reported as unsupported.
 - Subagents do NOT receive this text. When you brief one for code work, put these rules in the brief and say that its final report MUST state how many \`lsp_navigate\` and \`lsp_diagnostics\` calls it made.
 - Right after a session starts the server may still be connecting. If the tools are missing, run \`claude mcp list\` once and ask again.
 $end

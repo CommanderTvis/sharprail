@@ -2283,3 +2283,83 @@ static SharpRail.Host.Abstractions.CodeIntelligenceLog.Path.set -> void
 static SharpRail.Host.Abstractions.CodeIntelligenceLog.StillWaitingAfter.get -> System.TimeSpan
 static SharpRail.Host.Abstractions.CodeIntelligenceLog.StillWaitingAfter.set -> void
 static SharpRail.Host.Abstractions.CodeIntelligenceLog.Warn(string! evt, params (string! Key, object? Value)[]! fields) -> void
+override SharpRail.Host.Abstractions.LanguageAction.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageAction.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageAction.ToString() -> string!
+override SharpRail.Host.Abstractions.LanguageChange.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageChange.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageChange.ToString() -> string!
+override SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.LanguageDiagnosticDelta.GetHashCode() -> int
+override SharpRail.Host.Abstractions.LanguageDiagnosticDelta.ToString() -> string!
+SharpRail.Host.Abstractions.LanguageAction
+SharpRail.Host.Abstractions.LanguageAction.<Clone>$() -> SharpRail.Host.Abstractions.LanguageAction!
+SharpRail.Host.Abstractions.LanguageAction.Carries.get -> string!
+SharpRail.Host.Abstractions.LanguageAction.Carries.init -> void
+SharpRail.Host.Abstractions.LanguageAction.Deconstruct(out string! Id, out string! Title, out string! Kind, out bool Preferred, out string! Carries, out System.Collections.Generic.IReadOnlyList<string!>! Files) -> void
+SharpRail.Host.Abstractions.LanguageAction.Equals(SharpRail.Host.Abstractions.LanguageAction? other) -> bool
+SharpRail.Host.Abstractions.LanguageAction.Files.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Host.Abstractions.LanguageAction.Files.init -> void
+SharpRail.Host.Abstractions.LanguageAction.Id.get -> string!
+SharpRail.Host.Abstractions.LanguageAction.Id.init -> void
+SharpRail.Host.Abstractions.LanguageAction.Kind.get -> string!
+SharpRail.Host.Abstractions.LanguageAction.Kind.init -> void
+SharpRail.Host.Abstractions.LanguageAction.LanguageAction(string! Id, string! Title, string! Kind, bool Preferred, string! Carries, System.Collections.Generic.IReadOnlyList<string!>! Files) -> void
+SharpRail.Host.Abstractions.LanguageAction.Preferred.get -> bool
+SharpRail.Host.Abstractions.LanguageAction.Preferred.init -> void
+SharpRail.Host.Abstractions.LanguageAction.Title.get -> string!
+SharpRail.Host.Abstractions.LanguageAction.Title.init -> void
+SharpRail.Host.Abstractions.LanguageChange
+SharpRail.Host.Abstractions.LanguageChange.<Clone>$() -> SharpRail.Host.Abstractions.LanguageChange!
+SharpRail.Host.Abstractions.LanguageChange.Change.get -> string!
+SharpRail.Host.Abstractions.LanguageChange.Change.init -> void
+SharpRail.Host.Abstractions.LanguageChange.Deconstruct(out string! Path, out string! Change, out int EditCount, out string! NewPath, out System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>? Edits) -> void
+SharpRail.Host.Abstractions.LanguageChange.EditCount.get -> int
+SharpRail.Host.Abstractions.LanguageChange.EditCount.init -> void
+SharpRail.Host.Abstractions.LanguageChange.Edits.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>?
+SharpRail.Host.Abstractions.LanguageChange.Edits.init -> void
+SharpRail.Host.Abstractions.LanguageChange.Equals(SharpRail.Host.Abstractions.LanguageChange? other) -> bool
+SharpRail.Host.Abstractions.LanguageChange.LanguageChange(string! Path, string! Change, int EditCount, string! NewPath = "", System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>? Edits = null) -> void
+SharpRail.Host.Abstractions.LanguageChange.NewPath.get -> string!
+SharpRail.Host.Abstractions.LanguageChange.NewPath.init -> void
+SharpRail.Host.Abstractions.LanguageChange.Path.get -> string!
+SharpRail.Host.Abstractions.LanguageChange.Path.init -> void
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.<Clone>$() -> SharpRail.Host.Abstractions.LanguageDiagnosticDelta!
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Added.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>!
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Added.init -> void
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Deconstruct(out System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>! Added, out System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>! Removed, out int Unchanged, out string! Freshness) -> void
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Equals(SharpRail.Host.Abstractions.LanguageDiagnosticDelta? other) -> bool
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Freshness.get -> string!
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Freshness.init -> void
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.LanguageDiagnosticDelta(System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>! Added, System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>! Removed, int Unchanged, string! Freshness) -> void
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Removed.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageItem!>!
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Removed.init -> void
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Unchanged.get -> int
+SharpRail.Host.Abstractions.LanguageDiagnosticDelta.Unchanged.init -> void
+SharpRail.Host.Abstractions.LanguageRequest.EndColumn.get -> int
+SharpRail.Host.Abstractions.LanguageRequest.EndColumn.init -> void
+SharpRail.Host.Abstractions.LanguageRequest.EndLine.get -> int
+SharpRail.Host.Abstractions.LanguageRequest.EndLine.init -> void
+SharpRail.Host.Abstractions.LanguageRequest.Id.get -> string!
+SharpRail.Host.Abstractions.LanguageRequest.Id.init -> void
+SharpRail.Host.Abstractions.LanguageRequest.Kinds.get -> string!
+SharpRail.Host.Abstractions.LanguageRequest.Kinds.init -> void
+SharpRail.Host.Abstractions.LanguageRequest.NewName.get -> string!
+SharpRail.Host.Abstractions.LanguageRequest.NewName.init -> void
+SharpRail.Host.Abstractions.LanguageResult.AgentActions.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageAction!>!
+SharpRail.Host.Abstractions.LanguageResult.AgentActions.init -> void
+SharpRail.Host.Abstractions.LanguageResult.Applied.get -> bool
+SharpRail.Host.Abstractions.LanguageResult.Applied.init -> void
+SharpRail.Host.Abstractions.LanguageResult.Changes.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.LanguageChange!>!
+SharpRail.Host.Abstractions.LanguageResult.Changes.init -> void
+SharpRail.Host.Abstractions.LanguageResult.Delta.get -> SharpRail.Host.Abstractions.LanguageDiagnosticDelta?
+SharpRail.Host.Abstractions.LanguageResult.Delta.init -> void
+SharpRail.Host.Abstractions.LanguageResult.Plan.get -> string!
+SharpRail.Host.Abstractions.LanguageResult.Plan.init -> void
+static SharpRail.Host.Abstractions.LanguageAction.operator !=(SharpRail.Host.Abstractions.LanguageAction? left, SharpRail.Host.Abstractions.LanguageAction? right) -> bool
+static SharpRail.Host.Abstractions.LanguageAction.operator ==(SharpRail.Host.Abstractions.LanguageAction? left, SharpRail.Host.Abstractions.LanguageAction? right) -> bool
+static SharpRail.Host.Abstractions.LanguageChange.operator !=(SharpRail.Host.Abstractions.LanguageChange? left, SharpRail.Host.Abstractions.LanguageChange? right) -> bool
+static SharpRail.Host.Abstractions.LanguageChange.operator ==(SharpRail.Host.Abstractions.LanguageChange? left, SharpRail.Host.Abstractions.LanguageChange? right) -> bool
+static SharpRail.Host.Abstractions.LanguageDiagnosticDelta.operator !=(SharpRail.Host.Abstractions.LanguageDiagnosticDelta? left, SharpRail.Host.Abstractions.LanguageDiagnosticDelta? right) -> bool
+static SharpRail.Host.Abstractions.LanguageDiagnosticDelta.operator ==(SharpRail.Host.Abstractions.LanguageDiagnosticDelta? left, SharpRail.Host.Abstractions.LanguageDiagnosticDelta? right) -> bool

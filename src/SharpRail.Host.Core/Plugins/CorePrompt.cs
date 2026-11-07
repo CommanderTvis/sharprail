@@ -69,6 +69,8 @@ internal static class CorePrompt
         - Pass the absolute `workspace` to EVERY `lsp_*` call: a subagent's shell `cd` does not retarget MCP.
         - The `lsp_*` tools start the language server a file needs and wait for it up to 60 s, then report `initializing`: wait and call again, NEVER treat that as "no results" and NEVER fall back silently to grep. An error names a working call shape: fix the arguments, NEVER abandon LSP because of a malformed call. Only a setting the user disabled is respected; say so with `lsp_status {"operation": "servers"}` evidence.
 
+        - For semantic changes use `lsp_code_actions` (quick fixes, refactorings, organize imports), `lsp_rename` and `lsp_format` instead of hand-editing or search and replace. They preview first (`operation` `preview`, the default of rename and format) and write only with `operation` `apply`; they refuse stale listings, edits outside the workspace and files with unsaved editor changes.
+
         {{project}}
         Name the symbol, no position needed; `Type/Member` narrows a shared name and an ambiguous result lists candidates. Explicit `line`/`column` are zero-based. `scope: "dependencies"` then `operation: "source"` reads library code.
 

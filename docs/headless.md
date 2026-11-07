@@ -88,7 +88,7 @@ The server reads one JSON-RPC message per line and writes one per line. Logs go 
 | `--arm`, `--disable-tools` | Tool switches, see below. |
 | `SHARPRAIL_STATE_DIR` | Where settings and language server installs live. Defaults to `~/.sharprail/headless`. |
 
-Tools: `lsp_navigate`, `lsp_diagnostics`, `lsp_status`, the `spec_*` tools and `blueprint_check`. Paths are relative to the workspace. The optional `workspace` argument is ignored.
+Tools: `lsp_navigate`, `lsp_diagnostics`, `lsp_status`, `lsp_code_actions`, `lsp_rename`, `lsp_format`, the `spec_*` tools and `blueprint_check`. Paths are relative to the workspace. The optional `workspace` argument is ignored.
 
 Language servers are downloaded on first use into the state directory. Outside the image, runtimes they need (.NET, Node, a JDK) must already be on the PATH, unless `SHARPRAIL_TOOLCHAINS=managed` is set. The image sets it.
 
@@ -104,7 +104,9 @@ disable = ["blueprint_check"]        # these tools do not exist for the run
 # allow = ["lsp_navigate"]           # if set, only these exist (disable still wins)
 
 [tools.lsp_navigate]
-operations = ["definition", "references"]   # lsp_navigate and lsp_status only
+operations = ["definition", "references"]   # lsp_navigate, lsp_status, lsp_code_actions, lsp_rename, lsp_format
+[tools.lsp_code_actions]
+operations = ["list", "preview"]            # read-only: apply is removed
 [tools.lsp_diagnostics]
 enabled = false
 

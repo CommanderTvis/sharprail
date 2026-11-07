@@ -88,6 +88,8 @@ internal sealed class ToolSwitches(McpConfig config, CallLog? log)
         var diagnostics = names.Contains("lsp_diagnostics");
         if (navigate) text += " Use lsp_navigate instead of grep to find symbols, implementations and references" + (diagnostics ? ", and lsp_diagnostics to check edited files." : ".");
         else if (diagnostics) text += " Use lsp_diagnostics to check edited files.";
+        var changing = new[] { "lsp_code_actions", "lsp_rename", "lsp_format" }.Where(names.Contains).ToArray();
+        if (changing.Length > 0) text += $" For semantic changes (quick fixes, rename, format) use {string.Join(", ", changing)} instead of hand-editing; they preview before they write.";
         return text;
     }
 }

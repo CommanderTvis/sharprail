@@ -8,8 +8,9 @@ parent: module-host-language
 
 # Code actions and refactoring through language servers
 
-Status: design only except the editor's quick fixes (Alt+Enter, documented in the parent spec and in the editor spec),
-which advertise `textDocument.codeAction` with literal, resolve, disabled and preferred support, `workspace.applyEdit`
+Status: shipped are the editor's quick fixes (Alt+Enter, documented in the parent spec and in the editor spec) and the
+agent tools `lsp_code_actions`, `lsp_rename` and `lsp_format` ("MCP tools (shipped)" below, which replaces the earlier
+five-tool design). Everything else here is design only. The client advertises `textDocument.codeAction` with literal, resolve, disabled and preferred support, `workspace.applyEdit`
 and `workspaceEdit.documentChanges`, and apply edits only from the editor. The survey below predates it and is otherwise
 current. Nothing else here is implemented; the shipped state is under "Survey". Semantic refactorings come
 from a language server or IDE engine, never from textual replace. A missing capability is reported, not emulated.
@@ -114,90 +115,69 @@ An action maps to an id by LSP kind (`refactor.extract.function|method` to `extr
 `extractVariable`, `.constant` to `extractConstant`, `refactor.inline.*`, `source.organizeImports`) and otherwise
 by the plugin's `KindAliases`; an unmapped action keeps `id` empty and is still listed and applicable by `actionId`.
 
-## MCP tools
+## MCP tools (shipped)
 
-Same conventions as the `lsp_*` tools: an explicit `workspace` (absolute), symbol `query` or `path` plus
-`line`/`column` (zero-based), servers started on demand with the 60 second wait and the 90 second deadline,
-results with `state`, `freshness`, `coverage`, `detail`, `hint`, paged lists, and the 28,000 character item budget.
-Tool names: `lsp_code_actions`, `lsp_apply_action`, `lsp_rename`, `lsp_organize_imports`, `lsp_refactor`.
-(Five tools, because arguments and failure modes differ; all five are registered together so the model sees one
-family. `lsp_status` stays the lifecycle tool.)
+Three tools, registered with the other `lsp_*` tools in the desktop and the headless host (`LanguageRefactoringTools`).
+They follow the `lsp_navigate` conventions: absolute `workspace`, servers started on demand with the 60 second wait and
+the 90 second deadline, zero-based UTF-16 positions, and a 28,000 character budget. The write step is an `operation`
+value, not a flag, so `.sharprail/mcp.toml` can make a tool read-only (`operations = ["list", "preview"]`). The tool
+descriptions and the prompt guidance tell agents to prefer them over hand-editing for semantic changes.
 
-### lsp_code_actions (read-only)
+- `lsp_code_actions`, operations `list` (default), `preview`, `apply`. `list` takes `path` and either a range
+  (`line`, `column`, optional `endLine`, `endColumn`), nothing (line 0, column 0 means the whole file), or `query`, a
+  diagnostic code or message of the file (exactly one must match, else `notFound` or `ambiguous` with candidates). `kinds`
+  filters by LSP kind prefix and is also sent as `only`. The server gets the published or freshly pulled diagnostics that
+  overlap the range. Each action has `id`, `title`, `kind`, `preferred`, `carries` (`edit`, `command` or `resolve`: the
+  edit is computed on preview) and, for an eager edit, `files`. Disabled actions and commands the server did not declare
+  are hidden, preferred and `quickfix` first, at most 50. `preview` and `apply` take the `id` alone.
+- `lsp_rename`, operations `preview` (default) and `apply`: symbol `query` (resolved like `lsp_navigate`, ambiguous names
+  list candidates) or `path` with position, and `newName`. It runs `textDocument/prepareRename` when the server offers
+  it (no result means `notApplicable`; otherwise the old name is in the detail) and then `textDocument/rename`.
+- `lsp_format`, operations `preview` (default) and `apply`: `path`; `textDocument/formatting` with four spaces.
 
-Input: `workspace`; target as `query` (symbol name as in `lsp_navigate`) or `path` with a position or range
-(`line`/`column`/`endLine`/`endColumn`) or `path` alone (file-level `source.*` actions); optional `kinds` filter
-(prefix match, e.g. `refactor.extract`), `onlyRefactorings` (default false: includes quickfixes for diagnostics in
-range), `limit`/`offset`. Output per action: `actionId` (opaque, valid for this document version, 10 minutes,
-invalidated by any edit to the file or restart), `title`, `kind`, `refactoring` (normalized id or empty),
-`server`, `preferred`, `disabled` (reason string if the server marks it disabled), `needsInput` (names of
-inputs the action requires, such as a new name; see `lsp_refactor`), `edit` summary when the server returned an
-edit eagerly (files and counts, else resolved on apply). The server is sent `context.diagnostics` for the range and
-`only` from `kinds`. A server without `codeActionProvider` yields `state: unsupported`, a `detail` naming the server
-and alternative (below).
+Ids are `ca<n>.<index>`: the listing number is host-wide and maps to the listed file, so applying needs no path. The
+last 16 listings per session are kept. A server without the capability answers `unsupported`; nothing is emulated.
 
-### lsp_apply_action
+Result: `state` (`ready`, `ambiguous`, `notFound`, `unsupported`, `notApplicable`, `stale`, `conflict`, `failed`,
+`error`, `initializing`), `detail`, `applied`, `totals`, `changes` (per file: `path`, `change` of `edited`, `created`,
+`deleted` or `renamed` with `newPath`, `edits`, and for a preview the edits with old and new text, 20 per file) and, after
+`apply`, `diagnostics` with `added`, `removed`, `unchanged` for the touched files, matched by file, severity, code and
+message. The delta is `freshness: partial` when either scan was not current.
 
-Input: `workspace`, `actionId`, `dryRun` (default true), optional `inputs` object for actions with `needsInput`.
-Resolves the action (`codeAction/resolve` if `edit` is absent and `resolveSupport` allows), runs its `command`
-through `workspace/executeCommand` when it has one (server-initiated `workspace/applyEdit` during the command is
-captured into the same edit set, see "Applying a WorkspaceEdit"), and returns the edit summary. With
-`dryRun: false` it applies the edit.
+Flow: `agentCodeActions`, `agentRename` and `agentFormat` list or plan inside the session; `agentPrepare` resolves a
+listed action (`codeAction/resolve`, then `workspace/executeCommand` for a declared command) and plans its edit; a
+plan holds the bytes it was built from (last 16 per session). `agentCommit` writes a plan. These session operations are
+refused unless the request has the agent origin. `apply` is prepare, a diagnostics scan of the edited files, commit,
+and a scan of the touched files.
 
-### lsp_rename
+Safety, all before the first byte is written:
 
-Input: `workspace`, symbol `query` or `path`+position, `newName`, `dryRun` (default true), optional
-`includeStringsAndComments` (honored only by servers that expose it, otherwise answered with `warnings` that it
-was ignored; never emulated by text search). Runs `prepareRename` when advertised (its range and placeholder
-are returned; a refusal such as "cannot rename this element" is the error), then `textDocument/rename`.
-Same-named overloads, shadowing and override hierarchies are the server's responsibility; the tool reports the
-files and number of edits so a result touching unexpectedly many or few files is visible, and `ambiguous`
-resolution works exactly as in `lsp_navigate` (never guesses a position).
+- The file must be unchanged since the listing: the text hash of the listed file is compared on prepare, and every
+  touched file is compared byte for byte on commit. Otherwise `stale`.
+- A path outside the workspace root, a virtual source (`jar:`, `jrt:`), a symbolic link, `.git`, or a directory
+  rename or delete is refused (`ProjectServices.Contain` with write). The whole edit is refused, never part of it.
+- A file with unsaved editor changes is refused (`conflict`). A file open in an editor and clean is written on disk;
+  editors reload it like any external change, and the language session sends `didChange`/`didClose` itself.
+- Limits: 500 files, 1 MiB per file, 5 MiB of edit text; files must be valid UTF-8. BOM and the file's dominant line
+  ending are kept. Overlapping edits fail the edit. Snippet edits are refused.
+- Create, rename and delete (`documentChanges` resource operations) apply. A rename is applied as create and delete.
+- A write failure restores the files already written.
+- `workspace/applyEdit` from a server is answered applied only while a chosen action's command runs (its edit joins
+  that action's plan) and is refused with a reason at any other time.
 
-### lsp_organize_imports
+Skipped for now, with reasons: `lsp_organize_imports` (list `kinds: "source.organizeImports"`), `lsp_refactor` with typed
+inputs and the normalized refactoring ids (servers pick names themselves; rename follows an extract), undo tokens
+(Git is the undo), `workspace/willRenameFiles`, dry-run flags (the operation says it), and the editor's rename.
 
-Input: `workspace`, `paths` (files), `dryRun` (default true). Per file requests code actions of kind
-`source.organizeImports` (falls back to `source.removeUnusedImports`/`source.sortImports` only when the plugin
-declares them; never silently picks a different kind) and applies or summarizes them. One result row per file.
+### Parity with omp's builtin `lsp` tool
 
-### lsp_refactor
-
-Typed entry for refactorings that need parameters; schema is a `refactoring` enum of the normalized ids plus the
-target (`query` or `path`+range) and an `inputs` object whose shape depends on the id:
-
-| id | inputs |
-|---|---|
-| `extractMethod` | `name`, optional `visibility`, `static` |
-| `extractVariable`, `extractConstant`, `extractField`, `extractParameter` | `name`, optional `replaceAll` (maps to `...-all` kinds when available) |
-| `inlineMethod`, `inlineVariable` | `keepDeclaration` (only when the server supports it) |
-| `changeSignature` | `parameters` (ordered list of `{oldIndex|new:{name,type,default}, name?, type?, default?}`), `returnType?`, `name?`, `visibility?` |
-| `pullUp`, `pushDown`, `extractSuperclass`, `extractInterface` | `members`, `target` or `name` |
-| others | `name` or `type` as relevant |
-
-`lsp_refactor` resolves `refactoring` + target to the matching code action(s) via the same mapping as
-`lsp_code_actions`, then performs steps the server defines (`rename`, `executeCommand` with arguments, or a code
-action whose title carries the input). If the server offers the refactoring only as an action with no input channel
-(most servers; they pick the name themselves, e.g. gopls `newFunction`) the tool applies it and reports the
-chosen name, then offers `lsp_rename` for the new symbol as the documented follow-up (in-place naming is a
-rename after extract, as it is in the editor). If no matching action exists at that target, the result is
-`unsupported` or `notApplicable` (selection invalid), never a partial emulation. Parameters the server cannot
-honor are rejected before the request with a message naming them.
-
-### Output shape (all apply-capable tools)
-
-`state` (`ready`, `ambiguous`, `notFound`, `unsupported`, `notApplicable`, `conflict`, `failed`, `initializing`),
-`dryRun`, `applied` (bool), `server`, `title`, `files` (up to 50 rows `{path, edits, created|renamed|deleted}`),
-`totals` (`files`, `edits`, `insertedChars`, `deletedChars`), `diff` (unified diff, capped at 12,000 characters,
-`truncated`), `warnings`, `undoToken` (applies only to the current session, see "Undo"), `hint`. A dry run changes
-nothing, including open buffers and the file watcher.
-
-### Dry-run default
-
-Agents get `dryRun: true` by default. A refactoring touches many files at once and the usual failure is wrong
-target resolution (overloads, same-named members); a diff summary is cheap and lets the agent confirm the file
-list before writing. Apply is explicit (`dryRun: false`). A dry run still sends the real server request (the
-server computes the edit), so the cost is a round trip, not a guess. The editor never uses dry-run semantics by
-default: its in-place rename applies live (see editor section), with preview opt-in.
+omp's tool takes one `action`: diagnostics, definition, references, hover, symbols, type_definition, implementation,
+rename, rename_file, code_actions (lists, applies by index), status, reload and, in some versions, format, capabilities
+and a raw request. Matched: diagnostics (`lsp_diagnostics`), definition, references, hover, symbols, type_definition,
+implementation (`lsp_navigate`), status and reload (`lsp_status`), rename, code_actions with apply, and format. Not
+matched: `rename_file` (needs `willRenameFiles` and a move), `capabilities` (per-server `refactorings` in `lsp_status`
+below is still planned) and the raw `request` (not safe). omp applies rename by default; here every write is a
+separate `apply`.
 
 ## Applying a WorkspaceEdit
 

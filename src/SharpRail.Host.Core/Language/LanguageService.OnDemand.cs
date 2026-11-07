@@ -26,7 +26,7 @@ public sealed partial class LanguageService
 
     private async Task<LanguageResult> ExecuteForAgentCoreAsync(LanguageRequest request, CancellationToken token)
     {
-        if (request.Operation is not ("hover" or "definition" or "typeDefinition" or "implementation" or "references" or "symbols" or "symbolBody" or "workspaceSymbols"))
+        if (request.Operation is not ("hover" or "definition" or "typeDefinition" or "implementation" or "references" or "symbols" or "symbolBody" or "workspaceSymbols" or "agentCodeActions" or "agentPrepare" or "agentRename" or "agentFormat"))
             return await ExecuteAsync(request, token);
         if (!Path.IsPathFullyQualified(request.Workspace) || !Directory.Exists(request.Workspace)) return await ExecuteAsync(request, token);
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));

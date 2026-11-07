@@ -83,12 +83,12 @@ coverage; other servers expose their reported/open-document diagnostics.
 Semantic tokens use UTF-16 coordinates and are decoded to complete token spans. The editor replaces TextMate colors with
 supported semantic roles when tokens arrive; missing capabilities, startup and failures retain syntax
 highlighting. Server work and parsing stay off the UI thread. Edits, workspace changes, cancellation
-and disposal reject stale results. Inspection does not apply code actions or edit source. Rename and
-refactorings (planned, design only) are specified in [Refactoring.SPEC.md](Refactoring.SPEC.md): they are separate
-explicit tools and editor commands, never part of inspection, and `workspace/applyEdit` stays refused outside the
-quick-fix command described next until that spec's applier exists.
+and disposal reject stale results. Inspection does not apply code actions or edit source. Rename, format and
+code actions for agents are separate explicit tools (`lsp_code_actions`, `lsp_rename`, `lsp_format`), specified in
+[Refactoring.SPEC.md](Refactoring.SPEC.md): they preview first, write only on `apply`, and never belong to inspection.
+`workspace/applyEdit` is answered applied only inside a chosen action's command (editor quick fix or agent action).
 
-Quick fixes are the one code-action slice shipped, for the editor only (no agent tool). The editor's `codeActions`
+Quick fixes in the editor are described here; the agent tools reuse the same session requests (see Refactoring.SPEC.md). The editor's `codeActions`
 operation sends `textDocument/codeAction` for the caret (a collapsed range, the selection's start) with the stored
 raw diagnostics that cover it, and lists the answer: disabled actions are hidden, and so is an action that has no
 edit and either names a command the server did not declare in `executeCommandProvider` or, with no command,
@@ -477,8 +477,8 @@ the previous one.
 
 ## Agents
 
-Terminal-authenticated MCP exposes `lsp_navigate`, `lsp_diagnostics` and `lsp_status` (read-only); the planned
-`lsp_code_actions`, `lsp_apply_action`, `lsp_rename`, `lsp_organize_imports` and `lsp_refactor` write tools are
+Terminal-authenticated MCP exposes `lsp_navigate`, `lsp_diagnostics` and `lsp_status` (read-only) and the write tools
+`lsp_code_actions`, `lsp_rename` and `lsp_format` (preview by default, `apply` writes inside the workspace),
 specified in [Refactoring.SPEC.md](Refactoring.SPEC.md). An omitted
 workspace targets the terminal's original workspace; an explicit override must belong to the same
 Git project. Subagents inheriting the connection must pass their own worktree path. Results carry

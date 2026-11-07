@@ -105,7 +105,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                     ["workspace"] = new JsonObject
                     {
                         ["applyEdit"] = true,
-                        ["workspaceEdit"] = new JsonObject { ["documentChanges"] = true },
+                        ["workspaceEdit"] = new JsonObject { ["documentChanges"] = true, ["resourceOperations"] = new JsonArray("create", "rename", "delete") },
                         ["executeCommand"] = new JsonObject { ["dynamicRegistration"] = false },
                         ["workspaceFolders"] = true,
                         ["configuration"] = true,
@@ -123,6 +123,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                             ["resolveSupport"] = new JsonObject { ["properties"] = new JsonArray("edit") },
                             ["codeActionLiteralSupport"] = new JsonObject { ["codeActionKind"] = new JsonObject { ["valueSet"] = new JsonArray("", "quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports", "source.fixAll") } }
                         },
+                        ["rename"] = new JsonObject { ["prepareSupport"] = true },
+                        ["formatting"] = new JsonObject { ["dynamicRegistration"] = false },
                         ["synchronization"] = new JsonObject { ["didSave"] = true },
                         ["publishDiagnostics"] = new JsonObject { ["versionSupport"] = true, ["relatedInformation"] = true },
                         ["diagnostic"] = new JsonObject { ["dynamicRegistration"] = false, ["relatedDocumentSupport"] = false },
@@ -336,6 +338,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             if (NeedsConfiguration) return result with { State = "actionRequired", Detail = ProjectDetail, Freshness = "partial", Coverage = projectModel.Description };
             if (projectRestores.Values.Any(task => task.IsFaulted)) return result with { State = "error", Detail = ProjectDetail, Freshness = "partial", Coverage = projectModel.Description };
             if (request.Operation is "codeActions" or "applyCodeAction") return await CodeActionsAsync(result, request, uri, document, token);
+            if (IsAgentRefactoring(request.Operation)) return await AgentRefactoringAsync(result, request, uri, document, token);
             // An outline is syntax and answers at once. References, implementations and symbol searches could silently miss what is not
             // loaded yet, so they wait; a definition, type definition or hover that found something is right, and only an empty one waits.
             var loading = IsIndexing;

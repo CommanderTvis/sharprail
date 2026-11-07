@@ -380,7 +380,7 @@ internal static partial class PluginHostChecks
             Require(roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).SequenceEqual(["lsp-css"]), "A pure web host runs only the CSS language server: " + string.Join(", ", roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id)));
             Require(roster.Where(entry => entry.Id != "lsp-css").All(entry => entry.Status == PluginStatus.Refused), "A pure web host refuses every other language server plugin.");
             Require(web.State.LanguageCatalog.Select(server => server.Id).SequenceEqual(["css"]), "A pure web host's catalog lists only css.");
-            Require(LanguageMcpTools.Create(web.State, directory).Count == 3, "A pure web host with a server keeps the lsp_* MCP tools.");
+            Require(LanguageMcpTools.Create(web.State, directory).Count == 6, "A pure web host with a server keeps the lsp_* MCP tools.");
             var prompt = web.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory);
             Require(Mentions(prompt) && Partial(prompt) && !prompt.Any(text => text.Contains("NEVER conclude a file type has no LSP", StringComparison.Ordinal)), "A pure web host's agents are told which servers exist and that others do not.");
             SharpRail.UI.LanguageSupport.Update(roster);
@@ -393,7 +393,7 @@ internal static partial class PluginHostChecks
         await native.Runtime.Schedule();
         var active = await native.Runtime.ListAsync();
         Require(active.Any(entry => entry.Status == PluginStatus.Active) && native.State.LanguageCatalog.Count > 1, "A host with an operating system keeps its language servers.");
-        Require(LanguageMcpTools.Create(native.State, directory).Select(tool => tool.Name).Order().SequenceEqual(["lsp_diagnostics", "lsp_navigate", "lsp_status"]), "A host with an operating system keeps the lsp_* MCP tools.");
+        Require(LanguageMcpTools.Create(native.State, directory).Select(tool => tool.Name).Order().SequenceEqual(["lsp_code_actions", "lsp_diagnostics", "lsp_format", "lsp_navigate", "lsp_rename", "lsp_status"]), "A host with an operating system keeps the lsp_* MCP tools.");
         var nativePrompt = native.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory);
         Require(Mentions(nativePrompt) && !Partial(nativePrompt), "A host with an operating system tells agents about its full catalog.");
         SharpRail.UI.LanguageSupport.Update(active);
