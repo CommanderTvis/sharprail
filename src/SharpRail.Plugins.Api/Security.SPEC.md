@@ -371,8 +371,9 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
 - A remote client reaches a session over WebSocket RPC (`IPluginRpc.SurfaceAsync`, protocol 19): one call per
   client and plugin carries the plugin's calls on the client's context, the client's answers and callbacks, and every
   surface's messages. Each client's session is its own context and its own top-levels in the plugin's one process, so
-  two clients are two sessions in one process. No message of the call passes 1 MiB: the host splits a frame message
-  into several, its moves in the first. A surface still has one frame in flight until the client draws it and
+  two clients are two sessions in one process. No frame message of the call passes 1 MiB: the host splits a frame
+  message into several, its moves in the first. Other messages are bounded by the channel's caps (a call's arguments
+  and the registrations of an activation), not by 1 MiB. A surface still has one frame in flight until the client draws it and
   acknowledges it, so with 32 KiB chunks a terminal on the same connection waits behind at most one such message per
   surface. The client holds every frame to the same caps again. A call that drops leaves the session waiting 20
   seconds for the client: the client resumes it with the token the host gave it, each side sends again the numbered

@@ -125,7 +125,7 @@ public enum PluginSurfaceEndKind { Closed = 0, Broken = 1, Failed = 2 }
 
 public static class PluginSurfaceWire
 {
-    // No message of a surface session passes 1 MiB, so a frame is split into several Frame messages.
+    // No Frame message of a surface session passes 1 MiB, so a frame is split into several.
     public const int MessageBytes = 1024 * 1024;
     // Tile bytes in one Frame message, leaving room for the tile list of up to 4,096 tiles.
     public const int FrameDataBytes = 896 * 1024;

@@ -96,9 +96,9 @@ project: local adapters call Core directly, with no serialization.
   calls, results, each surface's number, frames, focus leaving a surface, a surface's end and the session's end. Flat
   messages with a `Kind`, as the terminal's. A message with a sequence number is reliable: each side numbers its own,
   acknowledges the other's, and sends again after a resume what the other did not acknowledge; frames and frame
-  acknowledgements carry none, and a resumed client asks each surface for a keyframe instead. No message passes
+  acknowledgements carry none, and a resumed client asks each surface for a keyframe instead. No frame message passes
   `PluginSurfaceWire.MessageBytes` (1 MiB): a frame is split into messages of at most 896 KiB of tile bytes, moves
-  in the first and `Last` on the last. A surface sends its next frame only after the client acknowledges the last, so
+  in the first and `Last` on the last. Other messages are bounded by the plugin channel's caps, not by 1 MiB. A surface sends its next frame only after the client acknowledges the last, so
   a terminal sharing the connection waits behind at most one such message (32 chunks) per surface in the 64-frame
   queue; a priority lane in `RpcPeer` follows only if a measurement shows terminal stalls. `NotFound` on a resume means
   the session ended; `FailedPrecondition` on an open carries why the plugin cannot open; a host below 19 answers

@@ -44,7 +44,7 @@ internal static class PluginSurfaceRemoteChecks
     internal static void Run(string root)
     {
         Split();
-        Console.WriteLine($"PASS plugin surface remote split: a frame message of 3 MiB of tiles travels as surface messages of at most {PluginSurfaceWire.MessageBytes / 1024} KiB, its moves in the first, Last only on the last, the tiles and bytes in order");
+        Console.WriteLine($"PASS plugin surface remote split: a frame message of 3 MiB of tiles travels as surface messages of at most {PluginSurfaceWire.MessageBytes / 1024} KiB, its moves in the first, Last only on the last, the tiles and bytes in order, and every piece keeps to the client's frame caps");
         if (PluginChannelChecks.Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin surface remote: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -67,6 +67,18 @@ internal static class PluginSurfaceRemoteChecks
         Require(pieces.SelectMany(piece => piece.Frame!.Data).SequenceEqual(data) && pieces.Sum(piece => piece.Frame!.Tiles.Count) == tiles.Count &&
             pieces.All(piece => piece.Surface == 9 && piece.Frame!.Sequence == 5 && piece.Frame.Tiles.Sum(tile => tile.Length) == piece.Frame.Data.Length),
             "The pieces carry the tiles and their bytes in order.");
+        // The client holds every piece to the frame caps again: they read as one frame, taken once acknowledged.
+        var client = new SurfaceFrameState { Sequence = 4, Width = 2048, Height = 1536 };
+        foreach (var piece in pieces)
+        {
+            var frame = piece.Frame!;
+            var received = new SurfaceFrameHeader(9, frame.Sequence, frame.Width, frame.Height, frame.Scale, frame.DesiredWidth, frame.DesiredHeight, frame.Last,
+                [.. frame.Moves.Select(move => new SurfaceMove(move.X, move.Y, move.Width, move.Height, move.Dx, move.Dy))],
+                [.. frame.Tiles.Select(tile => new SurfaceTile(tile.X, tile.Y, tile.Width, tile.Height, (TileCodecKind)tile.Codec, tile.Length))], frame.Keyframe);
+            Require(SurfaceFrames.Violation(received, frame.Data.Length, client) is null, "Every piece of a split frame keeps to the client's caps: " + SurfaceFrames.Violation(received, frame.Data.Length, client));
+            client.Accept(received);
+        }
+        Require(client.Unacknowledged && client.Acknowledge(5), "The pieces end as one frame the client acknowledges.");
         var unfinished = HostedSurfaceSession.Split(9, new SurfaceFrame(header with { Last = false }, data)).ToList();
         Require(unfinished.All(piece => !piece.Frame!.Last), "A frame's message that was not its last stays unfinished in every piece.");
     }
