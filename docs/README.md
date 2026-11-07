@@ -7,6 +7,7 @@
 - [Agents](agents.md): agent panes, worktrees, environments, code intelligence, omp and Air Gateway.
 - [Plugins](plugins.md): what ships and how to add your own.
 - [Headless SharpRail](headless.md): run it in a container for AI experiments (design).
+- [Headless SharpRail in Claude Code on the web](headless-cloud.md): a setup script for a cloud environment.
 - [Terminal rendering](terminal.md): how terminals draw, with a comparison against Ghostty.
 
 ## Remote

@@ -4,6 +4,8 @@ Status: the stdio server works and a container image is built by the Container w
 
 SharpRail can run without a window. It serves its language, spec and Blueprint tools to an agent over MCP, on stdin and stdout, for one project. The main use is research: does the LSP toolset help an agent do a task?
 
+To use it in a cloud session of Claude Code on the web, see [headless-cloud.md](headless-cloud.md).
+
 ## Run it from the image
 
 ```json
