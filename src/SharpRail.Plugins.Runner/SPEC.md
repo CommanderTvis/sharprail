@@ -27,6 +27,8 @@ nothing it starts holds it.
   only when the host opens a surface for it (`surface.open`); `SurfaceRenderer` shows its control in its own
   headless top-level, renders it on a timer while the client has taken the last frame, diffs 64-pixel tiles, sends
   scrolling as moves (a `ScrollViewer.ScrollChanged` class handler) and applies the client's input, focus and size.
+  A keyframe request (`surface.keyframe`, from a client that reconnected) stops waiting for the frame in flight and
+  sends the next frame whole, from transparent, marked as a keyframe.
   Client messages run through one queue in arrival order, because applying input runs the dispatcher's pending
   jobs. With `SHARPRAIL_RUNNER_DIAGNOSTICS=1`, which only the checks set, `surface.capture` answers a fresh render
   and named controls' bounds.

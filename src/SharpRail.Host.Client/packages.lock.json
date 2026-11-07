@@ -23,6 +23,19 @@
       "sharprail.plugins.api": {
         "type": "Project"
       },
+      "sharprail.plugins.api.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.isolation": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Wire": "[1.0.0, )"
+        }
+      },
       "sharprail.wire": {
         "type": "Project"
       }

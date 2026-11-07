@@ -102,6 +102,8 @@ def generate(directory, namespace, output):
             return bare, None
         if bare in ('int', 'long', 'bool'):
             return ('nullable ' if nullable else '') + bare, None
+        if kind == 'double':
+            return 'double', None
         if bare in enums and not nullable:
             return 'enum', bare
         if bare in messages:
@@ -142,6 +144,9 @@ def generate(directory, namespace, output):
                 condition = '' if required else f'if ({field}) ' if omitted == 'false' else f'if (!{field}) ' if omitted == 'true' else f'if ({field} != {omitted}) '
                 write += f'        {condition}writer.{writes[shape]}({tag}, {field});\n'
                 read += f'                case {tag}: {field} = reader.{writes[shape]}(); break;\n'
+            elif shape == 'double':
+                write += f'        if ({field} != 0) writer.Double({tag}, {field});\n'
+                read += f'                case {tag}: {field} = reader.Double(); break;\n'
             elif shape.startswith('nullable '):
                 method = writes[shape.removeprefix('nullable ')]
                 write += f'        if ({field} is {{ }} {local}) writer.{method}({tag}, {local});\n'

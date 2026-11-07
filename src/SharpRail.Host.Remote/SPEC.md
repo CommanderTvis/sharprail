@@ -141,6 +141,17 @@ dependencies from such a call.
   before the first client can call, and disposes it first when the host stops, before the loopback server and
   the terminals. `PluginRpc` maps `IPluginRpc` onto it; a `PluginCallException` becomes the status code the
   contract names, and subscription streams end on application stopping.
+- `PluginRpc.SurfaceAsync` serves remote clients' sessions with external plugins' processes through
+  `PluginSurfaceSessions` (`PluginSurfaceSessions.cs`, a singleton in both `Create` and `CreateListener`), the
+  runtime being the `IIsolatedUIHost`. A session has a random token and outlives a dropped call by `Grace` (20
+  seconds), so the client can resume it; a resume while the old call still looks alive replaces it, and a message
+  on the replaced call is ignored and sent again. A client that ends its messages closes the session; one that
+  breaks the session's protocol (a numbered message missing) loses it. The host holds at most 256 sessions, and a
+  client that leaves 4,096 numbered messages unacknowledged loses its session. Messages from the client are
+  applied in order on the call's reader; calls into the plugin run beside it. Each frame message the relay checked
+  is split into surface messages under 1 MiB (`HostedSurfaceSession.Split`); frames are dropped while no call
+  carries the session. The shipping compositions leave the isolation seam null, so a client hears that the plugin
+  is not running isolated.
 - The host serves plugin assets a client asks for through `ReadFileAsync`, contained in the plugin's
   directory (for an external plugin, its assets directory only), so a remote host's plugin icons reach the
   local app.

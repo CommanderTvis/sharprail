@@ -20,8 +20,9 @@ public sealed record OutsiderSettings
 /// <summary>
 /// A UI-only external plugin: a side tool, a settings section and a viewer for <c>.outsider</c> files. Each activation
 /// reads its greeting asset, counts itself in its own settings and says hello with the count it reads back, so a check
-/// sees a settings round trip before any of its views can be shown. The button counts clicks the same way. The board
-/// adds a list to scroll and a note to type in.
+/// sees a settings round trip before any of its views can be shown. The button counts clicks the same way, and every
+/// view shows the count as the settings change, so a click in one client shows in another. The board adds a list to
+/// scroll and a note to type in.
 /// </summary>
 public sealed class OutsiderUI : PluginUIModule
 {
@@ -69,6 +70,8 @@ public sealed class OutsiderUI : PluginUIModule
         });
         button.Name = "OutsiderClick";
         var panel = new StackPanel { Name = name, Spacing = 8 };
+        var watching = context.OnSettings<OutsiderSettings>(changed => clicks.Text = $"Clicks: {changed.Clicks}");
+        panel.DetachedFromVisualTree += (_, _) => watching.Dispose();
         panel.Children.Add(Ui.Text(settings.Greeting, Ui.TextBrush));
         panel.Children.Add(clicks);
         panel.Children.Add(button);

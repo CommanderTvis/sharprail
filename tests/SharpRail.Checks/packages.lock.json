@@ -262,7 +262,8 @@
         "type": "Project",
         "dependencies": {
           "SharpRail.Host.Abstractions": "[1.0.0, )",
-          "SharpRail.Host.Protocol": "[1.0.0, )"
+          "SharpRail.Host.Protocol": "[1.0.0, )",
+          "SharpRail.Plugins.Isolation": "[1.0.0, )"
         }
       },
       "sharprail.host.core": {

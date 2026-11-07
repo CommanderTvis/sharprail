@@ -9,7 +9,13 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 18;
+    public const int Current = 19;
+
+    /// <summary>
+    /// External plugins' views over the plugin service's surface session (<c>IPluginRpc.SurfaceAsync</c>). A host below
+    /// it answers <c>Unimplemented</c>, and a client leaves such a plugin dormant.
+    /// </summary>
+    public const int IsolatedSurfaces = 19;
 
     /// <summary>Custom keymap presets and the active keymap in the shared state, with their state changes. A host below it keeps none, so a client offers no keymap editing there.</summary>
     public const int Keymaps = 18;

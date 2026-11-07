@@ -31,8 +31,10 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
   (`IsoUICall`, answered or one-way), the plugin's callbacks and the mirror.
 - `Surfaces.cs`: the surface protocol (Security.SPEC.md, UI halves): the messages that open, size, feed input to,
   acknowledge and close a surface and push the kit theme, the frame header with its moves and tiles, the caps
-  (`SurfaceLimits`), `SurfacePixels` (moves, applied the same way on both ends), `IPluginSurface` (a client's end of
-  one surface) and `IPluginSurfaceService` (a client context's surfaces). `TileCodec`: one colour as 4 bytes, else
+  (`SurfaceLimits`), `SurfaceFrames` and `SurfaceFrameState` (the caps a frame message is held to, by the host's
+  relay and again by a remote client, with the keyframe a client asks for after it lost what it held),
+  `SurfacePixels` (moves, applied the same way on both ends), `IPluginSurface` (a client's end of one surface, with
+  the number the host gave it) and `IPluginSurfaceService` (a client context's surfaces). `TileCodec`: one colour as 4 bytes, else
   QOI without its header; decoding refuses short, long or malformed data. `IsolationPeer.OneWay` carries bytes beside
   its payload for frames.
 - `IsolatedRuntime.cs`: what generated code targets. `IIsolatedRuntime` is the plugin process's way out (calls,
@@ -54,8 +56,7 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
   slice 4),
   a copy of the UI member table and argument schemas without Avalonia for the relay (slice 14; today the UI table
   lives in `SharpRail.Plugins.Isolation.UI`, so the host checks only the host half of the runner's hash and the
-  client the UI half, and the client's dispatcher checks a session's calls against the table), surfaces over RPC
-  (slice 15), grants and the broker (slices 10 to 13), sandboxes (slices 7 to 9),
+  client the UI half, and the client's dispatcher checks a session's calls against the table), grants and the broker (slices 10 to 13), sandboxes (slices 7 to 9),
   packaging (slice 6).
 
 ## Checks

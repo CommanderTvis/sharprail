@@ -30,6 +30,7 @@ internal sealed class RemoteSurface : Decorator
     private IPluginSurface surface = null!;
     private byte[] pixels = [];
     private int width, height;
+    private long keyframe = -1;
     private WriteableBitmap? bitmap;
     private Size wanted, sent;
     private double sentScale;
@@ -53,6 +54,8 @@ internal sealed class RemoteSurface : Decorator
     internal int Moves { get; private set; }
     internal int MovedFrameBytes { get; private set; }
     internal int MovedFrameTiles { get; private set; }
+    /// <summary>Keyframes applied, for the checks.</summary>
+    internal int Keyframes { get; private set; }
 
     /// <summary>The decoded pixels (premultiplied BGRA) and their size, for the checks.</summary>
     internal (int Width, int Height, byte[] Pixels) Snapshot()
@@ -158,6 +161,13 @@ internal sealed class RemoteSurface : Decorator
             {
                 (width, height) = (header.Width, header.Height);
                 pixels = new byte[width * height * 4];
+            }
+            // A keyframe repaints from transparent, once, at its first message.
+            if (header.Keyframe && header.Sequence != keyframe)
+            {
+                keyframe = header.Sequence;
+                Array.Clear(pixels);
+                Keyframes++;
             }
             var stride = width * 4;
             foreach (var move in header.Moves) SurfacePixels.Move(pixels, stride, move);

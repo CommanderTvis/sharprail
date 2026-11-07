@@ -87,6 +87,22 @@ project: local adapters call Core directly, with no serialization.
   call maps one to one: `Unknown` is `NotFound`, `Disabled` is `FailedPrecondition`,
   `InvalidParams` is `InvalidArgument` and `Failed` is `Unknown`, the message riding
   the status detail.
+- Plugin surfaces (protocol 19, `HostProtocol.IsolatedSurfaces`): `SurfaceAsync` is one bidirectional call per client
+  and external plugin, carrying the client's session with the plugin's process ([Security.SPEC.md](../SharpRail.Plugins.Api/Security.SPEC.md),
+  UI halves). The first up message opens (plugin id, client key) or resumes (session token, last message received);
+  the first down message answers with the token, the member tables' hash and the registrations, or with the last
+  message the host received. Later up messages answer the plugin's calls, call and mirror into the plugin, and open,
+  size, feed input to, acknowledge, focus, theme, keyframe and close surfaces; later down messages carry the plugin's
+  calls, results, each surface's number, frames, focus leaving a surface, a surface's end and the session's end. Flat
+  messages with a `Kind`, as the terminal's. A message with a sequence number is reliable: each side numbers its own,
+  acknowledges the other's, and sends again after a resume what the other did not acknowledge; frames and frame
+  acknowledgements carry none, and a resumed client asks each surface for a keyframe instead. No message passes
+  `PluginSurfaceWire.MessageBytes` (1 MiB): a frame is split into messages of at most 896 KiB of tile bytes, moves
+  in the first and `Last` on the last. A surface sends its next frame only after the client acknowledges the last, so
+  a terminal sharing the connection waits behind at most one such message (32 chunks) per surface in the 64-frame
+  queue; a priority lane in `RpcPeer` follows only if a measurement shows terminal stalls. `NotFound` on a resume means
+  the session ended; `FailedPrecondition` on an open carries why the plugin cannot open; a host below 19 answers
+  `Unimplemented`.
 
 ## Decisions
 
@@ -153,6 +169,8 @@ project: local adapters call Core directly, with no serialization.
 
 - Adding a field means a new `ProtoMember` number; numbers are never reused or
   renumbered, and defaults must read as the old behavior for an older peer.
+- A `double` is fixed64 (wire type 1), omitted when zero, as protobuf-net wrote it; the surface messages are its
+  first users.
 - After any contract change, `scripts/mise run rpc` regenerates the codec, and `--rpc-codec --update`
   refreshes the golden records the change made stale. Records of unchanged types keep protobuf-net's
   bytes, so the check keeps proving compatibility with peers built before the codec was replaced.

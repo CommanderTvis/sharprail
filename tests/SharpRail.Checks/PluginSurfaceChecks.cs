@@ -41,7 +41,7 @@ internal static class PluginSurfaceChecks
         Codec();
         Console.WriteLine("PASS plugin surface codec: solid and compressed tiles decode to their pixels, moves shift the same way on both ends, and short, long or unknown tile data is refused");
         Relay();
-        Console.WriteLine("PASS plugin surface relay: the host refuses a frame with a tile or move outside its surface, too many tiles, an unknown codec, bytes that do not match, an oversized surface, frames out of order, one sent before the client took the last, or null where a list or its item belongs, and names the surface of a frame it cannot read");
+        Console.WriteLine("PASS plugin surface relay: the host refuses a frame with a tile or move outside its surface, too many tiles, an unknown codec, a tile longer than its pixels need, bytes that do not match, an oversized surface, frames out of order, one sent before the client took the last, or null where a list or its item belongs, and names the surface of a frame it cannot read; after a keyframe request it drops older frames and takes the keyframe");
         if (PluginChannelChecks.Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin surface: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -120,24 +120,36 @@ internal static class PluginSurfaceChecks
     {
         static SurfaceFrameHeader Frame(long sequence = 1, int width = 200, int height = 100, List<SurfaceMove>? moves = null, params SurfaceTile[] tiles) =>
             new(1, sequence, width, height, 1, 200, 100, true, moves ?? [], [.. tiles]);
-        var state = new UiSessionRelay.FrameState();
+        var state = new SurfaceFrameState();
         var good = Frame(tiles: [new(0, 0, 64, 64, TileCodecKind.Solid, 4), new(64, 0, 64, 64, TileCodecKind.Qoi, 10)]);
-        Require(UiSessionRelay.Violation(good, 14, state) is null, "A frame that keeps to the caps passes.");
-        Require(UiSessionRelay.Violation(Frame(tiles: new SurfaceTile(180, 0, 64, 64, TileCodecKind.Solid, 4)), 4, state) is not null, "A tile past the surface's edge is refused.");
-        Require(UiSessionRelay.Violation(Frame(tiles: new SurfaceTile(0, 0, 300, 64, TileCodecKind.Solid, 4)), 4, state) is not null, "A tile wider than 256 pixels is refused.");
-        Require(UiSessionRelay.Violation(Frame(tiles: new SurfaceTile(0, 0, 64, 64, (TileCodecKind)42, 4)), 4, state) is not null, "An unknown codec is refused.");
-        Require(UiSessionRelay.Violation(Frame(tiles: new SurfaceTile(0, 0, 64, 64, TileCodecKind.Solid, 5)), 5, state) is not null, "A solid tile of other than 4 bytes is refused.");
-        Require(UiSessionRelay.Violation(good, 20, state) is not null, "Bytes that do not match the tiles are refused.");
-        Require(UiSessionRelay.Violation(Frame(tiles: [.. Enumerable.Repeat(new SurfaceTile(0, 0, 1, 1, TileCodecKind.Solid, 4), SurfaceLimits.MostTiles + 1)]), (SurfaceLimits.MostTiles + 1) * 4, state) is not null,
+        Require(SurfaceFrames.Violation(good, 14, state) is null, "A frame that keeps to the caps passes.");
+        Require(SurfaceFrames.Violation(Frame(tiles: new SurfaceTile(180, 0, 64, 64, TileCodecKind.Solid, 4)), 4, state) is not null, "A tile past the surface's edge is refused.");
+        Require(SurfaceFrames.Violation(Frame(tiles: new SurfaceTile(0, 0, 300, 64, TileCodecKind.Solid, 4)), 4, state) is not null, "A tile wider than 256 pixels is refused.");
+        Require(SurfaceFrames.Violation(Frame(tiles: new SurfaceTile(0, 0, 64, 64, (TileCodecKind)42, 4)), 4, state) is not null, "An unknown codec is refused.");
+        Require(SurfaceFrames.Violation(Frame(tiles: new SurfaceTile(0, 0, 64, 64, TileCodecKind.Solid, 5)), 5, state) is not null, "A solid tile of other than 4 bytes is refused.");
+        Require(SurfaceFrames.Violation(good, 20, state) is not null, "Bytes that do not match the tiles are refused.");
+        Require(SurfaceFrames.Violation(Frame(tiles: [.. Enumerable.Repeat(new SurfaceTile(0, 0, 1, 1, TileCodecKind.Solid, 4), SurfaceLimits.MostTiles + 1)]), (SurfaceLimits.MostTiles + 1) * 4, state) is not null,
             "More than 4,096 tiles in one message are refused.");
-        Require(UiSessionRelay.Violation(Frame(width: 9000), 0, state) is not null, "A surface wider than 8,192 pixels is refused.");
-        Require(UiSessionRelay.Violation(Frame(sequence: 2), 0, state) is not null, "A frame out of order is refused.");
-        Require(UiSessionRelay.Violation(Frame(moves: [new(0, 0, 50, 50, 0, 10)]), 0, state) is not null, "A move on the first frame of a size is refused.");
-        var shown = new UiSessionRelay.FrameState { Sequence = 1, Width = 200, Height = 100 };
-        Require(UiSessionRelay.Violation(Frame(sequence: 2, moves: [new(0, 0, 50, 50, 0, 10)]), 0, shown) is null, "A move inside a surface of the same size passes.");
-        Require(UiSessionRelay.Violation(Frame(sequence: 2, moves: [new(180, 0, 50, 50, 0, 10)]), 0, shown) is not null, "A move outside the surface is refused.");
+        Require(SurfaceFrames.Violation(Frame(width: 9000), 0, state) is not null, "A surface wider than 8,192 pixels is refused.");
+        Require(SurfaceFrames.Violation(Frame(sequence: 2), 0, state) is not null, "A frame out of order is refused.");
+        Require(SurfaceFrames.Violation(Frame(moves: [new(0, 0, 50, 50, 0, 10)]), 0, state) is not null, "A move on the first frame of a size is refused.");
+        var shown = new SurfaceFrameState { Sequence = 1, Width = 200, Height = 100 };
+        Require(SurfaceFrames.Violation(Frame(sequence: 2, moves: [new(0, 0, 50, 50, 0, 10)]), 0, shown) is null, "A move inside a surface of the same size passes.");
+        Require(SurfaceFrames.Violation(Frame(sequence: 2, moves: [new(180, 0, 50, 50, 0, 10)]), 0, shown) is not null, "A move outside the surface is refused.");
         shown.Unacknowledged = true;
-        Require(UiSessionRelay.Violation(Frame(sequence: 2), 0, shown) is not null, "A frame before the client took the last is refused.");
+        Require(SurfaceFrames.Violation(Frame(sequence: 2), 0, shown) is not null, "A frame before the client took the last is refused.");
+        Require(SurfaceFrames.Violation(Frame(tiles: new SurfaceTile(0, 0, 2, 2, TileCodecKind.Qoi, 21)), 21, new()) is not null, "A tile longer than QOI writes for its pixels is refused.");
+
+        // A client that lost what it held asks for a keyframe: frames sent before it are dropped, and the keyframe
+        // may follow a frame the client never took.
+        shown.KeyframePending = true;
+        Require(shown.Stale(Frame(sequence: 2)), "A frame sent before the keyframe was asked for is dropped.");
+        var keyframe = Frame(sequence: 3) with { Keyframe = true };
+        Require(!shown.Stale(keyframe) && SurfaceFrames.Violation(keyframe, 0, shown) is null, "A keyframe passes after an unacknowledged frame.");
+        Require(SurfaceFrames.Violation(keyframe with { Sequence = 1 }, 0, shown) is not null, "A keyframe older than the last frame is refused.");
+        Require(SurfaceFrames.Violation(keyframe with { Moves = [new(0, 0, 50, 50, 0, 10)] }, 0, shown) is not null, "A keyframe moves no pixels.");
+        shown.Accept(keyframe);
+        Require(!shown.KeyframePending && shown.Unacknowledged && shown.Acknowledge(3) && !shown.Acknowledge(3), "A keyframe ends the wait and is acknowledged once.");
 
         // The plugin's process is not trusted to keep to the schema: null lists or null items are refused, never thrown on.
         const string start = "{\"Surface\":7,\"Sequence\":1,\"Width\":200,\"Height\":100,\"Scale\":1,\"DesiredWidth\":200,\"DesiredHeight\":100,\"Last\":true,";
@@ -145,9 +157,9 @@ internal static class PluginSurfaceChecks
             ("\"Moves\":[null],\"Tiles\":[]}", "a null move"), ("\"Moves\":[],\"Tiles\":[null]}", "a null tile") })
         {
             var (named, header, error) = UiSessionRelay.Read(start + rest);
-            Require(header is null ? named == 7 && error is not null : UiSessionRelay.Violation(header, 0, new()) is not null, $"A frame with {what} is refused and names its surface.");
+            Require(header is null ? named == 7 && error is not null : SurfaceFrames.Violation(header, 0, new()) is not null, $"A frame with {what} is refused and names its surface.");
         }
-        Require(UiSessionRelay.Violation(Frame() with { Moves = null! }, 0, new()) is not null && UiSessionRelay.Violation(Frame() with { Tiles = [null!] }, 0, new()) is not null,
+        Require(SurfaceFrames.Violation(Frame() with { Moves = null! }, 0, new()) is not null && SurfaceFrames.Violation(Frame() with { Tiles = [null!] }, 0, new()) is not null,
             "The relay's check refuses null parts itself.");
         Require(UiSessionRelay.Read("[1]") is (null, null, not null), "A frame that names no surface is refused.");
     }
@@ -260,30 +272,36 @@ internal static class PluginSurfaceChecks
         }
     }
 
-    private static int? Clicks(E2eWorkspace app) =>
+    internal static int? Clicks(E2eWorkspace app) =>
         app.Workbench.State.Current.PluginSettings.TryGetValue(Id, out var space) && space.ValueKind == JsonValueKind.Object && space.TryGetProperty("clicks", out var clicks) ? clicks.GetInt32() : space.ValueKind == JsonValueKind.Object ? 0 : null;
 
-    private static RemoteSurface Surface(Visual within, Func<RemoteSurface, bool> fits)
+    internal static RemoteSurface Surface(Visual within, Func<RemoteSurface, bool> fits)
     {
         RemoteSurface? found = null;
         E2eWorkspace.Until(() => (found = within.GetVisualDescendants().OfType<RemoteSurface>().FirstOrDefault(fits)) is { Frames: > 0 });
         return found!;
     }
 
-    private sealed record Shown(int Width, int Height, byte[] Pixels, Dictionary<string, double[]> Bounds);
+    internal sealed record Shown(int Width, int Height, byte[] Pixels, Dictionary<string, double[]> Bounds);
 
     /// <summary>
     /// Waits until the pixels the app decoded equal a fresh render in the plugin's process (and differ from
     /// <paramref name="changedFrom"/> when given): lossless tiles leave no difference.
     /// </summary>
-    private static Shown Settle(RemoteSurface surface, string what, byte[]? changedFrom = null)
+    internal static Shown Settle(RemoteSurface surface, string what, byte[]? changedFrom = null, Func<RemoteSurface, UiSessionRelay.RelaySurface?>? relay = null)
     {
-        var relay = (UiSessionRelay.RelaySurface)surface.Surface;
         var clock = Stopwatch.StartNew();
         string last = "no capture";
         while (clock.Elapsed < PluginChannelChecks.Patience)
         {
-            var capture = relay.CaptureAsync(Names);
+            // A remote client's surface reaches the host's relay by the number the host gave it.
+            if ((relay?.Invoke(surface) ?? surface.Surface as UiSessionRelay.RelaySurface) is not { } held)
+            {
+                last = "the host has not numbered the surface yet";
+                E2eWorkspace.Settle(50);
+                continue;
+            }
+            var capture = held.CaptureAsync(Names);
             E2eWorkspace.Until(() => capture.IsCompleted);
             var reference = capture.GetAwaiter().GetResult();
             var (width, height, pixels) = surface.Snapshot();
@@ -330,17 +348,17 @@ internal static class PluginSurfaceChecks
         Require(compared > 300 && wrong == 0, $"The app's window shows the plugin's opaque pixels where its surface sits: {wrong} of {compared} differ in ({minX},{minY})-({maxX},{maxY}), origin {left},{top}:{sample}");
     }
 
-    private static int Opaque(Shown shown)
+    internal static int Opaque(Shown shown)
     {
         var count = 0;
         for (var index = 3; index < shown.Pixels.Length; index += 4) if (shown.Pixels[index] != 0) count++;
         return count;
     }
 
-    private static Point Point(TopLevel window, RemoteSurface surface, double[] bounds) =>
+    internal static Point Point(TopLevel window, RemoteSurface surface, double[] bounds) =>
         surface.TranslatePoint(new Point(bounds[0] + bounds[2] / 2, bounds[1] + bounds[3] / 2), window) ?? throw new InvalidOperationException("The surface is not in the window.");
 
-    private static void Click(TopLevel window, RemoteSurface surface, double[] bounds)
+    internal static void Click(TopLevel window, RemoteSurface surface, double[] bounds)
     {
         var at = Point(window, surface, bounds);
         window.MouseMove(at);
@@ -348,7 +366,7 @@ internal static class PluginSurfaceChecks
         window.MouseUp(at, MouseButton.Left);
     }
 
-    private static void Press(TopLevel window, Key key, PhysicalKey physical)
+    internal static void Press(TopLevel window, Key key, PhysicalKey physical)
     {
         window.KeyPress(key, RawInputModifiers.None, physical, null);
         window.KeyRelease(key, RawInputModifiers.None, physical, null);

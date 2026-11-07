@@ -189,6 +189,7 @@ internal static class RpcCodecChecks
         if (underlying == typeof(int)) return tag * 1000 + 7;
         if (underlying == typeof(long)) return (1L << 40) + tag;
         if (underlying == typeof(bool)) return defaultValue is not true;
+        if (underlying == typeof(double)) return tag + 0.25;
         if (underlying.IsEnum) return Enum.GetValues(underlying).Cast<object>().Max()!;
         if (underlying == typeof(byte[])) return Enumerable.Range(0, (tag + 3) * scale).Select(i => (byte)(i * 37)).ToArray();
         if (IsMessage(underlying)) return depth < 2 ? Rich(underlying, depth + 1, scale) : Activator.CreateInstance(underlying)!;
@@ -227,6 +228,7 @@ internal static class RpcCodecChecks
             else if (t == typeof(int)) edge = member.Tag % 2 == 0 ? int.MinValue : -1;
             else if (t == typeof(long)) edge = member.Tag % 2 == 0 ? long.MinValue : -1L;
             else if (t == typeof(bool)) edge = defaultValue is true;
+            else if (t == typeof(double)) edge = member.Tag % 2 == 0 ? double.MinValue : -0.5;
             else if (t.IsEnum) edge = Enum.GetValues(t).GetValue(0);
             else throw new NotSupportedException(t.FullName);
             property.SetValue(value, edge);

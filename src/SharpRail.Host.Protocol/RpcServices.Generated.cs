@@ -64,6 +64,7 @@ public static class RpcServices
         public ValueTask<PluginCallReply> CallAsync(PluginCallMessage request, CallContext context = default) => client.Unary<PluginCallMessage, PluginCallReply>("IPluginRpc/CallAsync", request, context);
         public IAsyncEnumerable<PluginPushMessage> SubscribeAsync(PluginSubscribeMessage request, CallContext context = default) => client.Stream<PluginSubscribeMessage, PluginPushMessage>("IPluginRpc/SubscribeAsync", request, context);
         public ValueTask<PluginFileReply> ReadFileAsync(PluginFileRequest request, CallContext context = default) => client.Unary<PluginFileRequest, PluginFileReply>("IPluginRpc/ReadFileAsync", request, context);
+        public IAsyncEnumerable<PluginSurfaceDown> SurfaceAsync(IAsyncEnumerable<PluginSurfaceUp> up, CallContext context = default) => client.Duplex<PluginSurfaceUp, PluginSurfaceDown>("IPluginRpc/SurfaceAsync", up, context);
     }
     private sealed class StateRpcClient(IRpcClient client) : IStateRpc
     {

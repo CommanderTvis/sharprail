@@ -112,7 +112,8 @@ and roster registration still precede reconciliation, preserving dormant tools a
   kit theme, forwards pointer, wheel, key and text input, moves focus in on Tab or a click and on when the plugin's
   last element is tabbed past, sizes itself to what the plugin's control asks for, closes its surface after 2
   seconds detached and opens a new one when shown again, since the workbench keeps a tool's control while it is
-  hidden. A surface the plugin breaks or the host ends shows why. This keeps
+  hidden, and clears its pixels at a keyframe. A surface the plugin breaks or the host ends shows why. On a remote
+  host the session is the client adapter's (`RemoteIsolatedUIHost`), which keeps it across a dropped connection. This keeps
   the app free of dynamic code loading, so it can be published as NativeAOT, until external plugins can run
   isolated from SharpRail's processes. Activation runs on the UI thread.
 - A plugin declares its contributions synchronously, during `Activate`. An activation guard is open only while

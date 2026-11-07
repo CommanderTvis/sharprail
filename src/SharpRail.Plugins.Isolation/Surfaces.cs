@@ -61,10 +61,17 @@ public sealed record SurfaceClose(int Surface);
 /// <summary>
 /// One message of a frame: its moves (in its first message only), then tiles whose bytes follow one another in the
 /// message's byte payload. <see cref="DesiredWidth"/> and <see cref="DesiredHeight"/> are the size the plugin's control
-/// asks for at the surface's width, in device-independent pixels.
+/// asks for at the surface's width, in device-independent pixels. Every message of a <see cref="Keyframe"/> says so:
+/// it repaints the whole surface from transparent, and answers <see cref="SurfaceKeyframe"/>.
 /// </summary>
 public sealed record SurfaceFrameHeader(int Surface, long Sequence, int Width, int Height, double Scale, double DesiredWidth, double DesiredHeight,
-    bool Last, List<SurfaceMove> Moves, List<SurfaceTile> Tiles);
+    bool Last, List<SurfaceMove> Moves, List<SurfaceTile> Tiles, bool Keyframe = false);
+
+/// <summary>
+/// The client lost what it held of the surface (it reconnected): the runner sends the next frame as a keyframe, without
+/// waiting for the frame in flight to be acknowledged.
+/// </summary>
+public sealed record SurfaceKeyframe(int Surface);
 
 /// <summary>A region of the previous frame shifted by (<see cref="Dx"/>, <see cref="Dy"/>) device pixels, clipped to itself: scrolling.</summary>
 public sealed record SurfaceMove(int X, int Y, int Width, int Height, int Dx, int Dy);
@@ -91,6 +98,9 @@ public sealed record SurfaceLeft(bool Backward) : SurfaceEvent;
 public interface IPluginSurface : IAsyncDisposable
 {
     ChannelReader<SurfaceEvent> Events { get; }
+
+    /// <summary>The number the host gave the surface; 0 while a remote client has not heard it yet.</summary>
+    int Number { get; }
     void Resize(double width, double height, double scale);
     void Input(SurfaceInput input);
     void Acknowledge(long sequence);
@@ -98,6 +108,12 @@ public interface IPluginSurface : IAsyncDisposable
 
     /// <summary>The client's kit theme changed. The plugin's process holds one theme, the last any client pushed.</summary>
     void Theme(string json);
+
+    /// <summary>
+    /// The client no longer knows what it holds: frames up to the next keyframe are dropped, and the next frame is one,
+    /// sent without waiting for the acknowledgement of the frame in flight.
+    /// </summary>
+    void Keyframe();
 }
 
 /// <summary>Opens surfaces for the factories one client's context lent.</summary>
@@ -122,6 +138,8 @@ public static class SurfaceProtocol
     public static readonly int Focus = IsoMember.Id("surface.focus");
     public static readonly int Theme = IsoMember.Id("surface.theme");
     public static readonly int Close = IsoMember.Id("surface.close");
+    /// <summary>Host to runner, a one-way: <see cref="SurfaceKeyframe"/>.</summary>
+    public static readonly int Keyframe = IsoMember.Id("surface.keyframe");
     /// <summary>Runner to host, one-ways on the client's context: <see cref="SurfaceFrameHeader"/> with the tiles' bytes, and <see cref="SurfaceFocusLeave"/>.</summary>
     public static readonly int Frame = IsoMember.Id("surface.frame");
     public static readonly int FocusLeave = IsoMember.Id("surface.focus-leave");
@@ -160,11 +178,112 @@ public sealed record SurfaceCaptureRequest(int Surface, List<string> Names);
 [JsonSerializable(typeof(SurfaceFocus))]
 [JsonSerializable(typeof(SurfaceTheme))]
 [JsonSerializable(typeof(SurfaceClose))]
+[JsonSerializable(typeof(SurfaceKeyframe))]
 [JsonSerializable(typeof(SurfaceFrameHeader))]
 [JsonSerializable(typeof(SurfaceFocusLeave))]
 [JsonSerializable(typeof(SurfaceCapture))]
 [JsonSerializable(typeof(SurfaceCaptureRequest))]
 internal sealed partial class SurfaceJsonContext : JsonSerializerContext;
+
+/// <summary>
+/// The caps a frame message is held to before a client applies it (Security.SPEC.md, UI halves): the host's relay holds
+/// the plugin's frames to them, and a remote client the host's again.
+/// </summary>
+public static class SurfaceFrames
+{
+    /// <summary>Why a frame message breaks the surface protocol, or null when it keeps to it.</summary>
+    public static string? Violation(SurfaceFrameHeader header, long bytes, SurfaceFrameState state)
+    {
+        if (header.Moves is null || header.Tiles is null || header.Moves.Any(move => move is null) || header.Tiles.Any(tile => tile is null))
+            return "The plugin sent a frame with a missing part.";
+        if (header.Width is < 0 or > SurfaceLimits.MostSide || header.Height is < 0 or > SurfaceLimits.MostSide || (long)header.Width * header.Height > SurfaceLimits.MostFramePixels)
+            return "The plugin sent a frame larger than a client takes.";
+        if (!(header.Scale is >= SurfaceLimits.LeastScale and <= SurfaceLimits.MostScale)) return "The plugin sent a frame at a scale out of range.";
+        if (!(header.DesiredWidth is >= 0 and <= 100_000) || !(header.DesiredHeight is >= 0 and <= 100_000)) return "The plugin asked for a size out of range.";
+        if (state.Open)
+        {
+            if (header.Sequence != state.Sequence || header.Width != state.Width || header.Height != state.Height || header.Keyframe != state.Keyframe)
+                return "The plugin changed a frame while sending it.";
+            if (header.Moves.Count > 0) return "The plugin sent moves after a frame's first message.";
+        }
+        else if (header.Keyframe && state.KeyframePending)
+        {
+            if (header.Sequence <= state.Sequence) return "The plugin sent frames out of order.";
+        }
+        else
+        {
+            if (state.Unacknowledged) return "The plugin sent a frame before the client took the last one.";
+            if (header.Sequence != state.Sequence + 1) return "The plugin sent frames out of order.";
+        }
+        if (header.Moves.Count > 64) return "The plugin sent too many moves.";
+        if (header.Moves.Count > 0 && (header.Keyframe || header.Width != state.Width || header.Height != state.Height)) return "The plugin moved pixels of a frame of another size.";
+        if (header.Moves.Any(move => !SurfacePixels.Fits(move, header.Width, header.Height))) return "The plugin sent a move outside its surface.";
+        if (header.Tiles.Count > SurfaceLimits.MostTiles) return "The plugin sent too many tiles.";
+        long length = 0, pixels = state.Open ? state.Pixels : 0;
+        foreach (var tile in header.Tiles)
+        {
+            if (tile.Width is < 1 or > SurfaceLimits.MostTileSide || tile.Height is < 1 or > SurfaceLimits.MostTileSide || tile.X < 0 || tile.Y < 0 ||
+                tile.X + tile.Width > header.Width || tile.Y + tile.Height > header.Height)
+                return "The plugin sent a tile outside its surface.";
+            var valid = tile.Codec switch
+            {
+                TileCodecKind.Solid => tile.Length == 4,
+                // QOI writes at most 5 bytes a pixel, so one tile always fits in one message.
+                TileCodecKind.Qoi => tile.Length > 0 && tile.Length <= 5L * tile.Width * tile.Height,
+                _ => false,
+            };
+            if (!valid) return "The plugin sent a tile the client cannot read.";
+            length += tile.Length;
+            pixels += (long)tile.Width * tile.Height;
+        }
+        if (length != bytes || bytes > 2 * SurfaceLimits.MessageBytes) return "The plugin's tiles do not match their bytes.";
+        if (pixels > SurfaceLimits.MostFramePixels) return "The plugin sent a frame larger than a client takes.";
+        return null;
+    }
+}
+
+/// <summary>
+/// Where a surface's frames stand: the last frame's number and size, the one being received, whether the client has
+/// taken the last one, and whether a keyframe is awaited. Not thread-safe; its owner locks.
+/// </summary>
+public sealed class SurfaceFrameState
+{
+    public long Sequence { get; set; }
+    public int Width { get; set; } = -1;
+    public int Height { get; set; } = -1;
+    public bool Open { get; set; }
+    public bool Keyframe { get; set; }
+    public bool Unacknowledged { get; set; }
+    public long Pixels { get; set; }
+    public bool KeyframePending { get; set; }
+
+    /// <summary>
+    /// A frame message sent before the keyframe was asked for, which its receiver drops: a keyframe repaints what it
+    /// would have.
+    /// </summary>
+    public bool Stale(SurfaceFrameHeader header) => KeyframePending && !Open && !header.Keyframe;
+
+    /// <summary>Records a frame message that kept to the caps.</summary>
+    public void Accept(SurfaceFrameHeader header)
+    {
+        if (!Open)
+        {
+            Pixels = 0;
+            if (header.Keyframe) KeyframePending = false;
+        }
+        (Sequence, Width, Height, Open, Keyframe) = (header.Sequence, header.Width, header.Height, !header.Last, header.Keyframe);
+        Pixels += header.Tiles.Sum(tile => (long)tile.Width * tile.Height);
+        if (header.Last) Unacknowledged = true;
+    }
+
+    /// <summary>The client took frame <paramref name="sequence"/>: true when that releases the next one.</summary>
+    public bool Acknowledge(long sequence)
+    {
+        if (sequence != Sequence || Open || !Unacknowledged) return false;
+        Unacknowledged = false;
+        return true;
+    }
+}
 
 /// <summary>Moves applied the same way on both ends, so the client's pixels stay the runner's.</summary>
 public static class SurfacePixels

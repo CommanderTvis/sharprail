@@ -97,6 +97,14 @@ public sealed partial class PluginRuntime : IIsolatedUIHost
         return await runner.OpenAsync(IsolatedPlugin.Settings(stored), cancellationToken);
     }
 
+    /// <summary>A surface the host's relay holds for an external plugin, by the number it gave it, for the checks.</summary>
+    internal UiSessionRelay.RelaySurface? Surface(string pluginId, int number)
+    {
+        IsolatedPlugin? runner;
+        lock (gate) runner = registry.Get(pluginId)?.Activation?.Runner;
+        return runner?.Surface(number);
+    }
+
     /// <summary>The process id of an external plugin's runner, while it has one.</summary>
     internal int? RunnerPid(string pluginId)
     {

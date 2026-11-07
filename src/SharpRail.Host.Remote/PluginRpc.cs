@@ -1,13 +1,15 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
+using System.Threading.Channels;
 
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Host.Protocol;
 using SharpRail.Plugins.Api;
+using SharpRail.Plugins.Isolation;
 
 namespace SharpRail.Host.Remote;
 
-public sealed class PluginRpc(PluginRuntime plugins, IHostApplicationLifetime lifetime) : IPluginRpc
+public sealed class PluginRpc(PluginRuntime plugins, PluginSurfaceSessions sessions, IHostApplicationLifetime lifetime) : IPluginRpc
 {
     public async ValueTask<PluginRosterReply> ListAsync(PluginRosterRequest request, CallContext context = default) =>
         new() { Plugins = PluginWire.Map(await plugins.ListAsync(context.CancellationToken)) };
@@ -52,6 +54,68 @@ public sealed class PluginRpc(PluginRuntime plugins, IHostApplicationLifetime li
 
     public async ValueTask<PluginFileReply> ReadFileAsync(PluginFileRequest request, CallContext context = default) =>
         await plugins.ReadFileAsync(request.PluginId, request.Path, context.CancellationToken) is { } data ? new() { Found = true, Data = data } : new();
+
+    // A call carries one session: a dropped call leaves it waiting out the grace for a resume, and a client that ends
+    // its messages closes it.
+    public async IAsyncEnumerable<PluginSurfaceDown> SurfaceAsync(IAsyncEnumerable<PluginSurfaceUp> up, CallContext context = default)
+    {
+        using var call = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
+        var inputs = up.GetAsyncEnumerator(call.Token);
+        HostedSurfaceSession? hosted = null;
+        Channel<PluginSurfaceDown>? link = null;
+        var reading = Task.CompletedTask;
+        try
+        {
+            if (!await inputs.MoveNextAsync()) throw new RpcException(new Status(StatusCode.InvalidArgument, "A plugin session starts with Open or Resume."));
+            var first = inputs.Current;
+            hosted = first.Kind switch
+            {
+                PluginSurfaceUpKind.Open => await OpenAsync(first, call.Token),
+                PluginSurfaceUpKind.Resume => sessions.Find(first.Session) ?? throw new RpcException(new Status(StatusCode.NotFound, "The plugin's session ended.")),
+                _ => throw new RpcException(new Status(StatusCode.InvalidArgument, "A plugin session starts with Open or Resume."))
+            };
+            link = hosted.Attach(first.Kind == PluginSurfaceUpKind.Open, first.Ack);
+            reading = ReadAsync(inputs, hosted, link);
+            await foreach (var message in link.Reader.ReadAllAsync(call.Token)) yield return message;
+        }
+        finally
+        {
+            if (link is not null) hosted!.Detach(link);
+            else if (hosted is not null) await hosted.DisposeAsync();
+            await call.CancelAsync();
+            try { await reading; } catch (Exception) { }
+            await inputs.DisposeAsync();
+        }
+    }
+
+    private async Task<HostedSurfaceSession> OpenAsync(PluginSurfaceUp open, CancellationToken cancellationToken)
+    {
+        try { return await sessions.OpenAsync(plugins, open.PluginId, open.ClientKey, cancellationToken); }
+        catch (InvalidOperationException error) { throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message)); }
+        catch (IsoCallException error) { throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message)); }
+        catch (IOException error) { throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message)); }
+    }
+
+    private static async Task ReadAsync(IAsyncEnumerator<PluginSurfaceUp> inputs, HostedSurfaceSession hosted, Channel<PluginSurfaceDown> link)
+    {
+        try
+        {
+            while (await inputs.MoveNextAsync()) hosted.Receive(link, inputs.Current);
+        }
+        catch (RpcException error) when (error.StatusCode == StatusCode.InvalidArgument)
+        {
+            // A client that breaks the session's protocol loses it.
+            link.Writer.TryComplete(error);
+            await hosted.DisposeAsync();
+            return;
+        }
+        catch (Exception)
+        {
+            link.Writer.TryComplete();
+            return;
+        }
+        await hosted.DisposeAsync();
+    }
 
     private static RpcException Map(PluginCallException error) => new(new Status(error.Error switch
     {

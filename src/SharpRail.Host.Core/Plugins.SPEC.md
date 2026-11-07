@@ -187,7 +187,9 @@ checks set until external plugins are switched on:
   The session's surfaces go through `UiSessionRelay` (`Plugins/Isolation/UiSessionRelay.cs`): it numbers each
   surface, opens it in the runner, passes the client's size, input, focus, acknowledgements and theme on once the
   runner has shown the surface (they wait until then), and holds every frame the runner sends to the surface
-  protocol's caps before the client sees it; a frame that breaks them or cannot be read ends that surface. The settings stay
+  protocol's caps before the client sees it; a frame that breaks them or cannot be read ends that surface. A
+  keyframe request from a client that reconnected goes to the runner, and the relay drops the frames sent before
+  it. Remote clients reach the same sessions through the remote host's surface call. The settings stay
   unvalidated, as the spec records, until a host half sends a schema. A builtin module's `Contract.Id` must still equal its
 manifest id.
 

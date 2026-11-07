@@ -2,5 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" />
     <ProjectReference Include="../SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Isolation/SharpRail.Plugins.Isolation.csproj" />
   </ItemGroup>
 </Project>

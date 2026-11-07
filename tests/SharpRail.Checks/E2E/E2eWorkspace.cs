@@ -79,7 +79,8 @@ internal sealed class E2eWorkspace : IDisposable
     /// instead of the builtin UI halves when given.
     /// </summary>
     internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null, Action<ProfileStore>? prepare = null, bool compact = false,
-        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null)
+        IReadOnlyList<(SharpRail.Plugins.Api.PluginManifest, Func<SharpRail.Plugins.Api.UI.PluginUIModule>)>? uiPlugins = null,
+        SharpRail.Plugins.Isolation.IIsolatedUIHost? isolated = null)
     {
         Root = root;
         var profile = new ProfileStore(profileRoot);
@@ -95,7 +96,14 @@ internal sealed class E2eWorkspace : IDisposable
         var first = true;
         Workbench = new(profile, new SharedState(service, profile.Data.Preferences), Terminals.Factory, true,
             () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins, Terminals.Catalog, uiPlugins)
-        { Endpoint = endpoint.ToString(), Compact = compact };
+        {
+            Endpoint = endpoint.ToString(),
+            Compact = compact,
+            // As the app's seam: an external plugin's UI half opens on the remote host only when a check asks for it.
+            IsolatedPlugins = isolated is null ? null : async (entry, client, ended, token) =>
+                await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(isolated, entry.Id, client, ended,
+                    open => new SharpRail.UI.Plugins.RemoteSurface(open), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token)
+        };
         Window = latest = Workbench.Open(profile.Data.Windows[0], startPath);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();

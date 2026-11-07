@@ -26,10 +26,12 @@ internal static class BoundaryChecks
         [Protocol] = [Wire],
         // The host runs an external plugin's runner through the plugin channel (Security.SPEC.md).
         [Core] = [Abstractions, Api, ApiHost, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
-        [Client] = [Abstractions, Protocol, Api],
+        // The remote adapter of an external plugin's UI session speaks the channel's surface protocol (Security.SPEC.md, UI halves).
+        [Client] = [Abstractions, Protocol, Api, Isolation],
         // The headless host is a console program over the core: no web server, no UI.
         [Headless] = [Abstractions, Core, Api, ApiHost, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
-        [Remote] = [Abstractions, Protocol, Core, Api, ApiHost, "SharpRail.Plugins.Tailscale"],
+        // The host serves an external plugin's UI session to remote clients over the surface call.
+        [Remote] = [Abstractions, Protocol, Core, Api, ApiHost, Isolation, "SharpRail.Plugins.Tailscale"],
         [Scintilla] = [],
         [Ghostty] = [],
         // The UI draws an external plugin's surfaces (Security.SPEC.md, UI halves) from the channel's surface protocol.

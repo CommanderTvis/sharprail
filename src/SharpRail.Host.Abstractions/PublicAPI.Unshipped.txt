@@ -2213,7 +2213,8 @@ SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.get -> string!
 SharpRail.Host.Abstractions.HostSettings.ActiveKeymap.set -> void
 SharpRail.Host.Abstractions.HostState.KeymapPresets.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.KeymapPreset!>!
 SharpRail.Host.Abstractions.HostState.KeymapPresets.init -> void
-const SharpRail.Host.Abstractions.HostProtocol.Current = 18 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 19 -> int
+const SharpRail.Host.Abstractions.HostProtocol.IsolatedSurfaces = 19 -> int
 const SharpRail.Host.Abstractions.HostProtocol.Keymaps = 18 -> int
 static SharpRail.Host.Abstractions.HostStateChange.DeleteKeymap(string! name) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.RenameKeymap(string! name, string! next) -> SharpRail.Host.Abstractions.HostStateChange!

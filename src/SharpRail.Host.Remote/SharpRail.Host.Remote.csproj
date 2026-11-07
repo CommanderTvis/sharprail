@@ -5,4 +5,5 @@
     <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
     <ProjectReference Include="../SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
   </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
 </Project>

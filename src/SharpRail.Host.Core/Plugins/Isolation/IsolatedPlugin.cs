@@ -133,6 +133,10 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
         }
     }
 
+    /// <summary>A surface of any client's session, by the number the host gave it.</summary>
+    internal UiSessionRelay.RelaySurface? Surface(int number) =>
+        sessions.Values.Select(session => session.Relay.Find(number)).FirstOrDefault(surface => surface is not null);
+
     private void EndSessions(Exception reason)
     {
         foreach (var session in sessions.Values) session.End(reason);

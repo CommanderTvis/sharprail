@@ -31,6 +31,8 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
         return surface;
     }
 
+    internal RelaySurface? Find(int id) => surfaces.GetValueOrDefault(id);
+
     private void Theme(string json)
     {
         if (json == theme) return;
@@ -92,61 +94,6 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
         catch (Exception error) when (error is IOException or InvalidOperationException) { }
     }
 
-    /// <summary>Why a frame message breaks the surface protocol, or null when it keeps to it.</summary>
-    internal static string? Violation(SurfaceFrameHeader header, int bytes, FrameState state)
-    {
-        if (header.Moves is null || header.Tiles is null || header.Moves.Any(move => move is null) || header.Tiles.Any(tile => tile is null))
-            return "The plugin sent a frame with a missing part.";
-        if (header.Width is < 0 or > SurfaceLimits.MostSide || header.Height is < 0 or > SurfaceLimits.MostSide || (long)header.Width * header.Height > SurfaceLimits.MostFramePixels)
-            return "The plugin sent a frame larger than a client takes.";
-        if (!(header.Scale is >= SurfaceLimits.LeastScale and <= SurfaceLimits.MostScale)) return "The plugin sent a frame at a scale out of range.";
-        if (!(header.DesiredWidth is >= 0 and <= 100_000) || !(header.DesiredHeight is >= 0 and <= 100_000)) return "The plugin asked for a size out of range.";
-        if (state.Open)
-        {
-            if (header.Sequence != state.Sequence || header.Width != state.Width || header.Height != state.Height) return "The plugin changed a frame while sending it.";
-            if (header.Moves.Count > 0) return "The plugin sent moves after a frame's first message.";
-        }
-        else
-        {
-            if (state.Unacknowledged) return "The plugin sent a frame before the client took the last one.";
-            if (header.Sequence != state.Sequence + 1) return "The plugin sent frames out of order.";
-        }
-        if (header.Moves.Count > 64) return "The plugin sent too many moves.";
-        if (header.Moves.Count > 0 && (header.Width != state.Width || header.Height != state.Height)) return "The plugin moved pixels of a frame of another size.";
-        if (header.Moves.Any(move => !SurfacePixels.Fits(move, header.Width, header.Height))) return "The plugin sent a move outside its surface.";
-        if (header.Tiles.Count > SurfaceLimits.MostTiles) return "The plugin sent too many tiles.";
-        long length = 0, pixels = state.Open ? state.Pixels : 0;
-        foreach (var tile in header.Tiles)
-        {
-            if (tile.Width is < 1 or > SurfaceLimits.MostTileSide || tile.Height is < 1 or > SurfaceLimits.MostTileSide || tile.X < 0 || tile.Y < 0 ||
-                tile.X + tile.Width > header.Width || tile.Y + tile.Height > header.Height)
-                return "The plugin sent a tile outside its surface.";
-            var valid = tile.Codec switch
-            {
-                TileCodecKind.Solid => tile.Length == 4,
-                TileCodecKind.Qoi => tile.Length is > 0 and <= SurfaceLimits.MessageBytes,
-                _ => false,
-            };
-            if (!valid) return "The plugin sent a tile the client cannot read.";
-            length += tile.Length;
-            pixels += (long)tile.Width * tile.Height;
-        }
-        if (length != bytes || bytes > 2 * SurfaceLimits.MessageBytes) return "The plugin's tiles do not match their bytes.";
-        if (pixels > SurfaceLimits.MostFramePixels) return "The plugin sent a frame larger than a client takes.";
-        return null;
-    }
-
-    /// <summary>Where a surface's frames stand: the last frame's number and size, and the one being received.</summary>
-    internal sealed class FrameState
-    {
-        public long Sequence { get; set; }
-        public int Width { get; set; } = -1;
-        public int Height { get; set; } = -1;
-        public bool Open { get; set; }
-        public bool Unacknowledged { get; set; }
-        public long Pixels { get; set; }
-    }
-
     /// <summary>
     /// One surface as the client holds it. The client's messages wait until the plugin's process has shown the
     /// surface, since they travel apart from the call that opens it.
@@ -154,13 +101,14 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
     internal sealed class RelaySurface(UiSessionRelay relay, int id) : IPluginSurface
     {
         private readonly Channel<SurfaceEvent> events = Channel.CreateUnbounded<SurfaceEvent>(new() { SingleReader = true });
-        private readonly FrameState state = new();
+        private readonly SurfaceFrameState state = new();
         private readonly Lock gate = new();
         private List<(int Member, string Payload)>? waiting = [];
         private bool failed;
         private int closed;
 
         public int Id { get; } = id;
+        public int Number => Id;
         public ChannelReader<SurfaceEvent> Events => events.Reader;
 
         public async Task OpenAsync(SurfaceOpen open)
@@ -204,16 +152,13 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
         {
             lock (gate)
             {
-                if (Volatile.Read(ref closed) != 0) return;
-                if (Violation(header, bytes.Length, state) is { } violation)
+                if (Volatile.Read(ref closed) != 0 || state.Stale(header)) return;
+                if (SurfaceFrames.Violation(header, bytes.Length, state) is { } violation)
                 {
                     Break(violation);
                     return;
                 }
-                if (!state.Open) state.Pixels = 0;
-                (state.Sequence, state.Width, state.Height, state.Open) = (header.Sequence, header.Width, header.Height, !header.Last);
-                state.Pixels += header.Tiles.Sum(tile => (long)tile.Width * tile.Height);
-                if (header.Last) state.Unacknowledged = true;
+                state.Accept(header);
                 events.Writer.TryWrite(new SurfaceFrame(header, bytes));
             }
         }
@@ -234,11 +179,14 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
         public void Acknowledge(long sequence)
         {
             lock (gate)
-            {
-                if (sequence != state.Sequence || state.Open) return;
-                state.Unacknowledged = false;
-            }
+                if (!state.Acknowledge(sequence)) return;
             Send(SurfaceProtocol.Ack, SurfaceProtocol.Encode(new SurfaceAck(Id, sequence)));
+        }
+
+        public void Keyframe()
+        {
+            lock (gate) state.KeyframePending = true;
+            Send(SurfaceProtocol.Keyframe, SurfaceProtocol.Encode(new SurfaceKeyframe(Id)));
         }
 
         public void Theme(string json) => relay.Theme(json);

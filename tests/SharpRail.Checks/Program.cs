@@ -138,6 +138,13 @@ internal static class Program
             PluginSurfaceChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--plugin-surface-remote"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            PluginSurfaceRemoteChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--persisted-json"]) || args.SequenceEqual(["--persisted-json", "--update"]))
         {
             PersistedJsonChecks.Run(root, update: args.Length == 2).GetAwaiter().GetResult();
@@ -1489,6 +1496,7 @@ internal static class Program
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("plugin-isolated-ui", () => PluginIsolatedUIChecks.Run(root));
         Gate.Case("plugin-surface", () => PluginSurfaceChecks.Run(root));
+        Gate.Case("plugin-surface-remote", () => PluginSurfaceRemoteChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));
         Gate.Case("file-drop-gestures", FileDropChecks.Gestures);
         Gate.Case("file-manager", FileManagerChecks.Run);

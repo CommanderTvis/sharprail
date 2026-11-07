@@ -116,6 +116,14 @@ internal sealed class ProtoWriter
 
     internal void Bool(int field, bool value) { Tag(field, 0); Varint(value ? 1UL : 0UL); }
 
+    internal void Double(int field, double value)
+    {
+        Tag(field, 1);
+        Ensure(8);
+        BinaryPrimitives.WriteDoubleLittleEndian(buffer.AsSpan(length), value);
+        length += 8;
+    }
+
     internal void String(int field, string value)
     {
         var count = Encoding.UTF8.GetByteCount(value);
@@ -260,6 +268,14 @@ internal ref struct ProtoReader(ReadOnlySpan<byte> data)
         };
         return value switch { 0 => false, 1 => true, _ => throw Corrupt("Unexpected RPC boolean value.") };
     }
+
+    /// <summary>A <c>double</c> is fixed64; a fixed32 <c>float</c> widens.</summary>
+    internal double Double() => wire switch
+    {
+        1 => BitConverter.Int64BitsToDouble((long)Fixed64()),
+        5 => BitConverter.Int32BitsToSingle((int)Fixed32()),
+        _ => throw Corrupt("Invalid RPC wire type for a double.")
+    };
 
     internal string String() => Encoding.UTF8.GetString(Delimited());
 

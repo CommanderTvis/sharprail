@@ -143,6 +143,7 @@ internal static class PluginMode
                 var member when member == SurfaceProtocol.Input => Bind(SurfaceProtocol.Decode<SurfaceInput>(call.Payload), surfaces.Input),
                 var member when member == SurfaceProtocol.Ack => Bind(SurfaceProtocol.Decode<SurfaceAck>(call.Payload), surfaces.Acknowledge),
                 var member when member == SurfaceProtocol.Focus => Bind(SurfaceProtocol.Decode<SurfaceFocus>(call.Payload), surfaces.Focus),
+                var member when member == SurfaceProtocol.Keyframe => Bind(SurfaceProtocol.Decode<SurfaceKeyframe>(call.Payload), surfaces.Keyframe),
                 var member when member == SurfaceProtocol.Close => Bind(SurfaceProtocol.Decode<SurfaceClose>(call.Payload), close => surfaces.Close(close.Surface)),
                 var member when member == SurfaceProtocol.Theme => Bind(SurfaceProtocol.Decode<SurfaceTheme>(call.Payload), theme => RunnerPlatform.ApplyTheme(theme.Json)),
                 _ => throw new IsoCallException(IsoError.Unknown, $"The plugin runner has no one-way {call.Member}."),

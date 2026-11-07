@@ -59,6 +59,20 @@ internal static class RpcCodec
         RpcMessage<PluginFileRequest>.Read = static (ref ProtoReader reader) => ReadPluginFileRequest(ref reader, null);
         RpcMessage<PluginFileReply>.Write = WritePluginFileReply;
         RpcMessage<PluginFileReply>.Read = static (ref ProtoReader reader) => ReadPluginFileReply(ref reader, null);
+        RpcMessage<PluginSurfaceUp>.Write = WritePluginSurfaceUp;
+        RpcMessage<PluginSurfaceUp>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceUp(ref reader, null);
+        RpcMessage<PluginSurfaceInputMessage>.Write = WritePluginSurfaceInputMessage;
+        RpcMessage<PluginSurfaceInputMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceInputMessage(ref reader, null);
+        RpcMessage<PluginSurfaceDown>.Write = WritePluginSurfaceDown;
+        RpcMessage<PluginSurfaceDown>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceDown(ref reader, null);
+        RpcMessage<PluginSurfaceRegistrationMessage>.Write = WritePluginSurfaceRegistrationMessage;
+        RpcMessage<PluginSurfaceRegistrationMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceRegistrationMessage(ref reader, null);
+        RpcMessage<PluginSurfaceFrameMessage>.Write = WritePluginSurfaceFrameMessage;
+        RpcMessage<PluginSurfaceFrameMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceFrameMessage(ref reader, null);
+        RpcMessage<PluginSurfaceMoveMessage>.Write = WritePluginSurfaceMoveMessage;
+        RpcMessage<PluginSurfaceMoveMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceMoveMessage(ref reader, null);
+        RpcMessage<PluginSurfaceTileMessage>.Write = WritePluginSurfaceTileMessage;
+        RpcMessage<PluginSurfaceTileMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceTileMessage(ref reader, null);
         RpcMessage<SaveFileRequest>.Write = WriteSaveFileRequest;
         RpcMessage<SaveFileRequest>.Read = static (ref ProtoReader reader) => ReadSaveFileRequest(ref reader, null);
         RpcMessage<FileTransferEntryDto>.Write = WriteFileTransferEntryDto;
@@ -1231,6 +1245,331 @@ internal static class RpcCodec
             {
                 case 1: value.Found = reader.Bool(); break;
                 case 2: value.Data = reader.Bytes(value.Data); break;
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceUp(ProtoWriter writer, PluginSurfaceUp value)
+    {
+        if (value.Kind != 0) writer.Int32(1, (int)value.Kind);
+        if (value.Seq != 0) writer.Int64(2, value.Seq);
+        if (value.Ack != 0) writer.Int64(3, value.Ack);
+        if (value.PluginId is { } field4) writer.String(4, field4);
+        if (value.ClientKey is { } field5) writer.String(5, field5);
+        if (value.Session is { } field6) writer.String(6, field6);
+        if (value.Call != 0) writer.Int64(7, value.Call);
+        if (value.Member != 0) writer.Int32(8, value.Member);
+        if (value.Handle != 0) writer.Int64(9, value.Handle);
+        if (value.Payload is { } field10) writer.String(10, field10);
+        if (value.Json is { } field11) writer.String(11, field11);
+        if (value.Error != 0) writer.Int32(12, value.Error);
+        if (value.Detail is { } field13) writer.String(13, field13);
+        if (value.Surface != 0) writer.Int32(14, value.Surface);
+        if (value.Width != 0) writer.Double(15, value.Width);
+        if (value.Height != 0) writer.Double(16, value.Height);
+        if (value.Scale != 0) writer.Double(17, value.Scale);
+        if (value.Sequence != 0) writer.Int64(18, value.Sequence);
+        if (value.Input is { } field19)
+        {
+            var start = writer.BeginMessage(19);
+            WritePluginSurfaceInputMessage(writer, field19);
+            writer.EndMessage(start);
+        }
+        if (value.Enter) writer.Bool(20, value.Enter);
+        if (value.Backward) writer.Bool(21, value.Backward);
+        if (value.Pointer) writer.Bool(22, value.Pointer);
+    }
+
+    private static PluginSurfaceUp ReadPluginSurfaceUp(ref ProtoReader reader, PluginSurfaceUp? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Kind = (PluginSurfaceUpKind)reader.Int32(); break;
+                case 2: value.Seq = reader.Int64(); break;
+                case 3: value.Ack = reader.Int64(); break;
+                case 4: value.PluginId = reader.String(); break;
+                case 5: value.ClientKey = reader.String(); break;
+                case 6: value.Session = reader.String(); break;
+                case 7: value.Call = reader.Int64(); break;
+                case 8: value.Member = reader.Int32(); break;
+                case 9: value.Handle = reader.Int64(); break;
+                case 10: value.Payload = reader.String(); break;
+                case 11: value.Json = reader.String(); break;
+                case 12: value.Error = reader.Int32(); break;
+                case 13: value.Detail = reader.String(); break;
+                case 14: value.Surface = reader.Int32(); break;
+                case 15: value.Width = reader.Double(); break;
+                case 16: value.Height = reader.Double(); break;
+                case 17: value.Scale = reader.Double(); break;
+                case 18: value.Sequence = reader.Int64(); break;
+                case 19:
+                {
+                    var outer = reader.Enter();
+                    value.Input = ReadPluginSurfaceInputMessage(ref reader, value.Input);
+                    reader.Leave(outer);
+                    break;
+                }
+                case 20: value.Enter = reader.Bool(); break;
+                case 21: value.Backward = reader.Bool(); break;
+                case 22: value.Pointer = reader.Bool(); break;
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceInputMessage(ProtoWriter writer, PluginSurfaceInputMessage value)
+    {
+        if (value.Kind != 0) writer.Int32(1, value.Kind);
+        if (value.X != 0) writer.Double(2, value.X);
+        if (value.Y != 0) writer.Double(3, value.Y);
+        if (value.Button != 0) writer.Int32(4, value.Button);
+        if (value.Modifiers != 0) writer.Int32(5, value.Modifiers);
+        if (value.DeltaX != 0) writer.Double(6, value.DeltaX);
+        if (value.DeltaY != 0) writer.Double(7, value.DeltaY);
+        if (value.Key != 0) writer.Int32(8, value.Key);
+        if (value.PhysicalKey != 0) writer.Int32(9, value.PhysicalKey);
+        if (value.Text is { } field10) writer.String(10, field10);
+    }
+
+    private static PluginSurfaceInputMessage ReadPluginSurfaceInputMessage(ref ProtoReader reader, PluginSurfaceInputMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Kind = reader.Int32(); break;
+                case 2: value.X = reader.Double(); break;
+                case 3: value.Y = reader.Double(); break;
+                case 4: value.Button = reader.Int32(); break;
+                case 5: value.Modifiers = reader.Int32(); break;
+                case 6: value.DeltaX = reader.Double(); break;
+                case 7: value.DeltaY = reader.Double(); break;
+                case 8: value.Key = reader.Int32(); break;
+                case 9: value.PhysicalKey = reader.Int32(); break;
+                case 10: value.Text = reader.String(); break;
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceDown(ProtoWriter writer, PluginSurfaceDown value)
+    {
+        if (value.Kind != 0) writer.Int32(1, (int)value.Kind);
+        if (value.Seq != 0) writer.Int64(2, value.Seq);
+        if (value.Ack != 0) writer.Int64(3, value.Ack);
+        if (value.Session is { } field4) writer.String(4, field4);
+        if (value.ApiTableHash is { } field5) writer.String(5, field5);
+        if (value.Registrations is { } field6)
+            foreach (var item in field6)
+            {
+                var start = writer.BeginMessage(6);
+                if (item is not null) WritePluginSurfaceRegistrationMessage(writer, item);
+                writer.EndMessage(start);
+            }
+        if (value.Call != 0) writer.Int64(7, value.Call);
+        if (value.Member != 0) writer.Int32(8, value.Member);
+        if (value.Payload is { } field9) writer.String(9, field9);
+        if (value.Answered) writer.Bool(10, value.Answered);
+        if (value.Error != 0) writer.Int32(11, value.Error);
+        if (value.Detail is { } field12) writer.String(12, field12);
+        if (value.Surface != 0) writer.Int32(13, value.Surface);
+        if (value.Number != 0) writer.Int32(14, value.Number);
+        if (value.Frame is { } field15)
+        {
+            var start = writer.BeginMessage(15);
+            WritePluginSurfaceFrameMessage(writer, field15);
+            writer.EndMessage(start);
+        }
+        if (value.Backward) writer.Bool(16, value.Backward);
+        if (value.End != 0) writer.Int32(17, (int)value.End);
+    }
+
+    private static PluginSurfaceDown ReadPluginSurfaceDown(ref ProtoReader reader, PluginSurfaceDown? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Kind = (PluginSurfaceDownKind)reader.Int32(); break;
+                case 2: value.Seq = reader.Int64(); break;
+                case 3: value.Ack = reader.Int64(); break;
+                case 4: value.Session = reader.String(); break;
+                case 5: value.ApiTableHash = reader.String(); break;
+                case 6:
+                {
+                    var outer = reader.Enter();
+                    (value.Registrations ??= new()).Add(ReadPluginSurfaceRegistrationMessage(ref reader, null));
+                    reader.Leave(outer);
+                    break;
+                }
+                case 7: value.Call = reader.Int64(); break;
+                case 8: value.Member = reader.Int32(); break;
+                case 9: value.Payload = reader.String(); break;
+                case 10: value.Answered = reader.Bool(); break;
+                case 11: value.Error = reader.Int32(); break;
+                case 12: value.Detail = reader.String(); break;
+                case 13: value.Surface = reader.Int32(); break;
+                case 14: value.Number = reader.Int32(); break;
+                case 15:
+                {
+                    var outer = reader.Enter();
+                    value.Frame = ReadPluginSurfaceFrameMessage(ref reader, value.Frame);
+                    reader.Leave(outer);
+                    break;
+                }
+                case 16: value.Backward = reader.Bool(); break;
+                case 17: value.End = (PluginSurfaceEndKind)reader.Int32(); break;
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceRegistrationMessage(ProtoWriter writer, PluginSurfaceRegistrationMessage value)
+    {
+        if (value.Member != 0) writer.Int32(1, value.Member);
+        if (value.Payload is { } field2) writer.String(2, field2);
+    }
+
+    private static PluginSurfaceRegistrationMessage ReadPluginSurfaceRegistrationMessage(ref ProtoReader reader, PluginSurfaceRegistrationMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Member = reader.Int32(); break;
+                case 2: value.Payload = reader.String(); break;
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceFrameMessage(ProtoWriter writer, PluginSurfaceFrameMessage value)
+    {
+        if (value.Sequence != 0) writer.Int64(1, value.Sequence);
+        if (value.Width != 0) writer.Int32(2, value.Width);
+        if (value.Height != 0) writer.Int32(3, value.Height);
+        if (value.Scale != 0) writer.Double(4, value.Scale);
+        if (value.DesiredWidth != 0) writer.Double(5, value.DesiredWidth);
+        if (value.DesiredHeight != 0) writer.Double(6, value.DesiredHeight);
+        if (value.Last) writer.Bool(7, value.Last);
+        if (value.Keyframe) writer.Bool(8, value.Keyframe);
+        if (value.Moves is { } field9)
+            foreach (var item in field9)
+            {
+                var start = writer.BeginMessage(9);
+                if (item is not null) WritePluginSurfaceMoveMessage(writer, item);
+                writer.EndMessage(start);
+            }
+        if (value.Tiles is { } field10)
+            foreach (var item in field10)
+            {
+                var start = writer.BeginMessage(10);
+                if (item is not null) WritePluginSurfaceTileMessage(writer, item);
+                writer.EndMessage(start);
+            }
+        if (value.Data is { } field11) writer.Bytes(11, field11);
+    }
+
+    private static PluginSurfaceFrameMessage ReadPluginSurfaceFrameMessage(ref ProtoReader reader, PluginSurfaceFrameMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Sequence = reader.Int64(); break;
+                case 2: value.Width = reader.Int32(); break;
+                case 3: value.Height = reader.Int32(); break;
+                case 4: value.Scale = reader.Double(); break;
+                case 5: value.DesiredWidth = reader.Double(); break;
+                case 6: value.DesiredHeight = reader.Double(); break;
+                case 7: value.Last = reader.Bool(); break;
+                case 8: value.Keyframe = reader.Bool(); break;
+                case 9:
+                {
+                    var outer = reader.Enter();
+                    (value.Moves ??= new()).Add(ReadPluginSurfaceMoveMessage(ref reader, null));
+                    reader.Leave(outer);
+                    break;
+                }
+                case 10:
+                {
+                    var outer = reader.Enter();
+                    (value.Tiles ??= new()).Add(ReadPluginSurfaceTileMessage(ref reader, null));
+                    reader.Leave(outer);
+                    break;
+                }
+                case 11: value.Data = reader.Bytes(value.Data); break;
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceMoveMessage(ProtoWriter writer, PluginSurfaceMoveMessage value)
+    {
+        if (value.X != 0) writer.Int32(1, value.X);
+        if (value.Y != 0) writer.Int32(2, value.Y);
+        if (value.Width != 0) writer.Int32(3, value.Width);
+        if (value.Height != 0) writer.Int32(4, value.Height);
+        if (value.Dx != 0) writer.Int32(5, value.Dx);
+        if (value.Dy != 0) writer.Int32(6, value.Dy);
+    }
+
+    private static PluginSurfaceMoveMessage ReadPluginSurfaceMoveMessage(ref ProtoReader reader, PluginSurfaceMoveMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.X = reader.Int32(); break;
+                case 2: value.Y = reader.Int32(); break;
+                case 3: value.Width = reader.Int32(); break;
+                case 4: value.Height = reader.Int32(); break;
+                case 5: value.Dx = reader.Int32(); break;
+                case 6: value.Dy = reader.Int32(); break;
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceTileMessage(ProtoWriter writer, PluginSurfaceTileMessage value)
+    {
+        if (value.X != 0) writer.Int32(1, value.X);
+        if (value.Y != 0) writer.Int32(2, value.Y);
+        if (value.Width != 0) writer.Int32(3, value.Width);
+        if (value.Height != 0) writer.Int32(4, value.Height);
+        if (value.Codec != 0) writer.Int32(5, value.Codec);
+        if (value.Length != 0) writer.Int32(6, value.Length);
+    }
+
+    private static PluginSurfaceTileMessage ReadPluginSurfaceTileMessage(ref ProtoReader reader, PluginSurfaceTileMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.X = reader.Int32(); break;
+                case 2: value.Y = reader.Int32(); break;
+                case 3: value.Width = reader.Int32(); break;
+                case 4: value.Height = reader.Int32(); break;
+                case 5: value.Codec = reader.Int32(); break;
+                case 6: value.Length = reader.Int32(); break;
                 default: reader.Skip(); break;
             }
         }

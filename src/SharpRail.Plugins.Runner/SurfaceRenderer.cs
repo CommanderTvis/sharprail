@@ -84,6 +84,7 @@ internal sealed class SurfaceRenderer
     public void Input(SurfaceInput input) => View(input.Surface)?.Input(input);
     public void Acknowledge(SurfaceAck ack) => View(ack.Surface)?.Acknowledge(ack.Sequence);
     public void Focus(SurfaceFocus focus) => View(focus.Surface)?.Focus(focus.Enter, focus.Backward, focus.Pointer);
+    public void Keyframe(SurfaceKeyframe keyframe) => View(keyframe.Surface)?.Keyframe();
 
     public void Close(int id)
     {
@@ -164,7 +165,7 @@ internal sealed class SurfaceRenderer
         private int width, height;
         private double scale = 1;
         private Size wanted;
-        private bool sized, inFlight, closed;
+        private bool sized, inFlight, closed, keyframe;
         private long sequence;
 
         public SurfaceView(SurfaceRenderer renderer, long context, int id, Control control)
@@ -207,6 +208,16 @@ internal sealed class SurfaceRenderer
         public void Acknowledge(long acknowledged)
         {
             if (acknowledged == sequence) inFlight = false;
+            renderer.Heat();
+        }
+
+        // The client holds nothing it can trust: the next frame repaints every tile from transparent.
+        public void Keyframe()
+        {
+            inFlight = false;
+            keyframe = true;
+            Array.Clear(held);
+            moves.Clear();
             renderer.Heat();
         }
 
@@ -313,12 +324,13 @@ internal sealed class SurfaceRenderer
                     tiles.Add((new SurfaceTile(x, y, w, h, codec, output.WrittenCount - start), start));
                 }
             var desired = root.Wanted;
-            if (!resized && tiles.Count == 0 && sentMoves.Count == 0 && desired == wanted) return;
+            if (!resized && !keyframe && tiles.Count == 0 && sentMoves.Count == 0 && desired == wanted) return;
             wanted = desired;
             (held, next) = (next, held);
             sequence++;
             inFlight = true;
-            Send(sentMoves, tiles, output.WrittenSpan);
+            Send(keyframe ? [] : sentMoves, tiles, output.WrittenSpan);
+            keyframe = false;
             renderer.Heat();
         }
 
@@ -347,7 +359,7 @@ internal sealed class SurfaceRenderer
                     length += tiles[index].Tile.Length;
                     batch.Add(tiles[index++].Tile);
                 }
-                var header = new SurfaceFrameHeader(Id, sequence, width, height, scale, wanted.Width, wanted.Height, index >= tiles.Count, first ? sentMoves : [], batch);
+                var header = new SurfaceFrameHeader(Id, sequence, width, height, scale, wanted.Width, wanted.Height, index >= tiles.Count, first ? sentMoves : [], batch, keyframe);
                 renderer.peer.OneWay(SurfaceProtocol.Frame, SurfaceProtocol.Encode(header), Context, bytes.Slice(start, length).ToArray());
                 first = false;
             }

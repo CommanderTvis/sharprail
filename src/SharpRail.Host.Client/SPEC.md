@@ -24,16 +24,29 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`),
   `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session),
   `TerminalCatalogAdapters.cs` (`ITerminalCatalogService`; refusals surface as the exceptions the local
-  catalog throws, and a host without the service as `NotSupportedException`) `PluginAdapters.cs` (`IPluginService`) and
-  `HostCalls.cs` (what every unary project and state call shares).
+  catalog throws, and a host without the service as `NotSupportedException`) `PluginAdapters.cs` (`IPluginService`),
+  `IsolatedUIAdapters.cs` (`RemoteIsolatedUIHost`, the remote `IIsolatedUIHost` of external plugins' UI halves) and
+  `HostCalls.cs` (what every unary project and state call shares). The local side of an isolated UI session is the
+  host's `PluginRuntime` itself, so it has no adapter here.
 - Local adapters are pure delegation: no sockets, serialization or copying.
 - Remote adapters own channel setup, the bearer token on every call, per-call
   deadlines, mapping DTOs to Abstractions records, and reconnection.
-- Allowed deps: Abstractions, Protocol, System.Net.WebSockets.
+- Allowed deps: Abstractions, Protocol, System.Net.WebSockets, and `SharpRail.Plugins.Isolation` for the session and
+  surface interfaces and the frame caps the remote isolated UI adapter implements and applies (no Avalonia).
 - Forbidden: Core, Remote, the UI or Avalonia; requesting or persisting
   current-layout state.
 
 ## Behavior
+
+- `RemoteIsolatedUIHost` opens one `SurfaceAsync` call per session (Security.SPEC.md, UI halves). Everything a caller
+  does on a session or surface only queues a message, so the UI thread never waits on the network. Results of the
+  calls it makes into the plugin come back by call id. Every frame is held to the surface protocol's caps again
+  (`SurfaceFrames`) before the client's control sees it; one that breaks them closes that surface with the reason.
+  When the call drops for a transport reason, the session reconnects with the channel's backoff and resumes with its
+  token for up to `Grace` (20 seconds, as the host's): it sends again what the host did not acknowledge and asks every
+  surface for a keyframe, dropping frames until it arrives. A resume the host refuses, or a grace that runs out,
+  ends the session with an `IOException`, so its module tells the app, which opens a new one. Disposing it ends its
+  messages, which closes the session on the host.
 
 - The project adapter maps independent nullable commit lookup through the same local or WebSocket RPC API;
   selecting a graph commit does not require it to occur in a comparison catalog.

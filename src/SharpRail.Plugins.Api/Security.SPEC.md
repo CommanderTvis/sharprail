@@ -368,7 +368,18 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   dispatcher checks the member against the UI member table and the arguments against the API. The host checks only
   the host half of the runner's tables hash; the client refuses a runner whose UI table differs from its own. The
   host's own copy of the UI table, so that a remote client parses only checked messages, is pending.
-- Only the in-process host serves sessions; a remote client keeps an external plugin dormant.
+- A remote client reaches a session over WebSocket RPC (`IPluginRpc.SurfaceAsync`, protocol 19): one call per
+  client and plugin carries the plugin's calls on the client's context, the client's answers and callbacks, and every
+  surface's messages. Each client's session is its own context and its own top-levels in the plugin's one process, so
+  two clients are two sessions in one process. No message of the call passes 1 MiB: the host splits a frame message
+  into several, its moves in the first. A surface still has one frame in flight until the client draws it and
+  acknowledges it, so with 32 KiB chunks a terminal on the same connection waits behind at most one such message per
+  surface. The client holds every frame to the same caps again. A call that drops leaves the session waiting 20
+  seconds for the client: the client resumes it with the token the host gave it, each side sends again the numbered
+  messages the other did not acknowledge (frames are not numbered), and every surface repaints from a keyframe, so
+  the plugin's views keep their state. Past the grace the host ends the session, and the client opens a new one. A
+  client that closes ends its session alone. The shipping compositions leave the app's seam null, so a remote client
+  of a shipping host still keeps an external plugin dormant.
 - Surfaces are real for the local host (`--plugin-surface`). The runner runs the plugin's code on the UI thread of
   Avalonia's stock headless platform with Skia's CPU raster, until the remote backend exists. Each surface is the
   factory's control in its own headless top-level, one per client and mount, at the size and scale the client
@@ -385,8 +396,11 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   speed is not measured yet.
 - The host's relay (`UiSessionRelay`) numbers each surface and holds every frame message to the caps before the
   client sees it: a surface up to 8,192 pixels a side and 16 Mi pixels, tiles of 1 to 256 pixels inside it, at most
-  4,096 tiles and 1 MiB of tile bytes a message, a known codec, bytes that match the tiles, at most 64 moves inside a
-  surface of the previous frame's size, frames in order, and one frame in flight per surface. A frame that breaks
+  4,096 tiles and 1 MiB of tile bytes a message, a known codec, a QOI tile of at most 5 bytes a pixel (so one tile
+  always fits a message), bytes that match the tiles, at most 64 moves inside a
+  surface of the previous frame's size, frames in order, and one frame in flight per surface. A client that lost
+  what it held asks for a keyframe: the relay drops frames sent before the request and takes the keyframe, which
+  repaints the whole surface from transparent, even when the client never took the frame before it. A frame that breaks
   them, or one the host cannot read (null where a list or its item belongs), ends that surface, which shows the
   reason; one that names no surface ends every surface of that client. A client holds at most 64 surfaces in one plugin.
 - The client's `RemoteSurface` decodes off the UI thread and draws 1:1 at device pixels. It pushes its size, scale
@@ -397,12 +411,12 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   control held (scroll position, typed text) starts over.
 - Pending: popups draw inside their surface, clipped to it (the headless platform's overlay popups); DPI changes
   after a surface opens are sent but checked only at scale 1; the cursor shape, IME composition and accessibility
-  are not carried; one process holds one kit theme, the last a client pushed, because the kit's brushes are
-  process-wide; wheel events stay with the surface, since the plugin cannot say whether it used one; keys with
+  are not carried; the terminal delay behind surface traffic is bounded by construction and not measured; one process
+  holds one kit theme, the last a client pushed, because the kit's brushes are process-wide; wheel events stay with the surface, since the plugin cannot say whether it used one; keys with
   Control, Alt or Meta and Escape reach the plugin but also the app's shortcuts; app styles outside the kit (such as
-  the app's `Switch` theme) are absent; `Host()`, `WatchHost` and preference reads still throw; remote clients,
-  per-process memory limits and the browser and Android clients (which compile `RemoteSurface` but get no session)
-  are slice 15 and later.
+  the app's `Switch` theme) are absent; `Host()`, `WatchHost` and preference reads still throw; per-process memory
+  limits are later. The browser and Android clients compile `RemoteSurface` and the remote session, but no browser
+  check runs the fixture yet: that needs a checks-only host with the seam and a browser build with the app's seam set.
 
 ## Calls across the boundary
 

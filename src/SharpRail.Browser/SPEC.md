@@ -11,7 +11,9 @@ parent: group-clients
 The browser runs the same workbench as the desktop remote client. Feature parity is the contract: projects
 and workspaces, docking and windows, files and editable source, resource previews, Git and Review,
 terminal sharing and agent integrations, settings, and builtin plugin UI. External plugins are listed and
-refused, as in the desktop app.
+refused, as in the desktop app. The browser compiles what shows an isolated external plugin's views
+(`RemoteSurface` and the client's `RemoteIsolatedUIHost`), but its composition leaves the seam null, and no browser
+check runs one yet.
 Workspace files, Git, native processes, plugin hosts and shells run exclusively on the connected host.
 The browser contributes connection, browser window surfaces, view-state persistence and platform services.
 

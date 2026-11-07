@@ -332,6 +332,12 @@ internal static class RpcDispatch
                 await stream.Send(await service.ReadFileAsync(request, context));
                 break;
             }
+            case "IPluginRpc/SurfaceAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<PluginRpc>(services);
+                await foreach (var reply in service.SurfaceAsync(stream.Read<PluginSurfaceUp>(), context).WithCancellation(stream.Token)) await stream.Send(reply);
+                break;
+            }
             case "IStateRpc/HandshakeAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<StateRpc>(services);
