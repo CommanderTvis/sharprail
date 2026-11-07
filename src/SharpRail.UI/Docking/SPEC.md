@@ -407,10 +407,14 @@ Ambiguous basenames show their folder on a dimmed second line.
   keeps its direction and its members' proportions, the newcomer taking an equal share; membership is
   exclusive. A member dropped inside its own run reorders the pane, a drop past it takes the member out, and
   a drop that changes nothing is refused. Making a pane is a vertical-strip gesture: the band between a
-  row's insertion quarters, or "Group with" in the tab menu, which offers every other tab of the strip that can join, in strip order, with its tab
-  icon (one candidate is a flat "Group with <title>" row; several share one "Group with" submenu that scrolls under the
-  window height). Choosing a tab joins its pane, or makes one next to it, whatever the distance in the strip; a tab in the
-  same pane or in a full pane is not offered.
+  row's insertion quarters, or "Group with" in the tab menu. That menu offers, in strip order, every other tab of the strip
+  that is on its own (with its tab icon), then after one separator every other tab group of the strip in strip order, named by
+  its shown tab and how many more it holds ("README.md and 2 more"). One entry in all is a flat "Group with <title>" row;
+  several share one "Group with" submenu that scrolls under the window height. Choosing a lone tab makes a tab group next
+  to it; choosing a tab group moves the tab into it, whatever the distance in the strip, as the active tab, and the group it
+  left keeps working (it dissolves below two members). A tab group that is full, and the tab's own, are not offered.
+  Tab groups exist only in the centre strip, so "Group with" never lists side regions; "Move to pane" is a different thing
+  (another dock pane, for tools and terminals) and the centre has only one pane to move a document to.
   Managing one works in either orientation ("Move up/left in this group", "Stack this group" / "Put this
   group in columns", "Show on its own"). Selecting any member shows the whole pane; its dividers commit weights when a drag ends.
 - Each centre group's strip renders nested under the

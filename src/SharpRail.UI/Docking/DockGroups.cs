@@ -704,19 +704,7 @@ public sealed partial class DockSurface
             menu.Items.Add(new Separator());
             if (vertical)
             {
-                // Every other tab of the strip that can join, in strip order. A target whose pane is full cannot take another member.
-                var defaultDirection = CenterTabs?.Invoke().DefaultPaneDirection ?? "horizontal";
-                var offers = new List<ShowWithOffer>();
-                foreach (var candidate in members)
-                {
-                    if (candidate.Id == tab.Id || candidate.IsTool || pane?.TabIds.Contains(candidate.Id) == true) continue;
-                    var targetPane = Session.PaneFor(group.Id, candidate.Id);
-                    if (targetPane is not null && targetPane.TabIds.Count >= DockPane.MaxMembers) continue;
-                    var direction = targetPane?.Direction ?? defaultDirection;
-                    offers.Add(new("GroupWith_" + candidate.Id.Replace(':', '_').Replace('/', '_'), Session.ToolTitle(candidate),
-                        () => Session.GroupTabs(group.Id, tab.Id, candidate.Id, direction), candidate));
-                }
-                AddGroupWith(menu, offers, TabIcon);
+                AddGroupWith(menu, GroupOffers(Session, group.Id, tab, CenterTabs?.Invoke().DefaultPaneDirection ?? "horizontal"), TabIcon);
             }
             if (pane is not null)
             {
@@ -889,7 +877,40 @@ public sealed partial class DockSurface
         flyout.ShowAt(trigger);
     }
 
-    internal sealed record ShowWithOffer(string Name, string Title, Action Run, DockTab? Tab = null);
+    internal sealed record ShowWithOffer(string Name, string Title, Action Run, DockTab? Tab = null, bool IsPane = false);
+
+    /// <summary>
+    /// What "Group with" offers a tab of a strip: first the tabs on their own, in strip order, then, after a separator, every
+    /// other tab group (pane) of the strip in strip order, named by its shown tab and how many more it holds. A tab group
+    /// that is full (<see cref="DockPane.MaxMembers"/>) is not offered, nor is the tab's own; choosing one moves the tab into it.
+    /// </summary>
+    internal static List<ShowWithOffer> GroupOffers(LayoutSession session, string groupId, DockTab tab, string defaultDirection)
+    {
+        var own = session.PaneFor(groupId, tab.Id);
+        var offers = new List<ShowWithOffer>();
+        var seen = new HashSet<string>();
+        var panes = new List<ShowWithOffer>();
+        foreach (var candidate in session.Tabs(groupId))
+        {
+            if (candidate.Id == tab.Id || candidate.IsTool || own?.TabIds.Contains(candidate.Id) == true) continue;
+            var pane = session.PaneFor(groupId, candidate.Id);
+            if (pane is null)
+            {
+                offers.Add(new("GroupWith_" + Sanitized(candidate.Id), session.ToolTitle(candidate),
+                    () => session.GroupTabs(groupId, tab.Id, candidate.Id, defaultDirection), candidate));
+                continue;
+            }
+            if (pane.TabIds.Count >= DockPane.MaxMembers || !seen.Add(pane.Id)) continue;
+            var shown = session.Selected(groupId) is { } selected && pane.TabIds.Contains(selected.Id) ? selected : candidate;
+            panes.Add(new("GroupWith_" + Sanitized(pane.Id), PaneLabel(session.ToolTitle(shown), pane.TabIds.Count),
+                () => session.GroupTabs(groupId, tab.Id, candidate.Id, pane.Direction), shown, true));
+        }
+        offers.AddRange(panes);
+        return offers;
+    }
+
+    internal static string PaneLabel(string title, int members) => members > 1 ? $"{title} and {members - 1} more" : title;
+    private static string Sanitized(string id) => id.Replace(':', '_').Replace('/', '_');
 
     /// <summary>One candidate gets a flat "Group with X" row; several share one "Group with" submenu of their titles and tab icons, capped to the window height so a long list scrolls.</summary>
     internal static void AddGroupWith(ContextMenu menu, IReadOnlyList<ShowWithOffer> offers, Func<DockTab, IBrush, Control?>? tabIcon = null)
@@ -903,8 +924,10 @@ public sealed partial class DockSurface
         else if (offers.Count > 1)
         {
             var parent = new MenuItem { Name = "GroupWithMenu", Header = "Group with" };
-            foreach (var offer in offers)
+            for (var index = 0; index < offers.Count; index++)
             {
+                var offer = offers[index];
+                if (offer.IsPane && index > 0 && !offers[index - 1].IsPane) parent.Items.Add(new Separator());
                 var child = Ui.Menu(offer.Title, offer.Run);
                 child.Name = offer.Name;
                 if (offer.Tab is not null && tabIcon?.Invoke(offer.Tab, Ui.Muted) is { } icon) child.Icon = icon;

@@ -302,6 +302,31 @@ internal static class LayoutChecks
             "Membership is exclusive: joining a second pane leaves the first.");
         Require(!session.GroupTabs(group, "a", "a", "horizontal") && !session.GroupTabs(group, "a", "missing", "horizontal"), "Refuses itself and a missing tab.");
 
+        // "Group with" offers: lone tabs in strip order, then every other tab group (not full, not the tab's own) in strip order.
+        string[] Titles(LayoutSession s, string g, string id) => [.. DockSurface.GroupOffers(s, g, s.Tabs(g).Single(tab => tab.Id == id), "horizontal").Select(offer => offer.Title)];
+        (session, group) = Fresh("a");
+        Require(Titles(session, group, "a").Length == 0, "A strip with one tab offers nothing to group with.");
+        (session, group) = Fresh("a", "b", "c", "d", "e", "f", "g");
+        session.GroupTabs(group, "b", "c", "horizontal");
+        session.GroupTabs(group, "e", "f", "vertical");
+        session.GroupTabs(group, "g", "e", "vertical");
+        Require(Titles(session, group, "a").SequenceEqual(["D", "C and 1 more", "G and 2 more"]),
+            "Lone tabs come first, then one entry per other tab group in strip order, named by a member and how many more.");
+        var offered = DockSurface.GroupOffers(session, group, session.Tabs(group).Single(tab => tab.Id == "a"), "horizontal");
+        Require(offered.Count(offer => offer.IsPane) == 2 && !offered.Take(offered.Count - 2).Any(offer => offer.IsPane), "Tab group entries follow the lone tabs.");
+        offered.Last(offer => offer.IsPane).Run();
+        Require(session.PaneFor(group, "a")!.TabIds.Contains("e") && session.PaneFor(group, "a")!.TabIds.Count == 4 && session.Selected(group)!.Id == "a" && session.PaneFor(group, "b") is not null,
+            "Choosing a tab group moves the tab into it and selects it; the other group is unchanged.");
+        Require(Titles(session, group, "d").SequenceEqual(["C and 1 more"]), "A full tab group is not offered.");
+        Require(Titles(session, group, "c").SequenceEqual(["D"]), "A tab's own group is not offered to it, nor a full one.");
+        // A tab that leaves a two-member group takes it with it: the source group dissolves.
+        (session, group) = Fresh("a", "b", "c", "d");
+        session.GroupTabs(group, "a", "b", "horizontal");
+        session.GroupTabs(group, "c", "d", "horizontal");
+        DockSurface.GroupOffers(session, group, session.Tabs(group).Single(tab => tab.Id == "a"), "horizontal").Single(offer => offer.IsPane).Run();
+        Require(session.View.Panes[group].Count == 1 && session.PaneFor(group, "a")!.TabIds.Count == 3 && session.PaneFor(group, "b") is null,
+            "Moving a tab out of a two-member group dissolves that group.");
+
         (session, group) = Fresh("a", "b", "c");
         session.GroupTabs(group, "a", "b", "horizontal");
         Require(session.Ungroup(group, "a") && !session.View.Panes.ContainsKey(group), "Ungrouping dissolves a pane below two members.");

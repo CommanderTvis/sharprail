@@ -30,6 +30,14 @@ internal static class MenuLayoutChecks
         Require(Build().Items.Count == 0, "No candidate offers no Group with row.");
         var one = Build("Orchestrator").Items.OfType<MenuItem>().ToArray();
         Require(one.Length == 1 && (string?)one[0].Header == "Group with Orchestrator" && one[0].Items.Count == 0, "One candidate keeps a flat Group with row.");
+        var mixed = new ContextMenu();
+        DockSurface.AddGroupWith(mixed, [Offer("B"), Offer("C"), new("GroupWith_pane_x", "A and 2 more", () => { }, null, true), new("GroupWith_pane_y", "D and 1 more", () => { }, null, true)]);
+        var mixedRows = mixed.Items.OfType<MenuItem>().Single().Items;
+        Require(mixedRows.Cast<Control>().Select(item => item is MenuItem row ? (string?)row.Header : "-").SequenceEqual(["B", "C", "-", "A and 2 more", "D and 1 more"]),
+            "Tab group entries follow the lone tabs after one separator.");
+        var onlyPane = new ContextMenu();
+        DockSurface.AddGroupWith(onlyPane, [new("GroupWith_pane_x", "A and 2 more", () => { }, null, true)]);
+        Require(onlyPane.Items.OfType<MenuItem>().Single().Header is "Group with A and 2 more", "A single tab group is a flat row.");
         foreach (var count in new[] { 2, 15 })
         {
             var titles = Enumerable.Range(1, count).Select(index => "Tab " + index).ToArray();
