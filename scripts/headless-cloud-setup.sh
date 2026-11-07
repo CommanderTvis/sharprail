@@ -52,7 +52,8 @@ if ! ldconfig -p | grep -q libicuuc && command -v apt-get > /dev/null; then apt-
 export SHARPRAIL_TOOLCHAINS=managed
 if [ "${SHARPRAIL_WARM:-0}" = 1 ]; then "$bin/sharprail-headless" warm csharp || echo "headless-cloud-setup: warm failed, the first lsp call will install instead" >&2; fi
 
-# Facts the agent needs to call the tools. Neutral on purpose: no advice on when to prefer them. The block is replaced on every run.
+# The launcher's code-intelligence guidance (CorePrompt.LanguageServices), adapted to the headless server: one workspace per process, C# only.
+# The block between the marker lines is replaced on every run. SHARPRAIL_CLAUDE_MD=0 leaves the file alone (for an arm without these tools).
 if [ "${SHARPRAIL_CLAUDE_MD:-1}" = 1 ]; then
   notes=$HOME/.claude/CLAUDE.md
   begin='<!-- sharprail-headless:begin -->'
@@ -61,11 +62,21 @@ if [ "${SHARPRAIL_CLAUDE_MD:-1}" = 1 ]; then
   kept=$(mktemp) && awk -v b="$begin" -v e="$end" '$0 == b { skip = 1 } !skip { print } $0 == e { skip = 0 }' "$notes" > "$kept" && cat "$kept" > "$notes" && rm -f "$kept"
   cat >> "$notes" <<NOTES
 $begin
-## SharpRail MCP server (headless)
-- Tools: lsp_navigate, lsp_diagnostics, lsp_status (language servers), spec_* and blueprint_check.
-- The server's workspace root is the directory Claude Code started it in. Pass file paths relative to that root. The workspace argument is ignored and an absolute path outside the root is refused.
-- The first call after a server start can answer state initializing. Call again. The first C# start downloads the .NET SDK and the server, about 30 seconds or longer.
-- Right after a session starts the server may still be connecting. If the tools are missing, run claude mcp list once and ask again.
+# You are running with headless SharpRail
+
+The MCP server \`sharprail\` gives you code intelligence. Its tools are named mcp__sharprail__<tool>.
+
+## Code intelligence: use \`lsp_navigate\` and \`lsp_diagnostics\`, not grep
+
+grep answers code questions wrongly: it misses implementations, overloads, partial classes and generated code.
+- You MUST use \`lsp_navigate\` for every question about a C# symbol (definition, callers, implementations, shape) before you grep or Read whole files. Use grep ONLY for literals, comments, configuration, documentation and non-code files, or after \`lsp_navigate\` returned incomplete results; then say why in your report.
+- You MUST run \`lsp_diagnostics\` with \`paths\` listing every C# file you edited before you declare the work done. There may be no .NET SDK on this machine, so it is also how you find compile errors. Partial, pending or skipped coverage is not clean.
+- The server's workspace is the directory Claude Code started it in. Its \`workspace\` argument is ignored. Give \`paths\` relative to that directory, for example \`csdemo/Program.cs\` when you work in a subfolder. An absolute path outside it is refused.
+- The \`lsp_*\` tools start the language server a file needs, then may report \`initializing\`: wait and call again, NEVER treat that as "no results" and NEVER fall back silently to grep. The first C# start downloads the .NET SDK and the server and can take a minute or more.
+- Only C# has a language server here. For other file types use grep and Read and say so in your report.
+- Name the symbol, no position needed: \`{"operation": "references", "query": "TypeName"}\` (also \`definition\`, \`implementation\`, \`hover\`); \`Type/Member\` narrows a shared name. \`symbols\` with a \`path\` outlines a file, \`symbolBody\` with a \`path\` and \`query\` reads one member. Explicit \`line\` and \`column\` are zero-based. \`lsp_status\` shows the server state.
+- Subagents do NOT receive this text. When you brief one for code work, put these rules in the brief and say that its final report MUST state how many \`lsp_navigate\` and \`lsp_diagnostics\` calls it made.
+- Right after a session starts the server may still be connecting. If the tools are missing, run \`claude mcp list\` once and ask again.
 $end
 NOTES
   echo "headless-cloud-setup: wrote usage notes to $notes"

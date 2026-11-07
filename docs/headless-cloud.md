@@ -33,7 +33,7 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` an
    - runs `claude mcp add --scope user sharprail ...` if the `claude` CLI is there, else prints the `.mcp.json` below.
 
    `SHARPRAIL_IMAGE_TAG` picks the image. It is a tag or a `sha256:` digest and defaults to `nightly`. `nightly` moves, so pin a `sha-<commit>` tag or a digest for an experiment.
-4. The script also writes a short block of usage facts (relative paths, `initializing`, tools may connect late) between marker lines in `~/.claude/CLAUDE.md`, replacing it on each run and keeping your own text. Set `SHARPRAIL_CLAUDE_MD=0` to skip it. In the first real run the agent's first diagnostics call failed because it used a path relative to the wrong root, which this block now explains.
+4. The script also writes the launcher's code-intelligence guidance, adapted to the headless server (use `lsp_navigate` before grep, run `lsp_diagnostics` on edited files, paths relative to the root, `initializing` means call again, C# only), between marker lines in `~/.claude/CLAUDE.md`. It replaces its own block on each run and keeps your text. Set `SHARPRAIL_CLAUDE_MD=0` to skip it, for example for a run that must not be told to prefer the tools. In the first real run the agent's first diagnostics call used a path relative to the wrong root, which this text now explains.
 5. Optional: commit a `.mcp.json` to the repo too. The docs promise that a repo's `.mcp.json` is loaded in a one-repository session. The server added by `claude mcp add` in the setup script reached the session in the first real run (see the end of this page), but the docs do not promise that, so the committed file is the documented path and a backup.
 
    ```json
