@@ -21,7 +21,7 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` an
    ```bash
    #!/bin/bash
    export SHARPRAIL_WARM=1
-   curl -fsSL https://raw.githubusercontent.com/CommanderTvis/sharprail/5183af2aeeb3b70dcc761057330536eb9e7c6837/scripts/headless-cloud-setup.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/CommanderTvis/sharprail/101a12c2c7e1a1705aeef282658b4d4786b5ec17/scripts/headless-cloud-setup.sh | bash
    ```
 
    Or paste the whole of [scripts/headless-cloud-setup.sh](../scripts/headless-cloud-setup.sh). It is 59 lines, far under the 64 KB limit, and needs `curl`, `jq`, `tar` and `sha256sum`. It does this:
