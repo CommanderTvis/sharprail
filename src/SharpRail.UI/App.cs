@@ -117,7 +117,10 @@ public sealed partial class App : Application
         var width = -1.0;
         for (var pass = 0; pass < 6; pass++)
         {
+            // A parent's invalidation leaves its children's cached measures alone, so the rows would keep the width they had
+            // before the shared shortcut column grew: invalidate every row part too.
             menu.InvalidateMeasure();
+            foreach (var part in menu.GetVisualDescendants().OfType<Avalonia.Layout.Layoutable>()) part.InvalidateMeasure();
             menu.Measure(new Size(limit, double.PositiveInfinity));
             if (Math.Abs(menu.DesiredSize.Width - width) < 0.01) break;
             width = menu.DesiredSize.Width;

@@ -150,6 +150,59 @@ internal static class MenuLayoutChecks
         Console.WriteLine("PASS menu layout: mixed icon, plain and submenu rows fit inside the menu padding");
         LazyTabMenu();
         BottomPadding();
+        ShortcutsFit();
+    }
+
+    // A menu with shortcuts (the editor's language menu): the popup is born wide enough for the widest label, a gap and the widest shortcut, at several font sizes.
+    private static void ShortcutsFit()
+    {
+        const double gap = 16;
+        var cases = new (string Name, (string Label, Avalonia.Input.Key Key, Avalonia.Input.KeyModifiers Modifiers)[] Rows)[]
+        {
+            ("editor language menu", [("Show Quick Fixes", Avalonia.Input.Key.Enter, Avalonia.Input.KeyModifiers.Alt), ("Go to Declaration", Avalonia.Input.Key.B, Avalonia.Input.KeyModifiers.Meta),
+                ("Go to Type Declaration", Avalonia.Input.Key.B, Avalonia.Input.KeyModifiers.Meta | Avalonia.Input.KeyModifiers.Shift), ("Find Usages", Avalonia.Input.Key.F7, Avalonia.Input.KeyModifiers.Alt),
+                ("Start / Retry Language Server", Avalonia.Input.Key.None, Avalonia.Input.KeyModifiers.None)]),
+            ("long labels and long shortcuts", [("Open build definition for the selected project in the workspace", Avalonia.Input.Key.F9, Avalonia.Input.KeyModifiers.Alt | Avalonia.Input.KeyModifiers.Meta | Avalonia.Input.KeyModifiers.Shift | Avalonia.Input.KeyModifiers.Control),
+                ("Go", Avalonia.Input.Key.PageDown, Avalonia.Input.KeyModifiers.Alt | Avalonia.Input.KeyModifiers.Meta)]),
+        };
+        foreach (var (name, rows) in cases)
+            foreach (var fontSize in new[] { 10.0, 13, 16, 22 })
+            {
+                var anchor = new Button { Content = "x", Width = 80, Height = 24 };
+                var window = new Window { Width = 900, Height = 600, Content = anchor, FontSize = fontSize };
+                window.Show();
+                var menu = new ContextMenu { FontSize = fontSize };
+                foreach (var (label, key, modifiers) in rows)
+                {
+                    var item = Ui.Menu(label, () => { });
+                    if (key != Avalonia.Input.Key.None) item.InputGesture = new Avalonia.Input.KeyGesture(key, modifiers);
+                    menu.Items.Add(item);
+                }
+                anchor.ContextMenu = menu;
+                var born = Born(menu);
+                RequestContext(anchor);
+                Dispatcher.UIThread.RunJobs();
+                var bornWidth = born();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Dispatcher.UIThread.RunJobs();
+                var items = menu.Items.OfType<MenuItem>().ToArray();
+                double Width(IEnumerable<string?> texts) => texts.Where(text => !string.IsNullOrEmpty(text)).Select(text => items.SelectMany(item => item.GetVisualDescendants().OfType<TextBlock>())
+                    .First(block => block.Text == text).Bounds.Width).DefaultIfEmpty(0).Max();
+                var labels = Width(items.Select(item => (string?)item.Header));
+                var shortcuts = Width(items.Select(item => item.InputGesture?.ToString()));
+                var needed = Math.Min(labels + gap + shortcuts + items[0].Padding.Left + items[0].Padding.Right + menu.Padding.Left + menu.Padding.Right, menu.MaxWidth);
+                Console.WriteLine($"{name} at {fontSize}: born {bornWidth:0.#}, settled {menu.Bounds.Width:0.#}, needs {needed:0.#} (label {labels:0.#} + shortcut {shortcuts:0.#})");
+                Require(bornWidth >= needed - 0.5 && menu.Bounds.Width >= needed - 0.5, $"{name} at {fontSize}: the popup is born {bornWidth:0.#} wide (settled {menu.Bounds.Width:0.#}) but its labels and shortcuts need {needed:0.#}.");
+                foreach (var item in items.Where(item => item.InputGesture is not null))
+                {
+                    var shortcut = item.GetVisualDescendants().OfType<TextBlock>().First(block => block.Text == item.InputGesture!.ToString());
+                    var right = shortcut.TranslatePoint(new Point(shortcut.Bounds.Width, 0), menu)!.Value.X;
+                    Require(right <= bornWidth - menu.Padding.Right + 0.5, $"{name} at {fontSize}: the shortcut of '{item.Header}' ends at x={right:0.#}, past the popup's {bornWidth:0.#}.");
+                }
+                menu.Close();
+                window.Close();
+            }
+        Console.WriteLine("PASS menu layout: labels and shortcuts fit the popup at several font sizes");
     }
 
     // The terminal tab menu: plugins' rows (an icon among them) arrive as it opens, after the first measure.
