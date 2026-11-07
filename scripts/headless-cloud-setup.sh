@@ -1,7 +1,8 @@
 #!/bin/bash
 # Installs the headless SharpRail binary without Docker and registers it as an MCP server for Claude Code.
 # Made for the setup script of a cloud environment on claude.ai/code. See docs/headless-cloud.md.
-# Environment: SHARPRAIL_IMAGE_TAG (tag or sha256 digest, default nightly), SHARPRAIL_WARM=1 (pre-install the C# server, about 650 MB).
+# Environment: SHARPRAIL_IMAGE_TAG (tag or sha256 digest, default nightly), SHARPRAIL_WARM=1 (pre-install the C# server, about 650 MB),
+# SHARPRAIL_CLAUDE_MD=0 (do not write the usage notes into ~/.claude/CLAUDE.md).
 set -euo pipefail
 
 repo=commandertvis/sharprail
@@ -50,6 +51,25 @@ if ! ldconfig -p | grep -q libicuuc && command -v apt-get > /dev/null; then apt-
 # Outside the image the language servers need the managed .NET SDK, which downloads on first use.
 export SHARPRAIL_TOOLCHAINS=managed
 if [ "${SHARPRAIL_WARM:-0}" = 1 ]; then "$bin/sharprail-headless" warm csharp || echo "headless-cloud-setup: warm failed, the first lsp call will install instead" >&2; fi
+
+# Facts the agent needs to call the tools. Neutral on purpose: no advice on when to prefer them. The block is replaced on every run.
+if [ "${SHARPRAIL_CLAUDE_MD:-1}" = 1 ]; then
+  notes=$HOME/.claude/CLAUDE.md
+  begin='<!-- sharprail-headless:begin -->'
+  end='<!-- sharprail-headless:end -->'
+  mkdir -p "$HOME/.claude" && touch "$notes"
+  kept=$(mktemp) && awk -v b="$begin" -v e="$end" '$0 == b { skip = 1 } !skip { print } $0 == e { skip = 0 }' "$notes" > "$kept" && cat "$kept" > "$notes" && rm -f "$kept"
+  cat >> "$notes" <<NOTES
+$begin
+## SharpRail MCP server (headless)
+- Tools: lsp_navigate, lsp_diagnostics, lsp_status (language servers), spec_* and blueprint_check.
+- The server's workspace root is the directory Claude Code started it in. Pass file paths relative to that root. The workspace argument is ignored and an absolute path outside the root is refused.
+- The first call after a server start can answer state initializing. Call again. The first C# start downloads the .NET SDK and the server, about 30 seconds or longer.
+- Right after a session starts the server may still be connecting. If the tools are missing, run claude mcp list once and ask again.
+$end
+NOTES
+  echo "headless-cloud-setup: wrote usage notes to $notes"
+fi
 
 if command -v claude > /dev/null && claude mcp add --scope user --env SHARPRAIL_TOOLCHAINS=managed --transport stdio sharprail -- "$bin/sharprail-headless" mcp; then
   echo "headless-cloud-setup: registered the MCP server sharprail (user scope)"
