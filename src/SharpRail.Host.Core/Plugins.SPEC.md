@@ -45,7 +45,7 @@ implemented here and never redeclared.
 | `BuiltinPlugins.cs` | Builtin plugin manifests and their optional host modules; PDF preview and file icons are core functionality |
 
 The runtime runs where the host runs: in the app's process for its own host, inside `SharpRail.Host.Remote` for a
-remote host. A remote client never runs a host half. Only builtin host halves run: an external plugin is listed
+remote host, and inside `sharprail-headless` (`SharpRail.Host.Headless`) for headless SharpRail. A remote client never runs a host half. Only builtin host halves run: an external plugin is listed
 and refused, and nothing here loads an assembly at runtime, which keeps the host publishable as NativeAOT.
 
 ## Shared chat contract
@@ -83,7 +83,7 @@ declared wire version, and itself desired, computed dependency-first over the re
 dependency's desiredness is resolved before its dependent reads it. External plugins never auto-enable. An
 enabled external plugin is desired only behind the isolation seam (`PluginHostSeams.Isolation`, below): after the
 dependency check, which gives its reason first, the pass marks it `Refused` with "External plugins are not supported
-in this version." when the seam is null, which it is in `App.cs` and `RemoteServer.Create`. Like a dependency
+in this version." when the seam is null, which it is in `App.cs`, `RemoteServer.Create` and headless SharpRail's `Program.cs`. Like a dependency
 refusal, this one is decided again on every pass, so turning the plugin off returns it to `Disabled`. Activation
 refuses an external entry the same way, so no path reaches its code. Changing a builtin's
 `EnabledByDefault` needs no migration: profiles with an explicit stored `enabled` keep it, profiles without one
@@ -93,7 +93,8 @@ A plugin whose manifest lists the host's kind (`PluginHostSeams.Kind`, default
 `plugin <id> is not available in the Playground`; its dependents follow through the ordinary dependency refusal.
 Every language server plugin except CSS lists `PureWeb`, so a browser tab's catalog holds only `css` (the one server its page runs in a Web Worker). With a non-empty catalog the `lsp_*` MCP tools and the Code intelligence prompt section stay; when the catalog is partial the section names the servers the host provides and says every other file type has none. With an empty catalog the tools and the section are left out. A browser host answers a language request for a file no catalog server owns with `unsupported` before it touches the workspace, a probe or a process. The UI reads the same facts from the roster (`LanguageSupport`): Code Intelligence, its settings page and the language keymap group need at least one available server, and the editor's chords, menu items, quick fixes and status polling run only for files an available server owns. A host with an operating system is unchanged.
 A host of kind `Headless` also refuses every plugin whose manifest `Headless` is not `Yes` (`Undeclared` and `No`), with the reason
-`plugin <id> is not available in headless SharpRail`, and its dependents follow the same way. On such a host `HeadlessEnabledByDefault`, when set,
+`plugin <id> is not available in headless SharpRail`, and its dependents follow the same way. An external plugin is
+held to the same rule; one whose manifest says nothing counts as `No`, and one that says `Yes` is still refused while the seam is null. On such a host `HeadlessEnabledByDefault`, when set,
 replaces `EnabledByDefault`. `BuiltinPlugins.Headless` lists the builtins that declare `Yes`, and a check fails on a builtin that stays `Undeclared`.
 A plugin already active is left alone (the kind never changes during a run). A
 dependency cycle refuses every plugin the topological order could not place (those in the cycle and anything

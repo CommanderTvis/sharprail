@@ -5,6 +5,7 @@ status: active
 title: Headless host, stdio MCP for one workspace
 parent: module-host-core
 depends-on: [module-host-core, module-plugin-api]
+references: [module-plugin-security]
 tags: [headless, mcp, research]
 ---
 
@@ -56,7 +57,9 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
 
 Built from `docker/headless/Dockerfile` by `.github/workflows/container.yml`, published as `ghcr.io/commandertvis/sharprail`.
 
-- Contents: the self-contained, untrimmed publish of this project on `dotnet/runtime-deps` (Ubuntu noble), with `git`, `ca-certificates` and `tzdata`.
+- Contents: the NativeAOT publish of this project (`NativeAot.props`: one native binary beside the `plugins` and `shell-integration` trees and the process-group helpers) on `dotnet/runtime-deps` (Ubuntu noble), with `git`, `ca-certificates` and `tzdata`.
+- Why runtime-deps: the native binary still loads libicu and libssl at run time, and the .NET SDK it installs for language servers needs those, libstdc++ and zlib. That base carries exactly this set.
+- Publish: always under `scripts/mise`, since Linux links with the pinned Zig against glibc 2.31, from a Linux or a macOS host.
 - User and paths: uid 1000, `HOME=/cache/home`, `WORKDIR /workspace`, `VOLUME /cache`.
 - Environment: `SHARPRAIL_TOOLCHAINS=managed`, `SHARPRAIL_MANAGED_CACHE=/cache/managed`, `SHARPRAIL_STATE_DIR=/cache/state`, `SHARPRAIL_ROOT=/workspace`, `DOTNET_NOLOGO=1`, `DOTNET_CLI_TELEMETRY_OPTOUT=1`, and git `safe.directory=*` through `GIT_CONFIG_*`.
 - Entry: `ENTRYPOINT ["sharprail-headless"]`, `CMD ["mcp"]`. No wrapper, so stdin and stdout are the process's own. Run with `-i --init`.
@@ -64,6 +67,18 @@ Built from `docker/headless/Dockerfile` by `.github/workflows/container.yml`, pu
 - Labels: OCI source, description, licenses (`PolyForm-Shield-1.0.0`), revision and created.
 - Tags: `nightly` (overwritten each run) and `sha-<short>`, as multi-arch lists over `-amd64` and `-arm64` tags. arm64 may be missing.
 - No image is pushed unless `scripts/container-smoke.sh` passes on it.
+
+## Plugins and security
+
+This is the third host composition, beside the app's own host and the remote host, and the
+[plugin security spec](../SharpRail.Plugins.Api/Security.SPEC.md#headless-sharprail) covers it.
+
+- It is published as NativeAOT and loads no plugin code of its own: builtin plugins are compiled in.
+- External plugins in `<stateDir>/plugins` are listed and refused: the isolation seam is null here. Once the isolated host half
+  exists, only those whose manifest says `Headless = Yes` run, isolated as on other hosts, host half only. No UI half activates
+  and no surface opens.
+- No prompt can show here. Grants come only from a grants file the user writes in the state directory. An ungranted
+  permissioned call is denied and written to the audit log. Neither the file nor the log exists yet.
 
 ## Tool switches and call log
 

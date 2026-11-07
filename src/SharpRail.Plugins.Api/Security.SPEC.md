@@ -4,7 +4,7 @@ type: module-design
 status: active
 title: Plugin security — one API, an in-process runtime for trusted plugins and a sandboxed one for the rest
 parent: module-plugin-api
-references: [submodule-host-plugins, submodule-ui-plugins, module-plugin-ui-kit]
+references: [submodule-host-plugins, submodule-ui-plugins, module-plugin-ui-kit, module-host-headless]
 tags: [plugins, security]
 ---
 
@@ -77,8 +77,9 @@ flowchart LR
 
 Once no external code loads into SharpRail's own processes, nothing in them needs dynamic assembly loading. The
 host, the remote host and the desktop app are published as real NativeAOT binaries: every package ships the desktop
-app (with its embedded host) and the remote host that way, and nothing else is NativeAOT (see
-[Packages](#packages-ship-nativeaot-binaries)).
+app (with its embedded host) and the remote host that way, the headless image ships `sharprail-headless` that way, and
+nothing else is NativeAOT (see [Packages](#packages-ship-nativeaot-binaries) and
+[Headless SharpRail](#headless-sharprail)).
 
 This comes first and does not wait for the isolated runtime. No external plugin exists yet, so external plugins
 stop loading in-process now: they are still discovered and listed, and refused with a reason until the isolated
@@ -111,7 +112,7 @@ An analyzer build and NativeAOT publishes of the remote host and of the desktop 
 authority. After the analyzer build was clean, the remote host publish reported one site (the IDE bridge's tool
 list, fixed before the app was published), and the desktop app publish reported only reflection bindings in five
 XAML data templates. Those templates were compiled afterwards; the build and `--conformance` cover them, not a
-second publish. What stood in the way, and how each went:
+second publish. The first publish of headless SharpRail (osx-arm64) reported nothing. What stood in the way, and how each went:
 
 1. The WebSocket RPC payload codec was protobuf-net, which builds serializers at run time. Host, remote host and
    clients all used it. A codec generated at build time replaced it and keeps the wire bytes, since a remote host
@@ -162,8 +163,9 @@ fallback. A `pureWeb` host has no external plugins anyway.
 ### Packages ship NativeAOT binaries
 
 The desktop app and the remote host import `NativeAot.props`, which turns `PublishAot` on and keeps symbol, PDB, XML
-and runtimeconfig files out of the publish. NativeAOT replaced the composite ReadyToRun publish they had. The checks
-stay a JIT program, and so does everything else.
+and runtimeconfig files out of the publish. NativeAOT replaced the composite ReadyToRun publish they had. Headless
+SharpRail imports it too, but ships in an image, not a package. The checks stay a JIT program, and so does everything
+else.
 
 - macOS links with Xcode's clang, then signs the bundle as before.
 - Windows links with Visual Studio's C++ linker (`link.exe` and the Windows SDK). Both runner images carry it:
@@ -230,7 +232,8 @@ what changes is that it now covers where each UI half comes from.
 
 Hosts that cannot sandbox run no external plugins. A host that lives in a browser tab (`pureWeb`, the playground)
 has no external plugins at all: discovery is off, the roster lists builtin plugins only, and nothing offers an
-install.
+install. Headless SharpRail has no client, so an external plugin there runs its host half only
+([below](#headless-sharprail)).
 
 The runtime creates the channel (a socketpair or pipe), starts the plugin runner with that one end inherited, and
 applies the sandbox before any plugin code runs. The sandbox forbids opening any other channel. The plugin's
@@ -246,10 +249,37 @@ temporary directories, and seccomp refuses sockets, other processes' memory, `io
 replaced bubblewrap (namespaces and binds), because Ubuntu 24.04 restricts unprivileged user namespaces through
 AppArmor, and the helper needs no external binary and no privilege. The costs: Linux 5.13 at least, and 6.7 for
 Landlock's network rules (below that, seccomp alone blocks sockets); without PID and mount namespaces a plugin can
-learn which paths exist (`stat`) though it cannot read them; whether it works inside containers is unverified. macOS uses a Seatbelt profile generated per plugin (unconfirmed:
+learn which paths exist (`stat`) though it cannot read them; whether it works inside containers, where headless
+SharpRail's image runs, is unverified until the Linux sandbox slice probes it. macOS uses a Seatbelt profile generated per plugin (unconfirmed:
 `sandbox_init` with a generated profile, rather than the App Sandbox, which needs entitlements per binary).
 Windows uses an AppContainer with no capabilities (unconfirmed). A host that cannot apply its sandbox refuses
 external plugins with that as the reason, rather than running them unconfined.
+
+### Headless SharpRail
+
+Headless SharpRail (`sharprail-headless`, see [module-host-headless](../SharpRail.Host.Headless/SPEC.md)) is the third
+host composition, beside the app's own host and the remote host (`RemoteServer.Create`). It serves MCP over stdio for
+one workspace and has no client: no window, no app and no remote client. Its image is `ghcr.io/commandertvis/sharprail`.
+
+- It is published as NativeAOT, like the other two. Its image is not a package, so the packaged gate does not check
+  it. One osx-arm64 publish has run: a 27 MiB binary that answered `check-config`, initialize, tools/list and three
+  tool calls. No Linux binary has been built yet.
+- It runs as `HostKind.Headless`. A builtin plugin runs there only when its manifest says `Headless = Yes`, and a
+  plugin that depends on a refused one is refused too ([Plugins](../SharpRail.Host.Core/Plugins.SPEC.md)).
+- External plugins in `<stateDir>/plugins` are found and listed, and refused for now: the isolation seam is null there.
+  Once the isolated host half exists, an external plugin runs there only when its manifest says `Headless = Yes`. A
+  manifest that says nothing counts as `No`. Such a plugin is isolated exactly as on other hosts: one sandboxed process,
+  the same broker, protected set and audit log. Only its host half runs. There is no client, so no UI half activates
+  and no surface opens.
+- No app draws a prompt. A plugin's grants come only from a grants file the user writes in the headless state
+  directory (`SHARPRAIL_STATE_DIR`, else `~/.sharprail/headless`). Enabling a plugin grants nothing there, not even the
+  enable-time set. A permissioned call without a grant in the file is denied at once, with no prompt and no wait, and
+  is written to the audit log. A full-trust grant needs its own explicit entry in the file, like any other grant. The
+  file sits in the state directory, so it is in the protected set. Its format, and how an entry is bound to the
+  plugin's content hash, are settled by the grants slice; neither exists yet.
+- The sandbox applies inside a container too: the image confines a plugin with `sharprail-confine` like any Linux
+  host. Whether Landlock and seccomp work inside a container is unverified until the Linux sandbox slice probes it.
+  A container that cannot apply the sandbox refuses external plugins with that reason, as any host does.
 
 ### The channel and the runner process
 
@@ -315,7 +345,7 @@ non-collectible load contexts never did. Memory and CPU limits apply per process
 An external plugin with a UI half and no host half runs isolated in the checks (`--plugin-isolated-ui`, with the
 outsider fixture installed from disk). Shipping compositions do not run it: the host's seam
 (`PluginHostSeams.Isolation`) and the app's (`Workbench.IsolatedPlugins`) are null in `App.cs` and
-`RemoteServer.Create`, and only the checks set them.
+`RemoteServer.Create`, the host's seam is null in headless SharpRail's `Program.cs`, and only the checks set them.
 
 - With the seam, an enabled external plugin with only a UI half is no longer refused. Refusals remain, each with
   its reason: no seam, no runner, a seam that requires a sandbox (none is applied yet, so only the checks' seam,
@@ -699,6 +729,9 @@ open handle wider than what it asked for.
 
 Every use of a permissioned member is written to a per-plugin audit log the user can open from the plugin's
 Settings card. Network, process and terminal use also show a live indicator on that card.
+
+Headless SharpRail has no app, so it has no prompt and no Settings card. It grants from a file instead
+([below](#headless-sharprail)).
 
 ## UI halves
 
