@@ -70,7 +70,7 @@ With `SHARPRAIL_LOG=1` the server writes `.sharprail/runs/<session>.jsonl` insid
 ### Where the binary can come from
 
 - Image layers from ghcr.io with plain `curl` (what the script does): no Docker, needs the two registry domains above.
-- A GitHub release asset: a `sharprail-headless-linux-x64.tar.gz` of `dotnet publish src/SharpRail.Host.Headless -c Release -r linux-x64 --self-contained -p:PublishSingleFile=false`, uploaded with `gh release upload <tag> <file>`. Only `github.com` and `release-assets.githubusercontent.com` are needed, both in the default list. It does not exist yet.
+- A GitHub release asset: a `sharprail-headless-linux-x64.tar.gz` of `sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r linux-x64`, uploaded with `gh release upload <tag> <file>`. Only `github.com` and `release-assets.githubusercontent.com` are needed, both in the default list. It does not exist yet.
 - A build from source in the VM: needs the .NET SDK (not pre-installed) and a long build, so it is not worth it.
 
 ## Publishing the image
@@ -78,8 +78,8 @@ With `SHARPRAIL_LOG=1` the server writes `.sharprail/runs/<session>.jsonl` insid
 Done by hand on an Apple silicon Mac with Apple `container` (the user is logged in with `container registry login ghcr.io`). From a checkout of the commit to publish:
 
 ```sh
-dotnet publish src/SharpRail.Host.Headless -c Release -r linux-x64 --self-contained -p:PublishSingleFile=false -o artifacts/headless/linux-amd64
-dotnet publish src/SharpRail.Host.Headless -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=false -o artifacts/headless/linux-arm64
+sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r linux-x64 -o artifacts/headless/linux-amd64
+sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r linux-arm64 -o artifacts/headless/linux-arm64
 SHA=$(git rev-parse --short=8 HEAD)
 container build -f docker/headless/Dockerfile --platform linux/arm64,linux/amd64 \
   --build-arg REVISION=$(git rev-parse HEAD) --build-arg CREATED=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
@@ -89,7 +89,7 @@ container image push ghcr.io/commandertvis/sharprail:nightly
 container image push ghcr.io/commandertvis/sharprail:sha-$SHA
 ```
 
-The Dockerfile picks `artifacts/headless/linux-<TARGETARCH>` by itself. One build makes one manifest list. The `apt-get` step of the amd64 build runs under Rosetta and works. A push can end with a flaky `XPC connection error`: run it again.
+The binary is NativeAOT, so the publishes run under `scripts/mise`: the pinned Zig links the Linux binaries on the Mac. The Dockerfile picks `artifacts/headless/linux-<TARGETARCH>` by itself. One build makes one manifest list. The `apt-get` step of the amd64 build runs under Rosetta and works. A push can end with a flaky `XPC connection error`: run it again.
 
 ## Verified and unverified
 
@@ -105,6 +105,7 @@ Verified on a real cloud VM (claude.ai/code, first run, 2026-11-07, environment 
 - The first message in the session, sent right after start, got "no SharpRail tools". That was timing: the MCP server connects after the session starts. A later message ran `claude mcp list`, which showed `sharprail: /root/.local/bin/sharprail-headless mcp - Connected`, and the agent then called the tools: all 11 were listed (`lsp_status`, `lsp_navigate`, `lsp_diagnostics`, the seven `spec_*` tools and `blueprint_check`), and `lsp_status` returned `state: ready` with no language server configured, because the working directory `/home/user` had no project files. So a user-scope server added by the setup script does reach the session, and the amd64 binary starts on a real x86_64 machine. Tell the agent to check `/mcp` or `claude mcp list` once before the first real task.
 
 Unverified:
+- The NativeAOT binary on Linux. Everything verified above ran the earlier JIT build. The native binary has run only on macOS (arm64): `check-config`, initialize, tools/list and three tool calls. The next image built by hand is its first Linux run.
 - Everything on a real cloud VM beyond the setup script above, including the amd64 binary starting there (the setup script does not start it).
 - Whether `builds.dotnet.microsoft.com`, `pkg-containers.githubusercontent.com` and `globalcdn.nuget.org` are the only extra domains needed. They are what the code and the registry redirect use, and none is in the default list.
 - Whether `.mcp.json` expands `${HOME}` there, and whether the server's working directory is the repo root.

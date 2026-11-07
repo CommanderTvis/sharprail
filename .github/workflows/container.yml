@@ -68,7 +68,7 @@ jobs:
             echo "sha=$sha"
             echo "local=sharprail-headless:${{ matrix.arch }}"
           } >> "$GITHUB_OUTPUT"
-      - run: sh scripts/ci-run.sh "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=false -o artifacts/headless/${{ matrix.rid }}
+      - run: sh scripts/ci-run.sh "Publish headless ${{ matrix.rid }}" sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r ${{ matrix.rid }} -o artifacts/headless/${{ matrix.rid }}
       - run: >
           sh scripts/ci-run.sh "Build image ${{ matrix.arch }}" docker build
           -f docker/headless/Dockerfile

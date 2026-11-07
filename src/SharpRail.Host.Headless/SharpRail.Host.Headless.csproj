@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- A console host: no web server, no window. It reaches only Host.Core; BoundaryChecks and the headless check fail on any UI reference. -->
+  <Import Project="../../NativeAot.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>sharprail-headless</AssemblyName>

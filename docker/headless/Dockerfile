@@ -1,20 +1,23 @@
 # syntax=docker/dockerfile:1
 # The headless SharpRail image: `sharprail-headless mcp` over stdio. The contract is in src/SharpRail.Host.Headless/SPEC.md.
 #
-# CI publishes the app outside Docker, once per architecture on a native runner, and builds the default target (prebuilt):
-#   dotnet publish src/SharpRail.Host.Headless -c Release -r linux-<arch> --self-contained -p:PublishSingleFile=false -o artifacts/headless/linux-<arch>
+# sharprail-headless is a NativeAOT binary (NativeAot.props). Linux links with the pinned Zig against glibc 2.31, so every
+# publish runs under scripts/mise, from a Linux or a macOS host. CI publishes outside Docker, once per architecture, and
+# builds the default target (prebuilt):
+#   sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r linux-<arch> -o artifacts/headless/linux-<arch>
 #   docker build -f docker/headless/Dockerfile --build-arg PUBLISH_DIR=artifacts/headless/linux-<arch> -t sharprail .
-# For local use from a checkout, the "local" target publishes inside the SDK image instead:
+# For local use from a checkout, the "local" target publishes inside the SDK image instead, through the same scripts/mise:
 #   docker build -f docker/headless/Dockerfile --target local -t sharprail .
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS publish
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403 AS publish
 ARG TARGETARCH
 WORKDIR /src
 COPY . .
 RUN case "$TARGETARCH" in amd64) rid=linux-x64 ;; arm64) rid=linux-arm64 ;; *) echo "unsupported architecture $TARGETARCH" >&2; exit 1 ;; esac \
-    && dotnet publish src/SharpRail.Host.Headless -c Release -r "$rid" --self-contained -p:PublishSingleFile=false -o /out
+    && sh scripts/mise x -- dotnet publish src/SharpRail.Host.Headless -c Release -r "$rid" -o /out
 
-# runtime-deps carries what a self-contained app needs (libicu, libssl, libstdc++, zlib), and the downloaded .NET SDKs need the same.
+# The native binary still loads libicu (globalization) and libssl (HTTPS for installs) at run time, and the .NET SDK it
+# downloads for language servers needs those and libstdc++ and zlib too. runtime-deps carries exactly that set.
 FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble AS base
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates tzdata \

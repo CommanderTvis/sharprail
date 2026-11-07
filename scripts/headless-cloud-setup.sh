@@ -45,7 +45,7 @@ fi
 mkdir -p "$bin" && ln -sf "$dest/app/sharprail-headless" "$bin/sharprail-headless"
 echo "headless-cloud-setup: installed $bin/sharprail-headless"
 
-# The self-contained app needs libicu (the image's runtime-deps base has it, a bare Ubuntu does not).
+# The app needs libicu (the image's runtime-deps base has it, a bare Ubuntu does not).
 if ! ldconfig -p | grep -q libicuuc && command -v apt-get > /dev/null; then apt-get install -y --no-install-recommends libicu74 || echo "headless-cloud-setup: could not install libicu74" >&2; fi
 
 # Outside the image the language servers need the managed .NET SDK, which downloads on first use.
