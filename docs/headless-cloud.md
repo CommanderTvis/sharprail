@@ -16,12 +16,12 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` an
    ```
 
    `pkg-containers.githubusercontent.com` serves the image layers behind `ghcr.io`. The last two are for the pinned .NET SDK and the C# language server, which download on the first `lsp_*` call (or in `warm`). Without them the tools answer `initializing` and never become ready.
-3. Open **Setup script** and paste the short version. It downloads the script from the repo, pinned to a commit. Replace `<commit>` with a commit that contains `scripts/headless-cloud-setup.sh`.
+3. Open **Setup script** and paste the short version. It downloads the script from the repo, pinned to a commit. The commit shown contains `scripts/headless-cloud-setup.sh`; use a newer one to get later fixes.
 
    ```bash
    #!/bin/bash
    export SHARPRAIL_WARM=1
-   curl -fsSL https://raw.githubusercontent.com/CommanderTvis/sharprail/<commit>/scripts/headless-cloud-setup.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/CommanderTvis/sharprail/2acf7693325194e18d06ba09dc157b862de03b2b/scripts/headless-cloud-setup.sh | bash
    ```
 
    Or paste the whole of [scripts/headless-cloud-setup.sh](../scripts/headless-cloud-setup.sh). It is 59 lines, far under the 64 KB limit, and needs `curl`, `jq`, `tar` and `sha256sum`. It does this:
