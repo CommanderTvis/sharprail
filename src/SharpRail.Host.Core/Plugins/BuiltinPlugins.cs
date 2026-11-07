@@ -121,14 +121,10 @@ public static class BuiltinPlugins
         _ => throw new ArgumentOutOfRangeException(nameof(plugin))
     };
 
-    /// <summary>The plugins a host with no window, terminal or agent runs: the spec graph, Blueprint and the language servers.
-    /// Spec graph and Blueprint are off by default on a desktop; here they are on, unless the host's stored settings say otherwise.</summary>
+    /// <summary>The plugins a host with no window, terminal or agent runs: the builtins whose manifest declares <see cref="HeadlessSupport.Yes"/>.
+    /// The roster follows the declaration, and the runtime of a headless host refuses any other plugin too.</summary>
     public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Headless =>
-    [
-        (SpecDialectManifest.Manifest with { EnabledByDefault = true }, new SpecDialectHost()),
-        (BlueprintContract.Manifest with { EnabledByDefault = true }, new BlueprintHost()),
-        .. LanguageServerEntries
-    ];
+        [.. Create(null).Where(plugin => plugin.Manifest.Headless == HeadlessSupport.Yes)];
 
     public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> Create(TailscaleServing? tailscale) =>
     [

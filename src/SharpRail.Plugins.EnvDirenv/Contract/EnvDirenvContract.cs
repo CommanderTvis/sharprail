@@ -21,6 +21,7 @@ public static class EnvDirenvContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Gives every terminal and agent the environment of the workspace's .envrc through direnv, including a new worktree's.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
         Host = "SharpRail.Plugins.EnvDirenv.Host.dll"
     };

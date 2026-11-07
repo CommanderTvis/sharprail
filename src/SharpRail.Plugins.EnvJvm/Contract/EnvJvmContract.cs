@@ -21,6 +21,7 @@ public static class EnvJvmContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Points JAVA_HOME and PATH at the JDK a workspace's .sdkmanrc or .java-version (jenv) chooses, in every terminal and agent.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
         Host = "SharpRail.Plugins.EnvJvm.Host.dll"
     };

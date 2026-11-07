@@ -324,9 +324,10 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
                 (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Disabled, null, false);
             foreach (var entry in order)
             {
-                var wanted = Enabled(entry, settings);
+                var wanted = Enabled(entry, settings, Seams.Kind);
                 if (entry is { State: PluginStatus.Failed } && !wanted) (entry.State, entry.Reason) = (PluginStatus.Disabled, null);
-                if (entry.State is not (PluginStatus.Active or PluginStatus.Refused) && entry.Manifest.UnavailableOn.Contains(Seams.Kind))
+                if (entry.State is not (PluginStatus.Active or PluginStatus.Refused) &&
+                    (entry.Manifest.UnavailableOn.Contains(Seams.Kind) || Seams.Kind == HostKind.Headless && entry.Manifest.Headless != HeadlessSupport.Yes))
                     (entry.State, entry.Reason) = (PluginStatus.Refused, $"plugin {entry.Id} is not available {KindName(Seams.Kind)}");
                 if (entry.State == PluginStatus.Refused) { desired[entry.Id] = false; continue; }
                 var blocker = entry.Manifest.DependsOn.Select(dependency => Blocker(dependency, desired)).FirstOrDefault(reason => reason is not null);
@@ -362,7 +363,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             if (desired.GetValueOrDefault(entry.Id) || entry.State != PluginStatus.Active && entry.Activation is null) continue;
             await DeactivateAsync(entry);
             lock (gate)
-                if (entry.State == PluginStatus.Disabled && Enabled(entry, settings) &&
+                if (entry.State == PluginStatus.Disabled && Enabled(entry, settings, Seams.Kind) &&
                     entry.Manifest.DependsOn.Select(dependency => Blocker(dependency, desired)).FirstOrDefault(reason => reason is not null) is { } blocker)
                     (entry.State, entry.Reason, entry.PassRefused) = (PluginStatus.Refused, blocker, true);
             Publish();
@@ -370,12 +371,12 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         Publish();
     }
 
-    private static bool Enabled(PluginEntry entry, IReadOnlyDictionary<string, JsonElement> settings) =>
+    private static bool Enabled(PluginEntry entry, IReadOnlyDictionary<string, JsonElement> settings, HostKind kind) =>
         settings.TryGetValue(entry.Id, out var space) && space.ValueKind == JsonValueKind.Object && space.TryGetProperty("enabled", out var flag)
             ? flag.ValueKind == JsonValueKind.True
-            : entry.Origin == PluginOrigin.Builtin && entry.Manifest.EnabledByDefault;
+            : entry.Origin == PluginOrigin.Builtin && (kind == HostKind.Headless && entry.Manifest.HeadlessEnabledByDefault is { } headless ? headless : entry.Manifest.EnabledByDefault);
 
-    private static string KindName(HostKind kind) => kind == HostKind.PureWeb ? "in the Playground" : "on this host";
+    private static string KindName(HostKind kind) => kind switch { HostKind.PureWeb => "in the Playground", HostKind.Headless => "in headless SharpRail", _ => "on this host" };
 
     // Why a dependency keeps its dependent off, or null when it is usable: known, not failed or refused, at the
     // declared wire version, and itself desired this pass.
@@ -841,7 +842,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         // startup is not refused as naming an unknown server.
         if (!started.IsCompleted)
             lock (gate)
-                return [.. registry.All.Where(entry => entry.Origin == PluginOrigin.Builtin && Enabled(entry, Seams.State.Current.PluginSettings))
+                return [.. registry.All.Where(entry => entry.Origin == PluginOrigin.Builtin && Enabled(entry, Seams.State.Current.PluginSettings, Seams.Kind))
                     .Select(entry => entry.Module).OfType<LanguageServerPlugin>().Select(plugin => plugin.Spec)];
         return ActiveLanguageServerSpecs();
     }

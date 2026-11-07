@@ -13,6 +13,7 @@ public static class ClaudeCodeManifest
         UnavailableOn = [HostKind.PureWeb],
         Description = "Runs Claude Code in the terminal with an IDE bridge and live status.",
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Assets = "assets",
         Contributes = new()
         {

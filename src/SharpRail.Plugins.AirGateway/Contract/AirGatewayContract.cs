@@ -174,6 +174,7 @@ public static class AirGatewayContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Starts Codex and Claude Code through JetBrains Air Gateway with the Central CLI, per launch, or leaves them on their own accounts.",
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.AirGateway.Host.dll",
         Ui = "SharpRail.Plugins.AirGateway.UI.dll"
     };

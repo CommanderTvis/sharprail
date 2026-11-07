@@ -44,6 +44,7 @@ public static class EpubContract
         Category = PluginCategories.Documents,
         Description = "Opens .epub books in a reader with a table of contents, scrolling and paginated modes, and search.",
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Epub.Host.dll",
         Ui = "SharpRail.Plugins.Epub.UI.dll",
         Contributes = new() { FileViewers = [new() { Extensions = ["epub"], Read = PluginFileRead.None }] }

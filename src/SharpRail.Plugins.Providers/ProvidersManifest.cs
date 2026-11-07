@@ -13,6 +13,7 @@ public static class ProvidersManifest
         Description = "Adds the API keys of any model provider to Pi and omp, in the files each of them reads.",
         Support = PluginSupportLevels.Early,
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Providers.Host.dll",
         Ui = "SharpRail.Plugins.Providers.UI.dll",
         Assets = "assets"

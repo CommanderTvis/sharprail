@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Host.Headless;
+using SharpRail.Plugins.Api;
 
 // stdout carries protocol frames only: keep the real stream for them and send anything a library prints to stderr.
 var frames = Console.OpenStandardOutput();
@@ -58,7 +59,7 @@ catch (Exception error) when (error is IOException or UnauthorizedAccessExceptio
     return Fail($"The state directory {stateDirectory} cannot be used: {error.Message}");
 }
 
-var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = BuiltinPlugins.Headless });
+var plugins = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = BuiltinPlugins.Headless, Kind = HostKind.Headless });
 await plugins.Start();
 if (command == "warm") return await WarmAsync();
 var language = LanguageMcpTools.Create(state, workspace);

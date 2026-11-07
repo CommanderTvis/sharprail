@@ -15,6 +15,7 @@ public sealed class CssPlugin() : LanguageServerPlugin(Id)
         Category = PluginCategories.Css,
         Description = "Provides the CSS (VS Code) language server to code intelligence.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.Yes,
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Css.dll"
     };

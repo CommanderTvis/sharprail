@@ -17,6 +17,7 @@ public sealed class KotlinPlugin() : LanguageServerPlugin(Id)
         UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the Kotlin (Kotlin LS) language server to code intelligence.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.Yes,
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Kotlin.dll"
     };

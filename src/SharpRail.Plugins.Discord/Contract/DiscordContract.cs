@@ -62,6 +62,7 @@ public static class DiscordPlugin
         UnavailableOn = [HostKind.PureWeb],
         Description = "Shows what you're working on as Discord Rich Presence.",
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Assets = "assets",
         Host = "SharpRail.Plugins.Discord.Host.dll",
         Ui = "SharpRail.Plugins.Discord.UI.dll"

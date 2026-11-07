@@ -30,6 +30,7 @@ public static class EnvContract
         Category = PluginCategories.Environment,
         Description = "Orders and merges the workspace environment steps of the mise, direnv, Python, JavaScript and JVM plugins, and shows the environments applied to a workspace's terminals as chips under each terminal.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Env.Host.dll",
         Ui = "SharpRail.Plugins.Env.UI.dll"
     };

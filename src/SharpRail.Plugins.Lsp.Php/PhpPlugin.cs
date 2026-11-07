@@ -17,6 +17,7 @@ public sealed class PhpPlugin() : LanguageServerPlugin(Id)
         UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the PHP (Intelephense) language server to code intelligence.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.Yes,
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Php.dll"
     };

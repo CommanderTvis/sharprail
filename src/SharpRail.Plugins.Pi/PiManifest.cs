@@ -13,6 +13,7 @@ public static class PiManifest
         Description = "Chats with the Pi coding agent over its RPC mode, with the model providers Pi is signed in to.",
         Support = PluginSupportLevels.Early,
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Pi.Host.dll",
         Ui = "SharpRail.Plugins.Pi.UI.dll",
         Assets = "assets",

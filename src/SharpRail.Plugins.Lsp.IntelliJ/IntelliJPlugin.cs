@@ -15,6 +15,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         UnavailableOn = [HostKind.PureWeb],
         Description = "Provides the Java / Kotlin (IntelliJ) language server to code intelligence.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.IntelliJ.dll"
     };

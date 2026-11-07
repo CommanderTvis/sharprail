@@ -16,6 +16,7 @@ public static class OmpManifest
         Description = "Runs the omp coding agent in the terminal with SharpRail's MCP tools and shows its context files.",
         Support = PluginSupportLevels.Early,
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Omp.Host.dll",
         Ui = "SharpRail.Plugins.Omp.UI.dll",
         Assets = "assets",

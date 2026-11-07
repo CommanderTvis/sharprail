@@ -45,6 +45,19 @@ public sealed record PluginManifest(string Id, string Label, string Icon, string
     /// </summary>
     public IReadOnlyList<HostKind> UnavailableOn { get; set; } = [];
 
+    /// <summary>
+    /// Whether the plugin works in headless SharpRail, which has no window, terminal or agent of its own. A headless host
+    /// runs only plugins that say <see cref="HeadlessSupport.Yes"/>, and refuses a dependent of a plugin it does not run.
+    /// A builtin plugin must state it, so the default <see cref="HeadlessSupport.Undeclared"/> fails a check.
+    /// </summary>
+    public HeadlessSupport Headless { get; init; }
+
+    /// <summary>
+    /// Replaces <see cref="EnabledByDefault"/> on a headless host when set. A headless plugin still has to be enabled,
+    /// and this lets one start on there although a desktop leaves it off.
+    /// </summary>
+    public bool? HeadlessEnabledByDefault { get; init; }
+
     /// <summary>Other plugins this one is built on, by id and exact wire version; see <see cref="PluginDependency"/>.</summary>
     public IReadOnlyList<PluginDependency> DependsOn { get; set; } = [];
 

@@ -13,6 +13,7 @@ public static class AcpManifest
         Description = "Early support: chats with any Agent Client Protocol agent from the public ACP registry, or one you add yourself.",
         Support = PluginSupportLevels.Early,
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Acp.Host.dll",
         Assets = "assets",
         UnavailableOn = [HostKind.PureWeb]

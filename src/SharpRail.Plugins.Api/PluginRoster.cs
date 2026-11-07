@@ -137,5 +137,24 @@ public enum HostKind
     OperatingSystem,
 
     /// <summary>A host that lives entirely in a browser tab, with no operating system under it.</summary>
-    PureWeb
+    PureWeb,
+
+    /// <summary>A console host with an operating system but no window, terminal or agent of its own; it runs only the plugins that declare <see cref="HeadlessSupport.Yes"/>.</summary>
+    Headless
+}
+
+/// <summary>
+/// Whether a plugin works in headless SharpRail. A builtin plugin must state it, so a new plugin forces a conscious choice;
+/// an external plugin that does not is treated as <see cref="No"/>.
+/// </summary>
+public enum HeadlessSupport
+{
+    /// <summary>Not decided yet. A headless host does not run the plugin, and a check fails for a builtin that stays here.</summary>
+    Undeclared,
+
+    /// <summary>The plugin needs a window, terminal, sign-in or agent launch, or does nothing for an agent without them.</summary>
+    No,
+
+    /// <summary>The plugin works without a window: it only adds tools or services useful to an agent. A headless host runs it once enabled.</summary>
+    Yes
 }

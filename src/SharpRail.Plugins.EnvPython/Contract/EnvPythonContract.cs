@@ -21,6 +21,7 @@ public static class EnvPythonContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Activates the workspace's own .venv in every terminal and agent.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
         Host = "SharpRail.Plugins.EnvPython.Host.dll"
     };

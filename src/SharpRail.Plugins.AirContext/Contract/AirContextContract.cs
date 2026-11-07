@@ -48,6 +48,7 @@ public static class AirContextContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Semantic code search through JetBrains Air Context; indexing is cloud processing that you enable per project.",
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Assets = "assets",
         Host = "SharpRail.Plugins.AirContext.Host.dll",
         Ui = "SharpRail.Plugins.AirContext.UI.dll"

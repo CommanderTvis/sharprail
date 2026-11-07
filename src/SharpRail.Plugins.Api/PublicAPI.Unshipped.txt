@@ -49,6 +49,11 @@ override SharpRail.Plugins.Api.TerminalRef.ToString() -> string!
 SharpRail.Plugins.Api.HostKind
 SharpRail.Plugins.Api.HostKind.OperatingSystem = 0 -> SharpRail.Plugins.Api.HostKind
 SharpRail.Plugins.Api.HostKind.PureWeb = 1 -> SharpRail.Plugins.Api.HostKind
+SharpRail.Plugins.Api.HostKind.Headless = 2 -> SharpRail.Plugins.Api.HostKind
+SharpRail.Plugins.Api.HeadlessSupport
+SharpRail.Plugins.Api.HeadlessSupport.Undeclared = 0 -> SharpRail.Plugins.Api.HeadlessSupport
+SharpRail.Plugins.Api.HeadlessSupport.No = 1 -> SharpRail.Plugins.Api.HeadlessSupport
+SharpRail.Plugins.Api.HeadlessSupport.Yes = 2 -> SharpRail.Plugins.Api.HeadlessSupport
 SharpRail.Plugins.Api.HostPlatform
 SharpRail.Plugins.Api.HostPlatform.Linux = 1 -> SharpRail.Plugins.Api.HostPlatform
 SharpRail.Plugins.Api.HostPlatform.MacOS = 0 -> SharpRail.Plugins.Api.HostPlatform
@@ -510,6 +515,10 @@ SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.get -> string!
 SharpRail.Plugins.Api.InstructionSectionsChanged.ProjectRoot.init -> void
 SharpRail.Plugins.Api.PluginManifest.Support.get -> string?
 SharpRail.Plugins.Api.PluginManifest.Support.init -> void
+SharpRail.Plugins.Api.PluginManifest.Headless.get -> SharpRail.Plugins.Api.HeadlessSupport
+SharpRail.Plugins.Api.PluginManifest.Headless.init -> void
+SharpRail.Plugins.Api.PluginManifest.HeadlessEnabledByDefault.get -> bool?
+SharpRail.Plugins.Api.PluginManifest.HeadlessEnabledByDefault.init -> void
 SharpRail.Plugins.Api.PluginManifest.UnavailableOn.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostKind>!
 SharpRail.Plugins.Api.PluginManifest.UnavailableOn.set -> void
 SharpRail.Plugins.Api.PluginRosterEntry.Support.get -> string?

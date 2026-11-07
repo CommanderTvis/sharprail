@@ -21,6 +21,7 @@ public static class EnvMiseContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Gives every terminal and agent the tools and variables of the workspace's mise configuration, including a new worktree's.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
         Host = "SharpRail.Plugins.EnvMise.Host.dll"
     };

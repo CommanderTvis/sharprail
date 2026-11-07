@@ -35,6 +35,7 @@ public static class TailscaleContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Pairs clients on your tailnet without copying IP addresses, ports or session tokens.",
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Assets = "assets",
         Host = "SharpRail.Plugins.Tailscale.Host.dll",
         Ui = "SharpRail.Plugins.Tailscale.UI.dll"

@@ -167,6 +167,7 @@ internal static partial class PluginHostChecks
         await Registry(Path.Combine(directory, "registry"));
         await HostKinds(Path.Combine(directory, "host-kinds"));
         await LanguageServersByHostKind(Path.Combine(directory, "language-host-kinds"));
+        await HeadlessClassification(Path.Combine(directory, "headless"));
         await Activation(Path.Combine(directory, "activation"));
         await Reconciler(Path.Combine(directory, "reconciler"));
         await Dispatch(Path.Combine(directory, "dispatch"));
@@ -308,6 +309,64 @@ internal static partial class PluginHostChecks
             "The same plugins all run on a host with an operating system.");
         Console.WriteLine("PASS plugin host kinds: UnavailableOn refuses a plugin and its dependents on a pure web host and nothing on an OS host");
     }
+
+    private static async Task HeadlessClassification(string directory)
+    {
+        var all = BuiltinPlugins.Create(null);
+        var undeclared = all.Where(plugin => plugin.Manifest.Headless == HeadlessSupport.Undeclared).Select(plugin => plugin.Manifest.Id).ToArray();
+        Require(undeclared.Length == 0, "Every builtin plugin must state its headless decision (Headless = HeadlessSupport.Yes or No): " + string.Join(", ", undeclared));
+        Require(all.Select(plugin => plugin.Manifest.Id).Distinct().Count() == all.Count && BuiltinPlugins.LanguageServers.Count == 18 && all.Count == 41, "The builtin roster changed: classify the new plugin, then update this pin.");
+        var declared = all.Where(plugin => plugin.Manifest.Headless == HeadlessSupport.Yes).Select(plugin => plugin.Manifest.Id).Order().ToArray();
+        var headless = BuiltinPlugins.Headless;
+        Require(headless.Select(plugin => plugin.Manifest.Id).Order().SequenceEqual(declared), "The headless roster is not exactly the plugins that declare Headless = Yes.");
+        string[] expected = ["blueprint", "lsp-clangd", "lsp-csharp", "lsp-css", "lsp-dart", "lsp-go", "lsp-java", "lsp-kotlin", "lsp-php", "lsp-powershell", "lsp-python", "lsp-r", "lsp-ruby", "lsp-rust", "lsp-scala", "lsp-shell", "lsp-swift", "lsp-typescript", "spec-dialect"];
+        Require(declared.SequenceEqual(expected), "The headless set changed: " + string.Join(", ", declared));
+        var byId = all.ToDictionary(plugin => plugin.Manifest.Id, plugin => plugin.Manifest);
+        foreach (var manifest in headless.Select(plugin => plugin.Manifest))
+            Require(manifest.DependsOn.All(dependency => byId[dependency.Id].Headless == HeadlessSupport.Yes), $"{manifest.Id} depends on a plugin that is not headless.");
+
+        // Default enablement: only the declared plugins are on, and SpecDialect and Blueprint start on although a desktop leaves them off.
+        await using (var host = await Compose(Path.Combine(directory, "defaults"), headless, seams => seams with { Kind = HostKind.Headless }))
+        {
+            await host.Runtime.Schedule();
+            var roster = await host.Runtime.ListAsync();
+            Require(roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).Order().SequenceEqual(declared), "A headless host does not run exactly the declared plugins by default: " + string.Join(", ", roster.Select(entry => entry.Id + ":" + entry.Status)));
+            Require(!byId["spec-dialect"].EnabledByDefault && !byId["blueprint"].EnabledByDefault, "A desktop still leaves the spec graph and Blueprint off by default.");
+            await host.Enable("lsp-css", false);
+            Require((await host.Row("lsp-css")).Status == PluginStatus.Disabled, "A headless plugin still obeys an explicit disable.");
+        }
+        // A plugin that does not declare Yes never activates headless, even enabled and handed to the host.
+        await using (var host = await Compose(Path.Combine(directory, "everything"), all, seams => seams with { Kind = HostKind.Headless }))
+        {
+            await host.Set([.. all.Select(plugin => HostStateChange.PluginEnabled(plugin.Manifest.Id, true))]);
+            var roster = (await host.Runtime.ListAsync()).ToDictionary(entry => entry.Id);
+            Require(roster.Values.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).Order().SequenceEqual(declared), "A plugin without Headless = Yes activated on a headless host.");
+            Require(roster["claude-code"] is { Status: PluginStatus.Refused, Reason: "plugin claude-code is not available in headless SharpRail" }, "A refused plugin names headless SharpRail: " + roster["claude-code"].Reason);
+        }
+        // A headless plugin built on one that is not headless is refused with it.
+        (PluginManifest, PluginHostModule?)[] pair = [
+            (Manifest("desk") with { Headless = HeadlessSupport.No }, QuietModule("desk")),
+            (Manifest("on-desk", false, new PluginDependency("desk", 1)) with { Headless = HeadlessSupport.Yes, HeadlessEnabledByDefault = true }, QuietModule("on-desk")),
+            (Manifest("own") with { Headless = HeadlessSupport.Yes, HeadlessEnabledByDefault = true }, QuietModule("own")),
+            (Manifest("unstated", true), QuietModule("unstated"))
+        ];
+        await using (var host = await Compose(Path.Combine(directory, "dependents"), pair, seams => seams with { Kind = HostKind.Headless }))
+        {
+            await host.Runtime.Schedule();
+            var roster = (await host.Runtime.ListAsync()).ToDictionary(entry => entry.Id);
+            Require(roster["on-desk"] is { Status: PluginStatus.Refused, Reason: "depends on desk, which is refused" }, "A headless plugin on a non-headless one is refused: " + roster["on-desk"].Reason);
+            Require(roster["own"].Status == PluginStatus.Active && roster["unstated"].Status == PluginStatus.Refused, "A plugin that states nothing is not headless; HeadlessEnabledByDefault turns a declared one on.");
+        }
+        await using (var native = await Compose(Path.Combine(directory, "native"), pair))
+        {
+            await native.Runtime.Schedule();
+            var roster = (await native.Runtime.ListAsync()).ToDictionary(entry => entry.Id);
+            Require(roster["unstated"].Status == PluginStatus.Active && roster["own"].Status == PluginStatus.Disabled && roster["desk"].Status == PluginStatus.Disabled, "Headless declarations change nothing on a host with an operating system.");
+        }
+        Console.WriteLine("PASS headless classification: every builtin states its decision, the headless roster is the declared set, undeclared plugins never activate there and their dependents are refused");
+    }
+
+    private static Module QuietModule(string id) => new(Contract(id, Say), _ => ValueTask.FromResult<PluginDisposer?>(null));
 
     private static async Task LanguageServersByHostKind(string directory)
     {

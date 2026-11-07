@@ -15,6 +15,7 @@ public static class CodexManifest
         UnavailableOn = [HostKind.PureWeb],
         Description = "Runs OpenAI Codex in the terminal with live status and SharpRail's MCP tools.",
         EnabledByDefault = false,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Codex.Host.dll",
         Ui = "SharpRail.Plugins.Codex.UI.dll",
         Assets = "assets",

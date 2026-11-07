@@ -64,6 +64,7 @@ public static class ProcessesPlugin
         Category = PluginCategories.Agents,
         Description = "Shows the language servers, agents and spawned agents SharpRail runs, with CPU and memory, and stops the processes agents report as theirs.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Processes.Host.dll",
         Ui = "SharpRail.Plugins.Processes.UI.dll",
         Contributes = new()

@@ -38,6 +38,7 @@ public static class BranchGraphPlugin
         Category = PluginCategories.VersionControl,
         Description = "Shows the project's branch graph as a side tool.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.BranchGraph.Host.dll",
         Ui = "SharpRail.Plugins.BranchGraph.UI.dll",
         Contributes = new()

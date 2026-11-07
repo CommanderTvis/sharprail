@@ -33,6 +33,8 @@ public static class BlueprintContract
         Category = PluginCategories.Documents,
         Description = "Authors interactive Blueprint specs and reacts to their edits.",
         EnabledByDefault = false,
+        Headless = HeadlessSupport.Yes,
+        HeadlessEnabledByDefault = true,
         DependsOn = [new("spec-dialect", 1)],
         Host = "SharpRail.Plugins.Blueprint.Host.dll",
         Ui = "SharpRail.Plugins.Blueprint.UI.dll",

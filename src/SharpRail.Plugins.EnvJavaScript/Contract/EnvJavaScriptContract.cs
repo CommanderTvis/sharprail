@@ -21,6 +21,7 @@ public static class EnvJavaScriptContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Puts the workspace's node_modules/.bin on PATH in every terminal and agent.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         DependsOn = [new("env", 1)],
         Host = "SharpRail.Plugins.EnvJavaScript.Host.dll"
     };

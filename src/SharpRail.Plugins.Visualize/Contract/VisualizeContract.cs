@@ -61,6 +61,7 @@ public static class VisualizeContract
         Category = PluginCategories.Documents,
         Description = "Gives the terminal agent a live drawing surface.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         Host = "SharpRail.Plugins.Visualize.Host.dll",
         Ui = "SharpRail.Plugins.Visualize.UI.dll"
     };

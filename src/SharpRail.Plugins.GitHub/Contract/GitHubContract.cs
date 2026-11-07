@@ -24,6 +24,7 @@ public static class GitHubContract
         UnavailableOn = [HostKind.PureWeb],
         Description = "Pull requests and GitHub sign-in for github.com remotes through the gh command-line tool: lookup, open, update, ready, merge and reopen.",
         EnabledByDefault = true,
+        Headless = HeadlessSupport.No,
         Assets = "assets",
         Host = "SharpRail.Plugins.GitHub.Host.dll",
         Ui = "SharpRail.Plugins.GitHub.UI.dll"
