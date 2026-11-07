@@ -241,6 +241,86 @@ internal static class IntelliJLicenseChecks
         Console.WriteLine("PASS IntelliJ settings license block: state, trial days and notice, unlicensed message, actions and their host calls");
     }
 
+    /// <summary>Settings › Code Intelligence: a server with terms shows their status, a review button, and Install now once accepted; one without shows none of it.</summary>
+    internal static void SettingsTerms(string fixture)
+    {
+        using var app = new E2E.E2eWorkspace(Path.Combine(fixture, "settings-terms"), openFiles: false);
+        var terms = new List<LanguageTermsRequest>();
+        var provisions = new List<LanguageRequest>();
+        var accepted = false;
+        var installed = false;
+        var failInstall = true;
+        const string Hash = "0123456789012345678901234567890123456789012345678901234567890123";
+        app.Host.TermsReply = request =>
+        {
+            terms.Add(request);
+            if (request.Accept) accepted = true;
+            return new(accepted ? "accepted" : "requiresAcceptance", "Fixture", "263.7084.0", Hash, Hash, "Fixture terms", accepted, accepted ? "2026-11-07T10:00:00.0000000+00:00" : "");
+        };
+        app.Host.LanguageReply = request =>
+        {
+            if (request.Operation == "catalog")
+                return new("ready", "storage")
+                {
+                    Servers =
+                    [
+                        new("intellij", "", "available", "IntelliJ Java and Kotlin · JetBrains", "263.7084.0") { Presentation = new("Java / Kotlin (IntelliJ)", HasTerms: true) },
+                        new("typescript", "", "available", "TypeScript", "5.0") { Presentation = new("TypeScript") }
+                    ]
+                };
+            if (request.Operation == "resolution")
+                return new(installed ? "ready" : "unavailable", installed ? "Ready" : "Not installed yet", request.Server)
+                { Configuration = new JsonObject { ["path"] = installed ? "/fixture/idea" : "", ["version"] = "", ["warning"] = "", ["source"] = installed ? "managed" : "none", ["pathCapable"] = false, ["pinning"] = "" }.ToJsonString() };
+            if (request.Operation == "provision")
+            {
+                provisions.Add(request);
+                if (failInstall) return new("error", "Fixture download failed", request.Server);
+                installed = true;
+                return new("ready", "Installed.", request.Server);
+            }
+            return null;
+        };
+        var settings = new SharpRail.UI.Panels.SettingsView(app.Window, () => { }, section: "Code Intelligence");
+        app.Window.ShowInOverlay(settings);
+        try
+        {
+            T Find<T>(string name) where T : Avalonia.Controls.Control => Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(settings).OfType<T>().Single(control => control.Name == name);
+            var rail = Find<Avalonia.Controls.ListBox>("LspServer");
+            E2E.E2eWorkspace.Until(() => rail.ItemCount == 2, "The settings rail did not list the fixture catalog.");
+            void Select(string id) => rail.SelectedItem = rail.Items.Cast<object>().First(item => item?.ToString() == id);
+            Select("typescript");
+            Require(!Find<Avalonia.Controls.StackPanel>("LspTermsSection").IsVisible, "A server without terms showed the terms controls.");
+            Select("intellij");
+            E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.StackPanel>("LspTermsSection").IsVisible, "A server with terms showed no terms controls.");
+            Require(Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text!.StartsWith("Terms not accepted", StringComparison.Ordinal), "The unaccepted status was not shown: " + Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text);
+            Require(Find<Avalonia.Controls.Button>("LspReviewTerms").IsEnabled && !Find<Avalonia.Controls.Button>("LspInstall").IsVisible, "Before acceptance the review button must be on and Install now hidden.");
+            Require(terms.Count == 0, "Selecting a server that is not installed read its terms, which downloads it.");
+            Find<Avalonia.Controls.Button>("LspReviewTerms").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => settings.TermsWindow is not null, "The review button opened no terms window.");
+            var dialog = settings.TermsWindow!;
+            E2E.E2eWorkspace.Until(() => terms.Count > 0 && Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.CheckBox>(dialog, "TermsConsent")!.IsEnabled, "The terms window did not load the terms.");
+            Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.CheckBox>(dialog, "TermsConsent")!.IsChecked = true;
+            E2E.E2eWorkspace.Until(() => Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.Button>(dialog, "AcceptTerms")!.IsEnabled);
+            Avalonia.Controls.ControlExtensions.FindControl<Avalonia.Controls.Button>(dialog, "AcceptTerms")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => terms.Any(request => request.Accept && request.Server == "intellij" && request.ArtifactId == Hash && request.EulaSha256 == Hash), "Accepting did not record the acknowledgement through the host call.");
+            dialog.Close();
+            E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text!.StartsWith("Terms accepted on 2026-11-07", StringComparison.Ordinal), "The accepted status was not shown.");
+            Require(!Find<Avalonia.Controls.Button>("LspReviewTerms").IsEnabled, "The review button stayed on after acceptance.");
+            E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.TextBlock>("LspResolved").Text!.StartsWith("None", StringComparison.Ordinal) && Find<Avalonia.Controls.Button>("LspInstall").IsVisible, "Install now was not offered after acceptance.");
+            Find<Avalonia.Controls.Button>("LspInstall").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => provisions.Count == 1 && Find<Avalonia.Controls.TextBlock>("LspInstallStatus").Text!.Contains("Fixture download failed", StringComparison.Ordinal) && Find<Avalonia.Controls.Button>("LspInstallRetry").IsVisible, "A failed install showed no error and Retry.");
+            Require(provisions[0].Server == "intellij" && provisions[0].Operation == "provision", "Install now did not call the provision path for the server.");
+            failInstall = false;
+            Find<Avalonia.Controls.Button>("LspInstallRetry").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            E2E.E2eWorkspace.Until(() => provisions.Count == 2 && Find<Avalonia.Controls.TextBlock>("LspInstallStatus").Text == "Installed." && !Find<Avalonia.Controls.Button>("LspInstall").IsVisible, "Retry did not install.");
+            Select("typescript");
+            Select("intellij");
+            E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text!.StartsWith("Terms accepted on", StringComparison.Ordinal), "An installed, accepted server did not show its recorded acceptance.");
+        }
+        finally { settings.TermsWindow?.Close(); }
+        Console.WriteLine("PASS Settings terms: status, review dialog records acceptance via the host, Install now with error and Retry, nothing for a server without terms");
+    }
+
     private static string Licensing(JsonObject state) => Plugin(IntelliJLicensing.Project(state));
 
     private static string Plugin(JsonObject view)

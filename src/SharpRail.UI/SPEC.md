@@ -686,6 +686,8 @@ server configuration remains available and preserved. Settings are host-wide and
 on the next start/retry; saving never installs or starts a server. The page shows host storage
 and the catalog version and remains available without an active workspace.
 
+For a server whose presentation has terms, the Settings detail pane shows the terms status ("Terms not accepted" or the acceptance date and version), Review and accept terms (opens the terms window; disabled once accepted), and, once accepted and not installed, Install now with progress, a visible failure and Retry; an install that outlasts its wait keeps running in the host. Terms are host-wide, so this completes the license flow without a workspace tool pane. The status is read from the host only for an installed server, because reading the terms of an uninstalled one downloads it; the host has no way to withdraw an acceptance. Choosing and applying a provider with terms points the user to Review and accept terms. Servers without terms show none of it.
+
 LSP Settings names the default implementation and its provider for every catalog entry. Pinned managed versions are distinguished from SDK versions; the resolved-executable line, not the catalog version, states what will run, and states how completely the managed installation is pinned (see the Language SPEC).
 
 Language result popups display the host's total count and indicate when only the first page

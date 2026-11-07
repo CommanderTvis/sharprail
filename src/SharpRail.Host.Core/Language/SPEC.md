@@ -690,6 +690,8 @@ launch as `ILanguageServerInstallation.AcceptedTerms.Answers`.
 
 ### Provisioning and execution
 
+The `provision` language operation installs a server's pinned managed distribution without starting it (the headless `warm` path); a server with terms is installed only once its exact terms were accepted, and a failure returns an `error` result with the message.
+
 The dedicated UI terms-review operation prepares the managed distribution when no installation
 is configured. An absolute user installation is read directly and never deleted by SharpRail.
 Managed provisioning validates pinned SHA-256, bounded ZIP/tar contents, paths and links,

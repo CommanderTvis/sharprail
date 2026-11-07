@@ -13,6 +13,7 @@ internal sealed partial class LanguageProviderView : UserControl
     private string savedProvider = "standard";
     /// <summary>The choices: <c>standard</c>, then each server that replaces others (H21).</summary>
     private string[] choices = ["standard"];
+    private HashSet<string> withTerms = [];
 
     internal LanguageProviderView(IProjectServices host, string workspace)
     {
@@ -31,6 +32,7 @@ internal sealed partial class LanguageProviderView : UserControl
                 LanguageServerNameConverter.Remember(catalog.Servers);
                 var replacing = catalog.Servers.Where(server => server.Presentation?.Replaces is { Count: > 0 }).ToArray();
                 choices = ["standard", .. replacing.Select(server => server.Id)];
+                withTerms = replacing.Where(server => server.Presentation?.HasTerms == true).Select(server => server.Id).ToHashSet();
                 var replaced = replacing.SelectMany(server => server.Presentation!.Replaces!).Distinct().ToArray();
                 var label = replacing.Select(server => server.Presentation!.ReplacesLabel).FirstOrDefault(text => text.Length > 0) ?? string.Join(" / ", replaced.Select(LanguageServerNameConverter.Display));
                 this.FindControl<TextBlock>("ProviderChoiceHeading")!.Text = label + " provider · all projects on this host";
@@ -102,7 +104,9 @@ internal sealed partial class LanguageProviderView : UserControl
             providerChoiceDirty = false;
             savedProvider = next.Configuration;
             RefreshProviderChoice(choices.Length > 1);
-            message.Text = "Provider choice saved for every project on this host. Start a server when ready.";
+            message.Text = withTerms.Contains(chosen)
+                ? $"Provider choice saved. {LanguageServerNameConverter.Display(chosen)} needs its license terms accepted before it can start: select it in the server list below and choose Review and accept terms."
+                : "Provider choice saved for every project on this host. Start a server when ready.";
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
         catch (Exception error) { if (lifetime == current) message.Text = error.Message; }

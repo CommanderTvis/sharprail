@@ -314,6 +314,13 @@ internal static class Program
             IntelliJLicenseChecks.Ui(root);
             return;
         }
+        if (args.SequenceEqual(["--settings-terms-ui"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            IntelliJLicenseChecks.SettingsTerms(root);
+            return;
+        }
         if (args.SequenceEqual(["--intellij-license"]))
         {
             IntelliJLicenseChecks.Run().GetAwaiter().GetResult();
@@ -1465,6 +1472,7 @@ internal static class Program
         Gate.Case("air-gateway-ui", () => AirGatewayChecks.RunUi(root));
         Gate.Case("language-limits-ui", () => LanguageLimitChecks.Ui(root));
         Gate.Case("intellij-license-ui", () => IntelliJLicenseChecks.Ui(root));
+        Gate.Case("settings-terms-ui", () => IntelliJLicenseChecks.SettingsTerms(root));
         Gate.Case("language-code-actions", () => LanguageCodeActionChecks.Run(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));

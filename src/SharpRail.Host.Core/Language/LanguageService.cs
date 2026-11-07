@@ -87,7 +87,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     internal Func<string> ToolPaths { set => servers.ToolPaths = value; }
 
     // Operations the Code Intelligence pane and the lifecycle make; per-keystroke editor operations are not logged.
-    private static bool Lifecycle(string operation) => operation is "servers" or "retry" or "restart" or "stop" or "release" or "configure" or "configuration" or "configurationSchema" or "projects" or "catalog" or "logs" or "status" or "setProjectHidden" or "javaKotlinProvider";
+    private static bool Lifecycle(string operation) => operation is "servers" or "retry" or "restart" or "stop" or "release" or "configure" or "configuration" or "configurationSchema" or "projects" or "catalog" or "logs" or "status" or "setProjectHidden" or "javaKotlinProvider" or "provision";
 
     public async ValueTask<LanguageResult> ExecuteAsync(LanguageRequest request, CancellationToken token = default)
     {
@@ -124,6 +124,17 @@ public sealed partial class LanguageService : IAsyncDisposable
             };
         }
         if (request.Operation == "running") return Running();
+        if (request.Operation == "provision")
+        {
+            // Settings installs a pinned server ahead of its first start; a server with terms still needs their acceptance, and nothing is started.
+            if (!Path.IsPathFullyQualified(request.Workspace) || !Directory.Exists(request.Workspace)) throw new ArgumentException("Language requests require an existing absolute workspace directory.");
+            try
+            {
+                if (!await WarmAsync(request.Server, Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace)), token)) throw new ArgumentException("Unknown language server.");
+                return new("ready", "Installed.", request.Server);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or HttpRequestException or InvalidOperationException) { return new("error", error.Message, request.Server); }
+        }
         if (request.Operation == "resolution")
         {
             var chosen = servers.Find(request.Server) ?? throw new ArgumentException("Unknown language server.");

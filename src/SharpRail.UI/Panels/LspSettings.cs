@@ -15,6 +15,12 @@ public sealed partial class SettingsView
         public override string ToString() => Id;
     }
 
+    /// <summary>How long Install now waits before saying it is still running; the host keeps installing.</summary>
+    internal static TimeSpan InstallTimeout { get; set; } = TimeSpan.FromSeconds(120);
+
+    /// <summary>The terms window Review and accept terms opened, while it is open.</summary>
+    internal Window? TermsWindow { get; private set; }
+
     private Control LspSettings()
     {
         var panel = Page("LspPage");
@@ -29,6 +35,15 @@ public sealed partial class SettingsView
         var arguments = PageControl<TextBox>(panel, "LspArguments");
         var message = PageControl<TextBlock>(panel, "LspMessage");
         var save = PageControl<Button>(panel, "LspSave");
+        var termsSection = PageControl<StackPanel>(panel, "LspTermsSection");
+        var termsStatus = PageControl<TextBlock>(panel, "LspTermsStatus");
+        var reviewTerms = PageControl<Button>(panel, "LspReviewTerms");
+        var install = PageControl<Button>(panel, "LspInstall");
+        var installRetry = PageControl<Button>(panel, "LspInstallRetry");
+        var installStatus = PageControl<TextBlock>(panel, "LspInstallStatus");
+        var installing = false;
+        var termsAccepted = false;
+        var installed = false;
         var dependencies = PageControl<LanguageDependencyList>(panel, "LspDependencies");
         var dependencySection = PageControl<StackPanel>(panel, "LspDependencySection");
         dependencies.HostState = state;
@@ -79,6 +94,12 @@ public sealed partial class SettingsView
             PageControl<TextBlock>(panel, "LspVersion").Text = server.Version == "toolchain"
                 ? "Version: supplied by the host SDK" : "Pinned managed version: " + server.Version;
             message.Text = "";
+            var hasTerms = server.Presentation?.HasTerms == true;
+            termsSection.IsVisible = hasTerms;
+            termsAccepted = installed = false;
+            installStatus.Text = "";
+            installRetry.IsVisible = false;
+            if (hasTerms) { termsStatus.Foreground = Ui.Muted; termsStatus.Text = "Terms not accepted. Reading them downloads the pinned managed server first."; UpdateTerms(); }
             links.IsVisible = false;
             _ = LoadLinks(id);
             _ = LoadResolution(id);
@@ -116,11 +137,83 @@ public sealed partial class SettingsView
                 resolved.Foreground = result.State == "ready" ? Ui.Muted : Ui.Danger;
                 resolved.Text = $"{source}: {(path.Length > 0 ? path : "no executable")}" + (version.Length > 0 ? $"\nVersion: {version}" : "") + $"\n{result.Detail}\n{facts["pinning"]?.GetValue<string>()}";
                 allowPath.IsEnabled = facts["pathCapable"]?.GetValue<bool>() == true;
+                if (termsSection.IsVisible) { installed = result.State == "ready" && path.Length > 0; _ = LoadTerms(id); }
                 pathWarning.Foreground = Ui.Danger; pathWarning.Text = warning; pathWarning.IsVisible = warning.Length > 0;
             }
             catch (OperationCanceledException) { }
             catch (Exception failure) when (!lifetime.IsCancellationRequested) { resolved.Foreground = Ui.Danger; resolved.Text = "Executable unavailable: " + failure.Message; }
         }
+        void UpdateTerms()
+        {
+            reviewTerms.IsEnabled = !termsAccepted;
+            install.IsVisible = termsAccepted && !installed;
+            install.IsEnabled = !installing;
+            installRetry.IsEnabled = !installing;
+        }
+        // Reading the terms of a server that is not installed downloads it, so only an installed one is read without the user asking.
+        async Task LoadTerms(string id)
+        {
+            if (!installed) { UpdateTerms(); return; }
+            try
+            {
+                var read = await Task.Run(async () => await window.Host.LanguageTermsAsync(new(window.WorkspaceRoot, id), lifetime.Token), lifetime.Token);
+                if (lifetime.IsCancellationRequested || selector.SelectedItem is not LspServerItem { Id: var selected } || selected != id) return;
+                ShowTerms(read);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception failure) when (!lifetime.IsCancellationRequested) { termsStatus.Foreground = Ui.Danger; termsStatus.Text = "Terms unavailable: " + failure.Message; }
+        }
+        void ShowTerms(LanguageTermsResult read)
+        {
+            termsAccepted = read.Accepted;
+            termsStatus.Foreground = read.State == "unavailable" ? Ui.Danger : Ui.Muted;
+            termsStatus.Text = read.Accepted ? $"Terms accepted on {read.AcceptedAtUtc}" + (read.Version.Length > 0 ? $" (version {read.Version})." : ".")
+                : read.State == "unavailable" ? "Terms unavailable: " + read.Detail
+                : "Terms not accepted. Choose Review and accept terms. Nothing starts until you accept.";
+            UpdateTerms();
+        }
+        reviewTerms.Click += (_, _) =>
+        {
+            if (selector.SelectedItem is not LspServerItem { Id: var id } || Avalonia.Controls.TopLevel.GetTopLevel(reviewTerms) is not Window owner) return;
+            var dialog = new LanguageTermsWindow(window.Host, window.WorkspaceRoot, id);
+            TermsWindow = dialog;
+            dialog.Closed += (_, _) =>
+            {
+                TermsWindow = null;
+                if (dialog.Result is { } outcome && selector.SelectedItem is LspServerItem { Id: var current } && current == id) { installed = true; ShowTerms(outcome); _ = LoadResolution(id); }
+            };
+            dialog.Show(owner);
+        };
+        async Task Install()
+        {
+            if (installing || selector.SelectedItem is not LspServerItem { Id: var id }) return;
+            installing = true; installRetry.IsVisible = false; UpdateTerms();
+            installStatus.Foreground = Ui.Muted; installStatus.Text = "Installing. A first install can take several minutes.";
+            var call = Task.Run(async () => await window.Host.LanguageAsync(new(window.WorkspaceRoot, Operation: "provision", Server: id), lifetime.Token), lifetime.Token);
+            try
+            {
+                var done = await Task.WhenAny(call, Task.Delay(InstallTimeout, lifetime.Token));
+                if (lifetime.IsCancellationRequested) return;
+                if (done != call)
+                {
+                    // The install keeps running in the host; looking again shows whether it finished.
+                    installStatus.Text = "Still installing. Choose Retry later to check again.";
+                    installRetry.IsVisible = true;
+                    return;
+                }
+                var result = await call;
+                if (selector.SelectedItem is not LspServerItem { Id: var current } || current != id) return;
+                installStatus.Foreground = result.State == "ready" ? Ui.Muted : Ui.Danger;
+                installStatus.Text = result.State == "ready" ? "Installed." : "Install failed: " + result.Detail;
+                installRetry.IsVisible = result.State != "ready";
+                if (result.State == "ready") { installed = true; _ = LoadResolution(id); }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception failure) when (!lifetime.IsCancellationRequested) { installStatus.Foreground = Ui.Danger; installStatus.Text = "Install failed: " + failure.Message; installRetry.IsVisible = true; }
+            finally { installing = false; UpdateTerms(); }
+        }
+        install.Click += async (_, _) => await Install();
+        installRetry.Click += async (_, _) => await Install();
         void ArgumentControls()
         {
             defaultArguments.IsEnabled = !string.IsNullOrWhiteSpace(command.Text);

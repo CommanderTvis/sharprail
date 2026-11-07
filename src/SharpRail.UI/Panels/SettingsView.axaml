@@ -38,6 +38,16 @@
             <TextBlock x:Name="LspServerHeading" Classes="settings-heading verbatim" />
             <TextBlock x:Name="LspImplementation" TextWrapping="Wrap" />
             <TextBlock x:Name="LspVersion" Classes="settings-description" />
+            <StackPanel x:Name="LspTermsSection" Spacing="4" IsVisible="False">
+              <TextBlock Text="License terms" Classes="settings-label" />
+              <TextBlock x:Name="LspTermsStatus" TextWrapping="Wrap" />
+              <WrapPanel>
+                <Button x:Name="LspReviewTerms" Content="Review and accept terms" Margin="0,0,8,0" />
+                <Button x:Name="LspInstall" Content="Install now" Margin="0,0,8,0" IsVisible="False" />
+                <Button x:Name="LspInstallRetry" Content="Retry" IsVisible="False" />
+              </WrapPanel>
+              <TextBlock x:Name="LspInstallStatus" TextWrapping="Wrap" />
+            </StackPanel>
             <WrapPanel x:Name="LspProviderLinks" IsVisible="False">
               <Button x:Name="LspProviderWebsite" Content="Website ↗" Classes="link" Margin="0,0,16,0" />
               <Button x:Name="LspProviderRepository" Content="Source repository ↗" Classes="link" />
