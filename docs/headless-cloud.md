@@ -33,7 +33,7 @@ A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` an
    - runs `claude mcp add --scope user sharprail ...` if the `claude` CLI is there, else prints the `.mcp.json` below.
 
    `SHARPRAIL_IMAGE_TAG` picks the image. It is a tag or a `sha256:` digest and defaults to `nightly`. `nightly` moves, so pin a `sha-<commit>` tag or a digest for an experiment.
-4. Commit a `.mcp.json` to the repo, because the docs promise that a repo's `.mcp.json` is loaded in a one-repository session, and do not promise that a server added by `claude mcp add` in the setup script is kept.
+4. Optional: commit a `.mcp.json` to the repo too. The docs promise that a repo's `.mcp.json` is loaded in a one-repository session. The server added by `claude mcp add` in the setup script reached the session in the first real run (see the end of this page), but the docs do not promise that, so the committed file is the documented path and a backup.
 
    ```json
    {
@@ -99,9 +99,9 @@ Verified (arm64 Linux, Apple `container`, `ubuntu:24.04`, on 2026-11-07):
 - `claude mcp add --scope user --env K=V --transport stdio sharprail -- <command> mcp` is accepted by the local CLI and writes the server into `~/.claude.json`.
 - From the docs: Ubuntu 24.04 x86_64 VM, Docker present, setup script runs as root before Claude starts, 64 KB limit, five-minute cache rule, `ghcr.io`, `api.nuget.org` and `raw.githubusercontent.com` in the default list, the repo's `.mcp.json` is loaded.
 
-Verified on a real cloud VM (claude.ai/code, first run, 2026-11-07, environment without a repository):
+Verified on a real cloud VM (claude.ai/code, first run, 2026-11-07, environment without a repository, working directory `/home/user`):
 - The setup script ran as root and finished with exit 0. It chose `linux/amd64`, verified the app layer (`sha256:325ee39c...`), installed `/root/.local/bin/sharprail-headless`, found the `claude` CLI and ran `claude mcp add`, which reported "Added stdio MCP server sharprail" and "File modified: /root/.claude.json". So the VM is x86_64, `ghcr.io` and its blob host are reachable with the allowlist from step 2, and `claude` exists at setup time.
-- The server did NOT reach the session: Claude Code started, but the agent found no SharpRail tools. So a user-scope server added by the setup script did not make its tools available to the session, at least not in an environment without a repository. Cause not yet known. Next checks in such a session: `claude mcp list`, `jq .mcpServers ~/.claude.json`, `/mcp`, and a repository with a committed `.mcp.json` attached to the environment.
+- The first message in the session, sent right after start, got "no SharpRail tools". That was timing: the MCP server connects after the session starts. A later message ran `claude mcp list`, which showed `sharprail: /root/.local/bin/sharprail-headless mcp - Connected`, and the agent then called the tools: all 11 were listed (`lsp_status`, `lsp_navigate`, `lsp_diagnostics`, the seven `spec_*` tools and `blueprint_check`), and `lsp_status` returned `state: ready` with no language server configured, because the working directory `/home/user` had no project files. So a user-scope server added by the setup script does reach the session, and the amd64 binary starts on a real x86_64 machine. Tell the agent to check `/mcp` or `claude mcp list` once before the first real task.
 
 Unverified:
 - Everything on a real cloud VM beyond the setup script above, including the amd64 binary starting there (the setup script does not start it).
