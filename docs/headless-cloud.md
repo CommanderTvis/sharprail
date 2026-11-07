@@ -1,6 +1,6 @@
 # Headless SharpRail in Claude Code on the web
 
-Status: the install script works on arm64 Linux today. It cannot work in the cloud VM yet, because the VM is x86_64 and the published image has no amd64 build. See [Limits](#limits).
+Status: the install script works on arm64 and x86_64 Linux in tests. The published image has both linux/amd64 and linux/arm64 under one tag. It is not yet tried on a real cloud VM. See [Limits](#limits).
 
 A cloud session of Claude Code (claude.ai/code) can use the `lsp_*`, `spec_*` and `blueprint_check` tools of [headless SharpRail](headless.md). The idea is one setup script in the cloud environment that installs `sharprail-headless` and registers it as an MCP server. The main use is research, for example whether the language tools help a cloud agent.
 
@@ -61,27 +61,46 @@ With `SHARPRAIL_LOG=1` the server writes `.sharprail/runs/<session>.jsonl` insid
 
 ## Limits
 
-- The cloud VM is Ubuntu 24.04 on x86_64. The published `:nightly` image has only linux/arm64, so the script stops with `has no linux/amd64 image (it has: arm64)`. The old `:sha-3f8b5b6` has amd64 but predates `warm` and `.sharprail/mcp.toml`.
+- The cloud VM is Ubuntu 24.04 on x86_64. The `:nightly` image has linux/amd64 and linux/arm64. CI is off, so the image is published by hand from a Mac, see [Publishing the image](#publishing-the-image). If a tag has no image for the machine, the script stops with `has no linux/<arch> image`.
 - Docker exists in the VM, but Docker is not needed here and is not used.
 - The package on ghcr.io must be public. The script uses an anonymous token.
 - LSP on a huge repository may not finish. The first `lsp_*` call may answer `initializing`.
 
 ### Where the binary can come from
 
-- Image layers from ghcr.io with plain `curl` (what the script does): no Docker, needs the two registry domains above, and needs an amd64 image to exist.
+- Image layers from ghcr.io with plain `curl` (what the script does): no Docker, needs the two registry domains above.
 - A GitHub release asset: a `sharprail-headless-linux-x64.tar.gz` of `dotnet publish src/SharpRail.Host.Headless -c Release -r linux-x64 --self-contained -p:PublishSingleFile=false`, uploaded with `gh release upload <tag> <file>`. Only `github.com` and `release-assets.githubusercontent.com` are needed, both in the default list. It does not exist yet.
 - A build from source in the VM: needs the .NET SDK (not pre-installed) and a long build, so it is not worth it.
+
+## Publishing the image
+
+Done by hand on an Apple silicon Mac with Apple `container` (the user is logged in with `container registry login ghcr.io`). From a checkout of the commit to publish:
+
+```sh
+dotnet publish src/SharpRail.Host.Headless -c Release -r linux-x64 --self-contained -p:PublishSingleFile=false -o artifacts/headless/linux-amd64
+dotnet publish src/SharpRail.Host.Headless -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=false -o artifacts/headless/linux-arm64
+SHA=$(git rev-parse --short=8 HEAD)
+container build -f docker/headless/Dockerfile --platform linux/arm64,linux/amd64 \
+  --build-arg REVISION=$(git rev-parse HEAD) --build-arg CREATED=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+  -t ghcr.io/commandertvis/sharprail:nightly -t ghcr.io/commandertvis/sharprail:sha-$SHA .
+# smoke test both: container run --rm --platform linux/amd64 ghcr.io/commandertvis/sharprail:nightly --help (and mcp)
+container image push ghcr.io/commandertvis/sharprail:nightly
+container image push ghcr.io/commandertvis/sharprail:sha-$SHA
+```
+
+The Dockerfile picks `artifacts/headless/linux-<TARGETARCH>` by itself. One build makes one manifest list. The `apt-get` step of the amd64 build runs under Rosetta and works. A push can end with a flaky `XPC connection error`: run it again.
 
 ## Verified and unverified
 
 Verified (arm64 Linux, Apple `container`, `ubuntu:24.04`, on 2026-11-07):
 - The script installs from `:nightly`, checks the layer digest, is idempotent on a second run, and `sharprail-headless --help` and `mcp` start. It prints the `.mcp.json` fallback when there is no `claude` CLI.
-- The `:nightly` manifest list has an arm64 entry and no amd64 entry, so the script fails with a clear message on x86_64.
+- The `:nightly` manifest list on ghcr.io has both amd64 and arm64 entries. The script was run in `ubuntu:24.04` for both machines (`uname -m` gave `aarch64` natively and `x86_64` with `--platform linux/amd64`, which runs under Rosetta). Both times it picked the right entry, the layer sha256 matched, and `sharprail-headless --help` ran.
+- The image itself: `--help` and `mcp` (initialize, initialized, tools/list: 2 replies, 11 tools) pass on arm64 natively and on amd64 under Rosetta.
 - `claude mcp add --scope user --env K=V --transport stdio sharprail -- <command> mcp` is accepted by the local CLI and writes the server into `~/.claude.json`.
 - From the docs: Ubuntu 24.04 x86_64 VM, Docker present, setup script runs as root before Claude starts, 64 KB limit, five-minute cache rule, `ghcr.io`, `api.nuget.org` and `raw.githubusercontent.com` in the default list, the repo's `.mcp.json` is loaded.
 
 Unverified:
-- Everything on a real cloud VM, including x86_64 execution of the app.
+- Everything on a real cloud VM. The amd64 build was run only under Rosetta emulation on Apple silicon, not on a real x86_64 machine.
 - Whether `builds.dotnet.microsoft.com`, `pkg-containers.githubusercontent.com` and `globalcdn.nuget.org` are the only extra domains needed. They are what the code and the registry redirect use, and none is in the default list.
 - Whether the `claude` CLI exists when the setup script runs, and whether a user-scope server added there survives into the session.
 - Whether `.mcp.json` expands `${HOME}` there, and whether the server's working directory is the repo root.

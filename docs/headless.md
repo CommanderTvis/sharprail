@@ -48,7 +48,7 @@ container run --rm -v ~/.cache/sharprail:/cache ghcr.io/commandertvis/sharprail:
 
 `warm` takes server ids (default `csharp`), installs the runtimes and servers into `/cache` and exits. A second run returns at once. Progress is in `/cache/home/.sharprail/logs/code-intelligence.log` (`host.runtime-install`, `host.server-install`, `host.install-command`).
 
-Use `-i` so stdin stays open, and `--init` so SIGTERM and child processes are handled. The image is for linux/amd64 and linux/arm64.
+Use `-i` so stdin stays open, and `--init` so SIGTERM and child processes are handled. The image is for linux/amd64 and linux/arm64 under one tag. While CI is off it is built by hand from a Mac, see [the publishing steps](headless-cloud.md#publishing-the-image).
 
 - The `nightly` tag moves. The Container workflow overwrites it on every run. Each run also pushes an immutable `sha-<short commit>` tag.
 - To pin, use the digest: `docker pull ghcr.io/commandertvis/sharprail:nightly` then `docker inspect --format '{{index .RepoDigests 0}}' ghcr.io/commandertvis/sharprail:nightly`, and put `ghcr.io/commandertvis/sharprail@sha256:...` in the config. The run summary of the workflow also lists the digest.

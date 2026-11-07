@@ -44,7 +44,8 @@ FROM base AS local
 COPY --from=publish --chmod=a+rX /out/ /opt/sharprail/
 
 FROM base AS prebuilt
-ARG PUBLISH_DIR=artifacts/headless/publish
+ARG TARGETARCH
+ARG PUBLISH_DIR=artifacts/headless/linux-${TARGETARCH}
 COPY --chmod=a+rX ${PUBLISH_DIR}/ /opt/sharprail/
 
 # Labels sit on the last stage, which is the default target. The local target is for development and carries none.
