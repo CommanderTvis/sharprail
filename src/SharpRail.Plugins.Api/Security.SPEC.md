@@ -326,8 +326,8 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   it cannot load fails the plugin with that reason.
 - Each client context is a handle the host lends the runner. Activating the UI half on it answers what `Activate`
   registered, in order, in the reply, so the client replays the registrations at once with its activation guard
-  open. The client records them in its registry as it does a builtin's; their factories answer a placeholder ("This
-  view is not available yet.") and are never called in the plugin's process until surfaces are streamed.
+  open. The client records them in its registry as it does a builtin's. A factory the client calls answers a remote
+  surface, and the plugin's factory runs only when the host opens that surface ([UI halves](#ui-halves)).
 - The plugin's settings are mirrored into its process when the context opens and whenever they change, and the
   client brings the mirror up to date before it answers any call, so a plugin that awaited `UpdateSettingsAsync`
   reads what it wrote. `Host()`, `WatchHost` and preference reads are not mirrored yet: they throw.
@@ -339,6 +339,40 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   the host half of the runner's tables hash; the client refuses a runner whose UI table differs from its own. The
   host's own copy of the UI table, so that a remote client parses only checked messages, is pending.
 - Only the in-process host serves sessions; a remote client keeps an external plugin dormant.
+- Surfaces are real for the local host (`--plugin-surface`). The runner runs the plugin's code on the UI thread of
+  Avalonia's stock headless platform with Skia's CPU raster, until the remote backend exists. Each surface is the
+  factory's control in its own headless top-level, one per client and mount, at the size and scale the client
+  pushes, transparent where the plugin draws nothing so the client's slot shows through. When the client has taken the last frame, the runner renders, diffs against what the client holds in
+  64-pixel tiles and sends the changed tiles. It renders every 16 ms for half a second after anything happens and
+  every 200 ms otherwise. Scrolling seen since the last frame goes first as moves, which both ends apply the same
+  way, so a scroll sends only the uncovered rows. Messages from the client are applied one at a time in arrival
+  order. The host holds a surface's messages until the runner has shown it, so none arrives before its control.
+- Tiles are lossless: one colour is 4 bytes, anything else is QOI without its header. One light measurement on the
+  fixture's side tool (356×417, 42 tiles) chose it: QOI 9,972 bytes, encode 0.11 ms, decode 0.10 ms; zlib at its
+  fastest level over left-filtered rows 14,462 bytes, 0.30 ms and 0.25 ms (measured while the surface was still
+  opaque). Rendering cost, measured once on the same
+  surface: the first capture 11 ms, later captures 0.1 to 3 ms, diffing and encoding 0.1 to 0.4 ms. Browser decode
+  speed is not measured yet.
+- The host's relay (`UiSessionRelay`) numbers each surface and holds every frame message to the caps before the
+  client sees it: a surface up to 8,192 pixels a side and 16 Mi pixels, tiles of 1 to 256 pixels inside it, at most
+  4,096 tiles and 1 MiB of tile bytes a message, a known codec, bytes that match the tiles, at most 64 moves inside a
+  surface of the previous frame's size, frames in order, and one frame in flight per surface. A frame that breaks
+  them, or one the host cannot read (null where a list or its item belongs), ends that surface, which shows the
+  reason; one that names no surface ends every surface of that client. A client holds at most 64 surfaces in one plugin.
+- The client's `RemoteSurface` decodes off the UI thread and draws 1:1 at device pixels. It pushes its size, scale
+  and the kit theme, forwards pointer, wheel, key and text input, and moves focus in with Tab or a click; Tab past
+  the plugin's last element (Shift+Tab past its first) moves focus on in the app. It takes the size the plugin's
+  control asks for at its width, so a settings section is as tall as its content. Detached for 2 seconds, it closes
+  its surface; shown again after that, it opens a new one and the plugin makes its control again, so what only the
+  control held (scroll position, typed text) starts over.
+- Pending: popups draw inside their surface, clipped to it (the headless platform's overlay popups); DPI changes
+  after a surface opens are sent but checked only at scale 1; the cursor shape, IME composition and accessibility
+  are not carried; one process holds one kit theme, the last a client pushed, because the kit's brushes are
+  process-wide; wheel events stay with the surface, since the plugin cannot say whether it used one; keys with
+  Control, Alt or Meta and Escape reach the plugin but also the app's shortcuts; app styles outside the kit (such as
+  the app's `Switch` theme) are absent; `Host()`, `WatchHost` and preference reads still throw; remote clients,
+  per-process memory limits and the browser and Android clients (which compile `RemoteSurface` but get no session)
+  are slice 15 and later.
 
 ## Calls across the boundary
 
@@ -689,7 +723,8 @@ remain a later option if bandwidth becomes the problem; they would put a command
 
 - The plugin process runs a remote platform backend built the way Avalonia's previewer and headless backends are:
   it implements the windowing, top-level and popup interfaces and renders with Skia's CPU raster into tiles. No
-  Avalonia fork is needed for this.
+  Avalonia fork is needed for this. Until it exists, the runner uses Avalonia's stock headless platform, which
+  renders the same way but has no cursor, IME or placed popups.
 - Avalonia hides the interfaces this backend implements from its reference assemblies: implementing
   `IWindowingPlatform` against them fails with CS0535 and CS9044, which no suppression can turn off. The plugin
   runner alone compiles against Avalonia's implementation assemblies (`AvaloniaAccessUnstablePrivateApis`). Its only

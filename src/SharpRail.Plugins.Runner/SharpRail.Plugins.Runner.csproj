@@ -7,6 +7,7 @@
     <AvaloniaAccessUnstablePrivateApis>true</AvaloniaAccessUnstablePrivateApis>
     <NoWarn>$(NoWarn);AVA3001</NoWarn>
     <SharpRailIsolation>runner</SharpRailIsolation>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <Import Project="../SharpRail.Plugins.Isolation.Generator/Isolation.Generator.props" />
   <ItemGroup>
@@ -17,5 +18,8 @@
     <ProjectReference Include="../SharpRail.Plugins.Chat/SharpRail.Plugins.Chat.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Chat.UI/SharpRail.Plugins.Chat.UI.csproj" />
     <PackageReference Include="Avalonia" />
+    <!-- The stock headless platform with Skia's CPU raster renders plugin views into tiles until the remote backend (Security.SPEC.md, UI halves). -->
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Skia" />
   </ItemGroup>
 </Project>

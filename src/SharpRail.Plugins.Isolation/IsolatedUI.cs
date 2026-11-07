@@ -39,6 +39,9 @@ public interface IIsolatedUISession : IAsyncDisposable
 
     /// <summary>Stores a mirrored member's value in the plugin's process; completes once it is stored.</summary>
     ValueTask MirrorAsync(int member, string arguments, string json, CancellationToken cancellationToken = default);
+
+    /// <summary>The surfaces this context's factories show, each a control the plugin's process renders.</summary>
+    IPluginSurfaceService Surfaces { get; }
 }
 
 /// <summary>A call the plugin made on its context: answered when it awaits a result, or a one-way when it does not.</summary>

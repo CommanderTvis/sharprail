@@ -182,7 +182,11 @@ checks set until external plugins are switched on:
 - `PluginRuntime` is the host's `IIsolatedUIHost`: `OpenAsync(pluginId, clientKey)` activates the UI half on a new
   context in that process, with the stored settings (without `enabled`) mirrored first, and answers a session with
   what the activation registered (at most 1,024 registrations). Later calls on the context queue in arrival order
-  for the client, capped at 1,024 unread and 256 Ki characters of arguments each; a client that falls behind loses its session. The settings stay
+  for the client, capped at 1,024 unread and 256 Ki characters of arguments each; a client that falls behind loses its session.
+  The session's surfaces go through `UiSessionRelay` (`Plugins/Isolation/UiSessionRelay.cs`): it numbers each
+  surface, opens it in the runner, passes the client's size, input, focus, acknowledgements and theme on once the
+  runner has shown the surface (they wait until then), and holds every frame the runner sends to the surface
+  protocol's caps before the client sees it; a frame that breaks them or cannot be read ends that surface. The settings stay
   unvalidated, as the spec records, until a host half sends a schema. A builtin module's `Contract.Id` must still equal its
 manifest id.
 

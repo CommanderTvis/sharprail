@@ -57,6 +57,7 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
 
     private readonly ConcurrentDictionary<long, Session> sessions = new();
     private RunnerSession? runner;
+    private int lastSurface;
     private int requested;
     private Task? disposal;
 
@@ -115,6 +116,7 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
         var session = new Session(this);
         var context = peer.Handles.Mint(session);
         session.Context = context;
+        session.Relay = new UiSessionRelay(peer, context, () => Interlocked.Increment(ref lastSurface));
         sessions[context] = session;
         try
         {
@@ -163,6 +165,8 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
         private int disposed;
 
         public long Context { get; set; }
+        public UiSessionRelay Relay { get; set; } = null!;
+        public IPluginSurfaceService Surfaces => Relay;
         public string ApiTableHash => plugin.runner!.Hello.ApiTableHash;
         public IReadOnlyList<UIRegistration> Registrations { get; set; } = [];
         public ChannelReader<IsoUICall> Calls => calls.Reader;
@@ -176,7 +180,12 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
 
         public void OneWay(IsoCall call)
         {
-            try { Queue(call, answered: false); }
+            try
+            {
+                if (call.Member == SurfaceProtocol.Frame) Relay.Frame(call.Payload, call.Bytes);
+                else if (call.Member == SurfaceProtocol.FocusLeave) Relay.FocusLeave(call.Payload);
+                else Queue(call, answered: false);
+            }
             catch (IsoCallException) { }
         }
 
@@ -203,6 +212,7 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
 
         public void End(Exception? reason)
         {
+            Relay.End(reason);
             if (!calls.Writer.TryComplete(reason)) return;
             while (calls.Reader.TryRead(out var left)) left.Abandon();
         }

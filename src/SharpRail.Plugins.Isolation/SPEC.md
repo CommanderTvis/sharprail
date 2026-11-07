@@ -29,6 +29,12 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
 - `IsolatedUI.cs`: `IIsolatedUIHost`, which the host implements, opens a client's `IIsolatedUISession` with an
   external plugin's process: what the activation registered, the later calls on the context in arrival order
   (`IsoUICall`, answered or one-way), the plugin's callbacks and the mirror.
+- `Surfaces.cs`: the surface protocol (Security.SPEC.md, UI halves): the messages that open, size, feed input to,
+  acknowledge and close a surface and push the kit theme, the frame header with its moves and tiles, the caps
+  (`SurfaceLimits`), `SurfacePixels` (moves, applied the same way on both ends), `IPluginSurface` (a client's end of
+  one surface) and `IPluginSurfaceService` (a client context's surfaces). `TileCodec`: one colour as 4 bytes, else
+  QOI without its header; decoding refuses short, long or malformed data. `IsolationPeer.OneWay` carries bytes beside
+  its payload for frames.
 - `IsolatedRuntime.cs`: what generated code targets. `IIsolatedRuntime` is the plugin process's way out (calls,
   one-ways, lending a callback, mirrored reads); `IIsolatedCallbacks` is the trusted side's way back (calls,
   one-ways, synchronous callbacks by crossing class, factories as surfaces); `IsoPayload`, `IsoArgs` and `IsoObject`
@@ -48,7 +54,8 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
   slice 4),
   a copy of the UI member table and argument schemas without Avalonia for the relay (slice 14; today the UI table
   lives in `SharpRail.Plugins.Isolation.UI`, so the host checks only the host half of the runner's hash and the
-  client the UI half, and the client's dispatcher checks a session's calls against the table), the UI-mode runner (slice 14), grants and the broker (slices 10 to 13), sandboxes (slices 7 to 9),
+  client the UI half, and the client's dispatcher checks a session's calls against the table), surfaces over RPC
+  (slice 15), grants and the broker (slices 10 to 13), sandboxes (slices 7 to 9),
   packaging (slice 6).
 
 ## Checks
@@ -56,5 +63,6 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
 `--plugin-channel` (also a gate case) covers the codec, protocol violations against the loopback, descriptors sent
 beside an unfinished frame on the Unix transport, and the runner's `probe echo` and `probe avalonia-private` modes,
 including the tables' hash in `Hello`, the refusal of a runner with another, and a child of the runner that does not
-hold its channel. `--plugin-isolated-ui` runs the outsider fixture in `plugin` mode through the host and the app. `--plugin-crossing` (also a gate
+hold its channel. `--plugin-isolated-ui` runs the outsider fixture in `plugin` mode through the host and the app,
+and `--plugin-surface` checks the tile codec, moves and the relay's caps, then its views as pixels in the app. `--plugin-crossing` (also a gate
 case) pins the tables' hashes and drives the generated UI proxy and dispatcher over the real channel.

@@ -162,7 +162,8 @@ internal sealed class E2eWorkspace : IDisposable
             Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null,
             // As the host's seam: an external plugin's UI half opens on the in-process host only when a check asks for it.
             IsolatedPlugins = isolation is null ? null : async (entry, client, ended, token) =>
-                await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(pluginRuntime, entry.Id, client, ended, token),
+                await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(pluginRuntime, entry.Id, client, ended,
+                    open => new SharpRail.UI.Plugins.RemoteSurface(open), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token),
             Notifier = notifier,
             NotificationWindow = TimeSpan.FromMilliseconds(150)
         };

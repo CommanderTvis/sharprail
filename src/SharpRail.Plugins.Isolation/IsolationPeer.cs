@@ -235,9 +235,9 @@ public sealed class IsolationPeer : IAsyncDisposable
         if (stream.Error is { } error) throw error;
     }
 
-    /// <summary>Sends a <c>void</c> member; the other side runs one-ways in arrival order.</summary>
-    public void OneWay(int member, string payload, long target = 0) =>
-        Send(new IsoFrame { Kind = IsoFrameKind.OneWay, Member = member, Target = target, Payload = payload });
+    /// <summary>Sends a <c>void</c> member, with <paramref name="bytes"/> beside its payload; the other side runs one-ways in arrival order.</summary>
+    public void OneWay(int member, string payload, long target = 0, byte[]? bytes = null) =>
+        Send(new IsoFrame { Kind = IsoFrameKind.OneWay, Member = member, Target = target, Payload = payload, Bytes = bytes ?? [] });
 
     /// <summary>Drops this side's reference to a handle the other side lent.</summary>
     public void Release(long handle) => TrySend(new IsoFrame { Kind = IsoFrameKind.Release, Target = handle });

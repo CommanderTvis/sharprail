@@ -8,7 +8,7 @@ namespace SharpRail.Plugins.Runner;
 /// </summary>
 internal static class Program
 {
-    private static async Task<int> Main(string[] args)
+    private static int Main(string[] args)
     {
         string? channel = null;
         var words = new List<string>();
@@ -20,15 +20,15 @@ internal static class Program
         switch (words)
         {
             case [RunnerPlugin.Mode]:
-                return await PluginMode.RunAsync(channel);
+                return PluginMode.Run(channel);
             case ["probe", RunnerProbe.EchoMode]:
-                return await EchoProbe.RunAsync(channel);
+                return EchoProbe.RunAsync(channel).GetAwaiter().GetResult();
             case ["probe", RunnerProbe.AvaloniaPrivateMode]:
                 return AvaloniaPrivateProbe.Run();
             case ["probe", RunnerProbe.UIContextMode]:
-                return await UIContextProbe.RunAsync(channel);
+                return UIContextProbe.RunAsync(channel).GetAwaiter().GetResult();
             default:
-                await Console.Error.WriteLineAsync("Usage: SharpRail.PluginRunner plugin|probe echo|avalonia-private|ui-context");
+                Console.Error.WriteLine("Usage: SharpRail.PluginRunner plugin|probe echo|avalonia-private|ui-context");
                 return 2;
         }
     }

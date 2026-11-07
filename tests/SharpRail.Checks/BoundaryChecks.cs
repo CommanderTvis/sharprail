@@ -32,10 +32,11 @@ internal static class BoundaryChecks
         [Remote] = [Abstractions, Protocol, Core, Api, ApiHost, "SharpRail.Plugins.Tailscale"],
         [Scintilla] = [],
         [Ghostty] = [],
-        [UI] = [Abstractions, Core, Client, Remote, Scintilla, Ghostty, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        // The UI draws an external plugin's surfaces (Security.SPEC.md, UI halves) from the channel's surface protocol.
+        [UI] = [Abstractions, Core, Client, Remote, Scintilla, Ghostty, Api, ApiUi, Kit, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         // The Android client compiles the UI's sources and reaches what they do, except the serving half.
-        [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
-        [Browser] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [Browser] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, Isolation, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Checks] = [Abstractions, Wire, Protocol, Core, Client, Headless, Remote, Scintilla, Ghostty, UI, Android, Api, ApiHost, ApiUi, Kit,
             "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.Plugins.Agent.UI", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI", "SharpRail.PluginFixture.Outsider.UI", Isolation, IsolationUi, IsolationGenerator, Runner],
         [Api] = [],

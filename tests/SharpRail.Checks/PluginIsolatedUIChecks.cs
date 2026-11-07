@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
@@ -45,7 +46,7 @@ internal static class PluginIsolatedUIChecks
         Task.Run(() => Refusals(Path.Combine(root, "isolated-refusals"), runner)).GetAwaiter().GetResult();
         Console.WriteLine("PASS plugin isolated UI refusals: no seam, no runner, a seam that needs a sandbox and a plugin with a host half each refuse an enabled external plugin with a plain reason and start nothing; a UI half that cannot load fails with the runner's reason");
         App(Path.Combine(root, "isolated-app"), runner);
-        Console.WriteLine("PASS plugin isolated UI: installed from disk and enabled, its one runner process activates the UI half; the app's registry holds its side tool, settings section and file viewer, whose views show a placeholder; its settings round-trip through the process across restarts; no plugin assembly or load context is in this process; disabling ends the process, a crash fails the plugin with a reason, retry starts a new process, a process replaced before the app looks opens a new session, and shutdown leaves none");
+        Console.WriteLine("PASS plugin isolated UI: installed from disk and enabled, its one runner process activates the UI half; the app's registry holds its side tool, settings section and file viewer, whose side tool shows frames from the process; its settings round-trip through the process across restarts; no plugin assembly or load context is in this process; disabling ends the process, a crash fails the plugin with a reason, retry starts a new process, a process replaced before the app looks opens a new session, and shutdown leaves none");
     }
 
     /// <summary>The fixture's staged directory: the manifest, the UI assembly, its private dependency and its assets.</summary>
@@ -141,7 +142,7 @@ internal static class PluginIsolatedUIChecks
             Require(Settings(app)!["greeting"]?.GetValue<string>() == Greeting, "The outsider read its asset through its private dependency and wrote it to its own settings.");
             E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "GestureToastMessage" && text.Text == Greeting + ". Activations: 1."));
             window.Layout.RestoreTool("plugin:" + Id + ":board");
-            E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "IsolatedPluginPlaceholder" && text.Text == RemotePluginUIModule.Placeholder));
+            E2eWorkspace.Until(() => window.GetVisualDescendants().OfType<SharpRail.UI.Plugins.RemoteSurface>().Any(surface => surface.Frames > 0));
             Require(!AppDomain.CurrentDomain.GetAssemblies().Any(assembly => assembly.GetName().Name!.StartsWith("SharpRail.PluginFixture.Outsider", StringComparison.Ordinal)) &&
                 !AssemblyLoadContext.All.Any(context => context.Name?.StartsWith("plugin:", StringComparison.Ordinal) == true),
                 "No plugin assembly or load context is in the host's or the app's process.");
@@ -191,7 +192,7 @@ internal static class PluginIsolatedUIChecks
     {
         var settings = new SharpRail.Plugins.Isolation.IsoPayload().Value(new JsonObject { ["clicks"] = 1 }).Finish();
         var host = new ReplayHost([new(PluginUIContextMembers.PluginUIContext_UpdateSettingsAsync, settings)]);
-        var module = RemotePluginUIModule.OpenAsync(host, Id, "client", () => { }).GetAwaiter().GetResult();
+        var module = RemotePluginUIModule.OpenAsync(host, Id, "client", () => { }, _ => throw new NotSupportedException(), () => "").GetAwaiter().GetResult();
         var context = System.Reflection.DispatchProxy.Create<SharpRail.Plugins.Api.UI.IPluginUIContext, Waiting>();
         var clock = Stopwatch.StartNew();
         try
@@ -226,6 +227,7 @@ internal static class PluginIsolatedUIChecks
             public ValueTask<string> CallAsync(int member, long handle, string payload, CancellationToken cancellationToken = default) => throw new NotSupportedException();
             public void OneWay(int member, long handle, string payload) => throw new NotSupportedException();
             public ValueTask MirrorAsync(int member, string arguments, string json, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+            public SharpRail.Plugins.Isolation.IPluginSurfaceService Surfaces => throw new NotSupportedException();
             public ValueTask DisposeAsync()
             {
                 calls.Writer.TryComplete();

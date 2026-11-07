@@ -20,7 +20,8 @@ public sealed record OutsiderSettings
 /// <summary>
 /// A UI-only external plugin: a side tool, a settings section and a viewer for <c>.outsider</c> files. Each activation
 /// reads its greeting asset, counts itself in its own settings and says hello with the count it reads back, so a check
-/// sees a settings round trip before any of its views can be shown. The button counts clicks the same way.
+/// sees a settings round trip before any of its views can be shown. The button counts clicks the same way. The board
+/// adds a list to scroll and a note to type in.
 /// </summary>
 public sealed class OutsiderUI : PluginUIModule
 {
@@ -28,7 +29,7 @@ public sealed class OutsiderUI : PluginUIModule
 
     public override PluginDisposer? Activate(IPluginUIContext context)
     {
-        context.SideTool(new("board", _ => View(context, "OutsiderBoard")));
+        context.SideTool(new("board", _ => Board(context)));
         context.SettingsSection(new("Outsider", "puzzle-2-line", () => View(context, "OutsiderSettings")));
         context.FileViewer(new(props => new Border { Name = "OutsiderViewer", Child = Ui.Text(props.Text ?? "", Ui.TextBrush) }));
         _ = Greet(context);
@@ -45,6 +46,16 @@ public sealed class OutsiderUI : PluginUIModule
             context.Notify(PluginNotificationKind.Info, greeting, $"Activations: {context.Settings<OutsiderSettings>().Activations}.");
         }
         catch (Exception error) { context.Log.Error("The greeting failed: " + error); }
+    }
+
+    private static Control Board(IPluginUIContext context)
+    {
+        var panel = (StackPanel)View(context, "OutsiderBoard");
+        var rows = new StackPanel { Name = "OutsiderRows" };
+        for (var row = 1; row <= 60; row++) rows.Children.Add(Ui.Text($"Row {row}", Ui.TextBrush));
+        panel.Children.Add(new ScrollViewer { Name = "OutsiderList", Height = 120, Content = rows });
+        panel.Children.Add(new TextBox { Name = "OutsiderNote", Width = 200, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left });
+        return panel;
     }
 
     private static Control View(IPluginUIContext context, string name)

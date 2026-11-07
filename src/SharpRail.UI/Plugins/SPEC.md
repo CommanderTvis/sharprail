@@ -105,7 +105,13 @@ and roster registration still precede reconciliation, preserving dormant tools a
   cancels an opening session, and a session that opens after its activation ended is closed. A session that fails
   to open leaves the plugin dormant and logged until its row changes. A session the host ends (the process ended
   or was replaced) unmounts its activation and schedules a pass, so a row that is still or again active opens a new
-  session even when the app never saw it leave `active`. This keeps
+  session even when the app never saw it leave `active`. The plugin's views are `RemoteSurface`s
+  (shared by desktop, Android and Browser): each decodes a surface's tiles off the UI thread into a bitmap drawn 1:1
+  at device pixels, applies moves before tiles, acknowledges each frame once drawn, pushes its size, scale and the
+  kit theme, forwards pointer, wheel, key and text input, moves focus in on Tab or a click and on when the plugin's
+  last element is tabbed past, sizes itself to what the plugin's control asks for, closes its surface after 2
+  seconds detached and opens a new one when shown again, since the workbench keeps a tool's control while it is
+  hidden. A surface the plugin breaks or the host ends shows why. This keeps
   the app free of dynamic code loading, so it can be published as NativeAOT, until external plugins can run
   isolated from SharpRail's processes. Activation runs on the UI thread.
 - A plugin declares its contributions synchronously, during `Activate`. An activation guard is open only while

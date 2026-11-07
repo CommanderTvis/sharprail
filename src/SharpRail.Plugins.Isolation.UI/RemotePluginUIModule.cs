@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 
 using Avalonia.Controls;
-using Avalonia.Layout;
 using Avalonia.Threading;
 
 using SharpRail.Plugins.Api;
@@ -13,14 +12,14 @@ namespace SharpRail.Plugins.Isolation.UI;
 /// <summary>
 /// An external plugin's UI half as a client holds it: the plugin runs in its own process on the host, and this module
 /// replays what its activation registered onto the client's real context while the activation guard is open, then
-/// dispatches every later call on the UI thread. Factories answer a placeholder until plugin views are streamed.
+/// dispatches every later call on the UI thread. A factory answers the control the client's surface factory makes for
+/// a surface of the plugin's process.
 /// </summary>
 public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
 {
-    /// <summary>What a plugin view shows until views are streamed from the plugin's process.</summary>
-    public const string Placeholder = "This view is not available yet.";
-
     private readonly IIsolatedUISession session;
+    private readonly Func<Func<IPluginSurface>, Control> surfaces;
+    private readonly Func<string> theme;
     private readonly Action ended;
     private readonly CancellationTokenSource lifetime = new();
     private readonly SemaphoreSlim mirroring = new(1, 1);
@@ -31,18 +30,23 @@ public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
     // The UI types the plugin's calls carry, with their enum converters.
     static RemotePluginUIModule() => PluginJson.Register(IsolationUiJsonContext.Default);
 
-    private RemotePluginUIModule(IIsolatedUISession session, Action ended)
+    private RemotePluginUIModule(IIsolatedUISession session, Action ended, Func<Func<IPluginSurface>, Control> surfaces, Func<string> theme)
     {
         this.session = session;
         this.ended = ended;
+        this.surfaces = surfaces;
+        this.theme = theme;
     }
 
     /// <summary>
     /// Opens a session for this client with an active external plugin, refusing a runner whose UI member table differs
     /// from the one this client dispatches with. <paramref name="ended"/> hears when the session ends without this
-    /// client closing it: the plugin's process ended or the plugin was turned off.
+    /// client closing it: the plugin's process ended or the plugin was turned off. <paramref name="surfaces"/> makes the
+    /// client's control for a plugin surface from what opens one, which it may call again once the last closed, and
+    /// <paramref name="theme"/> answers the client's kit theme as JSON, which a surface's factory runs under.
     /// </summary>
-    public static async Task<RemotePluginUIModule> OpenAsync(IIsolatedUIHost host, string pluginId, string clientKey, Action ended, CancellationToken cancellationToken = default)
+    public static async Task<RemotePluginUIModule> OpenAsync(IIsolatedUIHost host, string pluginId, string clientKey, Action ended,
+        Func<Func<IPluginSurface>, Control> surfaces, Func<string> theme, CancellationToken cancellationToken = default)
     {
         var session = await host.OpenAsync(pluginId, clientKey, cancellationToken).ConfigureAwait(false);
         if (session.ApiTableHash.Split('.') is not [_, var table] || table != PluginUIContextMembers.Hash)
@@ -50,7 +54,7 @@ public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
             await session.DisposeAsync().ConfigureAwait(false);
             throw new InvalidOperationException($"The plugin runner was built against UI member table {session.ApiTableHash}; this app has {PluginUIContextMembers.Hash}.");
         }
-        return new(session, ended);
+        return new(session, ended, surfaces, theme);
     }
 
     public override PluginDisposer? Activate(IPluginUIContext context)
@@ -158,13 +162,6 @@ public sealed class RemotePluginUIModule : PluginUIModule, IAsyncDisposable
             catch (Exception error) when (error is IsoCallException or IOException or OperationCanceledException or ObjectDisposedException) { }
         }
 
-        public object Surface(int member, long handle, string payload) => new TextBlock
-        {
-            Name = "IsolatedPluginPlaceholder",
-            Text = Placeholder,
-            Margin = new(12),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
+        public object Surface(int member, long handle, string payload) => module.surfaces(() => module.session.Surfaces.Open(member, handle, payload, module.theme()));
     }
 }

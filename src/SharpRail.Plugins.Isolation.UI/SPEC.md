@@ -27,7 +27,9 @@ in `SharpRail.Plugins.Isolation`:
   (refusing a runner whose UI table differs), replays the registrations onto the client's real context during
   `Activate`, failing the activation if a replayed call would wait rather than hold the UI thread, then dispatches
   each later call on the UI thread. When the session ends on the host's side it tells its opener, so the client can
-  open a new one with a replaced process. Factories answer a placeholder; a resolver answers
+  open a new one with a replaced process. A factory answers the control the client's surface factory makes from
+  a way to open surfaces of the session (the app's `RemoteSurface`, which opens a new one when shown again after
+  its surface closed), each under the client's kit theme; a resolver answers
   from its last answer for those arguments, or as if the plugin had none, and asks the plugin in the background,
   re-evaluating the plugin's predicates when it answers, so the UI thread never waits on the plugin. Before it
   answers a call it brings the plugin's settings mirror up to date.
