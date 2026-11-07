@@ -2,9 +2,16 @@ namespace SharpRail.Plugins.Blueprint.Host;
 
 internal static class BlueprintPrompts
 {
-    public const string Appendix = """
+    /// <summary>The part of the session opening that is about this conversation: the panel beside it and the file at its root.</summary>
+    private const string Session = """
         You are drafting an interactive specification with the person you are talking to. It lives in a single file, `BLUEPRINT.md`, at the root of this directory. Write it there and keep it there: they are reading that file, rendered, in a panel beside this conversation.
-        
+        """;
+
+    /// <summary>
+    /// The Blueprint format itself, shared by the session appendix and the specification file written to the state directory,
+    /// so the two cannot drift.
+    /// </summary>
+    public const string Format = """
         Begin the file with frontmatter, so it registers as a node of the project's spec graph and shows up in the Specs tool. `status` starts at `draft`; a spec becomes `active` once its design firms up:
         
         ---
@@ -31,14 +38,19 @@ internal static class BlueprintPrompts
         [ ] An option you are leaving out — what would make you add it
         [x] Another option you are including — why it earns its place
         
-        Give two to four options either way, and always fill in the reason after the em dash: they choose along a property ("fastest", "widest plugin ecosystem", "most conventional", "cheapest at idle"), not by recognising a name. This is also how this project records **rejected alternatives** — the options you did not take are not deleted, they stay with the reason someone would take them instead, so the argument survives the decision. The id names the *question*, never the answer (`database`, not `postgres`), and it must stay byte-identical every time you rewrite the file. Never leave a value blank and never ask them a question in the document — every decision is already made, and they change the two they care about.
+        Give two to four options either way, and always fill in the reason after the em dash: they choose along a property ("fastest", "widest plugin ecosystem", "most conventional", "cheapest at idle"), not by recognising a name. This is also how this project records **rejected alternatives** — the options you did not take are not deleted, they stay with the reason someone would take them instead, so the argument survives the decision. The id names the *question*, never the answer (`database`, not `postgres`), and it must stay byte-identical every time you rewrite the file. Never leave a value blank and never ask the reader a question in the document — every decision is already made, and the reader changes the ones they care about.
         
         The panel renders GitHub-flavoured Markdown, and the document should use what it renders. Every code fence names its language — ```shell, ```kotlin, ```json, ```yaml — so it is highlighted rather than shown as grey text; a bare ``` is a fence with its language left blank. A comparison of two or more things across the same properties is a table. A list of steps someone will tick off is a task list (`- [ ]`). A caveat that must not be skimmed past is a callout: a blockquote opening with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` on its first line. When a picture carries the argument better than a paragraph — the shape of the system, the path a request takes, a state machine — draw it as a Mermaid diagram in a ```mermaid fence; the panel renders it. Never draw ASCII art: boxes and arrows typed into a code block do not wrap, cannot be read at the width of a panel, and are a diagram only to a monospace font.
         
         After you write the file, and after every rewrite of it, call `blueprint_check`. It reads `BLUEPRINT.md` back the way the panel renders it and names anything the parser had to decide for you — a kind word it did not know, an id it invented or renamed, an option with no reason after it. Fix what it reports before you answer.
         
-        They can also change it from the panel: flipping a control or rewriting a passage edits `BLUEPRINT.md` directly and then tells you what changed. When that happens, re-read the file and bring the rest of the document back into line with it — some changes drag half the spec with them and some touch nothing, and that judgement is yours. Keep what they set exactly as they set it.
+        The person can also change it outside the conversation, for example from SharpRail's Blueprint panel: flipping a control or rewriting a passage edits `BLUEPRINT.md` directly, and you may be told what changed. Whenever the file changes under you, re-read it and bring the rest of the document back into line with it — some changes drag half the spec with them and some touch nothing, and that judgement is yours. Keep what the person set exactly as they set it.
         """;
+
+    public const string Appendix = Session + "\n\n" + Format;
+
+    /// <summary>The file written to the state directory: the format for any session, with or without the Blueprint panel.</summary>
+    public const string FormatDocument = "# The Blueprint format\n\nA Blueprint is an interactive specification kept in a single file, `BLUEPRINT.md`, at the root of a project. Read this before writing or editing one.\n\n" + Format + "\n";
 
     public const string Coverage = """
         Cover what it is, who it is for, the shape of the system, and how it is built and run. Aim for at least six control blocks spread through the document, and reach for `multi` wherever the honest answer is a set rather than a single pick.

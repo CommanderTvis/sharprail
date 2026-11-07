@@ -89,7 +89,9 @@ internal static class PromptChecks
         Require(runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList).SequenceEqual(expected), "The order hints did not keep the old order.");
         Require(all.Claude.Contains("Prefer available SharpRail MCP tools; disabled plugins may hide tools:\n\n- " + string.Join("\n- ", expected) + "\n\nCall `set_title`", StringComparison.Ordinal),
             "The list is not the old wording.");
-        Require(all.Claude.EndsWith("\n" + CorePrompt.Text() + "\n", StringComparison.Ordinal) && all.Claude == Prompts(runtime).Claude, "The Code Intelligence text moved or is unstable.");
+        // Plugin sections (Blueprint's format path) follow the host's text, which still ends where the Code Intelligence text does.
+        var afterCore = all.Claude[(all.Claude.IndexOf("\n" + CorePrompt.Text() + "\n", StringComparison.Ordinal) + CorePrompt.Text().Length + 2)..];
+        Require(all.Claude.Contains("\n" + CorePrompt.Text() + "\n", StringComparison.Ordinal) && afterCore.Count(c => c == '\n') > 0 && afterCore.Contains("blueprint-format.md", StringComparison.Ordinal) && !afterCore.Contains("##", StringComparison.Ordinal) && all.Claude == Prompts(runtime).Claude, "The Code Intelligence text moved or is unstable.");
 
         // The strict Code Intelligence, server-start and delegation rules ride on the feature, in both agents.
         foreach (var prompt in new[] { all.Claude, all.Codex })
@@ -146,10 +148,11 @@ internal static class PromptChecks
         string Codex() => CodexSystemPrompt.Compose(runtime.PromptTexts(CodexManifest.Id, PromptPlacement.ToolList, project), runtime.PromptTexts(CodexManifest.Id, PromptPlacement.Section, project));
         var full = (Claude: Claude(), Codex: Codex());
         var visualize = "plugin." + VisualizeContract.Manifest.Id + ".visualize";
+        var formatSection = "plugin." + BlueprintContract.Manifest.Id + ".blueprint-format";
         string[] ids =
         [
             visualize, "plugin." + SpecDialectManifest.Manifest.Id + ".spec-tools", "plugin." + BlueprintContract.Manifest.Id + ".blueprint-check",
-            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.workspace-emigrate", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.checkout", "core.code-intelligence",
+            "core.terminal-title", "core.pull-requests", "core.workspaces", "core.workspace-emigrate", "core.parallel-tasks", "core.workspace-cleanup", "core.push-and-signing", "core.warm-workspaces", "core.checkout", "core.code-intelligence", formatSection,
         ];
         var listed = runtime.InstructionSections(ClaudeCodeContract.Id, project);
         Require(listed.Sections.Select(section => section.Id).SequenceEqual(ids), "The sections are not the expected ids in composition order: " + string.Join(", ", listed.Sections.Select(section => section.Id)));
@@ -193,6 +196,14 @@ internal static class PromptChecks
             Require(File.ReadAllText(file) == "version = 1\ndisabled = [\"core.workspaces\"", "A refused change touched the file.");
         }
         finally { state.InstructionsChanged -= Changed; File.Delete(file); }
+
+        // A project can turn the Blueprint format path off; the file stays, the prompt line goes.
+        state.SetInstructionSection(project, formatSection, false);
+        foreach (var prompt in new[] { Claude(), Codex() })
+            Require(!prompt.Contains("blueprint-format.md", StringComparison.Ordinal) && prompt.Contains("`blueprint_check`", StringComparison.Ordinal), "A turned-off format section is still composed.");
+        state.SetInstructionSection(project, formatSection, true);
+        Require(Claude() == full.Claude && full.Claude.Contains("blueprint-format.md", StringComparison.Ordinal) && Codex() == full.Codex, "Turning the format section back on did not restore it.");
+        File.Delete(file);
 
         // Round trip and validation.
         var parsed = ProjectInstructionsFile.Parse(ProjectInstructionsFile.Render(["core.b", "plugin.x.y", "core.a", "core.a"]), "f", "s");

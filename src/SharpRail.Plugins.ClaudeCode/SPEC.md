@@ -283,6 +283,7 @@ the view shows that file's path and that running sessions keep their prompt unti
 restarted, and it re-reads on `instructionsChanged`. Nothing offers free-text editing. A shared file the user edited
 under an earlier version (its SHA-256 stamp no longer matches) is copied once to `thinkrail-prompt-claude.custom.md`
 before it is regenerated; that copy is never used or deleted, and the view notes it while it exists.
+Plugins can add sections that name generated files under the state directory (Blueprint's `blueprint-format.md`, the format specification any session can read).
 Spec tools are suggested only when available and the project uses a spec graph; projects without
 specs require no spec workflow or unsolicited spec creation.
 

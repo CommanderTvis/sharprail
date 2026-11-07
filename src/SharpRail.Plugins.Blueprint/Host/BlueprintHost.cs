@@ -15,9 +15,27 @@ public sealed class BlueprintHost : PluginHostModule
     /// <summary>The list item about <c>blueprint_check</c> in the instructions agent plugins give sessions (H20).</summary>
     internal const string Guidance = "`blueprint_check`: you MUST call it to verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.";
 
+    /// <summary>Where the format specification is written, in the plugin's own directory under the state directory; null when the host has no state directory.</summary>
+    internal static string? FormatPath(string? stateDirectory) =>
+        stateDirectory is { Length: > 0 } ? Path.Combine(Path.GetFullPath(stateDirectory), "blueprint-format.md") : null;
+
+    /// <summary>The prompt section that names <paramref name="path"/>, the generated format specification.</summary>
+    internal static string FormatGuidance(string path) =>
+        $"The Blueprint format (BLUEPRINT.md: frontmatter, `!control` blocks, options with reasons, ids, rules) is specified at {path}. When asked to use a blueprint, read that file before writing or editing a BLUEPRINT.md, and call `blueprint_check` afterwards to verify it.";
+
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
         context.Prompt(new PromptContribution { Id = "blueprint-check", Title = "Blueprint check", Description = "Verify the rendered view with blueprint_check after writing BLUEPRINT.md.", Text = Guidance, Order = 30 });
+        // Regenerated on every activation, like the system prompt files; a host without a state directory offers no section.
+        if (FormatPath(context.StateDirectory) is { } formatPath)
+        {
+            try
+            {
+                GeneratedInstructions.Write(formatPath, BlueprintPrompts.FormatDocument);
+                context.Prompt(new PromptContribution { Id = "blueprint-format", Title = "Blueprint format", Description = "Where the Blueprint format specification is, for any session that is asked to use a blueprint.", Text = FormatGuidance(formatPath), Placement = PromptPlacement.Section, Order = 30 });
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { }
+        }
         var gate = new object();
         var sessions = new BlueprintSessions(() => context.ReadState<Dictionary<string, PersistedBlueprint>>("blueprints", []),
             records => context.WriteState("blueprints", records), payload => context.Publish(BlueprintContract.Changed, payload));

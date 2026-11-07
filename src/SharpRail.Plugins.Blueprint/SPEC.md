@@ -84,6 +84,8 @@ has not been indexed with id/type/title metadata. It changes nothing.
 
 The host half contributes the `blueprint_check` item to the agent instructions (H20, order 30) on activation, so a disabled plugin leaves it out.
 
+It also writes the Blueprint format specification (frontmatter, control syntax, options with reasons, ids, rules, the reconcile rule, `blueprint_check`) to `blueprint-format.md` in the plugin's own directory under the state directory (`<stateDir>/plugin-state/blueprint/files/`) on every activation, a generated read-only file like the system prompt files, and contributes a short section (`blueprint-format`, order 30) naming its absolute path. That lets the user say "use a blueprint" in any Claude or Codex session, not only those the plugin starts. The file and the session appendix are built from the same text (`BlueprintPrompts.Format`), so they cannot drift. A disabled plugin, a project that turns the section off in `.sharprail/instructions.toml`, or a host without a state directory leaves no section. The headless host declares the plugin and writes the file the same way.
+
 ## UI
 
 Two start actions open one dialog: a workspace action resolves its project, and a

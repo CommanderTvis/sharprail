@@ -201,6 +201,12 @@ internal static class BlueprintChecks
                 "Opening carries the exact Blueprint instructions and interactive syntax.");
             await using var frames = new Frames(runtime.SubscribeAsync(new("blueprint", "changed", new BlueprintScope(project), "client")));
             File.WriteAllText(Path.Combine(project, "BLUEPRINT.md"), Document);
+            var formatPath = Path.GetFullPath(Directory.GetFiles(Path.Combine(directory, "state"), "blueprint-format.md", SearchOption.AllDirectories).Single());
+            var tail = opened.SystemPrompt[opened.SystemPrompt.IndexOf("Begin the file with frontmatter", StringComparison.Ordinal)..];
+            Require(File.Exists(formatPath) && File.ReadAllText(formatPath).EndsWith(tail + "\n", StringComparison.Ordinal) && File.ReadAllText(formatPath).Contains("!control select", StringComparison.Ordinal),
+                "Activation writes the format specification, whose text is the one the session appendix is built from.");
+            Require(runtime.PromptTexts("claude-code", PromptPlacement.Section).Any(text => text.Contains(formatPath, StringComparison.Ordinal) && text.Contains("blueprint_check", StringComparison.Ordinal)),
+                "The composed prompt names the absolute path of the format file.");
             await Call(BlueprintContract.SetAuthor, new(project, new BlueprintTerminalAuthor("author")));
             var ready = await frames.Next(frame => frame.State?.Phase == BlueprintPhase.Ready);
             Require(ready.State!.Changes.Count == 0 && BlueprintFormat.Controls(ready.State.Doc).Count == 2, "First sight of the file is ready without spurious changes.");
@@ -236,6 +242,12 @@ internal static class BlueprintChecks
             await frames.Next(frame => frame.State?.Author is BlueprintTerminalAuthor { AgentSessionId: "conversation-1" });
             state.SetTerminalAgent(new(project, "author"), new("claude", "claude") { SessionId = "conversation-1" });
             Require(terminals.RevivePrefill!(new(project, "author")) is { Submit: true }, "The recorded author contributes submit-on-revival.");
+            await state.ChangeAsync([HostStateChange.PluginEnabled(BlueprintContract.Id, false)]);
+            await runtime.Schedule();
+            Require(!runtime.PromptTexts("claude-code", PromptPlacement.Section).Any(text => text.Contains(formatPath, StringComparison.Ordinal)), "A disabled Blueprint plugin still names its format file.");
+            await state.ChangeAsync([HostStateChange.PluginEnabled(BlueprintContract.Id, true)]);
+            await runtime.Schedule();
+            Require(runtime.PromptTexts("claude-code", PromptPlacement.Section).Any(text => text.Contains(formatPath, StringComparison.Ordinal)), "Enabling Blueprint again did not restore the format section.");
         }
         await using (var restored = Create())
         {
