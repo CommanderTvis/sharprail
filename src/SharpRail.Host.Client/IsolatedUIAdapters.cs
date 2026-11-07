@@ -285,7 +285,11 @@ internal sealed class RemoteIsolatedUISession(RemoteIsolatedUIHost host) : IIsol
             acknowledged = received;
             if (!overflow) link?.Writer.TryWrite(message);
         }
-        if (overflow) _ = lifetime.CancelAsync();
+        if (overflow)
+        {
+            End(new IOException("The host is not keeping up."));
+            _ = lifetime.CancelAsync();
+        }
     }
 
     private async ValueTask<string> AwaitAsync(PluginSurfaceUp message, CancellationToken cancellationToken)
