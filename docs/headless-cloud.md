@@ -99,10 +99,13 @@ Verified (arm64 Linux, Apple `container`, `ubuntu:24.04`, on 2026-11-07):
 - `claude mcp add --scope user --env K=V --transport stdio sharprail -- <command> mcp` is accepted by the local CLI and writes the server into `~/.claude.json`.
 - From the docs: Ubuntu 24.04 x86_64 VM, Docker present, setup script runs as root before Claude starts, 64 KB limit, five-minute cache rule, `ghcr.io`, `api.nuget.org` and `raw.githubusercontent.com` in the default list, the repo's `.mcp.json` is loaded.
 
+Verified on a real cloud VM (claude.ai/code, first run, 2026-11-07, environment without a repository):
+- The setup script ran as root and finished with exit 0. It chose `linux/amd64`, verified the app layer (`sha256:325ee39c...`), installed `/root/.local/bin/sharprail-headless`, found the `claude` CLI and ran `claude mcp add`, which reported "Added stdio MCP server sharprail" and "File modified: /root/.claude.json". So the VM is x86_64, `ghcr.io` and its blob host are reachable with the allowlist from step 2, and `claude` exists at setup time.
+- The server did NOT reach the session: Claude Code started, but the agent found no SharpRail tools. So a user-scope server added by the setup script did not make its tools available to the session, at least not in an environment without a repository. Cause not yet known. Next checks in such a session: `claude mcp list`, `jq .mcpServers ~/.claude.json`, `/mcp`, and a repository with a committed `.mcp.json` attached to the environment.
+
 Unverified:
-- Everything on a real cloud VM. The amd64 build was run only under Rosetta emulation on Apple silicon, not on a real x86_64 machine.
+- Everything on a real cloud VM beyond the setup script above, including the amd64 binary starting there (the setup script does not start it).
 - Whether `builds.dotnet.microsoft.com`, `pkg-containers.githubusercontent.com` and `globalcdn.nuget.org` are the only extra domains needed. They are what the code and the registry redirect use, and none is in the default list.
-- Whether the `claude` CLI exists when the setup script runs, and whether a user-scope server added there survives into the session.
 - Whether `.mcp.json` expands `${HOME}` there, and whether the server's working directory is the repo root.
 - Whether `raw.githubusercontent.com` serves this repo to the VM (it needs the repo to be public).
 - Whether the setup script may run `apt-get` for `libicu74` (the docs say `apt install` works), and whether the VM already has libicu.
