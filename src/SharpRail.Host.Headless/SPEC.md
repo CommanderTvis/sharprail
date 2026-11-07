@@ -23,14 +23,17 @@ stdio for exactly one workspace. An agent such as Claude Code uses SharpRail's l
   listener, terminals, per-terminal tokens. `BoundaryChecks` fails on a project reference or source mention, and
   `--headless` fails on any UI or web package in the restore graph, transitive ones included.
 - Tool behaviour is Core's and the plugins'. This project only frames messages. The one change to Core is the optional
-  `instructions` argument of `McpServer.HandleAsync` and the `BuiltinPlugins.Headless` roster.
+  `instructions` argument of `McpServer.HandleAsync` and the `BuiltinPlugins.Headless` roster, which follows the manifests' `Headless` declaration.
 
 ## Behaviour
 
 - Commands: `sharprail-headless mcp|check-config [--workspace <dir>]`. The workspace is `--workspace`, else `SHARPRAIL_ROOT`, else the current directory.
 - State (settings, language server installs and sessions) lives in `SHARPRAIL_STATE_DIR`, else `~/.sharprail/headless`. A store with no
   directory would turn language services off, so there is always one. Two processes on one directory are last-writer-wins.
-- Roster: the spec graph, Blueprint and the language servers, enabled by default. Tools are `lsp_*`, `spec_*` and
+- Roster: the builtin plugins whose manifest says `Headless = Yes`, which are the spec graph, Blueprint and 17 language servers, enabled by default
+  (`HeadlessEnabledByDefault` turns the first two on). Every builtin states `Yes` or `No`, a check fails on `Undeclared`, and the host runs as
+  `HostKind.Headless`, so a plugin without `Yes` is refused there and so is a dependent of a refused plugin. The decision per plugin is in
+  [headless-design.md](../../docs/develop/headless-design.md). Tools are `lsp_*`, `spec_*` and
   `blueprint_check`, with the schemas the desktop serves. Terminal tools (`set_title`, `workspace_*`) and Air Context are absent.
 - One workspace per process. A tool's optional `workspace` argument is dropped, so a path the agent knows from outside a
   container still works. Relative paths resolve against the workspace.

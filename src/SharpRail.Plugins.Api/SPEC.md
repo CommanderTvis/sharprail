@@ -244,6 +244,8 @@ names and enum values, unknown members refused).
 | `apiGeneration` | refused before load if it does not match `PluginApi.Generation` |
 | `wireVersion` | incremented when the plugin's methods or channels change, so a separately shipped half can detect drift |
 | `enabledByDefault` | honoured for builtin plugins; an external plugin always arrives disabled |
+| `headless` | whether the plugin works in headless SharpRail, which has no window, terminal or agent of its own: `yes`, `no` or `undeclared` (the default). A builtin must say `yes` or `no`, and a headless host (`HostKind.Headless`) runs only plugins that say `yes`, refusing the rest and their dependents. An external plugin that says nothing is not headless |
+| `headlessEnabledByDefault` | optional; replaces `enabledByDefault` on a headless host, so a headless plugin can start on there while a desktop leaves it off |
 | `dependsOn` | other plugins, by id and exact wire version |
 | `unavailableOn` | host kinds the plugin cannot run on (`pureWeb`: a host that lives in a browser tab with no operating system under it). A host of a listed kind refuses the plugin before load, naming the kind, and refuses its dependents with it; empty means everywhere. A plugin that needs a shell, a process or a socket lists `pureWeb` |
 | `host`, `ui` | relative paths of the two entry assemblies; each holds exactly one public concrete `PluginHostModule` / `PluginUIModule` subclass. An external plugin's are never loaded in this version |

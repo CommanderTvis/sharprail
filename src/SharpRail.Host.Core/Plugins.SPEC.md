@@ -91,6 +91,9 @@ A plugin whose manifest lists the host's kind (`PluginHostSeams.Kind`, default
 `OperatingSystem`) in `UnavailableOn` is refused before any of its code loads, with the reason
 `plugin <id> is not available in the Playground`; its dependents follow through the ordinary dependency refusal.
 Every language server plugin except CSS lists `PureWeb`, so a browser tab's catalog holds only `css` (the one server its page runs in a Web Worker). With a non-empty catalog the `lsp_*` MCP tools and the Code intelligence prompt section stay; when the catalog is partial the section names the servers the host provides and says every other file type has none. With an empty catalog the tools and the section are left out. A browser host answers a language request for a file no catalog server owns with `unsupported` before it touches the workspace, a probe or a process. The UI reads the same facts from the roster (`LanguageSupport`): Code Intelligence, its settings page and the language keymap group need at least one available server, and the editor's chords, menu items, quick fixes and status polling run only for files an available server owns. A host with an operating system is unchanged.
+A host of kind `Headless` also refuses every plugin whose manifest `Headless` is not `Yes` (`Undeclared` and `No`), with the reason
+`plugin <id> is not available in headless SharpRail`, and its dependents follow the same way. On such a host `HeadlessEnabledByDefault`, when set,
+replaces `EnabledByDefault`. `BuiltinPlugins.Headless` lists the builtins that declare `Yes`, and a check fails on a builtin that stays `Undeclared`.
 A plugin already active is left alone (the kind never changes during a run). A
 dependency cycle refuses every plugin the topological order could not place (those in the cycle and anything
 transitively depending on them). Activations walk the order forward; deactivations walk it in reverse. Desired

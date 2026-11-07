@@ -163,14 +163,41 @@ Air Context stays off in the container by default. Its consent flow is user-only
 operation records consent or enables a workspace) and the sign-in opens a terminal. A research run that wants it must
 mount a prepared JetBrains login and accepted state. That is out of scope for the first version and is a decision below.
 
-### Which plugins are UI-bound
+### Which plugins are headless
 
-Every plugin has a Host half that runs headless. UI halves are never loaded. Plugins that make no sense headless
-(they only serve a window or a terminal): Discord, Tailscale, Epub, BranchGraph, Processes, the agent launchers
-(ClaudeCode, Codex, Omp, Pi, Acp), Providers, AirGateway, Env* (they extend terminal shells), GitHub (pull-request UI).
-Plugins useful headless: all `Lsp.*`, SpecDialect, Blueprint, and optionally AirContext and the Env plugins (they could
-set `JAVA_HOME` or the Python venv for language servers; not verified how they hand that to servers).
-The headless entrypoint sets the plugin roster explicitly from config and defaults to LSP + SpecDialect + Blueprint.
+Every plugin states the decision in its manifest: `Headless = HeadlessSupport.Yes` or `No`. The default is `Undeclared`,
+which a check refuses for a builtin, so a new plugin forces a conscious choice. A headless host (`HostKind.Headless`) runs
+only plugins that say `Yes`. Any other plugin is refused with "not available in headless SharpRail", and so is a plugin
+that depends on it. A headless plugin still has to be enabled. `HeadlessEnabledByDefault` replaces `EnabledByDefault` on a
+headless host, which keeps the spec graph and Blueprint on there while a desktop leaves them off. The roster
+`BuiltinPlugins.Headless` is the builtins that declare `Yes`. No tool is added: the table stays at 11 tools.
+
+| Plugin | Headless | Reason |
+| --- | --- | --- |
+| `spec-dialect` | yes, on by default | The `spec_*` tools read and edit the spec graph on disk. |
+| `blueprint` | yes, on by default | `blueprint_check` renders a view without a window. It depends on `spec-dialect`, which is also headless. |
+| `lsp-typescript`, `lsp-python`, `lsp-php`, `lsp-css`, `lsp-shell`, `lsp-csharp`, `lsp-clangd`, `lsp-java`, `lsp-kotlin`, `lsp-ruby`, `lsp-go`, `lsp-rust`, `lsp-scala`, `lsp-r`, `lsp-powershell`, `lsp-swift`, `lsp-dart` (17) | yes, on by default | Language servers are child processes that serve the `lsp_*` tools. Managed ones install into the cache. Swift and Dart use the toolchain of the container and need it installed. |
+| `lsp-intellij` | no | It needs a JetBrains license and an agreement accepted in the UI, and it replaces the Java and Kotlin servers. See the decisions. |
+| `claude-code`, `codex`, `omp`, `pi`, `acp` | no | They launch an agent in a terminal or chat pane. Headless is the tool server an agent calls. |
+| `air-gateway` | no | It starts Codex and Claude Code through Air Gateway per launch. |
+| `air-context` | no | Sign-in and consent are user-only and the indexing is cloud processing. |
+| `providers` | no | It is a settings page for the API keys of Pi and omp. |
+| `github` | no | Pull request panels and a `gh` sign-in. |
+| `discord` | no | Rich Presence of a desktop session. |
+| `tailscale` | no | Pairs clients of a desktop host on a tailnet. |
+| `branch-graph` | no | A side tool that draws a graph. |
+| `epub` | no | A file viewer. |
+| `visualize` | no | A drawing surface that only a UI shows. |
+| `processes` | no | A process list for a window. Its two tools would also change the tool table. See the decisions. |
+| `env`, `env-mise`, `env-direnv`, `env-python`, `env-javascript`, `env-jvm` | no | They shape the shell of a terminal and agent. Language servers do not read them. See the decisions. |
+
+### Decisions needed
+
+- `lsp-intellij` is `no`. Flipping it needs a way to accept the JetBrains agreement without a UI, for example a prepared settings file, and a decision that the headless Java and Kotlin servers are IntelliJ.
+- `processes` is `no`. Flipping it adds `owned_process_report` and `owned_process_release`, which makes 13 tools, and needs a terminal owner that headless does not have.
+- The `env*` plugins are `no`. Flipping them would make language servers see `JAVA_HOME`, the venv or `mise` tools of the workspace. That needs the language server launch to read the merged environment, which it does not do today.
+- `air-context` is `no`. Flipping it needs a prepared JetBrains login and accepted consent mounted into the container.
+- `lsp-swift` and `lsp-dart` are `yes` but have no managed install. They work only when the container image carries the toolchain.
 
 ### Settings audit
 
