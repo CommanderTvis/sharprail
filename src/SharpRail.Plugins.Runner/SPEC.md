@@ -33,9 +33,9 @@ nothing it starts holds it.
   `SurfaceRenderer` walks the surface's open popups (a submenu's under its menu's), numbers each new one from 1 and
   sends `surface.popup` with its place from the surface's corner and its size, again when either changes, and its
   closing after its last frame; each popup has its own frames, the first a keyframe, and its own input. A popup that
-  asked for its surface's overlay stays inside the surface. `surface.dismiss` (a press elsewhere in the client) closes the
-  popups that close on such a press; Escape while one is open and focus is in no popup closes the newest one and
-  goes no further. A tooltip is sent as a popup that takes no input.
+  asked for its surface's overlay stays inside the surface. `surface.dismiss` (the client hid every popup) closes them
+  all, the newest first, a tooltip through its control so hovering opens it again; Escape while a popup that takes
+  input is open closes the newest such popup and goes no further. A tooltip is sent as a popup that takes no input.
   Client messages run through one queue in arrival order, because applying input runs the dispatcher's pending
   jobs. With `SHARPRAIL_RUNNER_DIAGNOSTICS=1`, which only the checks set, `surface.capture` answers a fresh render
   and named controls' bounds.

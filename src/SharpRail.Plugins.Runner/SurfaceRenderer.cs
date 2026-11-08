@@ -234,12 +234,19 @@ internal sealed class SurfaceRenderer
             renderer.Heat();
         }
 
-        // A press outside the surface and its popups on the client: the popups that close on such a press close.
+        // A press outside the surface and its popups on the client, which hid them all: every popup closes, the newest first.
         public void Dismiss()
         {
-            foreach (var popup in window.OpenedPopups.ToArray())
-                if (popup.IsLightDismissEnabled) popup.Close();
+            foreach (var view in popups.Values.OrderByDescending(view => view.Id).ToArray()) Shut(view.Popup);
+            foreach (var popup in window.OpenedPopups.ToArray()) Shut(popup);
             renderer.Heat();
+        }
+
+        // A tooltip closes through its control, so hovering it again opens it again.
+        private static void Shut(Popup popup)
+        {
+            if (popup.Child is ToolTip && popup.PlacementTarget is { } adorned) ToolTip.SetIsOpen(adorned, false);
+            if (popup.IsOpen) popup.Close();
         }
 
         public void Scrolled(ScrollViewer viewer, ScrollChangedEventArgs args)
@@ -291,12 +298,10 @@ internal sealed class SurfaceRenderer
         private static PhysicalKey PhysicalOf(int key) => Enum.IsDefined((PhysicalKey)key) ? (PhysicalKey)key : PhysicalKey.None;
         private static string? Symbol(string text) => text.Length is > 0 and <= 16 ? text : null;
 
-        // Escape while a popup that closes on a press elsewhere is open, and focus is not in a popup that would hear it:
-        // the newest such popup closes, as a native menu would, and the key goes no further.
+        // Escape while a popup that takes input is open: the newest closes, as the client hides it, and the key goes no further.
         private bool Escaped()
         {
-            if (window.FocusManager?.GetFocusedElement() is Visual focused && TopLevel.GetTopLevel(focused) is PopupRoot) return false;
-            if (popups.Values.Where(view => view.Popup.IsLightDismissEnabled && view.Popup.IsOpen).MaxBy(view => view.Id) is not { } newest) return false;
+            if (popups.Values.Where(view => view.Placement is { Input: true } && view.Popup.IsOpen).MaxBy(view => view.Id) is not { } newest) return false;
             newest.Popup.Close();
             return true;
         }

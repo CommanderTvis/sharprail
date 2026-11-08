@@ -1,11 +1,14 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Threading.Channels;
 
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 
 using SharpRail.Checks.E2E;
@@ -27,7 +30,8 @@ namespace SharpRail.Checks;
 /// reaches its note, Tab leaves the surface, a wheel scrolls its list with a move, a theme change re-renders it, its
 /// context menu, flyout and tooltip show as popups of their own at the right place and under the app's dialogs, a click
 /// in a popup reaches the plugin, a press elsewhere and Escape close them, scale 2 renders twice the pixels, and the
-/// side tool hidden past 2 seconds and shown again opens a new surface.
+/// side tool hidden past 2 seconds and shown again opens a new surface. A plugin's process that breaks the popup rules
+/// is held to them by the app on its own.
 /// </summary>
 internal static class PluginSurfaceChecks
 {
@@ -270,7 +274,9 @@ internal static class PluginSurfaceChecks
 
             shown = Popups(app, window, board, Settle(board, "the side tool before its popups"), null, "plugin surface");
             Covered(window, board, shown);
-            Console.WriteLine("PASS plugin surface popups under dialogs: with the plugin's menu open, the app's dialog opens in a layer above the popup layer in the same panel, and focus moving into it closes the menu");
+            Console.WriteLine("PASS plugin surface popups under dialogs: the popup layer covers only the workbench's row, below the title bar; with the plugin's menu open, the app's dialog opens in a layer above the popup layer in the same panel, and focus moving into it closes the menu");
+            Hostile();
+            Console.WriteLine("PASS plugin surface hostile popups: with a plugin's process that ignores dismissal, a popup that opens with no input to the surface does not show, one after input stays inside the cell of the surface's holder, below a title row, a press elsewhere hides it and it never shows again, Escape hides the newest popup that takes input, a tooltip does not keep Escape from the app, and focus leaving hides the rest");
             shown = Scaled(window, board, shown, null, "plugin surface");
 
             window.ShowSettings("Plugins");
@@ -386,10 +392,15 @@ internal static class PluginSurfaceChecks
         var menu = Popup(board);
         var middle = menu.TranslatePoint(new Point(menu.Bounds.Width / 2, menu.Bounds.Height / 2), window) ?? throw new InvalidOperationException("The menu is not in the window.");
         var layer = (Canvas)menu.Parent!;
+        var title = window.GetVisualDescendants().OfType<Control>().First(control => control.Name == "WindowTitleBar");
+        var below = title.TranslatePoint(new Point(0, title.Bounds.Height), window)!.Value.Y;
+        Require(layer.ClipToBounds && layer.TranslatePoint(default, window)!.Value.Y >= below - 0.5,
+            $"The plugin's popup layer starts below the title bar at {below:0}, clipped to its cell.");
+        // Focus moving into the dialog hides the menu and its layer at once, so the layer's place is taken first.
+        var panel = (Panel)layer.Parent!;
         var notice = Dialogs.Notice(window, "Above the plugin", "The app's dialogs stay above a plugin's popups.");
         E2eWorkspace.Until(() => DialogWindow.On(window).Count == 1);
         var dialog = ((DialogWindow)DialogWindow.On(window).Single()).Surface!.GetVisualAncestors().OfType<OverlayHost>().First();
-        var panel = (Panel)layer.Parent!;
         Require(dialog.Parent == panel && (dialog.ZIndex > layer.ZIndex || dialog.ZIndex == layer.ZIndex && panel.Children.IndexOf(dialog) > panel.Children.IndexOf(layer)),
             $"The app's dialog layer ({dialog.ZIndex}) lies above the plugin's popup layer ({layer.ZIndex}) in the same panel.");
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -432,6 +443,113 @@ internal static class PluginSurfaceChecks
         Require(back.Width == shown.Width && back.Height == shown.Height, "Back at scale 1 the surface renders its first size again.");
         Console.WriteLine($"PASS {what} scale: at scale 2 the side tool renders {scaled.Width}x{scaled.Height} device pixels for {shown.Width}x{shown.Height} at scale 1, equal to the plugin's render and drawn in the window, a popup renders at twice its pixels too, and back at scale 1 it renders as before");
         return back;
+    }
+
+    /// <summary>
+    /// A plugin's process that breaks every popup rule, on a surface in a window of its own whose grid has a title row
+    /// above the surface's row: it opens popups unprompted and as large as the relay allows, ignores dismissal and sends
+    /// a hidden popup's place again.
+    /// </summary>
+    private static void Hostile()
+    {
+        var hostile = new HostileSurface();
+        var surface = new RemoteSurface(() => hostile) { Width = 200, Height = 200, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var title = new Button { Name = "HostileTitle", Content = "Title", Width = 100, Height = 40 };
+        var holder = new Border { Child = surface };
+        Grid.SetRow(holder, 1);
+        var overlays = new OverlayHost();
+        Grid.SetRowSpan(overlays, 2);
+        var window = new Window { Width = 400, Height = 400, Content = new Grid { RowDefinitions = new("40,*"), Children = { title, holder, overlays } } };
+        var heard = false;
+        window.AddHandler(InputElement.KeyDownEvent, (_, e) => heard = !e.Handled, RoutingStrategies.Bubble, handledEventsToo: true);
+        window.Show();
+        try
+        {
+            var sequence = 0L;
+            void Sync()
+            {
+                var frames = surface.Frames;
+                hostile.Frame(++sequence);
+                E2eWorkspace.Until(() => surface.Frames > frames);
+            }
+            Sync();
+            hostile.Open(1);
+            Sync();
+            Require(surface.Popups.Count == 0, "A popup that opens with no input to the surface does not show.");
+
+            window.MouseMove(new Point(100, 140));
+            hostile.Open(2);
+            Sync();
+            Require(surface.Popups.Count == 1, "A popup that opens just after input shows.");
+            var popup = surface.Popups.Single();
+            var layer = (Canvas)popup.Parent!;
+            Require(Grid.GetRow(layer) == 1 && Grid.GetRowSpan(layer) == 1 && layer.ClipToBounds, "The popup layer takes the cell of the surface's holder, clipped to it.");
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Require(window.InputHitTest(new Point(390, 390)) is Visual inside && (inside == popup || popup.IsVisualAncestorOf(inside)), "The popup covers the surface's row.");
+            Require(window.InputHitTest(new Point(20, 20)) is not Visual over || over != popup && !popup.IsVisualAncestorOf(over), "The popup does not reach the title row.");
+
+            window.MouseDown(new Point(20, 20), MouseButton.Left);
+            window.MouseUp(new Point(20, 20), MouseButton.Left);
+            Require(surface.Popups.Count == 0 && hostile.Dismissed == 1, "A press elsewhere hides the popup the plugin keeps open, and the plugin hears it.");
+            hostile.Open(2);
+            Sync();
+            Require(surface.Popups.Count == 0, "A hidden popup's place sent again does not show it.");
+
+            window.MouseMove(new Point(100, 140));
+            hostile.Open(3, input: false);
+            Sync();
+            Require(surface.Popups.Count == 1, "A tooltip shows after input.");
+            surface.Focus(NavigationMethod.Pointer);
+            E2eWorkspace.Until(() => surface.IsFocused);
+            Press(window, Key.Escape, PhysicalKey.Escape);
+            Require(heard && surface.Popups.Count == 1, "With only a tooltip shown, the app hears Escape.");
+            window.MouseMove(new Point(100, 150));
+            hostile.Open(4);
+            Sync();
+            Require(surface.Popups.Count == 2, "A menu shows after input.");
+            Press(window, Key.Escape, PhysicalKey.Escape);
+            Require(!heard && surface.Popups.Single().Number == 3, "Escape stays with the plugin and hides its newest popup that takes input, whether or not the plugin closes it.");
+            Press(window, Key.Escape, PhysicalKey.Escape);
+            Require(heard, "With the menu hidden, the app hears Escape again.");
+
+            title.Focus();
+            E2eWorkspace.Until(() => !surface.IsFocused);
+            Require(surface.Popups.Count == 0 && hostile.Dismissed == 2, "Focus leaving the surface hides the rest.");
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>A plugin surface whose events the check writes, and which ignores every request.</summary>
+    private sealed class HostileSurface : IPluginSurface
+    {
+        private readonly Channel<SurfaceEvent> events = Channel.CreateUnbounded<SurfaceEvent>();
+
+        public ChannelReader<SurfaceEvent> Events => events.Reader;
+        public int Number => 1;
+        public int Dismissed { get; private set; }
+
+        /// <summary>Opens or moves a popup as large as the relay allows, from far above and left of the surface.</summary>
+        public void Open(int popup, bool input = true) => events.Writer.TryWrite(new SurfacePopupChanged(new(1, popup, -100, -100, 5000, 5000, true, input)));
+
+        /// <summary>A frame of the surface with no tiles, which the check waits for to know what came before it applied.</summary>
+        public void Frame(long sequence) => events.Writer.TryWrite(new SurfaceFrame(new(1, sequence, 10, 10, 1, 200, 200, true, [], [], sequence == 1), []));
+
+        public void Resize(double width, double height, double scale) { }
+        public void Input(SurfaceInput input) { }
+        public void Acknowledge(long sequence, int popup) { }
+        public void Focus(bool enter, bool backward, bool pointer) { }
+        public void Dismiss() => Dismissed++;
+        public void Theme(string json) { }
+        public void Keyframe() { }
+
+        public ValueTask DisposeAsync()
+        {
+            events.Writer.TryComplete();
+            return ValueTask.CompletedTask;
+        }
     }
 
     /// <summary>Waits for the surface's one popup to show in the app with its pixels, and answers it.</summary>

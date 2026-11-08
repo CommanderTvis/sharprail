@@ -19,14 +19,17 @@ namespace SharpRail.UI.Plugins;
 /// The client's control for one surface of an external plugin (Security.SPEC.md, UI halves): the plugin's control
 /// renders in its process on the host, and this shows its pixels. Frames are decoded off the UI thread and drawn 1:1 at
 /// device pixels; the surface's size, scale and the kit theme go to the plugin, and pointer, wheel, key, text and
-/// focus come back in. The plugin's popups (menus, flyouts, tooltips) show in a layer of their own beside the layer
-/// that holds this control, so they reach past its slot but stay under the app's dialogs and Settings above it; a
-/// press elsewhere in the app dismisses them. Detached for longer than a moment, the surface closes; attached again,
-/// it opens a new one, for which the plugin makes its control again.
+/// focus come back in. The plugin's popups (menus, flyouts, tooltips) show in a layer of their own over the cell of the
+/// child that holds this control, so they reach past its slot but not past that cell, and stay under the app's dialogs
+/// and Settings above it. A popup shows only when it opens shortly after input to the surface or its popups; a press
+/// elsewhere in the app, focus leaving or the window deactivating hides every popup, and Escape the newest that takes
+/// input, whether or not the plugin closes them. Detached for longer than a moment, the surface closes; attached
+/// again, it opens a new one, for which the plugin makes its control again.
 /// </summary>
 internal sealed class RemoteSurface : Decorator
 {
     private static readonly TimeSpan CloseGrace = TimeSpan.FromSeconds(2);
+    private const long InputWindowMs = 2000;
 
     private readonly Func<IPluginSurface> open;
     private readonly Lock gate = new();
@@ -37,6 +40,10 @@ internal sealed class RemoteSurface : Decorator
     private readonly Dictionary<int, FrameImage> images = [];
     // On the UI thread: each open popup's control.
     private readonly Dictionary<int, RemotePopup> popups = [];
+    // Under the gate: the highest popup number seen open; a number at or below it that is not shown never shows.
+    private int seenPopup;
+    // The tick count until which a popup that opens may show: input to the surface or its popups extends it.
+    private long popupsUntil;
     private Canvas? layer;
     private TopLevel? top;
     private Size wanted, sent;
@@ -119,6 +126,7 @@ internal sealed class RemoteSurface : Decorator
             surface = opened;
             main.Reset();
             images.Clear();
+            seenPopup = 0;
         }
         ClearPopups();
         _ = Task.Run(() => PumpAsync(opened));
@@ -145,7 +153,12 @@ internal sealed class RemoteSurface : Decorator
                     {
                         if (!ReferenceEquals(mine, surface)) break;
                         if (!placement.Open) images.Remove(placement.Popup);
-                        else if (!images.ContainsKey(placement.Popup)) images[placement.Popup] = new FrameImage();
+                        else if (!images.ContainsKey(placement.Popup) && placement.Popup > seenPopup)
+                        {
+                            // A popup hidden or refused before stays so; a new one shows only shortly after input.
+                            seenPopup = placement.Popup;
+                            if (Environment.TickCount64 <= Volatile.Read(ref popupsUntil)) images[placement.Popup] = new FrameImage();
+                        }
                     }
                     Dispatcher.UIThread.Post(() => { if (ReferenceEquals(mine, surface) && !closed) Place(placement); });
                     continue;
@@ -284,7 +297,7 @@ internal sealed class RemoteSurface : Decorator
         }
         // Popups do not outlive the surface's place in the app. The layer leaves its panel after the tree is detached,
         // whose children are being walked now.
-        Dismiss();
+        Dismiss(later: true);
         RemoveLayer(later: true);
         if (!closed) closing.Start();
         base.OnDetachedFromVisualTree(e);
@@ -297,14 +310,30 @@ internal sealed class RemoteSurface : Decorator
     // A press anywhere in the app outside this surface and its popups dismisses them, and still reaches what it pressed.
     private void PressedAnywhere(object? sender, PointerPressedEventArgs e)
     {
-        if (popups.Count == 0 || e.Source is not Visual pressed) return;
+        if (e.Source is not Visual pressed) return;
         if (pressed == this || this.IsVisualAncestorOf(pressed) || popups.Values.Any(popup => popup == pressed || popup.IsVisualAncestorOf(pressed))) return;
         Dismiss();
     }
 
-    private void Dismiss()
+    // Every popup leaves the app at once, and the plugin hears it; one it keeps open never shows again.
+    private void Dismiss(bool later = false)
     {
-        if (popups.Count > 0 && !closed && Child is null) surface.Dismiss();
+        if (closed || Child is not null) return;
+        lock (gate)
+        {
+            if (images.Count == 0) return;
+            images.Clear();
+        }
+        ClearPopups(later);
+        surface.Dismiss();
+    }
+
+    // One popup leaves the app; it never shows again under its number.
+    private void Hide(int number)
+    {
+        lock (gate) images.Remove(number);
+        if (popups.Remove(number, out var gone)) layer?.Children.Remove(gone);
+        if (popups.Count == 0) RemoveLayer();
     }
 
     // A popup opened, moved or closed: its control shows in the popup layer at its place from this surface's corner.
@@ -312,8 +341,7 @@ internal sealed class RemoteSurface : Decorator
     {
         if (!placement.Open)
         {
-            if (popups.Remove(placement.Popup, out var gone)) layer?.Children.Remove(gone);
-            if (popups.Count == 0) RemoveLayer();
+            Hide(placement.Popup);
             return;
         }
         if (!popups.TryGetValue(placement.Popup, out var popup))
@@ -329,16 +357,16 @@ internal sealed class RemoteSurface : Decorator
         Reposition();
     }
 
-    private void ClearPopups()
+    private void ClearPopups(bool later = false)
     {
         popups.Clear();
-        RemoveLayer();
+        RemoveLayer(later);
     }
 
     /// <summary>
     /// The layer the popups show in, made on demand: a canvas in the panel that holds the app's overlays (the outermost
-    /// panel when there is none), at the z-order of the child that holds this surface and after it, so the popups draw
-    /// over that child and under anything the app raises above it.
+    /// panel when there is none), over the grid cell of the child that holds this surface and clipped to it, at that
+    /// child's z-order and after it, so the popups draw over that child and under anything the app raises above it.
     /// </summary>
     private Canvas? Layer()
     {
@@ -354,11 +382,13 @@ internal sealed class RemoteSurface : Decorator
         }
         if ((overlays ?? outermost) is not { } found) return null;
         var (host, holding) = found;
-        layer = new Canvas { Name = "PluginPopups", ZIndex = holding.ZIndex };
-        if (host is Grid grid)
+        layer = new Canvas { Name = "PluginPopups", ZIndex = holding.ZIndex, ClipToBounds = true };
+        if (host is Grid)
         {
-            Grid.SetRowSpan(layer, Math.Max(1, grid.RowDefinitions.Count));
-            Grid.SetColumnSpan(layer, Math.Max(1, grid.ColumnDefinitions.Count));
+            Grid.SetRow(layer, Grid.GetRow(holding));
+            Grid.SetRowSpan(layer, Grid.GetRowSpan(holding));
+            Grid.SetColumn(layer, Grid.GetColumn(holding));
+            Grid.SetColumnSpan(layer, Grid.GetColumnSpan(holding));
         }
         host.Children.Add(layer);
         LayoutUpdated += Repositioned;
@@ -424,6 +454,8 @@ internal sealed class RemoteSurface : Decorator
     private void Send(SurfaceInputKind kind, Point at = default, int button = 0, int modifiers = 0, Vector delta = default, KeyEventArgs? key = null, string text = "", int popup = 0)
     {
         if (closed || Child is not null) return;
+        // Escape answers a popup rather than asking for one.
+        if (kind != SurfaceInputKind.PointerLeave && key?.Key != Key.Escape) Volatile.Write(ref popupsUntil, Environment.TickCount64 + InputWindowMs);
         surface.Input(new SurfaceInput(0, kind, at.X, at.Y, button, modifiers, delta.X, delta.Y, key is null ? 0 : (int)key.Key,
             key is null ? 0 : (int)key.PhysicalKey, key?.KeySymbol ?? text, popup));
     }
@@ -477,14 +509,19 @@ internal sealed class RemoteSurface : Decorator
         e.Handled = true;
     }
 
-    // Escape stays with the plugin while one of its popups is open, which it closes; otherwise the app hears it too.
-    private bool Keeps(KeyEventArgs e) => (e.Key != Key.Escape || popups.Count > 0) && (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0;
+    // Escape stays with the plugin while one of its popups that takes input shows; otherwise the app hears it too.
+    private bool Keeps(KeyEventArgs e) => (e.Key != Key.Escape || Newest() is not null) && (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0;
+
+    private RemotePopup? Newest() => popups.Values.Where(popup => popup.IsHitTestVisible).MaxBy(popup => popup.Number);
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        var newest = e.Key == Key.Escape ? Newest() : null;
         Send(SurfaceInputKind.KeyDown, modifiers: (int)e.KeyModifiers, key: e);
         e.Handled = Keeps(e);
+        // The plugin closes the newest popup that takes input on Escape; the app hides it whether or not it does.
+        if (e.Handled && newest is not null) Hide(newest.Number);
     }
 
     protected override void OnKeyUp(KeyEventArgs e)

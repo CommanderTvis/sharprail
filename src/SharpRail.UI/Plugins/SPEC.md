@@ -114,11 +114,14 @@ and roster registration still precede reconciliation, preserving dormant tools a
   seconds detached and opens a new one when shown again, since the workbench keeps a tool's control while it is
   hidden, and clears its pixels at a keyframe. A window moved to a monitor of another scale pushes the new scale,
   and the plugin renders again at it. The plugin's popups (menus, flyouts, tooltips) are controls of their own in a
-  canvas the surface adds to the panel that holds the app's overlays, at the z-order of the child holding the surface
-  and after it: they reach past the surface's slot but stay under Settings, dialogs and toasts raised above that
-  child, and they are kept inside the window. A popup never takes focus, so keys still go to the surface; a tooltip
-  lets the pointer through. A press anywhere else in the window, focus leaving the surface, the window deactivating
-  or the surface detaching dismisses them; Escape stays with the plugin while one is open. A surface the plugin
+  canvas the surface adds to the panel that holds the app's overlays, over the cell of the child holding the surface
+  and clipped to it, at that child's z-order and after it: they reach past the surface's slot but not past that
+  cell, and stay under Settings, dialogs and toasts raised above that child. A popup never takes focus, so keys
+  still go to the surface; a tooltip lets the pointer through. A popup shows only when it opens within 2 seconds of
+  input to the surface or its popups. A press anywhere else in the window, focus leaving the surface, the window
+  deactivating or the surface detaching hides them all at once and tells the plugin; Escape while one that takes
+  input shows stays with the plugin and hides the newest such one. A hidden popup never shows again under its
+  number. A surface the plugin
   breaks or the host ends shows why. On a remote
   host the session is the client adapter's (`RemoteIsolatedUIHost`), which keeps it across a dropped connection. This keeps
   the app free of dynamic code loading, so it can be published as NativeAOT, until external plugins can run

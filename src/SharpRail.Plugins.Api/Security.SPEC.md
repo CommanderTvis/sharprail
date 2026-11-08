@@ -420,14 +420,17 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   within 8,192 pixels of the surface's corner, a size of up to 8,192 pixels a side, frames only while it is open and
   to the frame caps on their own. A popup that asks for its surface's overlay stays inside its surface.
 - The client shows each popup in a layer of its own beside the layer that holds the surface: the panel that holds the
-  app's overlays, at the z-order of the child holding the surface and after it. A popup reaches past the plugin's
-  slot but never covers the app's dialogs, prompts, Settings or toasts above that child, and the client keeps it
-  inside its window. A bar drawn inside the workbench's content (a terminal's resume offer) is content, which a side
+  app's overlays, over the cell of the child holding the surface and clipped to it, at that child's z-order and after
+  it. A popup reaches past the plugin's slot but never past that cell (so never over the title bar), and never covers
+  the app's dialogs, prompts, Settings or toasts above that child. A bar drawn inside the workbench's content (a terminal's resume offer) is content, which a side
   tool's popup may cover as one of the app's own menus would. A click in a popup reaches the plugin. A popup never takes focus, so keys stay with the surface
-  and reach the element focused in the plugin; a tooltip lets the pointer through. A press anywhere else in the
-  client's window, focus leaving the surface, the window deactivating or the surface detaching dismisses the popups
-  that close on a press elsewhere. Escape while one is open stays with the plugin: when focus is in no popup, the
-  runner closes the newest one.
+  and reach the element focused in the plugin; a tooltip lets the pointer through. The client does not trust the plugin to close its
+  popups: a popup shows only when it opens within 2 seconds of input to the surface or its popups, so a plugin cannot
+  open one unprompted. A press anywhere else in the client's window, focus leaving the surface, the window
+  deactivating or the surface detaching hides every popup at once and tells the plugin, whose process closes them
+  all. Escape while a popup that takes input shows stays with the plugin: the client hides the newest such popup and
+  the runner closes it. A tooltip alone does not keep Escape from the app. A popup the client hid never shows again
+  under its number, even if the plugin keeps it open or places it again.
 - Each client's scale is its own: the runner sets the scale a client pushes on that client's top-levels
   (`IHeadlessWindow.SetRenderScaling`), and tile coordinates stay in device pixels. A client whose window moves to a
   monitor of another scale pushes it and gets the surface rendered again at it. The checks render scales 1 and 2,
