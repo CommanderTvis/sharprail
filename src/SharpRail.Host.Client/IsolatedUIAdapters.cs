@@ -66,13 +66,15 @@ internal sealed class RemoteIsolatedUISession(RemoteIsolatedUIHost host) : IIsol
     private const int MostUnconfirmed = 4096;
     /// <summary>Numbered messages received before an acknowledgement goes back on its own.</summary>
     private const int AckEvery = 32;
+    /// <summary>Calls of the plugin the app may leave unread before the session ends, as on the local host.</summary>
+    internal const int MostUnread = 1024;
     private static readonly TimeSpan FirstRetry = TimeSpan.FromMilliseconds(250), LastRetry = TimeSpan.FromSeconds(3);
 
     private readonly Lock gate = new();
     private readonly List<PluginSurfaceUp> unconfirmed = [];
     private readonly Dictionary<long, TaskCompletionSource<string>> results = [];
     private readonly ConcurrentDictionary<int, RemotePluginSurface> surfaces = new();
-    private readonly Channel<IsoUICall> calls = Channel.CreateUnbounded<IsoUICall>(new() { SingleReader = true });
+    private readonly Channel<IsoUICall> calls = Channel.CreateBounded<IsoUICall>(new BoundedChannelOptions(MostUnread) { SingleReader = true });
     private readonly CancellationTokenSource lifetime = new();
     private readonly TaskCompletionSource opened = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Channel<PluginSurfaceUp>? link;
@@ -195,7 +197,7 @@ internal sealed class RemoteIsolatedUISession(RemoteIsolatedUIHost host) : IIsol
         unconfirmed.RemoveRange(0, kept < 0 ? unconfirmed.Count : kept);
     }
 
-    private void Receive(PluginSurfaceDown message)
+    internal void Receive(PluginSurfaceDown message)
     {
         bool ack;
         lock (gate)
@@ -221,8 +223,15 @@ internal sealed class RemoteIsolatedUISession(RemoteIsolatedUIHost host) : IIsol
                 break;
             case PluginSurfaceDownKind.UiCall:
                 var call = new IsoUICall(message.Member, message.Payload, message.Answered);
-                if (!calls.Writer.TryWrite(call)) call.Abandon();
-                else if (call.Answered) _ = AnswerAsync(message.Call, call);
+                if (calls.Writer.TryWrite(call))
+                {
+                    if (call.Answered) _ = AnswerAsync(message.Call, call);
+                    break;
+                }
+                call.Abandon();
+                // Ending the messages closes the session on the host at once.
+                lock (gate) link?.Writer.TryComplete();
+                End(new IOException("The plugin sent more than its client could take."));
                 break;
             case PluginSurfaceDownKind.Result:
                 TaskCompletionSource<string>? result;

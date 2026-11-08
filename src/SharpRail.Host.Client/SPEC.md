@@ -42,6 +42,8 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   does on a session or surface only queues a message, so the UI thread never waits on the network. Results of the
   calls it makes into the plugin come back by call id. Every frame is held to the surface protocol's caps again
   (`SurfaceFrames`) before the client's control sees it; one that breaks them closes that surface with the reason.
+  The plugin's calls wait for the app in a queue of 1,024, the local host's cap: one more ends the session with
+  the reason and closes it on the host.
   When the call drops for a transport reason, the session reconnects with the channel's backoff and resumes with its
   token for up to `Grace` (20 seconds, as the host's): it sends again what the host did not acknowledge and asks every
   surface for a keyframe, dropping frames until it arrives. A resume the host refuses, or a grace that runs out,

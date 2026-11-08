@@ -363,9 +363,11 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   reads what it wrote. `Host()`, `WatchHost` and preference reads are not mirrored yet: they throw.
 - The host checks what the plugin sends a client: the call must name a context it lent, its arguments must be under
   256 Ki characters, an activation registers at most 1,024 things, and a client that leaves 1,024 calls unread loses
-  its session. The client replays an activation without waiting: a replayed call that would wait fails the
-  activation instead of holding its UI thread. The client's generated
-  dispatcher checks the member against the UI member table and the arguments against the API. The host checks only
+  its session. The host passes a remote client's calls on at once, so that client holds the same cap itself, counting
+  the calls its app has not read yet: one more ends its session with the reason and closes it on the host. The
+  client replays an activation without waiting: a replayed call that would wait fails the activation instead of
+  holding its UI thread. The client's generated dispatcher checks the member against the UI member table and the
+  arguments against the API. The host checks only
   the host half of the runner's tables hash; the client refuses a runner whose UI table differs from its own. The
   host's own copy of the UI table, so that a remote client parses only checked messages, is pending.
 - A remote client reaches a session over WebSocket RPC (`IPluginRpc.SurfaceAsync`, protocol 19): one call per

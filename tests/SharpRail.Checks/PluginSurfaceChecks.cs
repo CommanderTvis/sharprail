@@ -29,7 +29,7 @@ namespace SharpRail.Checks;
 internal static class PluginSurfaceChecks
 {
     private const string Id = "outsider-ui";
-    private static readonly string[] Names = ["OutsiderClick", "OutsiderList", "OutsiderNote"];
+    private static readonly string[] Names = ["OutsiderClick", "OutsiderList", "OutsiderNote", "OutsiderFlood"];
 
     private static void Require(bool value, string message)
     {

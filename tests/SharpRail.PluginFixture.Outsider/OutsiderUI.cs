@@ -22,7 +22,7 @@ public sealed record OutsiderSettings
 /// reads its greeting asset, counts itself in its own settings and says hello with the count it reads back, so a check
 /// sees a settings round trip before any of its views can be shown. The button counts clicks the same way, and every
 /// view shows the count as the settings change, so a click in one client shows in another. The board adds a list to
-/// scroll and a note to type in.
+/// scroll, a note to type in, and a button that floods its client with one-way calls.
 /// </summary>
 public sealed class OutsiderUI : PluginUIModule
 {
@@ -56,8 +56,29 @@ public sealed class OutsiderUI : PluginUIModule
         for (var row = 1; row <= 60; row++) rows.Children.Add(Ui.Text($"Row {row}", Ui.TextBrush));
         panel.Children.Add(new ScrollViewer { Name = "OutsiderList", Height = 120, Content = rows });
         panel.Children.Add(new TextBox { Name = "OutsiderNote", Width = 200, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left });
+        // Out of the tab order, so the checks that tab through the board are unchanged.
+        var flood = Ui.Button("Flood this client", () => _ = Flood(context));
+        (flood.Name, flood.IsTabStop) = ("OutsiderFlood", false);
+        panel.Children.Add(flood);
         return panel;
     }
+
+    /// <summary>Sends this client's context more one-way calls than a client may leave unread, a little at a time.</summary>
+    private static async Task Flood(IPluginUIContext context)
+    {
+        try
+        {
+            for (var call = 1; call <= FloodCalls; call++)
+            {
+                context.Invalidate();
+                if (call % 64 == 0) await Task.Delay(1);
+            }
+        }
+        catch (Exception error) { context.Log.Error("The flood failed: " + error.Message); }
+    }
+
+    /// <summary>One-way calls the flood button sends: more than the 1,024 a client may leave unread.</summary>
+    private const int FloodCalls = 2048;
 
     private static Control View(IPluginUIContext context, string name)
     {

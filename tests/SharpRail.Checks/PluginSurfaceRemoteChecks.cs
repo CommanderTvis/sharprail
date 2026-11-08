@@ -25,11 +25,13 @@ namespace SharpRail.Checks;
 /// <summary>
 /// <c>--plugin-surface-remote</c>: an external plugin's views on remote clients over WebSocket RPC
 /// (src/SharpRail.Plugins.Api/Security.SPEC.md, UI halves). A frame larger than a surface message is split under the
-/// 1 MiB cap. Then two headless workbenches, each behind its own relay, on one remote host with the isolation seam: both
-/// show the outsider fixture's side tool with the plugin's own pixels from one runner process; a click in one updates the
-/// other's view; one client's connection drops and the other keeps working; back within the grace, the dropped client
-/// resumes its session (its typed note kept, no new activation) and repaints from a keyframe; a client that closes ends
-/// only its session; and past the grace a dropped client's session ends and it opens a new one.
+/// 1 MiB cap, and a client that leaves 1,024 of the plugin's calls unread loses its session at the next. Then two
+/// headless workbenches, each behind its own relay, on one remote host with the isolation seam: both show the outsider
+/// fixture's side tool with the plugin's own pixels from one runner process; a click in one updates the other's view;
+/// one client's connection drops and the other keeps working; back within the grace, the dropped client resumes its
+/// session (its typed note kept, no new activation) and repaints from a keyframe; a plugin that floods one client while
+/// the app's UI thread is blocked ends that client's session with the reason, and the other keeps working; a client that
+/// closes ends only its session; and past the grace a dropped client's session ends and it opens a new one.
 /// </summary>
 internal static class PluginSurfaceRemoteChecks
 {
@@ -45,6 +47,8 @@ internal static class PluginSurfaceRemoteChecks
     {
         Split();
         Console.WriteLine($"PASS plugin surface remote split: a frame message of 3 MiB of tiles travels as surface messages of at most {PluginSurfaceWire.MessageBytes / 1024} KiB, its moves in the first, Last only on the last, the tiles and bytes in order, and every piece keeps to the client's frame caps");
+        Task.Run(Unread).GetAwaiter().GetResult();
+        Console.WriteLine($"PASS plugin surface remote unread: a remote client holds {RemoteIsolatedUISession.MostUnread} unread plugin calls, and the next one ends its session with the reason and abandons the calls left unread");
         if (PluginChannelChecks.Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin surface remote: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -83,6 +87,27 @@ internal static class PluginSurfaceRemoteChecks
         Require(unfinished.All(piece => !piece.Frame!.Last), "A frame's message that was not its last stays unfinished in every piece.");
     }
 
+    // A plugin that sends calls faster than the app reads them: the client keeps as many unread as the local host does.
+    private static async Task Unread()
+    {
+        using var host = new RemoteIsolatedUIHost(new Uri("http://127.0.0.1:9/"), Token);
+        var session = new RemoteIsolatedUISession(host);
+        await using (session)
+        {
+            static PluginSurfaceDown Call(long seq, bool answered = false) =>
+                new() { Kind = PluginSurfaceDownKind.UiCall, Seq = seq, Call = seq, Member = 1, Payload = "{}", Answered = answered };
+            session.Receive(Call(1, answered: true));
+            for (var seq = 2; seq <= RemoteIsolatedUISession.MostUnread; seq++) session.Receive(Call(seq));
+            Require(!session.Calls.Completion.IsCompleted, $"A client keeps its session with {RemoteIsolatedUISession.MostUnread} calls unread.");
+            Require(session.Calls.TryPeek(out var first) && first.Answered, "The unread calls wait in order.");
+            session.Receive(Call(RemoteIsolatedUISession.MostUnread + 1));
+            Require(session.Calls.Completion.IsFaulted && session.Calls.Completion.Exception!.InnerException is IOException { Message: "The plugin sent more than its client could take." },
+                "One more unread call ends the client's session with the reason.");
+            Require(first!.Reply.IsCanceled, "The calls left unread are abandoned.");
+            Require(!session.Calls.TryRead(out _), "The client takes no further calls.");
+        }
+    }
+
     private static void App(string root, PluginChannelChecks.RunnerLaunch runner)
     {
         var workspace = Path.Combine(root, "workspace");
@@ -104,6 +129,7 @@ internal static class PluginSurfaceRemoteChecks
             using var relayB = new CutProxy(port);
             using var hostA = new RemoteIsolatedUIHost(relayA.Endpoint, Token);
             using var hostB = new RemoteIsolatedUIHost(relayB.Endpoint, Token);
+            var recordedB = new Recorded(hostB);
             UiSessionRelay.RelaySurface? Held(RemoteSurface surface) => surface.Surface.Number is > 0 and var number ? runtime.Surface(Id, number) : null;
 
             a = new E2eWorkspace(relayA.Endpoint, Token, workspace, Path.Combine(root, "profile-a"), workspace, isolated: hostA);
@@ -117,7 +143,7 @@ internal static class PluginSurfaceRemoteChecks
             Require(PluginSurfaceChecks.Opaque(shownA) > 500, "Client A's side tool shows what the plugin drew.");
             Console.WriteLine($"PASS plugin surface remote render: over WebSocket RPC the side tool's {shownA.Width}x{shownA.Height} device pixels equal the plugin's own render");
 
-            b = new E2eWorkspace(relayB.Endpoint, Token, workspace, Path.Combine(root, "profile-b"), workspace, isolated: hostB);
+            b = new E2eWorkspace(relayB.Endpoint, Token, workspace, Path.Combine(root, "profile-b"), workspace, isolated: recordedB);
             E2eWorkspace.Until(() => b.Window.WorkspaceMounted && b.Workbench.PluginLoader.Registry.Active.Contains(Id));
             b.Window.Layout.RestoreTool("plugin:" + Id + ":board");
             var boardB = PluginSurfaceChecks.Surface(b.Window, _ => true);
@@ -169,6 +195,23 @@ internal static class PluginSurfaceRemoteChecks
             shownA = PluginSurfaceChecks.Settle(boardA, "client A's side tool clicked after it resumed", before, Held);
             Console.WriteLine($"PASS plugin surface remote resume: back within the grace client A resumes its session, repaints from a keyframe with its typed note and B's click shown, and its clicks reach the plugin again ({boardA.Keyframes - keyframes} keyframe)");
 
+            // B's plugin floods B with one-way calls while the app's UI thread is blocked (nothing pumps it below): B's session
+            // ends with the reason once 1,024 wait unread, on the host too, and A's goes on.
+            var flooded = recordedB.Opened[^1];
+            PluginSurfaceChecks.Click(b.Window, boardB, shownB.Bounds["OutsiderFlood"]);
+            var blocked = Stopwatch.StartNew();
+            while (!(sessions.Count == 1 && flooded.Calls.Completion.IsCompleted) && blocked.Elapsed < PluginChannelChecks.Patience) Thread.Sleep(20);
+            Require(sessions.Count == 1, "A plugin that floods a client whose UI thread is blocked ends that client's session on the host.");
+            Require(flooded.Calls.Completion is { IsFaulted: true, Exception.InnerException: IOException { Message: "The plugin sent more than its client could take." } },
+                "The flooded client's session ends with the reason.");
+            before = shownA.Pixels;
+            PluginSurfaceChecks.Click(a.Window, boardA, shownA.Bounds["OutsiderClick"]);
+            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 4);
+            shownA = PluginSurfaceChecks.Settle(boardA, "client A's side tool after B was flooded", before, Held);
+            Require(ReferenceEquals(boardA.Surface, surfaceA) && runtime.RunnerPid(Id) == pid, "The other client keeps its session and surface in the same process.");
+            E2eWorkspace.Until(() => recordedB.Opened.Count == 2 && sessions.Count == 2 && b.Workbench.PluginLoader.Registry.Active.Contains(Id));
+            Console.WriteLine($"PASS plugin surface remote flood: a plugin that floods client B while the UI thread is blocked ends B's session with the reason at {RemoteIsolatedUISession.MostUnread} unread calls, client A's clicks still reach the plugin, and B opens a new session");
+
             // A client that closes ends only its own session.
             b.Workbench.PluginLoader.Stop();
             b.Dispose();
@@ -176,7 +219,7 @@ internal static class PluginSurfaceRemoteChecks
             E2eWorkspace.Until(() => sessions.Count == 1);
             before = shownA.Pixels;
             PluginSurfaceChecks.Click(a.Window, boardA, shownA.Bounds["OutsiderClick"]);
-            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 4);
+            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 5);
             PluginSurfaceChecks.Settle(boardA, "client A's side tool after B closed", before, Held);
             Require(runtime.RunnerPid(Id) == pid, "The plugin's process outlives a client that closes.");
             Console.WriteLine("PASS plugin surface remote close: a client that closes ends its session alone, and the other's view keeps working in the same process");
@@ -199,4 +242,19 @@ internal static class PluginSurfaceRemoteChecks
 
     private static int Activations(E2eWorkspace app) =>
         app.Workbench.State.Current.PluginSettings.TryGetValue(Id, out var space) && space.ValueKind == JsonValueKind.Object && space.TryGetProperty("activations", out var count) ? count.GetInt32() : 0;
+
+    /// <summary>A client's isolated host that keeps every session it opened, so a check reads why one ended.</summary>
+    private sealed class Recorded(IIsolatedUIHost inner) : IIsolatedUIHost
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<IIsolatedUISession> opened = new();
+
+        public IReadOnlyList<IIsolatedUISession> Opened => [.. opened];
+
+        public async ValueTask<IIsolatedUISession> OpenAsync(string pluginId, string clientKey, CancellationToken cancellationToken = default)
+        {
+            var session = await inner.OpenAsync(pluginId, clientKey, cancellationToken).ConfigureAwait(false);
+            opened.Enqueue(session);
+            return session;
+        }
+    }
 }
