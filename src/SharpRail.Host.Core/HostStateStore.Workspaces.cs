@@ -51,7 +51,7 @@ public sealed partial class HostStateStore
             var configurations = state.WorkspaceLanguages.ToDictionary();
             foreach (var added in next.Where(workspace => !state.Workspaces.Any(known => known.Path == workspace.Path)))
                 if (added.Kind != WorkspaceKinds.Default && !configurations.ContainsKey(added.Path))
-                    configurations[added.Path] = configurations.GetValueOrDefault(added.ProjectRoot) ?? "{}";
+                    configurations[added.Path] = WithoutAutoStart(configurations.GetValueOrDefault(added.ProjectRoot) ?? "{}");
             var result = state with { Workspaces = next, WorkspaceLanguages = configurations };
             foreach (var gone in removed)
                 result = result with
@@ -66,6 +66,14 @@ public sealed partial class HostStateStore
         }
         foreach (var path in removed) WorkspaceRemoved?.Invoke(path);
         return workspaces;
+    }
+
+    /// <summary>A created workspace inherits a server's options but not its autoStart: it starts servers on demand.</summary>
+    private static string WithoutAutoStart(string configurations)
+    {
+        if (System.Text.Json.Nodes.JsonNode.Parse(configurations) is not System.Text.Json.Nodes.JsonObject servers) return "{}";
+        foreach (var server in servers) if (server.Value is System.Text.Json.Nodes.JsonObject options) options.Remove("autoStart");
+        return servers.ToJsonString();
     }
 
     internal void SetInferredWorkspaceLabel(string path, string title)

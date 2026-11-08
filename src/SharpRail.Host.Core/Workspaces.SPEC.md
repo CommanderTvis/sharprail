@@ -63,7 +63,9 @@ forgetting removes its row while leaving the checkout in place. The Default work
   is routed through the main worktree; a non-Default workspace may have a different HEAD.
   An optional `languageServers` (server ids, language names or `"auto"`) starts those language
   servers for the new workspace in the background; the result lists each with its state (`starting`,
-  `ready`, `needs-acceptance`, `failed` and the reason) and creation never waits for them. See the
+  `ready`, `needs-acceptance`, `failed` and the reason) and creation never waits for them. Without it
+  a created workspace starts no server (not even from the project's `autoStart`, which belongs to the Default
+  workspace) until its first language request; idle servers stop after the language limits' idle time. See the
   [language SPEC](Language/SPEC.md).
 - A workspace created this way (or from the UI) inherits its project's Air Context enablement, the Default
   workspace's state, and starts indexing in the background when the project is enabled; see the

@@ -13,7 +13,7 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
 
     public McpServer.McpTool Create(string workspace, TerminalRef? terminal = null) => new(
         "workspace_create", "Create a workspace",
-        "Create a Git worktree for this terminal's project in SharpRail's managed directory. The description is displayed in Projects. Returns the path and branch; does not switch your terminal. Example: workspace_create({description, languageServers:[\"csharp\"]}) also starts the C# server, which keeps running for the life of the workspace.",
+        "Create a Git worktree for this terminal's project in SharpRail's managed directory. The description is displayed in Projects. Returns the path and branch; does not switch your terminal. Example: workspace_create({description, languageServers:[\"csharp\"]}) also starts the C# server; without languageServers no server starts until the first lsp_* call or editor open, and idle servers stop after the idle limit.",
         JsonNode.Parse("""
             {"type":"object","properties":{
               "description":{"type":"string","minLength":1,"description":"A concise description of the work, displayed to the user as the workspace label."},

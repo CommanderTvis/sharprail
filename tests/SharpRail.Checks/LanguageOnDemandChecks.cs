@@ -139,7 +139,7 @@ internal static class LanguageOnDemandChecks
     }
 
     /// <summary>
-    /// Language servers live as long as their workspace: project autoStart starts one in every workspace including the Default and later worktrees,
+    /// Language servers live as long as their workspace: project autoStart starts one in the Default workspace only, a created workspace starts one on its first request,
     /// removing a workspace stops only its own, workspace_create starts the requested servers in the background, and nothing stops a server for being unused.
     /// </summary>
     internal static async Task Lifetime(string fixture)
@@ -168,13 +168,19 @@ internal static class LanguageOnDemandChecks
             Require((await Row(repo)).StartedBy == "config", "The configured server does not say that the project configuration started it.");
             var first = (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Create(repo, "First")))!;
             var second = (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Create(repo, "Second")))!;
-            await Until(() => Ready(first.Path), "the first worktree's configured server");
-            await Until(() => Ready(second.Path), "the second worktree's configured server");
+            // A created workspace starts no server by itself, even with the project's autoStart.
+            await Task.Delay(500);
+            Require((await Row(first.Path)).State == "idle" && (await Row(second.Path)).State == "idle", "A created workspace started a language server on its own.");
+            // The first language request starts it.
+            await host.LanguageAsync(new(first.Path, Operation: "status", Server: "typescript"));
+            await host.LanguageAsync(new(second.Path, Operation: "status", Server: "typescript"));
+            await Until(() => Ready(first.Path), "the first worktree's server on its first request");
+            await Until(() => Ready(second.Path), "the second worktree's server on its first request");
 
             // Removing one workspace stops only its own server, with the reason.
             await host.ApplyWorkspaceActionAsync(WorkspaceAction.ForceRemove(first.Id));
             await Until(() => Task.FromResult(removals.ContainsKey(first.Path)), "the removed workspace's server to stop");
-            Require(removals[first.Path] is { Unexpected: false } stopped && stopped.Reason.Contains("workspace removed", StringComparison.Ordinal) && stopped.StartedBy == "config", "Removal did not stop the server with its reason: " + removals[first.Path].Reason);
+            Require(removals[first.Path] is { Unexpected: false } stopped && stopped.Reason.Contains("workspace removed", StringComparison.Ordinal), "Removal did not stop the server with its reason: " + removals[first.Path].Reason);
             Require(await Ready(second.Path) && await Ready(repo), "Removing a workspace stopped another workspace's server.");
 
             // workspace_create starts the requested servers in the background and reports their states.
@@ -186,7 +192,7 @@ internal static class LanguageOnDemandChecks
             var path = reply["path"]!.ToString();
             await Until(() => Ready(path), "the server requested by workspace_create");
             Require((await Row(path)).StartedBy is "config" or "workspace creation", "The server's origin is missing.");
-            Console.WriteLine("PASS language server lifetime: autoStart in every workspace, removal stops only its own, workspace_create starts and reports servers");
+            Console.WriteLine("PASS language server lifetime: autoStart in the Default workspace only, first request starts, removal stops only its own, workspace_create starts and reports servers");
         }
         finally
         {

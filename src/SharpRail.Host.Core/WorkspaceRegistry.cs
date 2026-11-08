@@ -112,10 +112,9 @@ public sealed partial class ProjectServices
         if (!string.IsNullOrWhiteSpace(baseBranch) && baseBranch.Trim() != "HEAD") registry.RecordWorkspaceBase(path, chosen);
         registry.ChangeWorkspaces(current => current.Where(known => known.Path != path).Append(workspace));
         // Off the create's critical path: the workspace is usable now, and the clone only ever adds paths that are still absent.
-        // It starts before the workspace's language servers, which wait for it (bounded) instead of restoring what it brings.
+        // A created workspace starts no language server by itself: the first language request or workspace_create's languageServers does, after the clone (bounded wait).
         if (path != project) _ = WorkspaceClone.StartConfigured(project, path, message => System.Diagnostics.Trace.TraceWarning(message),
             [.. registry.LanguageCatalog.Where(server => server.Spec.PrimeWorkspaceAsync is not null).Select(server => LanguagePrime.For(server, registry.LanguageDirectory))]);
-        registry.StartWorkspaceLanguages(path);
         return workspace;
     }
 

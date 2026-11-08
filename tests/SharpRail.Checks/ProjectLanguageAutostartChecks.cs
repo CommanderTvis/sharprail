@@ -93,41 +93,45 @@ internal static class ProjectLanguageAutostartChecks
                 using var remoteState = new RemoteStateAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "autostart-test");
                 Require((await remoteState.GetStateAsync()).ProjectLanguageAutostart[project] == "[\"typescript\"]", "Project autostart was lost from remote snapshots.");
             }
-            await Task.WhenAll(Enumerable.Range(0, 4).Select(async _ => await host.LanguageAsync(new(child, Operation: "prepareAgent"))));
-            await WaitReady(child);
-            var pid = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(child, ".tools", "initialize.json")))!["pid"]!.GetValue<int>();
-            await host.LanguageAsync(new(child, Operation: "prepareAgent"));
-            Require((await host.LanguageAsync(new(project, Operation: "servers"))).Servers.Single(item => item.Id == "typescript").State == "idle", "Starting another workspace shared runtime markers.");
-            Require(JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(child, ".tools", "initialize.json")))!["pid"]!.GetValue<int>() == pid, "Warm agent launch restarted a server.");
-            Require(JsonNode.Parse((await host.LanguageAsync(new(child, Operation: "configuration", Server: "typescript"))).Configuration)!["autoStart"]?.GetValue<bool>() != true,
+            // A created workspace starts nothing from the project's autostart; only the Default workspace does.
+            Require((await host.LanguageAsync(new(child, Operation: "prepareAgent"))).State == "ready", "prepareAgent failed in a created workspace.");
+            await Task.Delay(300);
+            Require((await host.LanguageAsync(new(child, Operation: "servers"))).Servers.Single(item => item.Id == "typescript").State == "idle", "A created workspace started a project autostart server.");
+            Require(JsonNode.Parse((await host.LanguageAsync(new(child, Operation: "configuration", Server: "typescript"))).Configuration)!["autoStart"]?.GetValue<bool>() != true, "A created workspace inherited autoStart.");
+            await Task.WhenAll(Enumerable.Range(0, 4).Select(async _ => await host.LanguageAsync(new(project, Operation: "prepareAgent"))));
+            await WaitReady(project);
+            var pid = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(project, ".tools", "initialize.json")))!["pid"]!.GetValue<int>();
+            await host.LanguageAsync(new(project, Operation: "prepareAgent"));
+            Require(JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(project, ".tools", "initialize.json")))!["pid"]!.GetValue<int>() == pid, "Warm agent launch restarted a server.");
+            Require(JsonNode.Parse((await host.LanguageAsync(new(project, Operation: "configuration", Server: "typescript"))).Configuration)!["autoStart"]?.GetValue<bool>() != true,
                 "Project startup changed the workspace's inherited autostart choice.");
-            await host.LanguageAsync(new(child, Operation: "stop", Server: "typescript"));
-            await host.LanguageAsync(new(child, Operation: "prepareAgent"));
-            await WaitReady(child);
-            Require(JsonNode.Parse((await host.LanguageAsync(new(child, Operation: "configuration", Server: "typescript"))).Configuration)!["autoStart"]!.GetValue<bool>() == false,
+            await host.LanguageAsync(new(project, Operation: "stop", Server: "typescript"));
+            await host.LanguageAsync(new(project, Operation: "prepareAgent"));
+            await WaitReady(project);
+            Require(JsonNode.Parse((await host.LanguageAsync(new(project, Operation: "configuration", Server: "typescript"))).Configuration)!["autoStart"]!.GetValue<bool>() == false,
                 "Restarting a selected server changed workspace autostart.");
             await state.ChangeAsync([HostStateChange.Setting("language-server:python",
                 JsonSerializer.Serialize(new LanguageServerOptions(Command: Path.Combine(root, "missing-server"), Arguments: []), JsonSerializerOptions.Web))]);
-            await host.LanguageAsync(new(child, Operation: "setProjectAutostart", Server: "python", Configuration: "true"));
-            Require((await host.LanguageAsync(new(child, Operation: "prepareAgent"))).State == "ready", "Failed server startup blocked agent launch.");
+            await host.LanguageAsync(new(project, Operation: "setProjectAutostart", Server: "python", Configuration: "true"));
+            Require((await host.LanguageAsync(new(project, Operation: "prepareAgent"))).State == "ready", "Failed server startup blocked agent launch.");
             using (var failed = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
-                while ((await host.LanguageAsync(new(child, Operation: "status", Server: "python"), failed.Token)).State != "error") await Task.Delay(30, failed.Token);
+                while ((await host.LanguageAsync(new(project, Operation: "status", Server: "python"), failed.Token)).State != "error") await Task.Delay(30, failed.Token);
             await state.ChangeAsync([HostStateChange.Setting("language-server:python",
                 JsonSerializer.Serialize(new LanguageServerOptions(Command: executable, Arguments: arguments), JsonSerializerOptions.Web))]);
-            await host.LanguageAsync(new(child, Operation: "prepareAgent"));
+            await host.LanguageAsync(new(project, Operation: "prepareAgent"));
             using (var recovered = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
-                while ((await host.LanguageAsync(new(child, Operation: "status", Server: "python"), recovered.Token)).State != "ready") await Task.Delay(30, recovered.Token);
-            await host.LanguageAsync(new(child, Operation: "setProjectAutostart", Server: "python", Configuration: "false"));
+                while ((await host.LanguageAsync(new(project, Operation: "status", Server: "python"), recovered.Token)).State != "ready") await Task.Delay(30, recovered.Token);
+            await host.LanguageAsync(new(project, Operation: "setProjectAutostart", Server: "python", Configuration: "false"));
             if (!remote && !OperatingSystem.IsWindows())
             {
-                await host.LanguageAsync(new(child, Operation: "stop", Server: "typescript"));
+                await host.LanguageAsync(new(project, Operation: "stop", Server: "typescript"));
                 await using var terminals = new PtyTerminalService("/bin/sh");
                 state.Terminals = terminals;
                 terminals.RevivePrefill = _ => new("printf revived-agent", false);
                 try
                 {
-                    await using var attachment = await terminals.AttachAsync(new("revival-autostart", child, "fixture") { TabKey = "revival" });
-                    Require(attachment.Prefill is not null && (await host.LanguageAsync(new(child, Operation: "servers"))).Servers.Single(item => item.Id == "typescript").State != "stopped",
+                    await using var attachment = await terminals.AttachAsync(new("revival-autostart", project, "fixture") { TabKey = "revival" });
+                    Require(attachment.Prefill is not null && (await host.LanguageAsync(new(project, Operation: "servers"))).Servers.Single(item => item.Id == "typescript").State != "stopped",
                         "Revived agent prefill was returned before selected server startup.");
                 }
                 finally { state.Terminals = null; }

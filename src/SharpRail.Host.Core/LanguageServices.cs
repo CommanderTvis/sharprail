@@ -148,7 +148,7 @@ public static class LanguageMcpTools
                     "installationPath":{"type":"string","description":"IntelliJ only: absolute user-managed installation directory on the host."},
                     "projectJdk":{"type":"string","description":"IntelliJ only: absolute project JDK on host, separate from bundled server runtime."},
                     "buildTool":{"type":"string","enum":["","maven","gradle","bazel","jps"]},
-                    "autoStart":{"type":"boolean","description":"Start this server in newly created workspaces inheriting these settings; Stop clears it; Start sets it. A supplied restart configuration preserves this choice."},
+                    "autoStart":{"type":"boolean","description":"Start this server when this workspace is opened as a project; created workspaces never inherit it and start servers on demand. Stop clears it; Start sets it. A supplied restart configuration preserves this choice."},
                     "arguments":{"type":["array","null"],"items":{"type":"string"},"description":"Replacement server command arguments, not compiler flags. null preserves the launcher defaults."},
                     "initializationOptions":{"type":["object","null"],"additionalProperties":true},
                     "settings":{"type":["object","null"],"additionalProperties":true,"description":"Server-specific workspace configuration sections, e.g. python.analysis.extraPaths or java.project.referencedLibraries."},

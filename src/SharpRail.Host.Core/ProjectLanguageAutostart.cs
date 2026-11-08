@@ -38,6 +38,8 @@ public sealed partial class HostStateStore
             }
         }
         if (request.Operation != "prepareAgent") return new("ready") { Configuration = JsonSerializer.Serialize(selected, HostJson.Default.StringArray) };
+        // The project's autostart choices belong to its Default workspace; a created workspace starts a server on its first request or from workspace_create.
+        if (workspace != project) return new("ready", "A created workspace starts language servers on demand.");
         // A server the user hid in this project is never started for agents.
         var hidden = HiddenLanguageServers(project);
         selected = [.. selected.Where(id => !hidden.Contains(id))];
