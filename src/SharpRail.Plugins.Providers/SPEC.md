@@ -1,6 +1,6 @@
 # Model providers builtin
 
-Settings › Model providers manages the API keys of the model providers Pi and omp use. Enabled by default; `UnavailableOn = [pureWeb]`
+Settings › Model providers manages the API keys of the model providers Pi and omp use. Enabled by default; not headless
 because the keys go into files of the host's operating system. Each agent keeps its own keys, in the file it reads, so nothing is shared
 between them except this page and its code.
 

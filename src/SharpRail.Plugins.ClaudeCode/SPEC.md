@@ -467,13 +467,9 @@ agent identity restores its normal encoding; the request survives terminal start
 Host-state updates retain the accessory mount.
 
 The bundled plugin contains hooks, skills and the MCP declaration. Besides status reports, its hooks
-carry code-intelligence guidance to every session and subagent (`scripts/code-intel.sh`, POSIX sh and
-awk, no jq; silent without `THINKRAIL_MCP_URL`): SessionStart and SubagentStart add a short reminder
-naming `lsp_navigate` and `lsp_diagnostics` (subagents never see the prompt appendix), repeating the project's servers and first example from the session's prompt file when it has them (generic otherwise), and PreToolUse on
-Grep, Glob and Bash adds an advisory note with the equivalent name-based `lsp_navigate` call when the
-search targets a code symbol (a PascalCase identifier in C#/source scope, not docs, config or literals).
-The note never carries a permission decision and the script always exits 0; it is rate-limited to the
-first and every fifth code-symbol search per session and agent, counted in a file under `$TMPDIR`. Every launcher command receives
+carry code-intelligence guidance to every session and subagent (the plugin's `code-intel.sh`; silent without
+`THINKRAIL_MCP_URL`): a short reminder naming `lsp_navigate` and `lsp_diagnostics` at session and subagent start, and a
+rate-limited advisory note on code-symbol searches. The note never carries a permission decision and the script always exits 0. Every launcher command receives
 `--plugin-dir` using a host-provided directory, even when the prompt appendix is disabled. Revived
 sessions use the current build’s directory, replacing an old SharpRail-owned path while preserving
 other plugin directories. Paths are quoted for the launcher’s shell. There is no install/update
