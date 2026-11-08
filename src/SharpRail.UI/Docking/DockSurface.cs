@@ -69,6 +69,8 @@ public sealed partial class DockSurface : Grid
     public bool CloseAlwaysShown { get; set; }
     internal bool ExplicitProjectTabOpen { get; set; }
     internal bool NestedHoverEnabled { get; set; } = true;
+    /// <summary>Distance from the rail edge to the right edge of a nested tab row's trailing indicators; 0 leaves them at the row end.</summary>
+    internal double NestedTrailingInset { get; set; }
 
     /// <summary>
     /// On a narrow screen the side regions are pages over the centre instead of columns beside it: a visible

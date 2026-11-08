@@ -234,7 +234,7 @@ public sealed partial class DockSurface
             {
                 Name = "Tab_" + tab.Id.Replace(':', '_').Replace('/', '_'),
                 Content = label,
-                Padding = new Thickness(8, group.Folded ? 2 : vertical ? 8 : 4, tab.IsTool ? 8 : 0, group.Folded ? 2 : vertical ? 8 : 4),
+                Padding = new Thickness(8, group.Folded ? 2 : vertical ? 8 : 4, tab.IsTool ? 8 : nested && !tab.IsTool && !ExplicitProjectTabOpen ? Math.Max(0, NestedTrailingInset - 8 - (inBubble ? 0 : 1) - 24) : 0, group.Folded ? 2 : vertical ? 8 : 4),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 VerticalContentAlignment = VerticalAlignment.Stretch,
                 Height = vertical ? double.NaN : group.Folded ? 26 : 28,

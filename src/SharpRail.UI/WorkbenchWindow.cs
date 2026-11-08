@@ -114,7 +114,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Layout.Changed += UpdateActiveChangeRows;
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
-        surface = new DockSurface(Layout, RenderContent, build: false) { NewTerminals = workbench.HasTerminals, CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid() };
+        surface = new DockSurface(Layout, RenderContent, build: false) { NewTerminals = workbench.HasTerminals, CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid(), NestedTrailingInset = RailDotInset };
         if (workbench.Compact) WireDrawers();
         AttachButtons = OperatingSystem.IsAndroid() || workbench.Compact;
         WireSharedAttachments();
