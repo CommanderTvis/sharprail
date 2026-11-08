@@ -88,7 +88,17 @@ public sealed partial class WorkbenchWindow
                 entry.Rows[worktree.Path] = pair;
                 if (pair.Row is not null) rows.Add(pair.Row);
                 rows.Add(pair.Tabs);
-                foreach (var child in nesting.GetValueOrDefault(worktree.Path) ?? []) Add(child, depth + 1);
+                // A created workspace sits right below the creator's tab row: the tab list is cut after that row into segments.
+                var kids = nesting.GetValueOrDefault(worktree.Path) ?? [];
+                var units = kids.Select(child => (Child: child, Unit: NestedUnit(worktree.Path, child.Path))).ToArray();
+                var breaks = units.Where(kid => kid.Unit is not null).Select(kid => kid.Unit!.Value).Distinct().Order().ToArray();
+                SetTabBreaks(worktree.Path, breaks);
+                for (var index = 0; index < breaks.Length; index++)
+                {
+                    foreach (var kid in units.Where(kid => kid.Unit == breaks[index])) Add(kid.Child, depth + 1);
+                    rows.Add(WorkspaceTabSegment(worktree.Path, index + 1));
+                }
+                foreach (var kid in units.Where(kid => kid.Unit is null)) Add(kid.Child, depth + 1);
             }
             var nested = nesting.Values.SelectMany(children => children).Select(child => child.Path).ToHashSet();
             foreach (var worktree in partition.Live.Where(worktree => !nested.Contains(worktree.Path))) Add(worktree);
@@ -174,10 +184,21 @@ public sealed partial class WorkbenchWindow
     private bool CreatorListed(TerminalRef creator)
     {
         var tabs = Layout.State.Workspaces.GetValueOrDefault(creator.WorkspaceId)?.Documents.Values.SelectMany(items => items) ?? [];
-        // A chat's tab key is its chat id and its plugin tab path is "scheme:id".
-        if (tabs.Any(tab => tab.Kind == "plugin" && tab.Path.IndexOf(':') is var split and >= 0 && tab.Path[(split + 1)..] == creator.TabKey)) return true;
-        return tabs.Any(tab => tab.Kind == "terminal" && tab.Id == creator.TabKey) ||
+        return tabs.Any(tab => IsCreatorTab(tab, creator.TabKey)) ||
             workbench.TerminalCatalog?.Workspaces.GetValueOrDefault(creator.WorkspaceId)?.Any(tab => tab.Key == creator.TabKey) == true;
+    }
+
+    /// <summary>Whether a tab is the one a creator key names: a chat's key is its chat id and its plugin tab path is "scheme:id"; a terminal's key is its tab id.</summary>
+    internal static bool IsCreatorTab(Docking.DockTab tab, string key) =>
+        tab.Kind == "plugin" && tab.Path.IndexOf(':') is var split and >= 0 && tab.Path[(split + 1)..] == key || tab.Kind == "terminal" && tab.Id == key;
+
+    /// <summary>The preview unit (a tab or a pane's bubble) of a parent's tab list that created a nested workspace; null when the parent's list is live or the row is not drawn there.</summary>
+    private int? NestedUnit(string parent, string child)
+    {
+        if (parent == Layout.State.ActiveWorkspace || state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == child)?.Creator is not { } creator) return null;
+        var units = PreviewUnits(parent);
+        var index = units.FindIndex(unit => unit.Any(tab => IsCreatorTab(tab, creator.TabKey)));
+        return index < 0 ? null : index;
     }
 
     /// <summary>Redraws the rail when the grouping under creators changed: the preference, a creator recorded, or a creator tab opened or closed.</summary>
@@ -185,7 +206,7 @@ public sealed partial class WorkbenchWindow
     {
         if (projectsTree is null) return;
         var signature = Preferences.GroupWorkspacesUnderCreator
-            ? string.Join("\n", state.Current.Projects.SelectMany(project => RailNesting(PartitionOf(project).Live).SelectMany(pair => pair.Value.Select(child => pair.Key + "\t" + child.Path))))
+            ? string.Join("\n", state.Current.Projects.SelectMany(project => RailNesting(PartitionOf(project).Live).SelectMany(pair => pair.Value.Select(child => pair.Key + "\t" + child.Path + "\t" + NestedUnit(pair.Key, child.Path)))))
             : "";
         if (signature == railNestingSignature) return;
         railNestingSignature = signature;
@@ -270,6 +291,8 @@ public sealed partial class WorkbenchWindow
     {
         railSelection.Remove("workspace:" + path);
         workspaceTabHosts.Remove(path);
+        workspaceTabBreaks.Remove(path);
+        workspaceTabSegments.Remove(path);
         workspaceTabPreviewSignatures.Remove(path);
     }
 

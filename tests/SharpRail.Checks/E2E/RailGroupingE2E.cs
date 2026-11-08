@@ -49,6 +49,11 @@ internal static class RailGroupingE2E
             "On, the created workspace sits indented under its creator's workspace; one whose creator tab is gone stays flat.");
         Require(Item(app, chatChild).Margin.Left > Item(app, creatorWorkspace).Margin.Left && Named<Border>(Item(app, chatChild), "WorkspaceNestGuide").IsEffectivelyVisible,
             "A workspace made by a chat tab nests under its creator too.");
+        // The created workspace sits directly under the tab that made it, not below the creator's whole tab block.
+        string[] Sequence() => Controls(app).Where(control => control.IsEffectivelyVisible && (control.Name == "WorkspaceItem" && (string?)control.Tag is { } path && (path == child || path == chatChild || path == creatorWorkspace) ||
+            control.Name == "WorkspaceTabPreview" && (string?)control.Tag is { } tab && (tab == terminal || tab == "plugin:claude:chat-1")))
+            .Select(control => control.Name == "WorkspaceItem" ? (string)control.Tag! : "tab:" + control.Tag).ToArray();
+        Until(() => Sequence().SequenceEqual([creatorWorkspace, "tab:" + terminal, child, "tab:plugin:claude:chat-1", chatChild]));
         Console.WriteLine("PASS rail grouping: on nests under the creator and falls back to flat when the creator is gone");
 
         var reloaded = new ProfileStore(Path.Combine(root, "rail-grouping", "sample-project") + "-profile");
