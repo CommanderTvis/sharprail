@@ -460,8 +460,8 @@ internal static class AcpChecks
         Require(pinned.Verification == AcpRegistry.Pinned, "A pinned package records Version pinned.");
 
         var plan = AcpRegistry.Plan(fixture, "goose", null, mac)!;
-        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(plan).Contains(AcpInstallPlan.TrustNote, StringComparison.Ordinal) && AcpInstallPlan.TrustNote.Contains("It does not show that the agent is safe.", StringComparison.Ordinal) && SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(plan).Single(fact => fact.Label == "Checked").Value == AcpRegistry.Sha256Verified, "The install confirmation carries the trust notice and what is verified.");
-        Require(AcpInstallPlan.TrustNote.Contains("even registry binaries need to be trusted", StringComparison.OrdinalIgnoreCase) && !AcpInstallPlan.TrustNote.Contains('—'), "The trust notice says registry binaries need to be trusted, in plain words.");
+        Require(SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Explanation(plan).Contains(AcpInstallPlan.TrustNote, StringComparison.Ordinal) && AcpInstallPlan.TrustNote.Contains("only install ones you trust", StringComparison.Ordinal) && SharpRail.Plugins.Acp.UI.AcpInstallConfirm.Facts(plan).Single(fact => fact.Label == "Checked").Value == AcpRegistry.Sha256Verified, "The install confirmation carries the trust notice and what is verified.");
+        Require(AcpInstallPlan.TrustNote.Contains("third-party programs", StringComparison.OrdinalIgnoreCase) && !AcpInstallPlan.TrustNote.Contains("checksum", StringComparison.OrdinalIgnoreCase) && !AcpInstallPlan.TrustNote.Contains('—'), "The trust notice says registry agents are third-party programs to trust, without explaining checksums.");
         var detail = new SharpRail.Plugins.Acp.UI.AcpAgentDetail(verified, null, null);
         Require(detail.Verification == AcpRegistry.Sha256Verified && new SharpRail.Plugins.Acp.UI.AcpAgentDetail(new AcpAgentEntry("a", "A", "x") { Origin = "registry" }, null, null).Verification.StartsWith("Not recorded", StringComparison.Ordinal), "The detail pane shows what was verified, or that an older install has no record.");
     }

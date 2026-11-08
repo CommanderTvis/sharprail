@@ -11,7 +11,7 @@ namespace SharpRail.Plugins.UI.Kit;
 /// </summary>
 public static class RegistryRow
 {
-    public const double StatusWidth = 20;
+    public const double StatusWidth = 16;
     public const double IconWidth = 28;
     public const double SettingsWidth = 28;
 
@@ -35,7 +35,7 @@ public static class RegistryRow
             Grid.SetColumnSpan(details, 3);
             grid.Children.Add(details);
         }
-        var surface = new Border { Name = name + "_Surface", BorderBrush = Avalonia.Media.Brushes.Transparent, BorderThickness = new Thickness(2, 0, 0, 0), Padding = new Thickness(8, 4, 0, 4), Child = grid };
+        var surface = new Border { Name = name + "_Surface", BorderBrush = Avalonia.Media.Brushes.Transparent, BorderThickness = new Thickness(2, 0, 0, 0), Padding = new Thickness(2, 4, 0, 4), Child = grid };
         return new Border { Name = name, BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 0, 1), Child = surface };
     }
 

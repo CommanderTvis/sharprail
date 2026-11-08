@@ -642,7 +642,7 @@ SharpRail.Plugins.UI.Kit.DialogWindow.Close(object? dialogResult) -> void
 static SharpRail.Plugins.UI.Kit.DialogWindow.On(Avalonia.Controls.Window! owner) -> System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Window!>!
 
 SharpRail.Plugins.UI.Kit.RegistryRow
-const SharpRail.Plugins.UI.Kit.RegistryRow.StatusWidth = 20 -> double
+const SharpRail.Plugins.UI.Kit.RegistryRow.StatusWidth = 16 -> double
 const SharpRail.Plugins.UI.Kit.RegistryRow.IconWidth = 28 -> double
 const SharpRail.Plugins.UI.Kit.RegistryRow.SettingsWidth = 28 -> double
 static SharpRail.Plugins.UI.Kit.RegistryRow.Create(string! name, Avalonia.Controls.Control? status, Avalonia.Controls.Control? icon, Avalonia.Controls.Control! title, Avalonia.Controls.Control? settings, Avalonia.Controls.Control? action, Avalonia.Controls.Control? details) -> Avalonia.Controls.Border!
@@ -652,6 +652,7 @@ SharpRail.Plugins.UI.Kit.MasterDetail.Rail.get -> Avalonia.Controls.ListBox!
 SharpRail.Plugins.UI.Kit.MasterDetail.Detail.get -> Avalonia.Controls.ContentControl!
 SharpRail.Plugins.UI.Kit.MasterDetail.Selected -> System.Action<string?>?
 SharpRail.Plugins.UI.Kit.MasterDetail.SelectedId.get -> string?
-SharpRail.Plugins.UI.Kit.MasterDetail.SetRows(System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>! rows, string? select) -> void
+SharpRail.Plugins.UI.Kit.MasterDetail.SetRows(System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>! rows, string? select, bool none = false) -> void
 static SharpRail.Plugins.UI.Kit.MasterDetail.Row(string! id, Avalonia.Controls.Control? icon, string! name, string? subtitle, string? problem) -> Avalonia.Controls.Control!
 SharpRail.Plugins.UI.Kit.MasterDetail.Footer.get -> Avalonia.Controls.StackPanel!
+SharpRail.Plugins.UI.Kit.MasterDetail.Header.get -> Avalonia.Controls.StackPanel!

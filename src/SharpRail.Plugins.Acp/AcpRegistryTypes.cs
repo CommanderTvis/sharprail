@@ -37,7 +37,7 @@ public sealed record AcpInstallPlan(string AgentId, string Name, string Version,
     public const string NotRecommendedLine = "SharpRail supports this agent directly. Installing the ACP adapter is not recommended.";
 
     /// <summary>The trust notice shown in the install confirmation, at the top of the registry browser and in each registry agent's pane.</summary>
-    public const string TrustNote = "Agents from the ACP registry are third-party programs. They run on this machine with your user's access. Even registry binaries need to be trusted. Checking a checksum shows the file is the one the registry lists. It does not show that the agent is safe.";
+    public const string TrustNote = "Agents from the ACP registry are third-party programs. They run on this machine with your user's access, so only install ones you trust.";
 
     /// <summary>What can be checked about this install and what was found, in plain words: a verified SHA-256, no checksum, a pinned version or an unpinned one.</summary>
     public string Verification { get; set; } = "";

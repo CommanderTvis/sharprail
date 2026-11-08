@@ -25,7 +25,7 @@ public sealed class MasterDetail : Grid
         {
             if (!setting) Selected?.Invoke(SelectedId);
         };
-        var divider = new Border { BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 1, 0), Padding = new Thickness(0, 0, 8, 0), Child = new StackPanel { Spacing = 8, Children = { Rail, Footer } } };
+        var divider = new Border { BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 1, 0), Padding = new Thickness(0, 0, 8, 0), Child = new StackPanel { Spacing = 8, Children = { Header, Rail, Footer } } };
         Detail = new ContentControl { Name = name + "Detail", Margin = new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top };
         SetColumn(Detail, 1);
         Children.Add(divider);
@@ -33,6 +33,9 @@ public sealed class MasterDetail : Grid
     }
 
     public ListBox Rail { get; }
+
+    /// <summary>Above the list: actions that are not items of it, and a heading for it.</summary>
+    public StackPanel Header { get; } = new() { Spacing = 4 };
 
     /// <summary>Under the list: buttons that act on the list itself, such as adding an item.</summary>
     public StackPanel Footer { get; } = new() { Spacing = 4 };
@@ -45,14 +48,14 @@ public sealed class MasterDetail : Grid
 
     public string? SelectedId => (Rail.SelectedItem as Control)?.Tag as string;
 
-    /// <summary>Replaces the rows and keeps <paramref name="select"/> selected (the first row when it is absent). Does not raise <see cref="Selected"/>.</summary>
-    public void SetRows(IReadOnlyList<Control> rows, string? select)
+    /// <summary>Replaces the rows and keeps <paramref name="select"/> selected (the first row when it is absent, none when <paramref name="none"/>). Does not raise <see cref="Selected"/>.</summary>
+    public void SetRows(IReadOnlyList<Control> rows, string? select, bool none = false)
     {
         setting = true;
         try
         {
             Rail.ItemsSource = rows;
-            Rail.SelectedItem = rows.FirstOrDefault(row => row.Tag as string == select) ?? rows.FirstOrDefault();
+            Rail.SelectedItem = none ? null : rows.FirstOrDefault(row => row.Tag as string == select) ?? rows.FirstOrDefault();
         }
         finally { setting = false; }
     }

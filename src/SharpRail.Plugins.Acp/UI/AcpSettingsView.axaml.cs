@@ -12,13 +12,10 @@ namespace SharpRail.Plugins.Acp.UI;
 
 /// <summary>
 /// Settings › ACP, laid out like Settings › Code Intelligence: a narrow list of every ACP agent (registry installs and custom ones together,
-/// with a Browse registry entry on top) and, for the selected one, a pane that configures it on its own.
+/// under Installed, with the Browse registry and Add custom agent actions above) and, for the selected one, a pane that configures it on its own.
 /// </summary>
 internal sealed partial class AcpSettingsView : StackPanel
 {
-    /// <summary>The list entry that shows the registry browser instead of an agent.</summary>
-    internal const string BrowseId = "\u0001browse";
-
     private readonly IPluginUIContext context;
     private readonly MasterDetail master;
     private readonly TextBlock defaultNote;
@@ -34,6 +31,9 @@ internal sealed partial class AcpSettingsView : StackPanel
     // The agent to select when the next list arrives (one that was just added).
     private string? selectNext;
     private string? shownId;
+    // True while the registry browser is shown in place of an agent's pane.
+    private bool browsing;
+    private bool shownBrowsing;
 
     internal AcpSettingsView(IPluginUIContext context)
     {
@@ -42,17 +42,22 @@ internal sealed partial class AcpSettingsView : StackPanel
         defaultNote = this.FindControl<TextBlock>("AcpDefaultNote")!;
         master = new MasterDetail("AcpMaster");
         this.FindControl<Border>("AcpMasterHost")!.Child = master;
-        master.Selected += id => ShowDetail(id);
+        master.Selected += id => { browsing = false; ShowDetail(id); };
         registryList = new StackPanel { Spacing = 0 };
         status = new TextBlock { Name = "AcpRegistryStatus", FontSize = 12, Foreground = Ui.Muted, TextWrapping = TextWrapping.Wrap };
         search = new TextBox { Name = "AcpSearch", PlaceholderText = "Search the registry", Width = 260, FontSize = 12 };
         Avalonia.Automation.AutomationProperties.SetName(search, "search registry");
         search.TextChanged += (_, _) => RenderRegistry();
         browser = BuildBrowser();
+        var browse = new Button { Name = "AcpBrowse", Content = "Browse registry", HorizontalAlignment = HorizontalAlignment.Stretch };
+        Avalonia.Automation.AutomationProperties.SetName(browse, "browse registry");
+        browse.Click += (_, _) => { browsing = !browsing; RenderAll(false); };
         var add = new Button { Name = "AcpAddCustom", Content = "Add custom agent…", HorizontalAlignment = HorizontalAlignment.Stretch };
         Avalonia.Automation.AutomationProperties.SetName(add, "add custom agent");
         add.Click += (_, _) => AddCustom();
-        master.Footer.Children.Add(add);
+        master.Header.Children.Add(browse);
+        master.Header.Children.Add(add);
+        master.Header.Children.Add(new TextBlock { Name = "AcpInstalledHeading", Text = "Installed", FontSize = 12, Foreground = Ui.Muted, Margin = new Thickness(8, 8, 0, 0) });
         DetachedFromVisualTree += (_, _) => { settingsWatch?.Dispose(); settingsWatch = null; };
         AttachedToVisualTree += (_, _) =>
         {
@@ -113,20 +118,21 @@ internal sealed partial class AcpSettingsView : StackPanel
         var current = selectNext ?? master.SelectedId;
         selectNext = null;
         var defaultId = context.Settings<AcpSettings>().DefaultAgent;
-        var rows = new List<Control> { MasterDetail.Row(BrowseId, Ui.Icon("box", Ui.TextBrush), "Browse registry", "Find and install agents", null) };
+        var rows = new List<Control>();
         rows.AddRange(AcpRows.Agents(configured, registry, problems, defaultId).Select(row => MasterDetail.Row(row.Entry.Id, AcpIconFor(row.Entry.Id), row.Entry.Name, row.Subtitle, row.Problem)));
-        master.SetRows(rows, current);
+        master.SetRows(rows, current, browsing);
         defaultNote.IsVisible = AcpLauncher.DefaultIsMissing(defaultId, configured);
         defaultNote.Text = defaultNote.IsVisible ? "The agent chosen as default is no longer in the list. The New ACP chat button asks until you choose another." : "";
-        if (rebuildDetail || master.SelectedId != shownId) ShowDetail(master.SelectedId);
+        if (rebuildDetail || browsing != shownBrowsing || master.SelectedId != shownId) ShowDetail(master.SelectedId);
         RenderRegistry();
     }
 
     private void ShowDetail(string? id)
     {
         shownId = id;
-        if (id is null) { master.Detail.Content = null; return; }
-        if (id == BrowseId) { master.Detail.Content = browser; return; }
+        shownBrowsing = browsing;
+        if (browsing) { master.Detail.Content = browser; return; }
+        if (id is null) { master.Detail.Content = Text("No agents installed. Browse the registry to install one, or add a custom agent.", detail: true); return; }
         master.Detail.Content = configured.FirstOrDefault(agent => agent.Id == id) is { } entry ? BuildDetail(entry) : null;
     }
 
@@ -264,7 +270,12 @@ internal sealed partial class AcpSettingsView : StackPanel
     private Control BuildBrowser()
     {
         var panel = new StackPanel { Name = "AcpBrowser", Spacing = 8 };
-        panel.Children.Add(new TextBlock { Text = "ACP registry", FontSize = 16, FontWeight = FontWeight.SemiBold, Foreground = Ui.TextBrush });
+        var heading = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        heading.Children.Add(new TextBlock { Text = "ACP registry", FontSize = 16, FontWeight = FontWeight.SemiBold, Foreground = Ui.TextBrush });
+        var close = Quiet("AcpCloseBrowser", "Close", () => { browsing = false; RenderAll(false); });
+        Grid.SetColumn(close, 1);
+        heading.Children.Add(close);
+        panel.Children.Add(heading);
         panel.Children.Add(Text("Agents that speak the Agent Client Protocol, from the public registry.", detail: true));
         panel.Children.Add(TrustNotice("AcpBrowserTrust"));
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
