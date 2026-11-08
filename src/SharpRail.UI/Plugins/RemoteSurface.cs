@@ -25,8 +25,8 @@ namespace SharpRail.UI.Plugins;
 /// and Settings above it. A popup shows only when it opens shortly after input to the surface or its popups; a press
 /// elsewhere in the app, focus leaving or the window deactivating hides every popup, and Escape the newest that takes
 /// input, whether or not the plugin closes them. A window the plugin opens shows in the same layer as a dialog in a
-/// frame that names the plugin, centered, with a close button; it takes keys while focused, and only the plugin's own
-/// views wait for it. The cursor the plugin shows over a view shows here too, and while a text field of the plugin has
+/// frame that names the plugin, centered and never larger than the layer, with a close button that removes it at once whether or
+/// not the plugin closes it; it takes keys while focused, and only the plugin's own views wait for it. The cursor the plugin shows over a view shows here too, and while a text field of the plugin has
 /// focus the app's input method composes for it. Detached for longer than a moment, the surface closes; attached
 /// again, it opens a new one, for which the plugin makes its control again.
 /// </summary>
@@ -465,6 +465,8 @@ internal sealed class RemoteSurface : Decorator
             double x, y;
             if (popup.Dialog)
             {
+                // Never larger than the layer, so its title row and close button stay in view.
+                (shown.MaxWidth, shown.MaxHeight) = (Math.Max(1, layer.Bounds.Width), Math.Max(1, layer.Bounds.Height));
                 // A dialog is centered in the layer, its frame around it.
                 var size = shown.DesiredSize;
                 (x, y) = (Math.Max(0, (layer.Bounds.Width - size.Width) / 2), Math.Max(0, (layer.Bounds.Height - size.Height) / 2));
@@ -825,7 +827,13 @@ internal sealed class RemoteSurface : Decorator
         {
             Title = plugin.Length == 0 ? title : title.Length == 0 ? plugin : plugin + ": " + title;
             var close = new Button { Name = "PluginDialogClose", Content = "Close", Padding = new(8, 2), Focusable = false };
-            close.Click += (_, _) => owner.Send(SurfaceInputKind.CloseDialog, popup: Number);
+            // The app does not trust the plugin to close it: the dialog leaves at once, the plugin hears it, and its
+            // number never shows again even if the plugin keeps the window open.
+            close.Click += (_, _) =>
+            {
+                owner.Send(SurfaceInputKind.CloseDialog, popup: Number);
+                owner.Hide(Number);
+            };
             var heading = new TextBlock
             {
                 Name = "PluginDialogTitle",
@@ -836,7 +844,9 @@ internal sealed class RemoteSurface : Decorator
             };
             var row = new DockPanel { Margin = new(8, 4), Children = { close, heading } };
             DockPanel.SetDock(close, Dock.Right);
-            var body = new DockPanel { Children = { row, this } };
+            // The dialog's pixels start below the title row and are cut at the frame, never drawn over the row.
+            (HorizontalAlignment, VerticalAlignment) = (Avalonia.Layout.HorizontalAlignment.Left, Avalonia.Layout.VerticalAlignment.Top);
+            var body = new DockPanel { Children = { row, new Border { ClipToBounds = true, Child = this } } };
             DockPanel.SetDock(row, Dock.Top);
             Shown = new Border
             {

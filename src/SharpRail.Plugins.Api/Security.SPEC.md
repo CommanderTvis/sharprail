@@ -442,8 +442,10 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   offers none while no such field has focus, so the input method never composes over a button. A window the plugin
   opens (the kit's `DialogWindow` or any `Window`) is a dialog of the surface its owner belongs to, else of the
   surface that last had input, and with neither it closes. It travels as a popup marked as a dialog, with its title
-  as plain text of at most 128 characters. The client shows it in the surface's popup layer, centered, in a frame
-  the app draws that names the plugin and the dialog, with a close button that asks the plugin to close it. It takes
+  as plain text of at most 128 characters. The client shows it in the surface's popup layer, centered and never
+  larger than that layer, in a frame the app draws that names the plugin and the dialog, with a close button. The
+  client does not trust the plugin to close it: the button removes the dialog at once and tells the plugin, and that
+  number never shows again, even if the plugin keeps the window open (its own views then keep waiting). It takes
   focus and its own keys and composition, a press elsewhere does not close it, and it is modal to the plugin only:
   while it is open the runner gives the same client's other surfaces, popups and dialogs of that plugin no input,
   and the rest of the app stays usable. Modality is the plugin's own business, so its process enforces it.

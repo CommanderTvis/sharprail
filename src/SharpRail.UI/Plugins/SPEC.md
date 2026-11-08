@@ -122,7 +122,8 @@ and roster registration still precede reconciliation, preserving dormant tools a
   deactivating or the surface detaching hides them all at once and tells the plugin; Escape while one that takes
   input shows stays with the plugin and hides the newest such one. A hidden popup never shows again under its
   number. A window the plugin opens shows in the same layer as a dialog, centered, in a frame the app draws that
-  names the plugin (the seam passes its label) and the dialog, with a close button that asks the plugin to close it;
+  names the plugin (the seam passes its label) and the dialog, never larger than the layer, with a close button that
+  removes it at once and tells the plugin, after which that number never shows again;
   the dialog takes focus and its own keys, a press elsewhere does not close it, and the rest of the app stays usable,
   since only the plugin's views wait for it. The cursor the plugin reports over its surface or a popup shows there.
   While a text field of the plugin has focus (in the surface, a popup or a dialog) the surface or dialog offers the

@@ -292,7 +292,7 @@ internal static class PluginSurfaceChecks
             Covered(window, board, shown);
             Console.WriteLine("PASS plugin surface popups under dialogs: the popup layer covers only the workbench's row, below the title bar; with the plugin's menu open, the app's dialog opens in a layer above the popup layer in the same panel, and focus moving into it closes the menu");
             Hostile();
-            Console.WriteLine("PASS plugin surface hostile popups: with a plugin's process that ignores dismissal, a popup that opens with no input to the surface does not show, one after input stays inside the cell of the surface's holder, below a title row, a press elsewhere hides it and it never shows again, Escape hides the newest popup that takes input, a tooltip does not keep Escape from the app, and focus leaving hides the rest");
+            Console.WriteLine("PASS plugin surface hostile popups: with a plugin's process that ignores dismissal, a popup that opens with no input to the surface does not show, one after input stays inside the cell of the surface's holder, below a title row, a press elsewhere hides it and it never shows again, Escape hides the newest popup that takes input, a tooltip does not keep Escape from the app, and focus leaving hides the rest; a dialog larger than the window keeps its close button in view, which removes it though the plugin keeps it open, and it never shows again");
             shown = Scaled(window, board, shown, null, "plugin surface");
 
             window.ShowSettings("Plugins");
@@ -629,6 +629,24 @@ internal static class PluginSurfaceChecks
             title.Focus();
             E2eWorkspace.Until(() => !surface.IsFocused);
             Require(surface.Popups.Count == 0 && hostile.Dismissed == 2, "Focus leaving the surface hides the rest.");
+
+            window.MouseMove(new Point(100, 140));
+            hostile.Open(5, dialog: true);
+            Sync();
+            var dialog = surface.Popups.Single(popup => popup.Dialog);
+            // The dialog's frame takes the layer's size on the next layout, and the pointer finds what was last rendered.
+            E2eWorkspace.Settle(50);
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            var close = dialog.Shown.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PluginDialogClose");
+            var closeAt = close.TranslatePoint(new Point(close.Bounds.Width / 2, close.Bounds.Height / 2), window)!.Value;
+            Require(closeAt.X is > 0 and < 400 && closeAt.Y is > 40 and < 400, $"A dialog larger than the window keeps its close button in view, not at {closeAt}.");
+            window.MouseMove(closeAt);
+            window.MouseDown(closeAt, MouseButton.Left);
+            window.MouseUp(closeAt, MouseButton.Left);
+            Require(surface.Popups.Count == 0, "The frame's close button removes a dialog the plugin keeps open.");
+            hostile.Open(5, dialog: true);
+            Sync();
+            Require(surface.Popups.Count == 0, "A closed dialog's place sent again does not show it.");
         }
         finally
         {
@@ -646,7 +664,8 @@ internal static class PluginSurfaceChecks
         public int Dismissed { get; private set; }
 
         /// <summary>Opens or moves a popup as large as the relay allows, from far above and left of the surface.</summary>
-        public void Open(int popup, bool input = true) => events.Writer.TryWrite(new SurfacePopupChanged(new(1, popup, -100, -100, 5000, 5000, true, input)));
+        public void Open(int popup, bool input = true, bool dialog = false) =>
+            events.Writer.TryWrite(new SurfacePopupChanged(new(1, popup, -100, -100, 5000, 5000, true, input, dialog, dialog ? "Stays open" : "")));
 
         /// <summary>A frame of the surface with no tiles, which the check waits for to know what came before it applied.</summary>
         public void Frame(long sequence) => events.Writer.TryWrite(new SurfaceFrame(new(1, sequence, 10, 10, 1, 200, 200, true, [], [], sequence == 1), []));
