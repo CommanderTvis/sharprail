@@ -5,7 +5,7 @@ status: active
 title: Plugins — the app-side plugin runtime
 depends-on: [module-plugin-api, module-plugin-ui-kit, module-host-abstractions]
 references: [submodule-ui-panels, submodule-host-plugins]
-parent: group-clients
+parent: module-ui
 ---
 
 # Plugins — the app-side plugin runtime

@@ -3,7 +3,7 @@ id: submodule-ui-themes
 type: submodule-design
 status: active
 title: Themes
-parent: group-clients
+parent: module-ui
 ---
 
 # Themes: bundled manifest catalogue and application

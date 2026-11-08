@@ -3,6 +3,7 @@ id: architecture
 type: architecture-design
 status: active
 title: SharpRail — top-level architecture
+parent: product-goal
 ---
 
 # How SharpRail fits together
