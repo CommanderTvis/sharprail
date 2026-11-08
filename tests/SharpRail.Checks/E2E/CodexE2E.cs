@@ -655,7 +655,7 @@ internal static class CodexE2E
     {
         // With the shared-daemon setting off (the default) every launch starts standalone.
         if (args.Length > 0 && args[0] == "--no-daemon") args = args[1..];
-        string[] tools = ["set_title", "spec_get", "spec_graph", "spec_grep", "spec_validate", "blueprint_check", "lsp_navigate", "lsp_diagnostics", "lsp_status", "context_search", "context_status", "context_index"];
+        string[] tools = ["set_title", "spec_get", "spec_graph", "spec_grep", "spec_validate", "blueprint_check", "lsp_navigate", "lsp_diagnostics", "lsp_status", "lsp_code_actions", "lsp_rename", "lsp_format", "context_search", "context_status", "context_index"];
         var count = 2 + tools.Length * 2;
         Require(args.Length >= count && args[0] == "-c" && args[1].StartsWith("mcp_servers.sharprail.url=", StringComparison.Ordinal),
             "launcher MCP URL: " + string.Join(" | ", args));

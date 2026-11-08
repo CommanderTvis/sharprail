@@ -50,7 +50,7 @@ invitation is excluded by the SharpRail product contract; a Codex chat component
   Revival replaces launcher-owned overrides under both the current name and legacy `thinkrail`;
   the existing `THINKRAIL_MCP_URL` environment contract remains compatible with running shells.
   Launcher MCP configuration always approves `set_title`, `spec_get`, `spec_graph`, `spec_grep`,
-  `spec_validate`, `blueprint_check`, `lsp_navigate`, `lsp_diagnostics` and `lsp_status` for that session. Revival refreshes these overrides without
+  `spec_validate`, `blueprint_check`, `lsp_navigate`, `lsp_diagnostics`, `lsp_status`, `lsp_code_actions`, `lsp_rename` and `lsp_format` for that session. Revival refreshes these overrides without
   accumulating them; disabling launcher MCP drops them. Other tools retain their configured policy.
   The launcher's right-click menu offers With custom arguments: Start passes the typed shell arguments
   to this run, Cancel starts nothing, and the last submitted arguments are prefilled during this app session.

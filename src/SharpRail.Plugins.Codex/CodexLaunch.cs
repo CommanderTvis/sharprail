@@ -72,6 +72,9 @@ public static partial class CodexLaunch
         " -c 'mcp_servers.sharprail.tools.lsp_navigate.approval_mode=\"approve\"'" +
         " -c 'mcp_servers.sharprail.tools.lsp_diagnostics.approval_mode=\"approve\"'" +
         " \\\n -c 'mcp_servers.sharprail.tools.lsp_status.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.lsp_code_actions.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.lsp_rename.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.lsp_format.approval_mode=\"approve\"'" +
         " -c 'mcp_servers.sharprail.tools.context_search.approval_mode=\"approve\"'" +
         " -c 'mcp_servers.sharprail.tools.context_status.approval_mode=\"approve\"'" +
         " -c 'mcp_servers.sharprail.tools.context_index.approval_mode=\"approve\"'";
