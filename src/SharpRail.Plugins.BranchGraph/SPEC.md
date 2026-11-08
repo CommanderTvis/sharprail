@@ -4,8 +4,7 @@ type: module-design
 status: active
 title: plugin-branch-graph — the branch graph as a builtin plugin
 parent: module-plugin-api
-depends-on: [module-plugin-api, module-contracts, module-plugin-ui]
-references: [module-server, module-web]
+depends-on: [module-plugin-api]
 tags: [v1, plugins]
 ---
 
