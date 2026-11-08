@@ -3,7 +3,7 @@ id: module-plugin-visualize
 type: module-design
 status: active
 title: Visualize — a terminal agent's live drawing surface, as a builtin plugin
-parent: architecture
+parent: group-plugins-viewers
 references: [module-plugin-api, module-plugin-ui-kit]
 tags: [plugins]
 ---

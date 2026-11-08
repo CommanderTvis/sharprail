@@ -3,7 +3,7 @@ id: module-plugin-env-jvm
 type: module-design
 status: active
 title: JVM Environment — the workspace's chosen JDK in every shell, as a builtin plugin
-parent: architecture
+parent: module-plugin-env
 depends-on: [module-plugin-env]
 references: [module-plugin-api, submodule-host-plugins]
 tags: [plugins, terminals]

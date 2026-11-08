@@ -3,7 +3,7 @@ id: module-wire
 type: module-design
 status: active
 title: Wire primitives — the protobuf writer and reader the generated codecs share
-parent: architecture
+parent: group-host
 references: [module-plugin-security]
 tags: [protocol, plugins]
 ---

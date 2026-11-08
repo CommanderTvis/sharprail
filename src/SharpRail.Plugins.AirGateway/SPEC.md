@@ -3,7 +3,7 @@ id: module-plugin-air-gateway
 type: module-design
 status: draft
 title: Air Gateway — Codex and Claude Code through JetBrains Central
-parent: module-plugin-api
+parent: group-plugins-agents
 depends-on: [module-plugin-api, module-plugin-ui-kit]
 references: [submodule-host-plugins, submodule-ui-plugins, submodule-ui-panels]
 tags: [plugins, central, governance]

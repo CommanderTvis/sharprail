@@ -3,7 +3,7 @@ id: module-plugin-processes
 type: module-design
 status: active
 title: plugin-processes — the process tree, CPU and memory, and agent-owned process management as a builtin plugin
-parent: module-plugin-api
+parent: group-plugins-workbench
 depends-on: [module-plugin-api]
 tags: [v1, plugins]
 ---

@@ -3,7 +3,7 @@ id: module-plugin-tailscale
 type: module-design
 status: draft
 title: Tailscale — host discovery and device pairing
-parent: module-plugin-api
+parent: group-plugins-workbench
 depends-on: [module-plugin-api, module-plugin-ui-kit]
 references: [submodule-host-plugins, submodule-ui-plugins, submodule-ui-panels]
 tags: [plugins, tailscale]

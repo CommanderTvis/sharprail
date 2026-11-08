@@ -3,7 +3,7 @@ id: module-plugin-claude-code
 type: module-design
 status: active
 title: Claude Code — configuration, IDE bridge and terminal status
-parent: module-plugin-api
+parent: group-plugins-agents
 depends-on: [module-plugin-api, module-plugin-ui-kit]
 references: [submodule-host-plugins, submodule-ui-plugins]
 tags: [plugins, claude-code]

@@ -3,7 +3,7 @@ id: module-host-abstractions
 type: module-design
 status: active
 title: Host abstractions — the public host surface
-parent: architecture
+parent: group-host
 ---
 
 # Host abstractions — the public host surface

@@ -3,7 +3,7 @@ id: module-plugin-air-context
 type: module-design
 status: draft
 title: Air Context — semantic code search through the JetBrains Context CLI, as a builtin plugin
-parent: module-plugin-api
+parent: group-plugins-code-intelligence
 depends-on: [module-plugin-api, module-plugin-ui-kit]
 references: [submodule-host-plugins, submodule-ui-plugins]
 tags: [plugins, air-context]

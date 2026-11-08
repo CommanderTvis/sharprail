@@ -3,7 +3,7 @@ id: module-host-core
 type: module-design
 status: active
 title: Host core
-parent: architecture
+parent: group-host
 depends-on: [module-host-abstractions]
 ---
 

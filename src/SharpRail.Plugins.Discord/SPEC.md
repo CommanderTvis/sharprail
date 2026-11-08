@@ -3,7 +3,7 @@ id: module-plugin-discord
 type: module-design
 status: active
 title: Discord — Rich Presence as a builtin plugin
-parent: module-plugin-api
+parent: group-plugins-workbench
 depends-on: [module-plugin-api, module-plugin-ui-kit]
 references: [submodule-host-plugins, submodule-ui-plugins]
 tags: [plugins, discord]

@@ -3,7 +3,7 @@ id: module-plugin-api
 type: module-design
 status: active
 title: Plugin API — the contract between the host, the app, and a plugin
-parent: architecture
+parent: group-plugins
 depends-on: [module-host-abstractions]
 references: [submodule-host-plugins, submodule-ui-plugins, module-plugin-ui-kit, submodule-host-terminals, submodule-host-state, submodule-ui-panels]
 tags: [plugins]

@@ -3,6 +3,7 @@ id: module-performance
 type: module-design
 status: active
 title: macOS startup and initial RAM profiling
+parent: group-platform
 ---
 
 # Performance toolkit

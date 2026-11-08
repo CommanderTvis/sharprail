@@ -3,7 +3,7 @@ id: module-plugin-env
 type: module-design
 status: active
 title: Env — the workspace environment pipeline policy and chips, as a builtin plugin
-parent: architecture
+parent: group-plugins-environment
 references: [module-plugin-api, submodule-host-plugins, submodule-ui-plugins]
 tags: [plugins, terminals]
 ---

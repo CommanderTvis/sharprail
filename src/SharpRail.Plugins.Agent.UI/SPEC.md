@@ -3,7 +3,7 @@ id: module-plugin-agent-ui
 type: module-design
 status: active
 title: Agent UI — shared Codex and Claude Code components
-parent: module-plugin-api
+parent: group-plugins-agents
 depends-on: [module-plugin-ui-kit]
 tags: [ui, plugins]
 ---

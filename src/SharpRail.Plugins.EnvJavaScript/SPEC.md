@@ -3,7 +3,7 @@ id: module-plugin-env-javascript
 type: module-design
 status: active
 title: JavaScript Environment — node_modules/.bin on PATH in every shell, as a builtin plugin
-parent: architecture
+parent: module-plugin-env
 depends-on: [module-plugin-env]
 references: [module-plugin-api, submodule-host-plugins]
 tags: [plugins, terminals]

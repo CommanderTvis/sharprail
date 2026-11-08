@@ -3,7 +3,7 @@ id: module-plugin-spec-dialect
 type: module-design
 status: active
 title: Spec dialect — the spec graph as a builtin plugin
-parent: module-plugin-api
+parent: group-plugins-workbench
 depends-on: [module-plugin-api, module-plugin-ui-kit]
 ---
 

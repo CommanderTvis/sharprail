@@ -3,7 +3,7 @@ id: module-plugin-branch-graph
 type: module-design
 status: active
 title: plugin-branch-graph — the branch graph as a builtin plugin
-parent: module-plugin-api
+parent: group-plugins-source-control
 depends-on: [module-plugin-api]
 tags: [v1, plugins]
 ---

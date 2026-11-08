@@ -3,7 +3,7 @@ id: module-plugin-lsp-csharp
 type: module-design
 status: draft
 title: C# (Roslyn) — a language server as a builtin plugin
-parent: module-plugin-api
+parent: group-plugins-language-servers
 depends-on: [module-plugin-api]
 references: [module-host-language]
 tags: [plugins, language]

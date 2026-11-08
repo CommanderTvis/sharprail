@@ -3,6 +3,7 @@ id: submodule-ui-panels
 type: submodule-design
 status: active
 title: Workbench panels
+parent: group-clients
 ---
 
 # Workbench panels: Projects, Files (All | Changed), Specs, Review and Welcome

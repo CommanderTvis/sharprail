@@ -3,7 +3,7 @@ id: module-plugin-github
 type: module-design
 status: active
 title: GitHub — pull requests and GitHub sign-in, as a builtin repo hosting plugin
-parent: architecture
+parent: group-plugins-source-control
 references: [module-plugin-api, submodule-host-plugins, submodule-host-git, submodule-ui-plugins]
 tags: [plugins, git]
 ---

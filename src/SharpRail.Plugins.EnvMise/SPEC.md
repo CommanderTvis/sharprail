@@ -3,7 +3,7 @@ id: module-plugin-env-mise
 type: module-design
 status: active
 title: mise Environment — mise tools and variables in every shell, as a builtin plugin
-parent: architecture
+parent: module-plugin-env
 depends-on: [module-plugin-env]
 references: [module-plugin-api, submodule-host-plugins]
 tags: [plugins, terminals]

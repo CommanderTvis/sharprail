@@ -3,7 +3,7 @@ id: module-plugin-blueprint
 type: module-design
 status: active
 title: Blueprint — the interactive spec, its author and change reactor
-parent: module-plugin-api
+parent: group-plugins-workbench
 depends-on: [module-plugin-api, module-plugin-ui-kit, module-plugin-spec-dialect]
 tags: [v1, plugins, blueprint]
 ---

@@ -6,6 +6,7 @@ title: PDF Preview — core PDF resource viewing
 depends-on: [module-plugin-ui-kit]
 references: [submodule-ui-panels]
 tags: [ui, resources]
+parent: group-clients
 ---
 
 # PDF Preview — core PDF resource viewing

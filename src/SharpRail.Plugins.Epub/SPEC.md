@@ -3,7 +3,7 @@ id: module-plugin-epub
 type: module-design
 status: active
 title: EPUB Reader — .epub books in a reader tab, as a builtin plugin
-parent: architecture
+parent: group-plugins-viewers
 references: [module-plugin-api, module-plugin-ui-kit, submodule-ui-plugins]
 tags: [plugins]
 ---

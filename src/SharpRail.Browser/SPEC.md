@@ -3,6 +3,7 @@ id: sharprail-browser
 title: Browser — the workbench as a remote host client
 type: module
 status: implemented
+parent: group-clients
 ---
 
 # Browser client
