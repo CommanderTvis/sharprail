@@ -341,9 +341,10 @@ settings or the project's `.sharprail/language.toml`, or the project's local aut
 started it on demand). It is `LanguageServerState.StartedBy`, `startedBy` in `lsp_status` operation
 `servers`, and `LanguageExit.StartedBy` plus a "Started by" line in the exit details.
 
-Project `autoStart` starts in every workspace of the project: the Default workspace when its project
-is first opened, every workspace created later (also by `workspace_create`) and every agent launch.
-Removing a workspace stops only its own servers.
+Project `autoStart` applies only to the Default workspace: when its project is first opened and when an
+agent is launched there. A created workspace starts no server by itself; a server starts on its first
+language request or when `workspace_create` is given `languageServers`. An idle server stops after the
+language limits' idle time and restarts on demand. Removing a workspace stops only its own servers.
 
 ### Agent tool calls
 
