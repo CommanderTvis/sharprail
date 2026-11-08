@@ -23,6 +23,7 @@ public sealed partial class LanguageService
     {
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
         request = request with { Workspace = workspace, Origin = LanguageLimits.AgentOrigin };
+        if (tool == "rename" && request.NewPath.Length > 0) return await RenameFileAsync(operation, request, token);
         var number = Interlocked.Increment(ref listingCounter);
         if (tool == "codeActions" && operation == "list")
         {

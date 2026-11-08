@@ -16,7 +16,7 @@ internal static class LanguageRefactoringTools
         Tool(state, callingWorkspace, "lsp_code_actions", "codeActions", ["list", "preview", "apply"], "list",
             "Language-server quick fixes and refactorings (add a missing using, remove unused code, extract, organize imports). Prefer them over hand-editing for semantic changes. operation=list (default) returns actions with an id for a file and range or a diagnostic: {\"path\":\"src/Foo.cs\",\"line\":12,\"column\":8} (zero-based UTF-16; omit line and column for the whole file), or {\"path\":\"src/Foo.cs\",\"query\":\"CS0246\"} to pick a diagnostic by code or message. kinds limits them, e.g. quickfix or source.organizeImports. carries says edit, command or resolve (the edit is computed on preview). operation=preview with an id shows the files and edits and writes nothing. operation=apply with an id writes them to disk and reports the changed files and the diagnostics before and after. An id is refused when the file changed since the listing; list again. Edits outside the workspace, onto an editor's unsaved buffer or from a server without the capability are refused, never emulated. Starts the server on demand. Pass the absolute workspace, also in subagents.", Properties.Actions),
         Tool(state, callingWorkspace, "lsp_rename", "rename", ["preview", "apply"], "preview",
-            "Semantic rename through the language server: updates every reference, including other files. Prefer it over search and replace. Name the symbol, {\"query\":\"OldName\",\"newName\":\"NewName\"}, or give path with zero-based line and column. operation=preview (default) lists the files and edits and writes nothing, so check that the file list is what you expect, then repeat with operation=apply to write to disk. The result lists the changed files and the diagnostics before and after. A server without rename reports unsupported. Pass the absolute workspace, also in subagents.", Properties.Rename),
+            "Semantic rename through the language server: updates every reference, including other files. Prefer it over search and replace. Name the symbol, {\"query\":\"OldName\",\"newName\":\"NewName\"}, or give path with zero-based line and column. operation=preview (default) lists the files and edits and writes nothing, so check that the file list is what you expect, then repeat with operation=apply to write to disk. The result lists the changed files and the diagnostics before and after. A server without rename reports unsupported. To move or rename a file or directory pass path and newPath instead: every running server that asked for the move (workspace/willRenameFiles) updates imports and references, the path is moved on disk, and the edits are rolled back if the move fails; preview first, refused for paths outside the workspace, unsaved editor buffers, an existing destination or more than 1000 files. Pass the absolute workspace, also in subagents.", Properties.Rename),
         Tool(state, callingWorkspace, "lsp_format", "format", ["preview", "apply"], "preview",
             "Formats one file with the language server's formatter. operation=preview (default) shows the edits and writes nothing, operation=apply writes the file. A server without a formatter reports unsupported. Pass the absolute workspace, also in subagents.", Properties.Format)
     ];
@@ -36,6 +36,7 @@ internal static class LanguageRefactoringTools
               "kinds":{"type":"string","description":"LSP code action kinds to list, space separated, such as quickfix or refactor.extract or source.organizeImports."},
               "id":{"type":"string","description":"The action id from operation=list; required by preview and apply."},
               "newName":{"type":"string","description":"The new name."},
+              "newPath":{"type":"string","description":"lsp_rename: the new workspace-relative path of path, to rename or move a file or directory (no line, column, query or newName)."},
               "limit":{"type":"integer","minimum":1,"maximum":200,"default":50,"description":"Maximum ambiguous candidates listed."}
             },"additionalProperties":false}
             """)!.AsObject();
@@ -54,8 +55,11 @@ internal static class LanguageRefactoringTools
             if (tool == "codeActions" && operation == "list" && path.Length == 0) throw new ArgumentException("Pass the file as path.");
             if (tool == "format" && path.Length == 0) throw new ArgumentException("Pass the file as path.");
             var query = arguments["query"]?.GetValue<string>() ?? "";
-            if (tool == "rename" && path.Length == 0 && query.Length == 0) throw new ArgumentException("Name the symbol as query, or pass path with line and column.");
-            if (tool == "rename" && (arguments["newName"]?.GetValue<string>() ?? "").Length == 0) throw new ArgumentException("Pass newName.");
+            var newPath = arguments["newPath"]?.GetValue<string>() ?? "";
+            if (tool == "rename" && newPath.Length > 0 && (path.Length == 0 || query.Length > 0 || arguments["newName"] is not null || arguments["line"] is not null || arguments["column"] is not null))
+                throw new ArgumentException("To move a file or directory pass only path and newPath.");
+            if (tool == "rename" && newPath.Length == 0 && path.Length == 0 && query.Length == 0) throw new ArgumentException("Name the symbol as query, or pass path with line and column.");
+            if (tool == "rename" && newPath.Length == 0 && (arguments["newName"]?.GetValue<string>() ?? "").Length == 0) throw new ArgumentException("Pass newName.");
             var request = new LanguageRequest(workspace, path, Line: arguments["line"]?.GetValue<int>() ?? 0, Column: arguments["column"]?.GetValue<int>() ?? 0,
                 Query: query, Limit: arguments["limit"]?.GetValue<int>() ?? 50)
             {
@@ -63,7 +67,8 @@ internal static class LanguageRefactoringTools
                 EndColumn = arguments["endColumn"]?.GetValue<int>() ?? -1,
                 Kinds = arguments["kinds"]?.GetValue<string>() ?? "",
                 Id = id,
-                NewName = arguments["newName"]?.GetValue<string>() ?? ""
+                NewName = arguments["newName"]?.GetValue<string>() ?? "",
+                NewPath = newPath
             };
             using var bounded = CancellationTokenSource.CreateLinkedTokenSource(token);
             bounded.CancelAfter(LanguageMcpTools.ToolDeadline);
@@ -78,7 +83,7 @@ internal static class LanguageRefactoringTools
     private static class Properties
     {
         internal static readonly string[] Actions = ["workspace", "operation", "path", "line", "column", "endLine", "endColumn", "query", "kinds", "id", "limit"];
-        internal static readonly string[] Rename = ["workspace", "operation", "path", "line", "column", "query", "newName", "limit"];
+        internal static readonly string[] Rename = ["workspace", "operation", "path", "line", "column", "query", "newName", "newPath", "limit"];
         internal static readonly string[] Format = ["workspace", "operation", "path"];
     }
 

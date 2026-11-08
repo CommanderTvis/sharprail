@@ -227,6 +227,12 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 diagnostics.Clear();
                 throw new IOException("The language server exited.");
             }
+            if (request.Operation == "capabilities") return CapabilitiesResult(request);
+            if (request.Operation == "rawRequest" && request.Path.Length == 0)
+            {
+                var workspaceLevel = new LanguageResult("ready", detail, server.Id, request.Version) { Coverage = projectModel.Description };
+                return await RawAsync(workspaceLevel, request, null, token);
+            }
             if (unavailable.Length > 0) return new("actionRequired", unavailable, server.Id, request.Version) { SemanticColoring = SemanticColoring, Freshness = "unavailable", Coverage = projectModel.Description };
             if (request.Operation is "retry" or "status") return new(NeedsConfiguration ? "actionRequired" : IsIndexing ? "initializing" : "ready", ProjectDetail, server.Id, request.Version) { SemanticColoring = SemanticColoring, Coverage = projectModel.Description, Freshness = NeedsConfiguration || IsIndexing || projectModel.Truncated ? "partial" : "current" };
             if (request.Operation == "workspaceDiagnostics")
@@ -322,6 +328,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
                 result = result with
                 {
                     Diagnostics = request.Operation == "diagnostics" ? diagnostics.Where(pair => !documents.TryGetValue(pair.Key, out var current) || pair.Value.Version is null || pair.Value.Version == current.Version).SelectMany(pair => pair.Value.Items).Distinct().ToArray() : items,
+                    Method = capabilities["diagnosticProvider"] is JsonObject ? "textDocument/diagnostic" : "publishDiagnostics",
                     Freshness = request.Operation == "diagnostics" && result.Coverage != "workspace" ? "partial" : fresh,
                     Detail = request.Text is null && document.Dirty ? detail + "; includes an editor's unsaved buffer" : detail
                 };
@@ -341,23 +348,28 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             // An outline is syntax and answers at once. References, implementations and symbol searches could silently miss what is not
             // loaded yet, so they wait; a definition, type definition or hover that found something is right, and only an empty one waits.
             var loading = IsIndexing;
-            if (loading && request.Operation is "references" or "implementation" or "workspaceSymbols")
+            if (loading && request.Operation is "references" or "implementation" or "workspaceSymbols" or "incomingCalls" or "outgoingCalls")
                 return result with { State = "initializing", Detail = LoadingDetail, Freshness = "partial" };
+            if (request.Operation == "rawRequest" && RawRefusal(request.Method) is { } refusal) return result with { State = "refused", Detail = refusal, Freshness = "current" };
             var method = request.Operation switch
             {
                 "symbols" or "symbolBody" => "textDocument/documentSymbol",
                 "workspaceSymbols" => "workspace/symbol",
+                "incomingCalls" or "outgoingCalls" => "textDocument/prepareCallHierarchy",
+                "rawRequest" => request.Method,
                 _ => "textDocument/" + request.Operation
             };
             var capability = request.Operation switch
             {
                 "symbols" or "symbolBody" => "documentSymbolProvider",
                 "workspaceSymbols" => "workspaceSymbolProvider",
+                "incomingCalls" or "outgoingCalls" => "callHierarchyProvider",
+                "rawRequest" => RawMethods[request.Method],
                 _ => request.Operation + "Provider"
             };
             if ((capabilities[capability] is null || capabilities[capability]!.ToJsonString() == "false") && !registeredCapabilities.Values.Contains(method))
-                return result with { State = "unsupported", Detail = $"{server.Id} does not support {request.Operation}." };
-            if (request.Query.Length > 0 && request.Operation is "definition" or "typeDefinition" or "implementation" or "references" or "hover")
+                return result with { State = "unsupported", Detail = request.Operation == "rawRequest" ? $"{server.Id} does not declare {capability}, so it does not support {method}. lsp_status operation=capabilities lists what it declares." : $"{server.Id} does not support {(request.Operation is "incomingCalls" or "outgoingCalls" ? "call hierarchy" : request.Operation)}." };
+            if (request.Query.Length > 0 && (request.Operation is "definition" or "typeDefinition" or "implementation" or "references" or "hover" or "incomingCalls" or "outgoingCalls" || request.Operation == "rawRequest" && request.Method != "workspace/symbol"))
             {
                 if ((capabilities["documentSymbolProvider"] is null || capabilities["documentSymbolProvider"]!.ToJsonString() == "false") && !registeredCapabilities.Values.Contains("textDocument/documentSymbol"))
                     return result with { State = "unsupported", Detail = "Symbol-selected navigation requires a document outline. Use an explicit position." };
@@ -383,6 +395,8 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             var parameters = request.Operation == "workspaceSymbols" ? new JsonObject { ["query"] = request.Query }
                 : new JsonObject { ["textDocument"] = new JsonObject { ["uri"] = uri }, ["position"] = Position(request.Line, request.Column) };
             if (request.Operation == "references") parameters["context"] = new JsonObject { ["includeDeclaration"] = true };
+            if (request.Operation is "incomingCalls" or "outgoingCalls") return await CallsAsync(result, request, parameters, token);
+            if (request.Operation == "rawRequest") return await RawAsync(result, request, uri, token);
             var locations = await connection.RequestAsync(method, parameters, token);
             var answered = await NavigationResultAsync(result, locations, request, token);
             if (loading && request.Operation is "definition" or "typeDefinition" or "hover" && answered.State == "ready" && answered.Total == 0 && answered.Locations.Count == 0)

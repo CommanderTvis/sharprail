@@ -5,7 +5,7 @@ namespace SharpRail.Host.Core.Language;
 /// <summary>Working call shapes for lsp_navigate, so a rejected call names the one that works.</summary>
 internal static class LanguageUsage
 {
-    private static readonly string[] Positional = ["hover", "definition", "typeDefinition", "implementation", "references", "agentRename"];
+    private static readonly string[] Positional = ["hover", "definition", "typeDefinition", "implementation", "references", "incomingCalls", "outgoingCalls", "agentRename"];
 
     /// <summary>A symbol query without a path searches the workspace instead of failing.</summary>
     internal static bool MapsToWorkspaceSearch(LanguageRequest request)

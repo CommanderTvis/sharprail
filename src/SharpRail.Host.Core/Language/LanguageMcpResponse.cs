@@ -45,6 +45,17 @@ internal static class LanguageMcpResponse
             }
             return response.ToJsonString(Json);
         }
+        if (operation is "capabilities" or "request")
+        {
+            response["freshness"] = result.Freshness;
+            if (result.Json.Length > 0)
+            {
+                // A document too large for the budget goes out as clipped text, never as cut JSON that would not parse.
+                if (result.Json.Length <= 24_000) response["result"] = JsonNode.Parse(result.Json);
+                else { response["resultText"] = Clip(result.Json, 24_000); response["truncated"] = true; response["continuation"] = "The answer exceeds 24,000 characters; ask for less (a narrower payload, one server or one file)."; }
+            }
+            return response.ToJsonString(Json);
+        }
         var remaining = 28_000;
         if (operation == "diagnostics")
         {
@@ -59,7 +70,9 @@ internal static class LanguageMcpResponse
                 ["errors"] = result.Files.Count(file => file.State == "error"),
                 ["diagnostics"] = result.Diagnostics.Count
             };
-            var diagnostics = result.Diagnostics.OrderBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Line).ThenBy(item => item.Column).ThenBy(item => item.Text, StringComparer.Ordinal).ToArray();
+            if (result.Files.Select(file => file.Method).Where(method => method.Length > 0).Distinct().Order(StringComparer.Ordinal).ToArray() is { Length: > 0 } methods)
+                response["methods"] = new JsonArray(methods.Select(method => (JsonNode?)JsonValue.Create(method)).ToArray());
+            var diagnostics = result.Diagnostics.OrderBy(item => int.TryParse(item.Kind, out var rank) ? rank : 5).ThenBy(item => item.Path, StringComparer.Ordinal).ThenBy(item => item.Line).ThenBy(item => item.Column).ThenBy(item => item.Text, StringComparer.Ordinal).ToArray();
             Page("diagnostics", diagnostics.Skip(offset).Take(limit).Select(Item), diagnostics.Length);
             var files = result.Files.OrderBy(file => file.Path, StringComparer.Ordinal).ToArray();
             Page("files", files.Skip(offset).Take(limit).Select(file => new JsonObject
@@ -67,6 +80,7 @@ internal static class LanguageMcpResponse
                 ["path"] = file.Path,
                 ["state"] = file.State,
                 ["freshness"] = file.Freshness,
+                ["method"] = file.Method.Length == 0 ? null : file.Method,
                 ["detail"] = Clip(file.Detail, 500)
             }), files.Length);
         }
@@ -115,6 +129,7 @@ internal static class LanguageMcpResponse
             response["coverage"] = result.Coverage;
             response["total"] = result.Total;
             Page("locations", result.Locations.Select(Item), result.Total, singleServer);
+            if (result.Truncated) response["truncated"] = true;
         }
         return response.ToJsonString(Json);
 
@@ -163,6 +178,7 @@ internal static class LanguageMcpResponse
         if (item.Source.Length > 0) result["source"] = item.Source;
         if (item.Preview.Length > 0) result["preview"] = item.Preview;
         if (item.Body.Length > 0) result["body"] = item.Body;
+        if (item.Depth > 0) { result["depth"] = item.Depth; result["via"] = item.Via; }
         if (item.Truncated || item.Text.Length > 2_000) result["truncated"] = true;
         return result;
     }

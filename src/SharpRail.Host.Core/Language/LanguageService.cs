@@ -87,7 +87,7 @@ public sealed partial class LanguageService : IAsyncDisposable
     internal Func<string> ToolPaths { set => servers.ToolPaths = value; }
 
     // Operations the Code Intelligence pane and the lifecycle make; per-keystroke editor operations are not logged.
-    private static bool Lifecycle(string operation) => operation is "servers" or "retry" or "restart" or "stop" or "release" or "configure" or "configuration" or "configurationSchema" or "projects" or "catalog" or "logs" or "status" or "setProjectHidden" or "javaKotlinProvider" or "provision";
+    private static bool Lifecycle(string operation) => operation is "servers" or "retry" or "restart" or "stop" or "release" or "configure" or "configuration" or "configurationSchema" or "projects" or "catalog" or "logs" or "status" or "capabilities" or "setProjectHidden" or "javaKotlinProvider" or "provision";
 
     public async ValueTask<LanguageResult> ExecuteAsync(LanguageRequest request, CancellationToken token = default)
     {
@@ -155,7 +155,7 @@ public sealed partial class LanguageService : IAsyncDisposable
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
         request = request with { Workspace = workspace };
         if (request.Operation == "release") return await ReleaseAsync(workspace, request.Server);
-        if (request.Operation is not ("servers" or "action" or "inspect" or "diagnostics" or "hover" or "definition" or "typeDefinition" or "implementation" or "references" or "source" or "symbolBody" or "symbols" or "workspaceSymbols" or "codeActions" or "applyCodeAction" or "agentCodeActions" or "agentPrepare" or "agentCommit" or "agentRename" or "agentFormat" or "close" or "status" or "retry" or "restart" or "stop" or "configurationSchema" or "configuration" or "configure" or "logs" or "projects"))
+        if (request.Operation is not ("servers" or "action" or "inspect" or "diagnostics" or "hover" or "definition" or "typeDefinition" or "implementation" or "references" or "source" or "symbolBody" or "symbols" or "workspaceSymbols" or "incomingCalls" or "outgoingCalls" or "capabilities" or "rawRequest" or "codeActions" or "applyCodeAction" or "agentCodeActions" or "agentPrepare" or "agentCommit" or "agentRename" or "agentFormat" or "close" or "status" or "retry" or "restart" or "stop" or "configurationSchema" or "configuration" or "configure" or "logs" or "projects"))
             throw new ArgumentException("Unknown language operation.");
         if (request.Operation.StartsWith("agent", StringComparison.Ordinal) && request.Origin != LanguageLimits.AgentOrigin) throw new ArgumentException("Unknown language operation.");
         if (request.Offset < 0 || request.Limit is < 1 or > 200) throw new ArgumentException("Offset must be nonnegative and limit must be between 1 and 200.");
@@ -172,6 +172,8 @@ public sealed partial class LanguageService : IAsyncDisposable
             throw new ArgumentException("Navigation scopes are file, module (when supported), workspace or dependencies (all server results); file/module need a path.");
         if (request.Configuration is not null && request.Operation is not ("configure" or "restart" or "action")) throw new ArgumentException("Configuration is accepted only by configure or restart.");
         if (request.Operation == "projects") return await ProjectRootsAsync(request, token);
+        if (request.Operation == "rawRequest" && LanguageSession.RawRefusal(request.Method) is { } refusal) return new("refused", refusal, Version: request.Version) { Freshness = "current" };
+        if (request.Operation is "capabilities" or "rawRequest" && request.Path.Length == 0) return await ServerScopedAsync(workspace, request, token);
         var provider = Replacing(workspace);
         if (Competing(provider).Any(id => entries.ContainsKey(workspace + "\0" + id) || drafts.ContainsKey(workspace + "\0" + id)))
             await SwitchProviderAsync(workspace, provider, CancellationToken.None);

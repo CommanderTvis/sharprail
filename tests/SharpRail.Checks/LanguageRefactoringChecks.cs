@@ -15,9 +15,9 @@ internal static class LanguageRefactoringChecks
 {
     private static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
 
-    private sealed class Rig(string root, bool bare) : IAsyncDisposable
+    private sealed class Rig(string root, bool bare, string mode = "") : IAsyncDisposable
     {
-        internal string Workspace = Path.Combine(root, bare ? "bare" : "workspace");
+        internal string Workspace = Path.Combine(root, bare ? "bare" : mode.Length > 0 ? mode : "workspace");
         internal HostStateStore State = null!;
         internal IReadOnlyList<McpServer.McpTool> Tools = null!;
         private string? disabled;
@@ -27,10 +27,11 @@ internal static class LanguageRefactoringChecks
         {
             Directory.CreateDirectory(Path.Combine(Workspace, ".tools"));
             if (bare) await File.WriteAllTextAsync(Path.Combine(Workspace, ".tools", "no-rename"), "");
+            if (mode == "report") await File.WriteAllTextAsync(Path.Combine(Workspace, ".tools", "workspace-diagnostic"), "");
             disabled = Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE"); Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "0");
-            State = new HostStateStore(Path.Combine(root, bare ? "bare-state" : "state"));
+            State = new HostStateStore(Path.Combine(root, bare ? "bare-state" : mode.Length > 0 ? mode + "-state" : "state"));
             var executable = Environment.ProcessPath!;
-            string[] arguments = Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location, "--fake-lsp"] : ["--fake-lsp"];
+            string[] arguments = Path.GetFileNameWithoutExtension(executable) == "dotnet" ? [typeof(LanguageChecks).Assembly.Location, mode == "push" ? "--fake-lsp-push" : "--fake-lsp"] : [mode == "push" ? "--fake-lsp-push" : "--fake-lsp"];
             await State.ChangeAsync([HostStateChange.Setting("language-server:typescript", JsonSerializer.Serialize(new LanguageServerOptions(Command: executable, Arguments: arguments), JsonSerializerOptions.Web))]);
             Tools = LanguageMcpTools.Create(State, Workspace);
         }
@@ -64,6 +65,134 @@ internal static class LanguageRefactoringChecks
             await State.StopLanguagesAsync();
             Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", disabled);
         }
+    }
+
+    /// <summary>A call hierarchy item of the fixture server; each name sits on its own line so the host tells them apart.</summary>
+    internal static object CallNode(string uri, string name)
+    {
+        var line = Array.IndexOf(["target", "callerA", "callerB", "callerC", "calleeA", "calleeB", "calleeC"], name);
+        var range = new { start = new { line, character = 0 }, end = new { line, character = name.Length } };
+        return new { name, kind = 12, uri, range, selectionRange = range };
+    }
+
+    private static async Task Queries(Rig rig, Rig bare)
+    {
+        rig.Write("code.ts", "😀 broken");
+        await rig.List("code.ts");
+
+        // capabilities: one server by file, all running servers without one; a server without the capability says nothing about it.
+        var caps = await rig.Call("lsp_status", new { operation = "capabilities", path = "code.ts" });
+        Require(caps["result"]!["serverCapabilities"]!["callHierarchyProvider"]!.GetValue<bool>() && caps["result"]!["serverCapabilities"]!["renameProvider"] is not null, "Capabilities: " + caps.ToJsonString());
+        var allCaps = await rig.Call("lsp_status", new { operation = "capabilities" });
+        Require(allCaps["result"]!["typescript"]!["serverCapabilities"] is not null, "Capabilities of all servers: " + allCaps.ToJsonString());
+
+        // Raw requests: queries pass, anything that writes or executes is refused with the tool to use.
+        var highlight = await rig.Call("lsp_navigate", new { operation = "request", method = "textDocument/documentHighlight", path = "code.ts", line = 0, column = 4 });
+        Require(highlight["state"]!.ToString() == "ready" && highlight["result"]!.AsArray().Count == 1, "Raw query: " + highlight.ToJsonString());
+        foreach (var (method, tool) in new[] { ("workspace/executeCommand", "lsp_code_actions"), ("textDocument/rename", "lsp_rename"), ("textDocument/formatting", "lsp_format"), ("textDocument/didChange", "notification"), ("workspace/willRenameFiles", "lsp_rename"), ("vendor/anything", "Allowed") })
+        {
+            var refused = await rig.Call("lsp_navigate", new { operation = "request", method, path = "code.ts" });
+            Require(refused["state"]!.ToString() == "refused" && refused["detail"]!.ToString().Contains(tool, StringComparison.Ordinal), $"{method} was not refused with {tool}: {refused.ToJsonString()}");
+        }
+        var byServer = await rig.Call("lsp_navigate", new { operation = "request", method = "workspace/symbol", server = "typescript", query = "target" });
+        Require(byServer["state"]!.ToString() == "ready" && byServer["result"]!.AsArray().Count == 1, "Workspace-level raw query: " + byServer.ToJsonString());
+        var bareRaw = await bare.Call("lsp_navigate", new { operation = "request", method = "textDocument/prepareCallHierarchy", path = "code.ts", line = 0, column = 4 });
+        Require(bareRaw["state"]!.ToString() == "unsupported", "A raw query the server does not declare: " + bareRaw.ToJsonString());
+
+        // Call hierarchy: depth, a cycle listed once, the per-node and total caps, and gating.
+        var callers = await rig.Call("lsp_navigate", new { operation = "incomingCalls", path = "code.ts", line = 0, column = 4 });
+        var shape = callers["locations"]!.AsArray().Select(node => $"{node!["text"]}@{node["depth"]?.ToString() ?? "0"}").ToArray();
+        Require(callers["state"]!.ToString() == "ready" && shape.SequenceEqual(["target@0", "callerA@1", "callerC@2", "target (listed above)@2", "callerB@1"]), "Callers: " + callers.ToJsonString());
+        var narrow = await rig.Call("lsp_navigate", new { operation = "incomingCalls", path = "code.ts", line = 0, column = 4, maxChildren = 1 });
+        Require(narrow["locations"]!.AsArray().Select(node => node!["text"]!.ToString()).SequenceEqual(["target", "callerA", "callerC"]) && narrow["truncated"]!.GetValue<bool>(), "maxChildren: " + narrow.ToJsonString());
+        var capped = await rig.Call("lsp_navigate", new { operation = "incomingCalls", path = "code.ts", line = 0, column = 4, maxNodes = 1 });
+        Require(capped["locations"]!.AsArray().Count == 2 && capped["truncated"]!.GetValue<bool>(), "maxNodes: " + capped.ToJsonString());
+        var callees = await rig.Call("lsp_navigate", new { operation = "outgoingCalls", path = "code.ts", line = 0, column = 4, depth = 1 });
+        Require(callees["locations"]!.AsArray().Select(node => node!["text"]!.ToString()).SequenceEqual(["target", "calleeA", "calleeB"]), "Callees at depth 1: " + callees.ToJsonString());
+        var noCalls = await bare.Call("lsp_navigate", new { operation = "incomingCalls", path = "code.ts", line = 0, column = 4 });
+        Require(noCalls["state"]!.ToString() == "unsupported" && noCalls["detail"]!.ToString().Contains("call hierarchy", StringComparison.Ordinal), "Call hierarchy without the capability: " + noCalls.ToJsonString());
+
+        // Diagnostics: globs, errors first, minSeverity, the method used.
+        rig.Write("w1.ts", "warned"); rig.Write("w2.ts", "broken w2");
+        var globbed = await rig.Call("lsp_diagnostics", new { paths = new[] { "w*.ts" } });
+        Require(globbed["summary"]!["checked"]!.GetValue<int>() == 2 && globbed["diagnostics"]![0]!["text"]!.ToString() == "broken" && globbed["diagnostics"]![1]!["text"]!.ToString() == "warned", "Glob and severity order: " + globbed.ToJsonString());
+        Require(globbed["methods"]![0]!.ToString() == "textDocument/diagnostic", "The method used is not reported: " + globbed.ToJsonString());
+        var errors = await rig.Call("lsp_diagnostics", new { paths = new[] { "w*.ts" }, minSeverity = "error" });
+        Require(errors["diagnostics"]!.AsArray().Count == 1 && errors["detail"]!.ToString().Contains("below minSeverity", StringComparison.Ordinal), "minSeverity: " + errors.ToJsonString());
+        var nothing = await rig.Call("lsp_diagnostics", new { paths = new[] { "zzz*.ts" } });
+        Require(nothing["detail"]!.ToString().Contains("matched no source file", StringComparison.Ordinal), "An empty glob: " + nothing.ToJsonString());
+    }
+
+    private static async Task Moves(Rig rig, Rig bare)
+    {
+        static async Task<JsonNode> Move(Rig target, string path, string to, string operation = "preview") => await target.Call("lsp_rename", new { operation, path, newPath = to });
+        rig.Write("old.ts", "x"); rig.Write("imports.ts", "from old.ts");
+        await rig.List("code.ts");
+
+        var preview = await Move(rig, "old.ts", "moved.ts");
+        var kinds = preview["changes"]!.AsArray().Select(change => change!["change"]!.ToString()).ToArray();
+        Require(preview["state"]!.ToString() == "ready" && !preview["applied"]!.GetValue<bool>() && kinds.SequenceEqual(["renamed", "edited"]) && File.Exists(Path.Combine(rig.Workspace, "old.ts")) && rig.Read("imports.ts") == "from old.ts", "Move preview: " + preview.ToJsonString());
+        var applied = await Move(rig, "old.ts", "moved.ts", "apply");
+        Require(applied["applied"]!.GetValue<bool>() && rig.Read("moved.ts") == "x" && !File.Exists(Path.Combine(rig.Workspace, "old.ts")) && rig.Read("imports.ts") == "from moved.ts", "Move apply: " + applied.ToJsonString());
+        var told = Path.Combine(rig.Workspace, ".tools", "did-rename.json");
+        for (var wait = 0; wait < 50 && !File.Exists(told); wait++) await Task.Delay(100);
+        Require(File.Exists(told) && File.ReadAllText(told).Contains("moved.ts", StringComparison.Ordinal), "The server was not told about the move.");
+
+        // Refusals write nothing.
+        rig.Write("a.ts", "a"); rig.Write("b.ts", "b");
+        foreach (var (path, to, state) in new[] { ("a.ts", "a.ts", "notApplicable"), ("missing.ts", "c.ts", "notFound"), ("a.ts", "b.ts", "conflict"), ("a.ts", "../outside.ts", "unsupported") })
+        {
+            var refused = await Move(rig, path, to, "apply");
+            Require(refused["state"]!.ToString() == state, $"{path} to {to} should be {state}: {refused.ToJsonString()}");
+        }
+        Require(rig.Read("a.ts") == "a" && rig.Read("b.ts") == "b", "A refused move changed files.");
+        await rig.State.Languages.ExecuteAsync(new(rig.Workspace, "a.ts", "inspect", Text: "a", DocumentId: "editor-2", Version: 1, Dirty: true));
+        var dirty = await Move(rig, "a.ts", "c.ts", "apply");
+        Require(dirty["state"]!.ToString() == "conflict" && File.Exists(Path.Combine(rig.Workspace, "a.ts")), "An unsaved buffer was moved: " + dirty.ToJsonString());
+        await rig.State.Languages.ExecuteAsync(new(rig.Workspace, "a.ts", "close", DocumentId: "editor-2"));
+
+        // A server that fails willRenameFiles stops the move before anything is written; method-not-found only skips that server.
+        rig.Write("fail.ts", "f"); rig.Write("nomethod.ts", "n");
+        var failed = await Move(rig, "fail.ts", "failed.ts", "apply");
+        Require(failed["state"]!.ToString() == "error" && File.Exists(Path.Combine(rig.Workspace, "fail.ts")) && !File.Exists(Path.Combine(rig.Workspace, "failed.ts")), "A failing server: " + failed.ToJsonString());
+        var skipped = await Move(rig, "nomethod.ts", "skipped.ts", "apply");
+        Require(skipped["applied"]!.GetValue<bool>() && File.Exists(Path.Combine(rig.Workspace, "skipped.ts")), "Method not found: " + skipped.ToJsonString());
+
+        // A move that fails rolls the import edits back.
+        rig.Write("old2.ts", "y"); rig.Write("imports.ts", "from old2.ts"); rig.Write("blocked", "file in the way");
+        var rolled = await Move(rig, "old2.ts", "blocked/x.ts", "apply");
+        Require(rolled["state"]!.ToString() == "failed" && rig.Read("imports.ts") == "from old2.ts" && File.Exists(Path.Combine(rig.Workspace, "old2.ts")), "Rollback: " + rolled.ToJsonString());
+
+        // A directory moves with its files, and the server is asked for each.
+        Directory.CreateDirectory(Path.Combine(rig.Workspace, "dir"));
+        rig.Write("dir/a.ts", "da"); rig.Write("dir/b.ts", "db"); rig.Write("imports.ts", "from dir/a.ts\nfrom dir/b.ts");
+        var directory = await Move(rig, "dir", "relocated", "apply");
+        Require(directory["applied"]!.GetValue<bool>() && rig.Read("relocated/b.ts") == "db" && !Directory.Exists(Path.Combine(rig.Workspace, "dir")) && rig.Read("imports.ts").Replace("\r", "") == "from relocated/a.ts\nfrom relocated/b.ts", "Directory move: " + directory.ToJsonString());
+
+        // Without the capability only the path moves, and the result says so.
+        bare.Write("plain.ts", "p");
+        await bare.List("code.ts");
+        var plain = await Move(bare, "plain.ts", "plain2.ts", "apply");
+        Require(plain["applied"]!.GetValue<bool>() && plain["detail"]!.ToString().Contains("No running language server declared", StringComparison.Ordinal) && File.Exists(Path.Combine(bare.Workspace, "plain2.ts")), "Move without the capability: " + plain.ToJsonString());
+    }
+
+    private static async Task Reports(string root)
+    {
+        await using var report = new Rig(root, bare: false, mode: "report");
+        await report.StartAsync();
+        report.Write("a.ts", "broken a"); report.Write("b.ts", "clean"); report.Write("c.ts", "broken c");
+        await report.List("a.ts");
+        var all = await report.Call("lsp_diagnostics", new { scope = "workspace" });
+        Require(all["methods"]!.AsArray().Any(method => method!.ToString() == "workspace/diagnostic") && all["diagnostics"]!.AsArray().Any(item => item!["source"]!.ToString() == "workspace-report"), "Workspace diagnostics did not use workspace/diagnostic: " + all.ToJsonString());
+
+        await using var push = new Rig(root, bare: false, mode: "push");
+        await push.StartAsync();
+        push.Write("late.ts", "late broken"); push.Write("stale.ts", "stale broken");
+        var late = await push.Call("lsp_diagnostics", new { paths = new[] { "late.ts" } });
+        Require(late["files"]![0]!["state"]!.ToString() == "checked" && late["files"]![0]!["method"]!.ToString() == "publishDiagnostics", "Late diagnostics were not waited for: " + late.ToJsonString());
+        push.State.Languages.DiagnosticWait = TimeSpan.FromSeconds(1);
+        var stale = await push.Call("lsp_diagnostics", new { paths = new[] { "stale.ts" } });
+        Require(stale["files"]![0]!["state"]!.ToString() == "pending", "A version that never arrives is not clean: " + stale.ToJsonString());
     }
 
     internal static async Task Run(string fixture)
@@ -187,6 +316,9 @@ internal static class LanguageRefactoringChecks
             Require(false, "An agent operation ran without the agent origin.");
         }
         catch (ArgumentException) { }
-        Console.WriteLine("PASS agent refactoring: list, preview, apply with delta, resolve and command edits, stale, outside root, dirty buffer, file operations, rename, format, BOM and CRLF, missing capability");
+        await Queries(rig, bare);
+        await Moves(rig, bare);
+        await Reports(root);
+        Console.WriteLine("PASS agent refactoring: list, preview, apply with delta, resolve and command edits, stale, outside root, dirty buffer, file operations, rename, format, BOM and CRLF, missing capability; capabilities, raw requests and refusals, call hierarchy, diagnostic globs, severity and methods, file and directory moves with rollback");
     }
 }

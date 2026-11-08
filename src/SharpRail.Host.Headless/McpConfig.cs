@@ -19,11 +19,11 @@ internal static class KnownTools
 
     internal static readonly IReadOnlyDictionary<string, string[]> Operations = new Dictionary<string, string[]>
     {
-        ["lsp_navigate"] = ["hover", "definition", "typeDefinition", "implementation", "references", "symbols", "symbolBody", "workspaceSymbols", "source"],
+        ["lsp_navigate"] = ["hover", "definition", "typeDefinition", "implementation", "references", "incomingCalls", "outgoingCalls", "symbols", "symbolBody", "workspaceSymbols", "request", "source"],
         ["lsp_code_actions"] = ["list", "preview", "apply"],
         ["lsp_rename"] = ["preview", "apply"],
         ["lsp_format"] = ["preview", "apply"],
-        ["lsp_status"] = ["status", "servers", "catalog", "configurationSchema", "configuration", "configure", "retry", "restart", "stop", "logs", "projects"]
+        ["lsp_status"] = ["status", "capabilities", "servers", "catalog", "configurationSchema", "configuration", "configure", "retry", "restart", "stop", "logs", "projects"]
     };
 }
 

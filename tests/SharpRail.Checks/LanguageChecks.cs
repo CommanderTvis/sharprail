@@ -1491,6 +1491,7 @@ internal static class LanguageChecks
                 documents[uri] = (text, parameters!["textDocument"]!["version"]!.GetValue<int>());
                 if (push)
                 {
+                    if (text.Contains("late", StringComparison.Ordinal)) await Task.Delay(1500);
                     int? version = text.Contains("unversioned", StringComparison.Ordinal) ? null : documents[uri].Version - (text.Contains("stale", StringComparison.Ordinal) ? 1 : 0);
                     await Send(new
                     {
@@ -1506,6 +1507,7 @@ internal static class LanguageChecks
                 }
                 continue;
             }
+            if (method == "workspace/didRenameFiles") await File.WriteAllTextAsync(Path.Combine(".tools", "did-rename.json"), parameters!.ToJsonString());
             if (method == "workspace/didChangeConfiguration")
             {
                 await File.WriteAllTextAsync(Path.Combine(".tools", "configuration.json"), parameters!.ToJsonString());
@@ -1549,8 +1551,11 @@ internal static class LanguageChecks
                     {
                         positionEncoding = "utf-16",
                         textDocumentSync = 2,
-                        diagnosticProvider = push ? null : new { workspaceDiagnostics = false },
+                        diagnosticProvider = push ? null : new { workspaceDiagnostics = File.Exists(Path.Combine(".tools", "workspace-diagnostic")) },
+                        callHierarchyProvider = File.Exists(Path.Combine(".tools", "no-rename")) ? null : (object)true,
+                        workspace = File.Exists(Path.Combine(".tools", "no-rename")) ? null : (object)new { fileOperations = new { willRename = new { filters = new[] { new { pattern = new { glob = "**/*.ts" } } } }, didRename = new { filters = new[] { new { pattern = new { glob = "**/*.ts" } } } } } },
                         hoverProvider = true,
+                        documentHighlightProvider = true,
                         definitionProvider = true,
                         typeDefinitionProvider = true,
                         implementationProvider = true,
@@ -1589,8 +1594,54 @@ internal static class LanguageChecks
             {
                 kind = "full",
                 items = documents[uri].Text.Contains("broken", StringComparison.Ordinal)
-                ? new[] { new { range, message = "broken", severity = 1, source = "fixture" } } : []
+                ? new[] { new { range, message = "broken", severity = 1, source = "fixture" } }
+                : documents[uri].Text.Contains("warned", StringComparison.Ordinal) ? [new { range, message = "warned", severity = 2, source = "fixture" }] : []
             };
+            else if (method == "workspace/diagnostic") result = new
+            {
+                items = Directory.GetFiles(".", "*.ts").Select(file => new
+                {
+                    kind = "full",
+                    uri = new Uri(Path.GetFullPath(file)).AbsoluteUri,
+                    version = (int?)null,
+                    items = File.ReadAllText(file).Contains("broken", StringComparison.Ordinal) ? new[] { new { range, message = "broken", severity = 1, source = "workspace-report" } } : []
+                }).ToArray()
+            };
+            else if (method == "textDocument/prepareCallHierarchy") result = new[] { LanguageRefactoringChecks.CallNode(documents.Keys.First(), "target") };
+            else if (method is "callHierarchy/incomingCalls" or "callHierarchy/outgoingCalls")
+            {
+                var incoming = method.Contains("incoming", StringComparison.Ordinal);
+                var names = (parameters!["item"]!["name"]!.ToString(), incoming) switch
+                {
+                    ("target", true) => new[] { "callerA", "callerB" },
+                    ("callerA", true) => ["callerC", "target"],
+                    ("target", false) => ["calleeA", "calleeB"],
+                    ("calleeA", false) => ["calleeC"],
+                    _ => []
+                };
+                var key = incoming ? "from" : "to";
+                result = names.Select(name => new Dictionary<string, object> { [key] = LanguageRefactoringChecks.CallNode(documents.Keys.First(), name), ["fromRanges"] = Array.Empty<object>() }).ToArray();
+            }
+            else if (method == "workspace/willRenameFiles")
+            {
+                var changes = new List<object>();
+                var cwd = Environment.CurrentDirectory;
+                var importer = Path.Combine(cwd, "imports.ts");
+                foreach (var pair in parameters!["files"]!.AsArray())
+                {
+                    var oldPath = new Uri(pair!["oldUri"]!.ToString()).LocalPath;
+                    var newPath = new Uri(pair["newUri"]!.ToString()).LocalPath;
+                    if (Path.GetFileName(oldPath).StartsWith("fail", StringComparison.Ordinal)) { await Send(new { jsonrpc = "2.0", id, error = new { code = -32000, message = "fixture willRename failure" } }); goto answered; }
+                    if (Path.GetFileName(oldPath).StartsWith("nomethod", StringComparison.Ordinal)) { await Send(new { jsonrpc = "2.0", id, error = new { code = -32601, message = "no such method" } }); goto answered; }
+                    var oldRel = Path.GetRelativePath(cwd, oldPath).Replace('\\', '/');
+                    var newRel = Path.GetRelativePath(cwd, newPath).Replace('\\', '/');
+                    if (!File.Exists(importer)) continue;
+                    var lines = File.ReadAllLines(importer);
+                    var line = Array.FindIndex(lines, text => text == "from " + oldRel);
+                    if (line >= 0) changes.Add(new { range = new { start = new { line, character = 5 }, end = new { line, character = 5 + oldRel.Length } }, newText = newRel });
+                }
+                result = changes.Count == 0 ? null : new { changes = new Dictionary<string, object> { [new Uri(importer).AbsoluteUri] = changes } };
+            }
             else if (method == "textDocument/semanticTokens/full") result = new { data = new[] { 0, 3, 6, 0, 1 } };
             else if (method == "textDocument/hover") result = new { contents = new { kind = "markdown", value = "```typescript\nconst target: string\n```" }, range };
             else if (method == "textDocument/documentSymbol" && uri.EndsWith("outline.ts", StringComparison.Ordinal))
@@ -1659,6 +1710,7 @@ internal static class LanguageChecks
             }
             else result = new[] { new { uri, range } };
             await Send(new { jsonrpc = "2.0", id, result });
+        answered:;
         }
         async Task Send(object message)
         {

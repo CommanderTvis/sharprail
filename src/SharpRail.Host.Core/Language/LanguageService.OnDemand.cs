@@ -26,7 +26,7 @@ public sealed partial class LanguageService
 
     private async Task<LanguageResult> ExecuteForAgentCoreAsync(LanguageRequest request, CancellationToken token)
     {
-        if (request.Operation is not ("hover" or "definition" or "typeDefinition" or "implementation" or "references" or "symbols" or "symbolBody" or "workspaceSymbols" or "agentCodeActions" or "agentPrepare" or "agentRename" or "agentFormat"))
+        if (request.Operation is not ("hover" or "definition" or "typeDefinition" or "implementation" or "references" or "symbols" or "symbolBody" or "workspaceSymbols" or "incomingCalls" or "outgoingCalls" or "capabilities" or "rawRequest" or "agentCodeActions" or "agentPrepare" or "agentRename" or "agentFormat"))
             return await ExecuteAsync(request, token);
         if (!Path.IsPathFullyQualified(request.Workspace) || !Directory.Exists(request.Workspace)) return await ExecuteAsync(request, token);
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
@@ -121,7 +121,7 @@ public sealed partial class LanguageService
         if (request.Server.Length > 0) return [request.Server];
         IEnumerable<string> paths = request.Paths is { Count: > 0 } ? request.Paths : request.Path.Length > 0 ? [request.Path] : result?.Files.Select(file => file.Path) ?? [];
         var ids = paths.Select(path => Detect(workspace, path)?.Id).OfType<string>().ToList();
-        if (ids.Count == 0 && request.Operation is "workspaceSymbols" or "hover" or "definition" or "typeDefinition" or "implementation" or "references" or "symbols" or "symbolBody" && request.Path.Length == 0)
+        if (ids.Count == 0 && request.Operation is "workspaceSymbols" or "hover" or "definition" or "typeDefinition" or "implementation" or "references" or "symbols" or "symbolBody" or "incomingCalls" or "outgoingCalls" && request.Path.Length == 0)
             ids.AddRange(DetectedServers(workspace));
         if (ids.Count == 0 && result is { Server.Length: > 0 }) ids.Add(result.Server);
         return ids;
@@ -134,7 +134,7 @@ public sealed partial class LanguageService
         var start = $"lsp_status {{\"operation\":\"retry\",\"server\":\"{server}\",\"workspace\":\"{request.Workspace}\"}}";
         if (result.State == "stopped" && server.Length > 0) return $"{server} is stopped; start it with {start}.";
         if (result.State == "disabled") return server.Length > 0 ? $"{server} is disabled in Settings > LSP; ask the user to enable it, then call {start}." : "Language services are disabled in Settings > LSP; ask the user to enable them.";
-        if (result.State == "unsupported") return "No language server handles this file type; use text search for it.";
+        if (result.State == "unsupported" && result.Detail.StartsWith("No language server", StringComparison.Ordinal)) return "No language server handles this file type; use text search for it.";
         var skipped = result.Files.FirstOrDefault(file => file.State == "skipped" && (file.Detail.Contains("stopped on request", StringComparison.Ordinal) || file.Detail.Contains("Disabled", StringComparison.Ordinal)));
         return skipped is null ? "" : $"{skipped.Path} was skipped: {skipped.Detail}";
     }

@@ -16,6 +16,24 @@ public sealed record LanguageRequest(string Workspace, string Path = "", string 
 
     /// <summary>An agent listing's id when listing, or the action or plan id when preparing or committing.</summary>
     public string Id { get; init; } = "";
+
+    /// <summary>The destination of an agent file or directory rename (workspace-relative); empty for a symbol rename.</summary>
+    public string NewPath { get; init; } = "";
+
+    /// <summary>Seconds a diagnostics call waits for late diagnostics; 0 means the default.</summary>
+    public int Timeout { get; init; }
+
+    /// <summary>Lowest severity a diagnostics call reports: error, warning, information or hint; empty reports all.</summary>
+    public string MinSeverity { get; init; } = "";
+
+    /// <summary>Call hierarchy limits: levels followed, children listed per node and nodes listed in all.</summary>
+    public int Depth { get; init; } = 3;
+    public int MaxChildren { get; init; } = 20;
+    public int MaxNodes { get; init; } = 100;
+
+    /// <summary>The LSP method and JSON parameters of a read-only raw request.</summary>
+    public string Method { get; init; } = "";
+    public string? Payload { get; init; }
 }
 
 /// <summary>A location, diagnostic or semantic token. Positions are zero-based UTF-16.</summary>
@@ -24,6 +42,10 @@ public sealed record LanguageItem(string Path, int Line, int Column, int EndLine
 {
     /// <summary>Space-separated semantic-token modifier names from the server legend.</summary>
     public string Modifiers { get; init; } = "";
+
+    /// <summary>For a call hierarchy node: its level below the symbol asked about (1 = direct), and the name of the node it was reached from.</summary>
+    public int Depth { get; init; }
+    public string Via { get; init; } = "";
 
     /// <summary>The server's container name for a workspace symbol, such as its file and project or its containing type.</summary>
     public string Container { get; init; } = "";
@@ -108,7 +130,11 @@ public sealed record LanguageChange(string Path, string Change, int EditCount, s
 public sealed record LanguageDiagnosticDelta(IReadOnlyList<LanguageItem> Added, IReadOnlyList<LanguageItem> Removed, int Unchanged, string Freshness);
 
 /// <summary>Coverage of one explicitly requested file; skipped and pending files are never reported as checked.</summary>
-public sealed record LanguageFileResult(string Path, string State, string Freshness, string Detail);
+public sealed record LanguageFileResult(string Path, string State, string Freshness, string Detail)
+{
+    /// <summary>How the diagnostics were obtained: <c>workspace/diagnostic</c>, <c>textDocument/diagnostic</c> or <c>publishDiagnostics</c>.</summary>
+    public string Method { get; init; } = "";
+}
 
 /// <summary>Server state and results for precisely the requested document version. Freshness is explicit, never inferred from an empty list.</summary>
 public sealed record LanguageResult(string State, string Detail = "", string Server = "", long Version = 0)
@@ -125,6 +151,12 @@ public sealed record LanguageResult(string State, string Detail = "", string Ser
     public IReadOnlyList<LanguageItem> Locations { get; init; } = [];
     public IReadOnlyList<LanguageItem> Diagnostics { get; init; } = [];
     public IReadOnlyList<LanguageItem> Tokens { get; init; } = [];
+
+    /// <summary>A JSON document the operation returns whole (capabilities, a raw request's response).</summary>
+    public string Json { get; init; } = "";
+
+    /// <summary>How a file's diagnostics were obtained: <c>workspace/diagnostic</c>, <c>textDocument/diagnostic</c> or <c>publishDiagnostics</c>.</summary>
+    public string Method { get; init; } = "";
 
     /// <summary>Code actions for the agent <c>lsp_code_actions</c> list: <c>Text</c> is the title, <c>Kind</c> the LSP kind, <c>Source</c> the id to pass back to apply it, <c>Preview</c> is <c>preferred</c> for a preferred action.</summary>
     public IReadOnlyList<LanguageItem> Actions { get; init; } = [];

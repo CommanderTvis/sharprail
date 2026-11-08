@@ -256,4 +256,20 @@ internal static class WorkspaceEdits
             throw new EditRefused("failed", $"Writing failed ({error.Message}); " + (failed.Count == 0 ? "the files written so far were restored." : "restoring failed for some files: " + string.Join("; ", failed)));
         }
     }
+
+    /// <summary>Puts every file the plan changed back to the bytes it was built from; returns the problems met doing so.</summary>
+    internal static string[] Revert(EditPlan plan)
+    {
+        var failed = new List<string>();
+        foreach (var file in plan.Files.Where(file => file.Changed))
+        {
+            try
+            {
+                if (file.Original is null) { if (System.IO.File.Exists(file.Full)) System.IO.File.Delete(file.Full); }
+                else { Directory.CreateDirectory(Path.GetDirectoryName(file.Full)!); System.IO.File.WriteAllBytes(file.Full, file.Original); }
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { failed.Add(error.Message); }
+        }
+        return [.. failed];
+    }
 }

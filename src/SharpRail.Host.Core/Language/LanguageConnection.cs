@@ -282,7 +282,7 @@ internal sealed class LanguageConnection : IAsyncDisposable
                     {
                         var detail = error["message"]?.ToString() ?? error.ToJsonString();
                         log.Add("response error", detail);
-                        completion.TrySetException(new IOException(detail));
+                        completion.TrySetException(new LanguageRequestException(detail, error["code"]?.GetValue<int>() ?? 0));
                     }
                     else completion.TrySetResult(message["result"]?.DeepClone());
                 }
@@ -343,4 +343,11 @@ internal sealed class LanguageConnection : IAsyncDisposable
         await LanguageProcesses.WaitGoneAsync(tree, TimeSpan.FromSeconds(10));
         process.Dispose(); lifetime.Dispose(); writing.Dispose();
     }
+}
+
+/// <summary>A JSON-RPC error answer; it is an <see cref="IOException"/> so every caller that handles a refused request keeps working.</summary>
+internal sealed class LanguageRequestException(string message, int code) : IOException(message)
+{
+    internal const int MethodNotFound = -32601;
+    internal int Code { get; } = code;
 }
