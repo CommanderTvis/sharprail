@@ -4,7 +4,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
-using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Platform;
@@ -211,9 +210,8 @@ internal sealed class SurfaceRenderer
             if (newScale != scale)
             {
                 scale = newScale;
-                window.SetRenderScaling(newScale);
-                foreach (var popup in popups.Keys.ToArray())
-                    if (popup.PlatformImpl is not null) popup.SetRenderScaling(newScale);
+                Remote(window)?.SetRenderScaling(newScale);
+                foreach (var popup in popups.Keys.ToArray()) Remote(popup)?.SetRenderScaling(newScale);
             }
             sized = true;
             renderer.Heat();
@@ -266,26 +264,26 @@ internal sealed class SurfaceRenderer
         public void Input(SurfaceInput input)
         {
             // Input for a popup that closed meanwhile has nowhere to go.
-            TopLevel? target = input.Popup == 0 ? window : popups.Values.FirstOrDefault(popup => popup.Id == input.Popup)?.Root;
-            if (target?.PlatformImpl is null) return;
+            TopLevel? top = input.Popup == 0 ? window : popups.Values.FirstOrDefault(popup => popup.Id == input.Popup)?.Root;
+            if (Remote(top) is not { } target || Remote(window) is not { } keys) return;
             var point = new Point(input.X, input.Y);
             var modifiers = (RawInputModifiers)(input.Modifiers & 0x7fff);
             switch (input.Kind)
             {
-                case SurfaceInputKind.PointerMove: target.MouseMove(point, modifiers); break;
-                case SurfaceInputKind.PointerLeave: target.MouseMove(new Point(-1, -1), modifiers); break;
-                case SurfaceInputKind.PointerDown: target.MouseDown(point, Button(input.Button), modifiers); break;
-                case SurfaceInputKind.PointerUp: target.MouseUp(point, Button(input.Button), modifiers); break;
-                case SurfaceInputKind.Wheel: target.MouseWheel(point, new Vector(Clamp(input.DeltaX), Clamp(input.DeltaY)), modifiers); break;
+                case SurfaceInputKind.PointerMove: target.PointerMove(point, modifiers); break;
+                case SurfaceInputKind.PointerLeave: target.PointerMove(new Point(-1, -1), modifiers); break;
+                case SurfaceInputKind.PointerDown: target.PointerDown(point, Button(input.Button), modifiers); break;
+                case SurfaceInputKind.PointerUp: target.PointerUp(point, Button(input.Button), modifiers); break;
+                case SurfaceInputKind.Wheel: target.Wheel(point, new Vector(Clamp(input.DeltaX), Clamp(input.DeltaY)), modifiers); break;
                 // Keys and text go to the surface's top-level: the keyboard reaches the focused element, in a popup too.
                 case SurfaceInputKind.KeyDown:
                     if ((Key)input.Key == Key.Tab && Leaving(modifiers.HasFlag(RawInputModifiers.Shift))) break;
                     if ((Key)input.Key == Key.Escape && Escaped()) break;
-                    window.KeyPress(KeyOf(input.Key), modifiers, PhysicalOf(input.PhysicalKey), Symbol(input.Text));
+                    keys.Key(true, KeyOf(input.Key), modifiers, PhysicalOf(input.PhysicalKey), Symbol(input.Text));
                     break;
-                case SurfaceInputKind.KeyUp: window.KeyRelease(KeyOf(input.Key), modifiers, PhysicalOf(input.PhysicalKey), Symbol(input.Text)); break;
+                case SurfaceInputKind.KeyUp: keys.Key(false, KeyOf(input.Key), modifiers, PhysicalOf(input.PhysicalKey), Symbol(input.Text)); break;
                 case SurfaceInputKind.Text:
-                    if (input.Text.Length is > 0 and <= 256) window.KeyTextInput(input.Text);
+                    if (input.Text.Length is > 0 and <= 256) keys.Text(input.Text);
                     break;
                 default: throw new IsoCallException(IsoError.InvalidParams, "Unknown input.");
             }
@@ -366,7 +364,7 @@ internal sealed class SurfaceRenderer
                 if (!popups.TryGetValue(host, out var view))
                 {
                     if (popups.Count >= SurfaceLimits.MostPopups) continue;
-                    host.SetRenderScaling(scale);
+                    Remote(host)?.SetRenderScaling(scale);
                     view = new PopupView(++lastPopup, popup, host, new FrameSource(this, host, lastPopup));
                     popups[host] = view;
                 }
@@ -386,35 +384,15 @@ internal sealed class SurfaceRenderer
 
         private void Send(SurfaceFrameHeader header, byte[] bytes) => renderer.peer.OneWay(SurfaceProtocol.Frame, SurfaceProtocol.Encode(header), Context, bytes);
 
-        internal static void Copy(ILockedFramebuffer locked, byte[] target)
-        {
-            var rowBytes = locked.Size.Width * 4;
-            var swap = locked.Format == PixelFormat.Rgba8888;
-            unsafe
-            {
-                for (var row = 0; row < locked.Size.Height; row++)
-                {
-                    var source = new ReadOnlySpan<byte>((byte*)locked.Address + row * locked.RowBytes, rowBytes);
-                    var line = target.AsSpan(row * rowBytes, rowBytes);
-                    source.CopyTo(line);
-                    if (!swap) continue;
-                    for (var index = 0; index < rowBytes; index += 4) (line[index], line[index + 2]) = (line[index + 2], line[index]);
-                }
-            }
-        }
+        // The remote platform's top-level behind an open top-level; null once it closed.
+        private static RemoteTopLevel? Remote(TopLevel? top) => top?.PlatformImpl as RemoteTopLevel;
 
         public SurfaceCapture Capture(List<string> names, int popup)
         {
             TopLevel target = popup == 0 ? window : popups.Values.FirstOrDefault(view => view.Id == popup)?.Root ?? throw new IsoCallException(IsoError.InvalidParams, $"Popup {popup} is not open.");
-            using var frame = target.CaptureRenderedFrame() ?? throw new IsoCallException(IsoError.Failed, "The surface has not rendered.");
-            byte[] pixels;
-            int w, h;
-            using (var locked = frame.Lock())
-            {
-                (w, h) = (locked.Size.Width, locked.Size.Height);
-                pixels = new byte[w * h * 4];
-                Copy(locked, pixels);
-            }
+            var pixels = Array.Empty<byte>();
+            if (Remote(target)?.Rendered(ref pixels, out var size) != true) throw new IsoCallException(IsoError.Failed, "The surface has not rendered.");
+            var (w, h) = (size.Width, size.Height);
             var bounds = new Dictionary<string, double[]>();
             foreach (var control in target.GetVisualDescendants().OfType<Control>())
                 if (control.Name is { } name && names.Contains(name) && !bounds.ContainsKey(name) && control.TranslatePoint(default, target) is { } at)
@@ -466,21 +444,14 @@ internal sealed class SurfaceRenderer
             public void Tick(double scale, Size desired, List<SurfaceMove>? moves)
             {
                 if (inFlight) return;
-                using var frame = top.CaptureRenderedFrame();
-                if (frame is null) return;
+                if (Remote(top)?.Rendered(ref next, out var size) != true) return;
                 var resized = false;
-                using (var locked = frame.Lock())
+                if (size.Width != width || size.Height != height)
                 {
-                    var (w, h) = (locked.Size.Width, locked.Size.Height);
-                    if (w != width || h != height)
-                    {
-                        (width, height) = (w, h);
-                        held = new byte[w * h * 4];
-                        next = new byte[w * h * 4];
-                        moves?.Clear();
-                        resized = true;
-                    }
-                    Copy(locked, next);
+                    (width, height) = (size.Width, size.Height);
+                    held = new byte[width * height * 4];
+                    moves?.Clear();
+                    resized = true;
                 }
                 var stride = width * 4;
                 var sentMoves = moves?.Where(move => SurfacePixels.Fits(move, width, height)).ToList() ?? [];

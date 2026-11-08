@@ -1,7 +1,6 @@
 using System.Text.Json;
 
 using Avalonia;
-using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Styling;
@@ -13,9 +12,9 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.Plugins.Runner;
 
 /// <summary>
-/// Avalonia in the plugin process: the stock headless platform with Skia's CPU raster, on the thread that starts it,
-/// which becomes the plugin's UI thread. Every plugin call runs there. Popups are top-levels of their own, which the
-/// client places, not drawn inside their surface.
+/// Avalonia in the plugin process: SharpRail's remote platform backend (<see cref="RemotePlatform"/>) with Skia's CPU
+/// raster, on the thread that starts it, which becomes the plugin's UI thread. Every plugin call runs there. Popups are
+/// top-levels of their own, which the client places, not drawn inside their surface.
 /// </summary>
 internal static class RunnerPlatform
 {
@@ -24,7 +23,7 @@ internal static class RunnerPlatform
     {
         AppBuilder.Configure<RunnerApp>()
             .UseSkia()
-            .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, FrameBufferFormat = PixelFormat.Bgra8888, OverlayPopups = false })
+            .UseRemote()
             .SetupWithoutStarting();
         var running = Task.Run(body);
         using var stop = new CancellationTokenSource();

@@ -384,8 +384,8 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   client that closes ends its session alone. The shipping compositions leave the app's seam null, so a remote client
   of a shipping host still keeps an external plugin dormant.
 - Surfaces are real for the local host (`--plugin-surface`). The runner runs the plugin's code on the UI thread of
-  Avalonia's stock headless platform with Skia's CPU raster, until the remote backend exists. Each surface is the
-  factory's control in its own headless top-level, one per client and mount, at the size and scale the client
+  SharpRail's remote platform backend, which Skia's CPU raster draws for. Each surface is the factory's control in
+  its own top-level of that backend, one per client and mount, at the size and scale the client
   pushes, transparent where the plugin draws nothing so the client's slot shows through. When the client has taken the last frame, the runner renders, diffs against what the client holds in
   64-pixel tiles and sends the changed tiles. It renders every 16 ms for half a second after anything happens and
   every 200 ms otherwise. Scrolling seen since the last frame goes first as moves, which both ends apply the same
@@ -413,8 +413,7 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   its surface; shown again after that, it opens a new one and the plugin makes its control again, so what only the
   control held (scroll position, typed text) starts over.
 - Popups (menus, flyouts, tooltips) are surfaces of their own (`--plugin-surface`, `--plugin-surface-remote`). The
-  runner turns the headless platform's overlay popups off, so each popup is a headless top-level at its surface's
-  scale, numbered within the surface from 1 and never reused. The runner sends its place from the surface's corner
+  backend gives each popup a top-level of its own at its surface's scale, numbered within the surface from 1 and never reused. The runner sends its place from the surface's corner
   and its size in device-independent pixels when it opens, moves or resizes, then its frames (the first a keyframe),
   and its closing after its last frame. The relay holds a popup to its own caps: at most 8 open per surface, a place
   within 8,192 pixels of the surface's corner, a size of up to 8,192 pixels a side, frames only while it is open and
@@ -432,10 +431,10 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   the runner closes it. A tooltip alone does not keep Escape from the app. A popup the client hid never shows again
   under its number, even if the plugin keeps it open or places it again.
 - Each client's scale is its own: the runner sets the scale a client pushes on that client's top-levels
-  (`IHeadlessWindow.SetRenderScaling`), and tile coordinates stay in device pixels. A client whose window moves to a
+  (the backend's top-levels take a scale each), and tile coordinates stay in device pixels. A client whose window moves to a
   monitor of another scale pushes it and gets the surface rendered again at it. The checks render scales 1 and 2,
   each equal to a fresh render in the runner, with one client at 2 and another at 1 at once.
-- Pending: the headless platform keeps a popup inside a 1,920×1,280-pixel screen of its own, so near the bottom of a
+- Pending: the backend keeps a popup inside a 1,920×1,280-pixel screen of its own, as Avalonia's headless platform did, so near the bottom of a
   tall surface at scale 2 a menu may open flipped or slid; the cursor shape, IME composition and accessibility
   are not carried; the terminal delay behind surface traffic is bounded by construction and not measured; one process
   holds one kit theme, the last a client pushed, because the kit's brushes are process-wide; wheel events stay with the surface, since the plugin cannot say whether it used one; keys with
@@ -796,8 +795,10 @@ remain a later option if bandwidth becomes the problem; they would put a command
 
 - The plugin process runs a remote platform backend built the way Avalonia's previewer and headless backends are:
   it implements the windowing, top-level and popup interfaces and renders with Skia's CPU raster into tiles. No
-  Avalonia fork is needed for this. Until it exists, the runner uses Avalonia's stock headless platform, which
-  renders the same way but has no cursor or IME; its popups are top-levels of their own that the client places.
+  Avalonia fork is needed for this. The runner has it (`RemotePlatform`): its own windowing platform, top-levels for
+  surfaces, popups and windows, each drawn into memory by Skia's CPU raster on the UI thread, a cursor factory and
+  a mouse per top-level, so one client's pointer capture never reaches another's surfaces. It replaced Avalonia's
+  stock headless platform, which the runner no longer references.
 - Avalonia hides the interfaces this backend implements from its reference assemblies: implementing
   `IWindowingPlatform` against them fails with CS0535 and CS9044, which no suppression can turn off. The plugin
   runner alone compiles against Avalonia's implementation assemblies (`AvaloniaAccessUnstablePrivateApis`). Its only
