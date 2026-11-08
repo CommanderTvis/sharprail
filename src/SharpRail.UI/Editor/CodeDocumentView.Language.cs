@@ -58,7 +58,7 @@ internal sealed partial class CodeDocumentView
     {
         languageTimer.Tick += async (_, _) => await InspectLanguageAsync();
         AttachedToVisualTree += (_, _) => { languageTimer.Start(); _ = InspectLanguageAsync(); };
-        DetachedFromVisualTree += (_, _) => { SetLanguageAvailable(false); languageTimer.Stop(); languageRequest?.Cancel(); this.FindControl<Popup>("LanguagePopup")!.IsOpen = false; this.FindControl<Popup>("QuickFixPopup")!.IsOpen = false; quickFixRequest?.Cancel(); };
+        DetachedFromVisualTree += (_, _) => { SetLanguageAvailable(false); languageTimer.Stop(); languageRequest?.Cancel(); this.FindControl<Popup>("LanguagePopup")!.IsOpen = false; };
         Editor.TextChanged += (_, _) =>
         {
             languageVersion++; languageRequest?.Cancel();
@@ -109,16 +109,15 @@ internal sealed partial class CodeDocumentView
             query.IsVisible = true;
             query.Text += e.Text; query.CaretIndex = query.Text.Length; query.Focus(); e.Handled = true;
         };
-        WireQuickFixes();
         Editor.ContextMenu = new ContextMenu();
         AddLanguageMenu(Editor.ContextMenu);
         Editor.AddHandler(KeyDownEvent, (_, e) =>
         {
-            // The chords are the active keymap's; quick fixes have their own handler, which also lists the fixes.
+            // The chords are the active keymap's.
             if (ActiveKeymap.Recording || !ServesLanguage) return;
             foreach (var (_, operation, actionId) in LanguageOperations)
             {
-                if (operation == "quickFix" || !ActiveKeymap.Matches(actionId, e)) continue;
+                if (!ActiveKeymap.Matches(actionId, e)) continue;
                 e.Handled = true;
                 RunLanguageOperation(operation);
                 return;
@@ -131,7 +130,7 @@ internal sealed partial class CodeDocumentView
 
     private static readonly (string Label, string Operation, string ActionId)[] NavigationOperations =
     [
-        ("Show Quick Fixes", "quickFix", KeymapActions.ShowQuickFixes), ("Go to Declaration", "definition", KeymapActions.GoToDeclaration),
+        ("Go to Declaration", "definition", KeymapActions.GoToDeclaration),
         ("Go to Type Declaration", "typeDefinition", KeymapActions.GoToTypeDeclaration), ("Go to Implementation", "implementation", KeymapActions.GoToImplementation),
         ("Find Usages", "references", KeymapActions.FindUsages)
     ];
@@ -164,8 +163,7 @@ internal sealed partial class CodeDocumentView
     /// <summary>Runs one of <see cref="LanguageOperations"/> as its context-menu item does.</summary>
     internal void RunLanguageOperation(string operation)
     {
-        if (operation == "quickFix") ShowQuickFixes();
-        else _ = RunLanguageAsync(operation, wholeWorkspace: operation == "diagnostics");
+        _ = RunLanguageAsync(operation, wholeWorkspace: operation == "diagnostics");
     }
 
     internal void AddLanguageMenu(ContextMenu menu) =>
@@ -182,7 +180,7 @@ internal sealed partial class CodeDocumentView
                 // Built as the menu opens, so each item shows its action's active chord.
                 foreach (var (label, operation, actionId) in LanguageOperations)
                 {
-                    var item = operation == "quickFix" ? Ui.IconMenu(label, () => RunLanguageOperation(operation), ActionIcon.QuickFix) : Ui.Menu(label, () => RunLanguageOperation(operation));
+                    var item = Ui.Menu(label, () => RunLanguageOperation(operation));
                     if (ActiveKeymap.Gesture(actionId) is { Key: not Key.None } gesture) item.InputGesture = gesture;
                     item.Name = "Language_" + operation; item.Tag = "lsp"; menu.Items.Add(item);
                 }

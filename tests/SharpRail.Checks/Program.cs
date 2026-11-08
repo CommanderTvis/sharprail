@@ -275,13 +275,6 @@ internal static class Program
             LanguageChecks.UiChecks(root);
             return;
         }
-        if (args.SequenceEqual(["--lsp-code-actions"]))
-        {
-            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
-            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
-            LanguageCodeActionChecks.Run(root);
-            return;
-        }
         if (args.SequenceEqual(["--lsp-dependencies"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -1493,7 +1486,6 @@ internal static class Program
         Gate.Case("language-limits-ui", () => LanguageLimitChecks.Ui(root));
         Gate.Case("intellij-license-ui", () => IntelliJLicenseChecks.Ui(root));
         Gate.Case("settings-terms-ui", () => IntelliJLicenseChecks.SettingsTerms(root));
-        Gate.Case("language-code-actions", () => LanguageCodeActionChecks.Run(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("plugin-isolated-ui", () => PluginIsolatedUIChecks.Run(root));
         Gate.Case("plugin-surface", () => PluginSurfaceChecks.Run(root));

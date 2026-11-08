@@ -159,7 +159,7 @@ internal static class MenuLayoutChecks
         const double gap = 16;
         var cases = new (string Name, (string Label, Avalonia.Input.Key Key, Avalonia.Input.KeyModifiers Modifiers)[] Rows)[]
         {
-            ("editor language menu", [("Show Quick Fixes", Avalonia.Input.Key.Enter, Avalonia.Input.KeyModifiers.Alt), ("Go to Declaration", Avalonia.Input.Key.B, Avalonia.Input.KeyModifiers.Meta),
+            ("editor language menu", [("Go to Declaration", Avalonia.Input.Key.B, Avalonia.Input.KeyModifiers.Meta),
                 ("Go to Type Declaration", Avalonia.Input.Key.B, Avalonia.Input.KeyModifiers.Meta | Avalonia.Input.KeyModifiers.Shift), ("Find Usages", Avalonia.Input.Key.F7, Avalonia.Input.KeyModifiers.Alt),
                 ("Start / Retry Language Server", Avalonia.Input.Key.None, Avalonia.Input.KeyModifiers.None)]),
             ("long labels and long shortcuts", [("Open build definition for the selected project in the workspace", Avalonia.Input.Key.F9, Avalonia.Input.KeyModifiers.Alt | Avalonia.Input.KeyModifiers.Meta | Avalonia.Input.KeyModifiers.Shift | Avalonia.Input.KeyModifiers.Control),

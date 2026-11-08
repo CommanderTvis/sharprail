@@ -118,7 +118,7 @@ public static class KeymapActions
         Settings = "Settings", ToggleLeft = "ToggleLeft", ToggleRight = "ToggleRight", ZoomIn = "ZoomIn", ZoomOut = "ZoomOut", ZoomReset = "ZoomReset",
         Refresh = "Refresh", Back = "Back", Forward = "Forward", UndoClose = "UndoClose", RedoClose = "RedoClose",
         GoToDeclaration = "GoToDeclaration", GoToTypeDeclaration = "GoToTypeDeclaration", GoToImplementation = "GoToImplementation",
-        FindUsages = "FindUsages", ShowQuickFixes = "ShowQuickFixes", DocumentSymbols = "DocumentSymbols", WorkspaceProblems = "WorkspaceProblems",
+        FindUsages = "FindUsages", DocumentSymbols = "DocumentSymbols", WorkspaceProblems = "WorkspaceProblems",
         LanguageServerStatus = "LanguageServerStatus", LanguageServerStart = "LanguageServerStart", LanguageServerStop = "LanguageServerStop";
 
     /// <summary>The group of the editor's language-server actions.</summary>
@@ -145,7 +145,6 @@ public static class KeymapActions
         new(GoToTypeDeclaration, "Go to Type Declaration", LanguageGroup),
         new(GoToImplementation, "Go to Implementation", LanguageGroup),
         new(FindUsages, "Find Usages", LanguageGroup),
-        new(ShowQuickFixes, "Show Quick Fixes", LanguageGroup),
         new(DocumentSymbols, "Document Symbols", LanguageGroup),
         new(WorkspaceProblems, "Workspace Problems", LanguageGroup),
         new(LanguageServerStatus, "Language Server Status", LanguageGroup),
@@ -280,7 +279,6 @@ public sealed class KeymapBindings
         (KeymapActions.GoToTypeDeclaration, ["Mod+Shift+B"], ["Mod+Shift+B"]),
         (KeymapActions.GoToImplementation, ["Mod+Alt+B"], ["Mod+Alt+B"]),
         (KeymapActions.FindUsages, ["Alt+F7", "Shift+F12"], ["Alt+F7", "Shift+F12"]),
-        (KeymapActions.ShowQuickFixes, ["Alt+Enter"], ["Alt+Enter"]),
         (KeymapActions.DocumentSymbols, ["Mod+F12"], ["Mod+F12"]),
         (KeymapActions.WorkspaceProblems, [], []),
         (KeymapActions.LanguageServerStatus, [], []),

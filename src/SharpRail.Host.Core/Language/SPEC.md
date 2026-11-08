@@ -86,21 +86,7 @@ highlighting. Server work and parsing stay off the UI thread. Edits, workspace c
 and disposal reject stale results. Inspection does not apply code actions or edit source. Rename, format and
 code actions for agents are separate explicit tools (`lsp_code_actions`, `lsp_rename`, `lsp_format`), specified in
 [Refactoring.SPEC.md](Refactoring.SPEC.md): they preview first, write only on `apply`, and never belong to inspection.
-`workspace/applyEdit` is answered applied only inside a chosen action's command (editor quick fix or agent action).
-
-Quick fixes in the editor are described here; the agent tools reuse the same session requests (see Refactoring.SPEC.md). The editor's `codeActions`
-operation sends `textDocument/codeAction` for the caret (a collapsed range, the selection's start) with the stored
-raw diagnostics that cover it, and lists the answer: disabled actions are hidden, and so is an action that has no
-edit and either names a command the server did not declare in `executeCommandProvider` or, with no command,
-cannot be resolved (`codeActionProvider.resolveProvider`). Preferred actions come first, then `quickfix` kinds, at most 50. The ids it returns are valid
-for the document state of that answer only. `applyCodeAction` (id as `Query`) resolves with `codeAction/resolve` when the
-action has no edit, runs a declared command through `workspace/executeCommand` while capturing the server's
-`workspace/applyEdit` requests into the same edit set (answered applied), and returns the text edits in `Edits`
-(zero-based UTF-16 ranges, the encoding this client negotiates; file creation, renaming and deletion and edits outside
-the workspace make the action `unsupported`, and a `documentChanges` version that differs from the synchronized one
-or a changed document makes it `stale`). The host never writes the files: the editor applies edits to its buffer as
-one undo step and saves other files through the normal save path with its conflict check. Servers that do not
-declare `codeActionProvider` answer `unsupported`.
+`workspace/applyEdit` is answered applied only inside a chosen action's command (agent action).
 
 ## Provisioning and index reuse
 

@@ -337,7 +337,6 @@ internal sealed partial class LanguageSession : IAsyncDisposable, ILanguageServe
             }
             if (NeedsConfiguration) return result with { State = "actionRequired", Detail = ProjectDetail, Freshness = "partial", Coverage = projectModel.Description };
             if (projectRestores.Values.Any(task => task.IsFaulted)) return result with { State = "error", Detail = ProjectDetail, Freshness = "partial", Coverage = projectModel.Description };
-            if (request.Operation is "codeActions" or "applyCodeAction") return await CodeActionsAsync(result, request, uri, document, token);
             if (IsAgentRefactoring(request.Operation)) return await AgentRefactoringAsync(result, request, uri, document, token);
             // An outline is syntax and answers at once. References, implementations and symbol searches could silently miss what is not
             // loaded yet, so they wait; a definition, type definition or hover that found something is right, and only an empty one waits.

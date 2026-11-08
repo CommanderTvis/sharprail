@@ -8,8 +8,7 @@ parent: module-host-language
 
 # Code actions and refactoring through language servers
 
-Status: shipped are the editor's quick fixes (Alt+Enter, documented in the parent spec and in the editor spec) and the
-agent tools `lsp_code_actions`, `lsp_rename` and `lsp_format` ("MCP tools (shipped)" below, which replaces the earlier
+Status: shipped are the agent tools `lsp_code_actions`, `lsp_rename` and `lsp_format` ("MCP tools (shipped)" below, which replaces the earlier
 five-tool design). Everything else here is design only. The client advertises `textDocument.codeAction` with literal, resolve, disabled and preferred support, `workspace.applyEdit`
 and `workspaceEdit.documentChanges`, and apply edits only from the editor. The survey below predates it and is otherwise
 current. Nothing else here is implemented; the shipped state is under "Survey". Semantic refactorings come
@@ -366,9 +365,7 @@ Phase 1, rename, organize imports, code actions:
 5. `lsp_code_actions`, `lsp_apply_action`, `lsp_rename`, `lsp_organize_imports`; registered with `lsp_*` family;
    update tool descriptions and Codex/Claude launch instructions (`CorePrompt.cs` and plugin prompts) and the
    `code-intel` plugin script; check `--lsp-refactor` against a fake server and `--lsp-mcp` schema checks.
-6. Editor: lightbulb and Alt+Enter popup, Rename in place, Optimize Imports, context menu entries gated by
-   capability, undo grouping in Scintilla, progress and cancel; check `--lsp-ui` (menu gating, popup, rename,
-   undo as one step, stale rejection) and `--scintilla-core` (undo group API). Wire `workspace/applyEdit` handling.
+6. Editor-side quick fixes, rename in place and Optimize Imports are dropped: the editor does not expose code actions to the user.
 
 Phase 2, extract and inline:
 7. `lsp_refactor` with extract/inline; `Refactorings.KindAliases` hook in `LanguageServerSpec` and the first

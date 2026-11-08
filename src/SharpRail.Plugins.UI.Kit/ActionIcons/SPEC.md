@@ -41,7 +41,6 @@ show its own variant of "Delete".
 | EnterPath | `inputCursor` | Add-project menu: Enter path…, Enter host path… |
 | Clone | `gitFork` | Add-project menu: Clone repository… |
 | CopyAbsolutePath | `mapPin` (Remix map-pin-line, a fixed location) | Files tree: Copy absolute path; project and workspace menus: Copy absolute path |
-| QuickFix | `alertTip` (the Remix lightbulb, also the Tip callout's glyph) | Code editor menu: Show Quick Fixes |
 
 ## Enforcement
 

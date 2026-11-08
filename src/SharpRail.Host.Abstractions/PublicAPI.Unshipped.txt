@@ -2241,7 +2241,6 @@ const SharpRail.Host.Abstractions.KeymapActions.LanguageGroup = "Language" -> st
 const SharpRail.Host.Abstractions.KeymapActions.LanguageServerStart = "LanguageServerStart" -> string!
 const SharpRail.Host.Abstractions.KeymapActions.LanguageServerStatus = "LanguageServerStatus" -> string!
 const SharpRail.Host.Abstractions.KeymapActions.LanguageServerStop = "LanguageServerStop" -> string!
-const SharpRail.Host.Abstractions.KeymapActions.ShowQuickFixes = "ShowQuickFixes" -> string!
 const SharpRail.Host.Abstractions.KeymapActions.WorkspaceProblems = "WorkspaceProblems" -> string!
 static SharpRail.Host.Abstractions.KeymapActions.Find(string! id, System.Collections.Generic.IEnumerable<SharpRail.Host.Abstractions.KeymapAction!>? plugins = null) -> SharpRail.Host.Abstractions.KeymapAction?
 static SharpRail.Host.Abstractions.KeymapActions.PluginActionId(string! pluginId, string! localId) -> string!
