@@ -14,29 +14,38 @@ internal static partial class SpecTools
     private static PluginToolResult Result(string text, object details) => new(text) { Details = details };
     private static string EnumName<T>(T value) => PluginJson.SerializeToElement(value).GetString()!;
 
-    public static IReadOnlyList<PluginToolDefinition> All { get; } =
+    /// <summary>Resolves a tool call's root: the caller's own checkout, or an absolute path naming another workspace of the same project.</summary>
+    internal delegate ValueTask<(string? Root, string? Error)> RootResolver(PluginToolContext context, string? workspace, CancellationToken ct);
+
+    private static async ValueTask<PluginToolResult> OnRoot(RootResolver resolve, PluginToolContext context, string? workspace, CancellationToken ct, Func<string, ValueTask<PluginToolResult>> run)
+    {
+        var (root, error) = await resolve(context, workspace, ct);
+        return root is null ? Error(error ?? "Unknown workspace.") : await run(root);
+    }
+
+    public static IReadOnlyList<PluginToolDefinition> All(RootResolver resolve) =>
     [
         new PluginTool<SpecGrepParams>("spec_grep", "Spec Grep",
             "Search the project's spec-graph: regex or substring match within spec files (files whose frontmatter carries id + type), optionally narrowed by metadata (type / tag / parent / depends-on). Returns path:line matches with a snippet. Read a matched file's body with the normal read tool.",
-            (parameters, context, ct) => GrepAsync(parameters, context.Cwd, ct)),
+            (parameters, context, ct) => OnRoot(resolve, context, parameters.Workspace, ct, root => GrepAsync(parameters, root, ct))),
         new PluginTool<SpecGetParams>("spec_get", "Spec Get",
             "Get one spec node by id: its frontmatter, path, and resolved links (forward + reverse edges across parent/depends-on/references/implements). Returns no prose body — read the file at the returned path with the read tool.",
-            (parameters, context, ct) => GetAsync(parameters, context.Cwd, ct)),
+            (parameters, context, ct) => OnRoot(resolve, context, parameters.Workspace, ct, root => GetAsync(parameters, root, ct))),
         new PluginTool<SpecGraphToolParams>("spec_graph", "Spec Graph",
             "Return a bounded slice of the spec-graph rooted at a node: subtree (down the parent tree), ancestors (up to the tree root), or neighbors (across a chosen edge and its reverse). Bounded by depth (default 1).",
-            (parameters, context, ct) => GraphAsync(parameters, context.Cwd, ct)),
+            (parameters, context, ct) => OnRoot(resolve, context, parameters.Workspace, ct, root => GraphAsync(parameters, root, ct))),
         new PluginTool<SpecCreateParams>("spec_create", "Spec Create",
             "Create a new spec file with scaffolded frontmatter (id, type, title, an optional status, and any links) and a heading-only body stub chosen by type. Fails if the file already exists, the id is already in use, or the path is not an indexable root-relative .md path. Edit prose afterward with the write/edit tools.",
-            (parameters, context, ct) => CreateAsync(parameters, context.Cwd, ct)),
+            (parameters, context, ct) => OnRoot(resolve, context, parameters.Workspace, ct, root => CreateAsync(parameters, root, ct))),
         new PluginTool<SpecUpdateParams>("spec_update", "Spec Update",
             "Edit a spec's frontmatter only (never its prose): set/overwrite scalar fields, remove fields, and add/remove entries in the list fields (depends-on/references/implements/covers/tags). Comments and any non-dialect fields are preserved. Prose is edited with the write/edit tools.",
-            (parameters, context, ct) => UpdateAsync(parameters, context.Cwd, ct)),
+            (parameters, context, ct) => OnRoot(resolve, context, parameters.Workspace, ct, root => UpdateAsync(parameters, root, ct))),
         new PluginTool<SpecDeleteParams>("spec_delete", "Spec Delete",
             "Delete a spec file by id. Other specs may still reference it afterward — run spec_validate to find dangling links.",
-            (parameters, context, ct) => DeleteAsync(parameters, context.Cwd, ct)),
+            (parameters, context, ct) => OnRoot(resolve, context, parameters.Workspace, ct, root => DeleteAsync(parameters, root, ct))),
         new PluginTool<SpecValidateParams>("spec_validate", "Spec Validate",
             "Validate the spec-graph: report dangling parent/depends-on/references/implements links, duplicate ids, and parent cycles.",
-            (_, context, ct) => ValidateAsync(context.Cwd, ct))
+            (parameters, context, ct) => OnRoot(resolve, context, parameters.Workspace, ct, root => ValidateAsync(root, ct)))
     ];
 
     private sealed record GrepMatch(string Path, int Line, string Snippet);

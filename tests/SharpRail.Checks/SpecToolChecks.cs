@@ -129,5 +129,37 @@ internal static class SpecToolChecks
         Require((await Success("spec_validate", new { })).Contains("--references--> edit-me [missing]", StringComparison.Ordinal), "Delete keeps inbound links for validation to report.");
         await Fails("spec_delete", new { id = "edit-me" }, "No spec");
         Console.WriteLine("PASS fork spec_delete: removes the file, rejects an unknown id and retains other specs' links");
+
+        // A tool reads another workspace of the same project when it names one, and refuses anything else.
+        var main = Path.Combine(root, "spec-workspace-main");
+        var linked = Path.Combine(root, "spec-workspace-linked");
+        var stranger = Path.Combine(root, "spec-workspace-stranger");
+        foreach (var folder in new[] { main, linked, stranger }) Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(Path.Combine(main, "m.md"), "---\nid: only-main\ntype: module-design\n---\n");
+        await File.WriteAllTextAsync(Path.Combine(linked, "l.md"), "---\nid: only-linked\ntype: module-design\n---\n");
+        var projectState = new HostStateStore(Path.Combine(root, "spec-workspace-state"));
+        await projectState.ChangeAsync([HostStateChange.PluginEnabled(SpecDialectContract.Id, true), HostStateChange.OpenProject(main)]);
+        await using var projectRuntime = new PluginRuntime(new()
+        {
+            StateDirectory = null,
+            State = projectState,
+            Builtins = [(SpecDialectManifest.Manifest, new SpecDialectHost())],
+            Worktrees = (_, _) => Task.FromResult<IReadOnlyList<WorktreeInfo>>([new(main, "main", true, false), new(linked, "feature", false, false)])
+        });
+        await projectRuntime.Start();
+        async Task<(string Text, bool Error)> From(string cwd, string name, object parameters) =>
+            await projectRuntime.McpTools(null, cwd).First(tool => tool.Name == name).Call(JsonSerializer.SerializeToNode(parameters)!.AsObject(), CancellationToken.None);
+        Require((await From(linked, "spec_get", new { id = "only-linked" })).Text.Contains("only-linked", StringComparison.Ordinal), "Default is the caller's own checkout.");
+        Require((await From(linked, "spec_get", new { id = "only-main", workspace = main })).Text.Contains("only-main", StringComparison.Ordinal), "A workspace argument reads that workspace.");
+        Require((await From(main, "spec_validate", new { workspace = linked })).Text.Contains("valid", StringComparison.Ordinal), "Validate reads the named workspace.");
+        var made = await From(main, "spec_create", new { path = "n.md", id = "made", type = "task-spec", title = "N", workspace = linked });
+        Require(!made.Error && File.Exists(Path.Combine(linked, "n.md")) && !File.Exists(Path.Combine(main, "n.md")), "Create writes in the named workspace.");
+        foreach (var refused in new[] { stranger, "relative/path", Path.Combine(root, "missing") })
+        {
+            var reply = await From(main, "spec_get", new { id = "only-main", workspace = refused });
+            Require(reply.Error && reply.Text.Contains("workspace", StringComparison.Ordinal), "A path outside the project is refused: " + refused + " " + reply.Text);
+        }
+        Require(projectRuntime.McpTools(null, main).All(tool => tool.InputSchema["properties"]?["workspace"] is not null), "Every spec tool advertises the optional workspace argument.");
+        Console.WriteLine("PASS spec tools: optional workspace argument reads and writes a sibling workspace and refuses foreign paths");
     }
 }

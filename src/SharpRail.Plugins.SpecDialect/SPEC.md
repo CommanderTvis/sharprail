@@ -83,6 +83,8 @@ all dangling edges, duplicate ids and parent cycles.
 - `spec_validate`: all graph issues, or an explicit valid result.
 
 Schemas come from the typed parameter records; malformed arguments fail before the tool runs.
+Every tool takes an optional absolute `workspace`: it works on that workspace instead of the
+caller's own checkout, and refuses a path that is not a workspace of the caller's project.
 Tools return text and structured details, and error outcomes carry `IsError`.
 
 The host half contributes the `spec_*` item to the agent instructions (H20, order 20) on activation, so a disabled plugin leaves it out.
@@ -132,6 +134,8 @@ The terminal MCP tools implement the portable spec dialect without a Pi dependen
 
 Checks exercise the real plugin and panel, including local and remote hosts:
 
+- An agent in a created workspace reads and edits that workspace's specs with `workspace`; a path
+  outside the project is refused.
 - All seven tools obey the graph and authoring rules, reject unsafe paths and malformed input,
   and preserve YAML comments, custom fields and document text.
 - Cold Project Home loads the default workspace's specs and follows watched edits; opening a spec

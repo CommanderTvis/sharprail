@@ -38,7 +38,17 @@ public sealed class SpecDialectHost : PluginHostModule
         {
             if (change is WorkspaceRemoved removed) indexes.TryRemove(removed.Id, out _);
         });
-        foreach (var tool in SpecTools.All) context.Tool(tool);
+        // A tool works on the caller's own checkout unless it names another workspace of the same project.
+        async ValueTask<(string? Root, string? Error)> ResolveRoot(PluginToolContext call, string? workspace, CancellationToken ct)
+        {
+            if (workspace is null) return (call.Cwd, null);
+            if (!Path.IsPathFullyQualified(workspace)) return (null, "workspace must be an absolute path.");
+            var path = Path.TrimEndingDirectorySeparator(Path.GetFullPath(workspace));
+            var own = await context.WorkspaceAsync(call.WorkspaceId ?? call.Cwd, ct);
+            var target = await context.WorkspaceAsync(path, ct);
+            return own is not null && target is not null && target.ProjectId == own.ProjectId ? (target.Path, null) : (null, $"{workspace} is not a workspace of this project.");
+        }
+        foreach (var tool in SpecTools.All(ResolveRoot)) context.Tool(tool);
         return ValueTask.FromResult<PluginDisposer?>(null);
     }
 }
