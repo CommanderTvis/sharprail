@@ -434,39 +434,9 @@ The source scrolls horizontally in its own column so long lines never overlap Co
 
 ## Recorded large-document measurement limits
 
-User-requested 2026-10-11 headless Skia measurements of 2,000-item surfaces showed that virtualization
-moves work from construction to scrolling; they are not whole-app RAM or native presentation results.
-The Files follow-up reduced allocations over 120 scroll steps from a historical 75.74 MB sample to a
-29.21 MB median across three fresh processes (29.19–29.21 MB), still above the fully prebuilt tree's
-3.60 MB. Its scroll-step p95 changed from 9.19 ms to a 6.14 ms median (5.53–6.64 ms). Those are not
-interleaved controlled trials.
-
-The 2026-10-12 selection comparison used a 19,000,000-character document, 1,795 selectable blocks,
-one mounted midpoint paragraph, an 800×600 headless window and 120 pointer updates with source-line
-observation and captured frames. Both versions produced 120 selection notifications and the same
-245-character final selection. Pointer median/p95 changed from 81.06/103.13 ms to 7.96/21.53 ms;
-allocation over the updates changed from 19,926.43 to 149.55 decimal MB. One baseline and one final
-fresh-process run establish a directional improvement for that fixture, not current browser speed,
-whole-app memory or native latency. Parsing, retained content and long-paragraph reflow remain
-proportional to document size; later exact-height scrolling changes were not part of these measurements.
-
-The 2026-10-20 chunking comparison ran `--rendering-bench markdown-large` (2,000 prose paragraphs
-around a 5,000-row three-column table and a 20,000-line code block) and the 2,000-paragraph
-`markdown` surface in an 800×600 headless Skia window. The baseline was the previous commit with only
-this fixture added. Runs alternated baseline and chunked builds as fresh Release processes on the same
-machine while other workspaces were building, so absolute times are noisy. Open is construction plus
-the first captured frame; scroll steps jump through the whole extent in 120 frames.
-| Surface (runs base/chunked) | Open ms | Open allocated | Scroll median / p95 ms | Scroll allocated |
-| --- | --- | --- | --- | --- |
-| `markdown-large` (2/3) | 472,070–792,637 → 1,482–3,203 | 502.6 GB → 0.60 GB | 40.5–55.1 / 87.8–198.4 → 21.2–57.3 / 79.6–189.5 | 1.16 GB → 0.41 GB |
-| `markdown` (3/3) | 1,191–1,581 → 235–262 | 235 MB → 55 MB | 4.2–5.2 / 7.7–12.9 → 9.0–13.2 / 16.1–25.0 | 26 MB → 35 MB |
-
-Most of the large-document gain comes from attaching code runs once: the baseline built its single
-20,000-line code text by appending to an attached inline collection. Prose scrolling in small steps
-is slower than the baseline because blocks are now measured as they are first realized instead of on
-open; jumps across the large document realize new chunks every frame. Construction of all block
-controls and parsing remain proportional to document size. Baseline large runs took 8–13 minutes each
-under a machine load average above 100, so only two completed; the remainder was stopped.
+Large-document work is measured with `--rendering-bench` in a headless Skia window (open time, scroll steps, allocation). The results
+are directional for one fixture on one machine: not whole-app memory, browser speed or native presentation latency. Construction and
+parsing stay proportional to document size; virtualization moves work from construction to scrolling.
 
 ## Semantic editor colors
 

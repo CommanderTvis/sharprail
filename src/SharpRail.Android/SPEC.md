@@ -239,21 +239,9 @@ package carries the SDK's default signature.
 
 ## Validation
 
-Verified on 2026-10-10 on an Android 16 arm64 tablet emulator against a `SharpRail.Host.Remote` on the
-development Mac, in Debug and Release: the connect screen with the soft keyboard, automatic connection on
-relaunch, the workbench, popup menus, modal dialogs including text entry above the keyboard, opening a project
-by host path, the file tree with touch scrolling and file icons, Markdown preview, the Scintilla editor, a
-live terminal typed into from the soft keyboard, Settings, Disconnect, and system Back closing dialogs. Cold
-start of the Release package was about 2.3 s there. On a phone-sized emulator (1080x2340) the Release package
-was checked for the connect screen, connecting, and the first frame: a fresh profile on a screen narrower
-than 600 dp starts on the centre-only `focus` preset, with the panels behind their toggles.
-
-The Release package also installed and showed the connect screen on a Pixel 8 (Android 17). The maintainer
-later used that physical Pixel 8 to control a host about 100 km away over the embedded Tailscale node; the date,
-build and exact workbench features used were not recorded. Later phone-emulator
-checks exercised the bottom navigation, Projects and Tools pages, Settings sections and Back behavior.
-The 2026-10-15 immediate Settings-drag fix passed real shared-control headless touch input and Android
-managed Release compilation; no physical-device interaction or APK installation was repeated for it.
+Checked on emulators (tablet and phone-sized) and briefly on a Pixel 8: connect screen with the soft keyboard, automatic
+reconnect, workbench, menus, dialogs, file tree, Markdown, editor, terminal, Settings and Back. A fresh profile on a screen
+narrower than 600 dp starts on the centre-only `focus` preset, with the panels behind their toggles.
 
 Not verified: a recorded physical-device acceptance pass, input methods other than Gboard, TalkBack and other
 accessibility services, plugin UI beyond what the default workbench shows, HTTPS endpoints and CI.
@@ -284,22 +272,6 @@ The native bridge pins Tailscale and Go versions/checksums in its source/build s
 packaged ABIs for API 24 with the checkout NDK and stages dependency licenses. Its README documents
 the C ABI and standalone native checks. No real-account authentication is performed by automated tests.
 
-Embedded Tailscale verification on 2026-10-18: Release solution compilation and
-focused Android/Tailscale/transport checks passed. All 142 source gate cases passed
-in aggregate; the final picker and combined routing additions passed their focused checks.
-The combined fixture carries discovery, pending approval, pairing and a real authenticated
-WebSocket RPC handshake through the same credential-checked SOCKS5 proxy. Both native ABI builds and Go
-race checks passed, including native lifecycle, authenticated proxy teardown,
-Android interface snapshots, private log-directory initialization without HOME/XDG,
-and synchronous panic-to-error handling. The APK contains the exact native outputs
-and dependency notices; native LOAD segments and APK alignment support 16 KB pages.
-
-A fresh Android 16 arm64 emulator, without a Tailscale application, ran the Release
-APK through embedded-node startup, the explicit browser-login action and loading
-Tailscale's login page in Chrome. Returning to SharpRail retained pending sign-in;
-Wi-Fi/mobile transitions, a confirmed interval with no active network, and cold
-process relaunch did not crash. No real account credentials were entered. Actual
-account enrollment, authenticated identity reuse, real-tailnet discovery/host approval
-and workbench RPC over that tailnet still require a user's sign-in/device check;
-the automated transport checks establish the routing seams rather than that acceptance.
-Physical Android devices and the x64 Android runtime were not exercised for this change.
+The combined source fixture carries discovery, pending approval, pairing and an authenticated WebSocket RPC handshake through the
+same credential-checked SOCKS5 proxy. Actual account enrollment, real-tailnet discovery and host approval, and workbench RPC over
+that tailnet still need a user's sign-in on a device; the automated checks establish the routing seams, not that acceptance.

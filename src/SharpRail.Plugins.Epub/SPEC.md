@@ -105,5 +105,4 @@ contrast in dark and light themes; Find across chapters with stepping and select
 Next/Previous and arrow keys, chapters starting pages, no line cut at a page's bottom edge, a TOC jump, a resize
 that keeps the location, Find turning pages; the EPUB 2 TOC; and a 6,000-paragraph book opening and paginating
 with no UI-thread stall over 250 ms. The resize assertions wait for a finished pagination instead of a fixed
-settle time. Measured 2026-10-22 on a loaded macOS machine: opening 18–85 ms and paginating 18–120 ms serially,
-at most 137 ms with four concurrent runs (before: opening 98–484 ms). It runs against the embedded host and a remote host.
+settle time. It runs against the embedded host and a remote host.
