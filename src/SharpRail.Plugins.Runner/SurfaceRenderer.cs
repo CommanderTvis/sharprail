@@ -349,8 +349,9 @@ internal sealed class SurfaceRenderer
                 case SurfaceInputKind.Text:
                     if (input.Text.Length is > 0 and <= 256) keys.Text(input.Text);
                     break;
+                // Composition goes to the top-level whose text field reported its caret: the surface, a popup or a dialog.
                 case SurfaceInputKind.Preedit:
-                    if (input.Text.Length <= 256) keys.Preedit(input.Text, Math.Clamp(input.Caret, 0, input.Text.Length));
+                    if (input.Text.Length <= 256) target.Preedit(input.Text, Math.Clamp(input.Caret, 0, input.Text.Length));
                     break;
                 default: throw new IsoCallException(IsoError.InvalidParams, "Unknown input.");
             }

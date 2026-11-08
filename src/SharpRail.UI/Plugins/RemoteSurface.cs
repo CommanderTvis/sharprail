@@ -595,8 +595,11 @@ internal sealed class RemoteSurface : Decorator
             owner.Send(SurfaceInputKind.Preedit, text: text, popup: popup, caret: Math.Clamp(cursorPos ?? text.Length, 0, text.Length));
         }
 
-        /// <summary>Text was committed: the composition it ends is over.</summary>
-        internal void Committed() => composing = false;
+        /// <summary>Text was committed: the composition it ends is over, in the plugin's field too.</summary>
+        internal void Committed()
+        {
+            if (composing) SetPreeditText(null, null);
+        }
 
         internal void Moved(bool active)
         {
