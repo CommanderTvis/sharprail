@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
@@ -22,7 +23,8 @@ public sealed record OutsiderSettings
 /// reads its greeting asset, counts itself in its own settings and says hello with the count it reads back, so a check
 /// sees a settings round trip before any of its views can be shown. The button counts clicks the same way, and every
 /// view shows the count as the settings change, so a click in one client shows in another. The board adds a list to
-/// scroll, a note to type in, and a button that floods its client with one-way calls.
+/// scroll, a note to type in, a button that floods its client with one-way calls, and three popups: a context menu and
+/// a flyout that each count a click, and a tooltip.
 /// </summary>
 public sealed class OutsiderUI : PluginUIModule
 {
@@ -52,6 +54,7 @@ public sealed class OutsiderUI : PluginUIModule
     private static Control Board(IPluginUIContext context)
     {
         var panel = (StackPanel)View(context, "OutsiderBoard");
+        panel.Children.Add(Popups(context));
         var rows = new StackPanel { Name = "OutsiderRows" };
         for (var row = 1; row <= 60; row++) rows.Children.Add(Ui.Text($"Row {row}", Ui.TextBrush));
         panel.Children.Add(new ScrollViewer { Name = "OutsiderList", Height = 120, Content = rows });
@@ -61,6 +64,40 @@ public sealed class OutsiderUI : PluginUIModule
         (flood.Name, flood.IsTabStop) = ("OutsiderFlood", false);
         panel.Children.Add(flood);
         return panel;
+    }
+
+    /// <summary>
+    /// A row with a context menu on its label, a flyout on its button and a tooltip on its last word. The menu item and
+    /// the flyout's button count a click as the board's button does. Nothing here is a tab stop, so the checks that tab
+    /// through the board are unchanged.
+    /// </summary>
+    private static Control Popups(IPluginUIContext context)
+    {
+        var menuItem = new MenuItem { Name = "OutsiderMenuCount", Header = "Count from the menu" };
+        menuItem.Click += (_, _) => _ = Count(context);
+        var menu = new Border
+        {
+            Name = "OutsiderMenuTarget",
+            Background = Avalonia.Media.Brushes.Transparent,
+            Padding = new(4),
+            Child = Ui.Text("Right-click here", Ui.TextBrush),
+            ContextMenu = new ContextMenu { Items = { menuItem } },
+        };
+        var inFlyout = Ui.Button("Count from the flyout", () => _ = Count(context));
+        inFlyout.Name = "OutsiderFlyoutCount";
+        var more = Ui.Button("More", () => { });
+        (more.Name, more.IsTabStop) = ("OutsiderMore", false);
+        more.Flyout = new Flyout { Content = inFlyout, Placement = PlacementMode.Bottom };
+        var tip = new Border { Name = "OutsiderTip", Background = Avalonia.Media.Brushes.Transparent, Padding = new(4), Child = Ui.Text("Tip", Ui.TextBrush) };
+        ToolTip.SetTip(tip, "A tip from the outsider");
+        ToolTip.SetShowDelay(tip, 50);
+        return new StackPanel { Name = "OutsiderPopups", Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, Children = { menu, more, tip } };
+    }
+
+    private static async Task Count(IPluginUIContext context)
+    {
+        try { await context.UpdateSettingsAsync(context.Settings<OutsiderSettings>() with { Clicks = context.Settings<OutsiderSettings>().Clicks + 1 }); }
+        catch (Exception error) { context.Log.Error("The count failed: " + error.Message); }
     }
 
     /// <summary>Sends this client's context more one-way calls than a client may leave unread, a little at a time.</summary>

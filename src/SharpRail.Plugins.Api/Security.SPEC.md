@@ -412,11 +412,30 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   control asks for at its width, so a settings section is as tall as its content. Detached for 2 seconds, it closes
   its surface; shown again after that, it opens a new one and the plugin makes its control again, so what only the
   control held (scroll position, typed text) starts over.
-- Pending: popups draw inside their surface, clipped to it (the headless platform's overlay popups); DPI changes
-  after a surface opens are sent but checked only at scale 1; the cursor shape, IME composition and accessibility
+- Popups (menus, flyouts, tooltips) are surfaces of their own (`--plugin-surface`, `--plugin-surface-remote`). The
+  runner turns the headless platform's overlay popups off, so each popup is a headless top-level at its surface's
+  scale, numbered within the surface from 1 and never reused. The runner sends its place from the surface's corner
+  and its size in device-independent pixels when it opens, moves or resizes, then its frames (the first a keyframe),
+  and its closing after its last frame. The relay holds a popup to its own caps: at most 8 open per surface, a place
+  within 8,192 pixels of the surface's corner, a size of up to 8,192 pixels a side, frames only while it is open and
+  to the frame caps on their own. A popup that asks for its surface's overlay stays inside its surface.
+- The client shows each popup in a layer of its own beside the layer that holds the surface: the panel that holds the
+  app's overlays, at the z-order of the child holding the surface and after it. A popup reaches past the plugin's
+  slot but never covers the app's dialogs, prompts, Settings or toasts above that child, and the client keeps it
+  inside its window. A click in a popup reaches the plugin. A popup never takes focus, so keys stay with the surface
+  and reach the element focused in the plugin; a tooltip lets the pointer through. A press anywhere else in the
+  client's window, focus leaving the surface, the window deactivating or the surface detaching dismisses the popups
+  that close on a press elsewhere. Escape while one is open stays with the plugin: when focus is in no popup, the
+  runner closes the newest one.
+- Each client's scale is its own: the runner sets the scale a client pushes on that client's top-levels
+  (`IHeadlessWindow.SetRenderScaling`), and tile coordinates stay in device pixels. A client whose window moves to a
+  monitor of another scale pushes it and gets the surface rendered again at it. The checks render scales 1 and 2,
+  each equal to a fresh render in the runner, with one client at 2 and another at 1 at once.
+- Pending: the headless platform keeps a popup inside a 1,920×1,280-pixel screen of its own, so near the bottom of a
+  tall surface at scale 2 a menu may open flipped or slid; the cursor shape, IME composition and accessibility
   are not carried; the terminal delay behind surface traffic is bounded by construction and not measured; one process
   holds one kit theme, the last a client pushed, because the kit's brushes are process-wide; wheel events stay with the surface, since the plugin cannot say whether it used one; keys with
-  Control, Alt or Meta and Escape reach the plugin but also the app's shortcuts; app styles outside the kit (such as
+  Control, Alt or Meta, and Escape while no popup is open, reach the plugin but also the app's shortcuts; app styles outside the kit (such as
   the app's `Switch` theme) are absent; `Host()`, `WatchHost` and preference reads still throw; per-process memory
   limits are later. The browser and Android clients compile `RemoteSurface` and the remote session, but no browser
   check runs the fixture yet: that needs a checks-only host with the seam and a browser build with the app's seam set.
@@ -774,7 +793,7 @@ remain a later option if bandwidth becomes the problem; they would put a command
 - The plugin process runs a remote platform backend built the way Avalonia's previewer and headless backends are:
   it implements the windowing, top-level and popup interfaces and renders with Skia's CPU raster into tiles. No
   Avalonia fork is needed for this. Until it exists, the runner uses Avalonia's stock headless platform, which
-  renders the same way but has no cursor, IME or placed popups.
+  renders the same way but has no cursor or IME; its popups are top-levels of their own that the client places.
 - Avalonia hides the interfaces this backend implements from its reference assemblies: implementing
   `IWindowingPlatform` against them fails with CS0535 and CS9044, which no suppression can turn off. The plugin
   runner alone compiles against Avalonia's implementation assemblies (`AvaloniaAccessUnstablePrivateApis`). Its only
@@ -830,7 +849,8 @@ A client receives, from the host, only these things about an external plugin:
   rasterizes anything else before sending. Unconfirmed: whether the current icon path can do this.
 - Prompts and notifications, which the client draws with the plugin's name and a capped plain-text body, outside
   any plugin surface.
-- The surface stream, which is the one channel that carries content a plugin drew.
+- The surface stream, which is the one channel that carries content a plugin drew, with the places and sizes of
+  its popups, capped.
 
 Builtin UI halves are part of the client binary and are not delivered at all.
 

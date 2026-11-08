@@ -27,7 +27,8 @@ namespace SharpRail.Checks;
 /// (src/SharpRail.Plugins.Api/Security.SPEC.md, UI halves). A frame larger than a surface message is split under the
 /// 1 MiB cap, and a client that leaves 1,024 of the plugin's calls unread loses its session at the next. Then two
 /// headless workbenches, each behind its own relay, on one remote host with the isolation seam: both show the outsider
-/// fixture's side tool with the plugin's own pixels from one runner process; a click in one updates the other's view;
+/// fixture's side tool with the plugin's own pixels from one runner process; one client's popups show and take input
+/// over the session, and its scale 2 renders while the other stays at 1; a click in one updates the other's view;
 /// one client's connection drops and the other keeps working; back within the grace, the dropped client resumes its
 /// session (its typed note kept, no new activation) and repaints from a keyframe; a plugin that floods one client while
 /// the app's UI thread is blocked ends that client's session with the reason, and the other keeps working; a client that
@@ -152,10 +153,20 @@ internal static class PluginSurfaceRemoteChecks
             Require(sessions.Count == 2 && boardA.Surface.Number != boardB.Surface.Number, "Each client holds its own session and surface in that process.");
             Console.WriteLine($"PASS plugin surface remote clients: two clients each show the side tool from the plugin's one process {pid}, each with its own session and top-level");
 
+            // A's popups travel over the session as surfaces of their own, and A's scale is A's alone: B keeps rendering at 1.
+            shownA = PluginSurfaceChecks.Popups(a, a.Window, boardA, shownA, Held, "plugin surface remote");
+            shownA = PluginSurfaceChecks.Scaled(a.Window, boardA, shownA, Held, "plugin surface remote", () =>
+            {
+                Require(boardB.FrameScale == 1, "Client B renders at its own scale while client A's is 2.");
+                PluginSurfaceChecks.Settle(boardB, "client B's side tool while A is at scale 2", relay: Held);
+            });
+            shownB = PluginSurfaceChecks.Settle(boardB, "client B's side tool after A's popups", relay: Held);
+            Console.WriteLine("PASS plugin surface remote per-client scale: client A at scale 2 and client B at scale 1 render from the one process at the same time, each matching the plugin's render");
+
             // A click in A counts in the plugin's settings, which B's context mirrors, so B's view redraws with the count.
             var before = shownB.Pixels;
             PluginSurfaceChecks.Click(a.Window, boardA, shownA.Bounds["OutsiderClick"]);
-            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 1 && PluginSurfaceChecks.Clicks(b) == 1);
+            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 3 && PluginSurfaceChecks.Clicks(b) == 3);
             shownB = PluginSurfaceChecks.Settle(boardB, "client B's side tool after A's click", before, Held);
             shownA = PluginSurfaceChecks.Settle(boardA, "client A's side tool after its click", relay: Held);
             Console.WriteLine("PASS plugin surface remote input: a click in client A reaches the plugin, and client B's view of the count redraws");
@@ -176,7 +187,7 @@ internal static class PluginSurfaceRemoteChecks
             relayA.Cut();
             before = shownB.Pixels;
             PluginSurfaceChecks.Click(b.Window, boardB, shownB.Bounds["OutsiderClick"]);
-            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(b) == 2);
+            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(b) == 4);
             shownB = PluginSurfaceChecks.Settle(boardB, "client B's side tool while A is away", before, Held);
             Console.WriteLine("PASS plugin surface remote drop: with client A's connection cut, client B's clicks still reach the plugin and its view redraws");
 
@@ -185,13 +196,13 @@ internal static class PluginSurfaceRemoteChecks
             E2eWorkspace.Until(() => away.Elapsed > TimeSpan.FromSeconds(1));
             relayA.Allow();
             E2eWorkspace.Until(() => boardA.Keyframes > keyframes);
-            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 2);
+            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 4);
             shownA = PluginSurfaceChecks.Settle(boardA, "client A's side tool after it resumed", typed, Held);
             Require(ReferenceEquals(boardA.Surface, surfaceA) && boardA.Child is null, "Client A's side tool keeps its surface across the drop.");
             Require(Activations(a) == activations && sessions.Count == 2 && runtime.RunnerPid(Id) == pid, "Resuming opens no new session and activates nothing again.");
             before = shownA.Pixels;
             PluginSurfaceChecks.Click(a.Window, boardA, shownA.Bounds["OutsiderClick"]);
-            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 3);
+            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 5);
             shownA = PluginSurfaceChecks.Settle(boardA, "client A's side tool clicked after it resumed", before, Held);
             Console.WriteLine($"PASS plugin surface remote resume: back within the grace client A resumes its session, repaints from a keyframe with its typed note and B's click shown, and its clicks reach the plugin again ({boardA.Keyframes - keyframes} keyframe)");
 
@@ -206,7 +217,7 @@ internal static class PluginSurfaceRemoteChecks
                 "The flooded client's session ends with the reason.");
             before = shownA.Pixels;
             PluginSurfaceChecks.Click(a.Window, boardA, shownA.Bounds["OutsiderClick"]);
-            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 4);
+            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 6);
             shownA = PluginSurfaceChecks.Settle(boardA, "client A's side tool after B was flooded", before, Held);
             Require(ReferenceEquals(boardA.Surface, surfaceA) && runtime.RunnerPid(Id) == pid, "The other client keeps its session and surface in the same process.");
             E2eWorkspace.Until(() => recordedB.Opened.Count == 2 && sessions.Count == 2 && b.Workbench.PluginLoader.Registry.Active.Contains(Id));
@@ -219,7 +230,7 @@ internal static class PluginSurfaceRemoteChecks
             E2eWorkspace.Until(() => sessions.Count == 1);
             before = shownA.Pixels;
             PluginSurfaceChecks.Click(a.Window, boardA, shownA.Bounds["OutsiderClick"]);
-            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 5);
+            E2eWorkspace.Until(() => PluginSurfaceChecks.Clicks(a) == 7);
             PluginSurfaceChecks.Settle(boardA, "client A's side tool after B closed", before, Held);
             Require(runtime.RunnerPid(Id) == pid, "The plugin's process outlives a client that closes.");
             Console.WriteLine("PASS plugin surface remote close: a client that closes ends its session alone, and the other's view keeps working in the same process");

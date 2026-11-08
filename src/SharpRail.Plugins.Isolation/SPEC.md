@@ -30,9 +30,11 @@ lent across it, and the process at its other end. [Security.SPEC.md](../SharpRai
   external plugin's process: what the activation registered, the later calls on the context in arrival order
   (`IsoUICall`, answered or one-way), the plugin's callbacks and the mirror.
 - `Surfaces.cs`: the surface protocol (Security.SPEC.md, UI halves): the messages that open, size, feed input to,
-  acknowledge and close a surface and push the kit theme, the frame header with its moves and tiles, the caps
-  (`SurfaceLimits`), `SurfaceFrames` and `SurfaceFrameState` (the caps a frame message is held to, by the host's
-  relay and again by a remote client, with the keyframe a client asks for after it lost what it held),
+  acknowledge and close a surface, dismiss its popups and push the kit theme, a popup's place (`SurfacePopup`), the
+  frame header with its moves and tiles and the popup it belongs to, the caps (`SurfaceLimits`), `SurfaceFrames`
+  and `SurfaceFrameState` (the caps a frame message is held to, by the host's relay and again by a remote client,
+  with the keyframe a client asks for after it lost what it held), `SurfaceState` (a surface's frames and its open
+  popups': numbers from 1 never reused, at most 8 open, places and sizes in range, frames only for an open popup),
   `SurfacePixels` (moves, applied the same way on both ends), `IPluginSurface` (a client's end of one surface, with
   the number the host gave it) and `IPluginSurfaceService` (a client context's surfaces). `TileCodec`: one colour as 4 bytes, else
   QOI without its header; decoding refuses short, long or malformed data. `IsolationPeer.OneWay` carries bytes beside

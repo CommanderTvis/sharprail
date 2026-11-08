@@ -28,7 +28,14 @@ nothing it starts holds it.
   headless top-level, renders it on a timer while the client has taken the last frame, diffs 64-pixel tiles, sends
   scrolling as moves (a `ScrollViewer.ScrollChanged` class handler) and applies the client's input, focus and size.
   A keyframe request (`surface.keyframe`, from a client that reconnected) stops waiting for the frame in flight and
-  sends the next frame whole, from transparent, marked as a keyframe.
+  sends the next frame whole, from transparent, marked as a keyframe; the surface's popups do the same.
+  Popups are headless top-levels of their own (`OverlayPopups` off), at the surface's scale. Each tick
+  `SurfaceRenderer` walks the surface's open popups (a submenu's under its menu's), numbers each new one from 1 and
+  sends `surface.popup` with its place from the surface's corner and its size, again when either changes, and its
+  closing after its last frame; each popup has its own frames, the first a keyframe, and its own input. A popup that
+  asked for its surface's overlay stays inside the surface. `surface.dismiss` (a press elsewhere in the client) closes the
+  popups that close on such a press; Escape while one is open and focus is in no popup closes the newest one and
+  goes no further. A tooltip is sent as a popup that takes no input.
   Client messages run through one queue in arrival order, because applying input runs the dispatcher's pending
   jobs. With `SHARPRAIL_RUNNER_DIAGNOSTICS=1`, which only the checks set, `surface.capture` answers a fresh render
   and named controls' bounds.

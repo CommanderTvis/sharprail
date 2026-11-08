@@ -14,7 +14,8 @@ namespace SharpRail.Plugins.Runner;
 
 /// <summary>
 /// Avalonia in the plugin process: the stock headless platform with Skia's CPU raster, on the thread that starts it,
-/// which becomes the plugin's UI thread. Every plugin call runs there.
+/// which becomes the plugin's UI thread. Every plugin call runs there. Popups are top-levels of their own, which the
+/// client places, not drawn inside their surface.
 /// </summary>
 internal static class RunnerPlatform
 {
@@ -23,7 +24,7 @@ internal static class RunnerPlatform
     {
         AppBuilder.Configure<RunnerApp>()
             .UseSkia()
-            .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, FrameBufferFormat = PixelFormat.Bgra8888 })
+            .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, FrameBufferFormat = PixelFormat.Bgra8888, OverlayPopups = false })
             .SetupWithoutStarting();
         var running = Task.Run(body);
         using var stop = new CancellationTokenSource();

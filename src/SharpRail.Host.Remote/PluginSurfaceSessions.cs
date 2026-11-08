@@ -203,10 +203,13 @@ internal sealed class HostedSurfaceSession : IAsyncDisposable
                 break;
             case PluginSurfaceUpKind.Input when message.Input is { } input:
                 Surface(message)?.Input(new SurfaceInput(0, (SurfaceInputKind)input.Kind, input.X, input.Y, input.Button, input.Modifiers, input.DeltaX, input.DeltaY,
-                    input.Key, input.PhysicalKey, input.Text));
+                    input.Key, input.PhysicalKey, input.Text, message.Popup));
                 break;
             case PluginSurfaceUpKind.FrameAck:
-                Surface(message)?.Acknowledge(message.Sequence);
+                Surface(message)?.Acknowledge(message.Sequence, message.Popup);
+                break;
+            case PluginSurfaceUpKind.Dismiss:
+                Surface(message)?.Dismiss();
                 break;
             case PluginSurfaceUpKind.Focus:
                 Surface(message)?.Focus(message.Enter, message.Backward, message.Pointer);
@@ -247,6 +250,13 @@ internal sealed class HostedSurfaceSession : IAsyncDisposable
                     foreach (var piece in Split(id, frame)) Send(piece, reliable: false);
                 else if (message is SurfaceLeft left)
                     Send(new() { Kind = PluginSurfaceDownKind.FocusLeave, Surface = id, Backward = left.Backward }, reliable: true);
+                else if (message is SurfacePopupChanged { Placement: var popup })
+                    Send(new()
+                    {
+                        Kind = PluginSurfaceDownKind.Popup,
+                        Surface = id,
+                        PopupPlacement = new() { Popup = popup.Popup, X = popup.X, Y = popup.Y, Width = popup.Width, Height = popup.Height, Open = popup.Open, Input = popup.Input }
+                    }, reliable: true);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
         catch (InvalidDataException error) { (end, detail) = (PluginSurfaceEndKind.Broken, error.Message); }
@@ -290,7 +300,8 @@ internal sealed class HostedSurfaceSession : IAsyncDisposable
                     Keyframe = header.Keyframe,
                     Moves = first ? [.. header.Moves.Select(move => new PluginSurfaceMoveMessage { X = move.X, Y = move.Y, Width = move.Width, Height = move.Height, Dx = move.Dx, Dy = move.Dy })] : [],
                     Tiles = tiles,
-                    Data = data.AsSpan(offset, length).ToArray()
+                    Data = data.AsSpan(offset, length).ToArray(),
+                    Popup = header.Popup
                 }
             };
             offset += length;

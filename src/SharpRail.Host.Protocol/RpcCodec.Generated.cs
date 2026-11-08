@@ -65,6 +65,8 @@ internal static class RpcCodec
         RpcMessage<PluginSurfaceInputMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceInputMessage(ref reader, null);
         RpcMessage<PluginSurfaceDown>.Write = WritePluginSurfaceDown;
         RpcMessage<PluginSurfaceDown>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceDown(ref reader, null);
+        RpcMessage<PluginSurfacePopupMessage>.Write = WritePluginSurfacePopupMessage;
+        RpcMessage<PluginSurfacePopupMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfacePopupMessage(ref reader, null);
         RpcMessage<PluginSurfaceRegistrationMessage>.Write = WritePluginSurfaceRegistrationMessage;
         RpcMessage<PluginSurfaceRegistrationMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceRegistrationMessage(ref reader, null);
         RpcMessage<PluginSurfaceFrameMessage>.Write = WritePluginSurfaceFrameMessage;
@@ -1280,6 +1282,7 @@ internal static class RpcCodec
         if (value.Enter) writer.Bool(20, value.Enter);
         if (value.Backward) writer.Bool(21, value.Backward);
         if (value.Pointer) writer.Bool(22, value.Pointer);
+        if (value.Popup != 0) writer.Int32(23, value.Popup);
     }
 
     private static PluginSurfaceUp ReadPluginSurfaceUp(ref ProtoReader reader, PluginSurfaceUp? value)
@@ -1317,6 +1320,7 @@ internal static class RpcCodec
                 case 20: value.Enter = reader.Bool(); break;
                 case 21: value.Backward = reader.Bool(); break;
                 case 22: value.Pointer = reader.Bool(); break;
+                case 23: value.Popup = reader.Int32(); break;
                 default: reader.Skip(); break;
             }
         }
@@ -1390,6 +1394,12 @@ internal static class RpcCodec
         }
         if (value.Backward) writer.Bool(16, value.Backward);
         if (value.End != 0) writer.Int32(17, (int)value.End);
+        if (value.PopupPlacement is { } field18)
+        {
+            var start = writer.BeginMessage(18);
+            WritePluginSurfacePopupMessage(writer, field18);
+            writer.EndMessage(start);
+        }
     }
 
     private static PluginSurfaceDown ReadPluginSurfaceDown(ref ProtoReader reader, PluginSurfaceDown? value)
@@ -1428,6 +1438,44 @@ internal static class RpcCodec
                 }
                 case 16: value.Backward = reader.Bool(); break;
                 case 17: value.End = (PluginSurfaceEndKind)reader.Int32(); break;
+                case 18:
+                {
+                    var outer = reader.Enter();
+                    value.PopupPlacement = ReadPluginSurfacePopupMessage(ref reader, value.PopupPlacement);
+                    reader.Leave(outer);
+                    break;
+                }
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfacePopupMessage(ProtoWriter writer, PluginSurfacePopupMessage value)
+    {
+        if (value.Popup != 0) writer.Int32(1, value.Popup);
+        if (value.X != 0) writer.Double(2, value.X);
+        if (value.Y != 0) writer.Double(3, value.Y);
+        if (value.Width != 0) writer.Double(4, value.Width);
+        if (value.Height != 0) writer.Double(5, value.Height);
+        if (value.Open) writer.Bool(6, value.Open);
+        if (value.Input) writer.Bool(7, value.Input);
+    }
+
+    private static PluginSurfacePopupMessage ReadPluginSurfacePopupMessage(ref ProtoReader reader, PluginSurfacePopupMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Popup = reader.Int32(); break;
+                case 2: value.X = reader.Double(); break;
+                case 3: value.Y = reader.Double(); break;
+                case 4: value.Width = reader.Double(); break;
+                case 5: value.Height = reader.Double(); break;
+                case 6: value.Open = reader.Bool(); break;
+                case 7: value.Input = reader.Bool(); break;
                 default: reader.Skip(); break;
             }
         }
@@ -1480,6 +1528,7 @@ internal static class RpcCodec
                 writer.EndMessage(start);
             }
         if (value.Data is { } field11) writer.Bytes(11, field11);
+        if (value.Popup != 0) writer.Int32(12, value.Popup);
     }
 
     private static PluginSurfaceFrameMessage ReadPluginSurfaceFrameMessage(ref ProtoReader reader, PluginSurfaceFrameMessage? value)
@@ -1512,6 +1561,7 @@ internal static class RpcCodec
                     break;
                 }
                 case 11: value.Data = reader.Bytes(value.Data); break;
+                case 12: value.Popup = reader.Int32(); break;
                 default: reader.Skip(); break;
             }
         }

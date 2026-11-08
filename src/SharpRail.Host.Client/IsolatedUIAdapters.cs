@@ -248,6 +248,10 @@ internal sealed class RemoteIsolatedUISession(RemoteIsolatedUIHost host) : IIsol
             case PluginSurfaceDownKind.FocusLeave:
                 if (surfaces.TryGetValue(message.Surface, out var left)) left.Left(message.Backward);
                 break;
+            case PluginSurfaceDownKind.Popup when message.PopupPlacement is { } popup:
+                if (surfaces.TryGetValue(message.Surface, out var placed))
+                    placed.Place(new SurfacePopup(placed.Id, popup.Popup, popup.X, popup.Y, popup.Width, popup.Height, popup.Open, popup.Input));
+                break;
             case PluginSurfaceDownKind.SurfaceEnded:
                 if (surfaces.TryRemove(message.Surface, out var gone))
                     gone.End(message.End switch
@@ -383,7 +387,7 @@ internal sealed class RemoteIsolatedUISession(RemoteIsolatedUIHost host) : IIsol
 internal sealed class RemotePluginSurface(RemoteIsolatedUISession session, int id) : IPluginSurface
 {
     private readonly Channel<SurfaceEvent> events = Channel.CreateUnbounded<SurfaceEvent>(new() { SingleReader = true });
-    private readonly SurfaceFrameState state = new();
+    private readonly SurfaceState state = new();
     private readonly Lock gate = new();
     private int number, closed;
 
@@ -410,15 +414,18 @@ internal sealed class RemotePluginSurface(RemoteIsolatedUISession session, int i
             Key = input.Key,
             PhysicalKey = input.PhysicalKey,
             Text = input.Text
-        }
+        },
+        Popup = input.Popup
     }, reliable: true);
 
-    public void Acknowledge(long sequence)
+    public void Acknowledge(long sequence, int popup)
     {
         lock (gate)
-            if (!state.Acknowledge(sequence)) return;
-        session.Send(new() { Kind = PluginSurfaceUpKind.FrameAck, Surface = Id, Sequence = sequence }, reliable: false);
+            if (state.Frames(popup)?.Acknowledge(sequence) != true) return;
+        session.Send(new() { Kind = PluginSurfaceUpKind.FrameAck, Surface = Id, Sequence = sequence, Popup = popup }, reliable: false);
     }
+
+    public void Dismiss() => session.Send(new() { Kind = PluginSurfaceUpKind.Dismiss, Surface = Id }, reliable: true);
 
     public void Focus(bool enter, bool backward, bool pointer) =>
         session.Send(new() { Kind = PluginSurfaceUpKind.Focus, Surface = Id, Enter = enter, Backward = backward, Pointer = pointer }, reliable: true);
@@ -428,7 +435,7 @@ internal sealed class RemotePluginSurface(RemoteIsolatedUISession session, int i
     public void Keyframe()
     {
         // A frame half received when the connection dropped never finishes: the keyframe replaces it.
-        lock (gate) (state.KeyframePending, state.Open, state.Unacknowledged) = (true, false, false);
+        lock (gate) state.AwaitKeyframe(lost: true);
         session.Send(new() { Kind = PluginSurfaceUpKind.Keyframe, Surface = Id }, reliable: true);
     }
 
@@ -436,19 +443,39 @@ internal sealed class RemotePluginSurface(RemoteIsolatedUISession session, int i
     {
         var header = new SurfaceFrameHeader(Id, frame.Sequence, frame.Width, frame.Height, frame.Scale, frame.DesiredWidth, frame.DesiredHeight, frame.Last,
             [.. frame.Moves.Select(move => new SurfaceMove(move.X, move.Y, move.Width, move.Height, move.Dx, move.Dy))],
-            [.. frame.Tiles.Select(tile => new SurfaceTile(tile.X, tile.Y, tile.Width, tile.Height, (TileCodecKind)tile.Codec, tile.Length))], frame.Keyframe);
+            [.. frame.Tiles.Select(tile => new SurfaceTile(tile.X, tile.Y, tile.Width, tile.Height, (TileCodecKind)tile.Codec, tile.Length))], frame.Keyframe, frame.Popup);
         lock (gate)
         {
             if (Volatile.Read(ref closed) != 0 || state.Stale(header)) return;
-            if (SurfaceFrames.Violation(header, frame.Data.Length, state) is { } violation)
+            if (state.Violation(header, frame.Data.Length) is { } violation)
             {
-                if (session.Forget(this)) session.Send(new() { Kind = PluginSurfaceUpKind.SurfaceClose, Surface = Id }, reliable: true);
-                End(new InvalidDataException(violation));
+                Break(violation);
                 return;
             }
-            state.Accept(header);
+            state.Frames(header.Popup)!.Accept(header);
             events.Writer.TryWrite(new SurfaceFrame(header, frame.Data));
         }
+    }
+
+    /// <summary>A popup opened, moved or closed; one that breaks the surface protocol ends the surface, as a bad frame does.</summary>
+    internal void Place(SurfacePopup popup)
+    {
+        lock (gate)
+        {
+            if (Volatile.Read(ref closed) != 0) return;
+            if (state.Place(popup) is { } violation)
+            {
+                Break(violation);
+                return;
+            }
+            events.Writer.TryWrite(new SurfacePopupChanged(popup));
+        }
+    }
+
+    private void Break(string violation)
+    {
+        if (session.Forget(this)) session.Send(new() { Kind = PluginSurfaceUpKind.SurfaceClose, Surface = Id }, reliable: true);
+        End(new InvalidDataException(violation));
     }
 
     internal void Left(bool backward) => events.Writer.TryWrite(new SurfaceLeft(backward));

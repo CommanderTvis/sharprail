@@ -24,6 +24,8 @@ public static class SurfaceLimits
     public const int MessageBytes = 1024 * 1024;
     /// <summary>Surfaces one client may hold open in one plugin.</summary>
     public const int MostSurfaces = 64;
+    /// <summary>Popups one surface may hold open at once (a menu and its submenus, a flyout, a tooltip).</summary>
+    public const int MostPopups = 8;
     public const double LeastScale = 0.25, MostScale = 8;
 }
 
@@ -40,14 +42,26 @@ public sealed record SurfaceOpen(long Context, int Surface, int Member, long Han
 public sealed record SurfaceResize(int Surface, double Width, double Height, double Scale);
 
 /// <summary>
-/// One input event at a point in device-independent pixels. <see cref="Button"/>, <see cref="Key"/>,
-/// <see cref="PhysicalKey"/> and <see cref="Modifiers"/> carry Avalonia's own values.
+/// One input event at a point in device-independent pixels, on the surface or on its open <see cref="Popup"/> (0 is
+/// the surface itself). <see cref="Button"/>, <see cref="Key"/>, <see cref="PhysicalKey"/> and <see cref="Modifiers"/>
+/// carry Avalonia's own values.
 /// </summary>
 public sealed record SurfaceInput(int Surface, SurfaceInputKind Kind, double X = 0, double Y = 0, int Button = 0, int Modifiers = 0,
-    double DeltaX = 0, double DeltaY = 0, int Key = 0, int PhysicalKey = 0, string Text = "");
+    double DeltaX = 0, double DeltaY = 0, int Key = 0, int PhysicalKey = 0, string Text = "", int Popup = 0);
 
-/// <summary>The client applied frame <see cref="Sequence"/>; the runner may send the next.</summary>
-public sealed record SurfaceAck(int Surface, long Sequence);
+/// <summary>The client applied frame <see cref="Sequence"/> of the surface or of its <see cref="Popup"/>; the runner may send the next.</summary>
+public sealed record SurfaceAck(int Surface, long Sequence, int Popup = 0);
+
+/// <summary>The client's user pressed outside the surface and its popups: the runner closes the popups that close on such a press.</summary>
+public sealed record SurfaceDismiss(int Surface);
+
+/// <summary>
+/// A popup of the surface (a menu, a flyout, a tooltip) opened, moved or closed. <see cref="Popup"/> numbers it within
+/// the surface from 1, never reused. <see cref="X"/> and <see cref="Y"/> place it from the surface's top-left corner and
+/// <see cref="Width"/> and <see cref="Height"/> size it, in device-independent pixels; it may extend outside the
+/// surface. A popup that does not take <see cref="Input"/> (a tooltip) lets the pointer through to what lies under it.
+/// </summary>
+public sealed record SurfacePopup(int Surface, int Popup, double X, double Y, double Width, double Height, bool Open, bool Input = true);
 
 /// <summary>Focus enters the surface (from the end when <see cref="Backward"/>) or leaves it.</summary>
 public sealed record SurfaceFocus(int Surface, bool Enter, bool Backward, bool Pointer);
@@ -59,17 +73,18 @@ public sealed record SurfaceTheme(string Json);
 public sealed record SurfaceClose(int Surface);
 
 /// <summary>
-/// One message of a frame: its moves (in its first message only), then tiles whose bytes follow one another in the
-/// message's byte payload. <see cref="DesiredWidth"/> and <see cref="DesiredHeight"/> are the size the plugin's control
-/// asks for at the surface's width, in device-independent pixels. Every message of a <see cref="Keyframe"/> says so:
-/// it repaints the whole surface from transparent, and answers <see cref="SurfaceKeyframe"/>.
+/// One message of a frame of the surface, or of its open <see cref="Popup"/> (0 is the surface itself): its moves (in
+/// its first message only), then tiles whose bytes follow one another in the message's byte payload.
+/// <see cref="DesiredWidth"/> and <see cref="DesiredHeight"/> are the size the plugin's control asks for at the
+/// surface's width, in device-independent pixels. Every message of a <see cref="Keyframe"/> says so: it repaints the
+/// whole surface from transparent, and answers <see cref="SurfaceKeyframe"/>. A popup's first frame is a keyframe.
 /// </summary>
 public sealed record SurfaceFrameHeader(int Surface, long Sequence, int Width, int Height, double Scale, double DesiredWidth, double DesiredHeight,
-    bool Last, List<SurfaceMove> Moves, List<SurfaceTile> Tiles, bool Keyframe = false);
+    bool Last, List<SurfaceMove> Moves, List<SurfaceTile> Tiles, bool Keyframe = false, int Popup = 0);
 
 /// <summary>
-/// The client lost what it held of the surface (it reconnected): the runner sends the next frame as a keyframe, without
-/// waiting for the frame in flight to be acknowledged.
+/// The client lost what it held of the surface (it reconnected): the runner sends the next frame of the surface and of
+/// each of its popups as a keyframe, without waiting for the frame in flight to be acknowledged.
 /// </summary>
 public sealed record SurfaceKeyframe(int Surface);
 
@@ -82,8 +97,11 @@ public sealed record SurfaceTile(int X, int Y, int Width, int Height, TileCodecK
 /// <summary>Tab left the plugin's last focusable element (or its first, <see cref="Backward"/>): the client moves focus on.</summary>
 public sealed record SurfaceFocusLeave(int Surface, bool Backward);
 
-/// <summary>What a client hears from one surface: frames and focus leaving it.</summary>
+/// <summary>What a client hears from one surface: frames, popups opening, moving and closing, and focus leaving it.</summary>
 public abstract record SurfaceEvent;
+
+/// <summary>A popup of the surface opened, moved or closed; its frames follow its opening and end with its closing.</summary>
+public sealed record SurfacePopupChanged(SurfacePopup Placement) : SurfaceEvent;
 
 /// <summary>A frame message the host checked: its header and its tiles' bytes.</summary>
 public sealed record SurfaceFrame(SurfaceFrameHeader Header, byte[] Data) : SurfaceEvent;
@@ -103,8 +121,12 @@ public interface IPluginSurface : IAsyncDisposable
     int Number { get; }
     void Resize(double width, double height, double scale);
     void Input(SurfaceInput input);
-    void Acknowledge(long sequence);
+    /// <summary>The client applied frame <paramref name="sequence"/> of the surface, or of its popup <paramref name="popup"/>.</summary>
+    void Acknowledge(long sequence, int popup);
     void Focus(bool enter, bool backward, bool pointer);
+
+    /// <summary>The user pressed outside the surface and its popups: the popups that close on such a press close.</summary>
+    void Dismiss();
 
     /// <summary>The client's kit theme changed. The plugin's process holds one theme, the last any client pushed.</summary>
     void Theme(string json);
@@ -138,11 +160,16 @@ public static class SurfaceProtocol
     public static readonly int Focus = IsoMember.Id("surface.focus");
     public static readonly int Theme = IsoMember.Id("surface.theme");
     public static readonly int Close = IsoMember.Id("surface.close");
-    /// <summary>Host to runner, a one-way: <see cref="SurfaceKeyframe"/>.</summary>
+    /// <summary>Host to runner, one-ways: <see cref="SurfaceKeyframe"/> and <see cref="SurfaceDismiss"/>.</summary>
     public static readonly int Keyframe = IsoMember.Id("surface.keyframe");
-    /// <summary>Runner to host, one-ways on the client's context: <see cref="SurfaceFrameHeader"/> with the tiles' bytes, and <see cref="SurfaceFocusLeave"/>.</summary>
+    public static readonly int Dismiss = IsoMember.Id("surface.dismiss");
+    /// <summary>
+    /// Runner to host, one-ways on the client's context: <see cref="SurfaceFrameHeader"/> with the tiles' bytes,
+    /// <see cref="SurfaceFocusLeave"/> and <see cref="SurfacePopup"/>.
+    /// </summary>
     public static readonly int Frame = IsoMember.Id("surface.frame");
     public static readonly int FocusLeave = IsoMember.Id("surface.focus-leave");
+    public static readonly int Popup = IsoMember.Id("surface.popup");
     /// <summary>
     /// Host to runner, answered only when the runner was started with <see cref="DiagnosticsVariable"/> set (the checks):
     /// a fresh render of a surface and the bounds of its named controls (<see cref="SurfaceCapture"/>).
@@ -167,8 +194,8 @@ public static class SurfaceProtocol
 /// <summary>A surface's fresh render (premultiplied BGRA, base64) and its named controls' bounds in device-independent pixels.</summary>
 public sealed record SurfaceCapture(int Width, int Height, string Pixels, Dictionary<string, double[]> Bounds);
 
-/// <summary>Asks for a <see cref="SurfaceCapture"/> of a surface with the bounds of these named controls.</summary>
-public sealed record SurfaceCaptureRequest(int Surface, List<string> Names);
+/// <summary>Asks for a <see cref="SurfaceCapture"/> of a surface, or of its open <see cref="Popup"/>, with the bounds of these named controls.</summary>
+public sealed record SurfaceCaptureRequest(int Surface, List<string> Names, int Popup = 0);
 
 [JsonSourceGenerationOptions(UseStringEnumConverter = true, RespectRequiredConstructorParameters = true, RespectNullableAnnotations = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]
 [JsonSerializable(typeof(SurfaceOpen))]
@@ -179,6 +206,8 @@ public sealed record SurfaceCaptureRequest(int Surface, List<string> Names);
 [JsonSerializable(typeof(SurfaceTheme))]
 [JsonSerializable(typeof(SurfaceClose))]
 [JsonSerializable(typeof(SurfaceKeyframe))]
+[JsonSerializable(typeof(SurfaceDismiss))]
+[JsonSerializable(typeof(SurfacePopup))]
 [JsonSerializable(typeof(SurfaceFrameHeader))]
 [JsonSerializable(typeof(SurfaceFocusLeave))]
 [JsonSerializable(typeof(SurfaceCapture))]
@@ -282,6 +311,62 @@ public sealed class SurfaceFrameState
         if (sequence != Sequence || Open || !Unacknowledged) return false;
         Unacknowledged = false;
         return true;
+    }
+}
+
+/// <summary>
+/// Where a surface and its open popups stand: one <see cref="SurfaceFrameState"/> each (the surface's under 0), and the
+/// popups' numbers so far. Not thread-safe; its owner locks.
+/// </summary>
+public sealed class SurfaceState
+{
+    private readonly Dictionary<int, SurfaceFrameState> frames = new() { [0] = new() };
+    private int lastPopup;
+
+    /// <summary>The frames of the surface (0) or of an open popup; null for a popup that is not open.</summary>
+    public SurfaceFrameState? Frames(int popup) => frames.GetValueOrDefault(popup);
+
+    /// <summary>The surface's frames and each open popup's.</summary>
+    public IEnumerable<SurfaceFrameState> All => frames.Values;
+
+    /// <summary>
+    /// Why a popup's opening, move or closing breaks the surface protocol, or null when it keeps to it and is recorded.
+    /// A popup opened while the surface awaits a keyframe awaits one too.
+    /// </summary>
+    public string? Place(SurfacePopup popup)
+    {
+        if (popup.Popup < 1) return "The plugin numbered a popup below 1.";
+        if (!popup.Open)
+        {
+            if (!frames.Remove(popup.Popup)) return "The plugin closed a popup that is not open.";
+            return null;
+        }
+        if (!(Math.Abs(popup.X) <= SurfaceLimits.MostSide) || !(Math.Abs(popup.Y) <= SurfaceLimits.MostSide) ||
+            !(popup.Width is > 0 and <= SurfaceLimits.MostSide) || !(popup.Height is > 0 and <= SurfaceLimits.MostSide))
+            return "The plugin placed a popup out of range.";
+        if (frames.ContainsKey(popup.Popup)) return null;
+        if (popup.Popup <= lastPopup) return "The plugin opened a popup under a number it used before.";
+        if (frames.Count > SurfaceLimits.MostPopups) return "The plugin opened too many popups.";
+        lastPopup = popup.Popup;
+        frames[popup.Popup] = new SurfaceFrameState { KeyframePending = frames[0].KeyframePending };
+        return null;
+    }
+
+    /// <summary>Why a frame message breaks the surface protocol (it names a popup that is not open, or breaks the caps), or null.</summary>
+    public string? Violation(SurfaceFrameHeader header, long bytes) =>
+        Frames(header.Popup) is { } state ? SurfaceFrames.Violation(header, bytes, state) : "The plugin sent a frame for a popup that is not open.";
+
+    /// <summary>A frame message sent before a keyframe was asked for: its receiver drops it.</summary>
+    public bool Stale(SurfaceFrameHeader header) => Frames(header.Popup)?.Stale(header) ?? false;
+
+    /// <summary>Every frame state awaits a keyframe; with <paramref name="lost"/>, a frame half received is forgotten.</summary>
+    public void AwaitKeyframe(bool lost)
+    {
+        foreach (var state in frames.Values)
+        {
+            state.KeyframePending = true;
+            if (lost) (state.Open, state.Unacknowledged) = (false, false);
+        }
     }
 }
 

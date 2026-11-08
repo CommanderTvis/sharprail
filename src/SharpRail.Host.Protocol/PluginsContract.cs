@@ -116,9 +116,9 @@ public sealed class PluginFileReply
 // after a resume sends again every message the other has not acknowledged. Frames and frame acknowledgements are not
 // numbered; a resumed client asks for a keyframe instead. Payload and Json are the plugin channel's JSON; Error is its
 // IsoError value.
-public enum PluginSurfaceUpKind { None = 0, Open = 1, Resume = 2, Ack = 3, Answer = 4, Invoke = 5, OneWay = 6, Mirror = 7, SurfaceOpen = 8, Resize = 9, Input = 10, FrameAck = 11, Focus = 12, Theme = 13, SurfaceClose = 14, Keyframe = 15 }
+public enum PluginSurfaceUpKind { None = 0, Open = 1, Resume = 2, Ack = 3, Answer = 4, Invoke = 5, OneWay = 6, Mirror = 7, SurfaceOpen = 8, Resize = 9, Input = 10, FrameAck = 11, Focus = 12, Theme = 13, SurfaceClose = 14, Keyframe = 15, Dismiss = 16 }
 
-public enum PluginSurfaceDownKind { None = 0, Opened = 1, Resumed = 2, Ack = 3, UiCall = 4, Result = 5, Shown = 6, Frame = 7, FocusLeave = 8, SurfaceEnded = 9, Ended = 10 }
+public enum PluginSurfaceDownKind { None = 0, Opened = 1, Resumed = 2, Ack = 3, UiCall = 4, Result = 5, Shown = 6, Frame = 7, FocusLeave = 8, SurfaceEnded = 9, Ended = 10, Popup = 11 }
 
 // Why a surface ended: the client closed it, the plugin broke the surface protocol, or the plugin could not show it.
 public enum PluginSurfaceEndKind { Closed = 0, Broken = 1, Failed = 2 }
@@ -134,7 +134,8 @@ public static class PluginSurfaceWire
 // Client to host. The first message is Open (PluginId, ClientKey) or Resume (Session, Ack); later ones drive the session:
 // Answer (Call, Payload or Error and Detail) answers a UiCall; Invoke and Mirror (Call, Member, Handle, Payload, Json)
 // await a Result; OneWay; SurfaceOpen (Surface, Member, Handle, Payload, theme Json); Resize (Width, Height, Scale);
-// Input; FrameAck (Sequence); Focus (Enter, Backward, Pointer); Theme (Json); SurfaceClose; Keyframe.
+// Input (on the surface, or on its open Popup); FrameAck (Sequence, of the surface or of its Popup); Focus (Enter,
+// Backward, Pointer); Theme (Json); SurfaceClose; Keyframe (of the surface and its popups); Dismiss (its popups).
 [ProtoContract]
 public sealed class PluginSurfaceUp
 {
@@ -160,6 +161,7 @@ public sealed class PluginSurfaceUp
     [ProtoMember(20)] public bool Enter { get; set; }
     [ProtoMember(21)] public bool Backward { get; set; }
     [ProtoMember(22)] public bool Pointer { get; set; }
+    [ProtoMember(23)] public int Popup { get; set; }
 }
 
 // Kind is SurfaceInputKind's value; Button, Modifiers, Key and PhysicalKey are Avalonia's.
@@ -180,7 +182,8 @@ public sealed class PluginSurfaceInputMessage
 
 // Host to client. Opened (Session, ApiTableHash, Registrations) or Resumed (Ack) answers the first message; then
 // UiCall (Call, Member, Payload, Answered); Result (Call, Payload or Error and Detail); Shown (Surface, the host's
-// Number for it); Frame; FocusLeave (Backward); SurfaceEnded (End, Detail); Ended (Detail) as the session ends.
+// Number for it); Frame; FocusLeave (Backward); SurfaceEnded (End, Detail); Ended (Detail) as the session ends; Popup
+// (PopupPlacement) as a popup of the surface opens, moves or closes.
 [ProtoContract]
 public sealed class PluginSurfaceDown
 {
@@ -201,6 +204,21 @@ public sealed class PluginSurfaceDown
     [ProtoMember(15)] public PluginSurfaceFrameMessage? Frame { get; set; }
     [ProtoMember(16)] public bool Backward { get; set; }
     [ProtoMember(17)] public PluginSurfaceEndKind End { get; set; }
+    [ProtoMember(18)] public PluginSurfacePopupMessage? PopupPlacement { get; set; }
+}
+
+// A popup of a surface, numbered within it from 1: its place from the surface's top-left corner and its size in
+// device-independent pixels, whether it is open, and whether it takes pointer input (a tooltip does not).
+[ProtoContract]
+public sealed class PluginSurfacePopupMessage
+{
+    [ProtoMember(1)] public int Popup { get; set; }
+    [ProtoMember(2)] public double X { get; set; }
+    [ProtoMember(3)] public double Y { get; set; }
+    [ProtoMember(4)] public double Width { get; set; }
+    [ProtoMember(5)] public double Height { get; set; }
+    [ProtoMember(6)] public bool Open { get; set; }
+    [ProtoMember(7)] public bool Input { get; set; }
 }
 
 [ProtoContract]
@@ -210,8 +228,8 @@ public sealed class PluginSurfaceRegistrationMessage
     [ProtoMember(2)] public string Payload { get; set; } = "";
 }
 
-// One message of a frame the host checked: moves only in a frame's first message, Last only on its last, the tiles'
-// bytes one after another in Data. A keyframe repaints everything from transparent.
+// One message of a frame the host checked, of the surface or of its open Popup: moves only in a frame's first message,
+// Last only on its last, the tiles' bytes one after another in Data. A keyframe repaints everything from transparent.
 [ProtoContract]
 public sealed class PluginSurfaceFrameMessage
 {
@@ -226,6 +244,7 @@ public sealed class PluginSurfaceFrameMessage
     [ProtoMember(9)] public List<PluginSurfaceMoveMessage> Moves { get; set; } = [];
     [ProtoMember(10)] public List<PluginSurfaceTileMessage> Tiles { get; set; } = [];
     [ProtoMember(11)] public byte[] Data { get; set; } = [];
+    [ProtoMember(12)] public int Popup { get; set; }
 }
 
 [ProtoContract]

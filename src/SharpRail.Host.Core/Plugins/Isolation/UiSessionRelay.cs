@@ -81,6 +81,13 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
         if (surfaces.TryGetValue(left.Surface, out var surface)) surface.Left(left.Backward);
     }
 
+    /// <summary>A popup of a surface opened, moved or closed; one that breaks the surface protocol ends that surface.</summary>
+    public void Popup(string payload)
+    {
+        var popup = SurfaceProtocol.Decode<SurfacePopup>(payload);
+        if (surfaces.TryGetValue(popup.Surface, out var surface)) surface.Place(popup);
+    }
+
     /// <summary>Ends every surface of this client, as the session does.</summary>
     public void End(Exception? reason)
     {
@@ -101,7 +108,7 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
     internal sealed class RelaySurface(UiSessionRelay relay, int id) : IPluginSurface
     {
         private readonly Channel<SurfaceEvent> events = Channel.CreateUnbounded<SurfaceEvent>(new() { SingleReader = true });
-        private readonly SurfaceFrameState state = new();
+        private readonly SurfaceState state = new();
         private readonly Lock gate = new();
         private List<(int Member, string Payload)>? waiting = [];
         private bool failed;
@@ -153,13 +160,27 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
             lock (gate)
             {
                 if (Volatile.Read(ref closed) != 0 || state.Stale(header)) return;
-                if (SurfaceFrames.Violation(header, bytes.Length, state) is { } violation)
+                if (state.Violation(header, bytes.Length) is { } violation)
                 {
                     Break(violation);
                     return;
                 }
-                state.Accept(header);
+                state.Frames(header.Popup)!.Accept(header);
                 events.Writer.TryWrite(new SurfaceFrame(header, bytes));
+            }
+        }
+
+        public void Place(SurfacePopup popup)
+        {
+            lock (gate)
+            {
+                if (Volatile.Read(ref closed) != 0) return;
+                if (state.Place(popup) is { } violation)
+                {
+                    Break(violation);
+                    return;
+                }
+                events.Writer.TryWrite(new SurfacePopupChanged(popup));
             }
         }
 
@@ -176,26 +197,28 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
 
         public void Input(SurfaceInput input) => Send(SurfaceProtocol.Input, SurfaceProtocol.Encode(input with { Surface = Id }));
 
-        public void Acknowledge(long sequence)
+        public void Acknowledge(long sequence, int popup)
         {
             lock (gate)
-                if (!state.Acknowledge(sequence)) return;
-            Send(SurfaceProtocol.Ack, SurfaceProtocol.Encode(new SurfaceAck(Id, sequence)));
+                if (state.Frames(popup)?.Acknowledge(sequence) != true) return;
+            Send(SurfaceProtocol.Ack, SurfaceProtocol.Encode(new SurfaceAck(Id, sequence, popup)));
         }
 
         public void Keyframe()
         {
-            lock (gate) state.KeyframePending = true;
+            lock (gate) state.AwaitKeyframe(lost: false);
             Send(SurfaceProtocol.Keyframe, SurfaceProtocol.Encode(new SurfaceKeyframe(Id)));
         }
+
+        public void Dismiss() => Send(SurfaceProtocol.Dismiss, SurfaceProtocol.Encode(new SurfaceDismiss(Id)));
 
         public void Theme(string json) => relay.Theme(json);
 
         public void Focus(bool enter, bool backward, bool pointer) => Send(SurfaceProtocol.Focus, SurfaceProtocol.Encode(new SurfaceFocus(Id, enter, backward, pointer)));
 
         /// <summary>A fresh render in the plugin's process, which answers only when the checks started it.</summary>
-        internal async Task<SurfaceCapture> CaptureAsync(IReadOnlyList<string> names) =>
-            SurfaceProtocol.Decode<SurfaceCapture>((await relay.channel.CallAsync(SurfaceProtocol.Capture, SurfaceProtocol.Encode(new SurfaceCaptureRequest(Id, [.. names]))).ConfigureAwait(false)).Payload);
+        internal async Task<SurfaceCapture> CaptureAsync(IReadOnlyList<string> names, int popup = 0) =>
+            SurfaceProtocol.Decode<SurfaceCapture>((await relay.channel.CallAsync(SurfaceProtocol.Capture, SurfaceProtocol.Encode(new SurfaceCaptureRequest(Id, [.. names], popup))).ConfigureAwait(false)).Payload);
 
         public void End(Exception? reason)
         {

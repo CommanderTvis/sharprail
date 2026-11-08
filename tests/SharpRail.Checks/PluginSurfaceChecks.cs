@@ -14,6 +14,7 @@ using SharpRail.Host.Core.Plugins.Isolation;
 using SharpRail.Plugins.Isolation;
 using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI;
+using SharpRail.UI.Panels;
 using SharpRail.UI.Plugins;
 
 namespace SharpRail.Checks;
@@ -23,13 +24,16 @@ namespace SharpRail.Checks;
 /// (src/SharpRail.Plugins.Api/Security.SPEC.md, UI halves). The tile codec and the host's relay on their own, then the
 /// outsider fixture in a headless workbench: its side tool, settings section and file viewer show exactly what the
 /// plugin's process renders, a click and a key press on its button change its settings and the view, typed text
-/// reaches its note, Tab leaves the surface, a wheel scrolls its list with a move, a theme change re-renders it, and the
+/// reaches its note, Tab leaves the surface, a wheel scrolls its list with a move, a theme change re-renders it, its
+/// context menu, flyout and tooltip show as popups of their own at the right place and under the app's dialogs, a click
+/// in a popup reaches the plugin, a press elsewhere and Escape close them, scale 2 renders twice the pixels, and the
 /// side tool hidden past 2 seconds and shown again opens a new surface.
 /// </summary>
 internal static class PluginSurfaceChecks
 {
     private const string Id = "outsider-ui";
-    private static readonly string[] Names = ["OutsiderClick", "OutsiderList", "OutsiderNote", "OutsiderFlood"];
+    private static readonly string[] Names = ["OutsiderClick", "OutsiderList", "OutsiderNote", "OutsiderFlood", "OutsiderMenuTarget", "OutsiderMore", "OutsiderTip",
+        "OutsiderMenuCount", "OutsiderFlyoutCount"];
 
     private static void Require(bool value, string message)
     {
@@ -42,6 +46,8 @@ internal static class PluginSurfaceChecks
         Console.WriteLine("PASS plugin surface codec: solid and compressed tiles decode to their pixels, moves shift the same way on both ends, and short, long or unknown tile data is refused");
         Relay();
         Console.WriteLine("PASS plugin surface relay: the host refuses a frame with a tile or move outside its surface, too many tiles, an unknown codec, a tile longer than its pixels need, bytes that do not match, an oversized surface, frames out of order, one sent before the client took the last, or null where a list or its item belongs, and names the surface of a frame it cannot read; after a keyframe request it drops older frames and takes the keyframe");
+        PopupStates();
+        Console.WriteLine($"PASS plugin surface popup caps: the host refuses a popup numbered below 1 or again after it closed, placed or sized out of range, closed when not open, more than {SurfaceLimits.MostPopups} open, and a frame for a popup that is not open; each popup keeps its own frames, and one opened while a keyframe is awaited awaits one too");
         if (PluginChannelChecks.Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin surface: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -164,6 +170,32 @@ internal static class PluginSurfaceChecks
         Require(UiSessionRelay.Read("[1]") is (null, null, not null), "A frame that names no surface is refused.");
     }
 
+    private static void PopupStates()
+    {
+        static SurfacePopup Popup(int number, bool open = true, double x = 10, double y = 20, double width = 120, double height = 80) => new(1, number, x, y, width, height, open);
+        static SurfaceFrameHeader Frame(int popup, long sequence = 1, bool keyframe = true) =>
+            new(1, sequence, 120, 80, 1, 0, 0, true, [], [new(0, 0, 64, 64, TileCodecKind.Solid, 4)], keyframe, popup);
+        var state = new SurfaceState();
+        Require(state.Violation(Frame(1), 4) is not null, "A frame for a popup that is not open is refused.");
+        Require(state.Place(Popup(0)) is not null, "A popup numbered below 1 is refused.");
+        Require(state.Place(Popup(1, x: double.NaN)) is not null && state.Place(Popup(1, x: 9000)) is not null && state.Place(Popup(1, width: 0)) is not null &&
+            state.Place(Popup(1, height: 9000)) is not null, "A popup placed or sized out of range is refused.");
+        Require(state.Place(Popup(1, open: false)) is not null, "Closing a popup that is not open is refused.");
+        Require(state.Place(Popup(1)) is null && state.Place(Popup(1, x: -40)) is null, "A popup opens and moves, even above or left of its surface.");
+        Require(state.Violation(Frame(1), 4) is null, "A popup's first frame passes.");
+        state.Frames(1)!.Accept(Frame(1));
+        Require(state.Frames(0)!.Sequence == 0 && state.Violation(Frame(0, keyframe: false), 4) is null, "The surface's frames are numbered apart from its popups'.");
+        Require(state.Frames(1)!.Acknowledge(1), "A popup's frame is acknowledged on its own.");
+        Require(state.Place(Popup(1, open: false)) is null && state.Frames(1) is null && state.Violation(Frame(1, 2), 4) is not null, "A closed popup takes no more frames.");
+        Require(state.Place(Popup(1)) is not null, "A popup's number is not used again.");
+        for (var number = 2; number < 2 + SurfaceLimits.MostPopups; number++) Require(state.Place(Popup(number)) is null, "Popups open up to the cap.");
+        Require(state.Place(Popup(2 + SurfaceLimits.MostPopups)) is not null, "One popup past the cap is refused.");
+        var waiting = new SurfaceState();
+        waiting.AwaitKeyframe(lost: false);
+        Require(waiting.Place(Popup(3)) is null && waiting.Frames(3)!.KeyframePending && waiting.Stale(Frame(3, keyframe: false)) && !waiting.Stale(Frame(3)),
+            "A popup opened while a keyframe is awaited drops frames until its own keyframe.");
+    }
+
     private static void App(string root, PluginChannelChecks.RunnerLaunch runner)
     {
         var workspace = Path.Combine(root, "workspace");
@@ -236,6 +268,11 @@ internal static class PluginSurfaceChecks
             Settle(board, "the side tool back on its theme");
             Console.WriteLine("PASS plugin surface theme: the app's theme change reaches the plugin's process and its view re-renders under it");
 
+            shown = Popups(app, window, board, Settle(board, "the side tool before its popups"), null, "plugin surface");
+            Covered(window, board, shown);
+            Console.WriteLine("PASS plugin surface popups under dialogs: with the plugin's menu open, the app's dialog takes the pointer where the menu is, and focus moving into it closes the menu");
+            shown = Scaled(window, board, shown, null, "plugin surface");
+
             window.ShowSettings("Plugins");
             E2eWorkspace.Until(() => window.OpenSettingsViews.Any());
             var settings = window.OpenSettingsViews.Single();
@@ -272,6 +309,133 @@ internal static class PluginSurfaceChecks
         }
     }
 
+    /// <summary>
+    /// The board's popups through the app's window: the context menu opens at a right-click as its own surface with the
+    /// plugin's pixels and a click on its item counts; the flyout opens below its button and a press elsewhere in the app
+    /// closes it without counting, then a click in it counts and Escape closes it; the tooltip opens under the pointer,
+    /// lets the pointer through and closes as the pointer leaves.
+    /// </summary>
+    internal static Shown Popups(E2eWorkspace app, TopLevel window, RemoteSurface board, Shown shown, Func<RemoteSurface, UiSessionRelay.RelaySurface?>? relay, string what)
+    {
+        var clicks = Clicks(app);
+        var at = Point(window, board, shown.Bounds["OutsiderMenuTarget"]);
+        window.MouseMove(at);
+        window.MouseDown(at, MouseButton.Right);
+        window.MouseUp(at, MouseButton.Right);
+        var menu = Popup(board);
+        var corner = menu.TranslatePoint(default, window) ?? throw new InvalidOperationException("The menu is not in the window.");
+        Require(Math.Abs(corner.X - at.X) <= 8 && Math.Abs(corner.Y - at.Y) <= 8, $"The context menu opens at the right-click {at}, not at {corner}.");
+        Require(menu.Parent is Canvas && !board.IsVisualAncestorOf(menu), "The context menu shows in the popup layer, not inside the surface.");
+        var menuShown = Settle(board, "the context menu", relay: relay, popup: menu.Number);
+        Drawn(window, menu, menuShown);
+        Click(window, menu, menuShown.Bounds["OutsiderMenuCount"]);
+        E2eWorkspace.Until(() => Clicks(app) == clicks + 1 && board.Popups.Count == 0);
+        Console.WriteLine($"PASS {what} context menu: a right-click opens the plugin's menu as its own {menuShown.Width}x{menuShown.Height} surface at the pointer, the app draws the plugin's pixels there, and a click on its item reaches the plugin and closes it");
+
+        var more = shown.Bounds["OutsiderMore"];
+        Click(window, board, more);
+        var flyout = Popup(board);
+        var below = board.TranslatePoint(new Point(more[0], more[1] + more[3]), window) ?? throw new InvalidOperationException("The surface is not in the window.");
+        var top = flyout.TranslatePoint(default, window) ?? throw new InvalidOperationException("The flyout is not in the window.");
+        Require(Math.Abs(top.Y - below.Y) <= 12 && top.X <= below.X + more[2] && top.X + flyout.Bounds.Width >= below.X,
+            $"The flyout opens below its button at {below}, not at {top}.");
+        var away = new Point(3, 3);
+        Require(window.InputHitTest(away) is not Visual pressed || !(pressed == board || board.IsVisualAncestorOf(pressed) || pressed == flyout || flyout.IsVisualAncestorOf(pressed)),
+            "The press elsewhere lands outside the surface and its popups.");
+        window.MouseDown(away, MouseButton.Left);
+        window.MouseUp(away, MouseButton.Left);
+        E2eWorkspace.Until(() => board.Popups.Count == 0);
+        Require(Clicks(app) == clicks + 1, "A press elsewhere closes the flyout without clicking in it.");
+        Click(window, board, more);
+        flyout = Popup(board);
+        var flyoutShown = Settle(board, "the flyout", relay: relay, popup: flyout.Number);
+        Click(window, flyout, flyoutShown.Bounds["OutsiderFlyoutCount"]);
+        E2eWorkspace.Until(() => Clicks(app) == clicks + 2);
+        board.Focus(NavigationMethod.Pointer);
+        E2eWorkspace.Until(() => board.IsFocused);
+        Press(window, Key.Escape, PhysicalKey.Escape);
+        E2eWorkspace.Until(() => board.Popups.Count == 0);
+        Console.WriteLine($"PASS {what} flyout: the plugin's flyout opens below its button, a press elsewhere in the app closes it without a click, a click in it reaches the plugin, and Escape closes it");
+
+        window.MouseMove(Point(window, board, shown.Bounds["OutsiderTip"]));
+        var tip = Popup(board);
+        Require(!tip.IsHitTestVisible, "The tooltip lets the pointer through.");
+        Settle(board, "the tooltip", relay: relay, popup: tip.Number);
+        window.MouseMove(away);
+        E2eWorkspace.Until(() => board.Popups.Count == 0);
+        Console.WriteLine($"PASS {what} tooltip: hovering opens the plugin's tooltip as a popup that lets the pointer through, and it closes as the pointer leaves");
+        return Settle(board, "the side tool after its popups", relay: relay);
+    }
+
+    /// <summary>
+    /// The app's dialog opened over an open plugin menu lies above the menu's layer in the same panel and takes the
+    /// pointer where the menu is, and focus moving into the dialog closes the menu.
+    /// </summary>
+    private static void Covered(Window window, RemoteSurface board, Shown shown)
+    {
+        var at = Point(window, board, shown.Bounds["OutsiderMenuTarget"]);
+        window.MouseMove(at);
+        window.MouseDown(at, MouseButton.Right);
+        window.MouseUp(at, MouseButton.Right);
+        var menu = Popup(board);
+        var middle = menu.TranslatePoint(new Point(menu.Bounds.Width / 2, menu.Bounds.Height / 2), window) ?? throw new InvalidOperationException("The menu is not in the window.");
+        var layer = (Canvas)menu.Parent!;
+        var notice = Dialogs.Notice(window, "Above the plugin", "The app's dialogs stay above a plugin's popups.");
+        E2eWorkspace.Until(() => DialogWindow.On(window).Count == 1);
+        var dialog = ((DialogWindow)DialogWindow.On(window).Single()).Surface!.GetVisualAncestors().OfType<OverlayHost>().First();
+        var panel = (Panel)layer.Parent!;
+        Require(dialog.Parent == panel && (dialog.ZIndex > layer.ZIndex || dialog.ZIndex == layer.ZIndex && panel.Children.IndexOf(dialog) > panel.Children.IndexOf(layer)),
+            $"The app's dialog layer ({dialog.ZIndex}) lies above the plugin's popup layer ({layer.ZIndex}) in the same panel.");
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        var hit = window.InputHitTest(middle) as Visual;
+        Require(board.Popups.Count == 0 || hit is not null && hit != menu && !menu.IsVisualAncestorOf(hit) && hit.FindAncestorOfType<OverlayHost>(includeSelf: true) is not null,
+            $"The app's dialog takes the pointer where the plugin's menu is, not {hit?.GetType().Name} {(hit as Control)?.Name}.");
+        E2eWorkspace.Until(() => board.Popups.Count == 0);
+        ((DialogWindow)DialogWindow.On(window).Single()).Close();
+        E2eWorkspace.Until(() => notice.IsCompleted);
+    }
+
+    /// <summary>
+    /// The app's window at scale 2: the surface keeps its size in the app and renders at twice the pixels, which equal a
+    /// fresh render in the plugin's process and show in the window, and so does a popup; back at scale 1 it renders as before.
+    /// </summary>
+    internal static Shown Scaled(TopLevel window, RemoteSurface board, Shown shown, Func<RemoteSurface, UiSessionRelay.RelaySurface?>? relay, string what, Action? atScale2 = null)
+    {
+        var size = board.Bounds.Size;
+        window.SetRenderScaling(2);
+        E2eWorkspace.Until(() => board.FrameScale == 2);
+        var scaled = Settle(board, "the side tool at scale 2", relay: relay);
+        Require(Math.Abs(scaled.Width - 2 * shown.Width) <= 2 && Math.Abs(scaled.Height - 2 * shown.Height) <= 2,
+            $"At scale 2 the surface renders twice the pixels: {scaled.Width}x{scaled.Height} for {shown.Width}x{shown.Height}.");
+        Require(Math.Abs(board.Bounds.Width - size.Width) <= 1 && Math.Abs(board.Bounds.Height - size.Height) <= 1, "The surface keeps its size in the app at scale 2.");
+        Drawn(window, board, scaled);
+        atScale2?.Invoke();
+        var at = Point(window, board, scaled.Bounds["OutsiderMenuTarget"]);
+        window.MouseMove(at);
+        window.MouseDown(at, MouseButton.Right);
+        window.MouseUp(at, MouseButton.Right);
+        var menu = Popup(board);
+        var menuShown = Settle(board, "the context menu at scale 2", relay: relay, popup: menu.Number);
+        Require(Math.Abs(menuShown.Width - 2 * menu.Bounds.Width) <= 2, $"A popup at scale 2 renders twice the pixels: {menuShown.Width} for {menu.Bounds.Width:0}.");
+        Drawn(window, menu, menuShown);
+        Press(window, Key.Escape, PhysicalKey.Escape);
+        E2eWorkspace.Until(() => board.Popups.Count == 0);
+        window.SetRenderScaling(1);
+        E2eWorkspace.Until(() => board.FrameScale == 1);
+        var back = Settle(board, "the side tool back at scale 1", relay: relay);
+        Require(back.Width == shown.Width && back.Height == shown.Height, "Back at scale 1 the surface renders its first size again.");
+        Console.WriteLine($"PASS {what} scale: at scale 2 the side tool renders {scaled.Width}x{scaled.Height} device pixels for {shown.Width}x{shown.Height} at scale 1, equal to the plugin's render and drawn in the window, a popup renders at twice its pixels too, and back at scale 1 it renders as before");
+        return back;
+    }
+
+    /// <summary>Waits for the surface's one popup to show in the app with its pixels, and answers it.</summary>
+    private static RemoteSurface.RemotePopup Popup(RemoteSurface board)
+    {
+        RemoteSurface.RemotePopup? found = null;
+        E2eWorkspace.Until(() => board.Popups.Count == 1 && (found = board.Popups.Single()) is { Parent: not null, Bounds.Width: > 0 } && board.Snapshot(found.Number).Width > 0);
+        return found!;
+    }
+
     internal static int? Clicks(E2eWorkspace app) =>
         app.Workbench.State.Current.PluginSettings.TryGetValue(Id, out var space) && space.ValueKind == JsonValueKind.Object && space.TryGetProperty("clicks", out var clicks) ? clicks.GetInt32() : space.ValueKind == JsonValueKind.Object ? 0 : null;
 
@@ -288,7 +452,7 @@ internal static class PluginSurfaceChecks
     /// Waits until the pixels the app decoded equal a fresh render in the plugin's process (and differ from
     /// <paramref name="changedFrom"/> when given): lossless tiles leave no difference.
     /// </summary>
-    internal static Shown Settle(RemoteSurface surface, string what, byte[]? changedFrom = null, Func<RemoteSurface, UiSessionRelay.RelaySurface?>? relay = null)
+    internal static Shown Settle(RemoteSurface surface, string what, byte[]? changedFrom = null, Func<RemoteSurface, UiSessionRelay.RelaySurface?>? relay = null, int popup = 0)
     {
         var clock = Stopwatch.StartNew();
         string last = "no capture";
@@ -301,10 +465,10 @@ internal static class PluginSurfaceChecks
                 E2eWorkspace.Settle(50);
                 continue;
             }
-            var capture = held.CaptureAsync(Names);
+            var capture = held.CaptureAsync(Names, popup);
             E2eWorkspace.Until(() => capture.IsCompleted);
             var reference = capture.GetAwaiter().GetResult();
-            var (width, height, pixels) = surface.Snapshot();
+            var (width, height, pixels) = popup == 0 ? surface.Snapshot() : surface.Snapshot(popup);
             var expected = Convert.FromBase64String(reference.Pixels);
             if (width == reference.Width && height == reference.Height && pixels.AsSpan().SequenceEqual(expected) && (changedFrom is null || !pixels.AsSpan().SequenceEqual(changedFrom)))
                 return new(width, height, pixels, reference.Bounds);
@@ -315,8 +479,8 @@ internal static class PluginSurfaceChecks
         throw new InvalidOperationException($"The app's pixels for {what} never matched the plugin's render: {last}.");
     }
 
-    /// <summary>The app's own rendered frame shows the surface's opaque pixels where the surface sits.</summary>
-    private static void Drawn(TopLevel window, RemoteSurface surface, Shown shown)
+    /// <summary>The app's own rendered frame shows the surface's (or a popup's) opaque pixels where it sits.</summary>
+    private static void Drawn(TopLevel window, Visual surface, Shown shown)
     {
         using var frame = window.CaptureRenderedFrame() ?? throw new InvalidOperationException("The app's window rendered nothing.");
         using var locked = frame.Lock();
@@ -355,10 +519,10 @@ internal static class PluginSurfaceChecks
         return count;
     }
 
-    internal static Point Point(TopLevel window, RemoteSurface surface, double[] bounds) =>
+    internal static Point Point(TopLevel window, Visual surface, double[] bounds) =>
         surface.TranslatePoint(new Point(bounds[0] + bounds[2] / 2, bounds[1] + bounds[3] / 2), window) ?? throw new InvalidOperationException("The surface is not in the window.");
 
-    internal static void Click(TopLevel window, RemoteSurface surface, double[] bounds)
+    internal static void Click(TopLevel window, Visual surface, double[] bounds)
     {
         var at = Point(window, surface, bounds);
         window.MouseMove(at);
