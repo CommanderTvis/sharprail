@@ -53,6 +53,7 @@ public sealed partial class WorkbenchWindow
         }
         var children = new List<Control>();
         railSettled.Clear();
+        railTabTails.Clear();
         foreach (var project in state.Current.Projects)
         {
             if (!projectRailRows.TryGetValue(project, out var entry))
@@ -72,36 +73,47 @@ public sealed partial class WorkbenchWindow
             var partition = PartitionOf(project);
             foreach (var row in partition.Settled) railSettled[row.Workspace.Path] = row;
             var nesting = RailNesting(partition.Live);
-            void Add(WorkspaceRecord worktree, int depth = 0)
+            // target is the rail's rows, or the rows of a tab's slot inside an open workspace's strip, where indents are relative to the strip.
+            void Add(WorkspaceRecord worktree, int depth, List<Control> target, int relative)
             {
                 if (!entry.Rows.TryGetValue(worktree.Path, out var pair))
                     pair = (null, WorkspaceTabsHost(worktree.Path));
                 if (showWorkspaces) pair.Row ??= WorkspaceItem(worktree);
                 else if (pair.Row is not null) { pair.Row = null; railSelection.Remove("workspace:" + worktree.Path); }
-                var indent = showWorkspaces ? 16 * depth : 0;
+                var indent = showWorkspaces ? 16 * (relative < 0 ? depth : relative) : 0;
+                var itemLeft = relative < 0 ? 24 : 8;
+                var tabsLeft = relative < 0 ? (showWorkspaces ? 40 : 20) : 24;
                 if (pair.Row is Grid item)
                 {
-                    item.Margin = new Thickness(24 + indent, 0, 0, 0);
+                    item.Margin = new Thickness(itemLeft + indent, 0, 0, 0);
                     if (item.Children.OfType<Border>().FirstOrDefault(child => child.Name == "WorkspaceNestGuide") is { } guide) guide.IsVisible = depth > 0;
                 }
-                pair.Tabs.Margin = new Thickness((showWorkspaces ? 40 : 20) + indent, 0, 4, 4);
+                pair.Tabs.Margin = new Thickness(tabsLeft + indent, 0, 4, 4);
                 entry.Rows[worktree.Path] = pair;
-                if (pair.Row is not null) rows.Add(pair.Row);
-                rows.Add(pair.Tabs);
-                // A created workspace sits right below the creator's tab row: the tab list is cut after that row into segments.
+                if (pair.Row is not null) target.Add(pair.Row);
+                target.Add(pair.Tabs);
+                // A created workspace sits right below the creator's tab row. In a closed workspace the tab list is cut after
+                // that row into segments; in the open one the row's slot inside the live strip holds it.
                 var kids = nesting.GetValueOrDefault(worktree.Path) ?? [];
-                var units = kids.Select(child => (Child: child, Unit: NestedUnit(worktree.Path, child.Path))).ToArray();
+                var open = worktree.Path == Layout.State.ActiveWorkspace;
+                var units = kids.Select(child => (Child: child, Unit: open ? null : NestedUnit(worktree.Path, child.Path), Tab: open ? OpenCreatorTab(child.Path) : null)).ToArray();
                 var breaks = units.Where(kid => kid.Unit is not null).Select(kid => kid.Unit!.Value).Distinct().Order().ToArray();
                 SetTabBreaks(worktree.Path, breaks);
+                var next = relative < 0 ? 1 : relative + 1;
                 for (var index = 0; index < breaks.Length; index++)
                 {
-                    foreach (var kid in units.Where(kid => kid.Unit == breaks[index])) Add(kid.Child, depth + 1);
-                    rows.Add(WorkspaceTabSegment(worktree.Path, index + 1));
+                    foreach (var kid in units.Where(kid => kid.Unit == breaks[index])) Add(kid.Child, depth + 1, target, relative < 0 ? -1 : next);
+                    target.Add(WorkspaceTabSegment(worktree.Path, index + 1));
                 }
-                foreach (var kid in units.Where(kid => kid.Unit is null)) Add(kid.Child, depth + 1);
+                foreach (var kid in units.Where(kid => kid.Tab is not null))
+                {
+                    if (!railTabTails.TryGetValue(kid.Tab!, out var tail)) railTabTails[kid.Tab!] = tail = [];
+                    Add(kid.Child, depth + 1, tail, 0);
+                }
+                foreach (var kid in units.Where(kid => kid.Unit is null && kid.Tab is null)) Add(kid.Child, depth + 1, target, relative < 0 ? -1 : next);
             }
             var nested = nesting.Values.SelectMany(children => children).Select(child => child.Path).ToHashSet();
-            foreach (var worktree in partition.Live.Where(worktree => !nested.Contains(worktree.Path))) Add(worktree);
+            foreach (var worktree in partition.Live.Where(worktree => !nested.Contains(worktree.Path))) Add(worktree, 0, rows, -1);
             if (showWorkspaces && partition.Settled.Count > 0)
             {
                 var expanded = expandedShelves.Contains(project);
@@ -110,7 +122,7 @@ public sealed partial class WorkbenchWindow
                 if (expanded)
                 {
                     var shown = ShownSettled(project);
-                    foreach (var row in partition.Settled.Take(shown)) Add(row.Workspace);
+                    foreach (var row in partition.Settled.Take(shown)) Add(row.Workspace, 0, rows, -1);
                     if (partition.Settled.Count > shown)
                     {
                         rows.Add(entry.More ??= ShelfMore(project));
@@ -143,8 +155,28 @@ public sealed partial class WorkbenchWindow
         var anchor = RailAnchor();
         ReconcileRailChildren(projectsTree, children);
         KeepRailAnchor(anchor);
+        FillTabTails();
         foreach (var update in railSelection.Values) update();
         placeProjectTrailing?.Invoke();
+    }
+
+    // Rows listed under a tab of the open workspace, by tab id, and filled into that tab's slot in the live strip.
+    private readonly Dictionary<string, List<Control>> railTabTails = [];
+
+    internal void FillTabTails()
+    {
+        foreach (var (tab, slot) in surface.TabTails)
+        {
+            ReconcileRailChildren(slot, railTabTails.GetValueOrDefault(tab) ?? []);
+            slot.IsVisible = slot.Children.Count > 0;
+        }
+    }
+
+    /// <summary>The open workspace's tab that created a workspace, if its row is in the live strip.</summary>
+    private string? OpenCreatorTab(string child)
+    {
+        if (state.Current.WorkspaceCreators.FirstOrDefault(entry => entry.Workspace == child)?.Creator is not { } creator) return null;
+        return Layout.View.Documents.Values.SelectMany(tabs => tabs).FirstOrDefault(tab => IsCreatorTab(tab, creator.TabKey) && surface.TabTails.ContainsKey(tab.Id))?.Id;
     }
 
     private ScrollViewer? railScroller;
@@ -206,7 +238,7 @@ public sealed partial class WorkbenchWindow
     {
         if (projectsTree is null) return;
         var signature = Preferences.GroupWorkspacesUnderCreator
-            ? string.Join("\n", state.Current.Projects.SelectMany(project => RailNesting(PartitionOf(project).Live).SelectMany(pair => pair.Value.Select(child => pair.Key + "\t" + child.Path + "\t" + NestedUnit(pair.Key, child.Path)))))
+            ? string.Join("\n", state.Current.Projects.SelectMany(project => RailNesting(PartitionOf(project).Live).SelectMany(pair => pair.Value.Select(child => pair.Key + "\t" + child.Path + "\t" + NestedUnit(pair.Key, child.Path) + "\t" + (pair.Key == Layout.State.ActiveWorkspace ? OpenCreatorTab(child.Path) : null)))))
             : "";
         if (signature == railNestingSignature) return;
         railNestingSignature = signature;
@@ -299,6 +331,8 @@ public sealed partial class WorkbenchWindow
     private static void ReconcileRailChildren(Panel panel, IReadOnlyList<Control> desired)
     {
         var keep = desired.ToHashSet();
+        // Rows move between the rail and a tab's slot in the open strip, so a row leaves its old parent first.
+        foreach (var child in desired.Where(child => child.Parent is Panel parent && !ReferenceEquals(parent, panel))) ((Panel)child.Parent!).Children.Remove(child);
         foreach (var child in panel.Children.Where(child => !keep.Contains(child)).ToArray()) panel.Children.Remove(child);
         for (var index = 0; index < desired.Count; index++)
         {

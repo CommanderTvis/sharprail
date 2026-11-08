@@ -19,6 +19,7 @@ public sealed partial class DockSurface
 {
     private readonly List<Border> contentHosts = [];
     private readonly Dictionary<string, List<(Control Control, string Tab)>> tabSites = [];
+    private readonly Dictionary<string, StackPanel> tabTails = [];
     private readonly Dictionary<string, Control> groupHeaders = [];
     private readonly Dictionary<string, Action> selectionUpdates = [];
     private readonly List<Action> modifiedUpdates = [];
@@ -402,6 +403,16 @@ public sealed partial class DockSurface
                 tabs.Children.Add(frame);
             }
             else { bubble = null; bubblePane = null; tabs.Children.Add(chrome); }
+            if (nested)
+            {
+                var tail = new StackPanel { Name = "TabTail", Tag = tab.Id, IsVisible = false, Focusable = false };
+                tabTails[tab.Id] = tail;
+                // A bubble's tail follows the whole bubble, after the tails of its earlier members.
+                var anchor = bubble is null ? (Control)chrome : (Control)bubble.Parent!.Parent!;
+                var at = tabs.Children.IndexOf(anchor) + 1;
+                while (at < tabs.Children.Count && tabs.Children[at].Name == "TabTail") at++;
+                tabs.Children.Insert(at, tail);
+            }
             tabSites[group.Id].Add((chrome, tab.Id));
             if (tab.Id == selected?.Id) Dispatcher.UIThread.Post(() => chrome.BringIntoView(), DispatcherPriority.Loaded);
         }
@@ -499,6 +510,12 @@ public sealed partial class DockSurface
     }
 
     // Tool strips stay above their body; workspace strips live only in Projects.
+    /// <summary>
+    /// The slot each nested centre tab row keeps right below it for rows Projects lists under that tab (the workspaces it
+    /// created), by tab id. A slot is not a tab: it holds no site, so reordering, drops and arrow keys count only tabs.
+    /// </summary>
+    public IReadOnlyDictionary<string, StackPanel> TabTails => tabTails;
+
     private void PlaceStrip(DockGroup group, Grid panel, Border strip, StripStyle style)
     {
         switch (style)

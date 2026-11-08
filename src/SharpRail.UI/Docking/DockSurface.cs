@@ -150,7 +150,7 @@ public sealed partial class DockSurface : Grid
         foreach (var host in contentHosts) host.Child = null;
         contentHosts.Clear(); builtGroups.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear();
         activeTabUpdates.Clear(); phonePanes.Clear();
-        modifiedUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
+        modifiedUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); tabTails.Clear(); stripLayouts.Clear();
         renderedMode = CenterTabs?.Invoke();
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
             shell.Children.Remove(control);

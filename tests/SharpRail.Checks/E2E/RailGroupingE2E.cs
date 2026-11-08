@@ -54,6 +54,15 @@ internal static class RailGroupingE2E
             control.Name == "WorkspaceTabPreview" && (string?)control.Tag is { } tab && (tab == terminal || tab == "plugin:claude:chat-1")))
             .Select(control => control.Name == "WorkspaceItem" ? (string)control.Tag! : "tab:" + control.Tag).ToArray();
         Until(() => Sequence().SequenceEqual([creatorWorkspace, "tab:" + terminal, child, "tab:plugin:claude:chat-1", chatChild]));
+
+        // The same holds while the creator's workspace is open: its live tab rows hold the nested workspaces in place.
+        app.Click(Select(app, creatorWorkspace));
+        Until(() => Active(app, creatorWorkspace));
+        string Live(string id) => "DockTab_" + id.Replace(':', '_').Replace('/', '_');
+        string[] LiveSequence() => Controls(app).Where(control => control.IsEffectivelyVisible && (control.Name == "WorkspaceItem" && (string?)control.Tag is { } path && (path == child || path == chatChild || path == creatorWorkspace) ||
+            control.Name == Live(terminal) || control.Name == Live("plugin:claude:chat-1")))
+            .Select(control => control.Name == "WorkspaceItem" ? (string)control.Tag! : control.Name == Live(terminal) ? "tab:terminal" : "tab:chat").ToArray();
+        Until(() => LiveSequence().SequenceEqual([creatorWorkspace, "tab:terminal", child, "tab:chat", chatChild]));
         Console.WriteLine("PASS rail grouping: on nests under the creator and falls back to flat when the creator is gone");
 
         var reloaded = new ProfileStore(Path.Combine(root, "rail-grouping", "sample-project") + "-profile");

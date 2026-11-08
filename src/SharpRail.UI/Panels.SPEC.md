@@ -90,11 +90,11 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   keeps its flat registry order with no shelf, chips or settle actions.
 - The per-app preference "Group workspaces under the terminal or chat that created them" (Settings > Projects, off by
   default) lists a live workspace made by `workspace_create` indented, with a guide line, directly below the tab row
-  that created it in the creator's workspace (a chat is recorded by its chat id, matched against its plugin tab's path
-  after the scheme). While the creator's workspace is the open one its tab list is live and cannot be cut, so the
-  nested workspace follows the whole list. A creator tab that is closed, or a creator that is unknown, in another
-  project or on the Settled shelf, leaves the workspace in its flat place, or under its creator's workspace when only
-  the tab row is unavailable; nesting is one level per creation link. The rail redraws when the preference, a creator
+  that created it in the creator's workspace, whether that list is the open workspace's live one or a closed
+  workspace's preview (a chat is recorded by its chat id, matched against its plugin tab's path after the scheme).
+  The nested rows are not tabs: reordering, drops and arrow keys count only tabs. A creator tab that is closed, or a
+  creator that is unknown, in another project or on the Settled shelf, leaves the workspace in its flat place, or
+  under its creator's workspace when only the tab row is unavailable; nesting is one level per creation link. The rail redraws when the preference, a creator
   or the creator's tab changes.
 - Opening a settled workspace leaves it on the shelf, expands the shelf and pages it far enough to show the
   row, once per selection. The first automatic move (idle rows only, never ones settled by hand) is announced

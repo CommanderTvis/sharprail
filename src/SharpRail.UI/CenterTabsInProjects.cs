@@ -38,7 +38,7 @@ public sealed partial class WorkbenchWindow
             "ProjectRow" => true,
             _ => false
         };
-        surface.NestedStripsChanged += strips => { centerStripsInProjects = new Dictionary<string, Control>(strips); PlaceWorkspaceTabs(); };
+        surface.NestedStripsChanged += strips => { centerStripsInProjects = new Dictionary<string, Control>(strips); PlaceWorkspaceTabs(); RefreshRailNesting(); FillTabTails(); };
         tabLayoutSignature = TabLayoutSignature();
         Layout.Changed += RefreshRailNesting;
         surface.Rebuild();
