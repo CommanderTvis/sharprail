@@ -174,11 +174,8 @@ public sealed partial class WorkbenchWindow
     private bool CreatorListed(TerminalRef creator)
     {
         var tabs = Layout.State.Workspaces.GetValueOrDefault(creator.WorkspaceId)?.Documents.Values.SelectMany(items => items) ?? [];
-        if (creator.TabKey.StartsWith("chat:", StringComparison.Ordinal))
-        {
-            var suffix = ":" + creator.TabKey["chat:".Length..];
-            return tabs.Any(tab => tab.Kind == "plugin" && tab.Path.EndsWith(suffix, StringComparison.Ordinal));
-        }
+        // A chat's tab key is its chat id and its plugin tab path is "scheme:id".
+        if (tabs.Any(tab => tab.Kind == "plugin" && tab.Path.IndexOf(':') is var split and >= 0 && tab.Path[(split + 1)..] == creator.TabKey)) return true;
         return tabs.Any(tab => tab.Kind == "terminal" && tab.Id == creator.TabKey) ||
             workbench.TerminalCatalog?.Workspaces.GetValueOrDefault(creator.WorkspaceId)?.Any(tab => tab.Key == creator.TabKey) == true;
     }

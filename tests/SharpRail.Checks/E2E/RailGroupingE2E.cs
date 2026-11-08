@@ -20,14 +20,17 @@ internal static class RailGroupingE2E
         var creatorWorkspace = CreateWorkspaceViaDialog(app);
         app.Window.Layout.NewTerminal(app.Center);
         var terminal = app.Window.Layout.Tabs(app.Center).Last(tab => tab.Kind == "terminal").Id;
+        app.Window.Layout.Open(new("plugin:claude:chat-1", "Chat", "plugin", "claude:chat-1"), true, app.Center);
         var child = CreateWorkspaceViaDialog(app);
+        var chatChild = CreateWorkspaceViaDialog(app);
         var orphan = CreateWorkspaceViaDialog(app);
         app.State!.RecordWorkspaceCreator(child, new TerminalRef(creatorWorkspace, terminal));
         app.State.RecordWorkspaceCreator(orphan, new TerminalRef(creatorWorkspace, "closed-terminal"));
-        Until(() => app.State.Current.WorkspaceCreators.Count == 2);
+        app.State.RecordWorkspaceCreator(chatChild, new TerminalRef(creatorWorkspace, "chat-1"));
+        Until(() => app.State.Current.WorkspaceCreators.Count == 3);
 
         string[] Order() => Controls(app).OfType<Grid>().Where(item => item.Name == "WorkspaceItem" && item.IsEffectivelyVisible).Select(item => (string)item.Tag!).ToArray();
-        Require(Order().SequenceEqual([project, orphan, child, creatorWorkspace]), "Off, the rail stays flat, newest first: " + string.Join(", ", Order()));
+        Require(Order().SequenceEqual([project, orphan, chatChild, child, creatorWorkspace]), "Off, the rail stays flat, newest first: " + string.Join(", ", Order()));
         Require(!Controls(app).OfType<Border>().Any(guide => guide.Name == "WorkspaceNestGuide" && guide.IsEffectivelyVisible), "Off, no row shows a nesting guide.");
         Console.WriteLine("PASS rail grouping: off keeps the flat list");
 
@@ -40,10 +43,12 @@ internal static class RailGroupingE2E
         toggle.IsChecked = true;
         settings.Close(); Until(() => !settings.IsVisible);
         Require(app.Window.Preferences.GroupWorkspacesUnderCreator, "The switch must change the app preference.");
-        Until(() => Order().SequenceEqual([project, orphan, creatorWorkspace, child]));
+        Until(() => Order().SequenceEqual([project, orphan, creatorWorkspace, chatChild, child]));
         Require(Item(app, child).Margin.Left > Item(app, creatorWorkspace).Margin.Left && Item(app, orphan).Margin.Left == Item(app, creatorWorkspace).Margin.Left &&
             Named<Border>(Item(app, child), "WorkspaceNestGuide").IsEffectivelyVisible && !Named<Border>(Item(app, orphan), "WorkspaceNestGuide").IsVisible,
             "On, the created workspace sits indented under its creator's workspace; one whose creator tab is gone stays flat.");
+        Require(Item(app, chatChild).Margin.Left > Item(app, creatorWorkspace).Margin.Left && Named<Border>(Item(app, chatChild), "WorkspaceNestGuide").IsEffectivelyVisible,
+            "A workspace made by a chat tab nests under its creator too.");
         Console.WriteLine("PASS rail grouping: on nests under the creator and falls back to flat when the creator is gone");
 
         var reloaded = new ProfileStore(Path.Combine(root, "rail-grouping", "sample-project") + "-profile");
