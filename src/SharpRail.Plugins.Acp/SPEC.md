@@ -1,3 +1,11 @@
+---
+id: module-plugin-acp
+type: module-design
+status: active
+title: ACP builtin (Early support)
+parent: group-plugins-agents
+---
+
 # ACP builtin (Early support)
 
 Early support for the Agent Client Protocol (https://agentclientprotocol.com): SharpRail is the client, an ACP agent is a child process

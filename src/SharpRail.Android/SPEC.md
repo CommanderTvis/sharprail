@@ -1,3 +1,11 @@
+---
+id: module-android
+type: module-design
+status: active
+title: Android — the workbench as a client of a remote host
+parent: group-clients
+---
+
 # Android — the workbench as a client of a remote host
 
 No upstream counterpart: the reference has no Android client.

@@ -1,3 +1,11 @@
+---
+id: module-plugin-chat
+type: module-design
+status: active
+title: Chat (shared contract and view)
+parent: group-plugins-agents
+---
+
 # Chat (shared contract and view)
 
 The conversation records and the drawn chat view that an agent plugin's chat mode uses. It has no plugin of its own: each agent plugin

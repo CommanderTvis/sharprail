@@ -1,3 +1,11 @@
+---
+id: module-checks
+type: module-design
+status: active
+title: Headless checks and E2E translations
+parent: group-platform
+---
+
 # Headless checks and E2E translations
 
 Upstream: e2e/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))

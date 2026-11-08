@@ -1,3 +1,10 @@
+---
+id: product-goal
+type: goal-and-requirements
+status: active
+title: SharpRail product contract
+---
+
 # SharpRail product contract
 
 SharpRail is a workbench for desktop, Android and browsers: open a workspace, read its specs and files,

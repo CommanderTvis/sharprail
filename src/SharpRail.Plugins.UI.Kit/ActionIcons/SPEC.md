@@ -1,3 +1,11 @@
+---
+id: submodule-ui-kit-action-icons
+type: submodule-design
+status: active
+title: Menu action icons
+parent: module-plugin-ui-kit
+---
+
 # Menu action icons
 
 Every icon that appears in a context menu or drop-down menu names a meaning (`ActionIcon`), and

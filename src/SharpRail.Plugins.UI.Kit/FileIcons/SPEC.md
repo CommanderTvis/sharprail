@@ -1,3 +1,11 @@
+---
+id: submodule-ui-kit-file-icons
+type: submodule-design
+status: active
+title: Core file-type icons
+parent: module-plugin-ui-kit
+---
+
 # Core file-type icons
 
 Ports the filename rules and artwork from fork `packages/plugin-file-icons` at `40678fd30`

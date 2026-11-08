@@ -1,3 +1,11 @@
+---
+id: module-host-remote
+type: module-design
+status: active
+title: Remote host server
+parent: group-host
+---
+
 # Remote host server
 
 Upstream: packages/server/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))

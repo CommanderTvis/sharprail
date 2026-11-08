@@ -1,3 +1,11 @@
+---
+id: module-ui
+type: module-design
+status: active
+title: The workbench — application and windows
+parent: group-clients
+---
+
 # The workbench — application and windows
 
 Upstream: apps/web/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))

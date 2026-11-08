@@ -1,3 +1,11 @@
+---
+id: submodule-ui-docking
+type: submodule-design
+status: active
+title: Docking — window-local workbench frame
+parent: module-ui
+---
+
 # Docking — window-local workbench frame
 
 Upstream: apps/web/src/shell/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))

@@ -1,3 +1,11 @@
+---
+id: module-scripts
+type: module-design
+status: active
+title: Repository scripts
+parent: group-platform
+---
+
 # Repository scripts
 
 Upstream: scripts/SPEC.md (revision: [STATUS.md](../STATUS.md#upstream-tracking))

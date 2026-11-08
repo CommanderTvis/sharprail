@@ -1,3 +1,11 @@
+---
+id: module-plugin-codex
+type: module-design
+status: active
+title: Codex builtin
+parent: group-plugins-agents
+---
+
 # Codex builtin
 
 Ports fork `packages/plugin-codex` at `177abd30c`, with hook report fields refreshed against

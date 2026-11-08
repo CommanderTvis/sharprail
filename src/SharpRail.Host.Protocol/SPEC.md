@@ -1,3 +1,11 @@
+---
+id: module-host-protocol
+type: module-design
+status: active
+title: Host wire contracts
+parent: group-host
+---
+
 # Host wire contracts
 
 Upstream: packages/contracts/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))

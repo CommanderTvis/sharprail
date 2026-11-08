@@ -1,3 +1,11 @@
+---
+id: module-host-client
+type: module-design
+status: active
+title: Host client adapters
+parent: group-host
+---
+
 # Host client adapters
 
 Upstream: apps/web/src/transport/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))

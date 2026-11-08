@@ -1,3 +1,11 @@
+---
+id: module-plugin-omp
+type: module-design
+status: active
+title: omp builtin
+parent: group-plugins-agents
+---
+
 # omp builtin
 
 Basic ("Early support") integration of the omp coding agent (https://omp.sh). Disabled by default. The manifest

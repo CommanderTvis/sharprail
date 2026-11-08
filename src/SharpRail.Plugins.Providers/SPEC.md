@@ -1,3 +1,11 @@
+---
+id: module-plugin-providers
+type: module-design
+status: active
+title: Model providers builtin
+parent: group-plugins-agents
+---
+
 # Model providers builtin
 
 Settings › Model providers manages the API keys of the model providers Pi and omp use. Enabled by default; not headless

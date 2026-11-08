@@ -1,3 +1,11 @@
+---
+id: module-plugin-pi
+type: module-design
+status: active
+title: Pi builtin
+parent: group-plugins-agents
+---
+
 # Pi builtin
 
 Early support for the Pi coding agent (https://github.com/badlogic/pi-mono), shown as a chat tab in the shared chat view

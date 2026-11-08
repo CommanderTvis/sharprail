@@ -1,3 +1,11 @@
+---
+id: submodule-ui-state
+type: submodule-design
+status: active
+title: State — what is shared and what is remembered
+parent: module-ui
+---
+
 # State — what is shared and what is remembered
 
 Upstream: apps/web/src/store/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))

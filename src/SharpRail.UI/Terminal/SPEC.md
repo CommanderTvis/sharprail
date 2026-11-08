@@ -1,3 +1,11 @@
+---
+id: submodule-ui-terminal
+type: submodule-design
+status: active
+title: Terminal — terminal tabs in the UI
+parent: module-ui
+---
+
 # Terminal — terminal tabs in the UI
 
 Upstream: packages/server/src/terminal/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))

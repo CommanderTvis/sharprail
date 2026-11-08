@@ -1,3 +1,11 @@
+---
+id: submodule-ui-rendering
+type: submodule-design
+status: active
+title: "Rendering: shared controls, document rendering and helpers"
+parent: module-ui
+---
+
 # Rendering: shared controls, document rendering and helpers
 
 Upstream: apps/web/src/components/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))

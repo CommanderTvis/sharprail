@@ -1,3 +1,11 @@
+---
+id: submodule-ui-settings
+type: submodule-design
+status: active
+title: "Panels: Settings and shared dialogs"
+parent: module-ui
+---
+
 # Panels: Settings and shared dialogs
 
 Upstream: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
