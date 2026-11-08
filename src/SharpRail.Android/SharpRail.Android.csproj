@@ -63,6 +63,7 @@
     <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Discord/UI/SharpRail.Plugins.Discord.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.BranchGraph/UI/SharpRail.Plugins.BranchGraph.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Review/UI/SharpRail.Plugins.Review.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Processes/UI/SharpRail.Plugins.Processes.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />

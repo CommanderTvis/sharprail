@@ -111,7 +111,7 @@ public sealed partial class WorkbenchWindow
     }
 
     /// <summary>The Review panel's place for the repo hosting plugin's section; it follows the registry while shown (W28).</summary>
-    private ContentControl RepoHostReviewSection()
+    internal ContentControl RepoHostReviewSection()
     {
         var host = new ContentControl { Name = "ReviewPullRequestHost" };
         PluginRow<RepoHostUIRegistration>? shown = null;

@@ -261,7 +261,7 @@ internal static class UiChecks
         var window = new WorkbenchWindow(host, root, store, E2E.E2eTerminals.Plain);
         window.Width = 1352; window.Height = 848;
         window.Show();
-        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "review"), "The Git workspace did not mount.");
+        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool), "The Git workspace did not mount.");
         Pump(() => window.GetLogicalDescendants().OfType<DrawnTree>().Any(tree => tree.Name == "SpecsTree"), "The spec dialect's Specs panel did not mount.");
         Pump(() => Find<DrawnTree>(window, "SpecsTree").Roots.Any(item => Equals(item.Tag, "SPEC.md") &&
             item.Children.Any(child => Equals(child.Tag, "src/SPEC.md"))), "Spec hierarchy did not render.");

@@ -209,6 +209,7 @@ internal sealed class PluginUIContext : IPluginUIContext
     public void SlotSection(SlotSectionRegistration section) { Guard(); Registry.AddSlotSection(Id, section); }
     public void HeaderItem(HeaderItemRegistration item) { Guard(); Registry.AddHeaderItem(Id, item); }
     public void RepoHostUI(RepoHostUIRegistration registration) { Guard(); Registry.AddRepoHostUi(Id, registration); }
+    public Avalonia.Controls.Control RepoHostReviewSection() => Workbench.ActiveWindow?.RepoHostReviewSection() ?? new Avalonia.Controls.ContentControl();
     public void SideTool(SideToolRegistration registration) { Guard(); Registry.AddSideTool(Id, registration); }
     public void Companion(CompanionRegistration registration) { Guard(); Registry.AddCompanion(Id, registration); }
     public void TabDecoration(Func<TabRef, TabDecoration?> decorate) { Guard(); Registry.AddTabDecorator(Id, decorate); }

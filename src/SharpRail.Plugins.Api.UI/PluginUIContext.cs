@@ -387,6 +387,14 @@ public interface IPluginUIContext
     [PluginAmbient]
     void OpenCommitChanges(string workspaceId, string sha);
 
+    /// <summary>
+    /// A control that shows the active repo hosting plugin's pull request review section (W28) and follows the active plugin while it is
+    /// attached; empty while no repo hosting plugin is active. Meant for a review pane that wants the same section the host offers.
+    /// </summary>
+    /// <returns>The self-updating section.</returns>
+    [PluginAmbient, PluginCrossing(PluginCrossing.LocalInRunner, IsolatedShape = "a placeholder control in the plugin's tree; the app composites the real section into its rectangle")]
+    Avalonia.Controls.Control RepoHostReviewSection();
+
     /// <summary>Reads a file under the manifest's assets directory through the host (W19).</summary>
     /// <param name="path">The path relative to the assets directory.</param>
     /// <param name="cancellationToken">Cancels the read.</param>

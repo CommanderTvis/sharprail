@@ -30,7 +30,7 @@ public sealed partial class LayoutSession
             "files" => "file",
             "lsp" => "code",
             _ => "discuss"
-        }, DockState.ToolRegion(id), id is "review"))
+        }, DockState.ToolRegion(id)))
     ];
     private IReadOnlyList<DockToolInfo> tools = CoreTools;
 

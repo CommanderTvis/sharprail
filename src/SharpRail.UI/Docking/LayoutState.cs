@@ -117,13 +117,15 @@ public sealed class DockState
         HomeProjectsWidth = HomeProjectsWidth
     };
 
-    public static readonly string[] ToolNames = ["projects", "files", "review", "lsp"];
+    public static readonly string[] ToolNames = ["projects", "files", "lsp"];
     /// <summary>Core tools retired from layouts: Changes became Files' Changed mode (ThinkRail #779).</summary>
     public static readonly IReadOnlySet<string> RetiredToolIds = new HashSet<string> { "changes" };
     /// <summary>The spec dialect plugin's Specs tool, which the presets seat first in the right rail.</summary>
     public const string SpecsTool = "plugin:spec-dialect:specs";
+    /// <summary>The Review plugin's tool, which the presets seat in the lower right rail.</summary>
+    public const string ReviewTool = "plugin:review:review";
     /// <summary>Core tool ids that moved into a plugin, and the plugin tool id a persisted layout reads them as.</summary>
-    public static readonly IReadOnlyDictionary<string, string> LegacyToolIds = new Dictionary<string, string> { ["specs"] = SpecsTool };
+    public static readonly IReadOnlyDictionary<string, string> LegacyToolIds = new Dictionary<string, string> { ["specs"] = SpecsTool, ["review"] = ReviewTool };
     public static DockTab Tool(string id)
     {
         var name = PluginIdentity.ParseToolId(id)?.Tool ?? id;
@@ -350,12 +352,12 @@ public sealed class DockState
         var center = new DockGroup();
         var left = new DockGroup { Region = "left", Tools = [Tool("projects")] };
         var top = new DockGroup { Region = "right", Tools = [Tool(SpecsTool), Tool("files")], Weight = 1.25 };
-        var lower = new DockGroup { Region = "right", Tools = [Tool("review")] };
+        var lower = new DockGroup { Region = "right", Tools = [Tool(ReviewTool)] };
         var state = new DockState { Center = new() { GroupId = center.Id }, Groups = [center, left, top, lower] };
         if (name == "focus") state.LeftVisible = state.RightVisible = false;
         if (name == "review")
         {
-            top.Tools = [Tool("review")]; top.Weight = 1.4;
+            top.Tools = [Tool(ReviewTool)]; top.Weight = 1.4;
             lower.Tools = [Tool(SpecsTool), Tool("files")];
             state.LeftWidth = .16; state.RightWidth = .32;
         }

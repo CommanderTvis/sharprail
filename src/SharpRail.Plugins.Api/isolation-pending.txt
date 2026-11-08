@@ -87,6 +87,7 @@ M:SharpRail.Plugins.Api.UI.IPluginUIContext.OpenTextDiffAsync(System.String,Syst
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.PickFileAsync(SharpRail.Plugins.Api.UI.FilePickOptions)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.Prompt(SharpRail.Plugins.Api.UI.PluginPrompt)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.ReadFileAsync(System.String,System.String,System.Threading.CancellationToken)
+M:SharpRail.Plugins.Api.UI.IPluginUIContext.RepoHostReviewSection
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.RepoHostUI(SharpRail.Plugins.Api.UI.RepoHostUIRegistration)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.RequestAsync``2(SharpRail.Plugins.Api.PluginMethod{``0,``1},``0,System.Threading.CancellationToken)
 M:SharpRail.Plugins.Api.UI.IPluginUIContext.RevealTool(System.String,System.String)

@@ -833,6 +833,7 @@ internal static class Program
             PluginHostChecks.Run(root).GetAwaiter().GetResult();
             PluginJsonChecks.Run(root).GetAwaiter().GetResult();
             SpecDialectChecks.Run(root).GetAwaiter().GetResult();
+            ReviewPluginChecks.Migration();
             BlueprintChecks.Run(root).GetAwaiter().GetResult();
             ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
             DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult();
@@ -849,6 +850,7 @@ internal static class Program
             FileActionChecks.Run(root);
             PluginWatchChecks.Run(root);
             SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
+            ReviewPluginChecks.RunUi(Path.Combine(root, "review-plugin-e2e"));
             BlueprintChecks.RunUi(root);
             ClaudeCodeChecks.RunUi(root);
             ClaudeCodeChecks.Launcher(root);
@@ -1138,6 +1140,18 @@ internal static class Program
             E2E.MarkdownDocumentE2E.SpecDocuments(e2e);
             E2E.LiveRefreshE2E.Run(e2e);
             Console.WriteLine("PASS spec dialect checks");
+            return;
+        }
+        if (args.SequenceEqual(["--review-plugin"]))
+        {
+            ReviewPluginChecks.Migration();
+            LayoutChecks.Run();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ReviewPluginChecks.RunUi(Path.Combine(root, "review-plugin-e2e"));
+            GitlessPaneChecks.Run(root);
+            PaneRetentionChecks.Run(root);
+            Console.WriteLine("PASS review plugin checks");
             return;
         }
         if (args.SequenceEqual(["--welcome"]))
@@ -1465,6 +1479,7 @@ internal static class Program
         Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("review-plugin", () => ReviewPluginChecks.Migration());
         Gate.Case("blueprint", () => BlueprintChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("claude-code", () => ClaudeCodeChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("claude-chat-host", () => ClaudeChatChecks.Run(root).GetAwaiter().GetResult());
@@ -1505,6 +1520,7 @@ internal static class Program
         Gate.Case("files-modes-ui", () => E2E.FilesModesE2E.Run(root));
         Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("review-plugin-ui", () => ReviewPluginChecks.RunUi(Path.Combine(root, "review-plugin-e2e")));
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));
         Gate.Case("claude-code-ui", () => ClaudeCodeChecks.RunUi(root));
         Gate.Case("workspace-emigrate", () => { if (!OperatingSystem.IsWindows()) ClaudeCodeChecks.Emigrate(root); });

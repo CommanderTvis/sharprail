@@ -58,6 +58,8 @@ using SharpRail.Plugins.Processes;
 using SharpRail.Plugins.Processes.Host;
 using SharpRail.Plugins.Providers;
 using SharpRail.Plugins.Providers.Host;
+using SharpRail.Plugins.Review;
+using SharpRail.Plugins.Review.Host;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.Host;
@@ -133,6 +135,7 @@ public static class BuiltinPlugins
         (ClaudeCodeManifest.Manifest, new ClaudeCodeHost()),
         (DiscordPlugin.Manifest, new DiscordHost()),
         (BranchGraphPlugin.Manifest, new BranchGraphHost()),
+        (ReviewPlugin.Manifest, new ReviewHost()),
         (ProcessesPlugin.Manifest, new ProcessesHost()),
         (VisualizeContract.Manifest, new VisualizeHost()),
         (CodexManifest.Manifest, new CodexHost()),

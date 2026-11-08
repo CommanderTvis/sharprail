@@ -118,8 +118,6 @@ public sealed partial class WorkbenchWindow
 
     private void RefreshGitPanels()
     {
-        if (toolContent.GetValueOrDefault("review")?.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(label => label.Name == "ReviewSummary") is { } summary)
-            summary.Text = ReviewSummary();
         UpdateProjectHomeActions();
         SyncPluginTools();
         var openMenu = toolContent.GetValueOrDefault("changes")?.GetLogicalDescendants().OfType<Button>()
@@ -143,7 +141,6 @@ public sealed partial class WorkbenchWindow
         UpdateFileMarks();
         RequestBranchStatus(false);
         UpdateRailSelection();
-        surface.RefreshContents("review");
     }
 
     private ContextMenu? gitPanelMenu;

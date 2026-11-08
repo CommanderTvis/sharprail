@@ -95,7 +95,7 @@ internal static class LayoutE2E
         void Drop(bool before)
         {
             Settle(550);
-            var changes = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review"));
+            var changes = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.ReviewTool));
             Point target;
             var targetHeight = 100d;
             if (changes.Folded)
@@ -124,15 +124,15 @@ internal static class LayoutE2E
             app.Window.MouseMove(target); Settle(); app.Window.MouseUp(target, MouseButton.Left); Settle();
         }
         Drop(true);
-        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "files", "review" }), "Dropping above Changes must insert Files between the existing groups.");
+        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "files", DockState.ReviewTool }), "Dropping above Changes must insert Files between the existing groups.");
         Drop(false);
-        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "review", "files" }), "Dropping below Changes must retain the emptied source group.");
-        var changesId = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review")).Id;
+        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", DockState.ReviewTool, "files" }), "Dropping below Changes must retain the emptied source group.");
+        var changesId = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.ReviewTool)).Id;
         app.Find<Button>("HidePane_" + changesId).Focus();
         app.Window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Settle();
         Require(app.Window.Layout.Group(changesId).Folded, "Enter on Hide must fold the Changes group.");
         Drop(true);
-        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "files", "review", "empty" }) && app.Window.Layout.Group(changesId).Folded,
+        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "files", DockState.ReviewTool, "empty" }) && app.Window.Layout.Group(changesId).Folded,
             "A folded group's split destination must insert Files above it and preserve its folded state.");
         Console.WriteLine("PASS upstream layout.spec.ts: side groups expose broad per-panel above and below split targets");
     }

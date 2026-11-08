@@ -46,7 +46,7 @@ internal static class LayoutFrameE2E
         Require(Math.Abs(app.Find<Border>("TabStrip_" + right).Bounds.Height - 32) < .1 &&
             !app.Find<Border>("TabStrip_" + right).GetLogicalDescendants().OfType<ScrollViewer>().Any(),
             "A side tool pane's header must be one 32-pixel row without a tab list.");
-        foreach (var tool in DockState.ToolNames.Append(DockState.SpecsTool))
+        foreach (var tool in DockState.ToolNames.Append(DockState.SpecsTool).Append(DockState.ReviewTool))
         {
             if (tool == "lsp")
             {

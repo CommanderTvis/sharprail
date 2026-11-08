@@ -38,7 +38,7 @@ independent callers keep the default immediate build.
 
 ## Tool catalog
 
-The tools a layout can name are an input, not a closed list: `LayoutSession.Tools` is core's five
+The tools a layout can name are an input, not a closed list: `LayoutSession.Tools` is core's three, Projects, Files and Code Intelligence
 (`LayoutSession.CoreTools`) followed by whatever the workbench composes in with `SetExtraTools`, today the plugin
 tools the roster declares. Names, icons, default side, the reveal menus (`ShowTool_<id>`), preset restore and
 `RestoreTool` read it; a change re-renders the surface only when the composed list differs. `IsValid` accepts

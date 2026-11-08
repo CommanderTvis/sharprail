@@ -12,12 +12,12 @@ namespace SharpRail.Checks;
 internal static class GitlessPaneChecks
 {
     private const string Graph = "plugin:branch-graph:graph";
-    private static readonly string[] GitTools = ["review", Graph];
+    private static readonly string[] GitTools = [DockState.ReviewTool, Graph];
 
     internal static void Run(string root)
     {
         var session = new LayoutSession();
-        session.SetExtraTools([new(Graph, "Git Graph", "git-branch", "right", RequiresGit: true), new("agent", "Agent", "terminal", "right")]);
+        session.SetExtraTools([new(Graph, "Git Graph", "git-branch", "right", RequiresGit: true), new(DockState.ReviewTool, "Review", "discuss", "right", RequiresGit: true), new("agent", "Agent", "terminal", "right")]);
         session.RestoreTool(Graph);
         session.RestoreTool("agent");
         session.SwitchWorkspace("repository");
@@ -38,7 +38,7 @@ internal static class GitlessPaneChecks
         session.ApplyPreset(DockState.Preset("balanced"));
         AssertBlocked(session);
         var restored = new LayoutSession(saved);
-        restored.SetExtraTools([new(Graph, "Git Graph", "git-branch", "right", RequiresGit: true)]);
+        restored.SetExtraTools([new(Graph, "Git Graph", "git-branch", "right", RequiresGit: true), new(DockState.ReviewTool, "Review", "discuss", "right", RequiresGit: true)]);
         restored.SetGitAvailable(false);
         AssertBlocked(restored);
         restored.SetGitAvailable(true);

@@ -30,6 +30,8 @@ using SharpRail.Plugins.Processes;
 using SharpRail.Plugins.Processes.UI;
 using SharpRail.Plugins.Providers;
 using SharpRail.Plugins.Providers.UI;
+using SharpRail.Plugins.Review;
+using SharpRail.Plugins.Review.UI;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.UI;
@@ -48,6 +50,7 @@ public static class BuiltinPlugins
         (ClaudeCodeManifest.Manifest, () => new ClaudeCodeUI()),
         (DiscordPlugin.Manifest, () => new DiscordUI()),
         (BranchGraphPlugin.Manifest, () => new BranchGraphUI()),
+        (ReviewPlugin.Manifest, () => new ReviewUI()),
         (ProcessesPlugin.Manifest, () => new ProcessesUI()),
         (VisualizeContract.Manifest, () => new VisualizeUI()),
         (CodexManifest.Manifest, () => new CodexUI()),
@@ -70,7 +73,7 @@ public static class BuiltinPlugins
     /// </summary>
     public static IReadOnlyList<PluginContract> Contracts =>
     [
-        SpecDialectContract.Contract, BlueprintContract.Contract, ClaudeCodeContract.Contract, DiscordContract.Contract, BranchGraphContract.Contract,
+        SpecDialectContract.Contract, BlueprintContract.Contract, ClaudeCodeContract.Contract, DiscordContract.Contract, BranchGraphContract.Contract, ReviewContract.Contract,
         ProcessesContract.Contract, VisualizeContract.Contract, CodexContract.Contract, OmpContract.Contract, PiContract.Contract, AcpContract.Contract,
         ProvidersContract.Contract, AirGatewayContract.Contract, AirContextContract.Contract, TailscaleContract.Contract, EpubContract.Contract,
         GitHubContract.Contract, EnvContract.Contract

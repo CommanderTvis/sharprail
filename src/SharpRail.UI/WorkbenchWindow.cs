@@ -144,7 +144,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         AddHandler(KeyDownEvent, (_, e) => { if (openSettings is null && dialogsOpen == 0 && workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
         Deactivated += (_, _) => workbench.Commands.Deactivated();
-        Activated += (_, _) => { if (toolContent.ContainsKey("review")) RequestBranchStatus(true, force: true); };
+        Activated += (_, _) => { if (toolContent.ContainsKey(DockState.ReviewTool)) RequestBranchStatus(true, force: true); };
         // A bell is seen once its terminal is on screen in an active window.
         Activated += (_, _) =>
         {
@@ -473,15 +473,13 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             var filesPanel = toolContent.GetValueOrDefault("files");
             var changesPanel = sameProject ? toolContent.GetValueOrDefault("changes") : null;
             if (!sameProject && toolContent.GetValueOrDefault("changes") is { } leaving) (leaving.Parent as Panel)?.Children.Remove(leaving);
-            var reviewPanel = toolContent.GetValueOrDefault("review");
             // The Language panel is workspace-keyed only inside itself, so one instance serves every workspace and project.
             var languagePanel = toolContent.GetValueOrDefault("lsp") as Panels.LanguagePanel;
             toolContent.Clear();
-            // The switch made every retained pane inert (see OpenWorkspaceAsync); Files, Changes, Review and plugin panes restore themselves, this one only here.
+            // The switch made every retained pane inert (see OpenWorkspaceAsync); Files, Changes and plugin panes restore themselves, this one only here.
             if (languagePanel is not null) { languagePanel.Retarget(workspaceRoot); languagePanel.IsHitTestVisible = true; toolContent["lsp"] = languagePanel; }
             if (filesPanel is not null) toolContent["files"] = filesPanel;
             if (changesPanel is not null) toolContent["changes"] = changesPanel;
-            if (reviewPanel is not null) { toolContent["review"] = reviewPanel; reviewPanel.IsHitTestVisible = true; }
             if (rail is not null) { toolContent["projects"] = rail; UpdateRailSelection(); }
             if (!state.Current.Projects.Contains(projectRoot) || state.Current.RecentProjects.Contains(projectRoot))
                 _ = ShareAsync(HostStateChange.OpenProject(projectRoot));
@@ -663,7 +661,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 {
                     "projects" => ProjectsPanel(),
                     "files" => FilesPanel(),
-                    "review" => ReviewPanel(),
                     "lsp" => LanguagePanel(),
                     _ => PluginTool(tab.Id)
                 };

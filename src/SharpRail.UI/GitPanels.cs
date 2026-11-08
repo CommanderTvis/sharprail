@@ -470,20 +470,6 @@ public sealed partial class WorkbenchWindow
         }
     }
 
-    private Control ReviewPanel()
-    {
-        var panel = new StackPanel { Margin = new Thickness(16), Spacing = 12, Name = "ReviewPanel" };
-        panel.Children.Add(Ui.Text("Repository review", Ui.TextBrush, 16));
-        var summary = Ui.Text(ReviewSummary());
-        summary.Name = "ReviewSummary";
-        panel.Children.Add(summary);
-        panel.Children.Add(RepoHostReviewSection());
-        panel.Children.Add(Ui.Text("Select a file in Files · Changed to inspect its diff.", Ui.Hint, 12));
-        panel.Children.Add(Ui.Button("Show Changes", RevealChanges, "fileDiff"));
-        return panel;
-    }
-
-    private string ReviewSummary() => git.IsRepository ? $"{git.Changes.Count} changed files on {git.Branch}" : "No repository selected";
 }
 
 /// <summary>

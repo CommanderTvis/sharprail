@@ -417,6 +417,19 @@
           "SharpRail.Plugins.Providers": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.review": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.review.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.Review": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.specdialect": {
         "type": "Project",
         "dependencies": {

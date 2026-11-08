@@ -861,6 +861,7 @@ SharpRail.Plugins.Api.UI.IPluginUIContext.OpenTextDiffAsync(string! workspaceId,
 SharpRail.Plugins.Api.UI.IPluginUIContext.WorkspaceChips(string! workspaceId) -> System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!
 SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.ForWorkspace.get -> System.Func<string!, Avalonia.Controls.Control!>?
 SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.ForWorkspace.init -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.RepoHostReviewSection() -> Avalonia.Controls.Control!
 SharpRail.Plugins.Api.UI.IPluginUIContext.RepoHostUI(SharpRail.Plugins.Api.UI.RepoHostUIRegistration! registration) -> void
 SharpRail.Plugins.Api.UI.IRepoHostSurface
 SharpRail.Plugins.Api.UI.IRepoHostSurface.ApplyAsync(SharpRail.Plugins.Api.UI.RepoAction! action, string? failureTitle = null) -> System.Threading.Tasks.Task<SharpRail.Plugins.Api.UI.RepoActionResult?>!

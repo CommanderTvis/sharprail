@@ -58,12 +58,12 @@ internal static class DockInputChecks
         Find<Button>("Tab_plugin_spec-dialect_specs").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Pump(() => HeaderIcon().Content is Border { Tag: "resolved:plugin:spec-dialect:specs" },
             "Switching tools must refresh the pane header through the plugin-aware icon resolver.");
-        window.Layout.Close(right[1].Id, "review");
+        window.Layout.Close(right[1].Id, DockState.ReviewTool);
         Require(Find<Button>("RailUnplaced_review").GetLogicalDescendants().OfType<Border>().Any(border => Equals(border.Tag, "resolved:review")),
             "Unplaced tools must use the same custom icon resolver.");
         surface.TabIcon = resolveIcon;
         surface.Rebuild();
-        window.Layout.RestoreTool("review");
+        window.Layout.RestoreTool(DockState.ReviewTool);
 
         var rail = Find<StackPanel>("rightRailEntries");
         var clusters = rail.Children.OfType<StackPanel>().ToArray();
@@ -81,13 +81,13 @@ internal static class DockInputChecks
         Require(frames.Length > 0 && rail.GetLogicalDescendants().OfType<Border>().Where(border => border.Height == 1 && border.Bounds.Width > 0)
                 .All(line => Math.Abs(CentreX(line) - CentreX(frames[0])) < .5),
             "Rail separators must share the horizontal centre of the icons.");
-        window.Layout.Close(right[1].Id, "review");
+        window.Layout.Close(right[1].Id, DockState.ReviewTool);
         var unplaced = Find<Button>("RailUnplaced_review");
         Require(unplaced.Content is Border { Background: var dimmed } && ReferenceEquals(dimmed, Ui.Hint) && Find<StackPanel>("rightRailEntries").Children.IndexOf(unplaced.GetLogicalAncestors().OfType<Grid>().First()) >
             Find<StackPanel>("rightRailEntries").Children.IndexOf(Find<StackPanel>("RailCluster_" + right[1].Id)),
             "A tool placed nowhere must sit dimmed in a trailing cluster.");
         unplaced.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Pump(() => window.Layout.Group(right[1].Id).Tools.Any(tab => tab.Id == "review") && window.Layout.Selected(right[1].Id)?.Id == "review",
+        Pump(() => window.Layout.Group(right[1].Id).Tools.Any(tab => tab.Id == DockState.ReviewTool) && window.Layout.Selected(right[1].Id)?.Id == DockState.ReviewTool,
             "Activating an unplaced tool must restore it to its recorded pane.");
         var files = Find<Button>("Tab_files");
         files.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -138,13 +138,13 @@ internal static class DockInputChecks
         var window = new WorkbenchWindow(new ProjectServices(root), root, profile, E2E.E2eTerminals.Plain);
         window.Show();
         var deadline = Awake.Now.AddSeconds(15);
-        while ((!window.WorkspaceMounted || !window.Layout.Tools.Any(tool => tool.Id == "review")) && Awake.Now < deadline)
+        while ((!window.WorkspaceMounted || !window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool)) && Awake.Now < deadline)
         {
             // Workspace startup crosses an animation frame before probing Git; draining jobs alone cannot render it.
             using var stop = new CancellationTokenSource(10);
             Dispatcher.UIThread.MainLoop(stop.Token); window.UpdateLayout();
         }
-        Require(window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "review"), "Dock input Git workspace did not mount.");
+        Require(window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool), "Dock input Git workspace did not mount.");
         T Find<T>(string name) where T : Control
         {
             Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
@@ -344,9 +344,9 @@ internal static class DockInputChecks
                 var body = Bounds(Find<Border>("DockBody_" + group.Id));
                 var point = region == "left" ? new Point(body.Center.X, before ? body.Top + 20 : body.Bottom - 20) :
                     new Point(before ? body.Left + 20 : body.Right - 20, body.Center.Y);
-                Drag("review", point);
+                Drag(DockState.ReviewTool, point);
                 var groups = window.Layout.State.Groups.Where(item => item.Region == region).ToArray();
-                Require(groups.Length == 2 && groups[before ? 0 : 1].Tools.Any(tab => tab.Id == "review"),
+                Require(groups.Length == 2 && groups[before ? 0 : 1].Tools.Any(tab => tab.Id == DockState.ReviewTool),
                     $"Pointer {region} {(before ? "before" : "after")} insertion chose the wrong destination.");
             }
         foreach (var region in new[] { "left" })
@@ -393,8 +393,8 @@ internal static class DockInputChecks
         var left = window.Layout.State.Groups.Single(group => group.Region == "left");
         var bounds = Bounds(Find<Border>("DockBody_" + left.Id));
         var epoch = window.Layout.Epoch;
-        Drag("review", new Point(bounds.Center.X, bounds.Top + 20));
-        Require(window.Layout.Epoch == epoch && window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review")).Region == "right",
+        Drag(DockState.ReviewTool, new Point(bounds.Center.X, bounds.Top + 20));
+        Require(window.Layout.Epoch == epoch && window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.ReviewTool)).Region == "right",
             "Side limit rejected target still committed a pointer drop.");
         Require(AutomationProperties.GetName(Find<Button>("HidePane_" + window.Layout.State.Groups.First(group => group.Region == "right").Id)) == "Hide",
             "Icon-only pane control has no accessible name.");

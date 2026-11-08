@@ -16,7 +16,7 @@ internal static class ProjectPaneChecks
     {
         var layout = new LayoutSession();
         var top = layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == "files")).Id;
-        var lower = layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == "review")).Id;
+        var lower = layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == DockState.ReviewTool)).Id;
         var initialOrder = layout.Group(top).Tools.Select(tool => tool.Id).ToArray();
         layout.Geometry(state => { state.LeftWidth = .21; state.RightWidth = .31; });
         layout.SwitchWorkspace("project-a/default", "project-a");
@@ -52,12 +52,12 @@ internal static class ProjectPaneChecks
         Require(preset.ActiveProject.Length == 0 && preset.ProjectPanes.Count == 0 && preset.DefaultProjectPanes is null,
             "Shared custom presets must not publish client-local project pane state.");
         var legacy = new LayoutSession();
-        var review = legacy.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == "review")).Id;
-        legacy.Close(review, "review");
+        var review = legacy.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == DockState.ReviewTool)).Id;
+        legacy.Close(review, DockState.ReviewTool);
         legacy.SwitchWorkspace("legacy-a", "legacy-a");
-        legacy.RestoreTool("review");
+        legacy.RestoreTool(DockState.ReviewTool);
         legacy.SwitchWorkspace("legacy-b", "legacy-b");
-        Require(!legacy.State.Groups.Any(group => group.Tools.Any(tool => tool.Id == "review")),
+        Require(!legacy.State.Groups.Any(group => group.Tools.Any(tool => tool.Id == DockState.ReviewTool)),
             "Legacy global visibility must seed the defaults once, without inheriting a later project's reopen.");
         Console.WriteLine("PASS project pane state: close/hide/reopen, shared workspaces/geometry, restart, preset isolation and legacy defaults");
 

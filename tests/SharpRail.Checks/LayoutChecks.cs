@@ -353,9 +353,9 @@ internal static class LayoutChecks
         var bottom = session.State.Center.Leaves().Single();
         session.NewTerminal(bottom);
         var side = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool)).Id;
-        var lower = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review")).Id;
+        var lower = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.ReviewTool)).Id;
         // The rail-entry checks below need a second tool in the lower pane.
-        session.RestoreTool("lsp", lower); session.Select(lower, "review");
+        session.RestoreTool("lsp", lower); session.Select(lower, DockState.ReviewTool);
         var terminal = session.Tabs(bottom).Single();
         Require(terminal is { Kind: "terminal", Title: "Terminal 1" } && session.Selected(bottom)?.Id == terminal.Id,
             "An explicit terminal must open selected in its center group.");
@@ -373,7 +373,7 @@ internal static class LayoutChecks
         var legacy = session.State.Copy();
         legacy.Workspaces["one"].Documents[created].Clear();
         legacy.Workspaces["one"].Documents[lower] = [terminal];
-        legacy.Workspaces["one"].BeforeToolByTabId[terminal.Id] = "review";
+        legacy.Workspaces["one"].BeforeToolByTabId[terminal.Id] = DockState.ReviewTool;
         Require(!LayoutSession.IsValid(legacy), "A mixed tool and terminal pane must be invalid.");
         var migrated = new LayoutSession(System.Text.Json.JsonSerializer.Deserialize<DockState>(System.Text.Json.JsonSerializer.Serialize(legacy)));
         Require(migrated.State.Workspaces["one"].Documents[created].Single().Id == terminal.Id &&
@@ -410,23 +410,23 @@ internal static class LayoutChecks
         // Rail entries: an unpressed entry reveals, unfolds and selects at once; the pressed one folds its pane.
         session.Visible("right", false);
         epoch = session.Epoch;
-        Require(!session.ActivateEntry(lower, "review") && session.Epoch == epoch + 1 && session.State.RightVisible &&
-            !session.Group(lower).Folded && session.Selected(lower)?.Id == "review", "An unpressed rail entry must reveal and select in one transition.");
-        Require(session.ActivateEntry(lower, "review") && session.Group(lower).Folded, "The pressed rail entry must fold its pane.");
+        Require(!session.ActivateEntry(lower, DockState.ReviewTool) && session.Epoch == epoch + 1 && session.State.RightVisible &&
+            !session.Group(lower).Folded && session.Selected(lower)?.Id == DockState.ReviewTool, "An unpressed rail entry must reveal and select in one transition.");
+        Require(session.ActivateEntry(lower, DockState.ReviewTool) && session.Group(lower).Folded, "The pressed rail entry must fold its pane.");
         Require(!session.ActivateEntry(lower, "lsp") && !session.Group(lower).Folded && session.Selected(lower)?.Id == "lsp",
             "Another entry of a folded pane must unfold it and select itself.");
         Require(!session.ActivateEntry(below.Id, null) && !session.Group(below.Id).Folded, "A terminal pane's entry must unfold it.");
 
         // Cluster boundaries create a pane at that index; a pane's only tab beside itself is a no-op.
         var first = session.State.Groups.First(group => group.Region == "right");
-        Require(!session.CanMoveToNewGroupAt("review", lower, "right", -1), "A boundary outside the rail must be refused.");
+        Require(!session.CanMoveToNewGroupAt(DockState.ReviewTool, lower, "right", -1), "A boundary outside the rail must be refused.");
         session.HidePane(first.Id);
-        Require(session.MoveToNewGroupAt("review", lower, "right", 0) &&
-            session.State.Groups.First(group => group.Region == "right").Tools.Single().Id == "review", "A boundary drop must create a pane at its index.");
+        Require(session.MoveToNewGroupAt(DockState.ReviewTool, lower, "right", 0) &&
+            session.State.Groups.First(group => group.Region == "right").Tools.Single().Id == DockState.ReviewTool, "A boundary drop must create a pane at its index.");
         var alone = session.State.Groups.First(group => group.Region == "right");
-        Require(!session.CanMoveToNewGroupAt("review", alone.Id, "right", 0) && !session.CanMoveToNewGroupAt("review", alone.Id, "right", 1),
+        Require(!session.CanMoveToNewGroupAt(DockState.ReviewTool, alone.Id, "right", 0) && !session.CanMoveToNewGroupAt(DockState.ReviewTool, alone.Id, "right", 1),
             "Moving a pane's only tab to its own boundaries must be refused.");
-        Require(session.Move("review", alone.Id, first.Id, 0) && !session.Group(first.Id).Folded,
+        Require(session.Move(DockState.ReviewTool, alone.Id, first.Id, 0) && !session.Group(first.Id).Folded,
             "An explicit drop must unfold its destination in the same transition.");
 
         // Project Home reserves no terminal and keeps its own Projects pane state.

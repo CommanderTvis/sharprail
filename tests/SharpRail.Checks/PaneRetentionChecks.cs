@@ -10,6 +10,7 @@ using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
+using SharpRail.UI.Docking;
 using SharpRail.UI.Panels;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -116,7 +117,7 @@ internal static class PaneRetentionChecks
         Require(ReferenceEquals(tree, app.Find<TreeView>("ChangesTree")) && !folder.IsExpanded && folder.GetLogicalAncestors().Contains(tree),
             "A tree refresh must preserve the tree, unchanged folder controls and collapse state.");
 
-        window.Layout.Select(window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review")).Id, "review");
+        window.Layout.Select(window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.ReviewTool)).Id, DockState.ReviewTool);
         var review = app.Find<StackPanel>("ReviewPanel");
         var summary = app.Find<TextBlock>("ReviewSummary");
         var previousSummary = summary.Text;

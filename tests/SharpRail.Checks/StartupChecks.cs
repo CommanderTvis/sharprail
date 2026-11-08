@@ -47,7 +47,7 @@ internal static class StartupChecks
         window.Show();
         Pump(() => window.WorkspaceMounted && host.Requests.Count == 1);
         var first = host.Requests.Single();
-        Require(!first.Result.Task.IsCompleted && !window.Layout.Tools.Any(tool => tool.Id == "review") &&
+        Require(!first.Result.Task.IsCompleted && !window.Layout.Tools.Any(tool => tool.Id == DockState.ReviewTool) &&
             !window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("not a Git repository", StringComparison.OrdinalIgnoreCase) == true),
             "A pending Git probe must not block mounting, expose Git panes or report an unknown repository as absent.");
         Await(window.OpenDocumentAsync("README.md", true));
