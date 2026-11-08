@@ -102,7 +102,7 @@ internal sealed class E2eWorkspace : IDisposable
             // As the app's seam: an external plugin's UI half opens on the remote host only when a check asks for it.
             IsolatedPlugins = isolated is null ? null : async (entry, client, ended, token) =>
                 await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(isolated, entry.Id, client, ended,
-                    open => new SharpRail.UI.Plugins.RemoteSurface(open), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token)
+                    open => new SharpRail.UI.Plugins.RemoteSurface(open, entry.Label), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token)
         };
         Window = latest = Workbench.Open(profile.Data.Windows[0], startPath);
         Window.Width = 1352; Window.Height = 848;
@@ -171,7 +171,7 @@ internal sealed class E2eWorkspace : IDisposable
             // As the host's seam: an external plugin's UI half opens on the in-process host only when a check asks for it.
             IsolatedPlugins = isolation is null ? null : async (entry, client, ended, token) =>
                 await SharpRail.Plugins.Isolation.UI.RemotePluginUIModule.OpenAsync(pluginRuntime, entry.Id, client, ended,
-                    open => new SharpRail.UI.Plugins.RemoteSurface(open), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token),
+                    open => new SharpRail.UI.Plugins.RemoteSurface(open, entry.Label), SharpRail.UI.Plugins.RemoteSurface.ThemeJson, token),
             Notifier = notifier,
             NotificationWindow = TimeSpan.FromMilliseconds(150)
         };

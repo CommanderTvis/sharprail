@@ -6,7 +6,6 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -38,7 +37,37 @@ internal sealed class SurfaceRenderer
         ScrollViewer.ScrollChangedEvent.AddClassHandler<ScrollViewer>((viewer, args) => (TopLevel.GetTopLevel(viewer) as SurfaceWindow)?.View.Scrolled(viewer, args));
         // A popup opening or closing on its own (a tooltip after its delay) is rendered without waiting for the idle pace.
         Popup.IsOpenProperty.Changed.AddClassHandler<Popup>((_, _) => current?.Heat());
+        // A window the plugin opens (a dialog) becomes a remote top-level of the surface it belongs to.
+        Window.WindowOpenedEvent.AddClassHandler<Window>((opened, _) => current?.Opened(opened));
     }
+
+    // The surface that last had input from its client: a window opened with no owner belongs to it.
+    private SurfaceView? lastInput;
+
+    /// <summary>
+    /// A window the plugin opened: it joins the surface of its owner (or of its owner's surface), else the surface that
+    /// last had input; with none, it closes again, since no client could show it.
+    /// </summary>
+    private void Opened(Window opened)
+    {
+        if (opened is SurfaceWindow) return;
+        SurfaceView? owner = null;
+        for (var at = opened.Owner; at is not null && owner is null; at = (at as Window)?.Owner)
+            owner = at is SurfaceWindow surface ? surface.View : views.Values.FirstOrDefault(view => view.Holds(at));
+        owner ??= lastInput is { } last && views.ContainsValue(last) ? last : null;
+        if (owner is null)
+        {
+            Console.Error.WriteLine("[error] The plugin opened a window that belongs to no view, so it closed.");
+            opened.Close();
+            return;
+        }
+        owner.Add(opened);
+        Heat();
+    }
+
+    // While a modal dialog of a client's context is open, that client's other surfaces and popups take no input.
+    private bool Blocked(long context, TopLevel target) =>
+        views.Values.Any(view => view.Context == context && view.Modal is { } modal && !ReferenceEquals(modal, target));
 
     public SurfaceRenderer(IsolationPeer peer)
     {
@@ -163,8 +192,8 @@ internal sealed class SurfaceRenderer
     }
 
     /// <summary>
-    /// One surface: its top-level and its open popups, each a headless top-level of its own that the client places, and
-    /// the frames of each.
+    /// One surface: its top-level, its open popups and the windows (dialogs) the plugin opened from it, each a top-level
+    /// of its own that the client places, and the frames of each.
     /// </summary>
     private sealed class SurfaceView
     {
@@ -173,7 +202,8 @@ internal sealed class SurfaceRenderer
         private readonly SurfaceRoot root;
         private readonly FrameSource main;
         private readonly List<SurfaceMove> moves = [];
-        private readonly Dictionary<PopupRoot, PopupView> popups = [];
+        private readonly Dictionary<TopLevel, PopupView> popups = [];
+        private readonly List<Window> dialogs = [];
         private double scale = 1;
         private bool sized, closed;
         private int lastPopup;
@@ -200,6 +230,25 @@ internal sealed class SurfaceRenderer
         public long Context { get; }
         public int Id { get; }
 
+        /// <summary>The newest modal dialog of this surface that is open, if any.</summary>
+        public Window? Modal => dialogs.LastOrDefault(dialog => Remote(dialog) is { IsModal: true });
+
+        /// <summary>Whether <paramref name="top"/> is one of this surface's dialogs.</summary>
+        public bool Holds(WindowBase top) => top is Window dialog && dialogs.Contains(dialog);
+
+        /// <summary>A window the plugin opened from this surface, shown as a dialog from the next tick on.</summary>
+        public void Add(Window dialog)
+        {
+            if (closed || dialogs.Contains(dialog)) return;
+            dialogs.Add(dialog);
+            Remote(dialog)?.SetRenderScaling(scale);
+            dialog.Closed += (_, _) =>
+            {
+                dialogs.Remove(dialog);
+                renderer.Heat();
+            };
+        }
+
         public void Resize(double dipWidth, double dipHeight, double newScale)
         {
             if (!(dipWidth is >= 0 and <= SurfaceLimits.MostSide) || !(dipHeight is >= 0 and <= SurfaceLimits.MostSide) ||
@@ -211,7 +260,7 @@ internal sealed class SurfaceRenderer
             {
                 scale = newScale;
                 Remote(window)?.SetRenderScaling(newScale);
-                foreach (var popup in popups.Keys.ToArray()) Remote(popup)?.SetRenderScaling(newScale);
+                foreach (var top in popups.Keys.Concat(dialogs).Distinct().ToArray()) Remote(top)?.SetRenderScaling(newScale);
             }
             sized = true;
             renderer.Heat();
@@ -232,10 +281,12 @@ internal sealed class SurfaceRenderer
             renderer.Heat();
         }
 
-        // A press outside the surface and its popups on the client, which hid them all: every popup closes, the newest first.
+        // A press outside the surface and its popups on the client, which hid them all: every popup closes, the newest
+        // first. Dialogs stay.
         public void Dismiss()
         {
-            foreach (var view in popups.Values.OrderByDescending(view => view.Id).ToArray()) Shut(view.Popup);
+            foreach (var view in popups.Values.OrderByDescending(view => view.Id).ToArray())
+                if (view.Popup is { } popup) Shut(popup);
             foreach (var popup in window.OpenedPopups.ToArray()) Shut(popup);
             renderer.Heat();
         }
@@ -264,8 +315,21 @@ internal sealed class SurfaceRenderer
         public void Input(SurfaceInput input)
         {
             // Input for a popup that closed meanwhile has nowhere to go.
-            TopLevel? top = input.Popup == 0 ? window : popups.Values.FirstOrDefault(popup => popup.Id == input.Popup)?.Root;
-            if (Remote(top) is not { } target || Remote(window) is not { } keys) return;
+            var popupView = input.Popup == 0 ? null : popups.Values.FirstOrDefault(popup => popup.Id == input.Popup);
+            TopLevel? top = input.Popup == 0 ? window : popupView?.Root;
+            if (top is null || Remote(top) is not { } target) return;
+            renderer.lastInput = this;
+            if (input.Kind == SurfaceInputKind.CloseDialog)
+            {
+                // The client's frame asks the dialog to close; the plugin may still keep it open.
+                if (popupView?.Dialog is { } closing) closing.Close();
+                renderer.Heat();
+                return;
+            }
+            if (renderer.Blocked(Context, top)) return;
+            // Keys go to the dialog they are for, else to the surface's top-level, which hands them to its popups.
+            var dialogKeys = popupView?.Dialog is not null;
+            if ((dialogKeys ? target : Remote(window)) is not { } keys) return;
             var point = new Point(input.X, input.Y);
             var modifiers = (RawInputModifiers)(input.Modifiers & 0x7fff);
             switch (input.Kind)
@@ -277,13 +341,16 @@ internal sealed class SurfaceRenderer
                 case SurfaceInputKind.Wheel: target.Wheel(point, new Vector(Clamp(input.DeltaX), Clamp(input.DeltaY)), modifiers); break;
                 // Keys and text go to the surface's top-level: the keyboard reaches the focused element, in a popup too.
                 case SurfaceInputKind.KeyDown:
-                    if ((Key)input.Key == Key.Tab && Leaving(modifiers.HasFlag(RawInputModifiers.Shift))) break;
-                    if ((Key)input.Key == Key.Escape && Escaped()) break;
+                    if (!dialogKeys && (Key)input.Key == Key.Tab && Leaving(modifiers.HasFlag(RawInputModifiers.Shift))) break;
+                    if (!dialogKeys && (Key)input.Key == Key.Escape && Escaped()) break;
                     keys.Key(true, KeyOf(input.Key), modifiers, PhysicalOf(input.PhysicalKey), Symbol(input.Text));
                     break;
                 case SurfaceInputKind.KeyUp: keys.Key(false, KeyOf(input.Key), modifiers, PhysicalOf(input.PhysicalKey), Symbol(input.Text)); break;
                 case SurfaceInputKind.Text:
                     if (input.Text.Length is > 0 and <= 256) keys.Text(input.Text);
+                    break;
+                case SurfaceInputKind.Preedit:
+                    if (input.Text.Length <= 256) keys.Preedit(input.Text, Math.Clamp(input.Caret, 0, input.Text.Length));
                     break;
                 default: throw new IsoCallException(IsoError.InvalidParams, "Unknown input.");
             }
@@ -299,8 +366,8 @@ internal sealed class SurfaceRenderer
         // Escape while a popup that takes input is open: the newest closes, as the client hides it, and the key goes no further.
         private bool Escaped()
         {
-            if (popups.Values.Where(view => view.Placement is { Input: true } && view.Popup.IsOpen).MaxBy(view => view.Id) is not { } newest) return false;
-            newest.Popup.Close();
+            if (popups.Values.Where(view => view.Placement is { Input: true } && view.Popup is { IsOpen: true }).MaxBy(view => view.Id) is not { Popup: { } newest }) return false;
+            newest.Close();
             return true;
         }
 
@@ -333,15 +400,20 @@ internal sealed class SurfaceRenderer
             if (closed || !sized) return;
             Track();
             main.Tick(scale, root.Wanted, moves);
+            main.Report();
             foreach (var popup in popups.Values.ToArray())
-                if (popup.Root.PlatformImpl is not null) popup.Frames.Tick(scale, default, null);
+                if (popup.Root.PlatformImpl is not null)
+                {
+                    popup.Frames.Tick(scale, default, null);
+                    popup.Frames.Report();
+                }
         }
 
         // The popups open on the surface now (a submenu's under its menu's), numbered as they appear; each one's place is
         // sent before its first frame and again when it moves or resizes, and its closing after its last frame.
         private void Track()
         {
-            var open = new List<(Popup Popup, PopupRoot Root)>();
+            var open = new List<(Popup? Popup, TopLevel Root)>();
             void Collect(IReadOnlyList<Popup> list)
             {
                 foreach (var popup in list.ToArray())
@@ -353,6 +425,8 @@ internal sealed class SurfaceRenderer
                     }
             }
             Collect(window.OpenedPopups);
+            foreach (var dialog in dialogs)
+                if (dialog.PlatformImpl is not null && dialog.IsVisible) open.Add((null, dialog));
             foreach (var (host, gone) in popups.Where(pair => !open.Any(item => item.Root == pair.Key)).ToArray())
             {
                 popups.Remove(host);
@@ -365,16 +439,25 @@ internal sealed class SurfaceRenderer
                 {
                     if (popups.Count >= SurfaceLimits.MostPopups) continue;
                     Remote(host)?.SetRenderScaling(scale);
-                    view = new PopupView(++lastPopup, popup, host, new FrameSource(this, host, lastPopup));
+                    view = new PopupView(++lastPopup, popup, host as Window, host, new FrameSource(this, host, lastPopup));
                     popups[host] = view;
                 }
                 var at = host.PointToScreen(default);
-                var placement = new SurfacePopup(Id, view.Id, (at.X - origin.X) / scale, (at.Y - origin.Y) / scale, Math.Max(1, host.ClientSize.Width), Math.Max(1, host.ClientSize.Height),
-                    true, popup.IsHitTestVisible && popup.Child is not ToolTip);
+                // A dialog's place is the client's to choose; its title is plain text, as a client takes it.
+                var placement = view.Dialog is { } dialog
+                    ? new SurfacePopup(Id, view.Id, 0, 0, Math.Max(1, host.ClientSize.Width), Math.Max(1, host.ClientSize.Height), true, true, true, Title(dialog.Title))
+                    : new SurfacePopup(Id, view.Id, (at.X - origin.X) / scale, (at.Y - origin.Y) / scale, Math.Max(1, host.ClientSize.Width), Math.Max(1, host.ClientSize.Height),
+                        true, popup!.IsHitTestVisible && popup.Child is not ToolTip);
                 if (placement == view.Placement) continue;
                 view.Placement = placement;
                 Place(placement);
             }
+        }
+
+        private static string Title(string? title)
+        {
+            var plain = new string((title ?? "").Where(character => !char.IsControl(character)).ToArray());
+            return plain.Length <= SurfaceLimits.MostTitle ? plain : plain[..SurfaceLimits.MostTitle];
         }
 
         private void Place(SurfacePopup placement) =>
@@ -394,24 +477,35 @@ internal sealed class SurfaceRenderer
             if (Remote(target)?.Rendered(ref pixels, out var size) != true) throw new IsoCallException(IsoError.Failed, "The surface has not rendered.");
             var (w, h) = (size.Width, size.Height);
             var bounds = new Dictionary<string, double[]>();
+            var texts = new Dictionary<string, string>();
             foreach (var control in target.GetVisualDescendants().OfType<Control>())
-                if (control.Name is { } name && names.Contains(name) && !bounds.ContainsKey(name) && control.TranslatePoint(default, target) is { } at)
-                    bounds[name] = [at.X, at.Y, control.Bounds.Width, control.Bounds.Height];
-            return new SurfaceCapture(w, h, Convert.ToBase64String(pixels), bounds);
+            {
+                if (control.Name is not { } name || !names.Contains(name) || bounds.ContainsKey(name) || control.TranslatePoint(default, target) is not { } at) continue;
+                bounds[name] = [at.X, at.Y, control.Bounds.Width, control.Bounds.Height];
+                if (control is not TextBox field) continue;
+                texts[name] = field.Text ?? "";
+                texts[name + ".preedit"] = field.GetVisualDescendants().OfType<TextPresenter>().FirstOrDefault()?.PreeditText ?? "";
+            }
+            return new SurfaceCapture(w, h, Convert.ToBase64String(pixels), bounds, texts);
         }
 
         public void Close()
         {
             closed = true;
+            foreach (var dialog in dialogs.ToArray()) dialog.Close();
             window.Close();
         }
 
-        /// <summary>An open popup: its number, the plugin's popup and its top-level, its frames and the place last sent.</summary>
-        private sealed class PopupView(int id, Popup popup, PopupRoot root, FrameSource frames)
+        /// <summary>
+        /// An open popup or dialog: its number, the plugin's popup (or its window, for a dialog) and its top-level, its
+        /// frames and the place last sent.
+        /// </summary>
+        private sealed class PopupView(int id, Popup? popup, Window? dialog, TopLevel root, FrameSource frames)
         {
             public int Id { get; } = id;
-            public Popup Popup { get; } = popup;
-            public PopupRoot Root { get; } = root;
+            public Popup? Popup { get; } = popup;
+            public Window? Dialog { get; } = dialog;
+            public TopLevel Root { get; } = root;
             public FrameSource Frames { get; } = frames;
             public SurfacePopup? Placement { get; set; }
         }
@@ -427,6 +521,25 @@ internal sealed class SurfaceRenderer
             private Size wanted;
             private bool inFlight, keyframe = popup != 0;
             private long sequence;
+            private SurfaceCursor? cursor;
+            private SurfaceIme? ime;
+
+            /// <summary>Sends the cursor over this top-level and its text field's caret when either changed.</summary>
+            public void Report()
+            {
+                if (Remote(top) is not { } remote) return;
+                var shown = new SurfaceCursor(view.Id, popup, (int)remote.Cursor);
+                if (shown != cursor)
+                {
+                    cursor = shown;
+                    view.renderer.peer.OneWay(SurfaceProtocol.Cursor, SurfaceProtocol.Encode(shown), view.Context);
+                }
+                var caret = remote.Caret;
+                var now = new SurfaceIme(view.Id, popup, remote.Composing, caret.X, caret.Y, caret.Width, caret.Height);
+                if (now == ime) return;
+                ime = now;
+                view.renderer.peer.OneWay(SurfaceProtocol.Ime, SurfaceProtocol.Encode(now), view.Context);
+            }
 
             public void Acknowledge(long acknowledged)
             {

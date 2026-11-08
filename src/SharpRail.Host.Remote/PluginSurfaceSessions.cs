@@ -203,7 +203,7 @@ internal sealed class HostedSurfaceSession : IAsyncDisposable
                 break;
             case PluginSurfaceUpKind.Input when message.Input is { } input:
                 Surface(message)?.Input(new SurfaceInput(0, (SurfaceInputKind)input.Kind, input.X, input.Y, input.Button, input.Modifiers, input.DeltaX, input.DeltaY,
-                    input.Key, input.PhysicalKey, input.Text, message.Popup));
+                    input.Key, input.PhysicalKey, input.Text, message.Popup, input.Caret));
                 break;
             case PluginSurfaceUpKind.FrameAck:
                 Surface(message)?.Acknowledge(message.Sequence, message.Popup);
@@ -255,7 +255,28 @@ internal sealed class HostedSurfaceSession : IAsyncDisposable
                     {
                         Kind = PluginSurfaceDownKind.Popup,
                         Surface = id,
-                        PopupPlacement = new() { Popup = popup.Popup, X = popup.X, Y = popup.Y, Width = popup.Width, Height = popup.Height, Open = popup.Open, Input = popup.Input }
+                        PopupPlacement = new()
+                        {
+                            Popup = popup.Popup,
+                            X = popup.X,
+                            Y = popup.Y,
+                            Width = popup.Width,
+                            Height = popup.Height,
+                            Open = popup.Open,
+                            Input = popup.Input,
+                            Dialog = popup.Dialog,
+                            Title = popup.Title
+                        }
+                    }, reliable: true);
+                else if (message is SurfaceCursorChanged { Cursor: var cursor })
+                    Send(new() { Kind = PluginSurfaceDownKind.Cursor, Surface = id, Popup = cursor.Popup, Cursor = cursor.Shape }, reliable: true);
+                else if (message is SurfaceImeChanged { Ime: var ime })
+                    Send(new()
+                    {
+                        Kind = PluginSurfaceDownKind.Ime,
+                        Surface = id,
+                        Popup = ime.Popup,
+                        Ime = new() { Active = ime.Active, X = ime.X, Y = ime.Y, Width = ime.Width, Height = ime.Height }
                     }, reliable: true);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }

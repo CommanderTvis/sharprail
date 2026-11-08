@@ -2,7 +2,6 @@ using System.Text.Json;
 
 using Avalonia;
 using Avalonia.Media;
-using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;

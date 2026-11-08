@@ -31,13 +31,14 @@ namespace SharpRail.Checks;
 /// context menu, flyout and tooltip show as popups of their own at the right place and under the app's dialogs, a click
 /// in a popup reaches the plugin, a press elsewhere and Escape close them, scale 2 renders twice the pixels, and the
 /// side tool hidden past 2 seconds and shown again opens a new surface. A plugin's process that breaks the popup rules
-/// is held to them by the app on its own.
+/// is held to them by the app on its own. The plugin's cursor shows over its link, the app's input method composes into
+/// its text field, and its dialog shows framed in the app, modal to the plugin only, closing with and without a result.
 /// </summary>
 internal static class PluginSurfaceChecks
 {
     private const string Id = "outsider-ui";
     private static readonly string[] Names = ["OutsiderClick", "OutsiderList", "OutsiderNote", "OutsiderFlood", "OutsiderMenuTarget", "OutsiderMore", "OutsiderTip",
-        "OutsiderMenuCount", "OutsiderFlyoutCount"];
+        "OutsiderMenuCount", "OutsiderFlyoutCount", "OutsiderLink", "OutsiderIme", "OutsiderAsk", "OutsiderDialogYes"];
 
     private static void Require(bool value, string message)
     {
@@ -51,7 +52,7 @@ internal static class PluginSurfaceChecks
         Relay();
         Console.WriteLine("PASS plugin surface relay: the host refuses a frame with a tile or move outside its surface, too many tiles, an unknown codec, a tile longer than its pixels need, bytes that do not match, an oversized surface, frames out of order, one sent before the client took the last, or null where a list or its item belongs, and names the surface of a frame it cannot read; after a keyframe request it drops older frames and takes the keyframe");
         PopupStates();
-        Console.WriteLine($"PASS plugin surface popup caps: the host refuses a popup numbered below 1 or again after it closed, placed or sized out of range, closed when not open, more than {SurfaceLimits.MostPopups} open, and a frame for a popup that is not open; each popup keeps its own frames, and one opened while a keyframe is awaited awaits one too");
+        Console.WriteLine($"PASS plugin surface popup caps: the host refuses a popup numbered below 1 or again after it closed, placed or sized out of range, closed when not open, more than {SurfaceLimits.MostPopups} open, and a frame for a popup that is not open; each popup keeps its own frames, and one opened while a keyframe is awaited awaits one too; a title on a popup, a dialog title too long or with control characters, a dialog turned popup, a cursor shape out of range and a caret out of range or on a popup not open are refused");
         if (PluginChannelChecks.Runner() is not { } runner)
         {
             Console.WriteLine("SKIP plugin surface: these checks run self-contained, and the framework-dependent runner needs a shared .NET runtime");
@@ -198,6 +199,20 @@ internal static class PluginSurfaceChecks
         waiting.AwaitKeyframe(lost: false);
         Require(waiting.Place(Popup(3)) is null && waiting.Frames(3)!.KeyframePending && waiting.Stale(Frame(3, keyframe: false)) && !waiting.Stale(Frame(3)),
             "A popup opened while a keyframe is awaited drops frames until its own keyframe.");
+
+        var reports = new SurfaceState();
+        Require(reports.Place(new SurfacePopup(1, 1, 0, 0, 120, 80, true, Title: "A title")) is not null, "A popup that is not a dialog takes no title.");
+        Require(reports.Place(new SurfacePopup(1, 1, 0, 0, 120, 80, true, true, true, new string('t', SurfaceLimits.MostTitle + 1))) is not null &&
+            reports.Place(new SurfacePopup(1, 1, 0, 0, 120, 80, true, true, true, "A\ntitle")) is not null, "A dialog's title past the cap or with control characters is refused.");
+        Require(reports.Place(new SurfacePopup(1, 1, 0, 0, 120, 80, true, true, true, "A title")) is null, "A dialog opens with a plain title.");
+        Require(reports.Place(new SurfacePopup(1, 1, 0, 0, 120, 80, true)) is not null, "A dialog does not turn into a popup.");
+        Require(reports.Cursor(new(1, 0, 9)) is null && reports.Cursor(new(1, 1, 0)) is null, "A known cursor shape over the surface or an open popup passes.");
+        Require(reports.Cursor(new(1, 0, -1)) is not null && reports.Cursor(new(1, 0, SurfaceLimits.MostCursorShape + 1)) is not null && reports.Cursor(new(1, 2, 0)) is not null,
+            "A cursor shape out of range, or on a popup that is not open, is refused.");
+        Require(reports.Ime(new(1, 0, true, 10, 20, 1, 16)) is null && reports.Ime(new(1, 0, false, 0, 0, 0, 0)) is null, "A caret inside range passes.");
+        Require(reports.Ime(new(1, 0, true, double.NaN, 0, 1, 16)) is not null && reports.Ime(new(1, 0, true, 0, 0, -1, 16)) is not null &&
+            reports.Ime(new(1, 0, true, 0, 0, 1, 9000)) is not null && reports.Ime(new(1, 3, true, 0, 0, 1, 16)) is not null,
+            "A caret out of range, or on a popup that is not open, is refused.");
     }
 
     private static void App(string root, PluginChannelChecks.RunnerLaunch runner)
@@ -273,6 +288,7 @@ internal static class PluginSurfaceChecks
             Console.WriteLine("PASS plugin surface theme: the app's theme change reaches the plugin's process and its view re-renders under it");
 
             shown = Popups(app, window, board, Settle(board, "the side tool before its popups"), null, "plugin surface");
+            shown = Extras(app, window, board, shown, null, "plugin surface");
             Covered(window, board, shown);
             Console.WriteLine("PASS plugin surface popups under dialogs: the popup layer covers only the workbench's row, below the title bar; with the plugin's menu open, the app's dialog opens in a layer above the popup layer in the same panel, and focus moving into it closes the menu");
             Hostile();
@@ -377,6 +393,104 @@ internal static class PluginSurfaceChecks
         E2eWorkspace.Until(() => board.Popups.Count == 0);
         Console.WriteLine($"PASS {what} tooltip: hovering opens the plugin's tooltip as a popup that lets the pointer through, and it closes as the pointer leaves");
         return Settle(board, "the side tool after its popups", relay: relay);
+    }
+
+    /// <summary>
+    /// The board's extras through the app's window: the hand cursor over its link and the arrow off it; its text field
+    /// composing with the app's input method (offered only while that field has focus, at its caret) and taking the
+    /// committed text; its dialog framed and named in the app, holding the plugin's views while open, closed by the
+    /// frame's button and by Escape without a result, and by its own button with one, which the plugin counts.
+    /// </summary>
+    internal static Shown Extras(E2eWorkspace app, TopLevel window, RemoteSurface board, Shown shown, Func<RemoteSurface, UiSessionRelay.RelaySurface?>? relay, string what)
+    {
+        window.MouseMove(Point(window, board, shown.Bounds["OutsiderLink"]));
+        E2eWorkspace.Until(() => board.CursorShape == StandardCursorType.Hand && board.Cursor is not null);
+        window.MouseMove(Point(window, board, shown.Bounds["OutsiderClick"]));
+        E2eWorkspace.Until(() => board.CursorShape == StandardCursorType.Arrow);
+        Console.WriteLine($"PASS {what} cursor: the plugin's hand cursor over its link shows over the surface in the app, and the arrow again off it");
+
+        board.Focus(NavigationMethod.Pointer);
+        E2eWorkspace.Until(() => board.IsFocused);
+        Require(Offered(board) is null, "The app's input method composes for the plugin only while one of its text fields has focus.");
+        var field = shown.Bounds["OutsiderIme"];
+        Click(window, board, field);
+        E2eWorkspace.Until(() => Offered(board) is { } offered && offered.CursorRectangle is { Height: > 0 } caret &&
+            caret.X >= field[0] - 1 && caret.Right <= field[0] + field[2] + 1 && caret.Y >= field[1] - 1 && caret.Bottom <= field[1] + field[3] + 1);
+        var client = Offered(board)!;
+        client.SetPreeditText("にほ", 2);
+        Captured(board, relay, texts => texts["OutsiderIme.preedit"] == "にほ" && texts["OutsiderIme"] == "", "the composition");
+        client.SetPreeditText(null);
+        window.KeyTextInput("日本");
+        Captured(board, relay, texts => texts["OutsiderIme.preedit"] == "" && texts["OutsiderIme"] == "日本", "the committed text");
+        shown = Settle(board, "the side tool after composing", relay: relay);
+        Console.WriteLine($"PASS {what} input method: with the plugin's text field focused the app's input method composes at its caret, the plugin's field shows the composition and then takes the committed text, and with none focused the app offers no composition");
+
+        var clicks = Clicks(app);
+        RemoteSurface.RemotePopup Dialog()
+        {
+            Click(window, board, shown.Bounds["OutsiderAsk"]);
+            RemoteSurface.RemotePopup? dialog = null;
+            E2eWorkspace.Until(() => (dialog = board.Popups.FirstOrDefault(popup => popup.Dialog)) is { IsFocused: true });
+            return dialog!;
+        }
+        var dialog = Dialog();
+        Require(dialog.Title.EndsWith(": Count a click?", StringComparison.Ordinal) && dialog.Title.Length > ": Count a click?".Length,
+            $"The dialog's frame names the plugin and the dialog, not \"{dialog.Title}\".");
+        Require(dialog.Shown.Name == "PluginDialogFrame" && dialog.Shown.Parent is Canvas, "The dialog shows inside the app's frame, in the plugin's layer.");
+        var dialogShown = Settle(board, "the dialog", relay: relay, popup: dialog.Number);
+        Drawn(window, dialog, dialogShown);
+        // The plugin's own view waits for its dialog; the press reaches the plugin and does nothing.
+        Click(window, board, shown.Bounds["OutsiderClick"]);
+        var wait = Stopwatch.StartNew();
+        E2eWorkspace.Until(() => wait.ElapsedMilliseconds > 400);
+        Require(Clicks(app) == clicks && board.Popups.Contains(dialog), "A click on the plugin's view while its dialog is open does nothing, and the dialog stays.");
+        var close = dialog.Shown.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PluginDialogClose");
+        var closeAt = close.TranslatePoint(new Point(close.Bounds.Width / 2, close.Bounds.Height / 2), window) ?? throw new InvalidOperationException("The close button is not in the window.");
+        window.MouseMove(closeAt);
+        window.MouseDown(closeAt, MouseButton.Left);
+        window.MouseUp(closeAt, MouseButton.Left);
+        E2eWorkspace.Until(() => !board.Popups.Any(popup => popup.Dialog));
+        Require(Clicks(app) == clicks, "The frame's close button closes the dialog without a result.");
+
+        dialog = Dialog();
+        Press(window, Key.Escape, PhysicalKey.Escape);
+        E2eWorkspace.Until(() => !board.Popups.Any(popup => popup.Dialog));
+        Require(Clicks(app) == clicks, "Escape in the dialog closes it without a result.");
+
+        dialog = Dialog();
+        dialogShown = Settle(board, "the dialog again", relay: relay, popup: dialog.Number);
+        Click(window, dialog, dialogShown.Bounds["OutsiderDialogYes"]);
+        E2eWorkspace.Until(() => !board.Popups.Any(popup => popup.Dialog) && Clicks(app) == clicks + 1);
+        Console.WriteLine($"PASS {what} dialog: the plugin's dialog opens framed with the plugin's name and its title, its pixels drawn in the app, the plugin's view waits while it is open, the frame's close button and Escape close it with no result, and its own button closes it with the result the plugin counts");
+        return Settle(board, "the side tool after its dialog", relay: relay);
+    }
+
+    // The input method client the app's input method would compose into on the surface, if any.
+    private static Avalonia.Input.TextInput.TextInputMethodClient? Offered(RemoteSurface board)
+    {
+        var request = new Avalonia.Input.TextInput.TextInputMethodClientRequestedEventArgs { RoutedEvent = InputElement.TextInputMethodClientRequestedEvent };
+        board.RaiseEvent(request);
+        return request.Client;
+    }
+
+    // Captures the surface in the plugin's process until its text fields read as <paramref name="expected"/> says.
+    private static Dictionary<string, string> Captured(RemoteSurface surface, Func<RemoteSurface, UiSessionRelay.RelaySurface?>? relay, Func<Dictionary<string, string>, bool> expected, string what)
+    {
+        var clock = Stopwatch.StartNew();
+        var last = new Dictionary<string, string>();
+        while (clock.Elapsed < PluginChannelChecks.Patience)
+        {
+            if ((relay?.Invoke(surface) ?? surface.Surface as UiSessionRelay.RelaySurface) is { } held)
+            {
+                var capture = held.CaptureAsync(Names);
+                E2eWorkspace.Until(() => capture.IsCompleted);
+                last = capture.GetAwaiter().GetResult().Texts ?? [];
+                if (last.ContainsKey("OutsiderIme") && expected(last)) return last;
+            }
+            var wait = Stopwatch.StartNew();
+            E2eWorkspace.Until(() => wait.ElapsedMilliseconds > 50);
+        }
+        throw new InvalidOperationException($"The plugin's text field never showed {what}: {string.Join(", ", last.Select(pair => pair.Key + "=" + pair.Value))}.");
     }
 
     /// <summary>
@@ -570,7 +684,7 @@ internal static class PluginSurfaceChecks
         return found!;
     }
 
-    internal sealed record Shown(int Width, int Height, byte[] Pixels, Dictionary<string, double[]> Bounds);
+    internal sealed record Shown(int Width, int Height, byte[] Pixels, Dictionary<string, double[]> Bounds, Dictionary<string, string> Texts);
 
     /// <summary>
     /// Waits until the pixels the app decoded equal a fresh render in the plugin's process (and differ from
@@ -595,7 +709,7 @@ internal static class PluginSurfaceChecks
             var (width, height, pixels) = popup == 0 ? surface.Snapshot() : surface.Snapshot(popup);
             var expected = Convert.FromBase64String(reference.Pixels);
             if (width == reference.Width && height == reference.Height && pixels.AsSpan().SequenceEqual(expected) && (changedFrom is null || !pixels.AsSpan().SequenceEqual(changedFrom)))
-                return new(width, height, pixels, reference.Bounds);
+                return new(width, height, pixels, reference.Bounds, reference.Texts ?? []);
             last = $"app {width}x{height}, plugin {reference.Width}x{reference.Height}, differing bytes {(pixels.Length == expected.Length ? pixels.Where((value, index) => value != expected[index]).Count() : -1)}";
             var wait = Stopwatch.StartNew();
             E2eWorkspace.Until(() => wait.ElapsedMilliseconds > 50);

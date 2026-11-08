@@ -65,6 +65,8 @@ internal static class RpcCodec
         RpcMessage<PluginSurfaceInputMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceInputMessage(ref reader, null);
         RpcMessage<PluginSurfaceDown>.Write = WritePluginSurfaceDown;
         RpcMessage<PluginSurfaceDown>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceDown(ref reader, null);
+        RpcMessage<PluginSurfaceImeMessage>.Write = WritePluginSurfaceImeMessage;
+        RpcMessage<PluginSurfaceImeMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceImeMessage(ref reader, null);
         RpcMessage<PluginSurfacePopupMessage>.Write = WritePluginSurfacePopupMessage;
         RpcMessage<PluginSurfacePopupMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfacePopupMessage(ref reader, null);
         RpcMessage<PluginSurfaceRegistrationMessage>.Write = WritePluginSurfaceRegistrationMessage;
@@ -1339,6 +1341,7 @@ internal static class RpcCodec
         if (value.Key != 0) writer.Int32(8, value.Key);
         if (value.PhysicalKey != 0) writer.Int32(9, value.PhysicalKey);
         if (value.Text is { } field10) writer.String(10, field10);
+        if (value.Caret != 0) writer.Int32(11, value.Caret);
     }
 
     private static PluginSurfaceInputMessage ReadPluginSurfaceInputMessage(ref ProtoReader reader, PluginSurfaceInputMessage? value)
@@ -1358,6 +1361,7 @@ internal static class RpcCodec
                 case 8: value.Key = reader.Int32(); break;
                 case 9: value.PhysicalKey = reader.Int32(); break;
                 case 10: value.Text = reader.String(); break;
+                case 11: value.Caret = reader.Int32(); break;
                 default: reader.Skip(); break;
             }
         }
@@ -1398,6 +1402,14 @@ internal static class RpcCodec
         {
             var start = writer.BeginMessage(18);
             WritePluginSurfacePopupMessage(writer, field18);
+            writer.EndMessage(start);
+        }
+        if (value.Popup != 0) writer.Int32(19, value.Popup);
+        if (value.Cursor != 0) writer.Int32(20, value.Cursor);
+        if (value.Ime is { } field21)
+        {
+            var start = writer.BeginMessage(21);
+            WritePluginSurfaceImeMessage(writer, field21);
             writer.EndMessage(start);
         }
     }
@@ -1445,6 +1457,42 @@ internal static class RpcCodec
                     reader.Leave(outer);
                     break;
                 }
+                case 19: value.Popup = reader.Int32(); break;
+                case 20: value.Cursor = reader.Int32(); break;
+                case 21:
+                {
+                    var outer = reader.Enter();
+                    value.Ime = ReadPluginSurfaceImeMessage(ref reader, value.Ime);
+                    reader.Leave(outer);
+                    break;
+                }
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceImeMessage(ProtoWriter writer, PluginSurfaceImeMessage value)
+    {
+        if (value.Active) writer.Bool(1, value.Active);
+        if (value.X != 0) writer.Double(2, value.X);
+        if (value.Y != 0) writer.Double(3, value.Y);
+        if (value.Width != 0) writer.Double(4, value.Width);
+        if (value.Height != 0) writer.Double(5, value.Height);
+    }
+
+    private static PluginSurfaceImeMessage ReadPluginSurfaceImeMessage(ref ProtoReader reader, PluginSurfaceImeMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Active = reader.Bool(); break;
+                case 2: value.X = reader.Double(); break;
+                case 3: value.Y = reader.Double(); break;
+                case 4: value.Width = reader.Double(); break;
+                case 5: value.Height = reader.Double(); break;
                 default: reader.Skip(); break;
             }
         }
@@ -1460,6 +1508,8 @@ internal static class RpcCodec
         if (value.Height != 0) writer.Double(5, value.Height);
         if (value.Open) writer.Bool(6, value.Open);
         if (value.Input) writer.Bool(7, value.Input);
+        if (value.Dialog) writer.Bool(8, value.Dialog);
+        if (value.Title is { } field9) writer.String(9, field9);
     }
 
     private static PluginSurfacePopupMessage ReadPluginSurfacePopupMessage(ref ProtoReader reader, PluginSurfacePopupMessage? value)
@@ -1476,6 +1526,8 @@ internal static class RpcCodec
                 case 5: value.Height = reader.Double(); break;
                 case 6: value.Open = reader.Bool(); break;
                 case 7: value.Input = reader.Bool(); break;
+                case 8: value.Dialog = reader.Bool(); break;
+                case 9: value.Title = reader.String(); break;
                 default: reader.Skip(); break;
             }
         }

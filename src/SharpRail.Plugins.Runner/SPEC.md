@@ -36,10 +36,20 @@ nothing it starts holds it.
   asked for its surface's overlay stays inside the surface. `surface.dismiss` (the client hid every popup) closes them
   all, the newest first, a tooltip through its control so hovering opens it again; Escape while a popup that takes
   input is open closes the newest such popup and goes no further. A tooltip is sent as a popup that takes no input.
+  A window the plugin opens (the kit's `DialogWindow` or any `Window`) is a dialog of the surface its owner belongs
+  to, else of the surface that last had input; with neither it closes again. It is numbered with the popups and
+  sent as one marked as a dialog, with its title as plain text of at most 128 characters; it takes keys and text when
+  the client sends them to its number, and a close request closes it as the plugin's own close would (its `Closing`
+  handlers may keep it open). While a modal dialog is open, the other surfaces, popups and dialogs of the same client
+  context take no input, so only the plugin's own views wait for it. Each tick also sends `surface.cursor` when the
+  cursor over a top-level changed and `surface.ime` when a text field that composes gained or lost focus there or its
+  caret moved; composition the client sends (`Preedit`) goes to that field's `TextInputMethodClient`, and committed
+  text ends the composition first.
   `RemotePlatform` is the backend: an `IWindowingPlatform` whose every window and popup is a `RemoteTopLevel`
   (`IWindowImpl`, `IPopupImpl` and a framebuffer surface Skia draws a whole frame into, in memory), a render timer on
   the UI thread that the renderer ticks before it reads a frame, a cursor factory of standard shapes, and a mouse per
-  top-level. Each input event runs the dispatcher's pending jobs and renders before and after it, as Avalonia's
+  top-level. Each top-level answers an `ITextInputMethodImpl`, which learns the focused text field and its caret.
+  Each input event runs the dispatcher's pending jobs and renders before and after it, as Avalonia's
   headless platform did, so what one event changed is drawn before the next.
   Client messages run through one queue in arrival order, because applying input runs the dispatcher's pending
   jobs. With `SHARPRAIL_RUNNER_DIAGNOSTICS=1`, which only the checks set, `surface.capture` answers a fresh render

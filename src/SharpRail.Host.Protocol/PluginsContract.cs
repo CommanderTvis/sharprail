@@ -118,7 +118,7 @@ public sealed class PluginFileReply
 // IsoError value.
 public enum PluginSurfaceUpKind { None = 0, Open = 1, Resume = 2, Ack = 3, Answer = 4, Invoke = 5, OneWay = 6, Mirror = 7, SurfaceOpen = 8, Resize = 9, Input = 10, FrameAck = 11, Focus = 12, Theme = 13, SurfaceClose = 14, Keyframe = 15, Dismiss = 16 }
 
-public enum PluginSurfaceDownKind { None = 0, Opened = 1, Resumed = 2, Ack = 3, UiCall = 4, Result = 5, Shown = 6, Frame = 7, FocusLeave = 8, SurfaceEnded = 9, Ended = 10, Popup = 11 }
+public enum PluginSurfaceDownKind { None = 0, Opened = 1, Resumed = 2, Ack = 3, UiCall = 4, Result = 5, Shown = 6, Frame = 7, FocusLeave = 8, SurfaceEnded = 9, Ended = 10, Popup = 11, Cursor = 12, Ime = 13 }
 
 // Why a surface ended: the client closed it, the plugin broke the surface protocol, or the plugin could not show it.
 public enum PluginSurfaceEndKind { Closed = 0, Broken = 1, Failed = 2 }
@@ -134,7 +134,7 @@ public static class PluginSurfaceWire
 // Client to host. The first message is Open (PluginId, ClientKey) or Resume (Session, Ack); later ones drive the session:
 // Answer (Call, Payload or Error and Detail) answers a UiCall; Invoke and Mirror (Call, Member, Handle, Payload, Json)
 // await a Result; OneWay; SurfaceOpen (Surface, Member, Handle, Payload, theme Json); Resize (Width, Height, Scale);
-// Input (on the surface, or on its open Popup); FrameAck (Sequence, of the surface or of its Popup); Focus (Enter,
+// Input (on the surface, or on its open Popup, a dialog's close request among them); FrameAck (Sequence, of the surface or of its Popup); Focus (Enter,
 // Backward, Pointer); Theme (Json); SurfaceClose; Keyframe (of the surface and its popups); Dismiss (its popups).
 [ProtoContract]
 public sealed class PluginSurfaceUp
@@ -164,7 +164,8 @@ public sealed class PluginSurfaceUp
     [ProtoMember(23)] public int Popup { get; set; }
 }
 
-// Kind is SurfaceInputKind's value; Button, Modifiers, Key and PhysicalKey are Avalonia's.
+// Kind is SurfaceInputKind's value; Button, Modifiers, Key and PhysicalKey are Avalonia's; Caret is a composition's
+// caret in Text.
 [ProtoContract]
 public sealed class PluginSurfaceInputMessage
 {
@@ -178,12 +179,15 @@ public sealed class PluginSurfaceInputMessage
     [ProtoMember(8)] public int Key { get; set; }
     [ProtoMember(9)] public int PhysicalKey { get; set; }
     [ProtoMember(10)] public string Text { get; set; } = "";
+    [ProtoMember(11)] public int Caret { get; set; }
 }
 
 // Host to client. Opened (Session, ApiTableHash, Registrations) or Resumed (Ack) answers the first message; then
 // UiCall (Call, Member, Payload, Answered); Result (Call, Payload or Error and Detail); Shown (Surface, the host's
 // Number for it); Frame; FocusLeave (Backward); SurfaceEnded (End, Detail); Ended (Detail) as the session ends; Popup
-// (PopupPlacement) as a popup of the surface opens, moves or closes.
+// (PopupPlacement) as a popup or dialog of the surface opens, moves or closes; Cursor (Popup, Cursor: Avalonia's
+// StandardCursorType value) as the cursor over the surface or its popup changes; Ime (Popup, Ime) as a text field there
+// gains or loses focus or its caret moves.
 [ProtoContract]
 public sealed class PluginSurfaceDown
 {
@@ -205,10 +209,26 @@ public sealed class PluginSurfaceDown
     [ProtoMember(16)] public bool Backward { get; set; }
     [ProtoMember(17)] public PluginSurfaceEndKind End { get; set; }
     [ProtoMember(18)] public PluginSurfacePopupMessage? PopupPlacement { get; set; }
+    [ProtoMember(19)] public int Popup { get; set; }
+    [ProtoMember(20)] public int Cursor { get; set; }
+    [ProtoMember(21)] public PluginSurfaceImeMessage? Ime { get; set; }
+}
+
+// Whether a text field that composes with an input method has focus, and its caret from the top-level's corner in
+// device-independent pixels.
+[ProtoContract]
+public sealed class PluginSurfaceImeMessage
+{
+    [ProtoMember(1)] public bool Active { get; set; }
+    [ProtoMember(2)] public double X { get; set; }
+    [ProtoMember(3)] public double Y { get; set; }
+    [ProtoMember(4)] public double Width { get; set; }
+    [ProtoMember(5)] public double Height { get; set; }
 }
 
 // A popup of a surface, numbered within it from 1: its place from the surface's top-left corner and its size in
-// device-independent pixels, whether it is open, and whether it takes pointer input (a tooltip does not).
+// device-independent pixels, whether it is open, and whether it takes pointer input (a tooltip does not). A Dialog is
+// a window the plugin opened, which the client places itself in a frame showing its Title.
 [ProtoContract]
 public sealed class PluginSurfacePopupMessage
 {
@@ -219,6 +239,8 @@ public sealed class PluginSurfacePopupMessage
     [ProtoMember(5)] public double Height { get; set; }
     [ProtoMember(6)] public bool Open { get; set; }
     [ProtoMember(7)] public bool Input { get; set; }
+    [ProtoMember(8)] public bool Dialog { get; set; }
+    [ProtoMember(9)] public string Title { get; set; } = "";
 }
 
 [ProtoContract]

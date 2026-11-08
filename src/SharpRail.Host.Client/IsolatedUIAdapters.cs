@@ -250,7 +250,21 @@ internal sealed class RemoteIsolatedUISession(RemoteIsolatedUIHost host) : IIsol
                 break;
             case PluginSurfaceDownKind.Popup when message.PopupPlacement is { } popup:
                 if (surfaces.TryGetValue(message.Surface, out var placed))
-                    placed.Place(new SurfacePopup(placed.Id, popup.Popup, popup.X, popup.Y, popup.Width, popup.Height, popup.Open, popup.Input));
+                    placed.Place(new SurfacePopup(placed.Id, popup.Popup, popup.X, popup.Y, popup.Width, popup.Height, popup.Open, popup.Input, popup.Dialog, popup.Title));
+                break;
+            case PluginSurfaceDownKind.Cursor:
+                if (surfaces.TryGetValue(message.Surface, out var pointed))
+                {
+                    var cursor = new SurfaceCursor(pointed.Id, message.Popup, message.Cursor);
+                    pointed.Report(state => state.Cursor(cursor), new SurfaceCursorChanged(cursor));
+                }
+                break;
+            case PluginSurfaceDownKind.Ime when message.Ime is { } caret:
+                if (surfaces.TryGetValue(message.Surface, out var composing))
+                {
+                    var ime = new SurfaceIme(composing.Id, message.Popup, caret.Active, caret.X, caret.Y, caret.Width, caret.Height);
+                    composing.Report(state => state.Ime(ime), new SurfaceImeChanged(ime));
+                }
                 break;
             case PluginSurfaceDownKind.SurfaceEnded:
                 if (surfaces.TryRemove(message.Surface, out var gone))
@@ -413,7 +427,8 @@ internal sealed class RemotePluginSurface(RemoteIsolatedUISession session, int i
             DeltaY = input.DeltaY,
             Key = input.Key,
             PhysicalKey = input.PhysicalKey,
-            Text = input.Text
+            Text = input.Text,
+            Caret = input.Caret
         },
         Popup = input.Popup
     }, reliable: true);
@@ -469,6 +484,21 @@ internal sealed class RemotePluginSurface(RemoteIsolatedUISession session, int i
                 return;
             }
             events.Writer.TryWrite(new SurfacePopupChanged(popup));
+        }
+    }
+
+    /// <summary>Passes on a report about the surface when it keeps to the surface protocol, as the host's relay does.</summary>
+    internal void Report(Func<SurfaceState, string?> violation, SurfaceEvent report)
+    {
+        lock (gate)
+        {
+            if (Volatile.Read(ref closed) != 0) return;
+            if (violation(state) is { } broken)
+            {
+                Break(broken);
+                return;
+            }
+            events.Writer.TryWrite(report);
         }
     }
 

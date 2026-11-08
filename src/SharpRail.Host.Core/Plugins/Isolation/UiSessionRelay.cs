@@ -88,6 +88,20 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
         if (surfaces.TryGetValue(popup.Surface, out var surface)) surface.Place(popup);
     }
 
+    /// <summary>The cursor over a surface or its popup changed; one that breaks the surface protocol ends that surface.</summary>
+    public void Cursor(string payload)
+    {
+        var cursor = SurfaceProtocol.Decode<SurfaceCursor>(payload);
+        if (surfaces.TryGetValue(cursor.Surface, out var surface)) surface.Report(state => state.Cursor(cursor), new SurfaceCursorChanged(cursor));
+    }
+
+    /// <summary>A text field's focus or caret changed; one that breaks the surface protocol ends that surface.</summary>
+    public void Ime(string payload)
+    {
+        var ime = SurfaceProtocol.Decode<SurfaceIme>(payload);
+        if (surfaces.TryGetValue(ime.Surface, out var surface)) surface.Report(state => state.Ime(ime), new SurfaceImeChanged(ime));
+    }
+
     /// <summary>Ends every surface of this client, as the session does.</summary>
     public void End(Exception? reason)
     {
@@ -181,6 +195,21 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
                     return;
                 }
                 events.Writer.TryWrite(new SurfacePopupChanged(popup));
+            }
+        }
+
+        /// <summary>Passes on what the plugin reported about the surface when it keeps to the surface protocol.</summary>
+        public void Report(Func<SurfaceState, string?> violation, SurfaceEvent report)
+        {
+            lock (gate)
+            {
+                if (Volatile.Read(ref closed) != 0) return;
+                if (violation(state) is { } broken)
+                {
+                    Break(broken);
+                    return;
+                }
+                events.Writer.TryWrite(report);
             }
         }
 

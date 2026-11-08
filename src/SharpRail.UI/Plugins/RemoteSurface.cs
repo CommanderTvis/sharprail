@@ -4,6 +4,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.TextInput;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -23,7 +24,10 @@ namespace SharpRail.UI.Plugins;
 /// child that holds this control, so they reach past its slot but not past that cell, and stay under the app's dialogs
 /// and Settings above it. A popup shows only when it opens shortly after input to the surface or its popups; a press
 /// elsewhere in the app, focus leaving or the window deactivating hides every popup, and Escape the newest that takes
-/// input, whether or not the plugin closes them. Detached for longer than a moment, the surface closes; attached
+/// input, whether or not the plugin closes them. A window the plugin opens shows in the same layer as a dialog in a
+/// frame that names the plugin, centered, with a close button; it takes keys while focused, and only the plugin's own
+/// views wait for it. The cursor the plugin shows over a view shows here too, and while a text field of the plugin has
+/// focus the app's input method composes for it. Detached for longer than a moment, the surface closes; attached
 /// again, it opens a new one, for which the plugin makes its control again.
 /// </summary>
 internal sealed class RemoteSurface : Decorator
@@ -32,6 +36,10 @@ internal sealed class RemoteSurface : Decorator
     private const long InputWindowMs = 2000;
 
     private readonly Func<IPluginSurface> open;
+    private readonly string plugin;
+    private readonly RemoteInputClient input;
+    // On the UI thread: what each top-level of the surface (0) and its popups reported about a focused text field.
+    private readonly Dictionary<int, SurfaceIme> carets = [];
     private readonly Lock gate = new();
     private readonly DispatcherTimer closing;
     private IPluginSurface surface = null!;
@@ -50,9 +58,15 @@ internal sealed class RemoteSurface : Decorator
     private double sentScale;
     private bool closed;
 
-    public RemoteSurface(Func<IPluginSurface> open)
+    /// <param name="open">Opens the surface.</param>
+    /// <param name="plugin">The plugin's name, which frames its dialogs.</param>
+    public RemoteSurface(Func<IPluginSurface> open, string plugin = "")
     {
         this.open = open;
+        this.plugin = plugin;
+        input = new RemoteInputClient(this, this, 0);
+        // The app's input method composes for the plugin while one of its text fields has focus.
+        AddHandler(TextInputMethodClientRequestedEvent, (_, e) => { if (Composing() is not null) e.Client = input; });
         Name = "PluginSurface";
         Focusable = true;
         ClipToBounds = true;
@@ -79,8 +93,11 @@ internal sealed class RemoteSurface : Decorator
         lock (gate) return (main.Width, main.Height, [.. main.Pixels]);
     }
 
-    /// <summary>The popups shown now, for the checks.</summary>
+    /// <summary>The popups shown now, dialogs among them, for the checks.</summary>
     internal IReadOnlyCollection<RemotePopup> Popups => popups.Values;
+
+    /// <summary>The input method client the app's input method composes into, for the checks.</summary>
+    internal TextInputMethodClient InputClient => input;
 
     /// <summary>A popup's decoded pixels and their size, for the checks; empty once it closed.</summary>
     internal (int Width, int Height, byte[] Pixels) Snapshot(int popup)
@@ -129,6 +146,8 @@ internal sealed class RemoteSurface : Decorator
             seenPopup = 0;
         }
         ClearPopups();
+        carets.Clear();
+        Cursor = null;
         _ = Task.Run(() => PumpAsync(opened));
     }
 
@@ -145,6 +164,16 @@ internal sealed class RemoteSurface : Decorator
                 if (message is SurfaceLeft left)
                 {
                     Dispatcher.UIThread.Post(() => { if (ReferenceEquals(mine, surface)) Leave(left.Backward); });
+                    continue;
+                }
+                if (message is SurfaceCursorChanged { Cursor: var cursor })
+                {
+                    Dispatcher.UIThread.Post(() => { if (ReferenceEquals(mine, surface) && !closed) Point(cursor); });
+                    continue;
+                }
+                if (message is SurfaceImeChanged { Ime: var ime })
+                {
+                    Dispatcher.UIThread.Post(() => { if (ReferenceEquals(mine, surface) && !closed) Caret(ime); });
                     continue;
                 }
                 if (message is SurfacePopupChanged { Placement: var placement })
@@ -315,25 +344,34 @@ internal sealed class RemoteSurface : Decorator
         Dismiss();
     }
 
-    // Every popup leaves the app at once, and the plugin hears it; one it keeps open never shows again.
+    // Every popup leaves the app at once, and the plugin hears it; one it keeps open never shows again. Dialogs stay.
     private void Dismiss(bool later = false)
     {
         if (closed || Child is not null) return;
+        int[] hidden;
         lock (gate)
         {
-            if (images.Count == 0) return;
-            images.Clear();
+            hidden = [.. images.Keys.Where(number => !popups.TryGetValue(number, out var shown) || !shown.Dialog)];
+            if (hidden.Length == 0) return;
+            foreach (var number in hidden) images.Remove(number);
         }
-        ClearPopups(later);
+        foreach (var number in hidden) Hide(number, later);
         surface.Dismiss();
     }
 
     // One popup leaves the app; it never shows again under its number.
-    private void Hide(int number)
+    private void Hide(int number, bool later = false)
     {
         lock (gate) images.Remove(number);
-        if (popups.Remove(number, out var gone)) layer?.Children.Remove(gone);
-        if (popups.Count == 0) RemoveLayer();
+        carets.Remove(number);
+        if (popups.Remove(number, out var gone))
+        {
+            layer?.Children.Remove(gone.Shown);
+            // Focus in a dialog that closed comes back to the surface.
+            if (gone.Dialog && gone.IsFocused && !later) Focus(NavigationMethod.Pointer);
+        }
+        if (popups.Count == 0) RemoveLayer(later);
+        Requery();
     }
 
     // A popup opened, moved or closed: its control shows in the popup layer at its place from this surface's corner.
@@ -349,18 +387,27 @@ internal sealed class RemoteSurface : Decorator
             FrameImage? image;
             lock (gate) image = images.GetValueOrDefault(placement.Popup);
             if (image is null) return;
-            popups[placement.Popup] = popup = new RemotePopup(this, placement.Popup, image);
+            popups[placement.Popup] = popup = new RemotePopup(this, placement.Popup, image, placement.Dialog);
+            if (placement.Dialog) popup.Frame(plugin, placement.Title);
         }
         popup.Placement = placement;
         (popup.Width, popup.Height, popup.IsHitTestVisible) = (placement.Width, placement.Height, placement.Input);
-        if (Layer() is { } shown && popup.Parent is null) shown.Children.Add(popup);
+        var added = false;
+        if (Layer() is { } shown && popup.Shown.Parent is null)
+        {
+            shown.Children.Add(popup.Shown);
+            added = true;
+        }
         Reposition();
+        // A dialog takes focus as it opens, so its keys reach it.
+        if (added && popup.Dialog) popup.Focus(NavigationMethod.Pointer);
     }
 
     private void ClearPopups(bool later = false)
     {
         popups.Clear();
         RemoveLayer(later);
+        Requery();
     }
 
     /// <summary>
@@ -414,11 +461,22 @@ internal sealed class RemoteSurface : Decorator
         foreach (var popup in popups.Values)
         {
             if (popup.Placement is not { } placement) continue;
-            var (x, y) = (origin.X + placement.X, origin.Y + placement.Y);
-            if (layer.Bounds.Width > 0) x = Math.Max(0, Math.Min(x, layer.Bounds.Width - placement.Width));
-            if (layer.Bounds.Height > 0) y = Math.Max(0, Math.Min(y, layer.Bounds.Height - placement.Height));
-            if (Canvas.GetLeft(popup) != x) Canvas.SetLeft(popup, x);
-            if (Canvas.GetTop(popup) != y) Canvas.SetTop(popup, y);
+            var shown = popup.Shown;
+            double x, y;
+            if (popup.Dialog)
+            {
+                // A dialog is centered in the layer, its frame around it.
+                var size = shown.DesiredSize;
+                (x, y) = (Math.Max(0, (layer.Bounds.Width - size.Width) / 2), Math.Max(0, (layer.Bounds.Height - size.Height) / 2));
+            }
+            else
+            {
+                (x, y) = (origin.X + placement.X, origin.Y + placement.Y);
+                if (layer.Bounds.Width > 0) x = Math.Max(0, Math.Min(x, layer.Bounds.Width - placement.Width));
+                if (layer.Bounds.Height > 0) y = Math.Max(0, Math.Min(y, layer.Bounds.Height - placement.Height));
+            }
+            if (Canvas.GetLeft(shown) != x) Canvas.SetLeft(shown, x);
+            if (Canvas.GetTop(shown) != y) Canvas.SetTop(shown, y);
         }
     }
 
@@ -451,13 +509,100 @@ internal sealed class RemoteSurface : Decorator
         ClearPopups();
     }
 
-    private void Send(SurfaceInputKind kind, Point at = default, int button = 0, int modifiers = 0, Vector delta = default, KeyEventArgs? key = null, string text = "", int popup = 0)
+    private void Send(SurfaceInputKind kind, Point at = default, int button = 0, int modifiers = 0, Vector delta = default, KeyEventArgs? key = null, string text = "", int popup = 0, int caret = 0)
     {
         if (closed || Child is not null) return;
         // Escape answers a popup rather than asking for one.
         if (kind != SurfaceInputKind.PointerLeave && key?.Key != Key.Escape) Volatile.Write(ref popupsUntil, Environment.TickCount64 + InputWindowMs);
         surface.Input(new SurfaceInput(0, kind, at.X, at.Y, button, modifiers, delta.X, delta.Y, key is null ? 0 : (int)key.Key,
-            key is null ? 0 : (int)key.PhysicalKey, key?.KeySymbol ?? text, popup));
+            key is null ? 0 : (int)key.PhysicalKey, key?.KeySymbol ?? text, popup, caret));
+    }
+
+    // The cursor the plugin shows over the surface or one of its popups.
+    private void Point(SurfaceCursor cursor)
+    {
+        var shape = Enum.IsDefined((StandardCursorType)cursor.Shape) ? (StandardCursorType)cursor.Shape : StandardCursorType.Arrow;
+        if (cursor.Popup == 0)
+        {
+            CursorShape = shape;
+            Cursor = shape == StandardCursorType.Arrow ? null : new Cursor(shape);
+        }
+        else if (popups.TryGetValue(cursor.Popup, out var popup))
+        {
+            popup.CursorShape = shape;
+            popup.Cursor = shape == StandardCursorType.Arrow ? null : new Cursor(shape);
+        }
+    }
+
+    /// <summary>The cursor the plugin shows over the surface now, for the checks.</summary>
+    internal StandardCursorType CursorShape { get; private set; } = StandardCursorType.Arrow;
+
+    // A text field of the surface or a popup gained or lost focus, or its caret moved.
+    private void Caret(SurfaceIme ime)
+    {
+        if (ime.Active) carets[ime.Popup] = ime;
+        else carets.Remove(ime.Popup);
+        if (ime.Popup != 0 && popups.TryGetValue(ime.Popup, out var popup) && popup.Dialog) popup.Input.Moved(ime.Active);
+        else input.Moved(Composing() is not null);
+        Requery();
+    }
+
+    // The text field the surface's keys reach that composes: the surface's own, else the newest popup's (not a dialog's).
+    private SurfaceIme? Composing() => carets.TryGetValue(0, out var own) ? own :
+        carets.Values.Where(ime => popups.TryGetValue(ime.Popup, out var popup) && !popup.Dialog).MaxBy(ime => ime.Popup);
+
+    // The app's input method asks again whether the focused control composes.
+    private void Requery()
+    {
+        var asked = new TextInputMethodClientRequeryRequestedEventArgs { RoutedEvent = InputMethod.TextInputMethodClientRequeryRequestedEvent };
+        if (TopLevel.GetTopLevel(this) is { } shown) shown.RaiseEvent(asked);
+    }
+
+    // The caret of the composing text field, from this control's corner (a popup's from its own place).
+    private Rect CaretRectangle()
+    {
+        if (Composing() is not { } ime) return default;
+        var caret = new Rect(ime.X, ime.Y, ime.Width, ime.Height);
+        if (ime.Popup == 0 || !popups.TryGetValue(ime.Popup, out var popup) || popup.TranslatePoint(default, this) is not { } corner) return caret;
+        return caret.Translate(new Vector(corner.X, corner.Y));
+    }
+
+    /// <summary>
+    /// What the app's input method composes into for the plugin: the caret the plugin reported, and the composition sent
+    /// to the plugin's text field as it changes. The committed text arrives as text input.
+    /// </summary>
+    internal sealed class RemoteInputClient(RemoteSurface owner, Visual view, int dialog) : TextInputMethodClient
+    {
+        private bool composing;
+
+        public override Visual TextViewVisual => view;
+        public override bool SupportsPreedit => true;
+        public override bool SupportsSurroundingText => false;
+        public override string SurroundingText => "";
+        public override TextSelection Selection { get => new(0, 0); set { } }
+
+        public override Rect CursorRectangle => dialog == 0 ? owner.CaretRectangle() :
+            owner.carets.TryGetValue(dialog, out var ime) ? new Rect(ime.X, ime.Y, ime.Width, ime.Height) : default;
+
+        public override void SetPreeditText(string? preeditText) => SetPreeditText(preeditText, null);
+
+        public override void SetPreeditText(string? preeditText, int? cursorPos)
+        {
+            var text = preeditText ?? "";
+            if (text.Length == 0 && !composing) return;
+            composing = text.Length > 0;
+            var popup = dialog != 0 ? dialog : owner.Composing()?.Popup ?? 0;
+            owner.Send(SurfaceInputKind.Preedit, text: text, popup: popup, caret: Math.Clamp(cursorPos ?? text.Length, 0, text.Length));
+        }
+
+        /// <summary>Text was committed: the composition it ends is over.</summary>
+        internal void Committed() => composing = false;
+
+        internal void Moved(bool active)
+        {
+            if (!active) composing = false;
+            RaiseCursorRectangleChanged();
+        }
     }
 
     private static int Modifiers(PointerEventArgs e, Visual relativeTo)
@@ -512,7 +657,7 @@ internal sealed class RemoteSurface : Decorator
     // Escape stays with the plugin while one of its popups that takes input shows; otherwise the app hears it too.
     private bool Keeps(KeyEventArgs e) => (e.Key != Key.Escape || Newest() is not null) && (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0;
 
-    private RemotePopup? Newest() => popups.Values.Where(popup => popup.IsHitTestVisible).MaxBy(popup => popup.Number);
+    private RemotePopup? Newest() => popups.Values.Where(popup => popup.IsHitTestVisible && !popup.Dialog).MaxBy(popup => popup.Number);
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
@@ -534,6 +679,7 @@ internal sealed class RemoteSurface : Decorator
     protected override void OnTextInput(TextInputEventArgs e)
     {
         base.OnTextInput(e);
+        input.Committed();
         if (e.Text is { Length: > 0 } text) Send(SurfaceInputKind.Text, text: text);
         e.Handled = true;
     }
@@ -633,26 +779,98 @@ internal sealed class RemoteSurface : Decorator
     }
 
     /// <summary>
-    /// One popup of the surface, shown in the popup layer: it draws the popup's pixels and sends the pointer to it. It
-    /// never takes focus, so keys keep going to the surface, which hands them to the element focused in the plugin.
+    /// One popup of the surface, shown in the popup layer: it draws the popup's pixels and sends the pointer to it. A
+    /// popup never takes focus, so keys keep going to the surface, which hands them to the element focused in the
+    /// plugin. A dialog (a window the plugin opened) shows inside a frame that names the plugin, takes focus and its own
+    /// keys, and its own input method composition.
     /// </summary>
     internal sealed class RemotePopup : Control
     {
         private readonly RemoteSurface owner;
         private readonly FrameImage image;
 
-        internal RemotePopup(RemoteSurface owner, int number, FrameImage image)
+        internal RemotePopup(RemoteSurface owner, int number, FrameImage image, bool dialog = false)
         {
-            (this.owner, this.image, Number) = (owner, image, number);
-            Name = "PluginPopup";
-            Focusable = false;
+            (this.owner, this.image, Number, Dialog) = (owner, image, number, dialog);
+            Name = dialog ? "PluginDialog" : "PluginPopup";
+            Focusable = dialog;
             ClipToBounds = true;
+            Shown = this;
+            Input = new RemoteInputClient(owner, this, number);
             RenderOptions.SetBitmapInterpolationMode(this, Avalonia.Media.Imaging.BitmapInterpolationMode.None);
+            if (dialog) AddHandler(TextInputMethodClientRequestedEvent, (_, e) => { if (owner.carets.ContainsKey(Number)) e.Client = Input; });
         }
 
         /// <summary>The number the plugin gave the popup within its surface.</summary>
         internal int Number { get; }
         internal SurfacePopup? Placement { get; set; }
+        /// <summary>Whether this is a window the plugin opened, which shows framed and centered.</summary>
+        internal bool Dialog { get; }
+        /// <summary>What the layer holds: this popup, or a dialog's frame around it.</summary>
+        internal Control Shown { get; private set; }
+        /// <summary>The frame's title: the plugin's name and the dialog's own title, for the checks.</summary>
+        internal string Title { get; private set; } = "";
+        internal RemoteInputClient Input { get; }
+        /// <summary>The cursor the plugin shows over this popup, for the checks.</summary>
+        internal StandardCursorType CursorShape { get; set; } = StandardCursorType.Arrow;
+
+        /// <summary>
+        /// Puts the dialog in a frame drawn by the app: a title row naming the plugin and the dialog, and a close button
+        /// that asks the plugin to close it.
+        /// </summary>
+        internal void Frame(string plugin, string title)
+        {
+            Title = plugin.Length == 0 ? title : title.Length == 0 ? plugin : plugin + ": " + title;
+            var close = new Button { Name = "PluginDialogClose", Content = "Close", Padding = new(8, 2), Focusable = false };
+            close.Click += (_, _) => owner.Send(SurfaceInputKind.CloseDialog, popup: Number);
+            var heading = new TextBlock
+            {
+                Name = "PluginDialogTitle",
+                Text = Title,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Foreground = SharpRail.Plugins.UI.Kit.Ui.Muted,
+            };
+            var row = new DockPanel { Margin = new(8, 4), Children = { close, heading } };
+            DockPanel.SetDock(close, Dock.Right);
+            var body = new DockPanel { Children = { row, this } };
+            DockPanel.SetDock(row, Dock.Top);
+            Shown = new Border
+            {
+                Name = "PluginDialogFrame",
+                Child = body,
+                Background = SharpRail.Plugins.UI.Kit.Ui.Elevated,
+                BorderBrush = SharpRail.Plugins.UI.Kit.Ui.BorderBrush,
+                BorderThickness = new(1),
+                CornerRadius = new(8),
+                ClipToBounds = true,
+            };
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            base.OnKeyDown(e);
+            if (!Dialog) return;
+            owner.Send(SurfaceInputKind.KeyDown, modifiers: (int)e.KeyModifiers, key: e, popup: Number);
+            e.Handled = (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0;
+        }
+
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            base.OnKeyUp(e);
+            if (!Dialog) return;
+            owner.Send(SurfaceInputKind.KeyUp, modifiers: (int)e.KeyModifiers, key: e, popup: Number);
+            e.Handled = (e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) == 0;
+        }
+
+        protected override void OnTextInput(TextInputEventArgs e)
+        {
+            base.OnTextInput(e);
+            if (!Dialog) return;
+            Input.Committed();
+            if (e.Text is { Length: > 0 } text) owner.Send(SurfaceInputKind.Text, text: text, popup: Number);
+            e.Handled = true;
+        }
 
         public override void Render(DrawingContext context)
         {
@@ -675,6 +893,7 @@ internal sealed class RemoteSurface : Decorator
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
+            if (Dialog) Focus(NavigationMethod.Pointer);
             e.Pointer.Capture(this);
             owner.Send(SurfaceInputKind.PointerDown, e.GetPosition(this), (int)Pressed(e, this), Modifiers(e, this), popup: Number);
             e.Handled = true;

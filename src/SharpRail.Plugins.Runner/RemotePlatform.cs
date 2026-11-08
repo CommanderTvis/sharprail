@@ -8,6 +8,7 @@ using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Input.Raw;
+using Avalonia.Input.TextInput;
 using Avalonia.Platform;
 using Avalonia.Platform.Surfaces;
 using Avalonia.Rendering;
@@ -148,6 +149,7 @@ internal sealed class RemoteTopLevel : IWindowImpl, IPopupImpl, IFramebufferPlat
     private readonly IPopupPositioner? positioner;
     private byte[] drawing = [], last = [];
     private PixelSize lastSize;
+    private readonly InputMethod inputMethod = new();
 
     public RemoteTopLevel(RemoteTopLevel? parent)
     {
@@ -221,10 +223,21 @@ internal sealed class RemoteTopLevel : IWindowImpl, IPopupImpl, IFramebufferPlat
         CursorChanged?.Invoke(this);
     }
 
-    public object? TryGetFeature(Type featureType) => featureType == typeof(IScreenImpl) ? screen : null;
+    public object? TryGetFeature(Type featureType) =>
+        featureType == typeof(IScreenImpl) ? screen : featureType == typeof(ITextInputMethodImpl) ? inputMethod : null;
+
+    /// <summary>Whether a text field that composes with an input method has focus here.</summary>
+    public bool Composing => inputMethod.Client is { SupportsPreedit: true };
+
+    /// <summary>That text field's caret, in device-independent pixels from this top-level's corner.</summary>
+    public Rect Caret => Composing ? inputMethod.Caret : default;
+
+    /// <summary>Whether this window was shown as a modal dialog.</summary>
+    public bool IsModal { get; private set; }
 
     public void Show(bool activate, bool isDialog)
     {
+        IsModal = isDialog;
         if (activate) Activate();
     }
 
@@ -390,7 +403,54 @@ internal sealed class RemoteTopLevel : IWindowImpl, IPopupImpl, IFramebufferPlat
     public void Key(bool down, Key key, RawInputModifiers modifiers, PhysicalKey physicalKey, string? symbol) =>
         Raise(new RawKeyEventArgs(keyboard, Timestamp, InputRoot!, down ? RawKeyEventType.KeyDown : RawKeyEventType.KeyUp, key, modifiers, physicalKey, symbol));
 
-    public void Text(string text) => Raise(new RawTextInputEventArgs(keyboard, Timestamp, InputRoot!, text));
+    /// <summary>Text the client's input method committed: it ends any composition first.</summary>
+    public void Text(string text)
+    {
+        if (inputMethod.Preediting)
+        {
+            RemotePlatform.Settle();
+            inputMethod.Preedit("", 0);
+        }
+        Raise(new RawTextInputEventArgs(keyboard, Timestamp, InputRoot!, text));
+    }
+
+    /// <summary>The client's input method composes <paramref name="text"/> (empty when it stops) with its caret at <paramref name="caret"/>.</summary>
+    public void Preedit(string text, int caret)
+    {
+        RemotePlatform.Settle();
+        if (!IsEnabled) return;
+        inputMethod.Preedit(text, caret);
+        RemotePlatform.Settle();
+    }
+
+    /// <summary>
+    /// The input method Avalonia talks to for this top-level: it learns the focused text field and its caret, and hands
+    /// that field the composition the client's input method makes.
+    /// </summary>
+    private sealed class InputMethod : ITextInputMethodImpl
+    {
+        public TextInputMethodClient? Client { get; private set; }
+        public Rect Caret { get; private set; }
+        public bool Preediting { get; private set; }
+
+        public void SetClient(TextInputMethodClient? client)
+        {
+            Client = client;
+            Preediting = false;
+        }
+
+        public void SetCursorRect(Rect rect) => Caret = rect;
+        public void SetOptions(TextInputOptions options) { }
+        public void Reset() => Preediting = false;
+
+        public void Preedit(string text, int caret)
+        {
+            if (Client is not { SupportsPreedit: true } client) return;
+            Preediting = text.Length > 0;
+            if (Preediting) client.SetPreeditText(text, caret);
+            else client.SetPreeditText(null, null);
+        }
+    }
 
     // What a desktop window would do and a remote top-level has no use for.
 

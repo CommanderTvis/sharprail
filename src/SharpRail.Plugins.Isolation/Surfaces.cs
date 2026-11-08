@@ -26,11 +26,20 @@ public static class SurfaceLimits
     public const int MostSurfaces = 64;
     /// <summary>Popups one surface may hold open at once (a menu and its submenus, a flyout, a tooltip).</summary>
     public const int MostPopups = 8;
+    /// <summary>Characters of a dialog's title: plain text with no control characters.</summary>
+    public const int MostTitle = 128;
+    /// <summary>The largest cursor shape number (Avalonia's <c>StandardCursorType</c> values lie below it).</summary>
+    public const int MostCursorShape = 63;
     public const double LeastScale = 0.25, MostScale = 8;
 }
 
 /// <summary>What a forwarded input event is.</summary>
-public enum SurfaceInputKind { None, PointerMove, PointerDown, PointerUp, PointerLeave, Wheel, KeyDown, KeyUp, Text }
+/// <remarks>
+/// <see cref="Preedit"/> is the client's input method composing <see cref="SurfaceInput.Text"/> (empty when it stops) with
+/// its caret at <see cref="SurfaceInput.Caret"/>; the text it commits arrives as <see cref="Text"/>. <see cref="CloseDialog"/>
+/// asks the dialog <see cref="SurfaceInput.Popup"/> to close, as its frame's close button does.
+/// </remarks>
+public enum SurfaceInputKind { None, PointerMove, PointerDown, PointerUp, PointerLeave, Wheel, KeyDown, KeyUp, Text, Preedit, CloseDialog }
 
 /// <summary>
 /// The host asks the runner to call a factory the plugin lent on a client's context and show its control as
@@ -44,10 +53,10 @@ public sealed record SurfaceResize(int Surface, double Width, double Height, dou
 /// <summary>
 /// One input event at a point in device-independent pixels, on the surface or on its open <see cref="Popup"/> (0 is
 /// the surface itself). <see cref="Button"/>, <see cref="Key"/>, <see cref="PhysicalKey"/> and <see cref="Modifiers"/>
-/// carry Avalonia's own values.
+/// carry Avalonia's own values. <see cref="Caret"/> is a composition's caret in its text.
 /// </summary>
 public sealed record SurfaceInput(int Surface, SurfaceInputKind Kind, double X = 0, double Y = 0, int Button = 0, int Modifiers = 0,
-    double DeltaX = 0, double DeltaY = 0, int Key = 0, int PhysicalKey = 0, string Text = "", int Popup = 0);
+    double DeltaX = 0, double DeltaY = 0, int Key = 0, int PhysicalKey = 0, string Text = "", int Popup = 0, int Caret = 0);
 
 /// <summary>The client applied frame <see cref="Sequence"/> of the surface or of its <see cref="Popup"/>; the runner may send the next.</summary>
 public sealed record SurfaceAck(int Surface, long Sequence, int Popup = 0);
@@ -60,8 +69,21 @@ public sealed record SurfaceDismiss(int Surface);
 /// the surface from 1, never reused. <see cref="X"/> and <see cref="Y"/> place it from the surface's top-left corner and
 /// <see cref="Width"/> and <see cref="Height"/> size it, in device-independent pixels; it may extend outside the
 /// surface. A popup that does not take <see cref="Input"/> (a tooltip) lets the pointer through to what lies under it.
+/// A <see cref="Dialog"/> is a window the plugin opened: the client places it itself, in a frame that names the plugin
+/// and the dialog's <see cref="Title"/>, and its place here means nothing.
 /// </summary>
-public sealed record SurfacePopup(int Surface, int Popup, double X, double Y, double Width, double Height, bool Open, bool Input = true);
+public sealed record SurfacePopup(int Surface, int Popup, double X, double Y, double Width, double Height, bool Open, bool Input = true,
+    bool Dialog = false, string Title = "");
+
+/// <summary>The cursor the plugin shows over the surface or its <see cref="Popup"/>: Avalonia's <c>StandardCursorType</c> value.</summary>
+public sealed record SurfaceCursor(int Surface, int Popup, int Shape);
+
+/// <summary>
+/// Whether a text field that composes with an input method has focus in the surface or its <see cref="Popup"/>, and its
+/// caret, in device-independent pixels from that top-level's corner: the client's input method shows its composition
+/// there.
+/// </summary>
+public sealed record SurfaceIme(int Surface, int Popup, bool Active, double X, double Y, double Width, double Height);
 
 /// <summary>Focus enters the surface (from the end when <see cref="Backward"/>) or leaves it.</summary>
 public sealed record SurfaceFocus(int Surface, bool Enter, bool Backward, bool Pointer);
@@ -108,6 +130,12 @@ public sealed record SurfaceFrame(SurfaceFrameHeader Header, byte[] Data) : Surf
 
 /// <summary>Focus left the surface.</summary>
 public sealed record SurfaceLeft(bool Backward) : SurfaceEvent;
+
+/// <summary>The cursor over the surface or one of its popups changed.</summary>
+public sealed record SurfaceCursorChanged(SurfaceCursor Cursor) : SurfaceEvent;
+
+/// <summary>A text field of the surface or one of its popups gained or lost focus, or its caret moved.</summary>
+public sealed record SurfaceImeChanged(SurfaceIme Ime) : SurfaceEvent;
 
 /// <summary>
 /// The client's end of one plugin surface. <see cref="Events"/> completes when the surface closes, with an exception
@@ -165,11 +193,14 @@ public static class SurfaceProtocol
     public static readonly int Dismiss = IsoMember.Id("surface.dismiss");
     /// <summary>
     /// Runner to host, one-ways on the client's context: <see cref="SurfaceFrameHeader"/> with the tiles' bytes,
-    /// <see cref="SurfaceFocusLeave"/> and <see cref="SurfacePopup"/>.
+    /// <see cref="SurfaceFocusLeave"/> and <see cref="SurfacePopup"/>; then <see cref="Cursor"/> and <see cref="Ime"/>.
     /// </summary>
     public static readonly int Frame = IsoMember.Id("surface.frame");
     public static readonly int FocusLeave = IsoMember.Id("surface.focus-leave");
     public static readonly int Popup = IsoMember.Id("surface.popup");
+    /// <summary>Runner to host, one-ways on the client's context: <see cref="SurfaceCursor"/> and <see cref="SurfaceIme"/>.</summary>
+    public static readonly int Cursor = IsoMember.Id("surface.cursor");
+    public static readonly int Ime = IsoMember.Id("surface.ime");
     /// <summary>
     /// Host to runner, answered only when the runner was started with <see cref="DiagnosticsVariable"/> set (the checks):
     /// a fresh render of a surface and the bounds of its named controls (<see cref="SurfaceCapture"/>).
@@ -191,8 +222,11 @@ public static class SurfaceProtocol
     }
 }
 
-/// <summary>A surface's fresh render (premultiplied BGRA, base64) and its named controls' bounds in device-independent pixels.</summary>
-public sealed record SurfaceCapture(int Width, int Height, string Pixels, Dictionary<string, double[]> Bounds);
+/// <summary>
+/// A surface's fresh render (premultiplied BGRA, base64), its named controls' bounds in device-independent pixels and,
+/// for a named text field, its text and (under its name with <c>.preedit</c>) the composition it shows.
+/// </summary>
+public sealed record SurfaceCapture(int Width, int Height, string Pixels, Dictionary<string, double[]> Bounds, Dictionary<string, string>? Texts = null);
 
 /// <summary>Asks for a <see cref="SurfaceCapture"/> of a surface, or of its open <see cref="Popup"/>, with the bounds of these named controls.</summary>
 public sealed record SurfaceCaptureRequest(int Surface, List<string> Names, int Popup = 0);
@@ -210,6 +244,8 @@ public sealed record SurfaceCaptureRequest(int Surface, List<string> Names, int 
 [JsonSerializable(typeof(SurfacePopup))]
 [JsonSerializable(typeof(SurfaceFrameHeader))]
 [JsonSerializable(typeof(SurfaceFocusLeave))]
+[JsonSerializable(typeof(SurfaceCursor))]
+[JsonSerializable(typeof(SurfaceIme))]
 [JsonSerializable(typeof(SurfaceCapture))]
 [JsonSerializable(typeof(SurfaceCaptureRequest))]
 internal sealed partial class SurfaceJsonContext : JsonSerializerContext;
@@ -285,6 +321,8 @@ public sealed class SurfaceFrameState
     public bool Unacknowledged { get; set; }
     public long Pixels { get; set; }
     public bool KeyframePending { get; set; }
+    /// <summary>Whether these are a dialog's frames.</summary>
+    public bool Dialog { get; init; }
 
     /// <summary>
     /// A frame message sent before the keyframe was asked for, which its receiver drops: a keyframe repaints what it
@@ -344,12 +382,31 @@ public sealed class SurfaceState
         if (!(Math.Abs(popup.X) <= SurfaceLimits.MostSide) || !(Math.Abs(popup.Y) <= SurfaceLimits.MostSide) ||
             !(popup.Width is > 0 and <= SurfaceLimits.MostSide) || !(popup.Height is > 0 and <= SurfaceLimits.MostSide))
             return "The plugin placed a popup out of range.";
+        if (popup.Title is null || popup.Title.Length > SurfaceLimits.MostTitle || popup.Title.Any(char.IsControl) || popup.Title.Length > 0 && !popup.Dialog)
+            return "The plugin titled a popup with text a client does not take.";
+        if (frames.TryGetValue(popup.Popup, out var known) && known.Dialog != popup.Dialog) return "The plugin turned a popup into a dialog or back.";
         if (frames.ContainsKey(popup.Popup)) return null;
         if (popup.Popup <= lastPopup) return "The plugin opened a popup under a number it used before.";
         if (frames.Count > SurfaceLimits.MostPopups) return "The plugin opened too many popups.";
         lastPopup = popup.Popup;
-        frames[popup.Popup] = new SurfaceFrameState { KeyframePending = frames[0].KeyframePending };
+        frames[popup.Popup] = new SurfaceFrameState { KeyframePending = frames[0].KeyframePending, Dialog = popup.Dialog };
         return null;
+    }
+
+    /// <summary>Why a cursor report breaks the surface protocol, or null.</summary>
+    public string? Cursor(SurfaceCursor cursor)
+    {
+        if (!frames.ContainsKey(cursor.Popup)) return "The plugin set a cursor on a popup that is not open.";
+        return cursor.Shape is >= 0 and <= SurfaceLimits.MostCursorShape ? null : "The plugin asked for a cursor a client does not know.";
+    }
+
+    /// <summary>Why an input method report breaks the surface protocol, or null.</summary>
+    public string? Ime(SurfaceIme ime)
+    {
+        if (!frames.ContainsKey(ime.Popup)) return "The plugin placed a caret on a popup that is not open.";
+        return Math.Abs(ime.X) <= SurfaceLimits.MostSide && Math.Abs(ime.Y) <= SurfaceLimits.MostSide &&
+            ime.Width is >= 0 and <= SurfaceLimits.MostSide && ime.Height is >= 0 and <= SurfaceLimits.MostSide
+            ? null : "The plugin placed a caret out of range.";
     }
 
     /// <summary>Why a frame message breaks the surface protocol (it names a popup that is not open, or breaks the caps), or null.</summary>

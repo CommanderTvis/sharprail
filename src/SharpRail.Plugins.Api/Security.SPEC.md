@@ -434,9 +434,23 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   (the backend's top-levels take a scale each), and tile coordinates stay in device pixels. A client whose window moves to a
   monitor of another scale pushes it and gets the surface rendered again at it. The checks render scales 1 and 2,
   each equal to a fresh render in the runner, with one client at 2 and another at 1 at once.
+- The cursor, input method composition and dialogs cross too (`--plugin-surface`, `--plugin-surface-remote`). The
+  runner reports the cursor over each top-level as a standard shape, and the client shows it over the surface or
+  popup; a bitmap cursor of the plugin's own shows as the arrow. While a text field that composes has focus, the
+  runner reports its caret; the client then offers its own input method (the desktop's or the browser's) a client at
+  that caret, sends the composition to the plugin's field as it changes and the committed text as text input, and
+  offers none while no such field has focus, so the input method never composes over a button. A window the plugin
+  opens (the kit's `DialogWindow` or any `Window`) is a dialog of the surface its owner belongs to, else of the
+  surface that last had input, and with neither it closes. It travels as a popup marked as a dialog, with its title
+  as plain text of at most 128 characters. The client shows it in the surface's popup layer, centered, in a frame
+  the app draws that names the plugin and the dialog, with a close button that asks the plugin to close it. It takes
+  focus and its own keys and composition, a press elsewhere does not close it, and it is modal to the plugin only:
+  while it is open the runner gives the same client's other surfaces, popups and dialogs of that plugin no input,
+  and the rest of the app stays usable. Modality is the plugin's own business, so its process enforces it.
 - Pending: the backend keeps a popup inside a 1,920×1,280-pixel screen of its own, as Avalonia's headless platform did, so near the bottom of a
-  tall surface at scale 2 a menu may open flipped or slid; the cursor shape, IME composition and accessibility
-  are not carried; the terminal delay behind surface traffic is bounded by construction and not measured; one process
+  tall surface at scale 2 a menu may open flipped or slid; accessibility is not carried; a popup opened from inside a
+  dialog (a combo box's list) does not show, and a dialog cannot be moved or resized; the plugin's process has no
+  clipboard, so copy and paste inside a plugin's view do nothing until the broker carries them; the terminal delay behind surface traffic is bounded by construction and not measured; one process
   holds one kit theme, the last a client pushed, because the kit's brushes are process-wide; wheel events stay with the surface, since the plugin cannot say whether it used one; keys with
   Control, Alt or Meta, and Escape while no popup is open, reach the plugin but also the app's shortcuts; app styles outside the kit (such as
   the app's `Switch` theme) are absent; `Host()`, `WatchHost` and preference reads still throw; per-process memory
@@ -811,8 +825,8 @@ remain a later option if bandwidth becomes the problem; they would put a command
 - Popups, menus and tooltips are separate remote surfaces that the app places. They can extend outside the
   plugin's slot but cannot cover the app's own prompts.
 - The app owns the native IME session. The plugin reports caret and composition bounds, and the app sends
-  composition events back.
-- The plugin reports the cursor shape, and the app shows it.
+  composition events back. This is in place ([Where the isolated runtime stands](#where-the-isolated-runtime-stands)).
+- The plugin reports the cursor shape, and the app shows it. This is in place too.
 - The plugin serializes its automation-peer tree incrementally, and the app exposes it through the platform's
   accessibility API.
 - The app pushes the theme's kit tokens and its font set, so a sandboxed plugin follows theme changes exactly as an
@@ -832,8 +846,9 @@ A sandboxed UI half can use only what Avalonia draws through Skia. This is a dec
   withheld from sandboxed plugins.
 - Any other native-surface control, such as a native control host, is unavailable to a sandboxed plugin.
   Builtin plugins in the trusted runtime are unaffected.
-- `DialogWindow` is an Avalonia `Window`. In the isolated runtime it becomes a remote top-level or popup that the
-  app places and draws a plugin-attributed frame around.
+- `DialogWindow` is an Avalonia `Window`. In the isolated runtime it becomes a remote top-level that the app
+  places and draws a plugin-attributed frame around, modal to the plugin's views only, as does any `Window` a
+  plugin opens.
 
 Fonts: the plugin process draws its own text, so no font crosses the wire. It uses the bundled set (Geist, and
 JetBrains Mono for code) and its own fonts from its plugin directory. Fallback for glyphs the bundled set lacks
@@ -855,7 +870,8 @@ A client receives, from the host, only these things about an external plugin:
 - Prompts and notifications, which the client draws with the plugin's name and a capped plain-text body, outside
   any plugin surface.
 - The surface stream, which is the one channel that carries content a plugin drew, with the places and sizes of
-  its popups, capped.
+  its popups and dialogs, a dialog's title as plain text of at most 128 characters, the cursor as a standard shape
+  number and a focused text field's caret as a rectangle, all capped.
 
 Builtin UI halves are part of the client binary and are not delivered at all.
 
