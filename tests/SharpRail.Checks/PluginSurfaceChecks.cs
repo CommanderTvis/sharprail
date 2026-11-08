@@ -647,6 +647,12 @@ internal static class PluginSurfaceChecks
             hostile.Open(5, dialog: true);
             Sync();
             Require(surface.Popups.Count == 0, "A closed dialog's place sent again does not show it.");
+
+            // A dialog the plugin opens long after any input, as after a slow call, still shows: its frame names the plugin.
+            E2eWorkspace.Settle(2100);
+            hostile.Open(6, dialog: true);
+            Sync();
+            Require(surface.Popups.Count == 1 && surface.Popups.Single().Dialog, "A dialog that opens more than 2 seconds after input shows.");
         }
         finally
         {

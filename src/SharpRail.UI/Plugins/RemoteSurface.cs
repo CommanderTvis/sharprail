@@ -184,9 +184,9 @@ internal sealed class RemoteSurface : Decorator
                         if (!placement.Open) images.Remove(placement.Popup);
                         else if (!images.ContainsKey(placement.Popup) && placement.Popup > seenPopup)
                         {
-                            // A popup hidden or refused before stays so; a new one shows only shortly after input.
+                            // A popup hidden or refused before stays so; a new one shows only shortly after input, a dialog at any time.
                             seenPopup = placement.Popup;
-                            if (Environment.TickCount64 <= Volatile.Read(ref popupsUntil)) images[placement.Popup] = new FrameImage();
+                            if (placement.Dialog || Environment.TickCount64 <= Volatile.Read(ref popupsUntil)) images[placement.Popup] = new FrameImage();
                         }
                     }
                     Dispatcher.UIThread.Post(() => { if (ReferenceEquals(mine, surface) && !closed) Place(placement); });

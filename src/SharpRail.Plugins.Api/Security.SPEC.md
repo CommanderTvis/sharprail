@@ -425,7 +425,8 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
   tool's popup may cover as one of the app's own menus would. A click in a popup reaches the plugin. A popup never takes focus, so keys stay with the surface
   and reach the element focused in the plugin; a tooltip lets the pointer through. The client does not trust the plugin to close its
   popups: a popup shows only when it opens within 2 seconds of input to the surface or its popups, so a plugin cannot
-  open one unprompted. A press anywhere else in the client's window, focus leaving the surface, the window
+  open one unprompted. A dialog is exempt and shows whenever it opens, even long after input (a plugin may ask
+  only after a slow call), since the app's frame names the plugin, so it cannot pose as the app. A press anywhere else in the client's window, focus leaving the surface, the window
   deactivating or the surface detaching hides every popup at once and tells the plugin, whose process closes them
   all. Escape while a popup that takes input shows stays with the plugin: the client hides the newest such popup and
   the runner closes it. A tooltip alone does not keep Escape from the app. A popup the client hid never shows again

@@ -118,7 +118,7 @@ and roster registration still precede reconciliation, preserving dormant tools a
   and clipped to it, at that child's z-order and after it: they reach past the surface's slot but not past that
   cell, and stay under Settings, dialogs and toasts raised above that child. A popup never takes focus, so keys
   still go to the surface; a tooltip lets the pointer through. A popup shows only when it opens within 2 seconds of
-  input to the surface or its popups. A press anywhere else in the window, focus leaving the surface, the window
+  input to the surface or its popups; a dialog shows whenever it opens, since its frame names the plugin. A press anywhere else in the window, focus leaving the surface, the window
   deactivating or the surface detaching hides them all at once and tells the plugin; Escape while one that takes
   input shows stays with the plugin and hides the newest such one. A hidden popup never shows again under its
   number. A window the plugin opens shows in the same layer as a dialog, centered, in a frame the app draws that
