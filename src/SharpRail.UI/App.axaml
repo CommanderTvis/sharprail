@@ -143,7 +143,7 @@
       <Setter Property="Padding" Value="4" />
     </Style>
     <Style Selector="MenuItem">
-      <Setter Property="Padding" Value="5,4,12,4" />
+      <Setter Property="Padding" Value="4,4,12,4" />
       <Setter Property="MinHeight" Value="{x:Static rendering:LayoutRoles.PanelHeaderRow}" />
     </Style>
     <Style Selector="Button#BranchDelete:disabled /template/ ContentPresenter#PART_ContentPresenter">
