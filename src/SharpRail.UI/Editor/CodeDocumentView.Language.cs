@@ -9,7 +9,6 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
-using SharpRail.Plugins.UI.Kit.Editor;
 using SharpRail.Scintilla;
 
 namespace SharpRail.UI.Editor;

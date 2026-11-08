@@ -115,9 +115,10 @@ public sealed partial class WorkbenchWindow
 
     private async Task DeleteBranchAsync(string name)
     {
-        // The dialog takes the window's focus, which dismisses the card; it comes back where it was, so several
+        // The card is a popup window that would cover the dialog, so it yields first and comes back where it was, so several
         // branches can be deleted in a row.
         var offset = branchScroll.Offset;
+        branchCard.Hide();
         var confirmed = await Dialogs.Confirm(this, $"Delete branch {name}?",
             "Commits that only this branch points at will no longer be reachable from any branch.", "Delete branch", "BranchDeleteConfirm");
         if (confirmed) await GitActionAsync(new("delete-branch", "", name));

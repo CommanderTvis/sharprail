@@ -126,6 +126,10 @@ internal static class MenuLayoutChecks
             .TranslatePoint(default, menu)!.Value.X).ToArray();
         Require(items[1].Icon is not null && items[2].Icon is not null && textX.All(x => Math.Abs(x - textX[0]) < 0.5),
             $"Copy path rows must carry icons and align their text with Close (x={string.Join(", ", textX.Select(x => x.ToString("0.#")))}).");
+        var closeIcon = icon.TranslatePoint(new Point(icon.Bounds.Width, 0), menu)!.Value.X;
+        var edgeGap = iconX - menu.BorderThickness.Left;
+        var textGap = textX[0] - closeIcon;
+        Require(Math.Abs(edgeGap - textGap) <= 3, $"Close icon is {edgeGap:0.#} from the menu edge but {textGap:0.#} from its text.");
         var chevron = items[^1].GetVisualDescendants().OfType<Control>().First(part => part.Name == "PART_ChevronPath");
         var chevronRight = chevron.TranslatePoint(new Point(chevron.Bounds.Width, 0), menu)!.Value.X;
         Require(chevronRight <= menu.Bounds.Width - menu.Padding.Right, $"Split chevron ends at x={chevronRight:0.#}, past the menu's padded edge {menu.Bounds.Width - menu.Padding.Right:0.#}.");

@@ -44,7 +44,14 @@ public sealed partial class App : Application
         });
         // A row with an icon reserves the icon column on its own, so the first pass already sizes the popup around the icon instead
         // of waiting for the shared column to settle (an unsettled column leaves icons outside the menu).
-        TemplatedControl.TemplateAppliedEvent.AddClassHandler<MenuItem>((item, _) => ReserveIconColumn(item));
+        TemplatedControl.TemplateAppliedEvent.AddClassHandler<MenuItem>((item, e) =>
+        {
+            ReserveIconColumn(item);
+            // Fluent's icon-to-text margin is wider than the row's left inset; one gap on both sides keeps the icon centred between edge and text.
+            if (e.NameScope.Find<Control>("PART_IconPresenter") is { } icon) icon.Margin = new Thickness(0, 0, IconGap, 0);
+            if (e.NameScope.Find<Avalonia.Controls.Primitives.Popup>("PART_Popup") is { } popup)
+                item.SubmenuOpened += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() => SnapSubmenu(item, popup), Avalonia.Threading.DispatcherPriority.Loaded);
+        });
         MenuItem.IconProperty.Changed.AddClassHandler<MenuItem>((item, _) => ReserveIconColumn(item));
         // Fluent's menu rows share icon, shortcut and chevron columns, which only settle after the first layout pass. A native
         // popup sized from that pass is narrower than its rows (clipping the icons and chevrons of mixed menus), so measure again.
@@ -128,11 +135,28 @@ public sealed partial class App : Application
         menu.MinWidth = Math.Min(Math.Ceiling(menu.DesiredSize.Width), limit);
     }
 
-    // The icon presenter is 16 wide with a 12 margin: the room a row's icon needs in the icon column from the first pass.
+    // The distance from the menu's visible edge to a row's icon and from the icon to the row's text.
+    internal const double IconGap = 10;
+
+    // The submenu popup is placed against the row, which sits inside the parent's padding and border, and its native frame can add
+    // room of its own: shift it so the submenu's visible edge touches the parent menu's visible edge, as a native menu does.
+    private static void SnapSubmenu(MenuItem item, Avalonia.Controls.Primitives.Popup popup)
+    {
+        if (!popup.IsOpen || popup.Child is not Visual child || TopLevel.GetTopLevel(item) is not { } top) return;
+        var surface = item.GetVisualAncestors().TakeWhile(visual => visual != top).LastOrDefault() ?? item;
+        if (TopLevel.GetTopLevel(child) is not { } childTop || surface.TranslatePoint(default, top) is not { } origin
+            || child.TranslatePoint(default, childTop) is not { } childOrigin) return;
+        var parentRight = top.PointToScreen(new Point(origin.X + surface.Bounds.Width, 0)).X;
+        var childLeft = childTop.PointToScreen(childOrigin).X;
+        var gap = (childLeft - parentRight) / top.RenderScaling;
+        if (Math.Abs(gap) > 0.5) popup.HorizontalOffset -= gap;
+    }
+
+    // The icon presenter is 16 wide plus the icon gap: the room a row's icon needs in the icon column from the first pass.
     private static void ReserveIconColumn(MenuItem item)
     {
         var column = item.GetVisualDescendants().OfType<Grid>().SelectMany(grid => grid.ColumnDefinitions).FirstOrDefault(definition => definition.SharedSizeGroup == "MenuItemIcon");
-        if (column is not null) column.MinWidth = item.Icon is null ? 0 : 28;
+        if (column is not null) column.MinWidth = item.Icon is null ? 0 : 16 + IconGap;
     }
 
 #if !ANDROID && !BROWSER

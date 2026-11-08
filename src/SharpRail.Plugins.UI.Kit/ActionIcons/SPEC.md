@@ -56,3 +56,8 @@ layout pass. A menu that mixes icon rows, plain rows and a submenu row therefore
 settled, and a popup sized from that pass clips the icons and chevrons. The app re-measures every context menu right after it
 opens (`App.Initialize`), and check mode `--menu-layout` (also in `--ui-smoke`) requires such a menu to be as wide as its
 widest row with the icon and chevron inside the menu padding.
+
+The icon sits as far from the menu's edge as from its row's text (one 10 px gap, set once in `App.Initialize`), and a submenu
+opens flush against its parent menu's visible edge: the app measures the gap once the submenu is shown and shifts the popup
+by it, so no per-menu offset is needed. A confirmation dialog opened from a popup (the branch card's Delete branch) closes
+the popup first, so it is never covered.
