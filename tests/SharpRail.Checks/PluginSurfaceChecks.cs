@@ -270,7 +270,7 @@ internal static class PluginSurfaceChecks
 
             shown = Popups(app, window, board, Settle(board, "the side tool before its popups"), null, "plugin surface");
             Covered(window, board, shown);
-            Console.WriteLine("PASS plugin surface popups under dialogs: with the plugin's menu open, the app's dialog takes the pointer where the menu is, and focus moving into it closes the menu");
+            Console.WriteLine("PASS plugin surface popups under dialogs: with the plugin's menu open, the app's dialog opens in a layer above the popup layer in the same panel, and focus moving into it closes the menu");
             shown = Scaled(window, board, shown, null, "plugin surface");
 
             window.ShowSettings("Plugins");
@@ -346,6 +346,12 @@ internal static class PluginSurfaceChecks
         window.MouseUp(away, MouseButton.Left);
         E2eWorkspace.Until(() => board.Popups.Count == 0);
         Require(Clicks(app) == clicks + 1, "A press elsewhere closes the flyout without clicking in it.");
+        // A press on the plugin's own surface outside the popup closes it in the plugin's process.
+        Click(window, board, more);
+        Popup(board);
+        Click(window, board, shown.Bounds["OutsiderMenuTarget"]);
+        E2eWorkspace.Until(() => board.Popups.Count == 0);
+        Require(Clicks(app) == clicks + 1, "A press on the surface outside the flyout closes it without clicking in it.");
         Click(window, board, more);
         flyout = Popup(board);
         var flyoutShown = Settle(board, "the flyout", relay: relay, popup: flyout.Number);
@@ -355,7 +361,7 @@ internal static class PluginSurfaceChecks
         E2eWorkspace.Until(() => board.IsFocused);
         Press(window, Key.Escape, PhysicalKey.Escape);
         E2eWorkspace.Until(() => board.Popups.Count == 0);
-        Console.WriteLine($"PASS {what} flyout: the plugin's flyout opens below its button, a press elsewhere in the app closes it without a click, a click in it reaches the plugin, and Escape closes it");
+        Console.WriteLine($"PASS {what} flyout: the plugin's flyout opens below its button, a press elsewhere in the app or on the surface outside it closes it without a click, a click in it reaches the plugin, and Escape closes it");
 
         window.MouseMove(Point(window, board, shown.Bounds["OutsiderTip"]));
         var tip = Popup(board);

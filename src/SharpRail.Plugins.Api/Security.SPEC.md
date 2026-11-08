@@ -422,7 +422,8 @@ outsider fixture installed from disk). Shipping compositions do not run it: the 
 - The client shows each popup in a layer of its own beside the layer that holds the surface: the panel that holds the
   app's overlays, at the z-order of the child holding the surface and after it. A popup reaches past the plugin's
   slot but never covers the app's dialogs, prompts, Settings or toasts above that child, and the client keeps it
-  inside its window. A click in a popup reaches the plugin. A popup never takes focus, so keys stay with the surface
+  inside its window. A bar drawn inside the workbench's content (a terminal's resume offer) is content, which a side
+  tool's popup may cover as one of the app's own menus would. A click in a popup reaches the plugin. A popup never takes focus, so keys stay with the surface
   and reach the element focused in the plugin; a tooltip lets the pointer through. A press anywhere else in the
   client's window, focus leaving the surface, the window deactivating or the surface detaching dismisses the popups
   that close on a press elsewhere. Escape while one is open stays with the plugin: when focus is in no popup, the
