@@ -1175,7 +1175,7 @@ internal sealed partial class ChatView
             return button;
         }
         rows.Children.Add(Row("ChatSessions", "list", "Past conversations", "Resume a session", () => _ = ShowSessions()));
-        rows.Children.Add(Row("ChatSkills", "sparkling", "Skills", "Skills and commands of this session", ShowSkills));
+        rows.Children.Add(Row("ChatSkills", "sparkling", "Skills", null, ShowSkills));
         rows.Children.Add(Row("ChatCommandMenu", "terminal", "Command menu", "Slash commands", () =>
         {
             var text = input.Text ?? "";
@@ -1183,7 +1183,7 @@ internal sealed partial class ChatView
             input.Focus();
             input.CaretIndex = 1;
         }, tip: "Show command menu (/)"));
-        rows.Children.Add(Row("TerminalIdeContextToggle", "code", "IDE context", ide ? "on" : "off", () => _ = ToggleIde(), ide,
+        rows.Children.Add(Row("TerminalIdeContextToggle", "code", "IDE context", null, () => _ = ToggleIde(), ide,
             ide ? "Stop sending IDE context to this session" : "Send IDE context to this session"));
         if (header is { McpServers.Count: > 0 })
         {
