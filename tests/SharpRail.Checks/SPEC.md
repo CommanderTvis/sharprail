@@ -717,31 +717,7 @@ retain their existing evidence, but interrupted lanes and skipped platform branc
 passes. Record new durable scope or limits in the owning spec and dated task outcomes in context-log.md;
 keep translated-case coverage and current cross-module gates in STATUS.md.
 
-The 2026-10-15 workspace-13 integration completed all 131 catalog cases in aggregate, reusing completed
-cases and running failed/unfinished cases after interrupted lanes. It was not one uninterrupted full
-gate. The final shared focus/startup changes received a desktop Release build and focused checks;
-Android and browser compilation had passed before that final delta and were not repeated for it.
-
-That source result does not close the distinct 2026-10-14 packaged audit: its settings observer timed
-out, terminal/lane work was interrupted, Blueprint UI ended unfinished and Codex recovery failed.
-Thirteen targeted packaged continuation cases passed; a clean complete packaged gate was not obtained.
-The isolated package passed ReadyToRun/file-identity and strict/deep signature checks without replacing
-the canonical running application. Current unresolved acceptance is consolidated in
-[STATUS.md](../../STATUS.md#outstanding-acceptance-work).
-
-Spec validation at that integration reported four existing Branch Graph links to absent upstream IDs
-(module-contracts, module-plugin-ui, module-server, module-web). This is a recorded graph finding,
-not a reason to treat later validation as automatically green or to weaken the validator.
-
-The later 2026-10-15 workspace-48 source integration completed all 139 registered cases in aggregate:
-110 from the initial four-lane gate, then 12, 3, 5, 6 and 3 from serial unfinished-case resumes.
-Focused checks covered each repaired fixture and the final Git-probe and Host-settings deltas; the
-desktop Release compiler and touched-file formatting also passed. This was not an uninterrupted
-full pass. Proven Gitless fixtures remain Gitless; fixtures exercising Git panes initialize their own
-repositories and wait for Git capability before interacting. A pre-existing caught change-row
-reconciliation index exception was observed during rendered-diff checks and remains unresolved.
-This source result does not establish packaged, browser, Android-device, native-GPU or Windows-runtime
-acceptance, and predates the separately integrated browser prose/AOT and Windows-script changes.
+Current unresolved acceptance is consolidated in [STATUS.md](../../STATUS.md#outstanding-acceptance-work).
 
 Watcher hygiene: `--watcher-hygiene` exercises real Specs/Blueprint concurrent and repeated reads, canonical-root sharing, owner accounting, plugin disable, project close/reopen, runtime teardown and startup synchronization-context isolation. `--watchers` covers native-start failure/backoff/replacement lifecycle. Accounting distinguishes managed allocations, enabled sets, logical leases, idle roots and retries; it is not an OS FSEvents allocation measurement.
 
