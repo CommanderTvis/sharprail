@@ -617,6 +617,7 @@ public sealed partial class HostStateStore : IHostStateService
                 SystemDark = dark,
                 FileLineWidth = Width(value.Settings.FileLineWidth),
                 MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth),
+                EditorTabWidth = value.Settings.EditorTabWidth is >= HostSettings.MinEditorTabWidth and <= HostSettings.MaxEditorTabWidth ? value.Settings.EditorTabWidth : 0,
                 TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb),
                 BellFeatures = HostSettings.NormalizeBellFeatures(value.Settings.BellFeatures ?? "") is { } bell && value.Settings.BellFeatures is { Length: > 0 } ? bell : HostSettings.DefaultBellFeatures,
                 TerminalUndoCloseSeconds = Math.Clamp(value.Settings.TerminalUndoCloseSeconds, 0, HostSettings.MaxTerminalUndoCloseSeconds),
@@ -746,6 +747,9 @@ public sealed partial class HostStateStore : IHostStateService
                     "file-bounded" when bool.TryParse(value, out var bounded) => settings with { FileLineWidthBounded = bounded },
                     "markdown-width" when Number(value) is { } width => settings with { MarkdownLineWidth = width },
                     "markdown-bounded" when bool.TryParse(value, out var bounded) => settings with { MarkdownLineWidthBounded = bounded },
+                    "editor-tab-width" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tab) && tab is >= HostSettings.MinEditorTabWidth and <= HostSettings.MaxEditorTabWidth
+                        => settings with { EditorTabWidth = tab },
+                    "editor-line-numbers" when bool.TryParse(value, out var numbers) => settings with { EditorLineNumbers = numbers },
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
                     "terminal-keep-after-exit" when bool.TryParse(value, out var keep) => settings with { TerminalKeepAfterExit = keep },

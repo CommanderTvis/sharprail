@@ -142,7 +142,7 @@ remote clients as `StateReply` member 25, and dropped with the workspace's recor
   A control keeps showing the host's value until the broadcast arrives. A change that leaves state equal
   publishes nothing.
 - An invalid change rejects the whole batch before persistence or broadcast. Line widths accept whole
-  numbers 40–240; loaded values outside that range fall back to the client default (zero) without
+  numbers 40–240, `editor-tab-width` 1–8 and `editor-line-numbers` a boolean (defaults 4 and on); loaded values outside that range fall back to the client default (zero) without
   discarding valid siblings. Theme ids are opaque: availability and resolution belong to the UI.
   `themeMode` is `fixed` or `system`; anything else loads as `fixed`. A batch that changes `theme` without
   naming a mode switches the host to fixed mode, so a client that predates modes still sees its theme

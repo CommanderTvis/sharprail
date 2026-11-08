@@ -65,6 +65,12 @@ public sealed record HostSettings
     /// <summary>The active keymap preset's name; empty is the built-in <see cref="Keymaps.BuiltinName"/>, and so is a name that no longer exists.</summary>
     public string ActiveKeymap { get; set; } = "";
 
+    /// <summary>The editors' tab width in columns; zero is the default of <see cref="DefaultEditorTabWidth"/>.</summary>
+    public int EditorTabWidth { get; init; }
+    /// <summary>Whether code editors show the line-number column.</summary>
+    public bool EditorLineNumbers { get; set; } = true;
+
+    public const int DefaultEditorTabWidth = 4, MinEditorTabWidth = 1, MaxEditorTabWidth = 8;
     public const int DefaultSettleIdleDays = 7;
     public const string DefaultBellFeatures = "attention,title";
     public static readonly IReadOnlyList<string> BellFeatureNames = ["system", "attention", "title"];

@@ -83,7 +83,7 @@ public sealed partial class SettingsView : UserControl
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", ""), ("Code Intelligence", "code"), ("Line width", ""), ("Layout", "layout"), ("Keymap", "code"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", ""), ("Code Intelligence", "code"), ("Editor", ""), ("Layout", "layout"), ("Keymap", "code"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("Plugins", "puzzle"), ("About", "alertInfo") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, item.Item2.Length == 0 ? IndentedLabel(item.Item1) : Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         // Listed only for a host that settles workspaces; an older one has no idle window to set.
@@ -236,7 +236,7 @@ public sealed partial class SettingsView : UserControl
     {
         ["Appearance"] = "Theme, file icons, interface font size",
         ["Code Intelligence"] = "Language servers and launchers",
-        ["Line width"] = "Code and Markdown columns",
+        ["Editor"] = "Font, wrapping, display",
         ["Layout"] = "Presets, panes, file previews",
         ["Keymap"] = "Shortcuts and keymap presets",
         ["Projects"] = "Recent projects",
@@ -288,7 +288,7 @@ public sealed partial class SettingsView : UserControl
         PaintNavigation();
         var page = name switch
         {
-            "Line width" => LineWidth(),
+            "Editor" => EditorSettings(),
             "Highlighting" => HighlightingSettings(),
             "Code Intelligence" => LspSettings(),
             "Layout" => LayoutSettings(),
@@ -349,7 +349,7 @@ public sealed partial class SettingsView : UserControl
         // Terminal activity and other clients' workspace updates must not replace the open page.
         if (previous.Settings == next.Settings && previous.Presets.SequenceEqual(next.Presets) && previous.KeymapPresets.SequenceEqual(next.KeymapPresets) && previous.Projects.SequenceEqual(next.Projects)) return;
         if (section == "Code Intelligence" && (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider || previous.Settings.LanguageServers != next.Settings.LanguageServers || previous.Settings.LspEnabled != next.Settings.LspEnabled || previous.Settings.LanguageLimits != next.Settings.LanguageLimits || previous.Settings.LanguageTools != next.Settings.LanguageTools)) foreach (var refresh in refreshers) refresh();
-        else if (section == "Line width") foreach (var refresh in refreshers) refresh();
+        else if (section == "Editor") foreach (var refresh in refreshers) refresh();
         // A project joining the recents list (the window's own open lands after it mounts) leaves the other pages alone.
         else if (section == "Keymap") { EndKeymapRecording(); RefreshSection(); }
         else if (section == "Appearance" && previous.Settings != next.Settings || section == "Layout" && (previous.Settings != next.Settings || !previous.Presets.SequenceEqual(next.Presets)) ||
@@ -593,10 +593,36 @@ public sealed partial class SettingsView : UserControl
         fallback.Text = $"Configured theme unavailable in this app version. Using {resolution.Theme.Label}.";
     }
 
-    private Control LineWidth()
+    private Control EditorSettings()
     {
-        var panel = Page("LineWidthPage");
+        var panel = Page("EditorPage");
         var preferences = state.Preferences;
+        var size = PageControl<NumericUpDown>(panel, "EditorSize");
+        CompactSteppers(size, 24);
+        size.Value = (decimal)SharpRail.Scintilla.ScintillaEditor.TextSize;
+        size.ValueChanged += (_, _) =>
+        {
+            if (size.Value is null) return;
+            SharpRail.Scintilla.ScintillaEditor.TextSize = (double)size.Value;
+            preferences.CodeFontSize = SharpRail.Scintilla.ScintillaEditor.TextSize; Save();
+        };
+        var tab = PageControl<NumericUpDown>(panel, "EditorTabWidth");
+        CompactSteppers(tab, 24);
+        tab.Value = preferences.EditorTabWidth;
+        tab.ValueChanged += (_, _) =>
+        {
+            if (tab.Value is { } width && (int)width != preferences.EditorTabWidth) Share(HostStateChange.Setting("editor-tab-width", ((int)width).ToString(CultureInfo.InvariantCulture)));
+        };
+        var numbers = PageControl<Switch>(panel, "EditorLineNumbers");
+        numbers.IsChecked = preferences.EditorLineNumbers;
+        AutomationProperties.SetName(numbers, "Show line numbers");
+        numbers.CheckedChange += requested =>
+        {
+            if (requested == preferences.EditorLineNumbers) return;
+            Share(HostStateChange.Setting("editor-line-numbers", Setting(requested)));
+            numbers.IsChecked = preferences.EditorLineNumbers;
+        };
+        refreshers.Add(() => { tab.Value = preferences.EditorTabWidth; numbers.IsChecked = preferences.EditorLineNumbers; });
         PageControl<ContentControl>(panel, "FileLineWidthHost").Content = LineWidthControl("File",
             "Wraps source files and diffs in the editor font.",
             () => preferences.FileLineWidth, () => preferences.FileLineWidthBounded);

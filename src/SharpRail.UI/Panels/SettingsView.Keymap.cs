@@ -184,8 +184,9 @@ public sealed partial class SettingsView
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 8, 0, 4) };
         var toggle = new Button { Name = name, Padding = new Thickness(4), HorizontalContentAlignment = HorizontalAlignment.Left, Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        content.Children.Add(Ui.Text(expanded ? "▾" : "▸", Ui.Muted, 12));
-        if (pluginId is not null) content.Children.Add(Plugins.PluginIcons.Resolve(window.Workbench.PluginRegistry.Manifests.GetValueOrDefault(pluginId)?.Icon ?? "", window.Workbench.PluginRegistry.Entry(pluginId), Ui.Muted));
+        // A plugin without an icon gets no slot; the whole row toggles, the state is in its automation name.
+        if (pluginId is not null && window.Workbench.PluginRegistry.Manifests.GetValueOrDefault(pluginId)?.Icon is { Length: > 0 } icon)
+            content.Children.Add(Plugins.PluginIcons.Resolve(icon, window.Workbench.PluginRegistry.Entry(pluginId), Ui.Muted));
         content.Children.Add(Ui.Text(pluginName is null ? title : $"{pluginName}: {title}", Ui.TextBrush, 13));
         content.Children.Add(Ui.Text(count.ToString(), Ui.Muted, 12));
         toggle.Content = content;
@@ -286,7 +287,7 @@ public sealed partial class SettingsView
     {
         if (!state.Supports(HostProtocol.Keymaps)) return;
         keymapSelected = actionId; keymapConflict = null; keymapNotice = "";
-        if (KeymapBuiltinActive) { _ = CreateToEditAsync(actionId, slot); return; }
+        if (KeymapBuiltinActive) { CreateToEdit(actionId, slot); return; }
         keymapRecording = (actionId, slot);
         ActiveKeymap.Recording = true;
         RefreshKeymapList();
@@ -398,11 +399,16 @@ public sealed partial class SettingsView
         box.IsVisible = box.Children.Count > 0;
     }
 
-    /// <summary>IntelliJ is never edited in place: the first edit makes a custom copy, selects it and then records into it.</summary>
-    private async Task CreateToEditAsync(string actionId, int slot)
+    /// <summary>IntelliJ is never edited in place: the first edit makes a custom copy without asking, selects it and then records into it.</summary>
+    private void CreateToEdit(string actionId, int slot)
     {
-        var made = await NewKeymapAsync(Keymaps.BuiltinName, prompt: true, "Create custom preset to edit", suggested: "My keymap");
-        if (made) keymapAfterCreate = (actionId, slot);
+        var existing = state.Current.KeymapPresets.Select(preset => preset.Name).ToList();
+        var name = "My keymap";
+        for (var n = 2; Keymaps.ValidateName(name, existing) is not null; n++) name = $"My keymap {n}";
+        var copy = KeymapBindingsOf(Keymaps.BuiltinName).Copy();
+        copy.BasedOn = Keymaps.BuiltinName;
+        keymapAfterCreate = (actionId, slot);
+        Share(HostStateChange.SaveKeymap(name, copy.ToJson()), HostStateChange.SelectKeymap(name));
     }
 
     private async Task<bool> NewKeymapAsync(string sourceName, bool prompt, string title = "New keymap preset", string? suggested = null)

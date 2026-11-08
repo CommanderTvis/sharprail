@@ -86,7 +86,7 @@ public sealed partial class WorkbenchWindow
                 if (pane.Find<MarkdownPreviewBody>() is { } markdown)
                     markdown.Refresh(Rendering.MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()));
                 pane.Reset(body => body is Editor.CodeDocumentView or MarkdownPreviewBody);
-                if (pane.Find<Editor.CodeDocumentView>() is { } view) view.Editor.WrapWidth = FileWrapWidth;
+                if (pane.Find<Editor.CodeDocumentView>() is { } view) ApplyEditorPreferences(view.Editor);
             }
     }
 }

@@ -29,6 +29,13 @@ public sealed partial class ScintillaEditor
         }
     }
 
+    /// <summary>The width of a tab stop in columns.</summary>
+    public int TabWidth
+    {
+        get;
+        set { field = Math.Clamp(value, 1, 16); document.Send(ScintillaMessage.SetTabWidth, field); InvalidateVisual(); }
+    } = 4;
+
     public bool ShowLineNumbers
     {
         get => lineNumbers;

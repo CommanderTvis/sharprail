@@ -2362,3 +2362,10 @@ static SharpRail.Host.Abstractions.LanguageChange.operator !=(SharpRail.Host.Abs
 static SharpRail.Host.Abstractions.LanguageChange.operator ==(SharpRail.Host.Abstractions.LanguageChange? left, SharpRail.Host.Abstractions.LanguageChange? right) -> bool
 static SharpRail.Host.Abstractions.LanguageDiagnosticDelta.operator !=(SharpRail.Host.Abstractions.LanguageDiagnosticDelta? left, SharpRail.Host.Abstractions.LanguageDiagnosticDelta? right) -> bool
 static SharpRail.Host.Abstractions.LanguageDiagnosticDelta.operator ==(SharpRail.Host.Abstractions.LanguageDiagnosticDelta? left, SharpRail.Host.Abstractions.LanguageDiagnosticDelta? right) -> bool
+const SharpRail.Host.Abstractions.HostSettings.DefaultEditorTabWidth = 4 -> int
+const SharpRail.Host.Abstractions.HostSettings.MaxEditorTabWidth = 8 -> int
+const SharpRail.Host.Abstractions.HostSettings.MinEditorTabWidth = 1 -> int
+SharpRail.Host.Abstractions.HostSettings.EditorLineNumbers.get -> bool
+SharpRail.Host.Abstractions.HostSettings.EditorLineNumbers.set -> void
+SharpRail.Host.Abstractions.HostSettings.EditorTabWidth.get -> int
+SharpRail.Host.Abstractions.HostSettings.EditorTabWidth.init -> void

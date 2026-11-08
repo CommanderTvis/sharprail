@@ -19,6 +19,10 @@ public sealed class Preferences
     public bool FileLineWidthBounded { get; set; } = true;
     public int MarkdownLineWidth { get; set; } = LineWidths.MarkdownDefault;
     public bool MarkdownLineWidthBounded { get; set; } = true;
+    /// <summary>The host-shared tab width of code editors, in columns.</summary>
+    public int EditorTabWidth { get; set; } = Host.Abstractions.HostSettings.DefaultEditorTabWidth;
+    /// <summary>The host-shared visibility of the line-number column in code editors.</summary>
+    public bool EditorLineNumbers { get; set; } = true;
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
     public double FontSize { get; set; } = 14;
     /// <summary>The editors' text size, set by pinching one of them.</summary>

@@ -285,7 +285,7 @@ internal static class KeymapChecks
             search.Text = "Go to Declaration";
             Until(() => Rows() == 1, "Search filters across groups and expands a collapsed group.");
             search.Text = "";
-            Until(() => Rows() == total - 10, "Clearing the search restores the collapsed state.");
+            Until(() => Rows() == total - KeymapActions.All.Count(action => action.Group == KeymapActions.LanguageGroup), "Clearing the search restores the collapsed state.");
             Maybe<Button>("KeymapGroup_Language")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             registry.RemovePlugin("fake");
             Until(() => Maybe<Button>("KeymapGroup_fake_Fake_group") is null && Maybe<Button>("KeymapGroup_Unavailable") is not null, "A disabled plugin's group leaves; its stored binding shows as not available.");

@@ -216,7 +216,7 @@ internal static class LineWidthE2E
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OpenSettingsViews.Any());
         var settings = app.Window.OpenSettingsViews.Single();
-        app.Click(Named<Button>(settings, "Settings_Line_width"));
+        app.Click(Named<Button>(settings, "Settings_Editor"));
         return settings;
     }
 

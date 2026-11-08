@@ -197,7 +197,7 @@ internal static class EditorE2E
         Until(() => editor.WrapCount(0) > 1);
         var wrapped = editor.WrapCount(0);
         var settings = OpenSettings(app);
-        settings.ShowSection("Line width");
+        settings.ShowSection("Editor");
         Until(() => settings.GetLogicalDescendants().OfType<TextBox>().Any(input => input.Name == "FileLineWidthInput"));
         LineWidthE2E.SaveWidth(app, settings, "File", 40);
         CloseSettings(settings);

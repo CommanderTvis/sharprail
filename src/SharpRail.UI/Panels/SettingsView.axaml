@@ -226,10 +226,38 @@
         </Border>
       </StackPanel>
     </DataTemplate>
-    <DataTemplate x:Key="LineWidthPage">
+    <DataTemplate x:Key="EditorPage">
       <StackPanel Spacing="8">
-        <TextBlock Text="Line width" Classes="settings-heading" />
-        <TextBlock Text="Wrap column for source files and rendered Markdown, shared by every window and client of this host." Classes="settings-description" />
+        <TextBlock Text="Editor" Classes="settings-heading" />
+        <TextBlock Text="Display and wrapping of source files and rendered Markdown. Tab width, line numbers and the wrap columns are shared by every window and client of this host; the text size belongs to this device." Classes="settings-description" />
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Editor font size" Classes="settings-label" />
+              <TextBlock Text="Separate from the interface font size; pinching an editor changes it too" Classes="settings-description" />
+            </StackPanel>
+            <NumericUpDown x:Name="EditorSize" Grid.Column="1" Minimum="6" Maximum="40" Increment="1" Width="150" />
+          </Grid>
+        </Border>
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Tab width" Classes="settings-label" />
+              <TextBlock Text="Columns a tab stop spans in code editors" Classes="settings-description" />
+            </StackPanel>
+            <NumericUpDown x:Name="EditorTabWidth" Grid.Column="1" Minimum="1" Maximum="8" Increment="1" Width="150" />
+          </Grid>
+        </Border>
+        <Border Classes="settings-row">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <StackPanel Spacing="2">
+              <TextBlock Text="Line numbers" Classes="settings-label" />
+              <TextBlock Text="Show the line-number column in code editors" Classes="settings-description" />
+            </StackPanel>
+            <rendering:Switch x:Name="EditorLineNumbers" Grid.Column="1" Label="Show line numbers" ToolTip.Tip="Show line numbers" VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+        <TextBlock Text="Wrapping" Classes="settings-label" />
         <ContentControl x:Name="FileLineWidthHost" />
         <ContentControl x:Name="MarkdownLineWidthHost" />
       </StackPanel>
@@ -483,7 +511,7 @@
               <TextBlock x:Name="SettingsGroup_Interface" Text="INTERFACE" Classes="settings-group" Margin="12,4,0,4" />
               <Button x:Name="Settings_Appearance" Classes="settings-navigation" />
               <Button x:Name="Settings_Highlighting" Classes="settings-navigation" />
-              <Button x:Name="Settings_Line_width" Classes="settings-navigation" />
+              <Button x:Name="Settings_Editor" Classes="settings-navigation" />
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
               <Button x:Name="Settings_Keymap" Classes="settings-navigation" />
               <Button x:Name="Settings_Terminal" Classes="settings-navigation" />

@@ -2988,6 +2988,8 @@ internal static class RpcCodec
         if (value.FileTypeIconStyle is { } field28) writer.String(28, field28);
         if (value.TerminalOptionAsAlt) writer.Bool(29, value.TerminalOptionAsAlt);
         if (value.ActiveKeymap is { } field30) writer.String(30, field30);
+        if (value.EditorTabWidth != 0) writer.Int32(31, value.EditorTabWidth);
+        if (value.EditorLineNumbersHidden) writer.Bool(32, value.EditorLineNumbersHidden);
     }
 
     private static SettingsMessage ReadSettingsMessage(ref ProtoReader reader, SettingsMessage? value)
@@ -3026,6 +3028,8 @@ internal static class RpcCodec
                 case 28: value.FileTypeIconStyle = reader.String(); break;
                 case 29: value.TerminalOptionAsAlt = reader.Bool(); break;
                 case 30: value.ActiveKeymap = reader.String(); break;
+                case 31: value.EditorTabWidth = reader.Int32(); break;
+                case 32: value.EditorLineNumbersHidden = reader.Bool(); break;
                 default: reader.Skip(); break;
             }
         }

@@ -40,6 +40,13 @@ public sealed partial class WorkbenchWindow
 
     private double FileWrapWidth => LineWidths.File(Preferences.FileLineWidth, Preferences.FileLineWidthBounded);
 
+    private void ApplyEditorPreferences(SharpRail.Scintilla.ScintillaEditor editor)
+    {
+        editor.WrapWidth = FileWrapWidth;
+        editor.TabWidth = Preferences.EditorTabWidth;
+        editor.ShowLineNumbers = Preferences.EditorLineNumbers;
+    }
+
     private CodeDocumentView CodeDocument(FileDocument document, string tabId, string key, bool find)
     {
         var view = new CodeDocumentView(document, workspaceRoot, host, () =>
@@ -54,7 +61,7 @@ public sealed partial class WorkbenchWindow
             }
         }, text => { documents[key] = document with { Text = text }; EmitSaved(key); }, () => { surface.RefreshModified(); SaveStateChanged?.Invoke(); }, Report, find);
         view.LanguageSourceServer = document.ReadOnly && IsDependencySource(document.Path) ? dependencySourceServers.GetValueOrDefault(workspaceRoot + "\0" + document.Path) ?? "" : "";
-        view.Editor.WrapWidth = FileWrapWidth;
+        ApplyEditorPreferences(view.Editor);
         view.DeletedOnDisk = deletedDocuments.Contains(key);
         ReportSelections(view.Editor, new DockTab(tabId, Path.GetFileName(document.Path), "file", document.Path));
         OfferFileActions(view.Editor, document.Path);

@@ -526,7 +526,7 @@ internal static class UiChecks
             .All(text => text.FontSize == 14 && text.Bounds.Height < 32),
             "Changing content font size enlarged labels beyond the fixed tab header.");
         fontSize.Value = 14;
-        liveSettings.ShowSection("Line width");
+        liveSettings.ShowSection("Editor");
         var previewWidth = ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth;
         var markdownWidth = Find<TextBox>(liveSettings, "MarkdownLineWidthInput");
         markdownWidth.Text = "60";

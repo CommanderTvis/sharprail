@@ -59,6 +59,10 @@ public sealed class SettingsMessage
     [ProtoMember(14, IsRequired = true)] public int SettleIdleDays { get; set; } = 7;
     /// <summary>The active keymap preset's name; empty, from a host that predates keymaps, is the built-in IntelliJ.</summary>
     [ProtoMember(30)] public string ActiveKeymap { get; set; } = "";
+    /// <summary>Zero, from a host that predates the setting, is the default width.</summary>
+    [ProtoMember(31)] public int EditorTabWidth { get; set; }
+    /// <summary>Inverted so a host that predates the setting reads as showing them, its default.</summary>
+    [ProtoMember(32)] public bool EditorLineNumbersHidden { get; set; }
 }
 
 [ProtoContract]
