@@ -99,6 +99,8 @@ internal static class PackagedBinaries
             if (name.StartsWith("shell-integration/", StringComparison.Ordinal)) return true;
             if (name.StartsWith("terminfo/", StringComparison.Ordinal)) return app;
             if (name.Contains('/', StringComparison.Ordinal)) return false;
+            // The headless host ships as one NativeAOT binary, so the managed files the checks' publish of it leaves are not asked for.
+            if (name.StartsWith("sharprail-headless.", StringComparison.Ordinal) && Path.GetExtension(name) is ".dll" or ".pdb" or ".json") return false;
             if (name.StartsWith("sharprail-", StringComparison.Ordinal)) return true;
             if (!app || name is "libTerminalEvents.dylib" || runtime.Contains(name) || Path.GetExtension(name) is ".pdb" or ".xml" or ".json") return false;
             // Not a managed assembly, nor the native launcher of one (the checks' own executable).
