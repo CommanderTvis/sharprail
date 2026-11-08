@@ -463,6 +463,8 @@ the previous one.
 
 ## Agents
 
+The agent tools are compared with OMP's LSP tool and the JetBrains MCP in `Refactoring.SPEC.md`, section "Comparison with OMP and the JetBrains MCP". Call hierarchy, the capability dump, read-only raw requests, diagnostic globs with `minSeverity` and a late-diagnostics wait, and file renames through `workspace/willRenameFiles` are operations of the existing tools.
+
 Terminal-authenticated MCP exposes `lsp_navigate`, `lsp_diagnostics` and `lsp_status` (read-only) and the write tools
 `lsp_code_actions`, `lsp_rename` and `lsp_format` (preview by default, `apply` writes inside the workspace),
 specified in [Refactoring.SPEC.md](Refactoring.SPEC.md). An omitted

@@ -67,10 +67,10 @@ chip too, for example `mise missing` or `direnv blocked`.
 
 Agents reach the language servers through MCP tools.
 
-- `lsp_navigate` finds definitions, references, implementations and symbols.
-- `lsp_diagnostics` reports errors for the files an agent edited.
-- `lsp_code_actions` lists and applies quick fixes and refactorings, `lsp_rename` renames a symbol everywhere and `lsp_format` formats a file. All three preview before they write and only change files inside the workspace.
-- `lsp_status` shows the servers and starts them.
+- `lsp_navigate` finds definitions, references, implementations, symbols and call hierarchies (callers and callees), and can send one read-only LSP query.
+- `lsp_diagnostics` reports errors for the files an agent edited, by path or glob, or for the whole workspace, and can hide everything below a severity.
+- `lsp_code_actions` lists and applies quick fixes and refactorings, `lsp_rename` renames a symbol everywhere (or moves a file or directory and fixes its imports) and `lsp_format` formats a file. All three preview before they write and only change files inside the workspace.
+- `lsp_status` shows the servers and starts them, and dumps the capabilities a server declared.
 - Java and Kotlin use IntelliJ's analysis, and other languages use their own servers. See [Plugins](plugins.md).
 
 Optional semantic search runs through [JetBrains Air Context](https://www.jetbrains.com/air/context/).

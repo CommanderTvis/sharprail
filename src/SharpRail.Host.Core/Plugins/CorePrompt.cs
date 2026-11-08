@@ -72,7 +72,7 @@ internal static class CorePrompt
         - For semantic changes use `lsp_code_actions` (quick fixes, refactorings, organize imports), `lsp_rename` and `lsp_format` instead of hand-editing or search and replace. They preview first (`operation` `preview`, the default of rename and format) and write only with `operation` `apply`; they refuse stale listings, edits outside the workspace and files with unsaved editor changes.
 
         {{project}}
-        Name the symbol, no position needed; `Type/Member` narrows a shared name and an ambiguous result lists candidates. Explicit `line`/`column` are zero-based. `scope: "dependencies"` then `operation: "source"` reads library code.
+        Name the symbol, no position needed; `Type/Member` narrows a shared name and an ambiguous result lists candidates. Explicit `line`/`column` are zero-based. `scope: "dependencies"` then `operation: "source"` reads library code. `incomingCalls`/`outgoingCalls` walk callers and callees; `lsp_diagnostics` takes globs and `minSeverity`; `lsp_rename` with `path` and `newPath` moves a file and fixes imports; `lsp_status` `capabilities` shows what a server supports.
 
         Subagents do NOT receive this text. When you brief one for code work, the brief MUST contain its absolute workspace path, that it passes it to every SharpRail tool, the rules above with the server ids its task needs, and that its final report MUST state how many `lsp_navigate` and `lsp_diagnostics` calls it made; reject a report with none. Give each independent task its own workspace with its servers: `workspace_create({description, languageServers: {{ids}}})`.
 

@@ -104,7 +104,7 @@ disable = ["blueprint_check"]        # these tools do not exist for the run
 # allow = ["lsp_navigate"]           # if set, only these exist (disable still wins)
 
 [tools.lsp_navigate]
-operations = ["definition", "references"]   # lsp_navigate, lsp_status, lsp_code_actions, lsp_rename, lsp_format
+operations = ["definition", "references"]   # lsp_navigate (also incomingCalls, outgoingCalls, request), lsp_status (also capabilities), lsp_code_actions, lsp_rename, lsp_format
 [tools.lsp_code_actions]
 operations = ["list", "preview"]            # read-only: apply is removed
 [tools.lsp_diagnostics]

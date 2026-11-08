@@ -383,6 +383,64 @@ code actions with plugin `KindAliases`; `lsp_undo`; Reformat via formatting.
 Specs to keep consistent when implementing: the parent spec (Agents and Analysis sections), `SharpRail.UI/SPEC.md`
 (Edit menu), `Plugins.SPEC.md` (language server hook), `docs/develop/agent-reference.md` (check modes).
 
+## Comparison with OMP and the JetBrains MCP
+
+Compared on 2026-11-08 with the language-server-agnostic functions of OMP's builtin LSP tool (`docs/tools/lsp.md` in
+oh-my-pi) and the JetBrains IDE MCP server. Rule: only what works with any language server through standard LSP is
+offered, each operation gated on the capability the server declared; a server without it gets a result that says so
+(`unsupported`), never an emulation. Nothing that needs IntelliJ's engine is added.
+
+| Reference | Ours |
+|---|---|
+| OMP `diagnostics` | `lsp_diagnostics` with `paths` (globs, 20 files at most), `scope=workspace`, `minSeverity`, `timeout` (5..300 s, default 12, per server, for diagnostics a server pushes late); errors first; each file says whether `workspace/diagnostic`, `textDocument/diagnostic` or `publishDiagnostics` produced it |
+| OMP `definition` | `lsp_navigate` `definition` (by symbol name or position) |
+| OMP `references` | `lsp_navigate` `references` |
+| OMP `hover` | `lsp_navigate` `hover` |
+| OMP `symbols` | `lsp_navigate` `symbols` (file outline) and `workspaceSymbols` |
+| OMP `rename` | `lsp_rename` (preview, then apply) |
+| OMP `rename_file` | `lsp_rename` with `path` and `newPath`: `workspace/willRenameFiles` to every running server whose declared filters cover the paths, edits validated whole, path moved, edits rolled back if the move fails, then `workspace/didRenameFiles` |
+| OMP `code_actions` | `lsp_code_actions` (list, preview, apply) |
+| OMP `type_definition` | `lsp_navigate` `typeDefinition` |
+| OMP `implementation` | `lsp_navigate` `implementation` |
+| OMP `status` | `lsp_status` `status` and `servers` |
+| OMP `reload` | `lsp_status` `restart` and `retry` |
+| OMP `capabilities` | `lsp_status` `capabilities`: the declared server capabilities and the methods registered later, per running server or for one `server` or `path` |
+| OMP `request` | `lsp_navigate` `request`: one read-only query by `method`, with `path`, `line`/`column` or `query`, and a JSON `payload` |
+| JetBrains `analyze_calls` | `lsp_navigate` `incomingCalls` and `outgoingCalls` with `depth` (3), `maxChildren` (20) and `maxNodes` (100); gated on `callHierarchyProvider` |
+| JetBrains `get_file_problems` | `lsp_diagnostics` with `path` or `paths` |
+| JetBrains `lint_files` | `lsp_diagnostics` with `paths` or globs and `minSeverity` |
+| JetBrains `get_symbol_info` | `lsp_navigate` `hover` and `definition` |
+| JetBrains `rename_refactoring` | `lsp_rename` |
+| JetBrains `reformat_file` | `lsp_format` |
+| JetBrains `search_symbol` (`include_external`) | `lsp_navigate` `workspaceSymbols`; `scope=dependencies` includes the library symbols the server returns, so no extra parameter |
+| JetBrains `read_file` (decompile) | not applicable: IntelliJ-engine only (dependency sources are read with `lsp_navigate` `source`) |
+| JetBrains `get_project_modules`, `get_project_dependencies` | not applicable: IntelliJ-engine only (`lsp_status` `projects` lists detected roots) |
+| JetBrains `build_project`, run configurations | not applicable: IntelliJ-engine only |
+| JetBrains database tools | not applicable: IntelliJ-engine only |
+| JetBrains `execute_terminal_command` | not applicable: not language-server work |
+| JetBrains `git_status`, `get_repositories` | not applicable: not language-server work |
+| JetBrains `open_file_in_editor`, `get_all_open_file_paths` | not applicable: not language-server work |
+| JetBrains `apply_patch`, `create_new_file` | not applicable: not language-server work |
+| JetBrains `list_directory_tree`, `search_file`, `search_text`, `search_regex` | not applicable: not language-server work |
+| JetBrains `execute_tool`, `skill_search` | not applicable: not language-server work |
+
+Deliberate differences:
+- Writes preview first and apply only on request, refuse stale listings, edits outside the workspace and files with
+  unsaved editor changes, and report the diagnostics before and after. The reference tools apply directly.
+- Paths are relative to the workspace (the server root of the call); positions are zero-based UTF-16. Names are
+  resolved through workspace symbols, so `query` replaces a position.
+- The raw request is read-only: an allowlist of query methods (`textDocument/*` queries, `workspace/symbol`,
+  `workspace/diagnostic`, `callHierarchy/*`, `typeHierarchy/*` and the `*/resolve` queries). `workspace/executeCommand`,
+  document notifications, `workspace/applyEdit`, rename, formatting, code actions and file-operation requests are
+  refused, and the refusal names the tool to use (`lsp_code_actions`, `lsp_rename`, `lsp_format`), so the write
+  approval of those tools cannot be bypassed. A payload may not carry `textDocument` or `uri`.
+- Codex and headless approve and switch the same six tool names as before; every addition is an operation or
+  parameter of an existing tool, so `.sharprail/mcp.toml` operation narrowing covers them.
+- `symbolBody` and dependency source (`source`) have no counterpart in either reference.
+- A file or directory rename is capped at 1000 files; an identical path, a missing source or an existing destination
+  is refused, and a server that fails `workspace/willRenameFiles` with anything but method-not-found ends the call
+  before anything is written.
+
 ## Open decisions
 
 - Dry-run default for agents (proposed true).
