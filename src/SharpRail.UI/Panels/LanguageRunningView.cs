@@ -81,7 +81,7 @@ internal sealed class LanguageRunningView : UserControl
         foreach (var group in result.Servers.GroupBy(server => server.Workspace)
                      .OrderByDescending(group => group.Key == Workspace).ThenBy(group => Path.GetFileName(group.Key), StringComparer.OrdinalIgnoreCase))
         {
-            var title = new TextBlock { Text = Path.GetFileName(group.Key), FontWeight = FontWeight.SemiBold, FontSize = 12, Margin = new(0, 6, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+            var title = new TextBlock { Text = Path.GetFileName(group.Key), FontWeight = FontWeight.SemiBold, FontSize = 12, Margin = new(0, 8, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
             ToolTip.SetTip(title, group.Key);
             body.Children.Add(title);
             foreach (var server in group.OrderByDescending(server => server.MemoryBytes))
