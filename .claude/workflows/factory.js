@@ -17,7 +17,7 @@ export const meta = {
 //   dryRun           only print the schedule, spawn nothing
 const ROOT = args?.root ?? '/Users/commandertvis/thinkrail/sharprail'
 const QUEUE = args?.queueHeavy ?? '/Users/commandertvis/.sharprail/bin/queue-heavy'
-const CAP = args?.maxAgents ?? 2
+const CAP = args?.maxAgents ?? 8
 const LAND = args?.land === true
 const DRY = args?.dryRun === true
 const BASE = args?.base ?? 'origin/main'
@@ -33,7 +33,7 @@ const TASKS = (args?.tasks ?? []).map(t => {
 const RULES = `
 Rules for this task (apply all of them):
 - Work only in your own SharpRail workspace: create it first with the workspace_create MCP tool (load its schema with ToolSearch "select:mcp__plugin_sharprail_sharprail__workspace_create" if deferred; pass description and baseBranch "${BASE}"), then use the returned absolute path for every command and edit. Never run git worktree add.
-- MEMORY RULE (this Mac swaps): the ONLY way to run anything heavy is ${QUEUE} <command>: every restore, build, publish, format, check mode, test, `dotnet run` of a script that builds, npm/pnpm install, native or Zig build. Never run such a command directly, never run two at once, never start a build server or leave one running (the wrapper shuts them down; if you started any other process, stop it), never launch the app. The wrapper also waits while free memory is low. Cap yourself to one heavy command at a time.
+- MEMORY RULE (this Mac swaps): the ONLY way to run anything heavy is ${QUEUE} <command>: every restore, build, publish, format, check mode, test, dotnet run of a script that builds, npm/pnpm install, native or Zig build. Never run such a command directly, never run two at once, never start a build server or leave one running (the wrapper shuts them down; if you started any other process, stop it), never launch the app. The wrapper also waits while free memory is low. One heavy command at a time per agent. Editing files costs nothing: write code freely, but nothing that compiles, checks or starts a language server runs outside the queue.
 - Other agents run in parallel. Run EVERY build, restore, format, check mode and test through ${QUEUE} <command> from your workspace directory (it waits while another agent runs a heavy command). Start with scripts/mise run restore in the fresh worktree; use scripts/mise x -- dotnet build and scripts/mise run format.
 - Never run checks that open real windows (they steal focus; CI covers them) and list what you skipped. Start no language server. Never run machine-wide process listings or touch processes you did not start.
 - Navigate with the context_search MCP tool first (load it with ToolSearch "select:mcp__plugin_sharprail_sharprail__context_search"; pass your workspace path) and grep/Read for literals. If its index is not ready, say so.
