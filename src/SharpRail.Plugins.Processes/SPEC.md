@@ -66,6 +66,7 @@ limits what it shows. By default a pane shows only the rows of its own project (
 shows everything. Groups, their sums and the Total are recomputed from the visible rows, and the Total line says "(this project)" or "(all projects)". Toggling re-filters the last snapshot in place (no request, same row
 controls, scroll, selection and collapse state). Stop selected and Stop group act on visible rows only: a scoped group is stopped through the visible rows below it, never by the group id, which would reach other projects.
 A project with nothing running shows "Nothing running for this project" and the check box stays. The choice is shared by the Processes panes of one run and is not persisted (the plugin has no settings type).
+Subtrees start expanded from the top in order while the rows shown stay within what fits the pane height, and the rest start collapsed. A user's expand or collapse wins, is kept per node across refreshes, and a resize re-decides only nodes the user never toggled.
 
 ## In a browser tab
 

@@ -36,7 +36,12 @@ internal sealed class ProcessesPanel : UserControl
     // The trend column goes when the whole pane is narrow, for every row at once: a row narrower only by its indent would shift its numbers off the columns.
     private const double NarrowWidth = 320;
     private bool narrow;
-    private readonly HashSet<string> collapsed = [];
+    // Rows that fit the pane is its height over this; a row is a line of text plus its 2 px margins.
+    private const double RowHeight = 22;
+    // What the user chose per node id (true = open); wins over the default and survives refreshes.
+    private readonly Dictionary<string, bool> chosen = new(StringComparer.Ordinal);
+    private Dictionary<string, bool> opened = new(StringComparer.Ordinal);
+    private bool reevaluate;
     private readonly Dictionary<string, RowView> views = [];
     private ProcessSnapshot? full, snapshot;
     private string? selected;
@@ -108,6 +113,12 @@ internal sealed class ProcessesPanel : UserControl
         var body = new Grid { RowDefinitions = new("Auto,*,Auto") };
         scroll = new ScrollViewer { HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, Content = new StackPanel { Children = { message, rows } } };
         Grid.SetRow(scroll, 1);
+        scroll.SizeChanged += (_, e) =>
+        {
+            if (e.HeightChanged is false || snapshot is null) return;
+            reevaluate = true;
+            Render();
+        };
         body.Children.Add(allProjects);
         body.Children.Add(scroll);
         Grid.SetRow(footer, 2);
@@ -239,6 +250,9 @@ internal sealed class ProcessesPanel : UserControl
         if (selected is not null && Find(snapshot.Groups, selected) is null) selected = null;
         var wanted = new List<RowView>();
         var live = new HashSet<string>(StringComparer.Ordinal);
+        var capacity = scroll.Bounds.Height > 0 ? Math.Max(1, (int)(scroll.Bounds.Height / RowHeight)) : int.MaxValue;
+        opened = Expansion(snapshot.Groups, capacity, chosen, opened, reevaluate);
+        reevaluate = false;
         if (!(Scoped && empty)) foreach (var group in snapshot.Groups) Visit(group, 0, wanted, live);
         foreach (var id in views.Keys.Where(id => !live.Contains(id)).ToArray()) views.Remove(id);
         // Only rows that appeared, vanished or moved touch the panel; the others keep their place, focus and pointer capture.
@@ -254,13 +268,39 @@ internal sealed class ProcessesPanel : UserControl
         Buttons();
     }
 
-    // A node is expanded unless the user collapsed it; the state is kept per node id, so a returning node keeps it.
+    /// <summary>
+    /// Which nodes with children are open. Walking from the top in order, a node opens while the visible rows, counting its children, stay within
+    /// <paramref name="capacity"/>; otherwise it starts collapsed. A user's choice wins. A default, once set, is kept for the node unless
+    /// <paramref name="reevaluate"/>, so a refresh never flips a node the user did not touch.
+    /// </summary>
+    internal static Dictionary<string, bool> Expansion(IReadOnlyList<ProcessNode> roots, int capacity, IReadOnlyDictionary<string, bool> chosen,
+        IReadOnlyDictionary<string, bool> previous, bool reevaluate)
+    {
+        var result = new Dictionary<string, bool>(StringComparer.Ordinal);
+        var rows = roots.Count;
+        void Walk(ProcessNode node)
+        {
+            if (node.Children.Count == 0) return;
+            bool open;
+            if (chosen.TryGetValue(node.Id, out var own)) open = own;
+            else if (!reevaluate && previous.TryGetValue(node.Id, out var before)) open = before;
+            else open = rows + node.Children.Count <= capacity;
+            result[node.Id] = open;
+            if (!open) return;
+            rows += node.Children.Count;
+            foreach (var child in node.Children) Walk(child);
+        }
+        foreach (var root in roots) Walk(root);
+        return result;
+    }
+
+    // A node's openness is the user's choice, else its default; the state is kept per node id, so a returning node keeps the choice.
     private void Visit(ProcessNode node, int depth, List<RowView> wanted, HashSet<string> live)
     {
         live.Add(node.Id);
         if (!views.TryGetValue(node.Id, out var view)) views[node.Id] = view = Create(node.Id);
         view.Node = node;
-        var open = node.Children.Count > 0 && !collapsed.Contains(node.Id);
+        var open = node.Children.Count > 0 && opened.GetValueOrDefault(node.Id);
         if (view.Open != open || view.Depth != depth || view.Chevron.Content is null)
         {
             view.Chevron.Content = node.Children.Count > 0 ? Ui.Icon(open ? "arrowDown" : "arrowRight", Ui.Muted, 12) : null;
@@ -325,7 +365,7 @@ internal sealed class ProcessesPanel : UserControl
     internal void Choose(string id, bool toggle)
     {
         selected = id;
-        if (toggle && views.TryGetValue(id, out var view) && view.Node.Children.Count > 0 && !collapsed.Remove(id)) collapsed.Add(id);
+        if (toggle && views.TryGetValue(id, out var view) && view.Node.Children.Count > 0) chosen[id] = !opened.GetValueOrDefault(id);
         if (snapshot is null) return;
         Render();
     }
