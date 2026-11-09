@@ -30,6 +30,17 @@ public static class SurfaceLimits
     public const int MostTitle = 128;
     /// <summary>The largest cursor shape number (Avalonia's <c>StandardCursorType</c> values lie below it).</summary>
     public const int MostCursorShape = 63;
+    /// <summary>Accessibility nodes one top-level of a surface (the surface, a popup or a dialog) may describe.</summary>
+    public const int MostNodes = 512;
+    /// <summary>How deep a top-level's accessibility tree may nest.</summary>
+    public const int MostNodeDepth = 64;
+    /// <summary>Characters of an accessibility node's name and value, and of its automation id.</summary>
+    public const int MostNodeText = 200, MostAutomationId = 64;
+    /// <summary>The largest role number (Avalonia's <c>AutomationControlType</c> values lie below it).</summary>
+    public const int MostRole = 127;
+    /// <summary>Every state and action a node may carry.</summary>
+    public const SurfaceNodeStates KnownNodeStates = (SurfaceNodeStates)0x3ff | SurfaceNodeStates.Invoke | SurfaceNodeStates.Value |
+        SurfaceNodeStates.ExpandCollapse | SurfaceNodeStates.Toggle;
     public const double LeastScale = 0.25, MostScale = 8;
 }
 
@@ -39,7 +50,15 @@ public static class SurfaceLimits
 /// its caret at <see cref="SurfaceInput.Caret"/>; the text it commits arrives as <see cref="Text"/>. <see cref="CloseDialog"/>
 /// asks the dialog <see cref="SurfaceInput.Popup"/> to close, as its frame's close button does.
 /// </remarks>
-public enum SurfaceInputKind { None, PointerMove, PointerDown, PointerUp, PointerLeave, Wheel, KeyDown, KeyUp, Text, Preedit, CloseDialog }
+/// <remarks>
+/// The accessibility actions (<see cref="Invoke"/> to <see cref="Toggle"/>) act on the node <see cref="SurfaceInput.Node"/>
+/// of the top-level <see cref="SurfaceInput.Popup"/>; <see cref="SetValue"/> sets it to <see cref="SurfaceInput.Text"/>.
+/// </remarks>
+public enum SurfaceInputKind
+{
+    None, PointerMove, PointerDown, PointerUp, PointerLeave, Wheel, KeyDown, KeyUp, Text, Preedit, CloseDialog,
+    Invoke, SetFocus, SetValue, Expand, Collapse, Toggle
+}
 
 /// <summary>
 /// The host asks the runner to call a factory the plugin lent on a client's context and show its control as
@@ -53,10 +72,11 @@ public sealed record SurfaceResize(int Surface, double Width, double Height, dou
 /// <summary>
 /// One input event at a point in device-independent pixels, on the surface or on its open <see cref="Popup"/> (0 is
 /// the surface itself). <see cref="Button"/>, <see cref="Key"/>, <see cref="PhysicalKey"/> and <see cref="Modifiers"/>
-/// carry Avalonia's own values. <see cref="Caret"/> is a composition's caret in its text.
+/// carry Avalonia's own values. <see cref="Caret"/> is a composition's caret in its text. <see cref="Node"/> is the
+/// accessibility node an accessibility action acts on.
 /// </summary>
 public sealed record SurfaceInput(int Surface, SurfaceInputKind Kind, double X = 0, double Y = 0, int Button = 0, int Modifiers = 0,
-    double DeltaX = 0, double DeltaY = 0, int Key = 0, int PhysicalKey = 0, string Text = "", int Popup = 0, int Caret = 0);
+    double DeltaX = 0, double DeltaY = 0, int Key = 0, int PhysicalKey = 0, string Text = "", int Popup = 0, int Caret = 0, int Node = 0);
 
 /// <summary>The client applied frame <see cref="Sequence"/> of the surface or of its <see cref="Popup"/>; the runner may send the next.</summary>
 public sealed record SurfaceAck(int Surface, long Sequence, int Popup = 0);
@@ -84,6 +104,30 @@ public sealed record SurfaceCursor(int Surface, int Popup, int Shape);
 /// there.
 /// </summary>
 public sealed record SurfaceIme(int Surface, int Popup, bool Active, double X, double Y, double Width, double Height);
+
+/// <summary>What an accessibility node is and does: its states and the actions a client may ask of it.</summary>
+[Flags]
+public enum SurfaceNodeStates
+{
+    None = 0, Enabled = 1, Focusable = 2, Focused = 4, Offscreen = 8, Expanded = 16, Collapsed = 32, Checked = 64, Indeterminate = 128,
+    ReadOnly = 256, Selected = 512,
+    Invoke = 1 << 16, Value = 1 << 17, ExpandCollapse = 1 << 18, Toggle = 1 << 19
+}
+
+/// <summary>
+/// One accessibility node of a top-level: its <see cref="Role"/> (Avalonia's <c>AutomationControlType</c> value), its
+/// name, value and automation id, its states and actions, its bounds in device-independent pixels from the top-level's
+/// corner, and its children's ids in order. Ids are the runner's, unique within the top-level.
+/// </summary>
+public sealed record SurfaceNode(int Id, int Role, string Name, string Value, string AutomationId, SurfaceNodeStates States,
+    double X, double Y, double Width, double Height, List<int> Children);
+
+/// <summary>
+/// A change to the accessibility tree of the surface or its <see cref="Popup"/>: the nodes added or changed, whole, and
+/// the ids removed. <see cref="Reset"/> replaces the tree with <see cref="Nodes"/>. <see cref="Root"/> is the
+/// top-level's own node, whose children a client shows as its control's.
+/// </summary>
+public sealed record SurfaceAutomation(int Surface, int Popup, int Root, bool Reset, List<SurfaceNode> Nodes, List<int> Removed);
 
 /// <summary>Focus enters the surface (from the end when <see cref="Backward"/>) or leaves it.</summary>
 public sealed record SurfaceFocus(int Surface, bool Enter, bool Backward, bool Pointer);
@@ -136,6 +180,9 @@ public sealed record SurfaceCursorChanged(SurfaceCursor Cursor) : SurfaceEvent;
 
 /// <summary>A text field of the surface or one of its popups gained or lost focus, or its caret moved.</summary>
 public sealed record SurfaceImeChanged(SurfaceIme Ime) : SurfaceEvent;
+
+/// <summary>The accessibility tree of the surface or one of its popups changed.</summary>
+public sealed record SurfaceAutomationChanged(SurfaceAutomation Automation) : SurfaceEvent;
 
 /// <summary>
 /// The client's end of one plugin surface. <see cref="Events"/> completes when the surface closes, with an exception
@@ -201,6 +248,8 @@ public static class SurfaceProtocol
     /// <summary>Runner to host, one-ways on the client's context: <see cref="SurfaceCursor"/> and <see cref="SurfaceIme"/>.</summary>
     public static readonly int Cursor = IsoMember.Id("surface.cursor");
     public static readonly int Ime = IsoMember.Id("surface.ime");
+    /// <summary>Runner to host, a one-way on the client's context: <see cref="SurfaceAutomation"/>.</summary>
+    public static readonly int Automation = IsoMember.Id("surface.automation");
     /// <summary>
     /// Host to runner, answered only when the runner was started with <see cref="DiagnosticsVariable"/> set (the checks):
     /// a fresh render of a surface and the bounds of its named controls (<see cref="SurfaceCapture"/>).
@@ -224,9 +273,11 @@ public static class SurfaceProtocol
 
 /// <summary>
 /// A surface's fresh render (premultiplied BGRA, base64), its named controls' bounds in device-independent pixels and,
-/// for a named text field, its text and (under its name with <c>.preedit</c>) the composition it shows.
+/// for a named text field, its text and (under its name with <c>.preedit</c>) the composition it shows; and the top-level's
+/// accessibility tree as the runner reads it, one line per node.
 /// </summary>
-public sealed record SurfaceCapture(int Width, int Height, string Pixels, Dictionary<string, double[]> Bounds, Dictionary<string, string>? Texts = null);
+public sealed record SurfaceCapture(int Width, int Height, string Pixels, Dictionary<string, double[]> Bounds, Dictionary<string, string>? Texts = null,
+    List<string>? Automation = null);
 
 /// <summary>Asks for a <see cref="SurfaceCapture"/> of a surface, or of its open <see cref="Popup"/>, with the bounds of these named controls.</summary>
 public sealed record SurfaceCaptureRequest(int Surface, List<string> Names, int Popup = 0);
@@ -246,6 +297,7 @@ public sealed record SurfaceCaptureRequest(int Surface, List<string> Names, int 
 [JsonSerializable(typeof(SurfaceFocusLeave))]
 [JsonSerializable(typeof(SurfaceCursor))]
 [JsonSerializable(typeof(SurfaceIme))]
+[JsonSerializable(typeof(SurfaceAutomation))]
 [JsonSerializable(typeof(SurfaceCapture))]
 [JsonSerializable(typeof(SurfaceCaptureRequest))]
 internal sealed partial class SurfaceJsonContext : JsonSerializerContext;
@@ -360,6 +412,8 @@ public sealed class SurfaceState
 {
     private readonly Dictionary<int, SurfaceFrameState> frames = new() { [0] = new() };
     private int lastPopup;
+    // The accessibility tree of the surface (0) and of each open popup, by node id.
+    private readonly Dictionary<int, Dictionary<int, SurfaceNode>> trees = [];
 
     /// <summary>The frames of the surface (0) or of an open popup; null for a popup that is not open.</summary>
     public SurfaceFrameState? Frames(int popup) => frames.GetValueOrDefault(popup);
@@ -377,6 +431,7 @@ public sealed class SurfaceState
         if (!popup.Open)
         {
             if (!frames.Remove(popup.Popup)) return "The plugin closed a popup that is not open.";
+            trees.Remove(popup.Popup);
             return null;
         }
         if (!(Math.Abs(popup.X) <= SurfaceLimits.MostSide) || !(Math.Abs(popup.Y) <= SurfaceLimits.MostSide) ||
@@ -407,6 +462,77 @@ public sealed class SurfaceState
         return Math.Abs(ime.X) <= SurfaceLimits.MostSide && Math.Abs(ime.Y) <= SurfaceLimits.MostSide &&
             ime.Width is >= 0 and <= SurfaceLimits.MostSide && ime.Height is >= 0 and <= SurfaceLimits.MostSide
             ? null : "The plugin placed a caret out of range.";
+    }
+
+    /// <summary>
+    /// Why an accessibility change breaks the surface protocol, or null when it keeps to it and is recorded: every
+    /// node is reached from the root once, within the caps on nodes, depth and text, with a known role and bounds in range.
+    /// </summary>
+    public string? Automation(SurfaceAutomation automation)
+    {
+        if (!frames.ContainsKey(automation.Popup)) return "The plugin described a popup that is not open.";
+        if (automation.Nodes is null || automation.Removed is null || automation.Nodes.Count > SurfaceLimits.MostNodes || automation.Removed.Count > SurfaceLimits.MostNodes)
+            return "The plugin described too many accessibility nodes.";
+        var tree = automation.Reset || !trees.TryGetValue(automation.Popup, out var known) ? [] : new Dictionary<int, SurfaceNode>(known);
+        foreach (var gone in automation.Removed)
+            if (!tree.Remove(gone)) return "The plugin removed an accessibility node it never described.";
+        foreach (var node in automation.Nodes)
+        {
+            if (node is null) return "The plugin described an empty accessibility node.";
+            if (Node(node) is { } broken) return broken;
+            tree[node.Id] = node;
+        }
+        if (tree.Count > SurfaceLimits.MostNodes) return "The plugin described too many accessibility nodes.";
+        if (tree.Count > 0 || automation.Root != 0)
+        {
+            if (!tree.ContainsKey(automation.Root)) return "The plugin's accessibility tree has no root.";
+            var depths = new Dictionary<int, int> { [automation.Root] = 0 };
+            var pending = new Queue<int>([automation.Root]);
+            while (pending.TryDequeue(out var id))
+                foreach (var child in tree[id].Children)
+                {
+                    if (!tree.ContainsKey(child) || !depths.TryAdd(child, depths[id] + 1)) return "The plugin's accessibility tree is not a tree.";
+                    if (depths[child] > SurfaceLimits.MostNodeDepth) return "The plugin's accessibility tree nests too deep.";
+                    pending.Enqueue(child);
+                }
+            if (depths.Count != tree.Count) return "The plugin's accessibility tree holds nodes outside it.";
+        }
+        trees[automation.Popup] = tree;
+        return null;
+    }
+
+    /// <summary>
+    /// Whether an accessibility action from a client acts on a node the plugin described, as the plugin's process would find
+    /// it: the top-level is open, the node is in its tree and offers the action, and a value is plain text within the cap.
+    /// Anything else is stale (the tree moved on) and dropped. Other input is not judged here.
+    /// </summary>
+    public bool Admits(SurfaceInput input)
+    {
+        var needed = input.Kind switch
+        {
+            SurfaceInputKind.Invoke => SurfaceNodeStates.Invoke,
+            SurfaceInputKind.SetFocus => SurfaceNodeStates.Focusable,
+            SurfaceInputKind.SetValue => SurfaceNodeStates.Value,
+            SurfaceInputKind.Expand or SurfaceInputKind.Collapse => SurfaceNodeStates.ExpandCollapse,
+            SurfaceInputKind.Toggle => SurfaceNodeStates.Toggle,
+            _ => (SurfaceNodeStates?)null
+        };
+        if (needed is not { } action) return true;
+        if (!trees.TryGetValue(input.Popup, out var tree) || !tree.TryGetValue(input.Node, out var node) || !node.States.HasFlag(action)) return false;
+        return input.Kind != SurfaceInputKind.SetValue || input.Text is { } text && text.Length <= SurfaceLimits.MostNodeText && !text.Any(char.IsControl);
+    }
+
+    private static string? Node(SurfaceNode node)
+    {
+        static bool Plain(string? text, int most) => text is not null && text.Length <= most && !text.Any(char.IsControl);
+        if (node.Id < 1 || node.Children is null || node.Children.Count > SurfaceLimits.MostNodes) return "The plugin described an accessibility node out of range.";
+        if (node.Role is < 0 or > SurfaceLimits.MostRole) return "The plugin gave an accessibility node a role a client does not know.";
+        if (!Plain(node.Name, SurfaceLimits.MostNodeText) || !Plain(node.Value, SurfaceLimits.MostNodeText) || !Plain(node.AutomationId, SurfaceLimits.MostAutomationId))
+            return "The plugin named an accessibility node with text a client does not take.";
+        if ((node.States & ~SurfaceLimits.KnownNodeStates) != 0) return "The plugin gave an accessibility node a state a client does not know.";
+        return Math.Abs(node.X) <= SurfaceLimits.MostSide && Math.Abs(node.Y) <= SurfaceLimits.MostSide &&
+            node.Width is >= 0 and <= SurfaceLimits.MostSide && node.Height is >= 0 and <= SurfaceLimits.MostSide
+            ? null : "The plugin placed an accessibility node out of range.";
     }
 
     /// <summary>Why a frame message breaks the surface protocol (it names a popup that is not open, or breaks the caps), or null.</summary>

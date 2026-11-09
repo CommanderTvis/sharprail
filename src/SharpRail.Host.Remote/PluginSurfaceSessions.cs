@@ -203,7 +203,7 @@ internal sealed class HostedSurfaceSession : IAsyncDisposable
                 break;
             case PluginSurfaceUpKind.Input when message.Input is { } input:
                 Surface(message)?.Input(new SurfaceInput(0, (SurfaceInputKind)input.Kind, input.X, input.Y, input.Button, input.Modifiers, input.DeltaX, input.DeltaY,
-                    input.Key, input.PhysicalKey, input.Text, message.Popup, input.Caret));
+                    input.Key, input.PhysicalKey, input.Text, message.Popup, input.Caret, input.Node));
                 break;
             case PluginSurfaceUpKind.FrameAck:
                 Surface(message)?.Acknowledge(message.Sequence, message.Popup);
@@ -277,6 +277,36 @@ internal sealed class HostedSurfaceSession : IAsyncDisposable
                         Surface = id,
                         Popup = ime.Popup,
                         Ime = new() { Active = ime.Active, X = ime.X, Y = ime.Y, Width = ime.Width, Height = ime.Height }
+                    }, reliable: true);
+                else if (message is SurfaceAutomationChanged { Automation: var tree })
+                    Send(new()
+                    {
+                        Kind = PluginSurfaceDownKind.Automation,
+                        Surface = id,
+                        Popup = tree.Popup,
+                        Automation = new()
+                        {
+                            Root = tree.Root,
+                            Reset = tree.Reset,
+                            Nodes =
+                            [
+                                .. tree.Nodes.Select(node => new PluginSurfaceNodeMessage
+                                {
+                                    Id = node.Id,
+                                    Role = node.Role,
+                                    Name = node.Name,
+                                    Value = node.Value,
+                                    AutomationId = node.AutomationId,
+                                    States = (int)node.States,
+                                    X = node.X,
+                                    Y = node.Y,
+                                    Width = node.Width,
+                                    Height = node.Height,
+                                    Children = [.. node.Children.Select(child => (long)child)]
+                                })
+                            ],
+                            Removed = [.. tree.Removed.Select(gone => (long)gone)]
+                        }
                     }, reliable: true);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }

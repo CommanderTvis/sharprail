@@ -191,6 +191,7 @@ internal sealed class IsolatedPlugin : IAsyncDisposable
                 else if (call.Member == SurfaceProtocol.Popup) Relay.Popup(call.Payload);
                 else if (call.Member == SurfaceProtocol.Cursor) Relay.Cursor(call.Payload);
                 else if (call.Member == SurfaceProtocol.Ime) Relay.Ime(call.Payload);
+                else if (call.Member == SurfaceProtocol.Automation) Relay.Automation(call.Payload);
                 else Queue(call, answered: false);
             }
             catch (IsoCallException) { }

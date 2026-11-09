@@ -118,7 +118,7 @@ public sealed class PluginFileReply
 // IsoError value.
 public enum PluginSurfaceUpKind { None = 0, Open = 1, Resume = 2, Ack = 3, Answer = 4, Invoke = 5, OneWay = 6, Mirror = 7, SurfaceOpen = 8, Resize = 9, Input = 10, FrameAck = 11, Focus = 12, Theme = 13, SurfaceClose = 14, Keyframe = 15, Dismiss = 16 }
 
-public enum PluginSurfaceDownKind { None = 0, Opened = 1, Resumed = 2, Ack = 3, UiCall = 4, Result = 5, Shown = 6, Frame = 7, FocusLeave = 8, SurfaceEnded = 9, Ended = 10, Popup = 11, Cursor = 12, Ime = 13 }
+public enum PluginSurfaceDownKind { None = 0, Opened = 1, Resumed = 2, Ack = 3, UiCall = 4, Result = 5, Shown = 6, Frame = 7, FocusLeave = 8, SurfaceEnded = 9, Ended = 10, Popup = 11, Cursor = 12, Ime = 13, Automation = 14 }
 
 // Why a surface ended: the client closed it, the plugin broke the surface protocol, or the plugin could not show it.
 public enum PluginSurfaceEndKind { Closed = 0, Broken = 1, Failed = 2 }
@@ -165,7 +165,7 @@ public sealed class PluginSurfaceUp
 }
 
 // Kind is SurfaceInputKind's value; Button, Modifiers, Key and PhysicalKey are Avalonia's; Caret is a composition's
-// caret in Text.
+// caret in Text; Node is the accessibility node an accessibility action acts on.
 [ProtoContract]
 public sealed class PluginSurfaceInputMessage
 {
@@ -180,6 +180,7 @@ public sealed class PluginSurfaceInputMessage
     [ProtoMember(9)] public int PhysicalKey { get; set; }
     [ProtoMember(10)] public string Text { get; set; } = "";
     [ProtoMember(11)] public int Caret { get; set; }
+    [ProtoMember(12)] public int Node { get; set; }
 }
 
 // Host to client. Opened (Session, ApiTableHash, Registrations) or Resumed (Ack) answers the first message; then
@@ -187,7 +188,7 @@ public sealed class PluginSurfaceInputMessage
 // Number for it); Frame; FocusLeave (Backward); SurfaceEnded (End, Detail); Ended (Detail) as the session ends; Popup
 // (PopupPlacement) as a popup or dialog of the surface opens, moves or closes; Cursor (Popup, Cursor: Avalonia's
 // StandardCursorType value) as the cursor over the surface or its popup changes; Ime (Popup, Ime) as a text field there
-// gains or loses focus or its caret moves.
+// gains or loses focus or its caret moves; Automation (Popup, Automation) as the accessibility tree there changes.
 [ProtoContract]
 public sealed class PluginSurfaceDown
 {
@@ -212,6 +213,36 @@ public sealed class PluginSurfaceDown
     [ProtoMember(19)] public int Popup { get; set; }
     [ProtoMember(20)] public int Cursor { get; set; }
     [ProtoMember(21)] public PluginSurfaceImeMessage? Ime { get; set; }
+    [ProtoMember(22)] public PluginSurfaceAutomationMessage? Automation { get; set; }
+}
+
+// A change to the accessibility tree of a surface or its popup: the nodes added or changed, whole, and the ids removed;
+// Reset replaces the tree; Root is the top-level's own node.
+[ProtoContract]
+public sealed class PluginSurfaceAutomationMessage
+{
+    [ProtoMember(1)] public int Root { get; set; }
+    [ProtoMember(2)] public bool Reset { get; set; }
+    [ProtoMember(3)] public List<PluginSurfaceNodeMessage> Nodes { get; set; } = [];
+    [ProtoMember(4)] public List<long> Removed { get; set; } = [];
+}
+
+// One accessibility node: Role is Avalonia's AutomationControlType value and States the SurfaceNodeStates flags; the
+// bounds are in device-independent pixels from the top-level's corner; Children are node ids in order.
+[ProtoContract]
+public sealed class PluginSurfaceNodeMessage
+{
+    [ProtoMember(1)] public int Id { get; set; }
+    [ProtoMember(2)] public int Role { get; set; }
+    [ProtoMember(3)] public string Name { get; set; } = "";
+    [ProtoMember(4)] public string Value { get; set; } = "";
+    [ProtoMember(5)] public string AutomationId { get; set; } = "";
+    [ProtoMember(6)] public int States { get; set; }
+    [ProtoMember(7)] public double X { get; set; }
+    [ProtoMember(8)] public double Y { get; set; }
+    [ProtoMember(9)] public double Width { get; set; }
+    [ProtoMember(10)] public double Height { get; set; }
+    [ProtoMember(11)] public List<long> Children { get; set; } = [];
 }
 
 // Whether a text field that composes with an input method has focus, and its caret from the top-level's corner in

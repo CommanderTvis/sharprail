@@ -102,6 +102,13 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
         if (surfaces.TryGetValue(ime.Surface, out var surface)) surface.Report(state => state.Ime(ime), new SurfaceImeChanged(ime));
     }
 
+    /// <summary>The accessibility tree of a surface or its popup changed; one that breaks the surface protocol ends that surface.</summary>
+    public void Automation(string payload)
+    {
+        var automation = SurfaceProtocol.Decode<SurfaceAutomation>(payload);
+        if (surfaces.TryGetValue(automation.Surface, out var surface)) surface.Report(state => state.Automation(automation), new SurfaceAutomationChanged(automation));
+    }
+
     /// <summary>Ends every surface of this client, as the session does.</summary>
     public void End(Exception? reason)
     {
@@ -224,7 +231,13 @@ internal sealed class UiSessionRelay(IsolationPeer peer, long context, Func<int>
 
         public void Resize(double width, double height, double scale) => Send(SurfaceProtocol.Resize, SurfaceProtocol.Encode(new SurfaceResize(Id, width, height, scale)));
 
-        public void Input(SurfaceInput input) => Send(SurfaceProtocol.Input, SurfaceProtocol.Encode(input with { Surface = Id }));
+        public void Input(SurfaceInput input)
+        {
+            // An accessibility action on a node the plugin no longer describes is stale: the tree moved on.
+            lock (gate)
+                if (!state.Admits(input)) return;
+            Send(SurfaceProtocol.Input, SurfaceProtocol.Encode(input with { Surface = Id }));
+        }
 
         public void Acknowledge(long sequence, int popup)
         {

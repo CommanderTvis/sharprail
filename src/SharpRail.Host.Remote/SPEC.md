@@ -150,7 +150,7 @@ dependencies from such a call.
   client that leaves 4,096 numbered messages unacknowledged loses its session. Messages from the client are
   applied in order on the call's reader; calls into the plugin run beside it. Each frame message the relay checked
   is split into surface messages under 1 MiB (`HostedSurfaceSession.Split`); frames are dropped while no call
-  carries the session. A popup's or dialog's opening, moves and closing, and cursor and caret changes, are numbered messages, so a
+  carries the session. A popup's or dialog's opening, moves and closing, and cursor, caret and accessibility tree changes, are numbered messages, so a
   resumed client hears them. The shipping compositions leave the isolation seam null, so a client hears that the plugin
   is not running isolated.
 - The host serves plugin assets a client asks for through `ReadFileAsync`, contained in the plugin's

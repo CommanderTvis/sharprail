@@ -94,9 +94,9 @@ project: local adapters call Core directly, with no serialization.
   message the host received. Later up messages answer the plugin's calls, call and mirror into the plugin, and open,
   size, feed input to, acknowledge, focus, theme, keyframe, dismiss the popups of and close surfaces; later down
   messages carry the plugin's calls, results, each surface's number, frames, popups and dialogs opening, moving and
-  closing, the cursor over a surface or popup, a focused text field's caret, focus leaving a surface, a surface's end
+  closing, the cursor over a surface or popup, a focused text field's caret, the accessibility tree there (whole or as changes), focus leaving a surface, a surface's end
   and the session's end. Input carries an input method's composition (its text and caret) and a dialog's close
-  request too. A popup is numbered within its surface; its frames,
+  request, and the accessibility actions on a node, too. A popup is numbered within its surface; its frames,
   their acknowledgements and input on it carry that number (0 is the surface itself). Flat
   messages with a `Kind`, as the terminal's. A message with a sequence number is reliable: each side numbers its own,
   acknowledges the other's, and sends again after a resume what the other did not acknowledge; frames and frame

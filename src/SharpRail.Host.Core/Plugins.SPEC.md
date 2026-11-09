@@ -189,7 +189,7 @@ checks set until external plugins are switched on:
   runner has shown the surface (they wait until then), and holds every frame the runner sends to the surface
   protocol's caps before the client sees it; a frame that breaks them or cannot be read ends that surface. A
   popup's or dialog's opening, moves and closing are held to the popup caps the same way, and its frames to the frame
-  caps on their own; so are the cursor and the focused text field's caret the runner reports. A keyframe request from a client that reconnected goes to the runner, and the relay drops the frames
+  caps on their own; so are the cursor, the focused text field's caret and the accessibility tree the runner reports; an accessibility action from a client reaches the runner only for a node of that tree that offers it. A keyframe request from a client that reconnected goes to the runner, and the relay drops the frames
   sent before it. Remote clients reach the same sessions through the remote host's surface call. The settings stay
   unvalidated, as the spec records, until a host half sends a schema. A builtin module's `Contract.Id` must still equal its
 manifest id.

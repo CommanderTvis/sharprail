@@ -65,6 +65,10 @@ internal static class RpcCodec
         RpcMessage<PluginSurfaceInputMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceInputMessage(ref reader, null);
         RpcMessage<PluginSurfaceDown>.Write = WritePluginSurfaceDown;
         RpcMessage<PluginSurfaceDown>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceDown(ref reader, null);
+        RpcMessage<PluginSurfaceAutomationMessage>.Write = WritePluginSurfaceAutomationMessage;
+        RpcMessage<PluginSurfaceAutomationMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceAutomationMessage(ref reader, null);
+        RpcMessage<PluginSurfaceNodeMessage>.Write = WritePluginSurfaceNodeMessage;
+        RpcMessage<PluginSurfaceNodeMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceNodeMessage(ref reader, null);
         RpcMessage<PluginSurfaceImeMessage>.Write = WritePluginSurfaceImeMessage;
         RpcMessage<PluginSurfaceImeMessage>.Read = static (ref ProtoReader reader) => ReadPluginSurfaceImeMessage(ref reader, null);
         RpcMessage<PluginSurfacePopupMessage>.Write = WritePluginSurfacePopupMessage;
@@ -1342,6 +1346,7 @@ internal static class RpcCodec
         if (value.PhysicalKey != 0) writer.Int32(9, value.PhysicalKey);
         if (value.Text is { } field10) writer.String(10, field10);
         if (value.Caret != 0) writer.Int32(11, value.Caret);
+        if (value.Node != 0) writer.Int32(12, value.Node);
     }
 
     private static PluginSurfaceInputMessage ReadPluginSurfaceInputMessage(ref ProtoReader reader, PluginSurfaceInputMessage? value)
@@ -1362,6 +1367,7 @@ internal static class RpcCodec
                 case 9: value.PhysicalKey = reader.Int32(); break;
                 case 10: value.Text = reader.String(); break;
                 case 11: value.Caret = reader.Int32(); break;
+                case 12: value.Node = reader.Int32(); break;
                 default: reader.Skip(); break;
             }
         }
@@ -1410,6 +1416,12 @@ internal static class RpcCodec
         {
             var start = writer.BeginMessage(21);
             WritePluginSurfaceImeMessage(writer, field21);
+            writer.EndMessage(start);
+        }
+        if (value.Automation is { } field22)
+        {
+            var start = writer.BeginMessage(22);
+            WritePluginSurfaceAutomationMessage(writer, field22);
             writer.EndMessage(start);
         }
     }
@@ -1466,6 +1478,91 @@ internal static class RpcCodec
                     reader.Leave(outer);
                     break;
                 }
+                case 22:
+                {
+                    var outer = reader.Enter();
+                    value.Automation = ReadPluginSurfaceAutomationMessage(ref reader, value.Automation);
+                    reader.Leave(outer);
+                    break;
+                }
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceAutomationMessage(ProtoWriter writer, PluginSurfaceAutomationMessage value)
+    {
+        if (value.Root != 0) writer.Int32(1, value.Root);
+        if (value.Reset) writer.Bool(2, value.Reset);
+        if (value.Nodes is { } field3)
+            foreach (var item in field3)
+            {
+                var start = writer.BeginMessage(3);
+                if (item is not null) WritePluginSurfaceNodeMessage(writer, item);
+                writer.EndMessage(start);
+            }
+        if (value.Removed is { } field4)
+            foreach (var item in field4) writer.Int64(4, item);
+    }
+
+    private static PluginSurfaceAutomationMessage ReadPluginSurfaceAutomationMessage(ref ProtoReader reader, PluginSurfaceAutomationMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Root = reader.Int32(); break;
+                case 2: value.Reset = reader.Bool(); break;
+                case 3:
+                {
+                    var outer = reader.Enter();
+                    (value.Nodes ??= new()).Add(ReadPluginSurfaceNodeMessage(ref reader, null));
+                    reader.Leave(outer);
+                    break;
+                }
+                case 4: (value.Removed ??= new()).Add(reader.Int64()); break;
+                default: reader.Skip(); break;
+            }
+        }
+        return value;
+    }
+
+    private static void WritePluginSurfaceNodeMessage(ProtoWriter writer, PluginSurfaceNodeMessage value)
+    {
+        if (value.Id != 0) writer.Int32(1, value.Id);
+        if (value.Role != 0) writer.Int32(2, value.Role);
+        if (value.Name is { } field3) writer.String(3, field3);
+        if (value.Value is { } field4) writer.String(4, field4);
+        if (value.AutomationId is { } field5) writer.String(5, field5);
+        if (value.States != 0) writer.Int32(6, value.States);
+        if (value.X != 0) writer.Double(7, value.X);
+        if (value.Y != 0) writer.Double(8, value.Y);
+        if (value.Width != 0) writer.Double(9, value.Width);
+        if (value.Height != 0) writer.Double(10, value.Height);
+        if (value.Children is { } field11)
+            foreach (var item in field11) writer.Int64(11, item);
+    }
+
+    private static PluginSurfaceNodeMessage ReadPluginSurfaceNodeMessage(ref ProtoReader reader, PluginSurfaceNodeMessage? value)
+    {
+        value ??= new();
+        while (reader.Next())
+        {
+            switch (reader.Field)
+            {
+                case 1: value.Id = reader.Int32(); break;
+                case 2: value.Role = reader.Int32(); break;
+                case 3: value.Name = reader.String(); break;
+                case 4: value.Value = reader.String(); break;
+                case 5: value.AutomationId = reader.String(); break;
+                case 6: value.States = reader.Int32(); break;
+                case 7: value.X = reader.Double(); break;
+                case 8: value.Y = reader.Double(); break;
+                case 9: value.Width = reader.Double(); break;
+                case 10: value.Height = reader.Double(); break;
+                case 11: (value.Children ??= new()).Add(reader.Int64()); break;
                 default: reader.Skip(); break;
             }
         }

@@ -266,6 +266,18 @@ internal sealed class RemoteIsolatedUISession(RemoteIsolatedUIHost host) : IIsol
                     composing.Report(state => state.Ime(ime), new SurfaceImeChanged(ime));
                 }
                 break;
+            case PluginSurfaceDownKind.Automation when message.Automation is { } tree:
+                if (surfaces.TryGetValue(message.Surface, out var described))
+                {
+                    // A child or removed id past an int is no node of the plugin's; it reads as one the protocol refuses.
+                    static int Id(long id) => id is >= int.MinValue and <= int.MaxValue ? (int)id : 0;
+                    var automation = new SurfaceAutomation(described.Id, message.Popup, tree.Root, tree.Reset,
+                        [.. tree.Nodes.Select(node => new SurfaceNode(node.Id, node.Role, node.Name, node.Value, node.AutomationId, (SurfaceNodeStates)node.States,
+                            node.X, node.Y, node.Width, node.Height, [.. node.Children.Select(Id)]))],
+                        [.. tree.Removed.Select(Id)]);
+                    described.Report(state => state.Automation(automation), new SurfaceAutomationChanged(automation));
+                }
+                break;
             case PluginSurfaceDownKind.SurfaceEnded:
                 if (surfaces.TryRemove(message.Surface, out var gone))
                     gone.End(message.End switch
@@ -428,7 +440,8 @@ internal sealed class RemotePluginSurface(RemoteIsolatedUISession session, int i
             Key = input.Key,
             PhysicalKey = input.PhysicalKey,
             Text = input.Text,
-            Caret = input.Caret
+            Caret = input.Caret,
+            Node = input.Node
         },
         Popup = input.Popup
     }, reliable: true);
