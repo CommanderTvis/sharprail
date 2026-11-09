@@ -43,7 +43,7 @@ static class Tasks
 
     public static string? Env(string name) => Environment.GetEnvironmentVariable(name) is { Length: > 0 } value ? value : null;
 
-    static string Resolve(string file)
+    public static string Resolve(string file)
     {
         if (!OperatingSystem.IsWindows() || file.Contains('/') || file.Contains('\\') || Path.HasExtension(file)) return file;
         var extensions = (Environment.GetEnvironmentVariable("PATHEXT") ?? ".EXE;.CMD;.BAT").Split(';', StringSplitOptions.RemoveEmptyEntries);

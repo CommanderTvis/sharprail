@@ -35,7 +35,7 @@ jobs:
             ~/.local/share/mise
             ~/.cache/sharprail
           key: tools-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.browser.toml', 'mise.browser.lock') }}
-      - run: sh scripts/ci-run.sh "Publish browser" sh scripts/mise run package:browser
+      - run: sh scripts/mise x -- dotnet run scripts/ci-run.cs -- "Publish browser" sh scripts/mise run package:browser
       - name: Prepare the site for /sharprail/
         run: |
           site=artifacts/browser
