@@ -350,7 +350,8 @@ GAV_API bool gav_vt_snapshot(gav_vt *vt, gav_vt_frame *frame) {
             ghostty_render_state_row_cells_get(vt->row_cells, GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_LEN, &length);
             if (length) {
                 if (!reserve((void **)&vt->text, &vt->text_capacity, used + length, sizeof *vt->text)) return false;
-                ghostty_render_state_row_cells_get(vt->row_cells, GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_BUF, vt->text + used);
+                GhosttyCodepointBuffer graphemes = { .ptr = vt->text + used, .cap = length };
+                ghostty_render_state_row_cells_get(vt->row_cells, GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_BUF, &graphemes);
                 cell->text = (uint32_t)used;
                 cell->length = (uint16_t)length;
                 used += length;
