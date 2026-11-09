@@ -18,6 +18,7 @@ public sealed class SwiftPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the Swift (SourceKit-LS) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Swift.dll"
     };

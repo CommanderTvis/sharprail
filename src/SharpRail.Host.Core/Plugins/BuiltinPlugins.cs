@@ -12,6 +12,8 @@ using SharpRail.Plugins.BranchGraph;
 using SharpRail.Plugins.BranchGraph.Host;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host;
+using SharpRail.Plugins.CodeIntelligence;
+using SharpRail.Plugins.CodeIntelligence.Host;
 using SharpRail.Plugins.Codex;
 using SharpRail.Plugins.Codex.Host;
 using SharpRail.Plugins.Discord;
@@ -96,9 +98,9 @@ public static class BuiltinPlugins
         new DartPlugin()
     ];
 
-    /// <summary>The language server plugins as roster entries, for a host that runs only these builtins.</summary>
+    /// <summary>The Code Intelligence plugin and the language server plugins that require it, as roster entries, for a host that runs only these builtins.</summary>
     public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> LanguageServerEntries =>
-        [.. LanguageServers.Select(plugin => (Manifest(plugin), (PluginHostModule?)plugin))];
+        [(CodeIntelligenceContract.Manifest, new CodeIntelligenceHost()), .. LanguageServers.Select(plugin => (Manifest(plugin), (PluginHostModule?)plugin))];
 
     private static PluginManifest Manifest(LanguageServerPlugin plugin) => plugin switch
     {

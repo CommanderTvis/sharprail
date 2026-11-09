@@ -169,6 +169,7 @@ Run: `dotnet run --project tests/SharpRail.Checks -c Release -- <mode>`. Modes a
 | `--dock-input` | Dock pointer and keyboard input, tab menus including file-path copies. |
 | `--change-actions`, `--review` | Toast and diff revert/undo; Review panel. |
 | `--review-plugin` | Review plugin: legacy tool id migration, layouts, off removes the tool, Review pane retention. |
+| `--code-intelligence-plugin` | Code Intelligence plugin: off removes the language UI and leaves its dependents unavailable naming it, on restores them; no dependency cycle. |
 | `--workspace-views` | Layout keeps a workspace view only for workspaces the host lists (create/remove loop), never dropping the active one. |
 | `--drawers` | Phone pages: the compact page bar, Settings as a page, and the persistent page hosts and their slide. |
 | `--shell` | Window shell: location bar, application menu and the macOS workbench menu bar, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |

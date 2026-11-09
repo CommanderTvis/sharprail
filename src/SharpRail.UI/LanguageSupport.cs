@@ -7,13 +7,17 @@ namespace SharpRail.UI;
 /// Which language servers the host this UI talks to can run. A host that cannot run some of them (a browser tab) refuses
 /// their plugins, so the roster is the one place to read it. The UI then leaves out what only reaches a server: Code
 /// Intelligence and the language keymap group when no server is available, and, for a file no available server owns,
-/// the editor's chords, menu items, quick fixes and status polling. A roster without a language-server plugin says
+/// the editor's chords, menu items, quick fixes and status polling. The Code Intelligence plugin switched off (or not
+/// running) removes all of it, whatever the servers. A roster without a language-server plugin says
 /// nothing, so every file counts as served.
 /// </summary>
 public static class LanguageSupport
 {
     /// <summary>The id prefix every language-server plugin uses.</summary>
     internal const string PluginPrefix = "lsp-";
+
+    /// <summary>The Code Intelligence plugin, whose being switched off removes every language feature from the UI.</summary>
+    internal const string SwitchPluginId = "code-intelligence";
 
     private static readonly Lazy<(string Id, string[] Extensions, string[] Names)[]> Owners = new(() =>
         [.. BuiltinPlugins.LanguageServers.Select(plugin => (plugin.Contract.Id, plugin.Spec.Extensions.ToArray(), plugin.Spec.FileNames.ToArray()))]);
@@ -37,9 +41,10 @@ public static class LanguageSupport
 
     internal static void Update(IReadOnlyList<PluginRosterEntry> roster)
     {
+        var off = roster.FirstOrDefault(entry => entry.Id == SwitchPluginId) is { Status: not PluginStatus.Active };
         var servers = roster.Where(entry => entry.Id.StartsWith(PluginPrefix, StringComparison.Ordinal)).ToArray();
-        available = servers.Length == 0 ? null : [.. servers.Where(entry => entry.Status != PluginStatus.Refused).Select(entry => entry.Id)];
-        var now = available is null || available.Count > 0;
+        available = off ? [] : servers.Length == 0 ? null : [.. servers.Where(entry => entry.Status != PluginStatus.Refused).Select(entry => entry.Id)];
+        var now = !off && (available is null || available.Count > 0);
         if (now == Available) return;
         Available = now;
         Changed?.Invoke();

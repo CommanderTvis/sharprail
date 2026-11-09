@@ -116,6 +116,19 @@
           "SharpRail.Plugins.ClaudeCode": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.codeintelligence": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.codeintelligence.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.CodeIntelligence": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.codex": {
         "type": "Project",
         "dependencies": {

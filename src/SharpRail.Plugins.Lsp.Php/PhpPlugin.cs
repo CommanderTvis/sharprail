@@ -18,6 +18,7 @@ public sealed class PhpPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the PHP (Intelephense) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Php.dll"
     };

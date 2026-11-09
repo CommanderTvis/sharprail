@@ -18,6 +18,7 @@ public sealed class ShellPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the Shell (Bash LS) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Shell.dll"
     };

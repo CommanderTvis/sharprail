@@ -49,6 +49,7 @@ public static class AirContextContract
         Description = "Semantic code search through JetBrains Air Context; indexing is cloud processing that you enable per project.",
         EnabledByDefault = false,
         Headless = HeadlessSupport.No,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.AirContext.Host.dll",
         Ui = "SharpRail.Plugins.AirContext.UI.dll"

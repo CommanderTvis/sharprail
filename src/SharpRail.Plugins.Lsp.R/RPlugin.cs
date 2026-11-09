@@ -18,6 +18,7 @@ public sealed class RPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the R (languageserver) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.R.dll"
     };

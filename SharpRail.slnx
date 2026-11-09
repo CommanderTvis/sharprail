@@ -24,6 +24,8 @@
     <Project Path="src/SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvMise/Contract/SharpRail.Plugins.EnvMise.csproj" />
     <Project Path="src/SharpRail.Plugins.EnvMise/Host/SharpRail.Plugins.EnvMise.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.CodeIntelligence/Contract/SharpRail.Plugins.CodeIntelligence.csproj" />
+    <Project Path="src/SharpRail.Plugins.CodeIntelligence/Host/SharpRail.Plugins.CodeIntelligence.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Env/Contract/SharpRail.Plugins.Env.csproj" />
     <Project Path="src/SharpRail.Plugins.Env/Host/SharpRail.Plugins.Env.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Env/UI/SharpRail.Plugins.Env.UI.csproj" />

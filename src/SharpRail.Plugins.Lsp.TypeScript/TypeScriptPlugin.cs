@@ -18,6 +18,7 @@ public sealed class TypeScriptPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the JavaScript / TypeScript (TypeScript LS) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.TypeScript.dll"
     };

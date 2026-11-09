@@ -18,6 +18,7 @@ public sealed class ClangdPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the C / C++ (clangd) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Clangd.dll"
     };

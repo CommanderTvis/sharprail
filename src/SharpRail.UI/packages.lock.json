@@ -312,6 +312,7 @@
           "SharpRail.Plugins.Blueprint.Host": "[1.0.0, )",
           "SharpRail.Plugins.BranchGraph.Host": "[1.0.0, )",
           "SharpRail.Plugins.ClaudeCode.Host": "[1.0.0, )",
+          "SharpRail.Plugins.CodeIntelligence.Host": "[1.0.0, )",
           "SharpRail.Plugins.Codex.Host": "[1.0.0, )",
           "SharpRail.Plugins.Discord.Host": "[1.0.0, )",
           "SharpRail.Plugins.Env.Host": "[1.0.0, )",
@@ -541,6 +542,19 @@
           "SharpRail.Plugins.Chat.UI": "[1.0.0, )",
           "SharpRail.Plugins.ClaudeCode": "[1.0.0, )",
           "SharpRail.Plugins.UI.Kit": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.codeintelligence": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.codeintelligence.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )",
+          "SharpRail.Plugins.CodeIntelligence": "[1.0.0, )"
         }
       },
       "sharprail.plugins.codex": {

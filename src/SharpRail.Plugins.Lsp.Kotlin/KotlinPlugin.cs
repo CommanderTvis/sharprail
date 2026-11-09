@@ -18,6 +18,7 @@ public sealed class KotlinPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the Kotlin (Kotlin LS) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Kotlin.dll"
     };

@@ -20,6 +20,7 @@ public sealed class RustPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the Rust (rust-analyzer) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Rust.dll"
     };

@@ -20,6 +20,7 @@ public sealed class ScalaPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the Scala (Metals) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Scala.dll"
     };

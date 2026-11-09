@@ -18,6 +18,7 @@ public sealed class DartPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the Dart (Analysis Server) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Dart.dll"
     };

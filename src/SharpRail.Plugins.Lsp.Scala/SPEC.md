@@ -4,7 +4,7 @@ type: module-design
 status: draft
 title: Scala (Metals) — a language server as a builtin plugin
 parent: group-plugins-language-servers
-depends-on: [module-plugin-api]
+depends-on: [module-plugin-code-intelligence, module-plugin-api]
 references: [module-host-language]
 tags: [plugins, language]
 ---

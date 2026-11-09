@@ -20,6 +20,7 @@ public sealed class GoPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the Go (gopls) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.Yes,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.Go.dll"
     };

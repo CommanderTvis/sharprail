@@ -16,6 +16,7 @@ public sealed class IntelliJPlugin() : LanguageServerPlugin(Id)
         Description = "Provides the Java / Kotlin (IntelliJ) language server to code intelligence.",
         EnabledByDefault = true,
         Headless = HeadlessSupport.No,
+        DependsOn = [new("code-intelligence", 1)],
         Assets = "assets",
         Host = "SharpRail.Plugins.Lsp.IntelliJ.dll"
     };
