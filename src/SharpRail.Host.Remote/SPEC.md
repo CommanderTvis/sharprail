@@ -267,7 +267,7 @@ Stopping/restarting the listener forgets grants and rejects old credentials. Man
 and Tailscale authentication retain their existing behavior. Approval is transport bootstrap rather
 than a new host domain operation, so the typed RPC contract and protocol version are unchanged.
 
-The 2026-10-17 focused transport checks cover loopback addresses without DNS trust, Host/Origin
+The transport checks cover loopback addresses without DNS trust, Host/Origin
 validation before prompting, exact-origin CORS, pending-request exclusion, denial cooldown, client
 cancellation (including a callback that ignores cancellation), real authenticated WebSocket calls,
 wrong/missing origins, master-token compatibility, active-call revocation and restart expiry.

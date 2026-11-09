@@ -447,7 +447,7 @@ A clone of Ghostty's macOS secure input. Ghostty's sources: the options `macos-a
 that do not work over SSH) and `macos-secure-input-indication` (default true: a graphical indication while on), and
 the keybind action `toggle_secure_input` ("applies to the entire application", stays until toggled off or Ghostty quits,
 macOS only) — https://ghostty.org/docs/config/reference and https://ghostty.org/docs/config/keybind/reference.
-libghostty detects the prompt by polling the PTY's termios every 200 ms (`src/termio/Exec.zig`: canonical and not
+libghostty detects the prompt by polling the PTY's termios every 200 ms (canonical and not
 echo) and reports it to the apprt as the `GHOSTTY_ACTION_SECURE_INPUT` on/off/toggle action; the macOS app's
 `SecureInput` singleton (`macos/Sources/Features/Secure Input/SecureInput.swift`) balances every
 `EnableSecureEventInput` with one `DisableSecureEventInput`, enables only while the app is active and a scoped
@@ -688,41 +688,12 @@ until the shown workspace has an attach-ready (running, held) agent terminal: th
 one; with several and none focused they wait. On Android a pasted clipboard image is saved through the
 host terminal service, as in the browser client, so the pasted path exists where the agent runs.
 
-## Recorded native measurements and acceptance
-
-The saved final aggregates and harnesses under [benchmarks/ghostty](../../../benchmarks/ghostty)
-record the 2026-10-01 direct-texture comparison on Apple M4 Pro / 24 GiB, AC power, a 960×540-point
-window at 2×, 480 redraws at 60 Hz and three 67,113,264-byte output bursts. Three fresh-process RAM
-trials measured 262.0 MiB mean active footprint for direct sampling versus the saved pooled-texture
-356.9 MiB and hosted-NSView 236.2 MiB baselines. Ten seconds after disposal measured 118.0 MiB versus
-100.5 MiB for NSView. Separate presentation trials measured median/p95 24.5/30.5 ms versus the saved
-NSView 13.3/20.5 ms; redraw CPU was 18.8% versus 9.3% of one core. Prior baselines were reused, not
-rerun. This is one renderer control without workbench, relay or network overhead; background machine
-activity was not exclusively isolated, and WindowServer timestamps are not physical-pixel or
-keyboard-to-photon latency. These are dated measurements, not a current release performance claim.
+## Native memory
 
 The earlier multi-gigabyte scrollback growth was traced to enlarged Ghostty pages recycled with a
 smaller allocation layout. Preserving allocation size/capacity fixed that native leak; export-buffer
 pooling alone did not. Removing copy/snapshot textures then reduced steady graphics storage. Neither
 change implies that all graphics-driver caches return to the cold baseline on disposal.
-
-The 2026-10-15 real-window --native-scroll pass on Apple M4 Pro covered 300 fractional downward
-scroll events at the bottom with no unavailable draws and unchanged viewport pixels, upward scrolling
-and pixel-exact return, plus lease/failure/recovery/stop cases. That pass did not complete the broader
---native-texture theme-color assertion or --native-direct initial renderer-creation wait. Physical
-trackpad/video reproduction and complete current local/remote native parity remain separate gates.
-Physical IME and accessibility acceptance cannot be inferred from synthetic input or pixel checks.
-
-On 2026-10-22 the native texture and terminal checks were found to exit 0 after a failed scenario
-(the lifetime's `Shutdown(1)` result was discarded); they now exit 1. With that visible, the
---native-texture theme assertion passed only on a display whose profile was close to Display P3; on
-another display the texture background was sRGB(18, 52, 86) converted to Display P3 (27, 51, 83 raw)
-next to Avalonia's raw 18, 52, 86. After the colour-space fix the theme assertion passed on every run
-that reached it. The same runs still showed intermittent, pre-existing failures elsewhere in the
-mode: --native-scroll's fixed 250 ms pixel captures (Ghostty presents the scrolled frame and Avalonia
-draws it within ~15 ms, yet the window capture stays stale until the next composition), OSC 52 query
-timeouts, and the reattachment assertion losing `TEXTURE_GPU` when a host/user prompt wider than the
-narrow resize makes the shell's prompt redraw erase earlier lines.
 
 Validated commit underlines on unchanged visible lines survive asynchronous viewport refreshes and scrolling, with offsets remapped to those lines. Changed lines discard old highlights immediately; detach clears retained results.
 

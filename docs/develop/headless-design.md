@@ -1,6 +1,6 @@
 # Headless SharpRail for AI research: design
 
-Status: proposal for review, nothing here is built yet. Written 2026-11-06 against `main` at `8dc68277`.
+Status: design record. The headless module has landed (see its SPEC); sections below that describe unbuilt parts remain proposals. Written 2026-11-06.
 
 Reading guide. Facts are marked where it matters. "Verified" means I read the code or spec named. "Assumed" means a
 reasonable expectation that a slice must prove before it relies on it. Every assumption is also listed in section G.
@@ -655,7 +655,7 @@ Settings of agent-launcher plugins make no sense headless. They are in the schem
 - Plugins: the table above, all of them.
 - Run control: `mcp.toml` and the env/flags layer.
 
-### Publishing the schema and generating the docs
+### Publishing the schema
 
 Goal: a setting that has no documentation cannot exist. Mechanism:
 
@@ -664,13 +664,9 @@ Goal: a setting that has no documentation cannot exist. Mechanism:
    For existing records with XML comments, the source generator can read the `<summary>` text as the doc. That keeps
    one source of truth and avoids duplicating prose. Plugin settings records get the attribute in their contract projects.
 2. A registry `ConfigRegistry` built from the attributes by a source generator (reflection-free, same style as `HostJson`).
-   It feeds three consumers: the TOML loader (validation, types, ranges), `sharprail-headless schema` (JSON Schema, draft 2020-12, one per file), and
-   a Markdown generator that writes `docs/reference/config.md`.
-3. A Checks mode `--config-docs` that fails when: a property in a settings record has no `[ConfigKey]` and is not marked
-   `[ConfigIgnore("reason")]`, a key has no doc text, the generated Markdown or JSON Schema differs from the committed copy
-   (so a PR must regenerate), or a plugin in `BuiltinPlugins.All` lacks a `plugins/<id>.toml` schema entry.
-4. The JSON Schema is committed under `docs/reference/schema/*.json` and published in the image at `/opt/sharprail/schema/`,
-   so editors get completion with the Even Better TOML `#:schema` comment.
+   It feeds two consumers: the TOML loader (validation, types, ranges) and `sharprail-headless schema` (JSON Schema, draft 2020-12, one per file).
+3. The JSON Schema is published in the image at `/opt/sharprail/schema/`, so editors get completion with the Even Better TOML
+   `#:schema` comment.
 
 Existing `language.toml` options are already a typed catalog (`configurationSchema` per server, verified), so the language
 file reuses that catalog for its schema and only the outer shape is new.
@@ -805,8 +801,7 @@ Sizes are rough focused engineer-days. The NativeAOT work is out of scope by the
 | 7 | Node runtime, TypeScript | Pin Node LTS with npm for both architectures, wire npm servers to the managed Node, `warm` for TypeScript | `ManagedRuntimes`, pins | `--runtimes` extended; smoke `lsp_navigate` on a tiny TS fixture | 2 |
 | 8 | Python and JDK runtimes | Pin python-build-standalone (for import resolution and the interpreter setting) and Temurin 21 (Java, Gradle/Maven), `JAVA_HOME` hook for the Java plugin | `ManagedRuntimes`, `JavaPlugin`, `ProjectJava.cs` | same | 3 |
 | 9 | Config schema, host.toml, plugins/*.toml | `ConfigKey` attribute, registry generator, loaders, strict mode, precise errors | Core, plugin contract projects (attributes only), Headless | `--config`: parse errors with file and line, unknown key, bad version, precedence | 5 |
-| 10 | Docs and schema generation | Markdown and JSON Schema generator, `--config-docs` check that fails on undocumented settings, committed `docs/reference/` | Core, docs, Checks | `--config-docs` | 3 |
-| 11 | Reorganise and cleanup | `ProjectConfig` reader replaces three readers, shared `HostComposition` for Remote and Headless, optional Core split of unused plugins | Core, Remote | existing transport checks plus `--headless` unchanged | 4 to 6 |
+| 10 | Reorganise and cleanup | `ProjectConfig` reader replaces three readers, shared `HostComposition` for Remote and Headless, optional Core split of unused plugins | Core, Remote | existing transport checks plus `--headless` unchanged | 4 to 6 |
 
 Dependencies: 2 and 3 need 1 and can proceed in parallel after it. 4 needs 1 and 2. 5 needs 4. 6 needs 3 and 5, or 3 and a locally
 built image. 7 and 8 need 2. 9 can start after 3 but waits for the first loop so key names come from real use. 10 needs 9, 11 is last.

@@ -269,7 +269,7 @@ extension distribution model against Apple's current rules separately from the
 technical device check; do not promise approval or silently remove open-world
 extensibility to obtain it.
 
-Technical references checked on 2026-09-28:
+Technical references:
 
 - [Avalonia iOS support](https://docs.avaloniaui.net/docs/platform-specific-guides/ios).
 - [Microsoft runtime and compilation guidance](https://learn.microsoft.com/en-us/dotnet/maui/deployment/runtimes-compilation?view=net-maui-10.0): .NET 10 Mono and .NET 11 CoreCLR iOS execution models; MAUI guidance is not proof of Avalonia integration.

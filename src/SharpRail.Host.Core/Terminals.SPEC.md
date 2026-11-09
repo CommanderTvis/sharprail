@@ -85,7 +85,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
 - Busy means a process other than the shell owns the terminal's foreground process group (`tcgetpgrp`);
   a builtin running in the shell itself reads as idle. Closing a busy tab asks first; an idle tab closes
   immediately.
-- A password prompt is Ghostty's heuristic (`termio/Exec.zig`: `password_input = canonical and !echo`): the
+- A password prompt is Ghostty's heuristic (canonical and not echo): the
   PTY's line discipline, read with `tcgetattr` on the held slave descriptor, has `ICANON` set and `ECHO`
   clear, as sudo, ssh and gpg leave it while reading a secret. A shell at its line editor runs non-canonical,
   so it never reads as one. `IsPasswordInputAsync` answers it on demand (the client polls a focused terminal),
@@ -486,12 +486,9 @@ browser-local files are never offered to host shells.
 
 ## Windows verification scope
 
-The 2026-10-13 macOS verification cross-built x64 PE terminal/editor libraries and checked their
-Windows OS/UCRT imports, PowerShell parsing and portable quoting, path/profile and local/remote Git
-fixtures. It did not execute ConPTY, Recycle Bin or native Windows UI branches. An actual Windows
-packaged --windows run is required for those branches; it remains distinct from manual clipboard,
-IME, editor and desktop-client acceptance. Cross-compilation is not runtime proof. Current platform
-acceptance tasks are tracked in [STATUS.md](../../STATUS.md#outstanding-acceptance-work).
+Cross-compilation checks Windows imports, PowerShell parsing, quoting, path/profile and Git fixtures, but is not
+runtime proof: ConPTY, Recycle Bin and native Windows UI branches need an actual packaged --windows run, distinct
+from manual clipboard, IME, editor and desktop-client acceptance. Acceptance tasks are tracked in [STATUS.md](../../STATUS.md#outstanding-acceptance-work).
 
 The Windows runtime check's intermittent `RESUMED_<pid>` miss has no proven cause. Both passing and failing CI
 runs show the shared RPC connection ending when the first session is disposed, so the drop alone is not the

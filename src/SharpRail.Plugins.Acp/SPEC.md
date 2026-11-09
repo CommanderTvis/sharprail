@@ -91,7 +91,7 @@ The agent is untrusted code. It is never sandboxed by SharpRail; the rules below
 - Add custom agent: a popup in the overlay with name, command, arguments, environment and working directory. It refuses an empty name or command,
   a name already in the list, an environment line that is not NAME=value, and a relative working directory; Add selects the new agent.
 - Checks on a download: the registry's schema has an optional `sha256` per binary target and nothing else to verify (no signature, minisign,
-  cosign or digest fields; checked on 2026-11-06: 94 of 131 binary targets carry a checksum, all 24 npx and uvx specs name an exact version).
+  cosign or digest fields).
   A checksum the registry lists is always checked, after the download and before anything is written or unpacked, with a fixed-time compare;
   a mismatch, a value that is not 64 hex digits, or a download that is not https refuses the install. The plan, the confirmation, the detail
   pane and the entry say what applied: SHA-256 verified, No checksum from the registry, Version pinned or Not pinned. Packages get no check

@@ -228,12 +228,6 @@ Start work passes host image paths through the launcher options to `--image`, sh
 
 IDE snapshots include selected diff files as read-only editor context. Continuous Changes uses the selected file within its owner tab; source-side paths, ranges and selected text are retained while the terminal has focus, and closing the owner forgets them. An empty Changes review does not invent a file context.
 
-The 2026-10-14 packaged malformed-response recovery check expected two child processes but observed
-one. Inspection found one successful initialize/account-read sequence and no requests from the first
-rejected attempt; the fixture discarded its initial exception and used a one-second connection timeout.
-This leaves recovery verification unresolved: it does not establish that a malformed-response process
-was reused. A later source-gate pass does not replace this packaged acceptance.
-
 Context labels delimit the active tab name with quotation marks, including the no-session fallback, so it is distinct from the explanatory sentence.
 
 ## Language tools
@@ -272,7 +266,6 @@ The instruction text is composed from the host's and the enabled plugins' prompt
 Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
 bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import
 readiness; retain text-search fallbacks for incomplete or unsupported semantic results.
-
 
 SharpRail prompt appendices carry the tool guidance enabled plugins contribute (Air Context's context_search/status/index paragraph while that plugin is enabled), then LSP for known symbols/current drafts. Launch commands preapprove the three Air Context tools through the terminal-local MCP override whether or not the plugin is enabled, since the override names tools and the plugin may be turned on later; global Codex configuration is unchanged. The Air Context plugin triggers indexing only for recognized UI-launched agents.
 

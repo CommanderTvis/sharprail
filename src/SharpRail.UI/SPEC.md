@@ -29,7 +29,6 @@ shape: Ctrl-based editor shortcuts, terminals always on Skia (the saved Metal pr
 are cross-compiled with Zig by `build-linux.sh` beside Ghostty and Scintilla; Linux execution is covered by the `--linux` gate
 and is otherwise unverified (see STATUS.md V13).
 
-
 ## Responsibilities and boundaries
 
 With `SHARPRAIL_PERFORMANCE=1`, the first workspace open emits monotonic startup milestones
@@ -84,15 +83,6 @@ and remembered tab chrome are available while routing; other tool bodies wait fo
 so opening it does not create and immediately discard their controls. Hidden/inactive bodies retain their
 existing demand-driven lifetime. Header View menus populate on opening. Applying the default theme writes
 application resources once, while initializing another Application still receives its own resources.
-
-The 2026-10-16 source acceptance passed Release compilation with zero warnings/errors, touched-file
-formatting, focused startup, synchronization, shell/header and design/theme checks. All 139 gate cases
-passed in aggregate (128 + isolated resource case + 6 + 4), retaining optional upstream-clone Git and
-other-platform skips. A resource-row click timeout passed unchanged alone. Discord's missing compiled
-XAML required rebuilding its unchanged UI project before the final four cases. Standalone `--plugins`
-still stops on the existing launcher assertion that expects StackPanel where Projects uses WrapPanel.
-Native startup/content/readiness/RAM comparison remains pending AC power; headless results do not
-establish a first-window performance improvement or native presentation acceptance.
 
 ```mermaid
 flowchart TB
@@ -630,12 +620,8 @@ height are bounded by the owner window. Dismissal cancels pending navigation, an
 inspection does not replace an open chooser's status. Cmd/Ctrl+B and Alt+F7 complement F12 and
 Shift+F12. Workspace-symbol query text remains a separate server-side search on Enter.
 
-Verified 2026-10-17: focused LSP UI checks exercise unopened-file rows, navigation after
-filtering, empty filtering, scope changes, neutral syntax previews and narrow-window sizing.
-The 142-case four-lane gate passed. A final switch to the shared platform command modifier
-was Release-built and rechecked with the focused mode; the unchanged broader gate was not
-repeated. Roslyn reports current coverage for both edited C# files, with no errors/warnings.
-Browser/Android compilation and real GUI acceptance remain unverified for this UI change.
+Standalone `--plugins` inspection does not replace an open chooser's status. Cmd/Ctrl+B and Alt+F7 complement F12 and
+Shift+F12. Workspace-symbol query text remains a separate server-side search on Enter.
 
 Interaction references (independent Avalonia implementation, no copied JetBrains assets):
 https://github.com/JetBrains/intellij-community/blob/master/platform/lang-impl/src/com/intellij/codeInsight/navigation/GotoTargetHandler.java
@@ -700,9 +686,7 @@ when restart is needed; the settings window exposes the active configuration sna
 form edits and reports conflicting saved changes. Configuration controls never activate the row's
 left-click start action. New workspaces copy Default settings once, then diverge independently.
 
-
 Each server row offers View logs in its context menu; failed rows also show an inline View logs action beside the error details. A workspace/server-labeled, resizable log window uses the app’s elevated dialog card and an in-app draggable heading without native window decorations. It shows live, selectable output with Copy, Refresh and Close. Reading logs runs off the UI thread and never starts the server.
-
 
 The Code Intelligence pane prominently explains that agents can configure this workspace’s language servers, fix missing libraries/include paths, and restart them. The same capability is described in Codex and Claude’s Capabilities views, alongside navigation and inspections.
 
@@ -737,7 +721,6 @@ and SDK-dependent versions are visibly distinguished from catalog guarantees.
 
 The Air Context plugin's account section in Settings › Code Intelligence offers JetBrains Context terms review in a separate owned, resizable window. It displays the pinned artifact, all three current legal documents and a cloud-processing notice. Consent starts unchecked; Cancel/close downloads nothing. Accept and download persists the host acknowledgement and shows verified completion in the same window, with Done as its closing action, without starting the CLI or enabling indexing. The pane reads local installation status without fetching terms: a verified binary changes its action to View installation; an invalid binary offers repair. Status digest caching is for display only. Reopening a verified, acknowledged installation shows Done and hides Download; a missing/damaged binary retains the explicit download/repair flow. Changed terms clear consent for a fresh review. Reload recovers from fetch/download failures.
 
-
 ## Language project folders
 
 Files marks detected project/build roots with a small vector provider/language badge
@@ -764,7 +747,6 @@ The Files tree menu shows icons on exactly New file, New folder, Copy path, Copy
 bring their own mark (the Claude mention). The icons come from the [menu action icon registry](../SharpRail.Plugins.UI.Kit/ActionIcons/SPEC.md); the
 other rows have none, and the menu's shared icon column keeps all labels aligned.
 
-
 The Air Context plugin's workspace section in the language servers pane provides workspace-scoped enablement, Index now,
 Stop and Logs; sign-in is global and lives in Settings › Code Intelligence. Both sections are plugin slot contributions (W23) hosted by `PluginSlot` and absent while the plugin is disabled. Cloud enablement uses an explicit confirmation describing source upload,
 automatic SharpRail agent-launch indexing and reuse of the CLI's JetBrains login/cache.
@@ -773,7 +755,6 @@ credentials pass through UI configuration. Context controls are compact when dis
 Host state broadcasts/polling reconcile enablement and runtime state; errors and login
 requirements remain inline. Logs use the owned log window and remain workspace-scoped.
 Downloading alone still does not execute or index anything.
-
 
 Language configuration presents implementation, publisher, pinned managed version and managed
 provisioning source on separate lines. The source is not a claim about an overridden runtime.

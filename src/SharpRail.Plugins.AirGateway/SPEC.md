@@ -131,7 +131,7 @@ contribution carries no account.
 ## Listing access sources
 
 
-`central access` output is not parsed. Listing follows JetBrains/thinkrail#708 and runs automatically, with no button, only while Central is the chosen source, supported and signed in: when the pane opens, when the source becomes Central, after sign-in, after a Switch (which also refreshes the credits) and on the throttled activation check (at most once per 15 s). Until then the pane says what it waits for (checking, Central not installed or unavailable, sign in to Central) and the direct source shows nothing. The listing runs in the host half; a result arriving after a newer request, the source changing or the pane closing is dropped. It runs:
+`central access` output is not parsed. Listing runs automatically, with no button, only while Central is the chosen source, supported and signed in: when the pane opens, when the source becomes Central, after sign-in, after a Switch (which also refreshes the credits) and on the throttled activation check (at most once per 15 s). Until then the pane says what it waits for (checking, Central not installed or unavailable, sign in to Central) and the direct source shows nothing. The listing runs in the host half; a result arriving after a newer request, the source changing or the pane closing is dropped. It runs:
 `central login export` (16 KiB, 15 s) yields a version-1 `central-<base64url>` envelope with `environment`,
 `refresh_token` and the current `ai_access` selection. The refresh token is exchanged (`client_id=central-cli`) at
 the fixed OAuth endpoint of that environment and the access token is sent to JetBrains Cloud's
@@ -148,11 +148,11 @@ and JetBrains Cloud, not a documented listing contract, and may need updating wh
 locals and byte buffers that are cleared after use (strings from the JSON reader cannot be cleared and are dropped
 for collection); nothing is logged, stored, thrown or sent to the pane. Listing runs one at a time.
 
-Compatibility risk (from #708): listing refreshes Central's credential independently of Central. If the OAuth server
+Compatibility risk: listing refreshes Central's credential independently of Central. If the OAuth server
 rotates the refresh token and revokes the original, rejecting the replacement does not undo that server-side change;
 Central would keep an invalid credential and every app sharing its session could be signed out. This is conditional,
-not a reproduced failure: #708's live check on 2026-10-13 with Central 1.13.0 saw two exchanges return the identical
-refresh token (RFC 6749 section 6 permits rotation). A Central-owned authenticated listing operation or a supported
+not a reproduced failure: a live check saw two exchanges return the identical refresh token (RFC 6749 section 6 permits
+rotation). A Central-owned authenticated listing operation or a supported
 credential synchronisation contract would remove the assumption.
 
 Switches serialise behind the action gate; a request for the source queued last shares that switch, any other source

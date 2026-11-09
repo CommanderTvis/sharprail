@@ -631,9 +631,6 @@ The terminal chip cases check that the model and effort facts come from the hook
 exactly `/model` (or `/effort`) plus Enter once, focuses the terminal, never types a selection and does nothing while
 the session is Running. They do not exercise a live Claude Code.
 
-The 2026-10-10 narrow surface-selector check verified the hidden horizontal scrollbar and scrolling
-to Account headlessly. It did not check the packaged app or native narrow-pane appearance.
-
 Still required for the full port: complete source-by-source parity audit, the remaining IDE action
 and failure cases, the pane-driven halves of the configuration cases (composer dialogs and their narrow-pane
 layout, source links after unsaved edits, account/usage and the MCP health row), the review

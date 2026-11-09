@@ -578,26 +578,15 @@ Global disablement still gates startup. Explicit Start/Restart records the serve
 except when restart supplies a complete configuration, whose choice is preserved;
 Stop clears it. The pane exposes saved values and the active configuration snapshot.
 
-
 Language operations include logs with an explicit server id. Logs never provision or start a server, remain readable when LSP is disabled, and retain the newest 32 Ki characters per workspace/server across stop/retry until workspace closure. They include timestamps, launch command/arguments and workspace, stderr, window log/show messages, startup failures, lifecycle and observed exit codes. Protocol payloads and source contents are not logged. Agent log responses retain the newest 12,000 characters and indicate truncation.
-
 
 Workspace configuration replies preserve scalar/array/object types and return JSON null for absent or explicitly null sections, allowing servers to apply defaults. They never substitute an empty object for an unset scalar option.
 
-
-## Recorded verification scope
-
-Desktop Release and focused local/WebSocket, MCP, state, registry, editor, pane, design and agent-capability checks passed before the main integration. Real managed TypeScript and installed Pyright/clangd returned diagnostics; TypeScript/clangd returned semantic tokens, while Pyright used syntax fallback. The installed Roslyn/Razor server initialized against workspace-11, returned 20 symbols and remained ready after the missing-configuration null fix, with no JsonValue or empty-object parsing errors. Other catalog recipes were not live-tested.
-
-The latest four-lane gate completed lane 2; LayoutE2E, TerminalChromeChecks and ChangesE2E stopped at existing Git-only Changes entry expectations in non-Git fixtures. A complete full-gate pass is not claimed. Browser/Android compilation, physical-device acceptance and packaged-app replacement were not run for this LSP batch.
+## Saved workspace configuration
 
 Agent-saved workspace arguments use the same persisted host metadata as user saves. Host-state broadcasts expose those saved values immediately in the workspace's configuration window, independently from the running server's active snapshot.
 
 Workspace/server configuration also lives in atomic host-owned metadata files under `language/workspaces/<workspace-hash>/<server>.json`. They are authoritative for saved LSP configuration and survive older builds rewriting state.json without LSP fields. Existing state metadata migrates on opening the host; workspace removal removes its records, and Default inheritance persists independent child records. Reads refresh the host-state projection from metadata, so separate hosts can observe saved values while retaining independent running servers/active configurations. Settings opening and Reload saved request current configuration rather than reusing the last inventory snapshot. Persistence errors propagate instead of reporting a successful configure.
-
-Persistence regressions pass on direct and WebSocket adapters: removing LSP fields from fixture state.json cannot erase metadata after reopening, and another live host’s saved compilation database is observed through configuration reads. Focused editor/pane checks also pass with explicit saved-value reload. The accompanying full run passed LSP cases but stopped in Files and rendered-diff fixtures amid filesystem EventStream startup errors; this does not establish a complete gate or multi-process server sharing.
-
-The final broader run additionally timed out in the Branch Graph UI scenario. Its incomplete-case record is retained; the focused LSP results do not imply that these unrelated UI cases passed.
 
 ## Project import and search scopes
 
@@ -715,8 +704,6 @@ digest and acknowledgement time only. They contain no credentials or agreement t
 workspace-inherited configuration or broadcasts. Unchanged installations on one host reuse explicit
 acknowledgement across workspaces; corrupt records require fresh acceptance.
 
-### Verification limits
-
 Synthetic HTTP/archive fixtures cover integrity, extraction attacks, cancellation, concurrent reuse,
 terms identity and cache isolation. Synthetic agreements cover local/WebSocket persistence, changed
 terms/build/binary, atomic failure and MCP exclusion. Native fake-server lifecycle checks exercise
@@ -731,21 +718,6 @@ and errors, touched-file whitespace verification, focused `--lsp`/`--lsp-ui` che
 expiry fixture also verifies workspace-wide Problems reports expiry rather than a clean/ready result.
 No LSP MCP diagnostic tool was exposed in this session, so an all-edited-files LSP scan was not run.
 Browser, Android and real JetBrains server acceptance were not run.
-
-## Agent code-intelligence verification — 2026-10-16
-
-Release compilation passed with zero warnings/errors; touched-file whitespace verification,
-focused language checks and the 141-case four-lane gate passed. Direct/WebSocket fixtures cover
-unopened-file references, workspace/dependency scopes, IntelliJ jar:/jrt: source previews and
-character paging, unsupported schemes, rejected arbitrary/cross-workspace URIs, restart grant
-invalidation, warm process reuse, overload paging and fresh symbol selection after dirty edits.
-The public dependency-source protocol follows intellij-lsp.nvim decompiler.lua at revision
-9cfad18005470e4187090013e08f92ec9e437219; attribution is retained in licenses/.
-No real JetBrains server smoke test, productivity benchmark or new license acceptance was run.
-Provider-reported loaded graphs remain the source of semantic scope; module ownership is still
-explicitly unsupported where no reliable provider contract exists. The full gate skipped upstream
-Git scenarios requiring SHARPRAIL_TEST_GIT_SOURCE. No LSP MCP tool was exposed to this agent, so
-edited-file LSP diagnostics could not be requested. The Release compiler covered edited C# files.
 
 ## Headless validation and named settings
 
@@ -792,35 +764,11 @@ still expose required configuration. A scalafmt dialect warning from Metals is n
 proof that semantic indexing is blocked; fake-server startup includes such a
 warning to guard this distinction.
 
-
 R provisioning verifies that the pinned `languageserver` package can actually load
 and has the requested version before writing its ready marker. R package installers
 can return success after native dependency failures; those failures must remain
 provisioning errors. A legacy ready marker without the package DESCRIPTION is
 repaired on the next attempt.
-
-
-2026-10-16 real-provider verification: 17 of 18 catalog scenarios passed against
-pinned real repositories through the headless production MCP endpoint. Thirteen
-proved cross-file references; R, PowerShell, shell and CSS proved document symbols
-and diagnostic publication. IntelliJ was blocked at explicit user acknowledgement,
-not passed by fixtures. See `tests/SharpRail.Language.Integration/RESULTS.md` for
-projects, source counts, SDK limits and the unresolved broader Markdown UI timeout.
-
-
-2026-10-17 rebase verification on main a8abf30f: Release, language host/UI fixtures
-and the full check gate passed in aggregate after resolving the independent settings
-protobuf field collision and one provider-form spacing violation. The previously
-recorded Markdown UI timeout did not recur; real-provider corpus results were reused.
-
-
-2026-10-17 IntelliJ runtime follow-up: the acknowledged macOS ARM64 263.6379.0
-artifact initialized on an empty controlled workspace with import disabled after
-host FSEvents capacity recovered. Its earlier FileWatcherException was reproduced
-under the host-wide client limit and attributed to duplicate plugin watch ownership
-in `submodule-host-plugins`. This is initialization-only evidence, not verification
-of Rell's Gradle import, project indexing, or the IntelliJ corpus scenario.
-
 
 ## Detected project-root metadata
 
@@ -845,17 +793,6 @@ directly in that folder, or the provider reported the folder as a source root); 
 subfolder, even inside a root, shows neither. A file row keeps the nearest enclosing root per
 provider. The UI reads the cached snapshot in memory when the menu opens and does no I/O.
 
-
-2026-10-17 verification: project-root discovery and pagination pass on direct/WebSocket
-adapters, including exclusions, JVM selection, cancellation and workspace isolation.
-Files vector badges, provider settings, build-file navigation and switching pass through
-headless UI. Release, scoped whitespace, focused LSP/design and the resumed 144-case
-gate pass; a startup timeout required its focused rerun and continuation. Production
-Roslyn coverage is current for 25 edited C# files, all diagnostic pages retrieved, with
-no errors/warnings. This verifies detected roots and adapter/UI behavior, not native
-module-graph completeness or new real-provider compatibility.
-
-
 Directory annotations distinguish detected build roots from provider-reported roots. An already
 running Eclipse JDT server advertising `java.project.listSourcePaths` supplies source roots through
 its public read-only command. The adapter follows JDT LS v1.61.0 BuildPathCommand's status/data/path
@@ -869,30 +806,9 @@ build-definition action. Standalone IntelliJ directory/package classification is
 by its public client/extension handlers; no such labels are inferred from folder names.
 Reference: https://github.com/eclipse-jdtls/eclipse.jdt.ls/blob/v1.61.0/org.eclipse.jdt.ls.core/src/org/eclipse/jdt/ls/core/internal/commands/BuildPathCommand.java
 
-2026-10-17 directory/coloring verification: focused LSP host/editor, syntax, Context UI
-and design checks pass. Synthetic JDT responses cover advertised-command gating,
-containment, duplicate roots, non-starting reads, refresh and stop invalidation; source
-roots are not proof of package ownership. Native Roslyn covers all 23 edited C# files,
-current, all 11 pages retrieved, 310 informational/hint diagnostics and no errors/warnings.
-Source-JAR UI navigation is fixture-tested through the existing authorized host reader;
-real IntelliJ/JDT compatibility and browser/Android runtime remain unverified.
-Final rebase onto main b61c6de1: Release and scoped formatting pass; all source gate
-cases completed after one concurrent resource diff-row timeout passed unchanged in
-serial continuation. Merged Codex launch/resume checks pass. Additional native Roslyn
-diagnostics cover the three conflict-resolved C# files current with no errors/warnings.
-
 Provider configuration schemas include public HTTPS website and repository links, including a label distinguishing proprietary-provider documentation/client repositories from server source. Metadata does not install or execute providers.
 
 Status and inspection expose full semantic-token support from the initialized provider capabilities. Token decoding preserves the modifier bitset using that server's legend (up to 32 bits), without inferring static/extension roles from identifiers. Editor routing remains workspace-scoped.
-
-
-The 2026-10-18 UI follow-up passed local/remote language checks and native Roslyn
-diagnostics for 32 edited C# files, including a final current three-file refresh
-with no errors or warnings. Semantic modifier typography was checked using the
-protocol fixture and native Scintilla italic set/reset behavior; real IntelliJ
-typography and authenticated Context indexing were not exercised.
-
-2026-10-18 global-provider verification: Release and focused local/remote migration, global routing, two-project process teardown, consent, persistence and Settings broadcast checks pass. Existing host language and language Settings/editor setup checks pass. The broader language UI mode stops earlier in the unchanged empty-navigation assertion about unavailable analysis; real provider compatibility and browser/Android runtime were not rechecked.
 
 Named configuration controls distinguish host file/folder paths, path arrays, patterns, argument
 arrays, nullable booleans, numeric limits and enumerated strings. The [provider type research](CONFIGURATION.md)
@@ -903,15 +819,6 @@ File selection is additive for lists. Native browsing is limited to an embedded 
 browser and Android clients edit explicitly labeled host paths without accessing their local filesystem.
 Settings provider pages and workspace configuration expose the same HTTPS project/documentation links;
 proprietary providers link to documentation/client sources rather than claiming public server source.
-
-2026-10-18 typed-input verification: Release compilation, browser shared-source compilation,
-scoped formatting, language host/local-WebSocket checks and focused settings UI checks passed.
-The settings checks visit upstream links for all 18 providers and exercise nullable numeric entry
-and the fixed IntelliJ importer selector. The broader language UI mode stopped on an unrelated
-empty-navigation availability assertion before the settings cases. No full suite, native picker
-interaction, Android runtime or new all-provider semantic acceptance was run. Existing AVLN3001
-runtime-loader warnings remain visible.
-
 
 ## Project startup choices
 
@@ -932,8 +839,6 @@ concurrent requests cannot duplicate a start, and failed or stopped sessions are
 next launch. Startup is initiated before the agent; installation and indexing can finish later.
 A failed or disabled provider stays visible in the language pane and does not prevent launching
 an agent. Arbitrary agent commands manually typed into a shell have no prelaunch integration.
-
-2026-10-18 verification: Release compilation and focused direct/remote regressions cover project preference persistence, sibling-workspace sharing, project isolation, concurrent starts, warm PID reuse, failed/stopped recovery, unchanged workspace autostart, and revival prefill ordering. Headless controls cover managed-command preparation before terminal attachment and immediate project checkbox persistence. Real provider provisioning and browser/Android runtime were not exercised by this change.
 
 ## Project language file
 
