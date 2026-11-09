@@ -44,7 +44,11 @@ nothing it starts holds it.
   context take no input, so only the plugin's own views wait for it. Each tick also sends `surface.cursor` when the
   cursor over a top-level changed and `surface.ime` when a text field that composes gained or lost focus there or its
   caret moved; composition the client sends (`Preedit`) goes to that field's `TextInputMethodClient`, and committed
-  text ends the composition first.
+  text ends the composition first. Each tick also reads the automation peers of each top-level, numbers them for as
+  long as they are in the tree and sends `surface.automation` as a change against what the client holds (whole at
+  first), at most every 100 ms and within the protocol's caps; the accessibility actions the client sends (invoke,
+  focus, set value, expand, collapse, toggle) run on the peer of a node the client was told of, and only while it is
+  enabled and offers the action. With diagnostics on, a capture carries the tree as the runner reads it.
   `RemotePlatform` is the backend: an `IWindowingPlatform` whose every window and popup is a `RemoteTopLevel`
   (`IWindowImpl`, `IPopupImpl` and a framebuffer surface Skia draws a whole frame into, in memory), a render timer on
   the UI thread that the renderer ticks before it reads a frame, a cursor factory of standard shapes, and a mouse per

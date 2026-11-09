@@ -353,6 +353,10 @@ internal sealed class SurfaceRenderer
                 case SurfaceInputKind.Preedit:
                     if (input.Text.Length <= 256) target.Preedit(input.Text, Math.Clamp(input.Caret, 0, input.Text.Length));
                     break;
+                // An accessibility action acts on a node of the top-level the client named.
+                case SurfaceInputKind.Invoke or SurfaceInputKind.SetFocus or SurfaceInputKind.SetValue or SurfaceInputKind.Expand or SurfaceInputKind.Collapse or SurfaceInputKind.Toggle:
+                    Source(input.Popup)?.Automation.Act(input);
+                    break;
                 default: throw new IsoCallException(IsoError.InvalidParams, "Unknown input.");
             }
             renderer.Heat();
@@ -487,7 +491,7 @@ internal sealed class SurfaceRenderer
                 texts[name] = field.Text ?? "";
                 texts[name + ".preedit"] = field.GetVisualDescendants().OfType<TextPresenter>().FirstOrDefault()?.PreeditText ?? "";
             }
-            return new SurfaceCapture(w, h, Convert.ToBase64String(pixels), bounds, texts);
+            return new SurfaceCapture(w, h, Convert.ToBase64String(pixels), bounds, texts, Source(popup)?.Automation.Lines());
         }
 
         public void Close()
@@ -525,7 +529,10 @@ internal sealed class SurfaceRenderer
             private SurfaceCursor? cursor;
             private SurfaceIme? ime;
 
-            /// <summary>Sends the cursor over this top-level and its text field's caret when either changed.</summary>
+            /// <summary>This top-level's accessibility tree.</summary>
+            public SurfaceAutomationFeed Automation { get; } = new(top);
+
+            /// <summary>Sends the cursor over this top-level, its text field's caret and its accessibility tree when they changed.</summary>
             public void Report()
             {
                 if (Remote(top) is not { } remote) return;
@@ -537,9 +544,12 @@ internal sealed class SurfaceRenderer
                 }
                 var caret = remote.Caret;
                 var now = new SurfaceIme(view.Id, popup, remote.Composing, caret.X, caret.Y, caret.Width, caret.Height);
-                if (now == ime) return;
-                ime = now;
-                view.renderer.peer.OneWay(SurfaceProtocol.Ime, SurfaceProtocol.Encode(now), view.Context);
+                if (now != ime)
+                {
+                    ime = now;
+                    view.renderer.peer.OneWay(SurfaceProtocol.Ime, SurfaceProtocol.Encode(now), view.Context);
+                }
+                if (Automation.Changes(view.Id, popup) is { } tree) view.renderer.peer.OneWay(SurfaceProtocol.Automation, SurfaceProtocol.Encode(tree), view.Context);
             }
 
             public void Acknowledge(long acknowledged)
