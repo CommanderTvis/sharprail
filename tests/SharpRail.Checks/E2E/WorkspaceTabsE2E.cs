@@ -137,10 +137,10 @@ internal static class WorkspaceTabsE2E
         Require(Selected(app, "projects"), "Selected side tools must follow a workspace switch.");
         Switch(app, root);
         Require(Selected(app, "projects"), "Selected side tools must follow the return to the default workspace.");
-        app.ShowTool("review");
-        Require(Selected(app, "review"), "Review must become the selected tool.");
+        app.ShowTool(DockState.ReviewTool);
+        Require(Selected(app, "plugin_review_review"), "Review must become the selected tool.");
         Switch(app, first, "workspace-1");
-        Require(Selected(app, "projects") && Selected(app, "review"), "Both side groups must retain their selected tools across switches.");
+        Require(Selected(app, "projects") && Selected(app, "plugin_review_review"), "Both side groups must retain their selected tools across switches.");
         Console.WriteLine("PASS upstream workspace-tabs.spec.ts: the selected side tool follows workspace switches");
     }
 

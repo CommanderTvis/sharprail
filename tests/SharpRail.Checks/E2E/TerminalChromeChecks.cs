@@ -244,7 +244,7 @@ internal static class TerminalChromeChecks
             app.Window.Layout.Tabs(side.Id).All(tab => tab.IsTool),
             "The side menu must create terminals in a terminal pane of its own side.");
         app.ContextAction(app.Find<Button>("Tab_projects"), "Close");
-        app.ContextAction(app.Find<Button>("Tab_review"), "Close");
+        app.ContextAction(app.Find<Button>("Tab_plugin_review_review"), "Close");
         add = app.Find<Grid>("GroupHeader_" + side.Id);
         add.ContextMenu!.Open(add); Until(() => add.ContextMenu!.IsOpen);
         var entries = add.ContextMenu!.Items.OfType<MenuItem>().ToArray();

@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
 using SharpRail.Checks.E2E;
+using SharpRail.UI.Docking;
 using SharpRail.UI.State;
 
 using static SharpRail.Checks.E2E.ChangesFixture;
@@ -100,7 +101,7 @@ internal static class ReviewChecks
         var links = new List<string>();
         app.Window.OpenLink = links.Add;
         Until(() => app.Find<TextBlock>("BranchLabel").Text == "feature");
-        app.ShowTool("review");
+        app.ShowTool(DockState.ReviewTool);
         Until(() => PrLabel(app) == "Open PR" && Log().Any(line => line.StartsWith("pr list", StringComparison.Ordinal)));
         Require(Maybe<Button>(app, "ReviewPrChip") is null && Maybe<Button>(app, "ReviewOpenDraftPr") is not null,
             "Without an open pull request the panel offers Open PR and Open draft PR and no chip.");

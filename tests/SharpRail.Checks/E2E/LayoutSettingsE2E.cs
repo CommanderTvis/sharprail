@@ -244,7 +244,7 @@ internal static class LayoutSettingsE2E
 
     // Review seats its tool first in the right rail and keeps the main column one group.
     private static bool Review(DockState state) => state.Center.IsLeaf &&
-        state.Groups.First(group => group.Region == "right").Tools.FirstOrDefault()?.Id == "review";
+        state.Groups.First(group => group.Region == "right").Tools.FirstOrDefault()?.Id == DockState.ReviewTool;
 
     private static void NoCenterSeparator(E2eWorkspace app) =>
         Require(!app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.Name!.StartsWith("CenterSeparator_", StringComparison.Ordinal)),

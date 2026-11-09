@@ -43,7 +43,7 @@ internal static class RailGroupingE2E
         toggle.IsChecked = true;
         settings.Close(); Until(() => !settings.IsVisible);
         Require(app.Window.Preferences.GroupWorkspacesUnderCreator, "The switch must change the app preference.");
-        Until(() => Order().SequenceEqual([project, orphan, creatorWorkspace, chatChild, child]));
+        Until(() => Order().SequenceEqual([project, orphan, creatorWorkspace, child, chatChild]));
         Require(Item(app, child).Margin.Left > Item(app, creatorWorkspace).Margin.Left && Item(app, orphan).Margin.Left == Item(app, creatorWorkspace).Margin.Left &&
             Named<Border>(Item(app, child), "WorkspaceNestGuide").IsEffectivelyVisible && !Named<Border>(Item(app, orphan), "WorkspaceNestGuide").IsVisible,
             "On, the created workspace sits indented under its creator's workspace; one whose creator tab is gone stays flat.");

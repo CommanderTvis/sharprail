@@ -59,7 +59,7 @@ internal static class DockInputChecks
         Pump(() => HeaderIcon().Content is Border { Tag: "resolved:plugin:spec-dialect:specs" },
             "Switching tools must refresh the pane header through the plugin-aware icon resolver.");
         window.Layout.Close(right[1].Id, DockState.ReviewTool);
-        Require(Find<Button>("RailUnplaced_review").GetLogicalDescendants().OfType<Border>().Any(border => Equals(border.Tag, "resolved:review")),
+        Require(Find<Button>("RailUnplaced_plugin_review_review").GetLogicalDescendants().OfType<Border>().Any(border => Equals(border.Tag, "resolved:" + DockState.ReviewTool)),
             "Unplaced tools must use the same custom icon resolver.");
         surface.TabIcon = resolveIcon;
         surface.Rebuild();
@@ -82,7 +82,7 @@ internal static class DockInputChecks
                 .All(line => Math.Abs(CentreX(line) - CentreX(frames[0])) < .5),
             "Rail separators must share the horizontal centre of the icons.");
         window.Layout.Close(right[1].Id, DockState.ReviewTool);
-        var unplaced = Find<Button>("RailUnplaced_review");
+        var unplaced = Find<Button>("RailUnplaced_plugin_review_review");
         Require(unplaced.Content is Border { Background: var dimmed } && ReferenceEquals(dimmed, Ui.Hint) && Find<StackPanel>("rightRailEntries").Children.IndexOf(unplaced.GetLogicalAncestors().OfType<Grid>().First()) >
             Find<StackPanel>("rightRailEntries").Children.IndexOf(Find<StackPanel>("RailCluster_" + right[1].Id)),
             "A tool placed nowhere must sit dimmed in a trailing cluster.");
@@ -324,7 +324,7 @@ internal static class DockInputChecks
         var compactGroup = window.Layout.State.Groups.First(group => group.Region == "right");
         var compactHeader = Bounds(Find<Grid>("GroupHeader_" + compactGroup.Id));
         var compactTab = window.Layout.State.Groups.Where(group => group.Region == "right").ElementAt(1).Tools[0].Id;
-        var compactOrigin = Bounds(Find<Button>("Tab_" + compactTab)).Center;
+        var compactOrigin = Bounds(Find<Button>("Tab_" + compactTab.Replace(':', '_'))).Center;
         window.MouseDown(compactOrigin, MouseButton.Left); window.MouseMove(compactOrigin + new Vector(10, 10));
         window.MouseMove(compactHeader.Center);
         var compactHighlights = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>()

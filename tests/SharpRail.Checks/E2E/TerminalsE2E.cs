@@ -135,7 +135,7 @@ internal static class TerminalsE2E
         CreateTerminalWorkspace(app, "workspace-1");
         var tab = TerminalTabs(app).Single();
         var view = View(app, tab);
-        var focused = app.Find<Button>("Tab_review");
+        var focused = app.Find<Button>("Tab_plugin_review_review");
         focused.Focus();
         Require(focused.IsFocused, "The Review tab must hold focus while the terminal starts.");
         held.SetResult();
