@@ -49,8 +49,8 @@ internal static class WorkspaceUnreadE2E
         // Mark as unread on the shown workspace stays lit until the user leaves and comes back.
         var menu = OpenWorkspaceMenu(app, project);
         var entries = menu.Items.OfType<MenuItem>().ToArray();
-        Require(entries[0].Name == "WorkspaceCopyPath" && entries[0].Header is "Copy absolute path" && entries[1].Name == "WorkspaceOpenIn",
-            "The workspace menu opens with Copy absolute path, then Open in.");
+        Require(entries[0].Name == "WorkspaceCopyPath" && entries[0].Header is "Copy absolute path" && entries[1].Name == "WorkspaceCopyLink" && entries[2].Name == "WorkspaceOpenIn",
+            "The workspace menu opens with Copy absolute path, Copy link, then Open in.");
         var removal = entries.SingleOrDefault(item => item.Name == "WorkspaceRemove");
         Require(removal is null || removal.Header is "Remove worktree…" or "Remove from SharpRail", "Removal is not the workspace menu's last item.");
         Require(entries.Where(item => item.Icon is not null).Select(item => item.Name).Order()

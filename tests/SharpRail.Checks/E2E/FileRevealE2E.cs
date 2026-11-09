@@ -47,8 +47,7 @@ internal static class FileRevealE2E
                 // The workspace menu is built by the window for a Projects row and the header; build it directly, as both do.
                 var menu = new ContextMenu();
                 var record = new SharpRail.Host.Abstractions.WorkspaceRecord("w", workspace, SharpRail.Host.Abstractions.WorkspaceKinds.Default, workspace, "main", "main");
-                typeof(SharpRail.UI.WorkbenchWindow).GetMethod("AddWorkspaceActions", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
-                    .Invoke(app.Window, [menu, record, false]);
+                app.Window.AddWorkspaceActions(menu, record);
                 Require(menu.Items.OfType<MenuItem>().Any(item => item.Name == "WorkspaceCopyPath") &&
                     (menu.Items.OfType<MenuItem>().Any(item => item.Name == "WorkspaceReveal")) == !remote, "Project Home's workspace menu offers reveal only for a local host.");
                 Console.WriteLine($"PASS file reveal {(remote ? "remote" : "local")} host: Files and workspace menus");

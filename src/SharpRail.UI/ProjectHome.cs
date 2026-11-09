@@ -546,7 +546,7 @@ public sealed partial class WorkbenchWindow
     }
 
     /// <summary>The one set of workspace actions, shown by a Projects row.</summary>
-    private MenuItem AddWorkspaceActions(ContextMenu menu, WorkspaceRecord worktree)
+    internal MenuItem AddWorkspaceActions(ContextMenu menu, WorkspaceRecord worktree)
     {
         var copy = Ui.IconMenu("Copy absolute path", () => _ = CopyTextAsync(worktree.Path), ActionIcon.CopyAbsolutePath);
         copy.Name = "WorkspaceCopyPath";
