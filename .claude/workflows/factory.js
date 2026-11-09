@@ -22,7 +22,13 @@ const LAND = args?.land === true
 const DRY = args?.dryRun === true
 const BASE = args?.base ?? 'origin/main'
 const ATTRIBUTION = args?.attribution ?? 'Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>'
-const TASKS = (args?.tasks ?? []).map(t => ({ areas: [], dependsOn: [], docsOnly: false, ...t }))
+// Paths every non-docs task may also touch: the checks belong to the change they cover. Override with args.alwaysAllow.
+const ALWAYS = args?.alwaysAllow ?? ['tests/SharpRail.Checks']
+const TASKS = (args?.tasks ?? []).map(t => {
+  const task = { areas: [], dependsOn: [], docsOnly: false, ...t }
+  // Scheduling uses the declared areas only (an empty list still conflicts with everything); verification also accepts ALWAYS.
+  return { ...task, allowed: task.docsOnly || !task.areas.length ? task.areas : [...task.areas, ...ALWAYS] }
+})
 
 const RULES = `
 Rules for this task (apply all of them):
@@ -30,7 +36,7 @@ Rules for this task (apply all of them):
 - Other agents run in parallel. Run EVERY build, restore, format, check mode and test through ${QUEUE} <command> from your workspace directory (it waits while another agent runs a heavy command). Start with scripts/mise run restore in the fresh worktree; use scripts/mise x -- dotnet build and scripts/mise run format.
 - Never run checks that open real windows (they steal focus; CI covers them) and list what you skipped. Start no language server. Never run machine-wide process listings or touch processes you did not start.
 - Navigate with the context_search MCP tool first (load it with ToolSearch "select:mcp__plugin_sharprail_sharprail__context_search"; pass your workspace path) and grep/Read for literals. If its index is not ready, say so.
-- Touch only the declared areas. If the task needs files outside them, stop and report that as a blocker.
+- Touch only the declared areas, plus the checks folder (${ALWAYS.join(', ')}) for the checks that belong to your change. If the task needs other files, finish what is inside the areas, commit it and list the rest as a blocker.
 - Commit signed; never bypass signing (on a 1Password or ssh-agent failure stop and report). End each commit message with:
 ${ATTRIBUTION}
 - Do NOT push. Keep SPEC.md text short, no code references in specs.
@@ -108,14 +114,14 @@ async function work(t) {
     `${RULES}\n\nTask ${t.id}: ${t.title}\nTouch only: ${t.areas.length ? t.areas.join(', ') : '(unspecified: ask in blockers)'}\n${t.docsOnly ? 'Docs only: do not build and do not run checks.\n' : ''}\n${t.brief}`,
     { label: `implement:${t.id}`, phase: 'Implement', schema: REPORT })
   if (!report) return { state: 'failed', note: 'agent returned nothing' }
-  if (report.blockers?.length) return { state: 'blocked', report, note: report.blockers.join('; ') }
-
   const warnings = []
-  if (!report.commits.length) return { state: 'failed', report, note: 'no commit' }
+  if (!report.commits.length) return { state: report.blockers?.length ? 'blocked' : 'failed', report, note: report.blockers?.join('; ') ?? 'no commit' }
+  // Blockers with commits are not fatal: the finished part is still verified and reported, the rest is listed.
+  for (const blocker of report.blockers ?? []) warnings.push('blocker: ' + blocker)
   if (!t.docsOnly && report.contextSearchCalls === 0) warnings.push('0 context_search calls on code work')
 
   const verdict = await agent(
-    `Verify without changing anything. Workspace ${report.workspace}, commits ${report.commits.join(' ')}, declared areas: ${t.areas.join(', ') || '(none)'}.
+    `Verify without changing anything. Workspace ${report.workspace}, commits ${report.commits.join(' ')}, declared areas: ${t.allowed.join(', ') || '(none)'}.
 For each commit run: git -C ${report.workspace} cat-file commit <sha> | rg -c "BEGIN SSH SIGNATURE" (1 means signed, otherwise unsigned) and git -C ${report.workspace} show --name-only --format= <sha>. Report every unsigned sha, every changed file outside the declared areas (path-prefix match), and any problem (commit missing, uncommitted changes in git -C ${report.workspace} status --short, branch not based on ${BASE}). ok is true only when all three lists are empty.`,
     { label: `verify:${t.id}`, phase: 'Verify', schema: VERDICT, effort: 'low' })
   if (!verdict?.ok) return { state: 'rejected', report, warnings, note: (verdict?.problems ?? ['verification failed']).concat(verdict?.unsigned ?? [], verdict?.outsideAreas ?? []).join('; ') }
