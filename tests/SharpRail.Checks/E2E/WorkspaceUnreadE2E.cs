@@ -112,6 +112,8 @@ internal static class WorkspaceUnreadE2E
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true && button.GetVisualAncestors().Any(a => a.Name == "CenterTabsInProjects")));
         var nestedRow = app.Window.GetLogicalDescendants().OfType<Button>().First(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true && button.GetVisualAncestors().Any(a => a.Name == "CenterTabsInProjects")).Content as Control;
         Require(nestedRow is not null && Math.Abs(Within(nestedRow).Right - Within(Dot(app, other)).Right) < 0.5, "A nested tab row's trailing column must end where the workspace dot does: tab " + (nestedRow is null ? "none" : Within(nestedRow).ToString()) + ", workspace " + Within(Dot(app, other)));
+        // The row moved when the nested tab row was added: measure it again.
+        rowBounds = new Rect(row.TranslatePoint(default, app.Window) ?? default, row.Bounds.Size);
         Require(Math.Abs(Within(tabDot).Center.Y - Within(tabRow).Center.Y) < 1 && Math.Abs(Within(Dot(app, other)).Center.Y - rowBounds.Center.Y) < 1, "Each dot must be vertically centred on its own row.");
         WorkspaceTabsE2E.Switch(app, other);
         app.Window.Activate();
