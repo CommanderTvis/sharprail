@@ -858,7 +858,7 @@ internal static class ClaudeChatUiChecks
             Require(view.Input.Text == "my draft", $"Esc while browsing restores the stashed draft, not the edit (got '{view.Input.Text}').");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
-        finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); }
+        finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); ChatView.ForgetLocalDrafts(); }
     }
 
     // A host that does not share drafts answers the draft method with an error: the view stops asking and keeps the draft client-locally.
@@ -922,7 +922,7 @@ internal static class ClaudeChatUiChecks
             Require(view.Input.Text == "previous prompt", "A single-line draft recalls history on the second Up.");
         }
         catch (Exception error) { Console.WriteLine("FAILED " + error); throw; }
-        finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); }
+        finally { window.Close(); ChatView.Histories.Remove((Workspace, Chat)); ChatView.ForgetLocalDrafts(); }
     }
 
     // A long file name and a pasted image in a narrow composer: every chip stays inside the composer (trimmed or wrapped, never cut off at its edge)
