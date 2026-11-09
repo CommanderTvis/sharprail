@@ -315,11 +315,11 @@ internal static partial class PluginHostChecks
         var all = BuiltinPlugins.Create(null);
         var undeclared = all.Where(plugin => plugin.Manifest.Headless == HeadlessSupport.Undeclared).Select(plugin => plugin.Manifest.Id).ToArray();
         Require(undeclared.Length == 0, "Every builtin plugin must state its headless decision (Headless = HeadlessSupport.Yes or No): " + string.Join(", ", undeclared));
-        Require(all.Select(plugin => plugin.Manifest.Id).Distinct().Count() == all.Count && BuiltinPlugins.LanguageServers.Count == 18 && all.Count == 42, "The builtin roster changed: classify the new plugin, then update this pin.");
+        Require(all.Select(plugin => plugin.Manifest.Id).Distinct().Count() == all.Count && BuiltinPlugins.LanguageServers.Count == 18 && all.Count == 43, "The builtin roster changed: classify the new plugin, then update this pin.");
         var declared = all.Where(plugin => plugin.Manifest.Headless == HeadlessSupport.Yes).Select(plugin => plugin.Manifest.Id).Order().ToArray();
         var headless = BuiltinPlugins.Headless;
         Require(headless.Select(plugin => plugin.Manifest.Id).Order().SequenceEqual(declared), "The headless roster is not exactly the plugins that declare Headless = Yes.");
-        string[] expected = ["blueprint", "lsp-clangd", "lsp-csharp", "lsp-css", "lsp-dart", "lsp-go", "lsp-java", "lsp-kotlin", "lsp-php", "lsp-powershell", "lsp-python", "lsp-r", "lsp-ruby", "lsp-rust", "lsp-scala", "lsp-shell", "lsp-swift", "lsp-typescript", "spec-dialect"];
+        string[] expected = ["blueprint", "code-intelligence", "lsp-clangd", "lsp-csharp", "lsp-css", "lsp-dart", "lsp-go", "lsp-java", "lsp-kotlin", "lsp-php", "lsp-powershell", "lsp-python", "lsp-r", "lsp-ruby", "lsp-rust", "lsp-scala", "lsp-shell", "lsp-swift", "lsp-typescript", "spec-dialect"];
         Require(declared.SequenceEqual(expected), "The headless set changed: " + string.Join(", ", declared));
         var byId = all.ToDictionary(plugin => plugin.Manifest.Id, plugin => plugin.Manifest);
         foreach (var manifest in headless.Select(plugin => plugin.Manifest))
@@ -377,8 +377,8 @@ internal static partial class PluginHostChecks
         {
             await web.Runtime.Schedule();
             var roster = await web.Runtime.ListAsync();
-            Require(roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).SequenceEqual(["lsp-css"]), "A pure web host runs only the CSS language server: " + string.Join(", ", roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id)));
-            Require(roster.Where(entry => entry.Id != "lsp-css").All(entry => entry.Status == PluginStatus.Refused), "A pure web host refuses every other language server plugin.");
+            Require(roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id).SequenceEqual(["code-intelligence", "lsp-css"]), "A pure web host runs only Code Intelligence and the CSS language server: " + string.Join(", ", roster.Where(entry => entry.Status == PluginStatus.Active).Select(entry => entry.Id)));
+            Require(roster.Where(entry => entry.Id is not ("lsp-css" or "code-intelligence")).All(entry => entry.Status == PluginStatus.Refused), "A pure web host refuses every other language server plugin.");
             Require(web.State.LanguageCatalog.Select(server => server.Id).SequenceEqual(["css"]), "A pure web host's catalog lists only css.");
             Require(LanguageMcpTools.Create(web.State, directory).Count == 6, "A pure web host with a server keeps the lsp_* MCP tools.");
             var prompt = web.Runtime.PromptTexts("claude-code", PromptPlacement.Section, directory);

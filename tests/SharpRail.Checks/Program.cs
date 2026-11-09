@@ -1156,6 +1156,12 @@ internal static class Program
             Console.WriteLine("PASS review plugin checks");
             return;
         }
+        if (args.SequenceEqual(["--code-intelligence-plugin"]))
+        {
+            PluginHostChecks.CodeIntelligencePlugin(root).GetAwaiter().GetResult();
+            Console.WriteLine("PASS code intelligence plugin checks");
+            return;
+        }
         if (args.SequenceEqual(["--welcome"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
@@ -1481,6 +1487,7 @@ internal static class Program
         Gate.Case("local-browser-approval", () => LocalBrowserConnectionChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("code-intelligence-plugin", () => PluginHostChecks.CodeIntelligencePlugin(root).GetAwaiter().GetResult());
         Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("review-plugin", () => ReviewPluginChecks.Migration());
         Gate.Case("blueprint", () => BlueprintChecks.Run(root).GetAwaiter().GetResult());

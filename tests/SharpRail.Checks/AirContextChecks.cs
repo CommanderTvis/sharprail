@@ -146,8 +146,8 @@ internal static partial class AirContextChecks
             {
                 var state = new HostStateStore(stateDirectory);
                 var runtime = new PluginRuntime(worktrees is null
-                    ? new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(AirContextContract.Manifest, new AirContextHost())] }
-                    : new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(AirContextContract.Manifest, new AirContextHost())], Worktrees = worktrees });
+                    ? new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(SharpRail.Plugins.CodeIntelligence.CodeIntelligenceContract.Manifest, new SharpRail.Plugins.CodeIntelligence.Host.CodeIntelligenceHost()), (AirContextContract.Manifest, new AirContextHost())] }
+                    : new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(SharpRail.Plugins.CodeIntelligence.CodeIntelligenceContract.Manifest, new SharpRail.Plugins.CodeIntelligence.Host.CodeIntelligenceHost()), (AirContextContract.Manifest, new AirContextHost())], Worktrees = worktrees });
                 await runtime.Start();
                 rig = new(stateDirectory, runtime, state, new LocalPluginAdapter(runtime), null, null, null);
             }

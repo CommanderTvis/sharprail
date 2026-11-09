@@ -270,7 +270,7 @@ internal static class PluginsSettingsScrollChecks
             var airMark = PluginIcons.Resolve(air.Icon, null, Ui.Muted);
             Require(air.Icon.Length == 0 && air.Assets is null && !airMark.GetVisualDescendants().OfType<Image>().Any() && airMark is Border { Width: 16, Height: 16 },
                 "Air Gateway declares no icon, and its Settings row and Plugins card keep an empty slot of the icon size.");
-            foreach (var (manifest, host) in SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries)
+            foreach (var (manifest, host) in SharpRail.Host.Core.Plugins.BuiltinPlugins.LanguageServerEntries.Where(entry => entry.Host is SharpRail.Plugins.Api.Host.LanguageServerPlugin))
             {
                 var server = (SharpRail.Plugins.Api.Host.LanguageServerPlugin)host!;
                 var file = Path.Combine(AppContext.BaseDirectory, "plugins", manifest.Id, manifest.Assets ?? "", manifest.Icon["asset:".Length..]);
