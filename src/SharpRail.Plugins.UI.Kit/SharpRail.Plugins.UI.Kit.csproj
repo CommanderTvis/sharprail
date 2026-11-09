@@ -20,10 +20,9 @@
     <FileIconsDirectory>$(MSBuildProjectDirectory)/obj/file-icons</FileIconsDirectory>
   </PropertyGroup>
   <Target Name="BuildFileIcons" BeforeTargets="AssignTargetPaths" Condition="'$(DesignTimeBuild)' != 'true'"
-          Inputs="$(MSBuildProjectDirectory)/../../scripts/generate-file-icons.cs;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.sh;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.ps1;$(MSBuildProjectDirectory)/FileIcons/FileIconTable.g.cs"
+          Inputs="$(MSBuildProjectDirectory)/../../scripts/generate-file-icons.cs;$(MSBuildProjectDirectory)/FileIcons/FileIconTable.g.cs"
           Outputs="$(FileIconsDirectory)/file.svg">
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.sh&quot;" Condition="'$(OS)' != 'Windows_NT'" />
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.ps1&quot;" Condition="'$(OS)' == 'Windows_NT'" />
+    <Exec Command="&quot;$(DOTNET_HOST_PATH)&quot; run &quot;$(MSBuildProjectDirectory)/../../scripts/generate-file-icons.cs&quot; -- --assets-only" WorkingDirectory="$(MSBuildProjectDirectory)/../.." />
   </Target>
   <Target Name="EmbedFileIcons" AfterTargets="BuildFileIcons" BeforeTargets="AssignTargetPaths" DependsOnTargets="BuildFileIcons">
     <ItemGroup>

@@ -471,7 +471,7 @@ adding only what a client alone knows: focus, a collection window, the system ch
 - Delivery is behind `IDesktopNotifier`, which the composition root supplies (`Workbench.Notifier`) the way
   it supplies the terminal factory; a workbench without one, as in every headless check that does not
   pass a recording one, raises nothing. `MacNotifier` and `LinuxNotifier` are the channels. Inside the app bundle it posts
-  through User Notifications (`Native/Notifications.m`, built by `scripts/build-notifications.sh` (run by the UI project's `BuildNotifications` target) into
+  through User Notifications (`Native/Notifications.m`, built by `scripts/build-notifications.cs` (run by the UI project's `BuildNotifications` target) into
   `libSharpRailNotifications.dylib`): the system attributes it to SharpRail, asks for permission on the
   first notification or when the Settings toggle is turned on, and reports the click. The system refuses
   that API to a process without a bundle identifier, so a run from source (`scripts/mise run dev`) falls back to

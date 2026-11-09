@@ -7,7 +7,7 @@ points. Builds use the pinned .NET SDK, which mise puts on PATH. The first task 
 
 ## File icon assets
 
-The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `build-file-icons.sh` or `build-file-icons.ps1` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. The generated SVGs go to the kit's `obj/file-icons`; the pinned archive is cached in `$SHARPRAIL_CACHE_DIR/file-icons`.
+The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `dotnet run scripts/generate-file-icons.cs -- --assets-only` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. The generated SVGs go to the kit's `obj/file-icons`; the pinned archive is cached in `$SHARPRAIL_CACHE_DIR/file-icons`.
 
 ## Start the app or a server
 
@@ -122,11 +122,20 @@ instead of rebuilding; old results are not pruned (delete the directory to recla
 
 Native libraries are MSBuild targets in the project that owns them, with their sources, recipe and
 lockfile as inputs: `scripts/mise run build` (or any `dotnet build`) rebuilds a library only when one
-changed. The recipes (`build-merman.sh`, `build-notifications.sh`, `wasm-native.sh`, and the
+changed. The recipes (`build-merman.cs`, `build-notifications.cs`, `wasm-native.sh`, and the
 `build-native`, `build-android`, `build-linux` and `build-windows` scripts beside Ghostty) are run by those targets under
 `scripts/mise x --`, which supplies the pins in `[env]`; they are not entry points. They serialise on a directory lock taken through `scripts/lock.sh`, which records the owner's PID: a lock whose owner is gone (a killed build, a machine that slept) is removed instead of waited for, and a wait names the holder. macOS native builds
 need clang, the Xcode command-line tools and, for libghostty, the Metal toolchain. The Linux libraries need only the pinned Zig, which
 cross-compiles them for `x86_64-linux-gnu` or `aarch64-linux-gnu` against glibc 2.31 from macOS or Linux alike.
+
+Still shell or PowerShell, each because a heavier toolchain driver or a sourced library depends on it:
+`lock.sh` and `native-cache.sh` are sourced function libraries of the shell recipes, and `fetch-git.sh`, `zig-deps.sh`
+and `windows-native.ps1` are called from them in the middle of a Zig build; `build-native.sh`, `build-linux.sh`,
+`build-android.sh`, `build-windows.ps1` and `wasm-native.sh` drive Zig, emscripten or the Android NDK and share those
+libraries; `tailscale-go.sh`, `build-tailscale-android.sh`, `build-tailscale-wasm.sh` and `build-headscale-test.sh`
+drive Go and share the same libraries; `aot-linux-cc.sh` is the C compiler wrapper ILCompiler runs, which must start
+without a .NET host; `headless-cloud-setup.sh` is pasted into a cloud environment before .NET exists. They move together
+when the native toolchain drivers are ported.
 
 ### NuGet packages
 

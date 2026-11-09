@@ -1,5 +1,5 @@
 Rust crates in Merman 0.7.0's prebuilt merman-ffi static library (Merman.xcframework,
-default render and ascii features), which scripts/build-merman.sh links into
+default render and ascii features), which scripts/build-merman.cs links into
 libSharpRailMermaid.dylib, with their declared licenses. Each crate retains its
 upstream license text in its published source on crates.io. MPL-2.0 crates are
 unmodified; their source is available from crates.io at the versions listed.
