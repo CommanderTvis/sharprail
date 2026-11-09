@@ -244,6 +244,7 @@ internal static class PluginSurfaceRemoteChecks
             E2eWorkspace.Until(() => sessions.Count == 0);
             relayA.Allow();
             E2eWorkspace.Until(() => sessions.Count == 1 && Activations(a) > activations && a.Workbench.PluginLoader.Registry.Active.Contains(Id));
+            Require(runtime.RunnerPid(Id) == pid, "The plugin's process outlives a client whose session ended with a call still waiting.");
             Console.WriteLine("PASS plugin surface remote grace: past the grace a dropped client's session ends, and back again the client opens a new one");
         }
         finally

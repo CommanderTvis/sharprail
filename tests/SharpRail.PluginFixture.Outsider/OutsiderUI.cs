@@ -195,8 +195,14 @@ public sealed class OutsiderUI : PluginUIModule
         var clicks = Ui.Text($"Clicks: {settings.Clicks}", Ui.TextBrush);
         var button = Ui.Button("Count a click", async () =>
         {
-            await context.UpdateSettingsAsync(context.Settings<OutsiderSettings>() with { Clicks = context.Settings<OutsiderSettings>().Clicks + 1 });
-            clicks.Text = $"Clicks: {context.Settings<OutsiderSettings>().Clicks}";
+            // The client's session may end while the call waits for its reply: that cancels the call, and an unobserved
+            // failure here would end the process every other client of the plugin shares.
+            try
+            {
+                await context.UpdateSettingsAsync(context.Settings<OutsiderSettings>() with { Clicks = context.Settings<OutsiderSettings>().Clicks + 1 });
+                clicks.Text = $"Clicks: {context.Settings<OutsiderSettings>().Clicks}";
+            }
+            catch (Exception error) { context.Log.Error("The click failed: " + error.Message); }
         });
         button.Name = "OutsiderClick";
         var panel = new StackPanel { Name = name, Spacing = 8 };
