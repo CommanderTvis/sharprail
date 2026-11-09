@@ -15,7 +15,7 @@ var vendor = Path.Combine(project, "wwwroot/vendor");
 var utf8 = new UTF8Encoding(false);
 Directory.CreateDirectory(vendor);
 CopyDirectory(Path.Combine(root, "licenses"), Path.Combine(vendor, "licenses"));
-foreach (var file in new[] { "LICENSE", "NOTICE", "THIRD-PARTY-NOTICES.md" })
+foreach (var file in new[] { "LICENSE.md", "NOTICE", "THIRD-PARTY-NOTICES.md" })
     Copy(Path.Combine(root, file), Path.Combine(vendor, file));
 foreach (var dependency in new[] { "Ghostty.Avalonia", "SharpRail.Scintilla" })
     CopyDirectory(Path.Combine(root, "src", dependency, "licenses"), Path.Combine(vendor, "licenses", dependency));

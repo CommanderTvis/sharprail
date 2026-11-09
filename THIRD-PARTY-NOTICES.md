@@ -1,6 +1,6 @@
 # Asset provenance
 
-SharpRail's own code is licensed under the PolyForm Shield License 1.0.0 (`LICENSE`; scope and trademark
+SharpRail's own code is licensed under the PolyForm Shield License 1.0.0 (`LICENSE.md`; scope and trademark
 exclusions in `NOTICE`). This file records everything that is not that: derived, ported, bundled and
 interoperability-only material. Files derived from third-party code also carry a `Derived from` comment naming
 the upstream, its license and the text in `licenses/`; formats that cannot hold comments (JSON, SVG, binary) are

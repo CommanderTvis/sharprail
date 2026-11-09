@@ -33,7 +33,7 @@ if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
       *) cp -R "$item" "$bundle/Contents/MacOS/" ;;
     esac
   done
-  cp LICENSE NOTICE THIRD-PARTY-NOTICES.md "$bundle/Contents/Resources/"
+  cp LICENSE.md NOTICE THIRD-PARTY-NOTICES.md "$bundle/Contents/Resources/"
   cp -R licenses "$bundle/Contents/Resources/"
   cp src/SharpRail.Plugins.UI.Kit/Assets/Fonts/Geist-OFL.txt "$bundle/Contents/Resources/"
   cp src/SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-OFL.txt "$bundle/Contents/Resources/"

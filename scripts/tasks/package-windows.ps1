@@ -23,7 +23,7 @@ try {
     Invoke-Native $dotnet (@('publish', 'src/SharpRail.UI') + $publish + @('-o', (Join-Path $output 'client')))
     Invoke-Native $dotnet (@('publish', 'src/SharpRail.Host.Remote') + $publish + @('-o', (Join-Path $output 'host')))
     Invoke-Native $dotnet (@('publish', 'tests/SharpRail.Checks') + $publish + @('--self-contained', 'true', '-p:PublishReadyToRun=true', '-o', (Join-Path $output 'checks')))
-    Copy-Item 'LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.md', 'licenses', 'WINDOWS.md' $output -Recurse
-    Compress-Archive -Path "$output/client", "$output/host", "$output/licenses", "$output/LICENSE", "$output/NOTICE", "$output/THIRD-PARTY-NOTICES.md", "$output/WINDOWS.md" -DestinationPath (Join-Path $root "artifacts/SharpRail-$RuntimeIdentifier.zip") -Force
+    Copy-Item 'LICENSE.md', 'NOTICE', 'THIRD-PARTY-NOTICES.md', 'licenses', 'WINDOWS.md' $output -Recurse
+    Compress-Archive -Path "$output/client", "$output/host", "$output/licenses", "$output/LICENSE.md", "$output/NOTICE", "$output/THIRD-PARTY-NOTICES.md", "$output/WINDOWS.md" -DestinationPath (Join-Path $root "artifacts/SharpRail-$RuntimeIdentifier.zip") -Force
 }
 finally { Pop-Location }
