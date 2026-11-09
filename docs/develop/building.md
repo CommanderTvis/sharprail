@@ -17,3 +17,9 @@ To build the macOS app bundle (the app as a NativeAOT binary):
 scripts/mise run package:macos
 open artifacts/SharpRail.app
 ```
+
+## Memory
+
+A build target that runs a file-based script from a project directory must use `dotnet run --file <script>`. `dotnet run <script>` in a directory with a `.csproj` passes the script to the project as an argument, so it builds and runs that project, whose build runs the same target again: a chain of nested `dotnet` processes that grows until memory is gone. The Browser project's asset staging, bundle compression and preserved-assembly check use `--file` for this reason.
+
+Expected size of a Browser build: the compile and the non-AOT bundle stay near 2 GB; the Release AOT link (wasm-ld, then wasm-opt) is the largest step and is the one place a Browser build goes above 6 GB. Run every heavy command through `queue-heavy`; if one is killed at its ceiling, look for a recursive process chain before raising the ceiling.

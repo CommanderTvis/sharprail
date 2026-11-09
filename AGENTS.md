@@ -38,6 +38,7 @@
 - Format touched files: `dotnet format SharpRail.slnx --no-restore --include <files>`, then verify the whole solution with `scripts/mise run format` before committing: a scoped `--include` verify misses whitespace and final-newline errors that CI (whole-solution `--verify-no-changes`) reports. Style comes from the checked-in `.editorconfig`.
 - Checks: `dotnet run --project tests/SharpRail.Checks -c Release [-- <mode>]`. Mode list: `docs/develop/agent-reference.md`; add a mode in `tests/SharpRail.Checks/Program.cs` when a change has none.
 - Browser WASM and Android build separately from `SharpRail.slnx` (`scripts/mise run browser`, `scripts/mise run android`).
+- A build target of a project that has a `.csproj` in its directory runs file-based scripts with `dotnet run --file <script>`, never `dotnet run <script>`: the latter runs the project itself, which re-enters the target without end (`docs/develop/building.md`, Memory).
 - Documentation-only edits need whitespace and path verification, not a build or the gate.
 - Report only checks actually run; name anything blocked.
 
