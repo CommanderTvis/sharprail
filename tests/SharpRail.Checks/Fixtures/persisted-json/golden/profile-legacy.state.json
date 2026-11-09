@@ -28,7 +28,9 @@
     "VerticalTabsInProjects": true,
     "WindowDecorations": "",
     "SettleIdleDays": 7,
-    "ActiveKeymap": ""
+    "ActiveKeymap": "",
+    "EditorTabWidth": 0,
+    "EditorLineNumbers": true
   },
   "Presets": [
     {

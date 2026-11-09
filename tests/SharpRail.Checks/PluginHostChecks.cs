@@ -315,7 +315,7 @@ internal static partial class PluginHostChecks
         var all = BuiltinPlugins.Create(null);
         var undeclared = all.Where(plugin => plugin.Manifest.Headless == HeadlessSupport.Undeclared).Select(plugin => plugin.Manifest.Id).ToArray();
         Require(undeclared.Length == 0, "Every builtin plugin must state its headless decision (Headless = HeadlessSupport.Yes or No): " + string.Join(", ", undeclared));
-        Require(all.Select(plugin => plugin.Manifest.Id).Distinct().Count() == all.Count && BuiltinPlugins.LanguageServers.Count == 18 && all.Count == 41, "The builtin roster changed: classify the new plugin, then update this pin.");
+        Require(all.Select(plugin => plugin.Manifest.Id).Distinct().Count() == all.Count && BuiltinPlugins.LanguageServers.Count == 18 && all.Count == 42, "The builtin roster changed: classify the new plugin, then update this pin.");
         var declared = all.Where(plugin => plugin.Manifest.Headless == HeadlessSupport.Yes).Select(plugin => plugin.Manifest.Id).Order().ToArray();
         var headless = BuiltinPlugins.Headless;
         Require(headless.Select(plugin => plugin.Manifest.Id).Order().SequenceEqual(declared), "The headless roster is not exactly the plugins that declare Headless = Yes.");

@@ -29,6 +29,8 @@
     "WindowDecorations": "client",
     "SettleIdleDays": 14,
     "ActiveKeymap": "Mine",
+    "EditorTabWidth": 0,
+    "EditorLineNumbers": true,
     "FutureSetting": {
       "nested": [
         1,
