@@ -674,6 +674,11 @@ record lacks an answer to a current question, or whose agreement text changed, m
 review offers the user's earlier answers, which the user still confirms by accepting. The recorded answers reach the
 launch as `ILanguageServerInstallation.AcceptedTerms.Answers`.
 
+Settings shows a server's terms in three states. While the acceptance is not yet known it says the terms are being
+checked and offers no review button; only a known "not accepted" offers Review and accept terms, and a known acceptance
+shows its date and version. The last known acceptance is kept per server so reopening the pane shows it at once while
+the host is read again, and a new server version drops it.
+
 ### Provisioning and execution
 
 The `provision` language operation installs a server's pinned managed distribution without starting it (the headless `warm` path); a server with terms is installed only once its exact terms were accepted, and a failure returns an `error` result with the message.

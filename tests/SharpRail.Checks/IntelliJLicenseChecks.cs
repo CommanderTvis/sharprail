@@ -241,6 +241,27 @@ internal static class IntelliJLicenseChecks
         Console.WriteLine("PASS IntelliJ settings license block: state, trial days and notice, unlicensed message, actions and their host calls");
     }
 
+    /// <summary>The terms status is three-state: unknown shows no button, only a known state offers review, and the last known acceptance is cached per server version.</summary>
+    internal static void TermsStatus()
+    {
+        var checking = SharpRail.UI.Panels.TermsStatusView.Of(SharpRail.UI.Panels.TermsKnowledge.Checking);
+        Require(!checking.ShowReview && !checking.ReviewEnabled && !checking.Text.Contains("not accepted", StringComparison.OrdinalIgnoreCase), "The unknown state must show no button and not claim the terms are not accepted: " + checking.Text);
+        var notAccepted = SharpRail.UI.Panels.TermsStatusView.Of(SharpRail.UI.Panels.TermsKnowledge.NotAccepted);
+        Require(notAccepted.ShowReview && notAccepted.ReviewEnabled && notAccepted.Text.StartsWith("Terms not accepted", StringComparison.Ordinal), "A known not-accepted state must offer Review and accept terms.");
+        var accepted = SharpRail.UI.Panels.TermsStatusView.Of(SharpRail.UI.Panels.TermsKnowledge.Accepted, "2026-11-07", "263.7084.0");
+        Require(accepted.Text == "Terms accepted on 2026-11-07 (version 263.7084.0)." && !accepted.ReviewEnabled, "The accepted state must show the date and version: " + accepted.Text);
+        const string server = "terms-cache-fixture";
+        Require(!SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "An empty cache returned an acceptance.");
+        SharpRail.UI.Panels.TermsAcceptanceCache.Store(server, "1", "2026-11-07", "263.7084.0");
+        Require(SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out var at, out var version) && at == "2026-11-07" && version == "263.7084.0", "The cache did not return the stored acceptance.");
+        Require(!SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "2", out _, out _), "A new server version must invalidate the cached acceptance.");
+        Require(!SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "The invalidated acceptance came back.");
+        SharpRail.UI.Panels.TermsAcceptanceCache.Store(server, "1", "2026-11-07", "");
+        SharpRail.UI.Panels.TermsAcceptanceCache.Forget(server);
+        Require(!SharpRail.UI.Panels.TermsAcceptanceCache.TryGet(server, "1", out _, out _), "Forget kept the acceptance.");
+        Console.WriteLine("PASS Settings terms status: unknown shows no button, known states offer review, acceptance cache invalidates on a new server version");
+    }
+
     /// <summary>Settings › Code Intelligence: a server with terms shows their status, a review button, and Install now once accepted; one without shows none of it.</summary>
     internal static void SettingsTerms(string fixture)
     {
@@ -292,7 +313,7 @@ internal static class IntelliJLicenseChecks
             Require(!Find<Avalonia.Controls.StackPanel>("LspTermsSection").IsVisible, "A server without terms showed the terms controls.");
             Select("intellij");
             E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.StackPanel>("LspTermsSection").IsVisible, "A server with terms showed no terms controls.");
-            Require(Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text!.StartsWith("Terms not accepted", StringComparison.Ordinal), "The unaccepted status was not shown: " + Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text);
+            E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text!.StartsWith("Terms not accepted", StringComparison.Ordinal), "The unaccepted status was not shown: " + Find<Avalonia.Controls.TextBlock>("LspTermsStatus").Text);
             Require(Find<Avalonia.Controls.Button>("LspReviewTerms").IsEnabled && !Find<Avalonia.Controls.Button>("LspInstall").IsVisible, "Before acceptance the review button must be on and Install now hidden.");
             Require(terms.Count == 0, "Selecting a server that is not installed read its terms, which downloads it.");
             Find<Avalonia.Controls.Button>("LspReviewTerms").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));

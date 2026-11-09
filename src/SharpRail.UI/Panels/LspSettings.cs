@@ -43,6 +43,8 @@ public sealed partial class SettingsView
         var installStatus = PageControl<TextBlock>(panel, "LspInstallStatus");
         var installing = false;
         var termsAccepted = false;
+        var termsConfirmed = false;
+        var serverVersion = "";
         var installed = false;
         var dependencies = PageControl<LanguageDependencyList>(panel, "LspDependencies");
         var dependencySection = PageControl<StackPanel>(panel, "LspDependencySection");
@@ -96,10 +98,16 @@ public sealed partial class SettingsView
             message.Text = "";
             var hasTerms = server.Presentation?.HasTerms == true;
             termsSection.IsVisible = hasTerms;
-            termsAccepted = installed = false;
+            termsAccepted = installed = termsConfirmed = false;
+            serverVersion = server.Version;
             installStatus.Text = "";
             installRetry.IsVisible = false;
-            if (hasTerms) { termsStatus.Foreground = Ui.Muted; termsStatus.Text = "Terms not accepted. Reading them downloads the pinned managed server first."; UpdateTerms(); }
+            if (hasTerms)
+            {
+                // Until the host answers the acceptance is unknown: show the last known one, or nothing, never "not accepted".
+                if (TermsAcceptanceCache.TryGet(id, serverVersion, out var cachedAt, out var cachedVersion)) ShowStatus(TermsKnowledge.Accepted, cachedAt, cachedVersion);
+                else ShowStatus(TermsKnowledge.Checking);
+            }
             links.IsVisible = false;
             _ = LoadLinks(id);
             _ = LoadResolution(id);
@@ -137,7 +145,12 @@ public sealed partial class SettingsView
                 resolved.Foreground = result.State == "ready" ? Ui.Muted : Ui.Danger;
                 resolved.Text = $"{source}: {(path.Length > 0 ? path : "no executable")}" + (version.Length > 0 ? $"\nVersion: {version}" : "") + $"\n{result.Detail}\n{facts["pinning"]?.GetValue<string>()}";
                 allowPath.IsEnabled = facts["pathCapable"]?.GetValue<bool>() == true;
-                if (termsSection.IsVisible) { installed = result.State == "ready" && path.Length > 0; _ = LoadTerms(id); }
+                if (termsSection.IsVisible)
+                {
+                    installed = result.State == "ready" && path.Length > 0;
+                    if (!installed) { TermsAcceptanceCache.Forget(id); termsConfirmed = false; ShowStatus(TermsKnowledge.NotInstalled); }
+                    else _ = LoadTerms(id);
+                }
                 pathWarning.Foreground = Ui.Danger; pathWarning.Text = warning; pathWarning.IsVisible = warning.Length > 0;
             }
             catch (OperationCanceledException) { }
@@ -146,7 +159,7 @@ public sealed partial class SettingsView
         void UpdateTerms()
         {
             reviewTerms.IsEnabled = !termsAccepted;
-            install.IsVisible = termsAccepted && !installed;
+            install.IsVisible = termsAccepted && termsConfirmed && !installed;
             install.IsEnabled = !installing;
             installRetry.IsEnabled = !installing;
         }
@@ -161,16 +174,25 @@ public sealed partial class SettingsView
                 ShowTerms(read);
             }
             catch (OperationCanceledException) { }
-            catch (Exception failure) when (!lifetime.IsCancellationRequested) { termsStatus.Foreground = Ui.Danger; termsStatus.Text = "Terms unavailable: " + failure.Message; }
+            catch (Exception failure) when (!lifetime.IsCancellationRequested) { termsConfirmed = true; ShowStatus(TermsKnowledge.Unavailable, detail: failure.Message); }
+        }
+        void ShowStatus(TermsKnowledge knowledge, string acceptedAtUtc = "", string version = "", string detail = "")
+        {
+            var view = TermsStatusView.Of(knowledge, acceptedAtUtc, version, detail);
+            termsAccepted = knowledge == TermsKnowledge.Accepted;
+            termsStatus.Foreground = view.Failed ? Ui.Danger : Ui.Muted;
+            termsStatus.Text = view.Text;
+            reviewTerms.IsVisible = view.ShowReview;
+            UpdateTerms();
+            reviewTerms.IsEnabled = view.ReviewEnabled;
         }
         void ShowTerms(LanguageTermsResult read)
         {
-            termsAccepted = read.Accepted;
-            termsStatus.Foreground = read.State == "unavailable" ? Ui.Danger : Ui.Muted;
-            termsStatus.Text = read.Accepted ? $"Terms accepted on {read.AcceptedAtUtc}" + (read.Version.Length > 0 ? $" (version {read.Version})." : ".")
-                : read.State == "unavailable" ? "Terms unavailable: " + read.Detail
-                : "Terms not accepted. Choose Review and accept terms. Nothing starts until you accept.";
-            UpdateTerms();
+            termsConfirmed = true;
+            if (read.State == "unavailable") { TermsAcceptanceCache.Forget(selector.SelectedItem?.ToString() ?? ""); ShowStatus(TermsKnowledge.Unavailable, detail: read.Detail); return; }
+            var id = selector.SelectedItem?.ToString() ?? "";
+            if (read.Accepted) TermsAcceptanceCache.Store(id, serverVersion, read.AcceptedAtUtc, read.Version); else TermsAcceptanceCache.Forget(id);
+            ShowStatus(read.Accepted ? TermsKnowledge.Accepted : TermsKnowledge.NotAccepted, read.AcceptedAtUtc, read.Version);
         }
         reviewTerms.Click += (_, _) =>
         {
