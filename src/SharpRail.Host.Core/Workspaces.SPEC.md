@@ -94,7 +94,7 @@ forgetting removes its row while leaving the checkout in place. The Default work
   and to release.
 - `workspace_emigrate` (`path`, optional `reason`) moves only the calling terminal's tab into a workspace and relaunches
   its agent there, resumed. workspace_create records the calling terminal as the new workspace's creator (persisted in
-  `state.json` and published to clients as `WorkspaceCreators`). The tool refuses, changing nothing, unless the caller is a Claude Code or Codex
+  `state.json` and published to clients as `WorkspaceCreators`) only for that call; a workspace made any other way has none, and the entry goes when the workspace leaves the registry, so a reused path starts without one. The tool refuses, changing nothing, unless the caller is a Claude Code or Codex
   terminal whose agent record names a session id and whose plugin offers a revival, and the target is a registered,
   existing, non-Default workspace of the same project, other than the caller's, that this same terminal created, and no
   other process has the session open (a live lock of another SharpRail, or a process outside the caller's own tab that

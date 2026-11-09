@@ -780,7 +780,7 @@ internal static class ClaudeCodeChecks
             E2eWorkspace.Until(() => call.IsCompleted);
             return call.GetAwaiter().GetResult();
         }
-        string Created(JsonObject arguments, TerminalRef creator)
+        string Created(JsonObject arguments, TerminalRef? creator)
         {
             var created = Call(tools.Create(app.Root, creator), arguments);
             Require(!created.Error, "workspace_create must succeed: " + created.Text);
@@ -789,6 +789,7 @@ internal static class ClaudeCodeChecks
         var target = Created(new JsonObject { ["description"] = "Emigration target" }, tab);
         var foreign = Created(new JsonObject { ["description"] = "Another terminal's workspace" }, new TerminalRef(app.Root, "another-terminal"));
         Require(app.State.WorkspaceCreator(target) == tab && app.State.WorkspaceCreator(foreign) != tab, "workspace_create records the calling terminal as the creator.");
+        Require(app.State.WorkspaceCreator(Created(new JsonObject { ["description"] = "No terminal identity" }, null)) is null, "A workspace_create call without a terminal identity recorded a creator.");
         bool Unchanged() => app.State.Current.PendingEmigrations.Count == 0 && app.State.Current.TerminalAgents.Any(agent => agent.Terminal == tab) &&
             app.State.Terminals!.Catalog.Workspaces.GetValueOrDefault(app.Root)?.Any(known => known.Key == tab.TabKey) == true &&
             app.State.Terminals.Catalog.Workspaces.GetValueOrDefault(target)?.Any(known => known.Key == tab.TabKey) != true;

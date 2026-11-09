@@ -1422,6 +1422,7 @@ internal static class Program
         Gate.Case("check-root", CheckRootChecks.Run);
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);
+        Gate.Case("workspace-creator", () => WorkspaceCreatorChecks.Run(root));
         Gate.Case("scintilla-core", ScintillaCore.ScintillaCoreChecks.Run);
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
         Gate.Case("android-client", () => AndroidClientChecks.Run(root));

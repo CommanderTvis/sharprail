@@ -62,6 +62,8 @@ public sealed partial class HostStateStore
                     WorkspaceBases = Without(result.WorkspaceBases, gone),
                     WorkspaceDiffBases = Without(result.WorkspaceDiffBases, gone)
                 };
+            // A path is reused by the next workspace made there, so its creator must not outlive it.
+            if (removed.Any(workspaceCreators.Remove)) result = result with { WorkspaceCreators = CreatorEntries() };
             workspaces = Publish(result, persist: true).Workspaces;
         }
         foreach (var path in removed) WorkspaceRemoved?.Invoke(path);
