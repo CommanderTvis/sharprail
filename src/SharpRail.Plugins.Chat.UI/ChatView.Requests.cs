@@ -290,9 +290,9 @@ internal sealed partial class ChatView
             for (var at = 0; at < item.Questions.Count; at++)
             {
                 var index = at;
-                var answered = draft.Chosen[at].Count > 0 || draft.Other[at].Trim().Length > 0;
+                var answered = draft.IsAnswered(at);
                 var tabTitle = item.Questions[at].Header ?? "Question " + (at + 1);
-                var tabText = Ui.Text((answered ? "✓ " : "") + tabTitle, at == questionTab ? Ui.TextBrush : Ui.Muted, 12);
+                var tabText = Ui.Text((answered ? "✓ " : "○ ") + tabTitle, at == questionTab ? Ui.TextBrush : Ui.Muted, 12);
                 refs.Tabs.Add((tabText, tabTitle));
                 var tab = new Button
                 {
@@ -370,6 +370,14 @@ internal sealed partial class ChatView
         var cancel = Choice("ChatQuestionCancel", "", "No", () => CancelQuestion(item));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         buttons.Children.Add(submit); buttons.Children.Add(cancel);
+        var submitHint = new TextBlock { Name = "ChatQuestionHint", Text = SubmitHint(item, draft), FontSize = 11, Foreground = Ui.Muted, VerticalAlignment = VerticalAlignment.Center };
+        buttons.Children.Add(submitHint);
+        refs.Hint = submitHint;
+        // A disabled button takes no click, so the press is caught on the row: on Submit while it is disabled, it jumps to the first unanswered question.
+        buttons.AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            if (!submit.IsEnabled && e.Source is Visual source && (ReferenceEquals(source, submit) || source.GetVisualAncestors().Contains(submit))) JumpToUnanswered(item);
+        }, handledEventsToo: true);
         root.Children.Add(buttons);
         root.KeyDown += (_, e) =>
         {
@@ -390,6 +398,7 @@ internal sealed partial class ChatView
         public List<(string Label, Border Mark)> Options { get; } = [];
         public List<(TextBlock Text, string Title)> Tabs { get; } = [];
         public Button? Submit { get; set; }
+        public TextBlock? Hint { get; set; }
         public TextBox? Other { get; set; }
     }
 
@@ -410,10 +419,10 @@ internal sealed partial class ChatView
         foreach (var (label, mark) in refs.Options) PaintMark(mark, draft.Chosen[questionTab].Contains(label));
         for (var at = 0; at < refs.Tabs.Count; at++)
         {
-            var answered = draft.Chosen[at].Count > 0 || draft.Other[at].Trim().Length > 0;
-            refs.Tabs[at].Text.Text = (answered ? "✓ " : "") + refs.Tabs[at].Title;
+            refs.Tabs[at].Text.Text = (draft.IsAnswered(at) ? "✓ " : "○ ") + refs.Tabs[at].Title;
         }
         if (refs.Submit is { } submit) submit.IsEnabled = draft.Complete;
+        if (refs.Hint is { } hint) hint.Text = SubmitHint(item, draft);
         if (refs.Other is { } other && (other.Text ?? "") != draft.Other[questionTab]) other.Text = draft.Other[questionTab];
         requestSignature = RequestSignature(item);
     }
@@ -441,6 +450,19 @@ internal sealed partial class ChatView
     {
         transcript.SetDraft(item, transcript.DraftOf(item).WithOther(at, item.Questions[at].MultiSelect, text));
         RefreshQuestion(item);
+    }
+
+    private static string SubmitHint(ChatQuestionItem item, QuestionDraft draft)
+    {
+        var titles = draft.Unanswered.Select(at => item.Questions.Count == 1 ? "the question" : item.Questions[at].Header ?? "Question " + (at + 1)).ToList();
+        return titles.Count == 0 ? "" : "Answer " + (titles.Count == 1 ? titles[0] : string.Join(", ", titles.Take(titles.Count - 1)) + " and " + titles[^1]) + " to submit";
+    }
+
+    internal void JumpToUnanswered(ChatQuestionItem item)
+    {
+        if (transcript.DraftOf(item).Unanswered is not [var first, ..]) return;
+        questionTab = first;
+        UpdateRequests(true);
     }
 
     internal void SubmitQuestion(ChatQuestionItem item)

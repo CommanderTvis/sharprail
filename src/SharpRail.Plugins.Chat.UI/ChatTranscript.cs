@@ -36,6 +36,10 @@ internal sealed record QuestionDraft(IReadOnlyList<IReadOnlyList<string>> Chosen
         return new(chosen, other);
     }
 
+    public bool IsAnswered(int question) => Chosen[question].Count > 0 || Other[question].Trim().Length > 0;
+
+    public IReadOnlyList<int> Unanswered => [.. Chosen.Select((_, at) => at).Where(at => !IsAnswered(at))];
+
     public bool Complete => Chosen.Select((picked, at) => picked.Count > 0 || Other[at].Trim().Length > 0).All(done => done);
 
     /// <summary>The answer to each question by question text: a multi-select answer is its labels joined by ", " (the typed text last), "Other" is the typed text.</summary>

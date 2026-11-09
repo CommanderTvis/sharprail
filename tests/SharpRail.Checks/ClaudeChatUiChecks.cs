@@ -2887,7 +2887,13 @@ internal static class ClaudeChatUiChecks
             view.QuestionPick(ask3, 1, "M1");
             Type("what fits on laptop");
             Require(transcript.DraftOf(ask3) is { Complete: false } typed && typed.Chosen[1].Count == 0 && typed.Other[1] == "what fits on laptop", "Typing own text replaces the picked option.");
+            string Hint() => view.RequestPanel.GetVisualDescendants().OfType<TextBlock>().First(text => text.Name == "ChatQuestionHint").Text ?? "";
+            string TabText(int at) => ((TextBlock)Named("ChatQuestionTab_" + at).Content!).Text ?? "";
+            Require(Hint() == "Answer Caption and Display to submit" && TabText(0).StartsWith('\u25CB') && TabText(1).StartsWith('\u2713'), "Unanswered tabs are marked and the hint names them.");
+            view.JumpToUnanswered(ask3); Frame(window);
+            Require(view.RequestPanel.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Caption?"), "Jumping goes to the first unanswered question.");
             Tab(0); Type("my caption");
+            Require(Hint() == "Answer Display to submit", "One missing tab is named alone.");
             Tab(2); Type("my display");
             Require(Named("ChatQuestionSubmit").IsEnabled, "Own text on every question enables Submit.");
             Tab(1);
