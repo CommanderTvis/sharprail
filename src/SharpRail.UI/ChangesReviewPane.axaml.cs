@@ -321,7 +321,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             if (scroll is not null && top < 0 && top + section.Frame.Bounds.Height > 32) pin = section;
             var height = section.Frame.Bounds.Height;
             var visible = !IsCollapsed(section.Change) && (scroll is null ||
-                top < scroll.Bounds.Height * 2 && top + height > -scroll.Bounds.Height);
+                top < scroll.Bounds.Height * 3 && top + height > -scroll.Bounds.Height);
             var near = scroll is null || top < scroll.Bounds.Height * 3 && top + height > -scroll.Bounds.Height * 2;
             if (near && section.Card is null) Realize(section);
             if (visible && (section.View is null || section.Stale) && !section.Loading && !section.Failed) _ = LoadAsync(section, generation, reading.Token);

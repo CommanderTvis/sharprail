@@ -90,7 +90,8 @@ public sealed partial class EditorFrame
         {
             var styles = await Task.Run(async () =>
             {
-                await Task.Delay(60, token).ConfigureAwait(false);
+                // Typing is debounced; a mounted editor's first pass starts at once so scrolled-in code is not held back.
+                if (firstHighlight.Task.IsCompleted) await Task.Delay(60, token).ConfigureAwait(false);
                 await syntaxGate.WaitAsync(token).ConfigureAwait(false);
                 try
                 {

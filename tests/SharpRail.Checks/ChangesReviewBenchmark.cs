@@ -54,6 +54,23 @@ internal static class ChangesReviewBenchmark
             var openMs = open.Elapsed.TotalMilliseconds;
             openAllocated = GC.GetTotalAllocatedBytes(true) - openAllocated;
             var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Name == "ReviewScroll");
+            // Jump to a region never mounted before and time until every code pane crossing the viewport has its highlighting revealed.
+            scroll.Offset = new Vector(0, 6000);
+            var revealTimer = Stopwatch.StartNew();
+            Frame(window); Frame(window);
+            bool Revealed()
+            {
+                var panes = pane.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Editor.EditorFrame>()
+                    .Where(frame => frame.TranslatePoint(default, scroll) is { } at && at.Y < scroll.Bounds.Height && at.Y + frame.Bounds.Height > 0).ToArray();
+                return panes.Length > 0 && panes.All(frame => frame.HighlightingReady.IsCompleted);
+            }
+            while (!Revealed())
+            {
+                Frame(window);
+                if (revealTimer.Elapsed > TimeSpan.FromSeconds(30)) throw new InvalidOperationException("Visible code panes never revealed.");
+            }
+            var revealMs = revealTimer.Elapsed.TotalMilliseconds;
+            scroll.Offset = new Vector(0, 0); Frame(window);
             var frames = new List<double>();
             var allocated = GC.GetTotalAllocatedBytes(true);
             for (var step = 0; step < 120; step++)
@@ -72,6 +89,7 @@ internal static class ChangesReviewBenchmark
                 files = files.Length,
                 largeLines = 20000,
                 openToFirstFrameMs = openMs,
+                visibleRevealMs = revealMs,
                 openAllocatedBytes = openAllocated,
                 scrollMedianMs = frames[60],
                 scrollP95Ms = frames[114],

@@ -431,7 +431,7 @@ A review tab owns one scope's ordered file list. Stacked mode supplies one outer
 headers, bordered file cards separated by a 16 px gap, a compact end row, collapsible sections and lazy bodies; offscreen editors detach while their measured height,
 renderer choice and content remain cached. File cards are virtualized: only cards within about two viewports
 hold header and body chrome, taken from a pool and rebound to their file (title, Viewed, kept progress);
-others keep just their bordered frame at the last measured or estimated height. The scroll anchor is the
+others keep just their bordered frame at the last measured or estimated height. Bodies load and mount up to about three viewports ahead, and a mounted code pane starts its first highlighting pass at once; only later edits are debounced. The scroll anchor is the
 topmost card, or hunk slot inside it, crossing the viewport top; when content above it realizes or releases
 at a different height the offset moves by the same amount, except during explicit navigation. Large and
 multi-hunk sections follow the bounded and per-hunk contract in [Rendering/SPEC.md](Rendering/SPEC.md#diffs). Generated and large files start collapsed. One file mode
